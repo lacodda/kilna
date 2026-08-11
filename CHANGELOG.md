@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.8.0] - 2026-08-11
+
+### Features
+- A plugin system, and the first plugin to use it
 ## [0.7.0] - 2026-08-11
+
+### Documentation
+- Changelog for v0.7.0
 
 ### Features
 - Four crafts on one schema, switching and a profile editor
