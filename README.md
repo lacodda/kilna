@@ -8,6 +8,8 @@ You write songs, chapters, episodes, or articles. The work lives in one place, t
 
 > **Status: early development.** The schema, the migration path and the built-in Music profile are in place, and the app opens a workspace. The screens that let you use it arrive next. Nothing to install yet.
 
+<img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="kilna showing the loop and the active profile" width="1000">
+
 ## The loop
 
 ```

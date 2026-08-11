@@ -16,4 +16,9 @@ export default tseslint.config(
       globals: globals.browser,
     },
   },
+  // Build tooling runs under Node, not in the webview.
+  {
+    files: ['tools/**/*.mjs', '*.config.{js,ts}'],
+    languageOptions: { globals: globals.node },
+  },
 )
