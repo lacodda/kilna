@@ -191,6 +191,61 @@ export interface ScoredWork {
   stale: boolean
 }
 
+export interface Release {
+  id: string
+  work_id: string
+  kind: string
+  status: string
+  title: string | null
+  scheduled_at: string | null
+  released_at: string | null
+  url: string | null
+  meta: Meta
+  created_at: string
+  updated_at: string
+}
+
+// The backend flattens the release into this, so the fields sit side by side.
+export interface ScheduledRelease extends Release {
+  work_title: string
+  total: number | null
+  tier: string | null
+}
+
+export interface NewRelease {
+  work_id: string
+  kind: string
+  title?: string | null
+  scheduled_at?: string | null
+  meta?: Meta | null
+}
+
+export interface Scheduling {
+  release: Release
+  /** The release that lost the slot, if this one displaced something. */
+  displaced: Release | null
+}
+
+export interface Collection {
+  id: string
+  profile_id: string
+  kind: string
+  title: string
+  description: string | null
+  position: number
+  meta: Meta
+  created_at: string
+  updated_at: string
+  works: number
+}
+
+export interface NewCollection {
+  kind: string
+  title: string
+  description?: string | null
+  meta?: Meta | null
+}
+
 export const getWorkspace = () => invoke<Workspace>('get_workspace')
 export const listProfiles = () => invoke<Profile[]>('list_profiles')
 export const activateProfile = (id: string) => invoke<void>('activate_profile', { id })
@@ -221,3 +276,21 @@ export const scoreHistory = (workId: string) => invoke<Score[]>('score_history',
 export const latestScore = (workId: string) => invoke<Score | null>('latest_score', { workId })
 export const deleteScore = (id: string) => invoke<void>('delete_score', { id })
 export const catalogue = () => invoke<ScoredWork[]>('catalogue')
+
+export const createRelease = (release: NewRelease) => invoke<Release>('create_release', { release })
+export const deleteRelease = (id: string) => invoke<void>('delete_release', { id })
+export const scheduleRelease = (id: string, slot: string) =>
+  invoke<Scheduling>('schedule_release', { id, slot })
+export const unscheduleRelease = (id: string) => invoke<Release>('unschedule_release', { id })
+export const markReleased = (id: string, url?: string | null) =>
+  invoke<Release>('mark_released', { id, url })
+export const calendar = () => invoke<ScheduledRelease[]>('calendar')
+export const releaseQueue = () => invoke<ScheduledRelease[]>('release_queue')
+export const releasesForWork = (workId: string) => invoke<Release[]>('releases_for_work', { workId })
+
+export const listCollections = () => invoke<Collection[]>('list_collections')
+export const createCollection = (collection: NewCollection) =>
+  invoke<Collection>('create_collection', { collection })
+export const deleteCollection = (id: string) => invoke<void>('delete_collection', { id })
+export const setCollectionContents = (id: string, workIds: string[]) =>
+  invoke<void>('set_collection_contents', { id, workIds })

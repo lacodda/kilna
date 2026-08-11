@@ -1,8 +1,10 @@
 use tauri::State;
 
+use crate::collection::{self, Collection, CollectionPatch, NewCollection};
 use crate::error::{Error, Result};
 use crate::note::{self, NewNote, Note, NoteFilter, NotePatch};
 use crate::profile::{self, Profile, Workspace};
+use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
 use crate::score::{self, NewScore, Score, ScoredWork};
 use crate::state::AppState;
 use crate::work::version::{self, NewVersion, Version, VersionSummary};
@@ -169,4 +171,117 @@ pub fn catalogue(state: State<'_, AppState>) -> Result<Vec<ScoredWork>> {
     let conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
     score::catalogue(&conn, &profile_id)
+}
+
+#[tauri::command]
+pub fn create_release(state: State<'_, AppState>, release: NewRelease) -> Result<Release> {
+    let conn = state.conn();
+    release::create(&conn, release)
+}
+
+#[tauri::command]
+pub fn update_release(
+    state: State<'_, AppState>,
+    id: String,
+    patch: ReleasePatch,
+) -> Result<Release> {
+    let conn = state.conn();
+    release::update(&conn, &id, patch)
+}
+
+#[tauri::command]
+pub fn delete_release(state: State<'_, AppState>, id: String) -> Result<()> {
+    let conn = state.conn();
+    release::delete(&conn, &id)
+}
+
+/// Claim a calendar slot. Displacing a weaker release is reported back rather
+/// than done silently — the user should see what moved.
+#[tauri::command]
+pub fn schedule_release(
+    state: State<'_, AppState>,
+    id: String,
+    slot: String,
+) -> Result<Scheduling> {
+    let mut conn = state.conn();
+    release::schedule(&mut conn, &id, &slot)
+}
+
+#[tauri::command]
+pub fn unschedule_release(state: State<'_, AppState>, id: String) -> Result<Release> {
+    let conn = state.conn();
+    release::unschedule(&conn, &id)
+}
+
+#[tauri::command]
+pub fn mark_released(
+    state: State<'_, AppState>,
+    id: String,
+    url: Option<String>,
+) -> Result<Release> {
+    let conn = state.conn();
+    release::mark_released(&conn, &id, url)
+}
+
+#[tauri::command]
+pub fn calendar(state: State<'_, AppState>) -> Result<Vec<ScheduledRelease>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    release::calendar(&conn, &profile_id)
+}
+
+#[tauri::command]
+pub fn release_queue(state: State<'_, AppState>) -> Result<Vec<ScheduledRelease>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    release::queue(&conn, &profile_id)
+}
+
+#[tauri::command]
+pub fn releases_for_work(state: State<'_, AppState>, work_id: String) -> Result<Vec<Release>> {
+    let conn = state.conn();
+    release::for_work(&conn, &work_id)
+}
+
+#[tauri::command]
+pub fn list_collections(state: State<'_, AppState>) -> Result<Vec<Collection>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    collection::list(&conn, &profile_id)
+}
+
+#[tauri::command]
+pub fn create_collection(
+    state: State<'_, AppState>,
+    collection: NewCollection,
+) -> Result<Collection> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    collection::create(&conn, &profile_id, collection)
+}
+
+#[tauri::command]
+pub fn update_collection(
+    state: State<'_, AppState>,
+    id: String,
+    patch: CollectionPatch,
+) -> Result<Collection> {
+    let conn = state.conn();
+    collection::update(&conn, &id, patch)
+}
+
+#[tauri::command]
+pub fn delete_collection(state: State<'_, AppState>, id: String) -> Result<()> {
+    let conn = state.conn();
+    collection::delete(&conn, &id)
+}
+
+#[tauri::command]
+pub fn set_collection_contents(
+    state: State<'_, AppState>,
+    id: String,
+    work_ids: Vec<String>,
+) -> Result<()> {
+    let mut conn = state.conn();
+    collection::set_contents(&mut conn, &id, &work_ids)
 }

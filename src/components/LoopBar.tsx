@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 const STEPS = ['work', 'versions', 'score', 'slot', 'shipped'] as const
 
 // The loop the whole product is built around, shown as the shape of the app.
-// Steps beyond versions are not built yet and read as dimmed.
-const BUILT = 3
+// Every step is built as of v0.4.0; the constant stays so a future step added
+// ahead of its implementation reads as dimmed rather than as a lie.
+const BUILT = 5
 
 export function LoopBar() {
   const { t } = useTranslation()

@@ -54,7 +54,31 @@
   },
   "nav": {
     "works": "Works",
-    "catalogue": "Catalogue"
+    "catalogue": "Catalogue",
+    "calendar": "Calendar"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "queue": "Queue",
+    "queueHint": "Strongest first. Pick one, then give it a date.",
+    "queueEmpty": "Nothing waiting. Add a release from a work.",
+    "empty": "No slots taken yet.",
+    "slotDate": "Slot date",
+    "claim": "Claim slot",
+    "displaced": "{{title}} lost the slot and went back to the queue.",
+    "markReleased": "Mark released",
+    "unschedule": "Return to the queue",
+    "released": "Released",
+    "link": "link",
+    "urlPrompt": "Link it went out on (optional)"
+  },
+  "releases": {
+    "title": "Releases",
+    "kind": "Kind",
+    "add": "Plan a release",
+    "delete": "Delete this release",
+    "unscheduled": "not scheduled",
+    "releasedOn": "released {{date}}"
   },
   "score": {
     "title": "Score",

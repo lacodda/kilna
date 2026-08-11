@@ -6,13 +6,14 @@ import { LoopBar } from '@/components/LoopBar'
 import { WorkList } from '@/components/WorkList'
 import { WorkCard } from '@/components/WorkCard'
 import { Catalogue } from '@/components/Catalogue'
+import { CalendarView } from '@/components/CalendarView'
 
 export default function App() {
   const { t } = useTranslation()
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [view, setView] = useState<'works' | 'catalogue'>('works')
+  const [view, setView] = useState<'works' | 'catalogue' | 'calendar'>('works')
   // Bumped whenever a work changes, so the list and the counters refetch.
   const [revision, setRevision] = useState(0)
 
@@ -59,7 +60,7 @@ export default function App() {
         </header>
 
         <nav className="flex gap-1 border-b border-neutral-200 px-6 dark:border-neutral-800">
-          {(['works', 'catalogue'] as const).map((tab) => (
+          {(['works', 'catalogue', 'calendar'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -79,6 +80,15 @@ export default function App() {
           <main className="flex-1 overflow-y-auto p-6">
             <Catalogue
               revision={revision}
+              onSelect={(workId) => {
+                setSelectedId(workId)
+                setView('works')
+              }}
+            />
+          </main>
+        ) : view === 'calendar' ? (
+          <main className="flex-1 overflow-y-auto p-6">
+            <CalendarView
               onSelect={(workId) => {
                 setSelectedId(workId)
                 setView('works')

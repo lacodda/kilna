@@ -7,6 +7,7 @@
 //! in this repository.
 
 use kilna_lib::note::NewNote;
+use kilna_lib::release::{self, NewRelease};
 use kilna_lib::score::{self, NewScore};
 use kilna_lib::work::NewWork;
 use kilna_lib::work::version::NewVersion;
@@ -24,6 +25,8 @@ struct Demo {
     /// Axis values, in the order the Music profile declares them. A work with
     /// no scores stays unjudged, which the catalogue shows differently.
     scores: &'static [[f64; 6]],
+    /// Release kind to plan, and the slot to claim if any.
+    release: Option<(&'static str, Option<&'static str>)>,
 }
 
 const AXIS_KEYS: [&str; 6] = [
@@ -56,6 +59,7 @@ const WORKS: &[Demo] = &[
             [7.0, 6.0, 7.0, 6.0, 7.0, 8.0],
             [8.0, 8.5, 8.0, 6.5, 7.0, 8.0],
         ],
+        release: Some(("clip", Some("2026-09-11"))),
     },
     Demo {
         title: "Paper boats",
@@ -66,6 +70,9 @@ const WORKS: &[Demo] = &[
         style: "bright synth pop, arpeggiated bass, tape saturation",
         note: None,
         scores: &[],
+        // Planned but unscored — it sits at the back of the queue, and cannot
+        // take a slot from anything that has been judged.
+        release: Some(("audio", None)),
     },
     Demo {
         title: "Winter shift",
@@ -79,6 +86,7 @@ const WORKS: &[Demo] = &[
             &["release"],
         )),
         scores: &[[6.0, 7.5, 8.0, 7.0, 6.0, 4.0]],
+        release: Some(("audio", Some("2026-09-04"))),
     },
 ];
 
@@ -166,6 +174,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     tags: tags.iter().map(|tag| (*tag).to_owned()).collect(),
                 },
             )?;
+        }
+
+        if let Some((kind, slot)) = demo.release {
+            let planned = release::create(
+                &conn,
+                NewRelease {
+                    work_id: created.id.clone(),
+                    kind: kind.into(),
+                    title: Some(demo.title.into()),
+                    scheduled_at: None,
+                    meta: None,
+                },
+            )?;
+
+            if let Some(slot) = slot {
+                release::schedule(&mut conn, &planned.id, slot)?;
+            }
         }
 
         println!("added {}", demo.title);

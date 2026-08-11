@@ -65,6 +65,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for note in notes {
                 println!("      note: {} [{}]", note.body, note.tags.join(", "));
             }
+            for release in kilna_lib::release::for_work(&conn, &work.id)? {
+                println!(
+                    "      release {:<8} {:<12} {}",
+                    release.kind,
+                    release.scheduled_at.as_deref().unwrap_or("queued"),
+                    release.status
+                );
+            }
             for score in kilna_lib::score::history(&conn, &work.id)? {
                 println!(
                     "      score {:>5.1}  {:<8} {}",
