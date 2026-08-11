@@ -6,7 +6,7 @@
 
 You write songs, chapters, episodes, or articles. The work lives in one place, the release plan in another, and the decision about what actually deserves to ship lives in your head. kilna closes that loop.
 
-> **Status: early development.** The first half of the loop works — works, versions and notes, with the built-in Music profile supplying the vocabulary. Scoring and the calendar come next. Nothing to install yet.
+> **Status: early development.** Works, versions, scoring and the catalogue are in place — enough to decide what deserves to ship. The calendar closes the loop next. Nothing to install yet.
 
 <img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="kilna showing the loop and the active profile" width="1000">
 
