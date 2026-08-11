@@ -90,6 +90,60 @@ fn readme_links_are_absolute() {
     }
 }
 
+/// The brand assets must be the registry's masters, byte for byte.
+///
+/// The failure this prevents is subtle: an icon-level tile used where the
+/// large one belongs reads as a solid colour block, and nobody notices until
+/// the site is live.
+#[test]
+fn the_brand_assets_match_their_masters() {
+    let registry = Path::new("C:/Projects/obsidian/lacodda/Projects/brand/svg");
+    if !registry.exists() {
+        // The registry is the author's vault; CI checks out only this repo.
+        return;
+    }
+
+    for (asset, master) in [
+        ("assets/logo.svg", "kilna-L.svg"),
+        ("assets/logo-m.svg", "kilna-M.svg"),
+        ("assets/logo-s.svg", "kilna-S.svg"),
+        ("assets/banner.svg", "kilna-banner.svg"),
+    ] {
+        let ours = std::fs::read(repo_root().join(asset)).expect("asset is missing");
+        let theirs = std::fs::read(registry.join(master)).expect("master is missing");
+
+        assert_eq!(
+            ours, theirs,
+            "{asset} does not match {master} — re-export it from the generator"
+        );
+    }
+}
+
+/// Every ADR is numbered and unique, so a decision cannot quietly overwrite an
+/// earlier one by reusing its number.
+#[test]
+fn adr_numbers_are_unique() {
+    let adr = repo_root().join("docs/adr");
+    let Ok(entries) = std::fs::read_dir(&adr) else {
+        return;
+    };
+
+    let mut numbers: Vec<String> = entries
+        .filter_map(std::result::Result::ok)
+        .filter_map(|entry| {
+            let name = entry.file_name().to_str()?.to_owned();
+            name.split('-').next().map(str::to_owned)
+        })
+        .filter(|prefix| prefix.chars().all(|c| c.is_ascii_digit()) && !prefix.is_empty())
+        .collect();
+
+    let count = numbers.len();
+    numbers.sort();
+    numbers.dedup();
+
+    assert_eq!(numbers.len(), count, "two ADRs share a number");
+}
+
 #[test]
 fn the_declared_msrv_is_a_real_number() {
     let manifest = read("src-tauri/Cargo.toml");
