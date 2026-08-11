@@ -3,17 +3,30 @@ import { useTranslation } from 'react-i18next'
 const STEPS = ['work', 'versions', 'score', 'slot', 'shipped'] as const
 
 // The loop the whole product is built around, shown as the shape of the app.
+// Steps beyond versions are not built yet and read as dimmed.
+const BUILT = 2
+
 export function LoopBar() {
   const { t } = useTranslation()
 
   return (
-    <ol className="flex flex-wrap items-center gap-2 text-sm">
+    <ol className="flex flex-wrap items-center gap-1.5 text-xs">
       {STEPS.map((step, index) => (
-        <li key={step} className="flex items-center gap-2">
-          <span className="rounded-full border border-kiln-200 px-3 py-1 text-neutral-700 dark:text-neutral-200">
+        <li key={step} className="flex items-center gap-1.5">
+          <span
+            className={
+              index < BUILT
+                ? 'rounded-full border border-kiln-500/60 px-2 py-0.5 text-kiln-700 dark:text-kiln-200'
+                : 'rounded-full border border-neutral-300 px-2 py-0.5 text-neutral-400 dark:border-neutral-700'
+            }
+          >
             {t(`loop.${step}`)}
           </span>
-          {index < STEPS.length - 1 && <span aria-hidden className="text-kiln-500">→</span>}
+          {index < STEPS.length - 1 && (
+            <span aria-hidden className="text-neutral-400">
+              →
+            </span>
+          )}
         </li>
       ))}
     </ol>

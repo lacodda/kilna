@@ -1,38 +1,91 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getWorkspace, type Workspace } from '@/lib/api'
+import { ProfileContext } from '@/lib/useProfile'
 import { LoopBar } from '@/components/LoopBar'
-import { StatusPanel } from '@/components/StatusPanel'
+import { WorkList } from '@/components/WorkList'
+import { WorkCard } from '@/components/WorkCard'
 
 export default function App() {
   const { t } = useTranslation()
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Bumped whenever a work changes, so the list and the counters refetch.
+  const [revision, setRevision] = useState(0)
+
+  const refresh = useCallback(() => setRevision((current) => current + 1), [])
 
   useEffect(() => {
     getWorkspace()
-      .then(setWorkspace)
+      .then((loaded) => {
+        setWorkspace(loaded)
+        setError(null)
+      })
       .catch((cause: unknown) => setError(String(cause)))
-  }, [])
+  }, [revision])
+
+  if (error !== null) {
+    return (
+      <p role="alert" className="p-8 text-sm text-red-600">
+        {t('status.failed', { message: error })}
+      </p>
+    )
+  }
+
+  if (workspace === null) {
+    return <p className="p-8 text-sm text-neutral-500">{t('status.loading')}</p>
+  }
+
+  if (workspace.profile === null) {
+    return (
+      <p role="alert" className="p-8 text-sm text-red-600">
+        {t('status.noProfile')}
+      </p>
+    )
+  }
 
   return (
-    <div className="mx-auto flex h-full max-w-4xl flex-col gap-8 px-8 py-10">
-      <header className="flex items-baseline gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('app.name')}</h1>
-        <p className="text-sm text-neutral-500">{t('app.tagline')}</p>
-      </header>
+    <ProfileContext value={workspace.profile}>
+      <div className="flex h-full flex-col">
+        <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-neutral-200 px-6 py-3 dark:border-neutral-800">
+          <h1 className="text-lg font-semibold tracking-tight">{t('app.name')}</h1>
+          <LoopBar />
+          <p className="ml-auto text-xs text-neutral-500">
+            {workspace.profile.name} · {t('status.works')} {workspace.works}
+          </p>
+        </header>
 
-      <LoopBar />
+        <div className="grid flex-1 gap-6 overflow-hidden p-6 lg:grid-cols-[20rem_1fr]">
+          <WorkList
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            revision={revision}
+            onChanged={refresh}
+          />
 
-      {error !== null ? (
-        <p role="alert" className="text-sm text-red-600">
-          {t('status.failed', { message: error })}
-        </p>
-      ) : workspace === null ? (
-        <p className="text-sm text-neutral-500">{t('status.loading')}</p>
-      ) : (
-        <StatusPanel workspace={workspace} />
-      )}
-    </div>
+          <main className="overflow-y-auto">
+            {selectedId === null ? (
+              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-neutral-300 p-8 text-center dark:border-neutral-700">
+                <div>
+                  <p className="font-medium">{t('empty.title')}</p>
+                  <p className="mt-1 text-sm text-neutral-500">{t('empty.body')}</p>
+                </div>
+              </div>
+            ) : (
+              <WorkCard
+                key={selectedId}
+                workId={selectedId}
+                onChanged={refresh}
+                onDeleted={() => {
+                  setSelectedId(null)
+                  refresh()
+                }}
+              />
+            )}
+          </main>
+        </div>
+      </div>
+    </ProfileContext>
   )
 }

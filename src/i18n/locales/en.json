@@ -16,10 +16,47 @@
     "schema": "Schema version",
     "works": "Works",
     "loading": "Loading…",
+    "noProfile": "This workspace has no active profile.",
     "failed": "Could not read the workspace: {{message}}"
   },
   "empty": {
-    "title": "Nothing here yet",
-    "body": "The workspace is ready. Creating works comes in the next release."
+    "title": "Nothing selected",
+    "body": "Pick a work on the left, or add one."
+  },
+  "works": {
+    "add": "Add",
+    "newPlaceholder": "Title of a new work",
+    "search": "Search",
+    "status": "Status",
+    "kind": "Kind",
+    "anyStatus": "Any status",
+    "anyKind": "Any kind",
+    "none": "No works match."
+  },
+  "work": {
+    "title": "Title",
+    "status": "Status",
+    "kind": "Kind",
+    "delete": "Delete"
+  },
+  "versions": {
+    "title": "Versions",
+    "role": "Role",
+    "revision": "Revision {{number}}",
+    "current": "current",
+    "length": "{{count}} character",
+    "length_other": "{{count}} characters",
+    "makeCurrent": "Make this the current version",
+    "delete": "Delete this version",
+    "none": "No versions in this role yet.",
+    "draftPlaceholder": "Paste or write a new draft — it is kept whole, not as a diff",
+    "save": "Save as new version"
+  },
+  "notes": {
+    "title": "Notes",
+    "add": "Add",
+    "delete": "Delete this note",
+    "placeholder": "A thought about this work",
+    "tagsPlaceholder": "Tags, comma separated"
   }
 }

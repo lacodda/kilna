@@ -35,5 +35,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => println!("active profile  none"),
     }
 
+    let profile_id = kilna_lib::profile::active(&conn)?.map(|profile| profile.id);
+    if let Some(profile_id) = profile_id {
+        let works = kilna_lib::work::list(&conn, &profile_id, &Default::default())?;
+        println!("\nworks");
+        for work in &works {
+            println!("  {:<20} {:<10} {}", work.title, work.status, work.kind);
+            for version in kilna_lib::work::version::list(&conn, &work.id)? {
+                println!(
+                    "      {:<8} r{}  {:>5} chars{}",
+                    version.role,
+                    version.revision,
+                    version.length,
+                    if version.is_current {
+                        "  ← current"
+                    } else {
+                        ""
+                    }
+                );
+            }
+            let notes = kilna_lib::note::list(
+                &conn,
+                &profile_id,
+                &kilna_lib::note::NoteFilter {
+                    work_id: Some(work.id.clone()),
+                    ..Default::default()
+                },
+            )?;
+            for note in notes {
+                println!("      note: {} [{}]", note.body, note.tags.join(", "));
+            }
+        }
+    }
+
     Ok(())
 }
