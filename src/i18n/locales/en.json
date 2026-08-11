@@ -91,7 +91,8 @@
     "unschedule": "Return to the queue",
     "released": "Released",
     "link": "link",
-    "urlPrompt": "Link it went out on (optional)"
+    "urlPrompt": "Link it went out on (optional)",
+    "unscored": "Not scored yet — it cannot take a slot from a work that has been."
   },
   "releases": {
     "title": "Releases",

@@ -91,7 +91,12 @@ export function CalendarView({ onSelect }: Props) {
                   <span className="text-xs text-neutral-500">
                     {labelOf(profile.config.release_kinds, entry.kind)}
                   </span>
-                  <span className="w-10 text-right tabular-nums">
+                  <span
+                    className="w-10 text-right tabular-nums"
+                    // An unscored work cannot take a slot from a scored one,
+                    // and finding that out from a refusal is late.
+                    title={entry.total === null ? t('calendar.unscored') : undefined}
+                  >
                     {entry.total?.toFixed(0) ?? '—'}
                   </span>
                 </button>
@@ -108,6 +113,13 @@ export function CalendarView({ onSelect }: Props) {
               claim()
             }}
           >
+            {/*
+              The browser renders this in the operating system's date format,
+              not the interface language — so a Russian Windows shows
+              dd.mm.yyyy under English labels. Left alone deliberately: the
+              value is always ISO underneath, and imposing a foreign format on
+              someone's own machine is the worse of the two surprises.
+            */}
             <Input
               type="date"
               value={slot}
