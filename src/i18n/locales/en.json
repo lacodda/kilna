@@ -52,6 +52,25 @@
     "draftPlaceholder": "Paste or write a new draft — it is kept whole, not as a diff",
     "save": "Save as new version"
   },
+  "nav": {
+    "works": "Works",
+    "catalogue": "Catalogue"
+  },
+  "score": {
+    "title": "Score",
+    "total": "Total",
+    "save": "Record score",
+    "delete": "Delete this score",
+    "partial": "{{filled}} of {{count}} axes filled — the unfilled ones are skipped, not counted as zero."
+  },
+  "catalogue": {
+    "work": "Work",
+    "tier": "Tier",
+    "total": "Total",
+    "scored": "Scored",
+    "stale": "changed since",
+    "staleHint": "The work was edited after this score was taken."
+  },
   "notes": {
     "title": "Notes",
     "add": "Add",

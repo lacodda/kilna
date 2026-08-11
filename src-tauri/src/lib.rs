@@ -3,6 +3,7 @@ pub mod db;
 pub mod error;
 pub mod note;
 pub mod profile;
+pub mod score;
 pub mod state;
 pub mod time;
 pub mod work;
@@ -40,6 +41,11 @@ pub fn run() {
             commands::update_note,
             commands::delete_note,
             commands::list_tags,
+            commands::score_work,
+            commands::score_history,
+            commands::latest_score,
+            commands::delete_score,
+            commands::catalogue,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start kilna");

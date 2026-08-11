@@ -5,12 +5,14 @@ import { ProfileContext } from '@/lib/useProfile'
 import { LoopBar } from '@/components/LoopBar'
 import { WorkList } from '@/components/WorkList'
 import { WorkCard } from '@/components/WorkCard'
+import { Catalogue } from '@/components/Catalogue'
 
 export default function App() {
   const { t } = useTranslation()
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [view, setView] = useState<'works' | 'catalogue'>('works')
   // Bumped whenever a work changes, so the list and the counters refetch.
   const [revision, setRevision] = useState(0)
 
@@ -56,35 +58,64 @@ export default function App() {
           </p>
         </header>
 
-        <div className="grid flex-1 gap-6 overflow-hidden p-6 lg:grid-cols-[20rem_1fr]">
-          <WorkList
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            revision={revision}
-            onChanged={refresh}
-          />
+        <nav className="flex gap-1 border-b border-neutral-200 px-6 dark:border-neutral-800">
+          {(['works', 'catalogue'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setView(tab)}
+              className={
+                view === tab
+                  ? 'border-b-2 border-kiln-500 px-3 py-2 text-sm font-medium'
+                  : 'border-b-2 border-transparent px-3 py-2 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'
+              }
+            >
+              {t(`nav.${tab}`)}
+            </button>
+          ))}
+        </nav>
 
-          <main className="overflow-y-auto">
-            {selectedId === null ? (
-              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-neutral-300 p-8 text-center dark:border-neutral-700">
-                <div>
-                  <p className="font-medium">{t('empty.title')}</p>
-                  <p className="mt-1 text-sm text-neutral-500">{t('empty.body')}</p>
-                </div>
-              </div>
-            ) : (
-              <WorkCard
-                key={selectedId}
-                workId={selectedId}
-                onChanged={refresh}
-                onDeleted={() => {
-                  setSelectedId(null)
-                  refresh()
-                }}
-              />
-            )}
+        {view === 'catalogue' ? (
+          <main className="flex-1 overflow-y-auto p-6">
+            <Catalogue
+              revision={revision}
+              onSelect={(workId) => {
+                setSelectedId(workId)
+                setView('works')
+              }}
+            />
           </main>
-        </div>
+        ) : (
+          <div className="grid flex-1 gap-6 overflow-hidden p-6 lg:grid-cols-[20rem_1fr]">
+            <WorkList
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              revision={revision}
+              onChanged={refresh}
+            />
+
+            <main className="overflow-y-auto">
+              {selectedId === null ? (
+                <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-neutral-300 p-8 text-center dark:border-neutral-700">
+                  <div>
+                    <p className="font-medium">{t('empty.title')}</p>
+                    <p className="mt-1 text-sm text-neutral-500">{t('empty.body')}</p>
+                  </div>
+                </div>
+              ) : (
+                <WorkCard
+                  key={selectedId}
+                  workId={selectedId}
+                  onChanged={refresh}
+                  onDeleted={() => {
+                    setSelectedId(null)
+                    refresh()
+                  }}
+                />
+              )}
+            </main>
+          </div>
+        )}
       </div>
     </ProfileContext>
   )

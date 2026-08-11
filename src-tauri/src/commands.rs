@@ -3,6 +3,7 @@ use tauri::State;
 use crate::error::{Error, Result};
 use crate::note::{self, NewNote, Note, NoteFilter, NotePatch};
 use crate::profile::{self, Profile, Workspace};
+use crate::score::{self, NewScore, Score, ScoredWork};
 use crate::state::AppState;
 use crate::work::version::{self, NewVersion, Version, VersionSummary};
 use crate::work::{self, NewWork, Work, WorkFilter, WorkPatch};
@@ -137,4 +138,35 @@ pub fn list_tags(state: State<'_, AppState>) -> Result<Vec<(String, i64)>> {
     let conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
     note::tags(&conn, &profile_id)
+}
+
+#[tauri::command]
+pub fn score_work(state: State<'_, AppState>, work_id: String, score: NewScore) -> Result<Score> {
+    let conn = state.conn();
+    score::create(&conn, &work_id, score)
+}
+
+#[tauri::command]
+pub fn score_history(state: State<'_, AppState>, work_id: String) -> Result<Vec<Score>> {
+    let conn = state.conn();
+    score::history(&conn, &work_id)
+}
+
+#[tauri::command]
+pub fn latest_score(state: State<'_, AppState>, work_id: String) -> Result<Option<Score>> {
+    let conn = state.conn();
+    score::latest(&conn, &work_id)
+}
+
+#[tauri::command]
+pub fn delete_score(state: State<'_, AppState>, id: String) -> Result<()> {
+    let conn = state.conn();
+    score::delete(&conn, &id)
+}
+
+#[tauri::command]
+pub fn catalogue(state: State<'_, AppState>) -> Result<Vec<ScoredWork>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    score::catalogue(&conn, &profile_id)
 }

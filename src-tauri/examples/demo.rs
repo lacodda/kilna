@@ -7,6 +7,7 @@
 //! in this repository.
 
 use kilna_lib::note::NewNote;
+use kilna_lib::score::{self, NewScore};
 use kilna_lib::work::NewWork;
 use kilna_lib::work::version::NewVersion;
 use kilna_lib::{db, note, profile, work};
@@ -20,7 +21,19 @@ struct Demo {
     lyrics: &'static [&'static str],
     style: &'static str,
     note: Option<(&'static str, &'static [&'static str])>,
+    /// Axis values, in the order the Music profile declares them. A work with
+    /// no scores stays unjudged, which the catalogue shows differently.
+    scores: &'static [[f64; 6]],
 }
+
+const AXIS_KEYS: [&str; 6] = [
+    "hook",
+    "lyrics",
+    "emotion",
+    "production",
+    "originality",
+    "visual",
+];
 
 const WORKS: &[Demo] = &[
     Demo {
@@ -37,6 +50,12 @@ const WORKS: &[Demo] = &[
             "The second verse still explains itself. Cut the last line and let the image stand.",
             &["revision", "lyrics"],
         )),
+        // Scored once before the rewrite and once after — the second verse
+        // fix is meant to be visible as a jump in the total.
+        scores: &[
+            [7.0, 6.0, 7.0, 6.0, 7.0, 8.0],
+            [8.0, 8.5, 8.0, 6.5, 7.0, 8.0],
+        ],
     },
     Demo {
         title: "Paper boats",
@@ -46,6 +65,7 @@ const WORKS: &[Demo] = &[
         lyrics: &["We fold the year in halves\nand set it on the stream."],
         style: "bright synth pop, arpeggiated bass, tape saturation",
         note: None,
+        scores: &[],
     },
     Demo {
         title: "Winter shift",
@@ -58,6 +78,7 @@ const WORKS: &[Demo] = &[
             "Works as a picture track — one still frame, no clip.",
             &["release"],
         )),
+        scores: &[[6.0, 7.5, 8.0, 7.0, 6.0, 4.0]],
     },
 ];
 
@@ -85,7 +106,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             },
         )?;
 
-        for body in demo.lyrics {
+        // A draft, then the score it earned — in that order, so each snapshot
+        // pins to the revision it actually describes.
+        for (index, body) in demo.lyrics.iter().enumerate() {
             work::version::create(
                 &mut conn,
                 &created.id,
@@ -97,6 +120,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     make_current: true,
                 },
             )?;
+
+            if let Some(values) = demo.scores.get(index) {
+                let axes = AXIS_KEYS
+                    .iter()
+                    .zip(values)
+                    .map(|(key, value)| ((*key).to_owned(), json!(value)))
+                    .collect();
+
+                score::create(
+                    &conn,
+                    &created.id,
+                    NewScore {
+                        axes,
+                        version_id: None,
+                        note: None,
+                    },
+                )?;
+            }
         }
 
         work::version::create(

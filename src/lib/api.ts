@@ -162,6 +162,35 @@ export interface NoteFilter {
   search?: string
 }
 
+export interface Score {
+  id: string
+  work_id: string
+  version_id: string | null
+  axes: Record<string, number>
+  total: number
+  tier: string | null
+  note: string | null
+  scored_at: string
+  revision: number | null
+}
+
+export interface NewScore {
+  axes: Record<string, number>
+  version_id?: string | null
+  note?: string | null
+}
+
+export interface ScoredWork {
+  work_id: string
+  title: string
+  kind: string
+  status: string
+  total: number | null
+  tier: string | null
+  scored_at: string | null
+  stale: boolean
+}
+
 export const getWorkspace = () => invoke<Workspace>('get_workspace')
 export const listProfiles = () => invoke<Profile[]>('list_profiles')
 export const activateProfile = (id: string) => invoke<void>('activate_profile', { id })
@@ -185,3 +214,10 @@ export const createNote = (note: NewNote) => invoke<Note>('create_note', { note 
 export const updateNote = (id: string, patch: NotePatch) => invoke<Note>('update_note', { id, patch })
 export const deleteNote = (id: string) => invoke<void>('delete_note', { id })
 export const listTags = () => invoke<[string, number][]>('list_tags')
+
+export const scoreWork = (workId: string, score: NewScore) =>
+  invoke<Score>('score_work', { workId, score })
+export const scoreHistory = (workId: string) => invoke<Score[]>('score_history', { workId })
+export const latestScore = (workId: string) => invoke<Score | null>('latest_score', { workId })
+export const deleteScore = (id: string) => invoke<void>('delete_score', { id })
+export const catalogue = () => invoke<ScoredWork[]>('catalogue')

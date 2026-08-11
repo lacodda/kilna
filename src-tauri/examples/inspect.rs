@@ -65,6 +65,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for note in notes {
                 println!("      note: {} [{}]", note.body, note.tags.join(", "));
             }
+            for score in kilna_lib::score::history(&conn, &work.id)? {
+                println!(
+                    "      score {:>5.1}  {:<8} {}",
+                    score.total,
+                    score.tier.as_deref().unwrap_or("-"),
+                    score
+                        .revision
+                        .map(|r| format!("of r{r}"))
+                        .unwrap_or_else(|| "unpinned".into())
+                );
+            }
         }
     }
 

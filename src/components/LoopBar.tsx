@@ -4,7 +4,7 @@ const STEPS = ['work', 'versions', 'score', 'slot', 'shipped'] as const
 
 // The loop the whole product is built around, shown as the shape of the app.
 // Steps beyond versions are not built yet and read as dimmed.
-const BUILT = 2
+const BUILT = 3
 
 export function LoopBar() {
   const { t } = useTranslation()

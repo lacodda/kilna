@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { VersionPanel } from '@/components/VersionPanel'
+import { ScorePanel } from '@/components/ScorePanel'
 import { NotePanel } from '@/components/NotePanel'
 
 interface Props {
@@ -129,6 +130,8 @@ export function WorkCard({ workId, onChanged, onDeleted }: Props) {
       )}
 
       <VersionPanel workId={workId} onChanged={() => setRevision((r) => r + 1)} />
+
+      <ScorePanel workId={workId} onChanged={onChanged} />
 
       <NotePanel workId={workId} />
     </div>
