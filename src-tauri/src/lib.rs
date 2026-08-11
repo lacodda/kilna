@@ -5,6 +5,7 @@ pub mod db;
 pub mod error;
 pub mod exchange;
 pub mod note;
+pub mod plugin;
 pub mod profile;
 pub mod release;
 pub mod score;
@@ -79,6 +80,8 @@ pub fn run() {
             commands::suggested_backup_name,
             commands::workspace_path,
             commands::import_legacy,
+            commands::list_plugins,
+            commands::run_plugin,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start kilna");

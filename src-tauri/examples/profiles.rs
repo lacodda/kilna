@@ -10,7 +10,9 @@ use kilna_lib::work::{NewWork, WorkFilter};
 use kilna_lib::{db, profile, work};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let path = std::env::args().nth(1).ok_or("usage: profiles <kilna.db>")?;
+    let path = std::env::args()
+        .nth(1)
+        .ok_or("usage: profiles <kilna.db>")?;
 
     let mut conn = db::open(std::path::Path::new(&path))?;
     profile::seed(&conn)?;
@@ -86,16 +88,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Switching is what a user does; the vocabulary follows the active profile.
-    let first = profile::list(&conn)?.first().cloned().ok_or("no profiles")?;
+    let first = profile::list(&conn)?
+        .first()
+        .cloned()
+        .ok_or("no profiles")?;
     profile::activate(&mut conn, &first.id)?;
     let active = profile::active(&conn)?.ok_or("nothing active")?;
-    println!("\nactive now: {} — statuses: {}", active.name, active
-        .config
-        .statuses
-        .iter()
-        .map(|s| s.label.as_str())
-        .collect::<Vec<_>>()
-        .join(", "));
+    println!(
+        "\nactive now: {} — statuses: {}",
+        active.name,
+        active
+            .config
+            .statuses
+            .iter()
+            .map(|s| s.label.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
 
     Ok(())
 }

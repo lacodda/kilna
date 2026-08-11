@@ -143,5 +143,8 @@
     "save": "Save profile",
     "saved": "Saved.",
     "keysHint": "Existing works keep the status and kind they already had, even if you edit the wording here."
+  },
+  "plugins": {
+    "title": "Plugins"
   }
 }

@@ -7,6 +7,7 @@ use crate::exchange::backup;
 use crate::exchange::export::{self, ExportReport};
 use crate::exchange::import::{self, ImportReport};
 use crate::note::{self, NewNote, Note, NoteFilter, NotePatch};
+use crate::plugin::{self, manifest::Plugin, manifest::Target};
 use crate::profile::{self, Profile, Workspace};
 use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
 use crate::score::{self, NewScore, Score, ScoredWork};
@@ -328,6 +329,124 @@ pub fn import_legacy(state: State<'_, AppState>, source: String) -> Result<Impor
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
     import::from_legacy(&mut conn, std::path::Path::new(&source), &profile_id)
+}
+
+/// Everything installed under the plugin naming convention, usable or not.
+#[tauri::command]
+pub fn list_plugins(state: State<'_, AppState>) -> Vec<Plugin> {
+    let directory = state
+        .path()
+        .parent()
+        .map(std::path::Path::to_path_buf)
+        .unwrap_or_default();
+    plugin::discover(&directory)
+}
+
+/// Run a plugin command against a release or a work, and merge whatever it
+/// returns into that row's `meta`.
+///
+/// A plugin can add and overwrite its own keys but cannot clear the rest —
+/// losing unrelated metadata to a third-party integration is not recoverable.
+#[tauri::command]
+pub fn run_plugin(
+    state: State<'_, AppState>,
+    executable: String,
+    command: String,
+    target: Target,
+    id: String,
+) -> Result<Option<String>> {
+    let directory = state
+        .path()
+        .parent()
+        .map(std::path::Path::to_path_buf)
+        .unwrap_or_default();
+
+    let found = plugin::discover(&directory)
+        .into_iter()
+        .find(|candidate| candidate.executable == executable)
+        .ok_or_else(|| Error::Other(format!("no plugin named `{executable}`")))?;
+
+    if !found.usable {
+        return Err(Error::Other(
+            found
+                .reason
+                .unwrap_or_else(|| format!("`{executable}` cannot be used")),
+        ));
+    }
+
+    let conn = state.conn();
+    let subject = match target {
+        Target::Release => serde_json::to_value(
+            release::get(&conn, &id)?
+                .ok_or_else(|| Error::Other(format!("no release with id `{id}`")))?,
+        )?,
+        Target::Work => {
+            let found = work::get(&conn, &id)?
+                .ok_or_else(|| Error::Other(format!("no work with id `{id}`")))?;
+            let mut value = serde_json::to_value(&found)?;
+
+            // A plugin acting on a work almost always wants its text. Sending
+            // only the row would make every plugin ask for the body back.
+            let mut bodies = serde_json::Map::new();
+            for summary in version::list(&conn, &id)? {
+                if bodies.contains_key(&summary.role) {
+                    continue;
+                }
+                if let Some(full) = version::get(&conn, &summary.id)? {
+                    bodies.insert(summary.role.clone(), serde_json::Value::String(full.body));
+                }
+            }
+            if let Some(object) = value.as_object_mut() {
+                object.insert("bodies".into(), serde_json::Value::Object(bodies));
+            }
+            value
+        }
+    };
+    drop(conn);
+
+    let outcome = plugin::invoke(
+        std::path::Path::new(&found.path),
+        &plugin::Invocation {
+            command: &command,
+            target,
+            subject: subject.clone(),
+        },
+    )?;
+
+    if !outcome.meta.is_empty() {
+        let conn = state.conn();
+        let existing = subject
+            .get("meta")
+            .and_then(serde_json::Value::as_object)
+            .cloned()
+            .unwrap_or_default();
+        let merged = plugin::merge_meta(&existing, &outcome.meta);
+
+        match target {
+            Target::Release => {
+                release::update(
+                    &conn,
+                    &id,
+                    ReleasePatch {
+                        meta: Some(merged),
+                        ..Default::default()
+                    },
+                )?;
+            }
+            Target::Work => {
+                work::update(
+                    &conn,
+                    &id,
+                    WorkPatch {
+                        meta: Some(merged),
+                        ..Default::default()
+                    },
+                )?;
+            }
+        }
+    }
+
+    Ok(outcome.message)
 }
 
 /// Whether the AI panel can work on this machine. Never an error: "not

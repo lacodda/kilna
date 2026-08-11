@@ -57,6 +57,18 @@ So "Critique the lyrics" means the right thing in a music profile and something 
 
 The core works without it. The panel is amplification, not a requirement — if the CLI isn't installed, the panel says so and everything else carries on.
 
+## Plugins
+
+Integrations are ordinary executables named `kilna-plugin-*`, found on your `PATH` or in the workspace's `plugins` directory. kilna runs one with `--manifest` to ask what it offers, then with `run` and a JSON invocation on stdin:
+
+```jsonc
+{ "command": "count", "target": "work", "subject": { "title": "…", "bodies": { "lyrics": "…" } } }
+```
+
+Whatever the plugin returns under `meta` is merged into that row — it can add and overwrite its own keys, never clear the rest. Plugins live for the duration of a call; nothing starts a service, and nothing is loaded into kilna's process.
+
+[kilna-plugin-wordcount](https://github.com/lacodda/kilna-plugin-wordcount) is the reference implementation.
+
 ## Your data stays yours
 
 Local SQLite, media as plain files on disk, and a markdown export of everything — front matter, full bodies, scores and releases, readable without kilna. Back the whole workspace up to a single file. No account, no server, no lock-in.

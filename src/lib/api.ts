@@ -357,6 +357,37 @@ export const suggestedBackupName = () => invoke<string>('suggested_backup_name')
 export const workspacePath = () => invoke<string>('workspace_path')
 export const importLegacy = (source: string) => invoke<ImportReport>('import_legacy', { source })
 
+export interface PluginCommand {
+  key: string
+  label: string
+  description?: string
+  target: 'release' | 'work'
+}
+
+export interface PluginManifest {
+  protocol_version: number
+  name: string
+  version: string
+  description?: string
+  commands: PluginCommand[]
+}
+
+export interface Plugin {
+  executable: string
+  path: string
+  manifest: PluginManifest | null
+  usable: boolean
+  reason: string | null
+}
+
+export const listPlugins = () => invoke<Plugin[]>('list_plugins')
+export const runPlugin = (
+  executable: string,
+  command: string,
+  target: 'release' | 'work',
+  id: string,
+) => invoke<string | null>('run_plugin', { executable, command, target, id })
+
 export const assistantStatus = () => invoke<Availability>('assistant_status')
 export const listChats = (workId?: string) => invoke<Chat[]>('list_chats', { workId })
 export const createChat = (chat: { work_id?: string | null; title?: string | null }) =>

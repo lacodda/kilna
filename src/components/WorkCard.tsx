@@ -10,6 +10,7 @@ import { ScorePanel } from '@/components/ScorePanel'
 import { ReleasePanel } from '@/components/ReleasePanel'
 import { AssistantPanel } from '@/components/AssistantPanel'
 import { NotePanel } from '@/components/NotePanel'
+import { PluginBar } from '@/components/PluginBar'
 
 interface Props {
   workId: string
@@ -138,6 +139,8 @@ export function WorkCard({ workId, onChanged, onDeleted }: Props) {
       <ReleasePanel workId={workId} workTitle={work.title} onChanged={onChanged} />
 
       <AssistantPanel workId={workId} />
+
+      <PluginBar target="work" id={workId} onChanged={() => setRevision((r) => r + 1)} />
 
       <NotePanel workId={workId} />
     </div>
