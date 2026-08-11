@@ -4,7 +4,9 @@ import tseslint from 'typescript-eslint'
 import reactHooks from 'eslint-plugin-react-hooks'
 
 export default tseslint.config(
-  { ignores: ['dist', 'src-tauri'] },
+  // `docs` is its own Astro project with its own toolchain, and most of what
+  // lives there is generated.
+  { ignores: ['dist', 'src-tauri', 'docs'] },
   js.configs.recommended,
   tseslint.configs.recommended,
   // The `flat` variant; the top-level one is still in the legacy shape.

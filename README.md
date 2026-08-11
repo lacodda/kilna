@@ -94,7 +94,7 @@ The workspace database is created under the platform's application data
 directory on first run. Schema changes are versioned migrations in
 `src-tauri/migrations/`; the schema is never edited in place.
 
-Architecture decisions live in [docs/adr](https://github.com/lacodda/kilna/tree/main/docs/adr).
+Full documentation: [lacodda.github.io/kilna](https://lacodda.github.io/kilna). Architecture decisions live in [docs/adr](https://github.com/lacodda/kilna/tree/main/docs/adr).
 
 ## License
 

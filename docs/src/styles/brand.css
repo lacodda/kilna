@@ -1,0 +1,124 @@
+/* Brand accent: kilna signal amber. */
+:root {
+	--sl-color-accent: #e8862d;
+	--sl-color-accent-high: #f6b578;
+	--sl-color-accent-low: #4a2d0f;
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent: #b8631a;
+	--sl-color-accent-high: #7a420f;
+	--sl-color-accent-low: #fbe4cd;
+}
+
+/* ---------------------------------------------------------------- header -- */
+
+/* The mark is a square hex tile: let it fill the bar height rather than the
+   2rem it was pinned to, and sit close to the wordmark it belongs with. */
+.site-title {
+	gap: 0.4rem;
+}
+
+.site-title img {
+	width: auto;
+	height: 2.5rem;
+}
+
+/* Push search away from the wordmark so the two stop reading as one group. */
+@media (min-width: 50rem) {
+	.header > .title-wrapper {
+		margin-inline-end: 1.5rem;
+	}
+}
+
+/* ------------------------------------------------------------------ hero -- */
+
+.hero h1 {
+	letter-spacing: -0.02em;
+}
+
+.hero .tagline {
+	max-width: 42ch;
+}
+
+/* Loop card in the hero: a plain panel with the work → shipped cycle, filling
+   the right column Starlight leaves empty without a hero image. */
+.ki-loop {
+	width: 100%;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.75rem;
+	background: var(--sl-color-gray-6);
+	overflow: hidden;
+	text-align: start;
+	box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+}
+
+.ki-loop__bar {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.6rem 0.9rem;
+	border-bottom: 1px solid var(--sl-color-gray-5);
+	background: var(--sl-color-gray-6);
+}
+
+.ki-loop__dot {
+	width: 0.6rem;
+	height: 0.6rem;
+	border-radius: 50%;
+	background: var(--sl-color-gray-4);
+}
+
+.ki-loop__dot:first-child {
+	background: var(--sl-color-accent);
+}
+
+.ki-loop__label {
+	margin-inline-start: auto;
+	font-size: var(--sl-text-xs);
+	color: var(--sl-color-gray-3);
+}
+
+.ki-loop__body {
+	margin: 0;
+	padding: 1.1rem 0.9rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	font-family: var(--__sl-font-mono);
+	font-size: var(--sl-text-code-sm);
+	color: var(--sl-color-gray-1);
+}
+
+.ki-loop__step {
+	display: flex;
+	align-items: baseline;
+	gap: 0.6rem;
+}
+
+.ki-loop__step-name {
+	color: var(--sl-color-white);
+}
+
+.ki-loop__step-note {
+	color: var(--sl-color-gray-3);
+}
+
+.ki-loop__arrow {
+	color: var(--sl-color-accent-high);
+	padding-inline-start: 0.15rem;
+}
+
+/* ----------------------------------------------------------- splash body -- */
+
+/* The splash page centres its content in a narrow column; the hero above is
+   wider, which reads as a step. Match them. */
+.ki-section-title {
+	margin-block: 3rem 0.5rem;
+	font-size: var(--sl-text-3xl);
+}
+
+.ki-lead {
+	color: var(--sl-color-gray-2);
+	margin-block-end: 2rem;
+}

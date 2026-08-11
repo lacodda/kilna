@@ -1,0 +1,96 @@
+---
+title: A desktop workbench for content makers
+description: kilna closes the loop from raw idea to shipped work — versions, scoring, a calendar that pushes back, and an AI panel that talks to your own Claude Code CLI.
+template: splash
+# The hero carries the product name; repeating it as the page title renders as
+# "kilna | kilna" in the browser tab and in search results.
+head:
+  - tag: title
+    content: kilna - from raw idea to shipped work
+hero:
+  tagline: From raw idea to shipped work. The work lives in one place, the release plan in another, and the decision about what deserves to ship lives in your head — kilna closes that loop.
+  image:
+    html: |
+      <div class="ki-loop">
+        <div class="ki-loop__bar">
+          <span class="ki-loop__dot"></span>
+          <span class="ki-loop__dot"></span>
+          <span class="ki-loop__dot"></span>
+          <span class="ki-loop__label">the loop</span>
+        </div>
+        <pre class="ki-loop__body"><span class="ki-loop__step"><span class="ki-loop__step-name">work</span><span class="ki-loop__step-note">kept whole, no diff chains</span></span>
+      <span class="ki-loop__arrow">&#8595;</span>
+      <span class="ki-loop__step"><span class="ki-loop__step-name">versions</span><span class="ki-loop__step-note">lyrics, style, outline, whatever the craft needs</span></span>
+      <span class="ki-loop__arrow">&#8595;</span>
+      <span class="ki-loop__step"><span class="ki-loop__step-name">score</span><span class="ki-loop__step-note">a snapshot pinned to a version</span></span>
+      <span class="ki-loop__arrow">&#8595;</span>
+      <span class="ki-loop__step"><span class="ki-loop__step-name">calendar slot</span><span class="ki-loop__step-note">slots compete, stronger work wins</span></span>
+      <span class="ki-loop__arrow">&#8595;</span>
+      <span class="ki-loop__step"><span class="ki-loop__step-name">shipped</span><span class="ki-loop__step-note">marked out, link pasted in</span></span></pre>
+      </div>
+  actions:
+    - text: Get started
+      link: /kilna/getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/lacodda/kilna
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, Aside } from '@astrojs/starlight/components';
+
+<Aside type="caution" title="Early development">
+The loop is closed end to end — a work gains versions, a version earns a score, a score wins a calendar slot, and the slot ends in a release you mark by hand — and the AI panel works against your own Claude Code CLI. Profiles, plugins and packaged builds come next, so there is still nothing to install yet. See [Getting Started](/kilna/getting-started/) for building from source.
+</Aside>
+
+## What kilna does
+
+<CardGrid stagger>
+	<Card title="Work with versions" icon="document">
+		Every draft is kept whole — no diff chains, no lost revisions. A song keeps lyrics and style separately; a chapter keeps text and outline.
+	</Card>
+	<Card title="Scoring that means something" icon="seti:todo">
+		Rate a work along axes you define, weighted into a tier. Scores are snapshots tied to a version, so you can see that rewriting the second verse moved it from 62 to 78.
+	</Card>
+	<Card title="A calendar that pushes back" icon="rocket">
+		Slots compete. A stronger work bumps a weaker one out of Thursday — the weaker one returns to the queue with its plan intact, not deleted.
+	</Card>
+	<Card title="Shipping is a state, not an integration" icon="approve-check">
+		Mark it out, paste the link. Plugins can automate it later; the loop closes without them.
+	</Card>
+	<Card title="Profiles, not a form builder" icon="setting">
+		Music, Novel, Podcast and Blog ship as configuration, not code. Switch profile and the same screens speak about chapters and pull, or episodes and the cold open.
+	</Card>
+	<Card title="Your data stays yours" icon="lock">
+		Local SQLite, media as plain files on disk, and a markdown export of everything. No account, no server, no lock-in.
+	</Card>
+</CardGrid>
+
+## Profiles, not a form builder
+
+A song, a chapter, and a podcast episode differ in vocabulary and in how they're judged — not in structure. So the schema is fixed and the craft is configuration:
+
+```jsonc
+{
+  "work_kinds":    ["song"],
+  "release_kinds": ["clip", "short", "audio-release"],
+  "axes": [
+    { "key": "hook", "label": "Hook", "weight": 2,   "scale": 10 },
+    { "key": "text", "label": "Text", "weight": 1.5, "scale": 10 }
+  ],
+  "tiers": [{ "key": "clip", "min": 75 }, { "key": "hold", "min": 0 }]
+}
+```
+
+kilna ships with **Music**, **Novel**, **Podcast** and **Blog**. No new code, no migration — the schema never moves.
+
+## AI panel
+
+kilna talks to Claude through your installed [Claude Code](https://claude.com/claude-code) CLI — your subscription, your session, your skills. Nothing is sent anywhere else, and there is no API key to configure. The core works without it: if the CLI isn't installed, the panel says so and everything else carries on.
+
+## Where next
+
+- [Getting Started](/kilna/getting-started/) — build from source and create your first work.
+- [The loop](/kilna/concepts/the-loop/) — why each step exists.
+- [Profiles](/kilna/concepts/profiles/) — how one schema speaks four crafts.
