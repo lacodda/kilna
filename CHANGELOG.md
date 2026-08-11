@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.0] - 2026-08-11
+
+### Features
+- Scoring, score history and the catalogue
 ## [0.2.0] - 2026-08-11
+
+### Documentation
+- Changelog for v0.2.0
 
 ### Features
 - Works, versions and notes behind Tauri commands
