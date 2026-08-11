@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.0] - 2026-08-11
+
+### Features
+- The AI panel, over the user's own Claude Code CLI
 ## [0.4.0] - 2026-08-11
+
+### Documentation
+- Changelog for v0.4.0
 
 ### Features
 - Calendar, releases and collections
