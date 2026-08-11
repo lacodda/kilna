@@ -6,7 +6,7 @@
 
 You write songs, chapters, episodes, or articles. The work lives in one place, the release plan in another, and the decision about what actually deserves to ship lives in your head. kilna closes that loop.
 
-> **Status: early development.** The loop is closed end to end — a work gains versions, a version earns a score, a score wins a calendar slot, and the slot ends in a release you mark by hand. Profiles, plugins and packaged builds come next, so there is still nothing to install.
+> **Status: early development.** The loop is closed end to end — a work gains versions, a version earns a score, a score wins a calendar slot, and the slot ends in a release you mark by hand — and the AI panel works against your own Claude Code CLI. Profiles, plugins and packaged builds come next, so there is still nothing to install.
 
 ## The loop
 
@@ -41,9 +41,21 @@ Switch to the Novel profile and the same screens speak about chapters, books, an
 
 ## AI panel
 
-kilna talks to Claude through your installed [Claude Code](https://claude.com/claude-code) CLI — your subscription, your session, your skills. Prompt templates come from the active profile, so the assistant knows whether it's helping with a chorus or a chapter.
+kilna talks to Claude through your installed [Claude Code](https://claude.com/claude-code) CLI — your subscription, your session, your skills. Nothing is sent anywhere else, and there is no API key to configure.
 
-The core works without it. The panel is amplification, not a requirement.
+Prompt templates come from the active profile, with placeholders filled from the work in front of you:
+
+```jsonc
+{
+  "key": "critique",
+  "label": "Critique the lyrics",
+  "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nWhich lines are weak?"
+}
+```
+
+So "Critique the lyrics" means the right thing in a music profile and something else entirely in a novel one. Conversations are kept in the workspace, and a follow-up question continues where the last one left off.
+
+The core works without it. The panel is amplification, not a requirement — if the CLI isn't installed, the panel says so and everything else carries on.
 
 ## Your data stays yours
 
