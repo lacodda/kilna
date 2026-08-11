@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.6.0] - 2026-08-11
+
+### Features
+- Markdown export, backups, and importing a predecessor workspace
 ## [0.5.0] - 2026-08-11
+
+### Documentation
+- Changelog for v0.5.0
 
 ### Features
 - The AI panel, over the user's own Claude Code CLI
