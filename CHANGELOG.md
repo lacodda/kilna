@@ -2,7 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.9.0] - 2026-08-11
+
+### CI
+- Build and publish desktop bundles on a tag
+
+### Documentation
+- A documentation site built from the source, not from memory
 ## [0.8.0] - 2026-08-11
+
+### Documentation
+- Changelog for v0.8.0
 
 ### Features
 - A plugin system, and the first plugin to use it
