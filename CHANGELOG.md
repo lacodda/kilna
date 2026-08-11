@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.0] - 2026-08-11
+
+### Features
+- Four crafts on one schema, switching and a profile editor
 ## [0.6.0] - 2026-08-11
+
+### Documentation
+- Changelog for v0.6.0
 
 ### Features
 - Markdown export, backups, and importing a predecessor workspace
