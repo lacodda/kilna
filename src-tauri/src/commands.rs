@@ -3,6 +3,9 @@ use tauri::State;
 use crate::assistant::{self, Chat, Message, NewChat, Transcript, cli, prompt};
 use crate::collection::{self, Collection, CollectionPatch, NewCollection};
 use crate::error::{Error, Result};
+use crate::exchange::backup;
+use crate::exchange::export::{self, ExportReport};
+use crate::exchange::import::{self, ImportReport};
 use crate::note::{self, NewNote, Note, NoteFilter, NotePatch};
 use crate::profile::{self, Profile, Workspace};
 use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
@@ -275,6 +278,41 @@ pub fn update_collection(
 pub fn delete_collection(state: State<'_, AppState>, id: String) -> Result<()> {
     let conn = state.conn();
     collection::delete(&conn, &id)
+}
+
+/// Write the active profile out as markdown.
+#[tauri::command]
+pub fn export_markdown(state: State<'_, AppState>, directory: String) -> Result<ExportReport> {
+    let conn = state.conn();
+    export::to_markdown(&conn, std::path::Path::new(&directory))
+}
+
+/// Copy the workspace somewhere safe.
+#[tauri::command]
+pub fn backup_workspace(state: State<'_, AppState>, destination: String) -> Result<String> {
+    let conn = state.conn();
+    let written = backup::write(&conn, std::path::Path::new(&destination))?;
+    Ok(written.display().to_string())
+}
+
+/// Suggested file name for a backup taken now.
+#[tauri::command]
+pub fn suggested_backup_name() -> String {
+    backup::suggested_name(&crate::time::now())
+}
+
+/// Where the workspace file lives, so the user can find or replace it.
+#[tauri::command]
+pub fn workspace_path(state: State<'_, AppState>) -> String {
+    state.path().display().to_string()
+}
+
+/// Bring in a slice of a predecessor workspace. Existing titles are skipped.
+#[tauri::command]
+pub fn import_legacy(state: State<'_, AppState>, source: String) -> Result<ImportReport> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    import::from_legacy(&mut conn, std::path::Path::new(&source), &profile_id)
 }
 
 /// Whether the AI panel can work on this machine. Never an error: "not

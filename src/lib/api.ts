@@ -333,6 +333,28 @@ export interface Transcript {
   messages: Message[]
 }
 
+export interface ExportReport {
+  directory: string
+  works: number
+  files: number
+}
+
+export interface ImportReport {
+  works: number
+  versions: number
+  scores: number
+  releases: number
+  skipped: number
+}
+
+export const exportMarkdown = (directory: string) =>
+  invoke<ExportReport>('export_markdown', { directory })
+export const backupWorkspace = (destination: string) =>
+  invoke<string>('backup_workspace', { destination })
+export const suggestedBackupName = () => invoke<string>('suggested_backup_name')
+export const workspacePath = () => invoke<string>('workspace_path')
+export const importLegacy = (source: string) => invoke<ImportReport>('import_legacy', { source })
+
 export const assistantStatus = () => invoke<Availability>('assistant_status')
 export const listChats = (workId?: string) => invoke<Chat[]>('list_chats', { workId })
 export const createChat = (chat: { work_id?: string | null; title?: string | null }) =>

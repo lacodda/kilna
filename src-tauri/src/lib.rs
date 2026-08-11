@@ -3,6 +3,7 @@ pub mod collection;
 pub mod commands;
 pub mod db;
 pub mod error;
+pub mod exchange;
 pub mod note;
 pub mod profile;
 pub mod release;
@@ -18,6 +19,8 @@ use tauri::Manager;
 /// Build and run the desktop application.
 pub fn run() {
     tauri::Builder::default()
+        // Needed by the data screen to pick a directory or a file.
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // Per-user application data, resolved by Tauri for the current platform.
             let data_dir = app.path().app_data_dir()?;
@@ -70,6 +73,11 @@ pub fn run() {
             commands::delete_chat,
             commands::ask_assistant,
             commands::render_prompt,
+            commands::export_markdown,
+            commands::backup_workspace,
+            commands::suggested_backup_name,
+            commands::workspace_path,
+            commands::import_legacy,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start kilna");

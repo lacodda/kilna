@@ -55,7 +55,28 @@
   "nav": {
     "works": "Works",
     "catalogue": "Catalogue",
-    "calendar": "Calendar"
+    "calendar": "Calendar",
+    "data": "Data"
+  },
+  "data": {
+    "export": "Export",
+    "exportHint": "Every work as markdown — front matter, full bodies, scores, releases and notes. Readable without kilna.",
+    "exportAction": "Export to a folder…",
+    "exportTitle": "Where to write the export",
+    "exported": "Wrote {{files}} files for {{works}} works.",
+    "backup": "Backup",
+    "backupHint": "The whole workspace in one file, taken safely while the app is running.",
+    "backupAction": "Save a backup…",
+    "backupTitle": "Where to save the backup",
+    "backedUp": "Saved to {{path}}",
+    "workspaceAt": "Workspace file:",
+    "restoreHint": "To restore, close kilna and put the backup in place of that file.",
+    "import": "Import",
+    "importHint": "Bring in works, drafts and scores from an earlier system. Titles already here are left alone.",
+    "importAction": "Import a database…",
+    "importTitle": "Database to import from",
+    "imported": "Imported {{works}} works, {{versions}} drafts, {{scores}} scores. Skipped {{skipped}} already here.",
+    "working": "Working…"
   },
   "calendar": {
     "title": "Calendar",

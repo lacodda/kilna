@@ -7,13 +7,14 @@ import { WorkList } from '@/components/WorkList'
 import { WorkCard } from '@/components/WorkCard'
 import { Catalogue } from '@/components/Catalogue'
 import { CalendarView } from '@/components/CalendarView'
+import { DataView } from '@/components/DataView'
 
 export default function App() {
   const { t } = useTranslation()
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [view, setView] = useState<'works' | 'catalogue' | 'calendar'>('works')
+  const [view, setView] = useState<'works' | 'catalogue' | 'calendar' | 'data'>('works')
   // Bumped whenever a work changes, so the list and the counters refetch.
   const [revision, setRevision] = useState(0)
 
@@ -60,7 +61,7 @@ export default function App() {
         </header>
 
         <nav className="flex gap-1 border-b border-neutral-200 px-6 dark:border-neutral-800">
-          {(['works', 'catalogue', 'calendar'] as const).map((tab) => (
+          {(['works', 'catalogue', 'calendar', 'data'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -85,6 +86,10 @@ export default function App() {
                 setView('works')
               }}
             />
+          </main>
+        ) : view === 'data' ? (
+          <main className="flex-1 overflow-y-auto p-6">
+            <DataView onChanged={refresh} />
           </main>
         ) : view === 'calendar' ? (
           <main className="flex-1 overflow-y-auto p-6">
