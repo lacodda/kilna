@@ -63,7 +63,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(tables, 9, "the core schema is nine tables");
+        assert_eq!(tables, 11, "nine core tables plus the two for chat");
     }
 
     #[test]

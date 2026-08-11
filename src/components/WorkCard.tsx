@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/Select'
 import { VersionPanel } from '@/components/VersionPanel'
 import { ScorePanel } from '@/components/ScorePanel'
 import { ReleasePanel } from '@/components/ReleasePanel'
+import { AssistantPanel } from '@/components/AssistantPanel'
 import { NotePanel } from '@/components/NotePanel'
 
 interface Props {
@@ -135,6 +136,8 @@ export function WorkCard({ workId, onChanged, onDeleted }: Props) {
       <ScorePanel workId={workId} onChanged={onChanged} />
 
       <ReleasePanel workId={workId} workTitle={work.title} onChanged={onChanged} />
+
+      <AssistantPanel workId={workId} />
 
       <NotePanel workId={workId} />
     </div>

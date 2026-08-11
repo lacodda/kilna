@@ -58,6 +58,7 @@ pub fn seed(conn: &Connection) -> Result<()> {
             .unwrap_or(false);
 
         if exists {
+            add_new_prompts(conn, &profile)?;
             continue;
         }
 
@@ -76,6 +77,52 @@ pub fn seed(conn: &Connection) -> Result<()> {
     }
 
     ensure_one_active(conn)?;
+    Ok(())
+}
+
+/// Carry newly shipped prompt templates into a built-in profile the workspace
+/// already has.
+///
+/// Only prompts whose key is missing are added: a user who reworded an action
+/// keeps their wording, and one they deliberately deleted stays deleted only
+/// until the next upgrade — accepted, because a new action nobody ever sees is
+/// the worse failure. Nothing else in the profile is touched.
+fn add_new_prompts(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
+    let Some((id, raw)): Option<(String, String)> = conn
+        .query_row(
+            "SELECT id, config FROM profile WHERE key = ?1",
+            params![shipped.key],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()?
+    else {
+        return Ok(());
+    };
+
+    let mut config: ProfileConfig = serde_json::from_str(&raw)?;
+    let missing: Vec<_> = shipped
+        .config
+        .prompts
+        .iter()
+        .filter(|shipped| {
+            !config
+                .prompts
+                .iter()
+                .any(|existing| existing.key == shipped.key)
+        })
+        .cloned()
+        .collect();
+
+    if missing.is_empty() {
+        return Ok(());
+    }
+
+    config.prompts.extend(missing);
+    conn.execute(
+        "UPDATE profile SET config = ?2, updated_at = ?3 WHERE id = ?1",
+        params![id, serde_json::to_string(&config)?, now()],
+    )?;
+
     Ok(())
 }
 
@@ -251,6 +298,53 @@ mod tests {
         seed(&conn).unwrap();
 
         assert_eq!(list(&conn).unwrap().len(), builtin().unwrap().len());
+    }
+
+    #[test]
+    fn seed_carries_newly_shipped_prompts_into_an_existing_profile() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        // A workspace created before the prompts shipped.
+        let mut config = active(&conn).unwrap().unwrap().config;
+        config.prompts.clear();
+        conn.execute(
+            "UPDATE profile SET config = ?1 WHERE key = 'music'",
+            params![serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let shipped = builtin().unwrap()[0].config.prompts.len();
+        assert_eq!(
+            active(&conn).unwrap().unwrap().config.prompts.len(),
+            shipped
+        );
+    }
+
+    #[test]
+    fn seed_does_not_overwrite_a_reworded_prompt() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let mut config = active(&conn).unwrap().unwrap().config;
+        let key = config.prompts[0].key.clone();
+        config.prompts[0].label = "My own wording".into();
+        conn.execute(
+            "UPDATE profile SET config = ?1 WHERE key = 'music'",
+            params![serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let reloaded = active(&conn).unwrap().unwrap().config;
+        let kept = reloaded.prompts.iter().find(|p| p.key == key).unwrap();
+        assert_eq!(kept.label, "My own wording");
+        assert_eq!(
+            reloaded.prompts.len(),
+            builtin().unwrap()[0].config.prompts.len(),
+            "no duplicate was added alongside it"
+        );
     }
 
     #[test]

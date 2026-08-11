@@ -11,11 +11,18 @@ pub struct Migration {
 }
 
 /// Ordered by version; never edited once released, only appended to.
-pub const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    name: "core_schema",
-    sql: include_str!("../../migrations/0001_core_schema.sql"),
-}];
+pub const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        name: "core_schema",
+        sql: include_str!("../../migrations/0001_core_schema.sql"),
+    },
+    Migration {
+        version: 2,
+        name: "chat",
+        sql: include_str!("../../migrations/0002_chat.sql"),
+    },
+];
 
 /// The newest schema this build understands.
 pub fn latest_version() -> i64 {
@@ -88,6 +95,28 @@ mod tests {
         apply(&mut conn).unwrap();
         // A second run must not attempt to recreate existing tables.
         assert_eq!(apply(&mut conn).unwrap(), latest_version());
+    }
+
+    #[test]
+    fn a_database_at_an_older_version_is_carried_forward() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        // Apply only the first migration, as an older build would have left it.
+        let first = &MIGRATIONS[0];
+        conn.execute_batch(first.sql).unwrap();
+        conn.pragma_update(None, "user_version", first.version)
+            .unwrap();
+
+        let version = apply(&mut conn).unwrap();
+
+        assert_eq!(version, latest_version());
+        let chat_exists: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'chat'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(chat_exists, 1, "the later migration must have run");
     }
 
     #[test]

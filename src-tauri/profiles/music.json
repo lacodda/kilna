@@ -83,6 +83,32 @@
       { "key": "key", "label": "Key", "type": "text" },
       { "key": "duration", "label": "Duration", "type": "text" },
       { "key": "language", "label": "Language", "type": "text" }
+    ],
+    "prompts": [
+      {
+        "key": "critique",
+        "label": "Critique the lyrics",
+        "description": "Weak lines, tired images, anything that does not sing.",
+        "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nBe specific and be hard on it: which lines are weak, which images are worn out, what would you cut? Do not rewrite it — say what is wrong."
+      },
+      {
+        "key": "polish",
+        "label": "Suggest a revision",
+        "description": "A rewrite to react to, not to accept.",
+        "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nSuggest one revision that keeps the voice but fixes what is weakest. Show the changed lines only, with a sentence on why each changed."
+      },
+      {
+        "key": "style",
+        "label": "Draft a style prompt",
+        "description": "A production description from the text.",
+        "template": "These are the lyrics of \"{title}\":\n\n{role:lyrics}\n\nWrite a short production description — genre, instruments, tempo feel, vocal treatment — that would suit them. One paragraph, concrete, no adjectives that mean nothing."
+      },
+      {
+        "key": "titles",
+        "label": "Alternative titles",
+        "description": "Other ways to name it.",
+        "template": "A song currently called \"{title}\" with these lyrics:\n\n{role:lyrics}\n\nSuggest six alternative titles. Take them from the text itself where you can. No explanations."
+      }
     ]
   }
 }

@@ -95,6 +95,13 @@
     "stale": "changed since",
     "staleHint": "The work was edited after this score was taken."
   },
+  "assistant": {
+    "title": "Assistant",
+    "unavailable": "Claude Code is not available on this machine.",
+    "placeholder": "Ask about this work — Enter sends, Shift+Enter for a new line",
+    "send": "Send",
+    "thinking": "Thinking…"
+  },
   "notes": {
     "title": "Notes",
     "add": "Add",

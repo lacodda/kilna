@@ -1,3 +1,4 @@
+pub mod assistant;
 pub mod collection;
 pub mod commands;
 pub mod db;
@@ -62,6 +63,13 @@ pub fn run() {
             commands::update_collection,
             commands::delete_collection,
             commands::set_collection_contents,
+            commands::assistant_status,
+            commands::list_chats,
+            commands::create_chat,
+            commands::get_transcript,
+            commands::delete_chat,
+            commands::ask_assistant,
+            commands::render_prompt,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start kilna");

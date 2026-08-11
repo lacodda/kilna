@@ -28,6 +28,13 @@ export interface MetaField {
   type: 'text' | 'number' | 'date' | 'boolean'
 }
 
+export interface PromptTemplate {
+  key: string
+  label: string
+  template: string
+  description?: string
+}
+
 export interface ProfileConfig {
   work_kinds: Kind[]
   release_kinds: Kind[]
@@ -37,6 +44,7 @@ export interface ProfileConfig {
   axes: Axis[]
   tiers: Tier[]
   work_meta_fields: MetaField[]
+  prompts: PromptTemplate[]
 }
 
 export interface Profile {
@@ -294,3 +302,45 @@ export const createCollection = (collection: NewCollection) =>
 export const deleteCollection = (id: string) => invoke<void>('delete_collection', { id })
 export const setCollectionContents = (id: string, workIds: string[]) =>
   invoke<void>('set_collection_contents', { id, workIds })
+
+export interface Availability {
+  available: boolean
+  version: string | null
+  reason: string | null
+}
+
+export interface Chat {
+  id: string
+  profile_id: string
+  work_id: string | null
+  title: string | null
+  session_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Message {
+  id: string
+  chat_id: string
+  role: 'user' | 'assistant' | 'system'
+  body: string
+  meta: Meta
+  created_at: string
+}
+
+export interface Transcript {
+  chat: Chat
+  messages: Message[]
+}
+
+export const assistantStatus = () => invoke<Availability>('assistant_status')
+export const listChats = (workId?: string) => invoke<Chat[]>('list_chats', { workId })
+export const createChat = (chat: { work_id?: string | null; title?: string | null }) =>
+  invoke<Chat>('create_chat', { chat })
+export const getTranscript = (chatId: string) =>
+  invoke<Transcript | null>('get_transcript', { chatId })
+export const deleteChat = (id: string) => invoke<void>('delete_chat', { id })
+export const askAssistant = (chatId: string, prompt: string) =>
+  invoke<Message>('ask_assistant', { chatId, prompt })
+export const renderPrompt = (workId: string, template: string) =>
+  invoke<string>('render_prompt', { workId, template })

@@ -1,5 +1,6 @@
 use tauri::State;
 
+use crate::assistant::{self, Chat, Message, NewChat, Transcript, cli, prompt};
 use crate::collection::{self, Collection, CollectionPatch, NewCollection};
 use crate::error::{Error, Result};
 use crate::note::{self, NewNote, Note, NoteFilter, NotePatch};
@@ -274,6 +275,65 @@ pub fn update_collection(
 pub fn delete_collection(state: State<'_, AppState>, id: String) -> Result<()> {
     let conn = state.conn();
     collection::delete(&conn, &id)
+}
+
+/// Whether the AI panel can work on this machine. Never an error: "not
+/// installed" is something the panel shows, and the rest of kilna is unaffected.
+#[tauri::command]
+pub fn assistant_status() -> cli::Availability {
+    cli::probe()
+}
+
+#[tauri::command]
+pub fn list_chats(state: State<'_, AppState>, work_id: Option<String>) -> Result<Vec<Chat>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    assistant::list(&conn, &profile_id, work_id.as_deref())
+}
+
+#[tauri::command]
+pub fn create_chat(state: State<'_, AppState>, chat: NewChat) -> Result<Chat> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    assistant::create(&conn, &profile_id, chat)
+}
+
+#[tauri::command]
+pub fn get_transcript(state: State<'_, AppState>, chat_id: String) -> Result<Option<Transcript>> {
+    let conn = state.conn();
+    assistant::transcript(&conn, &chat_id)
+}
+
+#[tauri::command]
+pub fn delete_chat(state: State<'_, AppState>, id: String) -> Result<()> {
+    let conn = state.conn();
+    assistant::delete(&conn, &id)
+}
+
+/// Send a prompt and wait for the reply.
+///
+/// This blocks for as long as the CLI takes. Tauri runs commands off the UI
+/// thread, so the window stays responsive; the panel shows its own pending
+/// state.
+#[tauri::command]
+pub fn ask_assistant(
+    state: State<'_, AppState>,
+    chat_id: String,
+    prompt: String,
+) -> Result<Message> {
+    let mut conn = state.conn();
+    assistant::ask(&mut conn, &chat_id, &prompt)
+}
+
+/// Fill a profile prompt template with a work's details.
+#[tauri::command]
+pub fn render_prompt(
+    state: State<'_, AppState>,
+    work_id: String,
+    template: String,
+) -> Result<String> {
+    let conn = state.conn();
+    prompt::for_work(&conn, &work_id, &template)
 }
 
 #[tauri::command]

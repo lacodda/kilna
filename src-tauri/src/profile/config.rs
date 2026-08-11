@@ -20,6 +20,10 @@ pub struct ProfileConfig {
     pub tiers: Vec<Tier>,
     /// Craft-specific fields stored in `work.meta`.
     pub work_meta_fields: Vec<MetaField>,
+    /// Actions the AI panel offers. Defaulted so a profile written before the
+    /// panel existed still loads.
+    #[serde(default)]
+    pub prompts: Vec<crate::assistant::prompt::PromptTemplate>,
 }
 
 /// A vocabulary entry: a stable key with a label the user may rename.
