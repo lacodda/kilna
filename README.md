@@ -1,10 +1,12 @@
+<img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/banner.svg" alt="kilna" width="720">
+
 # kilna
 
 **A desktop workbench for content makers — from raw idea to shipped work.**
 
 You write songs, chapters, episodes, or articles. The work lives in one place, the release plan in another, and the decision about what actually deserves to ship lives in your head. kilna closes that loop.
 
-> **Status: early development.** The data model and the roadmap are settled; the app is being built. Nothing to install yet.
+> **Status: early development.** The schema, the migration path and the built-in Music profile are in place, and the app opens a workspace. The screens that let you use it arrive next. Nothing to install yet.
 
 ## The loop
 
@@ -49,7 +51,26 @@ Local SQLite, media as plain files on disk, and a markdown export of everything.
 
 ## Built with
 
-[Tauri v2](https://v2.tauri.app/) · Rust · SQLite
+[Tauri v2](https://v2.tauri.app/) · Rust · SQLite · React
+
+## Development
+
+Requires Rust (1.85 or newer), Node 22+ and pnpm.
+
+```sh
+pnpm install
+pnpm tauri dev            # run the app
+pnpm lint                 # eslint + tsc
+cd src-tauri
+cargo test                # backend tests
+cargo clippy -- -D warnings
+```
+
+The workspace database is created under the platform's application data
+directory on first run. Schema changes are versioned migrations in
+`src-tauri/migrations/`; the schema is never edited in place.
+
+Architecture decisions live in [docs/adr](https://github.com/lacodda/kilna/tree/main/docs/adr).
 
 ## License
 

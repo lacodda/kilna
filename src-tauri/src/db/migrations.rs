@@ -1,0 +1,103 @@
+use rusqlite::Connection;
+
+use crate::error::{Error, Result};
+
+/// One versioned schema step. Migrations are embedded in the binary so that a
+/// workspace can always be upgraded by the build that opens it.
+pub struct Migration {
+    pub version: i64,
+    pub name: &'static str,
+    pub sql: &'static str,
+}
+
+/// Ordered by version; never edited once released, only appended to.
+pub const MIGRATIONS: &[Migration] = &[Migration {
+    version: 1,
+    name: "core_schema",
+    sql: include_str!("../../migrations/0001_core_schema.sql"),
+}];
+
+/// The newest schema this build understands.
+pub fn latest_version() -> i64 {
+    MIGRATIONS.last().map_or(0, |m| m.version)
+}
+
+/// Schema version currently stored in the database.
+pub fn current_version(conn: &Connection) -> Result<i64> {
+    Ok(conn.query_row("PRAGMA user_version", [], |row| row.get(0))?)
+}
+
+/// Apply every migration the database has not seen yet.
+///
+/// Each step runs in its own transaction, so a failure leaves the database on
+/// the last version that fully applied rather than half-way through one.
+pub fn apply(conn: &mut Connection) -> Result<i64> {
+    let mut version = current_version(conn)?;
+    let latest = latest_version();
+
+    if version > latest {
+        return Err(Error::SchemaTooNew {
+            found: version,
+            supported: latest,
+        });
+    }
+
+    let from = version;
+    for migration in MIGRATIONS.iter().filter(|m| m.version > from) {
+        let tx = conn.transaction()?;
+        tx.execute_batch(migration.sql)?;
+        // PRAGMA does not accept bound parameters.
+        tx.pragma_update(None, "user_version", migration.version)?;
+        tx.commit()?;
+        version = migration.version;
+    }
+
+    Ok(version)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn versions_are_sequential_and_start_at_one() {
+        for (index, migration) in MIGRATIONS.iter().enumerate() {
+            assert_eq!(
+                migration.version,
+                index as i64 + 1,
+                "migration `{}` breaks the sequence",
+                migration.name
+            );
+        }
+    }
+
+    #[test]
+    fn apply_brings_an_empty_database_to_the_latest_version() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        assert_eq!(current_version(&conn).unwrap(), 0);
+
+        let version = apply(&mut conn).unwrap();
+
+        assert_eq!(version, latest_version());
+        assert_eq!(current_version(&conn).unwrap(), latest_version());
+    }
+
+    #[test]
+    fn apply_is_idempotent() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        apply(&mut conn).unwrap();
+        // A second run must not attempt to recreate existing tables.
+        assert_eq!(apply(&mut conn).unwrap(), latest_version());
+    }
+
+    #[test]
+    fn a_newer_schema_is_refused_rather_than_downgraded() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.pragma_update(None, "user_version", latest_version() + 1)
+            .unwrap();
+
+        let error = apply(&mut conn).unwrap_err();
+
+        assert!(matches!(error, Error::SchemaTooNew { .. }));
+    }
+}

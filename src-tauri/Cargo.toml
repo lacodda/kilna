@@ -1,0 +1,34 @@
+[package]
+name = "kilna"
+version = "0.1.0"
+description = "A desktop workbench for content makers — from raw idea to shipped work."
+authors = ["Kirill Lakhtachev <lahtachev@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/lacodda/kilna"
+edition = "2024"
+rust-version = "1.85"
+
+[lib]
+name = "kilna_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.37", features = ["bundled", "serde_json"] }
+thiserror = "2"
+time = { version = "0.3", features = ["formatting", "macros"] }
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }

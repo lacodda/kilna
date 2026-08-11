@@ -1,0 +1,88 @@
+{
+  "key": "music",
+  "name": "Music",
+  "description": "Songs with independent lyrics and style drafts, judged on hook and craft, shipped as clips, shorts and audio releases.",
+  "config": {
+    "work_kinds": [
+      { "key": "song", "label": "Song" },
+      { "key": "instrumental", "label": "Instrumental" }
+    ],
+    "release_kinds": [
+      { "key": "clip", "label": "Video clip" },
+      { "key": "short", "label": "Short" },
+      { "key": "audio", "label": "Audio release" }
+    ],
+    "collection_kinds": [
+      { "key": "album", "label": "Album" },
+      { "key": "single", "label": "Single" },
+      { "key": "cycle", "label": "Cycle" }
+    ],
+    "version_roles": [
+      { "key": "lyrics", "label": "Lyrics" },
+      { "key": "style", "label": "Style prompt" }
+    ],
+    "statuses": [
+      { "key": "draft", "label": "Draft" },
+      { "key": "scored", "label": "Scored" },
+      { "key": "scheduled", "label": "Scheduled" },
+      { "key": "released", "label": "Released" },
+      { "key": "shelved", "label": "Shelved" }
+    ],
+    "axes": [
+      {
+        "key": "hook",
+        "label": "Hook",
+        "weight": 2.0,
+        "scale": 10.0,
+        "description": "Does the chorus stay with you after one listen?"
+      },
+      {
+        "key": "lyrics",
+        "label": "Lyrics",
+        "weight": 1.5,
+        "scale": 10.0,
+        "description": "Imagery, rhyme and whether a line earns its place."
+      },
+      {
+        "key": "emotion",
+        "label": "Emotion",
+        "weight": 1.5,
+        "scale": 10.0,
+        "description": "Does it move a listener who knows nothing about it?"
+      },
+      {
+        "key": "production",
+        "label": "Production",
+        "weight": 1.0,
+        "scale": 10.0,
+        "description": "Arrangement, mix and how finished it sounds."
+      },
+      {
+        "key": "originality",
+        "label": "Originality",
+        "weight": 1.0,
+        "scale": 10.0,
+        "description": "Distance from the obvious version of this idea."
+      },
+      {
+        "key": "visual",
+        "label": "Visual potential",
+        "weight": 1.0,
+        "scale": 10.0,
+        "description": "Is there a clip in it, or only a cover?"
+      }
+    ],
+    "tiers": [
+      { "key": "hold", "label": "Hold", "min": 0.0 },
+      { "key": "audio", "label": "Audio release", "min": 55.0 },
+      { "key": "picture", "label": "Picture track", "min": 68.0 },
+      { "key": "clip", "label": "Clip", "min": 78.0 }
+    ],
+    "work_meta_fields": [
+      { "key": "bpm", "label": "BPM", "type": "number" },
+      { "key": "key", "label": "Key", "type": "text" },
+      { "key": "duration", "label": "Duration", "type": "text" },
+      { "key": "language", "label": "Language", "type": "text" }
+    ]
+  }
+}

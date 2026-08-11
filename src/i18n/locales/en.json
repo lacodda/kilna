@@ -1,0 +1,25 @@
+{
+  "app": {
+    "name": "kilna",
+    "tagline": "From raw idea to shipped work."
+  },
+  "loop": {
+    "work": "Work",
+    "versions": "Versions",
+    "score": "Score",
+    "slot": "Slot",
+    "shipped": "Shipped"
+  },
+  "status": {
+    "profile": "Active profile",
+    "database": "Database",
+    "schema": "Schema version",
+    "works": "Works",
+    "loading": "Loading…",
+    "failed": "Could not read the workspace: {{message}}"
+  },
+  "empty": {
+    "title": "Nothing here yet",
+    "body": "The workspace is ready. Creating works comes in the next release."
+  }
+}
