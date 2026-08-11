@@ -59,7 +59,7 @@ The core works without it. The panel is amplification, not a requirement — if 
 
 ## Your data stays yours
 
-Local SQLite, media as plain files on disk, and a markdown export of everything. No account, no server, no lock-in.
+Local SQLite, media as plain files on disk, and a markdown export of everything — front matter, full bodies, scores and releases, readable without kilna. Back the whole workspace up to a single file. No account, no server, no lock-in.
 
 ## Built with
 
