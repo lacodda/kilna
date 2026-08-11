@@ -10,6 +10,7 @@ rust-version = "1.85"
 # Presentation rasters are for the README and the release page, not for anyone
 # building from the crate. icon.ico stays: build.rs needs it on Windows.
 exclude = [
+    "../assets/screenshot.png",
     "../assets/social-preview.png",
     "../assets/logo-512.png",
     "../assets/apple-touch-icon.png",

@@ -6,7 +6,9 @@
 
 You write songs, chapters, episodes, or articles. The work lives in one place, the release plan in another, and the decision about what actually deserves to ship lives in your head. kilna closes that loop.
 
-> **Status: early development.** The loop is closed end to end — a work gains versions, a version earns a score, a score wins a calendar slot, and the slot ends in a release you mark by hand — and the AI panel works against your own Claude Code CLI. Profiles, plugins and packaged builds come next, so there is still nothing to install.
+> **Status: early development.** The loop is closed end to end — a work gains versions, a version earns a score, a score wins a calendar slot, and the slot ends in a release you mark by hand — with four craft profiles, an AI panel over your own Claude Code CLI, and a plugin protocol. There is no packaged build to download yet.
+
+<img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="A song open in kilna: its fields, its two lyric revisions, and the current draft" width="1200">
 
 ## The loop
 
