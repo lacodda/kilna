@@ -37,7 +37,7 @@ A song, a chapter, and a podcast episode differ in vocabulary and in how they're
 }
 ```
 
-Switch to the Novel profile and the same screens speak about chapters, books, and pacing. No new code.
+kilna ships with **Music**, **Novel**, **Podcast** and **Blog**. Switch profile and the same screens speak about chapters and pull, or episodes and the cold open. No new code, no migration — the schema never moves.
 
 ## AI panel
 
