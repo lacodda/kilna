@@ -1,0 +1,117 @@
+{
+  "key": "podcast",
+  "name": "Podcast",
+  "description": "Episodes with script and show notes drafted separately, judged on whether a listener stays past the first two minutes, scheduled into a feed and shipped as a release.",
+  "config": {
+    "work_kinds": [
+      { "key": "episode", "label": "Episode" },
+      { "key": "segment", "label": "Segment" },
+      { "key": "trailer", "label": "Trailer" }
+    ],
+    "release_kinds": [
+      { "key": "feed", "label": "Feed release" },
+      { "key": "clip", "label": "Audio clip" },
+      { "key": "video", "label": "Video upload" }
+    ],
+    "collection_kinds": [
+      { "key": "season", "label": "Season" },
+      { "key": "series", "label": "Series" },
+      { "key": "miniseries", "label": "Miniseries" }
+    ],
+    "version_roles": [
+      { "key": "script", "label": "Script" },
+      { "key": "notes", "label": "Show notes" },
+      { "key": "outline", "label": "Research outline" }
+    ],
+    "statuses": [
+      { "key": "draft", "label": "Draft" },
+      { "key": "recorded", "label": "Recorded" },
+      { "key": "scored", "label": "Scored" },
+      { "key": "scheduled", "label": "Scheduled" },
+      { "key": "released", "label": "Released" },
+      { "key": "shelved", "label": "Shelved" }
+    ],
+    "axes": [
+      {
+        "key": "hook",
+        "label": "Hook",
+        "weight": 2.0,
+        "scale": 10.0,
+        "description": "Does the cold open earn the next thirty seconds?"
+      },
+      {
+        "key": "clarity",
+        "label": "Clarity",
+        "weight": 1.5,
+        "scale": 10.0,
+        "description": "Could a listener explain the point to someone else afterward?"
+      },
+      {
+        "key": "pacing",
+        "label": "Pacing",
+        "weight": 1.5,
+        "scale": 10.0,
+        "description": "Where does it drag, and would a listener skip ahead?"
+      },
+      {
+        "key": "insight",
+        "label": "Insight",
+        "weight": 1.0,
+        "scale": 10.0,
+        "description": "Is there a claim here nobody else is making, or just a summary?"
+      },
+      {
+        "key": "delivery",
+        "label": "Delivery",
+        "weight": 1.0,
+        "scale": 10.0,
+        "description": "Energy, pauses, whether it sounds read or spoken."
+      },
+      {
+        "key": "shareability",
+        "label": "Shareability",
+        "weight": 1.0,
+        "scale": 10.0,
+        "description": "Is there a moment worth clipping and sending to a friend?"
+      }
+    ],
+    "tiers": [
+      { "key": "hold", "label": "Hold", "min": 0.0 },
+      { "key": "feed", "label": "Feed release", "min": 55.0 },
+      { "key": "clip", "label": "Audio clip", "min": 68.0 },
+      { "key": "flagship", "label": "Flagship episode", "min": 80.0 }
+    ],
+    "work_meta_fields": [
+      { "key": "duration", "label": "Duration", "type": "text" },
+      { "key": "guest", "label": "Guest", "type": "text" },
+      { "key": "recorded_on", "label": "Recorded on", "type": "date" },
+      { "key": "explicit", "label": "Explicit", "type": "boolean" }
+    ],
+    "prompts": [
+      {
+        "key": "critique",
+        "label": "Critique the script",
+        "description": "Where a listener would tap away.",
+        "template": "Here is the script for an episode called \"{title}\".\n\n{role:script}\n\nWhere would a listener stop listening? Be specific about timestamps or sections. Name what rambles, what over-explains, and what the episode is avoiding. Do not rewrite it — say what is wrong."
+      },
+      {
+        "key": "cold_open",
+        "label": "Test the cold open",
+        "description": "Is the first thirty seconds worth the listener's time?",
+        "template": "The opening of an episode called \"{title}\":\n\n{role:script}\n\nJudge only the first thirty seconds as written. Would a new listener keep going? Give three concrete ways to make the open sharper, and say what to cut, not what to add."
+      },
+      {
+        "key": "notes_check",
+        "label": "Check show notes against the script",
+        "description": "Do the notes actually describe what was said?",
+        "template": "The script for \"{title}\":\n\n{role:script}\n\nThe show notes for it:\n\n{role:notes}\n\nWhat does the episode cover that the notes miss? What do the notes promise that the script never delivers? List the gaps, do not rewrite the notes."
+      },
+      {
+        "key": "clip_picks",
+        "label": "Pick clip candidates",
+        "description": "Moments worth cutting for social.",
+        "template": "The script for an episode called \"{title}\":\n\n{role:script}\n\nPick three moments that would work as a standalone clip under ninety seconds. For each, give the rough boundary and one sentence on why it stands alone. No explanations beyond that."
+      }
+    ]
+  }
+}

@@ -257,6 +257,8 @@ export interface NewCollection {
 export const getWorkspace = () => invoke<Workspace>('get_workspace')
 export const listProfiles = () => invoke<Profile[]>('list_profiles')
 export const activateProfile = (id: string) => invoke<void>('activate_profile', { id })
+export const updateProfileConfig = (id: string, config: ProfileConfig) =>
+  invoke<Profile>('update_profile_config', { id, config })
 
 export const listWorks = (filter?: WorkFilter) => invoke<Work[]>('list_works', { filter })
 export const getWork = (id: string) => invoke<Work | null>('get_work', { id })

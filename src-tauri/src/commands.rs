@@ -33,6 +33,21 @@ pub fn activate_profile(state: State<'_, AppState>, id: String) -> Result<()> {
     profile::activate(&mut conn, &id)
 }
 
+/// Replace a profile's configuration.
+///
+/// Existing works keep their status and kind even when the vocabulary that
+/// named them is edited away — an old value stays visible rather than being
+/// rewritten, because the alternative is silently changing what a work is.
+#[tauri::command]
+pub fn update_profile_config(
+    state: State<'_, AppState>,
+    id: String,
+    config: profile::config::ProfileConfig,
+) -> Result<Profile> {
+    let conn = state.conn();
+    profile::update_config(&conn, &id, &config)
+}
+
 /// The id of the active profile, or an error the frontend can show.
 ///
 /// Every work and note command is scoped to it: the frontend never has to carry

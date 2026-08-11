@@ -1,0 +1,111 @@
+{
+  "key": "novel",
+  "name": "Novel",
+  "description": "Chapters with text and outline kept separately, judged on what makes a reader turn the page, gathered into books and shipped a chapter or a draft at a time.",
+  "config": {
+    "work_kinds": [
+      { "key": "chapter", "label": "Chapter" },
+      { "key": "scene", "label": "Scene" },
+      { "key": "story", "label": "Short story" }
+    ],
+    "release_kinds": [
+      { "key": "beta", "label": "To beta readers" },
+      { "key": "serial", "label": "Serial instalment" },
+      { "key": "submission", "label": "Submission" },
+      { "key": "published", "label": "Publication" }
+    ],
+    "collection_kinds": [
+      { "key": "book", "label": "Book" },
+      { "key": "part", "label": "Part" },
+      { "key": "collection", "label": "Collection" }
+    ],
+    "version_roles": [
+      { "key": "text", "label": "Text" },
+      { "key": "outline", "label": "Outline" },
+      { "key": "notes", "label": "Working notes" }
+    ],
+    "statuses": [
+      { "key": "draft", "label": "Draft" },
+      { "key": "revised", "label": "Revised" },
+      { "key": "scored", "label": "Scored" },
+      { "key": "ready", "label": "Ready" },
+      { "key": "published", "label": "Published" },
+      { "key": "shelved", "label": "Shelved" }
+    ],
+    "axes": [
+      {
+        "key": "pull",
+        "label": "Pull",
+        "weight": 2.0,
+        "scale": 10.0,
+        "description": "Does the reader turn the page, or put the book down here?"
+      },
+      {
+        "key": "prose",
+        "label": "Prose",
+        "weight": 1.5,
+        "scale": 10.0,
+        "description": "Sentence by sentence: rhythm, precision, nothing limp."
+      },
+      {
+        "key": "character",
+        "label": "Character",
+        "weight": 1.5,
+        "scale": 10.0,
+        "description": "Do people behave like people rather than like plot requirements?"
+      },
+      {
+        "key": "structure",
+        "label": "Structure",
+        "weight": 1.0,
+        "scale": 10.0,
+        "description": "Does the chapter earn its place and end where it should?"
+      },
+      {
+        "key": "tension",
+        "label": "Tension",
+        "weight": 1.0,
+        "scale": 10.0,
+        "description": "Is something at stake on every page?"
+      }
+    ],
+    "tiers": [
+      { "key": "rework", "label": "Needs rework", "min": 0.0 },
+      { "key": "usable", "label": "Usable", "min": 55.0 },
+      { "key": "strong", "label": "Strong", "min": 70.0 },
+      { "key": "keystone", "label": "Keystone", "min": 82.0 }
+    ],
+    "work_meta_fields": [
+      { "key": "words", "label": "Words", "type": "number" },
+      { "key": "pov", "label": "POV", "type": "text" },
+      { "key": "setting", "label": "Setting", "type": "text" },
+      { "key": "timeline", "label": "In-story date", "type": "text" }
+    ],
+    "prompts": [
+      {
+        "key": "critique",
+        "label": "Critique the chapter",
+        "description": "Where a reader would stop reading.",
+        "template": "Here is a chapter called \"{title}\".\n\n{role:text}\n\nWhere would a reader put this down? Be specific about paragraphs. Name what is limp, what is explained twice, and what the chapter is avoiding. Do not rewrite it."
+      },
+      {
+        "key": "continuity",
+        "label": "Check against the outline",
+        "description": "Does the text still do what the outline promised?",
+        "template": "The outline for \"{title}\":\n\n{role:outline}\n\nThe chapter as written:\n\n{role:text}\n\nWhat did the chapter promise and not deliver? What did it do that the outline did not account for? Say whether the drift is an improvement or a problem."
+      },
+      {
+        "key": "voice",
+        "label": "Test the voice",
+        "description": "Does everyone sound like the same person?",
+        "template": "A chapter called \"{title}\":\n\n{role:text}\n\nQuote three lines of dialogue and say who could have said them. If any of them could belong to anyone, say so plainly — that is the problem to fix."
+      },
+      {
+        "key": "next",
+        "label": "What happens next",
+        "description": "Options for the following chapter.",
+        "template": "This chapter ends where you can see:\n\n{role:text}\n\nSuggest three ways the next chapter could open that do not simply continue the scene. One sentence each, no explanation."
+      }
+    ]
+  }
+}

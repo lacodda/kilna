@@ -32,6 +32,7 @@ pub fn run() {
             commands::get_workspace,
             commands::list_profiles,
             commands::activate_profile,
+            commands::update_profile_config,
             commands::list_works,
             commands::get_work,
             commands::create_work,

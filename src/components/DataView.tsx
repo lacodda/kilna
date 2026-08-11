@@ -9,6 +9,7 @@ import {
   workspacePath,
 } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
+import { ProfileEditor } from '@/components/ProfileEditor'
 
 interface Props {
   onChanged: () => void
@@ -80,6 +81,10 @@ export function DataView({ onChanged }: Props) {
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
+      <ProfileEditor onSaved={onChanged} />
+
+      <hr className="border-neutral-200 dark:border-neutral-800" />
+
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">{t('data.export')}</h3>
         <p className="text-sm text-neutral-500">{t('data.exportHint')}</p>

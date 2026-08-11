@@ -56,7 +56,7 @@
     "works": "Works",
     "catalogue": "Catalogue",
     "calendar": "Calendar",
-    "data": "Data"
+    "data": "Settings"
   },
   "data": {
     "export": "Export",
@@ -129,5 +129,19 @@
     "delete": "Delete this note",
     "placeholder": "A thought about this work",
     "tagsPlaceholder": "Tags, comma separated"
+  },
+  "editor": {
+    "axes": "Scoring axes",
+    "axesHint": "Label and weight. Keys are fixed — past scores are stored under them, and renaming one would orphan its history.",
+    "tiers": "Tiers",
+    "tiersHint": "What a score licenses you to do, and the total it takes to get there.",
+    "statuses": "Statuses",
+    "workKinds": "Work kinds",
+    "releaseKinds": "Release kinds",
+    "prompts": "Assistant actions",
+    "removeAxis": "Remove this axis",
+    "save": "Save profile",
+    "saved": "Saved.",
+    "keysHint": "Existing works keep the status and kind they already had, even if you edit the wording here."
   }
 }

@@ -1,0 +1,108 @@
+{
+  "key": "blog",
+  "name": "Blog",
+  "description": "Posts with draft and angle kept separately, judged on whether a stranger reads past the first paragraph, scheduled into a calendar and shipped as a publish.",
+  "config": {
+    "work_kinds": [
+      { "key": "post", "label": "Post" },
+      { "key": "newsletter", "label": "Newsletter issue" },
+      { "key": "guide", "label": "Guide" }
+    ],
+    "release_kinds": [
+      { "key": "publish", "label": "Site publish" },
+      { "key": "newsletter", "label": "Newsletter send" },
+      { "key": "syndication", "label": "Syndication" }
+    ],
+    "collection_kinds": [
+      { "key": "series", "label": "Series" },
+      { "key": "category", "label": "Category" },
+      { "key": "roundup", "label": "Roundup" }
+    ],
+    "version_roles": [
+      { "key": "draft", "label": "Draft" },
+      { "key": "angle", "label": "Angle" }
+    ],
+    "statuses": [
+      { "key": "draft", "label": "Draft" },
+      { "key": "revised", "label": "Revised" },
+      { "key": "scored", "label": "Scored" },
+      { "key": "scheduled", "label": "Scheduled" },
+      { "key": "published", "label": "Published" },
+      { "key": "shelved", "label": "Shelved" }
+    ],
+    "axes": [
+      {
+        "key": "hook",
+        "label": "Hook",
+        "weight": 2.0,
+        "scale": 10.0,
+        "description": "Does the first paragraph survive contact with a stranger's attention span?"
+      },
+      {
+        "key": "usefulness",
+        "label": "Usefulness",
+        "weight": 1.5,
+        "scale": 10.0,
+        "description": "Could a reader act on this, or is it just an opinion floating by?"
+      },
+      {
+        "key": "clarity",
+        "label": "Clarity",
+        "weight": 1.5,
+        "scale": 10.0,
+        "description": "Sentence by sentence: does every paragraph earn the next one?"
+      },
+      {
+        "key": "angle",
+        "label": "Angle",
+        "weight": 1.0,
+        "scale": 10.0,
+        "description": "Is there a take here, or a restatement of what everyone already thinks?"
+      },
+      {
+        "key": "shareability",
+        "label": "Shareability",
+        "weight": 1.0,
+        "scale": 10.0,
+        "description": "Is there a line worth quoting out of context?"
+      }
+    ],
+    "tiers": [
+      { "key": "hold", "label": "Hold", "min": 0.0 },
+      { "key": "publish", "label": "Site publish", "min": 55.0 },
+      { "key": "newsletter", "label": "Newsletter feature", "min": 70.0 },
+      { "key": "flagship", "label": "Flagship post", "min": 82.0 }
+    ],
+    "work_meta_fields": [
+      { "key": "words", "label": "Words", "type": "number" },
+      { "key": "target_keyword", "label": "Target keyword", "type": "text" },
+      { "key": "publish_date", "label": "Publish date", "type": "date" }
+    ],
+    "prompts": [
+      {
+        "key": "critique",
+        "label": "Critique the draft",
+        "description": "Where a reader would bounce.",
+        "template": "Here is a post called \"{title}\".\n\n{role:draft}\n\nWhere would a stranger stop reading? Be specific about paragraphs. Name what is padded, what is obvious, and what the post is avoiding saying. Do not rewrite it — say what is wrong."
+      },
+      {
+        "key": "opening_test",
+        "label": "Test the opening",
+        "description": "Does the first paragraph earn the second?",
+        "template": "The opening of a post called \"{title}\":\n\n{role:draft}\n\nJudge only the first paragraph. Would it make a stranger keep reading, or is it throat-clearing? Give three concrete ways to sharpen it, and say what to cut, not what to add."
+      },
+      {
+        "key": "angle_check",
+        "label": "Check the draft against the angle",
+        "description": "Does the post still make the point it set out to make?",
+        "template": "The intended angle for \"{title}\":\n\n{role:angle}\n\nThe draft as written:\n\n{role:draft}\n\nWhat did the draft promise and not deliver? Where did it drift from the angle, and is the drift an improvement or a problem? Be specific."
+      },
+      {
+        "key": "headlines",
+        "label": "Alternative headlines",
+        "description": "Other ways to title it.",
+        "template": "A post currently called \"{title}\" with this draft:\n\n{role:draft}\n\nSuggest six alternative headlines. Take them from claims actually made in the text, not generic phrasing. No explanations."
+      }
+    ]
+  }
+}

@@ -8,6 +8,7 @@ import { WorkCard } from '@/components/WorkCard'
 import { Catalogue } from '@/components/Catalogue'
 import { CalendarView } from '@/components/CalendarView'
 import { DataView } from '@/components/DataView'
+import { ProfileSwitcher } from '@/components/ProfileSwitcher'
 
 export default function App() {
   const { t } = useTranslation()
@@ -55,9 +56,19 @@ export default function App() {
         <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-neutral-200 px-6 py-3 dark:border-neutral-800">
           <h1 className="text-lg font-semibold tracking-tight">{t('app.name')}</h1>
           <LoopBar />
-          <p className="ml-auto text-xs text-neutral-500">
-            {workspace.profile.name} · {t('status.works')} {workspace.works}
-          </p>
+          <div className="ml-auto flex items-center gap-3">
+            <p className="text-xs text-neutral-500">
+              {t('status.works')} {workspace.works}
+            </p>
+            <ProfileSwitcher
+              activeId={workspace.profile.id}
+              onSwitched={() => {
+                // The selection belongs to the profile being left.
+                setSelectedId(null)
+                refresh()
+              }}
+            />
+          </div>
         </header>
 
         <nav className="flex gap-1 border-b border-neutral-200 px-6 dark:border-neutral-800">

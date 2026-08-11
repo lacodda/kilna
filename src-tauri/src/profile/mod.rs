@@ -32,7 +32,14 @@ pub struct Profile {
 /// Profiles compiled into the binary. Music ships first; the others arrive with
 /// the profile editor.
 pub fn builtin() -> Result<Vec<BuiltinProfile>> {
-    const SOURCES: &[&str] = &[include_str!("../../profiles/music.json")];
+    // Four crafts against one schema. If a craft needed a schema change to fit,
+    // the premise of ADR 0001 would be wrong — so far none has.
+    const SOURCES: &[&str] = &[
+        include_str!("../../profiles/music.json"),
+        include_str!("../../profiles/novel.json"),
+        include_str!("../../profiles/podcast.json"),
+        include_str!("../../profiles/blog.json"),
+    ];
     SOURCES
         .iter()
         .map(|source| serde_json::from_str(source).map_err(Error::from))
@@ -126,8 +133,11 @@ fn add_new_prompts(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
     Ok(())
 }
 
-/// Activate the oldest profile when none is active — a workspace is never
-/// without one.
+/// Make sure a profile is active — a workspace is never without one.
+///
+/// The default is the first profile in `builtin()`, not the first by key or by
+/// timestamp: the seeds all land in the same second, so ordering by either
+/// would hand a new user whichever craft happened to sort first.
 fn ensure_one_active(conn: &Connection) -> Result<()> {
     let active: i64 = conn.query_row(
         "SELECT count(*) FROM profile WHERE is_active = 1",
@@ -139,6 +149,19 @@ fn ensure_one_active(conn: &Connection) -> Result<()> {
         return Ok(());
     }
 
+    let preferred = builtin()?.first().map(|profile| profile.key.clone());
+
+    if let Some(key) = preferred {
+        let changed = conn.execute(
+            "UPDATE profile SET is_active = 1 WHERE key = ?1",
+            params![key],
+        )?;
+        if changed > 0 {
+            return Ok(());
+        }
+    }
+
+    // A workspace with only user-made profiles falls back to the oldest.
     conn.execute(
         "UPDATE profile SET is_active = 1
          WHERE id = (SELECT id FROM profile ORDER BY created_at, key LIMIT 1)",
@@ -189,6 +212,33 @@ pub fn activate(conn: &mut Connection, id: &str) -> Result<()> {
 
     tx.commit()?;
     Ok(())
+}
+
+/// Replace a profile's configuration.
+///
+/// Nothing else is touched: axis keys are strings, so past score snapshots stay
+/// readable, and works keep whatever status and kind they already had even if
+/// the vocabulary that named them was edited away.
+pub fn update_config(conn: &Connection, id: &str, config: &ProfileConfig) -> Result<Profile> {
+    let changed = conn.execute(
+        "UPDATE profile SET config = ?2, updated_at = ?3 WHERE id = ?1",
+        params![id, serde_json::to_string(config)?, now()],
+    )?;
+
+    if changed == 0 {
+        return Err(Error::Other(format!("no profile with id `{id}`")));
+    }
+
+    let raw = conn
+        .query_row(
+            &format!("{SELECT_PROFILE} WHERE id = ?1"),
+            params![id],
+            read_row,
+        )
+        .optional()?
+        .ok_or_else(|| Error::Other(format!("no profile with id `{id}`")))?;
+
+    raw.into_profile()
 }
 
 /// A profile row before its config is parsed. Reading and parsing are separate
@@ -292,12 +342,77 @@ mod tests {
     }
 
     #[test]
+    fn a_new_workspace_starts_on_the_first_declared_profile() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        // Not the first by key — the seeds share a timestamp, so ordering by
+        // key or date would pick a craft at random.
+        assert_eq!(
+            active(&conn).unwrap().unwrap().key,
+            builtin().unwrap()[0].key
+        );
+    }
+
+    #[test]
     fn seed_does_not_duplicate_on_a_second_run() {
         let conn = db::open_in_memory().unwrap();
         seed(&conn).unwrap();
         seed(&conn).unwrap();
 
         assert_eq!(list(&conn).unwrap().len(), builtin().unwrap().len());
+    }
+
+    /// Every profile must be self-consistent, because a broken one is only
+    /// discovered when a user switches to it.
+    #[test]
+    fn every_builtin_profile_is_internally_consistent() {
+        for profile in builtin().unwrap() {
+            let config = &profile.config;
+            let key = &profile.key;
+
+            assert!(!config.statuses.is_empty(), "{key} has no statuses");
+            assert!(!config.work_kinds.is_empty(), "{key} has no work kinds");
+            assert!(
+                !config.version_roles.is_empty(),
+                "{key} has no version roles"
+            );
+
+            // A tier reachable by nothing is a tier that never appears.
+            assert!(
+                config.tiers.iter().any(|tier| tier.min == 0.0),
+                "{key} has no tier a zero score falls into"
+            );
+            assert!(
+                config.tiers.iter().all(|tier| tier.min <= 100.0),
+                "{key} has a tier no score can reach"
+            );
+
+            // Full marks on every axis must land in the top tier, or the
+            // scoring scale and the tiers disagree with each other.
+            let full: serde_json::Map<String, serde_json::Value> = config
+                .axes
+                .iter()
+                .map(|axis| (axis.key.clone(), serde_json::json!(axis.scale)))
+                .collect();
+            let total = config.total(&full);
+            assert!(
+                (total - 100.0).abs() < 1e-9,
+                "{key}: full marks scored {total}, not 100"
+            );
+
+            // Prompts may only ask for roles the profile actually has.
+            for prompt in &config.prompts {
+                for fragment in prompt.template.split("{role:").skip(1) {
+                    let role = fragment.split('}').next().unwrap_or_default();
+                    assert!(
+                        config.version_roles.iter().any(|r| r.key == role),
+                        "{key}: prompt `{}` asks for unknown role `{role}`",
+                        prompt.key
+                    );
+                }
+            }
+        }
     }
 
     #[test]
@@ -373,14 +488,14 @@ mod tests {
         seed(&conn).unwrap();
         conn.execute(
             "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
-             VALUES ('p-novel', 'novel', 'Novel', ?1, 0, 0, '2026-02-01T00:00:00Z', '2026-02-01T00:00:00Z')",
+             VALUES ('p-mine', 'mine', 'Mine', ?1, 0, 0, '2026-02-01T00:00:00Z', '2026-02-01T00:00:00Z')",
             params![serde_json::to_string(&builtin().unwrap()[0].config).unwrap()],
         )
         .unwrap();
 
-        activate(&mut conn, "p-novel").unwrap();
+        activate(&mut conn, "p-mine").unwrap();
 
-        assert_eq!(active(&conn).unwrap().unwrap().id, "p-novel");
+        assert_eq!(active(&conn).unwrap().unwrap().id, "p-mine");
         let active_count: i64 = conn
             .query_row(
                 "SELECT count(*) FROM profile WHERE is_active = 1",
