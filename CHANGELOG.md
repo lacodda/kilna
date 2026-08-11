@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.0] - 2026-08-11
+
+### Features
+- Calendar, releases and collections
 ## [0.3.0] - 2026-08-11
+
+### Documentation
+- Changelog for v0.3.0
 
 ### Features
 - Scoring, score history and the catalogue
