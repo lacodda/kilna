@@ -1,9 +1,11 @@
 pub mod commands;
 pub mod db;
 pub mod error;
+pub mod note;
 pub mod profile;
 pub mod state;
 pub mod time;
+pub mod work;
 
 pub use error::{Error, Result};
 
@@ -23,6 +25,21 @@ pub fn run() {
             commands::get_workspace,
             commands::list_profiles,
             commands::activate_profile,
+            commands::list_works,
+            commands::get_work,
+            commands::create_work,
+            commands::update_work,
+            commands::delete_work,
+            commands::list_versions,
+            commands::get_version,
+            commands::create_version,
+            commands::set_current_version,
+            commands::delete_version,
+            commands::list_notes,
+            commands::create_note,
+            commands::update_note,
+            commands::delete_note,
+            commands::list_tags,
         ])
         .run(tauri::generate_context!())
         .expect("failed to start kilna");
