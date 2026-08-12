@@ -5,8 +5,12 @@ description: Build kilna from source, run it, and see where your workspace lives
 
 ## Install
 
-kilna has no packaged build yet — there is nothing to download from a Releases
-page. Building from source is the only way to run it today.
+Grab a build from the [Releases page](https://github.com/lacodda/kilna/releases):
+an `.msi` or `.exe` for Windows, a `.dmg` for macOS (Apple silicon), and a
+`.deb`, `.rpm` or `.AppImage` for Linux. Nothing is signed yet, so both Windows
+and macOS will warn you about an unidentified developer.
+
+## Build from source
 
 You need Rust (1.85 or newer), Node 22+ and pnpm.
 
