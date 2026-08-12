@@ -1,14 +1,14 @@
-/* Brand accent: kilna signal amber. */
+/* Brand accent: kilna magenta. */
 :root {
-	--sl-color-accent: #e8862d;
-	--sl-color-accent-high: #f6b578;
-	--sl-color-accent-low: #4a2d0f;
+	--sl-color-accent: #d9569e;
+	--sl-color-accent-high: #f0a3ca;
+	--sl-color-accent-low: #4a1732;
 }
 
 :root[data-theme='light'] {
-	--sl-color-accent: #b8631a;
-	--sl-color-accent-high: #7a420f;
-	--sl-color-accent-low: #fbe4cd;
+	--sl-color-accent: #b13278;
+	--sl-color-accent-high: #75204f;
+	--sl-color-accent-low: #fbdcec;
 }
 
 /* ---------------------------------------------------------------- header -- */
