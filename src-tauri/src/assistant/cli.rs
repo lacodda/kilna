@@ -169,6 +169,8 @@ pub fn ask(prompt: &str, session_id: Option<&str>) -> Result<Turn> {
 }
 
 fn command() -> Command {
+    // Only the Windows branch below mutates it.
+    #[cfg_attr(not(windows), allow(unused_mut))]
     let mut command = Command::new(EXECUTABLE);
 
     // Without this a console window flashes on every call on Windows.

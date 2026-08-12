@@ -232,6 +232,8 @@ fn executable_name(path: &Path) -> Option<String> {
 }
 
 fn command(path: &Path) -> Command {
+    // Only the Windows branch below mutates it.
+    #[cfg_attr(not(windows), allow(unused_mut))]
     let mut command = Command::new(path);
 
     // Otherwise a console window flashes on every call on Windows.
