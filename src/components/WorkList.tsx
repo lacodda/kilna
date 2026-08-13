@@ -97,13 +97,13 @@ export function WorkList({ selectedId, onSelect, revision, onChanged }: Props) {
       </div>
 
       {error !== null && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-bad">
           {error}
         </p>
       )}
 
       {works.length === 0 ? (
-        <p className="py-8 text-center text-sm text-neutral-500">{t('works.none')}</p>
+        <p className="py-8 text-center text-sm text-dim">{t('works.none')}</p>
       ) : (
         <ul className="flex flex-col gap-1 overflow-y-auto">
           {works.map((work) => (
@@ -112,14 +112,12 @@ export function WorkList({ selectedId, onSelect, revision, onChanged }: Props) {
                 type="button"
                 onClick={() => onSelect(work.id)}
                 className={cn(
-                  'w-full rounded-md px-3 py-2 text-left transition-colors',
-                  work.id === selectedId
-                    ? 'bg-kiln-500/10 text-kiln-700 dark:text-kiln-200'
-                    : 'hover:bg-neutral-100 dark:hover:bg-neutral-800',
+                  'w-full rounded-[9px] px-3 py-2 text-left transition-colors',
+                  work.id === selectedId ? 'bg-accent-soft text-accent-2' : 'hover:bg-soft',
                 )}
               >
                 <span className="block truncate font-medium">{work.title}</span>
-                <span className="text-xs text-neutral-500">
+                <span className="text-xs text-dim">
                   {labelOf(profile.config.statuses, work.status)} ·{' '}
                   {labelOf(profile.config.work_kinds, work.kind)}
                 </span>

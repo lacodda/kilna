@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { X } from 'lucide-react'
 import { createRelease, deleteRelease, releasesForWork, type Release } from '@/lib/api'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
@@ -46,7 +47,7 @@ export function ReleasePanel({ workId, workTitle, onChanged }: Props) {
       <h3 className="text-sm font-semibold">{t('releases.title')}</h3>
 
       {error !== null && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-bad">
           {error}
         </p>
       )}
@@ -56,10 +57,10 @@ export function ReleasePanel({ workId, workTitle, onChanged }: Props) {
           {releases.map((release) => (
             <li
               key={release.id}
-              className="flex items-center gap-3 rounded-md border border-neutral-200 px-3 py-1.5 text-sm dark:border-neutral-700"
+              className="flex items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm"
             >
               <span className="font-medium">{labelOf(kinds, release.kind)}</span>
-              <span className="text-xs text-neutral-500">
+              <span className="text-xs text-dim">
                 {release.released_at !== null
                   ? t('releases.releasedOn', { date: release.released_at.slice(0, 10) })
                   : (release.scheduled_at ?? t('releases.unscheduled'))}
@@ -75,8 +76,8 @@ export function ReleasePanel({ workId, workTitle, onChanged }: Props) {
                 </a>
               )}
               <Button
-                size="sm"
                 variant="danger"
+                size="iconSm"
                 className="ml-auto"
                 title={t('releases.delete')}
                 onClick={() => {
@@ -88,7 +89,7 @@ export function ReleasePanel({ workId, workTitle, onChanged }: Props) {
                     .catch((cause: unknown) => setError(String(cause)))
                 }}
               >
-                ✕
+                <X aria-hidden className="size-3.5" />
               </Button>
             </li>
           ))}

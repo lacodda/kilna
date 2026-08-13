@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { X } from 'lucide-react'
 import { updateProfileConfig, type Axis, type Kind, type ProfileConfig, type Tier } from '@/lib/api'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
@@ -45,18 +46,18 @@ export function ProfileEditor({ onSaved }: Props) {
     <div className="flex max-w-3xl flex-col gap-6">
       <header>
         <h3 className="text-sm font-semibold">{profile.name}</h3>
-        <p className="text-sm text-neutral-500">{profile.description}</p>
+        <p className="text-sm text-dim">{profile.description}</p>
       </header>
 
       <section className="flex flex-col gap-2">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
           {t('editor.axes')}
         </h4>
-        <p className="text-xs text-neutral-500">{t('editor.axesHint')}</p>
+        <p className="text-xs text-dim">{t('editor.axesHint')}</p>
         <ul className="flex flex-col gap-1.5">
           {config.axes.map((axis, index) => (
             <li key={axis.key} className="flex items-center gap-2">
-              <code className="w-28 shrink-0 font-mono text-xs text-neutral-500">{axis.key}</code>
+              <code className="w-28 shrink-0 font-mono text-xs text-dim">{axis.key}</code>
               <Input
                 className="flex-1"
                 value={axis.label}
@@ -73,14 +74,14 @@ export function ProfileEditor({ onSaved }: Props) {
                 aria-label={`${axis.key} weight`}
               />
               <Button
-                size="sm"
                 variant="danger"
+                size="iconSm"
                 title={t('editor.removeAxis')}
                 onClick={() =>
                   patch({ axes: config.axes.filter((_, i) => i !== index) })
                 }
               >
-                ✕
+                <X aria-hidden className="size-3.5" />
               </Button>
             </li>
           ))}
@@ -88,14 +89,14 @@ export function ProfileEditor({ onSaved }: Props) {
       </section>
 
       <section className="flex flex-col gap-2">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
           {t('editor.tiers')}
         </h4>
-        <p className="text-xs text-neutral-500">{t('editor.tiersHint')}</p>
+        <p className="text-xs text-dim">{t('editor.tiersHint')}</p>
         <ul className="flex flex-col gap-1.5">
           {config.tiers.map((tier, index) => (
             <li key={tier.key} className="flex items-center gap-2">
-              <code className="w-28 shrink-0 font-mono text-xs text-neutral-500">{tier.key}</code>
+              <code className="w-28 shrink-0 font-mono text-xs text-dim">{tier.key}</code>
               <Input
                 className="flex-1"
                 value={tier.label}
@@ -133,13 +134,13 @@ export function ProfileEditor({ onSaved }: Props) {
       />
 
       <section className="flex flex-col gap-2">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
           {t('editor.prompts')}
         </h4>
         <ul className="flex flex-col gap-1.5">
           {config.prompts.map((prompt, index) => (
             <li key={prompt.key} className="flex items-center gap-2">
-              <code className="w-28 shrink-0 font-mono text-xs text-neutral-500">{prompt.key}</code>
+              <code className="w-28 shrink-0 font-mono text-xs text-dim">{prompt.key}</code>
               <Input
                 className="flex-1"
                 value={prompt.label}
@@ -161,15 +162,15 @@ export function ProfileEditor({ onSaved }: Props) {
         <Button variant="primary" onClick={save}>
           {t('editor.save')}
         </Button>
-        {saved && <span className="text-sm text-emerald-600">{t('editor.saved')}</span>}
+        {saved && <span className="text-sm text-good">{t('editor.saved')}</span>}
         {error !== null && (
-          <span role="alert" className="text-sm text-red-600">
+          <span role="alert" className="text-sm text-bad">
             {error}
           </span>
         )}
       </div>
 
-      <p className="text-xs text-neutral-500">{t('editor.keysHint')}</p>
+      <p className="text-xs text-dim">{t('editor.keysHint')}</p>
     </div>
   )
 }
@@ -183,7 +184,7 @@ interface VocabularyProps {
 function Vocabulary({ label, entries, onChange }: VocabularyProps) {
   return (
     <section className="flex flex-col gap-2">
-      <h4 className="text-xs font-medium uppercase tracking-wide text-neutral-500">{label}</h4>
+      <h4 className="text-xs font-medium uppercase tracking-wide text-dim">{label}</h4>
       <ul className="flex flex-wrap gap-1.5">
         {entries.map((entry, index) => (
           <li key={entry.key} className="flex items-center gap-1">

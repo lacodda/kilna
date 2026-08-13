@@ -68,15 +68,15 @@ export function PluginBar({ target, id, onChanged }: Props) {
         </div>
       )}
 
-      {message !== null && <p className="text-sm text-neutral-600 dark:text-neutral-300">{message}</p>}
+      {message !== null && <p className="text-sm text-dim">{message}</p>}
       {error !== null && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-bad">
           {error}
         </p>
       )}
 
       {unusable.map((plugin) => (
-        <p key={plugin.executable} className="text-xs text-amber-700 dark:text-amber-300">
+        <p key={plugin.executable} className="text-xs text-warn">
           {plugin.executable}: {plugin.reason}
         </p>
       ))}

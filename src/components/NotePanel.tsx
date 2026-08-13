@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { X } from 'lucide-react'
 import { createNote, deleteNote, listNotes, type Note } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
@@ -50,7 +51,7 @@ export function NotePanel({ workId }: Props) {
       <h3 className="text-sm font-semibold">{t('notes.title')}</h3>
 
       {error !== null && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-bad">
           {error}
         </p>
       )}
@@ -60,17 +61,14 @@ export function NotePanel({ workId }: Props) {
           {notes.map((note) => (
             <li
               key={note.id}
-              className="flex items-start gap-2 rounded-md border border-neutral-200 p-2.5 dark:border-neutral-700"
+              className="flex items-start gap-2 rounded-xl border border-line p-2.5"
             >
               <div className="flex-1">
                 <p className="whitespace-pre-wrap text-sm">{note.body}</p>
                 {note.tags.length > 0 && (
                   <p className="mt-1 flex flex-wrap gap-1">
                     {note.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
-                      >
+                      <span key={tag} className="rounded bg-soft px-1.5 py-0.5 text-xs text-dim">
                         {tag}
                       </span>
                     ))}
@@ -78,8 +76,8 @@ export function NotePanel({ workId }: Props) {
                 )}
               </div>
               <Button
-                size="sm"
                 variant="danger"
+                size="iconSm"
                 title={t('notes.delete')}
                 onClick={() => {
                   deleteNote(note.id)
@@ -87,7 +85,7 @@ export function NotePanel({ workId }: Props) {
                     .catch((cause: unknown) => setError(String(cause)))
                 }}
               >
-                ✕
+                <X aria-hidden className="size-3.5" />
               </Button>
             </li>
           ))}

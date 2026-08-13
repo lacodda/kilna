@@ -83,11 +83,11 @@ export function DataView({ onChanged }: Props) {
     <div className="flex max-w-3xl flex-col gap-6">
       <ProfileEditor onSaved={onChanged} />
 
-      <hr className="border-neutral-200 dark:border-neutral-800" />
+      <hr className="border-line" />
 
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">{t('data.export')}</h3>
-        <p className="text-sm text-neutral-500">{t('data.exportHint')}</p>
+        <p className="text-sm text-dim">{t('data.exportHint')}</p>
         <div>
           <Button variant="primary" disabled={busy} onClick={doExport}>
             {t('data.exportAction')}
@@ -97,23 +97,23 @@ export function DataView({ onChanged }: Props) {
 
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">{t('data.backup')}</h3>
-        <p className="text-sm text-neutral-500">{t('data.backupHint')}</p>
+        <p className="text-sm text-dim">{t('data.backupHint')}</p>
         <div>
           <Button disabled={busy} onClick={doBackup}>
             {t('data.backupAction')}
           </Button>
         </div>
         {path !== null && (
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-dim">
             {t('data.workspaceAt')} <code className="font-mono">{path}</code>
           </p>
         )}
-        <p className="text-xs text-neutral-500">{t('data.restoreHint')}</p>
+        <p className="text-xs text-dim">{t('data.restoreHint')}</p>
       </section>
 
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">{t('data.import')}</h3>
-        <p className="text-sm text-neutral-500">{t('data.importHint')}</p>
+        <p className="text-sm text-dim">{t('data.importHint')}</p>
         <div>
           <Button disabled={busy} onClick={doImport}>
             {t('data.importAction')}
@@ -121,14 +121,12 @@ export function DataView({ onChanged }: Props) {
         </div>
       </section>
 
-      {busy && <p className="text-sm text-neutral-500">{t('data.working')}</p>}
+      {busy && <p className="text-sm text-dim">{t('data.working')}</p>}
       {notice !== null && (
-        <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200">
-          {notice}
-        </p>
+        <p className="rounded-[9px] bg-good-soft px-3 py-2 text-sm text-good">{notice}</p>
       )}
       {error !== null && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-bad">
           {error}
         </p>
       )}

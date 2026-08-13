@@ -62,14 +62,14 @@ export function WorkCard({ workId, onChanged, onDeleted }: Props) {
 
   if (error !== null) {
     return (
-      <p role="alert" className="text-sm text-red-600">
+      <p role="alert" className="text-sm text-bad">
         {error}
       </p>
     )
   }
 
   if (work === null) {
-    return <p className="text-sm text-neutral-500">{t('status.loading')}</p>
+    return <p className="text-sm text-dim">{t('status.loading')}</p>
   }
 
   return (

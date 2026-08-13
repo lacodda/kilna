@@ -96,7 +96,7 @@ export function AssistantPanel({ workId }: Props) {
     return (
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">{t('assistant.title')}</h3>
-        <p className="rounded-md border border-dashed border-neutral-300 p-4 text-sm text-neutral-500 dark:border-neutral-700">
+        <p className="rounded-xl border border-dashed border-line p-4 text-sm text-dim">
           {status.reason ?? t('assistant.unavailable')}
         </p>
       </section>
@@ -107,9 +107,7 @@ export function AssistantPanel({ workId }: Props) {
     <section className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
         <h3 className="text-sm font-semibold">{t('assistant.title')}</h3>
-        {status?.version != null && (
-          <span className="text-xs text-neutral-500">{status.version}</span>
-        )}
+        {status?.version != null && <span className="text-xs text-dim">{status.version}</span>}
       </div>
 
       {profile.config.prompts.length > 0 && (
@@ -129,7 +127,7 @@ export function AssistantPanel({ workId }: Props) {
       )}
 
       {error !== null && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-bad">
           {error}
         </p>
       )}
@@ -140,17 +138,13 @@ export function AssistantPanel({ workId }: Props) {
             <li
               key={message.id}
               className={cn(
-                'rounded-md px-3 py-2 text-sm',
-                message.role === 'user'
-                  ? 'bg-neutral-100 dark:bg-neutral-800'
-                  : 'border border-neutral-200 dark:border-neutral-700',
+                'rounded-xl px-3 py-2 text-sm',
+                message.role === 'user' ? 'bg-soft' : 'border border-line',
               )}
             >
               <p className="whitespace-pre-wrap">{message.body}</p>
               {typeof message.meta.cost_usd === 'number' && (
-                <p className="mt-1 text-xs text-neutral-500">
-                  ${message.meta.cost_usd.toFixed(3)}
-                </p>
+                <p className="mt-1 text-xs text-dim">${message.meta.cost_usd.toFixed(3)}</p>
               )}
             </li>
           ))}
@@ -158,7 +152,7 @@ export function AssistantPanel({ workId }: Props) {
         </ul>
       )}
 
-      {pending && <p className="text-sm text-neutral-500">{t('assistant.thinking')}</p>}
+      {pending && <p className="text-sm text-dim">{t('assistant.thinking')}</p>}
 
       <form
         className="flex flex-col gap-2"

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { ArrowRight } from 'lucide-react'
 
 const STEPS = ['work', 'versions', 'score', 'slot', 'shipped'] as const
 
@@ -17,17 +18,13 @@ export function LoopBar() {
           <span
             className={
               index < BUILT
-                ? 'rounded-full border border-kiln-500/60 px-2 py-0.5 text-kiln-700 dark:text-kiln-200'
-                : 'rounded-full border border-neutral-300 px-2 py-0.5 text-neutral-400 dark:border-neutral-700'
+                ? 'rounded-full border border-accent/60 px-2 py-0.5 text-accent-2'
+                : 'rounded-full border border-line px-2 py-0.5 text-faint'
             }
           >
             {t(`loop.${step}`)}
           </span>
-          {index < STEPS.length - 1 && (
-            <span aria-hidden className="text-neutral-400">
-              →
-            </span>
-          )}
+          {index < STEPS.length - 1 && <ArrowRight aria-hidden className="size-3.5 text-faint" />}
         </li>
       ))}
     </ol>

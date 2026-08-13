@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Undo2 } from 'lucide-react'
 import {
   calendar as fetchCalendar,
   markReleased,
@@ -9,8 +10,9 @@ import {
   type ScheduledRelease,
 } from '@/lib/api'
 import { labelOf, useProfile } from '@/lib/useProfile'
+import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { DatePicker } from '@/components/ui/DatePicker'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -69,10 +71,10 @@ export function CalendarView({ onSelect }: Props) {
     <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
       <section className="flex flex-col gap-3">
         <h3 className="text-sm font-semibold">{t('calendar.queue')}</h3>
-        <p className="text-xs text-neutral-500">{t('calendar.queueHint')}</p>
+        <p className="text-xs text-dim">{t('calendar.queueHint')}</p>
 
         {queued.length === 0 ? (
-          <p className="py-6 text-sm text-neutral-500">{t('calendar.queueEmpty')}</p>
+          <p className="py-6 text-sm text-dim">{t('calendar.queueEmpty')}</p>
         ) : (
           <ul className="flex flex-col gap-1">
             {queued.map((entry) => (
@@ -81,18 +83,16 @@ export function CalendarView({ onSelect }: Props) {
                   type="button"
                   onClick={() => setPicked(entry.id === picked ? null : entry.id)}
                   className={cn(
-                    'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors',
-                    entry.id === picked
-                      ? 'bg-kiln-500/10 text-kiln-700 dark:text-kiln-200'
-                      : 'hover:bg-neutral-100 dark:hover:bg-neutral-800',
+                    'flex w-full cursor-pointer items-center gap-2 rounded-[9px] px-3 py-2 text-left text-sm transition-colors',
+                    entry.id === picked ? 'bg-accent-soft text-accent-2' : 'hover:bg-soft',
                   )}
                 >
                   <span className="flex-1 truncate font-medium">{entry.work_title}</span>
-                  <span className="text-xs text-neutral-500">
+                  <span className="text-xs text-faint">
                     {labelOf(profile.config.release_kinds, entry.kind)}
                   </span>
                   <span
-                    className="w-10 text-right tabular-nums"
+                    className="w-10 text-right font-mono tabular-nums"
                     // An unscored work cannot take a slot from a scored one,
                     // and finding that out from a refusal is late.
                     title={entry.total === null ? t('calendar.unscored') : undefined}
@@ -113,17 +113,10 @@ export function CalendarView({ onSelect }: Props) {
               claim()
             }}
           >
-            {/*
-              The browser renders this in the operating system's date format,
-              not the interface language — so a Russian Windows shows
-              dd.mm.yyyy under English labels. Left alone deliberately: the
-              value is always ISO underneath, and imposing a foreign format on
-              someone's own machine is the worse of the two surprises.
-            */}
-            <Input
-              type="date"
+            <DatePicker
               value={slot}
-              onChange={(event) => setSlot(event.target.value)}
+              onChange={setSlot}
+              placeholder={t('calendar.slotDate')}
               aria-label={t('calendar.slotDate')}
             />
             <Button type="submit" variant="primary" disabled={slot === ''}>
@@ -133,14 +126,12 @@ export function CalendarView({ onSelect }: Props) {
         )}
 
         {error !== null && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-bad">
             {error}
           </p>
         )}
         {notice !== null && (
-          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
-            {notice}
-          </p>
+          <p className="rounded-[9px] bg-warn-soft px-3 py-2 text-sm text-warn">{notice}</p>
         )}
       </section>
 
@@ -148,33 +139,33 @@ export function CalendarView({ onSelect }: Props) {
         <h3 className="text-sm font-semibold">{t('calendar.title')}</h3>
 
         {slots.length === 0 ? (
-          <p className="py-6 text-sm text-neutral-500">{t('calendar.empty')}</p>
+          <p className="py-6 text-sm text-dim">{t('calendar.empty')}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {slots.map((entry) => (
               <li
                 key={entry.id}
-                className="flex flex-wrap items-center gap-3 rounded-md border border-neutral-200 px-3 py-2 dark:border-neutral-700"
+                className="flex flex-wrap items-center gap-3 rounded-xl border border-line px-3 py-2"
               >
                 <span className="w-24 font-mono text-sm tabular-nums">{entry.scheduled_at}</span>
                 <button
                   type="button"
-                  className="font-medium hover:underline"
+                  className="cursor-pointer font-medium hover:underline"
                   onClick={() => onSelect(entry.work_id)}
                 >
                   {entry.work_title}
                 </button>
-                <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs dark:bg-neutral-800">
+                <Badge variant="soft" className="text-xs">
                   {labelOf(profile.config.release_kinds, entry.kind)}
-                </span>
+                </Badge>
                 {entry.total !== null && (
-                  <span className="text-xs text-neutral-500 tabular-nums">
+                  <span className="font-mono text-xs text-faint tabular-nums">
                     {entry.total.toFixed(1)}
                   </span>
                 )}
 
                 {entry.status === 'released' ? (
-                  <span className="ml-auto text-xs text-emerald-600">
+                  <span className="ml-auto text-xs text-good">
                     {t('calendar.released')}
                     {entry.url !== null && (
                       <a
@@ -201,8 +192,8 @@ export function CalendarView({ onSelect }: Props) {
                       {t('calendar.markReleased')}
                     </Button>
                     <Button
-                      size="sm"
-                      variant="ghost"
+                      variant="icon"
+                      size="iconSm"
                       title={t('calendar.unschedule')}
                       onClick={() => {
                         unscheduleRelease(entry.id)
@@ -210,7 +201,7 @@ export function CalendarView({ onSelect }: Props) {
                           .catch((cause: unknown) => setError(String(cause)))
                       }}
                     >
-                      ↩
+                      <Undo2 aria-hidden />
                     </Button>
                   </span>
                 )}

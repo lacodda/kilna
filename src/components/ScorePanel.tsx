@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { X } from 'lucide-react'
 import { deleteScore, scoreHistory, scoreWork, type Score } from '@/lib/api'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { tierFor, total as computeTotal } from '@/lib/scoring'
@@ -53,7 +54,7 @@ export function ScorePanel({ workId, onChanged }: Props) {
       <h3 className="text-sm font-semibold">{t('score.title')}</h3>
 
       {error !== null && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-bad">
           {error}
         </p>
       )}
@@ -61,8 +62,8 @@ export function ScorePanel({ workId, onChanged }: Props) {
       <div className="flex flex-wrap items-end gap-3">
         {axes.map((axis) => (
           <label key={axis.key} className="flex flex-col gap-1" title={axis.description}>
-            <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-              {axis.label} <span className="normal-case text-neutral-400">×{axis.weight}</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-dim">
+              {axis.label} <span className="normal-case text-faint">×{axis.weight}</span>
             </span>
             <Input
               className="w-20"
@@ -90,14 +91,14 @@ export function ScorePanel({ workId, onChanged }: Props) {
 
         <div className="ml-auto flex items-end gap-3">
           <div className="text-right">
-            <span className="block text-xs uppercase tracking-wide text-neutral-500">
+            <span className="block text-xs uppercase tracking-wide text-dim">
               {t('score.total')}
             </span>
             <span className="text-xl font-semibold tabular-nums">
               {filled === 0 ? '—' : preview.toFixed(1)}
             </span>
             {previewTier !== undefined && filled > 0 && (
-              <span className="ml-2 rounded bg-kiln-500/20 px-1.5 py-0.5 text-xs">
+              <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-xs">
                 {previewTier.label}
               </span>
             )}
@@ -109,7 +110,7 @@ export function ScorePanel({ workId, onChanged }: Props) {
       </div>
 
       {filled > 0 && filled < axes.length && (
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-dim">
           {t('score.partial', { filled, count: axes.length })}
         </p>
       )}
@@ -123,36 +124,33 @@ export function ScorePanel({ workId, onChanged }: Props) {
             return (
               <li
                 key={score.id}
-                className="flex items-center gap-3 rounded-md border border-neutral-200 px-3 py-1.5 text-sm dark:border-neutral-700"
+                className="flex items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm"
               >
                 <span className="w-14 font-semibold tabular-nums">{score.total.toFixed(1)}</span>
                 {score.tier !== null && (
-                  <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs dark:bg-neutral-800">
+                  <span className="rounded bg-soft px-1.5 py-0.5 text-xs">
                     {labelOf(tiers, score.tier)}
                   </span>
                 )}
                 {score.revision !== null && (
-                  <span className="text-xs text-neutral-500">
+                  <span className="text-xs text-dim">
                     {t('versions.revision', { number: score.revision })}
                   </span>
                 )}
                 {delta !== undefined && Math.abs(delta) >= 0.05 && (
                   <span
-                    className={cn(
-                      'text-xs font-medium',
-                      delta > 0 ? 'text-emerald-600' : 'text-red-600',
-                    )}
+                    className={cn('text-xs font-medium', delta > 0 ? 'text-good' : 'text-bad')}
                   >
                     {delta > 0 ? '+' : ''}
                     {delta.toFixed(1)}
                   </span>
                 )}
-                <span className="ml-auto text-xs text-neutral-500">
+                <span className="ml-auto text-xs text-dim">
                   {score.scored_at.slice(0, 10)}
                 </span>
                 <Button
-                  size="sm"
                   variant="danger"
+                  size="iconSm"
                   title={t('score.delete')}
                   onClick={() => {
                     deleteScore(score.id)
@@ -163,7 +161,7 @@ export function ScorePanel({ workId, onChanged }: Props) {
                       .catch((cause: unknown) => setError(String(cause)))
                   }}
                 >
-                  ✕
+                  <X aria-hidden className="size-3.5" />
                 </Button>
               </li>
             )

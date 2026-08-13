@@ -23,7 +23,7 @@ export function ProfileSwitcher({ activeId, onSwitched }: Props) {
 
   if (error !== null) {
     return (
-      <span role="alert" className="text-xs text-red-600">
+      <span role="alert" className="text-xs text-bad">
         {error}
       </span>
     )

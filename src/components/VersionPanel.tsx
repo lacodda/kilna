@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Star, X } from 'lucide-react'
 import {
   createVersion,
   deleteVersion,
@@ -118,7 +119,7 @@ export function VersionPanel({ workId, onChanged }: Props) {
       </div>
 
       {error !== null && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-bad">
           {error}
         </p>
       )}
@@ -126,7 +127,7 @@ export function VersionPanel({ workId, onChanged }: Props) {
       <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
         <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto">
           {summaries.length === 0 && (
-            <li className="py-4 text-sm text-neutral-500">{t('versions.none')}</li>
+            <li className="py-4 text-sm text-dim">{t('versions.none')}</li>
           )}
           {summaries.map((version) => (
             <li key={version.id} className="flex items-center gap-1">
@@ -134,40 +135,39 @@ export function VersionPanel({ workId, onChanged }: Props) {
                 type="button"
                 onClick={() => setOpenId(version.id)}
                 className={cn(
-                  'flex-1 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
-                  version.id === openId
-                    ? 'bg-kiln-500/10 text-kiln-700 dark:text-kiln-200'
-                    : 'hover:bg-neutral-100 dark:hover:bg-neutral-800',
+                  'flex-1 rounded-[9px] px-2 py-1.5 text-left text-sm transition-colors',
+                  version.id === openId ? 'bg-accent-soft text-accent-2' : 'hover:bg-soft',
                 )}
               >
                 <span className="font-medium">
                   {t('versions.revision', { number: version.revision })}
                 </span>
                 {version.is_current && (
-                  <span className="ml-1.5 rounded bg-kiln-500/20 px-1 text-[10px] uppercase tracking-wide">
+                  <span className="ml-1.5 rounded bg-accent-soft px-1 text-[10px] uppercase tracking-wide">
                     {t('versions.current')}
                   </span>
                 )}
-                <span className="block text-xs text-neutral-500">
+                <span className="block text-xs text-dim">
                   {t('versions.length', { count: version.length })}
                 </span>
               </button>
               {!version.is_current && (
                 <Button
-                  size="sm"
+                  variant="icon"
+                  size="iconSm"
                   onClick={() => makeCurrent(version.id)}
                   title={t('versions.makeCurrent')}
                 >
-                  ★
+                  <Star aria-hidden className="size-4" />
                 </Button>
               )}
               <Button
-                size="sm"
                 variant="danger"
+                size="iconSm"
                 onClick={() => remove(version.id)}
                 title={t('versions.delete')}
               >
-                ✕
+                <X aria-hidden className="size-3.5" />
               </Button>
             </li>
           ))}
@@ -175,8 +175,8 @@ export function VersionPanel({ workId, onChanged }: Props) {
 
         <div className="flex flex-col gap-3">
           {open !== null && (
-            <article className="rounded-md border border-neutral-200 p-3 dark:border-neutral-700">
-              <header className="mb-2 text-xs text-neutral-500">
+            <article className="rounded-xl border border-line p-3">
+              <header className="mb-2 text-xs text-dim">
                 {labelOf(roles, open.role)} · {t('versions.revision', { number: open.revision })} ·{' '}
                 {open.created_at.slice(0, 10)}
               </header>
