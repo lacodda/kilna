@@ -3,13 +3,6 @@
     "name": "kilna",
     "tagline": "From raw idea to shipped work."
   },
-  "loop": {
-    "work": "Work",
-    "versions": "Versions",
-    "score": "Score",
-    "slot": "Slot",
-    "shipped": "Shipped"
-  },
   "status": {
     "profile": "Active profile",
     "database": "Database",
@@ -57,12 +50,18 @@
     "catalogue": "Catalogue",
     "calendar": "Calendar",
     "data": "Settings",
-    "styleguide": "Styleguide"
+    "styleguide": "Styleguide",
+    "dashboard": "Dashboard",
+    "library": "Library",
+    "collections": "Collections",
+    "notes": "Notes",
+    "trash": "Trash",
+    "soon": "Coming in v{{version}}"
   },
-  "theme": {
-    "system": "Theme: follows the system",
-    "light": "Theme: light",
-    "dark": "Theme: dark"
+  "themeName": {
+    "system": "System theme",
+    "light": "Light theme",
+    "dark": "Dark theme"
   },
   "styleguide": {
     "title": "Styleguide",

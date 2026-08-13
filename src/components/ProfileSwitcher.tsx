@@ -33,7 +33,7 @@ export function ProfileSwitcher({ activeId, onSwitched }: Props) {
 
   return (
     <Select
-      className="w-40"
+      className="w-full"
       aria-label={t('status.profile')}
       value={activeId}
       onChange={(id) => {

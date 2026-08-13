@@ -24,9 +24,9 @@ pnpm tauri dev
 `pnpm tauri dev` compiles the Rust backend and opens the app window. The first
 build takes a while; later ones are incremental.
 
-Development builds show one extra tab, **Styleguide** — the living inventory
-of the design system. Screens take their controls from that page and only from
-there; it is not part of the released app.
+Development builds show one extra sidebar entry, **Styleguide** — the living
+inventory of the design system. Screens take their controls from that page and
+only from there; it is not part of the released app.
 
 To check the backend on its own, without the UI:
 
@@ -43,14 +43,15 @@ built-in profiles — **Music**, **Novel**, **Podcast** and **Blog** — with
 **Music** active by default. Nothing else is pre-populated: no sample works,
 no demo data.
 
-Switch profiles from the workspace screen at any time. Switching doesn't lose
-anything — works keep the kind and status they were given, even if you later
-edit the vocabulary that named them.
+Switch profiles from the picker at the bottom of the sidebar at any time.
+Switching doesn't lose anything — works keep the kind and status they were
+given, even if you later edit the vocabulary that named them.
 
 kilna is a studio tool, so it is dark by default — more precisely, it follows
-your system's theme until you say otherwise. The theme button in the header
-cycles through *system*, *light* and *dark*, and the choice is remembered
-across launches.
+your system's theme until you say otherwise. The theme button in the sidebar
+footer cycles through *system*, *light* and *dark*, and the choice is
+remembered across launches. See [The interface](/kilna/concepts/the-interface/)
+for the full tour of the frame.
 
 ## What a workspace is
 
