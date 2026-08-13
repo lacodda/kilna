@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.11.0] - 2026-08-13
+
+### Features
+- Sidebar and topbar frame over real routes
 ## [0.10.0] - 2026-08-13
 
 ### Bug Fixes
@@ -9,6 +13,7 @@ All notable changes to this project are documented in this file.
 
 ### Documentation
 - Point at the builds that now exist
+- Changelog for v0.10.0
 
 ### Features
 - Design system on brand tokens, radix and lucide
