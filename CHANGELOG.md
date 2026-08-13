@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## [0.10.0] - 2026-08-13
 
+### Bug Fixes
+- Tolerate a plugin that answers without reading stdin
+
 ### Documentation
 - Point at the builds that now exist
 
