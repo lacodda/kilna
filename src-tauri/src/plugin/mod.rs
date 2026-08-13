@@ -164,9 +164,15 @@ pub fn invoke(path: &Path, invocation: &Invocation<'_>) -> Result<Outcome> {
             .stdin
             .take()
             .ok_or_else(|| Error::Other("could not write to the plugin".into()))?;
-        stdin
-            .write_all(&payload)
-            .map_err(|error| Error::Other(format!("could not send the request: {error}")))?;
+        if let Err(error) = stdin.write_all(&payload) {
+            // A plugin is allowed to answer without reading its input; if it
+            // exits first, the write sees a closed pipe. The verdict still
+            // arrives through stdout and the exit status, so only a failure
+            // other than the closed pipe is real.
+            if error.kind() != std::io::ErrorKind::BrokenPipe {
+                return Err(Error::Other(format!("could not send the request: {error}")));
+            }
+        }
     }
 
     let output = child
