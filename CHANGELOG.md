@@ -2,13 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
-## [0.9.0] - 2026-08-11
+## [0.10.0] - 2026-08-13
+
+### Documentation
+- Point at the builds that now exist
+
+### Features
+- Design system on brand tokens, radix and lucide
+## [0.9.0] - 2026-08-12
+
+### Bug Fixes
+- Say why an unscored release cannot take a slot
+- Keep the process helpers lint-clean off Windows
 
 ### CI
 - Build and publish desktop bundles on a tag
+- Let packageManager decide the pnpm version
 
 ### Documentation
 - A documentation site built from the source, not from memory
+- Changelog for v0.9.0
+- A screenshot taken from the running build
+
+### Features
+- The approved mark — ki, the heat, magenta
 ## [0.8.0] - 2026-08-11
 
 ### Documentation
