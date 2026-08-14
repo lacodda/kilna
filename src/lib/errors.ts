@@ -46,8 +46,3 @@ export function humanError(cause: unknown): string {
 
   return t('error.unknown')
 }
-
-/** True when the failure is "it isn't there any more" — usually worth a refetch. */
-export function isNotFound(cause: unknown): boolean {
-  return isAppError(cause) && cause.kind === 'notFound'
-}
