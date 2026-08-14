@@ -5,6 +5,7 @@ import {
   Disc,
   FilePen,
   FileText,
+  Languages,
   LayoutDashboard,
   List,
   Monitor,
@@ -16,6 +17,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { nextTheme, useTheme, type Theme } from '@/lib/theme'
+import { nextLanguage, useLanguage } from '@/lib/language'
 import { ProfileSwitcher } from '@/components/ProfileSwitcher'
 import { cn } from '@/lib/utils'
 
@@ -70,6 +72,7 @@ interface Props {
 export function Sidebar({ profileId, onProfileSwitched }: Props) {
   const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
+  const { language, setLanguage } = useLanguage()
   const ThemeIcon = THEME_ICONS[theme]
 
   return (
@@ -113,6 +116,14 @@ export function Sidebar({ profileId, onProfileSwitched }: Props) {
         <button type="button" className={NAV_CLASS} onClick={() => setTheme(nextTheme(theme))}>
           <ThemeIcon aria-hidden />
           {t(`themeName.${theme}`)}
+        </button>
+        <button
+          type="button"
+          className={NAV_CLASS}
+          onClick={() => setLanguage(nextLanguage(language))}
+        >
+          <Languages aria-hidden />
+          {t(`languageName.${language}`)}
         </button>
         <div className="px-1 pt-1">
           <ProfileSwitcher activeId={profileId} onSwitched={onProfileSwitched} />
