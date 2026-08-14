@@ -32,8 +32,7 @@ pub fn render(template: &str, values: &[(&str, String)]) -> String {
 
 /// Build the prompt for `template` in the context of `work_id`.
 pub fn for_work(conn: &Connection, work_id: &str, template: &str) -> Result<String> {
-    let work = work::get(conn, work_id)?
-        .ok_or_else(|| Error::Other(format!("no work with id `{work_id}`")))?;
+    let work = work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
 
     // The current version is what the user is looking at; roles beyond it are
     // fetched by name so a template can ask for the style as well as the text.

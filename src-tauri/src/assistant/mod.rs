@@ -132,7 +132,7 @@ pub fn transcript(conn: &Connection, chat_id: &str) -> Result<Option<Transcript>
 
 pub fn delete(conn: &Connection, id: &str) -> Result<()> {
     if conn.execute("DELETE FROM chat WHERE id = ?1", params![id])? == 0 {
-        return Err(Error::Other(format!("no chat with id `{id}`")));
+        return Err(Error::not_found("chat", id));
     }
     Ok(())
 }
@@ -142,8 +142,7 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
 /// The user's message is stored before the CLI is called, so a failed or slow
 /// turn still leaves a record of what was asked.
 pub fn ask(conn: &mut Connection, chat_id: &str, prompt: &str) -> Result<Message> {
-    let chat =
-        get(conn, chat_id)?.ok_or_else(|| Error::Other(format!("no chat with id `{chat_id}`")))?;
+    let chat = get(conn, chat_id)?.ok_or_else(|| Error::not_found("chat", chat_id))?;
 
     append(conn, chat_id, USER, prompt, Map::new())?;
 

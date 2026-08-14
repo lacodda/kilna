@@ -250,7 +250,7 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
 }
 
 fn unknown_work(id: &str) -> Error {
-    Error::Other(format!("no work with id `{id}`"))
+    Error::not_found("work", id)
 }
 
 /// A row before its JSON columns are parsed.

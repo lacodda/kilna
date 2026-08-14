@@ -207,7 +207,7 @@ pub fn activate(conn: &mut Connection, id: &str) -> Result<()> {
     )?;
 
     if changed == 0 {
-        return Err(Error::Other(format!("no profile with id `{id}`")));
+        return Err(Error::not_found("profile", id));
     }
 
     tx.commit()?;
@@ -226,7 +226,7 @@ pub fn update_config(conn: &Connection, id: &str, config: &ProfileConfig) -> Res
     )?;
 
     if changed == 0 {
-        return Err(Error::Other(format!("no profile with id `{id}`")));
+        return Err(Error::not_found("profile", id));
     }
 
     let raw = conn
@@ -236,7 +236,7 @@ pub fn update_config(conn: &Connection, id: &str, config: &ProfileConfig) -> Res
             read_row,
         )
         .optional()?
-        .ok_or_else(|| Error::Other(format!("no profile with id `{id}`")))?;
+        .ok_or_else(|| Error::not_found("profile", id))?;
 
     raw.into_profile()
 }

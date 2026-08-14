@@ -209,7 +209,7 @@ pub fn tags(conn: &Connection, profile_id: &str) -> Result<Vec<(String, i64)>> {
 }
 
 fn unknown_note(id: &str) -> Error {
-    Error::Other(format!("no note with id `{id}`"))
+    Error::not_found("note", id)
 }
 
 struct RawNote {

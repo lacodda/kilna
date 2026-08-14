@@ -63,7 +63,7 @@ pub fn create(conn: &Connection, work_id: &str, new: NewScore) -> Result<Score> 
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .optional()?
-        .ok_or_else(|| Error::Other(format!("no work with id `{work_id}`")))?;
+        .ok_or_else(|| Error::not_found("work", work_id))?;
 
     let config = profile_config(conn, &profile_id)?;
     let total = config.total(&new.axes);
@@ -160,7 +160,7 @@ pub fn latest(conn: &Connection, work_id: &str) -> Result<Option<Score>> {
 /// Delete a score snapshot. History is otherwise append-only.
 pub fn delete(conn: &Connection, id: &str) -> Result<()> {
     if conn.execute("DELETE FROM work_score WHERE id = ?1", params![id])? == 0 {
-        return Err(Error::Other(format!("no score with id `{id}`")));
+        return Err(Error::not_found("score", id));
     }
     Ok(())
 }

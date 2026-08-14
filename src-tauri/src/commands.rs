@@ -364,7 +364,7 @@ pub fn run_plugin(
     let found = plugin::discover(&directory)
         .into_iter()
         .find(|candidate| candidate.executable == executable)
-        .ok_or_else(|| Error::Other(format!("no plugin named `{executable}`")))?;
+        .ok_or_else(|| Error::not_found("plugin", executable.clone()))?;
 
     if !found.usable {
         return Err(Error::Other(
@@ -377,12 +377,11 @@ pub fn run_plugin(
     let conn = state.conn();
     let subject = match target {
         Target::Release => serde_json::to_value(
-            release::get(&conn, &id)?
-                .ok_or_else(|| Error::Other(format!("no release with id `{id}`")))?,
+            release::get(&conn, &id)?.ok_or_else(|| Error::not_found("release", id.clone()))?,
         )?,
         Target::Work => {
-            let found = work::get(&conn, &id)?
-                .ok_or_else(|| Error::Other(format!("no work with id `{id}`")))?;
+            let found =
+                work::get(&conn, &id)?.ok_or_else(|| Error::not_found("work", id.clone()))?;
             let mut value = serde_json::to_value(&found)?;
 
             // A plugin acting on a work almost always wants its text. Sending

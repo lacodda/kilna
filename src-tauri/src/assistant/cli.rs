@@ -44,16 +44,16 @@ fn version() -> Result<String> {
         .arg("--version")
         .output()
         .map_err(|error| match error.kind() {
-            std::io::ErrorKind::NotFound => Error::Other(
+            std::io::ErrorKind::NotFound => Error::Assistant(
                 "Claude Code is not on the PATH. Install it from https://claude.com/claude-code, \
                  then reopen kilna."
                     .into(),
             ),
-            _ => Error::Other(format!("could not run `{EXECUTABLE}`: {error}")),
+            _ => Error::Assistant(format!("could not run `{EXECUTABLE}`: {error}")),
         })?;
 
     if !output.status.success() {
-        return Err(Error::Other(format!(
+        return Err(Error::Assistant(format!(
             "`{EXECUTABLE} --version` failed: {}",
             String::from_utf8_lossy(&output.stderr).trim()
         )));
@@ -112,29 +112,29 @@ pub fn ask(prompt: &str, session_id: Option<&str>) -> Result<Turn> {
 
     let mut child = command
         .spawn()
-        .map_err(|error| Error::Other(format!("could not run `{EXECUTABLE}`: {error}")))?;
+        .map_err(|error| Error::Assistant(format!("could not run `{EXECUTABLE}`: {error}")))?;
 
     {
         use std::io::Write;
         let mut stdin = child
             .stdin
             .take()
-            .ok_or_else(|| Error::Other("could not write to Claude Code".into()))?;
+            .ok_or_else(|| Error::Assistant("could not write to Claude Code".into()))?;
         stdin
             .write_all(prompt.as_bytes())
-            .map_err(|error| Error::Other(format!("could not send the prompt: {error}")))?;
+            .map_err(|error| Error::Assistant(format!("could not send the prompt: {error}")))?;
         // Dropping stdin closes it, which is what tells the CLI the prompt ended.
     }
 
     let output = child
         .wait_with_output()
-        .map_err(|error| Error::Other(format!("`{EXECUTABLE}` did not finish: {error}")))?;
+        .map_err(|error| Error::Assistant(format!("`{EXECUTABLE}` did not finish: {error}")))?;
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
 
     if stdout.trim().is_empty() {
-        return Err(Error::Other(if stderr.trim().is_empty() {
+        return Err(Error::Assistant(if stderr.trim().is_empty() {
             "Claude Code returned nothing".into()
         } else {
             stderr.trim().to_owned()
@@ -142,7 +142,7 @@ pub fn ask(prompt: &str, session_id: Option<&str>) -> Result<Turn> {
     }
 
     let parsed: CliResult = serde_json::from_str(stdout.trim()).map_err(|error| {
-        Error::Other(format!(
+        Error::Assistant(format!(
             "could not read the reply from Claude Code ({error}): {}",
             stdout.trim()
         ))
@@ -153,7 +153,7 @@ pub fn ask(prompt: &str, session_id: Option<&str>) -> Result<Turn> {
     if parsed.is_error {
         // The CLI puts its own diagnosis in `result` — pass it through rather
         // than replacing it with something vaguer.
-        return Err(Error::Other(if body.trim().is_empty() {
+        return Err(Error::Assistant(if body.trim().is_empty() {
             "Claude Code reported an error".into()
         } else {
             body

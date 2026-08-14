@@ -67,7 +67,7 @@ pub fn create(conn: &mut Connection, work_id: &str, new: NewVersion) -> Result<V
         .optional()?
         .unwrap_or(false);
     if !exists {
-        return Err(Error::Other(format!("no work with id `{work_id}`")));
+        return Err(Error::not_found("work", work_id));
     }
 
     let revision: i64 = tx.query_row(
@@ -205,7 +205,7 @@ pub fn delete(conn: &mut Connection, id: &str) -> Result<()> {
         )
         .optional()?
     else {
-        return Err(Error::Other(format!("no version with id `{id}`")));
+        return Err(Error::not_found("version", id));
     };
 
     let was_current: bool = tx

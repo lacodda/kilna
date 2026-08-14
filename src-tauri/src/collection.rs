@@ -201,7 +201,7 @@ pub fn set_contents(conn: &mut Connection, id: &str, work_ids: &[String]) -> Res
 }
 
 fn unknown(id: &str) -> Error {
-    Error::Other(format!("no collection with id `{id}`"))
+    Error::not_found("collection", id)
 }
 
 struct RawCollection {

@@ -82,7 +82,7 @@ pub fn create(conn: &Connection, new: NewRelease) -> Result<Release> {
         .optional()?
         .unwrap_or(false);
     if !exists {
-        return Err(Error::Other(format!("no work with id `{}`", new.work_id)));
+        return Err(Error::not_found("work", new.work_id.clone()));
     }
 
     let id = uuid::Uuid::new_v4().to_string();
@@ -382,7 +382,7 @@ fn read_scheduled(
 }
 
 fn unknown_release(id: &str) -> Error {
-    Error::Other(format!("no release with id `{id}`"))
+    Error::not_found("release", id)
 }
 
 struct RawRelease {
