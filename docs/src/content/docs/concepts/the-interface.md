@@ -28,6 +28,28 @@ through *system*, *light* and *dark*; the choice is remembered across
 launches and applies before the first paint, so the window never flashes the
 wrong color.
 
+## Language
+
+kilna speaks English and Russian. The footer button cycles through
+*system*, *English* and *Русский*; like the theme, the choice is remembered
+and applied before the first paint.
+
+*System* follows your OS: kilna takes the first of your preferred languages
+it has a translation for, matching on the language rather than the region —
+`ru-RU` and `ru-BY` both get Russian.
+
+**What is translated is the interface, not your vocabulary.** Statuses,
+kinds, roles, scoring axes and meta fields come from your
+[profile](/kilna/concepts/profiles/), which is data you own and can edit —
+so switching the interface to Russian does not rename `Draft` to
+`Черновик`. Rename it yourself in Settings and it stays renamed, in every
+language. The alternative — translating your profile on the fly — would
+overwrite whatever wording you had chosen.
+
+There is no fallback between languages. A message missing from one locale
+fails the build rather than appearing in the other one, because a screen
+half in English is the kind of bug nobody reports and everybody notices.
+
 ## Screens are URLs
 
 Every screen has an address, and the open work is part of it: `/works/abc123`
