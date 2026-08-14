@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.12.0] - 2026-08-14
+
+### Features
+- Give failures a stable kind the frontend can branch on
+- Put a data layer and real feedback under the screens
 ## [0.11.0] - 2026-08-13
 
 ### Features
