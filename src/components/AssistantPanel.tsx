@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   askAssistant,
   assistantStatus,
@@ -7,12 +8,14 @@ import {
   getTranscript,
   listChats,
   renderPrompt,
-  type Availability,
   type Message,
 } from '@/lib/api'
+import { keys } from '@/lib/query'
+import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Input'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -25,79 +28,96 @@ interface Props {
 export function AssistantPanel({ workId }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const client = useQueryClient()
 
-  const [status, setStatus] = useState<Availability | null>(null)
-  const [chatId, setChatId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
   const [draft, setDraft] = useState('')
-  const [pending, setPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const bottom = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    assistantStatus()
-      .then(setStatus)
-      .catch((cause: unknown) => setError(String(cause)))
-  }, [])
+  const status = useQuery({
+    queryKey: keys.assistantStatus,
+    queryFn: assistantStatus,
+    // Installing the CLI mid-session is rare; asking once a minute is plenty.
+    staleTime: 60_000,
+  })
 
-  // One chat per work, reused across sessions.
-  useEffect(() => {
-    listChats(workId)
-      .then((chats) => chats[0] ?? createChat({ work_id: workId }))
-      .then((chat) => setChatId(chat.id))
-      .catch((cause: unknown) => setError(String(cause)))
-  }, [workId])
+  // One chat per work, reused across sessions. Creating it on demand is part of
+  // reading it — the panel has no meaning without one.
+  const chat = useQuery({
+    queryKey: keys.chats(workId),
+    queryFn: async () => {
+      const chats = await listChats(workId)
+      return chats[0] ?? (await createChat({ work_id: workId }))
+    },
+  })
 
-  useEffect(() => {
-    if (chatId === null) return
+  const chatId = chat.data?.id ?? null
 
-    getTranscript(chatId)
-      .then((transcript) => setMessages(transcript?.messages ?? []))
-      .catch((cause: unknown) => setError(String(cause)))
-  }, [chatId])
+  const transcript = useQuery({
+    queryKey: keys.transcript(chatId ?? ''),
+    queryFn: () => getTranscript(chatId!),
+    enabled: chatId !== null,
+  })
+
+  const messages = transcript.data?.messages ?? []
+
+  const ask = useMutation({
+    mutationFn: (prompt: string) => askAssistant(chatId!, prompt),
+    // Show the question immediately — a CLI round trip is seconds long, and a
+    // composer that empties into silence looks broken.
+    onMutate: (prompt) => {
+      const key = keys.transcript(chatId ?? '')
+      const previous = client.getQueryData<{ messages: Message[] }>(key)
+
+      if (previous !== undefined) {
+        const pending: Message = {
+          id: `pending-${String(previous.messages.length)}`,
+          chat_id: chatId!,
+          role: 'user',
+          body: prompt,
+          meta: {},
+          created_at: new Date().toISOString(),
+        }
+        client.setQueryData(key, { ...previous, messages: [...previous.messages, pending] })
+      }
+      setDraft('')
+      return { previous }
+    },
+    onError: (cause, _prompt, context) => {
+      // Drop the echoed question: it was never answered, and leaving it there
+      // would suggest it was.
+      if (context?.previous !== undefined) {
+        client.setQueryData(keys.transcript(chatId ?? ''), context.previous)
+      }
+      say.failed(cause)
+    },
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: keys.transcript(chatId ?? '') })
+    },
+  })
+
+  const runTemplate = useMutation({
+    mutationFn: (template: string) => renderPrompt(workId, template),
+    onSuccess: (prompt) => ask.mutate(prompt),
+    onError: (cause) => say.failed(cause),
+  })
+
+  const busy = ask.isPending || runTemplate.isPending
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'nearest' })
-  }, [messages, pending])
+  }, [messages.length, busy])
 
   const send = (prompt: string) => {
-    if (chatId === null || prompt.trim() === '' || pending) return
-
-    // Show the question immediately; the backend has already stored it.
-    setMessages((current) => [
-      ...current,
-      {
-        id: `pending-${String(current.length)}`,
-        chat_id: chatId,
-        role: 'user',
-        body: prompt,
-        meta: {},
-        created_at: new Date().toISOString(),
-      },
-    ])
-    setDraft('')
-    setPending(true)
-    setError(null)
-
-    askAssistant(chatId, prompt)
-      .then(() => getTranscript(chatId))
-      .then((transcript) => setMessages(transcript?.messages ?? []))
-      .catch((cause: unknown) => setError(String(cause)))
-      .finally(() => setPending(false))
+    if (chatId === null || prompt.trim() === '' || busy) return
+    ask.mutate(prompt)
   }
 
-  const runTemplate = (template: string) => {
-    renderPrompt(workId, template)
-      .then(send)
-      .catch((cause: unknown) => setError(String(cause)))
-  }
-
-  if (status !== null && !status.available) {
+  if (status.data != null && !status.data.available) {
     return (
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">{t('assistant.title')}</h3>
         <p className="rounded-xl border border-dashed border-line p-4 text-sm text-dim">
-          {status.reason ?? t('assistant.unavailable')}
+          {status.data.reason ?? t('assistant.unavailable')}
         </p>
       </section>
     )
@@ -107,7 +127,9 @@ export function AssistantPanel({ workId }: Props) {
     <section className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
         <h3 className="text-sm font-semibold">{t('assistant.title')}</h3>
-        {status?.version != null && <span className="text-xs text-dim">{status.version}</span>}
+        {status.data?.version != null && (
+          <span className="text-xs text-dim">{status.data.version}</span>
+        )}
       </div>
 
       {profile.config.prompts.length > 0 && (
@@ -117,8 +139,8 @@ export function AssistantPanel({ workId }: Props) {
               key={prompt.key}
               size="sm"
               title={prompt.description}
-              disabled={pending}
-              onClick={() => runTemplate(prompt.template)}
+              disabled={busy}
+              onClick={() => runTemplate.mutate(prompt.template)}
             >
               {prompt.label}
             </Button>
@@ -126,11 +148,7 @@ export function AssistantPanel({ workId }: Props) {
         </div>
       )}
 
-      {error !== null && (
-        <p role="alert" className="text-sm text-bad">
-          {error}
-        </p>
-      )}
+      {transcript.isPending && chatId !== null && <Skeleton className="h-20 w-full" />}
 
       {messages.length > 0 && (
         <ul className="flex max-h-96 flex-col gap-2 overflow-y-auto">
@@ -152,7 +170,7 @@ export function AssistantPanel({ workId }: Props) {
         </ul>
       )}
 
-      {pending && <p className="text-sm text-dim">{t('assistant.thinking')}</p>}
+      {busy && <p className="text-sm text-dim">{t('assistant.thinking')}</p>}
 
       <form
         className="flex flex-col gap-2"
@@ -176,7 +194,7 @@ export function AssistantPanel({ workId }: Props) {
           }}
         />
         <div className="flex justify-end">
-          <Button type="submit" variant="primary" disabled={pending || draft.trim() === ''}>
+          <Button type="submit" variant="primary" disabled={busy || draft.trim() === ''}>
             {t('assistant.send')}
           </Button>
         </div>

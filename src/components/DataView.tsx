@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import {
   backupWorkspace,
@@ -8,37 +9,35 @@ import {
   suggestedBackupName,
   workspacePath,
 } from '@/lib/api'
+import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/Button'
 import { ProfileEditor } from '@/components/ProfileEditor'
 
-interface Props {
-  onChanged: () => void
-}
-
 // Getting data out and in. The export is the "you are not locked in" promise
 // made checkable; the backup is the whole workspace in one file.
-export function DataView({ onChanged }: Props) {
+export function DataView() {
   const { t } = useTranslation()
-  const [path, setPath] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const client = useQueryClient()
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    workspacePath()
-      .then(setPath)
-      .catch((cause: unknown) => setError(String(cause)))
-  }, [])
+  // The path never changes while the app runs, so it is asked for once.
+  const path = useQuery({
+    queryKey: ['workspacePath'],
+    queryFn: workspacePath,
+    staleTime: Infinity,
+  })
 
+  // Each of these opens an OS file dialog first, so they are not mutations in
+  // the query sense — there is nothing to retry and no variables to carry.
   const run = (task: () => Promise<string>) => {
     setBusy(true)
-    setError(null)
-    setNotice(null)
     task()
       .then((message) => {
-        if (message !== '') setNotice(message)
+        // An empty message means the file dialog was dismissed: nothing
+        // happened, so nothing is said.
+        if (message !== '') say.ok(message)
       })
-      .catch((cause: unknown) => setError(String(cause)))
+      .catch((cause: unknown) => say.failed(cause))
       .finally(() => setBusy(false))
   }
 
@@ -70,7 +69,9 @@ export function DataView({ onChanged }: Props) {
       if (typeof source !== 'string') return ''
 
       const report = await importLegacy(source)
-      onChanged()
+      // An import rewrites everything the app has read so far.
+      void client.invalidateQueries()
+
       return t('data.imported', {
         works: report.works,
         versions: report.versions,
@@ -81,7 +82,7 @@ export function DataView({ onChanged }: Props) {
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <ProfileEditor onSaved={onChanged} />
+      <ProfileEditor />
 
       <hr className="border-line" />
 
@@ -103,9 +104,9 @@ export function DataView({ onChanged }: Props) {
             {t('data.backupAction')}
           </Button>
         </div>
-        {path !== null && (
+        {path.data != null && (
           <p className="text-xs text-dim">
-            {t('data.workspaceAt')} <code className="font-mono">{path}</code>
+            {t('data.workspaceAt')} <code className="font-mono">{path.data}</code>
           </p>
         )}
         <p className="text-xs text-dim">{t('data.restoreHint')}</p>
@@ -122,14 +123,6 @@ export function DataView({ onChanged }: Props) {
       </section>
 
       {busy && <p className="text-sm text-dim">{t('data.working')}</p>}
-      {notice !== null && (
-        <p className="rounded-[9px] bg-good-soft px-3 py-2 text-sm text-good">{notice}</p>
-      )}
-      {error !== null && (
-        <p role="alert" className="text-sm text-bad">
-          {error}
-        </p>
-      )}
     </div>
   )
 }

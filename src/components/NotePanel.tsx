@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
-import { createNote, deleteNote, listNotes, type Note } from '@/lib/api'
+import { createNote, deleteNote, listNotes } from '@/lib/api'
+import { keys } from '@/lib/query'
+import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 interface Props {
   workId: string
@@ -11,54 +15,64 @@ interface Props {
 
 export function NotePanel({ workId }: Props) {
   const { t } = useTranslation()
-  const [notes, setNotes] = useState<Note[]>([])
+  const client = useQueryClient()
   const [body, setBody] = useState('')
   const [tags, setTags] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [revision, setRevision] = useState(0)
 
-  useEffect(() => {
-    listNotes({ work_id: workId })
-      .then((result) => {
-        setNotes(result)
-        setError(null)
-      })
-      .catch((cause: unknown) => setError(String(cause)))
-  }, [workId, revision])
+  const notes = useQuery({
+    queryKey: [...keys.notes, workId],
+    queryFn: () => listNotes({ work_id: workId }),
+  })
 
-  const add = () => {
-    if (body.trim() === '') return
-
-    createNote({
-      body: body.trim(),
-      work_id: workId,
-      // Comma-separated in the field, an array in the store.
-      tags: tags
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== ''),
-    })
-      .then(() => {
-        setBody('')
-        setTags('')
-        setRevision((current) => current + 1)
-      })
-      .catch((cause: unknown) => setError(String(cause)))
+  const settle = () => {
+    void client.invalidateQueries({ queryKey: keys.notes })
+    // A new tag on a note changes the tag list the rest of the app reads.
+    void client.invalidateQueries({ queryKey: keys.tags })
   }
+
+  const add = useMutation({
+    mutationFn: () =>
+      createNote({
+        body: body.trim(),
+        work_id: workId,
+        // Comma-separated in the field, an array in the store.
+        tags: tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter((tag) => tag !== ''),
+      }),
+    onSuccess: () => {
+      setBody('')
+      setTags('')
+      settle()
+    },
+    onError: (cause) => say.failedTo(t('toast.noteSaveFailed'), cause),
+  })
+
+  const remove = useMutation({
+    mutationFn: deleteNote,
+    onSuccess: () => {
+      settle()
+      say.ok(t('toast.noteDeleted'))
+    },
+    onError: (cause) => say.failedTo(t('toast.noteSaveFailed'), cause),
+  })
 
   return (
     <section className="flex flex-col gap-3">
       <h3 className="text-sm font-semibold">{t('notes.title')}</h3>
 
-      {error !== null && (
+      {notes.isPending && <Skeleton className="h-16 w-full" />}
+
+      {notes.isError && (
         <p role="alert" className="text-sm text-bad">
-          {error}
+          {t('toast.loadFailed')}
         </p>
       )}
 
-      {notes.length > 0 && (
+      {notes.data != null && notes.data.length > 0 && (
         <ul className="flex flex-col gap-2">
-          {notes.map((note) => (
+          {notes.data.map((note) => (
             <li
               key={note.id}
               className="flex items-start gap-2 rounded-xl border border-line p-2.5"
@@ -79,11 +93,7 @@ export function NotePanel({ workId }: Props) {
                 variant="danger"
                 size="iconSm"
                 title={t('notes.delete')}
-                onClick={() => {
-                  deleteNote(note.id)
-                    .then(() => setRevision((current) => current + 1))
-                    .catch((cause: unknown) => setError(String(cause)))
-                }}
+                onClick={() => remove.mutate(note.id)}
               >
                 <X aria-hidden className="size-3.5" />
               </Button>
@@ -96,7 +106,7 @@ export function NotePanel({ workId }: Props) {
         className="flex flex-col gap-2"
         onSubmit={(event) => {
           event.preventDefault()
-          add()
+          if (body.trim() !== '') add.mutate()
         }}
       >
         <Textarea
@@ -113,7 +123,7 @@ export function NotePanel({ workId }: Props) {
             placeholder={t('notes.tagsPlaceholder')}
             aria-label={t('notes.tagsPlaceholder')}
           />
-          <Button type="submit" variant="primary" disabled={body.trim() === ''}>
+          <Button type="submit" variant="primary" disabled={body.trim() === '' || add.isPending}>
             {t('notes.add')}
           </Button>
         </div>

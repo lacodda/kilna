@@ -1,31 +1,43 @@
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { listPlugins, runPlugin, type Plugin } from '@/lib/api'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { listPlugins, runPlugin } from '@/lib/api'
+import { keys } from '@/lib/query'
+import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/Button'
 
 interface Props {
   target: 'work' | 'release'
   id: string
-  onChanged: () => void
 }
 
 // Actions contributed by installed plugins. Nothing shows when none are
 // installed — an empty toolbar advertising a feature the user does not have is
 // worse than no toolbar.
-export function PluginBar({ target, id, onChanged }: Props) {
+export function PluginBar({ target, id }: Props) {
   const { t } = useTranslation()
-  const [plugins, setPlugins] = useState<Plugin[]>([])
-  const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const client = useQueryClient()
 
-  useEffect(() => {
-    listPlugins()
-      .then(setPlugins)
-      .catch((cause: unknown) => setError(String(cause)))
-  }, [])
+  const plugins = useQuery({ queryKey: keys.plugins, queryFn: listPlugins })
 
-  const actions = plugins.flatMap((plugin) =>
+  const run = useMutation({
+    mutationFn: ({ executable, command }: { executable: string; command: string }) =>
+      runPlugin(executable, command, target, id),
+    onSuccess: (said) => {
+      // A plugin may rewrite the work it was handed, so nothing local is trusted
+      // afterwards.
+      void client.invalidateQueries({ queryKey: keys.work(id) })
+      void client.invalidateQueries({ queryKey: keys.works })
+      void client.invalidateQueries({ queryKey: keys.versions(id) })
+
+      // Plugins report in their own words; an empty answer means "done".
+      if (said !== null && said.trim() !== '') say.info(said)
+    },
+    onError: (cause) => say.failed(cause),
+  })
+
+  const installed = plugins.data ?? []
+
+  const actions = installed.flatMap((plugin) =>
     plugin.usable && plugin.manifest !== null
       ? plugin.manifest.commands
           .filter((command) => command.target === target)
@@ -33,7 +45,7 @@ export function PluginBar({ target, id, onChanged }: Props) {
       : [],
   )
 
-  const unusable = plugins.filter((plugin) => !plugin.usable)
+  const unusable = installed.filter((plugin) => !plugin.usable)
 
   if (actions.length === 0 && unusable.length === 0) return null
 
@@ -47,32 +59,14 @@ export function PluginBar({ target, id, onChanged }: Props) {
             <Button
               key={`${plugin.executable}:${command.key}`}
               size="sm"
-              disabled={busy}
+              disabled={run.isPending}
               title={command.description}
-              onClick={() => {
-                setBusy(true)
-                setError(null)
-                setMessage(null)
-                runPlugin(plugin.executable, command.key, target, id)
-                  .then((said) => {
-                    setMessage(said)
-                    onChanged()
-                  })
-                  .catch((cause: unknown) => setError(String(cause)))
-                  .finally(() => setBusy(false))
-              }}
+              onClick={() => run.mutate({ executable: plugin.executable, command: command.key })}
             >
               {command.label}
             </Button>
           ))}
         </div>
-      )}
-
-      {message !== null && <p className="text-sm text-dim">{message}</p>}
-      {error !== null && (
-        <p role="alert" className="text-sm text-bad">
-          {error}
-        </p>
       )}
 
       {unusable.map((plugin) => (

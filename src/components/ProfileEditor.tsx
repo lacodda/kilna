@@ -1,38 +1,40 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { updateProfileConfig, type Axis, type Kind, type ProfileConfig, type Tier } from '@/lib/api'
+import { keys } from '@/lib/query'
+import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-
-interface Props {
-  onSaved: () => void
-}
+import { SaveState, useSaveStatus } from '@/components/ui/SaveState'
 
 // Editing the scenario, not designing a schema: the tables never change, only
 // the vocabulary and the criteria. Axis keys are deliberately not editable —
 // past score snapshots are keyed by them, and renaming a key would orphan them.
-export function ProfileEditor({ onSaved }: Props) {
+export function ProfileEditor() {
   const { t } = useTranslation()
   const profile = useProfile()
+  const client = useQueryClient()
   const [config, setConfig] = useState<ProfileConfig>(profile.config)
-  const [error, setError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
 
   const patch = (changes: Partial<ProfileConfig>) => {
     setConfig((current) => ({ ...current, ...changes }))
-    setSaved(false)
   }
 
-  const save = () => {
-    updateProfileConfig(profile.id, config)
-      .then(() => {
-        setSaved(true)
-        onSaved()
-      })
-      .catch((cause: unknown) => setError(String(cause)))
-  }
+  const save = useMutation({
+    mutationFn: () => updateProfileConfig(profile.id, config),
+    onSuccess: () => {
+      // The vocabulary is on every screen: labels, statuses, kinds, axes.
+      void client.invalidateQueries({ queryKey: keys.workspace })
+      void client.invalidateQueries({ queryKey: keys.profiles })
+      void client.invalidateQueries({ queryKey: keys.catalogue })
+    },
+    onError: (cause) => say.failedTo(t('toast.profileSaveFailed'), cause),
+  })
+
+  const saveStatus = useSaveStatus(save.isPending, save.isError)
 
   const setAxis = (index: number, changes: Partial<Axis>) => {
     patch({ axes: config.axes.map((axis, i) => (i === index ? { ...axis, ...changes } : axis)) })
@@ -159,15 +161,10 @@ export function ProfileEditor({ onSaved }: Props) {
       </section>
 
       <div className="flex items-center gap-3">
-        <Button variant="primary" onClick={save}>
+        <Button variant="primary" disabled={save.isPending} onClick={() => save.mutate()}>
           {t('editor.save')}
         </Button>
-        {saved && <span className="text-sm text-good">{t('editor.saved')}</span>}
-        {error !== null && (
-          <span role="alert" className="text-sm text-bad">
-            {error}
-          </span>
-        )}
+        <SaveState status={saveStatus} />
       </div>
 
       <p className="text-xs text-dim">{t('editor.keysHint')}</p>

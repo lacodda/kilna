@@ -1,61 +1,74 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
-import { deleteScore, scoreHistory, scoreWork, type Score } from '@/lib/api'
+import { deleteScore, scoreHistory, scoreWork } from '@/lib/api'
+import { keys } from '@/lib/query'
+import { say } from '@/lib/toast'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { tierFor, total as computeTotal } from '@/lib/scoring'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 
 interface Props {
   workId: string
-  onChanged: () => void
 }
 
-export function ScorePanel({ workId, onChanged }: Props) {
+export function ScorePanel({ workId }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const client = useQueryClient()
   const { axes, tiers } = profile.config
 
   const [values, setValues] = useState<Record<string, number>>({})
-  const [history, setHistory] = useState<Score[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [revision, setRevision] = useState(0)
 
-  useEffect(() => {
-    scoreHistory(workId)
-      .then((result) => {
-        setHistory(result)
-        setError(null)
-      })
-      .catch((cause: unknown) => setError(String(cause)))
-  }, [workId, revision])
+  const history = useQuery({
+    queryKey: keys.scoreHistory(workId),
+    queryFn: () => scoreHistory(workId),
+  })
 
   const filled = Object.keys(values).length
   const preview = computeTotal(axes, values)
   const previewTier = tierFor(tiers, preview)
 
-  const save = () => {
-    scoreWork(workId, { axes: values })
-      .then(() => {
-        setValues({})
-        setRevision((current) => current + 1)
-        onChanged()
-      })
-      .catch((cause: unknown) => setError(String(cause)))
+  // A new score changes the catalogue ranking and the work's own latest-score
+  // read, plus the works list if it surfaces tier/score anywhere.
+  const settle = () => {
+    void client.invalidateQueries({ queryKey: keys.scoreHistory(workId) })
+    void client.invalidateQueries({ queryKey: keys.latestScore(workId) })
+    void client.invalidateQueries({ queryKey: keys.catalogue })
+    void client.invalidateQueries({ queryKey: keys.works })
   }
 
+  const save = useMutation({
+    mutationFn: () => scoreWork(workId, { axes: values }),
+    onSuccess: () => {
+      setValues({})
+      settle()
+      say.ok(t('toast.scoreSaved'))
+    },
+    onError: (cause) => say.failedTo(t('toast.scoreSaveFailed'), cause),
+  })
+
+  const remove = useMutation({
+    mutationFn: deleteScore,
+    onSuccess: settle,
+    onError: (cause) => say.failedTo(t('toast.scoreSaveFailed'), cause),
+  })
+
+  const historyData = history.data ?? []
   // The previous total, to show what a revision did to it.
-  const previous = history[1]?.total
+  const previous = historyData[1]?.total
 
   return (
     <section className="flex flex-col gap-3">
       <h3 className="text-sm font-semibold">{t('score.title')}</h3>
 
-      {error !== null && (
+      {history.isError && (
         <p role="alert" className="text-sm text-bad">
-          {error}
+          {t('toast.loadFailed')}
         </p>
       )}
 
@@ -103,7 +116,11 @@ export function ScorePanel({ workId, onChanged }: Props) {
               </span>
             )}
           </div>
-          <Button variant="primary" disabled={filled === 0} onClick={save}>
+          <Button
+            variant="primary"
+            disabled={filled === 0 || save.isPending}
+            onClick={() => save.mutate()}
+          >
             {t('score.save')}
           </Button>
         </div>
@@ -115,9 +132,11 @@ export function ScorePanel({ workId, onChanged }: Props) {
         </p>
       )}
 
-      {history.length > 0 && (
+      {history.isPending && <Skeleton className="h-24 w-full" />}
+
+      {historyData.length > 0 && (
         <ul className="flex flex-col gap-1">
-          {history.map((score, index) => {
+          {historyData.map((score, index) => {
             const delta =
               index === 0 && previous !== undefined ? score.total - previous : undefined
 
@@ -152,14 +171,7 @@ export function ScorePanel({ workId, onChanged }: Props) {
                   variant="danger"
                   size="iconSm"
                   title={t('score.delete')}
-                  onClick={() => {
-                    deleteScore(score.id)
-                      .then(() => {
-                        setRevision((current) => current + 1)
-                        onChanged()
-                      })
-                      .catch((cause: unknown) => setError(String(cause)))
-                  }}
+                  onClick={() => remove.mutate(score.id)}
                 >
                   <X aria-hidden className="size-3.5" />
                 </Button>

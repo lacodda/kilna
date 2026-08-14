@@ -1,60 +1,76 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
-import { createRelease, deleteRelease, releasesForWork, type Release } from '@/lib/api'
+import { createRelease, deleteRelease, releasesForWork } from '@/lib/api'
+import { keys } from '@/lib/query'
+import { say } from '@/lib/toast'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 interface Props {
   workId: string
   workTitle: string
-  onChanged: () => void
 }
 
 // Where a work enters the release queue. Scheduling happens in the calendar;
 // here it is only "this work will go out as a clip".
-export function ReleasePanel({ workId, workTitle, onChanged }: Props) {
+export function ReleasePanel({ workId, workTitle }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const client = useQueryClient()
   const kinds = profile.config.release_kinds
 
-  const [releases, setReleases] = useState<Release[]>([])
   const [kind, setKind] = useState(kinds[0]?.key ?? '')
-  const [error, setError] = useState<string | null>(null)
-  const [revision, setRevision] = useState(0)
 
-  useEffect(() => {
-    releasesForWork(workId)
-      .then((result) => {
-        setReleases(result)
-        setError(null)
-      })
-      .catch((cause: unknown) => setError(String(cause)))
-  }, [workId, revision])
+  const releases = useQuery({
+    queryKey: keys.releasesForWork(workId),
+    queryFn: () => releasesForWork(workId),
+  })
 
-  const add = () => {
-    createRelease({ work_id: workId, kind, title: workTitle })
-      .then(() => {
-        setRevision((current) => current + 1)
-        onChanged()
-      })
-      .catch((cause: unknown) => setError(String(cause)))
+  // A release entering or leaving the queue shows up in the calendar and the
+  // release queue view too.
+  const settle = () => {
+    void client.invalidateQueries({ queryKey: keys.releasesForWork(workId) })
+    void client.invalidateQueries({ queryKey: keys.releases })
+    void client.invalidateQueries({ queryKey: keys.calendar })
+    void client.invalidateQueries({ queryKey: keys.releaseQueue })
   }
+
+  const add = useMutation({
+    mutationFn: () => createRelease({ work_id: workId, kind, title: workTitle }),
+    onSuccess: () => {
+      settle()
+      say.ok(t('toast.releaseCreated'))
+    },
+    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
+  })
+
+  const remove = useMutation({
+    mutationFn: deleteRelease,
+    onSuccess: settle,
+    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
+  })
+
+  const releasesData = releases.data ?? []
 
   return (
     <section className="flex flex-col gap-3">
       <h3 className="text-sm font-semibold">{t('releases.title')}</h3>
 
-      {error !== null && (
+      {releases.isError && (
         <p role="alert" className="text-sm text-bad">
-          {error}
+          {t('toast.loadFailed')}
         </p>
       )}
 
-      {releases.length > 0 && (
+      {releases.isPending && <Skeleton className="h-14 w-full" />}
+
+      {releasesData.length > 0 && (
         <ul className="flex flex-col gap-1">
-          {releases.map((release) => (
+          {releasesData.map((release) => (
             <li
               key={release.id}
               className="flex items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm"
@@ -80,14 +96,7 @@ export function ReleasePanel({ workId, workTitle, onChanged }: Props) {
                 size="iconSm"
                 className="ml-auto"
                 title={t('releases.delete')}
-                onClick={() => {
-                  deleteRelease(release.id)
-                    .then(() => {
-                      setRevision((current) => current + 1)
-                      onChanged()
-                    })
-                    .catch((cause: unknown) => setError(String(cause)))
-                }}
+                onClick={() => remove.mutate(release.id)}
               >
                 <X aria-hidden className="size-3.5" />
               </Button>
@@ -104,7 +113,7 @@ export function ReleasePanel({ workId, workTitle, onChanged }: Props) {
           onChange={setKind}
           options={kinds.map((k) => ({ value: k.key, label: k.label }))}
         />
-        <Button onClick={add} disabled={kind === ''}>
+        <Button onClick={() => add.mutate()} disabled={kind === '' || add.isPending}>
           {t('releases.add')}
         </Button>
       </div>

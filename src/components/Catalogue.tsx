@@ -1,40 +1,40 @@
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { catalogue as fetchCatalogue, type ScoredWork } from '@/lib/api'
+import { useQuery } from '@tanstack/react-query'
+import { catalogue as fetchCatalogue } from '@/lib/api'
+import { keys } from '@/lib/query'
 import { labelOf, useProfile } from '@/lib/useProfile'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { SkeletonList } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 
 interface Props {
-  revision: number
   onSelect: (workId: string) => void
 }
 
 // Everything judged, best first — the view that answers "what deserves to ship".
-export function Catalogue({ revision, onSelect }: Props) {
+export function Catalogue({ onSelect }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const [rows, setRows] = useState<ScoredWork[]>([])
-  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchCatalogue()
-      .then((result) => {
-        setRows(result)
-        setError(null)
-      })
-      .catch((cause: unknown) => setError(String(cause)))
-  }, [revision])
+  const rows = useQuery({
+    queryKey: keys.catalogue,
+    queryFn: fetchCatalogue,
+  })
 
-  if (error !== null) {
+  if (rows.isPending) {
+    return <SkeletonList rows={6} />
+  }
+
+  if (rows.isError) {
     return (
       <p role="alert" className="text-sm text-bad">
-        {error}
+        {t('toast.loadFailed')}
       </p>
     )
   }
 
-  if (rows.length === 0) {
-    return <p className="py-8 text-center text-sm text-dim">{t('works.none')}</p>
+  if (rows.data.length === 0) {
+    return <EmptyState title={t('empty.catalogueTitle')} body={t('empty.catalogueBody')} />
   }
 
   return (
@@ -48,7 +48,7 @@ export function Catalogue({ revision, onSelect }: Props) {
         </tr>
       </thead>
       <tbody>
-        {rows.map((row) => (
+        {rows.data.map((row) => (
           <tr
             key={row.work_id}
             className="cursor-pointer border-b border-line hover:bg-soft"

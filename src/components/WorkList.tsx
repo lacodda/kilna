@@ -1,52 +1,62 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { createWork, listWorks, type Work, type WorkFilter } from '@/lib/api'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createWork, listWorks, type WorkFilter } from '@/lib/api'
+import { keys } from '@/lib/query'
+import { say } from '@/lib/toast'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
+import { SkeletonList } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 
 interface Props {
   selectedId: string | null
   onSelect: (id: string) => void
-  /// Bumped by the parent when a work changed elsewhere, to force a refetch.
-  revision: number
-  onChanged: () => void
 }
 
-export function WorkList({ selectedId, onSelect, revision, onChanged }: Props) {
+export function WorkList({ selectedId, onSelect }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const [works, setWorks] = useState<Work[]>([])
+  const client = useQueryClient()
   const [filter, setFilter] = useState<WorkFilter>({})
-  const [error, setError] = useState<string | null>(null)
   const [title, setTitle] = useState('')
 
-  useEffect(() => {
-    listWorks(filter)
-      .then((result) => {
-        setWorks(result)
-        setError(null)
-      })
-      .catch((cause: unknown) => setError(String(cause)))
-  }, [filter, revision])
+  const works = useQuery({
+    queryKey: keys.workList(filter),
+    queryFn: () => listWorks(filter),
+    // Typing in the search box changes the key on every keystroke; without this
+    // the list would blink back to a skeleton between each one.
+    placeholderData: (previous) => previous,
+  })
 
-  const add = () => {
+  const add = useMutation({
+    mutationFn: createWork,
+    onSuccess: (work) => {
+      setTitle('')
+      // The new work has to exist in the list before we can select it.
+      void client.invalidateQueries({ queryKey: keys.works })
+      void client.invalidateQueries({ queryKey: keys.workspace })
+      say.ok(t('toast.workCreated'))
+      onSelect(work.id)
+    },
+    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
+  })
+
+  const submit = () => {
     const trimmed = title.trim()
     if (trimmed === '') return
 
     const kind = profile.config.work_kinds[0]?.key
     if (kind === undefined) return
 
-    createWork({ kind, title: trimmed })
-      .then((work) => {
-        setTitle('')
-        onChanged()
-        onSelect(work.id)
-      })
-      .catch((cause: unknown) => setError(String(cause)))
+    add.mutate({ kind, title: trimmed })
   }
+
+  const isFiltered =
+    filter.search !== undefined || filter.status !== undefined || filter.kind !== undefined
 
   return (
     <div className="flex h-full flex-col gap-3">
@@ -54,7 +64,7 @@ export function WorkList({ selectedId, onSelect, revision, onChanged }: Props) {
         className="flex gap-2"
         onSubmit={(event) => {
           event.preventDefault()
-          add()
+          submit()
         }}
       >
         <Input
@@ -63,7 +73,7 @@ export function WorkList({ selectedId, onSelect, revision, onChanged }: Props) {
           placeholder={t('works.newPlaceholder')}
           aria-label={t('works.newPlaceholder')}
         />
-        <Button type="submit" variant="primary" disabled={title.trim() === ''}>
+        <Button type="submit" variant="primary" disabled={title.trim() === '' || add.isPending}>
           {t('works.add')}
         </Button>
       </form>
@@ -96,17 +106,32 @@ export function WorkList({ selectedId, onSelect, revision, onChanged }: Props) {
         />
       </div>
 
-      {error !== null && (
+      {works.isPending ? (
+        <SkeletonList rows={6} />
+      ) : works.isError ? (
         <p role="alert" className="text-sm text-bad">
-          {error}
+          {t('toast.loadFailed')}
         </p>
-      )}
-
-      {works.length === 0 ? (
-        <p className="py-8 text-center text-sm text-dim">{t('works.none')}</p>
+      ) : works.data.length === 0 ? (
+        isFiltered ? (
+          <EmptyState
+            className="border-0"
+            title={t('empty.worksFiltered')}
+            body={t('empty.worksFilteredBody')}
+            action={
+              <Button onClick={() => setFilter({})}>{t('empty.clearFilters')}</Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            className="border-0"
+            title={t('empty.worksTitle')}
+            body={t('empty.worksBody')}
+          />
+        )
       ) : (
-        <ul className="flex flex-col gap-1 overflow-y-auto">
-          {works.map((work) => (
+        <ul className={cn('flex flex-col gap-1 overflow-y-auto', works.isPlaceholderData && 'opacity-60')}>
+          {works.data.map((work) => (
             <li key={work.id}>
               <button
                 type="button"

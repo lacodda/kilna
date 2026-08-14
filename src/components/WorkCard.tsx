@@ -1,10 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { deleteWork, getWork, updateWork, type Meta, type Work } from '@/lib/api'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  deleteWork,
+  getWork,
+  updateWork,
+  type Meta,
+  type Work,
+  type WorkPatch,
+} from '@/lib/api'
+import { keys } from '@/lib/query'
+import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
+import { SaveState, useSaveStatus } from '@/components/ui/SaveState'
 import { Select } from '@/components/ui/Select'
+import { SkeletonCard } from '@/components/ui/Skeleton'
 import { VersionPanel } from '@/components/VersionPanel'
 import { ScorePanel } from '@/components/ScorePanel'
 import { ReleasePanel } from '@/components/ReleasePanel'
@@ -14,41 +26,76 @@ import { PluginBar } from '@/components/PluginBar'
 
 interface Props {
   workId: string
-  onChanged: () => void
   onDeleted: () => void
 }
 
-export function WorkCard({ workId, onChanged, onDeleted }: Props) {
+export function WorkCard({ workId, onDeleted }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const [work, setWork] = useState<Work | null>(null)
-  const [title, setTitle] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [revision, setRevision] = useState(0)
+  const client = useQueryClient()
+  const work = useQuery({ queryKey: keys.work(workId), queryFn: () => getWork(workId) })
 
-  useEffect(() => {
-    getWork(workId)
-      .then((loaded) => {
-        setWork(loaded)
-        setTitle(loaded?.title ?? '')
-        setError(null)
-      })
-      .catch((cause: unknown) => setError(String(cause)))
-  }, [workId, revision])
+  // The field is edited locally but owned by the query: whenever the stored
+  // title changes underneath it — a fresh load, a plugin rewriting it — the
+  // draft is dropped. Adjusting during render rather than in an effect avoids
+  // the frame where the input still shows the previous work's title.
+  const storedTitle = work.data?.title ?? ''
+  const [title, setTitle] = useState(storedTitle)
+  const [syncedTo, setSyncedTo] = useState(storedTitle)
 
-  const patch = (changes: Parameters<typeof updateWork>[1]) => {
-    updateWork(workId, changes)
-      .then((updated) => {
-        setWork(updated)
-        onChanged()
-      })
-      .catch((cause: unknown) => setError(String(cause)))
+  if (syncedTo !== storedTitle) {
+    setSyncedTo(storedTitle)
+    setTitle(storedTitle)
   }
 
-  const setMetaField = (key: string, value: string, type: string) => {
-    if (work === null) return
+  const patch = useMutation({
+    mutationFn: (changes: WorkPatch) => updateWork(workId, changes),
+    // Optimistic: the header should not lag behind the field someone just left.
+    onMutate: async (changes) => {
+      await client.cancelQueries({ queryKey: keys.work(workId) })
+      const previous = client.getQueryData<Work | null>(keys.work(workId))
 
-    const meta: Meta = { ...work.meta }
+      if (previous != null) {
+        client.setQueryData<Work>(keys.work(workId), { ...previous, ...changes })
+      }
+      return { previous }
+    },
+    onError: (cause, _changes, context) => {
+      // Put back what was there; the toast explains why it moved.
+      if (context?.previous !== undefined) {
+        client.setQueryData(keys.work(workId), context.previous)
+        setTitle(context.previous?.title ?? '')
+      }
+      say.failedTo(t('toast.workSaveFailed'), cause)
+    },
+    onSuccess: (updated) => {
+      client.setQueryData(keys.work(workId), updated)
+    },
+    onSettled: () => {
+      // The list shows title, status and kind, so any of these changes it.
+      void client.invalidateQueries({ queryKey: keys.works })
+      void client.invalidateQueries({ queryKey: keys.catalogue })
+    },
+  })
+
+  const remove = useMutation({
+    mutationFn: () => deleteWork(workId),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.works })
+      void client.invalidateQueries({ queryKey: keys.workspace })
+      void client.invalidateQueries({ queryKey: keys.catalogue })
+      say.ok(t('toast.workDeleted', { title: work.data?.title ?? '' }))
+      onDeleted()
+    },
+    onError: (cause) => say.failedTo(t('toast.workDeleteFailed'), cause),
+  })
+
+  const saveStatus = useSaveStatus(patch.isPending, patch.isError)
+
+  const setMetaField = (key: string, value: string, type: string) => {
+    if (work.data == null) return
+
+    const meta: Meta = { ...work.data.meta }
     if (value === '') {
       delete meta[key]
     } else {
@@ -57,20 +104,25 @@ export function WorkCard({ workId, onChanged, onDeleted }: Props) {
       const parsed = type === 'number' ? Number(value) : value
       meta[key] = type === 'number' && Number.isNaN(parsed as number) ? value : parsed
     }
-    patch({ meta })
+    patch.mutate({ meta })
   }
 
-  if (error !== null) {
+  if (work.isPending) return <SkeletonCard />
+
+  if (work.isError) {
     return (
       <p role="alert" className="text-sm text-bad">
-        {error}
+        {t('toast.loadFailed')}
       </p>
     )
   }
 
-  if (work === null) {
-    return <p className="text-sm text-dim">{t('status.loading')}</p>
+  // The row is gone — deleted in another view while this one held its id.
+  if (work.data === null) {
+    return <p className="text-sm text-dim">{t('error.notFound')}</p>
   }
+
+  const current = work.data
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,7 +133,7 @@ export function WorkCard({ workId, onChanged, onDeleted }: Props) {
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             onBlur={() => {
-              if (title.trim() !== '' && title !== work.title) patch({ title: title.trim() })
+              if (title.trim() !== '' && title !== current.title) patch.mutate({ title: title.trim() })
             }}
           />
         </Field>
@@ -89,8 +141,8 @@ export function WorkCard({ workId, onChanged, onDeleted }: Props) {
         <Field label={t('work.status')}>
           <Select
             className="w-44"
-            value={work.status}
-            onChange={(status) => patch({ status })}
+            value={current.status}
+            onChange={(status) => patch.mutate({ status })}
             options={profile.config.statuses.map((s) => ({ value: s.key, label: s.label }))}
           />
         </Field>
@@ -98,20 +150,19 @@ export function WorkCard({ workId, onChanged, onDeleted }: Props) {
         <Field label={t('work.kind')}>
           <Select
             className="w-44"
-            value={work.kind}
-            onChange={(kind) => patch({ kind })}
+            value={current.kind}
+            onChange={(kind) => patch.mutate({ kind })}
             options={profile.config.work_kinds.map((k) => ({ value: k.key, label: k.label }))}
           />
         </Field>
 
+        <SaveState status={saveStatus} className="mb-2.5" />
+
         <Button
           variant="danger"
           className="ml-auto"
-          onClick={() => {
-            deleteWork(workId)
-              .then(onDeleted)
-              .catch((cause: unknown) => setError(String(cause)))
-          }}
+          disabled={remove.isPending}
+          onClick={() => remove.mutate()}
         >
           {t('work.delete')}
         </Button>
@@ -121,26 +172,39 @@ export function WorkCard({ workId, onChanged, onDeleted }: Props) {
         <section className="flex flex-wrap gap-3">
           {profile.config.work_meta_fields.map((field) => (
             <Field key={field.key} label={field.label}>
-              <Input
-                className="w-32"
-                type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
-                defaultValue={String(work.meta[field.key] ?? '')}
-                onBlur={(event) => setMetaField(field.key, event.target.value, field.type)}
-              />
+              {field.type === 'boolean' ? (
+                // Declared in the profile schema since v0.1.0 and never drawn;
+                // a checkbox is the whole of what it needs.
+                <input
+                  type="checkbox"
+                  className="size-4 accent-[var(--accent)]"
+                  checked={current.meta[field.key] === true}
+                  onChange={(event) =>
+                    patch.mutate({ meta: { ...current.meta, [field.key]: event.target.checked } })
+                  }
+                />
+              ) : (
+                <Input
+                  className="w-32"
+                  type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+                  defaultValue={String(current.meta[field.key] ?? '')}
+                  onBlur={(event) => setMetaField(field.key, event.target.value, field.type)}
+                />
+              )}
             </Field>
           ))}
         </section>
       )}
 
-      <VersionPanel workId={workId} onChanged={() => setRevision((r) => r + 1)} />
+      <VersionPanel workId={workId} />
 
-      <ScorePanel workId={workId} onChanged={onChanged} />
+      <ScorePanel workId={workId} />
 
-      <ReleasePanel workId={workId} workTitle={work.title} onChanged={onChanged} />
+      <ReleasePanel workId={workId} workTitle={current.title} />
 
       <AssistantPanel workId={workId} />
 
-      <PluginBar target="work" id={workId} onChanged={() => setRevision((r) => r + 1)} />
+      <PluginBar target="work" id={workId} />
 
       <NotePanel workId={workId} />
     </div>

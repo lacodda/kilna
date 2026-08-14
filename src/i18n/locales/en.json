@@ -14,7 +14,14 @@
   },
   "empty": {
     "title": "Nothing selected",
-    "body": "Pick a work on the left, or add one."
+    "body": "Pick a work on the left, or add one.",
+    "worksTitle": "No works yet",
+    "worksBody": "A work is one song, chapter or episode — whatever your profile calls it.",
+    "worksFiltered": "Nothing matches those filters",
+    "worksFilteredBody": "Clear the search or the filters to see everything again.",
+    "clearFilters": "Clear filters",
+    "catalogueTitle": "Nothing scored yet",
+    "catalogueBody": "Score a work and it appears here, ranked."
   },
   "works": {
     "add": "Add",
@@ -182,5 +189,49 @@
   },
   "plugins": {
     "title": "Plugins"
+  },
+  "error": {
+    "database": "The workspace database refused that. Nothing was changed.",
+    "io": "Could not reach the workspace on disk.",
+    "schemaTooNew": "This workspace was written by a newer version of kilna. Update the app to open it.",
+    "notFound": "That is not here any more — it was probably deleted in another view.",
+    "assistant": "The assistant could not be reached. Check that Claude Code is installed and on your PATH.",
+    "unknown": "Something went wrong."
+  },
+  "save": {
+    "saving": "Saving…",
+    "saved": "Saved"
+  },
+  "dialog": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "confirm": "Confirm"
+  },
+  "crash": {
+    "title": "This screen stopped working",
+    "body": "The rest of the app is fine. Try again — if it keeps happening, the detail below is worth reporting.",
+    "details": "Technical detail",
+    "retry": "Try again"
+  },
+  "toast": {
+    "undo": "Undo",
+    "workCreated": "Work added.",
+    "workDeleted": "“{{title}}” deleted.",
+    "workSaveFailed": "Could not save the work.",
+    "workDeleteFailed": "Could not delete the work.",
+    "versionSaveFailed": "Could not save the version.",
+    "versionDeleted": "Version deleted.",
+    "scoreSaveFailed": "Could not save the score.",
+    "scoreSaved": "Scored.",
+    "releaseCreated": "Release added.",
+    "releaseSaveFailed": "Could not save the release.",
+    "releaseScheduled": "Slot claimed.",
+    "releaseReleased": "Marked as released.",
+    "releaseUnscheduled": "Back in the queue.",
+    "noteSaveFailed": "Could not save the note.",
+    "noteDeleted": "Note deleted.",
+    "profileSwitched": "Switched to {{name}}.",
+    "profileSaveFailed": "Could not save the profile.",
+    "loadFailed": "Could not load that."
   }
 }
