@@ -70,6 +70,11 @@
     "light": "Light theme",
     "dark": "Dark theme"
   },
+  "languageName": {
+    "system": "System language",
+    "en": "English",
+    "ru": "Русский"
+  },
   "styleguide": {
     "title": "Styleguide",
     "rule": "The living inventory of the design system. Screens take their primitives from here — a control that is not on this page does not go on any other.",
