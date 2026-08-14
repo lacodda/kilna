@@ -2,11 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.13.0] - 2026-08-14
+
+### Features
+- A Russian locale and a gate that holds locales to one shape
+- Choose the interface language
 ## [0.12.0] - 2026-08-14
+
+### Documentation
+- Describe what the app says back
 
 ### Features
 - Give failures a stable kind the frontend can branch on
 - Put a data layer and real feedback under the screens
+
+### Refactoring
+- Drop the unused notFound predicate
 ## [0.11.0] - 2026-08-13
 
 ### Features
