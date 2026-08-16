@@ -2,7 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.14.0] - 2026-08-16
+
+### Documentation
+- The trash, and why deleting never asks
+
+### Features
+- Move deletions aside instead of destroying them
+- A trash screen and an undo in place of confirmations
 ## [0.13.0] - 2026-08-14
+
+### Documentation
+- The language switch, and what it does not translate
 
 ### Features
 - A Russian locale and a gate that holds locales to one shape
