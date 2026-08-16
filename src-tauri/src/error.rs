@@ -24,6 +24,12 @@ pub enum Error {
     #[error("no {entity} with id `{id}`")]
     NotFound { entity: &'static str, id: String },
 
+    /// Something in the trash cannot be put back yet, because what it belonged
+    /// to is itself in the trash. Distinct from a plain database error so the
+    /// person is told what to do rather than shown a constraint name.
+    #[error("{0}")]
+    NotRestorable(String),
+
     /// The assistant CLI is missing, unusable, or refused the request.
     #[error("{0}")]
     Assistant(String),
@@ -44,6 +50,7 @@ impl Error {
             Self::Io(_) => "io",
             Self::SchemaTooNew { .. } => "schemaTooNew",
             Self::NotFound { .. } => "notFound",
+            Self::NotRestorable(_) => "notRestorable",
             Self::Assistant(_) => "assistant",
             Self::Other(_) => "other",
         }
@@ -90,6 +97,7 @@ mod tests {
         let kinds = [
             Error::Other(String::new()).kind(),
             Error::Assistant(String::new()).kind(),
+            Error::NotRestorable(String::new()).kind(),
             Error::not_found("work", "w1").kind(),
             Error::SchemaTooNew {
                 found: 2,

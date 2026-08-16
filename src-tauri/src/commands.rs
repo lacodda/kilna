@@ -12,6 +12,7 @@ use crate::profile::{self, Profile, Workspace};
 use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
 use crate::score::{self, NewScore, Score, ScoredWork};
 use crate::state::AppState;
+use crate::trash::{self, Deletion};
 use crate::work::version::{self, NewVersion, Version, VersionSummary};
 use crate::work::{self, NewWork, Work, WorkFilter, WorkPatch};
 
@@ -85,10 +86,14 @@ pub fn update_work(state: State<'_, AppState>, id: String, patch: WorkPatch) -> 
     work::update(&conn, &id, patch)
 }
 
+/// Move a work to the trash. Returns the entry id, which is what an undo needs.
+///
+/// Nothing in the app deletes outright: every `delete_*` command below goes the
+/// same way, so an undo is always available and a confirmation never is.
 #[tauri::command]
-pub fn delete_work(state: State<'_, AppState>, id: String) -> Result<()> {
-    let conn = state.conn();
-    work::delete(&conn, &id)
+pub fn delete_work(state: State<'_, AppState>, id: String) -> Result<String> {
+    let mut conn = state.conn();
+    trash::discard(&mut conn, trash::Entity::Work, &id)
 }
 
 #[tauri::command]
@@ -124,9 +129,9 @@ pub fn set_current_version(
 }
 
 #[tauri::command]
-pub fn delete_version(state: State<'_, AppState>, id: String) -> Result<()> {
+pub fn delete_version(state: State<'_, AppState>, id: String) -> Result<String> {
     let mut conn = state.conn();
-    version::delete(&mut conn, &id)
+    trash::discard(&mut conn, trash::Entity::Version, &id)
 }
 
 #[tauri::command]
@@ -150,9 +155,9 @@ pub fn update_note(state: State<'_, AppState>, id: String, patch: NotePatch) -> 
 }
 
 #[tauri::command]
-pub fn delete_note(state: State<'_, AppState>, id: String) -> Result<()> {
-    let conn = state.conn();
-    note::delete(&conn, &id)
+pub fn delete_note(state: State<'_, AppState>, id: String) -> Result<String> {
+    let mut conn = state.conn();
+    trash::discard(&mut conn, trash::Entity::Note, &id)
 }
 
 #[tauri::command]
@@ -181,9 +186,9 @@ pub fn latest_score(state: State<'_, AppState>, work_id: String) -> Result<Optio
 }
 
 #[tauri::command]
-pub fn delete_score(state: State<'_, AppState>, id: String) -> Result<()> {
-    let conn = state.conn();
-    score::delete(&conn, &id)
+pub fn delete_score(state: State<'_, AppState>, id: String) -> Result<String> {
+    let mut conn = state.conn();
+    trash::discard(&mut conn, trash::Entity::Score, &id)
 }
 
 #[tauri::command]
@@ -210,9 +215,9 @@ pub fn update_release(
 }
 
 #[tauri::command]
-pub fn delete_release(state: State<'_, AppState>, id: String) -> Result<()> {
-    let conn = state.conn();
-    release::delete(&conn, &id)
+pub fn delete_release(state: State<'_, AppState>, id: String) -> Result<String> {
+    let mut conn = state.conn();
+    trash::discard(&mut conn, trash::Entity::Release, &id)
 }
 
 /// Claim a calendar slot. Displacing a weaker release is reported back rather
@@ -291,9 +296,39 @@ pub fn update_collection(
 }
 
 #[tauri::command]
-pub fn delete_collection(state: State<'_, AppState>, id: String) -> Result<()> {
+pub fn delete_collection(state: State<'_, AppState>, id: String) -> Result<String> {
+    let mut conn = state.conn();
+    trash::discard(&mut conn, trash::Entity::Collection, &id)
+}
+
+/// Everything in the active profile's trash, newest first.
+#[tauri::command]
+pub fn list_deletions(state: State<'_, AppState>) -> Result<Vec<Deletion>> {
     let conn = state.conn();
-    collection::delete(&conn, &id)
+    let profile_id = active_profile_id(&conn)?;
+    trash::list(&conn, &profile_id)
+}
+
+/// Put a trashed entry back where it came from.
+#[tauri::command]
+pub fn restore_deletion(state: State<'_, AppState>, id: String) -> Result<()> {
+    let mut conn = state.conn();
+    trash::restore(&mut conn, &id)
+}
+
+/// Drop one entry for good.
+#[tauri::command]
+pub fn purge_deletion(state: State<'_, AppState>, id: String) -> Result<()> {
+    let mut conn = state.conn();
+    trash::purge(&mut conn, &id)
+}
+
+/// Empty the active profile's trash. Returns how many entries went.
+#[tauri::command]
+pub fn empty_trash(state: State<'_, AppState>) -> Result<usize> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    trash::empty(&conn, &profile_id)
 }
 
 /// Write the active profile out as markdown.

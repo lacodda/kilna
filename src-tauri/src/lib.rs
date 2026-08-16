@@ -11,6 +11,7 @@ pub mod release;
 pub mod score;
 pub mod state;
 pub mod time;
+pub mod trash;
 pub mod work;
 
 pub use error::{Error, Result};
@@ -68,6 +69,10 @@ pub fn run() {
             commands::update_collection,
             commands::delete_collection,
             commands::set_collection_contents,
+            commands::list_deletions,
+            commands::restore_deletion,
+            commands::purge_deletion,
+            commands::empty_trash,
             commands::assistant_status,
             commands::list_chats,
             commands::create_chat,
