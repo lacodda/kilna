@@ -75,6 +75,8 @@ Whatever the plugin returns under `meta` is merged into that row — it can add 
 
 Local SQLite, media as plain files on disk, and a markdown export of everything — front matter, full bodies, scores and releases, readable without kilna. Back the whole workspace up to a single file. No account, no server, no lock-in.
 
+Nothing is lost by pressing a button either: deleting moves things to a [trash](https://lacodda.github.io/kilna/guides/the-trash/) you can restore from, so kilna never asks you to confirm — the undo is in the message.
+
 ## Built with
 
 [Tauri v2](https://v2.tauri.app/) · Rust · SQLite · React

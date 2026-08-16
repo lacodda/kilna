@@ -11,10 +11,11 @@ current screen filling the rest.
 
 The sidebar lists the screens: **Works** (the list and the open work),
 **Catalogue** (every work with its score and tier), **Calendar** (the queue
-and the taken slots), and **Settings** (data in and out, the profile editor).
+and the taken slots), **Trash** (everything you deleted, and the way back),
+and **Settings** (data in and out, the profile editor).
 
 Some entries are doors that are not built yet — Dashboard, Collections,
-Notes, Trash. They sit in the sidebar with a small version chip naming the
+Notes. They sit in the sidebar with a small version chip naming the
 release that delivers them, so the map of what is coming lives in the app
 itself rather than in a changelog.
 
@@ -72,6 +73,13 @@ saved when it is not.
 right — a work added, a slot claimed, something deleted. They disappear on
 their own. A message never asks you a question; anything that needs an
 answer is a dialog you can cancel.
+
+**Deleting never asks.** A deletion says what went and offers *Undo* in the
+same message. kilna does not put a confirmation in front of it, because a
+confirmation costs a click every single time to guard against the rare
+mistake, while an undo costs a click only when the mistake actually
+happened — and what you deleted is in the [Trash](/kilna/guides/the-trash/)
+either way, long after the message is gone.
 
 **When something goes wrong.** Failures are written as sentences about your
 work, not as the database's own words. "That is not here any more — it was
