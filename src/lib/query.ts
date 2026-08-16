@@ -33,6 +33,7 @@ export const keys = {
   collections: ['collections'] as const,
   notes: ['notes'] as const,
   tags: ['tags'] as const,
+  deletions: ['deletions'] as const,
 
   chats: (workId?: string) => ['chats', workId ?? null] as const,
   transcript: (chatId: string) => ['transcript', chatId] as const,

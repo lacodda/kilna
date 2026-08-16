@@ -264,7 +264,7 @@ export const listWorks = (filter?: WorkFilter) => invoke<Work[]>('list_works', {
 export const getWork = (id: string) => invoke<Work | null>('get_work', { id })
 export const createWork = (work: NewWork) => invoke<Work>('create_work', { work })
 export const updateWork = (id: string, patch: WorkPatch) => invoke<Work>('update_work', { id, patch })
-export const deleteWork = (id: string) => invoke<void>('delete_work', { id })
+export const deleteWork = (id: string) => invoke<string>('delete_work', { id })
 
 export const listVersions = (workId: string) => invoke<VersionSummary[]>('list_versions', { workId })
 export const getVersion = (id: string) => invoke<Version | null>('get_version', { id })
@@ -272,23 +272,23 @@ export const createVersion = (workId: string, version: NewVersion) =>
   invoke<Version>('create_version', { workId, version })
 export const setCurrentVersion = (workId: string, versionId: string) =>
   invoke<void>('set_current_version', { workId, versionId })
-export const deleteVersion = (id: string) => invoke<void>('delete_version', { id })
+export const deleteVersion = (id: string) => invoke<string>('delete_version', { id })
 
 export const listNotes = (filter?: NoteFilter) => invoke<Note[]>('list_notes', { filter })
 export const createNote = (note: NewNote) => invoke<Note>('create_note', { note })
 export const updateNote = (id: string, patch: NotePatch) => invoke<Note>('update_note', { id, patch })
-export const deleteNote = (id: string) => invoke<void>('delete_note', { id })
+export const deleteNote = (id: string) => invoke<string>('delete_note', { id })
 export const listTags = () => invoke<[string, number][]>('list_tags')
 
 export const scoreWork = (workId: string, score: NewScore) =>
   invoke<Score>('score_work', { workId, score })
 export const scoreHistory = (workId: string) => invoke<Score[]>('score_history', { workId })
 export const latestScore = (workId: string) => invoke<Score | null>('latest_score', { workId })
-export const deleteScore = (id: string) => invoke<void>('delete_score', { id })
+export const deleteScore = (id: string) => invoke<string>('delete_score', { id })
 export const catalogue = () => invoke<ScoredWork[]>('catalogue')
 
 export const createRelease = (release: NewRelease) => invoke<Release>('create_release', { release })
-export const deleteRelease = (id: string) => invoke<void>('delete_release', { id })
+export const deleteRelease = (id: string) => invoke<string>('delete_release', { id })
 export const scheduleRelease = (id: string, slot: string) =>
   invoke<Scheduling>('schedule_release', { id, slot })
 export const unscheduleRelease = (id: string) => invoke<Release>('unschedule_release', { id })
@@ -301,9 +301,29 @@ export const releasesForWork = (workId: string) => invoke<Release[]>('releases_f
 export const listCollections = () => invoke<Collection[]>('list_collections')
 export const createCollection = (collection: NewCollection) =>
   invoke<Collection>('create_collection', { collection })
-export const deleteCollection = (id: string) => invoke<void>('delete_collection', { id })
+export const deleteCollection = (id: string) => invoke<string>('delete_collection', { id })
 export const setCollectionContents = (id: string, workIds: string[]) =>
   invoke<void>('set_collection_contents', { id, workIds })
+
+/** What a trashed entry was. Mirrors the backend's `trash::Entity`. */
+export type DeletedEntity = 'work' | 'version' | 'score' | 'release' | 'note' | 'collection'
+
+export interface Deletion {
+  id: string
+  entity: DeletedEntity
+  entity_id: string
+  label: string
+  origin: string | null
+  reason: string
+  deleted_at: string
+  /** False while what it belonged to is itself in the trash. */
+  restorable: boolean
+}
+
+export const listDeletions = () => invoke<Deletion[]>('list_deletions')
+export const restoreDeletion = (id: string) => invoke<void>('restore_deletion', { id })
+export const purgeDeletion = (id: string) => invoke<void>('purge_deletion', { id })
+export const emptyTrash = () => invoke<number>('empty_trash')
 
 export interface Availability {
   available: boolean

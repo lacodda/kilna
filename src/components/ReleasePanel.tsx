@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { createRelease, deleteRelease, releasesForWork } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
+import { announceDeleted } from '@/lib/trash'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
@@ -32,11 +33,16 @@ export function ReleasePanel({ workId, workTitle }: Props) {
 
   // A release entering or leaving the queue shows up in the calendar and the
   // release queue view too.
+  // What a release touches, whether it is added, removed or brought back.
+  const refreshed = [
+    keys.releasesForWork(workId),
+    keys.releases,
+    keys.calendar,
+    keys.releaseQueue,
+  ]
+
   const settle = () => {
-    void client.invalidateQueries({ queryKey: keys.releasesForWork(workId) })
-    void client.invalidateQueries({ queryKey: keys.releases })
-    void client.invalidateQueries({ queryKey: keys.calendar })
-    void client.invalidateQueries({ queryKey: keys.releaseQueue })
+    for (const key of refreshed) void client.invalidateQueries({ queryKey: key })
   }
 
   const add = useMutation({
@@ -50,7 +56,13 @@ export function ReleasePanel({ workId, workTitle }: Props) {
 
   const remove = useMutation({
     mutationFn: deleteRelease,
-    onSuccess: settle,
+    onSuccess: (deletionId) =>
+      announceDeleted({
+        client,
+        deletionId,
+        message: t('toast.releaseDeleted'),
+        refresh: refreshed,
+      }),
     onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
 

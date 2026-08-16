@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { deleteScore, scoreHistory, scoreWork } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
+import { announceDeleted } from '@/lib/trash'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { tierFor, total as computeTotal } from '@/lib/scoring'
 import { Button } from '@/components/ui/Button'
@@ -35,11 +36,16 @@ export function ScorePanel({ workId }: Props) {
 
   // A new score changes the catalogue ranking and the work's own latest-score
   // read, plus the works list if it surfaces tier/score anywhere.
+  // A score moves the catalogue and the work's own summary, either way.
+  const refreshed = [
+    keys.scoreHistory(workId),
+    keys.latestScore(workId),
+    keys.catalogue,
+    keys.works,
+  ]
+
   const settle = () => {
-    void client.invalidateQueries({ queryKey: keys.scoreHistory(workId) })
-    void client.invalidateQueries({ queryKey: keys.latestScore(workId) })
-    void client.invalidateQueries({ queryKey: keys.catalogue })
-    void client.invalidateQueries({ queryKey: keys.works })
+    for (const key of refreshed) void client.invalidateQueries({ queryKey: key })
   }
 
   const save = useMutation({
@@ -54,7 +60,13 @@ export function ScorePanel({ workId }: Props) {
 
   const remove = useMutation({
     mutationFn: deleteScore,
-    onSuccess: settle,
+    onSuccess: (deletionId) =>
+      announceDeleted({
+        client,
+        deletionId,
+        message: t('toast.scoreDeleted'),
+        refresh: refreshed,
+      }),
     onError: (cause) => say.failedTo(t('toast.scoreSaveFailed'), cause),
   })
 

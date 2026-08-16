@@ -13,6 +13,8 @@ function screenKey(pathname: string): string {
       return 'nav.catalogue'
     case 'calendar':
       return 'nav.calendar'
+    case 'trash':
+      return 'nav.trash'
     case 'settings':
       return 'nav.data'
     case 'styleguide':

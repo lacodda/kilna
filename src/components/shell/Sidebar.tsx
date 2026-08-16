@@ -106,7 +106,7 @@ export function Sidebar({ profileId, onProfileSwitched }: Props) {
       </div>
       <SoonLink icon={Disc} label={t('nav.collections')} version="0.33" />
       <SoonLink icon={FileText} label={t('nav.notes')} version="0.34" />
-      <SoonLink icon={Trash2} label={t('nav.trash')} version="0.14" />
+      <ScreenLink to="/trash" icon={Trash2} label={t('nav.trash')} />
 
       <div className="mt-auto flex flex-col gap-0.5">
         {import.meta.env.DEV && (

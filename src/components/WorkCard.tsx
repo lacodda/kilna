@@ -11,6 +11,7 @@ import {
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
+import { announceDeleted } from '@/lib/trash'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
@@ -27,9 +28,11 @@ import { PluginBar } from '@/components/PluginBar'
 interface Props {
   workId: string
   onDeleted: () => void
+  /** Reopen a work that was deleted and then brought back. */
+  onUndone: (workId: string) => void
 }
 
-export function WorkCard({ workId, onDeleted }: Props) {
+export function WorkCard({ workId, onDeleted, onUndone }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const client = useQueryClient()
@@ -80,11 +83,15 @@ export function WorkCard({ workId, onDeleted }: Props) {
 
   const remove = useMutation({
     mutationFn: () => deleteWork(workId),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.works })
-      void client.invalidateQueries({ queryKey: keys.workspace })
-      void client.invalidateQueries({ queryKey: keys.catalogue })
-      say.ok(t('toast.workDeleted', { title: work.data?.title ?? '' }))
+    onSuccess: (deletionId) => {
+      announceDeleted({
+        client,
+        deletionId,
+        message: t('toast.workDeleted', { title: work.data?.title ?? '' }),
+        refresh: [keys.works, keys.workspace, keys.catalogue, keys.calendar],
+        // The card was closed on the way out; an undo brings it back open.
+        onUndone: () => onUndone(workId),
+      })
       onDeleted()
     },
     onError: (cause) => say.failedTo(t('toast.workDeleteFailed'), cause),

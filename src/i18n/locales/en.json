@@ -21,7 +21,9 @@
     "worksFilteredBody": "Clear the search or the filters to see everything again.",
     "clearFilters": "Clear filters",
     "catalogueTitle": "Nothing scored yet",
-    "catalogueBody": "Score a work and it appears here, ranked."
+    "catalogueBody": "Score a work and it appears here, ranked.",
+    "trashTitle": "The trash is empty",
+    "trashBody": "Anything you delete waits here until you empty it."
   },
   "works": {
     "add": "Add",
@@ -201,7 +203,8 @@
     "schemaTooNew": "This workspace was written by a newer version of kilna. Update the app to open it.",
     "notFound": "That is not here any more — it was probably deleted in another view.",
     "assistant": "The assistant could not be reached. Check that Claude Code is installed and on your PATH.",
-    "unknown": "Something went wrong."
+    "unknown": "Something went wrong.",
+    "notRestorable": "The work this belonged to is in the trash too. Restore that first."
   },
   "save": {
     "saving": "Saving…",
@@ -237,6 +240,35 @@
     "noteDeleted": "Note deleted.",
     "profileSwitched": "Switched to {{name}}.",
     "profileSaveFailed": "Could not save the profile.",
-    "loadFailed": "Could not load that."
+    "loadFailed": "Could not load that.",
+    "scoreDeleted": "Score deleted.",
+    "releaseDeleted": "Release deleted."
+  },
+  "trash": {
+    "title": "Trash",
+    "hint": "Nothing leaves for good until you say so.",
+    "what": "What",
+    "kind": "Kind",
+    "when": "Deleted",
+    "restore": "Restore",
+    "restored": "Restored.",
+    "restoreFailed": "Could not restore that.",
+    "purge": "Delete for good",
+    "purgeFailed": "Could not delete that.",
+    "empty": "Empty the trash",
+    "emptyTitle": "Empty the trash?",
+    "emptyBody_one": "{{count}} entry will be deleted for good. This cannot be undone.",
+    "emptyBody_other": "{{count}} entries will be deleted for good. This cannot be undone.",
+    "emptied_one": "{{count}} entry deleted for good.",
+    "emptied_other": "{{count}} entries deleted for good.",
+    "emptyFailed": "Could not empty the trash.",
+    "entity": {
+      "work": "Work",
+      "version": "Version",
+      "score": "Score",
+      "release": "Release",
+      "note": "Note",
+      "collection": "Collection"
+    }
   }
 }

@@ -13,6 +13,7 @@ import { WorkCard } from '@/components/WorkCard'
 import { Catalogue } from '@/components/Catalogue'
 import { CalendarView } from '@/components/CalendarView'
 import { DataView } from '@/components/DataView'
+import { TrashView } from '@/components/TrashView'
 import { Styleguide } from '@/components/Styleguide'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Panel } from '@/components/ui/Panel'
@@ -33,7 +34,12 @@ function WorksScreen() {
         {workId === undefined ? (
           <EmptyState title={t('empty.title')} body={t('empty.body')} />
         ) : (
-          <WorkCard key={workId} workId={workId} onDeleted={() => navigate('/works')} />
+          <WorkCard
+            key={workId}
+            workId={workId}
+            onDeleted={() => navigate('/works')}
+            onUndone={(restored) => navigate(`/works/${restored}`)}
+          />
         )}
       </main>
     </div>
@@ -127,6 +133,14 @@ export default function App() {
                 element={
                   <div className="p-6">
                     <CalendarView onSelect={openWork} />
+                  </div>
+                }
+              />
+              <Route
+                path="/trash"
+                element={
+                  <div className="p-6">
+                    <TrashView />
                   </div>
                 }
               />

@@ -10,7 +10,14 @@ export interface AppError {
 
 // Kinds we have a sentence for. Anything else falls through to the backend's
 // own message rather than a lie about what went wrong.
-const SPOKEN = new Set(['database', 'io', 'schemaTooNew', 'notFound', 'assistant'])
+const SPOKEN = new Set([
+  'database',
+  'io',
+  'schemaTooNew',
+  'notFound',
+  'notRestorable',
+  'assistant',
+])
 
 function isAppError(cause: unknown): cause is AppError {
   return (

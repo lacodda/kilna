@@ -5,9 +5,14 @@ import { X } from 'lucide-react'
 import { createNote, deleteNote, listNotes } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
+import { announceDeleted } from '@/lib/trash'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
+
+// What a note changes when it appears or goes. A new tag on a note changes the
+// tag list the rest of the app reads, so both are refreshed either way.
+const REFRESHED = [keys.notes, keys.tags] as const
 
 interface Props {
   workId: string
@@ -25,9 +30,7 @@ export function NotePanel({ workId }: Props) {
   })
 
   const settle = () => {
-    void client.invalidateQueries({ queryKey: keys.notes })
-    // A new tag on a note changes the tag list the rest of the app reads.
-    void client.invalidateQueries({ queryKey: keys.tags })
+    for (const key of REFRESHED) void client.invalidateQueries({ queryKey: key })
   }
 
   const add = useMutation({
@@ -51,10 +54,13 @@ export function NotePanel({ workId }: Props) {
 
   const remove = useMutation({
     mutationFn: deleteNote,
-    onSuccess: () => {
-      settle()
-      say.ok(t('toast.noteDeleted'))
-    },
+    onSuccess: (deletionId) =>
+      announceDeleted({
+        client,
+        deletionId,
+        message: t('toast.noteDeleted'),
+        refresh: REFRESHED,
+      }),
     onError: (cause) => say.failedTo(t('toast.noteSaveFailed'), cause),
   })
 

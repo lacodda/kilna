@@ -11,6 +11,7 @@ import {
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
+import { announceDeleted } from '@/lib/trash'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Input'
@@ -55,10 +56,12 @@ export function VersionPanel({ workId }: Props) {
 
   // Everything here changes which body is current, so the card and the list of
   // versions both need rereading.
+  // A version changes the list, the work's current pointer, and the summary
+  // the works list shows.
+  const refreshed = [keys.versions(workId), keys.work(workId), keys.works]
+
   const settle = () => {
-    void client.invalidateQueries({ queryKey: keys.versions(workId) })
-    void client.invalidateQueries({ queryKey: keys.work(workId) })
-    void client.invalidateQueries({ queryKey: keys.works })
+    for (const key of refreshed) void client.invalidateQueries({ queryKey: key })
   }
 
   const save = useMutation({
@@ -79,10 +82,16 @@ export function VersionPanel({ workId }: Props) {
 
   const remove = useMutation({
     mutationFn: deleteVersion,
-    onSuccess: (_result, versionId) => {
+    onSuccess: (deletionId, versionId) => {
       if (selectedId === versionId) setSelectedId(null)
-      settle()
-      say.ok(t('toast.versionDeleted'))
+      announceDeleted({
+        client,
+        deletionId,
+        message: t('toast.versionDeleted'),
+        refresh: refreshed,
+        // Reopen what was being read when it was thrown away.
+        onUndone: () => setSelectedId(versionId),
+      })
     },
     onError: (cause) => say.failedTo(t('toast.versionSaveFailed'), cause),
   })
