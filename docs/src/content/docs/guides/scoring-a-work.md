@@ -9,8 +9,8 @@ steps apply on any profile — only the axis names change.
 ## Score the current draft
 
 Say you have a song called "Harbour lights" with a lyrics draft as its current
-version. Open its score card and fill in values for whichever axes you can
-judge honestly right now:
+version. Open it, go to the **Score** tab, and fill in values for whichever
+axes you can judge honestly right now:
 
 ```jsonc
 { "hook": 6, "lyrics": 7, "emotion": 7 }

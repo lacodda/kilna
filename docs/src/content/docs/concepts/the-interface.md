@@ -64,9 +64,45 @@ half in English is the kind of bug nobody reports and everybody notices.
 ## Screens are URLs
 
 Every screen has an address, and the open work is part of it: `/works/abc123`
-is that work, opened. The back button walks your actual history, and anything
-that can hold a link — a note, a chat message, a journal entry — can point
-at a screen or a work directly.
+is that work, opened, and `/works/abc123/score` is its Score tab. The back
+button walks your actual history — including between tabs of the same card —
+and anything that can hold a link, a note, a chat message, a journal entry,
+can point at a tab directly.
+
+## A work's card
+
+Opening a work gives you a card with a cover, a bar and seven tabs.
+
+**The cover** is a gradient derived from the work's id. It is not decoration
+you chose; it is there so one card is distinguishable from another before you
+have read a word, and it stays the same for as long as the work exists. Real
+covers replace it later.
+
+**The bar sticks.** The cover and the profile's fields scroll away, but the
+work's name, its status, its tier and score, and the tabs stay at the top —
+a long version otherwise leaves you reading with no idea whose words they are.
+The values in that bar are read-only. You edit them on **Overview**, because a
+header you can type into is a header that shifts under the cursor while it
+saves.
+
+**The tabs:**
+
+| Tab | What is there |
+| --- | --- |
+| Overview | The title, status, kind, and the fields your profile defines |
+| Versions | Every draft, by role, and the editor |
+| Score | The axes, and what this work has scored before |
+| Releases | What ships, where and when — with a count on the tab |
+| Notes | Notes attached to this work |
+| Assistant | The AI panel for this work |
+| History | Everything that happened to it |
+
+Only the open tab is loaded. Opening a card no longer fetches every version,
+score, release, note and chat a work has ever had.
+
+**Drafts belong to their role.** Text typed under Lyrics stays under Lyrics:
+switching to another role gives you that role's own draft, and switching back
+returns what you were writing.
 
 ## When something happens
 

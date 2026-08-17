@@ -49,9 +49,9 @@ than filling the feed with copies of itself.
 
 ## A work's own history
 
-Every work's card ends with its own **History**: the same lines, filtered to
-that work. Deleting a score or a version of it appears there too, because what
-was taken out of a work is part of that work's story.
+Every work's card has a **History** tab: the same lines, filtered to that work.
+Deleting a score or a version of it appears there too, because what was taken
+out of a work is part of that work's story.
 
 Entries survive what they describe. A line about a work you later deleted still
 names it — the title is copied into the entry when it is written, not looked up
