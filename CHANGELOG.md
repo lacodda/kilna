@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.15.0] - 2026-08-17
+
+### Bug Fixes
+- Name a trashed score by what it said, not when
+
+### Documentation
+- The history, and what it keeps after the message fades
+
+### Features
+- Record what happened in words that can be translated
+- A history screen, a bell, and each work's own history
 ## [0.14.0] - 2026-08-16
 
 ### Documentation
