@@ -116,19 +116,21 @@ function TabBody({
   work: Parameters<typeof CardHeader>[0]['work']
 }) {
   switch (tab) {
+    // Plugins write into the work's own `meta` and may rewrite its versions, so
+    // they belong beside the fields they change rather than beside its releases.
     case 'overview':
-      return <OverviewTab work={work} />
+      return (
+        <div className="flex flex-col gap-4">
+          <OverviewTab work={work} />
+          <PluginBar target="work" id={workId} />
+        </div>
+      )
     case 'lyrics':
       return <VersionPanel workId={workId} />
     case 'score':
       return <ScorePanel workId={workId} />
     case 'releases':
-      return (
-        <div className="flex flex-col gap-6">
-          <ReleasePanel workId={workId} workTitle={work.title} />
-          <PluginBar target="work" id={workId} />
-        </div>
-      )
+      return <ReleasePanel workId={workId} workTitle={work.title} />
     case 'notes':
       return <NotePanel workId={workId} />
     // The mockup has no assistant tab — it puts the panel in a drawer with a
