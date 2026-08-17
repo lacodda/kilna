@@ -6,7 +6,7 @@
 
 You write songs, chapters, episodes, or articles. The work lives in one place, the release plan in another, and the decision about what actually deserves to ship lives in your head. kilna closes that loop.
 
-> **Status: early development.** The loop is closed end to end — a work gains versions, a version earns a score, a score wins a calendar slot, and the slot ends in a release you mark by hand — with four craft profiles, an AI panel over your own Claude Code CLI, and a plugin protocol. The interface speaks English and Russian. Builds for Windows, macOS and Linux are on the [Releases page](https://github.com/lacodda/kilna/releases); none of them are signed yet, so your OS will warn you about an unidentified developer.
+> **Status: early development.** The loop is closed end to end — a work gains versions, a version earns a score, a score wins a calendar slot, and the slot ends in a release you mark by hand — with four craft profiles, an AI panel over your own Claude Code CLI, and a plugin protocol. Nothing is deleted outright and nothing happens unnoticed: there is a trash behind every deletion and a history behind every change. The interface speaks English and Russian. Builds for Windows, macOS and Linux are on the [Releases page](https://github.com/lacodda/kilna/releases); none of them are signed yet, so your OS will warn you about an unidentified developer.
 
 <img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="A song open in kilna: its fields, its two lyric revisions, and the current draft" width="1200">
 
@@ -76,6 +76,8 @@ Whatever the plugin returns under `meta` is merged into that row — it can add 
 Local SQLite, media as plain files on disk, and a markdown export of everything — front matter, full bodies, scores and releases, readable without kilna. Back the whole workspace up to a single file. No account, no server, no lock-in.
 
 Nothing is lost by pressing a button either: deleting moves things to a [trash](https://lacodda.github.io/kilna/guides/the-trash/) you can restore from, so kilna never asks you to confirm — the undo is in the message.
+
+And nothing happens unnoticed. Every change leaves a line in [History](https://lacodda.github.io/kilna/guides/the-history/) — what happened, to what, and when — so a question you only think to ask three weeks later still has an answer. The bell in the top bar lights only for the entries that need a look, such as a release pushed out of its slot by a stronger work.
 
 ## Built with
 

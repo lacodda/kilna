@@ -11,15 +11,25 @@ current screen filling the rest.
 
 The sidebar lists the screens: **Works** (the list and the open work),
 **Catalogue** (every work with its score and tier), **Calendar** (the queue
-and the taken slots), **Trash** (everything you deleted, and the way back),
-and **Settings** (data in and out, the profile editor).
+and the taken slots), **History** (what has happened, newest first),
+**Trash** (everything you deleted, and the way back), and **Settings** (data
+in and out, the profile editor).
 
 Some entries are doors that are not built yet — Dashboard, Collections,
 Notes. They sit in the sidebar with a small version chip naming the
 release that delivers them, so the map of what is coming lives in the app
 itself rather than in a changelog.
 
-The footer holds the theme switch, the profile picker, and Settings.
+The footer holds the theme switch, the language switch, the profile picker,
+and Settings.
+
+## The topbar
+
+The topbar names the screen you are on, counts your works, and holds the
+**bell**. The bell is lit only by entries that need a look — never by the
+ordinary record of you adding a work or saving a version, because a bell lit
+by everything is a bell nobody reads. Clicking it opens
+[History](/kilna/guides/the-history/).
 
 ## Themes
 
@@ -73,6 +83,10 @@ saved when it is not.
 right — a work added, a slot claimed, something deleted. They disappear on
 their own. A message never asks you a question; anything that needs an
 answer is a dialog you can cancel.
+
+The same event is also written to [History](/kilna/guides/the-history/), from
+the same wording: the message is what you are told now, the entry is what you
+can find later.
 
 **Deleting never asks.** A deletion says what went and offers *Undo* in the
 same message. kilna does not put a confirmation in front of it, because a
