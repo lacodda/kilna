@@ -23,6 +23,7 @@ import { ScorePanel } from '@/components/ScorePanel'
 import { ReleasePanel } from '@/components/ReleasePanel'
 import { AssistantPanel } from '@/components/AssistantPanel'
 import { NotePanel } from '@/components/NotePanel'
+import { WorkHistory } from '@/components/JournalFeed'
 import { PluginBar } from '@/components/PluginBar'
 
 interface Props {
@@ -75,9 +76,11 @@ export function WorkCard({ workId, onDeleted, onUndone }: Props) {
       client.setQueryData(keys.work(workId), updated)
     },
     onSettled: () => {
-      // The list shows title, status and kind, so any of these changes it.
+      // The list shows title, status and kind, so any of these changes it. A
+      // rename or a status change is also written down, right below this card.
       void client.invalidateQueries({ queryKey: keys.works })
       void client.invalidateQueries({ queryKey: keys.catalogue })
+      void client.invalidateQueries({ queryKey: keys.journal })
     },
   })
 
@@ -214,6 +217,8 @@ export function WorkCard({ workId, onDeleted, onUndone }: Props) {
       <PluginBar target="work" id={workId} />
 
       <NotePanel workId={workId} />
+
+      <WorkHistory workId={workId} />
     </div>
   )
 }

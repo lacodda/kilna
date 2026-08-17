@@ -13,6 +13,7 @@ import { WorkCard } from '@/components/WorkCard'
 import { Catalogue } from '@/components/Catalogue'
 import { CalendarView } from '@/components/CalendarView'
 import { DataView } from '@/components/DataView'
+import { JournalView } from '@/components/JournalView'
 import { TrashView } from '@/components/TrashView'
 import { Styleguide } from '@/components/Styleguide'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -133,6 +134,14 @@ export default function App() {
                 element={
                   <div className="p-6">
                     <CalendarView onSelect={openWork} />
+                  </div>
+                }
+              />
+              <Route
+                path="/journal"
+                element={
+                  <div className="p-6">
+                    <JournalView />
                   </div>
                 }
               />

@@ -31,8 +31,10 @@ export function announceDeleted({
   /** Called after a successful undo — to reopen what was closed. */
   onUndone?: () => void
 }) {
+  // The journal goes with them: a deletion writes a line, and so does the undo
+  // that takes it back.
   const invalidate = () => {
-    for (const key of [...refresh, keys.deletions]) {
+    for (const key of [...refresh, keys.deletions, keys.journal]) {
       void client.invalidateQueries({ queryKey: key })
     }
   }

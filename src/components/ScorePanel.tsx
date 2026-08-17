@@ -34,10 +34,10 @@ export function ScorePanel({ workId }: Props) {
   const preview = computeTotal(axes, values)
   const previewTier = tierFor(tiers, preview)
 
-  // A new score changes the catalogue ranking and the work's own latest-score
-  // read, plus the works list if it surfaces tier/score anywhere.
-  // A score moves the catalogue and the work's own summary, either way.
+  // A score moves the catalogue and the work's own summary, either way — and
+  // leaves a line in the journal, which the card shows underneath.
   const refreshed = [
+    keys.journal,
     keys.scoreHistory(workId),
     keys.latestScore(workId),
     keys.catalogue,

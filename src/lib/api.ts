@@ -320,6 +320,34 @@ export interface Deletion {
   restorable: boolean
 }
 
+/** How loudly an entry asks to be noticed. Only `warn` is counted unread. */
+export type JournalLevel = 'info' | 'warn'
+
+/**
+ * One thing that happened.
+ *
+ * `action` is an i18n key and `params` its values — never a finished sentence,
+ * so history written in one language still reads in another.
+ */
+export interface JournalEntry {
+  id: string
+  action: string
+  params: Record<string, string | number>
+  level: JournalLevel
+  entity: string | null
+  entity_id: string | null
+  /** How many times it happened, counting the first. */
+  occurrences: number
+  created_at: string
+  read_at: string | null
+}
+
+export const listJournal = () => invoke<JournalEntry[]>('list_journal')
+export const journalForWork = (workId: string) =>
+  invoke<JournalEntry[]>('journal_for_work', { workId })
+export const unreadJournal = () => invoke<number>('unread_journal')
+export const markJournalRead = () => invoke<number>('mark_journal_read')
+
 export const listDeletions = () => invoke<Deletion[]>('list_deletions')
 export const restoreDeletion = (id: string) => invoke<void>('restore_deletion', { id })
 export const purgeDeletion = (id: string) => invoke<void>('purge_deletion', { id })

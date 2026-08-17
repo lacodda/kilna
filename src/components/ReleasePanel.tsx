@@ -31,10 +31,10 @@ export function ReleasePanel({ workId, workTitle }: Props) {
     queryFn: () => releasesForWork(workId),
   })
 
-  // A release entering or leaving the queue shows up in the calendar and the
-  // release queue view too.
-  // What a release touches, whether it is added, removed or brought back.
+  // What a release touches, whether it is added, removed or brought back — the
+  // calendar, the queue, and the line the journal keeps about it.
   const refreshed = [
+    keys.journal,
     keys.releasesForWork(workId),
     keys.releases,
     keys.calendar,

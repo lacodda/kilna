@@ -23,7 +23,13 @@
     "catalogueTitle": "Пока ничего не оценено",
     "catalogueBody": "Оцените произведение — и оно появится здесь, в общем порядке.",
     "trashTitle": "Корзина пуста",
-    "trashBody": "Всё удалённое ждёт здесь, пока вы не очистите корзину."
+    "trashBody": "Всё удалённое ждёт здесь, пока вы не очистите корзину.",
+    "journalTitle": "Пока ничего не происходило",
+    "journalBody": "Добавьте произведение, оцените, запланируйте выпуск - всё это запишется здесь.",
+    "journalClearTitle": "Ничего не требует внимания",
+    "journalClearBody": "Здесь появляются предупреждения. Сейчас их нет.",
+    "historyTitle": "Истории пока нет",
+    "historyBody": "Здесь будет то, что происходило с этим произведением."
   },
   "works": {
     "add": "Добавить",
@@ -66,7 +72,8 @@
     "collections": "Коллекции",
     "notes": "Заметки",
     "trash": "Корзина",
-    "soon": "Будет в v{{version}}"
+    "soon": "Будет в v{{version}}",
+    "journal": "История"
   },
   "themeName": {
     "system": "Тема системы",
@@ -273,5 +280,33 @@
       "note": "Заметка",
       "collection": "Коллекция"
     }
+  },
+  "journal": {
+    "title": "История",
+    "hint": "Что здесь происходило, свежее сверху.",
+    "all": "Всё",
+    "unreadOnly": "Требует внимания",
+    "markRead": "Отметить всё просмотренным",
+    "open": "История",
+    "repeated_one": "{{count}} раз",
+    "repeated_few": "{{count}} раза",
+    "repeated_many": "{{count}} раз",
+    "repeated_other": "{{count}} раза",
+    "work.created": "«{{title}}» добавлено.",
+    "work.renamed": "«{{from}}» переименовано в «{{to}}».",
+    "work.status": "«{{title}}» переведено в статус {{to}}.",
+    "work.deleted": "«{{title}}» удалено.",
+    "version.created": "{{role}} {{revision}} добавлена в «{{title}}».",
+    "version.deleted": "Версия «{{label}}» удалена.",
+    "score.added": "«{{title}}» оценено на {{total}}.",
+    "score.deleted": "Оценка «{{origin}}» удалена.",
+    "release.created": "Добавлен выпуск ({{kind}}) для «{{title}}».",
+    "release.scheduled": "«{{title}}» заняло {{slot}}.",
+    "release.displaced": "«{{title}}» потеряло слот {{slot}}.",
+    "release.released": "«{{title}}» выпущено ({{kind}}).",
+    "release.deleted": "Выпуск «{{label}}» удалён.",
+    "note.deleted": "Заметка «{{label}}» удалена.",
+    "collection.deleted": "Коллекция «{{label}}» удалена.",
+    "trash.restored": "«{{label}}» восстановлено."
   }
 }

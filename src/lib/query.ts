@@ -35,6 +35,14 @@ export const keys = {
   tags: ['tags'] as const,
   deletions: ['deletions'] as const,
 
+  // One coarse prefix over the feed, a work's history and the unread count:
+  // every mutation that writes an entry disturbs all three, and none of them is
+  // ever worth invalidating alone.
+  journal: ['journal'] as const,
+  journalFeed: ['journal', 'feed'] as const,
+  journalForWork: (workId: string) => ['journal', 'work', workId] as const,
+  journalUnread: ['journal', 'unread'] as const,
+
   chats: (workId?: string) => ['chats', workId ?? null] as const,
   transcript: (chatId: string) => ['transcript', chatId] as const,
   assistantStatus: ['assistantStatus'] as const,

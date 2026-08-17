@@ -39,6 +39,7 @@ export function WorkList({ selectedId, onSelect }: Props) {
       // The new work has to exist in the list before we can select it.
       void client.invalidateQueries({ queryKey: keys.works })
       void client.invalidateQueries({ queryKey: keys.workspace })
+      void client.invalidateQueries({ queryKey: keys.journal })
       say.ok(t('toast.workCreated'))
       onSelect(work.id)
     },

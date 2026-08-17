@@ -23,7 +23,13 @@
     "catalogueTitle": "Nothing scored yet",
     "catalogueBody": "Score a work and it appears here, ranked.",
     "trashTitle": "The trash is empty",
-    "trashBody": "Anything you delete waits here until you empty it."
+    "trashBody": "Anything you delete waits here until you empty it.",
+    "journalTitle": "Nothing has happened yet",
+    "journalBody": "Add a work, score one, plan a release - it all gets written down here.",
+    "journalClearTitle": "Nothing needs a look",
+    "journalClearBody": "Warnings show up here. There are none right now.",
+    "historyTitle": "No history yet",
+    "historyBody": "What you do to this work will be listed here."
   },
   "works": {
     "add": "Add",
@@ -65,7 +71,8 @@
     "collections": "Collections",
     "notes": "Notes",
     "trash": "Trash",
-    "soon": "Coming in v{{version}}"
+    "soon": "Coming in v{{version}}",
+    "journal": "History"
   },
   "themeName": {
     "system": "System theme",
@@ -270,5 +277,31 @@
       "note": "Note",
       "collection": "Collection"
     }
+  },
+  "journal": {
+    "title": "History",
+    "hint": "What happened here, newest first.",
+    "all": "Everything",
+    "unreadOnly": "Needs a look",
+    "markRead": "Mark all as seen",
+    "open": "History",
+    "repeated_one": "{{count}} time",
+    "repeated_other": "{{count}} times",
+    "work.created": "“{{title}}” added.",
+    "work.renamed": "“{{from}}” renamed to “{{to}}”.",
+    "work.status": "“{{title}}” moved to {{to}}.",
+    "work.deleted": "“{{title}}” deleted.",
+    "version.created": "{{role}} {{revision}} added to “{{title}}”.",
+    "version.deleted": "Version “{{label}}” deleted.",
+    "score.added": "“{{title}}” scored {{total}}.",
+    "score.deleted": "A score of “{{origin}}” was deleted.",
+    "release.created": "{{kind}} release added for “{{title}}”.",
+    "release.scheduled": "“{{title}}” claimed {{slot}}.",
+    "release.displaced": "“{{title}}” lost its slot on {{slot}}.",
+    "release.released": "“{{title}}” went out as a {{kind}}.",
+    "release.deleted": "Release “{{label}}” deleted.",
+    "note.deleted": "Note “{{label}}” deleted.",
+    "collection.deleted": "Collection “{{label}}” deleted.",
+    "trash.restored": "“{{label}}” restored."
   }
 }

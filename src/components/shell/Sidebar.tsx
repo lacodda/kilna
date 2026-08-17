@@ -5,6 +5,7 @@ import {
   Disc,
   FilePen,
   FileText,
+  History,
   Languages,
   LayoutDashboard,
   List,
@@ -96,7 +97,7 @@ export function Sidebar({ profileId, onProfileSwitched }: Props) {
         <small className="ml-auto font-mono text-[10px] text-faint">{__APP_VERSION__}</small>
       </div>
 
-      <SoonLink icon={LayoutDashboard} label={t('nav.dashboard')} version="0.28" />
+      <SoonLink icon={LayoutDashboard} label={t('nav.dashboard')} version="0.30" />
       <ScreenLink to="/works" icon={FilePen} label={t('nav.works')} />
       <ScreenLink to="/catalogue" icon={List} label={t('nav.catalogue')} />
       <ScreenLink to="/calendar" icon={Calendar} label={t('nav.calendar')} />
@@ -104,8 +105,9 @@ export function Sidebar({ profileId, onProfileSwitched }: Props) {
       <div className="px-2.5 pt-3 pb-1 text-[10.5px] font-medium uppercase tracking-[0.09em] text-faint">
         {t('nav.library')}
       </div>
-      <SoonLink icon={Disc} label={t('nav.collections')} version="0.33" />
-      <SoonLink icon={FileText} label={t('nav.notes')} version="0.34" />
+      <SoonLink icon={Disc} label={t('nav.collections')} version="0.34" />
+      <SoonLink icon={FileText} label={t('nav.notes')} version="0.35" />
+      <ScreenLink to="/journal" icon={History} label={t('nav.journal')} />
       <ScreenLink to="/trash" icon={Trash2} label={t('nav.trash')} />
 
       <div className="mt-auto flex flex-col gap-0.5">

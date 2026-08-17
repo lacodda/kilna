@@ -54,11 +54,9 @@ export function VersionPanel({ workId }: Props) {
     enabled: openId !== null,
   })
 
-  // Everything here changes which body is current, so the card and the list of
-  // versions both need rereading.
-  // A version changes the list, the work's current pointer, and the summary
-  // the works list shows.
-  const refreshed = [keys.versions(workId), keys.work(workId), keys.works]
+  // A version changes the list, the work's current pointer, the summary the
+  // works list shows, and the history kept underneath the card.
+  const refreshed = [keys.journal, keys.versions(workId), keys.work(workId), keys.works]
 
   const settle = () => {
     for (const key of refreshed) void client.invalidateQueries({ queryKey: key })

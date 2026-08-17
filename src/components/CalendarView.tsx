@@ -39,11 +39,13 @@ export function CalendarView({ onSelect }: Props) {
   const queued = useQuery({ queryKey: keys.releaseQueue, queryFn: releaseQueue })
 
   // Both sides of this screen move together: taking a slot removes something
-  // from the queue, returning one puts it back.
+  // from the queue, returning one puts it back. The journal goes with them —
+  // displacing a release writes the one warning that lights the bell.
   const settle = () => {
     void client.invalidateQueries({ queryKey: keys.calendar })
     void client.invalidateQueries({ queryKey: keys.releaseQueue })
     void client.invalidateQueries({ queryKey: keys.releases })
+    void client.invalidateQueries({ queryKey: keys.journal })
   }
 
   const claim = useMutation({
