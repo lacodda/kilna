@@ -45,7 +45,10 @@
     "title": "Title",
     "status": "Status",
     "kind": "Kind",
-    "delete": "Delete"
+    "delete": "Delete",
+    "yes": "Yes",
+    "no": "No",
+    "noDate": "Pick a date"
   },
   "versions": {
     "title": "Versions",
@@ -303,5 +306,16 @@
     "note.deleted": "Note “{{label}}” deleted.",
     "collection.deleted": "Collection “{{label}}” deleted.",
     "trash.restored": "“{{label}}” restored."
+  },
+  "card": {
+    "tab": {
+      "overview": "Overview",
+      "lyrics": "Versions",
+      "score": "Score",
+      "releases": "Releases",
+      "notes": "Notes",
+      "assistant": "Assistant",
+      "history": "History"
+    }
   }
 }

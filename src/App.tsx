@@ -25,7 +25,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 function WorksScreen() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { workId } = useParams()
+  const { workId, tab } = useParams()
 
   return (
     <div className="grid h-full gap-6 overflow-hidden p-6 lg:grid-cols-[20rem_1fr]">
@@ -38,6 +38,7 @@ function WorksScreen() {
           <WorkCard
             key={workId}
             workId={workId}
+            tab={tab}
             onDeleted={() => navigate('/works')}
             onUndone={(restored) => navigate(`/works/${restored}`)}
           />
@@ -120,7 +121,9 @@ export default function App() {
           <ErrorBoundary resetKey={screen}>
             <Routes>
               <Route path="/" element={<Navigate to="/works" replace />} />
-              <Route path="/works/:workId?" element={<WorksScreen />} />
+              {/* The open tab is part of the address, so the back button walks
+                  between tabs and a tab can be linked to directly. */}
+              <Route path="/works/:workId?/:tab?" element={<WorksScreen />} />
               <Route
                 path="/catalogue"
                 element={

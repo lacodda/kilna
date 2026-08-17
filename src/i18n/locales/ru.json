@@ -45,7 +45,10 @@
     "title": "Название",
     "status": "Статус",
     "kind": "Вид",
-    "delete": "Удалить"
+    "delete": "Удалить",
+    "yes": "Да",
+    "no": "Нет",
+    "noDate": "Выберите дату"
   },
   "versions": {
     "title": "Версии",
@@ -308,5 +311,16 @@
     "note.deleted": "Заметка «{{label}}» удалена.",
     "collection.deleted": "Коллекция «{{label}}» удалена.",
     "trash.restored": "«{{label}}» восстановлено."
+  },
+  "card": {
+    "tab": {
+      "overview": "Обзор",
+      "lyrics": "Версии",
+      "score": "Оценка",
+      "releases": "Выпуски",
+      "notes": "Заметки",
+      "assistant": "Ассистент",
+      "history": "История"
+    }
   }
 }
