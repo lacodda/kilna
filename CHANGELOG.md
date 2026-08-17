@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.16.0] - 2026-08-17
+
+### Bug Fixes
+- Keep a draft with the role it was typed under
+- Put plugin actions beside the fields they change
+
+### Documentation
+- The card, its tabs, and what stays on screen
+
+### Features
+- A work's card becomes a header and seven tabs
 ## [0.15.0] - 2026-08-17
 
 ### Bug Fixes
@@ -9,6 +20,7 @@ All notable changes to this project are documented in this file.
 
 ### Documentation
 - The history, and what it keeps after the message fades
+- Retake the screenshot on the current build
 
 ### Features
 - Record what happened in words that can be translated
