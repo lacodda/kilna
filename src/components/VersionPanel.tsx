@@ -33,7 +33,13 @@ export function VersionPanel({ workId }: Props) {
 
   const [role, setRole] = useState(roles[0]?.key ?? '')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [draft, setDraft] = useState('')
+
+  // A draft belongs to the role it was typed under. Kept as one string, text
+  // written as lyrics followed the switch to the style prompt and would have
+  // been saved as one — and switching back lost it either way.
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const draft = drafts[role] ?? ''
+  const setDraft = (body: string) => setDrafts((all) => ({ ...all, [role]: body }))
 
   const versions = useQuery({
     queryKey: keys.versions(workId),
