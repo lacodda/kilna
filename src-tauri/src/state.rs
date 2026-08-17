@@ -5,6 +5,7 @@ use rusqlite::Connection;
 
 use crate::db;
 use crate::error::Result;
+use crate::journal;
 use crate::profile;
 
 /// The open workspace, shared by every command.
@@ -21,6 +22,16 @@ impl AppState {
     pub fn open(path: &Path) -> Result<Self> {
         let conn = db::open(path)?;
         profile::seed(&conn)?;
+
+        // Old, already-read journal entries go at startup rather than on a
+        // timer: there is no scheduler in this app, and an app that is left open
+        // for a fortnight can carry a fortnight of history without complaint.
+        // Failing to sweep is not a reason to fail to start.
+        if let Ok(Some(profile)) = profile::active(&conn) {
+            if let Err(cause) = journal::sweep(&conn, &profile.id) {
+                eprintln!("journal: could not sweep old entries: {cause}");
+            }
+        }
 
         Ok(Self {
             connection: Mutex::new(conn),

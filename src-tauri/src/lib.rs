@@ -4,6 +4,7 @@ pub mod commands;
 pub mod db;
 pub mod error;
 pub mod exchange;
+pub mod journal;
 pub mod note;
 pub mod plugin;
 pub mod profile;
@@ -69,6 +70,10 @@ pub fn run() {
             commands::update_collection,
             commands::delete_collection,
             commands::set_collection_contents,
+            commands::list_journal,
+            commands::journal_for_work,
+            commands::unread_journal,
+            commands::mark_journal_read,
             commands::list_deletions,
             commands::restore_deletion,
             commands::purge_deletion,
