@@ -374,6 +374,34 @@ pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Deletion>> {
         .collect()
 }
 
+/// The work a trashed child belonged to, read out of its snapshot.
+///
+/// Once the row is deleted the snapshot is the only place that still knows, and
+/// the journal needs it to file the entry under the right work. `None` when the
+/// entity has no work — a standalone note — or when the entry is not there.
+pub fn snapshot_work_id(conn: &Connection, entity: Entity, entity_id: &str) -> Option<String> {
+    let snapshot: String = conn
+        .query_row(
+            "SELECT snapshot FROM deletion
+              WHERE entity = ?1 AND entity_id = ?2
+              ORDER BY deleted_at DESC LIMIT 1",
+            params![entity.as_str(), entity_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .ok()
+        .flatten()?;
+
+    let snapshot: Map<String, Value> = serde_json::from_str(&snapshot).ok()?;
+    match snapshot.get(entity.table())?.as_array()?.first()? {
+        Value::Object(row) => match row.get("work_id")? {
+            Value::String(work_id) => Some(work_id.clone()),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
 /// The parent an entry needs, if that parent is not there.
 ///
 /// Returns the sentence to refuse with, or `None` when the restore can proceed.
@@ -437,9 +465,13 @@ fn describe(
                 describe_row,
             )
             .optional()?,
+        // Named by what it said, not by when it was said: `scored_at` is an RFC
+        // 3339 instant, and a row reading "2026-08-17T20:06:45.0175882Z" tells
+        // nobody which score they are about to put back.
         Entity::Score => conn
             .query_row(
-                "SELECT s.scored_at, w.title, w.profile_id
+                "SELECT coalesce(s.tier || ' · ', '') || cast(round(s.total, 1) AS TEXT),
+                        w.title, w.profile_id
                  FROM work_score s JOIN work w ON w.id = s.work_id WHERE s.id = ?1",
                 params![id],
                 describe_row,
@@ -743,6 +775,37 @@ mod tests {
         assert_eq!(listed[0].origin.as_deref(), Some("Winter road"));
         assert_eq!(listed[0].entity, Entity::Version);
         assert!(listed[0].restorable);
+    }
+
+    #[test]
+    fn a_trashed_score_is_named_by_what_it_said_not_when() {
+        let (mut conn, profile_id) = workspace();
+        let work = work::create(&conn, &profile_id, song("Winter road")).unwrap();
+        let scored = crate::score::create(
+            &conn,
+            &work.id,
+            crate::score::NewScore {
+                axes: serde_json::from_value(serde_json::json!({ "hook": 8, "text": 8 }))
+                    .expect("axes are an object"),
+                version_id: None,
+                note: None,
+            },
+        )
+        .unwrap();
+
+        discard(&mut conn, Entity::Score, &scored.id).unwrap();
+        let label = list(&conn, &profile_id).unwrap()[0].label.clone();
+
+        // The old label was `scored_at`, which reads as
+        // `2026-08-17T20:06:45.0175882Z` on the trash screen and in the journal.
+        assert!(
+            !label.contains('T') || !label.contains('Z'),
+            "a score must not be named by its timestamp, got `{label}`"
+        );
+        assert!(
+            label.contains(&format!("{}", (scored.total * 10.0).round() / 10.0)),
+            "a score should be named by its total, got `{label}`"
+        );
     }
 
     #[test]
