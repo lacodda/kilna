@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.17.0] - 2026-08-18
+
+### Bug Fixes
+- Address the versions tab as /versions, not /lyrics
+- Hold the gate to keys the code actually asks for
+
+### Documentation
+- Writing a version, and what the editor keeps
+
+### Features
+- An editor worth writing in
+
+### Testing
+- A test runner, and a diff that has to be right
 ## [0.16.0] - 2026-08-17
 
 ### Bug Fixes
