@@ -183,7 +183,13 @@
     "total": "Total",
     "save": "Record score",
     "delete": "Delete this score",
-    "partial": "{{filled}} of {{count}} axes filled — the unfilled ones are skipped, not counted as zero."
+    "partial": "{{filled}} of {{count}} axes filled — the unfilled ones are skipped, not counted as zero.",
+    "unjudged": "not judged",
+    "ofVersion": "Judging",
+    "currentVersion": "The current version",
+    "note": "Why this score",
+    "notePlaceholder": "What decided it (optional)",
+    "trend": "Scores from {{from}} to {{to}}"
   },
   "catalogue": {
     "work": "Work",
