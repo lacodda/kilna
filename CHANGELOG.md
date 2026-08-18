@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.18.0] - 2026-08-18
+
+### Documentation
+- Judging a work, and what the score remembers
+
+### Features
+- A scale you judge with, not a box you type in
+
+### Testing
+- Hold the rules the docs promise
 ## [0.17.0] - 2026-08-18
 
 ### Bug Fixes
