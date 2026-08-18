@@ -61,7 +61,24 @@
     "delete": "Delete this version",
     "none": "No versions in this role yet.",
     "draftPlaceholder": "Paste or write a new draft — it is kept whole, not as a diff",
-    "save": "Save as new version"
+    "save": "Save as new version",
+    "text": "Text",
+    "preview": "Preview",
+    "write": "Write",
+    "fullScreen": "Full screen",
+    "exitFullScreen": "Leave full screen",
+    "fullScreenHint": "Esc leaves full screen.",
+    "previewEmpty": "Nothing to preview yet.",
+    "labelPlaceholder": "Name this version (optional)",
+    "makeCurrentOnSave": "Make this the current version",
+    "kept": "Draft kept",
+    "compare": "Compare with the open version",
+    "stopComparing": "Stop comparing",
+    "diffSame": "These two are identical.",
+    "diffAdded_one": "{{count}} line in",
+    "diffAdded_other": "{{count}} lines in",
+    "diffRemoved_one": "{{count}} line out",
+    "diffRemoved_other": "{{count}} lines out"
   },
   "nav": {
     "works": "Works",
@@ -310,7 +327,7 @@
   "card": {
     "tab": {
       "overview": "Overview",
-      "lyrics": "Versions",
+      "versions": "Versions",
       "score": "Score",
       "releases": "Releases",
       "notes": "Notes",

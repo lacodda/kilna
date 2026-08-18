@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import type { InputHTMLAttributes, Ref, TextareaHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
 const FIELD =
@@ -6,12 +6,28 @@ const FIELD =
   'placeholder:text-faint transition-colors hover:border-line-2 ' +
   'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent'
 
-export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn(FIELD, 'h-9', className)} {...props} />
+// `ref` is a plain prop in React 19 — no forwardRef needed, it just has to be
+// declared so callers can reach the element (focus, selection, scroll).
+export function Input({
+  className,
+  ref,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> }) {
+  return <input ref={ref} className={cn(FIELD, 'h-9', className)} {...props} />
 }
 
-export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={cn(FIELD, 'resize-y font-mono leading-relaxed', className)} {...props} />
+export function Textarea({
+  className,
+  ref,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: Ref<HTMLTextAreaElement> }) {
+  return (
+    <textarea
+      ref={ref}
+      className={cn(FIELD, 'resize-y font-mono leading-relaxed', className)}
+      {...props}
+    />
+  )
 }
 
 interface FieldProps {

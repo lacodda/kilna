@@ -10,6 +10,7 @@ import {
   type DeletedEntity,
   type Deletion,
 } from '@/lib/api'
+import { clearDraftsFor } from '@/lib/drafts'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/Button'
@@ -126,14 +127,23 @@ export function TrashView() {
   // Purging and emptying are the only irreversible actions in the app, so they
   // are the only ones that still ask — there is no trash behind the trash.
   const purge = useMutation({
-    mutationFn: purgeDeletion,
-    onSuccess: () => void client.invalidateQueries({ queryKey: keys.deletions }),
+    mutationFn: (entry: Deletion) => purgeDeletion(entry.id),
+    onSuccess: (_result, entry) => {
+      // Unsaved drafts are keyed by the work they belong to. Once the work is
+      // gone for good nothing can ever reach them again, so they go with it.
+      if (entry.entity === 'work') clearDraftsFor(entry.entity_id)
+      void client.invalidateQueries({ queryKey: keys.deletions })
+    },
     onError: (cause) => say.failedTo(t('trash.purgeFailed'), cause),
   })
 
   const empty = useMutation({
     mutationFn: emptyTrash,
     onSuccess: (count) => {
+      // Same reasoning as purge, for everything at once.
+      for (const entry of entries.data ?? []) {
+        if (entry.entity === 'work') clearDraftsFor(entry.entity_id)
+      }
       setConfirmingEmpty(false)
       void client.invalidateQueries({ queryKey: keys.deletions })
       say.ok(t('trash.emptied', { count }))
@@ -189,7 +199,7 @@ export function TrashView() {
               entry={entry}
               busy={busy}
               onRestore={() => restore.mutate(entry.id)}
-              onPurge={() => purge.mutate(entry.id)}
+              onPurge={() => purge.mutate(entry)}
             />
           ))}
         </tbody>

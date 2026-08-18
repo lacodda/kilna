@@ -62,7 +62,28 @@
     "delete": "Удалить эту версию",
     "none": "В этой роли версий пока нет.",
     "draftPlaceholder": "Вставьте или напишите новый черновик — он хранится целиком, а не как правка",
-    "save": "Сохранить как новую версию"
+    "save": "Сохранить как новую версию",
+    "text": "Текст",
+    "preview": "Превью",
+    "write": "Письмо",
+    "fullScreen": "Во весь экран",
+    "exitFullScreen": "Выйти из полного экрана",
+    "fullScreenHint": "Esc выходит из полного экрана.",
+    "previewEmpty": "Пока нечего показывать.",
+    "labelPlaceholder": "Название версии (необязательно)",
+    "makeCurrentOnSave": "Сделать текущей версией",
+    "kept": "Черновик сохранён",
+    "compare": "Сравнить с открытой версией",
+    "stopComparing": "Прекратить сравнение",
+    "diffSame": "Эти две совпадают.",
+    "diffAdded_one": "{{count}} строка добавлена",
+    "diffAdded_few": "{{count}} строки добавлено",
+    "diffAdded_many": "{{count}} строк добавлено",
+    "diffAdded_other": "{{count}} строки добавлено",
+    "diffRemoved_one": "{{count}} строка убрана",
+    "diffRemoved_few": "{{count}} строки убрано",
+    "diffRemoved_many": "{{count}} строк убрано",
+    "diffRemoved_other": "{{count}} строки убрано"
   },
   "nav": {
     "works": "Произведения",
@@ -315,7 +336,7 @@
   "card": {
     "tab": {
       "overview": "Обзор",
-      "lyrics": "Версии",
+      "versions": "Версии",
       "score": "Оценка",
       "releases": "Выпуски",
       "notes": "Заметки",
