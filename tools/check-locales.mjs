@@ -5,7 +5,7 @@
 // is the kind of thing nobody reports and everybody notices.
 //
 //   node scripts/check-locales.mjs
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -99,6 +99,43 @@ for (const locale of locales.filter((name) => name !== SOURCE)) {
       if (!expected.has(name)) problems.push(`${locale}: invents {{${name}}}  ${key}`)
     }
   }
+}
+
+// Every key the code asks for has to exist in the source locale.
+//
+// The comparison above holds the locales to each other, which cannot see a key
+// that is missing from all of them — that reads as consistent. It reaches a
+// person as a raw `versions.diffSummary` on screen, and only if someone happens
+// to look at that screen. So the code is read too.
+const SOURCE_DIR = fileURLToPath(new URL('../src/', import.meta.url))
+
+/** Every `.ts`/`.tsx` file under src/. */
+function sources(dir) {
+  const found = []
+  for (const entry of readdirSync(dir)) {
+    const path = join(dir, entry)
+    if (statSync(path).isDirectory()) found.push(...sources(path))
+    else if (/\.tsx?$/.test(entry)) found.push(path)
+  }
+  return found
+}
+
+const used = new Map()
+for (const file of sources(SOURCE_DIR)) {
+  const text = readFileSync(file, 'utf8')
+  // Only literal keys: `t(\`card.tab.${tab}\`)` is built at runtime from a
+  // union the type checker already constrains, and guessing its arms here
+  // would be a second, worse type checker.
+  for (const match of text.matchAll(/\bt\(\s*'([A-Za-z][\w.]*)'/g)) {
+    if (!used.has(match[1])) used.set(match[1], basename(file))
+  }
+}
+
+for (const [key, file] of used) {
+  // A plural message is stored under its forms, never under the bare key.
+  const known =
+    source.has(key) || source.has(`${key}_other`) || source.has(`${key}_one`)
+  if (!known) problems.push(`${SOURCE}: used in ${file} but missing  ${key}`)
 }
 
 if (problems.length > 0) {
