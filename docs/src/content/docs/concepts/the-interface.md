@@ -90,7 +90,7 @@ saves.
 | Tab | What is there |
 | --- | --- |
 | Overview | The title, status, kind, and the fields your profile defines |
-| Versions | Every draft, by role, and the editor |
+| Versions | Every draft, by role, the editor, and comparison |
 | Score | The axes, and what this work has scored before |
 | Releases | What ships, where and when — with a count on the tab |
 | Notes | Notes attached to this work |
@@ -100,9 +100,10 @@ saves.
 Only the open tab is loaded. Opening a card no longer fetches every version,
 score, release, note and chat a work has ever had.
 
-**Drafts belong to their role.** Text typed under Lyrics stays under Lyrics:
-switching to another role gives you that role's own draft, and switching back
-returns what you were writing.
+**Drafts belong to their role, and survive a closed window.** Text typed under
+one role stays under it, switching back returns what you were writing, and
+closing kilna does not lose it. See
+[Writing a version](/kilna/guides/writing-a-version/).
 
 ## When something happens
 
