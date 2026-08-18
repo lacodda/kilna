@@ -9,20 +9,26 @@ steps apply on any profile — only the axis names change.
 ## Score the current draft
 
 Say you have a song called "Harbour lights" with a lyrics draft as its current
-version. Open it, go to the **Score** tab, and fill in values for whichever
-axes you can judge honestly right now:
+version. Open it and go to the **Score** tab. Each axis is a row: what it is
+called, what it weighs, the question it asks, and a scale you click.
 
 ```jsonc
 { "hook": 6, "lyrics": 7, "emotion": 7 }
 ```
+
+Click a mark to set it; click the same mark again to take the axis back to
+unjudged. The scale is also a keyboard control: Tab moves between axes, the
+arrow keys move a mark at a time, Home and End jump to either end, and
+Backspace clears the axis. Judging six axes never needs the mouse.
 
 You don't need every axis filled. Leaving `production`, `originality` and
 `visual` blank doesn't count against the work — they're excluded from the
 total entirely rather than treated as zero. See
 [Scoring](/kilna/concepts/scoring/#unfilled-axes-are-skipped-not-zeroed).
 
-Submit it, and kilna computes a total from the axes you gave and their
-weights, then reports which tier that total falls into — `hold`, `audio`,
+The total updates as you go, with the tier it currently reaches. Record it, and
+kilna stores the total computed from the axes you gave and their weights, and
+reports which tier that total falls into — `hold`, `audio`,
 `picture` or `clip` on the Music profile's default thresholds.
 
 ## The score is pinned to this draft
@@ -31,6 +37,15 @@ The score you just took is tied to the version of the lyrics that existed at
 the moment you scored it — not to the work in general. If you look at the
 work's score history, this snapshot stays exactly as it was even after you
 keep editing.
+
+**Judging** names which version is being scored. Left alone it means the
+current one, which is what you usually want. Pick another and the score is
+pinned to that draft instead — for going back and judging a version you had
+skipped, without disturbing what the work currently points at.
+
+**Why this score** is a line for yourself. A total tells you *what* you
+decided; a note is the only place that keeps *why*, and three weeks later that
+is the part you will want. It shows up beside the score in the history.
 
 ## Revise, then score again
 
@@ -45,6 +60,11 @@ Both scores now exist in the work's history — the first pinned to the
 original draft, the second to the revision. The total moving from, say, 62 to
 78 is the visible record that the rewrite helped. Neither score is
 overwritten; a work's score history only grows.
+
+From the second score onwards a small line appears beside the total, drawn
+against the full scale rather than against its own range: a work that moved
+61 → 63 looks like the small change it was. Green climbs, red falls. The exact
+numbers, with what each score changed by, are in the list underneath.
 
 ## Reading staleness
 
