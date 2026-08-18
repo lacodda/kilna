@@ -125,7 +125,7 @@ function TabBody({
           <PluginBar target="work" id={workId} />
         </div>
       )
-    case 'lyrics':
+    case 'versions':
       return <VersionPanel workId={workId} />
     case 'score':
       return <ScorePanel workId={workId} />
