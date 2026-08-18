@@ -9,9 +9,10 @@
     "dev": "vite",
     "build": "pnpm locales && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "eslint . && tsc --noEmit && pnpm locales",
+    "lint": "eslint . && tsc --noEmit && pnpm locales && pnpm test",
     "locales": "node tools/check-locales.mjs",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "vitest run"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
@@ -23,8 +24,10 @@
     "@tauri-apps/plugin-dialog": "^2.7.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dompurify": "^3.4.13",
     "i18next": "^26.3.6",
     "lucide-react": "^1.31.0",
+    "marked": "^18.0.10",
     "react": "^19.2.8",
     "react-day-picker": "^10.0.1",
     "react-dom": "^19.2.8",
@@ -48,7 +51,8 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.67.0",
-    "vite": "^8.2.1"
+    "vite": "^8.2.1",
+    "vitest": "^4.1.11"
   },
   "packageManager": "pnpm@10.34.5+sha512.a4ee05f2f73658255bd6a89859c065a45c28a57daefae2c893a168ee2b73168c37b91e83e57ea67654ad03f03031746430e8bce38e362e042605fb8abc80192e"
 }
