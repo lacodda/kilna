@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Bell, Search } from 'lucide-react'
-import { unreadJournal } from '@/lib/api'
+import { getWork, unreadJournal } from '@/lib/api'
 import { keys } from '@/lib/query'
+import { openWorkId } from '@/lib/route'
 import { Button } from '@/components/ui/Button'
 import { CommandPalette } from '@/components/CommandPalette'
 import { cn } from '@/lib/utils'
@@ -78,9 +79,49 @@ function Unread() {
   )
 }
 
-export function Topbar({ works }: Props) {
+/**
+ * Where you are, as a trail rather than a word.
+ *
+ * On an open card the screen's own name is not enough: "Works" says nothing
+ * about which work, and the way back to the list is otherwise the browser's
+ * back button alone. The first part is a link; the last is where you stand.
+ */
+function Breadcrumbs() {
   const { t } = useTranslation()
   const location = useLocation()
+  // Read from the path rather than `useParams`: the topbar is a sibling of
+  // `<Routes>`, not a descendant, so it matches no route and would always see
+  // an empty params object.
+  const workId = openWorkId(location.pathname)
+
+  const work = useQuery({
+    queryKey: keys.work(workId ?? ''),
+    queryFn: () => getWork(workId ?? ''),
+    enabled: workId !== undefined,
+  })
+
+  const screen = t(screenKey(location.pathname))
+  if (workId === undefined) {
+    return <span className="text-[13px] font-semibold">{screen}</span>
+  }
+
+  return (
+    <nav className="flex min-w-0 items-center gap-1.5 text-[13px]">
+      <Link to="/works" className="text-dim transition-colors hover:text-text">
+        {screen}
+      </Link>
+      <span aria-hidden className="text-faint">
+        ›
+      </span>
+      {/* Nothing while the title loads, rather than a placeholder that is
+          replaced a moment later — the trail would jump under the cursor. */}
+      <span className="truncate font-semibold">{work.data?.title ?? ''}</span>
+    </nav>
+  )
+}
+
+export function Topbar({ works }: Props) {
+  const { t } = useTranslation()
   const [searching, setSearching] = useState(false)
 
   // Ctrl+K anywhere, including from inside a text field: the palette is a way
@@ -98,7 +139,7 @@ export function Topbar({ works }: Props) {
 
   return (
     <header className="flex items-center gap-2.5 border-b border-line px-4">
-      <span className="text-[13px] font-semibold">{t(screenKey(location.pathname))}</span>
+      <Breadcrumbs />
 
       <button
         type="button"

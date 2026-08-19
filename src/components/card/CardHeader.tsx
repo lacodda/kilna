@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
+import { ArrowLeft } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { latestScore, listCollections, type Work } from '@/lib/api'
 import { coverFor } from '@/lib/cover'
@@ -22,6 +24,7 @@ interface Props {
  * before a single word is read.
  */
 export function CardHeader({ work, releases }: Props) {
+  const { t } = useTranslation()
   const profile = useProfile()
 
   // The tier and total belong here rather than only on the Score tab: they are
@@ -46,33 +49,55 @@ export function CardHeader({ work, releases }: Props) {
   // As siblings of the tab body, both are bounded by the whole scrolling column.
   return (
     <>
-      {/* The cover and the profile's own fields, read-only here — they are
-          edited on the Overview tab. A header that can be typed into is a header
-          that shifts under the cursor while it saves. Both scroll away: they are
-          reference, not navigation. */}
+      {/* The cover. It scrolls away: it is what tells one card from another at a
+          glance, not something to navigate by. The way back sits on it because
+          that is the one place on the card that carries nothing else — and on a
+          narrow window the list beside it is gone, leaving the browser's back
+          button as the only way out. */}
       <div className="rounded-t-[18px] border border-b-0 border-line">
-        <div className="h-[118px] rounded-t-[17px]" style={{ background: coverFor(work.id) }} />
-        <MetaStrip work={work} />
+        <div
+          className="relative h-[118px] rounded-t-[17px]"
+          style={{ background: coverFor(work.id) }}
+        >
+          <Link
+            to="/works"
+            className="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-[10px] bg-black/35 px-2.5 py-1 text-[13px] text-white/90 backdrop-blur-sm transition-colors hover:bg-black/50 hover:text-white"
+          >
+            <ArrowLeft aria-hidden className="size-3.5" />
+            {t('nav.works')}
+          </Link>
+        </div>
       </div>
 
       {/* What stays: whose card this is, where it stands, and the way between
           tabs. A long version otherwise leaves you reading with no idea whose
           words they are. `top-0` is relative to the scrolling screen area. */}
       <header className="sticky top-0 z-20 rounded-b-[18px] border border-t-0 border-line bg-raise">
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 px-[18px] pt-3 pb-2.5">
-          <h2 className="text-[21px] font-[650] tracking-[-0.01em]">{work.title}</h2>
+        {/* Name first, then what it is, then the craft's own numbers — the
+            order of the mockup, and the order someone reads in: the title says
+            whose card this is, the badges where it stands, and BPM/Key are
+            reference you consult rather than identify by. They sat above the
+            title until v0.20, which read as though the numbers were the
+            heading. Read-only here; they are edited on the Overview tab, and a
+            header that can be typed into shifts under the cursor as it saves. */}
+        <div className="px-[18px] pt-3 pb-2.5">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+            <h2 className="text-[21px] font-[650] tracking-[-0.01em]">{work.title}</h2>
 
-          <Badge>{labelOf(profile.config.work_kinds, work.kind)}</Badge>
-          <Badge variant="accent">{labelOf(profile.config.statuses, work.status)}</Badge>
+            <Badge>{labelOf(profile.config.work_kinds, work.kind)}</Badge>
+            <Badge variant="accent">{labelOf(profile.config.statuses, work.status)}</Badge>
 
-          {latest !== null && (
-            <Badge variant="soft">
-              {latest.tier !== null && `${labelOf(profile.config.tiers, latest.tier)} · `}
-              <span className="font-mono tabular-nums">{Math.round(latest.total * 10) / 10}</span>
-            </Badge>
-          )}
+            {latest !== null && (
+              <Badge variant="soft">
+                {latest.tier !== null && `${labelOf(profile.config.tiers, latest.tier)} · `}
+                <span className="font-mono tabular-nums">{Math.round(latest.total * 10) / 10}</span>
+              </Badge>
+            )}
 
-          {collection !== undefined && <Badge>{collection.title}</Badge>}
+            {collection !== undefined && <Badge>{collection.title}</Badge>}
+          </div>
+
+          <MetaStrip work={work} />
         </div>
 
         <TabBar workId={work.id} releases={releases} />
@@ -91,7 +116,7 @@ function MetaStrip({ work }: { work: Work }) {
   if (filled.length === 0) return null
 
   return (
-    <div className="flex flex-wrap gap-[22px] bg-raise px-[18px] pt-3 pb-3">
+    <div className="mt-2.5 flex flex-wrap gap-[22px]">
       {filled.map((field) => {
         const value = work.meta[field.key]
         return (

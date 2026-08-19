@@ -80,14 +80,20 @@ Opening a work gives you a card with a cover, a bar and seven tabs.
 **The cover** is a gradient derived from the work's id. It is not decoration
 you chose; it is there so one card is distinguishable from another before you
 have read a word, and it stays the same for as long as the work exists. Real
-covers replace it later.
+covers replace it later. The way back to the list sits on it — the one part of
+the card carrying nothing else, and on a narrow window the list beside it is
+gone entirely.
 
-**The bar sticks.** The cover and the profile's fields scroll away, but the
-work's name, its status, its tier and score, and the tabs stay at the top —
+**The bar sticks.** The cover scrolls away, but the work's name, its status,
+its tier and score, the profile's own fields, and the tabs stay at the top —
 a long version otherwise leaves you reading with no idea whose words they are.
-The values in that bar are read-only. You edit them on **Overview**, because a
-header you can type into is a header that shifts under the cursor while it
-saves.
+The name comes first and the craft's numbers under it: BPM and key are
+reference you consult, not what you identify the card by. Everything in that
+bar is read-only. You edit it on **Overview**, because a header you can type
+into is a header that shifts under the cursor while it saves.
+
+**The trail at the top** names where you are: *Works › Harbour lights*, with
+the first part a link back.
 
 **The tabs:**
 
