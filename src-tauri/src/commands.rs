@@ -12,6 +12,7 @@ use crate::plugin::{self, manifest::Plugin, manifest::Target};
 use crate::profile::{self, Profile, Workspace};
 use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
 use crate::score::{self, NewScore, Score, ScoredWork};
+use crate::search::{self, Hit};
 use crate::state::AppState;
 use crate::trash::{self, Deletion};
 use crate::work::version::{self, NewVersion, Version, VersionSummary};
@@ -524,6 +525,17 @@ pub fn update_collection(
 #[tauri::command]
 pub fn delete_collection(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Collection, &id)
+}
+
+/// Anything matching a query: works, version bodies, notes, chat messages.
+///
+/// One call rather than four, because the palette shows them together and
+/// four round trips would arrive out of order.
+#[tauri::command]
+pub fn search(state: State<'_, AppState>, query: String) -> Result<Vec<Hit>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    search::find(&conn, &profile_id, &query)
 }
 
 /// Everything in the active profile's trash, newest first.

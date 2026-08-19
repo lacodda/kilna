@@ -10,6 +10,7 @@ pub mod plugin;
 pub mod profile;
 pub mod release;
 pub mod score;
+pub mod search;
 pub mod state;
 pub mod time;
 pub mod trash;
@@ -70,6 +71,7 @@ pub fn run() {
             commands::update_collection,
             commands::delete_collection,
             commands::set_collection_contents,
+            commands::search,
             commands::list_journal,
             commands::journal_for_work,
             commands::unread_journal,

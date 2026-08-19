@@ -342,6 +342,22 @@ export interface JournalEntry {
   read_at: string | null
 }
 
+/** What a search hit points at. Mirrors the backend's `search::Kind`. */
+export type HitKind = 'work' | 'version' | 'note' | 'message'
+
+export interface Hit {
+  kind: HitKind
+  work_id: string
+  work_title: string
+  /** The hit's own line: a title, or the text it was found in. */
+  title: string
+  /** Where it came from — `lyrics · v2`, `note`, `assistant`. */
+  detail: string
+  rank: number
+}
+
+export const search = (query: string) => invoke<Hit[]>('search', { query })
+
 export const listJournal = () => invoke<JournalEntry[]>('list_journal')
 export const journalForWork = (workId: string) =>
   invoke<JournalEntry[]>('journal_for_work', { workId })
