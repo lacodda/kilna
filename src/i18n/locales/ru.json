@@ -44,6 +44,10 @@
   "work": {
     "title": "Название",
     "status": "Статус",
+    "statusDerived": "Следует за тем, что произошло.",
+    "statusPinned": "Поставлен рукой — автоматика его не трогает.",
+    "unpinStatus": "Следовать фактам",
+    "unpinStatusHint": "Вернуть статус автоматике и пересчитать сразу.",
     "kind": "Вид",
     "delete": "Удалить",
     "yes": "Да",
@@ -140,6 +144,15 @@
     "iconsNote": "Иконки берутся из lucide — никогда из текстовых глифов."
   },
   "data": {
+    "statusTitle": "Статусы",
+    "statusHint": "Статус следует за тем, что произошло — оценка, слот, выпуск. Здесь видно, где слова отстали от фактов; ничего не меняется. То, что вы поставили рукой, сюда не попадает.",
+    "statusCheck": "Проверить",
+    "statusApply": "Привести в соответствие: {{count}}",
+    "statusInStep": "Все статусы совпадают с фактами.",
+    "statusResynced_one": "Обновлён {{count}} статус.",
+    "statusResynced_few": "Обновлено {{count}} статуса.",
+    "statusResynced_many": "Обновлено {{count}} статусов.",
+    "statusResynced_other": "Обновлено {{count}} статуса.",
     "export": "Экспорт",
     "exportHint": "Каждое произведение в markdown — заголовок, тела целиком, оценки, выпуски и заметки. Читается и без kilna.",
     "exportAction": "Выгрузить в папку…",
@@ -260,6 +273,8 @@
     "retry": "Попробовать снова"
   },
   "toast": {
+    "statusDriftFailed": "Не удалось проверить статусы",
+    "statusResyncFailed": "Не удалось обновить статусы",
     "undo": "Отменить",
     "workCreated": "Произведение добавлено.",
     "workDeleted": "«{{title}}» удалено.",
@@ -325,6 +340,11 @@
     "work.created": "«{{title}}» добавлено.",
     "work.renamed": "«{{from}}» переименовано в «{{to}}».",
     "work.status": "«{{title}}» переведено в статус {{to}}.",
+    "work.restated": "«{{title}}» теперь {{to}} — было {{from}}.",
+    "status.resynced_one": "{{count}} произведение приведено в соответствие с фактами.",
+    "status.resynced_few": "{{count}} произведения приведены в соответствие с фактами.",
+    "status.resynced_many": "{{count}} произведений приведено в соответствие с фактами.",
+    "status.resynced_other": "{{count}} произведения приведено в соответствие с фактами.",
     "work.deleted": "«{{title}}» удалено.",
     "version.created": "{{role}} {{revision}} добавлена в «{{title}}».",
     "version.deleted": "Версия «{{label}}» удалена.",

@@ -22,6 +22,14 @@ export interface Kind {
   label: string
 }
 
+// What a status means to the automation, in descending finality. `manual` is
+// never derived: it is a decision someone made, with no fact behind it.
+export type Derive = 'manual' | 'draft' | 'scored' | 'scheduled' | 'released'
+
+export interface Status extends Kind {
+  derive: Derive
+}
+
 export interface MetaField {
   key: string
   label: string
@@ -40,7 +48,7 @@ export interface ProfileConfig {
   release_kinds: Kind[]
   collection_kinds: Kind[]
   version_roles: Kind[]
-  statuses: Kind[]
+  statuses: Status[]
   axes: Axis[]
   tiers: Tier[]
   work_meta_fields: MetaField[]
@@ -73,6 +81,9 @@ export interface Work {
   kind: string
   title: string
   status: string
+  // Set when a person chose the status by hand; while it holds a value the
+  // automation leaves this work alone.
+  status_pinned_at: string | null
   meta: Meta
   current_version_id: string | null
   position: number
@@ -265,6 +276,18 @@ export const getWork = (id: string) => invoke<Work | null>('get_work', { id })
 export const createWork = (work: NewWork) => invoke<Work>('create_work', { work })
 export const updateWork = (id: string, patch: WorkPatch) => invoke<Work>('update_work', { id, patch })
 export const deleteWork = (id: string) => invoke<string>('delete_work', { id })
+
+// A status the automation would change, or did.
+export interface StatusChange {
+  work_id: string
+  title: string
+  from: string
+  to: string
+}
+
+export const statusDrift = () => invoke<StatusChange[]>('status_drift')
+export const resyncStatuses = () => invoke<StatusChange[]>('resync_statuses')
+export const unpinStatus = (id: string) => invoke<Work>('unpin_status', { id })
 
 export const listVersions = (workId: string) => invoke<VersionSummary[]>('list_versions', { workId })
 export const getVersion = (id: string) => invoke<Version | null>('get_version', { id })

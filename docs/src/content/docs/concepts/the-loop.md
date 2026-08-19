@@ -20,6 +20,11 @@ It has a title, a kind (drawn from the active profile), a status, and whatever
 craft-specific fields the profile defines (BPM for a song, point-of-view for a
 chapter).
 
+Its status follows the rest of this loop rather than being kept up by hand:
+scoring makes a work scored, a calendar slot makes it scheduled, going out
+makes it released. Setting one yourself pins it — see
+[Statuses](/kilna/guides/statuses/).
+
 ## Versions
 
 A work accumulates **versions**: whole bodies of text, not diffs. Each version

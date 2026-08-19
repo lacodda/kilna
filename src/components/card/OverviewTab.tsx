@@ -1,11 +1,19 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { updateWork, type Meta, type MetaField, type Work, type WorkPatch } from '@/lib/api'
+import {
+  unpinStatus,
+  updateWork,
+  type Meta,
+  type MetaField,
+  type Work,
+  type WorkPatch,
+} from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
 import { DatePicker } from '@/components/ui/DatePicker'
+import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { Panel } from '@/components/ui/Panel'
 import { SaveState, useSaveStatus } from '@/components/ui/SaveState'
@@ -73,6 +81,22 @@ export function OverviewTab({ work }: Props) {
 
   const saveStatus = useSaveStatus(patch.isPending, patch.isError)
 
+  // Whose status this is. Picking one from the list pins it — the automation
+  // then steps over this work entirely — and the only way back is to say so.
+  const pinned = work.status_pinned_at != null
+  const statusHint = pinned ? t('work.statusPinned') : t('work.statusDerived')
+
+  const unpin = useMutation({
+    mutationFn: () => unpinStatus(work.id),
+    onSuccess: (updated) => {
+      client.setQueryData(keys.work(work.id), updated)
+      void client.invalidateQueries({ queryKey: keys.works })
+      void client.invalidateQueries({ queryKey: keys.catalogue })
+      void client.invalidateQueries({ queryKey: keys.journal })
+    },
+    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
+  })
+
   const setMeta = (key: string, value: Meta[string]) => {
     const meta: Meta = { ...work.meta }
     if (value === '' || value === undefined) delete meta[key]
@@ -94,13 +118,25 @@ export function OverviewTab({ work }: Props) {
           />
         </Field>
 
-        <Field label={t('work.status')}>
-          <Select
-            className="w-44"
-            value={work.status}
-            onChange={(status) => patch.mutate({ status })}
-            options={profile.config.statuses.map((s) => ({ value: s.key, label: s.label }))}
-          />
+        <Field label={t('work.status')} hint={statusHint}>
+          <div className="flex items-center gap-2">
+            <Select
+              className="w-44"
+              value={work.status}
+              onChange={(status) => patch.mutate({ status })}
+              options={profile.config.statuses.map((s) => ({ value: s.key, label: s.label }))}
+            />
+            {pinned && (
+              <Button
+                size="sm"
+                onClick={() => unpin.mutate()}
+                disabled={unpin.isPending}
+                title={t('work.unpinStatusHint')}
+              >
+                {t('work.unpinStatus')}
+              </Button>
+            )}
+          </div>
         </Field>
 
         <Field label={t('work.kind')}>

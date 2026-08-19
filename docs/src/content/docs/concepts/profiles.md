@@ -47,7 +47,8 @@ A profile's `config` object is a single JSON document with these sections
   work, a release, and a collection can be.
 - `version_roles` — the independent bodies a work carries (lyrics/style,
   text/outline, script/notes).
-- `statuses` — what a work moves through, in order.
+- `statuses` — what a work moves through, in order, each naming what it means
+  to the automation that keeps it up to date.
 - `axes` — what a work is judged on, each with a weight and a scale.
 - `tiers` — score thresholds a total lands in.
 - `work_meta_fields` — craft-specific fields (BPM, point-of-view, guest name)

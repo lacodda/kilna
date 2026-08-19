@@ -12,6 +12,7 @@ import {
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/Button'
 import { ProfileEditor } from '@/components/ProfileEditor'
+import { StatusDrift } from '@/components/StatusDrift'
 
 // Getting data out and in. The export is the "you are not locked in" promise
 // made checkable; the backup is the whole workspace in one file.
@@ -83,6 +84,10 @@ export function DataView() {
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <ProfileEditor />
+
+      <hr className="border-line" />
+
+      <StatusDrift />
 
       <hr className="border-line" />
 

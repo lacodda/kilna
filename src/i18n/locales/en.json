@@ -44,6 +44,10 @@
   "work": {
     "title": "Title",
     "status": "Status",
+    "statusDerived": "Follows what has happened.",
+    "statusPinned": "Set by hand — the automation leaves it alone.",
+    "unpinStatus": "Follow the facts",
+    "unpinStatusHint": "Hand the status back to the automation and work it out now.",
     "kind": "Kind",
     "delete": "Delete",
     "yes": "Yes",
@@ -135,6 +139,13 @@
     "iconsNote": "Icons come from lucide — never from text glyphs."
   },
   "data": {
+    "statusTitle": "Statuses",
+    "statusHint": "Statuses follow what has happened — a score, a slot, a release. This shows where the words have fallen behind the facts, without changing anything. Works whose status you set by hand are left out.",
+    "statusCheck": "Check",
+    "statusApply": "Restate {{count}}",
+    "statusInStep": "Every status matches the facts.",
+    "statusResynced_one": "{{count}} work restated.",
+    "statusResynced_other": "{{count}} works restated.",
     "export": "Export",
     "exportHint": "Every work as markdown — front matter, full bodies, scores, releases and notes. Readable without kilna.",
     "exportAction": "Export to a folder…",
@@ -255,6 +266,8 @@
     "retry": "Try again"
   },
   "toast": {
+    "statusDriftFailed": "Could not check the statuses",
+    "statusResyncFailed": "Could not restate the works",
     "undo": "Undo",
     "workCreated": "Work added.",
     "workDeleted": "“{{title}}” deleted.",
@@ -316,6 +329,9 @@
     "work.created": "“{{title}}” added.",
     "work.renamed": "“{{from}}” renamed to “{{to}}”.",
     "work.status": "“{{title}}” moved to {{to}}.",
+    "work.restated": "“{{title}}” is {{to}} now — it was {{from}}.",
+    "status.resynced_one": "{{count}} work restated to match the facts.",
+    "status.resynced_other": "{{count}} works restated to match the facts.",
     "work.deleted": "“{{title}}” deleted.",
     "version.created": "{{role}} {{revision}} added to “{{title}}”.",
     "version.deleted": "Version “{{label}}” deleted.",

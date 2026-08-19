@@ -172,13 +172,15 @@ export function ProfileEditor() {
   )
 }
 
-interface VocabularyProps {
+interface VocabularyProps<T extends Kind> {
   label: string
-  entries: Kind[]
-  onChange: (entries: Kind[]) => void
+  entries: T[]
+  onChange: (entries: T[]) => void
 }
 
-function Vocabulary({ label, entries, onChange }: VocabularyProps) {
+// Generic over the entry, because a status carries a `derive` role alongside
+// its label and a kind does not — and renaming one must not drop the other.
+function Vocabulary<T extends Kind>({ label, entries, onChange }: VocabularyProps<T>) {
   return (
     <section className="flex flex-col gap-2">
       <h4 className="text-xs font-medium uppercase tracking-wide text-dim">{label}</h4>

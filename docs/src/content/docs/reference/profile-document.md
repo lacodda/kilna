@@ -44,8 +44,35 @@ work can hold one current version per role, plus every prior revision of each.
 
 ## `statuses`
 
-The states a work moves through, in order, same `{ key, label }` shape. Music:
-`draft`, `scored`, `scheduled`, `released`, `shelved`.
+The states a work moves through, in order. Music: `draft`, `scored`,
+`scheduled`, `released`, `shelved`.
+
+```jsonc
+{
+  "key": "published",
+  "label": "Published",
+  "derive": "released"
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `key` | string | Stored on the work. |
+| `label` | string | Display name; free to rename. |
+| `derive` | string, optional | What this status means to the automation. Defaults to `manual`. |
+
+`derive` is how the automation knows which of *your* words means "it went
+out", without the app dictating the words. One status per meaning:
+
+| `derive` | Set when |
+| --- | --- |
+| `released` | A release of this work has gone out. |
+| `scheduled` | A release holds a slot in the calendar. |
+| `scored` | The work has been judged at least once. |
+| `draft` | Nothing has happened to it yet. |
+| `manual` | Never set automatically — a decision only a person makes, like `shelved`. |
+
+See [Statuses](/kilna/guides/statuses/) for how this plays out.
 
 ## `axes`
 
