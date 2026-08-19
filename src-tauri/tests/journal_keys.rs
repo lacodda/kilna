@@ -66,8 +66,21 @@ fn keys_translated() -> BTreeSet<String> {
         .as_object()
         .expect("the locale has a journal section")
         .keys()
-        .cloned()
+        .map(|key| base_key(key).to_owned())
         .collect()
+}
+
+/// A sentence that counts things is written once per plural form —
+/// `status.resynced_one`, `status.resynced_other` — but the backend records the
+/// one key underneath them. Comparing the suffixed names against what the code
+/// writes would report every counted sentence as both missing and stale, so
+/// they are folded back to the key the code actually uses.
+fn base_key(key: &str) -> &str {
+    const FORMS: [&str; 6] = ["_zero", "_one", "_two", "_few", "_many", "_other"];
+    FORMS
+        .iter()
+        .find_map(|form| key.strip_suffix(form))
+        .unwrap_or(key)
 }
 
 #[test]
