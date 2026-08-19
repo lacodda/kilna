@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.19.0] - 2026-08-19
+
+### Bug Fixes
+- Make the list filter find Russian titles
+
+### Documentation
+- Finding things, and why case works in Russian
+
+### Features
+- One query across works, drafts, notes and chats
+- Ctrl+K opens the palette, from anywhere
 ## [0.18.0] - 2026-08-18
 
 ### Documentation
