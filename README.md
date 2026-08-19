@@ -8,7 +8,7 @@ You write songs, chapters, episodes, or articles. The work lives in one place, t
 
 > **Status: early development.** The loop is closed end to end — a work gains versions, a version earns a score, a score wins a calendar slot, and the slot ends in a release you mark by hand — with four craft profiles, an AI panel over your own Claude Code CLI, and a plugin protocol. Nothing is deleted outright and nothing happens unnoticed: there is a trash behind every deletion and a history behind every change. The interface speaks English and Russian. Builds for Windows, macOS and Linux are on the [Releases page](https://github.com/lacodda/kilna/releases); none of them are signed yet, so your OS will warn you about an unidentified developer.
 
-<img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="A song being scored in kilna: one row per axis with the question it asks, a scale you click, the running total and tier, and the score history underneath" width="1200">
+<img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="Searching kilna: one box finding a work by title, two drafts by a line inside them, and what the assistant said about it" width="1200">
 
 ## The loop
 
@@ -22,6 +22,7 @@ Every craft repeats the same cycle. kilna models it once and lets your craft con
 - **Scoring that means something.** Rate a work along axes you define, weighted into a tier — a scale you click or drive from the keyboard, with each axis showing the question it asks. Scores are snapshots tied to a version, with a note on why, so you can see that rewriting the second verse moved it from 62 to 78.
 - **A calendar that pushes back.** Slots compete. A stronger work bumps a weaker one out of Thursday.
 - **Shipping is a state, not an integration.** Mark it out, paste the link. Plugins can automate it later; the loop closes without them.
+- **One box finds anything.** `Ctrl+K` searches titles, every draft's full text, notes and assistant replies at once — and folds case in full Unicode, so a Russian workspace is as searchable as an English one.
 
 ## Profiles, not a form builder
 

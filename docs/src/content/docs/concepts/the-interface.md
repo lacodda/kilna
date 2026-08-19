@@ -25,8 +25,12 @@ and Settings.
 
 ## The topbar
 
-The topbar names the screen you are on, counts your works, and holds the
-**bell**. The bell is lit only by entries that need a look — never by the
+The topbar names the screen you are on, counts your works, holds the search
+box, and holds the **bell**.
+
+**Search** takes `Ctrl+K` from anywhere and looks through titles, drafts,
+notes and assistant replies at once — see
+[Finding things](/kilna/guides/finding-things/). The bell is lit only by entries that need a look — never by the
 ordinary record of you adding a work or saving a version, because a bell lit
 by everything is a bell nobody reads. Clicking it opens
 [History](/kilna/guides/the-history/).
