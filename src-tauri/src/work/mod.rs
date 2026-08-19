@@ -148,11 +148,9 @@ pub fn list(conn: &Connection, profile_id: &str, filter: &WorkFilter) -> Result<
         values.push(Box::new(collection_id.clone()));
         sql.push_str(&format!(" AND collection_id = ?{}", values.len()));
     }
-    if let Some(search) = &filter.search {
-        values.push(Box::new(format!("%{search}%")));
-        // LIKE is case-insensitive for ASCII in SQLite by default.
-        sql.push_str(&format!(" AND title LIKE ?{}", values.len()));
-    }
+    // The search is deliberately not a LIKE here: SQLite ignores case for ASCII
+    // only, so filtering "Гавань" by "гавань" found nothing at all. Titles are
+    // matched after the query instead, the same way the palette does it.
 
     sql.push_str(" ORDER BY updated_at DESC, title");
 
@@ -162,7 +160,23 @@ pub fn list(conn: &Connection, profile_id: &str, filter: &WorkFilter) -> Result<
         .query_map(params, read_row)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
-    raw.into_iter().map(RawWork::into_work).collect()
+    let works: Vec<Work> = raw
+        .into_iter()
+        .map(RawWork::into_work)
+        .collect::<Result<Vec<_>>>()?;
+
+    let Some(search) = &filter.search else {
+        return Ok(works);
+    };
+    let needle = search.trim().to_lowercase();
+    if needle.is_empty() {
+        return Ok(works);
+    }
+
+    Ok(works
+        .into_iter()
+        .filter(|work| crate::search::matches(&work.title, &needle))
+        .collect())
 }
 
 /// Apply a patch. Returns the updated work.
@@ -409,6 +423,27 @@ mod tests {
         )
         .unwrap();
         assert_eq!(winter.len(), 2, "search is case-insensitive");
+    }
+
+    // SQLite's own LIKE would have failed this: it ignores case for ASCII and
+    // nothing else, so a Russian title was unfindable unless typed exactly.
+    #[test]
+    fn search_ignores_case_in_russian_too() {
+        let (conn, profile_id) = workspace();
+        create(&conn, &profile_id, song("Гавань огней")).unwrap();
+
+        for query in ["гавань", "ГАВАНЬ", "огней"] {
+            let found = list(
+                &conn,
+                &profile_id,
+                &WorkFilter {
+                    search: Some(query.into()),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+            assert_eq!(found.len(), 1, "`{query}` should have found the work");
+        }
     }
 
     #[test]
