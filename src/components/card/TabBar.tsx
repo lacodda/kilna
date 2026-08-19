@@ -20,7 +20,14 @@ export function TabBar({ workId, releases = 0 }: Props) {
   const { t } = useTranslation()
 
   return (
-    <nav className="flex gap-0.5 overflow-x-auto border-t border-line bg-raise px-2">
+    // Seven tabs measured 572px inside a 570px strip — two pixels over, enough
+    // for WebView2 to draw a full scrollbar with stepper arrows under them. The
+    // horizontal padding is what those two pixels were, so it goes: the first
+    // tab's own padding already holds it off the edge. When a long profile
+    // vocabulary genuinely overflows, the bar is the app's thin one from
+    // `styles.css`, and `scrollbar-width: none` keeps it from stealing height
+    // from a strip this shallow.
+    <nav className="flex gap-0.5 overflow-x-auto border-t border-line bg-raise [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {TABS.map((tab) => (
         <NavLink
           key={tab}
