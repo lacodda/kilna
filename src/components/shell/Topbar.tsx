@@ -1,10 +1,12 @@
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Bell } from 'lucide-react'
+import { Bell, Search } from 'lucide-react'
 import { unreadJournal } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { Button } from '@/components/ui/Button'
+import { CommandPalette } from '@/components/CommandPalette'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -79,14 +81,43 @@ function Unread() {
 export function Topbar({ works }: Props) {
   const { t } = useTranslation()
   const location = useLocation()
+  const [searching, setSearching] = useState(false)
+
+  // Ctrl+K anywhere, including from inside a text field: the palette is a way
+  // out of wherever you are, not a control that belongs to one screen.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === 'k' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault()
+        setSearching(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   return (
     <header className="flex items-center gap-2.5 border-b border-line px-4">
       <span className="text-[13px] font-semibold">{t(screenKey(location.pathname))}</span>
-      <p className="ml-auto text-xs text-faint">
+
+      <button
+        type="button"
+        onClick={() => setSearching(true)}
+        className="ml-auto flex min-w-52 cursor-pointer items-center gap-2 rounded-[10px] border border-line px-2.5 py-1 text-xs text-faint transition-colors hover:border-line-2 hover:text-dim"
+      >
+        <Search aria-hidden className="size-3.5" />
+        {t('search.placeholder')}
+        <kbd className="ml-auto rounded border border-line px-1.5 font-mono text-[10px]">
+          {t('search.shortcut')}
+        </kbd>
+      </button>
+
+      <p className="text-xs text-faint">
         {t('status.works')} {works}
       </p>
       <Unread />
+
+      <CommandPalette open={searching} onOpenChange={setSearching} />
     </header>
   )
 }

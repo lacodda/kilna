@@ -340,5 +340,22 @@
       "assistant": "Assistant",
       "history": "History"
     }
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "Search anything…",
+    "shortcut": "Ctrl K",
+    "hint": "Titles, drafts, notes and what the assistant said.",
+    "searching": "Looking…",
+    "nothing": "Nothing matches “{{query}}”.",
+    "navigate": "↑↓ navigate",
+    "openHit": "↵ open",
+    "close": "esc close",
+    "group": {
+      "work": "Works",
+      "version": "Drafts",
+      "note": "Notes",
+      "message": "Assistant"
+    }
   }
 }
