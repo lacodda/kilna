@@ -23,12 +23,12 @@
       { "key": "angle", "label": "Angle" }
     ],
     "statuses": [
-      { "key": "draft", "label": "Draft" },
-      { "key": "revised", "label": "Revised" },
-      { "key": "scored", "label": "Scored" },
-      { "key": "scheduled", "label": "Scheduled" },
-      { "key": "published", "label": "Published" },
-      { "key": "shelved", "label": "Shelved" }
+      { "key": "draft", "label": "Draft", "derive": "draft" },
+      { "key": "revised", "label": "Revised", "derive": "manual" },
+      { "key": "scored", "label": "Scored", "derive": "scored" },
+      { "key": "scheduled", "label": "Scheduled", "derive": "scheduled" },
+      { "key": "published", "label": "Published", "derive": "released" },
+      { "key": "shelved", "label": "Shelved", "derive": "manual" }
     ],
     "axes": [
       {

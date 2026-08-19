@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::db::migrations;
 use crate::error::{Error, Result};
 use crate::time::now;
-use config::ProfileConfig;
+use config::{Derive, ProfileConfig};
 
 /// A profile as it ships with the application, before it reaches the database.
 #[derive(Debug, Clone, Deserialize)]
@@ -65,7 +65,7 @@ pub fn seed(conn: &Connection) -> Result<()> {
             .unwrap_or(false);
 
         if exists {
-            add_new_prompts(conn, &profile)?;
+            carry_forward(conn, &profile)?;
             continue;
         }
 
@@ -87,14 +87,26 @@ pub fn seed(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-/// Carry newly shipped prompt templates into a built-in profile the workspace
-/// already has.
+/// Carry newly shipped parts of a built-in profile into the copy a workspace
+/// already holds.
 ///
-/// Only prompts whose key is missing are added: a user who reworded an action
-/// keeps their wording, and one they deliberately deleted stays deleted only
-/// until the next upgrade — accepted, because a new action nobody ever sees is
-/// the worse failure. Nothing else in the profile is touched.
-fn add_new_prompts(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
+/// A profile is copied into the database on first run and then belongs to the
+/// user, so shipping a new field changes nothing for anybody who already ran
+/// the app — the older copy simply lacks it. What is added here is what has no
+/// user-authored value to overwrite:
+///
+/// * **Prompt templates** whose key is missing. A user who reworded an action
+///   keeps their wording; one they deliberately deleted comes back at the next
+///   upgrade — accepted, because an action nobody ever sees is worse.
+/// * **The `derive` role of a status**, where the stored copy still says
+///   `Manual` and the shipped one names a meaning. Without this the status
+///   automation is silently inert in every workspace that predates it, which is
+///   exactly how it was found: on a real database, deriving nothing at all.
+///
+/// A role the user deliberately set to `Manual` is indistinguishable from one
+/// that was never written, and is restored along with the rest. That is the
+/// price of not asking; the setting is one click away in the profile editor.
+fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
     let Some((id, raw)): Option<(String, String)> = conn
         .query_row(
             "SELECT id, config FROM profile WHERE key = ?1",
@@ -107,6 +119,8 @@ fn add_new_prompts(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
     };
 
     let mut config: ProfileConfig = serde_json::from_str(&raw)?;
+    let mut changed = false;
+
     let missing: Vec<_> = shipped
         .config
         .prompts
@@ -120,11 +134,33 @@ fn add_new_prompts(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         .cloned()
         .collect();
 
-    if missing.is_empty() {
+    if !missing.is_empty() {
+        config.prompts.extend(missing);
+        changed = true;
+    }
+
+    for status in &mut config.statuses {
+        if status.derive != Derive::Manual {
+            continue;
+        }
+        let Some(shipped) = shipped
+            .config
+            .statuses
+            .iter()
+            .find(|shipped| shipped.key == status.key)
+        else {
+            continue;
+        };
+        if shipped.derive != Derive::Manual {
+            status.derive = shipped.derive;
+            changed = true;
+        }
+    }
+
+    if !changed {
         return Ok(());
     }
 
-    config.prompts.extend(missing);
     conn.execute(
         "UPDATE profile SET config = ?2, updated_at = ?3 WHERE id = ?1",
         params![id, serde_json::to_string(&config)?, now()],
@@ -184,6 +220,20 @@ pub fn active(conn: &Connection) -> Result<Option<Profile>> {
         .optional()?;
 
     raw.map(RawProfile::into_profile).transpose()
+}
+
+/// One profile's configuration, without the rest of the row.
+///
+/// Used by everything that has a profile id in hand and needs the vocabulary
+/// behind it — scoring, status derivation — so the query lives here rather
+/// than being written out again in each of them.
+pub fn config_for(conn: &Connection, profile_id: &str) -> Result<config::ProfileConfig> {
+    let raw: String = conn.query_row(
+        "SELECT config FROM profile WHERE id = ?1",
+        params![profile_id],
+        |row| row.get(0),
+    )?;
+    Ok(serde_json::from_str(&raw)?)
 }
 
 /// Every profile in the workspace.
@@ -301,6 +351,7 @@ pub fn workspace(conn: &Connection) -> Result<Workspace> {
 mod tests {
     use super::*;
     use crate::db;
+    use crate::profile::config::Derive;
 
     #[test]
     fn every_builtin_profile_parses() {
@@ -363,6 +414,92 @@ mod tests {
         assert_eq!(list(&conn).unwrap().len(), builtin().unwrap().len());
     }
 
+    /// A workspace created before a field existed keeps the profile it copied
+    /// on first run, and shipping the field changes nothing there on its own.
+    /// This is not hypothetical: the status automation was found inert on a
+    /// real database for exactly this reason, deriving `Manual` for every
+    /// status while the shipped profile named meanings for four of them.
+    #[test]
+    fn an_older_workspace_gains_the_meanings_its_statuses_were_missing() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        // Wind the stored copy back to what a pre-`derive` workspace holds: the
+        // same words, with no meaning attached to any of them.
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        for status in &mut config.statuses {
+            status.derive = Derive::Manual;
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let derive_of = |key: &str| {
+            config
+                .statuses
+                .iter()
+                .find(|status| status.key == key)
+                .unwrap()
+                .derive
+        };
+        assert_eq!(derive_of("draft"), Derive::Draft);
+        assert_eq!(derive_of("scored"), Derive::Scored);
+        assert_eq!(derive_of("scheduled"), Derive::Scheduled);
+        assert_eq!(derive_of("released"), Derive::Released);
+        // Nothing is invented for a status the shipped profile leaves manual.
+        assert_eq!(derive_of("shelved"), Derive::Manual);
+    }
+
+    /// The labels are the user's, and an upgrade must not take them back.
+    #[test]
+    fn carrying_meanings_forward_leaves_renamed_statuses_renamed() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        for status in &mut config.statuses {
+            status.derive = Derive::Manual;
+            if status.key == "released" {
+                status.label = "Out in the world".into();
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let released = config
+            .statuses
+            .iter()
+            .find(|status| status.key == "released")
+            .unwrap();
+        assert_eq!(released.label, "Out in the world");
+        assert_eq!(released.derive, Derive::Released);
+    }
+
     /// Every profile must be self-consistent, because a broken one is only
     /// discovered when a user switches to it.
     #[test]
@@ -372,6 +509,31 @@ mod tests {
             let key = &profile.key;
 
             assert!(!config.statuses.is_empty(), "{key} has no statuses");
+
+            // A profile whose statuses carry no meaning derives nothing, and
+            // the automation would sit there doing nothing with no error to
+            // show for it. Every derivable meaning needs a word, and no two
+            // words may claim the same one — the automation would pick between
+            // them by list order, which is not a decision anybody made.
+            for meaning in [
+                Derive::Draft,
+                Derive::Scored,
+                Derive::Scheduled,
+                Derive::Released,
+            ] {
+                let named: Vec<&str> = config
+                    .statuses
+                    .iter()
+                    .filter(|status| status.derive == meaning)
+                    .map(|status| status.key.as_str())
+                    .collect();
+                assert_eq!(
+                    named.len(),
+                    1,
+                    "{key} names {} status(es) for {meaning:?}: {named:?}",
+                    named.len()
+                );
+            }
             assert!(!config.work_kinds.is_empty(), "{key} has no work kinds");
             assert!(
                 !config.version_roles.is_empty(),

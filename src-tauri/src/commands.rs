@@ -62,6 +62,37 @@ fn active_profile_id(conn: &rusqlite::Connection) -> Result<String> {
         .ok_or_else(|| Error::Other("no active profile".into()))
 }
 
+/// Bring a work's status back in line with the facts, and say so.
+///
+/// Called from every command that changes one of the facts a status is derived
+/// from. Deriving here rather than inside each of those is the whole point: the
+/// predecessor wrote the field from four places and it drifted apart from what
+/// was true. A pinned work is left alone by [`work::status::refresh`] itself,
+/// so a call site never has to remember to check.
+fn restate(conn: &rusqlite::Connection, profile_id: &str, work_id: &str) {
+    let config = match profile::config_for(conn, profile_id) {
+        Ok(config) => config,
+        Err(cause) => {
+            eprintln!("status: could not read the profile: {cause}");
+            return;
+        }
+    };
+
+    match work::status::refresh(conn, &config, work_id) {
+        Ok(Some(change)) => journal::record(
+            conn,
+            profile_id,
+            Record::new("work.restated")
+                .param("title", change.title)
+                .param("from", change.from)
+                .param("to", change.to)
+                .about("work", work_id.to_owned()),
+        ),
+        Ok(None) => {}
+        Err(cause) => eprintln!("status: could not restate the work: {cause}"),
+    }
+}
+
 #[tauri::command]
 pub fn list_works(state: State<'_, AppState>, filter: Option<WorkFilter>) -> Result<Vec<Work>> {
     let conn = state.conn();
@@ -135,6 +166,60 @@ pub fn update_work(state: State<'_, AppState>, id: String, patch: WorkPatch) -> 
 ///
 /// Nothing in the app deletes outright: every `delete_*` command below goes the
 /// same way, so an undo is always available and a confirmation never is.
+/// What a full recompute would change, changing nothing.
+///
+/// The dry run is the whole reason a mass restate is safe to offer: a profile
+/// whose `derive` roles are wrong would otherwise silently rewrite the status
+/// of every work in the workspace, and there is no undo for that.
+#[tauri::command]
+pub fn status_drift(state: State<'_, AppState>) -> Result<Vec<work::status::Change>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let config = profile::config_for(&conn, &profile_id)?;
+    work::status::drift(&conn, &config, &profile_id)
+}
+
+/// Apply what [`status_drift`] reported.
+#[tauri::command]
+pub fn resync_statuses(state: State<'_, AppState>) -> Result<Vec<work::status::Change>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let config = profile::config_for(&conn, &profile_id)?;
+    let changes = work::status::resync(&conn, &config, &profile_id)?;
+
+    if !changes.is_empty() {
+        journal::record(
+            &conn,
+            &profile_id,
+            Record::new("status.resynced").param("count", changes.len() as i64),
+        );
+    }
+
+    Ok(changes)
+}
+
+/// Hand one work's status back to the automation.
+#[tauri::command]
+pub fn unpin_status(state: State<'_, AppState>, id: String) -> Result<Work> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let config = profile::config_for(&conn, &profile_id)?;
+
+    if let Some(change) = work::status::unpin(&conn, &config, &id)? {
+        journal::record(
+            &conn,
+            &profile_id,
+            Record::new("work.restated")
+                .param("title", change.title)
+                .param("from", change.from)
+                .param("to", change.to)
+                .about("work", id.clone()),
+        );
+    }
+
+    work::get(&conn, &id)?.ok_or_else(|| Error::not_found("work", &id))
+}
+
 #[tauri::command]
 pub fn delete_work(state: State<'_, AppState>, id: String) -> Result<String> {
     let mut conn = state.conn();
@@ -243,11 +328,21 @@ fn discard_and_record(
     if let Some(origin) = described.as_ref().and_then(|entry| entry.origin.clone()) {
         record = record.param("origin", origin);
     }
-    if let Some(work_id) = work_behind(&conn, entity, id) {
+    let behind = work_behind(&conn, entity, id);
+    if let Some(work_id) = behind.clone() {
         record = record.about("work", work_id);
     }
 
     journal::record(&conn, &profile_id, record);
+
+    // Deleting the last score, or the release that held the slot, changes what
+    // the work's status should say. The work itself is exempt: it is in the
+    // trash, and restating a row nobody can see would only make noise.
+    if entity != trash::Entity::Work {
+        if let Some(work_id) = behind {
+            restate(&conn, &profile_id, &work_id);
+        }
+    }
 
     Ok(entry_id)
 }
@@ -328,6 +423,8 @@ pub fn score_work(state: State<'_, AppState>, work_id: String, score: NewScore) 
             .param("tier", created.tier.clone().unwrap_or_default())
             .about("work", work_id.clone()),
     );
+
+    restate(&conn, &profile_id, &work_id);
 
     Ok(created)
 }
@@ -440,13 +537,22 @@ pub fn schedule_release(
         );
     }
 
+    restate(&conn, &profile_id, &outcome.release.work_id);
+    // The work that lost the slot may no longer be scheduled at all.
+    if let Some(displaced) = &outcome.displaced {
+        restate(&conn, &profile_id, &displaced.work_id);
+    }
+
     Ok(outcome)
 }
 
 #[tauri::command]
 pub fn unschedule_release(state: State<'_, AppState>, id: String) -> Result<Release> {
     let conn = state.conn();
-    release::unschedule(&conn, &id)
+    let profile_id = active_profile_id(&conn)?;
+    let release = release::unschedule(&conn, &id)?;
+    restate(&conn, &profile_id, &release.work_id);
+    Ok(release)
 }
 
 /// The end of the circle: something actually went out.
@@ -471,6 +577,8 @@ pub fn mark_released(
             .param("kind", released.kind.clone())
             .about("work", released.work_id.clone()),
     );
+
+    restate(&conn, &profile_id, &released.work_id);
 
     Ok(released)
 }
@@ -560,10 +668,17 @@ pub fn restore_deletion(state: State<'_, AppState>, id: String) -> Result<()> {
 
     if let Some(entry) = described {
         let mut record = Record::new("trash.restored").param("label", entry.label);
-        if let Some(work_id) = work_behind(&conn, entry.entity, &entry.entity_id) {
+        let behind = work_behind(&conn, entry.entity, &entry.entity_id);
+        if let Some(work_id) = behind.clone() {
             record = record.about("work", work_id);
         }
         journal::record(&conn, &profile_id, record);
+
+        // A restored score or release is a fact again, and the status has to
+        // answer for it — including for a work that came back whole.
+        if let Some(work_id) = behind {
+            restate(&conn, &profile_id, &work_id);
+        }
     }
 
     Ok(())

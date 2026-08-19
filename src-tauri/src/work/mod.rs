@@ -1,3 +1,4 @@
+pub mod status;
 pub mod version;
 
 use rusqlite::{Connection, OptionalExtension, params};
@@ -16,6 +17,9 @@ pub struct Work {
     pub kind: String,
     pub title: String,
     pub status: String,
+    /// Set when a person chose the status by hand. While it holds a value the
+    /// automation leaves the work alone — see [`status`].
+    pub status_pinned_at: Option<String>,
     pub meta: Map<String, Value>,
     pub current_version_id: Option<String>,
     pub position: i64,
@@ -58,8 +62,8 @@ pub struct WorkFilter {
     pub search: Option<String>,
 }
 
-const SELECT_WORK: &str = "SELECT id, profile_id, collection_id, kind, title, status, meta, \
-     current_version_id, position, created_at, updated_at FROM work";
+const SELECT_WORK: &str = "SELECT id, profile_id, collection_id, kind, title, status, \
+     status_pinned_at, meta, current_version_id, position, created_at, updated_at FROM work";
 
 /// Create a work in the given profile.
 ///
@@ -101,18 +105,21 @@ pub fn create(conn: &Connection, profile_id: &str, new: NewWork) -> Result<Work>
     get(conn, &id)?.ok_or_else(|| Error::Other("the work vanished after insert".into()))
 }
 
-/// The first status in the active profile's vocabulary.
+/// The status a work starts in: the profile's word for a draft.
+///
+/// Nothing has happened to a work at the moment it is created, and "nothing has
+/// happened yet" is exactly what [`Derive::Draft`] means — so the automation
+/// would derive this same value on its first pass. Falls back to the first
+/// status in the list for a profile that names no draft, which is the older
+/// behaviour and still the only sensible guess.
 fn default_status(conn: &Connection, profile_id: &str) -> Result<String> {
-    let config: String = conn.query_row(
-        "SELECT config FROM profile WHERE id = ?1",
-        params![profile_id],
-        |row| row.get(0),
-    )?;
-    let config: crate::profile::config::ProfileConfig = serde_json::from_str(&config)?;
+    let config = crate::profile::config_for(conn, profile_id)?;
 
     config
         .statuses
-        .first()
+        .iter()
+        .find(|status| status.derive == crate::profile::config::Derive::Draft)
+        .or_else(|| config.statuses.first())
         .map(|status| status.key.clone())
         .ok_or_else(|| Error::Other("the profile defines no statuses".into()))
 }
@@ -199,8 +206,18 @@ pub fn update(conn: &Connection, id: &str, patch: WorkPatch) -> Result<Work> {
     if let Some(title) = patch.title {
         set(&mut assignments, &mut values, "title", Box::new(title));
     }
+    // Choosing a status by hand is what pins it: there is no separate "pin"
+    // gesture to forget. Passing the value the work already holds still pins,
+    // and deliberately so — re-picking the current status is how a person says
+    // "this one, keep it" when the automation disagrees.
     if let Some(status) = patch.status {
         set(&mut assignments, &mut values, "status", Box::new(status));
+        set(
+            &mut assignments,
+            &mut values,
+            "status_pinned_at",
+            Box::new(now()),
+        );
     }
     if let Some(kind) = patch.kind {
         set(&mut assignments, &mut values, "kind", Box::new(kind));
@@ -275,6 +292,7 @@ struct RawWork {
     kind: String,
     title: String,
     status: String,
+    status_pinned_at: Option<String>,
     meta: String,
     current_version_id: Option<String>,
     position: i64,
@@ -290,11 +308,12 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
         kind: row.get(3)?,
         title: row.get(4)?,
         status: row.get(5)?,
-        meta: row.get(6)?,
-        current_version_id: row.get(7)?,
-        position: row.get(8)?,
-        created_at: row.get(9)?,
-        updated_at: row.get(10)?,
+        status_pinned_at: row.get(6)?,
+        meta: row.get(7)?,
+        current_version_id: row.get(8)?,
+        position: row.get(9)?,
+        created_at: row.get(10)?,
+        updated_at: row.get(11)?,
     })
 }
 
@@ -308,6 +327,7 @@ impl RawWork {
             kind: self.kind,
             title: self.title,
             status: self.status,
+            status_pinned_at: self.status_pinned_at,
             current_version_id: self.current_version_id,
             position: self.position,
             created_at: self.created_at,

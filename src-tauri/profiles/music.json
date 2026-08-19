@@ -22,11 +22,11 @@
       { "key": "style", "label": "Style prompt" }
     ],
     "statuses": [
-      { "key": "draft", "label": "Draft" },
-      { "key": "scored", "label": "Scored" },
-      { "key": "scheduled", "label": "Scheduled" },
-      { "key": "released", "label": "Released" },
-      { "key": "shelved", "label": "Shelved" }
+      { "key": "draft", "label": "Draft", "derive": "draft" },
+      { "key": "scored", "label": "Scored", "derive": "scored" },
+      { "key": "scheduled", "label": "Scheduled", "derive": "scheduled" },
+      { "key": "released", "label": "Released", "derive": "released" },
+      { "key": "shelved", "label": "Shelved", "derive": "manual" }
     ],
     "axes": [
       {

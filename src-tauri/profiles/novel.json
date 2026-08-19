@@ -25,12 +25,12 @@
       { "key": "notes", "label": "Working notes" }
     ],
     "statuses": [
-      { "key": "draft", "label": "Draft" },
-      { "key": "revised", "label": "Revised" },
-      { "key": "scored", "label": "Scored" },
-      { "key": "ready", "label": "Ready" },
-      { "key": "published", "label": "Published" },
-      { "key": "shelved", "label": "Shelved" }
+      { "key": "draft", "label": "Draft", "derive": "draft" },
+      { "key": "revised", "label": "Revised", "derive": "manual" },
+      { "key": "scored", "label": "Scored", "derive": "scored" },
+      { "key": "ready", "label": "Ready", "derive": "scheduled" },
+      { "key": "published", "label": "Published", "derive": "released" },
+      { "key": "shelved", "label": "Shelved", "derive": "manual" }
     ],
     "axes": [
       {

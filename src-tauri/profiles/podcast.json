@@ -24,12 +24,12 @@
       { "key": "outline", "label": "Research outline" }
     ],
     "statuses": [
-      { "key": "draft", "label": "Draft" },
-      { "key": "recorded", "label": "Recorded" },
-      { "key": "scored", "label": "Scored" },
-      { "key": "scheduled", "label": "Scheduled" },
-      { "key": "released", "label": "Released" },
-      { "key": "shelved", "label": "Shelved" }
+      { "key": "draft", "label": "Draft", "derive": "draft" },
+      { "key": "recorded", "label": "Recorded", "derive": "manual" },
+      { "key": "scored", "label": "Scored", "derive": "scored" },
+      { "key": "scheduled", "label": "Scheduled", "derive": "scheduled" },
+      { "key": "released", "label": "Released", "derive": "released" },
+      { "key": "shelved", "label": "Shelved", "derive": "manual" }
     ],
     "axes": [
       {
