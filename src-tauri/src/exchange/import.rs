@@ -5,6 +5,10 @@ use serde::Serialize;
 use serde_json::{Map, Value, json};
 
 use crate::error::{Error, Result};
+use crate::profile::{
+    self,
+    config::{Derive, ProfileConfig},
+};
 use crate::release::{self, NewRelease};
 use crate::score::{self, NewScore};
 use crate::work::version::NewVersion;
@@ -45,16 +49,10 @@ pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Re
         rows.collect::<rusqlite::Result<Vec<_>>>()?
     };
 
-    // Positional axis snapshots are mapped onto these, in order.
-    let axis_keys: Vec<String> = {
-        let raw: String = conn.query_row(
-            "SELECT config FROM profile WHERE id = ?1",
-            params![profile_id],
-            |row| row.get(0),
-        )?;
-        let config: crate::profile::config::ProfileConfig = serde_json::from_str(&raw)?;
-        config.axes.into_iter().map(|axis| axis.key).collect()
-    };
+    // The vocabulary the import has to land in: axis keys for the positional
+    // snapshots, statuses for the states the source names in its own words.
+    let config = profile::config_for(conn, profile_id)?;
+    let axis_keys: Vec<String> = config.axes.iter().map(|axis| axis.key.clone()).collect();
 
     let songs = read_songs(&legacy)?;
     let mut report = ImportReport {
@@ -85,7 +83,7 @@ pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Re
             NewWork {
                 kind: "song".into(),
                 title: song.title.clone(),
-                status: Some(map_status(&song.status)),
+                status: map_status(&config, &song.status),
                 collection_id: None,
                 meta: Some(meta),
             },
@@ -267,17 +265,42 @@ fn read_axes(
 
 /// Map a source status onto the profile's vocabulary.
 ///
-/// Anything unrecognised becomes a draft: an imported work in an unknown state
-/// is safest treated as unfinished.
-fn map_status(legacy: &str) -> String {
-    match legacy {
-        "released" => "released",
-        "scheduled" | "planned" => "scheduled",
-        "evaluated" | "scored" => "scored",
-        "shelved" | "archived" | "rejected" => "shelved",
-        _ => "draft",
-    }
-    .to_owned()
+/// The source's words are its own, and so are the profile's: an import into a
+/// novel profile would have written `released` into a workspace whose statuses
+/// are `draft`, `revised`, `ready`, `published`. So the source word is read as
+/// a *meaning*, and the profile is asked for its own word for it.
+///
+/// An unrecognised state — or a meaning the profile has no word for — becomes
+/// the profile's draft: an imported work in an unknown state is safest treated
+/// as unfinished.
+fn map_status(config: &ProfileConfig, legacy: &str) -> Option<String> {
+    let meaning = match legacy {
+        "released" | "published" => Derive::Released,
+        "scheduled" | "planned" => Derive::Scheduled,
+        "evaluated" | "scored" => Derive::Scored,
+        // Shelved has no fact behind it, so no profile derives it. It is looked
+        // up by key rather than by meaning, and a profile without one falls
+        // through to the draft below.
+        "shelved" | "archived" | "rejected" => {
+            return config
+                .statuses
+                .iter()
+                .find(|status| status.key == "shelved")
+                .map(|status| status.key.clone())
+                .or_else(|| word_for(config, Derive::Draft));
+        }
+        _ => Derive::Draft,
+    };
+
+    word_for(config, meaning).or_else(|| word_for(config, Derive::Draft))
+}
+
+fn word_for(config: &ProfileConfig, meaning: Derive) -> Option<String> {
+    config
+        .statuses
+        .iter()
+        .find(|status| status.derive == meaning)
+        .map(|status| status.key.clone())
 }
 
 #[cfg(test)]
