@@ -65,7 +65,7 @@ pub fn create(conn: &Connection, work_id: &str, new: NewScore) -> Result<Score> 
         .optional()?
         .ok_or_else(|| Error::not_found("work", work_id))?;
 
-    let config = profile_config(conn, &profile_id)?;
+    let config = profile::config_for(conn, &profile_id)?;
     let total = config.total(&new.axes);
     let tier = config.tier_for(total).map(|tier| tier.key.clone());
 
@@ -105,15 +105,6 @@ pub fn create(conn: &Connection, work_id: &str, new: NewScore) -> Result<Score> 
     )?;
 
     get(conn, &id)?.ok_or_else(|| Error::Other("the score vanished after insert".into()))
-}
-
-fn profile_config(conn: &Connection, profile_id: &str) -> Result<profile::config::ProfileConfig> {
-    let raw: String = conn.query_row(
-        "SELECT config FROM profile WHERE id = ?1",
-        params![profile_id],
-        |row| row.get(0),
-    )?;
-    Ok(serde_json::from_str(&raw)?)
 }
 
 const SELECT_SCORE: &str = "SELECT s.id, s.work_id, s.version_id, s.axes, s.total, s.tier, \
@@ -165,16 +156,31 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
     Ok(())
 }
 
-/// The catalogue: every work with its latest score, best first.
+/// The catalogue: every work with the score that speaks for it, best first.
 ///
 /// Unscored works sort last — they are not bad, they are unjudged.
+///
+/// **Which score speaks for a work.** Once a version is named as the current
+/// one, that version *is* the work, and the catalogue reads the score of that
+/// version — not the newest score on the record. The difference shows the
+/// moment a person judges an old draft to see how far it has come: the newest
+/// snapshot then describes the version they went back to, and reading it would
+/// have the catalogue announce that the work got worse. A work with no current
+/// version, or one whose current version was never judged, falls back to its
+/// strongest score: the best it has been shown to be.
 pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>> {
     let mut statement = conn.prepare(
         "SELECT w.id, w.title, w.kind, w.status, s.total, s.tier, s.scored_at,
                 s.scored_at IS NOT NULL AND w.updated_at > s.scored_at AS stale
          FROM work w
-         LEFT JOIN work_score s ON s.id = (
-             SELECT id FROM work_score WHERE work_id = w.id ORDER BY scored_at DESC LIMIT 1
+         LEFT JOIN work_score s ON s.id = coalesce(
+             (SELECT id FROM work_score
+               WHERE work_id = w.id AND version_id IS NOT NULL
+                 AND version_id = w.current_version_id
+               ORDER BY scored_at DESC LIMIT 1),
+             (SELECT id FROM work_score
+               WHERE work_id = w.id
+               ORDER BY total DESC, scored_at DESC LIMIT 1)
          )
          WHERE w.profile_id = ?1
          ORDER BY s.total IS NULL, s.total DESC, w.title",
@@ -273,6 +279,29 @@ mod tests {
         values.as_object().cloned().unwrap()
     }
 
+    /// Score one named version, with every axis at the same mark so the total
+    /// is that mark on a 0–100 scale whatever the profile weights.
+    fn score_version(conn: &Connection, work_id: &str, version_id: &str, mark: f64) {
+        create(
+            conn,
+            work_id,
+            NewScore {
+                axes: axes(json!({ "hook": mark, "text": mark, "voice": mark, "reach": mark })),
+                version_id: Some(version_id.to_owned()),
+                note: None,
+            },
+        )
+        .unwrap();
+    }
+
+    fn catalogue_row(conn: &Connection, profile_id: &str, work_id: &str) -> ScoredWork {
+        catalogue(conn, profile_id)
+            .unwrap()
+            .into_iter()
+            .find(|row| row.work_id == work_id)
+            .expect("the work is missing from the catalogue")
+    }
+
     #[test]
     fn the_total_and_tier_are_computed_from_the_profile() {
         let (conn, profile_id) = workspace();
@@ -314,6 +343,86 @@ mod tests {
         .unwrap();
 
         assert_eq!(score.tier.as_deref(), Some("hold"));
+    }
+
+    /// The rule that decides which snapshot a work is judged by: the one on the
+    /// version that currently *is* the work, not the one taken most recently.
+    #[test]
+    fn the_catalogue_reads_the_score_of_the_current_version() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id, "Subject");
+
+        let first = version::create(
+            &mut conn,
+            &work_id,
+            NewVersion {
+                role: "lyrics".into(),
+                body: "a first pass".into(),
+                label: None,
+                meta: None,
+                make_current: true,
+            },
+        )
+        .unwrap();
+        score_version(&conn, &work_id, &first.id, 9.0);
+
+        let second = version::create(
+            &mut conn,
+            &work_id,
+            NewVersion {
+                role: "lyrics".into(),
+                body: "the one that stands".into(),
+                label: None,
+                meta: None,
+                make_current: true,
+            },
+        )
+        .unwrap();
+        score_version(&conn, &work_id, &second.id, 7.0);
+
+        // Judged last, and the weaker of the two — but it is the version the
+        // work currently is, so it is the number the catalogue shows.
+        let row = catalogue_row(&conn, &profile_id, &work_id);
+        assert_eq!(row.total.unwrap().round(), 70.0);
+
+        // Going back to judge the older draft again must not restate the work
+        // as a 9: that snapshot describes a version nobody is looking at.
+        score_version(&conn, &work_id, &first.id, 9.0);
+        let row = catalogue_row(&conn, &profile_id, &work_id);
+        assert_eq!(row.total.unwrap().round(), 70.0);
+    }
+
+    /// With nothing named as the work, the best it has ever been shown to be is
+    /// the fairest thing to show — a half-finished experiment scored at 3 should
+    /// not become the work's number just by being last.
+    #[test]
+    fn a_work_with_no_current_version_is_read_at_its_strongest() {
+        let (conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id, "Subject");
+
+        create(
+            &conn,
+            &work_id,
+            NewScore {
+                axes: axes(json!({ "hook": 9, "text": 9, "voice": 9, "reach": 9 })),
+                version_id: None,
+                note: None,
+            },
+        )
+        .unwrap();
+        create(
+            &conn,
+            &work_id,
+            NewScore {
+                axes: axes(json!({ "hook": 3, "text": 3, "voice": 3, "reach": 3 })),
+                version_id: None,
+                note: None,
+            },
+        )
+        .unwrap();
+
+        let row = catalogue_row(&conn, &profile_id, &work_id);
+        assert_eq!(row.total.unwrap().round(), 90.0);
     }
 
     #[test]
