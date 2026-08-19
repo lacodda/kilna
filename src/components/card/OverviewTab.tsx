@@ -106,10 +106,16 @@ export function OverviewTab({ work }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Panel className="flex flex-wrap items-end gap-4 p-4">
+      {/* A grid rather than a wrapping row, for the reason measured below: at
+          582px the three fields need 672 and Kind drops to a line of its own,
+          leaving a hole beside the status. Aligned to the top because the
+          status carries a line of hint under it — bottom alignment pushed that
+          one field up while the others stayed, which read as broken rather than
+          annotated. */}
+      <Panel className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] items-start gap-4 p-4">
         <Field label={t('work.title')}>
           <Input
-            className="min-w-72"
+            className="w-full"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             onBlur={() => {
@@ -121,7 +127,7 @@ export function OverviewTab({ work }: Props) {
         <Field label={t('work.status')} hint={statusHint}>
           <div className="flex items-center gap-2">
             <Select
-              className="w-44"
+              className="min-w-0 flex-1"
               value={work.status}
               onChange={(status) => patch.mutate({ status })}
               options={profile.config.statuses.map((s) => ({ value: s.key, label: s.label }))}
@@ -141,18 +147,25 @@ export function OverviewTab({ work }: Props) {
 
         <Field label={t('work.kind')}>
           <Select
-            className="w-44"
+            className="w-full"
             value={work.kind}
             onChange={(kind) => patch.mutate({ kind })}
             options={profile.config.work_kinds.map((k) => ({ value: k.key, label: k.label }))}
           />
         </Field>
 
-        <SaveState status={saveStatus} className="mb-2.5" />
+        {/* Spanning the row rather than taking a column of its own: it is a
+            word that appears for a second while saving, and a whole grid track
+            reserved for it would narrow the fields permanently. */}
+        <SaveState status={saveStatus} className="col-span-full" />
       </Panel>
 
+      {/* A grid, not a wrapping row. Four fields of different widths wrap into a
+          ragged shape the moment the column narrows — measured at 577px wide:
+          BPM and Key on one line, Duration and Language on the next with a hole
+          beside them. Columns of a shared width fill predictably instead. */}
       {profile.config.work_meta_fields.length > 0 && (
-        <Panel className="flex flex-wrap gap-4 p-4">
+        <Panel className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 p-4">
           {profile.config.work_meta_fields.map((field) => (
             <MetaInput
               key={field.key}
@@ -206,7 +219,7 @@ function MetaInput({
           {field.label}
         </span>
         <DatePicker
-          className="w-40"
+          className="w-full"
           aria-label={field.label}
           placeholder={t('work.noDate')}
           value={typeof value === 'string' ? value : ''}
@@ -219,7 +232,7 @@ function MetaInput({
   return (
     <Field label={field.label}>
       <Input
-        className={field.type === 'number' ? 'w-28' : 'w-56'}
+        className="w-full"
         type={field.type === 'number' ? 'number' : 'text'}
         defaultValue={String(value ?? '')}
         onBlur={(event) => {
