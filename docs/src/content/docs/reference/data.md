@@ -8,6 +8,11 @@ as plain files on disk with only a path recorded in the database. See
 [ADR 0002](https://github.com/lacodda/kilna/blob/main/docs/adr/0002-local-first-storage.md)
 for the reasoning behind that split.
 
+The same screen holds one thing that is not about files: **Statuses**, which
+compares every work's status against what has actually happened to it and shows
+what it would change before changing anything. That one is described in
+[Statuses](/kilna/guides/statuses/).
+
 ## Where the workspace file lives
 
 The workspace is created under the platform's application data directory the
