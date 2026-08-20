@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.20.0] - 2026-08-20
+
+### Bug Fixes
+- Judge a work by the version that currently is the work
+- Land imported statuses in the profile's own vocabulary
+- Let the journal gate see a sentence that counts things
+- Stop the tab strip drawing a scrollbar it does not need
+- Lay the fields out in columns that line up
+- Keep the whole status readable while it is pinned
+
+### Documentation
+- Cross-link the statuses screen, and say so in the readme
+
+### Features
+- Derive a work's status, and let a person pin it
+- Show who owns a work's status, and preview a mass restate
+- Bring the card's header in line with the mockup
 ## [0.19.0] - 2026-08-19
 
 ### Bug Fixes
