@@ -26,12 +26,10 @@ That is the point. A work you shelved is shelved even though it has a score
 and two planned releases; nothing in the data says "abandoned", so nothing
 can derive it. The same goes for any judgement the facts cannot see.
 
-The field says which of the two is in charge:
-
-- **Follows what has happened** — the automation owns it.
-- **Set by hand — the automation leaves it alone** — you do.
-
-**Follow the facts** hands it back and works the status out immediately.
+The line under the field says which of the two is in charge: *Follows what has
+happened* while the automation owns it, *Set by hand — the automation leaves it
+alone* once you do. **Follow the facts**, beside that second one, hands it back
+and works the status out immediately.
 
 ## Which word means what
 

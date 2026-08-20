@@ -13,7 +13,6 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
 import { DatePicker } from '@/components/ui/DatePicker'
-import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { Panel } from '@/components/ui/Panel'
 import { SaveState, useSaveStatus } from '@/components/ui/SaveState'
@@ -124,26 +123,36 @@ export function OverviewTab({ work }: Props) {
           />
         </Field>
 
-        <Field label={t('work.status')} hint={statusHint}>
-          <div className="flex items-center gap-2">
+        {/* The notice sits under the select rather than beside it: sharing the
+            row left "Released" showing as "Relea…", and the status is what is
+            being read here. It is also outside the `Field` — that renders a
+            `<label>`, and a button inside one is a button whose clicks the
+            control it labels would answer too. */}
+        <div className="flex flex-col">
+          <Field label={t('work.status')} hint={pinned ? undefined : statusHint}>
             <Select
-              className="min-w-0 flex-1"
+              className="w-full"
               value={work.status}
               onChange={(status) => patch.mutate({ status })}
               options={profile.config.statuses.map((s) => ({ value: s.key, label: s.label }))}
             />
-            {pinned && (
-              <Button
-                size="sm"
+          </Field>
+
+          {pinned && (
+            <p className="mt-1 text-xs text-faint">
+              {t('work.statusPinned')}{' '}
+              <button
+                type="button"
                 onClick={() => unpin.mutate()}
                 disabled={unpin.isPending}
                 title={t('work.unpinStatusHint')}
+                className="cursor-pointer text-dim underline decoration-dotted underline-offset-2 transition-colors hover:text-text disabled:opacity-50"
               >
                 {t('work.unpinStatus')}
-              </Button>
-            )}
-          </div>
-        </Field>
+              </button>
+            </p>
+          )}
+        </div>
 
         <Field label={t('work.kind')}>
           <Select
