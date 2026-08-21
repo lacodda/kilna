@@ -49,8 +49,9 @@ The catalogue's own search box folds case the same way, for the same reason.
 
 ## What it does not do yet
 
-- **No filters or operators.** No `kind:song`, no quoted phrases. One box, one
-  query, everything at once.
+- **No operators.** No `kind:song`, no quoted phrases. One box, one query,
+  everything at once — narrowing by kind, status or tier is what the
+  [catalogue](/kilna/guides/the-catalogue/) is for.
 - **Whole words only in the sense that substrings match** — `arbour` finds
   *Harbour*. There is no stemming, so `lights` does not find *light*.
 - **Nothing outside the active profile.** Switching profiles switches what is
