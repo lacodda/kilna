@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.21.0] - 2026-08-21
+
+### Features
+- One list of works, not two
 ## [0.20.0] - 2026-08-20
 
 ### Bug Fixes
