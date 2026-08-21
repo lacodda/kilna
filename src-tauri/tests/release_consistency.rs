@@ -44,6 +44,12 @@ fn every_manifest_declares_the_same_version() {
         crate_version,
         "tauri.conf.json disagrees with Cargo.toml — the installer would carry the wrong version"
     );
+
+    // Cargo.lock is deliberately not checked here: `cargo test` rewrites it to
+    // match Cargo.toml before this test can read it, so the assertion could
+    // never fail — it would only look like a check. A stale lockfile is caught
+    // by the working tree not being clean after a build, which is where the
+    // v0.21 slip was actually found.
 }
 
 #[test]
