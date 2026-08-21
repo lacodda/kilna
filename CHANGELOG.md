@@ -2,10 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.23.0] - 2026-08-21
+
+### Documentation
+- Point the version chips and comments at the right releases
+
+### Features
+- A month you can read, and releases you can edit
 ## [0.22.0] - 2026-08-21
 
 ### Bug Fixes
 - Carry the lockfile version with the release commit
+
+### Documentation
+- Point at the catalogue for narrowing by kind or status
 
 ### Features
 - A table you can work in
