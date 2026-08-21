@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.22.0] - 2026-08-21
+
+### Bug Fixes
+- Carry the lockfile version with the release commit
+
+### Features
+- A table you can work in
 ## [0.21.0] - 2026-08-21
 
 ### Features
