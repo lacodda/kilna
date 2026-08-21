@@ -1,22 +1,24 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Undo2 } from 'lucide-react'
 import {
   calendar as fetchCalendar,
   markReleased,
   releaseQueue,
   scheduleRelease,
   unscheduleRelease,
+  type ScheduledRelease,
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { labelOf, useProfile } from '@/lib/useProfile'
-import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { PromptDialog } from '@/components/ui/Dialog'
 import { SkeletonList } from '@/components/ui/Skeleton'
+import { MonthGrid } from '@/components/calendar/MonthGrid'
+import { ReleaseEditor } from '@/components/calendar/ReleaseEditor'
+import { monthOf, today, type Month } from '@/lib/month'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -32,6 +34,9 @@ export function CalendarView({ onSelect }: Props) {
 
   const [picked, setPicked] = useState<string | null>(null)
   const [slot, setSlot] = useState('')
+  const [month, setMonth] = useState<Month>(() => monthOf(today()))
+  // The release opened for editing, or null.
+  const [editing, setEditing] = useState<ScheduledRelease | null>(null)
   // The release waiting for a link, or null when the dialog is closed.
   const [releasing, setReleasing] = useState<string | null>(null)
 
@@ -154,74 +159,45 @@ export function CalendarView({ onSelect }: Props) {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h3 className="text-sm font-semibold">{t('calendar.title')}</h3>
-
         {slots.isPending ? (
           <SkeletonList rows={4} />
         ) : slots.isError ? (
           <p role="alert" className="text-sm text-bad">
             {t('toast.loadFailed')}
           </p>
-        ) : slots.data.length === 0 ? (
-          <p className="py-6 text-sm text-dim">{t('calendar.empty')}</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {slots.data.map((entry) => (
-              <li
-                key={entry.id}
-                className="flex flex-wrap items-center gap-3 rounded-xl border border-line px-3 py-2"
-              >
-                <span className="w-24 font-mono text-sm tabular-nums">{entry.scheduled_at}</span>
-                <button
-                  type="button"
-                  className="cursor-pointer font-medium hover:underline"
-                  onClick={() => onSelect(entry.work_id)}
-                >
-                  {entry.work_title}
-                </button>
-                <Badge variant="soft" className="text-xs">
-                  {labelOf(profile.config.release_kinds, entry.kind)}
-                </Badge>
-                {entry.total !== null && (
-                  <span className="font-mono text-xs text-faint tabular-nums">
-                    {entry.total.toFixed(1)}
-                  </span>
-                )}
+          <>
+            <MonthGrid
+              month={month}
+              onMonthChange={setMonth}
+              slots={slots.data}
+              // A queued release is waiting for a date: the grid becomes a way
+              // to pick one, rather than a picture of what is booked.
+              claiming={picked !== null}
+              onPickDay={(date) => {
+                if (picked !== null) claim.mutate({ id: picked, date })
+              }}
+              onOpenRelease={(releaseId) => {
+                const found = slots.data.find((entry) => entry.id === releaseId)
+                if (found !== undefined) setEditing(found)
+              }}
+            />
 
-                {entry.status === 'released' ? (
-                  <span className="ml-auto text-xs text-good">
-                    {t('calendar.released')}
-                    {entry.url !== null && (
-                      <a
-                        href={entry.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="ml-2 underline"
-                      >
-                        {t('calendar.link')}
-                      </a>
-                    )}
-                  </span>
-                ) : (
-                  <span className="ml-auto flex gap-1">
-                    <Button size="sm" onClick={() => setReleasing(entry.id)}>
-                      {t('calendar.markReleased')}
-                    </Button>
-                    <Button
-                      variant="icon"
-                      size="iconSm"
-                      title={t('calendar.unschedule')}
-                      onClick={() => unschedule.mutate(entry.id)}
-                    >
-                      <Undo2 aria-hidden />
-                    </Button>
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
+            {slots.data.length === 0 && <p className="text-sm text-dim">{t('calendar.empty')}</p>}
+          </>
         )}
       </section>
+
+      <ReleaseEditor
+        release={editing}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null)
+        }}
+        onSaved={settle}
+        onOpenWork={onSelect}
+        onMarkReleased={setReleasing}
+        onUnschedule={(id) => unschedule.mutate(id)}
+      />
 
       {/* Was `window.prompt()`: blocking, unstyled, and untranslatable. */}
       <PromptDialog

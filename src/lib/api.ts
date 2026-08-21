@@ -316,6 +316,18 @@ export const catalogue = () => invoke<ScoredWork[]>('catalogue')
 
 export const createRelease = (release: NewRelease) => invoke<Release>('create_release', { release })
 export const deleteRelease = (id: string) => invoke<string>('delete_release', { id })
+// A field left out is untouched; `null` inside a nullable field clears it.
+export interface ReleasePatch {
+  kind?: string
+  title?: string | null
+  scheduled_at?: string | null
+  url?: string | null
+  meta?: Meta
+}
+
+export const updateRelease = (id: string, patch: ReleasePatch) =>
+  invoke<Release>('update_release', { id, patch })
+
 export const scheduleRelease = (id: string, slot: string) =>
   invoke<Scheduling>('schedule_release', { id, slot })
 export const unscheduleRelease = (id: string) => invoke<Release>('unschedule_release', { id })

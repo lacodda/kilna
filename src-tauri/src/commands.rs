@@ -474,6 +474,15 @@ pub fn create_release(state: State<'_, AppState>, release: NewRelease) -> Result
     Ok(created)
 }
 
+/// Edit a release: its kind, its date, the link it went out on.
+///
+/// Moving a date here changes the same fact `schedule_release` changes, so it
+/// has to leave the same trail. Without this the calendar could quietly take a
+/// work out of its slot while the work still called itself scheduled — the
+/// drift v0.20 exists to prevent, reintroduced through a side door.
+///
+/// It does not compete for a slot the way claiming one does: this is editing a
+/// booking you already hold, and a date typed into a form is not a bid.
 #[tauri::command]
 pub fn update_release(
     state: State<'_, AppState>,
@@ -481,7 +490,30 @@ pub fn update_release(
     patch: ReleasePatch,
 ) -> Result<Release> {
     let conn = state.conn();
-    release::update(&conn, &id, patch)
+    let profile_id = active_profile_id(&conn)?;
+    let before = release::get(&conn, &id)?;
+    let updated = release::update(&conn, &id, patch)?;
+
+    let moved = before
+        .as_ref()
+        .is_some_and(|before| before.scheduled_at != updated.scheduled_at);
+
+    if moved {
+        journal::record(
+            &conn,
+            &profile_id,
+            Record::new("release.moved")
+                .param(
+                    "title",
+                    journal::work_title(&conn, &updated.work_id).unwrap_or_default(),
+                )
+                .param("slot", updated.scheduled_at.clone().unwrap_or_default())
+                .about("work", updated.work_id.clone()),
+        );
+        restate(&conn, &profile_id, &updated.work_id);
+    }
+
+    Ok(updated)
 }
 
 #[tauri::command]

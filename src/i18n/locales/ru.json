@@ -172,6 +172,20 @@
     "working": "Работаю…"
   },
   "calendar": {
+    "openWork": "Открыть произведение",
+    "previousMonth": "Предыдущий месяц",
+    "nextMonth": "Следующий месяц",
+    "thisMonth": "Текущий месяц",
+    "clearDateHint": "Если убрать дату, выпуск вернётся в очередь.",
+    "weekday": {
+      "mon": "Пн",
+      "tue": "Вт",
+      "wed": "Ср",
+      "thu": "Чт",
+      "fri": "Пт",
+      "sat": "Сб",
+      "sun": "Вс"
+    },
     "title": "Календарь",
     "queue": "Очередь",
     "queueHint": "Сильные впереди. Выберите одно и назначьте дату.",
@@ -295,7 +309,8 @@
   "dialog": {
     "cancel": "Отмена",
     "close": "Закрыть",
-    "confirm": "Подтвердить"
+    "confirm": "Подтвердить",
+    "save": "Сохранить"
   },
   "crash": {
     "title": "Этот экран перестал работать",
@@ -316,6 +331,7 @@
     "scoreSaveFailed": "Не удалось сохранить оценку.",
     "scoreSaved": "Оценка записана.",
     "releaseCreated": "Выпуск добавлен.",
+    "releaseSaved": "Выпуск обновлён.",
     "releaseSaveFailed": "Не удалось сохранить выпуск.",
     "releaseScheduled": "Слот занят.",
     "releaseReleased": "Отмечено как выпущенное.",
@@ -383,6 +399,7 @@
     "score.deleted": "Оценка «{{origin}}» удалена.",
     "release.created": "Добавлен выпуск ({{kind}}) для «{{title}}».",
     "release.scheduled": "«{{title}}» заняло {{slot}}.",
+    "release.moved": "«{{title}}» перенесено на {{slot}}.",
     "release.displaced": "«{{title}}» потеряло слот {{slot}}.",
     "release.released": "«{{title}}» выпущено ({{kind}}).",
     "release.deleted": "Выпуск «{{label}}» удалён.",

@@ -165,6 +165,20 @@
     "working": "Working…"
   },
   "calendar": {
+    "openWork": "Open the work",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "thisMonth": "This month",
+    "clearDateHint": "Clearing the date returns it to the queue.",
+    "weekday": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
     "title": "Calendar",
     "queue": "Queue",
     "queueHint": "Strongest first. Pick one, then give it a date.",
@@ -284,7 +298,8 @@
   "dialog": {
     "cancel": "Cancel",
     "close": "Close",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "save": "Save"
   },
   "crash": {
     "title": "This screen stopped working",
@@ -305,6 +320,7 @@
     "scoreSaveFailed": "Could not save the score.",
     "scoreSaved": "Scored.",
     "releaseCreated": "Release added.",
+    "releaseSaved": "Release updated.",
     "releaseSaveFailed": "Could not save the release.",
     "releaseScheduled": "Slot claimed.",
     "releaseReleased": "Marked as released.",
@@ -366,6 +382,7 @@
     "score.deleted": "A score of “{{origin}}” was deleted.",
     "release.created": "{{kind}} release added for “{{title}}”.",
     "release.scheduled": "“{{title}}” claimed {{slot}}.",
+    "release.moved": "“{{title}}” moved to {{slot}}.",
     "release.displaced": "“{{title}}” lost its slot on {{slot}}.",
     "release.released": "“{{title}}” went out as a {{kind}}.",
     "release.deleted": "Release “{{label}}” deleted.",
