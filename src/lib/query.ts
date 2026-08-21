@@ -1,5 +1,4 @@
 import { QueryClient } from '@tanstack/react-query'
-import type { WorkFilter } from '@/lib/api'
 
 /**
  * Query keys in one place.
@@ -14,7 +13,6 @@ export const keys = {
   profiles: ['profiles'] as const,
 
   works: ['works'] as const,
-  workList: (filter?: WorkFilter) => ['works', 'list', filter ?? {}] as const,
   work: (id: string) => ['works', 'item', id] as const,
 
   versions: (workId: string) => ['versions', workId] as const,

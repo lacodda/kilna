@@ -60,11 +60,11 @@ export function CardHeader({ work, releases }: Props) {
           style={{ background: coverFor(work.id) }}
         >
           <Link
-            to="/works"
+            to="/catalogue"
             className="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-[10px] bg-black/35 px-2.5 py-1 text-[13px] text-white/90 backdrop-blur-sm transition-colors hover:bg-black/50 hover:text-white"
           >
             <ArrowLeft aria-hidden className="size-3.5" />
-            {t('nav.works')}
+            {t('nav.catalogue')}
           </Link>
         </div>
       </div>

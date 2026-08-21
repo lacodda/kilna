@@ -45,8 +45,7 @@ matching covers ASCII and nothing else — to it, `Г` and `г` are unrelated
 bytes. kilna folds case itself, in full Unicode, which is why a Russian
 workspace is as searchable as an English one.
 
-The same fix applies to the search field above the works list, which had the
-same blind spot.
+The catalogue's own search box folds case the same way, for the same reason.
 
 ## What it does not do yet
 

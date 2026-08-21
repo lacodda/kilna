@@ -30,8 +30,10 @@ function screenKey(pathname: string): string {
       return 'nav.data'
     case 'styleguide':
       return 'nav.styleguide'
+    // Includes `/works/:id`: an open work belongs to the catalogue, which is
+    // where its trail and its back link lead.
     default:
-      return 'nav.works'
+      return 'nav.catalogue'
   }
 }
 
@@ -107,7 +109,7 @@ function Breadcrumbs() {
 
   return (
     <nav className="flex min-w-0 items-center gap-1.5 text-[13px]">
-      <Link to="/works" className="text-dim transition-colors hover:text-text">
+      <Link to="/catalogue" className="text-dim transition-colors hover:text-text">
         {screen}
       </Link>
       <span aria-hidden className="text-faint">

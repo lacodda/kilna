@@ -8,7 +8,6 @@ import { ProfileContext } from '@/lib/useProfile'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Sidebar } from '@/components/shell/Sidebar'
 import { Topbar } from '@/components/shell/Topbar'
-import { WorkList } from '@/components/WorkList'
 import { WorkCard } from '@/components/WorkCard'
 import { Catalogue } from '@/components/Catalogue'
 import { CalendarView } from '@/components/CalendarView'
@@ -16,35 +15,30 @@ import { DataView } from '@/components/DataView'
 import { JournalView } from '@/components/JournalView'
 import { TrashView } from '@/components/TrashView'
 import { Styleguide } from '@/components/Styleguide'
-import { EmptyState } from '@/components/ui/EmptyState'
 import { Panel } from '@/components/ui/Panel'
 import { Skeleton } from '@/components/ui/Skeleton'
 
-// The works screen carries the selection in its URL: /works is the list with
-// nothing open, /works/:workId opens that work. The back button just works.
+// An open work, filling the screen. The address carries which one and which
+// tab, so the back button walks between them.
+//
+// Until v0.21 a list of every work sat beside it here, duplicating the
+// catalogue; `/works` with nothing open now sends you to the list that remains.
 function WorksScreen() {
-  const { t } = useTranslation()
   const navigate = useNavigate()
   const { workId, tab } = useParams()
 
-  return (
-    <div className="grid h-full gap-6 overflow-hidden p-6 lg:grid-cols-[20rem_1fr]">
-      <WorkList selectedId={workId ?? null} onSelect={(id) => navigate(`/works/${id}`)} />
+  if (workId === undefined) return <Navigate to="/catalogue" replace />
 
-      <main className="overflow-y-auto">
-        {workId === undefined ? (
-          <EmptyState title={t('empty.title')} body={t('empty.body')} />
-        ) : (
-          <WorkCard
-            key={workId}
-            workId={workId}
-            tab={tab}
-            onDeleted={() => navigate('/works')}
-            onUndone={(restored) => navigate(`/works/${restored}`)}
-          />
-        )}
-      </main>
-    </div>
+  return (
+    <main className="h-full overflow-y-auto p-6">
+      <WorkCard
+        key={workId}
+        workId={workId}
+        tab={tab}
+        onDeleted={() => navigate('/catalogue')}
+        onUndone={(restored) => navigate(`/works/${restored}`)}
+      />
+    </main>
   )
 }
 
@@ -105,8 +99,8 @@ export default function App() {
         <div className="[grid-area:side]">
           <Sidebar
             profileId={workspace.profile.id}
-            // The selection belongs to the profile being left.
-            onProfileSwitched={() => navigate('/works')}
+            // The open work belongs to the profile being left.
+            onProfileSwitched={() => navigate('/catalogue')}
           />
         </div>
         <div className="[grid-area:top]">
@@ -120,7 +114,7 @@ export default function App() {
               route that caused it. */}
           <ErrorBoundary resetKey={screen}>
             <Routes>
-              <Route path="/" element={<Navigate to="/works" replace />} />
+              <Route path="/" element={<Navigate to="/catalogue" replace />} />
               {/* The open tab is part of the address, so the back button walks
                   between tabs and a tab can be linked to directly. */}
               <Route path="/works/:workId?/:tab?" element={<WorksScreen />} />
@@ -174,7 +168,7 @@ export default function App() {
                   }
                 />
               )}
-              <Route path="*" element={<Navigate to="/works" replace />} />
+              <Route path="*" element={<Navigate to="/catalogue" replace />} />
             </Routes>
           </ErrorBoundary>
         </div>

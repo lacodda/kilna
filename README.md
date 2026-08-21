@@ -8,7 +8,7 @@ You write songs, chapters, episodes, or articles. The work lives in one place, t
 
 > **Status: early development.** The loop is closed end to end — a work gains versions, a version earns a score, a score wins a calendar slot, and the slot ends in a release you mark by hand — with four craft profiles, an AI panel over your own Claude Code CLI, and a plugin protocol. Nothing is deleted outright and nothing happens unnoticed: there is a trash behind every deletion and a history behind every change. The interface speaks English and Russian. Builds for Windows, macOS and Linux are on the [Releases page](https://github.com/lacodda/kilna/releases); none of them are signed yet, so your OS will warn you about an unidentified developer.
 
-<img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="Searching kilna: one box finding a work by title, two drafts by a line inside them, and what the assistant said about it" width="1200">
+<img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="The kilna catalogue with the search palette open over it: one box finding a work by title, two drafts by a line inside them, and what the assistant said about it" width="1200">
 
 ## The loop
 

@@ -9,11 +9,15 @@ current screen filling the rest.
 
 ## The sidebar
 
-The sidebar lists the screens: **Works** (the list and the open work),
-**Catalogue** (every work with its score and tier), **Calendar** (the queue
-and the taken slots), **History** (what has happened, newest first),
-**Trash** (everything you deleted, and the way back), and **Settings** (data
-in and out, the profile editor).
+The sidebar lists the screens: **Catalogue** (every work there is — add,
+search, filter, and open one), **Calendar** (the queue and the taken slots),
+**History** (what has happened, newest first), **Trash** (everything you
+deleted, and the way back), and **Settings** (data in and out, the profile
+editor).
+
+There is one list of works, not two. Until v0.21 a Works screen carried a
+second list beside the open card; it said the same things as the catalogue
+and made you choose which to look in.
 
 Some entries are doors that are not built yet — Dashboard, Collections,
 Notes. They sit in the sidebar with a small version chip naming the
@@ -80,9 +84,8 @@ Opening a work gives you a card with a cover, a bar and seven tabs.
 **The cover** is a gradient derived from the work's id. It is not decoration
 you chose; it is there so one card is distinguishable from another before you
 have read a word, and it stays the same for as long as the work exists. Real
-covers replace it later. The way back to the list sits on it — the one part of
-the card carrying nothing else, and on a narrow window the list beside it is
-gone entirely.
+covers replace it later. The way back to the catalogue sits on it — the one
+part of the card carrying nothing else.
 
 **The bar sticks.** The cover scrolls away, but the work's name, its status,
 its tier and score, the profile's own fields, and the tabs stay at the top —
@@ -92,8 +95,8 @@ reference you consult, not what you identify the card by. Everything in that
 bar is read-only. You edit it on **Overview**, because a header you can type
 into is a header that shifts under the cursor while it saves.
 
-**The trail at the top** names where you are: *Works › Harbour lights*, with
-the first part a link back.
+**The trail at the top** names where you are: *Catalogue › Harbour lights*,
+with the first part a link back.
 
 **The tabs:**
 
