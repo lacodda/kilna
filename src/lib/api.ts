@@ -208,6 +208,10 @@ export interface ScoredWork {
   tier: string | null
   scored_at: string | null
   stale: boolean
+  /** How many releases of this work have gone out. */
+  released: number
+  /** How many hold a slot in the calendar. */
+  scheduled: number
 }
 
 export interface Release {

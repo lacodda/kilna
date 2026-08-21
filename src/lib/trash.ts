@@ -19,12 +19,23 @@ import { say } from '@/lib/toast'
 export function announceDeleted({
   client,
   deletionId,
+  deletionIds,
   message,
   refresh,
   onUndone,
 }: {
   client: QueryClient
-  deletionId: string
+  /** One deletion to undo. Use `deletionIds` for a batch. */
+  deletionId?: string
+  /**
+   * A batch, undone as a whole.
+   *
+   * Restoring is per entry, so a batch has to walk them — newest first,
+   * because a work restored after its own version would find the version
+   * already back and refuse. One toast for the lot: a toast per work would
+   * push the earlier ones off the screen before they could be undone.
+   */
+  deletionIds?: readonly string[]
   /** What went, in the person's words: 'Winter road deleted'. */
   message: string
   refresh: readonly (readonly unknown[])[]
@@ -41,8 +52,10 @@ export function announceDeleted({
 
   invalidate()
 
+  const doomed = deletionIds ?? (deletionId === undefined ? [] : [deletionId])
+
   say.undoable(message, i18n.t('toast.undo'), () => {
-    restoreDeletion(deletionId)
+    undoAll(doomed)
       .then(() => {
         invalidate()
         say.ok(i18n.t('trash.restored'))
@@ -50,4 +63,11 @@ export function announceDeleted({
       })
       .catch((cause: unknown) => say.failedTo(i18n.t('trash.restoreFailed'), cause))
   })
+}
+
+/** Restore a batch in reverse order, so children come back before their parents. */
+async function undoAll(deletionIds: readonly string[]): Promise<void> {
+  for (const id of [...deletionIds].reverse()) {
+    await restoreDeletion(id)
+  }
 }

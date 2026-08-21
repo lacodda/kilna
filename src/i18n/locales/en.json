@@ -207,7 +207,35 @@
     "total": "Total",
     "scored": "Scored",
     "stale": "changed since",
-    "staleHint": "The work was edited after this score was taken."
+    "staleHint": "The work was edited after this score was taken.",
+    "anyTier": "Any tier",
+    "gaps": "Needs work",
+    "gap": {
+      "unscored": "Not scored",
+      "unscheduled": "Nothing planned",
+      "stale": "Score is old"
+    },
+    "gapHint": {
+      "unscored": "Nothing has judged these yet.",
+      "unscheduled": "Judged, but nothing has gone out and nothing is booked.",
+      "stale": "The work changed after it was scored."
+    },
+    "showing": "{{shown}} of {{total}}",
+    "selectAll": "Select every work shown",
+    "select": "Select {{title}}",
+    "rowMenu": "What to do with {{title}}",
+    "chosen_one": "{{count}} chosen",
+    "chosen_other": "{{count}} chosen",
+    "clearSelection": "Clear selection",
+    "deleted_one": "{{count}} work deleted",
+    "deleted_other": "{{count}} works deleted",
+    "action": {
+      "score": "Score it",
+      "schedule": "Plan a release",
+      "delete": "Delete"
+    },
+    "sortBy": "Sort by {{column}}",
+    "clear": "Clear"
   },
   "assistant": {
     "title": "Assistant",

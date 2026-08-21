@@ -48,6 +48,10 @@ pub struct ScoredWork {
     /// True when the work has changed since it was last scored — the score
     /// describes an older draft.
     pub stale: bool,
+    /// How many releases of this work have gone out.
+    pub released: i64,
+    /// How many hold a slot in the calendar.
+    pub scheduled: i64,
 }
 
 /// Record a score for a work.
@@ -171,7 +175,12 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
 pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>> {
     let mut statement = conn.prepare(
         "SELECT w.id, w.title, w.kind, w.status, s.total, s.tier, s.scored_at,
-                s.scored_at IS NOT NULL AND w.updated_at > s.scored_at AS stale
+                s.scored_at IS NOT NULL AND w.updated_at > s.scored_at AS stale,
+                (SELECT count(*) FROM release r
+                  WHERE r.work_id = w.id AND r.status = 'released') AS released,
+                (SELECT count(*) FROM release r
+                  WHERE r.work_id = w.id AND r.status = 'planned'
+                    AND r.scheduled_at IS NOT NULL) AS scheduled
          FROM work w
          LEFT JOIN work_score s ON s.id = coalesce(
              (SELECT id FROM work_score
@@ -196,6 +205,8 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
             tier: row.get(5)?,
             scored_at: row.get(6)?,
             stale: row.get::<_, i64>(7)? == 1,
+            released: row.get(8)?,
+            scheduled: row.get(9)?,
         })
     })?;
 
@@ -347,6 +358,49 @@ mod tests {
 
     /// The rule that decides which snapshot a work is judged by: the one on the
     /// version that currently *is* the work, not the one taken most recently.
+    /// The counts behind the catalogue's "nothing planned yet" filter. A
+    /// release with no date is an intention, not a slot — the same rule the
+    /// status automation follows, and it has to mean the same thing in both
+    /// places or the two screens disagree about the same work.
+    #[test]
+    fn the_catalogue_counts_slots_and_releases() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id, "Subject");
+
+        let row = catalogue_row(&conn, &profile_id, &work_id);
+        assert_eq!((row.released, row.scheduled), (0, 0));
+
+        let undated = crate::release::create(
+            &conn,
+            crate::release::NewRelease {
+                work_id: work_id.clone(),
+                kind: "clip".into(),
+                title: None,
+                scheduled_at: None,
+                meta: None,
+            },
+        )
+        .unwrap();
+        let row = catalogue_row(&conn, &profile_id, &work_id);
+        assert_eq!(
+            (row.released, row.scheduled),
+            (0, 0),
+            "a release with no date holds no slot"
+        );
+
+        crate::release::schedule(&mut conn, &undated.id, "2026-09-01").unwrap();
+        let row = catalogue_row(&conn, &profile_id, &work_id);
+        assert_eq!((row.released, row.scheduled), (0, 1));
+
+        crate::release::mark_released(&conn, &undated.id, None).unwrap();
+        let row = catalogue_row(&conn, &profile_id, &work_id);
+        assert_eq!(
+            (row.released, row.scheduled),
+            (1, 0),
+            "one that went out no longer holds its slot"
+        );
+    }
+
     #[test]
     fn the_catalogue_reads_the_score_of_the_current_version() {
         let (mut conn, profile_id) = workspace();

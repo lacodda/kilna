@@ -90,7 +90,8 @@ export default function App() {
     )
   }
 
-  const openWork = (workId: string) => navigate(`/works/${workId}`)
+  const openWork = (workId: string, tab?: string) =>
+    navigate(tab === undefined ? `/works/${workId}` : `/works/${workId}/${tab}`)
   const screen = location.pathname.split('/')[1] ?? ''
 
   return (

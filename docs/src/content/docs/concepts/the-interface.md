@@ -9,8 +9,8 @@ current screen filling the rest.
 
 ## The sidebar
 
-The sidebar lists the screens: **Catalogue** (every work there is — add,
-search, filter, and open one), **Calendar** (the queue and the taken slots),
+The sidebar lists the screens: **[Catalogue](/kilna/guides/the-catalogue/)**
+(every work there is — add, search, filter, and open one), **Calendar** (the queue and the taken slots),
 **History** (what has happened, newest first), **Trash** (everything you
 deleted, and the way back), and **Settings** (data in and out, the profile
 editor).
