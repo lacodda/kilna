@@ -134,7 +134,7 @@ function TabBody({
     case 'notes':
       return <NotePanel workId={workId} />
     // The mockup has no assistant tab — it puts the panel in a drawer with a
-    // floating button, which is v0.26. Until then it lives here rather than
+    // floating button, which is v0.28. Until then it lives here rather than
     // being unreachable.
     case 'assistant':
       return <AssistantPanel workId={workId} />

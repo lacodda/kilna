@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
  *
  * Everything is sanitised before it reaches the DOM. The text here is the
  * user's own writing today, but the same component renders assistant replies
- * from v0.26 — and this app can reach the file system, so unsanitised HTML from
+ * from v0.28 — and this app can reach the file system, so unsanitised HTML from
  * a model's output is not a risk worth taking twice.
  *
  * Rendering is synchronous on purpose: `marked` can return a promise when

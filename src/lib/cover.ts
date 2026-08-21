@@ -4,7 +4,7 @@
  * Every work gets a gradient derived from its id, so a card is recognisable at a
  * glance and stays the same colour for as long as the work exists. Deriving it
  * rather than storing it means nothing has to be migrated when real covers
- * arrive in v0.36 — the gradient simply becomes the fallback.
+ * arrive in v0.38 — the gradient simply becomes the fallback.
  *
  * The palette is the mockup's: seven pairs, each a saturated hue falling into a
  * dark violet, so a row of covers reads as one family rather than a paint chart.
