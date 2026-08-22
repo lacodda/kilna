@@ -8,9 +8,9 @@
       { "key": "instrumental", "label": "Instrumental" }
     ],
     "release_kinds": [
-      { "key": "clip", "label": "Video clip" },
-      { "key": "short", "label": "Short" },
-      { "key": "audio", "label": "Audio release" }
+      { "key": "clip", "label": "Video clip", "requires": ["lyrics", "style"] },
+      { "key": "short", "label": "Short", "requires": ["lyrics", "style"] },
+      { "key": "audio", "label": "Audio release", "requires": ["lyrics", "style"] }
     ],
     "collection_kinds": [
       { "key": "album", "label": "Album" },

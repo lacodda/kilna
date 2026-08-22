@@ -9,9 +9,9 @@
       { "key": "guide", "label": "Guide" }
     ],
     "release_kinds": [
-      { "key": "publish", "label": "Site publish" },
-      { "key": "newsletter", "label": "Newsletter send" },
-      { "key": "syndication", "label": "Syndication" }
+      { "key": "publish", "label": "Site publish", "requires": ["draft"] },
+      { "key": "newsletter", "label": "Newsletter send", "requires": ["draft"] },
+      { "key": "syndication", "label": "Syndication", "requires": ["draft"] }
     ],
     "collection_kinds": [
       { "key": "series", "label": "Series" },

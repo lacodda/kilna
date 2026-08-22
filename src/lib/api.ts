@@ -43,9 +43,15 @@ export interface PromptTemplate {
   description?: string
 }
 
+// What a release of this kind cannot ship without: version role keys. An empty
+// list states no requirements, and readiness marks render as inapplicable.
+export interface ReleaseKind extends Kind {
+  requires: string[]
+}
+
 export interface ProfileConfig {
   work_kinds: Kind[]
-  release_kinds: Kind[]
+  release_kinds: ReleaseKind[]
   collection_kinds: Kind[]
   version_roles: Kind[]
   statuses: Status[]

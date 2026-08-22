@@ -7,7 +7,7 @@ pub struct ProfileConfig {
     /// Kinds a work can take: song, chapter, episode.
     pub work_kinds: Vec<Kind>,
     /// Kinds a release can take: clip, short, audio release.
-    pub release_kinds: Vec<Kind>,
+    pub release_kinds: Vec<ReleaseKind>,
     /// Kinds a collection can take: album, book, season.
     pub collection_kinds: Vec<Kind>,
     /// Independent bodies a work carries: lyrics and style, or text and outline.
@@ -38,6 +38,31 @@ impl Kind {
         Self {
             key: key.to_owned(),
             label: label.to_owned(),
+        }
+    }
+}
+
+/// A kind of release, and what a release of it cannot ship without.
+///
+/// `requires` names version roles: a clip needs lyrics and a style prompt, a
+/// beta read needs the text. An empty list means the kind states no
+/// requirements — readiness is then judged on the universal facts alone, and
+/// every role mark reads as "not applicable" rather than "missing". A profile
+/// written before this field existed loads that way.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseKind {
+    pub key: String,
+    pub label: String,
+    #[serde(default)]
+    pub requires: Vec<String>,
+}
+
+impl ReleaseKind {
+    pub fn new(key: &str, label: &str, requires: &[&str]) -> Self {
+        Self {
+            key: key.to_owned(),
+            label: label.to_owned(),
+            requires: requires.iter().map(|role| (*role).to_owned()).collect(),
         }
     }
 }
@@ -188,6 +213,13 @@ mod tests {
             "work_meta_fields": []
         }))
         .unwrap()
+    }
+
+    // The fixture's release kind carries no `requires`, as every profile
+    // written before the field existed does.
+    #[test]
+    fn a_release_kind_without_requirements_parses_as_requiring_nothing() {
+        assert!(config().release_kinds[0].requires.is_empty());
     }
 
     #[test]

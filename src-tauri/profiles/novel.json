@@ -9,10 +9,10 @@
       { "key": "story", "label": "Short story" }
     ],
     "release_kinds": [
-      { "key": "beta", "label": "To beta readers" },
-      { "key": "serial", "label": "Serial instalment" },
-      { "key": "submission", "label": "Submission" },
-      { "key": "published", "label": "Publication" }
+      { "key": "beta", "label": "To beta readers", "requires": ["text"] },
+      { "key": "serial", "label": "Serial instalment", "requires": ["text"] },
+      { "key": "submission", "label": "Submission", "requires": ["text"] },
+      { "key": "published", "label": "Publication", "requires": ["text"] }
     ],
     "collection_kinds": [
       { "key": "book", "label": "Book" },

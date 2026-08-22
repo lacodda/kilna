@@ -102,6 +102,9 @@ pub fn seed(conn: &Connection) -> Result<()> {
 ///   `Manual` and the shipped one names a meaning. Without this the status
 ///   automation is silently inert in every workspace that predates it, which is
 ///   exactly how it was found: on a real database, deriving nothing at all.
+/// * **The `requires` list of a release kind**, where the stored copy states
+///   nothing and the shipped one names roles. Same failure mode as `derive`:
+///   readiness marks would sit blank in every workspace that predates them.
 ///
 /// A role the user deliberately set to `Manual` is indistinguishable from one
 /// that was never written, and is restored along with the rest. That is the
@@ -153,6 +156,24 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         };
         if shipped.derive != Derive::Manual {
             status.derive = shipped.derive;
+            changed = true;
+        }
+    }
+
+    for kind in &mut config.release_kinds {
+        if !kind.requires.is_empty() {
+            continue;
+        }
+        let Some(shipped) = shipped
+            .config
+            .release_kinds
+            .iter()
+            .find(|shipped| shipped.key == kind.key)
+        else {
+            continue;
+        };
+        if !shipped.requires.is_empty() {
+            kind.requires = shipped.requires.clone();
             changed = true;
         }
     }
@@ -462,6 +483,54 @@ mod tests {
         assert_eq!(derive_of("shelved"), Derive::Manual);
     }
 
+    /// Same delivery path as `derive`: a workspace copied before release kinds
+    /// stated their requirements gains them on the next start, or readiness
+    /// marks stay blank there forever.
+    #[test]
+    fn an_older_workspace_gains_the_roles_its_release_kinds_require() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        // Wind the stored copy back: the same kinds, requiring nothing — and
+        // one the user narrowed by hand, which must stay narrowed.
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        for kind in &mut config.release_kinds {
+            kind.requires = if kind.key == "audio" {
+                vec!["style".into()]
+            } else {
+                Vec::new()
+            };
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let requires_of = |key: &str| {
+            config
+                .release_kinds
+                .iter()
+                .find(|kind| kind.key == key)
+                .unwrap()
+                .requires
+                .clone()
+        };
+        assert_eq!(requires_of("clip"), vec!["lyrics", "style"]);
+        // A list the user set themselves is not overwritten by the upgrade.
+        assert_eq!(requires_of("audio"), vec!["style"]);
+    }
+
     /// The labels are the user's, and an upgrade must not take them back.
     #[test]
     fn carrying_meanings_forward_leaves_renamed_statuses_renamed() {
@@ -539,6 +608,19 @@ mod tests {
                 !config.version_roles.is_empty(),
                 "{key} has no version roles"
             );
+
+            // A requirement naming a role the profile does not have can never
+            // be satisfied, so every release of that kind reads as unready
+            // forever — with nothing on any screen to explain why.
+            for kind in &config.release_kinds {
+                for role in &kind.requires {
+                    assert!(
+                        config.version_roles.iter().any(|known| &known.key == role),
+                        "{key}: release kind `{}` requires role `{role}`, which the profile does not define",
+                        kind.key
+                    );
+                }
+            }
 
             // A tier reachable by nothing is a tier that never appears.
             assert!(
