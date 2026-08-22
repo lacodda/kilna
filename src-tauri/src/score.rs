@@ -54,6 +54,34 @@ pub struct ScoredWork {
     pub scheduled: i64,
 }
 
+/// The score that speaks for a work, as a subquery returning one `work_score.id`.
+///
+/// **Finalised is the work.** Once a version is named as the current one, that
+/// version *is* the work, and its score is the work's score — not the newest
+/// snapshot on the record. Going back to judge an old draft otherwise announces
+/// that the work got worse. With no current version, or none that was ever
+/// judged, the strongest score stands: the best it has been shown to be, rather
+/// than whatever happened last.
+///
+/// Written once and shared because three places used to answer this question
+/// differently — the catalogue by this rule, the calendar and the displacement
+/// contest by "latest". One work read 68.1 on one screen and 77.8 on the next,
+/// and the rule that decides which release keeps a date used a third number
+/// nothing displayed. `{work}` is the column holding the work id.
+pub const SPEAKING_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work}      AND version_id IS NOT NULL AND version_id = (SELECT current_version_id FROM work WHERE id = {work})      ORDER BY scored_at DESC LIMIT 1";
+
+/// The fallback half of [`SPEAKING_SCORE`]: strongest, then most recent.
+pub const STRONGEST_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work}      ORDER BY total DESC, scored_at DESC LIMIT 1";
+
+/// Both halves as one `coalesce`, ready to join against.
+pub fn speaking_score_for(work_column: &str) -> String {
+    format!(
+        "coalesce(({}), ({}))",
+        SPEAKING_SCORE.replace("{work}", work_column),
+        STRONGEST_SCORE.replace("{work}", work_column),
+    )
+}
+
 /// Record a score for a work.
 ///
 /// The total and tier are computed from the active profile rather than accepted
@@ -173,7 +201,7 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
 /// version, or one whose current version was never judged, falls back to its
 /// strongest score: the best it has been shown to be.
 pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>> {
-    let mut statement = conn.prepare(
+    let mut statement = conn.prepare(&format!(
         "SELECT w.id, w.title, w.kind, w.status, s.total, s.tier, s.scored_at,
                 s.scored_at IS NOT NULL AND w.updated_at > s.scored_at AS stale,
                 (SELECT count(*) FROM release r
@@ -182,18 +210,11 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
                   WHERE r.work_id = w.id AND r.status = 'planned'
                     AND r.scheduled_at IS NOT NULL) AS scheduled
          FROM work w
-         LEFT JOIN work_score s ON s.id = coalesce(
-             (SELECT id FROM work_score
-               WHERE work_id = w.id AND version_id IS NOT NULL
-                 AND version_id = w.current_version_id
-               ORDER BY scored_at DESC LIMIT 1),
-             (SELECT id FROM work_score
-               WHERE work_id = w.id
-               ORDER BY total DESC, scored_at DESC LIMIT 1)
-         )
+         LEFT JOIN work_score s ON s.id = {speaking}
          WHERE w.profile_id = ?1
          ORDER BY s.total IS NULL, s.total DESC, w.title",
-    )?;
+        speaking = speaking_score_for("w.id"),
+    ))?;
 
     let rows = statement.query_map(params![profile_id], |row| {
         Ok(ScoredWork {

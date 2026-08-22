@@ -20,6 +20,25 @@ A work also tracks whether it's **stale** — edited since its most recent
 score — so a listing can show you when a score describes an older draft
 rather than the one you're looking at now.
 
+## Which score speaks for a work
+
+A work accumulates snapshots, so something has to decide which of them *is* the
+work's score — the number in the catalogue, the number the calendar shows, and
+the number that decides which release keeps a contested date.
+
+**Finalised is the work.** Once a version is named as the current one, that
+version is the work, and its score is the work's score. Going back to judge an
+old draft otherwise announces that the work got worse.
+
+With no current version, or none that was ever judged, the **strongest** score
+stands: the best it has been shown to be, rather than whatever happened last. A
+half-finished experiment scored at 3 should not become the work's number just
+by being the most recent thing you did.
+
+One rule, in one place. Three parts of the app used to answer this question
+differently, and a work could read 68.1 on one screen and 77.8 on the next
+while a date was decided by a third number that nothing displayed.
+
 ## Axes and weights
 
 A profile defines a set of **axes**: named dimensions a work is judged on,

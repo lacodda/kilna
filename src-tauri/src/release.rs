@@ -18,6 +18,9 @@ pub struct Release {
     pub scheduled_at: Option<String>,
     pub released_at: Option<String>,
     pub url: Option<String>,
+    /// Set when a person settled this date. A pinned slot is not contested —
+    /// see [`schedule`].
+    pub slot_pinned_at: Option<String>,
     pub meta: Map<String, Value>,
     pub created_at: String,
     pub updated_at: String,
@@ -70,7 +73,7 @@ pub const PLANNED: &str = "planned";
 pub const RELEASED: &str = "released";
 
 const SELECT_RELEASE: &str = "SELECT id, work_id, kind, status, title, scheduled_at, released_at, \
-     url, meta, created_at, updated_at FROM release";
+     url, slot_pinned_at, meta, created_at, updated_at FROM release";
 
 pub fn create(conn: &Connection, new: NewRelease) -> Result<Release> {
     let exists: bool = conn
@@ -155,6 +158,16 @@ pub fn schedule(conn: &mut Connection, id: &str, slot: &str) -> Result<Schedulin
     let mut displaced = None;
 
     if let Some(occupant) = occupant {
+        // A pinned slot is not a contest. Strength is never consulted: the date
+        // was decided by a person, and the whole point of deciding is that a
+        // better score does not reopen it.
+        if occupant.slot_pinned_at.is_some() {
+            return Err(Error::SlotPinned(format!(
+                "`{}` holds that date and it is pinned",
+                occupant.title.as_deref().unwrap_or(&occupant.work_id)
+            )));
+        }
+
         let challenger = strength(&tx, &release.work_id)?;
         let holder = strength(&tx, &occupant.work_id)?;
 
@@ -167,6 +180,9 @@ pub fn schedule(conn: &mut Connection, id: &str, slot: &str) -> Result<Schedulin
             )));
         }
 
+        // No pin to clear here: a pinned slot refuses the challenge above, so
+        // anything that reaches this line was never pinned. The other two ways
+        // a date is lost do clear it — see `unschedule` and `update`.
         tx.execute(
             "UPDATE release SET scheduled_at = NULL, updated_at = ?2 WHERE id = ?1",
             params![occupant.id, timestamp],
@@ -192,19 +208,56 @@ pub fn schedule(conn: &mut Connection, id: &str, slot: &str) -> Result<Schedulin
 
 /// Latest total for a work, or `None` when it has never been scored.
 fn strength(conn: &Connection, work_id: &str) -> Result<Option<f64>> {
+    // The same score the catalogue shows. A contest decided by a number nobody
+    // can see is a contest nobody can predict — and until v0.24 this read the
+    // latest snapshot while the catalogue read the current version's.
+    let sql = format!(
+        "SELECT total FROM work_score WHERE id = {}",
+        crate::score::speaking_score_for("?1")
+    );
     Ok(conn
+        .query_row(&sql, params![work_id], |row| row.get(0))
+        .optional()?)
+}
+
+/// Settle a date, or hand it back to the contest.
+///
+/// Pinning a release with no date would pin nothing, so it is refused rather
+/// than silently accepted.
+pub fn set_slot_pin(conn: &Connection, id: &str, pinned: bool) -> Result<Release> {
+    let scheduled: Option<Option<String>> = conn
         .query_row(
-            "SELECT total FROM work_score WHERE work_id = ?1 ORDER BY scored_at DESC LIMIT 1",
-            params![work_id],
+            "SELECT scheduled_at FROM release WHERE id = ?1",
+            params![id],
             |row| row.get(0),
         )
-        .optional()?)
+        .optional()?;
+
+    let Some(scheduled) = scheduled else {
+        return Err(unknown_release(id));
+    };
+    if pinned && scheduled.is_none() {
+        return Err(Error::Other(
+            "a release with no date has no slot to pin".into(),
+        ));
+    }
+
+    let timestamp = now();
+    conn.execute(
+        "UPDATE release SET slot_pinned_at = ?2, updated_at = ?3 WHERE id = ?1",
+        params![id, pinned.then(|| timestamp.clone()), timestamp],
+    )?;
+
+    get(conn, id)?.ok_or_else(|| unknown_release(id))
 }
 
 /// Take a release out of the calendar without deleting it.
 pub fn unschedule(conn: &Connection, id: &str) -> Result<Release> {
+    // The pin goes with the date. A pin describes a date that was decided, and
+    // there is no longer a date — leaving it behind creates a state nothing
+    // else in the app can produce and `set_slot_pin` explicitly refuses.
     if conn.execute(
-        "UPDATE release SET scheduled_at = NULL, updated_at = ?2 WHERE id = ?1",
+        "UPDATE release SET scheduled_at = NULL, slot_pinned_at = NULL, updated_at = ?2 WHERE id = ?1",
         params![id, now()],
     )? == 0
     {
@@ -256,12 +309,23 @@ pub fn update(conn: &Connection, id: &str, patch: ReleasePatch) -> Result<Releas
         set(&mut assignments, &mut values, "title", Box::new(title));
     }
     if let Some(scheduled_at) = patch.scheduled_at {
+        // Clearing the date clears the pin with it, for the reason given in
+        // `unschedule`: a pin without a date is a state nothing can act on.
+        let clearing = scheduled_at.is_none();
         set(
             &mut assignments,
             &mut values,
             "scheduled_at",
             Box::new(scheduled_at),
         );
+        if clearing {
+            set(
+                &mut assignments,
+                &mut values,
+                "slot_pinned_at",
+                Box::new(None::<String>),
+            );
+        }
     }
     if let Some(url) = patch.url {
         set(&mut assignments, &mut values, "url", Box::new(url));
@@ -303,19 +367,24 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
     Ok(())
 }
 
-const SELECT_SCHEDULED: &str = "SELECT r.id, r.work_id, r.kind, r.status, r.title, r.scheduled_at, \
-     r.released_at, r.url, r.meta, r.created_at, r.updated_at, w.title, s.total, s.tier \
+const SELECT_SCHEDULED_TEMPLATE: &str = "SELECT r.id, r.work_id, r.kind, r.status, r.title, r.scheduled_at, \
+     r.released_at, r.url, r.slot_pinned_at, r.meta, r.created_at, r.updated_at, \
+     w.title, s.total, s.tier \
      FROM release r \
      JOIN work w ON w.id = r.work_id \
-     LEFT JOIN work_score s ON s.id = ( \
-         SELECT id FROM work_score WHERE work_id = r.work_id ORDER BY scored_at DESC LIMIT 1 \
-     ) \
+     LEFT JOIN work_score s ON s.id = {speaking} \
      WHERE w.profile_id = ?1";
+
+/// The listing query with the shared scoring rule filled in.
+fn select_scheduled() -> String {
+    SELECT_SCHEDULED_TEMPLATE.replace("{speaking}", &crate::score::speaking_score_for("r.work_id"))
+}
 
 /// Everything with a slot, in calendar order.
 pub fn calendar(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRelease>> {
     let mut statement = conn.prepare(&format!(
-        "{SELECT_SCHEDULED} AND r.scheduled_at IS NOT NULL ORDER BY r.scheduled_at, w.title"
+        "{} AND r.scheduled_at IS NOT NULL ORDER BY r.scheduled_at, w.title",
+        select_scheduled()
     ))?;
     read_scheduled(&mut statement, profile_id)
 }
@@ -324,8 +393,9 @@ pub fn calendar(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRele
 /// the calendar.
 pub fn queue(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRelease>> {
     let mut statement = conn.prepare(&format!(
-        "{SELECT_SCHEDULED} AND r.scheduled_at IS NULL AND r.status = '{PLANNED}' \
-         ORDER BY s.total IS NULL, s.total DESC, w.title"
+        "{} AND r.scheduled_at IS NULL AND r.status = '{PLANNED}' \
+         ORDER BY s.total IS NULL, s.total DESC, w.title",
+        select_scheduled()
     ))?;
     read_scheduled(&mut statement, profile_id)
 }
@@ -358,13 +428,14 @@ fn read_scheduled(
                     scheduled_at: row.get(5)?,
                     released_at: row.get(6)?,
                     url: row.get(7)?,
-                    meta: row.get(8)?,
-                    created_at: row.get(9)?,
-                    updated_at: row.get(10)?,
+                    slot_pinned_at: row.get(8)?,
+                    meta: row.get(9)?,
+                    created_at: row.get(10)?,
+                    updated_at: row.get(11)?,
                 },
-                row.get::<_, String>(11)?,
-                row.get::<_, Option<f64>>(12)?,
-                row.get::<_, Option<String>>(13)?,
+                row.get::<_, String>(12)?,
+                row.get::<_, Option<f64>>(13)?,
+                row.get::<_, Option<String>>(14)?,
             ))
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -394,6 +465,7 @@ struct RawRelease {
     scheduled_at: Option<String>,
     released_at: Option<String>,
     url: Option<String>,
+    slot_pinned_at: Option<String>,
     meta: String,
     created_at: String,
     updated_at: String,
@@ -409,9 +481,10 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawRelease> {
         scheduled_at: row.get(5)?,
         released_at: row.get(6)?,
         url: row.get(7)?,
-        meta: row.get(8)?,
-        created_at: row.get(9)?,
-        updated_at: row.get(10)?,
+        slot_pinned_at: row.get(8)?,
+        meta: row.get(9)?,
+        created_at: row.get(10)?,
+        updated_at: row.get(11)?,
     })
 }
 
@@ -427,6 +500,7 @@ impl RawRelease {
             scheduled_at: self.scheduled_at,
             released_at: self.released_at,
             url: self.url,
+            slot_pinned_at: self.slot_pinned_at,
             created_at: self.created_at,
             updated_at: self.updated_at,
         })
@@ -591,6 +665,118 @@ mod tests {
 
         assert!(result.displaced.is_none());
         assert_eq!(result.release.scheduled_at.as_deref(), Some("2026-09-01"));
+    }
+
+    /// The contest and the screens must agree about how strong a work is.
+    ///
+    /// Until v0.24 this read the latest snapshot while the catalogue read the
+    /// current version's, so one work showed 68.1 on one screen and 77.8 on the
+    /// next — and the rule deciding who keeps a date used a third number that
+    /// nothing displayed.
+    #[test]
+    fn strength_is_the_score_that_speaks_for_the_work() {
+        let (mut conn, profile_id) = workspace();
+        let held = planned(&conn, &profile_id, "Subject", Some(7.0));
+
+        // A second, weaker score taken later: with no current version named,
+        // the strongest still speaks for the work.
+        score::create(
+            &conn,
+            &held.work_id,
+            NewScore {
+                axes: json!({ "hook": 3.0 }).as_object().cloned().unwrap(),
+                version_id: None,
+                note: None,
+            },
+        )
+        .unwrap();
+
+        let total = strength(&conn, &held.work_id).unwrap().unwrap();
+        let strongest = score::history(&conn, &held.work_id)
+            .unwrap()
+            .into_iter()
+            .map(|score| score.total)
+            .fold(f64::NEG_INFINITY, f64::max);
+        assert!(
+            (total - strongest).abs() < 1e-9,
+            "contest read {total}, catalogue would read {strongest}"
+        );
+
+        // And it agrees with what the calendar shows for the same work.
+        schedule(&mut conn, &held.id, "2026-09-01").unwrap();
+        let shown = calendar(&conn, &profile_id).unwrap();
+        let entry = shown.iter().find(|row| row.release.id == held.id).unwrap();
+        assert_eq!(entry.total, Some(total));
+    }
+
+    /// A pinned date is a decision, and a decision does not reopen because a
+    /// better score turned up.
+    #[test]
+    fn a_pinned_slot_refuses_a_stronger_challenger() {
+        let (mut conn, profile_id) = workspace();
+
+        let weak = planned(&conn, &profile_id, "Weak", Some(4.0));
+        schedule(&mut conn, &weak.id, "2026-09-01").unwrap();
+        set_slot_pin(&conn, &weak.id, true).unwrap();
+
+        let strong = planned(&conn, &profile_id, "Strong", Some(9.0));
+        let refused = schedule(&mut conn, &strong.id, "2026-09-01").unwrap_err();
+        assert_eq!(refused.kind(), "slotPinned", "got {refused}");
+
+        // The holder keeps both its date and its pin.
+        let holder = get(&conn, &weak.id).unwrap().unwrap();
+        assert_eq!(holder.scheduled_at.as_deref(), Some("2026-09-01"));
+        assert!(holder.slot_pinned_at.is_some());
+
+        // Unpinned, the same challenger wins the ordinary way.
+        set_slot_pin(&conn, &weak.id, false).unwrap();
+        let outcome = schedule(&mut conn, &strong.id, "2026-09-01").unwrap();
+        assert!(outcome.displaced.is_some(), "the contest did not resume");
+    }
+
+    /// A pin describes a date, so losing the date loses the pin — otherwise the
+    /// release sits in a state `set_slot_pin` itself refuses to create. Found on
+    /// a live database rather than reasoned about.
+    ///
+    /// Displacement is not listed here: a pinned slot refuses the challenge, so
+    /// nothing displaced was ever pinned.
+    #[test]
+    fn losing_the_date_loses_the_pin() {
+        let (mut conn, profile_id) = workspace();
+
+        // By unscheduling.
+        let first = planned(&conn, &profile_id, "First", Some(5.0));
+        schedule(&mut conn, &first.id, "2026-09-01").unwrap();
+        set_slot_pin(&conn, &first.id, true).unwrap();
+        let back = unschedule(&conn, &first.id).unwrap();
+        assert_eq!(back.scheduled_at, None);
+        assert_eq!(back.slot_pinned_at, None, "unscheduling kept the pin");
+
+        // By clearing the date through a patch.
+        schedule(&mut conn, &first.id, "2026-09-02").unwrap();
+        set_slot_pin(&conn, &first.id, true).unwrap();
+        let cleared = update(
+            &conn,
+            &first.id,
+            ReleasePatch {
+                scheduled_at: Some(None),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            cleared.slot_pinned_at, None,
+            "clearing the date kept the pin"
+        );
+    }
+
+    /// There is no slot to pin on something that holds no date.
+    #[test]
+    fn pinning_needs_a_date() {
+        let (conn, profile_id) = workspace();
+        let queued = planned(&conn, &profile_id, "Subject", Some(5.0));
+
+        assert!(set_slot_pin(&conn, &queued.id, true).is_err());
     }
 
     #[test]
