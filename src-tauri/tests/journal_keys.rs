@@ -33,6 +33,33 @@ fn keys_written() -> BTreeSet<String> {
     let source = std::fs::read_to_string(repo_root().join("src-tauri/src/commands.rs"))
         .expect("commands.rs is readable");
 
+    // A key computed in the argument — `Record::new(if x { "a" } else { "b" })`
+    // — is invisible to the scan below, and an unseen key reaches the screen
+    // raw. Rather than parse Rust, the rule is that the argument must open with
+    // a string literal; anything else fails here with instructions.
+    let computed: Vec<&str> = source
+        .match_indices("Record::new(")
+        .filter(|(index, _)| {
+            let argument = &source[index + "Record::new(".len()..];
+            // `format!("{}.deleted", …)` is the one computed form this gate
+            // knows about: the six trash entities are enumerated below, so its
+            // keys are covered.
+            !argument.starts_with('"') && !argument.starts_with(r#"format!("{}.deleted""#)
+        })
+        .map(|(index, _)| {
+            let line_start = source[..index].rfind('\n').map_or(0, |at| at + 1);
+            let line_end = source[index..]
+                .find('\n')
+                .map_or(source.len(), |at| index + at);
+            source[line_start..line_end].trim()
+        })
+        .collect();
+
+    assert!(
+        computed.is_empty(),
+        "these journal keys are computed rather than written out, so this gate          cannot see them — name each key literally: {computed:?}"
+    );
+
     let mut found = BTreeSet::new();
     for (index, _) in source.match_indices("Record::new(\"") {
         let start = index + "Record::new(\"".len();
