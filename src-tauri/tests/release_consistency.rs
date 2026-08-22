@@ -173,7 +173,6 @@ fn the_declared_msrv_is_a_real_number() {
     );
 }
 
-
 /// Taking a date must go through the contest, never through a plain edit.
 ///
 /// `update_release` writes a date without asking who holds it, which is right

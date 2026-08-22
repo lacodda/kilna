@@ -798,7 +798,10 @@ mod tests {
             .into_iter()
             .filter(|row| row.release.scheduled_at.as_deref() == Some("2026-09-05"))
             .count();
-        assert_eq!(sharing, 2, "update is expected not to contest — see the doc comment");
+        assert_eq!(
+            sharing, 2,
+            "update is expected not to contest — see the doc comment"
+        );
 
         // And the contest, for the same pair, refuses the weaker one.
         let refused = schedule(&mut conn, &other.id, "2026-09-05");

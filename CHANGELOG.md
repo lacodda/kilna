@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.24.1] - 2026-08-22
+
+### Bug Fixes
+- Drag a release into the contest, not around it
+- Say why a date was refused in the reader's language
 ## [0.24.0] - 2026-08-22
 
 ### Bug Fixes
