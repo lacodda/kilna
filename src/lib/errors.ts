@@ -16,6 +16,8 @@ const SPOKEN = new Set([
   'schemaTooNew',
   'notFound',
   'notRestorable',
+  'slotPinned',
+  'slotHeld',
   'assistant',
 ])
 

@@ -174,7 +174,7 @@ pub fn schedule(conn: &mut Connection, id: &str, slot: &str) -> Result<Schedulin
         // Ties go to the release already in the slot: a plan should not move
         // without a reason to move it.
         if challenger.unwrap_or(f64::NEG_INFINITY) <= holder.unwrap_or(f64::NEG_INFINITY) {
-            return Err(Error::Other(format!(
+            return Err(Error::SlotHeld(format!(
                 "the slot is held by `{}`, which scores at least as well",
                 occupant.title.as_deref().unwrap_or(&occupant.work_id)
             )));

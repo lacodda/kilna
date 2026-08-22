@@ -43,9 +43,14 @@ Each chip has a grip on its left. **Drag the grip**, not the chip: a chip that
 is draggable everywhere puts every click in a race with a drag, which is how
 the predecessor lost the click entirely.
 
-Dropping on another day moves the booking. Dropping on the **bin** — which
+Dropping on another day claims that date, with the same contest as any other
+way of claiming one: an empty day is simply taken, a held day goes to whichever
+work scores higher, and a pinned one refuses. Dropping on the **bin** — which
 appears at the top only while something is in the air — returns it to the
 queue, exactly as unscheduling does.
+
+Editing the date in the release itself is the exception: that moves a booking
+you already hold rather than bidding for a new one, and does not contest.
 
 ## Keeping a date
 

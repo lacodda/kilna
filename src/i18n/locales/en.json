@@ -293,7 +293,9 @@
     "notFound": "That is not here any more — it was probably deleted in another view.",
     "assistant": "The assistant could not be reached. Check that Claude Code is installed and on your PATH.",
     "unknown": "Something went wrong.",
-    "notRestorable": "The work this belonged to is in the trash too. Restore that first."
+    "notRestorable": "The work this belonged to is in the trash too. Restore that first.",
+    "slotPinned": "That date is being kept for something else.",
+    "slotHeld": "That date is taken by work that scores at least as well."
   },
   "save": {
     "saving": "Saving…",

@@ -38,6 +38,12 @@ pub enum Error {
     #[error("{0}")]
     SlotPinned(String),
 
+    /// A slot lost on merit. Its own kind for the same reason as `SlotPinned`:
+    /// the sentence is shown to a person, and a person reading Russian should
+    /// not be handed a string written in Rust.
+    #[error("{0}")]
+    SlotHeld(String),
+
     /// The assistant CLI is missing, unusable, or refused the request.
     #[error("{0}")]
     Assistant(String),
@@ -60,6 +66,7 @@ impl Error {
             Self::NotFound { .. } => "notFound",
             Self::NotRestorable(_) => "notRestorable",
             Self::SlotPinned(_) => "slotPinned",
+            Self::SlotHeld(_) => "slotHeld",
             Self::Assistant(_) => "assistant",
             Self::Other(_) => "other",
         }
