@@ -36,6 +36,23 @@ The Music profile's `work_kinds` are `song` and `instrumental`; its
 `collection_kinds` are `album`, `single` and `cycle` — a **collection** groups
 works one level deep, without nesting.
 
+A **release kind** carries one extra field:
+
+```jsonc
+{ "key": "clip", "label": "Video clip", "requires": ["lyrics", "style"] }
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `requires` | string[] | Version roles a release of this kind cannot ship without. Drives the [ready marks](/kilna/guides/planning-a-release/#ready-marks) and the not-ready warning. |
+
+Every key in `requires` must name a role in `version_roles`. An empty or
+absent list states no requirements: readiness is then judged on the score
+alone, and every role mark reads as *not applicable* rather than *missing* —
+which is how a profile written before this field existed loads. A workspace
+whose stored copy states nothing gains the shipped requirements at the next
+start; a list you narrowed yourself is left alone.
+
 ## `version_roles`
 
 The independent bodies a work carries, same `{ key, label }` shape. Music

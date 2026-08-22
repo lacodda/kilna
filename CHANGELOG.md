@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.25.0] - 2026-08-22
+
+### Features
+- Let a release kind state the roles it needs
+- Readiness marks on chips, the queue and the editor
+- Show the outcome of a claim before it lands
+- Warn ahead when an upcoming release is not ready
 ## [0.24.1] - 2026-08-22
 
 ### Bug Fixes
