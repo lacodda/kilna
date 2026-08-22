@@ -248,7 +248,7 @@ mod tests {
 
         // None of these works has versions or a score, so every release is
         // unready unless said otherwise.
-        let mut plan = |title: &str, date: &str| {
+        let plan = |title: &str, date: &str| {
             let work_id = sample_work(&conn, &profile_id, title);
             crate::release::create(
                 &conn,
