@@ -4,8 +4,10 @@ import { ChevronLeft, ChevronRight, GripVertical, Lock, Trash2 } from 'lucide-re
 import type { ScheduledRelease } from '@/lib/api'
 import { byDate, monthGrid, sameMonth, shiftMonth, today, type Month } from '@/lib/month'
 import { coverFor } from '@/lib/cover'
+import { daysBetween } from '@/lib/readiness'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
+import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -225,6 +227,17 @@ export function MonthGrid({
                       <span className="min-w-0 flex-1 truncate font-medium text-white/90">
                         {slot.work_title}
                       </span>
+                      <ReadyMarks
+                        readiness={slot.readiness}
+                        released={slot.status === 'released'}
+                        daysLeft={daysBetween(now, day.date)}
+                        // The chip's ground is the work's own colour; the dark
+                        // pill keeps the amber and red legible on any of them.
+                        className={cn(
+                          'rounded-[4px] bg-black/35 px-0.5 py-px',
+                          slot.status === 'released' && 'text-white/70',
+                        )}
+                      />
                       {slot.slot_pinned_at !== null && (
                         <Lock
                           aria-hidden

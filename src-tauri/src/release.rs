@@ -35,6 +35,8 @@ pub struct ScheduledRelease {
     /// Latest total for the work, so a slot can be judged against its neighbours.
     pub total: Option<f64>,
     pub tier: Option<String>,
+    /// How far this release is from shippable — see [`crate::readiness`].
+    pub readiness: crate::readiness::Readiness,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -386,7 +388,7 @@ pub fn calendar(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRele
         "{} AND r.scheduled_at IS NOT NULL ORDER BY r.scheduled_at, w.title",
         select_scheduled()
     ))?;
-    read_scheduled(&mut statement, profile_id)
+    read_scheduled(conn, &mut statement, profile_id)
 }
 
 /// Everything planned but unscheduled, strongest first — the queue that feeds
@@ -397,7 +399,7 @@ pub fn queue(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRelease
          ORDER BY s.total IS NULL, s.total DESC, w.title",
         select_scheduled()
     ))?;
-    read_scheduled(&mut statement, profile_id)
+    read_scheduled(conn, &mut statement, profile_id)
 }
 
 /// Releases of one work, whatever their state.
@@ -413,6 +415,7 @@ pub fn for_work(conn: &Connection, work_id: &str) -> Result<Vec<Release>> {
 }
 
 fn read_scheduled(
+    conn: &Connection,
     statement: &mut rusqlite::Statement<'_>,
     profile_id: &str,
 ) -> Result<Vec<ScheduledRelease>> {
@@ -440,13 +443,26 @@ fn read_scheduled(
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
+    // Judged here rather than by the screens: the warning the journal writes
+    // about an unready release must mean exactly what the chip shows.
+    let config = crate::profile::config_for(conn, profile_id)?;
+    let roles = crate::readiness::roles_present(conn, profile_id)?;
+    let none = std::collections::BTreeSet::new();
+
     rows.into_iter()
         .map(|(raw, work_title, total, tier)| {
+            let readiness = crate::readiness::assess(
+                &config,
+                &raw.kind,
+                roles.get(&raw.work_id).unwrap_or(&none),
+                total.is_some(),
+            );
             Ok(ScheduledRelease {
                 release: raw.into_release()?,
                 work_title,
                 total,
                 tier,
+                readiness,
             })
         })
         .collect()
@@ -880,6 +896,59 @@ mod tests {
         assert!(freed.scheduled_at.is_none());
         assert_eq!(freed.status, PLANNED);
         assert!(calendar(&conn, &profile_id).unwrap().is_empty());
+    }
+
+    /// The calendar's chips carry readiness judged from the same facts every
+    /// other screen shows: the roles with a version, and the speaking score.
+    #[test]
+    fn the_calendar_reports_how_ready_each_release_is() {
+        let (mut conn, profile_id) = workspace();
+
+        // Scored but missing both roles a clip requires.
+        let bare = planned(&conn, &profile_id, "Bare", Some(6.0));
+        schedule(&mut conn, &bare.id, "2026-09-01").unwrap();
+
+        // Scored, with a version for every required role.
+        let full = planned(&conn, &profile_id, "Full", Some(7.0));
+        for role in ["lyrics", "style"] {
+            crate::work::version::create(
+                &mut conn,
+                &full.work_id,
+                crate::work::version::NewVersion {
+                    role: role.into(),
+                    body: "body".into(),
+                    label: None,
+                    meta: None,
+                    make_current: true,
+                },
+            )
+            .unwrap();
+        }
+        schedule(&mut conn, &full.id, "2026-09-02").unwrap();
+
+        let shown = calendar(&conn, &profile_id).unwrap();
+        let of = |id: &str| shown.iter().find(|row| row.release.id == id).unwrap();
+
+        assert!(!of(&bare.id).readiness.ready);
+        assert!(
+            of(&bare.id)
+                .readiness
+                .roles
+                .iter()
+                .any(|mark| mark.present == Some(false)),
+            "a missing required role must be marked missing"
+        );
+        assert!(of(&full.id).readiness.ready);
+
+        // The queue is judged the same way.
+        let queued = planned(&conn, &profile_id, "Queued unscored", None);
+        let queue = queue(&conn, &profile_id).unwrap();
+        let entry = queue
+            .iter()
+            .find(|row| row.release.id == queued.id)
+            .unwrap();
+        assert!(!entry.readiness.scored);
+        assert!(!entry.readiness.ready);
     }
 
     #[test]

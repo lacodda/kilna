@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation } from '@tanstack/react-query'
 import { updateRelease, type ScheduledRelease } from '@/lib/api'
+import { missing } from '@/lib/readiness'
 import { say } from '@/lib/toast'
-import { useProfile } from '@/lib/useProfile'
+import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Dialog } from '@/components/ui/Dialog'
@@ -128,6 +129,24 @@ export function ReleaseEditor({
               <span className="block text-xs text-faint">{t('calendar.pinSlotHint')}</span>
             </span>
           </label>
+        )}
+
+        {/* The chip's glyphs, in words: what this release still needs. Only
+            gaps are worth a line — a ready release says nothing here. */}
+        {release !== null &&
+          release.status !== 'released' &&
+          missing(release.readiness).length > 0 && (
+          <p className="text-sm text-warn">
+            {t('calendar.notReadyHint', {
+              list: missing(release.readiness)
+                .map((gap) =>
+                  gap === 'score'
+                    ? t('calendar.missingScore')
+                    : labelOf(profile.config.version_roles, gap),
+                )
+                .join(', '),
+            })}
+          </p>
         )}
 
         {/* What can be done to the release itself, rather than to this form.

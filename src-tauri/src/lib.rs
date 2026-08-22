@@ -8,6 +8,7 @@ pub mod journal;
 pub mod note;
 pub mod plugin;
 pub mod profile;
+pub mod readiness;
 pub mod release;
 pub mod score;
 pub mod search;

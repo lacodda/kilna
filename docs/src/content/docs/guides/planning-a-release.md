@@ -37,6 +37,30 @@ sitting on a date, not a plan competing for one.
 Days become clickable; clicking one claims that slot, with the same contest
 described below. Clicking a chip instead opens the release itself.
 
+## Ready marks
+
+Every chip and every queue row carries a small readiness row, answering the
+one question a calendar is read for: **can this actually go out?**
+
+- **Two ticks** — it already went out.
+- **One tick** — everything is there: the work has a version for every role
+  this kind of release requires, and a score speaks for it.
+- **Otherwise, one glyph per gap** — a page for a missing version role, a
+  gauge for a missing score. Hover for the list in words; opening the release
+  spells the same list out.
+
+Which roles a release needs comes from the profile: each release kind lists
+the version roles it *requires* — a clip needs lyrics and a style prompt, a
+beta read needs the text. A role the kind does not require is neither shown
+nor counted: *not applicable* and *missing* are different answers, and only
+the second one blocks readiness. A kind that lists no requirements is judged
+on the score alone.
+
+**The colour belongs to the deadline, not to the gap.** The same missing
+style prompt is a quiet grey note in the queue or a month out, amber inside a
+week, and red two days before the slot. What changed is not the work — it's
+how much time is left to do it.
+
 ## Moving a release
 
 Each chip has a grip on its left. **Drag the grip**, not the chip: a chip that

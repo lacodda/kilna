@@ -236,11 +236,27 @@ export interface Release {
   updated_at: string
 }
 
+// Three states, not two: a role the kind does not require is neither there nor
+// missing.
+export interface RoleMark {
+  role: string
+  present: boolean | null
+}
+
+// How far a release is from shippable, judged on the backend so the chip and
+// the journal warning can never disagree.
+export interface Readiness {
+  roles: RoleMark[]
+  scored: boolean
+  ready: boolean
+}
+
 // The backend flattens the release into this, so the fields sit side by side.
 export interface ScheduledRelease extends Release {
   work_title: string
   total: number | null
   tier: string | null
+  readiness: Readiness
 }
 
 export interface NewRelease {

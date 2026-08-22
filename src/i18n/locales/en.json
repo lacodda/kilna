@@ -196,7 +196,10 @@
     "released": "Released",
     "link": "link",
     "urlPrompt": "Link it went out on (optional)",
-    "unscored": "Not scored yet — it cannot take a slot from a work that has been."
+    "unscored": "Not scored yet — it cannot take a slot from a work that has been.",
+    "ready": "Ready to go out",
+    "notReadyHint": "Missing: {{list}}",
+    "missingScore": "a score"
   },
   "releases": {
     "title": "Releases",

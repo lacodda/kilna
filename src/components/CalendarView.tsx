@@ -17,6 +17,7 @@ import { DatePicker } from '@/components/ui/DatePicker'
 import { PromptDialog } from '@/components/ui/Dialog'
 import { SkeletonList } from '@/components/ui/Skeleton'
 import { MonthGrid } from '@/components/calendar/MonthGrid'
+import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { ReleaseEditor } from '@/components/calendar/ReleaseEditor'
 import { monthOf, today, type Month } from '@/lib/month'
 import { cn } from '@/lib/utils'
@@ -153,6 +154,8 @@ export function CalendarView({ onSelect }: Props) {
                   )}
                 >
                   <span className="flex-1 truncate font-medium">{entry.work_title}</span>
+                  {/* No date yet, so no deadline: the gaps show, calmly. */}
+                  <ReadyMarks readiness={entry.readiness} released={false} daysLeft={null} />
                   <span className="text-xs text-faint">
                     {labelOf(profile.config.release_kinds, entry.kind)}
                   </span>
