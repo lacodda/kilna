@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.24.0] - 2026-08-22
+
+### Bug Fixes
+- Make the journal gate see keys it cannot read
+
+### Features
+- A date that can be settled, judged by one score
+- The pin behind the calendar
+- Drag a release by its grip, and see what is settled
 ## [0.23.0] - 2026-08-21
 
 ### Documentation
