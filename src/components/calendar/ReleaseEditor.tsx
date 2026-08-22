@@ -18,6 +18,7 @@ interface Props {
   onOpenWork: (workId: string) => void
   onMarkReleased: (releaseId: string) => void
   onUnschedule: (releaseId: string) => void
+  onTogglePin: (releaseId: string, pinned: boolean) => void
 }
 
 /**
@@ -38,6 +39,7 @@ export function ReleaseEditor({
   onOpenWork,
   onMarkReleased,
   onUnschedule,
+  onTogglePin,
 }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
@@ -110,6 +112,23 @@ export function ReleaseEditor({
             placeholder="https://"
           />
         </Field>
+
+        {/* Pinning belongs beside the date rather than among the actions: it
+            is a property of this date, not something done to the release. */}
+        {release !== null && release.scheduled_at !== null && (
+          <label className="flex cursor-pointer items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 size-3.5 cursor-pointer accent-[var(--accent)]"
+              checked={release.slot_pinned_at !== null}
+              onChange={(event) => onTogglePin(release.id, event.target.checked)}
+            />
+            <span>
+              {t('calendar.pinSlot')}
+              <span className="block text-xs text-faint">{t('calendar.pinSlotHint')}</span>
+            </span>
+          </label>
+        )}
 
         {/* What can be done to the release itself, rather than to this form.
             They close the dialog because each one leaves it describing

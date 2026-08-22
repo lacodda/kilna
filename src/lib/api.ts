@@ -223,6 +223,8 @@ export interface Release {
   scheduled_at: string | null
   released_at: string | null
   url: string | null
+  /** Set when a person settled this date; a pinned slot is never contested. */
+  slot_pinned_at: string | null
   meta: Meta
   created_at: string
   updated_at: string
@@ -330,6 +332,8 @@ export const updateRelease = (id: string, patch: ReleasePatch) =>
 
 export const scheduleRelease = (id: string, slot: string) =>
   invoke<Scheduling>('schedule_release', { id, slot })
+export const setSlotPin = (id: string, pinned: boolean) =>
+  invoke<Release>('set_slot_pin', { id, pinned })
 export const unscheduleRelease = (id: string) => invoke<Release>('unschedule_release', { id })
 export const markReleased = (id: string, url?: string | null) =>
   invoke<Release>('mark_released', { id, url })

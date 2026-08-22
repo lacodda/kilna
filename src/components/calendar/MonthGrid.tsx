@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, GripVertical, Lock, Trash2 } from 'lucide-react'
 import type { ScheduledRelease } from '@/lib/api'
 import { byDate, monthGrid, sameMonth, shiftMonth, today, type Month } from '@/lib/month'
 import { coverFor } from '@/lib/cover'
@@ -15,6 +16,10 @@ interface Props {
   claiming: boolean
   onPickDay: (date: string) => void
   onOpenRelease: (releaseId: string) => void
+  /** A release dropped on a different day. */
+  onMove: (releaseId: string, date: string) => void
+  /** A release dragged onto the bin. */
+  onUnschedule: (releaseId: string) => void
 }
 
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
@@ -34,9 +39,16 @@ export function MonthGrid({
   claiming,
   onPickDay,
   onOpenRelease,
+  onMove,
+  onUnschedule,
 }: Props) {
   const { t, i18n } = useTranslation()
   const profile = useProfile()
+
+  // The release being dragged, so the bin can appear only while one is in the
+  // air and the day under the cursor can light up.
+  const [dragging, setDragging] = useState<string | null>(null)
+  const [over, setOver] = useState<string | null>(null)
 
   const days = monthGrid(month)
   const booked = byDate(slots, (slot) => slot.scheduled_at)
@@ -70,7 +82,36 @@ export function MonthGrid({
           <ChevronRight aria-hidden />
         </Button>
 
-        {!sameMonth(month, { year: Number(now.slice(0, 4)), month: Number(now.slice(5, 7)) }) && (
+        {/* Only while something is in the air. A bin standing there permanently
+            invites the question "what does this delete?"; appearing under a
+            dragged release, it can only mean one thing. */}
+        {dragging !== null && (
+          <div
+            onDragOver={(event) => {
+              event.preventDefault()
+              setOver('bin')
+            }}
+            onDragLeave={() => setOver((current) => (current === 'bin' ? null : current))}
+            onDrop={(event) => {
+              event.preventDefault()
+              setOver(null)
+              const releaseId = event.dataTransfer.getData('text/plain')
+              if (releaseId !== '') onUnschedule(releaseId)
+            }}
+            className={cn(
+              'ml-auto flex items-center gap-1.5 rounded-[10px] border border-dashed px-3 py-1 text-xs transition-colors',
+              over === 'bin'
+                ? 'border-bad bg-bad-soft text-bad'
+                : 'border-line-2 text-dim',
+            )}
+          >
+            <Trash2 aria-hidden className="size-3.5" />
+            {t('calendar.dropToUnschedule')}
+          </div>
+        )}
+
+        {dragging === null &&
+          !sameMonth(month, { year: Number(now.slice(0, 4)), month: Number(now.slice(5, 7)) }) && (
           <Button
             size="sm"
             className="ml-2"
@@ -106,8 +147,23 @@ export function MonthGrid({
                 'min-h-24 bg-bg p-1.5 transition-colors',
                 !day.inMonth && 'opacity-40',
                 claiming && day.inMonth && 'cursor-pointer hover:bg-soft',
+                over === day.date && 'bg-accent-soft',
               )}
               onClick={claiming && day.inMonth ? () => onPickDay(day.date) : undefined}
+              onDragOver={(event) => {
+                if (dragging === null || !day.inMonth) return
+                // Without this the browser refuses the drop, and the whole
+                // gesture ends in the cursor snapping back with no explanation.
+                event.preventDefault()
+                setOver(day.date)
+              }}
+              onDragLeave={() => setOver((current) => (current === day.date ? null : current))}
+              onDrop={(event) => {
+                event.preventDefault()
+                setOver(null)
+                const releaseId = event.dataTransfer.getData('text/plain')
+                if (releaseId !== '' && day.inMonth) onMove(releaseId, day.date)
+              }}
             >
               <div
                 className={cn(
@@ -120,31 +176,66 @@ export function MonthGrid({
 
               <div className="flex flex-col gap-1">
                 {releases.map((slot) => (
-                  <button
+                  <div
                     key={slot.id}
-                    type="button"
-                    onClick={(event) => {
-                      // The day underneath books a date; the chip opens what is
-                      // already booked. One click has to mean one of those.
-                      event.stopPropagation()
-                      onOpenRelease(slot.id)
-                    }}
-                    title={`${slot.work_title} · ${labelOf(profile.config.release_kinds, slot.kind)}`}
                     className={cn(
-                      'flex w-full cursor-pointer items-center gap-1.5 rounded-[7px] px-1.5 py-1 text-left text-[11px] transition-opacity hover:opacity-80',
+                      'flex items-center gap-1 rounded-[7px] px-1 py-1 text-[11px] transition-opacity',
                       slot.status === 'released' && 'opacity-60',
+                      dragging === slot.id && 'opacity-40',
                     )}
                     // The work's own colour, so the same song is the same colour
                     // wherever it appears — the cover, the card, this chip.
                     style={{ background: coverFor(slot.work_id) }}
                   >
-                    <span className="min-w-0 flex-1 truncate font-medium text-white/90">
-                      {slot.work_title}
+                    {/* The handle, and only the handle, is draggable. Making the
+                        whole chip draggable puts every click in a race with a
+                        drag — the predecessor did that and lost the click. */}
+                    <span
+                      draggable={slot.status !== 'released'}
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData('text/plain', slot.id)
+                        event.dataTransfer.effectAllowed = 'move'
+                        setDragging(slot.id)
+                      }}
+                      onDragEnd={() => {
+                        setDragging(null)
+                        setOver(null)
+                      }}
+                      onClick={(event) => event.stopPropagation()}
+                      title={t('calendar.dragHandle')}
+                      className={cn(
+                        'shrink-0 text-white/50',
+                        slot.status === 'released' ? 'opacity-30' : 'cursor-grab hover:text-white/80',
+                      )}
+                    >
+                      <GripVertical aria-hidden className="size-3" />
                     </span>
-                    <span className="shrink-0 text-[9px] uppercase tracking-wide text-white/60">
-                      {labelOf(profile.config.release_kinds, slot.kind)}
-                    </span>
-                  </button>
+
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        // The day underneath books a date; the chip opens what
+                        // is already booked. One click means one of those.
+                        event.stopPropagation()
+                        onOpenRelease(slot.id)
+                      }}
+                      title={`${slot.work_title} · ${labelOf(profile.config.release_kinds, slot.kind)}`}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 text-left hover:opacity-80"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-medium text-white/90">
+                        {slot.work_title}
+                      </span>
+                      {slot.slot_pinned_at !== null && (
+                        <Lock
+                          aria-hidden
+                          className="size-2.5 shrink-0 text-white/70"
+                        />
+                      )}
+                      <span className="shrink-0 text-[9px] uppercase tracking-wide text-white/60">
+                        {labelOf(profile.config.release_kinds, slot.kind)}
+                      </span>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

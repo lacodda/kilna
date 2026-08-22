@@ -6,8 +6,9 @@ import {
   markReleased,
   releaseQueue,
   scheduleRelease,
+  setSlotPin,
   unscheduleRelease,
-  type ScheduledRelease,
+  updateRelease,
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
@@ -35,8 +36,10 @@ export function CalendarView({ onSelect }: Props) {
   const [picked, setPicked] = useState<string | null>(null)
   const [slot, setSlot] = useState('')
   const [month, setMonth] = useState<Month>(() => monthOf(today()))
-  // The release opened for editing, or null.
-  const [editing, setEditing] = useState<ScheduledRelease | null>(null)
+  // The id of the release being edited, not the row itself: holding the row
+  // would freeze it at the moment it was opened, and pinning from inside the
+  // dialog left the tick unmoved until it was closed and opened again.
+  const [editingId, setEditingId] = useState<string | null>(null)
   // The release waiting for a link, or null when the dialog is closed.
   const [releasing, setReleasing] = useState<string | null>(null)
 
@@ -80,6 +83,29 @@ export function CalendarView({ onSelect }: Props) {
     onSuccess: () => {
       settle()
       say.ok(t('toast.releaseReleased'))
+    },
+    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
+  })
+
+  // Dragging a chip to another day moves the booking rather than bidding for
+  // the slot: the release already holds a date, and dropping it two days over
+  // is a correction. Landing on a day someone else holds is the one case that
+  // still contests, which `schedule` decides.
+  const move = useMutation({
+    mutationFn: ({ id, date }: { id: string; date: string }) =>
+      updateRelease(id, { scheduled_at: date }),
+    onSuccess: () => {
+      settle()
+      say.ok(t('toast.releaseMoved'))
+    },
+    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
+  })
+
+  const pin = useMutation({
+    mutationFn: ({ id, pinned }: { id: string; pinned: boolean }) => setSlotPin(id, pinned),
+    onSuccess: (release) => {
+      settle()
+      say.ok(release.slot_pinned_at === null ? t('toast.slotUnpinned') : t('toast.slotPinned'))
     },
     onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
@@ -177,10 +203,9 @@ export function CalendarView({ onSelect }: Props) {
               onPickDay={(date) => {
                 if (picked !== null) claim.mutate({ id: picked, date })
               }}
-              onOpenRelease={(releaseId) => {
-                const found = slots.data.find((entry) => entry.id === releaseId)
-                if (found !== undefined) setEditing(found)
-              }}
+              onOpenRelease={setEditingId}
+              onMove={(id, date) => move.mutate({ id, date })}
+              onUnschedule={(id) => unschedule.mutate(id)}
             />
 
             {slots.data.length === 0 && <p className="text-sm text-dim">{t('calendar.empty')}</p>}
@@ -188,15 +213,21 @@ export function CalendarView({ onSelect }: Props) {
         )}
       </section>
 
+      {/* Found afresh on every render rather than held in state: pinning from
+          inside the dialog otherwise left the tick unmoved until it was closed
+          and opened again. An invalidated query keeps serving what it has while
+          it refetches, so the row does not vanish out from under the dialog —
+          checked by pinning with the dialog open. */}
       <ReleaseEditor
-        release={editing}
+        release={slots.data?.find((entry) => entry.id === editingId) ?? null}
         onOpenChange={(open) => {
-          if (!open) setEditing(null)
+          if (!open) setEditingId(null)
         }}
         onSaved={settle}
         onOpenWork={onSelect}
         onMarkReleased={setReleasing}
         onUnschedule={(id) => unschedule.mutate(id)}
+        onTogglePin={(id, pinned) => pin.mutate({ id, pinned })}
       />
 
       {/* Was `window.prompt()`: blocking, unstyled, and untranslatable. */}

@@ -12,8 +12,14 @@ it's the one where kilna pushes back.
 
 A release with no `scheduled_at` sits in the **queue** — planned, but not yet
 claiming a calendar date. The queue is sorted strongest first, by each
-release's work's latest score total, with unscored releases sorting last. This
-is where you look when deciding what deserves the next open date.
+release's work's score, with unscored releases sorting last. This is where you
+look when deciding what deserves the next open date.
+
+**Which score** is the one the catalogue shows: the current version's, or the
+strongest if no version is current — see
+[Scoring](/kilna/concepts/scoring/). Until v0.24 the contest used the most
+recent snapshot instead, so a work could read one number in the catalogue and
+be judged by another here.
 
 ## The month
 
@@ -31,6 +37,31 @@ sitting on a date, not a plan competing for one.
 Days become clickable; clicking one claims that slot, with the same contest
 described below. Clicking a chip instead opens the release itself.
 
+## Moving a release
+
+Each chip has a grip on its left. **Drag the grip**, not the chip: a chip that
+is draggable everywhere puts every click in a race with a drag, which is how
+the predecessor lost the click entirely.
+
+Dropping on another day moves the booking. Dropping on the **bin** — which
+appears at the top only while something is in the air — returns it to the
+queue, exactly as unscheduling does.
+
+## Keeping a date
+
+Some dates are decided rather than proposed: an announced launch, a slot
+booked around something else, a release someone is waiting on. Open the
+release and tick **Keep this date**.
+
+A pinned slot is not contested. The rule below never runs against it — a
+stronger work is refused rather than let through, and the refusal says the
+date is pinned rather than that something outscored you. The lock on the chip
+is how you see it from the month view.
+
+The pin belongs to the date, so losing the date loses the pin: unscheduling or
+clearing the date drops it, and pinning a release that holds no date is
+refused.
+
 ## Claiming a slot
 
 A calendar **slot** is a date. Scheduling a release for a slot that's empty
@@ -44,6 +75,8 @@ triggers a contest:
   `scheduled_at` is cleared and it drops back into the queue. It is never
   deleted — losing a slot must never lose the plan for the work, only the
   date.
+- If the slot is **pinned**, scheduling is refused outright and nothing is
+  compared — see above.
 - If the new release's work scores **equal or lower**, scheduling is
   **refused** with an error naming what's already holding the date. Ties go
   to whoever is already in the slot — a plan shouldn't move without a reason
