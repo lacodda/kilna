@@ -578,6 +578,51 @@ pub fn schedule_release(
     Ok(outcome)
 }
 
+/// Warn about every release inside the coming week that could not go out
+/// today — once per release and date.
+///
+/// The frontend calls this at startup and after calendar changes, passing the
+/// user's local date: the backend only knows UTC, which at a negative offset
+/// is already tomorrow. The entry uses once-semantics — a warning the person
+/// already dismissed is not re-lit by the same sweep noticing the same gap,
+/// but the release moving to a new date is a new situation and warns afresh.
+#[tauri::command]
+pub fn warn_unready_releases(state: State<'_, AppState>, today: String) -> Result<usize> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    record_unready_warnings(&conn, &profile_id, &today)
+}
+
+/// The body of [`warn_unready_releases`], reachable without a Tauri state.
+pub fn record_unready_warnings(
+    conn: &rusqlite::Connection,
+    profile_id: &str,
+    today: &str,
+) -> Result<usize> {
+    let releases = release::calendar(conn, profile_id)?;
+    let unready = crate::readiness::unready_upcoming(
+        &releases,
+        today,
+        crate::readiness::WARNING_HORIZON_DAYS,
+    )?;
+
+    for entry in &unready {
+        let date = entry.release.scheduled_at.clone().unwrap_or_default();
+        journal::record(
+            conn,
+            profile_id,
+            Record::new("release.notReady")
+                .param("title", entry.work_title.clone())
+                .param("date", date.clone())
+                .about("work", entry.release.work_id.clone())
+                .once(format!("ready:{}:{date}", entry.release.id))
+                .warn(),
+        );
+    }
+
+    Ok(unready.len())
+}
+
 /// The dry run of a claim: how `schedule_release` would end, without moving
 /// anything. Nothing is written and nothing is journalled — it is a look, not
 /// an action.
@@ -1025,4 +1070,75 @@ pub fn set_collection_contents(
 ) -> Result<()> {
     let mut conn = state.conn();
     collection::set_contents(&mut conn, &id, &work_ids)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{db, journal, profile, release, work};
+
+    /// The whole warning path: an unready release inside the window writes one
+    /// warning, and the same sweep running again — every startup does — leaves
+    /// it exactly as the person left it.
+    #[test]
+    fn unready_warnings_are_written_once_and_stay_dismissed() {
+        let conn = db::open_in_memory().unwrap();
+        profile::seed(&conn).unwrap();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+
+        let work = work::create(
+            &conn,
+            &profile_id,
+            work::NewWork {
+                kind: "song".into(),
+                title: "Subject".into(),
+                status: None,
+                collection_id: None,
+                meta: None,
+            },
+        )
+        .unwrap();
+        release::create(
+            &conn,
+            release::NewRelease {
+                work_id: work.id,
+                kind: "clip".into(),
+                title: None,
+                scheduled_at: Some("2026-09-03".into()),
+                meta: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            record_unready_warnings(&conn, &profile_id, "2026-09-01").unwrap(),
+            1
+        );
+        let entries = journal::list(&conn, &profile_id).unwrap();
+        let warning = entries
+            .iter()
+            .find(|entry| entry.action == "release.notReady")
+            .expect("the gap inside the window is worth a line");
+        assert_eq!(warning.params["title"], "Subject");
+        assert_eq!(warning.params["date"], "2026-09-03");
+        assert_eq!(journal::unread_count(&conn, &profile_id).unwrap(), 1);
+
+        journal::mark_read(&conn, &profile_id).unwrap();
+        record_unready_warnings(&conn, &profile_id, "2026-09-01").unwrap();
+
+        let entries = journal::list(&conn, &profile_id).unwrap();
+        assert_eq!(
+            entries
+                .iter()
+                .filter(|entry| entry.action == "release.notReady")
+                .count(),
+            1,
+            "the same standing gap is one line, not one per startup"
+        );
+        assert_eq!(
+            journal::unread_count(&conn, &profile_id).unwrap(),
+            0,
+            "a dismissed warning stays dismissed"
+        );
+    }
 }

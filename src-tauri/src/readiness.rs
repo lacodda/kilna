@@ -9,9 +9,11 @@ use std::collections::{BTreeSet, HashMap};
 
 use rusqlite::{Connection, params};
 use serde::Serialize;
+use time::{Date, Duration, macros::format_description};
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::profile::config::ProfileConfig;
+use crate::release::{PLANNED, ScheduledRelease};
 
 /// One release's distance from shippable.
 #[derive(Debug, Clone, Serialize)]
@@ -98,6 +100,42 @@ pub fn roles_present(
         map.entry(work_id).or_default().insert(role);
     }
     Ok(map)
+}
+
+/// How far ahead an unready release is worth a warning, in days.
+///
+/// The frontend's amber band uses the same number: the journal starts talking
+/// at the same distance the calendar starts colouring.
+pub const WARNING_HORIZON_DAYS: i64 = 7;
+
+/// The planned releases inside the warning window that are not ready.
+///
+/// `today` is the user's local date, supplied by the frontend: the backend
+/// only knows UTC, and at a negative offset UTC is already tomorrow — the
+/// v0.23 lesson. Dates compare as strings; ISO dates sort chronologically.
+pub fn unready_upcoming<'a>(
+    releases: &'a [ScheduledRelease],
+    today: &str,
+    horizon_days: i64,
+) -> Result<Vec<&'a ScheduledRelease>> {
+    let iso = format_description!("[year]-[month]-[day]");
+    let start = Date::parse(today, iso)
+        .map_err(|_| Error::Other(format!("`{today}` is not an ISO date")))?;
+    let until = (start + Duration::days(horizon_days))
+        .format(iso)
+        .map_err(|cause| Error::Other(cause.to_string()))?;
+
+    Ok(releases
+        .iter()
+        .filter(|entry| entry.release.status == PLANNED && !entry.readiness.ready)
+        .filter(|entry| {
+            entry
+                .release
+                .scheduled_at
+                .as_deref()
+                .is_some_and(|date| date >= today && date <= until.as_str())
+        })
+        .collect())
 }
 
 #[cfg(test)]
@@ -196,6 +234,87 @@ mod tests {
 
         assert!(judged.roles.iter().all(|mark| mark.role != "style"));
         assert!(!judged.ready);
+    }
+
+    /// The window is [today, today + horizon], both ends included, and only
+    /// planned, unready releases fall into it. Boundaries are checked on their
+    /// own days: an off-by-one here warns a day late, which is the expensive
+    /// direction.
+    #[test]
+    fn the_warning_window_takes_the_unready_and_only_the_upcoming() {
+        let conn = crate::db::open_in_memory().unwrap();
+        crate::profile::seed(&conn).unwrap();
+        let profile_id = crate::profile::active(&conn).unwrap().unwrap().id;
+
+        // None of these works has versions or a score, so every release is
+        // unready unless said otherwise.
+        let mut plan = |title: &str, date: &str| {
+            let work_id = sample_work(&conn, &profile_id, title);
+            crate::release::create(
+                &conn,
+                crate::release::NewRelease {
+                    work_id,
+                    kind: "clip".into(),
+                    title: Some(title.into()),
+                    scheduled_at: Some(date.into()),
+                    meta: None,
+                },
+            )
+            .unwrap()
+        };
+
+        plan("Inside", "2026-09-04");
+        plan("On the edge", "2026-09-08");
+        plan("Today itself", "2026-09-01");
+        plan("Beyond", "2026-09-21");
+        plan("Yesterday", "2026-08-31");
+        let released = plan("Released", "2026-09-05");
+        crate::release::mark_released(&conn, &released.id, None).unwrap();
+
+        // One release in the window with nothing missing: scored, and a
+        // version for each role its kind requires.
+        let ready = plan("Ready", "2026-09-06");
+        crate::score::create(
+            &conn,
+            &ready.work_id,
+            crate::score::NewScore {
+                axes: serde_json::json!({ "hook": 8.0 })
+                    .as_object()
+                    .cloned()
+                    .unwrap(),
+                version_id: None,
+                note: None,
+            },
+        )
+        .unwrap();
+        let mut conn = conn;
+        for role in ["lyrics", "style"] {
+            crate::work::version::create(
+                &mut conn,
+                &ready.work_id,
+                crate::work::version::NewVersion {
+                    role: role.into(),
+                    body: "body".into(),
+                    label: None,
+                    meta: None,
+                    make_current: true,
+                },
+            )
+            .unwrap();
+        }
+
+        let releases = crate::release::calendar(&conn, &profile_id).unwrap();
+        let warned = unready_upcoming(&releases, "2026-09-01", 7).unwrap();
+        let mut titles: Vec<&str> = warned
+            .iter()
+            .map(|entry| entry.work_title.as_str())
+            .collect();
+        titles.sort_unstable();
+
+        assert_eq!(titles, ["Inside", "On the edge", "Today itself"]);
+
+        // And a malformed today is an error, not an empty answer.
+        assert!(unready_upcoming(&releases, "someday", 7).is_err());
     }
 
     #[test]

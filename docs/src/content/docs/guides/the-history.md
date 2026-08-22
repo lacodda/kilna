@@ -32,13 +32,23 @@ The bell in the top bar counts only entries that need a look, never ordinary
 ones. Adding a work or saving a version is recorded but never lights it: a
 bell lit by everything is a bell nobody reads.
 
-Today one thing lights it — **a release losing its calendar slot** to a
-stronger work. That is the case where something happened *to* you rather than
-because of you, and the message announcing it was on screen for a few seconds
-while you were busy doing something else.
+Two things light it today:
 
-If the same warning happens again after you marked it seen, it comes back
-unread. A repeat is news even when the first one was dismissed.
+- **A release losing its calendar slot** to a stronger work. That is the case
+  where something happened *to* you rather than because of you, and the
+  message announcing it was on screen for a few seconds while you were busy
+  doing something else.
+- **A release due inside the coming week that is not ready** — missing a
+  required version role, or a score. kilna checks at startup and after every
+  calendar change, and writes one warning per release and date.
+
+If a displacement happens again after you marked it seen, it comes back
+unread — a repeat is news even when the first one was dismissed. The
+not-ready warning deliberately behaves the other way: the same standing gap
+noticed again at the next startup stays exactly as you left it, because a
+bell relit every morning by the same unfinished work is a bell you stop
+reading. Moving the release to a new date is a new situation and warns
+afresh.
 
 ## Repeats are collapsed
 

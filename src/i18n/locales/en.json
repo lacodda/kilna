@@ -403,6 +403,7 @@
     "release.unpinned": "“{{title}}” can be moved off {{slot}} again.",
     "release.moved": "“{{title}}” moved to {{slot}}.",
     "release.displaced": "“{{title}}” lost its slot on {{slot}}.",
+    "release.notReady": "“{{title}}” goes out on {{date}} but is not ready.",
     "release.released": "“{{title}}” went out as a {{kind}}.",
     "release.deleted": "Release “{{label}}” deleted.",
     "note.deleted": "Note “{{label}}” deleted.",

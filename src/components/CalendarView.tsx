@@ -8,6 +8,7 @@ import {
   scheduleRelease,
   setSlotPin,
   unscheduleRelease,
+  warnUnreadyReleases,
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
@@ -48,12 +49,17 @@ export function CalendarView({ onSelect }: Props) {
 
   // Both sides of this screen move together: taking a slot removes something
   // from the queue, returning one puts it back. The journal goes with them —
-  // displacing a release writes the one warning that lights the bell.
+  // displacing a release writes the one warning that lights the bell, and a
+  // change that put something unready inside the coming week warns right away
+  // rather than at the next startup. The sweep runs before the journal is
+  // refetched so the feed the refetch brings back already holds the warning.
   const settle = () => {
     void client.invalidateQueries({ queryKey: keys.calendar })
     void client.invalidateQueries({ queryKey: keys.releaseQueue })
     void client.invalidateQueries({ queryKey: keys.releases })
-    void client.invalidateQueries({ queryKey: keys.journal })
+    void warnUnreadyReleases(today()).finally(() => {
+      void client.invalidateQueries({ queryKey: keys.journal })
+    })
   }
 
   const claim = useMutation({

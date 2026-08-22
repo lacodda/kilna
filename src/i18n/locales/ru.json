@@ -420,6 +420,7 @@
     "release.unpinned": "«{{title}}» снова можно сдвинуть с {{slot}}.",
     "release.moved": "«{{title}}» перенесено на {{slot}}.",
     "release.displaced": "«{{title}}» потеряло слот {{slot}}.",
+    "release.notReady": "«{{title}}» выходит {{date}}, но не готово.",
     "release.released": "«{{title}}» выпущено ({{kind}}).",
     "release.deleted": "Выпуск «{{label}}» удалён.",
     "note.deleted": "Заметка «{{label}}» удалена.",

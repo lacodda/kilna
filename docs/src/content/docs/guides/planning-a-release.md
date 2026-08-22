@@ -61,6 +61,11 @@ style prompt is a quiet grey note in the queue or a month out, amber inside a
 week, and red two days before the slot. What changed is not the work — it's
 how much time is left to do it.
 
+At the same distance the amber starts, the journal starts talking: a release
+due inside the coming week that is not ready writes a warning to
+[History](/kilna/guides/the-history/) — once per release and date, checked at
+startup and after every calendar change.
+
 ## Moving a release
 
 Each chip has a grip on its left. **Drag the grip**, not the chip: a chip that

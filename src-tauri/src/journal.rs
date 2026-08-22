@@ -80,6 +80,7 @@ pub struct Record {
     entity: Option<String>,
     entity_id: Option<String>,
     dedupe_key: Option<String>,
+    write_once: bool,
 }
 
 impl Record {
@@ -93,6 +94,7 @@ impl Record {
             entity: None,
             entity_id: None,
             dedupe_key: None,
+            write_once: false,
         }
     }
 
@@ -123,6 +125,20 @@ impl Record {
         self.dedupe_key = Some(key.into());
         self
     }
+
+    /// Write only the first time this situation is seen; after that, nothing.
+    ///
+    /// Different from [`Record::deduped`] in what a repeat means. A deduped
+    /// repeat is news — someone displaced the same release *again* — so it
+    /// counts up and turns unread. A once-entry describes a standing state
+    /// noticed by a sweep, and a sweep re-noticing it is not news: turning it
+    /// unread on every startup would keep the bell lit until the situation is
+    /// fixed, and a bell that is always lit stops meaning anything.
+    pub fn once(mut self, key: impl Into<String>) -> Self {
+        self.dedupe_key = Some(key.into());
+        self.write_once = true;
+        self
+    }
 }
 
 /// Write an entry down, or quietly fail to.
@@ -140,6 +156,24 @@ pub fn record(conn: &Connection, profile_id: &str, entry: Record) {
 
 fn write(conn: &Connection, profile_id: &str, entry: Record) -> Result<()> {
     let timestamp = now();
+
+    // A once-entry is written the first time and never touched again — not
+    // even to count up, because its repeats are the same standing state being
+    // re-noticed, not new occurrences.
+    if entry.write_once {
+        let key = entry.dedupe_key.as_ref().expect("once always sets the key");
+        let exists: bool = conn
+            .query_row(
+                "SELECT 1 FROM journal WHERE profile_id = ?1 AND dedupe_key = ?2",
+                params![profile_id, key],
+                |_| Ok(true),
+            )
+            .optional()?
+            .unwrap_or(false);
+        if exists {
+            return Ok(());
+        }
+    }
 
     // A deduped repeat moves the existing line to now and counts up, so the feed
     // says "three times, most recently just now" rather than repeating itself.
@@ -392,6 +426,47 @@ mod tests {
             1,
             "a repeat of a dismissed warning is news again"
         );
+    }
+
+    /// A once-entry stays exactly as written: a sweep re-noticing the same
+    /// standing state must not count up and must not wake a dismissed warning,
+    /// or every startup would relight the bell until the situation is fixed.
+    #[test]
+    fn a_once_entry_is_written_once_and_left_alone() {
+        let (conn, profile_id) = workspace();
+        let warning = || {
+            Record::new("release.notReady")
+                .param("title", "Winter road")
+                .once("ready:r1:2026-09-01")
+                .warn()
+        };
+
+        record(&conn, &profile_id, warning());
+        mark_read(&conn, &profile_id).unwrap();
+
+        record(&conn, &profile_id, warning());
+        record(&conn, &profile_id, warning());
+
+        let entries = list(&conn, &profile_id).unwrap();
+        assert_eq!(entries.len(), 1, "one line however often it is noticed");
+        assert_eq!(entries[0].occurrences, 1, "repeats are not occurrences");
+        assert_eq!(
+            unread_count(&conn, &profile_id).unwrap(),
+            0,
+            "a re-noticed standing state is not news"
+        );
+
+        // A different key is a different situation: the same release moved to
+        // another date warns afresh.
+        record(
+            &conn,
+            &profile_id,
+            Record::new("release.notReady")
+                .once("ready:r1:2026-09-08")
+                .warn(),
+        );
+        assert_eq!(list(&conn, &profile_id).unwrap().len(), 2);
+        assert_eq!(unread_count(&conn, &profile_id).unwrap(), 1);
     }
 
     #[test]

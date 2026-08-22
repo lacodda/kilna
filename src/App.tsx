@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
-import { getWorkspace } from '@/lib/api'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { getWorkspace, warnUnreadyReleases } from '@/lib/api'
 import { humanError } from '@/lib/errors'
+import { today } from '@/lib/month'
 import { keys } from '@/lib/query'
 import { ProfileContext } from '@/lib/useProfile'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -62,11 +64,25 @@ export default function App() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const client = useQueryClient()
   const {
     data: workspace,
     error,
     isPending,
   } = useQuery({ queryKey: keys.workspace, queryFn: getWorkspace })
+
+  // The startup sweep: warn about every release due inside the week that is
+  // not ready. There is no scheduler in this app, so "at startup, per profile"
+  // is when standing gaps get noticed; each is written once, so a sweep that
+  // finds nothing new changes nothing. The local date goes with the call — the
+  // backend only knows UTC, which after sunset here is already tomorrow.
+  const profileId = workspace?.profile?.id
+  useEffect(() => {
+    if (profileId === undefined) return
+    void warnUnreadyReleases(today()).then((standing) => {
+      if (standing > 0) void client.invalidateQueries({ queryKey: keys.journal })
+    })
+  }, [profileId, client])
 
   if (isPending) return <ShellSkeleton />
 
