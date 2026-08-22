@@ -172,3 +172,43 @@ fn the_declared_msrv_is_a_real_number() {
         "`{declared}` is not a version number"
     );
 }
+
+
+/// Taking a date must go through the contest, never through a plain edit.
+///
+/// `update_release` writes a date without asking who holds it, which is right
+/// for editing a booking and wrong for claiming one. v0.24 wired the calendar's
+/// drag-and-drop to it and shipped a build where dragging one release onto
+/// another's day left both there, the rule quietly bypassed.
+///
+/// Read from the source because the alternative is a DOM test, and the frontend
+/// runner has no DOM until the 0.43 block.
+#[test]
+fn the_calendar_claims_dates_through_the_contest() {
+    let source = read("src/components/CalendarView.tsx");
+
+    let handler = source
+        .find("onMove=")
+        .map(|at| &source[at..(at + 200).min(source.len())])
+        .expect("the calendar passes an onMove handler to the grid");
+
+    let mutation = handler
+        .find("move.mutate")
+        .map(|_| "move")
+        .expect("onMove goes through the `move` mutation");
+
+    // The mutation itself must call scheduleRelease, not updateRelease.
+    let body = source
+        .find(&format!("const {mutation} = useMutation"))
+        .map(|at| &source[at..(at + 400).min(source.len())])
+        .expect("the move mutation is declared");
+
+    assert!(
+        body.contains("scheduleRelease"),
+        "dragging a release must claim its date through `scheduleRelease`, so a          held day is contested rather than shared"
+    );
+    assert!(
+        !body.contains("updateRelease"),
+        "dragging a release must not write the date through `updateRelease`,          which does not look at who holds the day"
+    );
+}

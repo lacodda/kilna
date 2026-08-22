@@ -770,6 +770,41 @@ mod tests {
         );
     }
 
+    /// `update` writes a date without asking who holds it — by design: editing
+    /// a booking is not bidding for one. This pins that behaviour down, because
+    /// v0.24 wired dragging to `update` and shipped a calendar where two
+    /// releases could share a day. Anything that lets a person *take* a date
+    /// must go through `schedule`.
+    #[test]
+    fn update_moves_a_date_without_contesting_it() {
+        let (mut conn, profile_id) = workspace();
+
+        let holder = planned(&conn, &profile_id, "Holder", Some(9.0));
+        schedule(&mut conn, &holder.id, "2026-09-05").unwrap();
+
+        let other = planned(&conn, &profile_id, "Other", Some(1.0));
+        update(
+            &conn,
+            &other.id,
+            ReleasePatch {
+                scheduled_at: Some(Some("2026-09-05".into())),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        let sharing = calendar(&conn, &profile_id)
+            .unwrap()
+            .into_iter()
+            .filter(|row| row.release.scheduled_at.as_deref() == Some("2026-09-05"))
+            .count();
+        assert_eq!(sharing, 2, "update is expected not to contest — see the doc comment");
+
+        // And the contest, for the same pair, refuses the weaker one.
+        let refused = schedule(&mut conn, &other.id, "2026-09-05");
+        assert!(refused.is_err(), "schedule must still contest");
+    }
+
     /// There is no slot to pin on something that holds no date.
     #[test]
     fn pinning_needs_a_date() {

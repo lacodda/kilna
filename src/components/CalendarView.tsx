@@ -8,7 +8,6 @@ import {
   scheduleRelease,
   setSlotPin,
   unscheduleRelease,
-  updateRelease,
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
@@ -87,16 +86,24 @@ export function CalendarView({ onSelect }: Props) {
     onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
 
-  // Dragging a chip to another day moves the booking rather than bidding for
-  // the slot: the release already holds a date, and dropping it two days over
-  // is a correction. Landing on a day someone else holds is the one case that
-  // still contests, which `schedule` decides.
+  // Dragging goes through the contest, not through a plain edit. `update`
+  // writes the date without looking at who holds it — verified, two releases
+  // landed on the same day — and a calendar where the rule can be sidestepped
+  // by dragging is a calendar without the rule.
   const move = useMutation({
-    mutationFn: ({ id, date }: { id: string; date: string }) =>
-      updateRelease(id, { scheduled_at: date }),
-    onSuccess: () => {
+    mutationFn: ({ id, date }: { id: string; date: string }) => scheduleRelease(id, date),
+    onSuccess: (result) => {
       settle()
-      say.ok(t('toast.releaseMoved'))
+      if (result.displaced === null) {
+        say.ok(t('toast.releaseMoved'))
+      } else {
+        say.warn(
+          t('toast.releaseMoved'),
+          t('calendar.displaced', {
+            title: result.displaced.title ?? result.displaced.work_id,
+          }),
+        )
+      }
     },
     onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
