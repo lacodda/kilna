@@ -199,7 +199,12 @@
     "unscored": "Not scored yet — it cannot take a slot from a work that has been.",
     "ready": "Ready to go out",
     "notReadyHint": "Missing: {{list}}",
-    "missingScore": "a score"
+    "missingScore": "a score",
+    "preview": {
+      "displaces": "{{title}} would lose this day",
+      "held": "{{title}} holds this day and scores at least as well",
+      "pinned": "{{title}} holds this day, and the date is pinned"
+    }
   },
   "releases": {
     "title": "Releases",

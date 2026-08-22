@@ -578,6 +578,19 @@ pub fn schedule_release(
     Ok(outcome)
 }
 
+/// The dry run of a claim: how `schedule_release` would end, without moving
+/// anything. Nothing is written and nothing is journalled — it is a look, not
+/// an action.
+#[tauri::command]
+pub fn preview_schedule(
+    state: State<'_, AppState>,
+    id: String,
+    slot: String,
+) -> Result<release::SlotPreview> {
+    let conn = state.conn();
+    release::preview(&conn, &id, &slot)
+}
+
 /// Settle a date so the contest leaves it alone, or hand it back.
 #[tauri::command]
 pub fn set_slot_pin(state: State<'_, AppState>, id: String, pinned: bool) -> Result<Release> {

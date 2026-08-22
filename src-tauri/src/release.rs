@@ -69,6 +69,36 @@ pub struct Scheduling {
     pub displaced: Option<Release>,
 }
 
+/// How claiming a slot would end. One vocabulary for the dry run and the real
+/// one: v0.24 shipped a contest the screens described with a different rule,
+/// and a preview that can disagree with the drop is worse than none.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Verdict {
+    /// Nothing planned holds the day; claiming it contests nothing.
+    Empty,
+    /// The challenger is stronger: the holder would return to the queue.
+    Displaces,
+    /// The holder scores at least as well; the claim would be refused.
+    Held,
+    /// The date was settled by a person; the claim would be refused unjudged.
+    Pinned,
+}
+
+/// The dry run of a claim, shaped for the calendar to show before a drop.
+#[derive(Debug, Clone, Serialize)]
+pub struct SlotPreview {
+    pub verdict: Verdict,
+    /// Who holds the day, when anything does.
+    pub holder_title: Option<String>,
+}
+
+/// A judged claim: who holds the slot and how the contest would end.
+struct Contest {
+    occupant: Option<Release>,
+    verdict: Verdict,
+}
+
 /// Status values a release moves through. These are fixed rather than profile
 /// vocabulary: they describe the mechanism, not the craft.
 pub const PLANNED: &str = "planned";
@@ -132,67 +162,48 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<Release>> {
 pub fn schedule(conn: &mut Connection, id: &str, slot: &str) -> Result<Scheduling> {
     let tx = conn.transaction()?;
 
-    let Some(release) = tx
-        .query_row(
-            &format!("{SELECT_RELEASE} WHERE id = ?1"),
-            params![id],
-            read_row,
-        )
-        .optional()?
-        .map(RawRelease::into_release)
-        .transpose()?
-    else {
-        return Err(unknown_release(id));
-    };
-
-    // Whoever already holds the slot, ignoring this release itself.
-    let occupant = tx
-        .query_row(
-            &format!("{SELECT_RELEASE} WHERE scheduled_at = ?1 AND id <> ?2 AND status = '{PLANNED}' LIMIT 1"),
-            params![slot, id],
-            read_row,
-        )
-        .optional()?
-        .map(RawRelease::into_release)
-        .transpose()?;
-
+    let judged = judge(&tx, id, slot)?;
     let timestamp = now();
     let mut displaced = None;
 
-    if let Some(occupant) = occupant {
+    match judged.verdict {
         // A pinned slot is not a contest. Strength is never consulted: the date
         // was decided by a person, and the whole point of deciding is that a
         // better score does not reopen it.
-        if occupant.slot_pinned_at.is_some() {
+        Verdict::Pinned => {
+            let occupant = judged.occupant.expect("a pinned verdict names a holder");
             return Err(Error::SlotPinned(format!(
                 "`{}` holds that date and it is pinned",
                 occupant.title.as_deref().unwrap_or(&occupant.work_id)
             )));
         }
-
-        let challenger = strength(&tx, &release.work_id)?;
-        let holder = strength(&tx, &occupant.work_id)?;
-
         // Ties go to the release already in the slot: a plan should not move
         // without a reason to move it.
-        if challenger.unwrap_or(f64::NEG_INFINITY) <= holder.unwrap_or(f64::NEG_INFINITY) {
+        Verdict::Held => {
+            let occupant = judged.occupant.expect("a held verdict names a holder");
             return Err(Error::SlotHeld(format!(
                 "the slot is held by `{}`, which scores at least as well",
                 occupant.title.as_deref().unwrap_or(&occupant.work_id)
             )));
         }
-
-        // No pin to clear here: a pinned slot refuses the challenge above, so
-        // anything that reaches this line was never pinned. The other two ways
-        // a date is lost do clear it — see `unschedule` and `update`.
-        tx.execute(
-            "UPDATE release SET scheduled_at = NULL, updated_at = ?2 WHERE id = ?1",
-            params![occupant.id, timestamp],
-        )?;
-        displaced = Some(Release {
-            scheduled_at: None,
-            ..occupant
-        });
+        Verdict::Displaces => {
+            let occupant = judged
+                .occupant
+                .expect("a displacing verdict names a holder");
+            // No pin to clear here: a pinned slot refuses the challenge above,
+            // so anything that reaches this line was never pinned. The other
+            // two ways a date is lost do clear it — see `unschedule` and
+            // `update`.
+            tx.execute(
+                "UPDATE release SET scheduled_at = NULL, updated_at = ?2 WHERE id = ?1",
+                params![occupant.id, timestamp],
+            )?;
+            displaced = Some(Release {
+                scheduled_at: None,
+                ..occupant
+            });
+        }
+        Verdict::Empty => {}
     }
 
     tx.execute(
@@ -205,6 +216,82 @@ pub fn schedule(conn: &mut Connection, id: &str, slot: &str) -> Result<Schedulin
     Ok(Scheduling {
         release: get(conn, id)?.ok_or_else(|| unknown_release(id))?,
         displaced,
+    })
+}
+
+/// The dry run: how [`schedule`] would end, without moving anything.
+///
+/// Shown under the cursor while a release hovers over a day, so displacement
+/// stops being a surprise announced after the drop.
+pub fn preview(conn: &Connection, id: &str, slot: &str) -> Result<SlotPreview> {
+    let judged = judge(conn, id, slot)?;
+
+    let holder_title = judged.occupant.as_ref().map(|occupant| {
+        occupant.title.clone().unwrap_or_else(|| {
+            crate::journal::work_title(conn, &occupant.work_id).unwrap_or_default()
+        })
+    });
+
+    Ok(SlotPreview {
+        verdict: judged.verdict,
+        holder_title,
+    })
+}
+
+/// Decide how claiming `slot` for `id` would end. The one place the rule
+/// lives: [`schedule`] acts on the verdict, [`preview`] shows it.
+fn judge(conn: &Connection, id: &str, slot: &str) -> Result<Contest> {
+    let Some(release) = conn
+        .query_row(
+            &format!("{SELECT_RELEASE} WHERE id = ?1"),
+            params![id],
+            read_row,
+        )
+        .optional()?
+        .map(RawRelease::into_release)
+        .transpose()?
+    else {
+        return Err(unknown_release(id));
+    };
+
+    // Whoever already holds the slot, ignoring this release itself. The
+    // challenger's own row is read first purely so an unknown id errs rather
+    // than previewing an empty day.
+    let challenger_work = release.work_id;
+    let occupant = conn
+        .query_row(
+            &format!(
+                "{SELECT_RELEASE} WHERE scheduled_at = ?1 AND id <> ?2 AND status = '{PLANNED}' LIMIT 1"
+            ),
+            params![slot, id],
+            read_row,
+        )
+        .optional()?
+        .map(RawRelease::into_release)
+        .transpose()?;
+
+    let Some(occupant) = occupant else {
+        return Ok(Contest {
+            occupant: None,
+            verdict: Verdict::Empty,
+        });
+    };
+
+    let verdict = if occupant.slot_pinned_at.is_some() {
+        Verdict::Pinned
+    } else {
+        let challenger = strength(conn, &challenger_work)?;
+        let holder = strength(conn, &occupant.work_id)?;
+        if challenger.unwrap_or(f64::NEG_INFINITY) <= holder.unwrap_or(f64::NEG_INFINITY) {
+            Verdict::Held
+        } else {
+            Verdict::Displaces
+        }
+    };
+
+    Ok(Contest {
+        occupant: Some(occupant),
+        verdict,
     })
 }
 
@@ -896,6 +983,56 @@ mod tests {
         assert!(freed.scheduled_at.is_none());
         assert_eq!(freed.status, PLANNED);
         assert!(calendar(&conn, &profile_id).unwrap().is_empty());
+    }
+
+    /// The dry run and the real claim are one rule: whatever `preview` says a
+    /// drop will do is exactly what `schedule` then does. Each verdict is
+    /// checked against the real outcome, because a preview that drifts from
+    /// the contest misleads at the worst moment — with a release in the air.
+    #[test]
+    fn the_preview_says_what_scheduling_then_does() {
+        let (mut conn, profile_id) = workspace();
+
+        let strong = planned(&conn, &profile_id, "Strong", Some(9.0));
+        let weak = planned(&conn, &profile_id, "Weak", Some(4.0));
+        let pinned = planned(&conn, &profile_id, "Pinned", Some(5.0));
+
+        // An empty day: claimed without displacing.
+        let dry = preview(&conn, &strong.id, "2026-09-01").unwrap();
+        assert_eq!(dry.verdict, Verdict::Empty);
+        assert!(dry.holder_title.is_none());
+        let real = schedule(&mut conn, &strong.id, "2026-09-01").unwrap();
+        assert!(real.displaced.is_none());
+
+        // A weaker challenger: refused, and the preview names the holder.
+        let dry = preview(&conn, &weak.id, "2026-09-01").unwrap();
+        assert_eq!(dry.verdict, Verdict::Held);
+        assert_eq!(dry.holder_title.as_deref(), Some("Strong"));
+        assert!(schedule(&mut conn, &weak.id, "2026-09-01").is_err());
+
+        // A stronger challenger against the weak holder: displaces.
+        schedule(&mut conn, &weak.id, "2026-09-02").unwrap();
+        let dry = preview(&conn, &strong.id, "2026-09-02").unwrap();
+        assert_eq!(dry.verdict, Verdict::Displaces);
+        assert_eq!(dry.holder_title.as_deref(), Some("Weak"));
+        let real = schedule(&mut conn, &strong.id, "2026-09-02").unwrap();
+        assert_eq!(real.displaced.unwrap().id, weak.id);
+
+        // A pinned holder: refused before strength is even consulted.
+        schedule(&mut conn, &pinned.id, "2026-09-03").unwrap();
+        set_slot_pin(&conn, &pinned.id, true).unwrap();
+        let dry = preview(&conn, &strong.id, "2026-09-03").unwrap();
+        assert_eq!(dry.verdict, Verdict::Pinned);
+        let refused = schedule(&mut conn, &strong.id, "2026-09-03").unwrap_err();
+        assert_eq!(refused.kind(), "slotPinned");
+
+        // Hovering over its own day reads as empty: dropping there is a no-op,
+        // not a contest against itself.
+        let own = preview(&conn, &strong.id, "2026-09-02").unwrap();
+        assert_eq!(own.verdict, Verdict::Empty);
+
+        // And an unknown release errs rather than previewing an empty day.
+        assert!(preview(&conn, "nope", "2026-09-01").is_err());
     }
 
     /// The calendar's chips carry readiness judged from the same facts every

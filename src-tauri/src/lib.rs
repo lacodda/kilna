@@ -64,6 +64,7 @@ pub fn run() {
             commands::create_release,
             commands::update_release,
             commands::delete_release,
+            commands::preview_schedule,
             commands::schedule_release,
             commands::set_slot_pin,
             commands::unschedule_release,

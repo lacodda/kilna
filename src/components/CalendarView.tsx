@@ -209,7 +209,7 @@ export function CalendarView({ onSelect }: Props) {
               slots={slots.data}
               // A queued release is waiting for a date: the grid becomes a way
               // to pick one, rather than a picture of what is booked.
-              claiming={picked !== null}
+              claimingId={picked}
               onPickDay={(date) => {
                 if (picked !== null) claim.mutate({ id: picked, date })
               }}

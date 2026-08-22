@@ -73,6 +73,14 @@ work scores higher, and a pinned one refuses. Dropping on the **bin** — which
 appears at the top only while something is in the air — returns it to the
 queue, exactly as unscheduling does.
 
+**The outcome shows before the drop.** While a release hangs over a day — or
+while a picked queue entry hovers over one — the day answers: amber names the
+release that would lose the date, red says the claim would be refused and why
+(the holder scores at least as well, or the date is pinned). The message is
+the same verdict the drop would act on, computed by the same rule, so the
+preview cannot promise one thing and the contest do another. An empty day
+shows nothing extra: there is nothing to warn about.
+
 Editing the date in the release itself is the exception: that moves a booking
 you already hold rather than bidding for a new one, and does not contest.
 

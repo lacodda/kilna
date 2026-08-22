@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, GripVertical, Lock, Trash2 } from 'lucide-react'
-import type { ScheduledRelease } from '@/lib/api'
+import { previewSchedule, type ScheduledRelease } from '@/lib/api'
 import { byDate, monthGrid, sameMonth, shiftMonth, today, type Month } from '@/lib/month'
 import { coverFor } from '@/lib/cover'
 import { daysBetween } from '@/lib/readiness'
@@ -14,8 +15,8 @@ interface Props {
   month: Month
   onMonthChange: (month: Month) => void
   slots: readonly ScheduledRelease[]
-  /** Set while a queued release is waiting for a date; clicking a day takes it. */
-  claiming: boolean
+  /** The queued release waiting for a date, if any; clicking a day takes it. */
+  claimingId: string | null
   onPickDay: (date: string) => void
   onOpenRelease: (releaseId: string) => void
   /** A release dropped on a different day. */
@@ -38,7 +39,7 @@ export function MonthGrid({
   month,
   onMonthChange,
   slots,
-  claiming,
+  claimingId,
   onPickDay,
   onOpenRelease,
   onMove,
@@ -55,6 +56,22 @@ export function MonthGrid({
   const days = monthGrid(month)
   const booked = byDate(slots, (slot) => slot.scheduled_at)
   const now = today()
+  const claiming = claimingId !== null
+
+  // The dry run of the drop or the click: the same verdict the backend would
+  // act on, asked for the day under the cursor. Announcing displacement after
+  // the drop was v0.24; here it stops being a surprise.
+  const moving = dragging ?? claimingId
+  const preview = useQuery({
+    queryKey: ['slotPreview', moving, over],
+    queryFn: () => previewSchedule(moving as string, over as string),
+    enabled: moving !== null && over !== null && over !== 'bin',
+    staleTime: 5_000,
+  })
+  const verdictFor = (date: string) =>
+    over === date && preview.data !== undefined && preview.data.verdict !== 'empty'
+      ? preview.data
+      : null
 
   const title = new Date(month.year, month.month - 1, 1).toLocaleDateString(i18n.language, {
     month: 'long',
@@ -139,6 +156,8 @@ export function MonthGrid({
         {days.map((day) => {
           const releases = booked.get(day.date) ?? []
           const isToday = day.date === now
+          const verdict = verdictFor(day.date)
+          const refused = verdict !== null && verdict.verdict !== 'displaces'
 
           return (
             <div
@@ -149,9 +168,20 @@ export function MonthGrid({
                 'min-h-24 bg-bg p-1.5 transition-colors',
                 !day.inMonth && 'opacity-40',
                 claiming && day.inMonth && 'cursor-pointer hover:bg-soft',
-                over === day.date && 'bg-accent-soft',
+                // The ground answers before the drop does: a day that would
+                // refuse reads red, anything else reads like a place to land.
+                over === day.date && (refused ? 'bg-bad-soft' : 'bg-accent-soft'),
               )}
               onClick={claiming && day.inMonth ? () => onPickDay(day.date) : undefined}
+              // While a queued release waits for a date, hovering asks the
+              // same question dragging does — the verdict shows before the
+              // click books anything.
+              onMouseEnter={claiming && day.inMonth ? () => setOver(day.date) : undefined}
+              onMouseLeave={
+                claiming
+                  ? () => setOver((current) => (current === day.date ? null : current))
+                  : undefined
+              }
               onDragOver={(event) => {
                 if (dragging === null || !day.inMonth) return
                 // Without this the browser refuses the drop, and the whole
@@ -250,6 +280,21 @@ export function MonthGrid({
                     </button>
                   </div>
                 ))}
+
+                {verdict !== null && (
+                  <p
+                    className={cn(
+                      'rounded-[6px] px-1 py-0.5 text-[10px] leading-tight',
+                      verdict.verdict === 'displaces'
+                        ? 'bg-warn-soft text-warn'
+                        : 'bg-bad-soft text-bad',
+                    )}
+                  >
+                    {t(`calendar.preview.${verdict.verdict}`, {
+                      title: verdict.holder_title ?? '',
+                    })}
+                  </p>
+                )}
               </div>
             </div>
           )

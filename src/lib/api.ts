@@ -273,6 +273,15 @@ export interface Scheduling {
   displaced: Release | null
 }
 
+// The dry run of a claim: the same verdict `schedule_release` would act on,
+// shown before the drop instead of announced after it.
+export type SlotVerdict = 'empty' | 'displaces' | 'held' | 'pinned'
+
+export interface SlotPreview {
+  verdict: SlotVerdict
+  holder_title: string | null
+}
+
 export interface Collection {
   id: string
   profile_id: string
@@ -354,6 +363,8 @@ export const updateRelease = (id: string, patch: ReleasePatch) =>
 
 export const scheduleRelease = (id: string, slot: string) =>
   invoke<Scheduling>('schedule_release', { id, slot })
+export const previewSchedule = (id: string, slot: string) =>
+  invoke<SlotPreview>('preview_schedule', { id, slot })
 export const setSlotPin = (id: string, pinned: boolean) =>
   invoke<Release>('set_slot_pin', { id, pinned })
 export const unscheduleRelease = (id: string) => invoke<Release>('unschedule_release', { id })
