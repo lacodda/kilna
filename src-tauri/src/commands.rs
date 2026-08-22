@@ -578,6 +578,37 @@ pub fn schedule_release(
     Ok(outcome)
 }
 
+/// Settle a date so the contest leaves it alone, or hand it back.
+#[tauri::command]
+pub fn set_slot_pin(state: State<'_, AppState>, id: String, pinned: bool) -> Result<Release> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let updated = release::set_slot_pin(&conn, &id, pinned)?;
+
+    // Both keys are written out literally rather than chosen inside the call.
+    // The gate that checks every recorded action has a sentence reads this file
+    // for literal keys, and one computed in the argument is invisible to it —
+    // which means a raw key on someone's screen instead of a sentence.
+    let title = journal::work_title(&conn, &updated.work_id).unwrap_or_default();
+    let slot = updated.scheduled_at.clone().unwrap_or_default();
+    let entry = if pinned {
+        Record::new("release.pinned")
+    } else {
+        Record::new("release.unpinned")
+    };
+
+    journal::record(
+        &conn,
+        &profile_id,
+        entry
+            .param("title", title)
+            .param("slot", slot)
+            .about("work", updated.work_id.clone()),
+    );
+
+    Ok(updated)
+}
+
 #[tauri::command]
 pub fn unschedule_release(state: State<'_, AppState>, id: String) -> Result<Release> {
     let conn = state.conn();

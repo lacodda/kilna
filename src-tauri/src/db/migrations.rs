@@ -37,6 +37,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "status_pin",
         sql: include_str!("../../migrations/0005_status_pin.sql"),
     },
+    Migration {
+        version: 6,
+        name: "slot_pin",
+        sql: include_str!("../../migrations/0006_slot_pin.sql"),
+    },
 ];
 
 /// The newest schema this build understands.

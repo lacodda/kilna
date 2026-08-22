@@ -30,6 +30,14 @@ pub enum Error {
     #[error("{0}")]
     NotRestorable(String),
 
+    /// A slot someone settled by hand, refusing a stronger challenger. Its own
+    /// variant rather than a plain error because the frontend has a sentence
+    /// for it: "that date is pinned" is a different situation from "that date
+    /// is held by something better", and only one of them is worth arguing
+    /// with.
+    #[error("{0}")]
+    SlotPinned(String),
+
     /// The assistant CLI is missing, unusable, or refused the request.
     #[error("{0}")]
     Assistant(String),
@@ -51,6 +59,7 @@ impl Error {
             Self::SchemaTooNew { .. } => "schemaTooNew",
             Self::NotFound { .. } => "notFound",
             Self::NotRestorable(_) => "notRestorable",
+            Self::SlotPinned(_) => "slotPinned",
             Self::Assistant(_) => "assistant",
             Self::Other(_) => "other",
         }

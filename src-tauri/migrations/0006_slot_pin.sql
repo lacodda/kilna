@@ -1,0 +1,11 @@
+-- A pinned slot: a date that has been decided, not merely proposed.
+--
+-- Scheduling is a contest — a stronger work takes a held date and the weaker
+-- one drops back to the queue with its plan intact. That rule is right for a
+-- calendar being filled, and wrong for the one date in it that is already
+-- promised to someone: an announced launch, a slot booked around a holiday, a
+-- release someone else is waiting on.
+--
+-- NULL means the date competes like any other. A timestamp means a person
+-- settled it, and nothing takes it from them automatically.
+ALTER TABLE release ADD COLUMN slot_pinned_at TEXT;
