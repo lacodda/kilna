@@ -38,3 +38,12 @@ export function coverFor(id: string): string {
   const [from, to] = GRADIENTS[pick(id)] ?? GRADIENTS[0]!
   return `linear-gradient(135deg, ${from}, ${to} 70%)`
 }
+
+/**
+ * The cover's leading colour alone, for places a gradient cannot go — a
+ * border, an outline. Same id, same colour as the cover it stands for.
+ */
+export function accentFor(id: string): string {
+  const [from] = GRADIENTS[pick(id)] ?? GRADIENTS[0]!
+  return from
+}

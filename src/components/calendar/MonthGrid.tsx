@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, GripVertical, Lock, Trash2 } from 'lucide-react'
 import { previewSchedule, type ScheduledRelease } from '@/lib/api'
+import type { Ghost } from '@/lib/layout'
 import { byDate, monthGrid, sameMonth, shiftMonth, today, type Month } from '@/lib/month'
-import { coverFor } from '@/lib/cover'
+import { accentFor, coverFor } from '@/lib/cover'
 import { daysBetween } from '@/lib/readiness'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
@@ -15,6 +16,9 @@ interface Props {
   month: Month
   onMonthChange: (month: Month) => void
   slots: readonly ScheduledRelease[]
+  /** An auto-layout preview by day: where the queue would land, booked by
+      nothing yet. Drawn as dashed chips among the real ones. */
+  ghosts?: Map<string, Ghost[]>
   /** The queued release waiting for a date, if any; clicking a day takes it. */
   claimingId: string | null
   onPickDay: (date: string) => void
@@ -39,6 +43,7 @@ export function MonthGrid({
   month,
   onMonthChange,
   slots,
+  ghosts,
   claimingId,
   onPickDay,
   onOpenRelease,
@@ -278,6 +283,26 @@ export function MonthGrid({
                         {labelOf(profile.config.release_kinds, slot.kind)}
                       </span>
                     </button>
+                  </div>
+                ))}
+
+                {/* Where the auto-layout would put things: dashed and in the
+                    work's own colour as an outline, so a plan is visibly not
+                    a booking. Inert on purpose — the plan is approved or
+                    cancelled from the bar above, not edited chip by chip. */}
+                {(ghosts?.get(day.date) ?? []).map((ghost) => (
+                  <div
+                    key={ghost.releaseId}
+                    title={`${ghost.title} · ${labelOf(profile.config.release_kinds, ghost.kind)}`}
+                    className="flex items-center gap-1.5 rounded-[7px] border border-dashed px-1.5 py-1 text-[11px]"
+                    style={{ borderColor: accentFor(ghost.workId) }}
+                  >
+                    <span className="min-w-0 flex-1 truncate font-medium text-dim">
+                      {ghost.title}
+                    </span>
+                    <span className="shrink-0 text-[9px] uppercase tracking-wide text-faint">
+                      {labelOf(profile.config.release_kinds, ghost.kind)}
+                    </span>
                   </div>
                 ))}
 

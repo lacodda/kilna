@@ -18,6 +18,7 @@ const SPOKEN = new Set([
   'notRestorable',
   'slotPinned',
   'slotHeld',
+  'layoutStale',
   'assistant',
 ])
 

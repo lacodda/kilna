@@ -44,6 +44,12 @@ pub enum Error {
     #[error("{0}")]
     SlotHeld(String),
 
+    /// The calendar moved between previewing an auto-layout and applying it.
+    /// Its own kind because the remedy is specific — preview again — and the
+    /// frontend should say that rather than show a refusal with no way out.
+    #[error("{0}")]
+    LayoutStale(String),
+
     /// The assistant CLI is missing, unusable, or refused the request.
     #[error("{0}")]
     Assistant(String),
@@ -67,6 +73,7 @@ impl Error {
             Self::NotRestorable(_) => "notRestorable",
             Self::SlotPinned(_) => "slotPinned",
             Self::SlotHeld(_) => "slotHeld",
+            Self::LayoutStale(_) => "layoutStale",
             Self::Assistant(_) => "assistant",
             Self::Other(_) => "other",
         }

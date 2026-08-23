@@ -182,6 +182,13 @@
     "thisMonth": "Текущий месяц",
     "clearDateHint": "Если убрать дату, выпуск вернётся в очередь.",
     "usualTime": "Обычно выходит в {{time}}.",
+    "layout": "Разложить очередь",
+    "layoutNeedsRhythm": "Сначала задайте ритм выпуска в профиле.",
+    "layoutPreview_one": "{{count}} выпуск ляжет с {{from}} по {{to}}. Пока ничего не занято.",
+    "layoutPreview_few": "{{count}} выпуска лягут с {{from}} по {{to}}. Пока ничего не занято.",
+    "layoutPreview_many": "{{count}} выпусков лягут с {{from}} по {{to}}. Пока ничего не занято.",
+    "layoutPreview_other": "{{count}} выпуска лягут с {{from}} по {{to}}. Пока ничего не занято.",
+    "layoutApply": "Занять даты",
     "weekday": {
       "mon": "Пн",
       "tue": "Вт",
@@ -320,7 +327,8 @@
     "unknown": "Что-то пошло не так.",
     "notRestorable": "Произведение, которому это принадлежало, тоже в корзине. Сначала восстановите его.",
     "slotPinned": "Эта дата закреплена за другим выпуском.",
-    "slotHeld": "Эту дату держит работа не слабее этой."
+    "slotHeld": "Эту дату держит работа не слабее этой.",
+    "layoutStale": "Календарь изменился после предпросмотра. Разложите очередь заново."
   },
   "save": {
     "saving": "Сохраняю…",
@@ -357,6 +365,8 @@
     "releaseSaved": "Выпуск обновлён.",
     "releaseSaveFailed": "Не удалось сохранить выпуск.",
     "releaseScheduled": "Слот занят.",
+    "layoutApplied": "Очередь разложена.",
+    "layoutFailed": "Не удалось разложить очередь",
     "releaseReleased": "Отмечено как выпущенное.",
     "releaseUnscheduled": "Вернулось в очередь.",
     "noteSaveFailed": "Не удалось сохранить заметку.",
@@ -426,6 +436,10 @@
     "release.unpinned": "«{{title}}» снова можно сдвинуть с {{slot}}.",
     "release.moved": "«{{title}}» перенесено на {{slot}}.",
     "release.displaced": "«{{title}}» потеряло слот {{slot}}.",
+    "layout.applied_one": "{{count}} выпуск разложен по календарю с {{from}} по {{to}}.",
+    "layout.applied_few": "{{count}} выпуска разложены по календарю с {{from}} по {{to}}.",
+    "layout.applied_many": "{{count}} выпусков разложены по календарю с {{from}} по {{to}}.",
+    "layout.applied_other": "{{count}} выпуска разложены по календарю с {{from}} по {{to}}.",
     "release.notReady": "«{{title}}» выходит {{date}}, но не готово.",
     "release.released": "«{{title}}» выпущено ({{kind}}).",
     "release.deleted": "Выпуск «{{label}}» удалён.",

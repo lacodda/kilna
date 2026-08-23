@@ -2,13 +2,16 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  applyLayout,
   calendar as fetchCalendar,
   markReleased,
+  planLayout,
   releaseQueue,
   scheduleRelease,
   setSlotPin,
   unscheduleRelease,
   warnUnreadyReleases,
+  type Placement,
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
@@ -20,6 +23,7 @@ import { SkeletonList } from '@/components/ui/Skeleton'
 import { MonthGrid } from '@/components/calendar/MonthGrid'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { ReleaseEditor } from '@/components/calendar/ReleaseEditor'
+import { ghostsOf } from '@/lib/layout'
 import { monthOf, today, type Month } from '@/lib/month'
 import { cn } from '@/lib/utils'
 
@@ -43,6 +47,10 @@ export function CalendarView({ onSelect }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   // The release waiting for a link, or null when the dialog is closed.
   const [releasing, setReleasing] = useState<string | null>(null)
+  // The auto-layout plan being previewed, or null. Applying books exactly
+  // this array; any other calendar change makes it a picture of the past, so
+  // `settle` clears it.
+  const [layout, setLayout] = useState<Placement[] | null>(null)
 
   const slots = useQuery({ queryKey: keys.calendar, queryFn: fetchCalendar })
   const queued = useQuery({ queryKey: keys.releaseQueue, queryFn: releaseQueue })
@@ -54,6 +62,7 @@ export function CalendarView({ onSelect }: Props) {
   // rather than at the next startup. The sweep runs before the journal is
   // refetched so the feed the refetch brings back already holds the warning.
   const settle = () => {
+    setLayout(null)
     void client.invalidateQueries({ queryKey: keys.calendar })
     void client.invalidateQueries({ queryKey: keys.releaseQueue })
     void client.invalidateQueries({ queryKey: keys.releases })
@@ -133,6 +142,33 @@ export function CalendarView({ onSelect }: Props) {
     onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
 
+  // The plan moves nothing; it is a picture to approve. Jumping to its first
+  // month is what makes the ghosts visible at all when the queue lands beyond
+  // the month on screen.
+  const preview = useMutation({
+    mutationFn: () => planLayout(today()),
+    onSuccess: (placements) => {
+      setLayout(placements)
+      const first = placements[0]
+      if (first !== undefined) setMonth(monthOf(first.date))
+    },
+    onError: (cause) => say.failedTo(t('toast.layoutFailed'), cause),
+  })
+
+  const book = useMutation({
+    mutationFn: (placements: Placement[]) => applyLayout(placements),
+    onSuccess: () => {
+      settle()
+      say.ok(t('toast.layoutApplied'))
+    },
+    // A stale plan is refused whole; the refetch shows what the calendar
+    // actually holds now, and the person previews again from that.
+    onError: (cause) => {
+      settle()
+      say.failedTo(t('toast.layoutFailed'), cause)
+    },
+  })
+
   return (
     <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
       <section className="flex flex-col gap-3">
@@ -179,6 +215,20 @@ export function CalendarView({ onSelect }: Props) {
           </ul>
         )}
 
+        {/* One click plans the whole queue to the profile's rhythm. Without a
+            rhythm there is nothing to pace by, and the button says so instead
+            of hiding. */}
+        {queued.data !== undefined && queued.data.length > 0 && layout === null && (
+          <Button
+            size="sm"
+            disabled={profile.config.rhythm == null || preview.isPending}
+            title={profile.config.rhythm == null ? t('calendar.layoutNeedsRhythm') : undefined}
+            onClick={() => preview.mutate()}
+          >
+            {t('calendar.layout')}
+          </Button>
+        )}
+
         {picked !== null && (
           <form
             className="flex gap-2"
@@ -209,10 +259,38 @@ export function CalendarView({ onSelect }: Props) {
           </p>
         ) : (
           <>
+            {/* The plan on approval: what would land where, said in one line
+                and drawn as ghosts in the grid. Booking applies exactly the
+                previewed array — the backend refuses it whole if the calendar
+                moved in between. */}
+            {layout !== null && (
+              <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-accent bg-accent-soft px-3 py-2 text-sm">
+                <span className="flex-1">
+                  {t('calendar.layoutPreview', {
+                    count: layout.length,
+                    from: layout[0]?.date,
+                    to: layout[layout.length - 1]?.date,
+                  })}
+                </span>
+                <Button size="sm" onClick={() => setLayout(null)}>
+                  {t('dialog.cancel')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={book.isPending}
+                  onClick={() => book.mutate(layout)}
+                >
+                  {t('calendar.layoutApply')}
+                </Button>
+              </div>
+            )}
+
             <MonthGrid
               month={month}
               onMonthChange={setMonth}
               slots={slots.data}
+              ghosts={layout === null ? undefined : ghostsOf(layout, queued.data ?? [])}
               // A queued release is waiting for a date: the grid becomes a way
               // to pick one, rather than a picture of what is booked.
               claimingId={picked}
@@ -224,7 +302,9 @@ export function CalendarView({ onSelect }: Props) {
               onUnschedule={(id) => unschedule.mutate(id)}
             />
 
-            {slots.data.length === 0 && <p className="text-sm text-dim">{t('calendar.empty')}</p>}
+            {slots.data.length === 0 && layout === null && (
+              <p className="text-sm text-dim">{t('calendar.empty')}</p>
+            )}
           </>
         )}
       </section>

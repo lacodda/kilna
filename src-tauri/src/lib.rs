@@ -5,6 +5,7 @@ pub mod db;
 pub mod error;
 pub mod exchange;
 pub mod journal;
+pub mod layout;
 pub mod note;
 pub mod plugin;
 pub mod profile;
@@ -71,6 +72,8 @@ pub fn run() {
             commands::unschedule_release,
             commands::mark_released,
             commands::calendar,
+            commands::plan_layout,
+            commands::apply_layout,
             commands::release_queue,
             commands::releases_for_work,
             commands::list_collections,

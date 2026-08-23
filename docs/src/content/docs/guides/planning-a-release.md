@@ -21,6 +21,43 @@ strongest if no version is current — see
 recent snapshot instead, so a work could read one number in the catalogue and
 be judged by another here.
 
+## The rhythm and the auto-layout
+
+The profile can state a [rhythm](/kilna/reference/profile-document/#rhythm) —
+how many days the craft keeps between releases, and optionally the usual time
+of day, which is shown beside the date when editing a release. With a rhythm
+set, **Lay out the queue** plans a date for everything waiting, in one click;
+without one, the button explains what to set first.
+
+The plan is a **preview, not a booking**. Ghost chips — dashed, in each
+work's own colour — show where every queued release would land, and a bar
+above the grid says how many and between which dates. Nothing is written
+until you approve it; cancelling leaves the calendar untouched. Approving
+books **exactly the previewed plan**: if the calendar changed in between — a
+slot claimed by hand, a release scheduled from its card — the whole plan is
+refused rather than partially applied, and you preview again from what the
+calendar holds now.
+
+The layout follows four rules, in this order:
+
+- **Nothing already on the calendar moves.** Booked days, pinned or not, are
+  ground the layout builds around — it fills empty days only, and never
+  displaces anything.
+- **Spacing.** A planned date keeps at least the rhythm's distance from every
+  release that has a date — planned or already released. Something that went
+  out yesterday sets the pace exactly as a booked slot would.
+- **Scatter.** Two releases of the same work never land on neighbouring days.
+  With a rhythm of two days or more, spacing already guarantees this; on a
+  daily rhythm it is what keeps one work from occupying a whole week.
+- **Order.** The queue is walked strongest first, each release taking the
+  earliest day the rules allow.
+
+The same inputs always produce the same plan, and placement starts tomorrow —
+today is already underway. Applying writes one line to
+[History](/kilna/guides/the-history/) for the whole batch, and the works'
+[statuses](/kilna/guides/statuses/) catch up silently, the way the mass
+resync does it.
+
 ## The month
 
 The calendar draws one month at a time, weeks starting on Monday, with the

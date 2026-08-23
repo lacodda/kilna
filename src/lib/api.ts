@@ -384,6 +384,18 @@ export const setSlotPin = (id: string, pinned: boolean) =>
 export const unscheduleRelease = (id: string) => invoke<Release>('unschedule_release', { id })
 export const markReleased = (id: string, url?: string | null) =>
   invoke<Release>('mark_released', { id, url })
+// One line of an auto-layout plan: this release lands on this day. What
+// `planLayout` returns is exactly what `applyLayout` takes back — the preview
+// is the contract, not a sketch.
+export interface Placement {
+  release_id: string
+  date: string
+}
+
+export const planLayout = (today: string) => invoke<Placement[]>('plan_layout', { today })
+export const applyLayout = (placements: Placement[]) =>
+  invoke<number>('apply_layout', { placements })
+
 export const calendar = () => invoke<ScheduledRelease[]>('calendar')
 export const releaseQueue = () => invoke<ScheduledRelease[]>('release_queue')
 export const releasesForWork = (workId: string) => invoke<Release[]>('releases_for_work', { workId })

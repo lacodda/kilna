@@ -7,6 +7,7 @@ use crate::exchange::backup;
 use crate::exchange::export::{self, ExportReport};
 use crate::exchange::import::{self, ImportReport};
 use crate::journal::{self, Entry, Record};
+use crate::layout;
 use crate::note::{self, NewNote, Note, NoteFilter, NotePatch};
 use crate::plugin::{self, manifest::Plugin, manifest::Target};
 use crate::profile::{self, Profile, Workspace};
@@ -623,6 +624,66 @@ pub fn record_unready_warnings(
     Ok(unready.len())
 }
 
+/// Where the queue would land, laid out to the profile's rhythm. Nothing is
+/// written: the person approves the plan, or nothing happens.
+#[tauri::command]
+pub fn plan_layout(state: State<'_, AppState>, today: String) -> Result<Vec<layout::Placement>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    layout::plan(&conn, &profile_id, &today)
+}
+
+/// Book exactly the plan the person approved — all of it or none of it.
+///
+/// One journal line for the whole batch rather than one per release: fifty
+/// placements telling the story fifty times is how a history stops being
+/// read. Statuses are brought in line the same way the resync does — silently,
+/// with the batch line standing for all of them.
+#[tauri::command]
+pub fn apply_layout(
+    state: State<'_, AppState>,
+    placements: Vec<layout::Placement>,
+) -> Result<usize> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    record_applied_layout(&mut conn, &profile_id, &placements)
+}
+
+/// The body of [`apply_layout`], reachable without a Tauri state.
+pub fn record_applied_layout(
+    conn: &mut rusqlite::Connection,
+    profile_id: &str,
+    placements: &[layout::Placement],
+) -> Result<usize> {
+    let applied = layout::apply(conn, placements)?;
+
+    if applied > 0 {
+        // The plan arrives in date order, but the journal line should not
+        // depend on that holding.
+        let from = placements.iter().map(|p| p.date.as_str()).min();
+        let to = placements.iter().map(|p| p.date.as_str()).max();
+        journal::record(
+            conn,
+            profile_id,
+            Record::new("layout.applied")
+                .param("count", applied as i64)
+                .param("from", from.unwrap_or_default())
+                .param("to", to.unwrap_or_default()),
+        );
+
+        match profile::config_for(conn, profile_id) {
+            Ok(config) => {
+                if let Err(cause) = work::status::resync(conn, &config, profile_id) {
+                    eprintln!("layout: could not restate the works: {cause}");
+                }
+            }
+            Err(cause) => eprintln!("layout: could not read the profile: {cause}"),
+        }
+    }
+
+    Ok(applied)
+}
+
 /// The dry run of a claim: how `schedule_release` would end, without moving
 /// anything. Nothing is written and nothing is journalled — it is a look, not
 /// an action.
@@ -1075,7 +1136,82 @@ pub fn set_collection_contents(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{db, journal, profile, release, work};
+    use crate::{db, journal, layout, profile, release, work};
+
+    /// The batch speaks once: applying a layout writes one line with the count
+    /// and the range, not one per release — and the statuses still catch up,
+    /// silently, the way the resync does it.
+    #[test]
+    fn an_applied_layout_is_one_journal_line_and_the_statuses_follow() {
+        let mut conn = db::open_in_memory().unwrap();
+        profile::seed(&conn).unwrap();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+
+        let mut work_ids = Vec::new();
+        for title in ["First", "Second"] {
+            let work = work::create(
+                &conn,
+                &profile_id,
+                work::NewWork {
+                    kind: "song".into(),
+                    title: title.into(),
+                    status: None,
+                    collection_id: None,
+                    meta: None,
+                },
+            )
+            .unwrap();
+            crate::score::create(
+                &conn,
+                &work.id,
+                crate::score::NewScore {
+                    axes: serde_json::json!({ "hook": 7.0 })
+                        .as_object()
+                        .cloned()
+                        .unwrap(),
+                    version_id: None,
+                    note: None,
+                },
+            )
+            .unwrap();
+            release::create(
+                &conn,
+                release::NewRelease {
+                    work_id: work.id.clone(),
+                    kind: "clip".into(),
+                    title: None,
+                    scheduled_at: None,
+                    meta: None,
+                },
+            )
+            .unwrap();
+            work_ids.push(work.id);
+        }
+
+        let plan = layout::plan(&conn, &profile_id, "2026-09-01").unwrap();
+        record_applied_layout(&mut conn, &profile_id, &plan).unwrap();
+
+        let entries = journal::list(&conn, &profile_id).unwrap();
+        let batch: Vec<_> = entries
+            .iter()
+            .filter(|entry| entry.action == "layout.applied")
+            .collect();
+        assert_eq!(batch.len(), 1);
+        assert_eq!(batch[0].params["count"], 2);
+        assert_eq!(
+            entries
+                .iter()
+                .filter(|entry| entry.action == "work.restated")
+                .count(),
+            0,
+            "the batch line stands for the status changes"
+        );
+
+        for work_id in &work_ids {
+            let restated = work::get(&conn, work_id).unwrap().unwrap();
+            assert_eq!(restated.status, "scheduled");
+        }
+    }
 
     /// The whole warning path: an unready release inside the window writes one
     /// warning, and the same sweep running again — every startup does — leaves
