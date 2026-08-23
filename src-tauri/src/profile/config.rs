@@ -24,6 +24,23 @@ pub struct ProfileConfig {
     /// panel existed still loads.
     #[serde(default)]
     pub prompts: Vec<crate::assistant::prompt::PromptTemplate>,
+    /// How often the craft aims to ship. Absent in a profile written before the
+    /// field existed; without it the auto-layout has nothing to pace by and
+    /// refuses rather than inventing a cadence.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rhythm: Option<Rhythm>,
+}
+
+/// The pace releases go out at.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Rhythm {
+    /// Days the auto-layout keeps between releases. 1 is daily.
+    pub every_days: u32,
+    /// Time of day a release usually ships (HH:MM), shown beside the date when
+    /// editing a release. Slots themselves stay dates: the contest is per day,
+    /// and a time would split it.
+    #[serde(default)]
+    pub default_time: Option<String>,
 }
 
 /// A vocabulary entry: a stable key with a label the user may rename.
@@ -220,6 +237,20 @@ mod tests {
     #[test]
     fn a_release_kind_without_requirements_parses_as_requiring_nothing() {
         assert!(config().release_kinds[0].requires.is_empty());
+    }
+
+    // The fixture states no rhythm either — a profile from before the field
+    // must load, and the absence must read as "no rhythm" rather than a guess.
+    #[test]
+    fn a_profile_without_a_rhythm_parses_as_having_none() {
+        assert!(config().rhythm.is_none());
+    }
+
+    #[test]
+    fn a_rhythm_needs_no_default_time() {
+        let rhythm: Rhythm = serde_json::from_value(json!({ "every_days": 3 })).unwrap();
+        assert_eq!(rhythm.every_days, 3);
+        assert!(rhythm.default_time.is_none());
     }
 
     #[test]

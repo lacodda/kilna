@@ -119,6 +119,58 @@ export function ProfileEditor() {
         </ul>
       </section>
 
+      <section className="flex flex-col gap-2">
+        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
+          {t('editor.rhythm')}
+        </h4>
+        <p className="text-xs text-dim">{t('editor.rhythmHint')}</p>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-sm">
+            <Input
+              className="w-20"
+              type="number"
+              min={1}
+              value={config.rhythm?.every_days ?? ''}
+              aria-label={t('editor.rhythmDays')}
+              onChange={(event) => {
+                const raw = event.target.value
+                // Clearing the field removes the rhythm entirely — "no pace"
+                // is a valid answer, and the layout button explains it.
+                patch({
+                  rhythm:
+                    raw === ''
+                      ? null
+                      : {
+                          every_days: Math.max(1, Math.trunc(Number(raw))),
+                          default_time: config.rhythm?.default_time ?? null,
+                        },
+                })
+              }}
+            />
+            {t('editor.rhythmDaysUnit')}
+          </label>
+          <label className="ml-4 flex items-center gap-2 text-sm">
+            {t('editor.rhythmTime')}
+            <Input
+              className="w-28"
+              type="time"
+              value={config.rhythm?.default_time ?? ''}
+              disabled={config.rhythm == null}
+              aria-label={t('editor.rhythmTime')}
+              onChange={(event) => {
+                if (config.rhythm == null) return
+                patch({
+                  rhythm: {
+                    ...config.rhythm,
+                    default_time: event.target.value === '' ? null : event.target.value,
+                  },
+                })
+              }}
+            />
+          </label>
+        </div>
+      </section>
+
       <Vocabulary
         label={t('editor.statuses')}
         entries={config.statuses}

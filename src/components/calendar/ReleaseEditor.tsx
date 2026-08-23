@@ -106,6 +106,15 @@ export function ReleaseEditor({
           />
         </Field>
 
+        {/* The profile's usual shipping time, as a reminder beside the date.
+            Slots stay whole days — the contest is per day, and a time would
+            split it — so the time lives in the profile, not on the release. */}
+        {typeof profile.config.rhythm?.default_time === 'string' && (
+          <p className="-mt-2 text-xs text-faint">
+            {t('calendar.usualTime', { time: profile.config.rhythm.default_time })}
+          </p>
+        )}
+
         <Field label={t('calendar.urlPrompt')}>
           <Input
             value={draft.url}

@@ -105,6 +105,9 @@ pub fn seed(conn: &Connection) -> Result<()> {
 /// * **The `requires` list of a release kind**, where the stored copy states
 ///   nothing and the shipped one names roles. Same failure mode as `derive`:
 ///   readiness marks would sit blank in every workspace that predates them.
+/// * **The rhythm**, where the stored copy has none and the shipped one names
+///   a pace. Without it the auto-layout is a button that only ever refuses in
+///   every workspace that predates the field.
 ///
 /// A role the user deliberately set to `Manual` is indistinguishable from one
 /// that was never written, and is restored along with the rest. That is the
@@ -176,6 +179,11 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
             kind.requires = shipped.requires.clone();
             changed = true;
         }
+    }
+
+    if config.rhythm.is_none() && shipped.config.rhythm.is_some() {
+        config.rhythm = shipped.config.rhythm.clone();
+        changed = true;
     }
 
     if !changed {
@@ -645,6 +653,27 @@ mod tests {
                 "{key}: full marks scored {total}, not 100"
             );
 
+            // A rhythm every built-in states, and states sanely: zero days
+            // between releases is not a pace, and the usual time is HH:MM or
+            // absent. User-made profiles are free to omit the rhythm — the
+            // layout button then explains itself — but a built-in shipping
+            // without one would make the feature invisible by default.
+            let rhythm = config
+                .rhythm
+                .as_ref()
+                .unwrap_or_else(|| panic!("{key} ships without a rhythm"));
+            assert!(rhythm.every_days >= 1, "{key} has a rhythm of zero days");
+            if let Some(time) = &rhythm.default_time {
+                let split = time.split_once(':');
+                let sane = split.is_some_and(|(hours, minutes)| {
+                    hours.parse::<u8>().is_ok_and(|h| h < 24)
+                        && minutes.parse::<u8>().is_ok_and(|m| m < 60)
+                        && hours.len() == 2
+                        && minutes.len() == 2
+                });
+                assert!(sane, "{key} has a default time of `{time}`, not HH:MM");
+            }
+
             // Prompts may only ask for roles the profile actually has.
             for prompt in &config.prompts {
                 for fragment in prompt.template.split("{role:").skip(1) {
@@ -657,6 +686,55 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// Same delivery path as `derive` and `requires`: a workspace copied
+    /// before profiles knew their pace gains the shipped one on the next
+    /// start — and one the user set themselves is left alone.
+    #[test]
+    fn an_older_workspace_gains_the_rhythm_its_profile_was_missing() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        config.rhythm = None;
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let shipped = builtin().unwrap()[0].config.rhythm.clone().unwrap();
+        let gained = config_for(&conn, &id).unwrap().rhythm.unwrap();
+        assert_eq!(gained.every_days, shipped.every_days);
+
+        // A pace the user chose is not overwritten by the upgrade.
+        let mut config = config_for(&conn, &id).unwrap();
+        config.rhythm = Some(config::Rhythm {
+            every_days: 30,
+            default_time: None,
+        });
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        assert_eq!(
+            config_for(&conn, &id).unwrap().rhythm.unwrap().every_days,
+            30
+        );
     }
 
     #[test]

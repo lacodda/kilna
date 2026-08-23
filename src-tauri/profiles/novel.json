@@ -81,6 +81,7 @@
       { "key": "setting", "label": "Setting", "type": "text" },
       { "key": "timeline", "label": "In-story date", "type": "text" }
     ],
+    "rhythm": { "every_days": 7 },
     "prompts": [
       {
         "key": "critique",

@@ -87,6 +87,7 @@
       { "key": "recorded_on", "label": "Recorded on", "type": "date" },
       { "key": "explicit", "label": "Explicit", "type": "boolean" }
     ],
+    "rhythm": { "every_days": 7, "default_time": "08:00" },
     "prompts": [
       {
         "key": "critique",

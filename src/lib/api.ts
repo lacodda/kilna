@@ -49,6 +49,13 @@ export interface ReleaseKind extends Kind {
   requires: string[]
 }
 
+// The pace releases go out at. `default_time` (HH:MM) is a hint shown beside
+// the date — slots stay whole days, the contest is per day.
+export interface Rhythm {
+  every_days: number
+  default_time: string | null
+}
+
 export interface ProfileConfig {
   work_kinds: Kind[]
   release_kinds: ReleaseKind[]
@@ -59,6 +66,9 @@ export interface ProfileConfig {
   tiers: Tier[]
   work_meta_fields: MetaField[]
   prompts: PromptTemplate[]
+  // Absent in a profile written before the field existed: the auto-layout then
+  // has nothing to pace by, and its button says so instead of guessing.
+  rhythm?: Rhythm | null
 }
 
 export interface Profile {

@@ -84,6 +84,7 @@
       { "key": "duration", "label": "Duration", "type": "text" },
       { "key": "language", "label": "Language", "type": "text" }
     ],
+    "rhythm": { "every_days": 3, "default_time": "12:00" },
     "prompts": [
       {
         "key": "critique",

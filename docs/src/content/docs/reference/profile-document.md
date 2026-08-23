@@ -150,6 +150,28 @@ Music defines `bpm` (number), `key` (text), `duration` (text) and `language`
 (text). Podcast additionally uses `date` (`recorded_on`) and `boolean`
 (`explicit`), showing all four types are in active use across the built-ins.
 
+## `rhythm`
+
+The pace releases go out at:
+
+```jsonc
+{ "every_days": 3, "default_time": "12:00" }
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `every_days` | number | Days the [auto-layout](/kilna/guides/planning-a-release/#the-rhythm-and-the-auto-layout) keeps between releases. `1` is daily. |
+| `default_time` | string, optional | Time of day (`HH:MM`) a release usually ships, shown beside the date when editing a release. |
+
+Calendar slots stay whole days — the contest for a date is per day, and a
+time would split it — so the usual time lives here as a single fact about the
+craft rather than on each release.
+
+`rhythm` may be absent, which is how a profile written before the field
+existed loads: the auto-layout then refuses with an explanation instead of
+inventing a pace. A workspace whose stored copy has no rhythm gains the
+shipped one at the next start; a pace you set yourself is left alone.
+
 ## `prompts`
 
 AI panel actions scoped to this profile — see

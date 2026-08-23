@@ -78,6 +78,7 @@
       { "key": "target_keyword", "label": "Target keyword", "type": "text" },
       { "key": "publish_date", "label": "Publish date", "type": "date" }
     ],
+    "rhythm": { "every_days": 2 },
     "prompts": [
       {
         "key": "critique",
