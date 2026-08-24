@@ -107,7 +107,7 @@ with the first part a link back.
 | Score | The axes, and what this work has scored before |
 | Releases | What ships, where and when — with a count on the tab |
 | Notes | Notes attached to this work |
-| Assistant | The AI panel for this work |
+| Assistant | The AI panel for this work — see [The assistant](/kilna/guides/the-assistant/) |
 | History | Everything that happened to it |
 
 Only the open tab is loaded. Opening a card no longer fetches every version,

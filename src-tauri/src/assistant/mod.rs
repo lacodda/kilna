@@ -1,5 +1,7 @@
 pub mod cli;
 pub mod prompt;
+pub mod run;
+pub mod stream;
 
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};

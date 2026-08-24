@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use rusqlite::Connection;
 
+use crate::assistant::run::Runs;
 use crate::db;
 use crate::error::Result;
 use crate::journal;
@@ -15,6 +16,10 @@ use crate::profile;
 pub struct AppState {
     connection: Mutex<Connection>,
     path: PathBuf,
+    /// Assistant runs in flight. Held apart from the connection on purpose: a
+    /// run lasting minutes must not sit on the lock the rest of the
+    /// application writes through.
+    runs: Arc<Runs>,
 }
 
 impl AppState {
@@ -33,9 +38,16 @@ impl AppState {
             }
         }
 
+        // Runs the previous life of the application was carrying died with it.
+        // Leaving their rows as `running` would show work that nothing is doing.
+        if let Err(cause) = crate::assistant::run::sweep(&conn) {
+            eprintln!("assistant: could not sweep abandoned runs: {cause}");
+        }
+
         Ok(Self {
             connection: Mutex::new(conn),
             path: path.to_path_buf(),
+            runs: Arc::new(Runs::new()),
         })
     }
 
@@ -51,5 +63,24 @@ impl AppState {
 
     pub fn path(&self) -> &Path {
         &self.path
+    }
+
+    pub fn runs(&self) -> &Arc<Runs> {
+        &self.runs
+    }
+
+    /// A connection of its own, for work that runs alongside the commands.
+    ///
+    /// A streamed assistant run writes every few seconds for as long as it
+    /// lasts; going through [`Self::conn`] would hold the shared lock across a
+    /// process it does not control.
+    pub fn open_alongside(&self) -> Option<Connection> {
+        match db::open(&self.path) {
+            Ok(conn) => Some(conn),
+            Err(cause) => {
+                eprintln!("assistant: could not open the workspace for a run: {cause}");
+                None
+            }
+        }
     }
 }

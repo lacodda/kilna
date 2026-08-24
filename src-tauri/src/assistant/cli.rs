@@ -20,6 +20,10 @@ const EXECUTABLE: &str = "claude.cmd";
 #[cfg(not(windows))]
 const EXECUTABLE: &str = "claude";
 
+/// What to say when the CLI is nowhere on the PATH. One sentence, one place:
+/// the probe, the blocking turn and a streamed run all report the same thing.
+pub const MISSING: &str = "Claude Code is not on the PATH. Install it from                            https://claude.com/claude-code, then reopen kilna.";
+
 /// Look for the CLI and report what was found.
 ///
 /// This never fails: "not installed" is an answer the panel shows, not an error
@@ -168,7 +172,7 @@ pub fn ask(prompt: &str, session_id: Option<&str>) -> Result<Turn> {
     })
 }
 
-fn command() -> Command {
+pub(super) fn command() -> Command {
     // Only the Windows branch below mutates it.
     #[cfg_attr(not(windows), allow(unused_mut))]
     let mut command = Command::new(EXECUTABLE);

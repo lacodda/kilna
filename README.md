@@ -64,6 +64,8 @@ Prompt templates come from the active profile, with placeholders filled from the
 
 So "Critique the lyrics" means the right thing in a music profile and something else entirely in a novel one. Conversations are kept in the workspace, and a follow-up question continues where the last one left off.
 
+Asking something starts a run that belongs to the chat, not to the screen you were on: leave the card, open another work, come back — it is still going, and the panel replays what it said while you were away. You can watch the tools it uses as it works, stop it, and have up to three going at once. See [The assistant](https://lacodda.github.io/kilna/guides/the-assistant/).
+
 The core works without it. The panel is amplification, not a requirement — if the CLI isn't installed, the panel says so and everything else carries on.
 
 ## Plugins

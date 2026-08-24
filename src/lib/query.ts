@@ -44,6 +44,8 @@ export const keys = {
 
   chats: (workId?: string) => ['chats', workId ?? null] as const,
   transcript: (chatId: string) => ['transcript', chatId] as const,
+  runs: (chatId: string) => ['runs', chatId] as const,
+  activeRuns: ['runs', 'active'] as const,
   assistantStatus: ['assistantStatus'] as const,
 
   plugins: ['plugins'] as const,

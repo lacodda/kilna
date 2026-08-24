@@ -501,6 +501,42 @@ export interface Transcript {
   messages: Message[]
 }
 
+/**
+ * Something a run said while it was going.
+ *
+ * Coarser than the CLI's own output on purpose: kilna shows blocks of an answer
+ * and the names of tools being used. Shapes it does not know are dropped by the
+ * backend, so anything arriving here is one of these.
+ */
+export type RunEvent =
+  | { kind: 'started'; session_id: string }
+  | { kind: 'text'; body: string }
+  | { kind: 'tool'; name: string; detail: string }
+  | { kind: 'finished'; body: string; cost_usd?: number; duration_ms?: number }
+  | { kind: 'failed'; message: string }
+  | { kind: 'stopped' }
+
+export type RunState = 'running' | 'done' | 'failed' | 'cancelled' | 'broken'
+
+export interface Run {
+  id: string
+  chat_id: string
+  prompt: string
+  state: RunState
+  detail?: string
+  /** Everything it has said so far, oldest first. */
+  events: RunEvent[]
+  started_at: string
+  ended_at?: string
+}
+
+/** One event as it happens, carried on the `assistant:run` channel. */
+export interface RunEmission {
+  run_id: string
+  chat_id: string
+  event: RunEvent
+}
+
 export interface ExportReport {
   directory: string
   works: number
@@ -563,5 +599,10 @@ export const getTranscript = (chatId: string) =>
 export const deleteChat = (id: string) => invoke<void>('delete_chat', { id })
 export const askAssistant = (chatId: string, prompt: string) =>
   invoke<Message>('ask_assistant', { chatId, prompt })
+export const startRun = (chatId: string, prompt: string) =>
+  invoke<Run>('start_run', { chatId, prompt })
+export const cancelRun = (id: string) => invoke<void>('cancel_run', { id })
+export const listRuns = (chatId: string) => invoke<Run[]>('list_runs', { chatId })
+export const activeRuns = () => invoke<string[]>('active_runs')
 export const renderPrompt = (workId: string, template: string) =>
   invoke<string>('render_prompt', { workId, template })

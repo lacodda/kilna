@@ -96,6 +96,10 @@ pub fn run() {
             commands::get_transcript,
             commands::delete_chat,
             commands::ask_assistant,
+            commands::start_run,
+            commands::cancel_run,
+            commands::list_runs,
+            commands::active_runs,
             commands::render_prompt,
             commands::export_markdown,
             commands::backup_workspace,
@@ -105,6 +109,18 @@ pub fn run() {
             commands::list_plugins,
             commands::run_plugin,
         ])
-        .run(tauri::generate_context!())
-        .expect("failed to start kilna");
+        .build(tauri::generate_context!())
+        .expect("failed to start kilna")
+        .run(|app, event| {
+            // Assistant runs are separate processes, and they outlive the
+            // window unless they are stopped: a run left going answers into a
+            // workspace nobody is reading, on the user's tokens. Exit is the
+            // last chance to end them.
+            if matches!(event, tauri::RunEvent::ExitRequested { .. }) {
+                let stopped = app.state::<state::AppState>().runs().stop_all();
+                if stopped > 0 {
+                    eprintln!("assistant: stopped {stopped} run(s) still going at exit");
+                }
+            }
+        });
 }

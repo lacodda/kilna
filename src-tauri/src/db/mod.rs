@@ -63,7 +63,10 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(tables, 12, "nine core tables, two for chat, and the trash");
+        assert_eq!(
+            tables, 13,
+            "nine core tables, three for the assistant, and the trash"
+        );
     }
 
     #[test]

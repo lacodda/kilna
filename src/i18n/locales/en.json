@@ -274,7 +274,10 @@
     "unavailable": "Claude Code is not available on this machine.",
     "placeholder": "Ask about this work — Enter sends, Shift+Enter for a new line",
     "send": "Send",
-    "thinking": "Thinking…"
+    "thinking": "Thinking…",
+    "working": "Working…",
+    "cancel": "Stop",
+    "stopped": "Stopped"
   },
   "notes": {
     "title": "Notes",

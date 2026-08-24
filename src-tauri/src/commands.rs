@@ -1,5 +1,8 @@
-use tauri::State;
+use std::sync::Arc;
 
+use tauri::{AppHandle, Emitter, Manager, State};
+
+use crate::assistant::run::{self as assistant_run, Emission, Run, Sink};
 use crate::assistant::{self, Chat, Message, NewChat, Transcript, cli, prompt};
 use crate::collection::{self, Collection, CollectionPatch, NewCollection};
 use crate::error::{Error, Result};
@@ -1099,9 +1102,9 @@ pub fn delete_chat(state: State<'_, AppState>, id: String) -> Result<()> {
 
 /// Send a prompt and wait for the reply.
 ///
-/// This blocks for as long as the CLI takes. Tauri runs commands off the UI
-/// thread, so the window stays responsive; the panel shows its own pending
-/// state.
+/// This blocks for as long as the CLI takes. Kept for callers that want one
+/// answer and nothing else; the panel uses [`start_run`], which returns at once
+/// and reports the rest as events.
 #[tauri::command]
 pub fn ask_assistant(
     state: State<'_, AppState>,
@@ -1110,6 +1113,75 @@ pub fn ask_assistant(
 ) -> Result<Message> {
     let mut conn = state.conn();
     assistant::ask(&mut conn, &chat_id, &prompt)
+}
+
+/// Sends run events to the window.
+///
+/// A failed emit is not worth failing a run over: the panel replays from the
+/// stored events whenever it comes back.
+struct WindowSink(AppHandle);
+
+impl Sink for WindowSink {
+    fn emit(&self, emission: &Emission) {
+        let _ = self.0.emit(assistant_run::EVENT, emission);
+    }
+}
+
+/// Start a run and return before the CLI answers.
+///
+/// The run belongs to the chat from here on: navigating away, closing the
+/// panel or opening another work leaves it going. What it says arrives as
+/// `assistant:run` events, and is stored as it arrives so a panel that was
+/// elsewhere can replay it.
+#[tauri::command]
+pub fn start_run(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    chat_id: String,
+    prompt: String,
+) -> Result<Run> {
+    let runs = Arc::clone(state.runs());
+
+    let (run, stream) = {
+        let conn = state.conn();
+        assistant_run::start(&conn, &runs, &chat_id, &prompt)?
+    };
+
+    let sink: Arc<dyn Sink> = Arc::new(WindowSink(app.clone()));
+    let started = run.clone();
+
+    // A thread rather than an async task: the CLI is read with blocking IO, and
+    // a run holds its thread for as long as the answer takes.
+    std::thread::spawn(move || {
+        let open = || app.state::<AppState>().inner().open_alongside();
+        assistant_run::pump(&runs, &sink, &started, &stream, open);
+    });
+
+    Ok(run)
+}
+
+/// Stop a run. Whatever it had already said stays in the chat.
+#[tauri::command]
+pub fn cancel_run(state: State<'_, AppState>, id: String) -> Result<()> {
+    if !state.runs().cancel(&id) {
+        // Already finished between the click and the call — nothing to stop,
+        // and nothing worth showing a person.
+        return Ok(());
+    }
+    Ok(())
+}
+
+/// Runs of a chat, newest first — the panel's replay.
+#[tauri::command]
+pub fn list_runs(state: State<'_, AppState>, chat_id: String) -> Result<Vec<Run>> {
+    let conn = state.conn();
+    assistant_run::list(&conn, &chat_id)
+}
+
+/// Which chats are working right now, for the panel's badge.
+#[tauri::command]
+pub fn active_runs(state: State<'_, AppState>) -> Vec<String> {
+    state.runs().active_chats()
 }
 
 /// Fill a profile prompt template with a work's details.

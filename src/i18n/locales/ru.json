@@ -287,7 +287,10 @@
     "unavailable": "Claude Code на этой машине недоступен.",
     "placeholder": "Спросите об этом произведении — Enter отправляет, Shift+Enter переносит строку",
     "send": "Отправить",
-    "thinking": "Думаю…"
+    "thinking": "Думаю…",
+    "working": "Работает…",
+    "cancel": "Остановить",
+    "stopped": "Остановлено"
   },
   "notes": {
     "title": "Заметки",
