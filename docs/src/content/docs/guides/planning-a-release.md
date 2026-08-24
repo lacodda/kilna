@@ -1,6 +1,6 @@
 ---
 title: Planning a release
-description: Queue, slots, displacement — how a stronger work takes a contested date and a weaker one keeps its plan.
+description: Queue, slots, displacement, and the auto-layout — how a stronger work takes a contested date, a weaker one keeps its plan, and one click paces the queue to your rhythm.
 ---
 
 A **release** is a plan to ship a specific work as some kind — a clip, a

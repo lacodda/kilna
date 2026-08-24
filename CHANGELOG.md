@@ -2,7 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.26.0] - 2026-08-24
+
+### Features
+- State the release rhythm in the profile
+- Lay the queue out to the rhythm, preview first
 ## [0.25.0] - 2026-08-22
+
+### Bug Fixes
+- Drop a mut the borrow checker never needed
 
 ### Features
 - Let a release kind state the roles it needs

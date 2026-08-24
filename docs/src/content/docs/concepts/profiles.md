@@ -53,6 +53,8 @@ A profile's `config` object is a single JSON document with these sections
 - `tiers` — score thresholds a total lands in.
 - `work_meta_fields` — craft-specific fields (BPM, point-of-view, guest name)
   stored in the work's `meta`.
+- `rhythm` — how many days the craft keeps between releases, and the usual
+  time of day; what the calendar's auto-layout paces itself by.
 - `prompts` — AI panel templates scoped to this craft.
 
 ## Keys are stable, labels are not

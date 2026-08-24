@@ -21,7 +21,7 @@ Every craft repeats the same cycle. kilna models it once and lets your craft con
 - **Work with versions.** Every draft is kept whole — no diff chains, no lost revisions. A song keeps lyrics and style separately; a chapter keeps text and outline. Name them, compare any two side by side, and write full screen; an unsaved draft survives a closed window.
 - **Scoring that means something.** Rate a work along axes you define, weighted into a tier — a scale you click or drive from the keyboard, with each axis showing the question it asks. Scores are snapshots tied to a version, with a note on why, so you can see that rewriting the second verse moved it from 62 to 78.
 - **A status you never have to keep up.** Scoring makes a work scored, a calendar slot makes it scheduled, going out makes it released — worked out from what happened, in your profile's own words. Set one by hand and it stays put; the automation steps over that work entirely until you hand it back.
-- **A calendar that pushes back.** Slots compete. A stronger work bumps a weaker one out of Thursday.
+- **A calendar that pushes back.** Slots compete. A stronger work bumps a weaker one out of Thursday — and one click lays the whole queue out to your profile's rhythm, as a preview you approve before anything is booked.
 - **Shipping is a state, not an integration.** Mark it out, paste the link. Plugins can automate it later; the loop closes without them.
 - **One box finds anything.** `Ctrl+K` searches titles, every draft's full text, notes and assistant replies at once — and folds case in full Unicode, so a Russian workspace is as searchable as an English one.
 
