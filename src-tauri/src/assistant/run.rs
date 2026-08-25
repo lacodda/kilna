@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{Map, Value, json};
 
 use crate::error::{Error, Result};
 use crate::time::now;
@@ -229,11 +229,11 @@ pub fn start(
         )));
     }
 
-    super::append(conn, chat_id, super::USER, prompt, Default::default())?;
+    let id = uuid::Uuid::new_v4().to_string();
+    record_asked(conn, chat_id, prompt, &id)?;
 
     let stream = Stream::start(prompt, chat.session_id.as_deref(), workdir)?;
 
-    let id = uuid::Uuid::new_v4().to_string();
     let started_at = now();
     conn.execute(
         "INSERT INTO chat_run (id, chat_id, prompt, state, events, started_at)
@@ -330,13 +330,9 @@ pub fn pump<S, F>(
                 duration_ms,
             } = &event
             {
-                let _ = super::append(
-                    &conn,
-                    &run.chat_id,
-                    super::ASSISTANT,
-                    body,
-                    stream::finished_meta(*cost_usd, *duration_ms),
-                );
+                let mut meta = stream::finished_meta(*cost_usd, *duration_ms);
+                meta.insert("run_id".into(), json!(run.id));
+                let _ = super::append(&conn, &run.chat_id, super::ASSISTANT, body, meta);
             }
         }
 
@@ -402,6 +398,17 @@ pub fn pump<S, F>(
             event,
         });
     }
+}
+
+/// Record what was asked, tied to the run that will answer it.
+///
+/// The tie is what lets the panel pair the stored message with the run's
+/// events instead of guessing by text.
+fn record_asked(conn: &Connection, chat_id: &str, prompt: &str, run_id: &str) -> Result<()> {
+    let mut meta = Map::new();
+    meta.insert("run_id".into(), json!(run_id));
+    super::append(conn, chat_id, super::USER, prompt, meta)?;
+    Ok(())
 }
 
 fn store_events(conn: &Connection, run_id: &str, events: &[Event]) -> Result<()> {
@@ -827,14 +834,39 @@ mod tests {
         assert_eq!(run.events.len(), 4, "every event is kept for the replay");
         assert_eq!(emitted.len(), 4, "and every one reached the panel");
 
-        let body: String = conn
+        let (body, meta): (String, String) = conn
             .query_row(
-                "SELECT body FROM chat_message WHERE role = 'assistant'",
+                "SELECT body, meta FROM chat_message WHERE role = 'assistant'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(body, "A verse.");
+
+        let meta: Value = serde_json::from_str(&meta).unwrap();
+        assert_eq!(
+            meta["run_id"],
+            json!(run.id),
+            "the answer must name the run that wrote it"
+        );
+    }
+
+    #[test]
+    fn what_was_asked_is_tied_to_its_run() {
+        let (conn, profile_id) = workspace();
+        let chat_id = chat(&conn, &profile_id);
+
+        record_asked(&conn, &chat_id, "hello", "run-9").unwrap();
+
+        let meta: String = conn
+            .query_row(
+                "SELECT meta FROM chat_message WHERE role = 'user'",
                 [],
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(body, "A verse.");
+        let meta: Value = serde_json::from_str(&meta).unwrap();
+        assert_eq!(meta["run_id"], json!("run-9"));
     }
 
     #[test]

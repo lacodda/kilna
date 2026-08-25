@@ -1081,11 +1081,31 @@ pub fn list_chats(state: State<'_, AppState>, work_id: Option<String>) -> Result
     assistant::list(&conn, &profile_id, work_id.as_deref())
 }
 
+/// Chats of the active profile as the list draws them — named, priced, tied
+/// to their work. `work_id` narrows to one work's chats.
+#[tauri::command]
+pub fn list_chat_summaries(
+    state: State<'_, AppState>,
+    work_id: Option<String>,
+) -> Result<Vec<assistant::ChatSummary>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    assistant::summaries(&conn, &profile_id, work_id.as_deref())
+}
+
 #[tauri::command]
 pub fn create_chat(state: State<'_, AppState>, chat: NewChat) -> Result<Chat> {
     let conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
     assistant::create(&conn, &profile_id, chat)
+}
+
+/// Name a chat, or clear the name with `None` so it borrows its first
+/// question again.
+#[tauri::command]
+pub fn rename_chat(state: State<'_, AppState>, id: String, title: Option<String>) -> Result<()> {
+    let conn = state.conn();
+    assistant::rename(&conn, &id, title.as_deref())
 }
 
 #[tauri::command]

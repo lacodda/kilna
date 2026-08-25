@@ -47,6 +47,26 @@ pub struct NewChat {
     pub title: Option<String>,
 }
 
+/// A chat as the list draws it: named, priced, tied to its work.
+#[derive(Debug, Clone, Serialize)]
+pub struct ChatSummary {
+    pub id: String,
+    pub work_id: Option<String>,
+    /// Title of the work the chat is about, so the list can say so.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub work_title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The first thing asked, cut to a caption — the name of a chat nobody
+    /// named.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_prompt: Option<String>,
+    /// What the answers in this chat have cost so far, as the CLI reported
+    /// it. Turns that died before reporting are not in the sum.
+    pub cost_usd: f64,
+    pub updated_at: String,
+}
+
 pub const USER: &str = "user";
 pub const ASSISTANT: &str = "assistant";
 
@@ -91,6 +111,80 @@ pub fn list(conn: &Connection, profile_id: &str, work_id: Option<&str>) -> Resul
     };
 
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+/// Chats of a profile as the list shows them, most recently used first.
+/// `work_id` narrows to one work.
+pub fn summaries(
+    conn: &Connection,
+    profile_id: &str,
+    work_id: Option<&str>,
+) -> Result<Vec<ChatSummary>> {
+    let mut sql = String::from(
+        "SELECT c.id, c.work_id, w.title, c.title,
+                (SELECT m.body FROM chat_message m
+                 WHERE m.chat_id = c.id AND m.role = 'user'
+                 ORDER BY m.created_at, m.id LIMIT 1),
+                (SELECT coalesce(sum(json_extract(m.meta, '$.cost_usd')), 0)
+                 FROM chat_message m WHERE m.chat_id = c.id),
+                c.updated_at
+         FROM chat c LEFT JOIN work w ON w.id = c.work_id
+         WHERE c.profile_id = ?1",
+    );
+    if work_id.is_some() {
+        sql.push_str(" AND c.work_id = ?2");
+    }
+    sql.push_str(" ORDER BY c.updated_at DESC");
+
+    let read = |row: &rusqlite::Row<'_>| {
+        Ok(ChatSummary {
+            id: row.get(0)?,
+            work_id: row.get(1)?,
+            work_title: row.get(2)?,
+            title: row.get(3)?,
+            first_prompt: row.get::<_, Option<String>>(4)?.map(|body| caption(&body)),
+            cost_usd: row.get(5)?,
+            updated_at: row.get(6)?,
+        })
+    };
+
+    let mut statement = conn.prepare(&sql)?;
+    let rows = match work_id {
+        Some(work_id) => statement.query_map(params![profile_id, work_id], read)?,
+        None => statement.query_map(params![profile_id], read)?,
+    };
+
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+/// A prompt flattened and cut to fit a list row. Cut by characters, not bytes:
+/// a byte slice through a multibyte character panics.
+fn caption(body: &str) -> String {
+    const LIMIT: usize = 80;
+
+    let flat: String = body.split_whitespace().collect::<Vec<_>>().join(" ");
+    if flat.chars().count() <= LIMIT {
+        return flat;
+    }
+
+    let cut: String = flat.chars().take(LIMIT).collect();
+    format!("{cut}…")
+}
+
+/// Name a chat, or clear the name so it borrows its first question again.
+///
+/// `updated_at` is left alone on purpose: the list orders by use, and
+/// renaming is housekeeping, not use.
+pub fn rename(conn: &Connection, id: &str, title: Option<&str>) -> Result<()> {
+    let title = title.map(str::trim).filter(|title| !title.is_empty());
+    if conn.execute(
+        "UPDATE chat SET title = ?2 WHERE id = ?1",
+        params![id, title],
+    )? == 0
+    {
+        return Err(Error::not_found("chat", id));
+    }
+    Ok(())
 }
 
 pub fn transcript(conn: &Connection, chat_id: &str) -> Result<Option<Transcript>> {
@@ -393,6 +487,199 @@ mod tests {
         .unwrap();
 
         assert!(append(&conn, &chat.id, "narrator", "hello", Map::new()).is_err());
+    }
+
+    #[test]
+    fn a_summary_prices_the_chat_from_what_its_answers_cost() {
+        let (conn, profile_id) = workspace();
+        let chat = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: None,
+            },
+        )
+        .unwrap();
+
+        let mut priced = Map::new();
+        priced.insert("cost_usd".into(), json!(0.12));
+        append(&conn, &chat.id, ASSISTANT, "one", priced).unwrap();
+        let mut priced = Map::new();
+        priced.insert("cost_usd".into(), json!(0.25));
+        append(&conn, &chat.id, ASSISTANT, "two", priced).unwrap();
+        // A turn that died before reporting carries no cost, and must not
+        // break the sum.
+        append(&conn, &chat.id, USER, "free", Map::new()).unwrap();
+
+        let summary = &summaries(&conn, &profile_id, None).unwrap()[0];
+        assert!(
+            (summary.cost_usd - 0.37).abs() < 1e-9,
+            "{}",
+            summary.cost_usd
+        );
+    }
+
+    #[test]
+    fn an_unnamed_chat_borrows_its_first_question() {
+        let (conn, profile_id) = workspace();
+        let chat = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: None,
+            },
+        )
+        .unwrap();
+        append(&conn, &chat.id, ASSISTANT, "a greeting", Map::new()).unwrap();
+        append(
+            &conn,
+            &chat.id,
+            USER,
+            "shorten   the\nsecond verse",
+            Map::new(),
+        )
+        .unwrap();
+        append(&conn, &chat.id, USER, "and the third", Map::new()).unwrap();
+
+        let summary = &summaries(&conn, &profile_id, None).unwrap()[0];
+
+        assert_eq!(summary.title, None);
+        assert_eq!(
+            summary.first_prompt.as_deref(),
+            Some("shorten the second verse"),
+            "the first *question*, flattened — not whatever spoke first"
+        );
+    }
+
+    #[test]
+    fn a_long_first_question_is_cut_by_characters_not_bytes() {
+        let (conn, profile_id) = workspace();
+        let chat = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: None,
+            },
+        )
+        .unwrap();
+        append(&conn, &chat.id, USER, &"é".repeat(100), Map::new()).unwrap();
+
+        let summary = &summaries(&conn, &profile_id, None).unwrap()[0];
+
+        let caption = summary.first_prompt.as_deref().unwrap();
+        assert_eq!(caption.chars().count(), 81, "80 kept plus the ellipsis");
+        assert!(caption.ends_with('…'));
+    }
+
+    #[test]
+    fn summaries_narrow_to_a_work_and_name_it() {
+        let (conn, profile_id) = workspace();
+        let work = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "song".into(),
+                title: "Subject".into(),
+                status: None,
+                collection_id: None,
+                meta: None,
+            },
+        )
+        .unwrap();
+        create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: Some(work.id.clone()),
+                title: None,
+            },
+        )
+        .unwrap();
+        create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: None,
+            },
+        )
+        .unwrap();
+
+        let narrowed = summaries(&conn, &profile_id, Some(&work.id)).unwrap();
+        assert_eq!(narrowed.len(), 1);
+        assert_eq!(narrowed[0].work_title.as_deref(), Some("Subject"));
+
+        assert_eq!(summaries(&conn, &profile_id, None).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn renaming_a_chat_does_not_reorder_the_list() {
+        let (conn, profile_id) = workspace();
+        let older = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: None,
+            },
+        )
+        .unwrap();
+        // Same-instant chats order by nothing useful; make the second later.
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+        let newer = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: None,
+            },
+        )
+        .unwrap();
+
+        rename(&conn, &older.id, Some("Named")).unwrap();
+
+        let ids: Vec<_> = summaries(&conn, &profile_id, None)
+            .unwrap()
+            .into_iter()
+            .map(|summary| summary.id)
+            .collect();
+        assert_eq!(
+            ids,
+            vec![newer.id, older.id.clone()],
+            "renaming is housekeeping, not use"
+        );
+        assert_eq!(
+            get(&conn, &older.id).unwrap().unwrap().title.as_deref(),
+            Some("Named")
+        );
+    }
+
+    #[test]
+    fn a_blank_rename_clears_the_title() {
+        let (conn, profile_id) = workspace();
+        let chat = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: Some("Named".into()),
+            },
+        )
+        .unwrap();
+
+        rename(&conn, &chat.id, Some("   ")).unwrap();
+
+        assert_eq!(get(&conn, &chat.id).unwrap().unwrap().title, None);
+    }
+
+    #[test]
+    fn renaming_a_missing_chat_fails() {
+        let (conn, _) = workspace();
+
+        assert!(rename(&conn, "nope", Some("Named")).is_err());
     }
 
     #[test]
