@@ -97,16 +97,26 @@ pub struct Turn {
 /// `session_id` continues an existing conversation; without it the CLI starts a
 /// new one and reports the id to keep.
 ///
+/// `workdir` is where the CLI starts — the empty directory of ADR 0008. Without
+/// it the process inherits kilna's own, which in development is the source tree.
+///
 /// The prompt goes in over stdin rather than as an argument. On Windows the
 /// executable is a `.cmd`, and Rust refuses to pass an argument containing a
 /// newline to a batch file — a deliberate guard against argument injection.
 /// Lyrics and chapters are full of newlines, so the argument form is unusable.
-pub fn ask(prompt: &str, session_id: Option<&str>) -> Result<Turn> {
+pub fn ask(
+    prompt: &str,
+    session_id: Option<&str>,
+    workdir: Option<&std::path::Path>,
+) -> Result<Turn> {
     let mut command = command();
     command.args(["--print", "--output-format", "json"]);
 
     if let Some(session_id) = session_id {
         command.args(["--resume", session_id]);
+    }
+    if let Some(dir) = workdir {
+        command.current_dir(dir);
     }
 
     command

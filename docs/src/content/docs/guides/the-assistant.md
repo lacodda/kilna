@@ -49,6 +49,18 @@ process costing a few hundred megabytes, so the limit is about your machine
 rather than about queueing: asking for a fourth is refused with a sentence
 saying so, and nothing is sent.
 
+## Where a run starts
+
+A run is a process, and a process starts somewhere. kilna starts every run in
+a dedicated `assistant/` directory next to your workspace, kept empty on
+purpose: everything the assistant should know about a work arrives in the
+prompt itself, so there is nothing for it to find on disk — and a run that
+decides to look around sees an empty folder rather than kilna's own files.
+
+This is a default, not a sandbox: the CLI's tools can still read a file by its
+full path if you ask them to. Files a run creates land in that same folder,
+where you can inspect or delete them; kilna never reads them back.
+
 ## When kilna closes mid-run
 
 A run is a separate process kilna started, and it does not stop by itself when

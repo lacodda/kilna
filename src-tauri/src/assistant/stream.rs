@@ -222,10 +222,16 @@ impl Stopper {
 impl Stream {
     /// Start a turn and return before it finishes.
     ///
+    /// `workdir` is where the CLI starts — the empty directory of ADR 0008.
+    ///
     /// The prompt goes in over stdin for the reason spelled out in
     /// [`super::cli::ask`]: on Windows the executable is a `.cmd`, and Rust
     /// refuses to pass an argument containing a newline to a batch file.
-    pub fn start(prompt: &str, session_id: Option<&str>) -> Result<Self> {
+    pub fn start(
+        prompt: &str,
+        session_id: Option<&str>,
+        workdir: Option<&std::path::Path>,
+    ) -> Result<Self> {
         let mut command = super::cli::command();
         command.args([
             "--print",
@@ -237,6 +243,9 @@ impl Stream {
 
         if let Some(session_id) = session_id {
             command.args(["--resume", session_id]);
+        }
+        if let Some(dir) = workdir {
+            command.current_dir(dir);
         }
 
         let mut child = command

@@ -65,6 +65,26 @@ impl AppState {
         &self.path
     }
 
+    /// Where assistant runs start: a directory next to the workspace that is
+    /// kept empty on purpose.
+    ///
+    /// A spawned CLI inherits kilna's own working directory otherwise — in
+    /// development that is `src-tauri`, and a run asked about "the README"
+    /// went and read kilna's sources. Everything a run should know arrives in
+    /// the prompt, so what it sees from its directory is pure exposure. This
+    /// is a default, not a sandbox — see ADR 0008.
+    ///
+    /// `None` when the directory cannot be prepared: the run then starts
+    /// wherever kilna did, which is worse but not worth refusing the run over.
+    pub fn assistant_dir(&self) -> Option<PathBuf> {
+        let dir = self.path.parent()?.join("assistant");
+        if let Err(cause) = std::fs::create_dir_all(&dir) {
+            eprintln!("assistant: could not prepare the run directory: {cause}");
+            return None;
+        }
+        Some(dir)
+    }
+
     pub fn runs(&self) -> &Arc<Runs> {
         &self.runs
     }
@@ -82,5 +102,29 @@ impl AppState {
                 None
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_assistant_directory_is_created_next_to_the_workspace() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::open(&dir.path().join("workspace.db")).unwrap();
+
+        let assistant = state.assistant_dir().unwrap();
+
+        assert!(assistant.is_dir());
+        assert_eq!(assistant.parent(), Some(dir.path()));
+    }
+
+    #[test]
+    fn the_assistant_directory_survives_being_asked_for_twice() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::open(&dir.path().join("workspace.db")).unwrap();
+
+        assert_eq!(state.assistant_dir(), state.assistant_dir());
     }
 }

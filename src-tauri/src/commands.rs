@@ -1111,8 +1111,9 @@ pub fn ask_assistant(
     chat_id: String,
     prompt: String,
 ) -> Result<Message> {
+    let workdir = state.assistant_dir();
     let mut conn = state.conn();
-    assistant::ask(&mut conn, &chat_id, &prompt)
+    assistant::ask(&mut conn, &chat_id, &prompt, workdir.as_deref())
 }
 
 /// Sends run events to the window.
@@ -1141,10 +1142,11 @@ pub fn start_run(
     prompt: String,
 ) -> Result<Run> {
     let runs = Arc::clone(state.runs());
+    let workdir = state.assistant_dir();
 
     let (run, stream) = {
         let conn = state.conn();
-        assistant_run::start(&conn, &runs, &chat_id, &prompt)?
+        assistant_run::start(&conn, &runs, &chat_id, &prompt, workdir.as_deref())?
     };
 
     let sink: Arc<dyn Sink> = Arc::new(WindowSink(app.clone()));

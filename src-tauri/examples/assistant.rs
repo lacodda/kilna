@@ -64,7 +64,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     )?;
 
-    let reply = assistant::ask(&mut conn, &chat.id, &prompt)?;
+    // No working directory here: the example runs from wherever it was invoked.
+    let reply = assistant::ask(&mut conn, &chat.id, &prompt, None)?;
     println!("--- reply ---\n{}\n", reply.body);
 
     if let Some(cost) = reply.meta.get("cost_usd") {

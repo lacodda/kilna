@@ -219,6 +219,7 @@ pub fn start(
     runs: &Arc<Runs>,
     chat_id: &str,
     prompt: &str,
+    workdir: Option<&std::path::Path>,
 ) -> Result<(Run, Arc<Mutex<Stream>>)> {
     let chat = super::get(conn, chat_id)?.ok_or_else(|| Error::not_found("chat", chat_id))?;
 
@@ -230,7 +231,7 @@ pub fn start(
 
     super::append(conn, chat_id, super::USER, prompt, Default::default())?;
 
-    let stream = Stream::start(prompt, chat.session_id.as_deref())?;
+    let stream = Stream::start(prompt, chat.session_id.as_deref(), workdir)?;
 
     let id = uuid::Uuid::new_v4().to_string();
     let started_at = now();
@@ -1057,7 +1058,7 @@ mod tests {
             runs.insert(format!("run-{index}"), chat_id.clone(), Arc::new(|| {}));
         }
 
-        let Err(refused) = start(&conn, &runs, &chat_id, "one more") else {
+        let Err(refused) = start(&conn, &runs, &chat_id, "one more", None) else {
             panic!("the limit must refuse a fourth run");
         };
 
@@ -1082,7 +1083,7 @@ mod tests {
         let runs = Arc::new(Runs::new());
 
         assert!(matches!(
-            start(&conn, &runs, "no-such-chat", "hello"),
+            start(&conn, &runs, "no-such-chat", "hello", None),
             Err(Error::NotFound { .. })
         ));
         assert_eq!(runs.active(), 0);

@@ -143,12 +143,17 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
 ///
 /// The user's message is stored before the CLI is called, so a failed or slow
 /// turn still leaves a record of what was asked.
-pub fn ask(conn: &mut Connection, chat_id: &str, prompt: &str) -> Result<Message> {
+pub fn ask(
+    conn: &mut Connection,
+    chat_id: &str,
+    prompt: &str,
+    workdir: Option<&std::path::Path>,
+) -> Result<Message> {
     let chat = get(conn, chat_id)?.ok_or_else(|| Error::not_found("chat", chat_id))?;
 
     append(conn, chat_id, USER, prompt, Map::new())?;
 
-    let turn = cli::ask(prompt, chat.session_id.as_deref())?;
+    let turn = cli::ask(prompt, chat.session_id.as_deref(), workdir)?;
 
     let mut meta = Map::new();
     if let Some(cost) = turn.cost_usd {
@@ -394,6 +399,6 @@ mod tests {
     fn asking_in_an_unknown_chat_fails_before_the_cli_is_called() {
         let (mut conn, _) = workspace();
 
-        assert!(ask(&mut conn, "nope", "hello").is_err());
+        assert!(ask(&mut conn, "nope", "hello", None).is_err());
     }
 }
