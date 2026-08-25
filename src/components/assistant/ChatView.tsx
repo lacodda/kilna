@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Input'
 import { Markdown } from '@/components/ui/Markdown'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { InsertVersionDialog } from '@/components/assistant/InsertVersionDialog'
 
 interface Props {
   /** Null when the chat does not exist yet — sending the first message creates it. */
@@ -46,6 +47,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
   const client = useQueryClient()
 
   const [draft, setDraft] = useState('')
+  const [inserting, setInserting] = useState<string | null>(null)
   const bottom = useRef<HTMLDivElement>(null)
   const composer = useRef<HTMLTextAreaElement>(null)
 
@@ -197,6 +199,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
               key={item.key}
               item={item}
               onCopy={copy}
+              onInsert={workId === undefined ? undefined : setInserting}
               onStop={(id) => {
                 stop.mutate(id)
               }}
@@ -243,6 +246,18 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
           </Button>
         </div>
       </form>
+
+      {/* Mounted per opening, so the role and label start fresh each time. */}
+      {workId !== undefined && inserting !== null && (
+        <InsertVersionDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setInserting(null)
+          }}
+          workId={workId}
+          body={inserting}
+        />
+      )}
     </div>
   )
 }
@@ -250,11 +265,14 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
 function ExchangeItem({
   item,
   onCopy,
+  onInsert,
   onStop,
   stopping,
 }: {
   item: Exchange
   onCopy: (body: string) => void
+  /** Absent when the chat is about nothing — there is no work to version. */
+  onInsert?: (body: string) => void
   onStop: (runId: string) => void
   stopping: boolean
 }) {
@@ -285,12 +303,29 @@ function ExchangeItem({
       {body !== '' && (
         <div className="rounded-xl border border-line px-3 py-2">
           <Markdown body={body} copyLabel={t('assistant.copy')} />
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-1.5 flex items-center gap-1.5">
             {cost != null && <span className="text-xs text-dim">${cost.toFixed(3)}</span>}
+            {/* An answer still growing is not worth keeping yet. */}
+            {onInsert !== undefined && item.run?.working !== true && (
+              <Button
+                size="sm"
+                variant="icon"
+                className="ml-auto h-6 px-1.5 text-[11px]"
+                onClick={() => {
+                  onInsert(body)
+                }}
+              >
+                {t('assistant.insert')}
+              </Button>
+            )}
             <Button
               size="sm"
               variant="icon"
-              className="ml-auto h-6 px-1.5 text-[11px]"
+              className={
+                onInsert !== undefined && item.run?.working !== true
+                  ? 'h-6 px-1.5 text-[11px]'
+                  : 'ml-auto h-6 px-1.5 text-[11px]'
+              }
               onClick={() => {
                 onCopy(body)
               }}

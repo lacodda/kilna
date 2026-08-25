@@ -34,6 +34,12 @@ block carries a copy button, and every answer has one for the whole reply.
 The header shows what the open chat has cost so far, summed from what each
 answer reported.
 
+**Insert as version** on an answer keeps it properly: the answer becomes a
+version of the work, under the role you pick, exactly as written. It does not
+become the current version unless you say so — an answer worth keeping is not
+yet an answer worth standing behind. The assistant itself never writes to
+your data; this button is you doing it.
+
 ## A run belongs to the chat
 
 Asking something starts a **run**. The run belongs to the work's chat, not to

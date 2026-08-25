@@ -291,7 +291,12 @@
     "deleteBody": "The whole conversation goes with it — questions, answers and runs. This cannot be undone.",
     "copy": "Copy",
     "copied": "Copied.",
-    "spent": "Spent in this chat: {{amount}}"
+    "spent": "Spent in this chat: {{amount}}",
+    "insert": "Insert as version",
+    "insertTitle": "Insert as a new version",
+    "insertBody": "The answer becomes a version of this work, exactly as written.",
+    "insertRole": "Role",
+    "inserted": "Added as a new version."
   },
   "notes": {
     "title": "Notes",
