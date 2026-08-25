@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.27.0] - 2026-08-24
+
+### Features
+- Let a run outlive the screen that started it
 ## [0.26.0] - 2026-08-24
 
 ### Features
