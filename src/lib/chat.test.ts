@@ -107,23 +107,21 @@ describe('conversation', () => {
     expect(items[1]?.run?.working).toBe(true)
   })
 
-  it('an answer naming its run does not land on an older waiting question', () => {
-    // The older question's run failed — nothing will ever answer it. The
-    // answer that arrives next belongs to the newer question by run id.
+  it('an answer naming its run lands on its own question, not the newest waiting one', () => {
+    // Two runs going at once, and the one asked first finishes first: its
+    // answer must reach the first question even though the second is also
+    // still waiting — which is exactly what guessing by order gets wrong.
     const items = conversation(
       [
-        message('user', 'doomed', 't1', { run_id: 'r1' }),
-        message('user', 'fine', 't2', { run_id: 'r2' }),
-        message('assistant', 'the fine answer', 't3', { run_id: 'r2' }),
+        message('user', 'asked first', 't1', { run_id: 'r1' }),
+        message('user', 'asked second', 't2', { run_id: 'r2' }),
+        message('assistant', 'answer to the first', 't3', { run_id: 'r1' }),
       ],
-      [
-        run('r1', 'doomed', 't1', { state: 'failed', detail: 'died' }),
-        run('r2', 'fine', 't2'),
-      ],
+      [run('r1', 'asked first', 't1'), run('r2', 'asked second', 't2', { state: 'running' })],
     )
 
-    expect(items[0]?.answer).toBeNull()
-    expect(items[1]?.answer?.body).toBe('the fine answer')
+    expect(items[0]?.answer?.body).toBe('answer to the first')
+    expect(items[1]?.answer).toBeNull()
   })
 
   it('orders exchanges by time even when a run had to stand alone', () => {
