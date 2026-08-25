@@ -52,13 +52,18 @@ export function Markdown({
         'opacity-0 transition-opacity hover:text-text focus-visible:opacity-100 group-hover:opacity-100',
       )
       button.addEventListener('click', () => {
-        void navigator.clipboard.writeText(code)
-        // A tick the reader sees where they clicked; words would need i18n a
-        // DOM string cannot follow when the language switches mid-session.
-        button.textContent = '✓'
-        setTimeout(() => {
-          button.textContent = copyLabel
-        }, 1200)
+        // The tick only after the clipboard confirms — a tick on a failed
+        // copy is worse than none. It is a symbol, not a word: a DOM string
+        // cannot follow the language when it switches mid-session.
+        navigator.clipboard.writeText(code).then(
+          () => {
+            button.textContent = '✓'
+            setTimeout(() => {
+              button.textContent = copyLabel
+            }, 1200)
+          },
+          () => {},
+        )
       })
       block.classList.add('group', 'relative')
       block.appendChild(button)

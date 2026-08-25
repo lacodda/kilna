@@ -161,9 +161,14 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
   }
 
   const copy = (body: string) => {
-    void navigator.clipboard.writeText(body).then(() => {
-      say.ok(t('assistant.copied'))
-    })
+    navigator.clipboard.writeText(body).then(
+      () => {
+        say.ok(t('assistant.copied'))
+      },
+      (cause: unknown) => {
+        say.failed(cause)
+      },
+    )
   }
 
   const loading = chatId !== null && (transcript.isPending || runs.isPending)
