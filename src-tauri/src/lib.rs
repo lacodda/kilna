@@ -91,7 +91,6 @@ pub fn run() {
             commands::purge_deletion,
             commands::empty_trash,
             commands::assistant_status,
-            commands::list_chats,
             commands::list_chat_summaries,
             commands::create_chat,
             commands::rename_chat,

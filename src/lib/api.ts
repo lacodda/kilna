@@ -487,6 +487,20 @@ export interface Chat {
   updated_at: string
 }
 
+/** A chat as the list draws it: named, priced, tied to its work. */
+export interface ChatSummary {
+  id: string
+  work_id: string | null
+  /** Title of the work the chat is about. */
+  work_title?: string
+  title?: string
+  /** The first thing asked, cut to a caption — the name of an unnamed chat. */
+  first_prompt?: string
+  /** What the answers in this chat have cost so far. */
+  cost_usd: number
+  updated_at: string
+}
+
 export interface Message {
   id: string
   chat_id: string
@@ -591,9 +605,12 @@ export const runPlugin = (
 ) => invoke<string | null>('run_plugin', { executable, command, target, id })
 
 export const assistantStatus = () => invoke<Availability>('assistant_status')
-export const listChats = (workId?: string) => invoke<Chat[]>('list_chats', { workId })
+export const listChatSummaries = (workId?: string) =>
+  invoke<ChatSummary[]>('list_chat_summaries', { workId })
 export const createChat = (chat: { work_id?: string | null; title?: string | null }) =>
   invoke<Chat>('create_chat', { chat })
+export const renameChat = (id: string, title: string | null) =>
+  invoke<void>('rename_chat', { id, title })
 export const getTranscript = (chatId: string) =>
   invoke<Transcript | null>('get_transcript', { chatId })
 export const deleteChat = (id: string) => invoke<void>('delete_chat', { id })

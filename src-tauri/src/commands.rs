@@ -1074,13 +1074,6 @@ pub fn assistant_status() -> cli::Availability {
     cli::probe()
 }
 
-#[tauri::command]
-pub fn list_chats(state: State<'_, AppState>, work_id: Option<String>) -> Result<Vec<Chat>> {
-    let conn = state.conn();
-    let profile_id = active_profile_id(&conn)?;
-    assistant::list(&conn, &profile_id, work_id.as_deref())
-}
-
 /// Chats of the active profile as the list draws them — named, priced, tied
 /// to their work. `work_id` narrows to one work's chats.
 #[tauri::command]

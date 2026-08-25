@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import { cn } from '@/lib/utils'
@@ -7,22 +7,72 @@ import { cn } from '@/lib/utils'
  * Rendered markdown.
  *
  * Everything is sanitised before it reaches the DOM. The text here is the
- * user's own writing today, but the same component renders assistant replies
- * from v0.28 — and this app can reach the file system, so unsanitised HTML from
- * a model's output is not a risk worth taking twice.
+ * user's own writing and, since v0.28, assistant replies — and this app can
+ * reach the file system, so unsanitised HTML from a model's output is not a
+ * risk worth taking twice.
  *
  * Rendering is synchronous on purpose: `marked` can return a promise when
  * extensions are registered, and an editor preview that arrives a frame late
  * flickers on every keystroke.
  */
-export function Markdown({ body, className }: { body: string; className?: string }) {
+export function Markdown({
+  body,
+  className,
+  copyLabel,
+}: {
+  body: string
+  className?: string
+  /** When set, every code block gets a button with this label that copies it. */
+  copyLabel?: string
+}) {
+  const container = useRef<HTMLDivElement>(null)
+
   const html = useMemo(() => {
     const parsed = marked.parse(body, { async: false, breaks: true })
     return DOMPurify.sanitize(parsed)
   }, [body])
 
+  // Copy buttons are injected after render rather than through the markdown
+  // pipeline: the sanitiser would strip them, and rightly so — they are ours,
+  // not the text's. The code is captured before the button joins the block,
+  // so what is copied is exactly what was written.
+  useEffect(() => {
+    if (copyLabel === undefined) return
+    const root = container.current
+    if (root === null) return
+
+    const buttons: HTMLButtonElement[] = []
+    for (const block of root.querySelectorAll('pre')) {
+      const code = (block.textContent ?? '').replace(/\n$/, '')
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.textContent = copyLabel
+      button.className = cn(
+        'absolute right-1.5 top-1.5 cursor-pointer rounded-[7px] border border-line bg-raise px-1.5 py-0.5 text-[11px] text-dim',
+        'opacity-0 transition-opacity hover:text-text focus-visible:opacity-100 group-hover:opacity-100',
+      )
+      button.addEventListener('click', () => {
+        void navigator.clipboard.writeText(code)
+        // A tick the reader sees where they clicked; words would need i18n a
+        // DOM string cannot follow when the language switches mid-session.
+        button.textContent = '✓'
+        setTimeout(() => {
+          button.textContent = copyLabel
+        }, 1200)
+      })
+      block.classList.add('group', 'relative')
+      block.appendChild(button)
+      buttons.push(button)
+    }
+
+    return () => {
+      for (const button of buttons) button.remove()
+    }
+  }, [html, copyLabel])
+
   return (
     <div
+      ref={container}
       className={cn(
         'text-sm leading-relaxed',
         // Tailwind's preflight strips list markers and heading sizes, so the

@@ -12,9 +12,27 @@ working.
 The buttons above the composer come from your profile's prompts — *Critique the
 lyrics*, *Suggest a title*, whatever the profile defines. Each one is a
 template filled in with the work in front of you, so the same button means the
-right thing in a music profile and in a novel one. See
-[The profile document](/kilna/reference/profile-document/) for how they are
-written.
+right thing in a music profile and in a novel one. Pressing one does not send
+anything: it fills the composer with the rendered prompt, so you read — and
+edit — exactly what is about to be sent and paid for. Enter does the sending.
+See [The profile document](/kilna/reference/profile-document/) for how the
+templates are written.
+
+## Chats
+
+A work can carry several chats — one per question worth keeping apart. The
+row of chips above the conversation switches between them; **+** starts
+another, and the menu next to the chips renames or deletes the open one.
+Deleting a chat is one of the few truly irreversible acts in kilna, and it
+asks first.
+
+A chat does not exist until something is asked in it: the first message
+creates it, and an unnamed chat borrows its first question as its name.
+
+Answers render as text with formatting — headings, lists, code. Every code
+block carries a copy button, and every answer has one for the whole reply.
+The header shows what the open chat has cost so far, summed from what each
+answer reported.
 
 ## A run belongs to the chat
 

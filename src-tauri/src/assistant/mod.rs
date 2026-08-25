@@ -96,23 +96,6 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<Chat>> {
         .optional()?)
 }
 
-/// Chats in a profile, most recently used first. `work_id` narrows to one work.
-pub fn list(conn: &Connection, profile_id: &str, work_id: Option<&str>) -> Result<Vec<Chat>> {
-    let mut sql = format!("{SELECT_CHAT} WHERE profile_id = ?1");
-    if work_id.is_some() {
-        sql.push_str(" AND work_id = ?2");
-    }
-    sql.push_str(" ORDER BY updated_at DESC");
-
-    let mut statement = conn.prepare(&sql)?;
-    let rows = match work_id {
-        Some(work_id) => statement.query_map(params![profile_id, work_id], read_chat)?,
-        None => statement.query_map(params![profile_id], read_chat)?,
-    };
-
-    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
-}
-
 /// Chats of a profile as the list shows them, most recently used first.
 /// `work_id` narrows to one work.
 pub fn summaries(
@@ -381,44 +364,6 @@ mod tests {
             .map(|m| m.body.as_str())
             .collect();
         assert_eq!(bodies, vec!["first", "second", "third"]);
-    }
-
-    #[test]
-    fn a_chat_can_be_attached_to_a_work_and_listed_by_it() {
-        let (conn, profile_id) = workspace();
-        let work = work::create(
-            &conn,
-            &profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: "Subject".into(),
-                status: None,
-                collection_id: None,
-                meta: None,
-            },
-        )
-        .unwrap();
-        create(
-            &conn,
-            &profile_id,
-            NewChat {
-                work_id: Some(work.id.clone()),
-                title: None,
-            },
-        )
-        .unwrap();
-        create(
-            &conn,
-            &profile_id,
-            NewChat {
-                work_id: None,
-                title: None,
-            },
-        )
-        .unwrap();
-
-        assert_eq!(list(&conn, &profile_id, Some(&work.id)).unwrap().len(), 1);
-        assert_eq!(list(&conn, &profile_id, None).unwrap().len(), 2);
     }
 
     #[test]

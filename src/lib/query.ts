@@ -42,6 +42,9 @@ export const keys = {
   journalForWork: (workId: string) => ['journal', 'work', workId] as const,
   journalUnread: ['journal', 'unread'] as const,
 
+  // One coarse prefix over every chat list: a finished run moves captions and
+  // prices in the card's list and the drawer's alike.
+  allChats: ['chats'] as const,
   chats: (workId?: string) => ['chats', workId ?? null] as const,
   transcript: (chatId: string) => ['transcript', chatId] as const,
   runs: (chatId: string) => ['runs', chatId] as const,
