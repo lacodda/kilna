@@ -8,6 +8,7 @@ import { today } from '@/lib/month'
 import { keys } from '@/lib/query'
 import { ProfileContext } from '@/lib/useProfile'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { AssistantLauncher } from '@/components/assistant/AssistantDrawer'
 import { Sidebar } from '@/components/shell/Sidebar'
 import { Topbar } from '@/components/shell/Topbar'
 import { WorkCard } from '@/components/WorkCard'
@@ -189,6 +190,10 @@ export default function App() {
             </Routes>
           </ErrorBoundary>
         </div>
+
+        {/* The assistant from anywhere — a run belongs to its chat, and the
+            chat should not require walking back to the card that started it. */}
+        <AssistantLauncher />
       </div>
     </ProfileContext>
   )

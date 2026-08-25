@@ -3,11 +3,12 @@ title: The assistant
 description: How the AI panel works in kilna — it runs through your own Claude Code installation, a run belongs to its chat rather than to the screen you were on, and you can leave it working and come back.
 ---
 
-kilna has a panel on a work's card that talks to an assistant about that work.
-It does not carry a model of its own: it runs the **Claude Code** CLI you have
-installed, under your own subscription and your own session. If you have not
-installed it, the panel says so and everything else in kilna carries on
-working.
+kilna has a panel on a work's card that talks to an assistant about that work,
+and a floating button in the corner of every screen that opens the same
+conversations from anywhere. It does not carry a model of its own: it runs the
+**Claude Code** CLI you have installed, under your own subscription and your
+own session. If you have not installed it, the panel says so and everything
+else in kilna carries on working.
 
 The buttons above the composer come from your profile's prompts — *Critique the
 lyrics*, *Suggest a title*, whatever the profile defines. Each one is a
@@ -39,6 +40,15 @@ version of the work, under the role you pick, exactly as written. It does not
 become the current version unless you say so — an answer worth keeping is not
 yet an answer worth standing behind. The assistant itself never writes to
 your data; this button is you doing it.
+
+## From anywhere
+
+The floating button in the bottom corner carries a badge while runs are in
+flight, and opens a drawer with every chat of the profile — the ones about
+works and the ones about nothing in particular. **New chat** there starts a
+conversation that belongs to no work; a chat about a work links back to its
+card. Ask something, close the drawer, keep working: the badge says when the
+answer has landed.
 
 ## A run belongs to the chat
 

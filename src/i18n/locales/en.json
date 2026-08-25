@@ -296,7 +296,13 @@
     "insertTitle": "Insert as a new version",
     "insertBody": "The answer becomes a version of this work, exactly as written.",
     "insertRole": "Role",
-    "inserted": "Added as a new version."
+    "inserted": "Added as a new version.",
+    "open": "Open the assistant",
+    "openBusy": "Open the assistant — runs are going",
+    "back": "Back to the chats",
+    "openWork": "Open the work",
+    "noChatsTitle": "No chats yet",
+    "noChats": "Ask from a work's card, or start one here about anything."
   },
   "notes": {
     "title": "Notes",
