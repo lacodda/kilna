@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Documentation
 - Describe both ways a profile action runs
+- Mention card-started actions on the landing page
 
 ### Features
 - Start profile actions from the card without the panel
