@@ -343,6 +343,32 @@ mod tests {
 
     const GOOD_MANIFEST: &str = r#"{"protocol_version":1,"name":"demo","version":"0.1.0","commands":[{"key":"fetch","label":"Fetch","target":"release"}]}"#;
 
+    /// [`discover`], retried while a fake plugin is still "Text file busy".
+    ///
+    /// On Unix a test spawning a process in parallel can inherit the write
+    /// descriptor of a script another test has just created — descriptors only
+    /// close when exec flips CLOEXEC — and executing that script in the window
+    /// answers ETXTBSY. The window is microseconds and nothing about kilna is
+    /// wrong: a real plugin is not being written while it is being run. Caught
+    /// by CI on a release commit; the same flake and the same cure as turnout.
+    fn discovered(dir: &Path) -> Vec<Plugin> {
+        for _ in 0..50 {
+            let found = discover(dir);
+            let busy = found.iter().any(|plugin| {
+                plugin
+                    .reason
+                    .as_deref()
+                    .unwrap_or_default()
+                    .contains("Text file busy")
+            });
+            if !busy {
+                return found;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        panic!("a fake plugin stayed busy far longer than the exec window");
+    }
+
     #[test]
     fn an_empty_workspace_directory_contributes_no_plugins() {
         let dir = tempfile::tempdir().unwrap();
@@ -351,7 +377,7 @@ mod tests {
         let prefix = plugins.display().to_string();
 
         // Anything else on this machine's PATH is not this test's business.
-        let from_here = discover(dir.path())
+        let from_here = discovered(dir.path())
             .into_iter()
             .filter(|plugin| plugin.path.starts_with(&prefix))
             .count();
@@ -364,7 +390,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         fake_plugin(dir.path(), "kilna-plugin-demo", GOOD_MANIFEST);
 
-        let plugin = discover(dir.path())
+        let plugin = discovered(dir.path())
             .into_iter()
             .find(|plugin| plugin.executable == "kilna-plugin-demo")
             .expect("the plugin must be discovered");
@@ -384,7 +410,7 @@ mod tests {
             r#"{"protocol_version":99,"name":"future","version":"9.0.0"}"#,
         );
 
-        let plugin = discover(dir.path())
+        let plugin = discovered(dir.path())
             .into_iter()
             .find(|plugin| plugin.executable == "kilna-plugin-future")
             .expect("it must still be listed");
@@ -401,7 +427,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         fake_plugin(dir.path(), "kilna-plugin-broken", "this is not json");
 
-        let plugin = discover(dir.path())
+        let plugin = discovered(dir.path())
             .into_iter()
             .find(|plugin| plugin.executable == "kilna-plugin-broken")
             .expect("a broken plugin must still be listed");
@@ -415,7 +441,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         fake_plugin(dir.path(), "something-else", GOOD_MANIFEST);
 
-        let found = discover(dir.path());
+        let found = discovered(dir.path());
 
         assert!(
             !found
@@ -429,15 +455,26 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = fake_plugin(dir.path(), "kilna-plugin-demo", GOOD_MANIFEST);
 
-        let outcome = invoke(
-            &path,
-            &Invocation {
+        // Retried for the same reason as `discovered`: a script written moments
+        // ago can still be busy in another test's fork/exec window.
+        let outcome = {
+            let invocation = Invocation {
                 command: "fetch",
                 target: Target::Release,
                 subject: json!({ "id": "r1" }),
-            },
-        )
-        .unwrap();
+            };
+            let mut attempt = invoke(&path, &invocation);
+            for _ in 0..50 {
+                match &attempt {
+                    Err(error) if error.to_string().contains("Text file busy") => {
+                        std::thread::sleep(std::time::Duration::from_millis(20));
+                        attempt = invoke(&path, &invocation);
+                    }
+                    _ => break,
+                }
+            }
+            attempt.unwrap()
+        };
 
         assert_eq!(outcome.message.as_deref(), Some("ran"));
     }

@@ -10,6 +10,9 @@ All notable changes to this project are documented in this file.
 
 ### Features
 - Start profile actions from the card without the panel
+
+### Testing
+- Retry a fake plugin that is still busy on unix
 ## [0.28.0] - 2026-08-26
 
 ### Bug Fixes
