@@ -8,7 +8,7 @@ You write songs, chapters, episodes, or articles. The work lives in one place, t
 
 > **Status: early development.** The loop is closed end to end — a work gains versions, a version earns a score, a score wins a calendar slot, and the slot ends in a release you mark by hand — with four craft profiles, an AI panel over your own Claude Code CLI, and a plugin protocol. Nothing is deleted outright and nothing happens unnoticed: there is a trash behind every deletion and a history behind every change. The interface speaks English and Russian. Builds for Windows, macOS and Linux are on the [Releases page](https://github.com/lacodda/kilna/releases); none of them are signed yet, so your OS will warn you about an unidentified developer.
 
-<img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="The kilna catalogue with the search palette open over it: one box finding a work by title, two drafts by a line inside them, and what the assistant said about it" width="1200">
+<img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="The kilna catalogue with the search palette open over it: one box finding a work by title and two drafts by a line inside them, with the assistant's floating button in the corner" width="1200">
 
 ## The loop
 
@@ -64,7 +64,7 @@ Prompt templates come from the active profile, with placeholders filled from the
 
 So "Critique the lyrics" means the right thing in a music profile and something else entirely in a novel one. Conversations are kept in the workspace, and a follow-up question continues where the last one left off.
 
-Asking something starts a run that belongs to the chat, not to the screen you were on: leave the card, open another work, come back — it is still going, and the panel replays what it said while you were away. You can watch the tools it uses as it works, stop it, and have up to three going at once. See [The assistant](https://lacodda.github.io/kilna/guides/the-assistant/).
+Asking something starts a run that belongs to the chat, not to the screen you were on: leave the card, open another work, come back — it is still going, and the panel replays what it said while you were away. A floating button carries a badge while runs are in flight and opens every chat from any screen — a work can hold several chats, and a chat does not need a work to be about. Answers render as markdown with one-click copy, an answer worth keeping becomes a version of the work with one more, and a profile action fills the composer for review instead of firing unseen. Runs start in an empty directory, so the model sees what the prompt carries — not whatever files kilna was launched next to. You can watch the tools it uses as it works, stop it, and have up to three going at once. See [The assistant](https://lacodda.github.io/kilna/guides/the-assistant/).
 
 The core works without it. The panel is amplification, not a requirement — if the CLI isn't installed, the panel says so and everything else carries on.
 

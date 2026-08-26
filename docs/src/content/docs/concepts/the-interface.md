@@ -39,6 +39,10 @@ ordinary record of you adding a work or saving a version, because a bell lit
 by everything is a bell nobody reads. Clicking it opens
 [History](/kilna/guides/the-history/).
 
+One more thing floats over every screen: the **assistant button** in the
+bottom corner, with a badge while runs are in flight. It opens a drawer with
+every chat of the profile — see [The assistant](/kilna/guides/the-assistant/).
+
 ## Themes
 
 kilna is a studio tool, so it is dark by default — more precisely, it

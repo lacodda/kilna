@@ -2,7 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
-## [0.27.0] - 2026-08-24
+## [0.28.0] - 2026-08-25
+
+### Bug Fixes
+- Confirm the copy before showing its feedback
+
+### Features
+- Start runs in a dedicated empty directory
+- Chat summaries, renaming, and messages tied to runs
+- Make the chat a workplace
+- Insert an answer as a new version of the work
+- Reach the assistant from any screen
+
+### Testing
+- Pin answer pairing to run ids with parallel runs
+## [0.27.0] - 2026-08-25
 
 ### Features
 - Let a run outlive the screen that started it
