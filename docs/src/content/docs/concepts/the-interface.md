@@ -106,7 +106,7 @@ with the first part a link back.
 
 | Tab | What is there |
 | --- | --- |
-| Overview | The title, status, kind, and the fields your profile defines |
+| Overview | The title, status, kind, the fields your profile defines, and its AI actions |
 | Versions | Every draft, by role, the editor, and comparison |
 | Score | The axes, and what this work has scored before |
 | Releases | What ships, where and when — with a count on the tab |

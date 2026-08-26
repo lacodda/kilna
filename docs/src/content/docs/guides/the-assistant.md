@@ -13,11 +13,44 @@ else in kilna carries on working.
 The buttons above the composer come from your profile's prompts — *Critique the
 lyrics*, *Suggest a title*, whatever the profile defines. Each one is a
 template filled in with the work in front of you, so the same button means the
-right thing in a music profile and in a novel one. Pressing one does not send
-anything: it fills the composer with the rendered prompt, so you read — and
-edit — exactly what is about to be sent and paid for. Enter does the sending.
-See [The profile document](/kilna/reference/profile-document/) for how the
-templates are written.
+right thing in a music profile and in a novel one. Pressing one in the panel
+does not send anything: it fills the composer with the rendered prompt, so you
+read — and edit — exactly what is about to be sent and paid for. Enter does the
+sending. See [The profile document](/kilna/reference/profile-document/) for how
+the templates are written.
+
+The same actions appear a second time, on the work's **Overview** tab, where
+they behave the other way round — see [Actions without the
+panel](#actions-without-the-panel).
+
+## Actions without the panel
+
+Reading the prompt first is right when you are in the panel and the answer is
+the point. It is in the way when you are working on the piece itself and simply
+want the thing done.
+
+So the profile's actions sit on the **Overview** tab as well, and there a click
+starts the work immediately. Nothing opens, nothing waits for you: kilna says
+which action went and leaves you where you were.
+
+Each one gets a **chat of its own**, named after the action and the work —
+*Critique the lyrics · Harbour lights*. It never lands in a conversation you
+already have going, for two reasons: it would bury the answer under someone
+else's subject, and it would hand the action that conversation's session as
+context, so the reply would be shaped by whatever was being discussed.
+
+While an action is working, its button says so and cannot be pressed again. The
+same action on the same work will not start twice at once — and that holds even
+if you close the card and open it again, because it is the run itself that is
+remembered, not the screen. Another action on the same work, or the same action
+on a different one, is a different thing and starts normally.
+
+When it ends you are told wherever you are, with a link straight to the chat
+holding the answer. A run you stopped by hand says nothing — you already know.
+
+What comes back is an answer in a chat, nothing more. An action never writes to
+your work: **Insert as version** is still how an answer becomes a version, and
+it is still you pressing it.
 
 ## Chats
 
@@ -49,6 +82,9 @@ works and the ones about nothing in particular. **New chat** there starts a
 conversation that belongs to no work; a chat about a work links back to its
 card. Ask something, close the drawer, keep working: the badge says when the
 answer has landed.
+
+It is also what tells you an action from a card has finished, and the **Open**
+on that message takes you straight into the chat holding the answer.
 
 ## A run belongs to the chat
 

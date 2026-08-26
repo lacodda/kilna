@@ -174,7 +174,7 @@ shipped one at the next start; a pace you set yourself is left alone.
 
 ## `prompts`
 
-AI panel actions scoped to this profile — see
+Assistant actions scoped to this profile — see
 [Writing a plugin](/kilna/guides/writing-a-plugin/) for the separate plugin
 protocol; prompts are a simpler, built-in mechanism for the assistant panel
 specifically.
@@ -190,10 +190,15 @@ specifically.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `key` | string | Identifies the prompt. |
-| `label` | string | Button text in the AI panel. |
+| `key` | string | Identifies the prompt. Also what kilna recognises a running action by, so an action started from a card cannot be started twice at once. |
+| `label` | string | Button text, in the AI panel and on a work's Overview tab. |
 | `description` | string, optional | Shown as a hint under the label. |
 | `template` | string | The text sent to Claude, with placeholders filled per work. |
+
+The same prompt is offered in two places and behaves differently in each: in
+the panel it fills the composer for you to read and send, and on **Overview** a
+click starts it at once in a chat of its own. See
+[The assistant](/kilna/guides/the-assistant/).
 
 ### Template placeholders
 

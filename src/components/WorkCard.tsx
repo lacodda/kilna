@@ -14,6 +14,7 @@ import { DEFAULT_TAB, isTab, type Tab } from '@/components/card/tabs'
 import { VersionPanel } from '@/components/VersionPanel'
 import { ScorePanel } from '@/components/ScorePanel'
 import { ReleasePanel } from '@/components/ReleasePanel'
+import { ActionBar } from '@/components/assistant/ActionBar'
 import { AssistantPanel } from '@/components/assistant/AssistantPanel'
 import { NotePanel } from '@/components/NotePanel'
 import { WorkHistory } from '@/components/JournalFeed'
@@ -122,6 +123,10 @@ function TabBody({
       return (
         <div className="flex flex-col gap-4">
           <OverviewTab work={work} />
+          {/* Profile actions and plugin commands are the same gesture from the
+              user's side — do this to this work — so they sit together, below
+              the fields both of them read. */}
+          <ActionBar workId={workId} />
           <PluginBar target="work" id={workId} />
         </div>
       )

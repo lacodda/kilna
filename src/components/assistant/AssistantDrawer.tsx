@@ -12,10 +12,12 @@ import {
   deleteChat,
   listChatSummaries,
   renameChat,
+  type ChatSummary,
   type RunEmission,
 } from '@/lib/api'
 import { chatLabel } from '@/lib/chat'
 import { keys } from '@/lib/query'
+import { announcement, movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
@@ -36,7 +38,10 @@ export function AssistantLauncher() {
   const { t } = useTranslation()
   const client = useQueryClient()
 
-  const [open, setOpen] = useState(false)
+  // Null when closed. A string opens the drawer straight onto that chat —
+  // what the "open" on a finished task's toast does, so the answer is one
+  // click away from wherever the person happened to be.
+  const [open, setOpen] = useState<{ chatId: string | null } | null>(null)
 
   const active = useQuery({
     queryKey: keys.activeRuns,
@@ -44,26 +49,47 @@ export function AssistantLauncher() {
     staleTime: 0,
   })
 
-  // The launcher is always mounted, so this is the one listener that keeps
-  // the badge honest wherever the run was started from. Only run boundaries
-  // matter — not every block of an answer.
+  // The launcher is always mounted, so this is the one listener that keeps the
+  // badge honest wherever the run was started from — and the one place that can
+  // announce a finished task from any screen. Only run boundaries matter; not
+  // every block of an answer.
   useEffect(() => {
     const subscription = listen<RunEmission>('assistant:run', ({ payload }) => {
-      if (
-        payload.event.kind === 'started' ||
-        payload.event.kind === 'finished' ||
-        payload.event.kind === 'failed' ||
-        payload.event.kind === 'stopped'
-      ) {
-        void client.invalidateQueries({ queryKey: keys.activeRuns })
-      }
+      if (!movesTaskList(payload)) return
+
+      void client.invalidateQueries({ queryKey: keys.activeRuns })
+      void client.invalidateQueries({ queryKey: keys.activeTasks })
+
+      const ending = announcement(payload)
+      if (ending === null) return
+
+      // The chat's name, if a list has already been loaded. Worth no fetch of
+      // its own: the toast is useful without it.
+      const named = client
+        .getQueriesData<ChatSummary[]>({ queryKey: keys.allChats })
+        .flatMap(([, chats]) => chats ?? [])
+        .find((chat) => chat.id === payload.chat_id)
+      const what = named === undefined ? null : chatLabel(named, t('assistant.untitled'))
+
+      const message =
+        ending === 'done'
+          ? what === null
+            ? t('assistant.taskDone')
+            : t('assistant.taskDoneNamed', { title: what })
+          : what === null
+            ? t('assistant.taskEnded')
+            : t('assistant.taskEndedNamed', { title: what })
+
+      say.withAction(message, t('assistant.taskOpen'), () => {
+        setOpen({ chatId: payload.chat_id })
+      })
     })
     return () => {
       void subscription.then((unlisten) => {
         unlisten()
       })
     }
-  }, [client])
+  }, [client, t])
 
   const running = active.data?.length ?? 0
 
@@ -74,7 +100,7 @@ export function AssistantLauncher() {
         aria-label={running > 0 ? t('assistant.openBusy') : t('assistant.open')}
         title={running > 0 ? t('assistant.openBusy') : t('assistant.open')}
         onClick={() => {
-          setOpen(true)
+          setOpen({ chatId: null })
         }}
         className={cn(
           'fixed bottom-5 right-5 z-40 flex size-11 cursor-pointer items-center justify-center rounded-full',
@@ -92,18 +118,32 @@ export function AssistantLauncher() {
         )}
       </button>
 
-      {open && <Drawer onClose={() => setOpen(false)} />}
+      {open !== null && (
+        <Drawer
+          initialChat={open.chatId}
+          onClose={() => {
+            setOpen(null)
+          }}
+        />
+      )}
     </>
   )
 }
 
-/** Mounted per opening, so it always starts on the list. */
-function Drawer({ onClose }: { onClose: () => void }) {
+/** Mounted per opening, so it always starts where the opening asked for. */
+function Drawer({
+  initialChat,
+  onClose,
+}: {
+  /** A chat to open on, or null for the list. */
+  initialChat: string | null
+  onClose: () => void
+}) {
   const { t } = useTranslation()
   const client = useQueryClient()
   const navigate = useNavigate()
 
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(initialChat)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
 

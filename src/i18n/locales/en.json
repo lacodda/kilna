@@ -302,7 +302,15 @@
     "back": "Back to the chats",
     "openWork": "Open the work",
     "noChatsTitle": "No chats yet",
-    "noChats": "Ask from a work's card, or start one here about anything."
+    "noChats": "Ask from a work's card, or start one here about anything.",
+    "actions": "AI actions",
+    "actionWorking": "{{label}} — working",
+    "taskStarted": "Started: {{title}}",
+    "taskDone": "The assistant finished.",
+    "taskDoneNamed": "Finished: {{title}}",
+    "taskEnded": "The assistant stopped without an answer.",
+    "taskEndedNamed": "Stopped without an answer: {{title}}",
+    "taskOpen": "Open"
   },
   "notes": {
     "title": "Notes",

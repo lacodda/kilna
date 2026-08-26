@@ -1175,6 +1175,82 @@ pub fn start_run(
     Ok(run)
 }
 
+/// What a started task tells the card: where it went, and what it is.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartedTask {
+    pub chat_id: String,
+    pub run_id: String,
+    /// The key the card disables its button by.
+    pub task_key: String,
+    /// The chat's name, so a toast can say where the answer will be.
+    pub title: String,
+}
+
+/// Run a profile action against a work without opening the panel.
+///
+/// The action is rendered, given a chat of its own, and started — the call
+/// returns as soon as the CLI is spawned, like [`start_run`]. Nothing is
+/// inserted anywhere by the run itself: the answer lands in its chat, and what
+/// the card does with it is the card's decision.
+#[tauri::command]
+pub fn start_task(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    work_id: String,
+    action: String,
+) -> Result<StartedTask> {
+    let runs = Arc::clone(state.runs());
+    let workdir = state.assistant_dir();
+
+    // Checked before the chat is opened: a refused duplicate must not leave an
+    // empty chat behind for every impatient second click.
+    let key = assistant::task::key(&action, &work_id);
+    if runs.task_running(&key) {
+        return Err(crate::error::Error::Assistant(
+            "This is already running. Wait for it to finish.".into(),
+        ));
+    }
+
+    let (prepared, run, stream) = {
+        let conn = state.conn();
+        let prepared = assistant::task::prepare(&conn, &work_id, &action)?;
+        let (run, stream) = assistant_run::start_as(
+            &conn,
+            &runs,
+            &prepared.chat_id,
+            &prepared.prompt,
+            workdir.as_deref(),
+            Some(prepared.key.clone()),
+        )?;
+        (prepared, run, stream)
+    };
+
+    let sink: Arc<dyn Sink> = Arc::new(WindowSink(app.clone()));
+    let started = run.clone();
+
+    std::thread::spawn(move || {
+        let open = || app.state::<AppState>().inner().open_alongside();
+        assistant_run::pump(&runs, &sink, &started, &stream, open);
+    });
+
+    Ok(StartedTask {
+        chat_id: prepared.chat_id,
+        run_id: run.id,
+        task_key: prepared.key,
+        title: prepared.title,
+    })
+}
+
+/// Which profile actions are running right now, as task keys.
+///
+/// A card asks on mount: a run started before this screen existed still owns
+/// its button.
+#[tauri::command]
+pub fn active_tasks(state: State<'_, AppState>) -> Vec<String> {
+    state.runs().active_tasks()
+}
+
 /// Stop a run. Whatever it had already said stays in the chat.
 #[tauri::command]
 pub fn cancel_run(state: State<'_, AppState>, id: String) -> Result<()> {

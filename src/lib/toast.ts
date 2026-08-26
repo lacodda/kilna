@@ -30,4 +30,14 @@ export const say = {
    */
   undoable: (message: string, undoLabel: string, onUndo: () => void) =>
     toast(message, { action: { label: undoLabel, onClick: onUndo } }),
+
+  /**
+   * Something finished elsewhere, with a way to go and look at it.
+   *
+   * The same shape as `undoable` and deliberately not the same name: one takes
+   * an action back, the other goes to where it landed, and a reader of the call
+   * site should not have to guess which.
+   */
+  withAction: (message: string, label: string, onAct: () => void) =>
+    toast(message, { action: { label, onClick: onAct } }),
 }

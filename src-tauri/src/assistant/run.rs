@@ -82,6 +82,11 @@ pub struct Run {
     pub detail: Option<String>,
     /// Everything the run has said so far, oldest first.
     pub events: Vec<Event>,
+    /// What this run is, when it was started as a named task. Held in memory
+    /// only: a restart breaks every run in flight, so a stored key would name
+    /// a button nothing can still be waiting on.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task: Option<String>,
     pub started_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ended_at: Option<String>,
@@ -92,6 +97,11 @@ pub struct Run {
 pub struct Emission {
     pub run_id: String,
     pub chat_id: String,
+    /// The task key, when this run was started as one. What lets a listener
+    /// that is nowhere near the chat — the launcher, a card's action bar —
+    /// recognise the run as the button it disabled, and say so when it ends.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task: Option<String>,
     pub event: Event,
 }
 
@@ -115,6 +125,10 @@ struct Live {
     /// Set when someone asked for it to stop, so the loop can tell a kill from
     /// a crash when the output ends.
     cancelled: bool,
+    /// What this run is, for a run started as a named task — "this action on
+    /// this work". Set only for tasks; a typed prompt is never a duplicate of
+    /// anything.
+    task: Option<String>,
 }
 
 /// The runs this process is carrying.
@@ -151,15 +165,47 @@ impl Runs {
         chats
     }
 
-    fn insert(&self, run_id: String, chat_id: String, stop: Arc<dyn Fn() + Send + Sync>) {
+    fn insert(
+        &self,
+        run_id: String,
+        chat_id: String,
+        stop: Arc<dyn Fn() + Send + Sync>,
+        task: Option<String>,
+    ) {
         self.live().insert(
             run_id,
             Live {
                 chat_id,
                 stop,
                 cancelled: false,
+                task,
             },
         );
+    }
+
+    /// Whether a task by this key is already going.
+    ///
+    /// The check lives here rather than in the frontend because a disabled
+    /// button is only as durable as the screen holding it: closing the card
+    /// and opening it again brings the button back enabled while the run is
+    /// still going. The registry outlives the screen.
+    pub fn task_running(&self, key: &str) -> bool {
+        self.live()
+            .values()
+            .any(|live| live.task.as_deref() == Some(key))
+    }
+
+    /// Keys of the tasks going right now, so a reopened card can show which of
+    /// its actions are already working.
+    pub fn active_tasks(&self) -> Vec<String> {
+        let mut keys: Vec<String> = self
+            .live()
+            .values()
+            .filter_map(|live| live.task.clone())
+            .collect();
+        keys.sort();
+        keys.dedup();
+        keys
     }
 
     fn remove(&self, run_id: &str) -> bool {
@@ -221,7 +267,34 @@ pub fn start(
     prompt: &str,
     workdir: Option<&std::path::Path>,
 ) -> Result<(Run, Arc<Mutex<Stream>>)> {
+    start_as(conn, runs, chat_id, prompt, workdir, None)
+}
+
+/// Start a run that is also a named task, refusing if that task is already
+/// going.
+///
+/// `task` is what the run *is* rather than which run it is: the same action on
+/// the same work produces the same key every time, which is what makes a
+/// second click a duplicate instead of a second opinion.
+pub fn start_as(
+    conn: &Connection,
+    runs: &Arc<Runs>,
+    chat_id: &str,
+    prompt: &str,
+    workdir: Option<&std::path::Path>,
+    task: Option<String>,
+) -> Result<(Run, Arc<Mutex<Stream>>)> {
     let chat = super::get(conn, chat_id)?.ok_or_else(|| Error::not_found("chat", chat_id))?;
+
+    // Checked before the parallel limit: telling someone their own click is
+    // already running is more useful than telling them the machine is busy.
+    if let Some(key) = &task {
+        if runs.task_running(key) {
+            return Err(Error::Assistant(
+                "This is already running. Wait for it to finish.".into(),
+            ));
+        }
+    }
 
     if runs.active() >= PARALLEL_LIMIT {
         return Err(Error::Assistant(format!(
@@ -251,6 +324,7 @@ pub fn start(
         Arc::new(move || {
             stopper.stop();
         }),
+        task.clone(),
     );
 
     let run = Run {
@@ -260,6 +334,7 @@ pub fn start(
         state: RunState::Running,
         detail: None,
         events: Vec::new(),
+        task,
         started_at,
         ended_at: None,
     };
@@ -345,6 +420,7 @@ pub fn pump<S, F>(
         sink.emit(&Emission {
             run_id: run.id.clone(),
             chat_id: run.chat_id.clone(),
+            task: run.task.clone(),
             event,
         });
     }
@@ -395,6 +471,7 @@ pub fn pump<S, F>(
         sink.emit(&Emission {
             run_id: run.id.clone(),
             chat_id: run.chat_id.clone(),
+            task: run.task.clone(),
             event,
         });
     }
@@ -520,6 +597,7 @@ fn hydrate(raw: RawRun) -> Result<Run> {
         state: RunState::from_str(&state),
         detail,
         events,
+        task: None,
         started_at,
         ended_at,
     })
@@ -793,7 +871,7 @@ mod tests {
         // Registered as `start` would have, so cancellation has something to
         // find. A scripted source has no process to kill, so stopping it only
         // has to mark the run.
-        runs.insert(run_id.clone(), chat_id.clone(), Arc::new(|| {}));
+        runs.insert(run_id.clone(), chat_id.clone(), Arc::new(|| {}), None);
         before(&runs, &run);
 
         let collector: Arc<Collector> = Arc::new(Collector::default());
@@ -879,7 +957,7 @@ mod tests {
         let run_id = record(&conn, &chat_id, "running");
         let run = get(&conn, &run_id).unwrap().unwrap();
         let runs = Arc::new(Runs::new());
-        runs.insert(run_id.clone(), chat_id, Arc::new(|| {}));
+        runs.insert(run_id.clone(), chat_id, Arc::new(|| {}), None);
 
         struct Watcher {
             path: std::path::PathBuf,
@@ -1040,7 +1118,7 @@ mod tests {
         let runs = Arc::new(Runs::new());
         let run_id = record(&conn, &chat_id, "running");
         let run = get(&conn, &run_id).unwrap().unwrap();
-        runs.insert(run_id, chat_id, Arc::new(|| {}));
+        runs.insert(run_id, chat_id, Arc::new(|| {}), None);
 
         assert_eq!(runs.active(), 1);
         assert_eq!(runs.active_chats().len(), 1);
@@ -1062,7 +1140,7 @@ mod tests {
         let runs = Arc::new(Runs::new());
         let run_id = record(&conn, &chat_id, "running");
         let run = get(&conn, &run_id).unwrap().unwrap();
-        runs.insert(run_id, chat_id, Arc::new(|| {}));
+        runs.insert(run_id, chat_id, Arc::new(|| {}), None);
 
         let collector: Arc<Collector> = Arc::new(Collector::default());
         let sink: Arc<dyn Sink> = collector.clone();
@@ -1087,7 +1165,12 @@ mod tests {
         let runs = Arc::new(Runs::new());
 
         for index in 0..PARALLEL_LIMIT {
-            runs.insert(format!("run-{index}"), chat_id.clone(), Arc::new(|| {}));
+            runs.insert(
+                format!("run-{index}"),
+                chat_id.clone(),
+                Arc::new(|| {}),
+                None,
+            );
         }
 
         let Err(refused) = start(&conn, &runs, &chat_id, "one more", None) else {
@@ -1107,6 +1190,173 @@ mod tests {
             .query_row("SELECT count(*) FROM chat_run", [], |row| row.get(0))
             .unwrap();
         assert_eq!(rows, 0);
+    }
+
+    #[test]
+    fn every_event_of_a_task_carries_its_key() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some("critique:w1".into());
+        runs.insert(run_id, chat_id, Arc::new(|| {}), Some("critique:w1".into()));
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![
+                Event::Text {
+                    body: "half".into(),
+                },
+                Event::Finished {
+                    body: "done".into(),
+                    cost_usd: None,
+                    duration_ms: None,
+                },
+            ]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let emitted = collector.0.lock().unwrap().clone();
+        assert!(!emitted.is_empty());
+        assert!(
+            emitted
+                .iter()
+                .all(|emission| emission.task.as_deref() == Some("critique:w1")),
+            "a listener far from the chat recognises the run only by its key"
+        );
+        drop(dir);
+    }
+
+    #[test]
+    fn a_typed_prompt_emits_without_a_task_key() {
+        let (run, emitted, _conn, _dir) = pumped(
+            vec![Event::Finished {
+                body: "done".into(),
+                cost_usd: None,
+                duration_ms: None,
+            }],
+            |_, _| {},
+        );
+
+        assert_eq!(run.state, RunState::Done);
+        assert!(
+            emitted.iter().all(|emission| emission.task.is_none()),
+            "nothing typed by hand is a task, and no button is waiting on it"
+        );
+    }
+
+    #[test]
+    fn a_task_already_going_is_refused_a_second_time() {
+        let (conn, profile_id) = workspace();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        runs.insert(
+            "live".into(),
+            chat_id.clone(),
+            Arc::new(|| {}),
+            Some("critique:w1".into()),
+        );
+
+        let Err(refused) = start_as(
+            &conn,
+            &runs,
+            &chat_id,
+            "again",
+            None,
+            Some("critique:w1".into()),
+        ) else {
+            panic!("the same task must not run twice at once");
+        };
+
+        assert!(matches!(refused, Error::Assistant(_)));
+        // Refused before anything was written: a duplicate must not leave a
+        // question in the transcript that no run will ever answer.
+        let asked: i64 = conn
+            .query_row("SELECT count(*) FROM chat_message", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(asked, 0);
+    }
+
+    #[test]
+    fn the_duplicate_check_is_by_task_not_by_chat_or_work() {
+        let (conn, profile_id) = workspace();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        runs.insert(
+            "live".into(),
+            chat_id,
+            Arc::new(|| {}),
+            Some("critique:w1".into()),
+        );
+
+        assert!(runs.task_running("critique:w1"));
+        assert!(
+            !runs.task_running("critique:w2"),
+            "the same action on another work is not the same task"
+        );
+        assert!(
+            !runs.task_running("score:w1"),
+            "another action on the same work is not the same task"
+        );
+    }
+
+    #[test]
+    fn a_finished_task_frees_its_key() {
+        let runs = Arc::new(Runs::new());
+        runs.insert(
+            "live".into(),
+            "chat".into(),
+            Arc::new(|| {}),
+            Some("critique:w1".into()),
+        );
+
+        runs.remove("live");
+
+        assert!(
+            !runs.task_running("critique:w1"),
+            "a key held past the run would lock the button forever"
+        );
+        assert!(runs.active_tasks().is_empty());
+    }
+
+    #[test]
+    fn typed_prompts_never_count_as_duplicates_of_each_other() {
+        let (conn, profile_id) = workspace();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        runs.insert("live".into(), chat_id.clone(), Arc::new(|| {}), None);
+        runs.insert("other".into(), chat_id, Arc::new(|| {}), None);
+
+        assert!(runs.active_tasks().is_empty());
+        let _ = conn;
+    }
+
+    #[test]
+    fn active_tasks_lists_each_key_once() {
+        let runs = Arc::new(Runs::new());
+        runs.insert(
+            "a".into(),
+            "chat".into(),
+            Arc::new(|| {}),
+            Some("score:w1".into()),
+        );
+        runs.insert(
+            "b".into(),
+            "chat".into(),
+            Arc::new(|| {}),
+            Some("critique:w1".into()),
+        );
+        runs.insert("c".into(), "chat".into(), Arc::new(|| {}), None);
+
+        assert_eq!(runs.active_tasks(), vec!["critique:w1", "score:w1"]);
     }
 
     #[test]
@@ -1166,6 +1416,7 @@ mod tests {
             Arc::new(move || {
                 by_cancel.store(true, std::sync::atomic::Ordering::SeqCst);
             }),
+            None,
         );
 
         let source = Arc::new(Mutex::new(Blocking {
@@ -1243,6 +1494,7 @@ mod tests {
                 Arc::new(move || {
                     counted.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                 }),
+                None,
             );
         }
 

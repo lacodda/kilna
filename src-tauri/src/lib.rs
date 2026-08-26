@@ -101,6 +101,8 @@ pub fn run() {
             commands::cancel_run,
             commands::list_runs,
             commands::active_runs,
+            commands::start_task,
+            commands::active_tasks,
             commands::render_prompt,
             commands::export_markdown,
             commands::backup_workspace,

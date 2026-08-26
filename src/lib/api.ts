@@ -548,6 +548,8 @@ export interface Run {
 export interface RunEmission {
   run_id: string
   chat_id: string
+  /** Set when the run was started as a profile action, absent when typed. */
+  task?: string
   event: RunEvent
 }
 
@@ -621,5 +623,17 @@ export const startRun = (chatId: string, prompt: string) =>
 export const cancelRun = (id: string) => invoke<void>('cancel_run', { id })
 export const listRuns = (chatId: string) => invoke<Run[]>('list_runs', { chatId })
 export const activeRuns = () => invoke<string[]>('active_runs')
+
+/** Where a started task went, and what it is. */
+export interface StartedTask {
+  chatId: string
+  runId: string
+  taskKey: string
+  title: string
+}
+
+export const startTask = (workId: string, action: string) =>
+  invoke<StartedTask>('start_task', { workId, action })
+export const activeTasks = () => invoke<string[]>('active_tasks')
 export const renderPrompt = (workId: string, template: string) =>
   invoke<string>('render_prompt', { workId, template })
