@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
-## [0.28.0] - 2026-08-25
+## [0.29.0] - 2026-08-26
+
+### Documentation
+- Describe both ways a profile action runs
+
+### Features
+- Start profile actions from the card without the panel
+## [0.28.0] - 2026-08-26
 
 ### Bug Fixes
 - Confirm the copy before showing its feedback
