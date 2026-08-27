@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [0.31.0] - 2026-08-27
 
+### Documentation
+- Record why a queued task is not persisted
+- Mention batch actions on the landing page
+
 ### Features
 - Run a profile action against many works at once
 
