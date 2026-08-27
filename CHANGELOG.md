@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.31.0] - 2026-08-27
+
+### Features
+- Run a profile action against many works at once
+
+### Testing
+- Check the batch path against real CLI processes
 ## [0.30.0] - 2026-08-27
 
 ### Features
