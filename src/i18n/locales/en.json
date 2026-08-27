@@ -272,7 +272,7 @@
   "assistant": {
     "title": "Assistant",
     "unavailable": "Claude Code is not available on this machine.",
-    "placeholder": "Ask about this work — Enter sends, Shift+Enter for a new line",
+    "placeholder": "Ask about this work — Enter sends, Shift+Enter for a new line, / for actions",
     "placeholderAnywhere": "Ask anything — Enter sends, Shift+Enter for a new line",
     "send": "Send",
     "thinking": "Thinking…",
@@ -310,7 +310,21 @@
     "taskDoneNamed": "Finished: {{title}}",
     "taskEnded": "The assistant stopped without an answer.",
     "taskEndedNamed": "Stopped without an answer: {{title}}",
-    "taskOpen": "Open"
+    "taskOpen": "Open",
+    "waitingTitle": "The assistant is waiting on you in",
+    "waitingMore_one": "and {{count}} more",
+    "waitingMore_other": "and {{count}} more",
+    "waitingOpen": "Answer",
+    "waitingDismiss": "Nothing is needed",
+    "waitingMark": "Waiting on you",
+    "paletteLabel": "Profile actions",
+    "paletteEmpty": "No action by that name",
+    "paletteHint": "Type / for actions",
+    "scoreTitle": "Proposed score",
+    "scoreApply": "Apply as a score",
+    "scoreApplied": "Scored.",
+    "scoreMissing": "Not judged: {{axes}}",
+    "scoreUnknown": "Not axes of this profile: {{axes}}"
   },
   "notes": {
     "title": "Notes",

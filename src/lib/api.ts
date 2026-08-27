@@ -36,11 +36,25 @@ export interface MetaField {
   type: 'text' | 'number' | 'date' | 'boolean'
 }
 
+/** What an answer proposed, when its action asked for something applicable. */
+export interface ScoreProposal {
+  kind: 'score'
+  /** Axis key to value, already checked against the profile. */
+  axes: Record<string, number>
+  note?: string
+  /** Axes the answer named that the profile does not have. */
+  unknown?: string[]
+  /** Axes of the profile the answer skipped. */
+  missing?: string[]
+}
+
 export interface PromptTemplate {
   key: string
   label: string
   template: string
   description?: string
+  /** What the action asks for beyond prose. Absent means an ordinary action. */
+  produces?: 'score'
 }
 
 // What a release of this kind cannot ship without: version role keys. An empty
@@ -483,6 +497,8 @@ export interface Chat {
   work_id: string | null
   title: string | null
   session_id: string | null
+  /** Set while a background task in this chat is waiting on an answer. */
+  waiting_since?: string
   created_at: string
   updated_at: string
 }
@@ -498,6 +514,8 @@ export interface ChatSummary {
   first_prompt?: string
   /** What the answers in this chat have cost so far. */
   cost_usd: number
+  /** Set while this chat holds an unanswered question. */
+  waiting_since?: string
   updated_at: string
 }
 
@@ -635,5 +653,7 @@ export interface StartedTask {
 export const startTask = (workId: string, action: string) =>
   invoke<StartedTask>('start_task', { workId, action })
 export const activeTasks = () => invoke<string[]>('active_tasks')
+export const waitingChats = () => invoke<ChatSummary[]>('waiting_chats')
+export const clearWaiting = (chatId: string) => invoke<void>('clear_waiting', { chatId })
 export const renderPrompt = (workId: string, template: string) =>
   invoke<string>('render_prompt', { workId, template })

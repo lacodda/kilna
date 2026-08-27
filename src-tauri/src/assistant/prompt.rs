@@ -16,6 +16,14 @@ pub struct PromptTemplate {
     pub template: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// What the action asks the assistant to produce, beyond prose.
+    ///
+    /// Absent means an ordinary action: the answer is text and the reader
+    /// decides what to do with it. `"score"` asks for values along the
+    /// profile's axes, which kilna can offer to apply — with a confirmation,
+    /// because the assistant never writes to the workspace itself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub produces: Option<String>,
 }
 
 /// Placeholders a template may use.

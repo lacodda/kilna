@@ -112,6 +112,13 @@
         "label": "Pick clip candidates",
         "description": "Moments worth cutting for social.",
         "template": "The script for an episode called \"{title}\":\n\n{role:script}\n\nPick three moments that would work as a standalone clip under ninety seconds. For each, give the rough boundary and one sentence on why it stands alone. No explanations beyond that."
+      },
+      {
+        "key": "score",
+        "label": "Score the episode",
+        "description": "Rate it along the profile axes, with a reason.",
+        "template": "Here are the notes for an episode called \"{title}\".\n\n{body}\n\nJudge it along these axes: Hook (Does the cold open earn the next thirty seconds), Clarity (Could a listener explain the point to someone else afterward), Pacing (Where does it drag, and would a listener skip ahead), Insight (Is there a claim here nobody else is making, or just a summary), Delivery (Energy, pauses, whether it sounds read or spoken), Shareability (Is there a moment worth clipping and sending to a friend).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+        "produces": "score"
       }
     ]
   }

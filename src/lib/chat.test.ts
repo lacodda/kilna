@@ -134,6 +134,47 @@ describe('conversation', () => {
   })
 })
 
+describe('a proposal on an answer', () => {
+  it('is carried onto the exchange', () => {
+    const items = conversation(
+      [
+        message('user', 'score it', 't1', { run_id: 'r1' }),
+        message('assistant', 'Here you go.', 't2', {
+          run_id: 'r1',
+          proposal: { kind: 'score', axes: { hook: 8 }, note: 'the chorus lands' },
+        }),
+      ],
+      [],
+    )
+
+    expect(items[0]?.answer?.proposal?.axes).toEqual({ hook: 8 })
+    expect(items[0]?.answer?.proposal?.note).toBe('the chorus lands')
+  })
+
+  it('is absent on an ordinary answer', () => {
+    const items = conversation(
+      [message('user', 'ask', 't1'), message('assistant', 'prose', 't2')],
+      [],
+    )
+
+    expect(items[0]?.answer?.proposal).toBeNull()
+  })
+
+  it('ignores a shape this build does not understand', () => {
+    // A newer backend could attach something else entirely; an unreadable
+    // proposal must not put a broken apply button on the answer.
+    const items = conversation(
+      [
+        message('user', 'ask', 't1'),
+        message('assistant', 'answer', 't2', { proposal: { kind: 'telepathy' } }),
+      ],
+      [],
+    )
+
+    expect(items[0]?.answer?.proposal).toBeNull()
+  })
+})
+
 describe('chatLabel', () => {
   it('prefers the given name, then the first question, then the fallback', () => {
     const base = { id: 'c', work_id: null, cost_usd: 0, updated_at: 't' }

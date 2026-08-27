@@ -1242,6 +1242,25 @@ pub fn start_task(
     })
 }
 
+/// Chats holding a question a background task asked, oldest first.
+///
+/// Asked from every screen, because that is the point: a task was left alone,
+/// and the question it came back with has to be findable from wherever the
+/// person happens to be.
+#[tauri::command]
+pub fn waiting_chats(state: State<'_, AppState>) -> Result<Vec<assistant::ChatSummary>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    assistant::waiting(&conn, &profile_id)
+}
+
+/// Clear a chat's question — answered, or dismissed by hand.
+#[tauri::command]
+pub fn clear_waiting(state: State<'_, AppState>, chat_id: String) -> Result<()> {
+    let conn = state.conn();
+    assistant::clear_waiting(&conn, &chat_id)
+}
+
 /// Which profile actions are running right now, as task keys.
 ///
 /// A card asks on mount: a run started before this screen existed still owns

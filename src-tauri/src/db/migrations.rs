@@ -47,6 +47,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "chat_run",
         sql: include_str!("../../migrations/0007_chat_run.sql"),
     },
+    Migration {
+        version: 8,
+        name: "chat_waiting",
+        sql: include_str!("../../migrations/0008_chat_waiting.sql"),
+    },
 ];
 
 /// The newest schema this build understands.

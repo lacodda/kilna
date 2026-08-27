@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { listen } from '@tauri-apps/api/event'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as Primitive from '@radix-ui/react-dialog'
-import { ArrowLeft, ArrowUpRight, MessageSquare, Plus, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  MessageCircleQuestion,
+  MessageSquare,
+  Plus,
+  X,
+} from 'lucide-react'
 import {
   activeRuns,
   assistantStatus,
@@ -17,6 +24,7 @@ import {
 } from '@/lib/api'
 import { chatLabel } from '@/lib/chat'
 import { keys } from '@/lib/query'
+import { AssistantContext, type Assistant } from '@/lib/useAssistant'
 import { announcement, movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -34,7 +42,7 @@ import { ChatView } from '@/components/assistant/ChatView'
  * promise that a run belongs to its chat — wherever you are, what is running
  * is one click away, and a chat does not need a work to be about.
  */
-export function AssistantLauncher() {
+export function AssistantLauncher({ children }: { children?: React.ReactNode }) {
   const { t } = useTranslation()
   const client = useQueryClient()
 
@@ -93,8 +101,21 @@ export function AssistantLauncher() {
 
   const running = active.data?.length ?? 0
 
+  // Stable, so a consumer re-rendering on every keystroke does not re-subscribe
+  // to anything downstream of it.
+  const assistant = useMemo<Assistant>(
+    () => ({
+      open: (chatId?: string) => {
+        setOpen({ chatId: chatId ?? null })
+      },
+    }),
+    [],
+  )
+
   return (
-    <>
+    <AssistantContext value={assistant}>
+      {children}
+
       <button
         type="button"
         aria-label={running > 0 ? t('assistant.openBusy') : t('assistant.open')}
@@ -126,7 +147,7 @@ export function AssistantLauncher() {
           }}
         />
       )}
-    </>
+    </AssistantContext>
   )
 }
 
@@ -301,6 +322,12 @@ function Drawer({
                           <span
                             aria-hidden
                             className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent"
+                          />
+                        )}
+                        {chat.waiting_since !== undefined && (
+                          <MessageCircleQuestion
+                            aria-label={t('assistant.waitingMark')}
+                            className="size-3.5 shrink-0 text-accent-2"
                           />
                         )}
                         <span className="truncate">

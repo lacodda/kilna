@@ -305,6 +305,12 @@ pub fn start_as(
     let id = uuid::Uuid::new_v4().to_string();
     record_asked(conn, chat_id, prompt, &id)?;
 
+    // Saying something in a chat that was waiting is the answer to whatever it
+    // asked. Done here rather than in the command so it holds however a run is
+    // started, and before the CLI is spawned so the banner clears at once
+    // rather than minutes later when the reply lands.
+    let _ = super::clear_waiting(conn, chat_id);
+
     let stream = Stream::start(prompt, chat.session_id.as_deref(), workdir)?;
 
     let started_at = now();
@@ -407,7 +413,27 @@ pub fn pump<S, F>(
             {
                 let mut meta = stream::finished_meta(*cost_usd, *duration_ms);
                 meta.insert("run_id".into(), json!(run.id));
+
+                // A structured result travels with the message it came in, so
+                // a panel replaying the chat offers the same thing it offered
+                // live. Parsed here rather than in the frontend because the
+                // profile it is checked against lives on this side.
+                if let Some(proposal) = proposed(&conn, run, body) {
+                    meta.insert("proposal".into(), proposal);
+                }
+
                 let _ = super::append(&conn, &run.chat_id, super::ASSISTANT, body, meta);
+
+                // Only a task is read for a question. A prompt typed in the
+                // panel was asked by someone looking at the reply, and telling
+                // them about a question on their own screen is noise; a task
+                // was left alone on purpose, and its question would otherwise
+                // sit unread.
+                if run.task.is_some()
+                    && super::waiting::read(body) == super::waiting::Ending::Waiting
+                {
+                    let _ = super::mark_waiting(&conn, &run.chat_id);
+                }
             }
         }
 
@@ -475,6 +501,33 @@ pub fn pump<S, F>(
             event,
         });
     }
+}
+
+/// What this run's answer proposed, when its action asked for something the
+/// application can act on.
+///
+/// Nothing is proposed for a typed prompt: only a profile action declares what
+/// it produces, and only a task carries the key that names the action.
+fn proposed(conn: &Connection, run: &Run, body: &str) -> Option<Value> {
+    let action = run.task.as_ref()?.split(':').next()?.to_owned();
+    let profile = crate::profile::active(conn).ok()??;
+
+    let template = profile
+        .config
+        .prompts
+        .iter()
+        .find(|prompt| prompt.key == action)?;
+
+    if template.produces.as_deref() != Some(super::task::SCORE) {
+        return None;
+    }
+
+    // The answer is handed in rather than read off the run: `run` is the
+    // snapshot taken when the run started, and its event list is empty. Reading
+    // it there returned nothing, always — caught by the test that expected a
+    // proposal and found none.
+    let proposal = super::proposal::read_score(body, &profile.config)?;
+    serde_json::to_value(proposal).ok()
 }
 
 /// Record what was asked, tied to the run that will answer it.
@@ -1250,6 +1303,204 @@ mod tests {
         );
     }
 
+    /// A finished task that asked something leaves the chat marked, so a
+    /// question nobody was watching for is still found.
+    #[test]
+    fn a_task_that_ends_by_asking_marks_its_chat() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some("critique:w1".into());
+        runs.insert(
+            run_id,
+            chat_id.clone(),
+            Arc::new(|| {}),
+            Some("critique:w1".into()),
+        );
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: "Two readings work here.
+
+Which one do you want?"
+                    .into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let chat = super::super::get(&conn, &chat_id).unwrap().unwrap();
+        assert!(
+            chat.waiting_since.is_some(),
+            "a task that ended by asking must leave the question findable"
+        );
+        drop(dir);
+    }
+
+    #[test]
+    fn a_task_that_reports_leaves_the_chat_alone() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some("critique:w1".into());
+        runs.insert(
+            run_id,
+            chat_id.clone(),
+            Arc::new(|| {}),
+            Some("critique:w1".into()),
+        );
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: "I tightened the second verse and left the chorus alone.".into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let chat = super::super::get(&conn, &chat_id).unwrap().unwrap();
+        assert!(
+            chat.waiting_since.is_none(),
+            "a banner on finished work is noise"
+        );
+        drop(dir);
+    }
+
+    /// A question asked in the panel is already on the asker's screen.
+    #[test]
+    fn a_typed_prompt_that_ends_by_asking_marks_nothing() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let run = get(&conn, &run_id).unwrap().unwrap();
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), None);
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: "Which verse should go?".into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let chat = super::super::get(&conn, &chat_id).unwrap().unwrap();
+        assert!(
+            chat.waiting_since.is_none(),
+            "the person who typed it is looking at the reply"
+        );
+        drop(dir);
+    }
+
+    /// A scoring action's answer arrives with the proposal already read, so
+    /// the panel offers the same thing live and on replay.
+    #[test]
+    fn a_scoring_task_attaches_what_it_proposed() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        let config = crate::profile::active(&conn).unwrap().unwrap().config;
+        let axis = config.axes[0].key.clone();
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some(format!("score:{chat_id}"));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: format!("It holds up.\n\n```json\n{{\"axes\": {{\"{axis}\": 8}}}}\n```"),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .expect("the run must leave an answer");
+
+        let proposal = answer
+            .meta
+            .get("proposal")
+            .expect("a scoring action must arrive with its proposal read");
+        assert_eq!(proposal.get("kind").and_then(|k| k.as_str()), Some("score"));
+        assert_eq!(
+            proposal
+                .get("axes")
+                .and_then(|axes| axes.get(&axis))
+                .and_then(serde_json::Value::as_f64),
+            Some(8.0)
+        );
+        drop(dir);
+    }
+
+    /// An ordinary action answers in prose, and nothing is proposed.
+    #[test]
+    fn a_plain_task_attaches_no_proposal() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some(format!("critique:{chat_id}"));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: "The second verse is the weak one.".into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap();
+
+        assert!(answer.meta.get("proposal").is_none());
+        drop(dir);
+    }
+
     #[test]
     fn a_task_already_going_is_refused_a_second_time() {
         let (conn, profile_id) = workspace();
@@ -1357,6 +1608,36 @@ mod tests {
         runs.insert("c".into(), "chat".into(), Arc::new(|| {}), None);
 
         assert_eq!(runs.active_tasks(), vec!["critique:w1", "score:w1"]);
+    }
+
+    /// A run that never started answered nothing, so the question stands.
+    #[test]
+    fn a_refused_run_leaves_the_question_standing() {
+        let (conn, profile_id) = workspace();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+        super::super::mark_waiting(&conn, &chat_id).unwrap();
+
+        // The limit refuses this before any process is spawned, which is all
+        // this test needs: clearing happens before that check is reached.
+        for index in 0..PARALLEL_LIMIT {
+            runs.insert(
+                format!("run-{index}"),
+                chat_id.clone(),
+                Arc::new(|| {}),
+                None,
+            );
+        }
+        let _ = start(&conn, &runs, &chat_id, "here is your answer", None);
+
+        assert!(
+            super::super::get(&conn, &chat_id)
+                .unwrap()
+                .unwrap()
+                .waiting_since
+                .is_some(),
+            "a refused run answered nothing, so the question stands"
+        );
     }
 
     #[test]

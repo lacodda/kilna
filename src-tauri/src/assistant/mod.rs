@@ -1,8 +1,10 @@
 pub mod cli;
 pub mod prompt;
+pub mod proposal;
 pub mod run;
 pub mod stream;
 pub mod task;
+pub mod waiting;
 
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
@@ -19,6 +21,10 @@ pub struct Chat {
     pub work_id: Option<String>,
     pub title: Option<String>,
     pub session_id: Option<String>,
+    /// When a background task in this chat stopped to ask something, and the
+    /// question is still unanswered. Null when nothing is pending.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub waiting_since: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -65,14 +71,16 @@ pub struct ChatSummary {
     /// What the answers in this chat have cost so far, as the CLI reported
     /// it. Turns that died before reporting are not in the sum.
     pub cost_usd: f64,
+    /// Set while this chat holds an unanswered question.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub waiting_since: Option<String>,
     pub updated_at: String,
 }
 
 pub const USER: &str = "user";
 pub const ASSISTANT: &str = "assistant";
 
-const SELECT_CHAT: &str =
-    "SELECT id, profile_id, work_id, title, session_id, created_at, updated_at FROM chat";
+const SELECT_CHAT: &str = "SELECT id, profile_id, work_id, title, session_id, waiting_since,                            created_at, updated_at FROM chat";
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewChat) -> Result<Chat> {
     let id = uuid::Uuid::new_v4().to_string();
@@ -111,6 +119,7 @@ pub fn summaries(
                  ORDER BY m.created_at, m.id LIMIT 1),
                 (SELECT coalesce(sum(json_extract(m.meta, '$.cost_usd')), 0)
                  FROM chat_message m WHERE m.chat_id = c.id),
+                c.waiting_since,
                 c.updated_at
          FROM chat c LEFT JOIN work w ON w.id = c.work_id
          WHERE c.profile_id = ?1",
@@ -128,7 +137,8 @@ pub fn summaries(
             title: row.get(3)?,
             first_prompt: row.get::<_, Option<String>>(4)?.map(|body| caption(&body)),
             cost_usd: row.get(5)?,
-            updated_at: row.get(6)?,
+            waiting_since: row.get(6)?,
+            updated_at: row.get(7)?,
         })
     };
 
@@ -254,6 +264,49 @@ pub fn ask(
     Ok(message)
 }
 
+/// Mark a chat as holding an unanswered question.
+///
+/// Idempotent by design: re-marking a chat that is already waiting keeps the
+/// original moment. The banner says how long something has been sitting there,
+/// and a second task landing in the same chat must not make an old question
+/// look new.
+pub fn mark_waiting(conn: &Connection, chat_id: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE chat SET waiting_since = ?2 WHERE id = ?1 AND waiting_since IS NULL",
+        params![chat_id, now()],
+    )?;
+    Ok(())
+}
+
+/// Clear the question — answered, or dismissed by hand.
+///
+/// Not an error when nothing was waiting: the button that clears it can be
+/// clicked twice, and two people looking at the same banner is not a failure.
+pub fn clear_waiting(conn: &Connection, chat_id: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE chat SET waiting_since = NULL WHERE id = ?1",
+        params![chat_id],
+    )?;
+    Ok(())
+}
+
+/// Chats of a profile with an unanswered question, oldest first.
+///
+/// Oldest first because that is the order they should be dealt with: the
+/// question that has been sitting longest is the one holding work up.
+pub fn waiting(conn: &Connection, profile_id: &str) -> Result<Vec<ChatSummary>> {
+    let mut waiting: Vec<ChatSummary> = summaries(conn, profile_id, None)?
+        .into_iter()
+        .filter(|summary| summary.waiting_since.is_some())
+        .collect();
+
+    // By when the question was asked, not by when the chat was last touched:
+    // `summaries` orders by use, and a question's age is what the banner is
+    // about.
+    waiting.sort_by(|left, right| left.waiting_since.cmp(&right.waiting_since));
+    Ok(waiting)
+}
+
 /// Record a message without calling the CLI.
 pub fn append(
     conn: &Connection,
@@ -300,8 +353,9 @@ fn read_chat(row: &rusqlite::Row<'_>) -> rusqlite::Result<Chat> {
         work_id: row.get(2)?,
         title: row.get(3)?,
         session_id: row.get(4)?,
-        created_at: row.get(5)?,
-        updated_at: row.get(6)?,
+        waiting_since: row.get(5)?,
+        created_at: row.get(6)?,
+        updated_at: row.get(7)?,
     })
 }
 
@@ -626,6 +680,114 @@ mod tests {
         let (conn, _) = workspace();
 
         assert!(rename(&conn, "nope", Some("Named")).is_err());
+    }
+
+    #[test]
+    fn marking_a_waiting_chat_twice_keeps_the_first_moment() {
+        let (conn, profile_id) = workspace();
+        let chat = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: None,
+            },
+        )
+        .unwrap();
+
+        mark_waiting(&conn, &chat.id).unwrap();
+        let first = get(&conn, &chat.id).unwrap().unwrap().waiting_since;
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+        mark_waiting(&conn, &chat.id).unwrap();
+
+        assert_eq!(
+            get(&conn, &chat.id).unwrap().unwrap().waiting_since,
+            first,
+            "a second question must not make an old one look new"
+        );
+    }
+
+    #[test]
+    fn clearing_a_chat_that_was_not_waiting_is_not_an_error() {
+        let (conn, profile_id) = workspace();
+        let chat = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: None,
+            },
+        )
+        .unwrap();
+
+        assert!(clear_waiting(&conn, &chat.id).is_ok());
+        assert!(
+            get(&conn, &chat.id)
+                .unwrap()
+                .unwrap()
+                .waiting_since
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn waiting_chats_come_back_oldest_question_first() {
+        let (conn, profile_id) = workspace();
+        let older = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: Some("Asked first".into()),
+            },
+        )
+        .unwrap();
+        let newer = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: Some("Asked later".into()),
+            },
+        )
+        .unwrap();
+
+        mark_waiting(&conn, &older.id).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+        mark_waiting(&conn, &newer.id).unwrap();
+        // Touching the newer chat makes it the most recently used, which is the
+        // order `summaries` would give. The question's age is what matters.
+        append(&conn, &newer.id, USER, "poke", Map::new()).unwrap();
+
+        let ids: Vec<_> = waiting(&conn, &profile_id)
+            .unwrap()
+            .into_iter()
+            .map(|summary| summary.id)
+            .collect();
+
+        assert_eq!(
+            ids,
+            vec![older.id, newer.id],
+            "the question that has waited longest is the one holding work up"
+        );
+    }
+
+    #[test]
+    fn a_chat_with_nothing_pending_is_not_listed_as_waiting() {
+        let (conn, profile_id) = workspace();
+        let chat = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: None,
+            },
+        )
+        .unwrap();
+        mark_waiting(&conn, &chat.id).unwrap();
+        clear_waiting(&conn, &chat.id).unwrap();
+
+        assert!(waiting(&conn, &profile_id).unwrap().is_empty());
     }
 
     #[test]

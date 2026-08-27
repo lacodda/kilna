@@ -19,8 +19,16 @@ read — and edit — exactly what is about to be sent and paid for. Enter does 
 sending. See [The profile document](/kilna/reference/profile-document/) for how
 the templates are written.
 
-The same actions appear a second time, on the work's **Overview** tab, where
-they behave the other way round — see [Actions without the
+Typing **`/`** in the composer opens the same actions as a list you can filter:
+a few letters of the name, arrows to move, Enter to choose, Escape to close. It
+does what the button does — fills the composer — so the shortcut never means
+something different from the thing it is a shortcut for. Matching is by word
+starts, so `lyr` finds *Critique the lyrics*; a `/` anywhere but at the very
+start of an empty composer is just a slash, because paths and dates have them
+too.
+
+The same actions appear a third time, on the work's **Overview** tab, where they
+behave the other way round — see [Actions without the
 panel](#actions-without-the-panel).
 
 ## Actions without the panel
@@ -48,9 +56,52 @@ on a different one, is a different thing and starts normally.
 When it ends you are told wherever you are, with a link straight to the chat
 holding the answer. A run you stopped by hand says nothing — you already know.
 
-What comes back is an answer in a chat, nothing more. An action never writes to
-your work: **Insert as version** is still how an answer becomes a version, and
-it is still you pressing it.
+What comes back is an answer in a chat. The assistant never writes to your work
+itself — **Insert as version** is how an answer becomes a version, and an action
+that proposes a score puts the numbers in front of you with a button. You press
+it, or you do not.
+
+## When it stops to ask
+
+An action can come back with a question rather than an answer — it needed a
+decision only you can make. That is the one thing about walking away that could
+go wrong: the question would sit in a chat you are not looking at, and the work
+would sit with it.
+
+So it does not sit quietly. A banner appears above whatever screen you are on —
+*the assistant is waiting on you in …* — with the chat one click away. It stays
+until you answer or dismiss it, because it is asking for a decision and a
+notification that fades is not. **Answer** opens the chat; **Nothing is needed**
+clears it. Saying anything in that chat clears it too: replying *is* the answer.
+
+The chat lists mark a waiting chat as well, in the card and in the drawer.
+
+kilna works this out two ways. Every action asks the assistant to end with a
+marker when it needs you, and — because an instruction can be ignored — the last
+lines of the answer are read for a question as well. That second reading errs
+towards asking: a banner you dismiss with one click costs a glance, a question
+you never noticed costs the hour the work stood still. Only actions are read
+this way. A question you asked yourself in the panel is already on your screen.
+
+## Actions that come back with a score
+
+Most actions answer in prose and you decide what to do with it. An action can
+also ask for something kilna knows how to act on — the profile's `score` action
+does, and any action can by declaring `"produces": "score"`.
+
+Such an answer arrives with the numbers laid out under it, axis by axis, with
+the assistant's one-line reason and a button that applies them. Applying writes
+an ordinary score — same snapshot, same history, tied to the current version,
+carrying that reason as its note. Nothing marks it as machine-suggested,
+because once you have pressed the button it is your score.
+
+If the answer judged an axis your profile does not have, or skipped one it does,
+the panel says so rather than quietly dropping it. A proposal that only half
+fits is still worth applying — but not without knowing.
+
+The rule underneath is the same one everywhere in kilna: **the assistant
+proposes, you apply.** It is never given a way to write to your workspace, which
+is why a proposal is something you read before it becomes a fact.
 
 ## Chats
 

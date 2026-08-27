@@ -30,6 +30,9 @@ pub struct Prepared {
     pub title: String,
 }
 
+/// The `produces` value naming a scoring action.
+pub const SCORE: &str = "score";
+
 /// What a task is, as a key: this action, on this work.
 ///
 /// Two clicks on the same button produce the same key; the same action on
@@ -57,7 +60,18 @@ pub fn prepare(conn: &Connection, work_id: &str, action: &str) -> Result<Prepare
         .ok_or_else(|| Error::not_found("prompt", action))?;
 
     let work = work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
-    let prompt = super::prompt::for_work(conn, work_id, &template.template)?;
+    let mut prompt = super::prompt::for_work(conn, work_id, &template.template)?;
+
+    // An action that asks for something the application can act on says the
+    // shape it needs. Ordinary actions say nothing and get prose.
+    if template.produces.as_deref() == Some(SCORE) {
+        prompt.push_str(&super::proposal::scoring_instruction(&profile.config));
+    }
+
+    // The instruction that lets the assistant mark its own question. Only
+    // tasks carry it: a prompt typed in the panel is read before it is sent,
+    // and appending words the person did not write would break that.
+    let prompt = super::waiting::instruct(&prompt);
 
     // Named on creation rather than left to borrow its first question: a
     // rendered template can open with pages of the work's own text, and a
@@ -203,6 +217,25 @@ mod tests {
             prepared.prompt.contains("the cranes go still"),
             "{}",
             prepared.prompt
+        );
+    }
+
+    #[test]
+    fn a_task_prompt_carries_the_marker_instruction() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
+        let action = some_action(&conn);
+
+        let prepared = prepare(&conn, &work_id, &action.key).unwrap();
+
+        assert!(
+            prepared.prompt.contains(crate::assistant::waiting::MARKER),
+            "a task must be able to say it stopped to ask: {}",
+            prepared.prompt
+        );
+        assert!(
+            prepared.prompt.starts_with("Here are the lyrics"),
+            "the instruction goes after the action, never in front of it"
         );
     }
 

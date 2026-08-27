@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { MessageCircleQuestion, Plus } from 'lucide-react'
 import {
   activeRuns,
   assistantStatus,
@@ -168,6 +168,14 @@ export function AssistantPanel({ workId }: Props) {
             >
               {runningChats.has(chat.id) && (
                 <span aria-hidden className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent" />
+              )}
+              {/* A question waiting in a chat you are not looking at is the
+                  thing this mark exists for; a run in flight already pulses. */}
+              {chat.waiting_since !== undefined && (
+                <MessageCircleQuestion
+                  aria-label={t('assistant.waitingMark')}
+                  className="size-3.5 shrink-0 text-accent-2"
+                />
               )}
               <span className="truncate">{chatLabel(chat, t('assistant.untitled'))}</span>
             </button>

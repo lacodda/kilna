@@ -285,7 +285,7 @@
   "assistant": {
     "title": "Ассистент",
     "unavailable": "Claude Code на этой машине недоступен.",
-    "placeholder": "Спросите об этом произведении — Enter отправляет, Shift+Enter переносит строку",
+    "placeholder": "Спросите об этом произведении — Enter отправляет, Shift+Enter переносит строку, / — действия",
     "placeholderAnywhere": "Спросите о чём угодно — Enter отправляет, Shift+Enter переносит строку",
     "send": "Отправить",
     "thinking": "Думаю…",
@@ -323,7 +323,22 @@
     "taskDoneNamed": "Готово: {{title}}",
     "taskEnded": "Ассистент остановился без ответа.",
     "taskEndedNamed": "Остановлено без ответа: {{title}}",
-    "taskOpen": "Открыть"
+    "taskOpen": "Открыть",
+    "waitingTitle": "Ассистент ждёт ответа в",
+    "waitingMore_one": "и ещё {{count}}",
+    "waitingMore_few": "и ещё {{count}}",
+    "waitingMore_many": "и ещё {{count}}",
+    "waitingOpen": "Ответить",
+    "waitingDismiss": "Ответ не нужен",
+    "waitingMark": "Ждёт ответа",
+    "paletteLabel": "Действия профиля",
+    "paletteEmpty": "Нет действия с таким именем",
+    "paletteHint": "Введите / для действий",
+    "scoreTitle": "Предложенная оценка",
+    "scoreApply": "Применить как оценку",
+    "scoreApplied": "Оценка записана.",
+    "scoreMissing": "Без оценки: {{axes}}",
+    "scoreUnknown": "Не оси этого профиля: {{axes}}"
   },
   "notes": {
     "title": "Заметки",

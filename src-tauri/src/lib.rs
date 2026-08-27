@@ -103,6 +103,8 @@ pub fn run() {
             commands::active_runs,
             commands::start_task,
             commands::active_tasks,
+            commands::waiting_chats,
+            commands::clear_waiting,
             commands::render_prompt,
             commands::export_markdown,
             commands::backup_workspace,

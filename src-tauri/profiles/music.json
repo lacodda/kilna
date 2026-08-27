@@ -109,6 +109,13 @@
         "label": "Alternative titles",
         "description": "Other ways to name it.",
         "template": "A song currently called \"{title}\" with these lyrics:\n\n{role:lyrics}\n\nSuggest six alternative titles. Take them from the text itself where you can. No explanations."
+      },
+      {
+        "key": "score",
+        "label": "Score the song",
+        "description": "Rate it along the profile axes, with a reason.",
+        "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nJudge it along these axes: Hook (Does the chorus stay with you after one listen), Lyrics (Imagery, rhyme and whether a line earns its place), Emotion (Does it move a listener who knows nothing about it), Production (Arrangement, mix and how finished it sounds), Originality (Distance from the obvious version of this idea), Visual potential (Is there a clip in it, or only a cover).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+        "produces": "score"
       }
     ]
   }

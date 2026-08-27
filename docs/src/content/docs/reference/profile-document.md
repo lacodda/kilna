@@ -194,11 +194,30 @@ specifically.
 | `label` | string | Button text, in the AI panel and on a work's Overview tab. |
 | `description` | string, optional | Shown as a hint under the label. |
 | `template` | string | The text sent to Claude, with placeholders filled per work. |
+| `produces` | string, optional | What the action asks for beyond prose. Only `"score"` is understood; anything else is treated as absent. |
 
-The same prompt is offered in two places and behaves differently in each: in
-the panel it fills the composer for you to read and send, and on **Overview** a
-click starts it at once in a chat of its own. See
+The same prompt is offered in three places: in the panel it fills the composer
+for you to read and send, typing `/` reaches the same list from the keyboard,
+and on **Overview** a click starts it at once in a chat of its own. See
 [The assistant](/kilna/guides/the-assistant/).
+
+### `produces`
+
+An action with `"produces": "score"` asks the assistant to end its reply with a
+json block holding a value for every axis of the profile. kilna appends that
+instruction itself — naming the axes and their scales — so the template only has
+to say what to judge and how honestly.
+
+The answer comes back with the numbers laid out and a button that applies them
+as an ordinary score. **kilna never lets the assistant write to the workspace**:
+a proposal is read before it becomes a fact, always. A value past an axis's
+scale is clamped rather than refused, an axis the profile does not have is shown
+and not applied, and an answer that ignored the instruction and replied in prose
+is simply an answer.
+
+Every shipped profile carries a `score` action. Anything else declaring
+`produces` gets the same treatment; an unrecognised value is ignored, so a
+profile written for a future kilna still loads.
 
 ### Template placeholders
 

@@ -13,15 +13,18 @@ import {
   type RunEmission,
 } from '@/lib/api'
 import { conversation, type Exchange } from '@/lib/chat'
+import { reading } from '@/lib/palette'
 import { withEvent } from '@/lib/runs'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Input'
 import { Markdown } from '@/components/ui/Markdown'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { InsertVersionDialog } from '@/components/assistant/InsertVersionDialog'
+import { ProposedScore } from '@/components/assistant/ProposedScore'
 
 interface Props {
   /** Null when the chat does not exist yet — sending the first message creates it. */
@@ -48,6 +51,9 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
 
   const [draft, setDraft] = useState('')
   const [inserting, setInserting] = useState<string | null>(null)
+  // Which entry of the slash palette the arrow keys are on. Reset whenever the
+  // query changes, so the highlight never points past a shortened list.
+  const [highlighted, setHighlighted] = useState(0)
   const bottom = useRef<HTMLDivElement>(null)
   const composer = useRef<HTMLTextAreaElement>(null)
 
@@ -147,6 +153,12 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
     },
   })
 
+  // The palette is open when the draft is nothing but a slash command. Derived
+  // rather than kept in state: the draft is the only truth, and a second copy
+  // would be one more thing to get out of step with it.
+  const palette = workId === undefined ? null : reading(draft, profile.config.prompts)
+  const chosen = palette?.matches[Math.min(highlighted, palette.matches.length - 1)] ?? null
+
   const items = conversation(transcript.data?.messages ?? [], runs.data ?? [])
   const working = items.some((item) => item.run?.working === true)
   const sending = ask.isPending || runTemplate.isPending
@@ -154,6 +166,14 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'nearest' })
   }, [items.length, working])
+
+  // Choosing from the palette does what its button does: render the template
+  // into the composer, to be read before it is sent. The palette is a faster
+  // way to reach the same action, not a second meaning for it.
+  const pick = (action: { template: string }) => {
+    setHighlighted(0)
+    runTemplate.mutate(action.template)
+  }
 
   const send = (prompt: string) => {
     if (prompt.trim() === '' || sending) return
@@ -203,6 +223,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
             <ExchangeItem
               key={item.key}
               item={item}
+              workId={workId}
               onCopy={copy}
               onInsert={workId === undefined ? undefined : setInserting}
               onStop={(id) => {
@@ -216,12 +237,55 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
       )}
 
       <form
-        className="flex flex-col gap-2"
+        className="relative flex flex-col gap-2"
         onSubmit={(event) => {
           event.preventDefault()
+          if (palette !== null) {
+            if (chosen !== null) pick(chosen)
+            return
+          }
           send(draft)
         }}
       >
+        {palette !== null && (
+          <ul
+            role="listbox"
+            aria-label={t('assistant.paletteLabel')}
+            className="absolute bottom-full z-10 mb-1 max-h-64 w-full overflow-y-auto rounded-xl border border-line bg-raise p-1 shadow-raise"
+          >
+            {palette.matches.length === 0 && (
+              <li className="px-2.5 py-2 text-sm text-dim">{t('assistant.paletteEmpty')}</li>
+            )}
+            {palette.matches.map((action, index) => (
+              <li key={action.key}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={action.key === chosen?.key}
+                  // Pointer down, not click: the composer keeps focus, so the
+                  // draft the choice replaces is still the one on screen.
+                  onMouseDown={(event) => {
+                    event.preventDefault()
+                    pick(action)
+                  }}
+                  onMouseEnter={() => {
+                    setHighlighted(index)
+                  }}
+                  className={cn(
+                    'flex w-full cursor-pointer flex-col gap-0.5 rounded-[10px] px-2.5 py-1.5 text-left',
+                    action.key === chosen?.key ? 'bg-soft text-text' : 'text-dim',
+                  )}
+                >
+                  <span className="text-sm">{action.label}</span>
+                  {action.description !== undefined && (
+                    <span className="truncate text-xs text-faint">{action.description}</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
         <Textarea
           ref={composer}
           // A rendered template can be pages long; the box follows it up to a
@@ -234,6 +298,29 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
           placeholder={t(workId === undefined ? 'assistant.placeholderAnywhere' : 'assistant.placeholder')}
           aria-label={t(workId === undefined ? 'assistant.placeholderAnywhere' : 'assistant.placeholder')}
           onKeyDown={(event) => {
+            // While the palette is open the arrows and Enter belong to it.
+            if (palette !== null) {
+              if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault()
+                const count = palette.matches.length
+                if (count > 0) {
+                  const step = event.key === 'ArrowDown' ? 1 : count - 1
+                  setHighlighted((current) => (Math.min(current, count - 1) + step) % count)
+                }
+                return
+              }
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                setDraft('')
+                return
+              }
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                if (chosen !== null) pick(chosen)
+                return
+              }
+            }
+
             // Enter sends; the panel is for questions, not for composing.
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault()
@@ -269,12 +356,15 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
 
 function ExchangeItem({
   item,
+  workId,
   onCopy,
   onInsert,
   onStop,
   stopping,
 }: {
   item: Exchange
+  /** Absent when the chat is about nothing — there is nothing to score. */
+  workId?: string
   onCopy: (body: string) => void
   /** Absent when the chat is about nothing — there is no work to version. */
   onInsert?: (body: string) => void
@@ -339,6 +429,13 @@ function ExchangeItem({
             </Button>
           </div>
         </div>
+      )}
+
+      {/* What the answer proposed, with the button that applies it. Below the
+          answer rather than beside the copy buttons: it is a decision, not a
+          convenience, and it needs room to show the numbers first. */}
+      {workId !== undefined && item.answer?.proposal != null && item.run?.working !== true && (
+        <ProposedScore workId={workId} proposal={item.answer.proposal} />
       )}
 
       {run?.cancelled === true && (

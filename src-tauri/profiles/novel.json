@@ -106,6 +106,13 @@
         "label": "What happens next",
         "description": "Options for the following chapter.",
         "template": "This chapter ends where you can see:\n\n{role:text}\n\nSuggest three ways the next chapter could open that do not simply continue the scene. One sentence each, no explanation."
+      },
+      {
+        "key": "score",
+        "label": "Score the chapter",
+        "description": "Rate it along the profile axes, with a reason.",
+        "template": "Here is a chapter called \"{title}\".\n\n{body}\n\nJudge it along these axes: Pull (Does the reader turn the page, or put the book down here), Prose (Sentence by sentence: rhythm, precision, nothing limp), Character (Do people behave like people rather than like plot requirements), Structure (Does the chapter earn its place and end where it should), Tension (Is something at stake on every page).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+        "produces": "score"
       }
     ]
   }

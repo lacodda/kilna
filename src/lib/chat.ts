@@ -1,4 +1,4 @@
-import type { ChatSummary, Message, Run } from '@/lib/api'
+import type { ChatSummary, Message, Run, ScoreProposal } from '@/lib/api'
 import { inOrder, view, type RunView } from '@/lib/runs'
 
 /**
@@ -18,12 +18,34 @@ export interface Exchange {
   /** The run behind the exchange, live or replayed, when one is known. */
   run: RunView | null
   /** The settled answer from the transcript. */
-  answer: { id: string; body: string; cost: number | null } | null
+  answer: {
+    id: string
+    body: string
+    cost: number | null
+    /** What the answer proposed, when its action asked for something applicable. */
+    proposal: ScoreProposal | null
+  } | null
   at: string
 }
 
 const runId = (message: Message): string | null =>
   typeof message.meta.run_id === 'string' ? message.meta.run_id : null
+
+/**
+ * The structured result an answer carried, if any.
+ *
+ * Read from the stored message rather than parsed here: the profile it was
+ * checked against lives in the backend, and a proposal shown live and one shown
+ * on replay have to be the same thing.
+ */
+const proposalOf = (message: Message): ScoreProposal | null => {
+  const raw = message.meta.proposal
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const proposal = raw as Partial<ScoreProposal>
+  return proposal.kind === 'score' && typeof proposal.axes === 'object'
+    ? (proposal as ScoreProposal)
+    : null
+}
 
 /** Fold a chat's transcript and its runs into one conversation, oldest first. */
 export function conversation(messages: Message[], runs: Run[]): Exchange[] {
@@ -59,6 +81,7 @@ export function conversation(messages: Message[], runs: Run[]): Exchange[] {
         id: message.id,
         body: message.body,
         cost: typeof message.meta.cost_usd === 'number' ? message.meta.cost_usd : null,
+        proposal: proposalOf(message),
       }
 
       // The exchange this answers: named by run id, or — for the untagged

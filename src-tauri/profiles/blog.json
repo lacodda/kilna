@@ -103,6 +103,13 @@
         "label": "Alternative headlines",
         "description": "Other ways to title it.",
         "template": "A post currently called \"{title}\" with this draft:\n\n{role:draft}\n\nSuggest six alternative headlines. Take them from claims actually made in the text, not generic phrasing. No explanations."
+      },
+      {
+        "key": "score",
+        "label": "Score the post",
+        "description": "Rate it along the profile axes, with a reason.",
+        "template": "Here is a post called \"{title}\".\n\n{body}\n\nJudge it along these axes: Hook (Does the first paragraph survive contact with a stranger's attention span), Usefulness (Could a reader act on this, or is it just an opinion floating by), Clarity (Sentence by sentence: does every paragraph earn the next one), Angle (Is there a take here, or a restatement of what everyone already thinks), Shareability (Is there a line worth quoting out of context).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+        "produces": "score"
       }
     ]
   }
