@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.30.0] - 2026-08-27
+
+### Features
+- Notice a question, reach actions by typing, propose a score
 ## [0.29.0] - 2026-08-26
 
 ### Documentation
