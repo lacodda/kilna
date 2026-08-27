@@ -9,6 +9,7 @@ import { keys } from '@/lib/query'
 import { ProfileContext } from '@/lib/useProfile'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AssistantLauncher } from '@/components/assistant/AssistantDrawer'
+import { QueueBanner } from '@/components/assistant/QueueBanner'
 import { WaitingBanner } from '@/components/assistant/WaitingBanner'
 import { Sidebar } from '@/components/shell/Sidebar'
 import { Topbar } from '@/components/shell/Topbar'
@@ -136,8 +137,9 @@ function ShellSkeleton() {
                 belongs to the workspace rather than to whichever screen is
                 open, and it must not replay its entry animation on every
                 navigation. */}
-            <div className="px-6 pt-4 empty:hidden">
+            <div className="flex flex-col gap-2 px-6 pt-4 empty:hidden">
               <WaitingBanner />
+              <QueueBanner />
             </div>
 
             {/* Keyed by the screen so the entry animation replays on

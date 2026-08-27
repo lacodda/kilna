@@ -1200,12 +1200,27 @@ pub fn start_task(
     work_id: String,
     action: String,
 ) -> Result<StartedTask> {
+    spawn_task(&app, state.inner(), &work_id, &action)
+}
+
+/// Start one task and put a thread on it.
+///
+/// Shared by the single-task command and by whatever picks the queue up, so
+/// that a task started third in line is started exactly the way a clicked one
+/// is. The thread it spawns outlives the call: when the run ends, it looks for
+/// the next waiting task itself.
+fn spawn_task(
+    app: &AppHandle,
+    state: &AppState,
+    work_id: &str,
+    action: &str,
+) -> Result<StartedTask> {
     let runs = Arc::clone(state.runs());
     let workdir = state.assistant_dir();
 
     // Checked before the chat is opened: a refused duplicate must not leave an
     // empty chat behind for every impatient second click.
-    let key = assistant::task::key(&action, &work_id);
+    let key = assistant::task::key(action, work_id);
     if runs.task_running(&key) {
         return Err(crate::error::Error::Assistant(
             "This is already running. Wait for it to finish.".into(),
@@ -1214,7 +1229,7 @@ pub fn start_task(
 
     let (prepared, run, stream) = {
         let conn = state.conn();
-        let prepared = assistant::task::prepare(&conn, &work_id, &action)?;
+        let prepared = assistant::task::prepare(&conn, work_id, action)?;
         let (run, stream) = assistant_run::start_as(
             &conn,
             &runs,
@@ -1228,10 +1243,19 @@ pub fn start_task(
 
     let sink: Arc<dyn Sink> = Arc::new(WindowSink(app.clone()));
     let started = run.clone();
+    let app = app.clone();
 
     std::thread::spawn(move || {
-        let open = || app.state::<AppState>().inner().open_alongside();
-        assistant_run::pump(&runs, &sink, &started, &stream, open);
+        {
+            let handle = app.clone();
+            let open = move || handle.state::<AppState>().inner().open_alongside();
+            assistant_run::pump(&runs, &sink, &started, &stream, open);
+        }
+
+        // The slot this run was holding is free as of `pump` returning, and
+        // the queue is drained here rather than on a timer because this is the
+        // only moment anything is known to have changed.
+        drain_queue(&app);
     });
 
     Ok(StartedTask {
@@ -1240,6 +1264,63 @@ pub fn start_task(
         task_key: prepared.key,
         title: prepared.title,
     })
+}
+
+/// Start waiting tasks until the slots are full or nothing is left.
+///
+/// A task that cannot start is dropped rather than put back: the reasons it
+/// fails here — the work is gone, the profile no longer has the action — do not
+/// get better by waiting, and a queue that retries them forever would spawn a
+/// process per attempt. What is lost is a task nobody could have run; the
+/// journal keeps the record.
+fn drain_queue(app: &AppHandle) {
+    loop {
+        let state = app.state::<AppState>();
+        let state = state.inner();
+
+        if !state.runs().has_slot() {
+            return;
+        }
+
+        let Some(next) = state.queue().pop() else {
+            return;
+        };
+
+        // A task that cannot start is dropped rather than put back: it takes
+        // its own thread with it, and that thread drains again when it ends.
+        // Only a failure keeps this loop going, and only to reach the next
+        // task that might work.
+        let outcome = spawn_task(app, state, &next.work_id, &next.action);
+        let _ = app.emit(TASK_QUEUE_EVENT, queue_state(state));
+
+        match outcome {
+            Ok(_) => return,
+            Err(cause) => eprintln!("assistant: a queued task could not start: {cause}"),
+        }
+    }
+}
+
+/// The event carrying how much of a batch is left.
+pub const TASK_QUEUE_EVENT: &str = "assistant:queue";
+
+/// What is waiting and what is going, as one answer.
+///
+/// Both halves travel together because a button asks one question — "is this
+/// action busy?" — and a running task and a queued one are both a yes.
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskQueue {
+    /// Keys of tasks with a process alive.
+    pub running: Vec<String>,
+    /// Keys of tasks waiting for a slot.
+    pub waiting: Vec<String>,
+}
+
+fn queue_state(state: &AppState) -> TaskQueue {
+    TaskQueue {
+        running: state.runs().active_tasks(),
+        waiting: state.queue().keys(),
+    }
 }
 
 /// Chats holding a question a background task asked, oldest first.
@@ -1267,7 +1348,133 @@ pub fn clear_waiting(state: State<'_, AppState>, chat_id: String) -> Result<()> 
 /// its button.
 #[tauri::command]
 pub fn active_tasks(state: State<'_, AppState>) -> Vec<String> {
-    state.runs().active_tasks()
+    let mut keys = state.runs().active_tasks();
+    // A queued task owns its button exactly as a running one does: from the
+    // card's side, "already asked for" is the whole question.
+    keys.extend(state.queue().keys());
+    keys.sort();
+    keys.dedup();
+    keys
+}
+
+/// Run one profile action against many works.
+///
+/// The slots are filled and the rest queued, because the alternative — three
+/// runs and a row of "the machine is busy" errors — is the feature not
+/// working. Returns what the batch became so the catalogue can say it in one
+/// sentence rather than one toast per work.
+#[tauri::command]
+pub fn start_tasks(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    work_ids: Vec<String>,
+    action: String,
+) -> Result<StartedBatch> {
+    let inner = state.inner();
+
+    // Refused before anything is started rather than once per work: an action
+    // the profile does not have is a mistake about the whole batch. The label
+    // comes from the same read — the feed is written for a person, and
+    // `critique` is not what the button said.
+    let label = {
+        let conn = inner.conn();
+        let profile =
+            profile::active(&conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
+        profile
+            .config
+            .prompts
+            .iter()
+            .find(|prompt| prompt.key == action)
+            .ok_or_else(|| Error::not_found("prompt", &action))?
+            .label
+            .clone()
+    };
+
+    let mut started = 0usize;
+    let mut queued = 0usize;
+    let mut skipped = 0usize;
+
+    for work_id in &work_ids {
+        let key = assistant::task::key(&action, work_id);
+
+        // Already asked for, whether it is running or waiting. Counted rather
+        // than raised: in a batch, "that one was already going" is not an
+        // error, it is the reason the number is smaller.
+        if inner.runs().task_running(&key) || inner.queue().holds(&key) {
+            skipped += 1;
+            continue;
+        }
+
+        if inner.runs().has_slot() {
+            match spawn_task(&app, inner, work_id, &action) {
+                Ok(_) => started += 1,
+                // One work failing must not take the batch with it: the others
+                // are unrelated, and a half-run batch is more useful than none.
+                Err(cause) => {
+                    eprintln!("assistant: {work_id} could not start: {cause}");
+                    skipped += 1;
+                }
+            }
+        } else if inner.queue().push(assistant::queue::Pending {
+            work_id: work_id.clone(),
+            action: action.clone(),
+        }) {
+            queued += 1;
+        } else {
+            skipped += 1;
+        }
+    }
+
+    if started + queued > 0 {
+        let conn = inner.conn();
+        let profile_id = active_profile_id(&conn)?;
+        journal::record(
+            &conn,
+            &profile_id,
+            Record::new("assistant.batchStarted")
+                .param("action", label)
+                .param("count", i64::try_from(started + queued).unwrap_or(i64::MAX)),
+        );
+    }
+
+    let _ = app.emit(TASK_QUEUE_EVENT, queue_state(inner));
+
+    Ok(StartedBatch {
+        started,
+        queued,
+        skipped,
+    })
+}
+
+/// What a batch became.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartedBatch {
+    /// Works whose run is already going.
+    pub started: usize,
+    /// Works waiting for a slot.
+    pub queued: usize,
+    /// Works passed over — already asked for, or unable to start.
+    pub skipped: usize,
+}
+
+/// What is running and what is waiting.
+#[tauri::command]
+pub fn task_queue(state: State<'_, AppState>) -> TaskQueue {
+    queue_state(state.inner())
+}
+
+/// Drop everything still waiting, leaving the runs already going alone.
+///
+/// The two halves are separate on purpose: a person who queued forty works and
+/// changed their mind wants the forty stopped, not the three already talking to
+/// the CLI killed mid-answer. Those can be cancelled one by one, and their
+/// answers are already partly paid for.
+#[tauri::command]
+pub fn clear_task_queue(app: AppHandle, state: State<'_, AppState>) -> usize {
+    let dropped = state.queue().clear();
+    let _ = app.emit(TASK_QUEUE_EVENT, queue_state(state.inner()));
+    dropped
 }
 
 /// Stop a run. Whatever it had already said stays in the chat.

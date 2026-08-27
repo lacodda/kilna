@@ -1,6 +1,7 @@
 pub mod cli;
 pub mod prompt;
 pub mod proposal;
+pub mod queue;
 pub mod run;
 pub mod stream;
 pub mod task;

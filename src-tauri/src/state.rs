@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use rusqlite::Connection;
 
+use crate::assistant::queue::Queue;
 use crate::assistant::run::Runs;
 use crate::db;
 use crate::error::Result;
@@ -20,6 +21,9 @@ pub struct AppState {
     /// run lasting minutes must not sit on the lock the rest of the
     /// application writes through.
     runs: Arc<Runs>,
+    /// Tasks asked for while every slot was taken. Memory only — see
+    /// [`crate::assistant::queue`].
+    queue: Arc<Queue>,
 }
 
 impl AppState {
@@ -48,6 +52,7 @@ impl AppState {
             connection: Mutex::new(conn),
             path: path.to_path_buf(),
             runs: Arc::new(Runs::new()),
+            queue: Arc::new(Queue::new()),
         })
     }
 
@@ -87,6 +92,10 @@ impl AppState {
 
     pub fn runs(&self) -> &Arc<Runs> {
         &self.runs
+    }
+
+    pub fn queue(&self) -> &Arc<Queue> {
+        &self.queue
     }
 
     /// A connection of its own, for work that runs alongside the commands.

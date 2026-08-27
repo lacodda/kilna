@@ -58,6 +58,12 @@ A bar appears above the table with what you can do to the chosen rows.
 Deleting takes the whole batch to the [trash](/kilna/guides/the-trash/) and
 offers one undo for all of it, not one toast per work.
 
+The same bar carries your profile's **AI actions**. A click asks that action of
+every chosen work — each gets its own chat and its own answer, exactly as a
+click on its own card would. Three run at a time and the rest wait their turn;
+see [asking for many at
+once](/kilna/guides/the-assistant/#asking-for-many-at-once).
+
 **The selection is forgotten as soon as you act on it**, and is not remembered
 across a restart. It is about the next click, not a state to keep.
 

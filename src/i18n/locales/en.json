@@ -306,6 +306,16 @@
     "actions": "AI actions",
     "actionWorking": "{{label}} — working",
     "taskStarted": "Started: {{title}}",
+    "askFor": "Ask the assistant for",
+    "batchStarted_one": "{{count}} work sent to the assistant.",
+    "batchStarted_other": "{{count}} works sent to the assistant.",
+    "batchQueued": "{{started}} started, {{queued}} waiting for a free slot.",
+    "batchNothing": "Nothing to send — those are already running.",
+    "queueWaiting_one": "{{count}} work waiting for the assistant.",
+    "queueWaiting_other": "{{count}} works waiting for the assistant.",
+    "queueDrop": "Drop the queue",
+    "queueDropped_one": "{{count}} waiting task dropped.",
+    "queueDropped_other": "{{count}} waiting tasks dropped.",
     "taskDone": "The assistant finished.",
     "taskDoneNamed": "Finished: {{title}}",
     "taskEnded": "The assistant stopped without an answer.",
@@ -474,7 +484,9 @@
     "release.deleted": "Release “{{label}}” deleted.",
     "note.deleted": "Note “{{label}}” deleted.",
     "collection.deleted": "Collection “{{label}}” deleted.",
-    "trash.restored": "“{{label}}” restored."
+    "trash.restored": "“{{label}}” restored.",
+    "assistant.batchStarted_one": "{{action}} asked of {{count}} work.",
+    "assistant.batchStarted_other": "{{action}} asked of {{count}} works."
   },
   "card": {
     "tab": {

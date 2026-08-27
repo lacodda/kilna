@@ -20,6 +20,7 @@ import { announceDeleted } from '@/lib/trash'
 import { say } from '@/lib/toast'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import type { Tab } from '@/components/card/tabs'
+import { BulkActions } from '@/components/assistant/BulkActions'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -299,8 +300,9 @@ function Rows({
           table stays exactly where it was, so the next click is on the row you
           were already looking at. */}
       {chosen.length > 0 && (
-        <div className="flex items-center gap-3 rounded-[10px] border border-line bg-raise px-3 py-2 text-sm">
+        <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-line bg-raise px-3 py-2 text-sm">
           <span className="font-medium">{t('catalogue.chosen', { count: chosen.length })}</span>
+          <BulkActions workIds={chosen} onStarted={() => onSelectionChange(new Set())} />
           <Button
             variant="danger"
             size="sm"

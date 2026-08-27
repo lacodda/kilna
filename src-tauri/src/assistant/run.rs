@@ -153,6 +153,15 @@ impl Runs {
         self.live().len()
     }
 
+    /// Whether another run may start right now.
+    ///
+    /// Asked rather than derived from [`Self::active`] by everyone who needs
+    /// it: the queue and the start path have to agree on what "full" means,
+    /// and two comparisons against the same constant is how they drift apart.
+    pub fn has_slot(&self) -> bool {
+        self.active() < PARALLEL_LIMIT
+    }
+
     /// Ids of the chats currently running something, for the panel's badge.
     pub fn active_chats(&self) -> Vec<String> {
         let mut chats: Vec<String> = self
@@ -296,7 +305,7 @@ pub fn start_as(
         }
     }
 
-    if runs.active() >= PARALLEL_LIMIT {
+    if !runs.has_slot() {
         return Err(Error::Assistant(format!(
             "{PARALLEL_LIMIT} runs are already going. Wait for one to finish, or cancel it."
         )));
@@ -1243,6 +1252,36 @@ mod tests {
             .query_row("SELECT count(*) FROM chat_run", [], |row| row.get(0))
             .unwrap();
         assert_eq!(rows, 0);
+    }
+
+    /// The one question the queue asks the registry. It has to answer the same
+    /// thing the start path acts on, or a batch queues work into slots that
+    /// were free — or fills slots that were not.
+    #[test]
+    fn a_slot_is_free_until_the_limit_is_reached_and_not_after() {
+        let (conn, profile_id) = workspace();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        for index in 0..PARALLEL_LIMIT {
+            assert!(
+                runs.has_slot(),
+                "run {index} of {PARALLEL_LIMIT} must find room"
+            );
+            runs.insert(
+                format!("run-{index}"),
+                chat_id.clone(),
+                Arc::new(|| {}),
+                None,
+            );
+        }
+
+        assert!(!runs.has_slot(), "the limit is reached");
+
+        // What the queue relies on: a slot comes back when a run is removed,
+        // which is what `pump` does before it drains.
+        runs.remove("run-0");
+        assert!(runs.has_slot(), "a finished run frees its slot");
     }
 
     #[test]

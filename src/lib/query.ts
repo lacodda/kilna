@@ -50,6 +50,7 @@ export const keys = {
   runs: (chatId: string) => ['runs', chatId] as const,
   activeRuns: ['runs', 'active'] as const,
   activeTasks: ['runs', 'tasks'] as const,
+  taskQueue: ['runs', 'queue'] as const,
   waitingChats: ['chats', 'waiting'] as const,
   assistantStatus: ['assistantStatus'] as const,
 

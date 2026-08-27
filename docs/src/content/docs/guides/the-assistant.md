@@ -61,6 +61,33 @@ itself — **Insert as version** is how an answer becomes a version, and an acti
 that proposes a score puts the numbers in front of you with a button. You press
 it, or you do not.
 
+## Asking for many at once
+
+The same actions are offered in the
+[catalogue](/kilna/guides/the-catalogue/). Tick the works you mean and the bar
+that appears carries the profile's actions next to **Delete** — a click asks
+that action of every ticked work.
+
+Each one becomes exactly the task a click on its own card would have made: its
+own chat, its own answer, applied by you the same way. Nothing is done in bulk
+except the asking.
+
+Only three runs happen at a time, so a larger batch **queues**. kilna tells you
+what it did with it — *"3 started, 37 waiting for a free slot"* — and a bar
+across the top of the window counts down what is left, from whatever screen you
+are on. **Drop the queue** clears what has not started yet; runs already going
+are left alone, since their answers are already half paid for. Stop those from
+the panel, one at a time, if you mean to.
+
+A work already running that action is passed over rather than asked twice, and
+so is one already waiting in the queue. That is why the number kilna reports
+back can be smaller than the number you ticked.
+
+The queue lives only as long as the application. Closing kilna with forty works
+waiting drops the forty — nothing has been asked of them yet, and an application
+that spawned forty processes on startup for a session you had finished with
+would be worse.
+
 ## When it stops to ask
 
 An action can come back with a question rather than an answer — it needed a

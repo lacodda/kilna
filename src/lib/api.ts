@@ -650,9 +650,26 @@ export interface StartedTask {
   title: string
 }
 
+/** What a batch became: what is going, what is waiting, what was passed over. */
+export interface StartedBatch {
+  started: number
+  queued: number
+  skipped: number
+}
+
+/** What the assistant is carrying, as task keys. */
+export interface TaskQueue {
+  running: string[]
+  waiting: string[]
+}
+
 export const startTask = (workId: string, action: string) =>
   invoke<StartedTask>('start_task', { workId, action })
+export const startTasks = (workIds: readonly string[], action: string) =>
+  invoke<StartedBatch>('start_tasks', { workIds, action })
 export const activeTasks = () => invoke<string[]>('active_tasks')
+export const taskQueue = () => invoke<TaskQueue>('task_queue')
+export const clearTaskQueue = () => invoke<number>('clear_task_queue')
 export const waitingChats = () => invoke<ChatSummary[]>('waiting_chats')
 export const clearWaiting = (chatId: string) => invoke<void>('clear_waiting', { chatId })
 export const renderPrompt = (workId: string, template: string) =>
