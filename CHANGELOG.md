@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.32.2] - 2026-08-28
+
+### Bug Fixes
+- Give each icon size the level of the mark that reads at it
 ## [0.32.1] - 2026-08-28
 
 ### Bug Fixes
