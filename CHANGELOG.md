@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.32.0] - 2026-08-28
+
+### Features
+- Open on what needs deciding
 ## [0.31.0] - 2026-08-27
 
 ### Documentation
