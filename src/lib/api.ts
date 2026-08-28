@@ -211,6 +211,44 @@ export interface NoteFilter {
   search?: string
 }
 
+/** A complaint the person has heard and put away. */
+export interface Dismissal {
+  kind: string
+  work_id: string
+  complaint: string
+  dismissed_at: string
+}
+
+/** What identifies a dismissal: the kind, the work, and what was said. */
+export interface DismissalKey {
+  kind: string
+  work_id: string
+  complaint: string
+}
+
+/** A line the person put on the focus board themselves. */
+export interface FocusNote {
+  id: string
+  profile_id: string
+  body: string
+  work_id: string | null
+  position: number
+  pinned_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface NewFocusNote {
+  body: string
+  work_id?: string | null
+}
+
+export interface FocusNotePatch {
+  body?: string
+  work_id?: string | null
+  pinned?: boolean
+}
+
 export interface Score {
   id: string
   work_id: string
@@ -365,6 +403,17 @@ export const createNote = (note: NewNote) => invoke<Note>('create_note', { note 
 export const updateNote = (id: string, patch: NotePatch) => invoke<Note>('update_note', { id, patch })
 export const deleteNote = (id: string) => invoke<string>('delete_note', { id })
 export const listTags = () => invoke<[string, number][]>('list_tags')
+
+export const dismissedFindings = () => invoke<Dismissal[]>('dismissed_findings')
+export const dismissFinding = (key: DismissalKey) => invoke<Dismissal>('dismiss_finding', { key })
+export const restoreFinding = (key: DismissalKey) => invoke<void>('restore_finding', { key })
+export const listFocusNotes = () => invoke<FocusNote[]>('list_focus_notes')
+export const createFocusNote = (note: NewFocusNote) =>
+  invoke<FocusNote>('create_focus_note', { note })
+export const updateFocusNote = (id: string, patch: FocusNotePatch) =>
+  invoke<FocusNote>('update_focus_note', { id, patch })
+export const reorderFocusNotes = (order: string[]) => invoke<void>('reorder_focus_notes', { order })
+export const deleteFocusNote = (id: string) => invoke<void>('delete_focus_note', { id })
 
 export const scoreWork = (workId: string, score: NewScore) =>
   invoke<Score>('score_work', { workId, score })

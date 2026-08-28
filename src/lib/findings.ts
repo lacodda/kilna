@@ -1,4 +1,4 @@
-import type { ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api'
+import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api'
 import { daysBetween } from '@/lib/readiness'
 
 /**
@@ -17,8 +17,13 @@ import { daysBetween } from '@/lib/readiness'
  *
  * The dashboard reads the same two lists for its own sections, and two of these
  * kinds overlap with it on purpose: the dashboard answers "what needs me today",
- * a finding is a standing complaint that outlives the day. v0.34 pins, hides and
- * reorders these; nothing here knows about that.
+ * a finding is a standing complaint that outlives the day.
+ *
+ * Nothing here is stored. A finding is derived on every read and leaves on its
+ * own the moment its complaint stops being true — which is why the board has no
+ * pin for one and no order of its own: there is nothing to keep. What the person
+ * decides *about* a finding is the one thing derivation cannot know, and
+ * [`visible`] is where that decision is applied.
  */
 
 /** What kind of complaint this is. The key is stable — v0.34 stores it. */
@@ -174,4 +179,42 @@ function weakScheduled(
       title: entry.work_title,
       complaint: `weak-scheduled:${entry.scheduled_at ?? ''}`,
     }))
+}
+
+/**
+ * What is left after the person has answered some of it.
+ *
+ * A dismissal remembers the *complaint*, not the work and not the kind. The
+ * same complaint stays quiet; a changed one is news again. That distinction is
+ * the whole reason v0.33 rounded the unstable complaints to months — a
+ * complaint that changed every morning would come back every morning, and
+ * hiding would mean nothing.
+ */
+export function visible(found: readonly Finding[], dismissed: readonly Dismissal[]): Finding[] {
+  const answered = new Set(
+    dismissed.map((row) => keyOf(row.kind, row.work_id, row.complaint)),
+  )
+  return found.filter(
+    (finding) => !answered.has(keyOf(finding.kind, finding.workId, finding.complaint)),
+  )
+}
+
+/**
+ * The three things that identify a complaint, as one string.
+ *
+ * Joined on a separator no id, kind or complaint can hold. A complaint carries
+ * a date or a count, and a separator one of them could contain would let two
+ * different complaints collapse into the same key — hiding one would silently
+ * hide the other.
+ */
+function keyOf(kind: string, workId: string, complaint: string): string {
+  return [kind, workId, complaint].join(SEPARATOR)
+}
+
+/** A control character, so it cannot appear in an id or a complaint. */
+const SEPARATOR = '\u0001'
+
+/** What `dismiss_finding` needs to remember this one. */
+export function dismissalKey(finding: Finding) {
+  return { kind: finding.kind, work_id: finding.workId, complaint: finding.complaint }
 }

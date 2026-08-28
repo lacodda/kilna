@@ -64,8 +64,8 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            tables, 13,
-            "nine core tables, three for the assistant, and the trash"
+            tables, 15,
+            "nine core tables, three for the assistant, the trash, and two for the focus board"
         );
     }
 

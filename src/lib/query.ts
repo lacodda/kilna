@@ -54,6 +54,12 @@ export const keys = {
   waitingChats: ['chats', 'waiting'] as const,
   assistantStatus: ['assistantStatus'] as const,
 
+  // One coarse prefix over the focus board: a dismissal changes what the
+  // findings half shows, a note changes the other, and the board reads both.
+  focus: ['focus'] as const,
+  dismissals: ['focus', 'dismissals'] as const,
+  focusNotes: ['focus', 'notes'] as const,
+
   plugins: ['plugins'] as const,
 } as const
 

@@ -191,7 +191,28 @@
       "ready-unscheduled": "“{{title}}” is judged but nothing is booked",
       "weak-scheduled": "“{{title}}” holds a slot while stronger work waits",
       "stale-draft": "“{{title}}” has not moved in a while"
+    },
+    "dismiss": "Heard it",
+    "dismissHint": "Puts this complaint away. It comes back if it changes.",
+    "kindShort": {
+      "unscored": "no score",
+      "stale-score": "score is out of date",
+      "ready-unscheduled": "nothing booked",
+      "weak-scheduled": "weak in a slot",
+      "stale-draft": "draft has stalled"
     }
+  },
+  "focus": {
+    "add": "Add a line",
+    "addPlaceholder": "Something to keep in front of you",
+    "save": "Add",
+    "pin": "Keep at the top",
+    "unpin": "Let it move",
+    "remove": "Rub it out",
+    "dragHandle": "Drag to reorder",
+    "hiddenCount_one": "{{count}} put away",
+    "hiddenCount_other": "{{count}} put away",
+    "restoreHint": "Show it again"
   },
   "calendar": {
     "openWork": "Open the work",

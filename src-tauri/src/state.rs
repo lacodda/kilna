@@ -42,6 +42,14 @@ impl AppState {
             }
         }
 
+        // Dismissed complaints about works that have since been deleted. They
+        // are harmless — nothing raises a complaint about a missing work — but
+        // nothing removes them either, since the table deliberately holds no
+        // foreign key.
+        if let Err(cause) = crate::focus::sweep(&conn) {
+            eprintln!("focus: could not sweep dismissals for deleted works: {cause}");
+        }
+
         // Runs the previous life of the application was carrying died with it.
         // Leaving their rows as `running` would show work that nothing is doing.
         if let Err(cause) = crate::assistant::run::sweep(&conn) {

@@ -9,6 +9,7 @@ use crate::error::{Error, Result};
 use crate::exchange::backup;
 use crate::exchange::export::{self, ExportReport};
 use crate::exchange::import::{self, ImportReport};
+use crate::focus::{self, Dismissal, DismissalKey, FocusNote, FocusNotePatch, NewFocusNote};
 use crate::journal::{self, Entry, Record};
 use crate::layout;
 use crate::note::{self, NewNote, Note, NoteFilter, NotePatch};
@@ -395,6 +396,70 @@ pub fn update_note(state: State<'_, AppState>, id: String, patch: NotePatch) -> 
 #[tauri::command]
 pub fn delete_note(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Note, &id)
+}
+
+#[tauri::command]
+pub fn dismissed_findings(state: State<'_, AppState>) -> Result<Vec<Dismissal>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    focus::dismissals(&conn, &profile_id)
+}
+
+#[tauri::command]
+pub fn dismiss_finding(state: State<'_, AppState>, key: DismissalKey) -> Result<Dismissal> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    focus::dismiss(&conn, &profile_id, &key)
+}
+
+#[tauri::command]
+pub fn restore_finding(state: State<'_, AppState>, key: DismissalKey) -> Result<()> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    focus::restore(&conn, &profile_id, &key)
+}
+
+#[tauri::command]
+pub fn list_focus_notes(state: State<'_, AppState>) -> Result<Vec<FocusNote>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    focus::notes(&conn, &profile_id)
+}
+
+#[tauri::command]
+pub fn create_focus_note(state: State<'_, AppState>, note: NewFocusNote) -> Result<FocusNote> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    focus::add_note(&conn, &profile_id, note)
+}
+
+#[tauri::command]
+pub fn update_focus_note(
+    state: State<'_, AppState>,
+    id: String,
+    patch: FocusNotePatch,
+) -> Result<FocusNote> {
+    let conn = state.conn();
+    focus::update_note(&conn, &id, patch)
+}
+
+#[tauri::command]
+pub fn reorder_focus_notes(state: State<'_, AppState>, order: Vec<String>) -> Result<()> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    focus::reorder_notes(&mut conn, &profile_id, &order)
+}
+
+/// Rub a board note out.
+///
+/// It does not go through the trash the way a work or an idea does: those are
+/// content, and losing one by mistake costs the person something. A board note
+/// is a line on a surface — restoring it would be a drawer of crossed-out
+/// reminders nobody opens.
+#[tauri::command]
+pub fn delete_focus_note(state: State<'_, AppState>, id: String) -> Result<()> {
+    let conn = state.conn();
+    focus::delete_note(&conn, &id)
 }
 
 #[tauri::command]

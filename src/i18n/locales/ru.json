@@ -206,7 +206,30 @@
       "ready-unscheduled": "«{{title}}» оценено, но ничего не запланировано",
       "weak-scheduled": "«{{title}}» занимает слот, пока ждёт более сильное",
       "stale-draft": "«{{title}}» давно не двигалось"
+    },
+    "dismiss": "Услышал",
+    "dismissHint": "Убирает эту жалобу. Вернётся, если изменится.",
+    "kindShort": {
+      "unscored": "нет оценки",
+      "stale-score": "оценка устарела",
+      "ready-unscheduled": "ничего не запланировано",
+      "weak-scheduled": "слабое в слоте",
+      "stale-draft": "черновик стоит"
     }
+  },
+  "focus": {
+    "add": "Добавить строку",
+    "addPlaceholder": "То, что стоит держать перед глазами",
+    "save": "Добавить",
+    "pin": "Держать наверху",
+    "unpin": "Отпустить",
+    "remove": "Стереть",
+    "dragHandle": "Перетащить, чтобы переставить",
+    "hiddenCount_one": "{{count}} убрана",
+    "hiddenCount_few": "{{count}} убраны",
+    "hiddenCount_many": "{{count}} убрано",
+    "hiddenCount_other": "{{count}} убрано",
+    "restoreHint": "Показать снова"
   },
   "calendar": {
     "openWork": "Открыть произведение",

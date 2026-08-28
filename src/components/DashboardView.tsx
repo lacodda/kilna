@@ -1,10 +1,15 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, CalendarDays } from 'lucide-react'
-import { calendar as fetchCalendar, catalogue, type ScoredWork } from '@/lib/api'
+import {
+  calendar as fetchCalendar,
+  catalogue,
+  dismissedFindings,
+  type ScoredWork,
+} from '@/lib/api'
 import { coverFor } from '@/lib/cover'
 import { isQuiet, summarise, type Decision } from '@/lib/dashboard'
-import { findings } from '@/lib/findings'
+import { findings, visible } from '@/lib/findings'
 import { today } from '@/lib/month'
 import { keys } from '@/lib/query'
 import { missing } from '@/lib/readiness'
@@ -12,7 +17,7 @@ import { labelOf, useProfile } from '@/lib/useProfile'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { FindingsPanel } from '@/components/FindingsPanel'
+import { FocusBoard } from '@/components/FocusBoard'
 import { Panel, SectionLabel } from '@/components/ui/Panel'
 import { SkeletonList } from '@/components/ui/Skeleton'
 
@@ -38,6 +43,10 @@ export function DashboardView({ onSelect }: Props) {
 
   const works = useQuery({ queryKey: keys.catalogue, queryFn: catalogue })
   const slots = useQuery({ queryKey: keys.calendar, queryFn: fetchCalendar })
+  // Read here as well as in the board: the quiet state below has to know
+  // whether anything is standing, and a finding the person has already
+  // answered must not keep the screen from saying it is quiet.
+  const dismissals = useQuery({ queryKey: keys.dismissals, queryFn: dismissedFindings })
 
   if (works.isPending || slots.isPending) return <SkeletonList rows={6} />
 
@@ -57,14 +66,22 @@ export function DashboardView({ onSelect }: Props) {
   // draft moved after the score, dated beyond the week, shows nowhere else.
   // Claiming nothing is waiting while one stands would be a lie the screen
   // tells confidently, which is worse than a busy screen.
-  const standing = findings(works.data, slots.data, profile.config, today())
+  const standing = visible(
+    findings(works.data, slots.data, profile.config, today()),
+    dismissals.data ?? [],
+  )
 
-  if (isQuiet(summary) && standing.length === 0) {
-    return <EmptyState title={t('dashboard.quietTitle')} body={t('dashboard.quietBody')} />
-  }
+  // Quiet is now shown *above* the board rather than instead of it. Returning
+  // early took the board away with the sections, and the board is the one part
+  // of this screen that is the person's own: their lines and their way back to
+  // what they put away would have vanished on the morning everything was in
+  // order — exactly the morning they are worth reading.
+  const quiet = isQuiet(summary) && standing.length === 0
 
   return (
     <div className="flex flex-col gap-6">
+      {quiet && <EmptyState title={t('dashboard.quietTitle')} body={t('dashboard.quietBody')} />}
+
       {summary.decisions.length > 0 && (
         <section className="flex flex-col gap-2">
           <SectionLabel>
@@ -131,7 +148,7 @@ export function DashboardView({ onSelect }: Props) {
       {/* Last, and deliberately so: the sections above are about today, these
           are standing complaints. The two kinds the dashboard already draws as
           sections of its own are skipped rather than said twice. */}
-      <FindingsPanel
+      <FocusBoard
         works={works.data}
         calendar={slots.data}
         skip={['unscored', 'ready-unscheduled']}

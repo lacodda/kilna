@@ -4,6 +4,7 @@ pub mod commands;
 pub mod db;
 pub mod error;
 pub mod exchange;
+pub mod focus;
 pub mod journal;
 pub mod layout;
 pub mod note;
@@ -57,6 +58,14 @@ pub fn run() {
             commands::update_note,
             commands::delete_note,
             commands::list_tags,
+            commands::dismissed_findings,
+            commands::dismiss_finding,
+            commands::restore_finding,
+            commands::list_focus_notes,
+            commands::create_focus_note,
+            commands::update_focus_note,
+            commands::reorder_focus_notes,
+            commands::delete_focus_note,
             commands::score_work,
             commands::score_history,
             commands::latest_score,

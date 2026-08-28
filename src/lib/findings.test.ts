@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import type { ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api'
-import { STALE_DRAFT_DAYS, findings, type FindingKind } from '@/lib/findings'
+import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api'
+import {
+  STALE_DRAFT_DAYS,
+  dismissalKey,
+  findings,
+  visible,
+  type Finding,
+  type FindingKind,
+} from '@/lib/findings'
 
 const TODAY = '2026-08-28'
 
@@ -256,5 +263,107 @@ describe('a finding can outlive every dashboard section', () => {
     )
 
     expect(kinds(found)).toEqual(['stale-score'])
+  })
+})
+
+describe('dismissing a complaint', () => {
+  const found = (over: Partial<ScoredWork> = {}) => findings([work(over)], [], CONFIG, TODAY)
+
+  const dismissal = (finding: Finding): Dismissal => ({
+    ...dismissalKey(finding),
+    dismissed_at: '2026-08-28T09:00:00Z',
+  })
+
+  /** The one finding of this kind, insisting there is exactly one. */
+  const only = (list: readonly Finding[], kind: FindingKind): Finding => {
+    const matching = list.filter((finding) => finding.kind === kind)
+    expect(matching).toHaveLength(1)
+    return matching[0] as Finding
+  }
+
+  it('hides the complaint that was answered', () => {
+    const standing = found({ total: null })
+
+    expect(visible(standing, [dismissal(only(standing, 'unscored'))])).toEqual([])
+  })
+
+  /**
+   * The point of the stage. Hiding answers *this* complaint, not the work: a
+   * draft that has now sat four months is a different thing to hear than one
+   * that had sat one, and it has to come back. The predecessor hid by work and
+   * went quiet about it for good.
+   */
+  it('raises the same work again once its complaint changes', () => {
+    const oneMonth = found({ updated_at: daysAgo(35), scheduled: 0 })
+    const fourMonths = found({ updated_at: daysAgo(125), scheduled: 0 })
+    const stale = (list: readonly Finding[]) => list.filter((f) => f.kind === 'stale-draft')
+
+    const answered = [dismissal(only(oneMonth, 'stale-draft'))]
+
+    expect(stale(visible(oneMonth, answered))).toEqual([])
+    expect(stale(visible(fourMonths, answered))).toHaveLength(1)
+  })
+
+  it('leaves a different kind about the same work alone', () => {
+    const standing = findings([work({ stale: true, scheduled: 0 })], [], CONFIG, TODAY)
+    const answered = [dismissal(only(standing, 'stale-score'))]
+
+    expect(kinds(visible(standing, answered))).toEqual(['ready-unscheduled'])
+  })
+
+  it('leaves the same complaint about a different work alone', () => {
+    const standing = findings(
+      [
+        work({ work_id: 'a', title: 'Alpha', total: null }),
+        work({ work_id: 'b', title: 'Beta', total: null }),
+      ],
+      [],
+      CONFIG,
+      TODAY,
+    )
+    const alpha = standing.find((finding) => finding.workId === 'a') as Finding
+    const answered = [dismissal(alpha)]
+
+    const left = visible(standing, answered)
+    expect(left).toHaveLength(1)
+    expect(left[0]?.workId).toBe('b')
+  })
+
+  it('is unmoved by a dismissal for something that is no longer complained about', () => {
+    const standing = found({ total: null })
+    const stale: Dismissal = {
+      kind: 'stale-draft',
+      work_id: 'gone',
+      complaint: 'stale-draft:2',
+      dismissed_at: '2026-01-01T00:00:00Z',
+    }
+
+    expect(visible(standing, [stale])).toEqual(standing)
+  })
+})
+
+/**
+ * The dismissal key carries the kind as well as the complaint, and every
+ * complaint string happens to start with its kind — so the kind looks
+ * redundant. It is not: nothing stops a future finding from phrasing its
+ * complaint some other way, and the moment two kinds phrase one the same,
+ * dismissing one would silence the other. This is the guarantee that the key
+ * does not lean on that coincidence.
+ */
+describe('the dismissal key', () => {
+  it('separates two kinds that say the same thing about one work', () => {
+    const first: Finding = {
+      kind: 'unscored',
+      workId: 'w1',
+      title: 'Harbour lights',
+      complaint: 'same wording',
+    }
+    const second: Finding = { ...first, kind: 'stale-draft' }
+
+    const answered: Dismissal[] = [
+      { ...dismissalKey(first), dismissed_at: '2026-08-28T09:00:00Z' },
+    ]
+
+    expect(kinds(visible([first, second], answered))).toEqual(['stale-draft'])
   })
 })
