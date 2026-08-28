@@ -11,7 +11,8 @@ const ASSETS = "C:/Projects/kilna/assets";
 // the approved mark and shipped the pre-identity orange tile in v0.28–v0.32.
 const APP_ICONS = "C:/Projects/kilna/src-tauri/icons";
 
-// The S tile (filled hex, bold code) is what reads at icon sizes.
+// The three levels of the mark. Which one a raster takes is decided by
+// `levelFor` below, never by habit.
 const S = path.join(ASSETS, "logo-s.svg");
 const M = path.join(ASSETS, "logo-m.svg");
 const L = path.join(ASSETS, "logo.svg");
@@ -75,7 +76,9 @@ console.log("wrote icon.ico");
 
 // Favicon + docs logo.
 await png(S, 32, path.join(ASSETS, "favicon-32.png"));
-await png(S, 180, path.join(ASSETS, "apple-touch-icon.png"));
+// 180px is a home-screen tile, well past the 64px line where the full mark
+// has room for its flame. It was S until v0.32.2 for no reason but habit.
+await png(levelFor(180), 180, path.join(ASSETS, "apple-touch-icon.png"));
 await png(L, 512, path.join(ASSETS, "logo-512.png"));
 console.log("wrote pngs");
 
