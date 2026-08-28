@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.34.0] - 2026-08-28
+
+### Features
+- Let a finding be heard, and put your own lines beside it
 ## [0.33.0] - 2026-08-28
 
 ### Bug Fixes
