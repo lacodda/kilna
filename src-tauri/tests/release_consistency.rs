@@ -125,6 +125,29 @@ fn the_brand_assets_match_their_masters() {
     }
 }
 
+/// The icon the application ships with is the one in `assets/`.
+///
+/// The masters gate above compares SVGs against the vault, which CI cannot see.
+/// This compares two files that are both in the repo, and it exists because the
+/// thing it checks actually happened: `src-tauri/icons/` was generated once by
+/// the Tauri template and never regenerated, so v0.28 through v0.32 shipped the
+/// pre-identity orange tile in the taskbar while every other surface carried the
+/// approved mark. Both are written by `docs/export-assets.mjs` now; if this
+/// fails, run it.
+#[test]
+fn the_application_icon_matches_the_brand_icon() {
+    let root = repo_root();
+    let ours = std::fs::read(root.join("src-tauri/icons/icon.ico"))
+        .expect("the application icon is missing");
+    let brand = std::fs::read(root.join("assets/icon.ico")).expect("the brand icon is missing");
+
+    assert_eq!(
+        ours, brand,
+        "src-tauri/icons/icon.ico has fallen behind assets/icon.ico — \
+         re-run docs/export-assets.mjs"
+    );
+}
+
 /// Every ADR is numbered and unique, so a decision cannot quietly overwrite an
 /// earlier one by reusing its number.
 #[test]

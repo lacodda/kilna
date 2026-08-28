@@ -6,6 +6,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ASSETS = "C:/Projects/kilna/assets";
+// The icons the built application ships with. Generated from the same masters
+// as everything else: keeping them by hand is how they fell two weeks behind
+// the approved mark and shipped the pre-identity orange tile in v0.28–v0.32.
+const APP_ICONS = "C:/Projects/kilna/src-tauri/icons";
 
 // The S tile (filled hex, bold code) is what reads at icon sizes.
 const S = path.join(ASSETS, "logo-s.svg");
@@ -57,6 +61,18 @@ await png(S, 32, path.join(ASSETS, "favicon-32.png"));
 await png(S, 180, path.join(ASSETS, "apple-touch-icon.png"));
 await png(L, 512, path.join(ASSETS, "logo-512.png"));
 console.log("wrote pngs");
+
+// The application's own icons. The .ico is the S tile — Windows draws it at
+// 16-32px in the taskbar and the tray, where only the filled hex and the code
+// survive. icon.png is the L mark, shown large enough for the flame to read.
+fs.writeFileSync(path.join(APP_ICONS, "icon.ico"), buildIco(icoParts, ICO_SIZES));
+await png(L, 512, path.join(APP_ICONS, "icon.png"));
+// Sizes the Tauri template ships with. Nothing in tauri.conf.json names them,
+// but they are in the repo, and a stale copy of the mark is worse than none.
+await png(S, 32, path.join(APP_ICONS, "32x32.png"));
+await png(S, 128, path.join(APP_ICONS, "128x128.png"));
+await png(L, 256, path.join(APP_ICONS, "256x256.png"));
+console.log("wrote application icons");
 
 // GitHub social preview: 1280x640. Two adjustments to the banner: its plate
 // spans the full 720px while the artwork only fills the left ~570px (trim the
