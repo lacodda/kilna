@@ -148,6 +148,39 @@ fn the_application_icon_matches_the_brand_icon() {
     );
 }
 
+/// The icon's largest image comes first.
+///
+/// Windows itself does not care — it picks the entry closest to the size it
+/// asked for. `tauri-codegen` does: it takes `entries()[0]` verbatim as the
+/// window icon, so whatever is first is what the titlebar is scaled from. With
+/// 16×16 first, the titlebar was stretched from sixteen pixels and looked
+/// smeared, which is what the owner saw in v0.32.1.
+#[test]
+fn the_largest_icon_image_comes_first() {
+    let ico = std::fs::read(repo_root().join("src-tauri/icons/icon.ico"))
+        .expect("the application icon is missing");
+
+    let count = u16::from_le_bytes([ico[4], ico[5]]) as usize;
+    assert!(count > 1, "an icon with one size cannot serve every place");
+
+    // Byte 0 of each 16-byte directory entry is the width; 0 encodes 256.
+    let widths: Vec<u32> = (0..count)
+        .map(|index| match ico[6 + 16 * index] {
+            0 => 256,
+            width => u32::from(width),
+        })
+        .collect();
+
+    let mut descending = widths.clone();
+    descending.sort_unstable_by(|a, b| b.cmp(a));
+
+    assert_eq!(
+        widths, descending,
+        "icon.ico must list its images largest first — the window icon is \
+         taken from the first entry. Re-run docs/export-assets.mjs"
+    );
+}
+
 /// Every ADR is numbered and unique, so a decision cannot quietly overwrite an
 /// earlier one by reusing its number.
 #[test]

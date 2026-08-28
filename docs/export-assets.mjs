@@ -13,10 +13,25 @@ const APP_ICONS = "C:/Projects/kilna/src-tauri/icons";
 
 // The S tile (filled hex, bold code) is what reads at icon sizes.
 const S = path.join(ASSETS, "logo-s.svg");
+const M = path.join(ASSETS, "logo-m.svg");
 const L = path.join(ASSETS, "logo.svg");
 const BANNER = path.join(ASSETS, "banner.svg");
 
-const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
+// Which level of the mark survives at which size — the line rule, not a
+// preference: S ≤27px, M 28–63px, L ≥64px. Below 28px the outline and the
+// flame collapse into noise, so the filled tile is all that reads; above 64px
+// the filled tile is a coloured blob and the full mark has room for its flame.
+function levelFor(size) {
+  if (size <= 27) return S;
+  if (size <= 63) return M;
+  return L;
+}
+
+// Largest first. Windows picks by *closest size* and ignores order (see
+// "About Icons", Icon Display), but tauri-codegen takes `entries()[0]`
+// verbatim as the window icon — so the first entry is the one the titlebar
+// stretches from, and a 16px first entry is why it looked smeared.
+const ICO_SIZES = [256, 128, 64, 48, 32, 24, 16];
 
 async function png(src, size, out) {
   await sharp(src, { density: 384 }).resize(size, size).png().toFile(out);
@@ -51,7 +66,9 @@ function buildIco(pngBuffers, sizes) {
 
 const icoParts = [];
 for (const size of ICO_SIZES) {
-  icoParts.push(await sharp(S, { density: 384 }).resize(size, size).png().toBuffer());
+  icoParts.push(
+    await sharp(levelFor(size), { density: 384 }).resize(size, size).png().toBuffer(),
+  );
 }
 fs.writeFileSync(path.join(ASSETS, "icon.ico"), buildIco(icoParts, ICO_SIZES));
 console.log("wrote icon.ico");
@@ -62,16 +79,15 @@ await png(S, 180, path.join(ASSETS, "apple-touch-icon.png"));
 await png(L, 512, path.join(ASSETS, "logo-512.png"));
 console.log("wrote pngs");
 
-// The application's own icons. The .ico is the S tile — Windows draws it at
-// 16-32px in the taskbar and the tray, where only the filled hex and the code
-// survive. icon.png is the L mark, shown large enough for the flame to read.
+// The application's own icons — the same file the brand ships, so the two
+// cannot drift. Every size carries the level that reads at it.
 fs.writeFileSync(path.join(APP_ICONS, "icon.ico"), buildIco(icoParts, ICO_SIZES));
 await png(L, 512, path.join(APP_ICONS, "icon.png"));
 // Sizes the Tauri template ships with. Nothing in tauri.conf.json names them,
 // but they are in the repo, and a stale copy of the mark is worse than none.
-await png(S, 32, path.join(APP_ICONS, "32x32.png"));
-await png(S, 128, path.join(APP_ICONS, "128x128.png"));
-await png(L, 256, path.join(APP_ICONS, "256x256.png"));
+await png(levelFor(32), 32, path.join(APP_ICONS, "32x32.png"));
+await png(levelFor(128), 128, path.join(APP_ICONS, "128x128.png"));
+await png(levelFor(256), 256, path.join(APP_ICONS, "256x256.png"));
 console.log("wrote application icons");
 
 // GitHub social preview: 1280x640. Two adjustments to the banner: its plate
