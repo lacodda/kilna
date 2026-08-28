@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Bug Fixes
 - Give each icon size the level of the mark that reads at it
+- The home-screen icon is the full mark, not the small tile
 ## [0.32.1] - 2026-08-28
 
 ### Bug Fixes
