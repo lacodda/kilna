@@ -117,7 +117,7 @@ pub fn summaries(
         "SELECT c.id, c.work_id, w.title, c.title,
                 (SELECT m.body FROM chat_message m
                  WHERE m.chat_id = c.id AND m.role = 'user'
-                 ORDER BY m.created_at, m.id LIMIT 1),
+                 ORDER BY m.created_at, m.rowid LIMIT 1),
                 (SELECT coalesce(sum(json_extract(m.meta, '$.cost_usd')), 0)
                  FROM chat_message m WHERE m.chat_id = c.id),
                 c.waiting_since,
@@ -189,7 +189,7 @@ pub fn transcript(conn: &Connection, chat_id: &str) -> Result<Option<Transcript>
 
     let mut statement = conn.prepare(
         "SELECT id, chat_id, role, body, meta, created_at
-         FROM chat_message WHERE chat_id = ?1 ORDER BY created_at, id",
+         FROM chat_message WHERE chat_id = ?1 ORDER BY created_at, rowid",
     )?;
     let raw = statement
         .query_map(params![chat_id], |row| {
@@ -420,6 +420,52 @@ mod tests {
             .map(|m| m.body.as_str())
             .collect();
         assert_eq!(bodies, vec!["first", "second", "third"]);
+    }
+
+    /// Messages written inside the same second keep the order they were said.
+    ///
+    /// The timestamp is RFC3339 with second resolution, so three quick turns
+    /// can share one. The tie-break used to be the message id — a random uuid,
+    /// which is no order at all: the transcript came back shuffled. macOS in CI
+    /// was fast enough to hit it while every other runner was not, which is the
+    /// only reason it surfaced at all. `rowid` is the order of insertion, and
+    /// SQLite keeps it for us.
+    #[test]
+    fn messages_sharing_a_timestamp_keep_the_order_they_were_written() {
+        let (conn, profile_id) = workspace();
+        let chat = create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: None,
+                title: None,
+            },
+        )
+        .unwrap();
+
+        // Written straight to the table: `append` stamps its own time, and the
+        // collision this guards against cannot be arranged through it.
+        for body in ["first", "second", "third"] {
+            conn.execute(
+                "INSERT INTO chat_message (id, chat_id, role, body, meta, created_at)
+                 VALUES (?1, ?2, 'user', ?3, '{}', '2026-08-28T08:48:32Z')",
+                rusqlite::params![uuid::Uuid::new_v4().to_string(), chat.id, body],
+            )
+            .unwrap();
+        }
+
+        let transcript = transcript(&conn, &chat.id).unwrap().unwrap();
+        let bodies: Vec<_> = transcript
+            .messages
+            .iter()
+            .map(|m| m.body.as_str())
+            .collect();
+
+        assert_eq!(
+            bodies,
+            vec!["first", "second", "third"],
+            "a shared timestamp must fall back to insertion order, not to a random id"
+        );
     }
 
     #[test]
