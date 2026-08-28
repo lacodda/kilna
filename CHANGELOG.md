@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.33.0] - 2026-08-28
+
+### Features
+- Notice what is worth doing, and offer the action for it
 ## [0.32.2] - 2026-08-28
 
 ### Bug Fixes
