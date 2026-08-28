@@ -52,6 +52,10 @@ pub struct ScoredWork {
     pub released: i64,
     /// How many hold a slot in the calendar.
     pub scheduled: i64,
+    /// When the work was last touched at all — a new version, a rename, a
+    /// status change. What tells a draft still being worked on from one that
+    /// stopped.
+    pub updated_at: String,
 }
 
 /// The score that speaks for a work, as a subquery returning one `work_score.id`.
@@ -208,7 +212,8 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
                   WHERE r.work_id = w.id AND r.status = 'released') AS released,
                 (SELECT count(*) FROM release r
                   WHERE r.work_id = w.id AND r.status = 'planned'
-                    AND r.scheduled_at IS NOT NULL) AS scheduled
+                    AND r.scheduled_at IS NOT NULL) AS scheduled,
+                w.updated_at
          FROM work w
          LEFT JOIN work_score s ON s.id = {speaking}
          WHERE w.profile_id = ?1
@@ -228,6 +233,7 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
             stale: row.get::<_, i64>(7)? == 1,
             released: row.get(8)?,
             scheduled: row.get(9)?,
+            updated_at: row.get(10)?,
         })
     })?;
 

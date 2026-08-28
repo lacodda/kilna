@@ -242,6 +242,8 @@ export interface ScoredWork {
   released: number
   /** How many hold a slot in the calendar. */
   scheduled: number
+  /** When the work was last touched — what tells a live draft from a stalled one. */
+  updated_at: string
 }
 
 export interface Release {

@@ -23,6 +23,7 @@ const row = (over: Partial<ScoredWork>): ScoredWork => ({
   stale: false,
   released: 0,
   scheduled: 0,
+  updated_at: '2026-08-26T10:00:00Z',
   ...over,
 })
 

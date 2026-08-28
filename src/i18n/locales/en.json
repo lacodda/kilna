@@ -181,6 +181,18 @@
     "quietTitle": "Nothing is waiting on you",
     "quietBody": "Everything is scored, booked or already out. Write something new, or take the evening."
   },
+  "findings": {
+    "title": "Worth doing",
+    "readOnly": "read-only — nothing changes without you",
+    "askHint": "Asks the assistant. The answer lands in a chat; you decide what to do with it.",
+    "kind": {
+      "unscored": "“{{title}}” has no score yet",
+      "stale-score": "“{{title}}” was edited after it was scored",
+      "ready-unscheduled": "“{{title}}” is judged but nothing is booked",
+      "weak-scheduled": "“{{title}}” holds a slot while stronger work waits",
+      "stale-draft": "“{{title}}” has not moved in a while"
+    }
+  },
   "calendar": {
     "openWork": "Open the work",
     "dragHandle": "Drag to another day",

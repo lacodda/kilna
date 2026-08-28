@@ -4,6 +4,7 @@ import { AlertTriangle, CalendarDays } from 'lucide-react'
 import { calendar as fetchCalendar, catalogue, type ScoredWork } from '@/lib/api'
 import { coverFor } from '@/lib/cover'
 import { isQuiet, summarise, type Decision } from '@/lib/dashboard'
+import { findings } from '@/lib/findings'
 import { today } from '@/lib/month'
 import { keys } from '@/lib/query'
 import { missing } from '@/lib/readiness'
@@ -11,6 +12,7 @@ import { labelOf, useProfile } from '@/lib/useProfile'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { FindingsPanel } from '@/components/FindingsPanel'
 import { Panel, SectionLabel } from '@/components/ui/Panel'
 import { SkeletonList } from '@/components/ui/Skeleton'
 
@@ -32,6 +34,7 @@ interface Props {
  */
 export function DashboardView({ onSelect }: Props) {
   const { t } = useTranslation()
+  const profile = useProfile()
 
   const works = useQuery({ queryKey: keys.catalogue, queryFn: catalogue })
   const slots = useQuery({ queryKey: keys.calendar, queryFn: fetchCalendar })
@@ -50,7 +53,13 @@ export function DashboardView({ onSelect }: Props) {
   // UTC, and after sunset at a negative offset that is already tomorrow.
   const summary = summarise(works.data, slots.data, today())
 
-  if (isQuiet(summary)) {
+  // A finding can outlive every section above — a scored, booked work whose
+  // draft moved after the score, dated beyond the week, shows nowhere else.
+  // Claiming nothing is waiting while one stands would be a lie the screen
+  // tells confidently, which is worse than a busy screen.
+  const standing = findings(works.data, slots.data, profile.config, today())
+
+  if (isQuiet(summary) && standing.length === 0) {
     return <EmptyState title={t('dashboard.quietTitle')} body={t('dashboard.quietBody')} />
   }
 
@@ -118,6 +127,16 @@ export function DashboardView({ onSelect }: Props) {
           </div>
         </section>
       )}
+
+      {/* Last, and deliberately so: the sections above are about today, these
+          are standing complaints. The two kinds the dashboard already draws as
+          sections of its own are skipped rather than said twice. */}
+      <FindingsPanel
+        works={works.data}
+        calendar={slots.data}
+        skip={['unscored', 'ready-unscheduled']}
+        onSelect={onSelect}
+      />
     </div>
   )
 }
