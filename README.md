@@ -23,6 +23,7 @@ Every craft repeats the same cycle. kilna models it once and lets your craft con
 - **A status you never have to keep up.** Scoring makes a work scored, a calendar slot makes it scheduled, going out makes it released — worked out from what happened, in your profile's own words. Set one by hand and it stays put; the automation steps over that work entirely until you hand it back.
 - **A calendar that pushes back.** Slots compete. A stronger work bumps a weaker one out of Thursday — and one click lays the whole queue out to your profile's rhythm, as a preview you approve before anything is booked.
 - **Shipping is a state, not an integration.** Mark it out, paste the link. Plugins can automate it later; the loop closes without them.
+- **A first screen that answers "what now".** kilna opens on what needs a decision — a slot this week the work is not ready for, overdue first — then the week as it stands, then the shortlist of scored work going nowhere yet. Already-released work never appears: the automation shows what can still be done.
 - **One box finds anything.** `Ctrl+K` searches titles, every draft's full text, notes and assistant replies at once — and folds case in full Unicode, so a Russian workspace is as searchable as an English one.
 
 ## Profiles, not a form builder

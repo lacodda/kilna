@@ -164,6 +164,23 @@
     "imported": "Imported {{works}} works, {{versions}} drafts, {{scores}} scores. Skipped {{skipped}} already here.",
     "working": "Working…"
   },
+  "dashboard": {
+    "decisions": "Needs a decision",
+    "decisionsCount_one": "{{count}} release",
+    "decisionsCount_other": "{{count}} releases",
+    "week": "Next 7 days",
+    "weekCount_one": "{{count}} release",
+    "weekCount_other": "{{count}} releases",
+    "shortlist": "Closest to release",
+    "unscored": "Nothing has judged these yet",
+    "today": "today",
+    "inDays_one": "in {{count}} day",
+    "inDays_other": "in {{count}} days",
+    "late_one": "{{count}} day late",
+    "late_other": "{{count}} days late",
+    "quietTitle": "Nothing is waiting on you",
+    "quietBody": "Everything is scored, booked or already out. Write something new, or take the evening."
+  },
   "calendar": {
     "openWork": "Open the work",
     "dragHandle": "Drag to another day",

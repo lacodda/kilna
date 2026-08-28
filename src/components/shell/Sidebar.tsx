@@ -96,7 +96,7 @@ export function Sidebar({ profileId, onProfileSwitched }: Props) {
         <small className="ml-auto font-mono text-[10px] text-faint">{__APP_VERSION__}</small>
       </div>
 
-      <SoonLink icon={LayoutDashboard} label={t('nav.dashboard')} version="0.32" />
+      <ScreenLink to="/dashboard" icon={LayoutDashboard} label={t('nav.dashboard')} />
       {/* No separate Works entry: the catalogue is the list of works, and a
           second door to the same things only made you choose between them. */}
       <ScreenLink to="/catalogue" icon={List} label={t('nav.catalogue')} />

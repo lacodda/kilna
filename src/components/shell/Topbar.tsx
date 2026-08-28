@@ -18,6 +18,8 @@ interface Props {
 function screenKey(pathname: string): string {
   const segment = pathname.split('/')[1]
   switch (segment) {
+    case 'dashboard':
+      return 'nav.dashboard'
     case 'catalogue':
       return 'nav.catalogue'
     case 'calendar':

@@ -15,6 +15,7 @@ import { Sidebar } from '@/components/shell/Sidebar'
 import { Topbar } from '@/components/shell/Topbar'
 import { WorkCard } from '@/components/WorkCard'
 import { Catalogue } from '@/components/Catalogue'
+import { DashboardView } from '@/components/DashboardView'
 import { CalendarView } from '@/components/CalendarView'
 import { DataView } from '@/components/DataView'
 import { JournalView } from '@/components/JournalView'
@@ -150,7 +151,17 @@ function ShellSkeleton() {
                   route that caused it. */}
               <ErrorBoundary resetKey={screen}>
                 <Routes>
-                  <Route path="/" element={<Navigate to="/catalogue" replace />} />
+                  {/* The dashboard is where the app opens: the first question
+                      is what needs deciding, not what exists. */}
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <div className="p-6">
+                        <DashboardView onSelect={openWork} />
+                      </div>
+                    }
+                  />
                   {/* The open tab is part of the address, so the back button walks
                       between tabs and a tab can be linked to directly. */}
                   <Route path="/works/:workId?/:tab?" element={<WorksScreen />} />
@@ -204,7 +215,7 @@ function ShellSkeleton() {
                       }
                     />
                   )}
-                  <Route path="*" element={<Navigate to="/catalogue" replace />} />
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </ErrorBoundary>
             </div>
