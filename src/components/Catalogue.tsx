@@ -389,14 +389,14 @@ function Rows({
                   aria-label={t('catalogue.select', { title: row.title })}
                 />
               </td>
-              <td className="py-2 pr-3">
+              <td className="px-3 py-2">
                 <span className="font-medium">{row.title}</span>
                 <span className="ml-2 text-xs text-dim">
                   {labelOf(profile.config.statuses, row.status)} ·{' '}
                   {labelOf(profile.config.work_kinds, row.kind)}
                 </span>
               </td>
-              <td className="py-2 pr-3">
+              <td className="px-3 py-2">
                 {row.tier === null ? (
                   <span className="text-faint">—</span>
                 ) : (
@@ -407,13 +407,13 @@ function Rows({
               </td>
               <td
                 className={cn(
-                  'py-2 pr-3 text-right tabular-nums',
+                  'px-3 py-2 text-right tabular-nums',
                   row.total === null && 'text-faint',
                 )}
               >
                 {row.total?.toFixed(1) ?? '—'}
               </td>
-              <td className="py-2 text-xs text-dim">
+              <td className="px-3 py-2 text-xs text-dim">
                 {row.scored_at?.slice(0, 10) ?? '—'}
                 {row.stale && (
                   <span
@@ -478,7 +478,11 @@ function Column({
     // column, and a button is not a column.
     <th
       aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
-      className={cn('py-2 font-medium', align === 'right' ? 'pl-3' : 'pr-3')}
+      // Padding on both sides, not just the one the text runs towards: a
+      // right-aligned column followed by a left-aligned one used to put its
+      // last letter against the next header's first, and "Total"/"Scored" read
+      // as one word.
+      className={cn('px-3 py-2 font-medium')}
     >
       <button
         type="button"

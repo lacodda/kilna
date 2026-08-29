@@ -36,7 +36,15 @@ function WorksScreen() {
   if (workId === undefined) return <Navigate to="/catalogue" replace />
 
   return (
-    <main className="h-full overflow-y-auto p-6">
+    // No scrolling of its own: the screen area outside already scrolls, and a
+    // second scroller here drew a second scrollbar over the card's tab strip -
+    // the one the pilot saw. It also gave `sticky top-0` in the header the
+    // wrong box to stick to.
+    //
+    // No padding at the top either: the header sticks to the top of the
+    // scrolling area, and 24px above it is 24px the scrolled text shows
+    // through. The card's own cover provides the space instead.
+    <main className="px-6 pb-6">
       <WorkCard
         key={workId}
         workId={workId}

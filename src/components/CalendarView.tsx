@@ -170,7 +170,11 @@ export function CalendarView({ onSelect }: Props) {
   })
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
+    // The queue takes a fixed column only where there is room for both. Below
+    // that the month wins the width: 22rem of queue left the days ~77px wide,
+    // and a day that narrow shows three letters of a title — what the pilot
+    // saw. The queue drops under the calendar instead of squeezing it.
+    <div className="grid gap-6 xl:grid-cols-[20rem_1fr]">
       <section className="flex flex-col gap-3">
         <h3 className="text-sm font-semibold">{t('calendar.queue')}</h3>
         <p className="text-xs text-dim">{t('calendar.queueHint')}</p>

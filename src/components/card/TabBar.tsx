@@ -27,7 +27,11 @@ export function TabBar({ workId, releases = 0 }: Props) {
     // vocabulary genuinely overflows, the bar is the app's thin one from
     // `styles.css`, and `scrollbar-width: none` keeps it from stealing height
     // from a strip this shallow.
-    <nav className="flex gap-0.5 overflow-x-auto border-t border-line bg-raise [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    // `overflow-x-auto` alone leaves the vertical axis at `auto` too, and the
+    // strip is one pixel taller than its box — enough for WebView2 to reserve a
+    // vertical scrollbar down the side of the tabs, which is what the pilot
+    // saw. The vertical axis is explicitly clipped: tabs never scroll upwards.
+    <nav className="flex gap-0.5 overflow-x-auto overflow-y-hidden border-t border-line bg-raise [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {TABS.map((tab) => (
         <NavLink
           key={tab}

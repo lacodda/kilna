@@ -6,6 +6,7 @@ import { previewSchedule, type ScheduledRelease } from '@/lib/api'
 import type { Ghost } from '@/lib/layout'
 import { byDate, monthGrid, sameMonth, shiftMonth, today, type Month } from '@/lib/month'
 import { accentFor, coverFor } from '@/lib/cover'
+import { shortKind } from '@/lib/kind'
 import { daysBetween } from '@/lib/readiness'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
@@ -216,7 +217,12 @@ export function MonthGrid({
                   <div
                     key={slot.id}
                     className={cn(
-                      'flex items-center gap-1 rounded-[7px] px-1 py-1 text-[11px] transition-opacity',
+                      // A column, not a row. A day is ~100px wide, and one row
+                      // spent all of it on the handle, the marks and the kind:
+                      // the pilot's calendar showed three letters of every
+                      // title. The handle and the marks share the top line; the
+                      // title gets the day's full width underneath.
+                      'flex flex-col gap-0.5 rounded-[7px] px-1 py-1 text-[11px] transition-opacity',
                       slot.status === 'released' && 'opacity-60',
                       dragging === slot.id && 'opacity-40',
                     )}
@@ -224,6 +230,10 @@ export function MonthGrid({
                     // wherever it appears — the cover, the card, this chip.
                     style={{ background: coverFor(slot.work_id) }}
                   >
+                    {/* The top line: what you grab and what the release's state
+                        is. Both are small and fixed-width, so they cost the
+                        title nothing. */}
+                    <div className="flex items-center gap-1">
                     {/* The handle, and only the handle, is draggable. Making the
                         whole chip draggable puts every click in a race with a
                         drag — the predecessor did that and lost the click. */}
@@ -257,11 +267,8 @@ export function MonthGrid({
                         onOpenRelease(slot.id)
                       }}
                       title={`${slot.work_title} · ${labelOf(profile.config.release_kinds, slot.kind)}`}
-                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 text-left hover:opacity-80"
+                      className="flex min-w-0 flex-1 cursor-pointer items-center justify-end gap-1.5 text-left hover:opacity-80"
                     >
-                      <span className="min-w-0 flex-1 truncate font-medium text-white/90">
-                        {slot.work_title}
-                      </span>
                       <ReadyMarks
                         readiness={slot.readiness}
                         released={slot.status === 'released'}
@@ -279,9 +286,33 @@ export function MonthGrid({
                           className="size-2.5 shrink-0 text-white/70"
                         />
                       )}
-                      <span className="shrink-0 text-[9px] uppercase tracking-wide text-white/60">
-                        {labelOf(profile.config.release_kinds, slot.kind)}
+                      {/* The kind, short enough to leave the title readable.
+                          It used to be spelled out, and on a day holding two
+                          releases "SHORT" left the title one letter wide. The
+                          word itself stays in the chip's tooltip, and the kind
+                          cannot be an icon: its keys come from the profile,
+                          which the code does not get to know (ADR 0001). */}
+                      <span
+                        className="shrink-0 text-[9px] font-semibold tracking-wide text-white/55"
+                        aria-hidden
+                      >
+                        {shortKind(labelOf(profile.config.release_kinds, slot.kind))}
                       </span>
+                    </button>
+                    </div>
+
+                    {/* The title, on its own line and clickable like the marks
+                        above it: the whole chip opens the release. */}
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onOpenRelease(slot.id)
+                      }}
+                      title={`${slot.work_title} · ${labelOf(profile.config.release_kinds, slot.kind)}`}
+                      className="w-full cursor-pointer truncate text-left font-medium leading-tight text-white/90 hover:opacity-80"
+                    >
+                      {slot.work_title}
                     </button>
                   </div>
                 ))}
@@ -294,14 +325,16 @@ export function MonthGrid({
                   <div
                     key={ghost.releaseId}
                     title={`${ghost.title} · ${labelOf(profile.config.release_kinds, ghost.kind)}`}
-                    className="flex items-center gap-1.5 rounded-[7px] border border-dashed px-1.5 py-1 text-[11px]"
+                    className="flex flex-wrap items-center gap-x-1.5 rounded-[7px] border border-dashed px-1.5 py-1 text-[11px]"
                     style={{ borderColor: accentFor(ghost.workId) }}
                   >
-                    <span className="min-w-0 flex-1 truncate font-medium text-dim">
-                      {ghost.title}
+                    {/* Same two rows as a booked chip, for the same reason: on
+                        a ~100px day the kind spelled out ate the title. */}
+                    <span className="shrink-0 text-[9px] font-semibold tracking-wide text-faint">
+                      {shortKind(labelOf(profile.config.release_kinds, ghost.kind))}
                     </span>
-                    <span className="shrink-0 text-[9px] uppercase tracking-wide text-faint">
-                      {labelOf(profile.config.release_kinds, ghost.kind)}
+                    <span className="w-full truncate font-medium leading-tight text-dim">
+                      {ghost.title}
                     </span>
                   </div>
                 ))}

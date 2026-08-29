@@ -72,7 +72,7 @@ export function CardHeader({ work, releases }: Props) {
       {/* What stays: whose card this is, where it stands, and the way between
           tabs. A long version otherwise leaves you reading with no idea whose
           words they are. `top-0` is relative to the scrolling screen area. */}
-      <header className="sticky top-0 z-20 rounded-b-[18px] border border-t-0 border-line bg-raise">
+      <header className="sticky -top-px z-20 overflow-hidden rounded-b-[18px] border border-t-0 border-line bg-raise">
         {/* Name first, then what it is, then the craft's own numbers — the
             order of the mockup, and the order someone reads in: the title says
             whose card this is, the badges where it stands, and BPM/Key are
