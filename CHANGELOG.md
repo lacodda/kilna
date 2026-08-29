@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.35.0] - 2026-08-29
+
+### Bug Fixes
+- Clear the five defects the pilot found on a real catalogue
 ## [0.34.0] - 2026-08-28
 
 ### Features
