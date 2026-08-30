@@ -82,7 +82,15 @@
       { "key": "bpm", "label": "BPM", "type": "number" },
       { "key": "key", "label": "Key", "type": "text" },
       { "key": "duration", "label": "Duration", "type": "text" },
-      { "key": "language", "label": "Language", "type": "text" }
+      { "key": "language", "label": "Language", "type": "text" },
+      { "key": "tagline", "label": "Tagline", "type": "text" },
+      { "key": "direction", "label": "Direction", "type": "text" },
+      { "key": "mood", "label": "Mood", "type": "text" },
+      { "key": "tempo", "label": "Tempo", "type": "text" },
+      { "key": "vocal", "label": "Vocal", "type": "text" },
+      { "key": "perspective", "label": "Perspective", "type": "text" },
+      { "key": "instruments", "label": "Instruments", "type": "text" },
+      { "key": "premise", "label": "Premise", "type": "multiline" }
     ],
     "rhythm": { "every_days": 3, "default_time": "12:00" },
     "prompts": [

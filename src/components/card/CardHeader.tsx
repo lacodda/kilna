@@ -111,7 +111,14 @@ function MetaStrip({ work }: { work: Work }) {
   const profile = useProfile()
 
   const filled = profile.config.work_meta_fields.filter(
-    (field) => work.meta[field.key] !== undefined && work.meta[field.key] !== '',
+    (field) =>
+      // A paragraph belongs on the Overview tab, not here. The strip is the
+      // reference line you glance at — a premise printed in full took half the
+      // screen above the tabs and pushed the work out of sight, which is the
+      // opposite of what a header carrying the title is for.
+      field.type !== 'multiline' &&
+      work.meta[field.key] !== undefined &&
+      work.meta[field.key] !== '',
   )
   if (filled.length === 0) return null
 
@@ -119,16 +126,21 @@ function MetaStrip({ work }: { work: Work }) {
     <div className="mt-2.5 flex flex-wrap gap-[22px]">
       {filled.map((field) => {
         const value = work.meta[field.key]
+        const text =
+          field.type === 'boolean'
+            ? i18n.t(value === true ? 'work.yes' : 'work.no')
+            : String(value)
         return (
-          <span key={field.key}>
+          // Each field is capped in width and truncated. A craft writes what it
+          // likes into these — a mood can be a sentence, a vocal note a whole
+          // line — and seven of them at full length grew the header to 387px,
+          // pushing the work itself off screen. The full value is a hover away
+          // and edited on the Overview tab.
+          <span key={field.key} className="min-w-0 max-w-56" title={text}>
             <label className="block text-[10px] uppercase tracking-[0.08em] text-faint">
               {field.label}
             </label>
-            <b className="font-mono text-[12.5px] font-medium">
-              {field.type === 'boolean'
-                ? i18n.t(value === true ? 'work.yes' : 'work.no')
-                : String(value)}
-            </b>
+            <b className="block truncate font-mono text-[12.5px] font-medium">{text}</b>
           </span>
         )
       })}

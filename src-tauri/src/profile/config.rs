@@ -167,6 +167,10 @@ pub struct MetaField {
 #[serde(rename_all = "lowercase")]
 pub enum MetaFieldType {
     Text,
+    /// Text that runs to paragraphs rather than a line: a premise, a note on
+    /// where a piece came from. `Text` in a single-line box turned a paragraph
+    /// into something you scroll sideways through.
+    Multiline,
     Number,
     Date,
     Boolean,

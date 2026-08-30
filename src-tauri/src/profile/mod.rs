@@ -108,10 +108,15 @@ pub fn seed(conn: &Connection) -> Result<()> {
 /// * **The rhythm**, where the stored copy has none and the shipped one names
 ///   a pace. Without it the auto-layout is a button that only ever refuses in
 ///   every workspace that predates the field.
+/// * **Meta fields** whose key is missing. Same reasoning as prompts: a field
+///   the user renamed or retyped keeps their version, because the match is by
+///   key. New keys are appended rather than merged in place, so an order the
+///   user arranged is not rewritten.
 ///
 /// A role the user deliberately set to `Manual` is indistinguishable from one
-/// that was never written, and is restored along with the rest. That is the
-/// price of not asking; the setting is one click away in the profile editor.
+/// that was never written, and is restored along with the rest. The same is
+/// true of a deleted prompt or meta field: absence is absence either way. That
+/// is the price of not asking; both are one click away in the profile editor.
 fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
     let Some((id, raw)): Option<(String, String)> = conn
         .query_row(
@@ -183,6 +188,28 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
 
     if config.rhythm.is_none() && shipped.config.rhythm.is_some() {
         config.rhythm = shipped.config.rhythm.clone();
+        changed = true;
+    }
+
+    // Meta fields added to a shipped profile after a workspace was created.
+    // Matched by key, so a field the user renamed or retyped keeps their
+    // version; one they deleted comes back, like a deleted prompt. New keys are
+    // appended, so an order the user arranged is not rewritten.
+    let new_fields: Vec<_> = shipped
+        .config
+        .work_meta_fields
+        .iter()
+        .filter(|shipped| {
+            !config
+                .work_meta_fields
+                .iter()
+                .any(|existing| existing.key == shipped.key)
+        })
+        .cloned()
+        .collect();
+
+    if !new_fields.is_empty() {
+        config.work_meta_fields.extend(new_fields);
         changed = true;
     }
 
@@ -735,6 +762,104 @@ mod tests {
             config_for(&conn, &id).unwrap().rhythm.unwrap().every_days,
             30
         );
+    }
+
+    #[test]
+    fn seed_carries_newly_shipped_meta_fields_into_an_existing_profile() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        // A workspace created before the descriptive fields shipped: it holds
+        // the reference numbers and nothing else.
+        let (id, _): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config = config_for(&conn, &id).unwrap();
+        config.work_meta_fields.retain(|field| field.key == "bpm");
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let gained = config_for(&conn, &id).unwrap().work_meta_fields;
+        let keys: Vec<&str> = gained.iter().map(|field| field.key.as_str()).collect();
+        assert!(
+            keys.contains(&"premise"),
+            "a newly shipped field arrives: {keys:?}"
+        );
+        assert_eq!(
+            keys.first(),
+            Some(&"bpm"),
+            "the kept field stays where it was"
+        );
+        assert_eq!(
+            gained
+                .iter()
+                .find(|field| field.key == "premise")
+                .map(|field| field.field_type),
+            Some(config::MetaFieldType::Multiline),
+            "and arrives with its own type, not as plain text"
+        );
+    }
+
+    #[test]
+    fn carrying_meta_fields_forward_leaves_the_users_own_wording_alone() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        let (id, _): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+
+        // The user renames a shipped field and retypes another.
+        let mut config = config_for(&conn, &id).unwrap();
+        for field in &mut config.work_meta_fields {
+            if field.key == "premise" {
+                field.label = "What it is about".into();
+                field.field_type = config::MetaFieldType::Text;
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let fields = config_for(&conn, &id).unwrap().work_meta_fields;
+
+        // Every key at most once. `find` would happily return the user's own
+        // field while a shipped duplicate sat behind it, which is exactly what
+        // a carry-forward without the key filter produces.
+        let premises: Vec<_> = fields
+            .iter()
+            .filter(|field| field.key == "premise")
+            .collect();
+        assert_eq!(
+            premises.len(),
+            1,
+            "the field is carried once, not duplicated"
+        );
+        assert_eq!(premises[0].label, "What it is about");
+        assert_eq!(premises[0].field_type, config::MetaFieldType::Text);
+
+        let mut keys: Vec<&str> = fields.iter().map(|field| field.key.as_str()).collect();
+        let total = keys.len();
+        keys.sort_unstable();
+        keys.dedup();
+        assert_eq!(keys.len(), total, "no key appears twice: {keys:?}");
     }
 
     #[test]

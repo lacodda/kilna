@@ -13,7 +13,7 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
 import { DatePicker } from '@/components/ui/DatePicker'
-import { Field, Input } from '@/components/ui/Input'
+import { Field, Input, Textarea } from '@/components/ui/Input'
 import { Panel } from '@/components/ui/Panel'
 import { SaveState, useSaveStatus } from '@/components/ui/SaveState'
 import { Select } from '@/components/ui/Select'
@@ -176,12 +176,20 @@ export function OverviewTab({ work }: Props) {
       {profile.config.work_meta_fields.length > 0 && (
         <Panel className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 p-4">
           {profile.config.work_meta_fields.map((field) => (
-            <MetaInput
+            // A paragraph takes the whole row: in a 180px column it would be a
+            // column of two-word lines, which is worse than the single-line box
+            // it replaced. The span sits on a wrapper rather than being threaded
+            // through every branch of MetaInput.
+            <div
               key={field.key}
-              field={field}
-              value={work.meta[field.key]}
-              onChange={(value) => setMeta(field.key, value)}
-            />
+              className={field.type === 'multiline' ? 'col-span-full' : undefined}
+            >
+              <MetaInput
+                field={field}
+                value={work.meta[field.key]}
+                onChange={(value) => setMeta(field.key, value)}
+              />
+            </div>
           ))}
         </Panel>
       )}
@@ -214,6 +222,18 @@ function MetaInput({
           className="size-4 accent-[var(--accent)]"
           checked={value === true}
           onChange={(event) => onChange(event.target.checked)}
+        />
+      </Field>
+    )
+  }
+
+  if (field.type === 'multiline') {
+    return (
+      <Field label={field.label}>
+        <Textarea
+          rows={5}
+          defaultValue={typeof value === 'string' ? value : ''}
+          onBlur={(event) => onChange(event.target.value)}
         />
       </Field>
     )

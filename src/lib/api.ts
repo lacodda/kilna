@@ -33,7 +33,7 @@ export interface Status extends Kind {
 export interface MetaField {
   key: string
   label: string
-  type: 'text' | 'number' | 'date' | 'boolean'
+  type: 'text' | 'multiline' | 'number' | 'date' | 'boolean'
 }
 
 /** What an answer proposed, when its action asked for something applicable. */

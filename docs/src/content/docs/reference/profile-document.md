@@ -144,11 +144,22 @@ any given work:
 | --- | --- | --- |
 | `key` | string | Key inside `work.meta`. |
 | `label` | string | Display name for the field's input. |
-| `type` | `"text"` \| `"number"` \| `"date"` \| `"boolean"` | Validated in application code — SQLite doesn't type-check inside the JSON. |
+| `type` | `"text"` \| `"multiline"` \| `"number"` \| `"date"` \| `"boolean"` | Validated in application code — SQLite doesn't type-check inside the JSON. |
 
-Music defines `bpm` (number), `key` (text), `duration` (text) and `language`
-(text). Podcast additionally uses `date` (`recorded_on`) and `boolean`
-(`explicit`), showing all four types are in active use across the built-ins.
+`multiline` is for a field that runs to paragraphs — a premise, a note on where
+a piece came from. It gets a text area spanning the panel rather than a
+single-line box, and it is left out of the card header: the header is the line
+you glance at, and a paragraph printed there pushes the work off screen.
+
+Music defines the reference numbers (`bpm`, `key`, `duration`, `language`) plus
+what a song is about: `tagline`, `direction`, `mood`, `tempo`, `vocal`,
+`perspective`, `instruments` and a `multiline` `premise`. Podcast additionally
+uses `date` (`recorded_on`) and `boolean` (`explicit`), so every type is in
+active use across the built-ins.
+
+A field added to a built-in profile after your workspace was created arrives on
+the next launch, appended after your own. Fields are matched by `key`: one you
+renamed or retyped keeps your version, and one you deleted comes back.
 
 ## `rhythm`
 
