@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.38.0] - 2026-08-30
+
+### Features
+- Open a review beside the draft it is written about
 ## [0.37.0] - 2026-08-30
 
 ### Features
