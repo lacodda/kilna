@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.36.0] - 2026-08-30
+
+### Features
+- Give a work the fields its craft actually describes it by
 ## [0.35.0] - 2026-08-29
 
 ### Bug Fixes
