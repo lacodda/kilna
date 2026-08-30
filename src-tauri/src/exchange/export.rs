@@ -240,9 +240,7 @@ mod tests {
             NewWork {
                 kind: "song".into(),
                 title: "First".into(),
-                status: None,
-                collection_id: None,
-                meta: None,
+                ..NewWork::default()
             },
         )
         .unwrap();
@@ -268,11 +266,10 @@ mod tests {
             NewWork {
                 kind: "song".into(),
                 title: "Harbour lights".into(),
-                status: None,
-                collection_id: None,
                 meta: json!({ "bpm": 96, "language": "English" })
                     .as_object()
                     .cloned(),
+                ..NewWork::default()
             },
         )
         .unwrap();

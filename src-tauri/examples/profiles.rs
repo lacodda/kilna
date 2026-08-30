@@ -75,9 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 NewWork {
                     kind,
                     title,
-                    status: None,
-                    collection_id: None,
-                    meta: None,
+                    ..Default::default()
                 },
             )?;
             println!("  added         {} ({})", created.title, created.status);

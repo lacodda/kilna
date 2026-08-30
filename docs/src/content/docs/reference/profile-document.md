@@ -161,6 +161,33 @@ A field added to a built-in profile after your workspace was created arrives on
 the next launch, appended after your own. Fields are matched by `key`: one you
 renamed or retyped keeps your version, and one you deleted comes back.
 
+## `marks`
+
+Flags a work can be given by hand, beside the status the app derives:
+
+```jsonc
+{ "key": "working", "label": "Working on it", "colour": "warn" }
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `key` | string | Stored on the work; renaming the label never touches a work. |
+| `label` | string | What the chip says. |
+| `colour` | `"plain"` \| `"accent"` \| `"good"` \| `"warn"` \| `"bad"` | A palette role rather than a colour, so it reads in both themes. Defaults to `plain`. |
+
+A mark is not a status: the status says where a work stands in the process and
+is worked out from what happened, while a mark says something the data cannot
+know — that you are fighting with this one, or that it is the good one. It
+derives nothing and blocks nothing.
+
+It is not a tag either. Tags are free text — the author's own words for what a
+work *is*, completed from what the workspace already holds — and they stay with
+the work. A mark comes from this short list and comes off again. Keeping them
+apart means clearing the flags does not clear the vocabulary.
+
+Marks are optional: a profile written before they existed loads with none, and
+the built-in ones arrive in an existing workspace on the next launch.
+
 ## `rhythm`
 
 The pace releases go out at:

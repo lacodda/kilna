@@ -39,9 +39,7 @@ fn a_batch_larger_than_the_limit_starts_some_and_queues_the_rest() {
             NewWork {
                 kind: "song".into(),
                 title: format!("Harbour lights {index}"),
-                status: None,
-                collection_id: None,
-                meta: None,
+                ..Default::default()
             },
         )
         .unwrap();

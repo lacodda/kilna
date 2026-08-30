@@ -619,9 +619,7 @@ mod tests {
             crate::work::NewWork {
                 kind: "song".into(),
                 title: "Winter road".into(),
-                status: None,
-                collection_id: None,
-                meta: None,
+                ..crate::work::NewWork::default()
             },
         )
         .unwrap();

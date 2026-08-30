@@ -354,9 +354,7 @@ mod tests {
             crate::work::NewWork {
                 kind: "song".into(),
                 title: title.into(),
-                status: None,
-                collection_id: None,
-                meta: None,
+                ..crate::work::NewWork::default()
             },
         )
         .unwrap()

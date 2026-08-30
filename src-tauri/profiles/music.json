@@ -92,6 +92,11 @@
       { "key": "instruments", "label": "Instruments", "type": "text" },
       { "key": "premise", "label": "Premise", "type": "multiline" }
     ],
+    "marks": [
+      { "key": "working", "label": "Working on it", "colour": "warn" },
+      { "key": "unsure", "label": "Not sure", "colour": "accent" },
+      { "key": "favourite", "label": "The good one", "colour": "good" }
+    ],
     "rhythm": { "every_days": 3, "default_time": "12:00" },
     "prompts": [
       {

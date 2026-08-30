@@ -31,6 +31,7 @@ export const keys = {
   collections: ['collections'] as const,
   notes: ['notes'] as const,
   tags: ['tags'] as const,
+  workTags: ['workTags'] as const,
   deletions: ['deletions'] as const,
   search: (query: string) => ['search', query] as const,
 

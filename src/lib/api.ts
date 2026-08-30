@@ -30,6 +30,14 @@ export interface Status extends Kind {
   derive: Derive
 }
 
+/** A flag the author raises by hand, beside the status the app derives. */
+export interface Mark {
+  key: string
+  label: string
+  /** A palette role rather than a colour, so it reads in both themes. */
+  colour?: 'plain' | 'accent' | 'good' | 'warn' | 'bad'
+}
+
 export interface MetaField {
   key: string
   label: string
@@ -79,6 +87,8 @@ export interface ProfileConfig {
   axes: Axis[]
   tiers: Tier[]
   work_meta_fields: MetaField[]
+  // Absent in a profile written before marks existed.
+  marks?: Mark[]
   prompts: PromptTemplate[]
   // Absent in a profile written before the field existed: the auto-layout then
   // has nothing to pace by, and its button says so instead of guessing.
@@ -115,6 +125,11 @@ export interface Work {
   // automation leaves this work alone.
   status_pinned_at: string | null
   meta: Meta
+  /** The author's own words for what this is, in the order they were added. */
+  tags: string[]
+  /** Keys into the profile's `marks`; one the profile no longer defines is
+      kept on the work but not drawn. */
+  marks: string[]
   current_version_id: string | null
   position: number
   created_at: string
@@ -136,6 +151,10 @@ export interface WorkPatch {
   kind?: string
   collection_id?: string | null
   meta?: Meta
+  /** Replaces the list. The backend trims, drops blanks and deduplicates
+      case-insensitively, so sending what the box holds is enough. */
+  tags?: string[]
+  marks?: string[]
   current_version_id?: string | null
 }
 
@@ -403,6 +422,9 @@ export const createNote = (note: NewNote) => invoke<Note>('create_note', { note 
 export const updateNote = (id: string, patch: NotePatch) => invoke<Note>('update_note', { id, patch })
 export const deleteNote = (id: string) => invoke<string>('delete_note', { id })
 export const listTags = () => invoke<[string, number][]>('list_tags')
+
+/** Tags in use on works, most used first — what the tag box offers. */
+export const workTags = () => invoke<[string, number][]>('work_tags')
 
 export const dismissedFindings = () => invoke<Dismissal[]>('dismissed_findings')
 export const dismissFinding = (key: DismissalKey) => invoke<Dismissal>('dismiss_finding', { key })

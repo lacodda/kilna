@@ -469,6 +469,18 @@ pub fn list_tags(state: State<'_, AppState>) -> Result<Vec<(String, i64)>> {
     note::tags(&conn, &profile_id)
 }
 
+/// Tags in use on works, for completing the next one.
+///
+/// Separate from `list_tags`: a note's vocabulary and a work's are different
+/// vocabularies, and offering "reference" while tagging a song would be the
+/// app guessing at a connection nobody made.
+#[tauri::command]
+pub fn work_tags(state: State<'_, AppState>) -> Result<Vec<(String, i64)>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    work::tags(&conn, &profile_id)
+}
+
 #[tauri::command]
 pub fn score_work(state: State<'_, AppState>, work_id: String, score: NewScore) -> Result<Score> {
     let conn = state.conn();
@@ -1609,9 +1621,7 @@ mod tests {
                 work::NewWork {
                     kind: "song".into(),
                     title: title.into(),
-                    status: None,
-                    collection_id: None,
-                    meta: None,
+                    ..NewWork::default()
                 },
             )
             .unwrap();
@@ -1682,9 +1692,7 @@ mod tests {
             work::NewWork {
                 kind: "song".into(),
                 title: "Subject".into(),
-                status: None,
-                collection_id: None,
-                meta: None,
+                ..NewWork::default()
             },
         )
         .unwrap();

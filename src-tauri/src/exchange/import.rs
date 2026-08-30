@@ -86,6 +86,11 @@ pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Re
                 status: map_status(&config, &song.status),
                 collection_id: None,
                 meta: Some(meta),
+                // The source has no vocabulary that maps onto either: its own
+                // labels are a different idea, and inventing tags from a
+                // status would put words in the author's mouth.
+                tags: Vec::new(),
+                marks: Vec::new(),
             },
         )?;
         report.works += 1;

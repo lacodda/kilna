@@ -58,6 +58,7 @@ pub fn run() {
             commands::update_note,
             commands::delete_note,
             commands::list_tags,
+            commands::work_tags,
             commands::dismissed_findings,
             commands::dismiss_finding,
             commands::restore_finding,

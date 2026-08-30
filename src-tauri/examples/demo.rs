@@ -107,10 +107,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 kind: "song".into(),
                 title: demo.title.into(),
                 status: Some(demo.status.into()),
-                collection_id: None,
                 meta: json!({ "bpm": demo.bpm, "key": demo.key, "language": "English" })
                     .as_object()
                     .cloned(),
+                ..Default::default()
             },
         )?;
 

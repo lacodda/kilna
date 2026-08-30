@@ -112,6 +112,7 @@ pub fn seed(conn: &Connection) -> Result<()> {
 ///   the user renamed or retyped keeps their version, because the match is by
 ///   key. New keys are appended rather than merged in place, so an order the
 ///   user arranged is not rewritten.
+/// * **Marks**, on exactly those terms.
 ///
 /// A role the user deliberately set to `Manual` is indistinguishable from one
 /// that was never written, and is restored along with the rest. The same is
@@ -210,6 +211,27 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
 
     if !new_fields.is_empty() {
         config.work_meta_fields.extend(new_fields);
+        changed = true;
+    }
+
+    // Marks, on the same terms as meta fields: matched by key, appended, and a
+    // renamed or recoloured one stays as the user left it. Without this the
+    // flags would exist only for workspaces created after they shipped.
+    let new_marks: Vec<_> = shipped
+        .config
+        .marks
+        .iter()
+        .filter(|shipped| {
+            !config
+                .marks
+                .iter()
+                .any(|existing| existing.key == shipped.key)
+        })
+        .cloned()
+        .collect();
+
+    if !new_marks.is_empty() {
+        config.marks.extend(new_marks);
         changed = true;
     }
 

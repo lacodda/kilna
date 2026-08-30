@@ -1,13 +1,20 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { latestScore, listCollections, type Work } from '@/lib/api'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { latestScore, listCollections, updateWork, type Work } from '@/lib/api'
 import { coverFor } from '@/lib/cover'
 import { keys } from '@/lib/query'
+import { say } from '@/lib/toast'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { Dialog } from '@/components/ui/Dialog'
+import { Field, Input } from '@/components/ui/Input'
+import { RowMenu } from '@/components/ui/RowMenu'
 import { TabBar } from '@/components/card/TabBar'
+import { TagBar } from '@/components/card/TagBar'
 
 interface Props {
   work: Work
@@ -42,6 +49,11 @@ export function CardHeader({ work, releases }: Props) {
 
   const collection = collections.data?.find((item) => item.id === work.collection_id)
   const latest = score.data ?? null
+
+  // Renaming opens a dialog rather than turning the heading into a field. The
+  // header is sticky, and a box that saves on blur inside it moves under the
+  // cursor as it does — the same reason the meta values here are read-only.
+  const [renaming, setRenaming] = useState(false)
 
   // Two siblings rather than one header, because a sticky element can never
   // leave its own parent's box: wrapped together, the bar would unstick the
@@ -95,14 +107,129 @@ export function CardHeader({ work, releases }: Props) {
             )}
 
             {collection !== undefined && <Badge>{collection.title}</Badge>}
+
+            {/* Pushed to the end of the row: the actions are what you reach
+                for, not what tells you whose card this is. */}
+            <span className="ml-auto">
+              <HeaderActions work={work} onRename={() => setRenaming(true)} />
+            </span>
           </div>
+
+          <TagBar work={work} />
 
           <MetaStrip work={work} />
         </div>
 
         <TabBar workId={work.id} releases={releases} />
       </header>
+
+      <RenameDialog work={work} open={renaming} onOpenChange={setRenaming} />
     </>
+  )
+}
+
+/**
+ * What you can do to the work from its header.
+ *
+ * Copying is here rather than on the Overview tab because it is what you do
+ * *with* a card, not to it: quoting the title in a message, pasting the id into
+ * a script, sending someone the card itself.
+ */
+function HeaderActions({ work, onRename }: { work: Work; onRename: () => void }) {
+  const { t } = useTranslation()
+
+  // The tick only after the clipboard confirms — the rule from v0.28: telling
+  // someone a copy succeeded when it did not is worse than saying nothing.
+  const copy = (value: string) => {
+    navigator.clipboard.writeText(value).then(
+      () => say.ok(t('work.copied')),
+      (cause: unknown) => say.failedTo(t('work.copied'), cause),
+    )
+  }
+
+  return (
+    <RowMenu
+      label={work.title}
+      actions={[
+        { key: 'rename', label: t('work.rename'), onSelect: onRename },
+        { key: 'title', label: t('work.copyTitle'), onSelect: () => copy(work.title) },
+        { key: 'id', label: t('work.copyId'), onSelect: () => copy(work.id) },
+        {
+          key: 'link',
+          label: t('work.copyLink'),
+          // The address of the card inside the app: routing is real (ADR 0006),
+          // so this is a link that opens the work rather than a note of where
+          // it lives.
+          onSelect: () => copy(`kilna://works/${work.id}`),
+        },
+      ]}
+    />
+  )
+}
+
+function RenameDialog({
+  work,
+  open,
+  onOpenChange,
+}: {
+  work: Work
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { t } = useTranslation()
+  const client = useQueryClient()
+  const [title, setTitle] = useState(work.title)
+
+  // The box starts from what the work is called each time it opens, not from
+  // whatever was typed and abandoned last time.
+  const [syncedTo, setSyncedTo] = useState(work.title)
+  if (open && syncedTo !== work.title) {
+    setSyncedTo(work.title)
+    setTitle(work.title)
+  }
+
+  const rename = useMutation({
+    mutationFn: (next: string) => updateWork(work.id, { title: next }),
+    onSuccess: (updated) => {
+      client.setQueryData(keys.work(work.id), updated)
+      void client.invalidateQueries({ queryKey: keys.works })
+      void client.invalidateQueries({ queryKey: keys.catalogue })
+      void client.invalidateQueries({ queryKey: keys.journal })
+      onOpenChange(false)
+    },
+    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
+  })
+
+  const submit = () => {
+    const next = title.trim()
+    // An empty box or an unchanged name is a cancel, not an error: nothing was
+    // asked for, so nothing is said about it.
+    if (next === '' || next === work.title) return onOpenChange(false)
+    rename.mutate(next)
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t('work.rename')}
+      footer={
+        <Button variant="primary" disabled={rename.isPending} onClick={submit}>
+          {t('work.rename')}
+        </Button>
+      }
+    >
+      <Field label={t('work.title')} hint={t('work.renameHint')}>
+        <Input
+          autoFocus
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') submit()
+          }}
+        />
+      </Field>
+    </Dialog>
   )
 }
 

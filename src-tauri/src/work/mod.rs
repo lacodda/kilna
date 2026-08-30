@@ -21,6 +21,12 @@ pub struct Work {
     /// automation leaves the work alone — see [`status`].
     pub status_pinned_at: Option<String>,
     pub meta: Map<String, Value>,
+    /// The author's own words for what this is. Free text, completed from what
+    /// the workspace already holds rather than chosen from a list.
+    pub tags: Vec<String>,
+    /// Keys into the profile's `marks`. A key the profile no longer defines is
+    /// kept in the row but not drawn — renaming a mark never touches a work.
+    pub marks: Vec<String>,
     pub current_version_id: Option<String>,
     pub position: i64,
     pub created_at: String,
@@ -28,10 +34,17 @@ pub struct Work {
 }
 
 /// Fields accepted when creating a work. Everything else is derived.
-#[derive(Debug, Clone, Deserialize)]
+///
+/// `Default` so a caller — a test, an importer — names only what it means and
+/// is not rewritten every time the shape gains a field.
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct NewWork {
     pub kind: String,
     pub title: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
+    #[serde(default)]
+    pub marks: Vec<String>,
     #[serde(default)]
     pub status: Option<String>,
     #[serde(default)]
@@ -49,6 +62,8 @@ pub struct WorkPatch {
     pub kind: Option<String>,
     pub collection_id: Option<Option<String>>,
     pub meta: Option<Map<String, Value>>,
+    pub tags: Option<Vec<String>>,
+    pub marks: Option<Vec<String>>,
     pub current_version_id: Option<Option<String>>,
 }
 
@@ -63,7 +78,8 @@ pub struct WorkFilter {
 }
 
 const SELECT_WORK: &str = "SELECT id, profile_id, collection_id, kind, title, status, \
-     status_pinned_at, meta, current_version_id, position, created_at, updated_at FROM work";
+     status_pinned_at, meta, tags, marks, current_version_id, position, created_at, updated_at \
+     FROM work";
 
 /// Create a work in the given profile.
 ///
@@ -78,6 +94,8 @@ pub fn create(conn: &Connection, profile_id: &str, new: NewWork) -> Result<Work>
     let timestamp = now();
     let id = uuid::Uuid::new_v4().to_string();
     let meta = Value::Object(new.meta.unwrap_or_default()).to_string();
+    let tags = serde_json::to_string(&new.tags)?;
+    let marks = serde_json::to_string(&new.marks)?;
 
     // New works go to the end of the profile's list.
     let position: i64 = conn.query_row(
@@ -87,8 +105,8 @@ pub fn create(conn: &Connection, profile_id: &str, new: NewWork) -> Result<Work>
     )?;
 
     conn.execute(
-        "INSERT INTO work (id, profile_id, collection_id, kind, title, status, meta, position, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9)",
+        "INSERT INTO work (id, profile_id, collection_id, kind, title, status, meta, tags, marks, position, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)",
         params![
             id,
             profile_id,
@@ -97,6 +115,8 @@ pub fn create(conn: &Connection, profile_id: &str, new: NewWork) -> Result<Work>
             new.title,
             status,
             meta,
+            tags,
+            marks,
             position,
             timestamp,
         ],
@@ -230,6 +250,38 @@ pub fn update(conn: &Connection, id: &str, patch: WorkPatch) -> Result<Work> {
             Box::new(collection_id),
         );
     }
+    if let Some(tags) = patch.tags {
+        // Trimmed, emptied entries dropped, and deduplicated case-insensitively
+        // — "Winter" typed beside an existing "winter" is the same tag, and two
+        // spellings of one word split a catalogue in half without saying so.
+        let mut kept: Vec<String> = Vec::new();
+        for tag in tags {
+            let tag = tag.trim().to_owned();
+            if tag.is_empty() {
+                continue;
+            }
+            if !kept
+                .iter()
+                .any(|existing| crate::search::fold(existing) == crate::search::fold(&tag))
+            {
+                kept.push(tag);
+            }
+        }
+        set(
+            &mut assignments,
+            &mut values,
+            "tags",
+            Box::new(serde_json::to_string(&kept)?),
+        );
+    }
+    if let Some(marks) = patch.marks {
+        set(
+            &mut assignments,
+            &mut values,
+            "marks",
+            Box::new(serde_json::to_string(&marks)?),
+        );
+    }
     if let Some(meta) = patch.meta {
         set(
             &mut assignments,
@@ -270,6 +322,26 @@ pub fn update(conn: &Connection, id: &str, patch: WorkPatch) -> Result<Work> {
 }
 
 /// Delete a work along with everything that hangs off it.
+/// Every tag in use in a profile, most used first.
+///
+/// This is what makes a free-text field converge on a vocabulary instead of
+/// scattering: the box offers what the workspace already says, so the second
+/// winter song is tagged from the list rather than retyped. Counted rather than
+/// merely listed, because the tags worth offering first are the ones already
+/// carrying weight.
+pub fn tags(conn: &Connection, profile_id: &str) -> Result<Vec<(String, i64)>> {
+    let mut statement = conn.prepare(
+        "SELECT json_each.value AS tag, count(*) AS uses
+         FROM work, json_each(work.tags)
+         WHERE work.profile_id = ?1
+         GROUP BY tag
+         ORDER BY uses DESC, tag",
+    )?;
+
+    let rows = statement.query_map(params![profile_id], |row| Ok((row.get(0)?, row.get(1)?)))?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
 pub fn delete(conn: &Connection, id: &str) -> Result<()> {
     // Versions, scores, releases, notes and assets go with it via ON DELETE CASCADE.
     let changed = conn.execute("DELETE FROM work WHERE id = ?1", params![id])?;
@@ -294,6 +366,8 @@ struct RawWork {
     status: String,
     status_pinned_at: Option<String>,
     meta: String,
+    tags: String,
+    marks: String,
     current_version_id: Option<String>,
     position: i64,
     created_at: String,
@@ -310,10 +384,12 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
         status: row.get(5)?,
         status_pinned_at: row.get(6)?,
         meta: row.get(7)?,
-        current_version_id: row.get(8)?,
-        position: row.get(9)?,
-        created_at: row.get(10)?,
-        updated_at: row.get(11)?,
+        tags: row.get(8)?,
+        marks: row.get(9)?,
+        current_version_id: row.get(10)?,
+        position: row.get(11)?,
+        created_at: row.get(12)?,
+        updated_at: row.get(13)?,
     })
 }
 
@@ -321,6 +397,8 @@ impl RawWork {
     fn into_work(self) -> Result<Work> {
         Ok(Work {
             meta: serde_json::from_str(&self.meta)?,
+            tags: serde_json::from_str(&self.tags)?,
+            marks: serde_json::from_str(&self.marks)?,
             id: self.id,
             profile_id: self.profile_id,
             collection_id: self.collection_id,
@@ -355,10 +433,146 @@ mod tests {
         NewWork {
             kind: "song".into(),
             title: title.into(),
-            status: None,
-            collection_id: None,
-            meta: None,
+            ..NewWork::default()
         }
+    }
+
+    #[test]
+    fn tags_are_trimmed_emptied_and_deduplicated_in_any_language() {
+        let (conn, profile_id) = workspace();
+        let work = create(&conn, &profile_id, song("Winter road")).unwrap();
+
+        let updated = update(
+            &conn,
+            &work.id,
+            WorkPatch {
+                tags: Some(vec![
+                    "  winter ".into(),
+                    "Winter".into(),
+                    "".into(),
+                    "   ".into(),
+                    "зима".into(),
+                    "ЗИМА".into(),
+                ]),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+
+        // One "winter" and one "зима": a second spelling of the same word would
+        // split the catalogue in half without ever saying so, and case folding
+        // has to know Cyrillic for that to hold.
+        assert_eq!(updated.tags, vec!["winter".to_owned(), "зима".to_owned()]);
+    }
+
+    #[test]
+    fn the_first_spelling_of_a_tag_is_the_one_kept() {
+        let (conn, profile_id) = workspace();
+        let work = create(&conn, &profile_id, song("Winter road")).unwrap();
+
+        let updated = update(
+            &conn,
+            &work.id,
+            WorkPatch {
+                tags: Some(vec!["Winter".into(), "winter".into()]),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+
+        // Not lower-cased on the way in: the author's capitalisation is theirs,
+        // and folding is for comparing, not for storing.
+        assert_eq!(updated.tags, vec!["Winter".to_owned()]);
+    }
+
+    #[test]
+    fn tags_and_marks_are_separate_lists() {
+        let (conn, profile_id) = workspace();
+        let work = create(&conn, &profile_id, song("Winter road")).unwrap();
+
+        let tagged = update(
+            &conn,
+            &work.id,
+            WorkPatch {
+                tags: Some(vec!["winter".into()]),
+                marks: Some(vec!["on-fire".into()]),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(tagged.tags, vec!["winter".to_owned()]);
+        assert_eq!(tagged.marks, vec!["on-fire".to_owned()]);
+
+        // Taking the flag off leaves the vocabulary alone: a mark is about this
+        // week, a tag is what the work is.
+        let cleared = update(
+            &conn,
+            &work.id,
+            WorkPatch {
+                marks: Some(Vec::new()),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(cleared.tags, vec!["winter".to_owned()]);
+        assert!(cleared.marks.is_empty());
+    }
+
+    #[test]
+    fn a_patch_that_names_neither_leaves_both_alone() {
+        let (conn, profile_id) = workspace();
+        let work = create(&conn, &profile_id, song("Winter road")).unwrap();
+        update(
+            &conn,
+            &work.id,
+            WorkPatch {
+                tags: Some(vec!["winter".into()]),
+                marks: Some(vec!["on-fire".into()]),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+
+        let renamed = update(
+            &conn,
+            &work.id,
+            WorkPatch {
+                title: Some("Winter road, again".into()),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+
+        assert_eq!(renamed.tags, vec!["winter".to_owned()]);
+        assert_eq!(renamed.marks, vec!["on-fire".to_owned()]);
+    }
+
+    #[test]
+    fn tags_are_counted_across_the_profile_most_used_first() {
+        let (conn, profile_id) = workspace();
+        for (title, tags) in [
+            ("One", vec!["winter", "quiet"]),
+            ("Two", vec!["winter"]),
+            ("Three", vec!["winter", "loud"]),
+        ] {
+            let work = create(&conn, &profile_id, song(title)).unwrap();
+            update(
+                &conn,
+                &work.id,
+                WorkPatch {
+                    tags: Some(tags.into_iter().map(str::to_owned).collect()),
+                    ..WorkPatch::default()
+                },
+            )
+            .unwrap();
+        }
+
+        let counted = tags(&conn, &profile_id).unwrap();
+        assert_eq!(counted.first(), Some(&("winter".to_owned(), 3)));
+        // The rest sort by name once their counts tie, so the list is stable
+        // rather than reordering itself between reads.
+        let names: Vec<&str> = counted.iter().map(|(tag, _)| tag.as_str()).collect();
+        assert_eq!(names, vec!["winter", "loud", "quiet"]);
     }
 
     #[test]

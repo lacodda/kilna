@@ -52,7 +52,18 @@
     "delete": "Delete",
     "yes": "Yes",
     "no": "No",
-    "noDate": "Pick a date"
+    "noDate": "Pick a date",
+    "addTag": "Tag",
+    "tagPlaceholder": "A word for what this is",
+    "removeTag": "Remove the tag \"{{tag}}\"",
+    "markOn": "Mark as \"{{mark}}\"",
+    "markOff": "Take off \"{{mark}}\"",
+    "copyTitle": "Copy the title",
+    "copyId": "Copy the id",
+    "copyLink": "Copy a link to this card",
+    "rename": "Rename",
+    "renameHint": "Enter saves, Escape cancels",
+    "copied": "Copied"
   },
   "versions": {
     "title": "Versions",

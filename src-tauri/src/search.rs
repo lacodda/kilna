@@ -63,7 +63,7 @@ const PER_KIND: usize = 6;
 /// `to_lowercase` rather than `to_ascii_lowercase`, which is the entire point:
 /// it knows that `Л` is `л`. Allocation per row is fine at this size — the
 /// alternative is a false negative in half the workspace.
-fn fold(text: &str) -> String {
+pub fn fold(text: &str) -> String {
     text.to_lowercase()
 }
 
@@ -298,9 +298,7 @@ mod tests {
             NewWork {
                 kind: "song".into(),
                 title: title.into(),
-                status: None,
-                collection_id: None,
-                meta: None,
+                ..NewWork::default()
             },
         )
         .unwrap()

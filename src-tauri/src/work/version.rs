@@ -299,9 +299,7 @@ mod tests {
             NewWork {
                 kind: "song".into(),
                 title: "Subject".into(),
-                status: None,
-                collection_id: None,
-                meta: None,
+                ..NewWork::default()
             },
         )
         .unwrap()

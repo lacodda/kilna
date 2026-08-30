@@ -95,9 +95,21 @@ part of the card carrying nothing else.
 its tier and score, the profile's own fields, and the tabs stay at the top —
 a long version otherwise leaves you reading with no idea whose words they are.
 The name comes first and the craft's numbers under it: BPM and key are
-reference you consult, not what you identify the card by. Everything in that
-bar is read-only. You edit it on **Overview**, because a header you can type
-into is a header that shifts under the cursor while it saves.
+reference you consult, not what you identify the card by. The fields there are
+read-only, and long ones are cut short with the whole value a hover away — you
+edit them on **Overview**, because a header you can type into is a header that
+shifts under the cursor while it saves. Renaming opens a dialog for the same
+reason.
+
+**Under the name: marks and tags.** Marks are the flags your profile
+offers — *Working on it*, *Not sure*, *The good one* — raised and lowered with
+a click. Tags are your own words for what the work is; the box completes from
+what the workspace already says, so a vocabulary converges instead of
+scattering into near-misses. Neither moves the work: the status above is worked
+out from what happened, and these are what only you know.
+
+**The menu at the end of the row** copies the title, the id or a link to the
+card, and renames.
 
 **The trail at the top** names where you are: *Catalogue › Harbour lights*,
 with the first part a link back.

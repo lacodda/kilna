@@ -20,6 +20,10 @@ pub struct ProfileConfig {
     pub tiers: Vec<Tier>,
     /// Craft-specific fields stored in `work.meta`.
     pub work_meta_fields: Vec<MetaField>,
+    /// Flags a work can be given by hand, beside the derived status. Defaulted
+    /// so a profile written before they existed still loads.
+    #[serde(default)]
+    pub marks: Vec<Mark>,
     /// Actions the AI panel offers. Defaulted so a profile written before the
     /// panel existed still loads.
     #[serde(default)]
@@ -152,6 +156,41 @@ pub struct Tier {
     pub key: String,
     pub label: String,
     pub min: f64,
+}
+
+/// A flag the author raises on a work by hand.
+///
+/// Not a status: a status says where the work stands in the process and is
+/// worked out from what happened, while a mark says something the data cannot
+/// know — that this one is being fought with, or that it is the good one. It
+/// derives nothing and blocks nothing.
+///
+/// Not a tag either, although both are lists of strings the user sets: a tag is
+/// the author's vocabulary for what a work *is* and stays with it, a mark is
+/// about this week and comes off. Keeping them apart means clearing the flags
+/// does not clear the vocabulary, and "on fire" does not offer itself while
+/// someone is typing "winter".
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Mark {
+    pub key: String,
+    pub label: String,
+    /// One of the palette's own roles, so a mark reads correctly in both
+    /// themes. A free-form colour would be a colour nobody guaranteed contrast
+    /// for.
+    #[serde(default)]
+    pub colour: MarkColour,
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum MarkColour {
+    /// The neutral one: a flag that carries no urgency of its own.
+    #[default]
+    Plain,
+    Accent,
+    Good,
+    Warn,
+    Bad,
 }
 
 /// A typed field inside `work.meta`.
