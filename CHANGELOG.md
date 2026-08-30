@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.37.0] - 2026-08-30
+
+### Features
+- Let a work carry the author's own words and the flags they raise
 ## [0.36.0] - 2026-08-30
 
 ### Features
