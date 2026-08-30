@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createVersion,
@@ -13,6 +14,7 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { labelOf, useProfile } from '@/lib/useProfile'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Markdown } from '@/components/ui/Markdown'
 import { Select } from '@/components/ui/Select'
@@ -37,6 +39,11 @@ export function VersionPanel({ workId }: Props) {
   const roles = profile.config.version_roles
 
   const [role, setRole] = useState(roles[0]?.key ?? '')
+  // A version named in the address wins until something else is picked. That
+  // is what lets a score row open the very draft it judged — and what makes
+  // that link work from a note or a message, the same promise the tabs made.
+  const [params, setParams] = useSearchParams()
+  const asked = params.get('version')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [comparedId, setComparedId] = useState<string | null>(null)
   const [reading, setReading] = useState<(typeof READINGS)[number]>('text')
@@ -61,18 +68,50 @@ export function VersionPanel({ workId }: Props) {
     queryFn: () => listVersions(workId),
   })
 
-  const summaries = (versions.data ?? []).filter((version) => version.role === role)
+  // The asked-for version also decides which lane is open: a link to a draft
+  // that lands on the style tab has not opened it.
+  const askedRole = (versions.data ?? []).find((version) => version.id === asked)?.role
+  const shownRole = askedRole !== undefined && selectedId === null ? askedRole : role
+  const summaries = (versions.data ?? []).filter((version) => version.role === shownRole)
   // Open the newest of this role by default, so the panel is never blank; an
   // explicit choice wins until it disappears.
   const openId =
     selectedId !== null && summaries.some((v) => v.id === selectedId)
       ? selectedId
-      : (summaries[0]?.id ?? null)
+      : asked !== null && summaries.some((v) => v.id === asked)
+        ? asked
+        : (summaries[0]?.id ?? null)
 
   const open = useQuery({
     queryKey: keys.version(openId ?? ''),
     queryFn: () => getVersion(openId!),
     enabled: openId !== null,
+  })
+
+  // Roles written *about* this one. A profile that names none leaves the panel
+  // exactly as it was: one role at a time, nothing beside it.
+  const commentRoles = roles.filter((r) => r.comments_on === role)
+  const openSummary = summaries.find((version) => version.id === openId) ?? null
+
+  // The commentary on the open revision — not the newest commentary there is.
+  // A review of revision 2 says nothing about revision 5, and showing it beside
+  // 5 would be the panel asserting something nobody wrote.
+  const comments = (versions.data ?? []).filter(
+    (version) =>
+      openSummary !== null &&
+      commentRoles.some((r) => r.key === version.role) &&
+      version.revision === openSummary.revision,
+  )
+  const [openCommentId, setOpenCommentId] = useState<string | null>(null)
+  const commentId =
+    openCommentId !== null && comments.some((c) => c.id === openCommentId)
+      ? openCommentId
+      : (comments[0]?.id ?? null)
+
+  const comment = useQuery({
+    queryKey: keys.version(commentId ?? ''),
+    queryFn: () => getVersion(commentId!),
+    enabled: commentId !== null,
   })
 
   const compared = useQuery({
@@ -147,14 +186,20 @@ export function VersionPanel({ workId }: Props) {
           <Select
             className="w-40"
             aria-label={t('versions.role')}
-            value={role}
+            value={shownRole}
             onChange={(next) => {
               setRole(next)
+              // Picking a lane by hand ends the link's claim on the panel.
+              if (asked !== null) setParams({}, { replace: true })
               // The selection and the comparison belonged to the role being left.
               setSelectedId(null)
               setComparedId(null)
             }}
-            options={roles.map((r) => ({ value: r.key, label: r.label }))}
+            options={roles
+              // Commentary is not a lane: it belongs beside what it comments
+              // on, and offering it here would show it stripped of that.
+              .filter((r) => r.comments_on === undefined)
+              .map((r) => ({ value: r.key, label: r.label }))}
           />
         )}
       </div>
@@ -190,8 +235,19 @@ export function VersionPanel({ workId }: Props) {
             />
           )}
 
+          {/* The text and what was written about it, side by side. Reading a
+              review away from the lines it discusses is reading half of it —
+              which is exactly what the predecessor's two panels got right. The
+              split only happens when there is a review of this very revision
+              and room for both; below that the review sits underneath. */}
           {!comparing && open.data != null && (
-            <article className="overflow-hidden rounded-xl border border-line">
+            <div
+              className={cn(
+                'grid min-w-0 gap-4',
+                comments.length > 0 && '2xl:grid-cols-2',
+              )}
+            >
+            <article className="min-w-0 overflow-hidden rounded-xl border border-line">
               <header className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 text-xs text-dim">
                 <span>
                   {labelOf(roles, open.data.role)}
@@ -223,6 +279,41 @@ export function VersionPanel({ workId }: Props) {
                 )}
               </div>
             </article>
+
+            {comments.length > 0 && (
+              <article className="min-w-0 overflow-hidden rounded-xl border border-line">
+                <header className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 text-xs text-dim">
+                  {/* One tab per kind of commentary — a look at the axes and a
+                      critique of the lines answer different questions, and the
+                      predecessor kept them as separate documents for that
+                      reason. With one kind this is a label. */}
+                  {comments.map((entry) => (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      onClick={() => setOpenCommentId(entry.id)}
+                      className={cn(
+                        'cursor-pointer rounded-[7px] px-2 py-0.5 transition-colors',
+                        entry.id === commentId
+                          ? 'bg-soft text-text'
+                          : 'hover:text-text',
+                      )}
+                    >
+                      {labelOf(roles, entry.role)}
+                    </button>
+                  ))}
+                  <span className="ml-auto">
+                    {t('versions.revision', { number: openSummary?.revision ?? 0 })}
+                  </span>
+                </header>
+
+                <div className="max-h-[28rem] overflow-auto px-3 py-2.5">
+                  {comment.isPending && <Skeleton className="h-32 w-full" />}
+                  {comment.data != null && <Markdown body={comment.data.body} />}
+                </div>
+              </article>
+            )}
+            </div>
           )}
 
           <VersionEditor

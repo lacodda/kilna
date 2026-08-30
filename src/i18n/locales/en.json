@@ -292,7 +292,8 @@
     "currentVersion": "The current version",
     "note": "Why this score",
     "notePlaceholder": "What decided it (optional)",
-    "trend": "Scores from {{from}} to {{to}}"
+    "trend": "Scores from {{from}} to {{to}}",
+    "openVersion": "Open the draft this judged"
   },
   "catalogue": {
     "work": "Work",

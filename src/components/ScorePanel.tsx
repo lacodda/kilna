@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { deleteScore, listVersions, scoreHistory, scoreWork } from '@/lib/api'
@@ -244,7 +245,19 @@ export function ScorePanel({ workId }: Props) {
                     {labelOf(tiers, score.tier)}
                   </span>
                 )}
-                {score.revision !== null && (
+                {score.revision !== null && score.version_id !== null && (
+                  // The judgement points at what was judged. A score is about a
+                  // particular draft, and the review of that draft is the rest
+                  // of the sentence this number starts.
+                  <Link
+                    to={`/works/${workId}/versions?version=${score.version_id}`}
+                    title={t('score.openVersion')}
+                    className="text-xs text-dim underline decoration-dotted underline-offset-2 transition-colors hover:text-text"
+                  >
+                    {t('versions.revision', { number: score.revision })}
+                  </Link>
+                )}
+                {score.revision !== null && score.version_id === null && (
                   <span className="text-xs text-dim">
                     {t('versions.revision', { number: score.revision })}
                   </span>

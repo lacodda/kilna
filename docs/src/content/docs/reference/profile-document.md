@@ -161,6 +161,30 @@ A field added to a built-in profile after your workspace was created arrives on
 the next launch, appended after your own. Fields are matched by `key`: one you
 renamed or retyped keeps your version, and one you deleted comes back.
 
+## `version_roles`
+
+The independent bodies a work carries:
+
+```jsonc
+{ "key": "review", "label": "Review", "comments_on": "lyrics" }
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `key` | string | Stored on each version. |
+| `label` | string | What the lane is called. |
+| `comments_on` | string, optional | The role this one discusses. |
+
+Most roles stand alone: lyrics and style advance separately, and the Versions
+tab shows one lane at a time. A role that names `comments_on` is different —
+it is written *about* another role, so it opens **beside** what it discusses
+rather than in its own lane, matched revision for revision. A review of
+revision 2 says nothing about revision 5, so it is not shown there.
+
+Music ships `review` (a read against the axes) and `critique` (line-by-line),
+both commenting on `lyrics`. A profile that names no commentary role keeps the
+Versions tab exactly as it was.
+
 ## `marks`
 
 Flags a work can be given by hand, beside the status the app derives:

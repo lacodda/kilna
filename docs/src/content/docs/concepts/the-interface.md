@@ -111,6 +111,14 @@ out from what happened, and these are what only you know.
 **The menu at the end of the row** copies the title, the id or a link to the
 card, and renames.
 
+**A review sits beside what it reviews.** If your profile has a role that
+comments on another — Music ships two, a read against the axes and a critique
+of the lines — the Versions tab opens the text on the left and what was written
+about *that revision* on the right, one tab per kind. Reading criticism away
+from the lines it discusses is reading half of it. On the Score tab, the
+revision beside a score is a link to exactly that: the draft that was judged,
+with its review already open.
+
 **The trail at the top** names where you are: *Catalogue › Harbour lights*,
 with the first part a link back.
 

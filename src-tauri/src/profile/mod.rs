@@ -112,7 +112,7 @@ pub fn seed(conn: &Connection) -> Result<()> {
 ///   the user renamed or retyped keeps their version, because the match is by
 ///   key. New keys are appended rather than merged in place, so an order the
 ///   user arranged is not rewritten.
-/// * **Marks**, on exactly those terms.
+/// * **Marks** and **version roles**, on exactly those terms.
 ///
 /// A role the user deliberately set to `Manual` is indistinguishable from one
 /// that was never written, and is restored along with the rest. The same is
@@ -192,48 +192,21 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         changed = true;
     }
 
-    // Meta fields added to a shipped profile after a workspace was created.
-    // Matched by key, so a field the user renamed or retyped keeps their
-    // version; one they deleted comes back, like a deleted prompt. New keys are
-    // appended, so an order the user arranged is not rewritten.
-    let new_fields: Vec<_> = shipped
-        .config
-        .work_meta_fields
-        .iter()
-        .filter(|shipped| {
-            !config
-                .work_meta_fields
-                .iter()
-                .any(|existing| existing.key == shipped.key)
-        })
-        .cloned()
-        .collect();
-
-    if !new_fields.is_empty() {
-        config.work_meta_fields.extend(new_fields);
-        changed = true;
-    }
-
-    // Marks, on the same terms as meta fields: matched by key, appended, and a
-    // renamed or recoloured one stays as the user left it. Without this the
-    // flags would exist only for workspaces created after they shipped.
-    let new_marks: Vec<_> = shipped
-        .config
-        .marks
-        .iter()
-        .filter(|shipped| {
-            !config
-                .marks
-                .iter()
-                .any(|existing| existing.key == shipped.key)
-        })
-        .cloned()
-        .collect();
-
-    if !new_marks.is_empty() {
-        config.marks.extend(new_marks);
-        changed = true;
-    }
+    // Everything the user keys by name: a vocabulary entry they renamed or
+    // retyped stays theirs, and anything newly shipped is appended after it.
+    // One helper rather than three copies — the third one was written by
+    // noticing the second, and the fourth would be written by forgetting it.
+    changed |= add_new_keys(
+        &mut config.work_meta_fields,
+        &shipped.config.work_meta_fields,
+        |field| &field.key,
+    );
+    changed |= add_new_keys(&mut config.marks, &shipped.config.marks, |mark| &mark.key);
+    changed |= add_new_keys(
+        &mut config.version_roles,
+        &shipped.config.version_roles,
+        |role| &role.key,
+    );
 
     if !changed {
         return Ok(());
@@ -245,6 +218,28 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
     )?;
 
     Ok(())
+}
+
+/// Append entries whose key the stored list does not have yet.
+///
+/// Returns whether anything was added, so the caller can tell a config that
+/// needs writing from one that does not.
+fn add_new_keys<T: Clone>(stored: &mut Vec<T>, shipped: &[T], key: impl Fn(&T) -> &String) -> bool {
+    let new: Vec<T> = shipped
+        .iter()
+        .filter(|candidate| {
+            stored
+                .iter()
+                .all(|existing| key(existing) != key(candidate))
+        })
+        .cloned()
+        .collect();
+
+    if new.is_empty() {
+        return false;
+    }
+    stored.extend(new);
+    true
 }
 
 /// Make sure a profile is active — a workspace is never without one.
@@ -784,6 +779,60 @@ mod tests {
             config_for(&conn, &id).unwrap().rhythm.unwrap().every_days,
             30
         );
+    }
+
+    #[test]
+    fn seed_carries_newly_shipped_version_roles_into_an_existing_profile() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        let (id, _): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+
+        // A workspace from before the review roles shipped, with the user's own
+        // rename on the one role it did have.
+        let mut config = config_for(&conn, &id).unwrap();
+        config.version_roles.retain(|role| role.key == "lyrics");
+        config.version_roles[0].label = "Words".into();
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let roles = config_for(&conn, &id).unwrap().version_roles;
+        let keys: Vec<&str> = roles.iter().map(|role| role.key.as_str()).collect();
+        assert!(
+            keys.contains(&"review"),
+            "a newly shipped role arrives: {keys:?}"
+        );
+        assert_eq!(keys.first(), Some(&"lyrics"), "the kept role stays first");
+        assert_eq!(
+            roles[0].label, "Words",
+            "and keeps the user's own name for it"
+        );
+
+        // The pairing arrives with the role: without it the review would be one
+        // more list to page through rather than something read beside the text.
+        assert_eq!(
+            roles
+                .iter()
+                .find(|role| role.key == "review")
+                .and_then(|role| role.comments_on.as_deref()),
+            Some("lyrics"),
+        );
+
+        let mut sorted = keys.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert_eq!(sorted.len(), keys.len(), "no role appears twice: {keys:?}");
     }
 
     #[test]

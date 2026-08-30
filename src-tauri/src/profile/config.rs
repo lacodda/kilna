@@ -11,7 +11,7 @@ pub struct ProfileConfig {
     /// Kinds a collection can take: album, book, season.
     pub collection_kinds: Vec<Kind>,
     /// Independent bodies a work carries: lyrics and style, or text and outline.
-    pub version_roles: Vec<Kind>,
+    pub version_roles: Vec<VersionRole>,
     /// Statuses a work moves through, in order.
     pub statuses: Vec<Status>,
     /// What a work is judged on.
@@ -156,6 +156,34 @@ pub struct Tier {
     pub key: String,
     pub label: String,
     pub min: f64,
+}
+
+/// An independent body a work carries.
+///
+/// Most roles stand alone — lyrics and style advance separately, and showing
+/// them interleaved would suggest otherwise. A role that names `comments_on`
+/// does not: it is written *about* another role, and reading it away from what
+/// it discusses is reading half of it. That is the whole reason the field
+/// exists rather than the code knowing which keys are commentary: the craft
+/// says what comments on what, the same way it says everything else (ADR 0001).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VersionRole {
+    pub key: String,
+    pub label: String,
+    /// The role this one discusses, if any. A key no role defines is ignored,
+    /// which keeps a half-edited profile from breaking the card.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comments_on: Option<String>,
+}
+
+impl VersionRole {
+    pub fn new(key: &str, label: &str) -> Self {
+        Self {
+            key: key.to_owned(),
+            label: label.to_owned(),
+            comments_on: None,
+        }
+    }
 }
 
 /// A flag the author raises on a work by hand.

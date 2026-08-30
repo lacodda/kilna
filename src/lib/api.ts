@@ -38,6 +38,13 @@ export interface Mark {
   colour?: 'plain' | 'accent' | 'good' | 'warn' | 'bad'
 }
 
+/** An independent body a work carries. */
+export interface VersionRole extends Kind {
+  /** The role this one discusses. A review is read beside what it reviews,
+      not in its place; a role without this stands alone. */
+  comments_on?: string
+}
+
 export interface MetaField {
   key: string
   label: string
@@ -82,7 +89,7 @@ export interface ProfileConfig {
   work_kinds: Kind[]
   release_kinds: ReleaseKind[]
   collection_kinds: Kind[]
-  version_roles: Kind[]
+  version_roles: VersionRole[]
   statuses: Status[]
   axes: Axis[]
   tiers: Tier[]

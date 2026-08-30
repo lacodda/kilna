@@ -19,7 +19,9 @@
     ],
     "version_roles": [
       { "key": "lyrics", "label": "Lyrics" },
-      { "key": "style", "label": "Style prompt" }
+      { "key": "style", "label": "Style prompt" },
+      { "key": "review", "label": "Review", "comments_on": "lyrics" },
+      { "key": "critique", "label": "Critique", "comments_on": "lyrics" }
     ],
     "statuses": [
       { "key": "draft", "label": "Draft", "derive": "draft" },
