@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.39.0] - 2026-08-31
+
+### Features
+- Move onto dowel, the design system of the line
 ## [0.38.0] - 2026-08-30
 
 ### Features
