@@ -1,47 +1,35 @@
-import type { InputHTMLAttributes, Ref, TextareaHTMLAttributes } from 'react'
-import { cn } from '@/lib/utils'
+import type { InputHTMLAttributes, Ref } from 'react'
+import { cn } from 'dowel-ui'
 
-const FIELD =
-  'w-full rounded-[9px] border border-line bg-transparent px-2.5 py-1.5 text-sm text-text ' +
-  'placeholder:text-faint transition-colors hover:border-line-2 ' +
-  'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent'
+/*
+ * Input.
+ *
+ * A single-line field. It is a plain `<input>` with the line's clothes on, so
+ * everything a browser gives an input for free - autofill, spellcheck, the
+ * right keyboard on a phone, `type="email"` validation - still works.
+ *
+ * The focus ring is the accent, drawn outside the border rather than replacing
+ * it: a field that only changes colour on focus is invisible to anyone who
+ * cannot distinguish those two colours.
+ */
+export const fieldClasses = cn(
+  'w-full rounded-md border border-line bg-transparent px-2.5 py-1.5',
+  'text-sm text-text placeholder:text-faint',
+  'transition-colors hover:border-line-2',
+  'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent',
+  // A field nobody can type in should look like one.
+  'disabled:cursor-not-allowed disabled:opacity-50',
+  // `aria-invalid` rather than a prop: the attribute is what a screen reader
+  // reads, so making it the source of the colour keeps the two in step.
+  'aria-invalid:border-bad aria-invalid:focus-visible:outline-bad',
+)
 
-// `ref` is a plain prop in React 19 — no forwardRef needed, it just has to be
-// declared so callers can reach the element (focus, selection, scroll).
-export function Input({
-  className,
-  ref,
-  ...props
-}: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> }) {
-  return <input ref={ref} className={cn(FIELD, 'h-9', className)} {...props} />
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  /** React 19 passes `ref` as a plain prop; it is declared so callers can
+   * reach the element to focus it or read its selection. */
+  ref?: Ref<HTMLInputElement>
 }
 
-export function Textarea({
-  className,
-  ref,
-  ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: Ref<HTMLTextAreaElement> }) {
-  return (
-    <textarea
-      ref={ref}
-      className={cn(FIELD, 'resize-y font-mono leading-relaxed', className)}
-      {...props}
-    />
-  )
-}
-
-interface FieldProps {
-  label: string
-  children: React.ReactNode
-  hint?: string
-}
-
-export function Field({ label, children, hint }: FieldProps) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">{label}</span>
-      {children}
-      {hint !== undefined && <span className="text-xs text-faint">{hint}</span>}
-    </label>
-  )
+export function Input({ className, ref, ...props }: InputProps) {
+  return <input ref={ref} className={cn(fieldClasses, 'h-9', className)} {...props} />
 }

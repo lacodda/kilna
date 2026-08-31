@@ -240,7 +240,7 @@ function Drawer({
             {current !== undefined && (
               <Button
                 variant="icon"
-                size="iconSm"
+                size="icon-sm"
                 aria-label={t('assistant.back')}
                 title={t('assistant.back')}
                 onClick={() => {
@@ -259,7 +259,7 @@ function Drawer({
             {current?.work_id != null && (
               <Button
                 variant="icon"
-                size="iconSm"
+                size="icon-sm"
                 aria-label={t('assistant.openWork')}
                 title={t('assistant.openWork')}
                 onClick={() => {
@@ -275,7 +275,7 @@ function Drawer({
               <Button
                 className="ml-auto"
                 variant="icon"
-                size="iconSm"
+                size="icon-sm"
                 aria-label={t('dialog.close')}
               >
                 <X aria-hidden />

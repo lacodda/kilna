@@ -54,7 +54,7 @@ export function Dialog({
             </div>
 
             <Primitive.Close asChild>
-              <Button variant="icon" size="iconSm" aria-label={t('dialog.close')}>
+              <Button variant="icon" size="icon-sm" aria-label={t('dialog.close')}>
                 <X aria-hidden />
               </Button>
             </Primitive.Close>

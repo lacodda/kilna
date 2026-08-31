@@ -102,7 +102,7 @@ export function WaitingBanner() {
 
       <Button
         variant="icon"
-        size="iconSm"
+        size="icon-sm"
         title={t('assistant.waitingDismiss')}
         aria-label={t('assistant.waitingDismiss')}
         disabled={dismiss.isPending}

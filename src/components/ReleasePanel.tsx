@@ -105,7 +105,7 @@ export function ReleasePanel({ workId, workTitle }: Props) {
               )}
               <Button
                 variant="danger"
-                size="iconSm"
+                size="icon-sm"
                 className="ml-auto"
                 title={t('releases.delete')}
                 onClick={() => remove.mutate(release.id)}

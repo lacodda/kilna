@@ -8,7 +8,8 @@ import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/Button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Dialog } from '@/components/ui/Dialog'
-import { Field, Input } from '@/components/ui/Input'
+import { Field } from '@/components/ui/Field'
+import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 
 interface Props {

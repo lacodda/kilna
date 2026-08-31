@@ -11,7 +11,8 @@ import { labelOf, useProfile } from '@/lib/useProfile'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
-import { Field, Input } from '@/components/ui/Input'
+import { Field } from '@/components/ui/Field'
+import { Input } from '@/components/ui/Input'
 import { RowMenu } from '@/components/ui/RowMenu'
 import { TabBar } from '@/components/card/TabBar'
 import { TagBar } from '@/components/card/TagBar'
@@ -73,7 +74,7 @@ export function CardHeader({ work, releases }: Props) {
         >
           <Link
             to="/catalogue"
-            className="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-[10px] bg-black/35 px-2.5 py-1 text-[13px] text-white/90 backdrop-blur-sm transition-colors hover:bg-black/50 hover:text-white"
+            className="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-[10px] bg-black/35 px-2.5 py-1 text-[13px] text-white/90 backdrop-blur-sm transition-colors hover:bg-black/50 hover:text-white/100"
           >
             <ArrowLeft aria-hidden className="size-3.5" />
             {t('nav.catalogue')}

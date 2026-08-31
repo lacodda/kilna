@@ -62,7 +62,7 @@ function Unread() {
   return (
     <Button
       variant="icon"
-      size="iconSm"
+      size="icon-sm"
       className="relative"
       title={t('journal.open')}
       aria-label={t('journal.open')}
@@ -73,7 +73,7 @@ function Unread() {
         <span
           className={cn(
             'absolute -right-0.5 -top-0.5 min-w-3.5 rounded-full bg-warn px-1',
-            'text-center font-mono text-[9px] leading-[14px] text-on-accent',
+            'text-center font-mono text-[9px] leading-[14px] text-on-warn',
           )}
         >
           {count > 9 ? '9+' : count}

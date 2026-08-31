@@ -1,129 +1,22 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens, copied from the approved v1.0 mockup. Dark is the primary
- * theme of a studio tool; light is the swap. Semantic names are the mockup's
- * own vocabulary (bg / raise / line / dim / accent), not stock shadcn names:
- * screens are checked against the mockup, so the vocabulary must match it.
+ * The theme is dowel's - the token vocabulary of the lacodda line, in dark and
+ * light, with the accent worked out from one colour. kilna used to carry its
+ * own copy of it; the copy is gone, and what is left in this file is what
+ * belongs to this application rather than to the line: the window, the
+ * scrollbars WebView2 would otherwise draw in Windows chrome, and the screen
+ * transition.
  *
- * Theme selection: no class on <html> follows the OS, an explicit `light` or
- * `dark` class pins the theme. Components never use `dark:` utilities —
- * every color goes through a token.
+ * The accent file states the product's colour. Everything follows from it -
+ * the hover shade, the soft fill, the focus ring, the trace of magenta in the
+ * greys, and what colour text has to be to sit on an accent fill. That last
+ * one is why the primary button now carries dark glyphs in the dark theme:
+ * white on this magenta measured 3.6:1, and the theme works out the readable
+ * answer instead of leaving each product to guess.
  */
-
-:root {
-  --bg: #141118;
-  --raise: #1b1620;
-  --soft: rgba(255, 255, 255, 0.045);
-  --softer: rgba(255, 255, 255, 0.025);
-  --line: rgba(255, 255, 255, 0.08);
-  --line-2: rgba(255, 255, 255, 0.15);
-  --text: #ece7ef;
-  --dim: #a89fb0;
-  --faint: #6f6779;
-  --accent: #d9569e;
-  --accent-2: #e879b4;
-  --accent-soft: rgba(217, 86, 158, 0.16);
-  --on-accent: #fff;
-  --good: #45d18f;
-  --good-soft: rgba(69, 209, 143, 0.14);
-  --warn: #e8b13f;
-  --warn-soft: rgba(232, 177, 63, 0.14);
-  --bad: #ef6a6a;
-  --bad-soft: rgba(239, 106, 106, 0.15);
-  --info: #4cc4e0;
-  --info-soft: rgba(76, 196, 224, 0.14);
-  --shadow-raise: 0 10px 34px rgba(0, 0, 0, 0.45);
-  color-scheme: dark;
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not(.dark) {
-    --bg: #f5f2f6;
-    --raise: #ffffff;
-    --soft: rgba(34, 22, 40, 0.05);
-    --softer: rgba(34, 22, 40, 0.03);
-    --line: rgba(34, 22, 40, 0.11);
-    --line-2: rgba(34, 22, 40, 0.2);
-    --text: #241d29;
-    --dim: #655a6e;
-    --faint: #95899d;
-    --accent: #c23e88;
-    --accent-2: #a92f74;
-    --accent-soft: rgba(194, 62, 136, 0.12);
-    --on-accent: #fff;
-    --good: #178a58;
-    --good-soft: rgba(23, 138, 88, 0.12);
-    --warn: #9a6b0c;
-    --warn-soft: rgba(178, 124, 17, 0.14);
-    --bad: #c93b3b;
-    --bad-soft: rgba(201, 59, 59, 0.12);
-    --info: #0d7f9c;
-    --info-soft: rgba(13, 127, 156, 0.11);
-    --shadow-raise: 0 10px 30px rgba(40, 20, 50, 0.14);
-    color-scheme: light;
-  }
-}
-
-:root.light {
-  --bg: #f5f2f6;
-  --raise: #ffffff;
-  --soft: rgba(34, 22, 40, 0.05);
-  --softer: rgba(34, 22, 40, 0.03);
-  --line: rgba(34, 22, 40, 0.11);
-  --line-2: rgba(34, 22, 40, 0.2);
-  --text: #241d29;
-  --dim: #655a6e;
-  --faint: #95899d;
-  --accent: #c23e88;
-  --accent-2: #a92f74;
-  --accent-soft: rgba(194, 62, 136, 0.12);
-  --on-accent: #fff;
-  --good: #178a58;
-  --good-soft: rgba(23, 138, 88, 0.12);
-  --warn: #9a6b0c;
-  --warn-soft: rgba(178, 124, 17, 0.14);
-  --bad: #c93b3b;
-  --bad-soft: rgba(201, 59, 59, 0.12);
-  --info: #0d7f9c;
-  --info-soft: rgba(13, 127, 156, 0.11);
-  --shadow-raise: 0 10px 30px rgba(40, 20, 50, 0.14);
-  color-scheme: light;
-}
-
-@theme inline {
-  --color-*: initial;
-  --color-bg: var(--bg);
-  --color-raise: var(--raise);
-  --color-soft: var(--soft);
-  --color-softer: var(--softer);
-  --color-line: var(--line);
-  --color-line-2: var(--line-2);
-  --color-text: var(--text);
-  --color-dim: var(--dim);
-  --color-faint: var(--faint);
-  --color-accent: var(--accent);
-  --color-accent-2: var(--accent-2);
-  --color-accent-soft: var(--accent-soft);
-  --color-on-accent: var(--on-accent);
-  --color-good: var(--good);
-  --color-good-soft: var(--good-soft);
-  --color-warn: var(--warn);
-  --color-warn-soft: var(--warn-soft);
-  --color-bad: var(--bad);
-  --color-bad-soft: var(--bad-soft);
-  --color-info: var(--info);
-  --color-info-soft: var(--info-soft);
-  --color-white: #fff;
-  --color-black: #000;
-  --color-transparent: transparent;
-  --color-current: currentColor;
-
-  --font-sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
-
-  --shadow-raise: var(--shadow-raise);
-}
+@import 'dowel-ui/theme.css';
+@import 'dowel-ui/accents/kilna.css';
 
 html,
 body,

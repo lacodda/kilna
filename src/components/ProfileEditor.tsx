@@ -77,7 +77,7 @@ export function ProfileEditor() {
               />
               <Button
                 variant="danger"
-                size="iconSm"
+                size="icon-sm"
                 title={t('editor.removeAxis')}
                 onClick={() =>
                   patch({ axes: config.axes.filter((_, i) => i !== index) })

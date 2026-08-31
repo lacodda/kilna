@@ -71,7 +71,7 @@ function Row({
         <div className="flex justify-end gap-1">
           <Button
             variant="icon"
-            size="iconSm"
+            size="icon-sm"
             disabled={busy || !entry.restorable}
             // A version whose work is also in the trash cannot come back alone;
             // saying so on hover beats letting the click fail.
@@ -83,7 +83,7 @@ function Row({
           </Button>
           <Button
             variant="icon"
-            size="iconSm"
+            size="icon-sm"
             disabled={busy}
             className="hover:text-bad"
             title={t('trash.purge')}

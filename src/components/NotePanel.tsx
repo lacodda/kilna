@@ -7,7 +7,8 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { Button } from '@/components/ui/Button'
-import { Input, Textarea } from '@/components/ui/Input'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
 
 // What a note changes when it appears or goes. A new tag on a note changes the
@@ -97,7 +98,7 @@ export function NotePanel({ workId }: Props) {
               </div>
               <Button
                 variant="danger"
-                size="iconSm"
+                size="icon-sm"
                 title={t('notes.delete')}
                 onClick={() => remove.mutate(note.id)}
               >

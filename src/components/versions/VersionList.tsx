@@ -80,7 +80,7 @@ export function VersionList({
             {!isOpen && (
               <Button
                 variant={isCompared ? 'soft' : 'icon'}
-                size="iconSm"
+                size="icon-sm"
                 onClick={() => onCompare(version.id)}
                 title={isCompared ? t('versions.stopComparing') : t('versions.compare')}
                 aria-label={isCompared ? t('versions.stopComparing') : t('versions.compare')}
@@ -94,7 +94,7 @@ export function VersionList({
             {!version.is_current && (
               <Button
                 variant="icon"
-                size="iconSm"
+                size="icon-sm"
                 onClick={() => onMakeCurrent(version.id)}
                 title={t('versions.makeCurrent')}
                 aria-label={t('versions.makeCurrent')}
@@ -105,7 +105,7 @@ export function VersionList({
 
             <Button
               variant="danger"
-              size="iconSm"
+              size="icon-sm"
               onClick={() => onDelete(version.id)}
               title={t('versions.delete')}
               aria-label={t('versions.delete')}

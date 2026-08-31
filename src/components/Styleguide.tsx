@@ -4,7 +4,9 @@ import { Pencil, Plus, Star, Trash2, Undo2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { DatePicker } from '@/components/ui/DatePicker'
-import { Field, Input, Textarea } from '@/components/ui/Input'
+import { Field } from '@/components/ui/Field'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
 import { Panel, SectionLabel } from '@/components/ui/Panel'
 import { Select } from '@/components/ui/Select'
 
@@ -87,7 +89,7 @@ export function Styleguide() {
             <Trash2 aria-hidden className="size-4" />
             {t('styleguide.danger')}
           </Button>
-          <Button variant="icon" size="iconMd" title={t('styleguide.iconButton')}>
+          <Button variant="icon" size="icon-md" title={t('styleguide.iconButton')}>
             <Pencil aria-hidden />
           </Button>
           <Button variant="primary" size="sm">

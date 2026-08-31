@@ -28,6 +28,17 @@ Development builds show one extra sidebar entry, **Styleguide** — the living
 inventory of the design system. Screens take their controls from that page and
 only from there; it is not part of the released app.
 
+The design system itself is [dowel](https://lacodda.github.io/dowel/), shared
+across the lacodda line. The theme arrives as a package and the primitives are
+copied in from its registry, so they are kilna's own files to edit:
+
+```console
+$ npx shadcn@latest add https://lacodda.github.io/dowel/r/button.json
+```
+
+One rule comes with it and runs in `pnpm lint`: a component names a colour from
+the vocabulary and never writes one down, so the theme can swap it underneath.
+
 To check the backend on its own, without the UI:
 
 ```sh

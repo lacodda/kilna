@@ -183,7 +183,7 @@ export function AssistantPanel({ workId }: Props) {
 
           <Button
             variant="icon"
-            size="iconSm"
+            size="icon-sm"
             title={t('assistant.newChat')}
             aria-label={t('assistant.newChat')}
             disabled={create.isPending}

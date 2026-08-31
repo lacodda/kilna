@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Eye, Maximize2, Minimize2, PenLine } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Input, Textarea } from '@/components/ui/Input'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
 import { Markdown } from '@/components/ui/Markdown'
 import { cn } from '@/lib/utils'
 
@@ -73,7 +74,7 @@ export function VersionEditor({
         <div className="ml-auto flex items-center gap-1">
           <Button
             variant={preview ? 'icon' : 'soft'}
-            size="iconSm"
+            size="icon-sm"
             onClick={() => setPreview(false)}
             title={t('versions.write')}
             aria-label={t('versions.write')}
@@ -83,7 +84,7 @@ export function VersionEditor({
           </Button>
           <Button
             variant={preview ? 'soft' : 'icon'}
-            size="iconSm"
+            size="icon-sm"
             onClick={() => setPreview(true)}
             title={t('versions.preview')}
             aria-label={t('versions.preview')}
@@ -93,7 +94,7 @@ export function VersionEditor({
           </Button>
           <Button
             variant="icon"
-            size="iconSm"
+            size="icon-sm"
             onClick={() => setFull(!full)}
             title={full ? t('versions.exitFullScreen') : t('versions.fullScreen')}
             aria-label={full ? t('versions.exitFullScreen') : t('versions.fullScreen')}

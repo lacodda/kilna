@@ -276,7 +276,7 @@ export function ScorePanel({ workId }: Props) {
                 <span className="ml-auto text-xs text-dim">{score.scored_at.slice(0, 10)}</span>
                 <Button
                   variant="danger"
-                  size="iconSm"
+                  size="icon-sm"
                   title={t('score.delete')}
                   aria-label={t('score.delete')}
                   onClick={() => remove.mutate(score.id)}

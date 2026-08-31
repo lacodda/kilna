@@ -1,6 +1,6 @@
 {
   "name": "kilna",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "description": "A desktop workbench for content makers — from raw idea to shipped work.",
   "license": "MIT",
   "private": true,
@@ -25,6 +25,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.14",
+    "dowel-ui": "^0.6.1",
     "i18next": "^26.4.0",
     "lucide-react": "^1.34.0",
     "marked": "^18.0.11",

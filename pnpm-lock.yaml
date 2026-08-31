@@ -38,6 +38,9 @@ importers:
       dompurify:
         specifier: ^3.4.14
         version: 3.4.14
+      dowel-ui:
+        specifier: ^0.6.1
+        version: 0.6.1(eslint@10.9.1(jiti@2.7.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       i18next:
         specifier: ^26.4.0
         version: 26.4.0(typescript@6.0.3)
@@ -1243,6 +1246,16 @@ packages:
 
   dompurify@3.4.14:
     resolution: {integrity: sha512-dVoH9z+MY+C9IilgGCk3YfFqjLi3fChm2OiKJMzh6axrJ5qwxqWaZamgmHrpv22CN/KdbZJuGEGgfQoL00LTdg==}
+
+  dowel-ui@0.6.1:
+    resolution: {integrity: sha512-mod/MBhwuURyHdCoIaakcjgrzzAX97deCCUtf7wF+KgTZ2Oagg2j9igqBe+uoTda3ICQ0Wu14kdF1W0YPWDEog==}
+    peerDependencies:
+      eslint: ^9.0.0 || ^10.0.0
+      react: ^19.0.0
+      react-dom: ^19.0.0
+    peerDependenciesMeta:
+      eslint:
+        optional: true
 
   electron-to-chromium@1.5.415:
     resolution: {integrity: sha512-958V+Kbhtgz+SxXeEVKBjrlKRBIDAYvUJfwhjxMZ5S6ut9jAl7l9ZKBkBrvjyjZE36PabLUo2L8kEeV5O4vgJg==}
@@ -3000,6 +3013,15 @@ snapshots:
   dompurify@3.4.14:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
+
+  dowel-ui@0.6.1(eslint@10.9.1(jiti@2.7.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      clsx: 2.1.1
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      tailwind-merge: 3.6.0
+    optionalDependencies:
+      eslint: 10.9.1(jiti@2.7.0)
 
   electron-to-chromium@1.5.415: {}
 

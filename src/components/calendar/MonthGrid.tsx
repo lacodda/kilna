@@ -89,7 +89,7 @@ export function MonthGrid({
       <div className="flex items-center gap-2">
         <Button
           variant="icon"
-          size="iconSm"
+          size="icon-sm"
           aria-label={t('calendar.previousMonth')}
           title={t('calendar.previousMonth')}
           onClick={() => onMonthChange(shiftMonth(month, -1))}
@@ -99,7 +99,7 @@ export function MonthGrid({
         <h3 className="min-w-44 text-center text-sm font-semibold capitalize">{title}</h3>
         <Button
           variant="icon"
-          size="iconSm"
+          size="icon-sm"
           aria-label={t('calendar.nextMonth')}
           title={t('calendar.nextMonth')}
           onClick={() => onMonthChange(shiftMonth(month, 1))}
