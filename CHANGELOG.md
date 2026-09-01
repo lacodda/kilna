@@ -7,6 +7,7 @@ All notable changes to this project are documented in this file.
 ### Bug Fixes
 - Make the window behave like a window
 - Stamp every instant to the same width
+- Break the tie in every ordering by a timestamp
 ## [0.42.0] - 2026-09-01
 
 ### Features
