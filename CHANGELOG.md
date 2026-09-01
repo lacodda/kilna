@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.40.0] - 2026-09-01
+
+### Features
+- Revise a version into the next one, and see what moved
 ## [0.39.0] - 2026-08-31
 
 ### Features
