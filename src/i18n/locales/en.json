@@ -93,7 +93,11 @@
     "diffAdded_one": "{{count}} line in",
     "diffAdded_other": "{{count}} lines in",
     "diffRemoved_one": "{{count}} line out",
-    "diffRemoved_other": "{{count}} lines out"
+    "diffRemoved_other": "{{count}} lines out",
+    "changes": "Changes",
+    "diffFirst": "This is the first revision of this role — there is nothing before it to compare with.",
+    "deriveFrom": "Start a new version from this one",
+    "restoreDraft": "Bring the draft back"
   },
   "nav": {
     "catalogue": "Catalogue",
@@ -484,7 +488,8 @@
     "profileSaveFailed": "Could not save the profile.",
     "loadFailed": "Could not load that.",
     "scoreDeleted": "Score deleted.",
-    "releaseDeleted": "Release deleted."
+    "releaseDeleted": "Release deleted.",
+    "versionDerived": "The text is in the editor. Saving makes it the next revision."
   },
   "trash": {
     "title": "Trash",

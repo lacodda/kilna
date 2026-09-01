@@ -98,7 +98,11 @@
     "diffRemoved_one": "{{count}} строка убрана",
     "diffRemoved_few": "{{count}} строки убрано",
     "diffRemoved_many": "{{count}} строк убрано",
-    "diffRemoved_other": "{{count}} строки убрано"
+    "diffRemoved_other": "{{count}} строки убрано",
+    "changes": "Изменения",
+    "diffFirst": "Это первая ревизия в этой роли — сравнивать не с чем.",
+    "deriveFrom": "Новая версия на основе этой",
+    "restoreDraft": "Вернуть черновик"
   },
   "nav": {
     "catalogue": "Каталог",
@@ -514,7 +518,8 @@
     "profileSaveFailed": "Не удалось сохранить профиль.",
     "loadFailed": "Не удалось загрузить.",
     "scoreDeleted": "Оценка удалена.",
-    "releaseDeleted": "Выпуск удалён."
+    "releaseDeleted": "Выпуск удалён.",
+    "versionDerived": "Текст в редакторе. Сохранение сделает его следующей ревизией."
   },
   "trash": {
     "title": "Корзина",

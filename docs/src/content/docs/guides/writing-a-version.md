@@ -1,6 +1,6 @@
 ---
 title: Writing a version
-description: The editor — drafts that survive a closed window, naming versions, previewing markdown, writing full screen, and comparing two drafts side by side.
+description: The editor — drafts that survive a closed window, naming versions, revising a version into the next one, previewing markdown, writing full screen, and comparing two drafts side by side.
 ---
 
 Every draft of a work is kept whole. You never overwrite the last one, and
@@ -37,14 +37,34 @@ promoting it — the work keeps pointing at the version it pointed at before, an
 scores and exports keep reading that one. You can always promote it later with
 the star beside its row.
 
+## Revising a version
+
+Versions never change once saved. There is no *edit* — a revision you can
+rewrite afterwards is not a record of what you wrote, and every score, release
+and comparison pointing at it would quietly start describing different text.
+
+Revising is therefore *starting the next revision from this one*. The **new
+version from this one** button on any row loads that version's text into the
+editor, where you change the line you came to change and save it as the next
+revision. The one you started from stays exactly as it was.
+
+If you already had unsaved text in that role, it is set aside rather than
+guarded by a question: the toast that confirms the copy offers **bring the
+draft back**, which returns what was there. That is the same trade kilna makes
+for deletion — one click to take it back afterwards beats one click every
+time.
+
 ## Reading what you wrote
 
-The open version can be read two ways:
+The open version can be read three ways:
 
 - **Text** shows exactly what is stored, in a monospace column.
 - **Preview** renders it as markdown — headings, emphasis, lists, quotes.
+- **Changes** compares it with the revision before it, without your having to
+  find that revision first. On the first revision of a role there is nothing
+  before it, and kilna says so rather than comparing it with itself.
 
-The same two modes are in the editor while you write, so you can check how a
+Text and Preview are also in the editor while you write, so you can check how a
 lyric sheet or an outline will read before it becomes a version.
 
 kilna stores your text exactly as you typed it. Markdown is a way of *looking*
@@ -59,9 +79,13 @@ nothing about the draft changes on the way in or out.
 
 ## Comparing two versions
 
-The **±** button on any version in the list compares it with the one currently
-open. They appear side by side: the older text on the left, the newer on the
-right, with lines that left marked in red and lines that arrived marked in
+**Changes** answers the usual question — *what moved since last time* — against
+the revision immediately before the open one. To compare against some other
+version, the **±** button on any row in the list puts that one on the left
+instead.
+
+Either way they appear side by side: the older text on the left, the newer on
+the right, with lines that left marked in red and lines that arrived marked in
 green. A line at the top says how much moved.
 
 The comparison is by line rather than by word, because a version here is
@@ -70,7 +94,17 @@ prose — a verse, a scene, a script — and prose is revised by the line. Seein
 a word-level diff of a rewritten verse is confetti.
 
 Press **±** again to stop comparing, or open the version you were comparing
-against and it clears itself.
+against and it clears itself. **Text** or **Preview** leaves the comparison
+too.
+
+## Walking the history
+
+With the version list focused, the arrow keys step through it: **↓** to the
+next revision back, **↑** toward the newest, **Home** and **End** to either
+end. Reading through six revisions is six presses rather than six aimed
+clicks, and whichever way you got there, the reading mode stays as you left
+it — arrowing through a history in **Changes** shows each revision against the
+one before it in turn.
 
 ## Roles
 

@@ -32,6 +32,11 @@ has a **role** — a song keeps `lyrics` and `style` as independent drafts; a
 chapter keeps `text`, `outline` and `notes`. One of a work's versions is
 marked current, but every prior one stays readable.
 
+A saved version never changes. Revising means starting the next revision from
+it — one button in the editor — which is what keeps a score honest about the
+text it judged. See
+[Writing a version](/kilna/guides/writing-a-version/).
+
 Bodies are stored whole because text is measured in kilobytes and
 reconstructing a document from a diff chain is a well-known source of
 corruption for no meaningful saving. See

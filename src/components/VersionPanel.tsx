@@ -10,6 +10,7 @@ import {
   setCurrentVersion,
 } from '@/lib/api'
 import { clearDraft, readDraft, writeDraft } from '@/lib/drafts'
+import { predecessor } from '@/lib/history'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
@@ -27,8 +28,15 @@ interface Props {
   workId: string
 }
 
-/** How the body of the open version is shown. */
-const READINGS = ['text', 'preview'] as const
+/**
+ * How the body of the open version is shown.
+ *
+ * `changes` compares it with the revision before it — the question asked most
+ * often of a history, and one that should not cost a hunt through the list for
+ * the other side. Picking a version with the ± button overrides it, because
+ * then the comparison was asked for explicitly.
+ */
+const READINGS = ['text', 'preview', 'changes'] as const
 
 // Versions of one role at a time: lyrics and style advance independently, and
 // showing them interleaved would suggest otherwise.
@@ -114,10 +122,14 @@ export function VersionPanel({ workId }: Props) {
     enabled: commentId !== null,
   })
 
+  // What `changes` compares against when nothing was picked by hand.
+  const before = predecessor(summaries, openId)
+  const againstId = comparedId ?? (reading === 'changes' ? (before?.id ?? null) : null)
+
   const compared = useQuery({
-    queryKey: keys.version(comparedId ?? ''),
-    queryFn: () => getVersion(comparedId!),
-    enabled: comparedId !== null,
+    queryKey: keys.version(againstId ?? ''),
+    queryFn: () => getVersion(againstId!),
+    enabled: againstId !== null,
   })
 
   // A version changes the list, the work's current pointer, the summary the
@@ -176,7 +188,34 @@ export function VersionPanel({ workId }: Props) {
     return found.label ?? t('versions.revision', { number: found.revision })
   }
 
-  const comparing = comparedId !== null && open.data != null && compared.data != null
+  const comparing = againstId !== null && open.data != null && compared.data != null
+
+  // The body of a version, loaded into the editor to be revised into the next
+  // one. This is what replaces editing a version in place: a saved revision
+  // never changes, because scores are snapshots tied to one (ADR 0002) and a
+  // body edited underneath them would silently rewrite what they judged.
+  //
+  // A draft already in progress is displaced rather than guarded by a
+  // confirmation: the same trade the app makes for deletion — one click to take
+  // it back after the fact beats one click every time.
+  const deriveFrom = async (id: string) => {
+    const source = await client.fetchQuery({
+      queryKey: keys.version(id),
+      queryFn: () => getVersion(id),
+    })
+    if (source == null) return
+
+    const displaced = drafts[source.role] ?? readDraft(workId, source.role)
+    setRole(source.role)
+    setSelectedId(id)
+    setDraft(source.body)
+
+    if (displaced.trim() === '') say.ok(t('toast.versionDerived'))
+    else
+      say.undoable(t('toast.versionDerived'), t('versions.restoreDraft'), () => {
+        setDraft(displaced)
+      })
+  }
 
   return (
     <section className="flex flex-col gap-3">
@@ -215,32 +254,34 @@ export function VersionPanel({ workId }: Props) {
           comparedId={comparedId}
           onOpen={(id) => {
             setSelectedId(id)
-            // Comparing something against itself is not a state worth having.
-            if (comparedId === id) setComparedId(null)
+            // A hand-picked other side belonged to the version it was picked
+            // against. Carrying it onto the next one turns stepping through a
+            // history into comparing everything with one fixed revision, which
+            // is not what the step asked for; `changes` falls back to each
+            // version's own predecessor.
+            setComparedId(null)
           }}
-          onCompare={(id) => setComparedId(comparedId === id ? null : id)}
+          onCompare={(id) => {
+            const dropping = comparedId === id
+            setComparedId(dropping ? null : id)
+            // Picking a side to compare against is asking for the diff; letting
+            // it go returns to whatever was being read before.
+            setReading(dropping ? 'text' : 'changes')
+          }}
           onMakeCurrent={(id) => makeCurrent.mutate(id)}
           onDelete={(id) => remove.mutate(id)}
+          onDeriveFrom={(id) => void deriveFrom(id)}
         />
 
         <div className="flex min-w-0 flex-col gap-4">
           {open.isPending && openId !== null && <Skeleton className="h-32 w-full" />}
-
-          {comparing && open.data != null && compared.data != null && (
-            <VersionDiff
-              before={compared.data.body}
-              after={open.data.body}
-              beforeLabel={nameOf(comparedId)}
-              afterLabel={nameOf(openId)}
-            />
-          )}
 
           {/* The text and what was written about it, side by side. Reading a
               review away from the lines it discusses is reading half of it —
               which is exactly what the predecessor's two panels got right. The
               split only happens when there is a review of this very revision
               and room for both; below that the review sits underneath. */}
-          {!comparing && open.data != null && (
+          {open.data != null && (
             <div
               className={cn(
                 'grid min-w-0 gap-4',
@@ -260,10 +301,22 @@ export function VersionPanel({ workId }: Props) {
                   {READINGS.map((mode) => (
                     <Button
                       key={mode}
-                      variant={reading === mode ? 'soft' : 'icon'}
+                      // A hand-picked comparison is the diff too, however it
+                      // was reached, so the button reflects what is on screen
+                      // rather than only what was last clicked.
+                      variant={
+                        (mode === 'changes' ? comparing : reading === mode && !comparing)
+                          ? 'soft'
+                          : 'icon'
+                      }
                       size="sm"
-                      aria-pressed={reading === mode}
-                      onClick={() => setReading(mode)}
+                      aria-pressed={mode === 'changes' ? comparing : reading === mode && !comparing}
+                      onClick={() => {
+                        setReading(mode)
+                        // Leaving the diff drops the hand-picked other side as
+                        // well, or the text would stay hidden behind it.
+                        if (mode !== 'changes') setComparedId(null)
+                      }}
                     >
                       {t(`versions.${mode}`)}
                     </Button>
@@ -271,13 +324,29 @@ export function VersionPanel({ workId }: Props) {
                 </div>
               </header>
 
-              <div className="max-h-[28rem] overflow-auto px-3 py-2.5">
-                {reading === 'preview' ? (
-                  <Markdown body={open.data.body} />
-                ) : (
-                  <pre className="whitespace-pre-wrap font-mono text-sm">{open.data.body}</pre>
-                )}
-              </div>
+              {/* The comparison lives inside the same frame as the text, so
+                  the reading buttons stay reachable: a person who arrived at
+                  the diff needs the way back out of it. */}
+              {comparing && compared.data != null ? (
+                <div className="px-3 py-2.5">
+                  <VersionDiff
+                    before={compared.data.body}
+                    after={open.data.body}
+                    beforeLabel={nameOf(againstId)}
+                    afterLabel={nameOf(openId)}
+                  />
+                </div>
+              ) : reading === 'changes' ? (
+                <p className="px-3 py-2.5 text-sm text-dim">{t('versions.diffFirst')}</p>
+              ) : (
+                <div className="max-h-[28rem] overflow-auto px-3 py-2.5">
+                  {reading === 'preview' ? (
+                    <Markdown body={open.data.body} />
+                  ) : (
+                    <pre className="whitespace-pre-wrap font-mono text-sm">{open.data.body}</pre>
+                  )}
+                </div>
+              )}
             </article>
 
             {comments.length > 0 && (
