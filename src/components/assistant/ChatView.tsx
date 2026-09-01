@@ -382,7 +382,7 @@ function ExchangeItem({
   return (
     <li className="flex flex-col gap-1.5">
       {item.prompt !== null && (
-        <p className="rounded-xl bg-soft px-3 py-2 text-sm whitespace-pre-wrap">{item.prompt}</p>
+        <p className="selectable rounded-xl bg-soft px-3 py-2 text-sm whitespace-pre-wrap">{item.prompt}</p>
       )}
 
       {run !== null && run.steps.length > 0 && (

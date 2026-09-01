@@ -26,6 +26,7 @@ import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SectionLabel } from '@/components/ui/panel'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 interface Props {
   works: readonly ScoredWork[]
@@ -103,6 +104,16 @@ export function FocusBoard({ works, calendar, skip = [], onSelect }: Props) {
   // reads as a section that failed to load — which is exactly how it looked
   // the first time every finding on a real workspace was dismissed.
   const anythingToShow = standing.length > 0 || board.length > 0
+
+  // Until both queries land, whether there is anything to show is not yet
+  // known — and the answer decides whether this section exists at all. Drawing
+  // nothing meanwhile makes the board appear late and push the dashboard down;
+  // drawing a full skeleton would promise a board that may legitimately be
+  // empty (v0.34: the heading is earned by what stands under it). One row's
+  // worth of space, and only while the answer is on its way.
+  if (dismissals.isPending || notes.isPending) {
+    return <Skeleton className="h-8 w-full" />
+  }
 
   return (
     <section className="flex flex-col gap-3">

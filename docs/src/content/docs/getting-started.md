@@ -49,6 +49,25 @@ which the React rules read as building one during render. A rule silenced per
 file is one a reviewer can find; a comment silencing it inline is one they
 cannot.
 
+**The window is a window, not a page.** `styles.css` seals the document
+(`overflow: hidden` on `html, body, #root`) and switches text selection off
+across the shell; the only box that scrolls is the keyed content area in
+`App.tsx`. Two consequences when you write a screen:
+
+- **Selection is handed back, never assumed.** Put `selectable` on anything
+  that is genuinely text someone may want to copy - a version body, a note, a
+  path, a diff. Inputs and `contenteditable` keep it automatically. `Markdown`
+  already carries it, so prose rendered through it needs nothing.
+- **Do not add a second scroller** unless the thing inside it really scrolls on
+  its own. If you do, clip the axis you are not using: `overflow-y-auto` alone
+  leaves the horizontal axis scrollable too, which is how a trackpad swipe used
+  to slide whole screens sideways.
+
+Three checks in `src-tauri/tests/shell_rules.rs` fail if any of that is
+deleted. They read the source rather than the rendering, because what they
+guard are single declarations whose absence only shows up as a gesture
+behaving strangely on someone's laptop.
+
 **Casing in `components/ui/` says where a file came from.** A lowercase name -
 `button.tsx`, `dialog.tsx`, `toast.tsx` - is a copy from the registry: it is
 never edited, so it stays byte-identical to upstream and can be updated by

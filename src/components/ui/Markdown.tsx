@@ -79,7 +79,9 @@ export function Markdown({
     <div
       ref={container}
       className={cn(
-        'text-sm leading-relaxed',
+        // Rendered prose is the text someone came to read: selection is handed
+        // back here, where the shell switched it off.
+        'selectable text-sm leading-relaxed',
         // Tailwind's preflight strips list markers and heading sizes, so the
         // few tags markdown actually produces are styled back by hand rather
         // than by pulling in a typography plugin for one screen.

@@ -19,7 +19,7 @@ import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { PromptDialog } from '@/components/ui/AppDialog'
-import { SkeletonList } from '@/components/ui/Skeleton'
+import { SkeletonList, SkeletonMonth } from '@/components/ui/Skeleton'
 import { KindFilterBar } from '@/components/calendar/KindFilterBar'
 import { MonthGrid } from '@/components/calendar/MonthGrid'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
@@ -262,7 +262,7 @@ export function CalendarView({ onSelect }: Props) {
 
       <section className="flex flex-col gap-3">
         {slots.isPending ? (
-          <SkeletonList rows={4} />
+          <SkeletonMonth />
         ) : slots.isError ? (
           <p role="alert" className="text-sm text-bad">
             {t('toast.loadFailed')}

@@ -153,8 +153,21 @@ function ShellSkeleton() {
 
             {/* Keyed by the screen so the entry animation replays on
                 navigation, but not when moving between works inside the same
-                screen. */}
-            <div key={screen} className="screen-in min-h-0 flex-1 overflow-y-auto">
+                screen.
+
+                `overflow-y-auto` alone leaves the horizontal axis at `auto`
+                too, so this box was quietly scrollable sideways and a trackpad
+                swipe slid the content under the sidebar — the same trap the tab
+                strip hit at v0.35. The axis is clipped explicitly.
+
+                `scrollbar-gutter: stable` keeps the scrollbar’s 10px reserved
+                whether or not a screen is long enough to need one. Without it
+                every navigation was a small sideways jump: the skeleton is
+                short, and the content replacing it is not. */}
+            <div
+              key={screen}
+              className="screen-in min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]"
+            >
               {/* Resetting on the screen name means a crash does not outlive the
                   route that caused it. */}
               <ErrorBoundary resetKey={screen}>

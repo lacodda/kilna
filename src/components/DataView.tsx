@@ -11,6 +11,7 @@ import {
 } from '@/lib/api'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { ProfileEditor } from '@/components/ProfileEditor'
 import { StatusDrift } from '@/components/StatusDrift'
 
@@ -109,11 +110,20 @@ export function DataView() {
             {t('data.backupAction')}
           </Button>
         </div>
-        {path.data != null && (
-          <p className="text-xs text-dim">
-            {t('data.workspaceAt')} <code className="font-mono">{path.data}</code>
-          </p>
-        )}
+        {/* The line keeps its place while the path is on its way. Everything
+            else on this screen is static, so a skeleton of the whole thing
+            would be a lie about what is loading — but this one line arriving
+            late pushed the paragraph under it down, which is the jump. */}
+        <p className="text-xs text-dim">
+          {path.data == null ? (
+            <Skeleton className="h-3 w-72" />
+          ) : (
+            <>
+              {t('data.workspaceAt')}{' '}
+              <code className="selectable font-mono">{path.data}</code>
+            </>
+          )}
+        </p>
         <p className="text-xs text-dim">{t('data.restoreHint')}</p>
       </section>
 

@@ -85,7 +85,7 @@ export function NotePanel({ workId }: Props) {
               className="flex items-start gap-2 rounded-xl border border-line p-2.5"
             >
               <div className="flex-1">
-                <p className="whitespace-pre-wrap text-sm">{note.body}</p>
+                <p className="selectable whitespace-pre-wrap text-sm">{note.body}</p>
                 {note.tags.length > 0 && (
                   <p className="mt-1 flex flex-wrap gap-1">
                     {note.tags.map((tag) => (

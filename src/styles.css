@@ -18,18 +18,62 @@
 @import 'dowel-ui/theme.css';
 @import 'dowel-ui/accents/kilna.css';
 
+/*
+ * The window is a window, not a page.
+ *
+ * `height: 100%` alone leaves the document scrollable, and a laptop trackpad
+ * finds that: a two-finger swipe slid the whole shell sideways until the
+ * sidebar left the window, and downwards until a blank strip sat above the
+ * topbar. Nothing asked for those scrolls -- the shell is exactly the window's
+ * size, and any overshoot is a stray pixel from a ring or a badge. Sealing the
+ * document means the only thing that scrolls is the one box that means to.
+ */
 html,
 body,
 #root {
   height: 100%;
+  overflow: hidden;
 }
 
+/*
+ * A gesture that runs past the end of a scroller stops there rather than
+ * handing the rest to whatever is underneath. Without it a flick inside the
+ * content area keeps travelling into the document, which is the same swipe
+ * that moved the shell.
+ */
 body {
   margin: 0;
+  overscroll-behavior: none;
   background-color: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Selection belongs to text, not to furniture.
+ *
+ * Dragging across the shell used to paint every label, count and menu entry
+ * blue -- the app read as a web page caught mid-copy. Selection is switched off
+ * by default and handed back where the content is genuinely text someone may
+ * want: version bodies, notes, assistant answers, the workspace path, and every
+ * input. Journal lines are not among them -- they are rendered from keys
+ * (ADR 0007), so they are interface wording rather than anyone's writing.
+ * `-webkit-user-drag` goes with it: in WebView2 a press that begins on a text
+ * node starts a selection drag, which is one of the things that kept the
+ * calendar chips from being picked up.
+ */
+:root {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+input,
+textarea,
+[contenteditable],
+.selectable,
+.selectable * {
+  user-select: text;
 }
 
 :focus-visible {

@@ -343,7 +343,7 @@ export function VersionPanel({ workId }: Props) {
                   {reading === 'preview' ? (
                     <Markdown body={open.data.body} />
                   ) : (
-                    <pre className="whitespace-pre-wrap font-mono text-sm">{open.data.body}</pre>
+                    <pre className="selectable whitespace-pre-wrap font-mono text-sm">{open.data.body}</pre>
                   )}
                 </div>
               )}

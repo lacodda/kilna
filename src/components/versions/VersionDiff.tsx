@@ -73,7 +73,7 @@ function Column({
       <header className="border-b border-line px-3 py-1.5 text-xs font-medium text-dim">
         {title}
       </header>
-      <div className="max-h-[28rem] overflow-auto py-1 font-mono text-[13px] leading-relaxed">
+      <div className="selectable max-h-[28rem] overflow-auto py-1 font-mono text-[13px] leading-relaxed">
         {changes.filter((change) => keep(change.kind)).map((change, index) => (
           <div
             // Lines repeat and reorder, so their text is not an identity; the

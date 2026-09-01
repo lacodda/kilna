@@ -32,7 +32,7 @@ function Fallback({ error, onRetry }: { error: Error; onRetry: () => void }) {
             but folded away, because it is not an instruction to the reader. */}
         <details className="w-full">
           <summary className="cursor-pointer text-xs text-faint">{t('crash.details')}</summary>
-          <pre className="mt-2 max-h-40 overflow-auto rounded-[9px] bg-softer p-3 font-mono text-xs text-dim">
+          <pre className="selectable mt-2 max-h-40 overflow-auto rounded-[9px] bg-softer p-3 font-mono text-xs text-dim">
             {error.message}
           </pre>
         </details>
