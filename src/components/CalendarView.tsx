@@ -20,9 +20,11 @@ import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { PromptDialog } from '@/components/ui/AppDialog'
 import { SkeletonList } from '@/components/ui/Skeleton'
+import { KindFilterBar } from '@/components/calendar/KindFilterBar'
 import { MonthGrid } from '@/components/calendar/MonthGrid'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { ReleaseEditor } from '@/components/calendar/ReleaseEditor'
+import { filterByKind, filterGhosts, type KindFilter } from '@/lib/calendarFilter'
 import { ghostsOf } from '@/lib/layout'
 import { monthOf, today, type Month } from '@/lib/month'
 import { cn } from '@/lib/utils'
@@ -41,6 +43,10 @@ export function CalendarView({ onSelect }: Props) {
   const [picked, setPicked] = useState<string | null>(null)
   const [slot, setSlot] = useState('')
   const [month, setMonth] = useState<Month>(() => monthOf(today()))
+  // Which kinds the grid is showing. The queue is deliberately not filtered
+  // with it: the queue is what still needs a date, and hiding part of it behind
+  // a view of the month would hide work waiting to be scheduled.
+  const [kind, setKind] = useState<KindFilter>(null)
   // The id of the release being edited, not the row itself: holding the row
   // would freeze it at the moment it was opened, and pinning from inside the
   // dialog left the tick unmoved until it was closed and opened again.
@@ -290,11 +296,25 @@ export function CalendarView({ onSelect }: Props) {
               </div>
             )}
 
+            {/* Under the layout banner, above the grid. The banner is a
+                question waiting for an answer and outranks everything while it
+                is up; the filter is a standing choice about what the month
+                shows, so it sits with the thing it governs. */}
+            <KindFilterBar slots={slots.data} value={kind} onChange={setKind} />
+
             <MonthGrid
               month={month}
               onMonthChange={setMonth}
-              slots={slots.data}
-              ghosts={layout === null ? undefined : ghostsOf(layout, queued.data ?? [])}
+              slots={filterByKind(slots.data, kind)}
+              // Filtered with the chips, so a narrowed month does not draw a
+              // plan it is not showing. Booking still applies every placement:
+              // the filter is a view of the month, not an instruction about
+              // what to schedule.
+              ghosts={
+                layout === null
+                  ? undefined
+                  : filterGhosts(ghostsOf(layout, queued.data ?? []), kind)
+              }
               // A queued release is waiting for a date: the grid becomes a way
               // to pick one, rather than a picture of what is booked.
               claimingId={picked}

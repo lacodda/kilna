@@ -76,6 +76,10 @@ export interface PromptTemplate {
 // list states no requirements, and readiness marks render as inapplicable.
 export interface ReleaseKind extends Kind {
   requires: string[]
+  /** Name of the glyph the calendar draws this kind with, from the fixed set
+      in `lib/releaseIcon.ts`. Absent in a profile written before the field, and
+      absent for a kind the owner invented; both fall back to a neutral mark. */
+  icon?: string | null
 }
 
 // The pace releases go out at. `default_time` (HH:MM) is a hint shown beside

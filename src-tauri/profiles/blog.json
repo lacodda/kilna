@@ -9,9 +9,9 @@
       { "key": "guide", "label": "Guide" }
     ],
     "release_kinds": [
-      { "key": "publish", "label": "Site publish", "requires": ["draft"] },
-      { "key": "newsletter", "label": "Newsletter send", "requires": ["draft"] },
-      { "key": "syndication", "label": "Syndication", "requires": ["draft"] }
+      { "key": "publish", "label": "Site publish", "requires": ["draft"], "icon": "globe" },
+      { "key": "newsletter", "label": "Newsletter send", "requires": ["draft"], "icon": "mail" },
+      { "key": "syndication", "label": "Syndication", "requires": ["draft"], "icon": "share-2" }
     ],
     "collection_kinds": [
       { "key": "series", "label": "Series" },

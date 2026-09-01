@@ -170,9 +170,6 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
     }
 
     for kind in &mut config.release_kinds {
-        if !kind.requires.is_empty() {
-            continue;
-        }
         let Some(shipped) = shipped
             .config
             .release_kinds
@@ -181,8 +178,17 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         else {
             continue;
         };
-        if !shipped.requires.is_empty() {
+        if kind.requires.is_empty() && !shipped.requires.is_empty() {
             kind.requires = shipped.requires.clone();
+            changed = true;
+        }
+        // The glyph arrives the same way the requirements did: a workspace made
+        // before the field existed gains what the shipped profile states for a
+        // kind it still recognises by key. A kind the owner added themselves is
+        // not in the shipped list and keeps its blank -- guessing a glyph for
+        // "Vinyl pressing" is not something this code can do.
+        if kind.icon.is_none() && shipped.icon.is_some() {
+            kind.icon = shipped.icon.clone();
             changed = true;
         }
     }
@@ -581,6 +587,100 @@ mod tests {
         assert_eq!(requires_of("clip"), vec!["lyrics", "style"]);
         // A list the user set themselves is not overwritten by the upgrade.
         assert_eq!(requires_of("audio"), vec!["style"]);
+    }
+
+    /// Same delivery path again, for the glyph the calendar draws a kind with.
+    /// A workspace made before the field existed shows every kind under the
+    /// same fallback mark until this backfill runs.
+    #[test]
+    fn an_older_workspace_gains_the_icons_its_release_kinds_are_drawn_with() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        // Wind the stored copy back to before the field: no icons at all,
+        // except one the user chose by hand, which must survive the upgrade.
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        for kind in &mut config.release_kinds {
+            kind.icon = if kind.key == "audio" {
+                Some("radio".into())
+            } else {
+                None
+            };
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let icon_of = |key: &str| {
+            config
+                .release_kinds
+                .iter()
+                .find(|kind| kind.key == key)
+                .unwrap()
+                .icon
+                .clone()
+        };
+        assert_eq!(icon_of("clip").as_deref(), Some("film"));
+        assert_eq!(icon_of("short").as_deref(), Some("smartphone"));
+        // A glyph the user picked themselves is not taken back by the upgrade.
+        assert_eq!(icon_of("audio").as_deref(), Some("radio"));
+    }
+
+    /// A kind the owner invented is theirs alone: the shipped profile has
+    /// nothing to say about it, and the backfill must not reach for a glyph
+    /// belonging to some other kind that happens to sit at the same index.
+    #[test]
+    fn a_kind_of_the_owners_own_gains_no_icon() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        config.release_kinds.insert(
+            0,
+            crate::profile::config::ReleaseKind::new("vinyl", "Vinyl pressing", &[]),
+        );
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let vinyl = config
+            .release_kinds
+            .iter()
+            .find(|kind| kind.key == "vinyl")
+            .unwrap();
+        assert_eq!(vinyl.icon, None);
+        // And the kinds that do ship still got theirs, so the assertion above
+        // is not passing because the backfill did nothing at all.
+        assert!(
+            config
+                .release_kinds
+                .iter()
+                .any(|kind| kind.key == "clip" && kind.icon.as_deref() == Some("film"))
+        );
     }
 
     /// The labels are the user's, and an upgrade must not take them back.

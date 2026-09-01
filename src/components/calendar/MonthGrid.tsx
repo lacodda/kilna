@@ -1,16 +1,15 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, GripVertical, Lock, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { previewSchedule, type ScheduledRelease } from '@/lib/api'
 import type { Ghost } from '@/lib/layout'
 import { byDate, monthGrid, sameMonth, shiftMonth, today, type Month } from '@/lib/month'
-import { accentFor, coverFor } from '@/lib/cover'
-import { shortKind } from '@/lib/kind'
-import { daysBetween } from '@/lib/readiness'
+import { accentFor } from '@/lib/cover'
+import { releaseIcon } from '@/lib/releaseIcon'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
-import { ReadyMarks } from '@/components/calendar/ReadyMarks'
+import { SlotChip } from '@/components/calendar/SlotChip'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -58,6 +57,11 @@ export function MonthGrid({
   // air and the day under the cursor can light up.
   const [dragging, setDragging] = useState<string | null>(null)
   const [over, setOver] = useState<string | null>(null)
+
+  // The profile's entry for a kind, or nothing when the calendar still holds a
+  // release of a kind the profile has since dropped. Nothing is a real answer
+  // here: the chip falls back to the neutral glyph rather than disappearing.
+  const kindOf = (key: string) => profile.config.release_kinds.find((kind) => kind.key === key)
 
   const days = monthGrid(month)
   const booked = byDate(slots, (slot) => slot.scheduled_at)
@@ -173,6 +177,10 @@ export function MonthGrid({
               className={cn(
                 'min-h-24 bg-bg p-1.5 transition-colors',
                 !day.inMonth && 'opacity-40',
+                // Today is where the eye starts. The number alone carried it
+                // until now, and on a grid of forty-two cells a coloured digit
+                // is not where the eye starts.
+                isToday && 'inset-ring inset-ring-accent',
                 claiming && day.inMonth && 'cursor-pointer hover:bg-soft',
                 // The ground answers before the drop does: a day that would
                 // refuse reads red, anything else reads like a place to land.
@@ -214,107 +222,19 @@ export function MonthGrid({
 
               <div className="flex flex-col gap-1">
                 {releases.map((slot) => (
-                  <div
+                  <SlotChip
                     key={slot.id}
-                    className={cn(
-                      // A column, not a row. A day is ~100px wide, and one row
-                      // spent all of it on the handle, the marks and the kind:
-                      // the pilot's calendar showed three letters of every
-                      // title. The handle and the marks share the top line; the
-                      // title gets the day's full width underneath.
-                      'flex flex-col gap-0.5 rounded-[7px] px-1 py-1 text-[11px] transition-opacity',
-                      slot.status === 'released' && 'opacity-60',
-                      dragging === slot.id && 'opacity-40',
-                    )}
-                    // The work's own colour, so the same song is the same colour
-                    // wherever it appears — the cover, the card, this chip.
-                    style={{ background: coverFor(slot.work_id) }}
-                  >
-                    {/* The top line: what you grab and what the release's state
-                        is. Both are small and fixed-width, so they cost the
-                        title nothing. */}
-                    <div className="flex items-center gap-1">
-                    {/* The handle, and only the handle, is draggable. Making the
-                        whole chip draggable puts every click in a race with a
-                        drag — the predecessor did that and lost the click. */}
-                    <span
-                      draggable={slot.status !== 'released'}
-                      onDragStart={(event) => {
-                        event.dataTransfer.setData('text/plain', slot.id)
-                        event.dataTransfer.effectAllowed = 'move'
-                        setDragging(slot.id)
-                      }}
-                      onDragEnd={() => {
-                        setDragging(null)
-                        setOver(null)
-                      }}
-                      onClick={(event) => event.stopPropagation()}
-                      title={t('calendar.dragHandle')}
-                      className={cn(
-                        'shrink-0 text-white/50',
-                        slot.status === 'released' ? 'opacity-30' : 'cursor-grab hover:text-white/80',
-                      )}
-                    >
-                      <GripVertical aria-hidden className="size-3" />
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        // The day underneath books a date; the chip opens what
-                        // is already booked. One click means one of those.
-                        event.stopPropagation()
-                        onOpenRelease(slot.id)
-                      }}
-                      title={`${slot.work_title} · ${labelOf(profile.config.release_kinds, slot.kind)}`}
-                      className="flex min-w-0 flex-1 cursor-pointer items-center justify-end gap-1.5 text-left hover:opacity-80"
-                    >
-                      <ReadyMarks
-                        readiness={slot.readiness}
-                        released={slot.status === 'released'}
-                        daysLeft={daysBetween(now, day.date)}
-                        // The chip's ground is the work's own colour; the dark
-                        // pill keeps the amber and red legible on any of them.
-                        className={cn(
-                          'rounded-[4px] bg-black/35 px-0.5 py-px',
-                          slot.status === 'released' && 'text-white/70',
-                        )}
-                      />
-                      {slot.slot_pinned_at !== null && (
-                        <Lock
-                          aria-hidden
-                          className="size-2.5 shrink-0 text-white/70"
-                        />
-                      )}
-                      {/* The kind, short enough to leave the title readable.
-                          It used to be spelled out, and on a day holding two
-                          releases "SHORT" left the title one letter wide. The
-                          word itself stays in the chip's tooltip, and the kind
-                          cannot be an icon: its keys come from the profile,
-                          which the code does not get to know (ADR 0001). */}
-                      <span
-                        className="shrink-0 text-[9px] font-semibold tracking-wide text-white/55"
-                        aria-hidden
-                      >
-                        {shortKind(labelOf(profile.config.release_kinds, slot.kind))}
-                      </span>
-                    </button>
-                    </div>
-
-                    {/* The title, on its own line and clickable like the marks
-                        above it: the whole chip opens the release. */}
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        onOpenRelease(slot.id)
-                      }}
-                      title={`${slot.work_title} · ${labelOf(profile.config.release_kinds, slot.kind)}`}
-                      className="w-full cursor-pointer truncate text-left font-medium leading-tight text-white/90 hover:opacity-80"
-                    >
-                      {slot.work_title}
-                    </button>
-                  </div>
+                    slot={slot}
+                    date={day.date}
+                    now={now}
+                    dragging={dragging === slot.id}
+                    onDragStart={() => setDragging(slot.id)}
+                    onDragEnd={() => {
+                      setDragging(null)
+                      setOver(null)
+                    }}
+                    onOpen={() => onOpenRelease(slot.id)}
+                  />
                 ))}
 
                 {/* Where the auto-layout would put things: dashed and in the
@@ -330,9 +250,10 @@ export function MonthGrid({
                   >
                     {/* Same two rows as a booked chip, for the same reason: on
                         a ~100px day the kind spelled out ate the title. */}
-                    <span className="shrink-0 text-[9px] font-semibold tracking-wide text-faint">
-                      {shortKind(labelOf(profile.config.release_kinds, ghost.kind))}
-                    </span>
+                    {(() => {
+                      const Glyph = releaseIcon(kindOf(ghost.kind)?.icon)
+                      return <Glyph aria-hidden className="size-3 shrink-0 text-faint" />
+                    })()}
                     <span className="w-full truncate font-medium leading-tight text-dim">
                       {ghost.title}
                     </span>

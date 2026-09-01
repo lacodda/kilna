@@ -76,6 +76,15 @@ pub struct ReleaseKind {
     pub label: String,
     #[serde(default)]
     pub requires: Vec<String>,
+    /// The glyph the calendar draws this kind with, named from a fixed set the
+    /// frontend knows. The profile names it because the code is not allowed to
+    /// know which kinds exist (ADR 0001) -- a clip and a beta read have nothing
+    /// in common but the shape of the row they sit in. Absent, or naming a
+    /// glyph the set does not hold, falls back to a neutral one: a profile
+    /// written before this field existed still loads, and a typo costs an
+    /// icon rather than a screen.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
 }
 
 impl ReleaseKind {
@@ -84,7 +93,14 @@ impl ReleaseKind {
             key: key.to_owned(),
             label: label.to_owned(),
             requires: requires.iter().map(|role| (*role).to_owned()).collect(),
+            icon: None,
         }
+    }
+
+    /// The same kind, drawn with a named glyph.
+    pub fn with_icon(mut self, icon: &str) -> Self {
+        self.icon = Some(icon.to_owned());
+        self
     }
 }
 

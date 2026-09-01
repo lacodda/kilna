@@ -63,12 +63,34 @@ resync does it.
 The calendar draws one month at a time, weeks starting on Monday, with the
 neighbouring days dimmed at either end so the grid stays rectangular. The
 arrows walk it in both directions — work is planned ahead and reviewed
-behind — and **This month** comes back to today, which is marked in the
+behind — and **This month** comes back to today, whose cell is outlined in the
 accent colour.
 
 Each booked release shows as a chip in its day, in the colour the work carries
-everywhere else in kilna. Already-released chips are dimmed: they are history
-sitting on a date, not a plan competing for one.
+everywhere else in kilna. The chip's top line holds the grip, the
+[ready marks](#ready-marks), the lock if the date is pinned, and the glyph for
+the kind of release; the title gets the day's full width underneath.
+Already-released chips are dimmed: they are history sitting on a date, not a
+plan competing for one.
+
+Which glyph stands for which kind comes from the profile — kilna does not know
+whether your craft ships clips or beta reads, so the profile says both what the
+kinds are and what they look like. See
+[kind glyphs](/kilna/reference/profile-document/#kind-glyphs). Hovering the
+title opens a card with the work's score, its tier, what it still needs and the
+link it went out on, if it has one — everything the release dialog shows, one
+hover earlier.
+
+**Filtering by kind.** Above the grid sits a row of chips: one per kind of
+release the calendar holds, plus **All**, each with the count behind it.
+Choosing one shows only those releases; choosing it again goes back to all of
+them. The row doubles as the legend for the glyphs on the chips, and it stays
+out of the way when the calendar holds only one kind of release. The queue is
+not filtered with it: the queue is what still needs a date, and hiding part of
+it would hide work waiting to be scheduled. A
+[layout preview](#the-rhythm-and-the-auto-layout) on screen is narrowed to
+match, so the plan never shows what the month is hiding — booking still books
+every placement, filter or no filter.
 
 **Picking a release in the queue turns the grid into a way to answer "when".**
 Days become clickable; clicking one claims that slot, with the same contest

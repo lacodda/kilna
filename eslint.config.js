@@ -22,6 +22,15 @@ export default tseslint.config(
     files: ['src/lib/cover.ts', 'src/components/shell/Sidebar.tsx'],
     rules: { 'dowel/no-raw-color': 'off' },
   },
+  // Where a component is the subject rather than the render: the release-kind
+  // glyph is looked up in a table fixed at module level, so the identity is
+  // stable across renders and nothing remounts. The rule reads any call that
+  // returns a component as a factory, which is what it should do everywhere
+  // else -- this is the one table the profile is allowed to point into.
+  {
+    files: ['src/lib/releaseIcon.tsx'],
+    rules: { 'react-hooks/static-components': 'off' },
+  },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {

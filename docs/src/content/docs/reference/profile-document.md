@@ -36,15 +36,16 @@ The Music profile's `work_kinds` are `song` and `instrumental`; its
 `collection_kinds` are `album`, `single` and `cycle` — a **collection** groups
 works one level deep, without nesting.
 
-A **release kind** carries one extra field:
+A **release kind** carries two extra fields:
 
 ```jsonc
-{ "key": "clip", "label": "Video clip", "requires": ["lyrics", "style"] }
+{ "key": "clip", "label": "Video clip", "requires": ["lyrics", "style"], "icon": "film" }
 ```
 
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `requires` | string[] | Version roles a release of this kind cannot ship without. Drives the [ready marks](/kilna/guides/planning-a-release/#ready-marks) and the not-ready warning. |
+| `icon` | string | Glyph the [calendar](/kilna/guides/planning-a-release/) draws this kind with, from the list below. |
 
 Every key in `requires` must name a role in `version_roles`. An empty or
 absent list states no requirements: readiness is then judged on the score
@@ -52,6 +53,22 @@ alone, and every role mark reads as *not applicable* rather than *missing* —
 which is how a profile written before this field existed loads. A workspace
 whose stored copy states nothing gains the shipped requirements at the next
 start; a list you narrowed yourself is left alone.
+
+### Kind glyphs
+
+kilna does not know what kinds of release your craft ships, so the profile also
+says what each one looks like. `icon` names a glyph from this list:
+
+`audio-lines` · `book` · `book-open` · `disc` · `film` · `globe` · `image` ·
+`mail` · `mic` · `music` · `newspaper` · `radio` · `rss` · `send` · `share-2` ·
+`smartphone` · `users` · `video`
+
+A kind with no `icon`, or one naming a glyph outside the list, is drawn with a
+neutral calendar mark. Nothing breaks and nothing warns: the label is still
+there in the chip's tooltip and in the filter above the grid. A workspace
+written before the field gains the shipped glyphs at the next start, for the
+kinds it still shares by key; a kind you added yourself keeps whatever you gave
+it.
 
 ## `version_roles`
 

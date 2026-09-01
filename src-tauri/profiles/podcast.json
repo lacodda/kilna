@@ -9,9 +9,9 @@
       { "key": "trailer", "label": "Trailer" }
     ],
     "release_kinds": [
-      { "key": "feed", "label": "Feed release", "requires": ["script"] },
-      { "key": "clip", "label": "Audio clip", "requires": ["script"] },
-      { "key": "video", "label": "Video upload", "requires": ["script"] }
+      { "key": "feed", "label": "Feed release", "requires": ["script"], "icon": "rss" },
+      { "key": "clip", "label": "Audio clip", "requires": ["script"], "icon": "audio-lines" },
+      { "key": "video", "label": "Video upload", "requires": ["script"], "icon": "video" }
     ],
     "collection_kinds": [
       { "key": "season", "label": "Season" },
