@@ -36,8 +36,21 @@ copied in from its registry, so they are kilna's own files to edit:
 $ npx shadcn@latest add https://lacodda.github.io/dowel/r/button.json
 ```
 
-One rule comes with it and runs in `pnpm lint`: a component names a colour from
-the vocabulary and never writes one down, so the theme can swap it underneath.
+Two rules come with it and run in `pnpm lint`: a component names a colour from
+the vocabulary and never writes one down, so the theme can swap it underneath;
+and no screen uses a native `<select>`, whose popup the browser draws in the
+operating system's own chrome where no stylesheet reaches it.
+
+**Casing in `components/ui/` says where a file came from.** A lowercase name -
+`button.tsx`, `dialog.tsx`, `toast.tsx` - is a copy from the registry: it is
+never edited, so it stays byte-identical to upstream and can be updated by
+re-running `shadcn add`. A PascalCase name - `AppDialog.tsx`, `RowMenu.tsx`,
+`DatePicker.tsx` - is this application's own.
+
+`AppDialog` and `AppSelect` are the shapes kilna actually uses, written over
+dowel's parts: a heading, a sentence and Cancel beside one affirmative button;
+a flat list of options with an optional "any" entry. dowel says what a dialog
+*is*; these say what this application's dialogs *look like*.
 
 To check the backend on its own, without the UI:
 

@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.41.0] - 2026-09-01
+
+### Features
+- Move the overlays, the menus and the toasts onto dowel
 ## [0.40.0] - 2026-09-01
 
 ### Features
