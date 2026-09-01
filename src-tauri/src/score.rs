@@ -72,10 +72,10 @@ pub struct ScoredWork {
 /// contest by "latest". One work read 68.1 on one screen and 77.8 on the next,
 /// and the rule that decides which release keeps a date used a third number
 /// nothing displayed. `{work}` is the column holding the work id.
-pub const SPEAKING_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work}      AND version_id IS NOT NULL AND version_id = (SELECT current_version_id FROM work WHERE id = {work})      ORDER BY scored_at DESC LIMIT 1";
+pub const SPEAKING_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work}      AND version_id IS NOT NULL AND version_id = (SELECT current_version_id FROM work WHERE id = {work})      ORDER BY scored_at DESC, rowid DESC LIMIT 1";
 
 /// The fallback half of [`SPEAKING_SCORE`]: strongest, then most recent.
-pub const STRONGEST_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work}      ORDER BY total DESC, scored_at DESC LIMIT 1";
+pub const STRONGEST_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work}      ORDER BY total DESC, scored_at DESC, rowid DESC LIMIT 1";
 
 /// Both halves as one `coalesce`, ready to join against.
 pub fn speaking_score_for(work_column: &str) -> String {
@@ -162,7 +162,7 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<Score>> {
 /// Every score of a work, newest first.
 pub fn history(conn: &Connection, work_id: &str) -> Result<Vec<Score>> {
     let mut statement = conn.prepare(&format!(
-        "{SELECT_SCORE} WHERE s.work_id = ?1 ORDER BY s.scored_at DESC"
+        "{SELECT_SCORE} WHERE s.work_id = ?1 ORDER BY s.scored_at DESC, s.rowid DESC"
     ))?;
     let raw = statement
         .query_map(params![work_id], read_row)?
@@ -175,7 +175,7 @@ pub fn history(conn: &Connection, work_id: &str) -> Result<Vec<Score>> {
 pub fn latest(conn: &Connection, work_id: &str) -> Result<Option<Score>> {
     let raw = conn
         .query_row(
-            &format!("{SELECT_SCORE} WHERE s.work_id = ?1 ORDER BY s.scored_at DESC LIMIT 1"),
+            &format!("{SELECT_SCORE} WHERE s.work_id = ?1 ORDER BY s.scored_at DESC, s.rowid DESC LIMIT 1"),
             params![work_id],
             read_row,
         )
@@ -595,6 +595,44 @@ mod tests {
         assert!(
             history[0].total > history[1].total,
             "the revision must be visible as a change in score"
+        );
+    }
+
+    /// Two scores written inside the same millisecond keep their order.
+    ///
+    /// The test above waits for the clock to move and is therefore only as
+    /// good as the machine is slow: it passed for months on every runner and
+    /// failed on macOS the moment timestamps were narrowed to milliseconds.
+    /// The collision is arranged here rather than hoped for -- `scored_at` is
+    /// written by hand, which `create` never lets you do -- so the guarantee is
+    /// tested instead of the hardware.
+    #[test]
+    fn scores_sharing_a_timestamp_come_back_newest_first() {
+        let (conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id, "Tied");
+
+        for total in [5.0_f64, 9.0_f64] {
+            conn.execute(
+                "INSERT INTO work_score (id, work_id, version_id, axes, total, tier, note, scored_at)
+                 VALUES (?1, ?2, NULL, '{}', ?3, NULL, NULL, '2026-08-28T08:48:32.000Z')",
+                rusqlite::params![uuid::Uuid::new_v4().to_string(), work_id, total],
+            )
+            .unwrap();
+        }
+
+        let history = history(&conn, &work_id).unwrap();
+        assert_eq!(history.len(), 2);
+        assert_eq!(
+            history[0].total, 9.0,
+            "the score written last must come back first when both share a timestamp"
+        );
+
+        // `latest` answers the same question through a different query, and it
+        // is the one the catalogue and the calendar actually read.
+        let latest = latest(&conn, &work_id).unwrap().unwrap();
+        assert_eq!(
+            latest.total, 9.0,
+            "`latest` disagrees with `history` about which snapshot is newest"
         );
     }
 

@@ -179,7 +179,7 @@ pub fn list(conn: &Connection, profile_id: &str, filter: &WorkFilter) -> Result<
     // only, so filtering "Гавань" by "гавань" found nothing at all. Titles are
     // matched after the query instead, the same way the palette does it.
 
-    sql.push_str(" ORDER BY updated_at DESC, title");
+    sql.push_str(" ORDER BY updated_at DESC, title, rowid DESC");
 
     let mut statement = conn.prepare(&sql)?;
     let params = rusqlite::params_from_iter(values.iter().map(AsRef::as_ref));

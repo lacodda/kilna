@@ -128,7 +128,7 @@ pub fn summaries(
     if work_id.is_some() {
         sql.push_str(" AND c.work_id = ?2");
     }
-    sql.push_str(" ORDER BY c.updated_at DESC");
+    sql.push_str(" ORDER BY c.updated_at DESC, c.rowid DESC");
 
     let read = |row: &rusqlite::Row<'_>| {
         Ok(ChatSummary {

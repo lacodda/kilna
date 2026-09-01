@@ -492,7 +492,7 @@ pub fn queue(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRelease
 /// Releases of one work, whatever their state.
 pub fn for_work(conn: &Connection, work_id: &str) -> Result<Vec<Release>> {
     let mut statement = conn.prepare(&format!(
-        "{SELECT_RELEASE} WHERE work_id = ?1 ORDER BY coalesce(scheduled_at, created_at)"
+        "{SELECT_RELEASE} WHERE work_id = ?1 ORDER BY coalesce(scheduled_at, created_at), rowid"
     ))?;
     let raw = statement
         .query_map(params![work_id], read_row)?

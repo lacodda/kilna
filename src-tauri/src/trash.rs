@@ -336,7 +336,7 @@ pub fn empty(conn: &Connection, profile_id: &str) -> Result<usize> {
 pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Deletion>> {
     let mut statement = conn.prepare(
         "SELECT id, entity, entity_id, label, origin, reason, snapshot, deleted_at
-         FROM deletion WHERE profile_id = ?1 ORDER BY deleted_at DESC",
+         FROM deletion WHERE profile_id = ?1 ORDER BY deleted_at DESC, rowid DESC",
     )?;
 
     let rows = statement
@@ -384,7 +384,7 @@ pub fn snapshot_work_id(conn: &Connection, entity: Entity, entity_id: &str) -> O
         .query_row(
             "SELECT snapshot FROM deletion
               WHERE entity = ?1 AND entity_id = ?2
-              ORDER BY deleted_at DESC LIMIT 1",
+              ORDER BY deleted_at DESC, rowid DESC LIMIT 1",
             params![entity.as_str(), entity_id],
             |row| row.get(0),
         )

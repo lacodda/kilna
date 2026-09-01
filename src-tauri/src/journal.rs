@@ -234,7 +234,7 @@ pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Entry>> {
         "SELECT id, action, params, level, entity, entity_id, occurrences, created_at, read_at
            FROM journal
           WHERE profile_id = ?1
-          ORDER BY created_at DESC
+          ORDER BY created_at DESC, rowid DESC
           LIMIT ?2",
         params![profile_id, PAGE],
     )
@@ -247,7 +247,7 @@ pub fn for_entity(conn: &Connection, entity: &str, entity_id: &str) -> Result<Ve
         "SELECT id, action, params, level, entity, entity_id, occurrences, created_at, read_at
            FROM journal
           WHERE entity = ?1 AND entity_id = ?2
-          ORDER BY created_at DESC
+          ORDER BY created_at DESC, rowid DESC
           LIMIT ?3",
         params![entity, entity_id, PAGE],
     )

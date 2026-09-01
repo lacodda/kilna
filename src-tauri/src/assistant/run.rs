@@ -578,7 +578,7 @@ fn finish(conn: &Connection, run_id: &str, state: RunState, detail: Option<&str>
 pub fn list(conn: &Connection, chat_id: &str) -> Result<Vec<Run>> {
     let mut statement = conn.prepare(
         "SELECT id, chat_id, prompt, state, detail, events, started_at, ended_at
-         FROM chat_run WHERE chat_id = ?1 ORDER BY started_at DESC, id",
+         FROM chat_run WHERE chat_id = ?1 ORDER BY started_at DESC, rowid DESC",
     )?;
     let rows = statement.query_map(params![chat_id], read_run)?;
     rows.collect::<rusqlite::Result<Vec<_>>>()?

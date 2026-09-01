@@ -193,7 +193,7 @@ struct LegacySong {
 fn read_songs(legacy: &Connection) -> Result<Vec<LegacySong>> {
     let mut statement = legacy.prepare(
         "SELECT id, title, status, bpm, language, final_lyrics, final_style, released_at
-         FROM songs ORDER BY created_at",
+         FROM songs ORDER BY created_at, rowid",
     )?;
 
     let rows = statement.query_map([], |row| {
@@ -236,8 +236,8 @@ fn read_axes(
         return Ok(Vec::new());
     }
 
-    let mut statement =
-        legacy.prepare("SELECT axes FROM song_axes WHERE song_id = ?1 ORDER BY created_at")?;
+    let mut statement = legacy
+        .prepare("SELECT axes FROM song_axes WHERE song_id = ?1 ORDER BY created_at, rowid")?;
     let rows = statement.query_map(params![song_id], |row| row.get::<_, String>(0))?;
 
     let mut snapshots = Vec::new();

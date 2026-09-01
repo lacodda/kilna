@@ -118,7 +118,7 @@ fn works(conn: &Connection, profile_id: &str, needle: &str) -> Result<Vec<Hit>> 
     let mut statement = conn.prepare(
         "SELECT id, title, kind, status FROM work
           WHERE profile_id = ?1
-          ORDER BY updated_at DESC",
+          ORDER BY updated_at DESC, rowid DESC",
     )?;
 
     let rows = statement
@@ -154,7 +154,7 @@ fn versions(conn: &Connection, profile_id: &str, needle: &str) -> Result<Vec<Hit
            FROM work_version v
            JOIN work w ON w.id = v.work_id
           WHERE w.profile_id = ?1
-          ORDER BY v.created_at DESC",
+          ORDER BY v.created_at DESC, v.rowid DESC",
     )?;
 
     let rows = statement
@@ -199,7 +199,7 @@ fn notes(conn: &Connection, profile_id: &str, needle: &str) -> Result<Vec<Hit>> 
            FROM note n
            JOIN work w ON w.id = n.work_id
           WHERE n.profile_id = ?1
-          ORDER BY n.updated_at DESC",
+          ORDER BY n.updated_at DESC, n.rowid DESC",
     )?;
 
     let rows = statement
@@ -239,7 +239,7 @@ fn messages(conn: &Connection, profile_id: &str, needle: &str) -> Result<Vec<Hit
            JOIN chat c ON c.id = m.chat_id
            JOIN work w ON w.id = c.work_id
           WHERE c.profile_id = ?1
-          ORDER BY m.created_at DESC",
+          ORDER BY m.created_at DESC, m.rowid DESC",
     )?;
 
     let rows = statement
