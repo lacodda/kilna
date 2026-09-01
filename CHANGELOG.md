@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.43.0] - 2026-09-01
+
+### Bug Fixes
+- Make the window behave like a window
 ## [0.42.0] - 2026-09-01
 
 ### Features
