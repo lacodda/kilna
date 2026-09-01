@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.42.0] - 2026-09-01
+
+### Features
+- Read a month at a glance
 ## [0.41.0] - 2026-09-01
 
 ### Features

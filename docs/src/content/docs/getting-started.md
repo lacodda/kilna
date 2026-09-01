@@ -41,6 +41,14 @@ the vocabulary and never writes one down, so the theme can swap it underneath;
 and no screen uses a native `<select>`, whose popup the browser draws in the
 operating system's own chrome where no stylesheet reaches it.
 
+There are no `eslint-disable` comments in this codebase. Where a rule genuinely
+does not apply, `eslint.config.js` turns it off for the named file and says
+why - `src/lib/cover.ts` owns its palette rather than following the theme, and
+`src/lib/releaseIcon.tsx` looks a component up in a table fixed at module level,
+which the React rules read as building one during render. A rule silenced per
+file is one a reviewer can find; a comment silencing it inline is one they
+cannot.
+
 **Casing in `components/ui/` says where a file came from.** A lowercase name -
 `button.tsx`, `dialog.tsx`, `toast.tsx` - is a copy from the registry: it is
 never edited, so it stays byte-identical to upstream and can be updated by
