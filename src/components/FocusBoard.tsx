@@ -23,9 +23,9 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { labelOf, useProfile } from '@/lib/useProfile'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { SectionLabel } from '@/components/ui/Panel'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { SectionLabel } from '@/components/ui/panel'
 
 interface Props {
   works: readonly ScoredWork[]

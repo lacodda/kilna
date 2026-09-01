@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { listPlugins, runPlugin } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   target: 'work' | 'release'

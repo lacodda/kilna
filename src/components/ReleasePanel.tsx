@@ -7,8 +7,8 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { labelOf, useProfile } from '@/lib/useProfile'
-import { Button } from '@/components/ui/Button'
-import { Select } from '@/components/ui/Select'
+import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/AppSelect'
 import { Skeleton } from '@/components/ui/Skeleton'
 
 interface Props {

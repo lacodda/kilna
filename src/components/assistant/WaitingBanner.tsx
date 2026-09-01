@@ -9,7 +9,7 @@ import { keys } from '@/lib/query'
 import { movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'
 import { useAssistant } from '@/lib/useAssistant'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 /**
  * A background task stopped to ask something, and nobody was there to hear it.

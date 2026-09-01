@@ -6,8 +6,8 @@ import { updateProfileConfig, type Axis, type Kind, type ProfileConfig, type Tie
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { SaveState, useSaveStatus } from '@/components/ui/SaveState'
 
 // Editing the scenario, not designing a schema: the tables never change, only

@@ -5,8 +5,8 @@ import { resyncStatuses, statusDrift, type StatusChange } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 /**
  * Bringing every status back in line with the facts — shown before it happens.

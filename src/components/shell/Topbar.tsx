@@ -6,7 +6,7 @@ import { Bell, Search } from 'lucide-react'
 import { getWork, unreadJournal } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { openWorkId } from '@/lib/route'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { CommandPalette } from '@/components/CommandPalette'
 import { cn } from '@/lib/utils'
 

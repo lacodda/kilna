@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "kilna",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "identifier": "com.lacodda.kilna",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -26,7 +26,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/icon.png", "icons/icon.ico"],
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ],
     "shortDescription": "From raw idea to shipped work.",
     "longDescription": "kilna closes the loop every content maker repeats: a work gains versions, versions get scored, a score earns a calendar slot, and the slot ends in a release."
   }

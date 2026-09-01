@@ -7,7 +7,7 @@ import { clearTaskQueue, taskQueue, type RunEmission, type TaskQueue } from '@/l
 import { keys } from '@/lib/query'
 import { movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 /**
  * How much of a batch is still to come.

@@ -1,6 +1,6 @@
 {
   "name": "kilna",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "description": "A desktop workbench for content makers — from raw idea to shipped work.",
   "license": "MIT",
   "private": true,
@@ -15,17 +15,15 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@radix-ui/react-dialog": "^1.1.23",
+    "@base-ui/react": "^1.7.0",
     "@radix-ui/react-popover": "^1.1.23",
-    "@radix-ui/react-select": "^2.3.7",
-    "@radix-ui/react-slot": "^1.3.3",
     "@tanstack/react-query": "^5.102.8",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-dialog": "^2.7.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.14",
-    "dowel-ui": "^0.6.1",
+    "dowel-ui": "^0.11.1",
     "i18next": "^26.4.0",
     "lucide-react": "^1.34.0",
     "marked": "^18.0.11",
@@ -34,7 +32,6 @@
     "react-dom": "^19.2.8",
     "react-i18next": "^17.0.12",
     "react-router": "^8.3.0",
-    "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

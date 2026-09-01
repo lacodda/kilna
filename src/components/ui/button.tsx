@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react'
-import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
+import { useRender } from '@base-ui/react/use-render'
 // `cn` comes from the package rather than being copied in beside the
 // component (ADR 0002): a helper every primitive shares should update
 // centrally, and a project installing a component already has the package for
@@ -51,21 +51,28 @@ export const buttonVariants = cva(
 export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
-  /** Render as the child element instead of a `<button>`, keeping the styling.
-   * For a link that should look like a button. */
-  asChild?: boolean
+  /**
+   * Render something else with the button's clothes on - a link, most often.
+   *
+   * Takes the element itself rather than a boolean: `render={<a href="…" />}`.
+   * A function is also accepted, for the rare case that needs the props
+   * before deciding what to build with them.
+   */
+  render?: useRender.RenderProp
 }
 
-export function Button({ variant, size, asChild = false, className, type, ...props }: ButtonProps) {
-  const Component = asChild ? Slot : 'button'
-  return (
-    <Component
+export function Button({ variant, size, render, className, type, ...props }: ButtonProps) {
+  return useRender({
+    render,
+    defaultTagName: 'button',
+    props: {
       // A `<button>` inside a form submits it unless told otherwise, which
-      // surprises everyone once. When rendering as something else, the type
-      // belongs to the caller.
-      type={asChild ? type : (type ?? 'button')}
-      className={cn(buttonVariants({ variant, size }), className)}
-      {...props}
-    />
-  )
+      // surprises everyone once. When rendering as something else the
+      // attribute is meaningless and would land on an `<a>`, so it is only
+      // set for the element that has it - `render` is what says which.
+      ...(render === undefined && type === undefined ? { type: 'button' } : { type }),
+      className: cn(buttonVariants({ variant, size }), className),
+      ...props,
+    },
+  })
 }

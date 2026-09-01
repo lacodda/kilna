@@ -5,10 +5,10 @@ import { createVersion } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
-import { Button } from '@/components/ui/Button'
-import { Dialog } from '@/components/ui/Dialog'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
+import { Button } from '@/components/ui/button'
+import { Dialog } from '@/components/ui/AppDialog'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/AppSelect'
 
 interface Props {
   open: boolean

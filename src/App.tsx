@@ -21,7 +21,7 @@ import { DataView } from '@/components/DataView'
 import { JournalView } from '@/components/JournalView'
 import { TrashView } from '@/components/TrashView'
 import { Styleguide } from '@/components/Styleguide'
-import { Panel } from '@/components/ui/Panel'
+import { Panel } from '@/components/ui/panel'
 import { Skeleton } from '@/components/ui/Skeleton'
 
 // An open work, filling the screen. The address carries which one and which

@@ -6,7 +6,7 @@ import { scoreWork, type ScoreProposal } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   workId: string

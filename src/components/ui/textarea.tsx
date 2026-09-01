@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, type Ref, type TextareaHTMLAttributes } from 'react'
 import { cn } from 'dowel-ui'
-import { fieldClasses } from './Input'
+import { fieldClasses } from './input'
 
 /*
  * Textarea.

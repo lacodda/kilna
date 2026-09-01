@@ -14,11 +14,11 @@ import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Field } from '@/components/ui/Field'
-import { Input } from '@/components/ui/Input'
-import { Textarea } from '@/components/ui/Textarea'
-import { Panel } from '@/components/ui/Panel'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Panel } from '@/components/ui/panel'
 import { SaveState, useSaveStatus } from '@/components/ui/SaveState'
-import { Select } from '@/components/ui/Select'
+import { Select } from '@/components/ui/AppSelect'
 
 interface Props {
   work: Work

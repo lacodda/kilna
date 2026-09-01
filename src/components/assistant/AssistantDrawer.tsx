@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { listen } from '@tauri-apps/api/event'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import * as Primitive from '@radix-ui/react-dialog'
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -28,8 +27,14 @@ import { AssistantContext, type Assistant } from '@/lib/useAssistant'
 import { announcement, movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/Button'
-import { Dialog, PromptDialog } from '@/components/ui/Dialog'
+import { Button } from '@/components/ui/button'
+import { Dialog, PromptDialog } from '@/components/ui/AppDialog'
+import {
+  Drawer as DrawerRoot,
+  DrawerClose,
+  DrawerPopup,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { RowMenu } from '@/components/ui/RowMenu'
 import { ChatView } from '@/components/assistant/ChatView'
@@ -224,193 +229,187 @@ function Drawer({
   const renamed = renaming === null ? undefined : chats.find((chat) => chat.id === renaming)
 
   return (
-    <Primitive.Root
+    <DrawerRoot
       open
+      swipeDirection="right"
       onOpenChange={(next) => {
         if (!next) onClose()
       }}
     >
-      <Primitive.Portal>
-        <Primitive.Overlay className="fixed inset-0 z-50 bg-black/40" />
-        <Primitive.Content
-          className="fixed inset-y-0 right-0 z-50 flex w-[min(28rem,100vw)] flex-col border-l border-line bg-bg shadow-raise"
-          aria-describedby={undefined}
+      {/* The popup's own padding and scroll are turned off: this drawer is a
+          fixed header over a scrolling body, not one column of prose. */}
+      <DrawerPopup className="w-[min(28rem,100vw)] overflow-hidden bg-bg p-0">
+      <div className="flex items-center gap-2 border-b border-line px-4 py-3">
+        {current !== undefined && (
+          <Button
+            variant="icon"
+            size="icon-sm"
+            aria-label={t('assistant.back')}
+            title={t('assistant.back')}
+            onClick={() => {
+              setSelected(null)
+            }}
+          >
+            <ArrowLeft aria-hidden />
+          </Button>
+        )}
+        <DrawerTitle className="truncate text-sm font-semibold">
+          {current === undefined
+            ? t('assistant.title')
+            : chatLabel(current, t('assistant.untitled'))}
+        </DrawerTitle>
+
+        {current?.work_id != null && (
+          <Button
+            variant="icon"
+            size="icon-sm"
+            aria-label={t('assistant.openWork')}
+            title={t('assistant.openWork')}
+            onClick={() => {
+              onClose()
+              void navigate(`/works/${current.work_id}/assistant`)
+            }}
+          >
+            <ArrowUpRight aria-hidden />
+          </Button>
+        )}
+
+        <DrawerClose
+          render={
+            <Button className="ml-auto" variant="icon" size="icon-sm" aria-label={t('dialog.close')} />
+          }
         >
-          <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-            {current !== undefined && (
-              <Button
-                variant="icon"
-                size="icon-sm"
-                aria-label={t('assistant.back')}
-                title={t('assistant.back')}
-                onClick={() => {
-                  setSelected(null)
-                }}
-              >
-                <ArrowLeft aria-hidden />
-              </Button>
-            )}
-            <Primitive.Title className="truncate text-sm font-semibold">
-              {current === undefined
-                ? t('assistant.title')
-                : chatLabel(current, t('assistant.untitled'))}
-            </Primitive.Title>
+          <X aria-hidden />
+        </DrawerClose>
+      </div>
 
-            {current?.work_id != null && (
-              <Button
-                variant="icon"
-                size="icon-sm"
-                aria-label={t('assistant.openWork')}
-                title={t('assistant.openWork')}
-                onClick={() => {
-                  onClose()
-                  void navigate(`/works/${current.work_id}/assistant`)
-                }}
-              >
-                <ArrowUpRight aria-hidden />
-              </Button>
-            )}
-
-            <Primitive.Close asChild>
-              <Button
-                className="ml-auto"
-                variant="icon"
-                size="icon-sm"
-                aria-label={t('dialog.close')}
-              >
-                <X aria-hidden />
-              </Button>
-            </Primitive.Close>
-          </div>
-
-          {current === undefined ? (
-            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
-              {status.data != null && !status.data.available && (
-                <p className="rounded-xl border border-dashed border-line p-3 text-sm text-dim">
-                  {status.data.reason ?? t('assistant.unavailable')}
-                </p>
-              )}
-
-              <Button
-                size="sm"
-                className="self-start"
-                disabled={create.isPending}
-                onClick={() => {
-                  create.mutate()
-                }}
-              >
-                <Plus aria-hidden className="size-3.5" />
-                {t('assistant.newChat')}
-              </Button>
-
-              {chats.length === 0 && !summaries.isPending && (
-                <EmptyState title={t('assistant.noChatsTitle')} body={t('assistant.noChats')} />
-              )}
-
-              <ul className="flex flex-col gap-1">
-                {chats.map((chat) => (
-                  <li key={chat.id} className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelected(chat.id)
-                      }}
-                      className="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-[10px] px-2.5 py-2 text-left transition-colors hover:bg-soft"
-                    >
-                      <span className="flex items-center gap-1.5 text-sm">
-                        {runningChats.has(chat.id) && (
-                          <span
-                            aria-hidden
-                            className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent"
-                          />
-                        )}
-                        {chat.waiting_since !== undefined && (
-                          <MessageCircleQuestion
-                            aria-label={t('assistant.waitingMark')}
-                            className="size-3.5 shrink-0 text-accent-2"
-                          />
-                        )}
-                        <span className="truncate">
-                          {chatLabel(chat, t('assistant.untitled'))}
-                        </span>
-                      </span>
-                      <span className="flex items-center gap-2 text-xs text-faint">
-                        {chat.work_title != null && (
-                          <span className="truncate">{chat.work_title}</span>
-                        )}
-                        {chat.cost_usd > 0 && <span>${chat.cost_usd.toFixed(2)}</span>}
-                      </span>
-                    </button>
-                    <RowMenu
-                      label={t('assistant.chatMenu')}
-                      actions={[
-                        {
-                          key: 'rename',
-                          label: t('assistant.rename'),
-                          onSelect: () => {
-                            setRenaming(chat.id)
-                          },
-                        },
-                        {
-                          key: 'delete',
-                          label: t('assistant.delete'),
-                          danger: true,
-                          onSelect: () => {
-                            setConfirmingDelete(chat.id)
-                          },
-                        },
-                      ]}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <ChatView
-                key={current.id}
-                chatId={current.id}
-                workId={current.work_id ?? undefined}
-              />
-            </div>
+      {current === undefined ? (
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
+          {status.data != null && !status.data.available && (
+            <p className="rounded-xl border border-dashed border-line p-3 text-sm text-dim">
+              {status.data.reason ?? t('assistant.unavailable')}
+            </p>
           )}
 
-          <PromptDialog
-            open={renaming !== null}
-            onOpenChange={(next) => {
-              if (!next) setRenaming(null)
+          <Button
+            size="sm"
+            className="self-start"
+            disabled={create.isPending}
+            onClick={() => {
+              create.mutate()
             }}
-            title={t('assistant.renameTitle')}
-            label={t('assistant.renameLabel')}
-            initialValue={renamed?.title ?? ''}
-            confirmLabel={t('dialog.save')}
-            onSubmit={(value) => {
-              if (renaming !== null) rename.mutate({ id: renaming, title: value })
-            }}
-          />
+          >
+            <Plus aria-hidden className="size-3.5" />
+            {t('assistant.newChat')}
+          </Button>
 
-          <Dialog
-            open={confirmingDelete !== null}
-            onOpenChange={(next) => {
-              if (!next) setConfirmingDelete(null)
-            }}
-            title={t('assistant.deleteTitle')}
-            description={t('assistant.deleteBody')}
-            footer={
-              <Button
-                variant="danger"
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (confirmingDelete !== null) remove.mutate(confirmingDelete)
-                  setConfirmingDelete(null)
-                }}
-              >
-                {t('assistant.delete')}
-              </Button>
-            }
+          {chats.length === 0 && !summaries.isPending && (
+            <EmptyState title={t('assistant.noChatsTitle')} body={t('assistant.noChats')} />
+          )}
+
+          <ul className="flex flex-col gap-1">
+            {chats.map((chat) => (
+              <li key={chat.id} className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelected(chat.id)
+                  }}
+                  className="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-[10px] px-2.5 py-2 text-left transition-colors hover:bg-soft"
+                >
+                  <span className="flex items-center gap-1.5 text-sm">
+                    {runningChats.has(chat.id) && (
+                      <span
+                        aria-hidden
+                        className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent"
+                      />
+                    )}
+                    {chat.waiting_since !== undefined && (
+                      <MessageCircleQuestion
+                        aria-label={t('assistant.waitingMark')}
+                        className="size-3.5 shrink-0 text-accent-2"
+                      />
+                    )}
+                    <span className="truncate">
+                      {chatLabel(chat, t('assistant.untitled'))}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-2 text-xs text-faint">
+                    {chat.work_title != null && (
+                      <span className="truncate">{chat.work_title}</span>
+                    )}
+                    {chat.cost_usd > 0 && <span>${chat.cost_usd.toFixed(2)}</span>}
+                  </span>
+                </button>
+                <RowMenu
+                  label={t('assistant.chatMenu')}
+                  actions={[
+                    {
+                      key: 'rename',
+                      label: t('assistant.rename'),
+                      onSelect: () => {
+                        setRenaming(chat.id)
+                      },
+                    },
+                    {
+                      key: 'delete',
+                      label: t('assistant.delete'),
+                      danger: true,
+                      onSelect: () => {
+                        setConfirmingDelete(chat.id)
+                      },
+                    },
+                  ]}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <ChatView
+            key={current.id}
+            chatId={current.id}
+            workId={current.work_id ?? undefined}
           />
-        </Primitive.Content>
-      </Primitive.Portal>
-    </Primitive.Root>
+        </div>
+      )}
+
+      <PromptDialog
+        open={renaming !== null}
+        onOpenChange={(next) => {
+          if (!next) setRenaming(null)
+        }}
+        title={t('assistant.renameTitle')}
+        label={t('assistant.renameLabel')}
+        initialValue={renamed?.title ?? ''}
+        confirmLabel={t('dialog.save')}
+        onSubmit={(value) => {
+          if (renaming !== null) rename.mutate({ id: renaming, title: value })
+        }}
+      />
+
+      <Dialog
+        open={confirmingDelete !== null}
+        onOpenChange={(next) => {
+          if (!next) setConfirmingDelete(null)
+        }}
+        title={t('assistant.deleteTitle')}
+        description={t('assistant.deleteBody')}
+        footer={
+          <Button
+            variant="danger"
+            disabled={remove.isPending}
+            onClick={() => {
+              if (confirmingDelete !== null) remove.mutate(confirmingDelete)
+              setConfirmingDelete(null)
+            }}
+          >
+            {t('assistant.delete')}
+          </Button>
+        }
+      />
+      </DrawerPopup>
+    </DrawerRoot>
   )
 }

@@ -15,10 +15,10 @@ import { keys } from '@/lib/query'
 import { missing } from '@/lib/readiness'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
-import { Badge } from '@/components/ui/Badge'
+import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { FocusBoard } from '@/components/FocusBoard'
-import { Panel, SectionLabel } from '@/components/ui/Panel'
+import { Panel, SectionLabel } from '@/components/ui/panel'
 import { SkeletonList } from '@/components/ui/Skeleton'
 
 interface Props {

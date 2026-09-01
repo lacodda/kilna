@@ -10,7 +10,7 @@ import {
   workspacePath,
 } from '@/lib/api'
 import { say } from '@/lib/toast'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { ProfileEditor } from '@/components/ProfileEditor'
 import { StatusDrift } from '@/components/StatusDrift'
 

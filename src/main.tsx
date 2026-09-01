@@ -19,14 +19,17 @@ initLanguage()
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        {/* Outermost boundary: catches a crash in the shell itself, which the
-            per-screen boundary inside App cannot reach. */}
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
-      </BrowserRouter>
-      <Toaster />
+      {/* Wraps the app rather than sitting beside it: a toast raised from
+          anywhere inside has to reach the same provider. */}
+      <Toaster>
+        <BrowserRouter>
+          {/* Outermost boundary: catches a crash in the shell itself, which the
+              per-screen boundary inside App cannot reach. */}
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </BrowserRouter>
+      </Toaster>
     </QueryClientProvider>
   </React.StrictMode>,
 )

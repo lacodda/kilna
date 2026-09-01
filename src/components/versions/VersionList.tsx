@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { CopyPlus, Star, X } from 'lucide-react'
 import type { VersionSummary } from '@/lib/api'
 import { neighbour } from '@/lib/history'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 

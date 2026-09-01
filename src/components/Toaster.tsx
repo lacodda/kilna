@@ -1,37 +1,54 @@
-import { Toaster as Sonner } from 'sonner'
+import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import {
+  Toast,
+  ToastAction,
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
+  useToastManager,
+} from '@/components/ui/toast'
+import { toastManager } from '@/lib/toast'
 
 /**
  * Toasts, dressed in the app's tokens.
  *
- * Sonner's own light/dark themes are bypassed entirely: our theme has three
- * states (system, light, dark) resolved in CSS, so telling sonner which one is
- * active would mean tracking it twice and getting it wrong once.
+ * The stripe, the colours and the enter and leave belong to the registry
+ * component; what is here is which parts a kilna toast has. The action button
+ * is rendered only when a toast carries one, because `undoable` and
+ * `withAction` are the only two of the seven that do.
  */
-export function Toaster() {
+function ToastList() {
+  const { t } = useTranslation()
+  const { toasts } = useToastManager()
+
+  return toasts.map((toast) => (
+    <Toast key={toast.id} toast={toast}>
+      <ToastTitle />
+      {toast.description !== undefined && <ToastDescription />}
+      {toast.actionProps !== undefined && <ToastAction />}
+      <ToastClose aria-label={t('dialog.close')} />
+    </Toast>
+  ))
+}
+
+/**
+ * Wraps the app so anything inside can raise a toast, and provides the corner
+ * they stack in.
+ *
+ * The manager is the one `say` writes to, passed in rather than created here:
+ * a provider that made its own would leave every toast raised outside React
+ * going nowhere.
+ */
+export function Toaster({ children }: { children: ReactNode }) {
   return (
-    <Sonner
-      position="bottom-right"
-      // Long enough to read a sentence and reach an Undo button.
-      duration={5000}
-      gap={8}
-      toastOptions={{
-        unstyled: true,
-        classNames: {
-          toast:
-            'flex w-full items-start gap-2.5 rounded-xl border border-line bg-raise p-3.5 text-sm text-text shadow-raise',
-          title: 'font-medium',
-          description: 'mt-0.5 text-xs text-dim',
-          actionButton:
-            'ml-auto shrink-0 cursor-pointer rounded-[9px] bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent-2 hover:bg-accent/25',
-          cancelButton:
-            'ml-auto shrink-0 cursor-pointer rounded-[9px] px-2.5 py-1 text-xs text-dim hover:bg-soft',
-          closeButton: 'text-dim hover:text-text',
-          error: 'border-bad/40',
-          success: 'border-good/40',
-          warning: 'border-warn/40',
-          icon: 'shrink-0',
-        },
-      }}
-    />
+    <ToastProvider toastManager={toastManager}>
+      {children}
+      <ToastViewport>
+        <ToastList />
+      </ToastViewport>
+    </ToastProvider>
   )
 }

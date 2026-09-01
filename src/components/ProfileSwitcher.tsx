@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { activateProfile, listProfiles } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { Select } from '@/components/ui/Select'
+import { Select } from '@/components/ui/AppSelect'
 
 interface Props {
   activeId: string

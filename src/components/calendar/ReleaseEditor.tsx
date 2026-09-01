@@ -5,12 +5,12 @@ import { updateRelease, type ScheduledRelease } from '@/lib/api'
 import { missing } from '@/lib/readiness'
 import { say } from '@/lib/toast'
 import { labelOf, useProfile } from '@/lib/useProfile'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/DatePicker'
-import { Dialog } from '@/components/ui/Dialog'
+import { Dialog } from '@/components/ui/AppDialog'
 import { Field } from '@/components/ui/Field'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/AppSelect'
 
 interface Props {
   release: ScheduledRelease | null

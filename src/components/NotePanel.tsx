@@ -6,9 +6,9 @@ import { createNote, deleteNote, listNotes } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Textarea } from '@/components/ui/Textarea'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
 
 // What a note changes when it appears or goes. A new tag on a note changes the

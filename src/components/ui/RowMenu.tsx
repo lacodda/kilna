@@ -1,6 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react'
 import { MoreHorizontal } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 
 export interface RowAction {
   key: string
@@ -13,84 +13,45 @@ export interface RowAction {
 /**
  * The menu on a row.
  *
- * Built here rather than pulled in: it is a list of buttons in a popover, and
- * the kit already carries Radix for the two places that genuinely need focus
- * management. What this does need is to not swallow the row underneath — every
- * click inside it stops there, or opening the menu would also open the work.
+ * The popup, the click-outside, the Escape and the whole keyboard - arrows
+ * that wrap, Home and End, type-ahead - are the registry Menu's now. What is
+ * left here is the shape this app asks for: a flat list of actions behind a
+ * three-dot button, which is what all four call sites want and none of them
+ * should have to spell out.
+ *
+ * The one guard kept by hand is on the trigger. The popup is portalled to the
+ * body, so choosing an action cannot reach the row underneath - but the button
+ * that opens the menu is still inside that row, and the row opens the work
+ * when clicked. Without this, opening the menu would also open the work.
  */
 export function RowMenu({ actions, label }: { actions: RowAction[]; label: string }) {
-  const [open, setOpen] = useState(false)
-  const container = useRef<HTMLDivElement>(null)
-  const menuId = useId()
-
-  useEffect(() => {
-    if (!open) return
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (!container.current?.contains(event.target as Node)) setOpen(false)
-    }
-    // Escape closes from anywhere, including from a focused item inside.
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
   return (
-    <div
-      ref={container}
-      className="relative"
-      // The row this sits in opens the work when clicked. Everything in here is
-      // about the row rather than a way into it.
-      onClick={(event) => event.stopPropagation()}
-    >
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        aria-label={label}
-        title={label}
-        onClick={() => setOpen((current) => !current)}
-        className={cn(
-          'inline-flex size-7 cursor-pointer items-center justify-center rounded-[9px] text-faint transition-colors hover:bg-soft hover:text-text',
-          open && 'bg-soft text-text',
-        )}
+    <Menu>
+      <MenuTrigger
+        render={
+          <Button
+            variant="icon"
+            size="icon-sm"
+            aria-label={label}
+            title={label}
+            onClick={(event) => event.stopPropagation()}
+          />
+        }
       >
-        <MoreHorizontal aria-hidden className="size-4" />
-      </button>
+        <MoreHorizontal aria-hidden />
+      </MenuTrigger>
 
-      {open && (
-        <div
-          id={menuId}
-          role="menu"
-          className="absolute right-0 z-30 mt-1 min-w-44 rounded-[10px] border border-line bg-raise p-1 shadow-lg"
-        >
-          {actions.map((action) => (
-            <button
-              key={action.key}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false)
-                action.onSelect()
-              }}
-              className={cn(
-                'flex w-full cursor-pointer items-center rounded-[7px] px-2.5 py-1.5 text-left text-[13px] transition-colors',
-                action.danger ? 'text-bad hover:bg-bad-soft' : 'text-dim hover:bg-soft hover:text-text',
-              )}
-            >
-              {action.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+      <MenuPopup align="end">
+        {actions.map((action) => (
+          <MenuItem
+            key={action.key}
+            tone={action.danger === true ? 'danger' : 'default'}
+            onClick={action.onSelect}
+          >
+            {action.label}
+          </MenuItem>
+        ))}
+      </MenuPopup>
+    </Menu>
   )
 }

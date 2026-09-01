@@ -7,7 +7,7 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { movesTaskList, taskKey } from '@/lib/tasks'
 import { useProfile } from '@/lib/useProfile'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   workId: string

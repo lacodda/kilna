@@ -9,7 +9,7 @@ import { accentFor, coverFor } from '@/lib/cover'
 import { shortKind } from '@/lib/kind'
 import { daysBetween } from '@/lib/readiness'
 import { labelOf, useProfile } from '@/lib/useProfile'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { cn } from '@/lib/utils'
 

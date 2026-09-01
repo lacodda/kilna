@@ -1,8 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RotateCcw, TriangleAlert } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { Panel } from '@/components/ui/Panel'
+import { Button } from '@/components/ui/button'
+import { Panel } from '@/components/ui/panel'
 
 interface Props {
   children: ReactNode
