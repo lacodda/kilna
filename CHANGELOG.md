@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [0.44.0] - 2026-09-02
 
+### Bug Fixes
+- Say what a pin does now
+- Turn the month, and put the dialog back in the window
+
 ### Features
 - Pick a chip up and carry it
 - Retire the contest for a date
