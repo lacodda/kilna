@@ -155,7 +155,7 @@ pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Re
                     meta: None,
                 },
             )?;
-            release::mark_released(conn, &planned.id, None)?;
+            release::mark_released(conn, &planned.id, None, None)?;
             report.releases += 1;
         }
     }

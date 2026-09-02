@@ -319,19 +319,84 @@ pub fn unschedule(conn: &Connection, id: &str) -> Result<Release> {
 /// Mark a release as out, optionally with the link it went out on.
 ///
 /// Shipping is a state, not an integration: nothing is published from here.
-pub fn mark_released(conn: &Connection, id: &str, url: Option<String>) -> Result<Release> {
+/// Records that a release went out, optionally on a day the caller names.
+///
+/// `at` is a plain date the person picks — a release marked days after it
+/// shipped, or an archive imported with its real history, would otherwise all
+/// claim to have gone out the moment the button was pressed. Left out, the
+/// moment is now.
+///
+/// A `None` url keeps whatever link is already recorded rather than clearing
+/// it, so marking a release twice does not lose the link the first pass wrote.
+pub fn mark_released(
+    conn: &Connection,
+    id: &str,
+    url: Option<String>,
+    at: Option<String>,
+) -> Result<Release> {
     let timestamp = now();
+    let released_at = match at {
+        Some(day) => day_stamp(&day)?,
+        None => timestamp.clone(),
+    };
 
     if conn.execute(
-        "UPDATE release SET status = ?2, released_at = ?3, url = coalesce(?4, url), updated_at = ?3
+        "UPDATE release SET status = ?2, released_at = ?3, url = coalesce(?4, url), updated_at = ?5
          WHERE id = ?1",
-        params![id, RELEASED, timestamp, url],
+        params![id, RELEASED, released_at, url, timestamp],
     )? == 0
     {
         return Err(unknown_release(id));
     }
 
     get(conn, id)?.ok_or_else(|| unknown_release(id))
+}
+
+/// Takes back the mark: the release is planned again, as if it never went out.
+///
+/// **The link is kept.** A mark undone is usually a mis-click or a release
+/// pulled after the fact, and the address it was published under is the one
+/// piece of the episode worth nothing to retype. Clearing the url is a separate
+/// edit, which the release form already offers.
+///
+/// Both fields move together on purpose: `status` alone would leave a row
+/// calling itself planned while still carrying the day it shipped, and every
+/// reader — the work's derived status, the dashboard, the export — would get a
+/// different answer depending on which field it happened to look at.
+pub fn unmark_released(conn: &Connection, id: &str) -> Result<Release> {
+    if conn.execute(
+        "UPDATE release SET status = ?2, released_at = NULL, updated_at = ?3 WHERE id = ?1",
+        params![id, PLANNED, now()],
+    )? == 0
+    {
+        return Err(unknown_release(id));
+    }
+
+    get(conn, id)?.ok_or_else(|| unknown_release(id))
+}
+
+/// A calendar day (`2026-09-02`) as a stored timestamp.
+///
+/// Slots are days — the whole calendar is built on that — but `released_at`
+/// holds a full instant, and mixing the two shapes in one column is what makes
+/// text ordering stop meaning anything. So a picked day becomes midday UTC:
+/// far enough from either edge that no reasonable timezone shifts it onto the
+/// neighbouring date.
+fn day_stamp(day: &str) -> Result<String> {
+    let plausible = day.len() == 10
+        && day.as_bytes()[4] == b'-'
+        && day.as_bytes()[7] == b'-'
+        && day
+            .as_bytes()
+            .iter()
+            .enumerate()
+            .all(|(at, byte)| at == 4 || at == 7 || byte.is_ascii_digit());
+
+    if !plausible {
+        return Err(Error::Other(format!("{day} is not a calendar day")));
+    }
+
+    Ok(format!("{day}T12:00:00.000Z"))
 }
 
 pub fn update(conn: &Connection, id: &str, patch: ReleasePatch) -> Result<Release> {
@@ -449,16 +514,29 @@ pub fn queue(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRelease
     read_scheduled(conn, &mut statement, profile_id)
 }
 
-/// Releases of one work, whatever their state.
-pub fn for_work(conn: &Connection, work_id: &str) -> Result<Vec<Release>> {
+/// Releases of one work, whatever their state, with the context the card needs
+/// to act on them.
+///
+/// The same shape the calendar reads. The work's own tab used to get the bare
+/// row, which left it showing a release the chip could describe far better —
+/// no readiness, no score, nothing to tell a plan from something that shipped.
+/// Two views onto one release disagreeing about what it is was the whole
+/// complaint.
+pub fn for_work(
+    conn: &Connection,
+    profile_id: &str,
+    work_id: &str,
+) -> Result<Vec<ScheduledRelease>> {
     let mut statement = conn.prepare(&format!(
-        "{SELECT_RELEASE} WHERE work_id = ?1 ORDER BY coalesce(scheduled_at, created_at), rowid"
+        "{} AND r.work_id = ?2 ORDER BY coalesce(r.scheduled_at, r.created_at), r.rowid",
+        select_scheduled()
     ))?;
-    let raw = statement
-        .query_map(params![work_id], read_row)?
-        .collect::<rusqlite::Result<Vec<_>>>()?;
-
-    raw.into_iter().map(RawRelease::into_release).collect()
+    read_scheduled_where(
+        conn,
+        &mut statement,
+        params![profile_id, work_id],
+        profile_id,
+    )
 }
 
 fn read_scheduled(
@@ -466,8 +544,18 @@ fn read_scheduled(
     statement: &mut rusqlite::Statement<'_>,
     profile_id: &str,
 ) -> Result<Vec<ScheduledRelease>> {
+    read_scheduled_where(conn, statement, params![profile_id], profile_id)
+}
+
+/// The listing readers share, for queries that bind more than the profile.
+fn read_scheduled_where(
+    conn: &Connection,
+    statement: &mut rusqlite::Statement<'_>,
+    bound: impl rusqlite::Params,
+    profile_id: &str,
+) -> Result<Vec<ScheduledRelease>> {
     let rows = statement
-        .query_map(params![profile_id], |row| {
+        .query_map(bound, |row| {
             Ok((
                 RawRelease {
                     id: row.get(0)?,
@@ -913,7 +1001,13 @@ mod tests {
         let (mut conn, profile_id) = workspace();
         let out = planned(&conn, &profile_id, "Already out", Some(9.0));
         schedule(&mut conn, &out.id, "2026-09-01").unwrap();
-        mark_released(&conn, &out.id, Some("https://example.invalid/1".into())).unwrap();
+        mark_released(
+            &conn,
+            &out.id,
+            Some("https://example.invalid/1".into()),
+            None,
+        )
+        .unwrap();
         let next = planned(&conn, &profile_id, "Next", Some(2.0));
 
         // History occupies the date, but it is no longer a plan competing for it.
@@ -927,8 +1021,13 @@ mod tests {
         let (conn, profile_id) = workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
 
-        let out =
-            mark_released(&conn, &release.id, Some("https://example.invalid/x".into())).unwrap();
+        let out = mark_released(
+            &conn,
+            &release.id,
+            Some("https://example.invalid/x".into()),
+            None,
+        )
+        .unwrap();
 
         assert_eq!(out.status, RELEASED);
         assert!(out.released_at.is_some());
@@ -936,12 +1035,166 @@ mod tests {
     }
 
     #[test]
+    fn marking_released_can_name_the_day_it_went_out() {
+        let (conn, profile_id) = workspace();
+        let release = planned(&conn, &profile_id, "Subject", None);
+
+        let out = mark_released(&conn, &release.id, None, Some("2026-07-18".into())).unwrap();
+
+        // The day the person named, not the moment they pressed the button.
+        assert_eq!(
+            out.released_at.as_deref().unwrap()[..10].to_owned(),
+            "2026-07-18"
+        );
+        assert_eq!(out.status, RELEASED);
+    }
+
+    /// Without a day, the mark still means "just now" — the common case must
+    /// not have been broken by making the uncommon one possible.
+    #[test]
+    fn marking_released_without_a_day_uses_this_moment() {
+        let (conn, profile_id) = workspace();
+        let release = planned(&conn, &profile_id, "Subject", None);
+        let before = now();
+
+        let out = mark_released(&conn, &release.id, None, None).unwrap();
+
+        let stamp = out.released_at.unwrap();
+        assert!(
+            stamp >= before,
+            "{stamp} is older than the call that wrote it"
+        );
+        assert_eq!(stamp.len(), before.len(), "a stored stamp keeps one width");
+    }
+
+    /// A day picked by hand and a moment recorded by the app have to end up the
+    /// same shape, or ordering by this column stops meaning anything — the bug
+    /// that cost a chat its order on CI.
+    #[test]
+    fn a_named_day_is_stored_the_same_width_as_a_recorded_moment() {
+        let (conn, profile_id) = workspace();
+        let picked = planned(&conn, &profile_id, "Picked", None);
+        let recorded = planned(&conn, &profile_id, "Recorded", None);
+
+        let picked = mark_released(&conn, &picked.id, None, Some("2026-07-18".into())).unwrap();
+        let recorded = mark_released(&conn, &recorded.id, None, None).unwrap();
+
+        assert_eq!(
+            picked.released_at.unwrap().len(),
+            recorded.released_at.unwrap().len()
+        );
+    }
+
+    #[test]
+    fn a_day_that_is_not_a_day_is_refused() {
+        let (conn, profile_id) = workspace();
+        let release = planned(&conn, &profile_id, "Subject", None);
+
+        for bad in ["18-07-2026", "2026-07-18T12:00:00Z", "tomorrow", "2026-7-8"] {
+            assert!(
+                mark_released(&conn, &release.id, None, Some(bad.into())).is_err(),
+                "{bad} was accepted as a calendar day"
+            );
+        }
+
+        // And the refusal left the release alone.
+        assert_eq!(get(&conn, &release.id).unwrap().unwrap().status, PLANNED);
+    }
+
+    #[test]
+    fn a_mark_can_be_taken_back() {
+        let (conn, profile_id) = workspace();
+        let release = planned(&conn, &profile_id, "Subject", None);
+        mark_released(&conn, &release.id, None, None).unwrap();
+
+        let back = unmark_released(&conn, &release.id).unwrap();
+
+        assert_eq!(back.status, PLANNED);
+        assert!(
+            back.released_at.is_none(),
+            "the day it went out survived the undo"
+        );
+    }
+
+    /// Both halves move together. Status alone would leave a row calling itself
+    /// planned while still carrying a release date, and every reader would then
+    /// get a different answer depending on which field it looked at.
+    #[test]
+    fn taking_a_mark_back_leaves_no_half_released_row() {
+        let (conn, profile_id) = workspace();
+        let release = planned(&conn, &profile_id, "Subject", None);
+        mark_released(&conn, &release.id, None, Some("2026-07-18".into())).unwrap();
+
+        unmark_released(&conn, &release.id).unwrap();
+
+        let row = get(&conn, &release.id).unwrap().unwrap();
+        assert_eq!(
+            (row.status.as_str(), row.released_at.is_some()),
+            (PLANNED, false)
+        );
+    }
+
+    /// The one thing an undo keeps. A mis-click should not cost the address the
+    /// release was published under.
+    #[test]
+    fn taking_a_mark_back_keeps_the_link() {
+        let (conn, profile_id) = workspace();
+        let release = planned(&conn, &profile_id, "Subject", None);
+        mark_released(
+            &conn,
+            &release.id,
+            Some("https://example.invalid/x".into()),
+            None,
+        )
+        .unwrap();
+
+        let back = unmark_released(&conn, &release.id).unwrap();
+
+        assert_eq!(back.url.as_deref(), Some("https://example.invalid/x"));
+    }
+
+    /// Unscheduled releases keep their date through the undo: the mark and the
+    /// slot are different facts, and only one of them was taken back.
+    #[test]
+    fn taking_a_mark_back_leaves_the_slot_alone() {
+        let (conn, profile_id) = workspace();
+        let release = planned(&conn, &profile_id, "Subject", None);
+        update(
+            &conn,
+            &release.id,
+            ReleasePatch {
+                scheduled_at: Some(Some("2026-07-18".into())),
+                ..ReleasePatch::default()
+            },
+        )
+        .unwrap();
+        mark_released(&conn, &release.id, None, None).unwrap();
+
+        let back = unmark_released(&conn, &release.id).unwrap();
+
+        assert_eq!(back.scheduled_at.as_deref(), Some("2026-07-18"));
+    }
+
+    #[test]
+    fn taking_back_a_mark_on_a_release_that_is_not_there_is_refused() {
+        let (conn, _) = workspace();
+
+        assert!(unmark_released(&conn, "no-such-release").is_err());
+    }
+
+    #[test]
     fn marking_released_without_a_link_keeps_the_previous_one() {
         let (conn, profile_id) = workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
-        mark_released(&conn, &release.id, Some("https://example.invalid/x".into())).unwrap();
+        mark_released(
+            &conn,
+            &release.id,
+            Some("https://example.invalid/x".into()),
+            None,
+        )
+        .unwrap();
 
-        let again = mark_released(&conn, &release.id, None).unwrap();
+        let again = mark_released(&conn, &release.id, None, None).unwrap();
 
         assert_eq!(again.url.as_deref(), Some("https://example.invalid/x"));
     }

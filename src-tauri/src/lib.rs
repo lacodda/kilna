@@ -81,6 +81,7 @@ pub fn run() {
             commands::set_slot_pin,
             commands::unschedule_release,
             commands::mark_released,
+            commands::unmark_released,
             commands::calendar,
             commands::plan_layout,
             commands::apply_layout,

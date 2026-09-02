@@ -321,7 +321,7 @@ mod tests {
         let (mut conn, profile_id, config) = workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
         let gone = a_release(&conn, &work_id);
-        releases::mark_released(&conn, &gone, None).unwrap();
+        releases::mark_released(&conn, &gone, None, None).unwrap();
         let booked = a_release(&conn, &work_id);
         releases::schedule(&mut conn, &booked, "2026-09-01").unwrap();
 

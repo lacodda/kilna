@@ -295,7 +295,7 @@ mod tests {
         release::schedule(&mut conn, &booked[0], "2026-09-05").unwrap();
         let out = queued(&conn, &profile_id, "Out", 6.0, 1);
         release::schedule(&mut conn, &out[0], "2026-09-01").unwrap();
-        release::mark_released(&conn, &out[0], None).unwrap();
+        release::mark_released(&conn, &out[0], None, None).unwrap();
 
         queued(&conn, &profile_id, "Waiting", 5.0, 1);
 

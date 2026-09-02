@@ -790,15 +790,19 @@ pub fn unschedule_release(state: State<'_, AppState>, id: String) -> Result<Rele
 }
 
 /// The end of the circle: something actually went out.
+///
+/// `at` is the day it shipped, when that is not today — a release marked late,
+/// or one whose real date is known from elsewhere.
 #[tauri::command]
 pub fn mark_released(
     state: State<'_, AppState>,
     id: String,
     url: Option<String>,
+    at: Option<String>,
 ) -> Result<Release> {
     let conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let released = release::mark_released(&conn, &id, url)?;
+    let released = release::mark_released(&conn, &id, url, at)?;
 
     journal::record(
         &conn,
@@ -817,6 +821,34 @@ pub fn mark_released(
     Ok(released)
 }
 
+/// Undoing the mark: it did not go out after all.
+///
+/// The work's status follows on its own — it is derived from the facts, so
+/// removing the released release is enough to send the work back to whatever it
+/// was before. The link is deliberately kept; see [`release::unmark_released`].
+#[tauri::command]
+pub fn unmark_released(state: State<'_, AppState>, id: String) -> Result<Release> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let planned = release::unmark_released(&conn, &id)?;
+
+    journal::record(
+        &conn,
+        &profile_id,
+        Record::new("release.unreleased")
+            .param(
+                "title",
+                journal::work_title(&conn, &planned.work_id).unwrap_or_default(),
+            )
+            .param("kind", planned.kind.clone())
+            .about("work", planned.work_id.clone()),
+    );
+
+    restate(&conn, &profile_id, &planned.work_id);
+
+    Ok(planned)
+}
+
 #[tauri::command]
 pub fn calendar(state: State<'_, AppState>) -> Result<Vec<ScheduledRelease>> {
     let conn = state.conn();
@@ -832,9 +864,13 @@ pub fn release_queue(state: State<'_, AppState>) -> Result<Vec<ScheduledRelease>
 }
 
 #[tauri::command]
-pub fn releases_for_work(state: State<'_, AppState>, work_id: String) -> Result<Vec<Release>> {
+pub fn releases_for_work(
+    state: State<'_, AppState>,
+    work_id: String,
+) -> Result<Vec<ScheduledRelease>> {
     let conn = state.conn();
-    release::for_work(&conn, &work_id)
+    let profile_id = active_profile_id(&conn)?;
+    release::for_work(&conn, &profile_id, &work_id)
 }
 
 #[tauri::command]

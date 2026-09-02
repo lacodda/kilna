@@ -417,7 +417,7 @@ mod tests {
         let row = catalogue_row(&conn, &profile_id, &work_id);
         assert_eq!((row.released, row.scheduled), (0, 1));
 
-        crate::release::mark_released(&conn, &undated.id, None).unwrap();
+        crate::release::mark_released(&conn, &undated.id, None, None).unwrap();
         let row = catalogue_row(&conn, &profile_id, &work_id);
         assert_eq!(
             (row.released, row.scheduled),

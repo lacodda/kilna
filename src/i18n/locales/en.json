@@ -281,7 +281,7 @@
     "notReadyHint": "Missing: {{list}}",
     "missingScore": "a score",
     "preview": {
-            "taken": "{{title}} is already on this day",
+      "taken": "{{title}} is already on this day",
       "pinned": "{{title}} is here, and the date is kept"
     }
   },
@@ -553,6 +553,7 @@
     "layout.applied_other": "{{count}} releases laid out between {{from}} and {{to}}.",
     "release.notReady": "“{{title}}” goes out on {{date}} but is not ready.",
     "release.released": "“{{title}}” went out as a {{kind}}.",
+    "release.unreleased": "“{{title}}” is no longer out as a {{kind}}.",
     "release.deleted": "Release “{{label}}” deleted.",
     "note.deleted": "Note “{{label}}” deleted.",
     "collection.deleted": "Collection “{{label}}” deleted.",

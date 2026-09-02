@@ -269,7 +269,7 @@ mod tests {
         plan("Beyond", "2026-09-21");
         plan("Yesterday", "2026-08-31");
         let released = plan("Released", "2026-09-05");
-        crate::release::mark_released(&conn, &released.id, None).unwrap();
+        crate::release::mark_released(&conn, &released.id, None, None).unwrap();
 
         // One release in the window with nothing missing: scored, and a
         // version for each role its kind requires.

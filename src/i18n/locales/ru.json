@@ -593,6 +593,7 @@
     "layout.applied_other": "{{count}} выпуска разложены по календарю с {{from}} по {{to}}.",
     "release.notReady": "«{{title}}» выходит {{date}}, но не готово.",
     "release.released": "«{{title}}» выпущено ({{kind}}).",
+    "release.unreleased": "«{{title}}» больше не считается вышедшим как {{kind}}.",
     "release.deleted": "Выпуск «{{label}}» удалён.",
     "note.deleted": "Заметка «{{label}}» удалена.",
     "collection.deleted": "Коллекция «{{label}}» удалена.",

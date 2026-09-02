@@ -97,10 +97,11 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             }
         }
 
-        let releases = release::for_work(conn, &work.id)?;
+        let releases = release::for_work(conn, &profile.id, &work.id)?;
         if !releases.is_empty() {
             page.push_str("\n## Releases\n\n");
-            for release in &releases {
+            for entry in &releases {
+                let release = &entry.release;
                 page.push_str(&format!(
                     "- **{}** — {}{}\n",
                     release.kind,
