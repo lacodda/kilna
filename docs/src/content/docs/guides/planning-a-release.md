@@ -215,9 +215,39 @@ action it performs — nothing is published, uploaded, or posted from here.
 Marking a release without a link a second time keeps whatever link was
 already recorded rather than clearing it.
 
+**The day is yours to name.** Marking from the work's Releases tab asks for
+the day it went out, which starts from the day it was planned for and can be
+changed. Marks are often made after the fact — days later, or while entering
+something that shipped long ago — and a mark that could only ever say "now"
+made every late one quietly wrong.
+
+**A mark can be taken back.** *It did not go out* returns the release to
+planned and clears the day it shipped, leaving the work's
+[status](/kilna/guides/statuses/) to follow on its own. **The link is kept**:
+an undone mark is usually a mis-click or a release pulled after the fact, and
+the address it was published under is the one part worth not retyping. Clearing
+it is a separate edit.
+
+## The link
+
+A release's link opens in your browser and can be copied from the row's menu.
+It is shown as its host and path rather than in full, so a long address does
+not push everything else off the row; hovering shows the whole thing, and
+copying copies the whole thing.
+
+Only ordinary web addresses open. A link is typed by a person, and a `file:`
+address or a scheme belonging to some other installed program is not something
+a note about a publication should be able to launch — the field says so while
+you type rather than failing silently later.
+
 ## Editing a release
 
-Clicking a chip opens the release: its kind, its date and the link. Changing
+Clicking a chip opens the release: its kind, its date and the link. The same
+three fields are behind **Edit this release** on the Releases tab of the work
+it belongs to, which also carries the rest of the actions on this page: marking
+it released, taking that mark back, returning it to the queue, copying the
+link, and deleting it. What the calendar can do to a release and what its work
+can do to it are the same list, minus the drag that only a grid can offer. Changing
 the date here **moves** the booking rather than bidding for a new one — a date
 typed into a form is a correction, and the app pushing back mid-edit would be
 answering a question nobody asked. Clearing the date returns it to the queue,
