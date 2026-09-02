@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.45.0] - 2026-09-02
+
+### Bug Fixes
+- Stop promising a contest that was retired
+
+### Documentation
+- Say what the tab does and how a link behaves
+
+### Features
+- Name the day a release went out, and take the mark back
+- Let the tab act on a release, and make its link open
 ## [0.44.0] - 2026-09-02
 
 ### Bug Fixes
