@@ -363,7 +363,9 @@ export interface NewRelease {
 
 export interface Scheduling {
   release: Release
-  /** The release that lost the slot, if this one displaced something. */
+  /** Always null since v0.44: nothing loses a date to anything any more.
+      Kept in the shape until the model package (v0.52), so neither side
+      needs a migration for a field that is simply absent. */
   displaced: Release | null
 }
 
