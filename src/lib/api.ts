@@ -482,8 +482,12 @@ export const warnUnreadyReleases = (today: string) =>
 export const setSlotPin = (id: string, pinned: boolean) =>
   invoke<Release>('set_slot_pin', { id, pinned })
 export const unscheduleRelease = (id: string) => invoke<Release>('unschedule_release', { id })
-export const markReleased = (id: string, url?: string | null) =>
-  invoke<Release>('mark_released', { id, url })
+// `at` is the day it went out, when that is not today: a release marked late,
+// or one whose real date is known from elsewhere. Left out, the moment is now.
+export const markReleased = (id: string, url?: string | null, at?: string | null) =>
+  invoke<Release>('mark_released', { id, url, at })
+// Undoing the mark. The link is kept - see the Rust side for why.
+export const unmarkReleased = (id: string) => invoke<Release>('unmark_released', { id })
 // One line of an auto-layout plan: this release lands on this day. What
 // `planLayout` returns is exactly what `applyLayout` takes back — the preview
 // is the contract, not a sketch.
@@ -498,7 +502,8 @@ export const applyLayout = (placements: Placement[]) =>
 
 export const calendar = () => invoke<ScheduledRelease[]>('calendar')
 export const releaseQueue = () => invoke<ScheduledRelease[]>('release_queue')
-export const releasesForWork = (workId: string) => invoke<Release[]>('releases_for_work', { workId })
+export const releasesForWork = (workId: string) =>
+  invoke<ScheduledRelease[]>('releases_for_work', { workId })
 
 export const listCollections = () => invoke<Collection[]>('list_collections')
 export const createCollection = (collection: NewCollection) =>

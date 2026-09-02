@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation } from '@tanstack/react-query'
 import { updateRelease, type ScheduledRelease } from '@/lib/api'
 import { missing } from '@/lib/readiness'
+import { openExternal } from '@/lib/link'
 import { say } from '@/lib/toast'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -198,9 +199,14 @@ export function ReleaseEditor({
         {release !== null && release.status === 'released' && release.url !== null && (
           <p className="border-t border-line pt-3 text-sm text-good">
             {t('calendar.released')}{' '}
-            <a href={release.url} target="_blank" rel="noreferrer" className="underline">
+            <button
+              type="button"
+              onClick={() => void openExternal(release.url ?? '')}
+              title={release.url}
+              className="underline"
+            >
               {t('calendar.link')}
-            </a>
+            </button>
           </p>
         )}
 

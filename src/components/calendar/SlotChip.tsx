@@ -4,6 +4,7 @@ import type { ScheduledRelease } from '@/lib/api'
 import { coverFor } from '@/lib/cover'
 import { KindGlyph } from '@/lib/releaseIcon'
 import { daysBetween, missing } from '@/lib/readiness'
+import { openExternal, shortLink } from '@/lib/link'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { PreviewCard, PreviewCardPopup, PreviewCardTrigger } from '@/components/ui/preview-card'
@@ -180,16 +181,17 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
         </dl>
 
         {/* The link is the one thing here worth reaching for from the card
-            itself, so it is a real anchor rather than a line of text. */}
+            itself. It goes through the opener rather than an anchor: inside a
+            WebView `target="_blank"` reaches no browser at all. */}
         {slot.url !== null && slot.url !== '' && (
-          <a
-            href={slot.url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 block truncate text-xs text-accent-2 underline underline-offset-2"
+          <button
+            type="button"
+            onClick={() => void openExternal(slot.url ?? '')}
+            title={slot.url}
+            className="mt-2 block max-w-full truncate text-left text-xs text-accent-2 underline underline-offset-2"
           >
-            {slot.url}
-          </a>
+            {shortLink(slot.url)}
+          </button>
         )}
       </PreviewCardPopup>
     </PreviewCard>

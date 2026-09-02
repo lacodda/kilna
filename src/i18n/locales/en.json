@@ -291,7 +291,15 @@
     "add": "Plan a release",
     "delete": "Delete this release",
     "unscheduled": "not scheduled",
-    "releasedOn": "released {{date}}"
+    "releasedOn": "released {{date}}",
+    "edit": "Edit this release",
+    "actions": "Release actions",
+    "openLink": "Open the link",
+    "copyLink": "Copy the link",
+    "unmarkReleased": "It did not go out",
+    "wentOutOn": "Went out on",
+    "wentOutOnHint": "The day it shipped, if that is not today.",
+    "linkLooksWrong": "That is not a web address, so it will not open."
   },
   "score": {
     "title": "Score",
@@ -495,7 +503,10 @@
     "loadFailed": "Could not load that.",
     "scoreDeleted": "Score deleted.",
     "releaseDeleted": "Release deleted.",
-    "versionDerived": "The text is in the editor. Saving makes it the next revision."
+    "versionDerived": "The text is in the editor. Saving makes it the next revision.",
+    "releaseUnreleased": "No longer marked as released.",
+    "linkCopied": "Link copied.",
+    "linkCopyFailed": "copy the link"
   },
   "trash": {
     "title": "Trash",

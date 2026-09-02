@@ -28,6 +28,7 @@ pub fn run() {
     tauri::Builder::default()
         // Needed by the data screen to pick a directory or a file.
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             // Per-user application data, resolved by Tauri for the current platform.
             let data_dir = app.path().app_data_dir()?;
