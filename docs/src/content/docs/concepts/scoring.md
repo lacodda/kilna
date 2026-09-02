@@ -24,7 +24,7 @@ rather than the one you're looking at now.
 
 A work accumulates snapshots, so something has to decide which of them *is* the
 work's score — the number in the catalogue, the number the calendar shows, and
-the number that decides which release keeps a contested date.
+the number the queue is ordered by when the auto-layout paces it.
 
 **Finalised is the work.** Once a version is named as the current one, that
 version is the work, and its score is the work's score. Going back to judge an

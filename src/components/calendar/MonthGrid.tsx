@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
@@ -10,6 +11,7 @@ import { releaseIcon } from '@/lib/releaseIcon'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { SlotChip } from '@/components/calendar/SlotChip'
+import { useChipDrag } from '@/lib/useChipDrag'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -30,6 +32,9 @@ interface Props {
 }
 
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
+
+/** How many chips a day shows before the rest fold into a count. */
+const VISIBLE_CHIPS = 2
 
 /**
  * A month at a time, with what is booked on each day.
@@ -53,25 +58,54 @@ export function MonthGrid({
   const { t, i18n } = useTranslation()
   const profile = useProfile()
 
-  // The release being dragged, so the bin can appear only while one is in the
-  // air and the day under the cursor can light up.
-  const [dragging, setDragging] = useState<string | null>(null)
+  // Where the grid is on screen, so the hook knows when the pointer has
+  // reached an edge and the month should turn.
+  const gridRef = useRef<HTMLDivElement>(null)
+
+  // The day under the pointer, or the bin. Set from the carried chip's
+  // position rather than from the day's own hover, because the ghost sits
+  // under the pointer and a day cannot see through it.
   const [over, setOver] = useState<string | null>(null)
+
+  const { dragging, begin } = useChipDrag({
+    gridRef,
+    onEdge: (step) => onMonthChange(shiftMonth(month, step)),
+    onDrop: (id, target) => {
+      setOver(null)
+      const day = target?.closest<HTMLElement>('[data-day]')?.dataset.day
+      if (day !== undefined) {
+        onMove(id, day)
+        return
+      }
+      if (target?.closest('[data-bin]') != null) onUnschedule(id)
+    },
+  })
 
   // The profile's entry for a kind, or nothing when the calendar still holds a
   // release of a kind the profile has since dropped. Nothing is a real answer
   // here: the chip falls back to the neutral glyph rather than disappearing.
   const kindOf = (key: string) => profile.config.release_kinds.find((kind) => kind.key === key)
 
+  // The one day showing everything it holds, if any. One at a time: several
+  // expanded days at once and the grid stops being a month at a glance, which
+  // is the only reason it is collapsed in the first place.
+  const [expanded, setExpanded] = useState<string | null>(null)
+
+  const shownOn = (date: string, releases: readonly ScheduledRelease[]) =>
+    expanded === date ? releases : releases.slice(0, VISIBLE_CHIPS)
+
+  // The row under the pointer, for drawing the ghost.
+  const carried = slots.find((slot) => slot.id === dragging?.id)
+
   const days = monthGrid(month)
   const booked = byDate(slots, (slot) => slot.scheduled_at)
   const now = today()
   const claiming = claimingId !== null
 
-  // The dry run of the drop or the click: the same verdict the backend would
-  // act on, asked for the day under the cursor. Announcing displacement after
-  // the drop was v0.24; here it stops being a surprise.
-  const moving = dragging ?? claimingId
+  // What the day under the pointer already holds. It was the dry run of a
+  // contest until v0.44 and predicted a refusal; nothing is refused now, so it
+  // says what is there and the drop happens either way.
+  const moving = dragging?.id ?? claimingId
   const preview = useQuery({
     queryKey: ['slotPreview', moving, over],
     queryFn: () => previewSchedule(moving as string, over as string),
@@ -116,17 +150,9 @@ export function MonthGrid({
             dragged release, it can only mean one thing. */}
         {dragging !== null && (
           <div
-            onDragOver={(event) => {
-              event.preventDefault()
-              setOver('bin')
-            }}
-            onDragLeave={() => setOver((current) => (current === 'bin' ? null : current))}
-            onDrop={(event) => {
-              event.preventDefault()
-              setOver(null)
-              const releaseId = event.dataTransfer.getData('text/plain')
-              if (releaseId !== '') onUnschedule(releaseId)
-            }}
+            data-bin
+            onPointerEnter={() => setOver('bin')}
+            onPointerLeave={() => setOver((current) => (current === 'bin' ? null : current))}
             className={cn(
               'ml-auto flex items-center gap-1.5 rounded-[10px] border border-dashed px-3 py-1 text-xs transition-colors',
               over === 'bin'
@@ -153,7 +179,10 @@ export function MonthGrid({
         )}
       </div>
 
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-line bg-line">
+      <div
+        ref={gridRef}
+        className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-line bg-line"
+      >
         {WEEKDAYS.map((day) => (
           <div
             key={day}
@@ -167,13 +196,15 @@ export function MonthGrid({
           const releases = booked.get(day.date) ?? []
           const isToday = day.date === now
           const verdict = verdictFor(day.date)
-          const refused = verdict !== null && verdict.verdict !== 'displaces'
 
           return (
             <div
               key={day.date}
-              // A day of a neighbouring month is drawn, but dimmed and inert:
-              // clicking it would book a date you cannot see the rest of.
+              // The date this cell stands for, read back from the element the
+              // pointer was released over. A day of a neighbouring month is
+              // dimmed but no longer inert: dragging reaches it, and the month
+              // turns under the pointer anyway.
+              data-day={day.date}
               className={cn(
                 'min-h-24 bg-bg p-1.5 transition-colors',
                 !day.inMonth && 'opacity-40',
@@ -182,34 +213,23 @@ export function MonthGrid({
                 // is not where the eye starts.
                 isToday && 'inset-ring inset-ring-accent',
                 claiming && day.inMonth && 'cursor-pointer hover:bg-soft',
-                // The ground answers before the drop does: a day that would
-                // refuse reads red, anything else reads like a place to land.
-                over === day.date && (refused ? 'bg-bad-soft' : 'bg-accent-soft'),
+                // Somewhere to land. No red: nothing is refused any more, and
+                // a day that already holds something says so in words below.
+                over === day.date && 'bg-accent-soft',
               )}
               onClick={claiming && day.inMonth ? () => onPickDay(day.date) : undefined}
-              // While a queued release waits for a date, hovering asks the
-              // same question dragging does — the verdict shows before the
-              // click books anything.
-              onMouseEnter={claiming && day.inMonth ? () => setOver(day.date) : undefined}
-              onMouseLeave={
-                claiming
+              // One set of handlers for both gestures: the queue's
+              // click-to-book and a chip in the air. The carried ghost is
+              // `pointer-events: none`, so the day underneath keeps receiving
+              // the pointer and lights up as it is crossed.
+              onPointerEnter={
+                claiming || dragging !== null ? () => setOver(day.date) : undefined
+              }
+              onPointerLeave={
+                claiming || dragging !== null
                   ? () => setOver((current) => (current === day.date ? null : current))
                   : undefined
               }
-              onDragOver={(event) => {
-                if (dragging === null || !day.inMonth) return
-                // Without this the browser refuses the drop, and the whole
-                // gesture ends in the cursor snapping back with no explanation.
-                event.preventDefault()
-                setOver(day.date)
-              }}
-              onDragLeave={() => setOver((current) => (current === day.date ? null : current))}
-              onDrop={(event) => {
-                event.preventDefault()
-                setOver(null)
-                const releaseId = event.dataTransfer.getData('text/plain')
-                if (releaseId !== '' && day.inMonth) onMove(releaseId, day.date)
-              }}
             >
               <div
                 className={cn(
@@ -221,21 +241,46 @@ export function MonthGrid({
               </div>
 
               <div className="flex flex-col gap-1">
-                {releases.map((slot) => (
+                {shownOn(day.date, releases).map((slot) => (
                   <SlotChip
                     key={slot.id}
                     slot={slot}
                     date={day.date}
                     now={now}
-                    dragging={dragging === slot.id}
-                    onDragStart={() => setDragging(slot.id)}
-                    onDragEnd={() => {
-                      setDragging(null)
-                      setOver(null)
-                    }}
+                    dragging={dragging?.id === slot.id}
+                    onGrab={(event) => begin(event, slot.id)}
                     onOpen={() => onOpenRelease(slot.id)}
                   />
                 ))}
+
+                {/* A day holds as many releases as are put on it since v0.44,
+                    and a cell ~130px wide holds two before the week's rows
+                    start drifting apart. The rest are one line away rather
+                    than hidden: the count is the whole point. */}
+                {releases.length > VISIBLE_CHIPS && expanded !== day.date && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setExpanded(day.date)
+                    }}
+                    className="cursor-pointer rounded-[7px] px-1 py-0.5 text-left text-[10px] text-dim transition-colors hover:bg-soft hover:text-text"
+                  >
+                    {t('calendar.moreOnDay', { count: releases.length - VISIBLE_CHIPS })}
+                  </button>
+                )}
+                {expanded === day.date && releases.length > VISIBLE_CHIPS && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setExpanded(null)
+                    }}
+                    className="cursor-pointer rounded-[7px] px-1 py-0.5 text-left text-[10px] text-dim transition-colors hover:bg-soft hover:text-text"
+                  >
+                    {t('calendar.showFewer')}
+                  </button>
+                )}
 
                 {/* Where the auto-layout would put things: dashed and in the
                     work's own colour as an outline, so a plan is visibly not
@@ -279,6 +324,34 @@ export function MonthGrid({
           )
         })}
       </div>
+
+      {/* The chip that follows the pointer. A real one, drawn by React rather
+          than a bitmap the browser snapshots: it keeps the work's colour, its
+          marks and its title, and it can be styled while it travels. Fixed to
+          the viewport, so no ancestor's overflow can clip it. */}
+      {dragging !== null &&
+        carried !== undefined &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-50"
+            style={{
+              left: dragging.ghost.left,
+              top: dragging.ghost.top,
+              width: dragging.size.width,
+            }}
+          >
+            <SlotChip
+              slot={carried}
+              date={carried.scheduled_at ?? now}
+              now={now}
+              dragging={false}
+              onGrab={() => {}}
+              onOpen={() => {}}
+              asGhost
+            />
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

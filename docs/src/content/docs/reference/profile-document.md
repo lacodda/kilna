@@ -242,9 +242,12 @@ The pace releases go out at:
 | `every_days` | number | Days the [auto-layout](/kilna/guides/planning-a-release/#the-rhythm-and-the-auto-layout) keeps between releases. `1` is daily. |
 | `default_time` | string, optional | Time of day (`HH:MM`) a release usually ships, shown beside the date when editing a release. |
 
-Calendar slots stay whole days — the contest for a date is per day, and a
-time would split it — so the usual time lives here as a single fact about the
-craft rather than on each release.
+Calendar slots stay whole days, and the usual time lives here as a single fact
+about the craft rather than on each release. The original reason was that a
+date was contested per day and a time would have split the contest; the contest
+went in v0.44 and the shape stayed, because the calendar is read a month at a
+time and a column of clock times is not what makes a month legible. A time on
+the release itself is in the model package (v0.52).
 
 `rhythm` may be absent, which is how a profile written before the field
 existed loads: the auto-layout then refuses with an explanation instead of

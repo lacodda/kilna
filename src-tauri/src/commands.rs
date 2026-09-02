@@ -626,35 +626,7 @@ pub fn schedule_release(
             .about("work", outcome.release.work_id.clone()),
     );
 
-    // Losing a slot is the one thing here that happens *to* someone rather than
-    // because of them: the toast that says so is gone in seconds, and this is
-    // where they find out afterwards what moved and when.
-    if let Some(displaced) = &outcome.displaced {
-        journal::record(
-            &conn,
-            &profile_id,
-            Record::new("release.displaced")
-                .param(
-                    "title",
-                    journal::work_title(&conn, &displaced.work_id).unwrap_or_default(),
-                )
-                .param("slot", slot)
-                .about("work", displaced.work_id.clone())
-                // Keyed on the release, not on the release and the date: a work
-                // that keeps being pushed out of the calendar is one situation
-                // told once with a count, not a new line every time somebody
-                // stronger arrives. The date in the line is the latest one,
-                // which is the one worth acting on.
-                .deduped(format!("displaced:{}", displaced.id))
-                .warn(),
-        );
-    }
-
     restate(&conn, &profile_id, &outcome.release.work_id);
-    // The work that lost the slot may no longer be scheduled at all.
-    if let Some(displaced) = &outcome.displaced {
-        restate(&conn, &profile_id, &displaced.work_id);
-    }
 
     Ok(outcome)
 }

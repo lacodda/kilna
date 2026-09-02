@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ChevronsLeft, ChevronsRight } from 'lucide-react'
 import {
   applyLayout,
   calendar as fetchCalendar,
@@ -25,6 +26,7 @@ import { MonthGrid } from '@/components/calendar/MonthGrid'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { ReleaseEditor } from '@/components/calendar/ReleaseEditor'
 import { filterByKind, filterGhosts, type KindFilter } from '@/lib/calendarFilter'
+import { loadLayout, otherLayout, saveLayout, type CalendarLayout } from '@/lib/calendarLayout'
 import { ghostsOf } from '@/lib/layout'
 import { monthOf, today, type Month } from '@/lib/month'
 import { cn } from '@/lib/utils'
@@ -47,6 +49,11 @@ export function CalendarView({ onSelect }: Props) {
   // with it: the queue is what still needs a date, and hiding part of it behind
   // a view of the month would hide work waiting to be scheduled.
   const [kind, setKind] = useState<KindFilter>(null)
+  // How much of the screen the month gets. Named for the width rather than
+  // the layout because `layout` below is the auto-layout's plan, and two
+  // different things under one word is how the wrong one gets read. Loaded
+  // once: it is a standing choice, not something to rediscover every visit.
+  const [width, setWidth] = useState<CalendarLayout>(loadLayout)
   // The id of the release being edited, not the row itself: holding the row
   // would freeze it at the moment it was opened, and pinning from inside the
   // dialog left the tick unmoved until it was closed and opened again.
@@ -79,22 +86,10 @@ export function CalendarView({ onSelect }: Props) {
 
   const claim = useMutation({
     mutationFn: ({ id, date }: { id: string; date: string }) => scheduleRelease(id, date),
-    onSuccess: (result) => {
+    onSuccess: () => {
       setPicked(null)
       settle()
-
-      if (result.displaced === null) {
-        say.ok(t('toast.releaseScheduled'))
-      } else {
-        // Displacement is the rule working, not a failure — but it is a
-        // consequence someone did not ask for, so it gets said out loud.
-        say.warn(
-          t('toast.releaseScheduled'),
-          t('calendar.displaced', {
-            title: result.displaced.title ?? result.displaced.work_id,
-          }),
-        )
-      }
+      say.ok(t('toast.releaseScheduled'))
     },
     onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
@@ -108,24 +103,15 @@ export function CalendarView({ onSelect }: Props) {
     onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
 
-  // Dragging goes through the contest, not through a plain edit. `update`
-  // writes the date without looking at who holds it — verified, two releases
-  // landed on the same day — and a calendar where the rule can be sidestepped
-  // by dragging is a calendar without the rule.
+  // The same call the queue uses. Until v0.44 dragging went through a contest
+  // and a weaker release could be evicted by the drop; now a day holds what is
+  // put on it, so moving a chip is the plainest thing on the screen — a date
+  // is written, and nothing else happens.
   const move = useMutation({
     mutationFn: ({ id, date }: { id: string; date: string }) => scheduleRelease(id, date),
-    onSuccess: (result) => {
+    onSuccess: () => {
       settle()
-      if (result.displaced === null) {
-        say.ok(t('toast.releaseMoved'))
-      } else {
-        say.warn(
-          t('toast.releaseMoved'),
-          t('calendar.displaced', {
-            title: result.displaced.title ?? result.displaced.work_id,
-          }),
-        )
-      }
+      say.ok(t('toast.releaseMoved'))
     },
     onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
@@ -180,8 +166,12 @@ export function CalendarView({ onSelect }: Props) {
     // that the month wins the width: 22rem of queue left the days ~77px wide,
     // and a day that narrow shows three letters of a title — what the pilot
     // saw. The queue drops under the calendar instead of squeezing it.
-    <div className="grid gap-6 xl:grid-cols-[20rem_1fr]">
-      <section className="flex flex-col gap-3">
+    <div className={cn('grid gap-6', width === 'queue' && 'xl:grid-cols-[20rem_1fr]')}>
+      {/* Hidden entirely in the full-width layout rather than collapsed: a
+          narrow strip of it would still take the width the month is being
+          given. Claiming a slot from the queue goes with it — that is what
+          the layout is for, and the toggle is one click away. */}
+      <section className={cn('flex flex-col gap-3', width === 'full' && 'hidden')}>
         <h3 className="text-sm font-semibold">{t('calendar.queue')}</h3>
         <p className="text-xs text-dim">{t('calendar.queueHint')}</p>
 
@@ -300,7 +290,31 @@ export function CalendarView({ onSelect }: Props) {
                 question waiting for an answer and outranks everything while it
                 is up; the filter is a standing choice about what the month
                 shows, so it sits with the thing it governs. */}
-            <KindFilterBar slots={slots.data} value={kind} onChange={setKind} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <KindFilterBar slots={slots.data} value={kind} onChange={setKind} />
+
+              {/* On the same line as the filters, at the far end: both are
+                  about what the month shows, and neither is an action on a
+                  release. */}
+              <Button
+                variant="icon"
+                size="icon-sm"
+                className="ml-auto"
+                aria-label={t(width === 'queue' ? 'calendar.widen' : 'calendar.showQueue')}
+                title={t(width === 'queue' ? 'calendar.widen' : 'calendar.showQueue')}
+                onClick={() => {
+                  const next = otherLayout(width)
+                  setWidth(next)
+                  saveLayout(next)
+                }}
+              >
+                {width === 'queue' ? (
+                  <ChevronsLeft aria-hidden />
+                ) : (
+                  <ChevronsRight aria-hidden />
+                )}
+              </Button>
+            </div>
 
             <MonthGrid
               month={month}

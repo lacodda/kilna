@@ -16,9 +16,11 @@ interface Props {
   /** Today, so urgency is measured from one clock rather than each chip's own. */
   now: string
   dragging: boolean
-  onDragStart: () => void
-  onDragEnd: () => void
+  /** A press landed on the chip; the hook decides whether it becomes a drag. */
+  onGrab: (event: React.PointerEvent) => void
   onOpen: () => void
+  /** Drawn as the thing under the pointer rather than as a chip on a day. */
+  asGhost?: boolean
 }
 
 /**
@@ -29,7 +31,7 @@ interface Props {
  * every title. The handle and the marks share the top line; the title gets the
  * day's full width underneath.
  */
-export function SlotChip({ slot, date, now, dragging, onDragStart, onDragEnd, onOpen }: Props) {
+export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = false }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
 
@@ -42,40 +44,38 @@ export function SlotChip({ slot, date, now, dragging, onDragStart, onDragEnd, on
   // shortcut for people who can see it hover; this is the fact itself.
   const label = `${slot.work_title} · ${kindLabel}`
 
-  return (
-    <PreviewCard>
-      <div
-        className={cn(
-          'flex flex-col gap-0.5 rounded-[7px] px-1 py-1 text-[11px] transition-opacity',
-          released && 'opacity-60',
-          dragging && 'opacity-40',
-        )}
-        // The work's own colour, so the same song is the same colour wherever
-        // it appears — the cover, the card, this chip.
-        style={{ background: coverFor(slot.work_id) }}
-      >
+  const body = (
+    <div
+      onPointerDown={released || asGhost ? undefined : onGrab}
+      className={cn(
+        'flex flex-col gap-0.5 rounded-[7px] px-1 py-1 text-[11px]',
+        !asGhost && 'transition-opacity',
+        released && 'opacity-60',
+        // The chip left behind while its copy travels: dimmed, so the day it
+        // came from still reads as spoken for.
+        dragging && 'opacity-30',
+        !released && !asGhost && 'cursor-grab',
+        // The ghost is under the pointer; it must not answer `elementFromPoint`
+        // instead of the day beneath it, and it must not be grabbed again.
+        asGhost && 'pointer-events-none scale-[1.03] shadow-float',
+      )}
+      // The work's own colour, so the same song is the same colour wherever
+      // it appears — the cover, the card, this chip.
+      style={{ background: coverFor(slot.work_id) }}
+    >
         {/* The top line: what you grab and what the release's state is. Both
             are small and fixed-width, so they cost the title nothing. */}
         <div className="flex items-center gap-1">
-          {/* The handle, and only the handle, is draggable. Making the whole
-              chip draggable puts every click in a race with a drag — the
-              predecessor did that and lost the click. */}
+          {/* The grip no longer owns the gesture — the whole chip does, and a
+              press only becomes a drag after `DRAG_THRESHOLD`. It stays as the
+              sign that the chip can be moved at all, which was the other half
+              of its job. */}
           <span
-            draggable={!released}
-            onDragStart={(event) => {
-              event.dataTransfer.setData('text/plain', slot.id)
-              event.dataTransfer.effectAllowed = 'move'
-              onDragStart()
-            }}
-            onDragEnd={onDragEnd}
-            onClick={(event) => event.stopPropagation()}
+            aria-hidden
             title={t('calendar.dragHandle')}
-            className={cn(
-              'shrink-0 text-white/50',
-              released ? 'opacity-30' : 'cursor-grab hover:text-white/80',
-            )}
+            className={cn('shrink-0 text-white/50', released && 'opacity-30')}
           >
-            <GripVertical aria-hidden className="size-3" />
+            <GripVertical className="size-3" />
           </span>
 
           <button
@@ -110,24 +110,31 @@ export function SlotChip({ slot, date, now, dragging, onDragStart, onDragEnd, on
           </button>
         </div>
 
-        {/* The title, on its own line and the trigger for the card: hovering it
-            is what a reader does when a truncated title is not enough. */}
-        <PreviewCardTrigger
-          render={
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                onOpen()
-              }}
-              title={label}
-              className="w-full cursor-pointer truncate text-left font-medium leading-tight text-white/90 hover:opacity-80"
-            />
-          }
-        >
-          {slot.work_title}
-        </PreviewCardTrigger>
-      </div>
+      {/* The title, on its own line. It opens the release; a press that turns
+          into a drag never reaches the click, because the gesture starts only
+          after the pointer has travelled. */}
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation()
+          onOpen()
+        }}
+        title={label}
+        className="w-full cursor-pointer truncate text-left font-medium leading-tight text-white/90 hover:opacity-80"
+      >
+        {slot.work_title}
+      </button>
+    </div>
+  )
+
+  // A chip travelling under the pointer is only a picture of itself: no hover
+  // card, which would open over the day it is being carried to, and nothing
+  // else to interact with.
+  if (asGhost) return body
+
+  return (
+    <PreviewCard>
+      <PreviewCardTrigger render={body} />
 
       {/* Everything here is also in the release dialog one click away. The card
           is not reachable by touch and not announced by a screen reader, so it

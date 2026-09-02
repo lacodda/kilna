@@ -75,25 +75,26 @@ pub struct Scheduling {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Verdict {
-    /// Nothing planned holds the day; claiming it contests nothing.
+    /// Nothing planned sits on the day.
     Empty,
-    /// The challenger is stronger: the holder would return to the queue.
-    Displaces,
-    /// The holder scores at least as well; the claim would be refused.
-    Held,
-    /// The date was settled by a person; the claim would be refused unjudged.
+    /// Something is already there. Not a refusal — a day holds as many
+    /// releases as are put on it — but the auto-layout leaves it alone and a
+    /// person is told before adding a second.
+    Taken,
+    /// Something is there and its date was settled by hand. The auto-layout
+    /// stays away; a person may still add beside it, having seen the lock.
     Pinned,
 }
 
-/// The dry run of a claim, shaped for the calendar to show before a drop.
+/// What a day holds, shaped for the calendar to show it.
 #[derive(Debug, Clone, Serialize)]
 pub struct SlotPreview {
     pub verdict: Verdict,
-    /// Who holds the day, when anything does.
+    /// Who is on the day, when anything is.
     pub holder_title: Option<String>,
 }
 
-/// A judged claim: who holds the slot and how the contest would end.
+/// What a look at a day found: who is on it, and in what state.
 struct Contest {
     occupant: Option<Release>,
     verdict: Verdict,
@@ -155,56 +156,19 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<Release>> {
 
 /// Put a release in a slot.
 ///
-/// A slot holds one release. When it is taken, the stronger work keeps it and
-/// the weaker one is returned to the queue rather than deleted — losing a slot
-/// must never lose the plan for the work. Strength is the latest total; an
-/// unscored release never displaces a scored one.
+/// A day holds as many releases as are put on it. It used to hold one, and a
+/// stronger work took the date from a weaker one — the contest of v0.22. That
+/// rule answered "who gets this day when I am not the one deciding", and the
+/// only place it was ever asked from was a person pointing at a day. A rule
+/// that argues with a deliberate gesture reads as a fault, not as care, so the
+/// owner retired it on 2026-09-01.
+///
+/// What survives is the pin, with a narrower promise: `slot_pinned_at` now
+/// means "the auto-layout does not put anything here", nothing more. A person
+/// dropping a second release on a pinned day can see the lock and means it.
 pub fn schedule(conn: &mut Connection, id: &str, slot: &str) -> Result<Scheduling> {
     let tx = conn.transaction()?;
-
-    let judged = judge(&tx, id, slot)?;
     let timestamp = now();
-    let mut displaced = None;
-
-    match judged.verdict {
-        // A pinned slot is not a contest. Strength is never consulted: the date
-        // was decided by a person, and the whole point of deciding is that a
-        // better score does not reopen it.
-        Verdict::Pinned => {
-            let occupant = judged.occupant.expect("a pinned verdict names a holder");
-            return Err(Error::SlotPinned(format!(
-                "`{}` holds that date and it is pinned",
-                occupant.title.as_deref().unwrap_or(&occupant.work_id)
-            )));
-        }
-        // Ties go to the release already in the slot: a plan should not move
-        // without a reason to move it.
-        Verdict::Held => {
-            let occupant = judged.occupant.expect("a held verdict names a holder");
-            return Err(Error::SlotHeld(format!(
-                "the slot is held by `{}`, which scores at least as well",
-                occupant.title.as_deref().unwrap_or(&occupant.work_id)
-            )));
-        }
-        Verdict::Displaces => {
-            let occupant = judged
-                .occupant
-                .expect("a displacing verdict names a holder");
-            // No pin to clear here: a pinned slot refuses the challenge above,
-            // so anything that reaches this line was never pinned. The other
-            // two ways a date is lost do clear it — see `unschedule` and
-            // `update`.
-            tx.execute(
-                "UPDATE release SET scheduled_at = NULL, updated_at = ?2 WHERE id = ?1",
-                params![occupant.id, timestamp],
-            )?;
-            displaced = Some(Release {
-                scheduled_at: None,
-                ..occupant
-            });
-        }
-        Verdict::Empty => {}
-    }
 
     tx.execute(
         "UPDATE release SET scheduled_at = ?2, updated_at = ?3 WHERE id = ?1",
@@ -215,14 +179,21 @@ pub fn schedule(conn: &mut Connection, id: &str, slot: &str) -> Result<Schedulin
 
     Ok(Scheduling {
         release: get(conn, id)?.ok_or_else(|| unknown_release(id))?,
-        displaced,
+        // Kept in the shape so the frontend and the journal need no migration
+        // for a field that is now always absent. It goes when the model package
+        // opens (v0.52).
+        displaced: None,
     })
 }
 
-/// The dry run: how [`schedule`] would end, without moving anything.
+/// What a day already holds, without moving anything.
 ///
-/// Shown under the cursor while a release hovers over a day, so displacement
-/// stops being a surprise announced after the drop.
+/// This used to be the dry run of [`schedule`] back when scheduling was a
+/// contest. Nothing contests a date any more, so the question it answers is
+/// narrower and plainer: is that day free, does something already sit there,
+/// and is it pinned. Two callers need exactly that — the auto-layout, which
+/// only fills free days, and the calendar, which says what a day holds before
+/// a release lands beside it.
 pub fn preview(conn: &Connection, id: &str, slot: &str) -> Result<SlotPreview> {
     let judged = judge(conn, id, slot)?;
 
@@ -238,26 +209,31 @@ pub fn preview(conn: &Connection, id: &str, slot: &str) -> Result<SlotPreview> {
     })
 }
 
-/// Decide how claiming `slot` for `id` would end. The one place the rule
-/// lives: [`schedule`] acts on the verdict, [`preview`] shows it.
+/// Look at what `slot` already holds, from the point of view of `id`.
+///
+/// It decided a contest until v0.44 and now only reports: nothing there, or
+/// something there, or something there that is pinned. The reading is still
+/// done in one place because two callers depend on it agreeing with itself —
+/// the auto-layout refuses a day that is not `Empty`, and the calendar tells a
+/// person what a day holds.
 fn judge(conn: &Connection, id: &str, slot: &str) -> Result<Contest> {
-    let Some(release) = conn
+    // Read first purely so an unknown id errs rather than reporting an empty
+    // day. Nothing else is needed from the row: it used to supply the work
+    // whose score was weighed against the occupant's, and nothing is weighed
+    // any more.
+    if conn
         .query_row(
             &format!("{SELECT_RELEASE} WHERE id = ?1"),
             params![id],
             read_row,
         )
         .optional()?
-        .map(RawRelease::into_release)
-        .transpose()?
-    else {
+        .is_none()
+    {
         return Err(unknown_release(id));
-    };
+    }
 
-    // Whoever already holds the slot, ignoring this release itself. The
-    // challenger's own row is read first purely so an unknown id errs rather
-    // than previewing an empty day.
-    let challenger_work = release.work_id;
+    // Whoever is already on the day, ignoring this release itself.
     let occupant = conn
         .query_row(
             &format!(
@@ -277,36 +253,20 @@ fn judge(conn: &Connection, id: &str, slot: &str) -> Result<Contest> {
         });
     };
 
+    // Strength used to be weighed here. Nothing takes a date from anything any
+    // more, so the only distinction left is whether the day was settled by
+    // hand: a pin tells the auto-layout to stay away, and tells a person that
+    // someone already meant this date.
     let verdict = if occupant.slot_pinned_at.is_some() {
         Verdict::Pinned
     } else {
-        let challenger = strength(conn, &challenger_work)?;
-        let holder = strength(conn, &occupant.work_id)?;
-        if challenger.unwrap_or(f64::NEG_INFINITY) <= holder.unwrap_or(f64::NEG_INFINITY) {
-            Verdict::Held
-        } else {
-            Verdict::Displaces
-        }
+        Verdict::Taken
     };
 
     Ok(Contest {
         occupant: Some(occupant),
         verdict,
     })
-}
-
-/// Latest total for a work, or `None` when it has never been scored.
-fn strength(conn: &Connection, work_id: &str) -> Result<Option<f64>> {
-    // The same score the catalogue shows. A contest decided by a number nobody
-    // can see is a contest nobody can predict — and until v0.24 this read the
-    // latest snapshot while the catalogue read the current version's.
-    let sql = format!(
-        "SELECT total FROM work_score WHERE id = {}",
-        crate::score::speaking_score_for("?1")
-    );
-    Ok(conn
-        .query_row(&sql, params![work_id], |row| row.get(0))
-        .optional()?)
 }
 
 /// Settle a date, or hand it back to the contest.
@@ -687,73 +647,70 @@ mod tests {
         assert!(result.displaced.is_none());
     }
 
+    /// A day holds as many releases as are put on it.
+    ///
+    /// It held exactly one until v0.44, and a stronger work took the date from
+    /// a weaker one. Four tests stood here for that rule; the owner retired it
+    /// on 2026-09-01 because the only thing that ever asked for a date was a
+    /// person pointing at a day, and a rule arguing with a deliberate gesture
+    /// reads as a fault. What replaces them is the opposite guarantee: nothing
+    /// is refused, and nothing is quietly evicted.
     #[test]
-    fn a_stronger_work_takes_the_slot_and_the_weaker_returns_to_the_queue() {
+    fn a_second_release_joins_a_day_rather_than_taking_it() {
         let (mut conn, profile_id) = workspace();
-        let weak = planned(&conn, &profile_id, "Weak", Some(4.0));
-        let strong = planned(&conn, &profile_id, "Strong", Some(9.0));
-        schedule(&mut conn, &weak.id, "2026-09-01").unwrap();
+        let first = planned(&conn, &profile_id, "First", Some(9.0));
+        let second = planned(&conn, &profile_id, "Second", Some(4.0));
 
-        let result = schedule(&mut conn, &strong.id, "2026-09-01").unwrap();
+        schedule(&mut conn, &first.id, "2026-09-01").unwrap();
+        let result = schedule(&mut conn, &second.id, "2026-09-01").unwrap();
 
-        assert_eq!(result.displaced.as_ref().unwrap().id, weak.id);
+        assert!(result.displaced.is_none(), "nothing is evicted any more");
+
+        let calendar = calendar(&conn, &profile_id).unwrap();
+        assert_eq!(calendar.len(), 2, "both hold the day");
         assert!(
-            result.displaced.as_ref().unwrap().scheduled_at.is_none(),
-            "the displaced release keeps existing, it only loses the date"
+            calendar
+                .iter()
+                .all(|entry| entry.release.scheduled_at.as_deref() == Some("2026-09-01"))
         );
+
+        // And the weaker one is not in the queue, because it was not sent back.
         let queued = queue(&conn, &profile_id).unwrap();
         assert!(
-            queued.iter().any(|entry| entry.release.id == weak.id),
-            "it must come back in the queue, not disappear"
+            queued.is_empty(),
+            "neither release was returned to the queue"
         );
     }
 
+    /// The order the two arrived in does not change the outcome.
+    ///
+    /// The old rule was asymmetric on purpose — who was already there mattered.
+    /// This checks the new one is not, because an asymmetry nobody declared is
+    /// the kind that shows up as a mystery months later.
     #[test]
-    fn a_weaker_work_cannot_take_an_occupied_slot() {
+    fn the_weaker_one_first_ends_the_same_way() {
         let (mut conn, profile_id) = workspace();
-        let strong = planned(&conn, &profile_id, "Strong", Some(9.0));
         let weak = planned(&conn, &profile_id, "Weak", Some(4.0));
+        let strong = planned(&conn, &profile_id, "Strong", Some(9.0));
+
+        schedule(&mut conn, &weak.id, "2026-09-01").unwrap();
         schedule(&mut conn, &strong.id, "2026-09-01").unwrap();
 
-        let result = schedule(&mut conn, &weak.id, "2026-09-01");
-
-        assert!(result.is_err());
-        let calendar = calendar(&conn, &profile_id).unwrap();
-        assert_eq!(calendar.len(), 1);
-        assert_eq!(calendar[0].release.id, strong.id);
+        assert_eq!(calendar(&conn, &profile_id).unwrap().len(), 2);
+        assert!(queue(&conn, &profile_id).unwrap().is_empty());
     }
 
+    /// An unscored release is no longer a lesser citizen of the calendar.
     #[test]
-    fn an_equal_score_leaves_the_slot_with_whoever_holds_it() {
-        let (mut conn, profile_id) = workspace();
-        let holder = planned(&conn, &profile_id, "Holder", Some(7.0));
-        let challenger = planned(&conn, &profile_id, "Challenger", Some(7.0));
-        schedule(&mut conn, &holder.id, "2026-09-01").unwrap();
-
-        // A plan should not move without a reason to move it.
-        assert!(schedule(&mut conn, &challenger.id, "2026-09-01").is_err());
-    }
-
-    #[test]
-    fn an_unscored_release_cannot_displace_a_scored_one() {
+    fn an_unscored_release_can_share_a_day_with_a_scored_one() {
         let (mut conn, profile_id) = workspace();
         let scored = planned(&conn, &profile_id, "Scored", Some(3.0));
         let unscored = planned(&conn, &profile_id, "Unscored", None);
+
         schedule(&mut conn, &scored.id, "2026-09-01").unwrap();
-
-        assert!(schedule(&mut conn, &unscored.id, "2026-09-01").is_err());
-    }
-
-    #[test]
-    fn a_scored_release_displaces_an_unscored_one() {
-        let (mut conn, profile_id) = workspace();
-        let unscored = planned(&conn, &profile_id, "Unscored", None);
-        let scored = planned(&conn, &profile_id, "Scored", Some(1.0));
         schedule(&mut conn, &unscored.id, "2026-09-01").unwrap();
 
-        let result = schedule(&mut conn, &scored.id, "2026-09-01").unwrap();
-
-        assert_eq!(result.displaced.unwrap().id, unscored.id);
+        assert_eq!(calendar(&conn, &profile_id).unwrap().len(), 2);
     }
 
     #[test]
@@ -770,12 +727,13 @@ mod tests {
 
     /// The contest and the screens must agree about how strong a work is.
     ///
-    /// Until v0.24 this read the latest snapshot while the catalogue read the
-    /// current version's, so one work showed 68.1 on one screen and 77.8 on the
-    /// next — and the rule deciding who keeps a date used a third number that
-    /// nothing displayed.
+    /// Until v0.24 the calendar read the latest snapshot while the catalogue
+    /// read the current version's, so one work showed 68.1 on one screen and
+    /// 77.8 on the next. The contest that made the disagreement expensive is
+    /// gone, but the disagreement itself would still be a bug: the queue is
+    /// ordered by this number and a person chooses what to ship by it.
     #[test]
-    fn strength_is_the_score_that_speaks_for_the_work() {
+    fn one_score_speaks_for_a_work_on_every_screen() {
         let (mut conn, profile_id) = workspace();
         let held = planned(&conn, &profile_id, "Subject", Some(7.0));
 
@@ -792,47 +750,68 @@ mod tests {
         )
         .unwrap();
 
-        let total = strength(&conn, &held.work_id).unwrap().unwrap();
         let strongest = score::history(&conn, &held.work_id)
             .unwrap()
             .into_iter()
             .map(|score| score.total)
             .fold(f64::NEG_INFINITY, f64::max);
-        assert!(
-            (total - strongest).abs() < 1e-9,
-            "contest read {total}, catalogue would read {strongest}"
+
+        // The queue is where the number is read from before a date exists...
+        let queued = queue(&conn, &profile_id).unwrap();
+        let waiting = queued
+            .iter()
+            .find(|row| row.release.id == held.id)
+            .expect("it is waiting for a date");
+        assert_eq!(
+            waiting.total,
+            Some(strongest),
+            "the queue reads another number"
         );
 
-        // And it agrees with what the calendar shows for the same work.
+        // ...and the calendar is where it is read from afterwards.
         schedule(&mut conn, &held.id, "2026-09-01").unwrap();
         let shown = calendar(&conn, &profile_id).unwrap();
         let entry = shown.iter().find(|row| row.release.id == held.id).unwrap();
-        assert_eq!(entry.total, Some(total));
+        assert_eq!(
+            entry.total,
+            Some(strongest),
+            "the calendar reads another number"
+        );
     }
 
-    /// A pinned date is a decision, and a decision does not reopen because a
-    /// better score turned up.
+    /// A pin is a message to the auto-layout, not a barrier to a person.
+    ///
+    /// It refused a stronger challenger until v0.44, when the contest went. The
+    /// promise is narrower now and the test says exactly how narrow: the day
+    /// still reads as `Pinned`, which is what `layout::plan` checks — but a
+    /// person dropping something there is not stopped, because they can see the
+    /// lock and mean it.
     #[test]
-    fn a_pinned_slot_refuses_a_stronger_challenger() {
+    fn a_pinned_day_warns_the_layout_without_refusing_a_person() {
         let (mut conn, profile_id) = workspace();
 
-        let weak = planned(&conn, &profile_id, "Weak", Some(4.0));
-        schedule(&mut conn, &weak.id, "2026-09-01").unwrap();
-        set_slot_pin(&conn, &weak.id, true).unwrap();
+        let held = planned(&conn, &profile_id, "Held", Some(4.0));
+        schedule(&mut conn, &held.id, "2026-09-01").unwrap();
+        set_slot_pin(&conn, &held.id, true).unwrap();
 
-        let strong = planned(&conn, &profile_id, "Strong", Some(9.0));
-        let refused = schedule(&mut conn, &strong.id, "2026-09-01").unwrap_err();
-        assert_eq!(refused.kind(), "slotPinned", "got {refused}");
+        // What the auto-layout reads — always on behalf of something else, so
+        // that is how it is asked here. (Asked on behalf of the pinned release
+        // itself the day reads empty, because nothing occupies a date against
+        // itself; that is checked in `the_preview_reports_what_the_day_holds`.)
+        let other = planned(&conn, &profile_id, "Other", Some(9.0));
+        let seen = preview(&conn, &other.id, "2026-09-01").unwrap();
+        assert_ne!(seen.verdict, Verdict::Empty, "the layout must skip it");
+        assert_eq!(seen.verdict, Verdict::Pinned);
+        assert_eq!(seen.holder_title.as_deref(), Some("Held"));
 
-        // The holder keeps both its date and its pin.
-        let holder = get(&conn, &weak.id).unwrap().unwrap();
+        // What a person gets: the date, beside the pinned release.
+        schedule(&mut conn, &other.id, "2026-09-01").unwrap();
+        assert_eq!(calendar(&conn, &profile_id).unwrap().len(), 2);
+
+        // And the pinned one is untouched — neither evicted nor unpinned.
+        let holder = get(&conn, &held.id).unwrap().unwrap();
         assert_eq!(holder.scheduled_at.as_deref(), Some("2026-09-01"));
         assert!(holder.slot_pinned_at.is_some());
-
-        // Unpinned, the same challenger wins the ordinary way.
-        set_slot_pin(&conn, &weak.id, false).unwrap();
-        let outcome = schedule(&mut conn, &strong.id, "2026-09-01").unwrap();
-        assert!(outcome.displaced.is_some(), "the contest did not resume");
     }
 
     /// A pin describes a date, so losing the date loses the pin — otherwise the
@@ -871,13 +850,17 @@ mod tests {
         );
     }
 
-    /// `update` writes a date without asking who holds it — by design: editing
-    /// a booking is not bidding for one. This pins that behaviour down, because
-    /// v0.24 wired dragging to `update` and shipped a calendar where two
-    /// releases could share a day. Anything that lets a person *take* a date
-    /// must go through `schedule`.
+    /// The two ways a date gets written now agree.
+    ///
+    /// This test is older than the rule it checks. In v0.24 `update` wrote a
+    /// date without asking who held it while `schedule` ran a contest, and
+    /// wiring dragging to the wrong one shipped a calendar where two releases
+    /// could quietly share a day — the bug it was written to prevent. The
+    /// owner retired the contest on 2026-09-01, so sharing a day is the
+    /// intended outcome and the two paths differ only in what else they do:
+    /// `update` edits a booking, `schedule` books one. Neither refuses.
     #[test]
-    fn update_moves_a_date_without_contesting_it() {
+    fn both_ways_of_writing_a_date_let_a_day_be_shared() {
         let (mut conn, profile_id) = workspace();
 
         let holder = planned(&conn, &profile_id, "Holder", Some(9.0));
@@ -899,14 +882,21 @@ mod tests {
             .into_iter()
             .filter(|row| row.release.scheduled_at.as_deref() == Some("2026-09-05"))
             .count();
-        assert_eq!(
-            sharing, 2,
-            "update is expected not to contest — see the doc comment"
-        );
+        assert_eq!(sharing, 2, "update put it on the day beside the holder");
 
-        // And the contest, for the same pair, refuses the weaker one.
-        let refused = schedule(&mut conn, &other.id, "2026-09-05");
-        assert!(refused.is_err(), "schedule must still contest");
+        // And the other path, for the same pair, ends the same way: scheduling
+        // the weaker one onto the taken day is not refused and evicts nothing.
+        let again = schedule(&mut conn, &other.id, "2026-09-05").unwrap();
+        assert!(again.displaced.is_none());
+        assert_eq!(
+            calendar(&conn, &profile_id)
+                .unwrap()
+                .into_iter()
+                .filter(|row| row.release.scheduled_at.as_deref() == Some("2026-09-05"))
+                .count(),
+            2,
+            "scheduling onto a taken day agrees with editing onto it"
+        );
     }
 
     /// There is no slot to pin on something that holds no date.
@@ -983,58 +973,57 @@ mod tests {
         assert!(calendar(&conn, &profile_id).unwrap().is_empty());
     }
 
-    /// The dry run and the real claim are one rule: whatever `preview` says a
-    /// drop will do is exactly what `schedule` then does. Each verdict is
-    /// checked against the real outcome, because a preview that drifts from
-    /// the contest misleads at the worst moment — with a release in the air.
+    /// What `preview` reports is what the day actually holds.
+    ///
+    /// It was the dry run of a contest until v0.44 and each verdict was checked
+    /// against the refusal it predicted. There are no refusals now, so the
+    /// agreement worth checking is with the calendar: a day the preview calls
+    /// empty holds nothing, a day it calls taken holds something, and the name
+    /// it gives is the name of what is there. The auto-layout acts on this, so
+    /// a drift would show up as a plan booking days that are not free.
     #[test]
-    fn the_preview_says_what_scheduling_then_does() {
+    fn the_preview_reports_what_the_day_holds() {
         let (mut conn, profile_id) = workspace();
 
-        let strong = planned(&conn, &profile_id, "Strong", Some(9.0));
-        let weak = planned(&conn, &profile_id, "Weak", Some(4.0));
+        let first = planned(&conn, &profile_id, "First", Some(9.0));
+        let second = planned(&conn, &profile_id, "Second", Some(4.0));
         let pinned = planned(&conn, &profile_id, "Pinned", Some(5.0));
 
-        // An empty day: claimed without displacing.
-        let dry = preview(&conn, &strong.id, "2026-09-01").unwrap();
+        // An empty day, and the calendar agrees nothing is on it.
+        let dry = preview(&conn, &first.id, "2026-09-01").unwrap();
         assert_eq!(dry.verdict, Verdict::Empty);
         assert!(dry.holder_title.is_none());
-        let real = schedule(&mut conn, &strong.id, "2026-09-01").unwrap();
-        assert!(real.displaced.is_none());
+        assert!(calendar(&conn, &profile_id).unwrap().is_empty());
 
-        // A weaker challenger: refused, and the preview names the holder.
-        let dry = preview(&conn, &weak.id, "2026-09-01").unwrap();
-        assert_eq!(dry.verdict, Verdict::Held);
-        assert_eq!(dry.holder_title.as_deref(), Some("Strong"));
-        assert!(schedule(&mut conn, &weak.id, "2026-09-01").is_err());
+        // Once taken, the preview names what is there — and the drop still goes
+        // through, because nothing is refused any more.
+        schedule(&mut conn, &first.id, "2026-09-01").unwrap();
+        let dry = preview(&conn, &second.id, "2026-09-01").unwrap();
+        assert_eq!(dry.verdict, Verdict::Taken);
+        assert_eq!(dry.holder_title.as_deref(), Some("First"));
+        schedule(&mut conn, &second.id, "2026-09-01").unwrap();
+        assert_eq!(calendar(&conn, &profile_id).unwrap().len(), 2);
 
-        // A stronger challenger against the weak holder: displaces.
-        schedule(&mut conn, &weak.id, "2026-09-02").unwrap();
-        let dry = preview(&conn, &strong.id, "2026-09-02").unwrap();
-        assert_eq!(dry.verdict, Verdict::Displaces);
-        assert_eq!(dry.holder_title.as_deref(), Some("Weak"));
-        let real = schedule(&mut conn, &strong.id, "2026-09-02").unwrap();
-        assert_eq!(real.displaced.unwrap().id, weak.id);
-
-        // A pinned holder: refused before strength is even consulted.
+        // A pinned day reads differently from a merely taken one: that is the
+        // whole of what a pin now means.
         schedule(&mut conn, &pinned.id, "2026-09-03").unwrap();
         set_slot_pin(&conn, &pinned.id, true).unwrap();
-        let dry = preview(&conn, &strong.id, "2026-09-03").unwrap();
+        let dry = preview(&conn, &first.id, "2026-09-03").unwrap();
         assert_eq!(dry.verdict, Verdict::Pinned);
-        let refused = schedule(&mut conn, &strong.id, "2026-09-03").unwrap_err();
-        assert_eq!(refused.kind(), "slotPinned");
+        assert_eq!(dry.holder_title.as_deref(), Some("Pinned"));
 
-        // Hovering over its own day reads as empty: dropping there is a no-op,
-        // not a contest against itself.
-        let own = preview(&conn, &strong.id, "2026-09-02").unwrap();
-        assert_eq!(own.verdict, Verdict::Empty);
+        // Looking at its own day reads as empty: a release does not occupy a
+        // date against itself, or moving one a day sideways would report a
+        // collision with the version of itself it is leaving.
+        let own = preview(&conn, &first.id, "2026-09-01").unwrap();
+        assert_eq!(own.verdict, Verdict::Taken, "the other one is still there");
+        let alone = preview(&conn, &pinned.id, "2026-09-03").unwrap();
+        assert_eq!(alone.verdict, Verdict::Empty, "only itself is on that day");
 
-        // And an unknown release errs rather than previewing an empty day.
+        // And an unknown release errs rather than reporting an empty day.
         assert!(preview(&conn, "nope", "2026-09-01").is_err());
     }
 
-    /// The calendar's chips carry readiness judged from the same facts every
-    /// other screen shows: the roles with a version, and the speaking score.
     #[test]
     fn the_calendar_reports_how_ready_each_release_is() {
         let (mut conn, profile_id) = workspace();

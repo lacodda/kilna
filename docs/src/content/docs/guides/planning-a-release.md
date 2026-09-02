@@ -1,6 +1,6 @@
 ---
 title: Planning a release
-description: Queue, slots, displacement, and the auto-layout — how a stronger work takes a contested date, a weaker one keeps its plan, and one click paces the queue to your rhythm.
+description: Queue, slots and the auto-layout — how a release gets a date, how a month is read at a glance, and how one click paces the whole queue to your rhythm.
 ---
 
 A **release** is a plan to ship a specific work as some kind — a clip, a
@@ -17,9 +17,9 @@ look when deciding what deserves the next open date.
 
 **Which score** is the one the catalogue shows: the current version's, or the
 strongest if no version is current — see
-[Scoring](/kilna/concepts/scoring/). Until v0.24 the contest used the most
-recent snapshot instead, so a work could read one number in the catalogue and
-be judged by another here.
+[Scoring](/kilna/concepts/scoring/). The queue, the catalogue and the calendar
+all read that one number: until v0.24 this screen used the most recent snapshot
+instead, and a work showed one figure here and another there.
 
 ## The rhythm and the auto-layout
 
@@ -41,8 +41,8 @@ calendar holds now.
 The layout follows four rules, in this order:
 
 - **Nothing already on the calendar moves.** Booked days, pinned or not, are
-  ground the layout builds around — it fills empty days only, and never
-  displaces anything.
+  ground the layout builds around — it fills empty days only, and never puts
+  anything beside what is already there.
 - **Spacing.** A planned date keeps at least the rhythm's distance from every
   release that has a date — planned or already released. Something that went
   out yesterday sets the pace exactly as a booked slot would.
@@ -93,8 +93,8 @@ match, so the plan never shows what the month is hiding — booking still books
 every placement, filter or no filter.
 
 **Picking a release in the queue turns the grid into a way to answer "when".**
-Days become clickable; clicking one claims that slot, with the same contest
-described below. Clicking a chip instead opens the release itself.
+Days become clickable; clicking one gives the release that date. Clicking a
+chip instead opens the release itself.
 
 ## Ready marks
 
@@ -127,26 +127,37 @@ startup and after every calendar change.
 
 ## Moving a release
 
-Each chip has a grip on its left. **Drag the grip**, not the chip: a chip that
-is draggable everywhere puts every click in a race with a drag, which is how
-the predecessor lost the click entirely.
+**Pick a chip up anywhere on it** and carry it to another day. The chip itself
+travels under the pointer — title, marks and all — and the day underneath
+lights up as you cross it. A press only becomes a drag once the pointer has
+moved a little way, so a click still opens the release; the grip on the left
+stays as the sign that a chip can be moved at all.
 
-Dropping on another day claims that date, with the same contest as any other
-way of claiming one: an empty day is simply taken, a held day goes to whichever
-work scores higher, and a pinned one refuses. Dropping on the **bin** — which
-appears at the top only while something is in the air — returns it to the
-queue, exactly as unscheduling does.
+**Carry it to either edge and the month turns.** Rest the pointer in the strip
+down the left or right side of the grid and the calendar walks back or forward
+a month at a time, so a date in April is reachable from January without putting
+anything down. **Escape** puts the chip back where it was.
 
-**The outcome shows before the drop.** While a release hangs over a day — or
-while a picked queue entry hovers over one — the day answers: amber names the
-release that would lose the date, red says the claim would be refused and why
-(the holder scores at least as well, or the date is pinned). The message is
-the same verdict the drop would act on, computed by the same rule, so the
-preview cannot promise one thing and the contest do another. An empty day
-shows nothing extra: there is nothing to warn about.
+Dropping on another day writes that date. Nothing is refused and nothing is
+evicted: a day holds as many releases as you put on it. Dropping on the
+**bin** — which appears at the top only while something is in the air —
+returns it to the queue, exactly as unscheduling does.
 
-Editing the date in the release itself is the exception: that moves a booking
-you already hold rather than bidding for a new one, and does not contest.
+**A day already holding something says so** while a release hovers over it, and
+the drop goes through anyway. It is a note about what is there, not a warning
+about what will fail.
+
+:::note[This changed in v0.44]
+Until then a day held exactly one release, and dropping onto a taken one
+started a contest: the stronger work kept the date and the weaker went back to
+the queue. The only thing that ever asked for a date was a person pointing at a
+day, and a rule that argues with a deliberate gesture reads as a fault rather
+than as care — so the contest was retired. What remains of it is the pin, with
+a narrower promise: see [Keeping a date](#keeping-a-date).
+:::
+
+A day with more than two releases shows the first two and folds the rest into
+**+N more**; clicking it opens the day, and **Show fewer** closes it again.
 
 ## Keeping a date
 
@@ -154,10 +165,15 @@ Some dates are decided rather than proposed: an announced launch, a slot
 booked around something else, a release someone is waiting on. Open the
 release and tick **Keep this date**.
 
-A pinned slot is not contested. The rule below never runs against it — a
-stronger work is refused rather than let through, and the refusal says the
-date is pinned rather than that something outscored you. The lock on the chip
-is how you see it from the month view.
+**A pin is a message to the auto-layout.** It never puts anything on a pinned
+day, so the date stays yours while the queue is laid out around it. The lock on
+the chip is how you see it from the month view.
+
+It does not stop you. Dropping a second release onto a pinned day works like
+any other drop — you can see the lock, and meaning it is the whole point of a
+gesture. Until v0.44 the pin also refused other releases outright, because
+scheduling was a contest; now that nothing contests a date, that half of the
+promise has nothing to refuse.
 
 The pin belongs to the date, so losing the date loses the pin: unscheduling or
 clearing the date drops it, and pinning a release that holds no date is
@@ -165,41 +181,31 @@ refused.
 
 ## Claiming a slot
 
-A calendar **slot** is a date. Scheduling a release for a slot that's empty
-just claims it — nothing else happens.
+A calendar **slot** is a date, and a date holds as many releases as you put on
+it. Scheduling a release for a day — from the queue, by dragging a chip, or by
+typing the date into the release itself — writes that date. Nothing is
+compared, nothing is refused, and nothing already there is moved.
 
-Scheduling a release for a slot that's **already held** by another release
-triggers a contest:
+Two exceptions to "nothing else happens", both about the queue rather than the
+date: a release that had no date leaves the queue when it gains one, and a
+release that loses its date returns to it.
 
-- If the new release's work scores **higher** than the slot's current
-  occupant, the new one takes the slot and the occupant is **displaced**: its
-  `scheduled_at` is cleared and it drops back into the queue. It is never
-  deleted — losing a slot must never lose the plan for the work, only the
-  date.
-- If the slot is **pinned**, scheduling is refused outright and nothing is
-  compared — see above.
-- If the new release's work scores **equal or lower**, scheduling is
-  **refused** with an error naming what's already holding the date. Ties go
-  to whoever is already in the slot — a plan shouldn't move without a reason
-  to move it.
-- An **unscored** release cannot displace a **scored** one, on the reasoning
-  that "unjudged" is not a claim of strength. A scored release, even a weak
-  one, can displace an unscored one.
-
-```text
-schedule(release, "2026-09-01")
-  → slot empty:              claimed, nothing displaced
-  → slot held, you're stronger:  claimed, holder returned to the queue
-  → slot held, you're weaker/tied: refused
-```
+:::note[This changed in v0.44]
+A slot used to hold exactly one release. Claiming a taken one started a
+contest — the stronger work kept the date, the weaker returned to the queue
+with its plan intact, a tie went to whoever was already there, and an unscored
+release could never take a date from a scored one. The rule was retired when
+it became clear the only thing it ever argued with was a person choosing a
+date deliberately. The score still orders the queue and still drives the
+auto-layout; it just no longer decides who may have a day.
+:::
 
 ## Rescheduling and released slots
 
-Scheduling a release into the slot it already holds is a no-op that succeeds
-without displacing itself. And once a release has been marked **released**,
-its old date no longer competes for anything — a new release can claim that
-same calendar date freely, because history occupying a date is not the same
-as a plan contesting it.
+Scheduling a release into the day it already holds writes the same date again
+and changes nothing else. Once a release has been marked **released**, its
+date is history rather than a plan — it stays on the calendar, dimmed, and
+takes part in nothing.
 
 ## Marking released
 

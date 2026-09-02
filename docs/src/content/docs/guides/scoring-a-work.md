@@ -78,8 +78,8 @@ a signal to re-score, not an error.
 A work's most recent score decides two things downstream:
 
 - **Tier**, shown wherever the work appears in a catalogue or list.
-- **Strength**, which is what a calendar slot compares when two releases
-  contest the same date. See
+- **Order in the queue**, strongest first — which is also the order the
+  auto-layout places them in. See
   [Planning a release](/kilna/guides/planning-a-release/).
 
 An unscored work is not treated as bad — it's treated as unjudged, and sorts

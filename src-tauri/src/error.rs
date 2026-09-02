@@ -30,20 +30,6 @@ pub enum Error {
     #[error("{0}")]
     NotRestorable(String),
 
-    /// A slot someone settled by hand, refusing a stronger challenger. Its own
-    /// variant rather than a plain error because the frontend has a sentence
-    /// for it: "that date is pinned" is a different situation from "that date
-    /// is held by something better", and only one of them is worth arguing
-    /// with.
-    #[error("{0}")]
-    SlotPinned(String),
-
-    /// A slot lost on merit. Its own kind for the same reason as `SlotPinned`:
-    /// the sentence is shown to a person, and a person reading Russian should
-    /// not be handed a string written in Rust.
-    #[error("{0}")]
-    SlotHeld(String),
-
     /// The calendar moved between previewing an auto-layout and applying it.
     /// Its own kind because the remedy is specific — preview again — and the
     /// frontend should say that rather than show a refusal with no way out.
@@ -71,8 +57,6 @@ impl Error {
             Self::SchemaTooNew { .. } => "schemaTooNew",
             Self::NotFound { .. } => "notFound",
             Self::NotRestorable(_) => "notRestorable",
-            Self::SlotPinned(_) => "slotPinned",
-            Self::SlotHeld(_) => "slotHeld",
             Self::LayoutStale(_) => "layoutStale",
             Self::Assistant(_) => "assistant",
             Self::Other(_) => "other",
