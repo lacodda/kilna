@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.44.0] - 2026-09-02
+
+### Features
+- Pick a chip up and carry it
+- Retire the contest for a date
+
+### Breaking Changes
+- A calendar day now holds any number of releases. Scheduling one onto a taken day no longer compares scores, refuses, or returns the weaker release to the queue. The `slotHeld` and `slotPinned` error kinds are gone, `Scheduling.displaced` is always null, and the `release.displaced` journal line is no longer written. A pinned date still keeps the auto-layout away, but no longer refuses a person.
 ## [0.43.0] - 2026-09-01
 
 ### Bug Fixes
