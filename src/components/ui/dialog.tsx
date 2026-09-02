@@ -26,6 +26,12 @@ export const dialogPopupVariants = cva(
     'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
     'rounded-xl border border-line bg-raise p-5 text-text shadow-float',
     'focus-visible:outline-none',
+    // The width was capped from the start and the height was not, so a dialog
+    // with more in it than the window is tall centred itself and hung off both
+    // ends - the top out of reach above the viewport, the buttons below it.
+    // Found on a release editor in kilna, which is exactly the shape that does
+    // it: half a dozen fields and a row of actions.
+    'max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain',
     // The enter and the leave. `duration-*` reads the token directly because
     // Tailwind's own utility takes a literal number.
     '[transition:opacity_var(--duration-base)_var(--ease-out),transform_var(--duration-base)_var(--ease-out)]',

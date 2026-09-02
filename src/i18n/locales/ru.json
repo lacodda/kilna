@@ -302,9 +302,8 @@
     "notReadyHint": "Не хватает: {{list}}",
     "missingScore": "оценки",
     "preview": {
-      "displaces": "{{title}} потеряет этот день",
-      "held": "{{title}} держит этот день и оценён не хуже",
-      "pinned": "{{title}} держит этот день, и дата закреплена"
+      "taken": "{{title}} уже стоит на этом дне",
+      "pinned": "{{title}} здесь, и дата закреплена"
     }
   },
   "releases": {

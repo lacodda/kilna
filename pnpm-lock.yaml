@@ -33,8 +33,8 @@ importers:
         specifier: ^3.4.14
         version: 3.4.14
       dowel-ui:
-        specifier: ^0.11.1
-        version: 0.11.1(eslint@10.9.1(jiti@2.7.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        specifier: ^0.11.2
+        version: 0.11.2(eslint@10.9.1(jiti@2.7.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       i18next:
         specifier: ^26.4.0
         version: 26.4.0(typescript@6.0.3)
@@ -1192,8 +1192,8 @@ packages:
   dompurify@3.4.14:
     resolution: {integrity: sha512-dVoH9z+MY+C9IilgGCk3YfFqjLi3fChm2OiKJMzh6axrJ5qwxqWaZamgmHrpv22CN/KdbZJuGEGgfQoL00LTdg==}
 
-  dowel-ui@0.11.1:
-    resolution: {integrity: sha512-75WWnGBrXRYTkNOKyjSOsEvth52Ah+KrWvuNGTBVevzOQhqo/tlsH4eMmVOe8cwnkSFk4b9GD2DjwVZ646hc3w==}
+  dowel-ui@0.11.2:
+    resolution: {integrity: sha512-8L0WfBZ9nwBDPZgHb/oGTLpTHGe8osPNEiNyO/MiVj61uqSvSyDRu4e2kNq7YnuuDOX0R3iOdmGmW6u8/Eoi2g==}
     peerDependencies:
       eslint: ^9.0.0 || ^10.0.0
       react: ^19.0.0
@@ -2889,7 +2889,7 @@ snapshots:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
-  dowel-ui@0.11.1(eslint@10.9.1(jiti@2.7.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+  dowel-ui@0.11.2(eslint@10.9.1(jiti@2.7.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
       clsx: 2.1.1
       react: 19.2.8

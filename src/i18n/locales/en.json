@@ -281,9 +281,8 @@
     "notReadyHint": "Missing: {{list}}",
     "missingScore": "a score",
     "preview": {
-      "displaces": "{{title}} would lose this day",
-      "held": "{{title}} holds this day and scores at least as well",
-      "pinned": "{{title}} holds this day, and the date is pinned"
+            "taken": "{{title}} is already on this day",
+      "pinned": "{{title}} is here, and the date is kept"
     }
   },
   "releases": {

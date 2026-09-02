@@ -37,6 +37,16 @@ interface Options {
 export function useChipDrag({ gridRef, onEdge, onDrop }: Options) {
   const [dragging, setDragging] = useState<Dragging | null>(null)
 
+  // The callers pass fresh closures on every render — they read `month`, and
+  // dragging re-renders constantly. Held in a ref so the listeners below are
+  // installed once: with the callbacks in the effect's dependencies, every
+  // render tore the listeners down and, with them, the edge timer that had
+  // just been started. Which is precisely why the month never turned.
+  const handlers = useRef({ onEdge, onDrop })
+  useEffect(() => {
+    handlers.current = { onEdge, onDrop }
+  })
+
   // Everything the move and up handlers need, kept out of state so that
   // changing it does not re-render on every pointer move.
   const press = useRef<{
@@ -68,10 +78,10 @@ export function useChipDrag({ gridRef, onEdge, onDrop }: Options) {
       // on the way to a day near the edge must not set anything off.
       edge.current = {
         side,
-        timer: window.setInterval(() => onEdge(side), EDGE_DELAY),
+        timer: window.setInterval(() => handlers.current.onEdge(side), EDGE_DELAY),
       }
     },
-    [gridRef, onEdge, stopEdge],
+    [gridRef, stopEdge],
   )
 
   const begin = useCallback(
@@ -124,7 +134,7 @@ export function useChipDrag({ gridRef, onEdge, onDrop }: Options) {
       // the answer to `elementFromPoint` instead of the day underneath.
       const target = started ? document.elementFromPoint(event.clientX, event.clientY) : null
       cancel()
-      if (started) onDrop(held.id, target)
+      if (started) handlers.current.onDrop(held.id, target)
     }
 
     // Escape puts it back rather than dropping it somewhere by accident — the
@@ -144,7 +154,7 @@ export function useChipDrag({ gridRef, onEdge, onDrop }: Options) {
       window.removeEventListener('keydown', key)
       stopEdge()
     }
-  }, [cancel, followEdge, onDrop, stopEdge])
+  }, [cancel, followEdge, stopEdge])
 
   return { dragging, begin, cancel }
 }

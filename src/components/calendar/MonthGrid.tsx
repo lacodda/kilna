@@ -333,7 +333,9 @@ export function MonthGrid({
         carried !== undefined &&
         createPortal(
           <div
-            className="pointer-events-none fixed z-50"
+            // Above the overlays it may pass under; the scale is dowel's,
+            // not a number picked here.
+            className="pointer-events-none fixed [z-index:var(--z-overlay)]"
             style={{
               left: dragging.ghost.left,
               top: dragging.ghost.top,

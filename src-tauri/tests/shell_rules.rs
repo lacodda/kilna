@@ -174,3 +174,51 @@ fn nothing_shows_verbatim_text_without_making_it_selectable() {
         offenders.join(", ")
     );
 }
+
+/// Nothing adds `relative` to an overlay that is already positioned.
+///
+/// `cn` merges classes with `tailwind-merge`, which resolves a conflict by
+/// keeping the last class of a group — and `position` is one group. A wrapper
+/// adding `relative` so its own absolutely positioned child sits in the corner
+/// therefore removes the `fixed` the overlay is built on, and the popup starts
+/// measuring `top: 50%` against the document rather than the window.
+///
+/// That is exactly what happened to the dialog: the wrapper added `relative`,
+/// every dialog moved below the fold on a tall screen, and three diagnoses went
+/// past it because the class is right there in the stylesheet and missing only
+/// after the merge. A `fixed` parent positions an absolute child perfectly
+/// well, so the `relative` was never needed in the first place.
+#[test]
+fn no_wrapper_adds_relative_to_an_overlay() {
+    let ui = repo_root().join("src/components/ui");
+    let mut offenders = Vec::new();
+
+    for entry in std::fs::read_dir(&ui).expect("the ui directory is readable") {
+        let path = entry.expect("readable entry").path();
+        if path.extension().is_none_or(|ext| ext != "tsx") {
+            continue;
+        }
+
+        let source = std::fs::read_to_string(&path).expect("readable component");
+        for (number, line) in source.lines().enumerate() {
+            // Only where a class list is being handed to one of dowel's popups:
+            // `relative` on an element of one's own is ordinary and fine.
+            let hands_classes_to_a_popup = line.contains("Popup className=")
+                || line.contains("Popup\n")
+                || (line.contains("<Dialog") && line.contains("className"));
+            if hands_classes_to_a_popup && line.contains("'relative'") {
+                offenders.push(format!(
+                    "{}:{}",
+                    path.file_name().and_then(|n| n.to_str()).unwrap_or("?"),
+                    number + 1
+                ));
+            }
+        }
+    }
+
+    assert!(
+        offenders.is_empty(),
+        "these add `relative` to an overlay, which drops its `fixed` when the classes merge: {}",
+        offenders.join(", ")
+    );
+}

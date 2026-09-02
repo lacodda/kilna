@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
 
 /*
  * Casing here is the convention, not a style: a lowercase file in
@@ -58,7 +57,14 @@ export function Dialog({
 
   return (
     <Base open={open} onOpenChange={onOpenChange}>
-      <DialogPopup className={cn('relative', className)}>
+      {/* No `relative` here, however much the absolutely positioned close
+          button below looks like it needs one: the popup is already `fixed`,
+          which positions its descendants just as well. Adding it cost the
+          dialog its `fixed` outright — `tailwind-merge` reads the two as the
+          same property and keeps the last — so `top: 50%` started measuring
+          against the document and the dialog hung off the bottom of a tall
+          screen. Measured, not guessed. */}
+      <DialogPopup className={className}>
         <DialogTitle>{title}</DialogTitle>
         {description !== undefined && <DialogDescription>{description}</DialogDescription>}
 
