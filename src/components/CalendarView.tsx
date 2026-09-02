@@ -203,8 +203,8 @@ export function CalendarView({ onSelect }: Props) {
                   </span>
                   <span
                     className="w-10 text-right font-mono tabular-nums"
-                    // An unscored work cannot take a slot from a scored one,
-                    // and finding that out from a refusal is late.
+                    // The score orders the queue and drives the auto-layout;
+                    // since v0.44 it decides nothing about who may have a day.
                     title={entry.total === null ? t('calendar.unscored') : undefined}
                   >
                     {entry.total?.toFixed(0) ?? '—'}
