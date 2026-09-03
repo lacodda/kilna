@@ -39,6 +39,10 @@ ordinary record of you adding a work or saving a version, because a bell lit
 by everything is a bell nobody reads. Clicking it opens
 [History](/kilna/guides/the-history/).
 
+The whole shell answers to the keyboard: `G` then a letter jumps between
+screens, `Alt+←` walks back the way a browser does, and `?` shows the list from
+wherever you are — see [Keyboard](/kilna/reference/keyboard/).
+
 One more thing floats over every screen: the **assistant button** in the
 bottom corner, with a badge while runs are in flight. It opens a drawer with
 every chat of the profile — see [The assistant](/kilna/guides/the-assistant/).

@@ -599,5 +599,22 @@
       "note": "Notes",
       "message": "Assistant"
     }
+  },
+  "keys": {
+    "title": "Keyboard shortcuts",
+    "description": "What the application answers to, wherever you are in it.",
+    "group": {
+      "going": "Going places",
+      "moving": "Moving around",
+      "everywhere": "Everywhere"
+    },
+    "action": {
+      "search": "Find anything",
+      "back": "Back",
+      "forward": "Forward",
+      "help": "This list",
+      "close": "Close what is open"
+    },
+    "typing": "Letter shortcuts stand aside while you are typing; the ones with a modifier keep working."
   }
 }

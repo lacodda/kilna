@@ -6,11 +6,13 @@ import { getWorkspace, warnUnreadyReleases } from '@/lib/api'
 import { humanError } from '@/lib/errors'
 import { today } from '@/lib/month'
 import { keys } from '@/lib/query'
+import { useKeys } from '@/lib/useKeys'
 import { ProfileContext } from '@/lib/useProfile'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AssistantLauncher } from '@/components/assistant/AssistantDrawer'
 import { QueueBanner } from '@/components/assistant/QueueBanner'
 import { WaitingBanner } from '@/components/assistant/WaitingBanner'
+import { KeyboardSheet } from '@/components/shell/KeyboardSheet'
 import { Sidebar } from '@/components/shell/Sidebar'
 import { Topbar } from '@/components/shell/Topbar'
 import { WorkCard } from '@/components/WorkCard'
@@ -75,6 +77,11 @@ function ShellSkeleton() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const location = useLocation()
+
+    // Before the early returns below, because a hook cannot be conditional -
+    // and because the shortcuts should answer while the workspace is still
+    // loading rather than arriving a moment after the shell does.
+    const { helpOpen, setHelpOpen } = useKeys()
 
     const client = useQueryClient()
     const {
@@ -243,6 +250,8 @@ function ShellSkeleton() {
           </div>
         </div>
       </AssistantLauncher>
+
+      <KeyboardSheet open={helpOpen} onOpenChange={setHelpOpen} />
     </ProfileContext>
   )
 }
