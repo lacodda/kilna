@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.46.0] - 2026-09-03
+
+### Bug Fixes
+- Name the version that actually brings each screen
+
+### Features
+- Answer to the keyboard from anywhere
+- Open a row's actions with a right click too
+- Hold the filter for as long as the app is open
+- Offer the works you had open lately
 ## [0.45.0] - 2026-09-02
 
 ### Bug Fixes
