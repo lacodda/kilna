@@ -19,10 +19,15 @@ you have, they are the work nothing has judged yet, and floating them to the
 top of a "worst first" sort would bury the answer you asked for.
 
 The sort is remembered between sessions — it is how you prefer to read the
-table, a standing choice. **Filters are not remembered**, deliberately: a
-filter is about the thing you are doing right now, and finding the catalogue
-still hiding most of your work the next morning reads as lost data rather
-than a setting you left on.
+table, a standing choice.
+
+**Filters hold for as long as kilna is open, and no longer.** Opening a work
+and coming back is the commonest thing anyone does here, and a filter that did
+not survive it made the catalogue tiresome to use. Keeping filters across
+restarts would be the opposite mistake: finding the catalogue still hiding most
+of your work the next morning reads as lost data rather than as a setting you
+left on. Closing the window is the reset, and it is one you never have to
+remember to perform.
 
 ## Narrowing the list
 

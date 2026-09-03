@@ -45,6 +45,11 @@ export function narrow(rows: ScoredWork[], filter: CatalogueFilter): ScoredWork[
   })
 }
 
+/** The gaps a work can have, in the order they are offered. Exported because
+ * the chips above the table and the check on a stored filter must be reading
+ * one list - two would agree today and differ after the next gap is added. */
+export const GAPS: Gap[] = ['unscored', 'unscheduled', 'stale']
+
 /**
  * Whether a work is missing a step it has already earned.
  *
@@ -191,6 +196,69 @@ function isSort(value: unknown): value is Sort {
     COLUMNS.includes(candidate.column as SortColumn) &&
     (candidate.direction === 'asc' || candidate.direction === 'desc')
   )
+}
+
+const FILTER_KEY = 'kilna.catalogue.filter'
+
+/**
+ * The filter holds for as long as the app is open, and no longer.
+ *
+ * Two failures sit on either side of this, and the middle is the only place
+ * without one. Losing the filter on every visit to a card and back makes the
+ * catalogue hostile to the way it is actually used - open a work, come back,
+ * open the next. Keeping it across restarts is the other failure, and the one
+ * the predecessor made: finding the catalogue still hiding most of the
+ * library a day later reads as data loss rather than as a setting.
+ *
+ * So it lives in `sessionStorage` rather than `localStorage` - the same shape
+ * as the sort, a different lifetime. Closing the window is the reset, and it
+ * is one nobody has to remember to perform.
+ */
+export function loadFilter(store: SortStore = sessionStorage): CatalogueFilter {
+  try {
+    const raw = store.getItem(FILTER_KEY)
+    if (raw === null) return {}
+
+    const parsed: unknown = JSON.parse(raw)
+    return isFilter(parsed) ? parsed : {}
+  } catch {
+    // A corrupt value is not worth a broken screen; an empty filter shows
+    // everything, which is the safe way to be wrong.
+    return {}
+  }
+}
+
+export function saveFilter(filter: CatalogueFilter, store: SortStore = sessionStorage): void {
+  try {
+    store.setItem(FILTER_KEY, JSON.stringify(filter))
+  } catch {
+    // Storage full or blocked: the table still filters, it just forgets.
+  }
+}
+
+/**
+ * Whether a stored value still describes a filter this build understands.
+ *
+ * Only the shape is checked, not the values: a status or a kind comes from the
+ * profile and can legitimately be anything, and a filter naming one that no
+ * longer exists narrows to nothing rather than breaking - which the "showing
+ * none of M" state already explains. A `gap` is different, because `hasGap`
+ * switches on it exhaustively and an unknown one would fall through.
+ */
+function isFilter(value: unknown): value is CatalogueFilter {
+  // An array is `typeof 'object'` too, and every field of one reads as
+  // `undefined` - so `[1, 2]` passed every check below and came back as a
+  // filter. Found by mutation testing the guard above it.
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  const candidate = value as Record<string, unknown>
+
+  for (const field of ['search', 'status', 'kind', 'tier'] as const) {
+    const held = candidate[field]
+    if (held !== undefined && typeof held !== 'string') return false
+  }
+
+  const gap = candidate.gap
+  return gap === undefined || GAPS.includes(gap as Gap)
 }
 
 /**

@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_SORT,
   isNarrowed,
+  loadFilter,
   loadSort,
   narrow,
   saveSort,
   sortRows,
   toggleSort,
   type Sort,
+  saveFilter,
+  type CatalogueFilter,
   type SortStore,
 } from './catalogue'
 import type { ScoredWork } from '@/lib/api'
@@ -200,6 +203,69 @@ describe('the remembered sort', () => {
       },
     }
     expect(() => saveSort(DEFAULT_SORT, refusing)).not.toThrow()
+  })
+})
+
+describe('the remembered filter', () => {
+  const store = (initial?: string): SortStore & { value: string | null } => ({
+    value: initial ?? null,
+    getItem() {
+      return this.value
+    },
+    setItem(_key, value) {
+      this.value = value
+    },
+  })
+
+  it('starts showing everything', () => {
+    expect(loadFilter(store())).toEqual({})
+  })
+
+  it('comes back as it was left', () => {
+    const chosen: CatalogueFilter = { status: 'draft', gap: 'unscored', search: 'winter' }
+    const kept = store()
+    saveFilter(chosen, kept)
+    expect(loadFilter(kept)).toEqual(chosen)
+  })
+
+  it('refuses a gap this build cannot switch on', () => {
+    // `hasGap` is exhaustive over the three; a fourth would fall through it.
+    expect(loadFilter(store(JSON.stringify({ gap: 'unmastered' })))).toEqual({})
+  })
+
+  it('refuses a value of the wrong shape', () => {
+    expect(loadFilter(store(JSON.stringify({ status: 7 })))).toEqual({})
+    expect(loadFilter(store(JSON.stringify({ search: ['a'] })))).toEqual({})
+    expect(loadFilter(store('not json at all'))).toEqual({})
+    expect(loadFilter(store(JSON.stringify(null)))).toEqual({})
+  })
+
+  it('refuses a value that is not an object at all', () => {
+    // An array is the one that gets through a plain `typeof` check: every
+    // field of it reads as `undefined`, so it passes every test for a field
+    // and comes back as a filter. It was doing exactly that.
+    expect(loadFilter(store('[1,2]'))).toEqual({})
+    expect(loadFilter(store('42'))).toEqual({})
+    expect(loadFilter(store('"hello"'))).toEqual({})
+  })
+
+  it('keeps a status the profile no longer has', () => {
+    // Unlike a gap, a status is the profile's own word: one that has been
+    // renamed narrows to nothing, which the empty state already explains, and
+    // dropping it silently would be the more confusing answer.
+    expect(loadFilter(store(JSON.stringify({ status: 'retired' })))).toEqual({
+      status: 'retired',
+    })
+  })
+
+  it('does not throw when storage refuses to write', () => {
+    const refusing: SortStore = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error('quota exceeded')
+      },
+    }
+    expect(() => saveFilter({ gap: 'stale' }, refusing)).not.toThrow()
   })
 })
 

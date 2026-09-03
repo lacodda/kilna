@@ -4,14 +4,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp } from 'lucide-react'
 import { catalogue as fetchCatalogue, createWork, deleteWork, type ScoredWork } from '@/lib/api'
 import {
+  GAPS,
   isNarrowed,
+  loadFilter,
   loadSort,
   narrow,
+  saveFilter,
   saveSort,
   sortRows,
   toggleSort,
   type CatalogueFilter,
-  type Gap,
   type Sort,
   type SortColumn,
 } from '@/lib/catalogue'
@@ -35,8 +37,6 @@ interface Props {
   onSelect: (workId: string, tab?: Tab) => void
 }
 
-const GAPS: Gap[] = ['unscored', 'unscheduled', 'stale']
-
 /**
  * Every work there is — the only list in the app.
  *
@@ -49,7 +49,15 @@ export function Catalogue({ onSelect }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const client = useQueryClient()
-  const [filter, setFilter] = useState<CatalogueFilter>({})
+  // Held for the session rather than for the moment: leaving for a card and
+  // coming back is the commonest thing anyone does here, and a filter that
+  // does not survive it makes the catalogue hostile to its own use.
+  const [filter, setFilterState] = useState<CatalogueFilter>(loadFilter)
+
+  const setFilter = (next: CatalogueFilter) => {
+    setFilterState(next)
+    saveFilter(next)
+  }
   const [sort, setSort] = useState<Sort>(loadSort)
   const [title, setTitle] = useState('')
 
@@ -116,7 +124,7 @@ export function Catalogue({ onSelect }: Props) {
   }
 
   const set = (change: Partial<CatalogueFilter>) =>
-    setFilter((current) => ({ ...current, ...change }))
+    setFilter({ ...filter, ...change })
 
   return (
     <div className="flex flex-col gap-4">
