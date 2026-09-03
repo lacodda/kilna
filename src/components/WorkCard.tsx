@@ -1,9 +1,11 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
 import { deleteWork, getWork, releasesForWork } from '@/lib/api'
 import { keys } from '@/lib/query'
+import { noteDeleted, noteOpened } from '@/lib/recent'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { Button } from '@/components/ui/button'
@@ -41,6 +43,14 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   const client = useQueryClient()
   const work = useQuery({ queryKey: keys.work(workId), queryFn: () => getWork(workId) })
 
+  // Noted once the title is known, since the list shows names rather than ids.
+  // Keyed on both, so a rename while the card is open updates the entry rather
+  // than leaving the old name to be offered tomorrow.
+  const title = work.data?.title
+  useEffect(() => {
+    if (title !== undefined) noteOpened({ id: workId, title })
+  }, [workId, title])
+
   // Only for the count on the tab; the tab itself fetches what it draws.
   const releases = useQuery({
     queryKey: keys.releasesForWork(workId),
@@ -50,6 +60,9 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   const remove = useMutation({
     mutationFn: () => deleteWork(workId),
     onSuccess: (deletionId) => {
+      // Out of the recent list too, so it cannot be offered after it is gone.
+      // An undo re-opens the card, which puts it back.
+      noteDeleted(workId)
       announceDeleted({
         client,
         deletionId,

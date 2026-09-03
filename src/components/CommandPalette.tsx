@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { search, type Hit, type HitKind } from '@/lib/api'
 import { coverFor } from '@/lib/cover'
 import { keys } from '@/lib/query'
+import { loadRecent } from '@/lib/recent'
 import { cn } from '@/lib/utils'
 import { ComboboxGroupLabel } from '@/components/ui/combobox'
 import {
@@ -78,13 +79,45 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
   // Hits arrive grouped by kind already; this fixes the order they are shown
   // in, which is also the order the arrow keys walk. The walking itself is the
   // palette component's — it reads this same array.
+  // What the empty box offers: the works opened lately. Read once, when the
+  // palette mounts, so the list cannot shuffle under the cursor while it is
+  // being read - the palette is mounted only while open, so every visit is a
+  // fresh read anyway.
+  const recent = useMemo(() => loadRecent(), [])
+
   const groups = useMemo<Group[]>(() => {
+    // An empty box used to say only "type to search". Recent works turn it
+    // into an answer: the thing being worked on is nearly always one of the
+    // last few opened, and recognising a name is faster than typing it.
+    //
+    // They are shaped as hits rather than drawn separately so that the arrows,
+    // Enter, the highlight and the opening are the ones the palette already
+    // has. A second list beside the first would need all of it again.
+    if (settled.trim() === '') {
+      if (recent.length === 0) return []
+      return [
+        {
+          kind: 'work',
+          items: recent.map((entry, at) => ({
+            kind: 'work' as const,
+            work_id: entry.id,
+            work_title: entry.title,
+            title: entry.title,
+            detail: '',
+            // Descending, so `isItemEqualToValue` tells two entries apart by
+            // the same field it uses for real hits.
+            rank: recent.length - at,
+          })),
+        },
+      ]
+    }
+
     const data = hits.data ?? []
     return GROUPS.map((kind) => ({
       kind,
       items: data.filter((hit) => hit.kind === kind),
     })).filter((group) => group.items.length > 0)
-  }, [hits.data])
+  }, [hits.data, recent, settled])
 
   const openHit = (hit: Hit) => {
     navigate(`/works/${hit.work_id}/${TAB_FOR[hit.kind]}`)
@@ -96,7 +129,9 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
   // to fire rather than be swapped in and out.
   const nothing =
     settled.trim() === ''
-      ? t('search.hint')
+      ? // With recent works listed the hint would sit under them as a second,
+        // contradictory answer; it is for the box that has nothing to show.
+        t('search.hint')
       : hits.isPending
         ? t('search.searching')
         : t('search.nothing', { query: settled })
@@ -139,7 +174,9 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
             {(group: Group) => (
               <CommandPaletteGroup key={group.kind} items={group.items}>
                 <ComboboxGroupLabel className="px-3.5 pt-2 pb-1 tracking-[0.08em]">
-                  {t(`search.group.${group.kind}`)}
+                  {settled.trim() === ''
+                    ? t('search.group.recent')
+                    : t(`search.group.${group.kind}`)}
                 </ComboboxGroupLabel>
 
                 {/* Mapped by hand rather than through a second List: a List

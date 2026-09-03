@@ -597,7 +597,8 @@
       "work": "Works",
       "version": "Drafts",
       "note": "Notes",
-      "message": "Assistant"
+      "message": "Assistant",
+      "recent": "Recent"
     }
   },
   "keys": {

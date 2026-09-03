@@ -6,6 +6,18 @@ description: One box that searches works, drafts, notes and assistant replies �
 `Ctrl+K` from anywhere opens the search box. So does the field in the top bar,
 if your hands are on the mouse.
 
+## Before you type anything
+
+The empty box is not empty: it lists the last few works you opened, newest
+first. Whatever is being worked on is nearly always one of them, and
+recognising a name is faster than typing it — so `Ctrl+K` `↵` reopens what you
+had a minute ago.
+
+The list is six long, it belongs to this machine rather than to the workspace,
+and a work leaves it when it is deleted. Typing replaces it with real results.
+
+## What it searches
+
 It looks in four places at once, and groups what it finds:
 
 | Group | What is searched |
