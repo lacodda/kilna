@@ -105,8 +105,8 @@ export function Sidebar({ profileId, onProfileSwitched }: Props) {
       <div className="px-2.5 pt-3 pb-1 text-[10.5px] font-medium uppercase tracking-[0.09em] text-faint">
         {t('nav.library')}
       </div>
-      <SoonLink icon={Disc} label={t('nav.collections')} version="0.36" />
-      <SoonLink icon={FileText} label={t('nav.notes')} version="0.37" />
+      <SoonLink icon={Disc} label={t('nav.collections')} version="0.58" />
+      <SoonLink icon={FileText} label={t('nav.notes')} version="0.59" />
       <ScreenLink to="/journal" icon={History} label={t('nav.journal')} />
       <ScreenLink to="/trash" icon={Trash2} label={t('nav.trash')} />
 
