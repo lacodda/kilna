@@ -1,5 +1,12 @@
+import type { ReactNode } from 'react'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  ContextMenu,
+  ContextMenuItem,
+  ContextMenuPopup,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 
 export interface RowAction {
@@ -53,5 +60,46 @@ export function RowMenu({ actions, label }: { actions: RowAction[]; label: strin
         ))}
       </MenuPopup>
     </Menu>
+  )
+}
+
+/**
+ * The same actions, reached the other way: a right click anywhere on the row.
+ *
+ * It takes the identical `RowAction[]` as `RowMenu` rather than a list of its
+ * own, and that is the point - a row with two ways in must not have two
+ * answers. Every call site passes one array to both, so an action added in one
+ * place can never be missing from the other.
+ *
+ * `render` makes the trigger the row itself instead of wrapping it: a `<div>`
+ * inserted between `<tbody>` and `<tr>` is invalid table markup, and browsers
+ * repair it by moving the row out of the table entirely.
+ */
+export function RowContextMenu({
+  actions,
+  children,
+  render,
+}: {
+  actions: RowAction[]
+  children: ReactNode
+  /** The element the menu belongs to - the `<tr>`, the card, the tile. */
+  render: React.ReactElement<Record<string, unknown>>
+}) {
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger render={render}>{children}</ContextMenuTrigger>
+
+      <ContextMenuPopup>
+        {actions.map((action) => (
+          <ContextMenuItem
+            key={action.key}
+            tone={action.danger === true ? 'danger' : 'default'}
+            onClick={action.onSelect}
+          >
+            {action.label}
+          </ContextMenuItem>
+        ))}
+      </ContextMenuPopup>
+    </ContextMenu>
   )
 }

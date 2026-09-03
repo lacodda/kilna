@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp } from 'lucide-react'
@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/AppSelect'
-import { RowMenu } from '@/components/ui/RowMenu'
+import { RowContextMenu, RowMenu, type RowAction } from '@/components/ui/RowMenu'
 import { SkeletonList } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 
@@ -284,6 +284,28 @@ function Rows({
 
   const toggleAll = () => onSelectionChange(new Set(allChosen ? [] : shownIds))
 
+  // One list, read by both ways into a row: the three dots and the right
+  // click. Written once so the two can never come to disagree about what a
+  // row can do.
+  const actionsFor = (row: ScoredWork): RowAction[] => [
+    {
+      key: 'score',
+      label: t('catalogue.action.score'),
+      onSelect: () => onSelect(row.work_id, 'score'),
+    },
+    {
+      key: 'schedule',
+      label: t('catalogue.action.schedule'),
+      onSelect: () => onSelect(row.work_id, 'releases'),
+    },
+    {
+      key: 'delete',
+      label: t('catalogue.action.delete'),
+      danger: true,
+      onSelect: () => onDelete([row.work_id]),
+    },
+  ]
+
   if (visible.length === 0) {
     return (
       <EmptyState
@@ -375,10 +397,10 @@ function Rows({
         </thead>
         <tbody>
           {visible.map((row) => (
-            <tr
+            <Row
               key={row.work_id}
-              className="cursor-pointer border-b border-line hover:bg-soft"
-              onClick={() => onSelect(row.work_id)}
+              actions={actionsFor(row)}
+              onOpen={() => onSelect(row.work_id)}
             >
               <td className="py-2" onClick={(event) => event.stopPropagation()}>
                 <input
@@ -427,31 +449,50 @@ function Rows({
               <td className="py-2 text-right">
                 <RowMenu
                   label={t('catalogue.rowMenu', { title: row.title })}
-                  actions={[
-                    {
-                      key: 'score',
-                      label: t('catalogue.action.score'),
-                      onSelect: () => onSelect(row.work_id, 'score'),
-                    },
-                    {
-                      key: 'schedule',
-                      label: t('catalogue.action.schedule'),
-                      onSelect: () => onSelect(row.work_id, 'releases'),
-                    },
-                    {
-                      key: 'delete',
-                      label: t('catalogue.action.delete'),
-                      danger: true,
-                      onSelect: () => onDelete([row.work_id]),
-                    },
-                  ]}
+                  actions={actionsFor(row)}
                 />
               </td>
-            </tr>
+            </Row>
           ))}
         </tbody>
       </table>
     </div>
+  )
+}
+
+/**
+ * One row of the catalogue, with both ways into its actions.
+ *
+ * The right click is `RowContextMenu` rendering the `<tr>` itself rather than
+ * wrapping it: a `<div>` between `<tbody>` and `<tr>` is invalid markup, and
+ * the browser repairs it by lifting the row out of the table.
+ */
+function Row({
+  actions,
+  onOpen,
+  children,
+}: {
+  actions: RowAction[]
+  onOpen: () => void
+  children: ReactNode
+}) {
+  return (
+    <RowContextMenu
+      actions={actions}
+      render={
+        <tr
+          className={cn(
+            'cursor-pointer border-b border-line hover:bg-soft',
+            // While its menu is open the row stays lit, so it is obvious which
+            // of twenty rows the actions belong to.
+            'data-[popup-open]:bg-soft',
+          )}
+          onClick={onOpen}
+        />
+      }
+    >
+      {children}
+    </RowContextMenu>
   )
 }
 

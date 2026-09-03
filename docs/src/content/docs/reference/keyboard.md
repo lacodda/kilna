@@ -76,6 +76,15 @@ focus, and several things want them:
 ## A menu on every row
 
 Wherever a row stands for something — a work in the catalogue, a release on the
-card, a run in the assistant — the three dots at its end open the same menu.
-It is keyboard-operable in full: arrows that wrap, `Home` and `End`, type-ahead,
-and `Esc` to leave without choosing.
+card, a chat in the assistant — there are two ways to its actions, and both
+reach the same list:
+
+- the **three dots** at the end of the row;
+- a **right click** anywhere on the row, or a long press on a touch screen.
+
+The row lights up while its menu is open, so it is clear which of twenty rows
+the actions belong to.
+
+Either way the menu is keyboard-operable in full: arrows that wrap, `Home` and
+`End`, type-ahead that finds an item by its first letters, and `Esc` to leave
+without choosing.

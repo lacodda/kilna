@@ -36,7 +36,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { RowMenu } from '@/components/ui/RowMenu'
+import { RowContextMenu, RowMenu, type RowAction } from '@/components/ui/RowMenu'
 import { ChatView } from '@/components/assistant/ChatView'
 
 /**
@@ -308,61 +308,69 @@ function Drawer({
           )}
 
           <ul className="flex flex-col gap-1">
-            {chats.map((chat) => (
-              <li key={chat.id} className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelected(chat.id)
-                  }}
-                  className="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-[10px] px-2.5 py-2 text-left transition-colors hover:bg-soft"
+            {chats.map((chat) => {
+              // One list for both ways in: the three dots and the right click.
+              const actions: RowAction[] = [
+                {
+                  key: 'rename',
+                  label: t('assistant.rename'),
+                  onSelect: () => {
+                    setRenaming(chat.id)
+                  },
+                },
+                {
+                  key: 'delete',
+                  label: t('assistant.delete'),
+                  danger: true,
+                  onSelect: () => {
+                    setConfirmingDelete(chat.id)
+                  },
+                },
+              ]
+
+              return (
+                <RowContextMenu
+                  key={chat.id}
+                  actions={actions}
+                  render={
+                    <li className="flex items-center gap-1 rounded-[10px] data-[popup-open]:bg-soft" />
+                  }
                 >
-                  <span className="flex items-center gap-1.5 text-sm">
-                    {runningChats.has(chat.id) && (
-                      <span
-                        aria-hidden
-                        className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent"
-                      />
-                    )}
-                    {chat.waiting_since !== undefined && (
-                      <MessageCircleQuestion
-                        aria-label={t('assistant.waitingMark')}
-                        className="size-3.5 shrink-0 text-accent-2"
-                      />
-                    )}
-                    <span className="truncate">
-                      {chatLabel(chat, t('assistant.untitled'))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelected(chat.id)
+                    }}
+                    className="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-[10px] px-2.5 py-2 text-left transition-colors hover:bg-soft"
+                  >
+                    <span className="flex items-center gap-1.5 text-sm">
+                      {runningChats.has(chat.id) && (
+                        <span
+                          aria-hidden
+                          className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent"
+                        />
+                      )}
+                      {chat.waiting_since !== undefined && (
+                        <MessageCircleQuestion
+                          aria-label={t('assistant.waitingMark')}
+                          className="size-3.5 shrink-0 text-accent-2"
+                        />
+                      )}
+                      <span className="truncate">
+                        {chatLabel(chat, t('assistant.untitled'))}
+                      </span>
                     </span>
-                  </span>
-                  <span className="flex items-center gap-2 text-xs text-faint">
-                    {chat.work_title != null && (
-                      <span className="truncate">{chat.work_title}</span>
-                    )}
-                    {chat.cost_usd > 0 && <span>${chat.cost_usd.toFixed(2)}</span>}
-                  </span>
-                </button>
-                <RowMenu
-                  label={t('assistant.chatMenu')}
-                  actions={[
-                    {
-                      key: 'rename',
-                      label: t('assistant.rename'),
-                      onSelect: () => {
-                        setRenaming(chat.id)
-                      },
-                    },
-                    {
-                      key: 'delete',
-                      label: t('assistant.delete'),
-                      danger: true,
-                      onSelect: () => {
-                        setConfirmingDelete(chat.id)
-                      },
-                    },
-                  ]}
-                />
-              </li>
-            ))}
+                    <span className="flex items-center gap-2 text-xs text-faint">
+                      {chat.work_title != null && (
+                        <span className="truncate">{chat.work_title}</span>
+                      )}
+                      {chat.cost_usd > 0 && <span>${chat.cost_usd.toFixed(2)}</span>}
+                    </span>
+                  </button>
+                  <RowMenu label={t('assistant.chatMenu')} actions={actions} />
+                </RowContextMenu>
+              )
+            })}
           </ul>
         </div>
       ) : (

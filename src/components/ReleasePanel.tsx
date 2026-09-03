@@ -26,7 +26,7 @@ import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { MarkReleasedDialog } from '@/components/releases/MarkReleasedDialog'
 import { ReleaseRowEditor } from '@/components/releases/ReleaseRowEditor'
 import { Button } from '@/components/ui/button'
-import { RowMenu, type RowAction } from '@/components/ui/RowMenu'
+import { RowContextMenu, RowMenu, type RowAction } from '@/components/ui/RowMenu'
 import { Select } from '@/components/ui/AppSelect'
 import { Skeleton } from '@/components/ui/Skeleton'
 
@@ -193,14 +193,22 @@ export function ReleasePanel({ workId, workTitle }: Props) {
             const kindEntry = kinds.find((entry_) => entry_.key === entry.kind)
 
             return (
-              <li
+              <RowContextMenu
                 key={entry.id}
-                className={cn(
-                  'flex items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm',
-                  // What went out is history sitting in the list, not a plan
-                  // competing for attention - the same dimming the chip uses.
-                  released && 'opacity-70',
-                )}
+                actions={actionsFor(entry)}
+                render={
+                  <li
+                    className={cn(
+                      'flex items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm',
+                      // What went out is history sitting in the list, not a plan
+                      // competing for attention - the same dimming the chip uses.
+                      released && 'opacity-70',
+                      // Lit while its own menu is open, so it is clear which
+                      // release the actions belong to.
+                      'data-[popup-open]:bg-soft',
+                    )}
+                  />
+                }
               >
                 <KindGlyph icon={kindEntry?.icon} className="size-3.5 shrink-0 text-dim" />
                 <span className="font-medium">{labelOf(kinds, entry.kind)}</span>
@@ -238,7 +246,7 @@ export function ReleasePanel({ workId, workTitle }: Props) {
                 <span className="ml-auto">
                   <RowMenu actions={actionsFor(entry)} label={t('releases.actions')} />
                 </span>
-              </li>
+              </RowContextMenu>
             )
           })}
         </ul>
