@@ -35,7 +35,7 @@ thiserror = "2"
 # something else forces the floor up.
 time = { version = "=0.3.45", features = ["formatting", "macros"] }
 uuid = { version = "1", features = ["v4"] }
-tauri-plugin-dialog = "2.7.2"
+tauri-plugin-dialog = "2.7.3"
 tauri-plugin-opener = "2.5.5"
 
 [dev-dependencies]
