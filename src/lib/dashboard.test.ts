@@ -17,6 +17,11 @@ function work(over: Partial<ScoredWork> = {}): ScoredWork {
     released: 0,
     scheduled: 0,
     updated_at: '2026-08-26T10:00:00Z',
+    created_at: '2026-08-20T10:00:00Z',
+    collection_id: null,
+    tags: [],
+    marks: [],
+    version_count: 0,
     ...over,
   }
 }

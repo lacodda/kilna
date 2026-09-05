@@ -514,6 +514,24 @@ pub fn queue(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRelease
     read_scheduled(conn, &mut statement, profile_id)
 }
 
+/// The ids of one work's releases that currently hold a slot.
+///
+/// Deliberately narrow where [`for_work`] is rich: taking a work off the
+/// calendar needs nothing but the ids, and asking for readiness and scores to
+/// throw them away would cost a join per work in a batch.
+///
+/// Anything already released is left out. Its date is a record of what happened,
+/// not a booking, and unscheduling it would rewrite history.
+pub fn scheduled_for(conn: &Connection, work_id: &str) -> Result<Vec<String>> {
+    let mut statement = conn.prepare(
+        "SELECT id FROM release
+          WHERE work_id = ?1 AND scheduled_at IS NOT NULL AND status = ?2
+          ORDER BY scheduled_at, rowid",
+    )?;
+    let rows = statement.query_map(params![work_id, PLANNED], |row| row.get(0))?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
 /// Releases of one work, whatever their state, with the context the card needs
 /// to act on them.
 ///
@@ -1354,5 +1372,32 @@ mod tests {
         );
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn scheduled_for_lists_only_what_holds_a_slot() {
+        let (mut conn, profile_id) = workspace();
+        let booked = planned(&conn, &profile_id, "Booked", Some(9.0));
+        let waiting = planned(&conn, &profile_id, "Waiting", Some(8.0));
+
+        schedule(&mut conn, &booked.id, "2026-09-10").unwrap();
+
+        let held = scheduled_for(&conn, &booked.work_id).unwrap();
+        assert_eq!(held, vec![booked.id]);
+
+        // Planned but unscheduled: nothing to take off the calendar.
+        assert!(scheduled_for(&conn, &waiting.work_id).unwrap().is_empty());
+    }
+
+    #[test]
+    fn scheduled_for_leaves_a_released_date_alone() {
+        let (mut conn, profile_id) = workspace();
+        let out = planned(&conn, &profile_id, "Shipped", Some(9.0));
+        schedule(&mut conn, &out.id, "2026-09-10").unwrap();
+        mark_released(&conn, &out.id, None, None).unwrap();
+
+        // A released date records what happened. Unscheduling it would rewrite
+        // history, so a batch must not be able to reach it.
+        assert!(scheduled_for(&conn, &out.work_id).unwrap().is_empty());
     }
 }

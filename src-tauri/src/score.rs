@@ -35,6 +35,16 @@ pub struct NewScore {
     pub note: Option<String>,
 }
 
+/// Reads one of the JSON string arrays a work carries — `tags`, `marks`.
+///
+/// Unreadable text becomes an empty list rather than an error. The catalogue is
+/// the one screen that has to draw *every* work, and a single malformed array
+/// must not be what stops a person seeing the other two hundred. The card,
+/// which reads the same columns through `Work`, still reports the failure.
+fn parse_string_list(raw: &str) -> Vec<String> {
+    serde_json::from_str(raw).unwrap_or_default()
+}
+
 /// A work with its most recent score, for the catalogue.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoredWork {
@@ -56,6 +66,21 @@ pub struct ScoredWork {
     /// status change. What tells a draft still being worked on from one that
     /// stopped.
     pub updated_at: String,
+    /// When the work was first written down. Read beside `updated_at` it says
+    /// how long something has been in hand, which is the question a catalogue
+    /// sorted by age is really asking.
+    pub created_at: String,
+    /// The collection this belongs to, for grouping. `None` is not an error
+    /// state — most works belong to nothing until an album gathers them.
+    pub collection_id: Option<String>,
+    /// The author's own words for what this is — see 0010.
+    pub tags: Vec<String>,
+    /// Keys into the profile's `marks`, drawn only while the profile still
+    /// defines them.
+    pub marks: Vec<String>,
+    /// How many versions the work holds, across every role. The count a person
+    /// reads as "how much work went in here".
+    pub version_count: i64,
 }
 
 /// The score that speaks for a work, as a subquery returning one `work_score.id`.
@@ -213,7 +238,9 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
                 (SELECT count(*) FROM release r
                   WHERE r.work_id = w.id AND r.status = 'planned'
                     AND r.scheduled_at IS NOT NULL) AS scheduled,
-                w.updated_at
+                w.updated_at, w.created_at, w.collection_id, w.tags, w.marks,
+                (SELECT count(*) FROM work_version v
+                  WHERE v.work_id = w.id) AS version_count
          FROM work w
          LEFT JOIN work_score s ON s.id = {speaking}
          WHERE w.profile_id = ?1
@@ -234,6 +261,11 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
             released: row.get(8)?,
             scheduled: row.get(9)?,
             updated_at: row.get(10)?,
+            created_at: row.get(11)?,
+            collection_id: row.get(12)?,
+            tags: parse_string_list(&row.get::<_, String>(13)?),
+            marks: parse_string_list(&row.get::<_, String>(14)?),
+            version_count: row.get(15)?,
         })
     })?;
 

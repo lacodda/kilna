@@ -312,6 +312,22 @@ export interface ScoredWork {
   scheduled: number
   /** When the work was last touched — what tells a live draft from a stalled one. */
   updated_at: string
+  /** When the work was first written down. */
+  created_at: string
+  /** The collection this belongs to; null for most works until an album gathers them. */
+  collection_id: string | null
+  /** The author's own words for what this is. */
+  tags: string[]
+  /** Keys into the profile's marks, drawn only while the profile defines them. */
+  marks: string[]
+  /** How many versions the work holds, across every role. */
+  version_count: number
+}
+
+/** What a bulk edit did. The catalogue reloads afterwards; these are for the toast. */
+export interface BulkOutcome {
+  changed: number
+  skipped: number
 }
 
 export interface Release {
@@ -409,6 +425,9 @@ export const getWork = (id: string) => invoke<Work | null>('get_work', { id })
 export const createWork = (work: NewWork) => invoke<Work>('create_work', { work })
 export const updateWork = (id: string, patch: WorkPatch) => invoke<Work>('update_work', { id, patch })
 export const deleteWork = (id: string) => invoke<string>('delete_work', { id })
+export const deleteWorks = (ids: string[]) => invoke<string[]>('delete_works', { ids })
+export const setWorksStatus = (workIds: string[], status: string) =>
+  invoke<BulkOutcome>('set_works_status', { workIds, status })
 
 // A status the automation would change, or did.
 export interface StatusChange {
@@ -482,6 +501,8 @@ export const warnUnreadyReleases = (today: string) =>
 export const setSlotPin = (id: string, pinned: boolean) =>
   invoke<Release>('set_slot_pin', { id, pinned })
 export const unscheduleRelease = (id: string) => invoke<Release>('unschedule_release', { id })
+export const unscheduleWorks = (workIds: string[]) =>
+  invoke<BulkOutcome>('unschedule_works', { workIds })
 // `at` is the day it went out, when that is not today: a release marked late,
 // or one whose real date is known from elsewhere. Left out, the moment is now.
 export const markReleased = (id: string, url?: string | null, at?: string | null) =>

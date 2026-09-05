@@ -349,7 +349,27 @@
       "delete": "Delete"
     },
     "sortBy": "Sort by {{column}}",
-    "clear": "Clear"
+    "clear": "Clear",
+    "columns": "Choose columns",
+    "column": {
+      "id": "ID",
+      "marks": "Marks",
+      "versions": "Versions",
+      "created": "Added",
+      "updated": "Edited"
+    },
+    "groupBy": "Group by",
+    "groupNone": "No grouping",
+    "groupStatus": "By status",
+    "groupTier": "By tier",
+    "bulk": {
+      "setStatus": "Move to status",
+      "unschedule": "Take off the calendar",
+      "statusSet_one": "{{count}} work moved",
+      "statusSet_other": "{{count}} works moved",
+      "unscheduled_one": "{{count}} release taken off the calendar",
+      "unscheduled_other": "{{count}} releases taken off the calendar"
+    }
   },
   "assistant": {
     "title": "Assistant",
@@ -570,7 +590,13 @@
     "collection.deleted": "Collection “{{label}}” deleted.",
     "trash.restored": "“{{label}}” restored.",
     "assistant.batchStarted_one": "{{action}} asked of {{count}} work.",
-    "assistant.batchStarted_other": "{{action}} asked of {{count}} works."
+    "assistant.batchStarted_other": "{{action}} asked of {{count}} works.",
+    "work.statusBatch_one": "{{count}} work moved to {{to}}.",
+    "work.statusBatch_other": "{{count}} works moved to {{to}}.",
+    "work.deletedBatch_one": "{{count}} work deleted.",
+    "work.deletedBatch_other": "{{count}} works deleted.",
+    "release.unscheduledBatch_one": "{{count}} release taken off the calendar.",
+    "release.unscheduledBatch_other": "{{count}} releases taken off the calendar."
   },
   "card": {
     "tab": {

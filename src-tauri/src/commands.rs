@@ -246,6 +246,176 @@ pub fn delete_work(state: State<'_, AppState>, id: String) -> Result<String> {
     Ok(entry)
 }
 
+/// What a bulk edit did. Counted rather than returned row by row: the catalogue
+/// reloads afterwards anyway, and what a person wants to be told is how many.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BulkOutcome {
+    /// Works the change actually landed on.
+    pub changed: usize,
+    /// Works that were already that way, or had nothing to unschedule. Not an
+    /// error: in a batch this is the reason the number is smaller than the
+    /// selection, and saying so is kinder than silence.
+    pub skipped: usize,
+}
+
+/// Move several works to another status at once.
+///
+/// Chosen by hand, so each one pins exactly as the single-work path does —
+/// otherwise the automation would derive the old status straight back and the
+/// batch would appear to do nothing.
+///
+/// One journal line for the batch, not one per work: a person who moved twenty
+/// drafts did one thing, and twenty lines would bury the day's real events.
+#[tauri::command]
+pub fn set_works_status(
+    state: State<'_, AppState>,
+    work_ids: Vec<String>,
+    status: String,
+) -> Result<BulkOutcome> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    // Refused before anything changes rather than once per work: a status the
+    // profile does not have is a mistake about the whole batch.
+    let config = profile::config_for(&conn, &profile_id)?;
+    if !config.statuses.iter().any(|known| known.key == status) {
+        return Err(Error::not_found("status", &status));
+    }
+
+    let mut changed = 0usize;
+    let mut skipped = 0usize;
+
+    for work_id in &work_ids {
+        let before = work::get(&conn, work_id)?;
+        if before.as_ref().is_some_and(|work| work.status == status) {
+            skipped += 1;
+            continue;
+        }
+
+        let patch = WorkPatch {
+            status: Some(status.clone()),
+            ..WorkPatch::default()
+        };
+
+        // One work failing must not take the batch with it — the others are
+        // unrelated, and a half-applied batch is more useful than none.
+        match work::update(&conn, work_id, patch) {
+            Ok(_) => changed += 1,
+            Err(cause) => {
+                eprintln!("status: {work_id} could not be moved: {cause}");
+                skipped += 1;
+            }
+        }
+    }
+
+    if changed > 0 {
+        journal::record(
+            &conn,
+            &profile_id,
+            Record::new("work.statusBatch")
+                .param("to", status)
+                .param("count", i64::try_from(changed).unwrap_or(i64::MAX)),
+        );
+    }
+
+    Ok(BulkOutcome { changed, skipped })
+}
+
+/// Take several works off the calendar at once.
+///
+/// Only planned releases holding a slot are touched; anything already out stays
+/// where it is. Each work is restated afterwards, so a work that has nothing
+/// booked any more goes back to saying so on its own.
+#[tauri::command]
+pub fn unschedule_works(
+    state: State<'_, AppState>,
+    work_ids: Vec<String>,
+) -> Result<BulkOutcome> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let mut changed = 0usize;
+    let mut skipped = 0usize;
+
+    for work_id in &work_ids {
+        let scheduled = release::scheduled_for(&conn, work_id)?;
+        if scheduled.is_empty() {
+            skipped += 1;
+            continue;
+        }
+
+        for release_id in scheduled {
+            match release::unschedule(&conn, &release_id) {
+                Ok(_) => changed += 1,
+                Err(cause) => {
+                    eprintln!("calendar: {release_id} could not be unscheduled: {cause}");
+                    skipped += 1;
+                }
+            }
+        }
+
+        restate(&conn, &profile_id, work_id);
+    }
+
+    if changed > 0 {
+        journal::record(
+            &conn,
+            &profile_id,
+            Record::new("release.unscheduledBatch")
+                .param("count", i64::try_from(changed).unwrap_or(i64::MAX)),
+        );
+    }
+
+    Ok(BulkOutcome { changed, skipped })
+}
+
+/// Move several works to the trash at once.
+///
+/// Each still gets its own trash entry, because an entry snapshots one entity —
+/// so each is separately restorable, and the frontend offers a single undo
+/// across the batch. What this replaces is the loop of separate calls the
+/// catalogue used to make, which left the journal with one line per work and
+/// could stop halfway with no sign of where.
+#[tauri::command]
+pub fn delete_works(state: State<'_, AppState>, ids: Vec<String>) -> Result<Vec<String>> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let mut entries = Vec::new();
+
+    for id in &ids {
+        // Read the title while the row is still there — afterwards there is
+        // nothing left to ask.
+        let title = journal::work_title(&conn, id);
+        match trash::discard(&mut conn, trash::Entity::Work, id) {
+            Ok(entry) => {
+                entries.push(entry);
+                if ids.len() == 1 {
+                    journal::record(
+                        &conn,
+                        &profile_id,
+                        Record::new("work.deleted")
+                            .param("title", title.unwrap_or_else(|| id.clone()))
+                            .about("work", id.clone()),
+                    );
+                }
+            }
+            Err(cause) => eprintln!("trash: {id} could not be discarded: {cause}"),
+        }
+    }
+
+    if entries.len() > 1 {
+        journal::record(
+            &conn,
+            &profile_id,
+            Record::new("work.deletedBatch")
+                .param("count", i64::try_from(entries.len()).unwrap_or(i64::MAX)),
+        );
+    }
+
+    Ok(entries)
+}
+
 #[tauri::command]
 pub fn list_versions(state: State<'_, AppState>, work_id: String) -> Result<Vec<VersionSummary>> {
     let conn = state.conn();

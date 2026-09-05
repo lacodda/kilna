@@ -374,7 +374,31 @@
       "delete": "Удалить"
     },
     "sortBy": "Сортировать по: {{column}}",
-    "clear": "Сбросить"
+    "clear": "Сбросить",
+    "columns": "Выбрать колонки",
+    "column": {
+      "id": "ID",
+      "marks": "Метки",
+      "versions": "Версии",
+      "created": "Добавлено",
+      "updated": "Правка"
+    },
+    "groupBy": "Группировать",
+    "groupNone": "Без группировки",
+    "groupStatus": "По статусу",
+    "groupTier": "По тиру",
+    "bulk": {
+      "setStatus": "Перевести в статус",
+      "unschedule": "Снять с расписания",
+      "statusSet_one": "Переведено {{count}} произведение",
+      "statusSet_few": "Переведено {{count}} произведения",
+      "statusSet_many": "Переведено {{count}} произведений",
+      "statusSet_other": "Переведено {{count}} произведения",
+      "unscheduled_one": "Снят {{count}} выпуск",
+      "unscheduled_few": "Снято {{count}} выпуска",
+      "unscheduled_many": "Снято {{count}} выпусков",
+      "unscheduled_other": "Снято {{count}} выпуска"
+    }
   },
   "assistant": {
     "title": "Ассистент",
@@ -612,7 +636,19 @@
     "assistant.batchStarted_one": "«{{action}}» запрошено для {{count}} произведения.",
     "assistant.batchStarted_few": "«{{action}}» запрошено для {{count}} произведений.",
     "assistant.batchStarted_many": "«{{action}}» запрошено для {{count}} произведений.",
-    "assistant.batchStarted_other": "«{{action}}» запрошено для {{count}} произведений."
+    "assistant.batchStarted_other": "«{{action}}» запрошено для {{count}} произведений.",
+    "work.statusBatch_one": "{{count}} произведение переведено в «{{to}}».",
+    "work.statusBatch_few": "{{count}} произведения переведены в «{{to}}».",
+    "work.statusBatch_many": "{{count}} произведений переведены в «{{to}}».",
+    "work.statusBatch_other": "{{count}} произведения переведены в «{{to}}».",
+    "work.deletedBatch_one": "Удалено {{count}} произведение.",
+    "work.deletedBatch_few": "Удалено {{count}} произведения.",
+    "work.deletedBatch_many": "Удалено {{count}} произведений.",
+    "work.deletedBatch_other": "Удалено {{count}} произведения.",
+    "release.unscheduledBatch_one": "С расписания снят {{count}} выпуск.",
+    "release.unscheduledBatch_few": "С расписания снято {{count}} выпуска.",
+    "release.unscheduledBatch_many": "С расписания снято {{count}} выпусков.",
+    "release.unscheduledBatch_other": "С расписания снято {{count}} выпуска."
   },
   "card": {
     "tab": {
