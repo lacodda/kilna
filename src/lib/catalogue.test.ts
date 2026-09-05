@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ALL_COLUMNS,
+  DEFAULT_COLUMNS,
   DEFAULT_SORT,
+  groupRows,
   isNarrowed,
+  loadColumns,
   loadFilter,
   loadSort,
   narrow,
+  saveColumns,
   saveSort,
   sortRows,
+  toggleColumn,
   toggleSort,
+  type ColumnId,
   type Sort,
   saveFilter,
   type CatalogueFilter,
@@ -27,6 +34,11 @@ const row = (over: Partial<ScoredWork>): ScoredWork => ({
   released: 0,
   scheduled: 0,
   updated_at: '2026-08-26T10:00:00Z',
+  created_at: '2026-08-20T10:00:00Z',
+  collection_id: null,
+  tags: [],
+  marks: [],
+  version_count: 0,
   ...over,
 })
 
@@ -280,5 +292,143 @@ describe('toggleSort', () => {
   it('opens a score column at its highest and a title at its first letter', () => {
     expect(toggleSort(DEFAULT_SORT, 'tier').direction).toBe('desc')
     expect(toggleSort(DEFAULT_SORT, 'title').direction).toBe('asc')
+  })
+})
+
+describe('the shown columns', () => {
+  const store = (initial?: string): SortStore & { value: string | null } => ({
+    value: initial ?? null,
+    getItem() {
+      return this.value
+    },
+    setItem(_key, value) {
+      this.value = value
+    },
+  })
+
+  it('starts on the default set, without the identifier', () => {
+    expect(loadColumns(store())).toEqual(DEFAULT_COLUMNS)
+    expect(loadColumns(store())).not.toContain('id')
+  })
+
+  it('comes back exactly as it was saved', () => {
+    // Reading does not reorder: the table order is imposed by `toggleColumn`,
+    // where a person's click needs a predictable place to land.
+    const held = store()
+    saveColumns(['title', 'id', 'total'], held)
+    expect(loadColumns(held)).toEqual(['title', 'id', 'total'])
+  })
+
+  it('drops a column this build no longer knows, keeping the rest', () => {
+    const held = store(JSON.stringify(['title', 'bpm', 'total']))
+    expect(loadColumns(held)).toEqual(['title', 'total'])
+  })
+
+  it('puts the title back when a stored set left it out', () => {
+    const held = store(JSON.stringify(['total', 'tier']))
+    expect(loadColumns(held)).toContain('title')
+  })
+
+  it('falls back to the default when nothing stored is recognisable', () => {
+    const held = store(JSON.stringify(['bpm', 'mood']))
+    expect(loadColumns(held)).toEqual(DEFAULT_COLUMNS)
+  })
+
+  it('falls back when the stored value is not a list at all', () => {
+    // The same shape that got past the filter guard in v0.46: an array is
+    // `typeof 'object'`, and an object is not an array.
+    expect(loadColumns(store('{"title":true}'))).toEqual(DEFAULT_COLUMNS)
+    expect(loadColumns(store('not json'))).toEqual(DEFAULT_COLUMNS)
+  })
+
+  it('survives storage that refuses to be written', () => {
+    const refusing: SortStore = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error('quota exceeded')
+      },
+    }
+    expect(() => saveColumns(DEFAULT_COLUMNS, refusing)).not.toThrow()
+  })
+})
+
+describe('toggling a column', () => {
+  it('turns one off and back on', () => {
+    const without = toggleColumn(DEFAULT_COLUMNS, 'total')
+    expect(without).not.toContain('total')
+    expect(toggleColumn(without, 'total')).toContain('total')
+  })
+
+  it('restores it to the table order, not to the end', () => {
+    const without = toggleColumn(DEFAULT_COLUMNS, 'tier')
+    const back = toggleColumn(without, 'tier')
+    expect(back).toEqual(DEFAULT_COLUMNS)
+  })
+
+  it('refuses to hide the title', () => {
+    expect(toggleColumn(DEFAULT_COLUMNS, 'title')).toEqual(DEFAULT_COLUMNS)
+  })
+
+  it('never invents a column the table cannot draw', () => {
+    const shown = ALL_COLUMNS.reduce<ColumnId[]>((held, id) => toggleColumn(held, id), [
+      ...DEFAULT_COLUMNS,
+    ])
+    expect(shown.every((id) => ALL_COLUMNS.includes(id))).toBe(true)
+  })
+})
+
+describe('grouping', () => {
+  it('leaves one block when it is off', () => {
+    const rows = [row({ work_id: 'a' }), row({ work_id: 'b' })]
+    expect(groupRows(rows, 'none')).toEqual([{ key: null, rows }])
+  })
+
+  it('gathers rows sharing a status', () => {
+    const rows = [
+      row({ work_id: 'a', status: 'draft' }),
+      row({ work_id: 'b', status: 'ready' }),
+      row({ work_id: 'c', status: 'draft' }),
+    ]
+    const blocks = groupRows(rows, 'status')
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]).toEqual({
+      key: 'draft',
+      rows: [rows[0], rows[2]],
+    })
+  })
+
+  it('keeps the order the sort gave, so the leading block holds the best work', () => {
+    const rows = [
+      row({ work_id: 'best', tier: 'clip' }),
+      row({ work_id: 'rest', tier: 'hold' }),
+      row({ work_id: 'also', tier: 'clip' }),
+    ]
+    expect(groupRows(rows, 'tier').map((block) => block.key)).toEqual(['clip', 'hold'])
+  })
+
+  it('puts the works without a value in a block of their own, last', () => {
+    const rows = [
+      row({ work_id: 'unjudged', tier: null }),
+      row({ work_id: 'judged', tier: 'clip' }),
+    ]
+    const blocks = groupRows(rows, 'tier')
+    expect(blocks.at(-1)).toEqual({ key: null, rows: [rows[0]] })
+  })
+
+  it('treats an empty string as no value rather than as a block named ""', () => {
+    const rows = [row({ work_id: 'blank', tier: '' })]
+    expect(groupRows(rows, 'tier')).toEqual([{ key: null, rows }])
+  })
+
+  it('loses no row, whatever the grouping', () => {
+    const rows = [
+      row({ work_id: 'a', status: 'draft', tier: 'clip' }),
+      row({ work_id: 'b', status: 'ready', tier: null }),
+      row({ work_id: 'c', status: 'draft', tier: '' }),
+    ]
+    for (const by of ['none', 'status', 'tier'] as const) {
+      const held = groupRows(rows, by).flatMap((block) => block.rows)
+      expect(held).toHaveLength(rows.length)
+    }
   })
 })

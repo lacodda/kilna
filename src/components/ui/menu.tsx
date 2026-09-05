@@ -133,9 +133,18 @@ export function MenuSubTrigger({ tone, className, ...props }: MenuItemProps) {
   return <Base.SubmenuTrigger className={cn(menuItemVariants({ tone }), className)} {...props} />
 }
 
+export interface MenuCheckboxItemProps
+  extends Base.CheckboxItem.Props,
+    VariantProps<typeof menuItemVariants> {}
+
 /** An item that carries a tick. The state is the caller's - a menu does not
- * remember anything. */
-export function MenuCheckboxItem({ tone, className, ...props }: MenuItemProps) {
+ * remember anything.
+ *
+ * Typed from `CheckboxItem` rather than `Item`: it was declared with the plain
+ * item's props while rendering a checkbox, so `checked` and `onCheckedChange` -
+ * the two things it exists for - were rejected by the compiler. Nothing had
+ * called it until the catalogue's column picker did. */
+export function MenuCheckboxItem({ tone, className, ...props }: MenuCheckboxItemProps) {
   return <Base.CheckboxItem className={cn(menuItemVariants({ tone }), className)} {...props} />
 }
 

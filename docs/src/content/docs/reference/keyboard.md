@@ -88,3 +88,10 @@ the actions belong to.
 Either way the menu is keyboard-operable in full: arrows that wrap, `Home` and
 `End`, type-ahead that finds an item by its first letters, and `Esc` to leave
 without choosing.
+
+## Picking out a run of rows
+
+In the [catalogue](/kilna/guides/the-catalogue/), `Shift` and a click on a
+second checkbox take every row between it and the last one you ticked, in the
+order the table is showing them. The run follows the first row's state: shift-
+clicking out of a ticked row fills the span, out of an unticked one clears it.

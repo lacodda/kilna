@@ -12,7 +12,15 @@ export interface CatalogueFilter {
 }
 
 /** A column the table can be ordered by. */
-export type SortColumn = 'title' | 'tier' | 'total' | 'scored'
+export type SortColumn =
+  | 'title'
+  | 'tier'
+  | 'total'
+  | 'scored'
+  | 'status'
+  | 'versions'
+  | 'created'
+  | 'updated'
 export type SortDirection = 'asc' | 'desc'
 
 export interface Sort {
@@ -125,6 +133,14 @@ function valueOf(row: ScoredWork, column: SortColumn): string | number | null {
       return row.total
     case 'scored':
       return row.scored_at
+    case 'status':
+      return row.status
+    case 'versions':
+      return row.version_count
+    case 'created':
+      return row.created_at
+    case 'updated':
+      return row.updated_at
   }
 }
 
@@ -181,7 +197,16 @@ export function saveSort(sort: Sort, store: SortStore = localStorage): void {
   }
 }
 
-const COLUMNS: SortColumn[] = ['title', 'tier', 'total', 'scored']
+const COLUMNS: SortColumn[] = [
+  'title',
+  'tier',
+  'total',
+  'scored',
+  'status',
+  'versions',
+  'created',
+  'updated',
+]
 
 /**
  * Whether a stored value still describes a sort this build understands.
@@ -271,5 +296,156 @@ export function toggleSort(current: Sort, column: SortColumn): Sort {
   if (current.column === column) {
     return { column, direction: current.direction === 'asc' ? 'desc' : 'asc' }
   }
-  return { column, direction: column === 'title' ? 'asc' : 'desc' }
+  return { column, direction: ASCENDING_FIRST.includes(column) ? 'asc' : 'desc' }
+}
+
+/**
+ * Columns whose first click should read forwards.
+ *
+ * A number or a date is nearly always asked about from the top — the best score,
+ * the most recent edit. Words are asked about from A, and a status reads in the
+ * order the profile lists it, which alphabetical at least keeps stable.
+ */
+const ASCENDING_FIRST: SortColumn[] = ['title', 'status']
+
+/** Every column the table can draw, in the order it draws them. */
+export type ColumnId =
+  | 'id'
+  | 'title'
+  | 'marks'
+  | 'versions'
+  | 'tier'
+  | 'total'
+  | 'scored'
+  | 'created'
+  | 'updated'
+
+export const ALL_COLUMNS: ColumnId[] = [
+  'id',
+  'title',
+  'marks',
+  'versions',
+  'tier',
+  'total',
+  'scored',
+  'created',
+  'updated',
+]
+
+/**
+ * What the catalogue shows until someone says otherwise.
+ *
+ * The identifier is off: it matters when talking to the assistant or to a
+ * plugin, not when reading down a list of titles. The predecessor showed it
+ * always and it earned its place in exactly one workflow.
+ */
+export const DEFAULT_COLUMNS: ColumnId[] = [
+  'title',
+  'marks',
+  'tier',
+  'total',
+  'scored',
+  'updated',
+]
+
+/** The title carries the row's identity and its link; it cannot be turned off. */
+export const REQUIRED_COLUMN: ColumnId = 'title'
+
+const COLUMNS_KEY = 'kilna.catalogue.columns'
+
+/**
+ * Which columns are shown survives a restart, like the sort and unlike the
+ * filter: it is how a person prefers to read the table, not what they are doing
+ * this minute.
+ *
+ * Kept in the browser rather than on the profile. The plan asked for the latter,
+ * but a field on the profile means a migration, and the release this belongs to
+ * gathers every schema change into one — see the Model package. Moving it there
+ * later is a read of this key and a write of the new field.
+ */
+export function loadColumns(store: SortStore = localStorage): ColumnId[] {
+  try {
+    const raw = store.getItem(COLUMNS_KEY)
+    if (raw === null) return DEFAULT_COLUMNS
+
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return DEFAULT_COLUMNS
+
+    // Unknown ids are dropped rather than rejected wholesale: a column removed
+    // in a later build should not cost a person the rest of their layout.
+    const known = parsed.filter((id): id is ColumnId => ALL_COLUMNS.includes(id as ColumnId))
+    const shown = known.includes(REQUIRED_COLUMN) ? known : [REQUIRED_COLUMN, ...known]
+
+    // Everything hidden is indistinguishable from a corrupt value, and an empty
+    // table teaches nobody anything.
+    return shown.length > 1 || known.includes(REQUIRED_COLUMN) ? shown : DEFAULT_COLUMNS
+  } catch {
+    return DEFAULT_COLUMNS
+  }
+}
+
+export function saveColumns(columns: ColumnId[], store: SortStore = localStorage): void {
+  try {
+    store.setItem(COLUMNS_KEY, JSON.stringify(columns))
+  } catch {
+    // Storage full or blocked: the table still draws, it just forgets.
+  }
+}
+
+/**
+ * Turn a column on or off, keeping the table's own order.
+ *
+ * The order is `ALL_COLUMNS`, not the order things were clicked: a person
+ * toggling a column back on expects it where it was, not appended to the end.
+ */
+export function toggleColumn(current: ColumnId[], column: ColumnId): ColumnId[] {
+  if (column === REQUIRED_COLUMN) return current
+
+  const shown = new Set(current)
+  if (!shown.delete(column)) shown.add(column)
+  return ALL_COLUMNS.filter((id) => shown.has(id))
+}
+
+/** How the rows are gathered into blocks. */
+export type GroupBy = 'none' | 'status' | 'tier'
+
+export interface Group {
+  /** The value shared by the rows, or null for the block holding those without one. */
+  key: string | null
+  rows: ScoredWork[]
+}
+
+/**
+ * Gather the rows into blocks, keeping the sort inside each.
+ *
+ * Grouping by collection is deliberately absent. The column exists, but the
+ * screen that gives collections meaning does not yet, and offering to group by
+ * something a person cannot yet see or edit promises a feature twice.
+ *
+ * Blocks come out in the order the rows already had, so the sort still decides
+ * which block leads — a catalogue grouped by tier and sorted by score opens on
+ * the tier holding the best work. Rows with no value form a block of their own,
+ * last, for the same reason absence sorts last within a column.
+ */
+export function groupRows(rows: ScoredWork[], by: GroupBy): Group[] {
+  if (by === 'none') return [{ key: null, rows }]
+
+  const blocks = new Map<string, ScoredWork[]>()
+  const without: ScoredWork[] = []
+
+  for (const row of rows) {
+    const key = by === 'status' ? row.status : row.tier
+    if (key === null || key === '') {
+      without.push(row)
+      continue
+    }
+
+    const block = blocks.get(key)
+    if (block) block.push(row)
+    else blocks.set(key, [row])
+  }
+
+  const grouped: Group[] = [...blocks].map(([key, block]) => ({ key, rows: block }))
+  if (without.length > 0) grouped.push({ key: null, rows: without })
+  return grouped
 }
