@@ -55,10 +55,10 @@ scoring is making the effect of a revision visible. Details in
 ## Calendar slot
 
 A scored work becomes a **release**: a plan to ship it somewhere, as some
-kind, on some date. Slots compete — a date can hold one release at a time, and
-a stronger work can bump a weaker one out of it. The weaker release isn't
-deleted; it drops back into the queue with its plan intact, waiting for
-another date. Walkthrough in
+kind, on some date. A day holds as many releases as you put on it — pointing at
+a date is a decision, and a rule that argued with it read as a fault rather
+than as care. What the score still decides is the order of the queue, and which
+work the automatic layout reaches for first. Walkthrough in
 [Planning a release](/kilna/guides/planning-a-release/).
 
 ## Shipped
