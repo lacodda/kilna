@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file.
 
 ### Bug Fixes
 - Stop promising the contest in the showcase too
+- Let the table scroll sideways, and gather the bulk actions
+
+### Documentation
+- Say how the bulk actions and the scrolling work now
 
 ### Features
 - Act on a whole selection in one request
