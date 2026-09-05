@@ -363,6 +363,7 @@
     "groupStatus": "By status",
     "groupTier": "By tier",
     "bulk": {
+      "actions": "Actions",
       "setStatus": "Move to status",
       "unschedule": "Take off the calendar",
       "statusSet_one": "{{count}} work moved",

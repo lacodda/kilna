@@ -388,6 +388,7 @@
     "groupStatus": "По статусу",
     "groupTier": "По тиру",
     "bulk": {
+      "actions": "Действия",
       "setStatus": "Перевести в статус",
       "unschedule": "Снять с расписания",
       "statusSet_one": "Переведено {{count}} произведение",

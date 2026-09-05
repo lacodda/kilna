@@ -148,7 +148,12 @@ function ShellSkeleton() {
             <Topbar works={workspace.works} />
           </div>
 
-          <div className="flex min-h-0 flex-col [grid-area:main]">
+          {/* `min-w-0` beside `min-h-0`, and for the same reason on the other
+              axis: a grid item defaults to `min-width: auto`, so this column
+              grew to fit its widest child instead of staying inside the track.
+              A wide table pushed the whole screen out from under the sidebar,
+              and the clip below had nothing left to scroll. */}
+          <div className="flex min-h-0 min-w-0 flex-col [grid-area:main]">
             {/* Above the scroll and outside the screen key: a pending question
                 belongs to the workspace rather than to whichever screen is
                 open, and it must not replay its entry animation on every
@@ -193,10 +198,13 @@ function ShellSkeleton() {
                   {/* The open tab is part of the address, so the back button walks
                       between tabs and a tab can be linked to directly. */}
                   <Route path="/works/:workId?/:tab?" element={<WorksScreen />} />
+                  {/* The catalogue holds its own height rather than growing
+                      with its rows: its table scrolls both ways inside, so the
+                      sideways bar stays at the bottom of the window. */}
                   <Route
                     path="/catalogue"
                     element={
-                      <div className="p-6">
+                      <div className="flex h-full min-h-0 flex-col p-6">
                         <Catalogue onSelect={openWork} />
                       </div>
                     }

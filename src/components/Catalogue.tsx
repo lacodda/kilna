@@ -1,7 +1,7 @@
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, Check, ChevronRight, Columns3 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Columns3 } from 'lucide-react'
 import {
   catalogue as fetchCatalogue,
   createWork,
@@ -47,7 +47,11 @@ import {
   Menu,
   MenuCheckboxIndicator,
   MenuCheckboxItem,
+  MenuItem,
   MenuPopup,
+  MenuSeparator,
+  MenuSub,
+  MenuSubTrigger,
   MenuTrigger,
 } from '@/components/ui/menu'
 import { RowContextMenu, RowMenu, type RowAction } from '@/components/ui/RowMenu'
@@ -190,7 +194,7 @@ export function Catalogue({ onSelect }: Props) {
     setFilter({ ...filter, ...change })
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full min-h-0 min-w-0 flex-col gap-4">
       <form
         className="flex gap-2"
         onSubmit={(event) => {
@@ -472,7 +476,7 @@ function Rows({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex h-full min-h-0 min-w-0 flex-col gap-2">
       {/* Only while rows are ticked. It replaces nothing and hides nothing — the
           table stays exactly where it was, so the next click is on the row you
           were already looking at. */}
@@ -481,41 +485,19 @@ function Rows({
           <span className="font-medium">{t('catalogue.chosen', { count: chosen.length })}</span>
           <BulkActions workIds={chosen} onStarted={() => onSelectionChange(new Set())} />
 
-          {/* The ordinary things, beside the assistant's. Until now this bar
-              could ask Claude to critique twenty works but could not move them
-              to another status — the everyday act was the missing one. */}
-          <Select
-            className="w-40"
-            aria-label={t('catalogue.bulk.setStatus')}
-            // Always reads as the placeholder: it asks a question rather than
-            // reporting a state, because a selection of twenty works has no one
-            // status to show.
-            value=""
-            onChange={(value) => {
-              // Guarded rather than disabled: the primitive takes no `disabled`,
-              // and a second click while the first is in flight would ask the
-              // same thing twice.
-              if (value && !busy) onSetStatus(chosen, value)
-            }}
-            placeholder={t('catalogue.bulk.setStatus')}
-            options={profile.config.statuses.map((s) => ({ value: s.key, label: s.label }))}
+          {/* The ordinary things, behind one button beside the assistant's.
+              Until now this bar could ask Claude to critique twenty works but
+              could not move them to another status — the everyday act was the
+              missing one. They sit in a menu rather than in the row because a
+              dropdown among flat buttons read as the loudest thing here, and
+              deleting must not be the easiest click to make by accident. */}
+          <BulkMenu
+            statuses={profile.config.statuses}
+            busy={busy || deleting}
+            onSetStatus={(status) => onSetStatus(chosen, status)}
+            onUnschedule={() => onUnschedule(chosen)}
+            onDelete={() => onDelete(chosen)}
           />
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={() => onUnschedule(chosen)}
-          >
-            {t('catalogue.bulk.unschedule')}
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            disabled={deleting}
-            onClick={() => onDelete(chosen)}
-          >
-            {t('catalogue.action.delete')}
-          </Button>
           <button
             type="button"
             onClick={() => onSelectionChange(new Set())}
@@ -543,8 +525,30 @@ function Rows({
         </div>
       )}
 
-      <table className="w-full text-sm">
-        <thead>
+      {/* The table scrolls sideways rather than being cut off by the window.
+          Narrow, every column used to squeeze until dates broke across two
+          lines and a row stood three lines tall; the last columns and the row
+          menu were simply beyond the edge, unreachable.
+
+          `min-w-0` is what makes the scrolling work at all. A flex child sizes
+          to its content by default, so this box grew as wide as the table and
+          never overflowed — while the screen container above clips the
+          horizontal axis on purpose, to stop a trackpad swipe sliding content
+          under the sidebar. The result was a table cut off at the edge with no
+          scrollbar anywhere. Allowing this one box to be narrower than its
+          contents puts the overflow, and the bar, inside the table.
+
+          The box takes the height left on the screen and scrolls both axes
+          itself, so the sideways bar sits at the bottom of the window instead
+          of under the last of two hundred rows — where it was only reachable
+          after scrolling to the very end of the list, which is no use to
+          someone reading the middle. The header row is sticky for the same
+          reason: a table you scroll is a table whose headings must stay. */}
+      <div className="min-h-0 min-w-0 flex-1 overflow-auto">
+        <table className="w-full min-w-max text-sm">
+        {/* The headings stay while the rows move under them: a table long
+            enough to need scrolling is one whose columns must remain named. */}
+        <thead className="sticky top-0 z-10 bg-bg">
           <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-dim">
             <th className="w-9 py-2">
               <input
@@ -645,7 +649,8 @@ function Rows({
             </tbody>
           )
         })}
-      </table>
+        </table>
+      </div>
     </div>
   )
 }
@@ -713,7 +718,7 @@ function Column({
       // right-aligned column followed by a left-aligned one used to put its
       // last letter against the next header's first, and "Total"/"Scored" read
       // as one word.
-      className={cn('px-3 py-2 font-medium')}
+      className={cn('whitespace-nowrap px-3 py-2 font-medium')}
     >
       <button
         type="button"
@@ -776,7 +781,10 @@ function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
 
     case 'title':
       return (
-        <td className="px-3 py-2">
+        // The title and what it is stay on one line. Squeezed, a two-word title
+        // broke mid-phrase and the row grew to three lines; the table now
+        // scrolls sideways instead of folding.
+        <td className="whitespace-nowrap px-3 py-2">
           <span className="font-medium">{row.title}</span>
           <span className="ml-2 text-xs text-dim">
             {labelOf(profile.config.statuses, row.status)} {'·'}{' '}
@@ -847,11 +855,13 @@ function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
 
     case 'scored':
       return (
-        <td className="px-3 py-2 text-xs text-dim">
+        // A date is one word. Left to wrap it broke into "2026-" over "07-31",
+        // which reads as two dates rather than as one.
+        <td className="whitespace-nowrap px-3 py-2 text-xs text-dim">
           {row.scored_at?.slice(0, 10) ?? '—'}
           {row.stale && (
             <span
-              className="ml-2 rounded bg-warn-soft px-1.5 py-0.5 text-warn"
+              className="ml-2 whitespace-nowrap rounded bg-warn-soft px-1.5 py-0.5 text-warn"
               title={t('catalogue.staleHint')}
             >
               {t('catalogue.stale')}
@@ -861,10 +871,14 @@ function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
       )
 
     case 'created':
-      return <td className="px-3 py-2 text-xs text-dim">{row.created_at.slice(0, 10)}</td>
+      return (
+        <td className="whitespace-nowrap px-3 py-2 text-xs text-dim">{row.created_at.slice(0, 10)}</td>
+      )
 
     case 'updated':
-      return <td className="px-3 py-2 text-xs text-dim">{row.updated_at.slice(0, 10)}</td>
+      return (
+        <td className="whitespace-nowrap px-3 py-2 text-xs text-dim">{row.updated_at.slice(0, 10)}</td>
+      )
   }
 }
 
@@ -913,6 +927,64 @@ function ColumnPicker({
             {t(COLUMN_SPECS[id].label)}
           </MenuCheckboxItem>
         ))}
+      </MenuPopup>
+    </Menu>
+  )
+}
+
+/**
+ * What can be done to the chosen rows, other than ask the assistant.
+ *
+ * One button rather than a row of controls. A dropdown sitting among flat
+ * buttons was taller than all of them and read as the most important thing in
+ * the bar, which "move to status" is not - and it put deleting a batch one
+ * unguarded click away from the assistant's actions.
+ */
+function BulkMenu({
+  statuses,
+  busy,
+  onSetStatus,
+  onUnschedule,
+  onDelete,
+}: {
+  statuses: { key: string; label: string }[]
+  busy: boolean
+  onSetStatus: (status: string) => void
+  onUnschedule: () => void
+  onDelete: () => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <Menu>
+      <MenuTrigger
+        render={<Button variant="ghost" size="sm" disabled={busy} />}
+      >
+        {t('catalogue.bulk.actions')}
+        <ChevronDown className="ml-1 size-3.5" aria-hidden />
+      </MenuTrigger>
+
+      <MenuPopup align="start">
+        <MenuSub>
+          <MenuSubTrigger>{t('catalogue.bulk.setStatus')}</MenuSubTrigger>
+          <MenuPopup align="start" side="right">
+            {statuses.map((status) => (
+              <MenuItem key={status.key} onClick={() => onSetStatus(status.key)}>
+                {status.label}
+              </MenuItem>
+            ))}
+          </MenuPopup>
+        </MenuSub>
+
+        <MenuItem onClick={onUnschedule}>{t('catalogue.bulk.unschedule')}</MenuItem>
+
+        <MenuSeparator />
+
+        {/* Apart and in the colour of something you cannot take back, though
+            the trash means you can. */}
+        <MenuItem tone="danger" onClick={onDelete}>
+          {t('catalogue.action.delete')}
+        </MenuItem>
       </MenuPopup>
     </Menu>
   )
