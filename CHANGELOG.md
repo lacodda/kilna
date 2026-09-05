@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.47.0] - 2026-09-05
+
+### Bug Fixes
+- Stop promising the contest in the showcase too
+
+### Features
+- Act on a whole selection in one request
+- Choose the columns and fold the table into blocks
 ## [0.46.0] - 2026-09-03
 
 ### Bug Fixes
