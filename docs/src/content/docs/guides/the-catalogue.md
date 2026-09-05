@@ -33,6 +33,10 @@ shape.
 A mark your profile no longer defines is not drawn, the same rule the card
 follows: renaming a mark never touches a work.
 
+With enough columns on, or a narrow enough window, **the table scrolls
+sideways** rather than squeezing its cells: the bar sits at the bottom of the
+window, and the column headings stay put as you scroll down.
+
 ## Grouping
 
 The **group** dropdown folds the table into blocks by status or by tier. Click a
@@ -110,16 +114,18 @@ another, and the run between them follows the first row's state: dragging out
 of a ticked row fills the span, dragging out of an unticked one clears it. The
 run is what you see, in the order the table is showing it.
 
-A bar appears above the table with what you can do to the chosen rows:
+A bar appears above the table with your profile's AI actions, and an
+**Actions** menu holding the ordinary ones:
 
-- **Move to status** — sends the whole selection to one status. Chosen by hand,
-  so each one holds there: the automation leaves a hand-set status alone until
-  you unpin it.
+- **Move to status** — a submenu of your statuses; sends the whole selection to
+  the one you pick. Chosen by hand, so each one holds there: the automation
+  leaves a hand-set status alone until you unpin it.
 - **Take off the calendar** — returns every booked release in the selection to
   the queue. Anything already released is left alone; its date is a record of
   what happened, not a booking.
-- **Delete** — takes the whole batch to the [trash](/kilna/guides/the-trash/)
-  and offers one undo for all of it, not one toast per work.
+- **Delete** — apart, below a separator. Takes the whole batch to the
+  [trash](/kilna/guides/the-trash/) and offers one undo for all of it, not one
+  toast per work.
 
 Each of these is one request rather than one per work, so the journal records
 the batch as the single thing you did, and a failure cannot leave half the
