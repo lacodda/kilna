@@ -328,10 +328,7 @@ pub fn set_works_status(
 /// where it is. Each work is restated afterwards, so a work that has nothing
 /// booked any more goes back to saying so on its own.
 #[tauri::command]
-pub fn unschedule_works(
-    state: State<'_, AppState>,
-    work_ids: Vec<String>,
-) -> Result<BulkOutcome> {
+pub fn unschedule_works(state: State<'_, AppState>, work_ids: Vec<String>) -> Result<BulkOutcome> {
     let conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
 
