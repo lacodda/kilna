@@ -8,6 +8,8 @@ export interface CatalogueFilter {
   status?: string
   kind?: string
   tier?: string
+  /** One of the author's own words, matched whole and case-insensitively. */
+  tag?: string
   gap?: Gap
 }
 
@@ -47,10 +49,21 @@ export function narrow(rows: ScoredWork[], filter: CatalogueFilter): ScoredWork[
     if (filter.status !== undefined && row.status !== filter.status) return false
     if (filter.kind !== undefined && row.kind !== filter.kind) return false
     if (filter.tier !== undefined && row.tier !== filter.tier) return false
+    // A whole word, not a substring: `tag:win` should not drag in `winter`.
+    // Tags are chosen from what the workspace already holds, so the exact word
+    // is the one a person means; substring matching would make the narrowest
+    // tool in the box the vaguest.
+    if (filter.tag !== undefined && !hasTag(row, filter.tag)) return false
     if (filter.gap !== undefined && !hasGap(row, filter.gap)) return false
     if (needle !== '' && !row.title.toLowerCase().includes(needle)) return false
     return true
   })
+}
+
+/** Whether the work carries this tag, ignoring case in any language. */
+function hasTag(row: ScoredWork, tag: string): boolean {
+  const wanted = tag.toLowerCase()
+  return row.tags.some((held) => held.toLowerCase() === wanted)
 }
 
 /** The gaps a work can have, in the order they are offered. Exported because
@@ -87,6 +100,7 @@ export function isNarrowed(filter: CatalogueFilter): boolean {
     filter.status !== undefined ||
     filter.kind !== undefined ||
     filter.tier !== undefined ||
+    filter.tag !== undefined ||
     filter.gap !== undefined
   )
 }
@@ -277,7 +291,7 @@ function isFilter(value: unknown): value is CatalogueFilter {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   const candidate = value as Record<string, unknown>
 
-  for (const field of ['search', 'status', 'kind', 'tier'] as const) {
+  for (const field of ['search', 'status', 'kind', 'tier', 'tag'] as const) {
     const held = candidate[field]
     if (held !== undefined && typeof held !== 'string') return false
   }

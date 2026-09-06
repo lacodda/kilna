@@ -84,6 +84,67 @@ remember to perform.
 The search box matches titles as you type, in whatever alphabet they are
 written in. The three dropdowns narrow by status, kind and tier.
 
+### Narrowing from the box
+
+The box also reads operators, so a slice you would otherwise click together
+from three dropdowns is one line:
+
+```
+tier:clip status:draft winter
+```
+
+| Operator | Narrows by |
+| --- | --- |
+| `status:` | Your profile's statuses |
+| `kind:` | Your profile's kinds of work |
+| `tier:` | Your profile's tiers |
+| `tag:` | A tag you put on the work yourself |
+
+Anything that is not an operator searches titles, as it always did. **Quote a
+phrase** to keep it together: `"paper boats" tier:clip`.
+
+A few things about how it reads what you type:
+
+- **The word on screen works as well as the key.** Your tiers might be keyed
+  `clip` and `pic` while the screen says *Clip* and *Picture*; `tier:Picture`
+  finds the same works. Case never matters, in any alphabet.
+- **A tag is matched whole.** `tag:win` does not find *winter* — tags are words
+  you chose, so the exact one is the one you mean.
+- **A colon you did not intend as an operator stays in the search.** A work
+  called *Ratio: a love song* is found by typing its title, because `Ratio` is
+  not a field kilna knows.
+- **A value your profile does not have is said out loud**, under the box,
+  rather than left to look like a search that found nothing.
+- **The box and the dropdowns are the same filter.** Pick a tier from the
+  dropdown and the box says `tier:clip`; clear the box and the dropdown clears
+  with it. The gap chips are the exception — they have their own row and are
+  not written into the line.
+
+### Views: a slice worth keeping
+
+*Unscored clips*. *Winter songs still in draft*. The questions you ask the
+catalogue every week are worth one click rather than four.
+
+**Save this view** keeps what is on screen — the filter, the sort and the
+grouping — under a name you give it, as a chip above the table. Click the chip
+to put the catalogue back exactly as it was; click the `×` on it to forget it.
+
+- The chip lights up while the catalogue matches it, and goes quiet the moment
+  you change anything. What is highlighted is always what you are looking at.
+- **Saving under a name you already used replaces that view** rather than
+  making a second one beside it. That is how you adjust one.
+- Views survive a restart, unlike the filters themselves: a named question is a
+  standing one. They are kept per machine, like the columns, and move onto the
+  profile when the profile document next changes shape.
+- The chosen columns are not part of a view. They are how you read the table
+  everywhere, not a property of one question.
+- Twelve at most — past that the bar stops being a short row of standing
+  questions and becomes a second list to search through.
+
+Views are drawn on the catalogue rather than in the app's left rail: the rail
+lists the screens, and a slice of the catalogue named there while the calendar
+is open would point at something not on show.
+
 **The chips below them find unfinished work** — the gaps you can still do
 something about:
 

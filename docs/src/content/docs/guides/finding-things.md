@@ -57,13 +57,17 @@ matching covers ASCII and nothing else — to it, `Г` and `г` are unrelated
 bytes. kilna folds case itself, in full Unicode, which is why a Russian
 workspace is as searchable as an English one.
 
-The catalogue's own search box folds case the same way, for the same reason.
+The catalogue's own search box folds case the same way, for the same reason —
+and so does matching a `tag:` there.
 
 ## What it does not do yet
 
 - **No operators.** No `kind:song`, no quoted phrases. One box, one query,
-  everything at once — narrowing by kind, status or tier is what the
-  [catalogue](/kilna/guides/the-catalogue/) is for.
+  everything at once. This box is for *going somewhere* — it answers "where is
+  that line", across drafts, notes and chats, and every hit opens a work.
+  Narrowing a list down to a set of works is a different question, and the
+  [catalogue's own box](/kilna/guides/the-catalogue/#narrowing-from-the-box)
+  answers it with `status:`, `kind:`, `tier:` and `tag:`.
 - **Whole words only in the sense that substrings match** — `arbour` finds
   *Harbour*. There is no stemming, so `lights` does not find *light*.
 - **Nothing outside the active profile.** Switching profiles switches what is

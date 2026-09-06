@@ -71,6 +71,28 @@ describe('narrow', () => {
     const kept = narrow(rows, { status: 'draft', kind: 'song' })
     expect(kept.map((r) => r.work_id)).toEqual(['a'])
   })
+
+  it('keeps only what carries the tag', () => {
+    const rows = [
+      row({ work_id: 'a', tags: ['winter', 'quiet'] }),
+      row({ work_id: 'b', tags: ['summer'] }),
+      row({ work_id: 'c', tags: [] }),
+    ]
+    expect(narrow(rows, { tag: 'winter' }).map((r) => r.work_id)).toEqual(['a'])
+  })
+
+  it('matches a tag regardless of case, in Russian too', () => {
+    const rows = [row({ tags: ['Зима'] })]
+    expect(narrow(rows, { tag: 'зима' })).toHaveLength(1)
+  })
+
+  // A tag is matched whole. Tags come from what the workspace already holds,
+  // so the exact word is the one meant; substring matching would make the
+  // narrowest tool in the box the vaguest.
+  it('does not take a tag as a prefix of another', () => {
+    const rows = [row({ tags: ['winter'] })]
+    expect(narrow(rows, { tag: 'win' })).toHaveLength(0)
+  })
 })
 
 describe('isNarrowed', () => {
@@ -87,6 +109,7 @@ describe('isNarrowed', () => {
     expect(isNarrowed({ search: 'a' })).toBe(true)
     expect(isNarrowed({ status: 'draft' })).toBe(true)
     expect(isNarrowed({ kind: 'song' })).toBe(true)
+    expect(isNarrowed({ tag: 'winter' })).toBe(true)
   })
 })
 
@@ -245,8 +268,13 @@ describe('the remembered filter', () => {
     expect(loadFilter(store(JSON.stringify({ gap: 'unmastered' })))).toEqual({})
   })
 
+  it('keeps a tag it was left holding', () => {
+    expect(loadFilter(store(JSON.stringify({ tag: 'winter' })))).toEqual({ tag: 'winter' })
+  })
+
   it('refuses a value of the wrong shape', () => {
     expect(loadFilter(store(JSON.stringify({ status: 7 })))).toEqual({})
+    expect(loadFilter(store(JSON.stringify({ tag: 7 })))).toEqual({})
     expect(loadFilter(store(JSON.stringify({ search: ['a'] })))).toEqual({})
     expect(loadFilter(store('not json at all'))).toEqual({})
     expect(loadFilter(store(JSON.stringify(null)))).toEqual({})

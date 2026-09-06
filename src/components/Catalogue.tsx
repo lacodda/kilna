@@ -1,7 +1,17 @@
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, Columns3 } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  Bookmark,
+  BookmarkPlus,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Columns3,
+  X,
+} from 'lucide-react'
 import {
   catalogue as fetchCatalogue,
   createWork,
@@ -32,6 +42,17 @@ import {
   type Sort,
   type SortColumn,
 } from '@/lib/catalogue'
+import { formatQuery, parseQuery, type Vocabulary } from '@/lib/searchQuery'
+import {
+  addView,
+  loadViews,
+  matchesView,
+  removeView,
+  saveViews,
+  viewOf,
+  type SavedView,
+  type ViewShape,
+} from '@/lib/views'
 import { keys } from '@/lib/query'
 import { announceDeleted } from '@/lib/trash'
 import { say } from '@/lib/toast'
@@ -193,6 +214,67 @@ export function Catalogue({ onSelect }: Props) {
   const set = (change: Partial<CatalogueFilter>) =>
     setFilter({ ...filter, ...change })
 
+  // The profile's own words, which the query box resolves values against so
+  // `tier:Picture` works as well as `tier:pic`.
+  const vocabulary: Vocabulary = {
+    statuses: profile.config.statuses,
+    kinds: profile.config.work_kinds,
+    tiers: profile.config.tiers,
+  }
+
+  // What the box shows. Held apart from the filter rather than derived from it,
+  // because a half-typed `tier:cl` has no filter to be derived from and must
+  // still stay on screen while it is being typed.
+  const [query, setQuery] = useState(() => formatQuery(filter))
+  const [unknown, setUnknown] = useState<{ field: string; value: string }[]>([])
+
+  const runQuery = (line: string) => {
+    setQuery(line)
+    const parsed = parseQuery(line, vocabulary)
+    setUnknown(parsed.unknown)
+    // The gap chips are not part of the line, so they survive it: they have
+    // their own row of controls and clearing the box must not turn them off.
+    setFilter({
+      ...parsed.filter,
+      search: parsed.text === '' ? undefined : parsed.text,
+      gap: filter.gap,
+    })
+  }
+
+  // A dropdown writes the filter and the box has to follow, or the two ways of
+  // narrowing would show different things about the same table.
+  const setFromControl = (change: Partial<CatalogueFilter>) => {
+    const next = { ...filter, ...change }
+    setFilter(next)
+    setQuery(formatQuery(next))
+    setUnknown([])
+  }
+
+  const [views, setViewsState] = useState<SavedView[]>(loadViews)
+
+  const setViews = (next: SavedView[]) => {
+    setViewsState(next)
+    saveViews(next)
+  }
+
+  const shape: ViewShape = { filter, sort, groupBy }
+
+  const openView = (view: SavedView) => {
+    setFilter(view.filter)
+    setQuery(formatQuery(view.filter))
+    setUnknown([])
+    setSort(view.sort)
+    saveSort(view.sort)
+    setGroupBy(view.groupBy)
+    setCollapsed(new Set())
+  }
+
+  const clearFilters = () => {
+    setFilter({})
+    setQuery('')
+    setUnknown([])
+  }
+
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-4">
       <form
@@ -216,17 +298,18 @@ export function Catalogue({ onSelect }: Props) {
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
-          className="max-w-64"
-          value={filter.search ?? ''}
-          onChange={(event) => set({ search: event.target.value || undefined })}
-          placeholder={t('works.search')}
+          className="max-w-96 font-mono text-[12.5px]"
+          value={query}
+          onChange={(event) => runQuery(event.target.value)}
+          placeholder={t('catalogue.queryPlaceholder')}
           aria-label={t('works.search')}
+          aria-describedby="catalogue-query-help"
         />
         <Select
           className="w-44"
           aria-label={t('works.status')}
           value={filter.status ?? ''}
-          onChange={(value) => set({ status: value || undefined })}
+          onChange={(value) => setFromControl({ status: value || undefined })}
           placeholder={t('works.anyStatus')}
           options={profile.config.statuses.map((s) => ({ value: s.key, label: s.label }))}
         />
@@ -234,7 +317,7 @@ export function Catalogue({ onSelect }: Props) {
           className="w-44"
           aria-label={t('works.kind')}
           value={filter.kind ?? ''}
-          onChange={(value) => set({ kind: value || undefined })}
+          onChange={(value) => setFromControl({ kind: value || undefined })}
           placeholder={t('works.anyKind')}
           options={profile.config.work_kinds.map((k) => ({ value: k.key, label: k.label }))}
         />
@@ -242,11 +325,36 @@ export function Catalogue({ onSelect }: Props) {
           className="w-44"
           aria-label={t('catalogue.tier')}
           value={filter.tier ?? ''}
-          onChange={(value) => set({ tier: value || undefined })}
+          onChange={(value) => setFromControl({ tier: value || undefined })}
           placeholder={t('catalogue.anyTier')}
           options={profile.config.tiers.map((tier) => ({ value: tier.key, label: tier.label }))}
         />
       </div>
+
+      {/* Says what the box can do without a doc, and says it once — the hint
+          goes quiet the moment an operator is used, because by then it has been
+          learned. A value the profile does not have is called out here rather
+          than left to look like a search that found nothing. */}
+      <p id="catalogue-query-help" className="-mt-2 text-[11.5px] text-faint">
+        {unknown[0] !== undefined ? (
+          <span className="text-bad">
+            {t('catalogue.queryUnknown', {
+              field: unknown[0].field,
+              value: unknown[0].value,
+            })}
+          </span>
+        ) : (
+          t('catalogue.queryHint')
+        )}
+      </p>
+
+      <ViewBar
+        views={views}
+        shape={shape}
+        onOpen={openView}
+        onSave={(name) => setViews(addView(views, viewOf(name, shape)))}
+        onRemove={(id) => setViews(removeView(views, id))}
+      />
 
       {/* Chips carry their words, not just an icon. The predecessor tried icons
           alone and nobody could tell which filter was on. */}
@@ -313,7 +421,7 @@ export function Catalogue({ onSelect }: Props) {
           setCollapsed(next)
         }}
         onReorder={reorder}
-        onClearFilters={() => setFilter({})}
+        onClearFilters={clearFilters}
         onSelect={onSelect}
         selected={selected}
         onSelectionChange={setSelected}
@@ -880,6 +988,132 @@ function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
         <td className="whitespace-nowrap px-3 py-2 text-xs text-dim">{row.updated_at.slice(0, 10)}</td>
       )
   }
+}
+
+/**
+ * The slices worth keeping, and the way to keep one.
+ *
+ * A row of chips above the table rather than an entry in the app's left rail.
+ * A view is a question about *this* screen, and the rail is where the screens
+ * themselves live - a list of catalogue slices sitting there while the calendar
+ * is open would be naming something not on show. Beside the controls it
+ * changes, it explains itself.
+ *
+ * Saving is deliberately a two-step: the button opens a name field rather than
+ * storing "View 3". A view nobody can tell apart from the next one is a row to
+ * scroll past, which is the failure this is meant to prevent.
+ */
+function ViewBar({
+  views,
+  shape,
+  onOpen,
+  onSave,
+  onRemove,
+}: {
+  views: SavedView[]
+  shape: ViewShape
+  onOpen: (view: SavedView) => void
+  onSave: (name: string) => void
+  onRemove: (id: string) => void
+}) {
+  const { t } = useTranslation()
+  const [naming, setNaming] = useState(false)
+  const [name, setName] = useState('')
+
+  const active = views.find((view) => matchesView(view, shape))
+
+  const commit = () => {
+    const trimmed = name.trim()
+    if (trimmed === '') return
+    onSave(trimmed)
+    setName('')
+    setNaming(false)
+  }
+
+  // Nothing saved and nothing set: an empty bar with one button on it teaches
+  // nobody what a view is, and takes a line of the screen to do it.
+  if (views.length === 0 && !naming && !isNarrowed(shape.filter)) return null
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[11px] font-medium uppercase tracking-[0.09em] text-faint">
+        {t('catalogue.views')}
+      </span>
+
+      {views.map((view) => {
+        const open = active?.id === view.id
+        return (
+          <span
+            key={view.id}
+            className={cn(
+              'group inline-flex items-center gap-1 rounded-full border pl-2.5 pr-1 py-0.5 text-[11.5px] transition-colors',
+              open
+                ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
+                : 'border-line text-dim hover:border-line-2 hover:text-text',
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => onOpen(view)}
+              aria-pressed={open}
+              className="cursor-pointer"
+            >
+              {view.name}
+            </button>
+            <button
+              type="button"
+              onClick={() => onRemove(view.id)}
+              aria-label={t('catalogue.viewRemove', { name: view.name })}
+              title={t('catalogue.viewRemove', { name: view.name })}
+              // Always there rather than on hover: a control that appears only
+              // under the pointer cannot be reached by a keyboard at all.
+              className="cursor-pointer rounded-full p-0.5 text-faint transition-colors hover:bg-soft hover:text-bad"
+            >
+              <X className="size-3" aria-hidden />
+            </button>
+          </span>
+        )
+      })}
+
+      {naming ? (
+        <form
+          className="flex items-center gap-1.5"
+          onSubmit={(event) => {
+            event.preventDefault()
+            commit()
+          }}
+        >
+          <Input
+            autoFocus
+            className="h-7 w-44 text-[12.5px]"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setNaming(false)
+            }}
+            placeholder={t('catalogue.viewNamePlaceholder')}
+            aria-label={t('catalogue.viewName')}
+          />
+          <Button type="submit" size="sm" variant="primary" disabled={name.trim() === ''}>
+            {t('catalogue.viewSave')}
+          </Button>
+        </form>
+      ) : (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setNaming(true)}
+          // Saving the catalogue as it opens would store "everything, by score"
+          // under a name, which is the one slice that needs no shortcut.
+          disabled={!isNarrowed(shape.filter) && shape.groupBy === 'none'}
+          title={t('catalogue.viewSaveHint')}
+        >
+          {active ? <Bookmark className="size-3.5" aria-hidden /> : <BookmarkPlus className="size-3.5" aria-hidden />}
+          {t('catalogue.viewSaveCurrent')}
+        </Button>
+      )}
+    </div>
+  )
 }
 
 /**
