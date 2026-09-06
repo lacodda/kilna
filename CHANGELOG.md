@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.48.0] - 2026-09-06
+
+### Features
+- Narrow from the box, and keep a slice under a name
 ## [0.47.0] - 2026-09-05
 
 ### Bug Fixes
@@ -14,6 +18,9 @@ All notable changes to this project are documented in this file.
 ### Features
 - Act on a whole selection in one request
 - Choose the columns and fold the table into blocks
+
+### style
+- Let rustfmt fold a signature back onto one line
 ## [0.46.0] - 2026-09-03
 
 ### Bug Fixes
