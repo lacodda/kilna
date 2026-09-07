@@ -18,6 +18,9 @@ pub fn open(path: &Path) -> Result<Connection> {
     let mut conn = Connection::open(path)?;
     configure(&conn)?;
     migrations::apply(&mut conn)?;
+    // After the migrations, before anything else: the triggers of 0011 name
+    // this device on every edit, so it has to exist before the first one.
+    crate::device::ensure(&conn)?;
     Ok(conn)
 }
 
@@ -26,6 +29,7 @@ pub fn open_in_memory() -> Result<Connection> {
     let mut conn = Connection::open_in_memory()?;
     configure(&conn)?;
     migrations::apply(&mut conn)?;
+    crate::device::ensure(&conn)?;
     Ok(conn)
 }
 
@@ -64,8 +68,9 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            tables, 15,
-            "nine core tables, three for the assistant, the trash, and two for the focus board"
+            tables, 18,
+            "nine core tables, three for the assistant, the trash, two for the focus board, \
+             and three for the day two workspaces meet: device, tombstone, field_clock"
         );
     }
 

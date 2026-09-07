@@ -694,7 +694,10 @@ export interface ImportReport {
   versions: number
   scores: number
   releases: number
+  /** Titles already here, left alone. */
   skipped: number
+  /** Titles deleted here earlier, not brought back. */
+  deleted: number
 }
 
 export const exportMarkdown = (directory: string) =>

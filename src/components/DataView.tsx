@@ -74,12 +74,16 @@ export function DataView() {
       // An import rewrites everything the app has read so far.
       void client.invalidateQueries()
 
-      return t('data.imported', {
+      const summary = t('data.imported', {
         works: report.works,
         versions: report.versions,
         scores: report.scores,
         skipped: report.skipped,
       })
+      // Said only when it happened: most imports have nothing to leave buried.
+      return report.deleted > 0
+        ? `${summary} ${t('data.importedLeftDeleted', { count: report.deleted })}`
+        : summary
     })
 
   return (

@@ -11,6 +11,7 @@ use crate::profile::{
 };
 use crate::release::{self, NewRelease};
 use crate::score::{self, NewScore};
+use crate::tombstone;
 use crate::work::version::NewVersion;
 use crate::work::{self, NewWork, version};
 
@@ -23,6 +24,8 @@ pub struct ImportReport {
     pub releases: usize,
     /// Titles that were already present and were left alone.
     pub skipped: usize,
+    /// Titles the person had deleted here and were not brought back.
+    pub deleted: usize,
 }
 
 /// Import a slice of a predecessor workspace.
@@ -35,6 +38,8 @@ pub struct ImportReport {
 ///
 /// Existing works are matched by title and skipped rather than merged: an
 /// import that silently rewrites what is already there is not recoverable.
+/// A title the person deleted here is skipped too — the tombstone knows it,
+/// and an import that resurrects what was thrown away is a merge that lost.
 pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Result<ImportReport> {
     if !source.exists() {
         return Err(Error::Other(format!("no database at {}", source.display())));
@@ -61,11 +66,16 @@ pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Re
         scores: 0,
         releases: 0,
         skipped: 0,
+        deleted: 0,
     };
 
     for song in songs {
         if existing.iter().any(|title| title == &song.title) {
             report.skipped += 1;
+            continue;
+        }
+        if tombstone::buried_work_title(conn, profile_id, &song.title)? {
+            report.deleted += 1;
             continue;
         }
 
@@ -498,6 +508,60 @@ mod tests {
             3,
             "nothing was duplicated"
         );
+    }
+
+    #[test]
+    fn a_work_the_person_deleted_is_not_brought_back() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("legacy.db");
+        legacy(&source);
+        let (mut conn, profile_id) = workspace();
+        from_legacy(&mut conn, &source, &profile_id).unwrap();
+
+        let thrown_out = work::list(&conn, &profile_id, &WorkFilter::default())
+            .unwrap()
+            .into_iter()
+            .find(|work| work.title == "Paper boats")
+            .unwrap()
+            .id;
+        let entry =
+            crate::trash::discard(&mut conn, crate::trash::Entity::Work, &thrown_out).unwrap();
+        // Emptying the trash is exactly the case a snapshot could not cover.
+        crate::trash::purge(&mut conn, &entry).unwrap();
+
+        let again = from_legacy(&mut conn, &source, &profile_id).unwrap();
+
+        assert_eq!(again.works, 0, "the deleted one stayed deleted");
+        assert_eq!(again.deleted, 1);
+        assert_eq!(again.skipped, 2);
+        let titles: Vec<String> = work::list(&conn, &profile_id, &WorkFilter::default())
+            .unwrap()
+            .into_iter()
+            .map(|work| work.title)
+            .collect();
+        assert!(!titles.contains(&"Paper boats".to_owned()), "{titles:?}");
+    }
+
+    #[test]
+    fn a_restored_work_counts_as_present_again() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("legacy.db");
+        legacy(&source);
+        let (mut conn, profile_id) = workspace();
+        from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let id = work::list(&conn, &profile_id, &WorkFilter::default())
+            .unwrap()
+            .into_iter()
+            .find(|work| work.title == "Paper boats")
+            .unwrap()
+            .id;
+        let entry = crate::trash::discard(&mut conn, crate::trash::Entity::Work, &id).unwrap();
+        crate::trash::restore(&mut conn, &entry).unwrap();
+
+        let again = from_legacy(&mut conn, &source, &profile_id).unwrap();
+
+        assert_eq!(again.deleted, 0);
+        assert_eq!(again.skipped, 3);
     }
 
     #[test]

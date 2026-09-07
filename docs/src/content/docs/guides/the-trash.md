@@ -61,6 +61,17 @@ old entries. The trash grows until you empty it, and that is the intended
 behaviour — a tool that deletes your deletions on a timer is a tool you cannot
 trust with the ones you have not looked at yet.
 
+### What stays after the final action
+
+Emptying the trash removes the thing itself. What remains is a bare trace —
+which row it was, when it went, and whether it came back since — with none of
+its contents. kilna keeps that trace so that *deleted here* can be told apart
+from *never here*: an [import](/kilna/reference/data/#import-from-a-predecessor)
+that meets a title you threw away leaves it where it is instead of bringing
+it back, and the same record is what a future merge between two copies of a
+workspace will rely on. The trace is not shown anywhere and cannot be
+restored from; it is a fact about the past, not a second trash.
+
 ## The trash belongs to a profile
 
 Like works and notes, trash entries are scoped to the profile they were

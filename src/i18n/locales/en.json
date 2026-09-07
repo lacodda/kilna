@@ -173,10 +173,12 @@
     "workspaceAt": "Workspace file:",
     "restoreHint": "To restore, close kilna and put the backup in place of that file.",
     "import": "Import",
-    "importHint": "Bring in works, drafts and scores from an earlier system. Titles already here are left alone.",
+    "importHint": "Bring in works, drafts and scores from an earlier system. Titles already here are left alone, and so are titles you deleted here.",
     "importAction": "Import a database…",
     "importTitle": "Database to import from",
     "imported": "Imported {{works}} works, {{versions}} drafts, {{scores}} scores. Skipped {{skipped}} already here.",
+    "importedLeftDeleted_one": "Left {{count}} you had deleted where it was.",
+    "importedLeftDeleted_other": "Left {{count}} you had deleted where they were.",
     "working": "Working…"
   },
   "dashboard": {

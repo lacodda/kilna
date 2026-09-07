@@ -9,6 +9,7 @@
 
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use time::{Date, Duration, macros::format_description};
 
@@ -21,6 +22,15 @@ use crate::time::now;
 pub struct Placement {
     pub release_id: String,
     pub date: String,
+}
+
+/// What the layout needs to know about a release still waiting for a day.
+struct Queued {
+    id: String,
+    work_id: String,
+    work_title: String,
+    total: Option<f64>,
+    created_at: String,
 }
 
 /// Where the queue would land, laid out to the rhythm.
@@ -74,10 +84,32 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
             .insert(date);
     }
 
-    let mut remaining: Vec<(String, String)> = release::queue(conn, profile_id)?
+    let mut remaining: Vec<Queued> = release::queue(conn, profile_id)?
         .into_iter()
-        .map(|entry| (entry.release.id.clone(), entry.release.work_id.clone()))
+        .map(|entry| Queued {
+            id: entry.release.id,
+            work_id: entry.release.work_id,
+            work_title: entry.work_title,
+            total: entry.total,
+            created_at: entry.release.created_at,
+        })
         .collect();
+    // The queue comes back strongest-first, but two releases with one total
+    // and one title tie, and what breaks the tie in SQL is the order the rows
+    // were written in — which differs between two workspaces holding the same
+    // facts. The plan has to be a function of the facts alone, so after the
+    // queue's own order the last word goes to the release id: not an order
+    // anyone reads, but one every device computes alike. That is why the
+    // tie-break lives here and not in the query.
+    remaining.sort_by(|a, b| {
+        a.total
+            .is_none()
+            .cmp(&b.total.is_none())
+            .then_with(|| b.total.partial_cmp(&a.total).unwrap_or(Ordering::Equal))
+            .then_with(|| a.work_title.cmp(&b.work_title))
+            .then_with(|| a.created_at.cmp(&b.created_at))
+            .then_with(|| a.id.cmp(&b.id))
+    });
 
     let mut placements = Vec::with_capacity(remaining.len());
     let mut date = next_day(today)?;
@@ -108,17 +140,17 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
             // empty and the scan moves on — scatter is a rule, not a wish.
             let day_before = date - Duration::DAY;
             let day_after = date + Duration::DAY;
-            let pick = remaining.iter().position(|(_, work_id)| {
+            let pick = remaining.iter().position(|queued| {
                 work_dates
-                    .get(work_id)
+                    .get(&queued.work_id)
                     .is_none_or(|dates| dates.range(day_before..=day_after).next().is_none())
             });
             if let Some(index) = pick {
-                let (release_id, work_id) = remaining.remove(index);
+                let queued = remaining.remove(index);
                 taken.insert(date);
-                work_dates.entry(work_id).or_default().insert(date);
+                work_dates.entry(queued.work_id).or_default().insert(date);
                 placements.push(Placement {
-                    release_id,
+                    release_id: queued.id,
                     date: iso(date)?,
                 });
             }
@@ -366,6 +398,48 @@ mod tests {
 
         assert_eq!(first, second);
         assert!(!first.is_empty());
+    }
+
+    /// The same facts written in a different order — what two devices that
+    /// synchronised would hold. The rows are inserted by hand so the ids can
+    /// be the same on both sides; everything else about them ties.
+    fn workspace_with(order: &[(&str, &str)]) -> (Connection, String) {
+        let (conn, profile_id) = workspace(2);
+        for (work_id, release_id) in order {
+            conn.execute(
+                "INSERT INTO work (id, profile_id, kind, title, status, created_at, updated_at)
+                 VALUES (?1, ?2, 'song', 'Same title', 'draft', '2026-09-01T00:00:00.000Z',
+                         '2026-09-01T00:00:00.000Z')",
+                params![work_id, profile_id],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO release (id, work_id, kind, status, created_at, updated_at)
+                 VALUES (?1, ?2, 'clip', ?3, '2026-09-01T00:00:00.000Z',
+                         '2026-09-01T00:00:00.000Z')",
+                params![release_id, work_id, release::PLANNED],
+            )
+            .unwrap();
+        }
+        (conn, profile_id)
+    }
+
+    #[test]
+    fn the_plan_does_not_depend_on_the_order_the_rows_were_written_in() {
+        let pairs = [("w-a", "r-a"), ("w-b", "r-b"), ("w-c", "r-c")];
+        let (forward, profile_forward) = workspace_with(&pairs);
+        let mut reversed_pairs = pairs;
+        reversed_pairs.reverse();
+        let (reversed, profile_reversed) = workspace_with(&reversed_pairs);
+
+        let one = plan(&forward, &profile_forward, "2026-09-01").unwrap();
+        let two = plan(&reversed, &profile_reversed, "2026-09-01").unwrap();
+
+        assert_eq!(one.len(), 3);
+        assert_eq!(
+            one, two,
+            "two devices with the same facts must lay out the same calendar"
+        );
     }
 
     #[test]

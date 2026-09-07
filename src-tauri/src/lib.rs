@@ -1,7 +1,9 @@
 pub mod assistant;
+pub mod clock;
 pub mod collection;
 pub mod commands;
 pub mod db;
+pub mod device;
 pub mod error;
 pub mod exchange;
 pub mod focus;
@@ -16,6 +18,7 @@ pub mod score;
 pub mod search;
 pub mod state;
 pub mod time;
+pub mod tombstone;
 pub mod trash;
 pub mod work;
 

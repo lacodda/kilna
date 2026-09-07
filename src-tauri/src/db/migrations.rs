@@ -62,6 +62,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "work_tags_and_marks",
         sql: include_str!("../../migrations/0010_work_tags_and_marks.sql"),
     },
+    Migration {
+        version: 11,
+        name: "tombstones_and_field_clocks",
+        sql: include_str!("../../migrations/0011_tombstones_and_field_clocks.sql"),
+    },
 ];
 
 /// The newest schema this build understands.

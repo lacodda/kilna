@@ -1,6 +1,6 @@
 ---
 title: Data
-description: Export, backup and import, where the workspace file lives, and why restoring needs the app closed.
+description: Export, backup and import, where the workspace file lives, why restoring needs the app closed, and what the workspace records about itself.
 ---
 
 kilna is local-first: one SQLite file holds your workspace, and media stays
@@ -91,3 +91,33 @@ exported file name.
 kilna can bring in a slice of a predecessor workspace — the command exists for
 migrating out of an earlier personal tool, not as a general-purpose importer
 for arbitrary data. Existing titles are skipped rather than duplicated.
+
+A title you deleted here is skipped too, even after you emptied the trash:
+the workspace remembers what it deleted (see below), and an import that
+resurrected it would be undoing a decision you made. The report says how
+many were left that way. To have one back, restore it from the
+[trash](/kilna/guides/the-trash/) while it is still there.
+
+## What the workspace records about itself
+
+Two kinds of record are kept alongside your data, both written by the
+database itself rather than by any screen, so nothing can skip them:
+
+- **A trace of every deletion.** Which row went, from which table, when, and
+  whether it was restored since — without its contents. It survives emptying
+  the trash and is what lets the import above tell *deleted* from *never
+  here*.
+- **A clock per field.** For everything you edit in place — a work, a
+  release, a note, a collection, a profile, a chat, a board note — the moment
+  each field last changed, not just the row. Saving a form with the same
+  values leaves no mark.
+
+Both name the **device** that made the change: an identity the workspace
+mints for itself the first time it is opened by this version, and keeps for
+life. A restored backup keeps it too — it is the same workspace, continued.
+
+None of this is shown in the interface today. It exists so that the day two
+copies of a workspace meet — a second computer, a phone — the facts needed to
+merge them honestly are already there for everything written since this
+version, rather than only from the day the merge was built. The reasoning is
+in [ADR 0012](https://github.com/lacodda/kilna/blob/main/docs/adr/0012-deletions-leave-a-tombstone-and-fields-carry-clocks.md).
