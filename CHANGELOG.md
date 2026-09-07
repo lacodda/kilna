@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.49.0] - 2026-09-07
+
+### Features
+- Leave a tombstone on delete and a clock on each edit
 ## [0.48.0] - 2026-09-06
+
+### Documentation
+- Say the catalogue is one list you can slice
 
 ### Features
 - Narrow from the box, and keep a slice under a name
