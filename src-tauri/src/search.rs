@@ -346,6 +346,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: true,
+                parent_version_id: None,
             },
         )
         .unwrap();

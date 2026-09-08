@@ -17,6 +17,11 @@ pub struct Collection {
     pub description: Option<String>,
     pub position: i64,
     pub meta: Map<String, Value>,
+    /// How many works it is meant to hold when finished — twelve tracks, thirty
+    /// chapters. Read beside `works` it says how far along the whole is.
+    pub target_size: Option<i64>,
+    /// The day it is meant to be done by, as a date.
+    pub due_on: Option<String>,
     pub created_at: String,
     pub updated_at: String,
     /// How many works sit in it.
@@ -31,6 +36,10 @@ pub struct NewCollection {
     pub description: Option<String>,
     #[serde(default)]
     pub meta: Option<Map<String, Value>>,
+    #[serde(default)]
+    pub target_size: Option<i64>,
+    #[serde(default)]
+    pub due_on: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -39,12 +48,34 @@ pub struct CollectionPatch {
     pub title: Option<String>,
     pub description: Option<Option<String>>,
     pub meta: Option<Map<String, Value>>,
+    pub target_size: Option<Option<i64>>,
+    pub due_on: Option<Option<String>>,
 }
 
 const SELECT_COLLECTION: &str = "SELECT c.id, c.profile_id, c.kind, c.title, c.description, c.position, c.meta, \
      c.created_at, c.updated_at, \
-     (SELECT count(*) FROM work WHERE work.collection_id = c.id) AS works \
+     (SELECT count(*) FROM work WHERE work.collection_id = c.id) AS works, \
+     c.target_size, c.due_on \
      FROM collection c";
+
+/// Refuse a goal that could not be read back as one.
+fn check_goal(target_size: Option<i64>, due_on: Option<&str>) -> Result<()> {
+    if let Some(size) = target_size {
+        if size < 1 {
+            return Err(Error::Other(format!(
+                "a target of {size} works is not a target — leave it empty or name a count"
+            )));
+        }
+    }
+    if let Some(day) = due_on {
+        if !crate::time::is_date(day) {
+            return Err(Error::Other(format!(
+                "`{day}` is not a date — write it as YYYY-MM-DD"
+            )));
+        }
+    }
+    Ok(())
+}
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewCollection) -> Result<Collection> {
     let id = uuid::Uuid::new_v4().to_string();
@@ -56,9 +87,11 @@ pub fn create(conn: &Connection, profile_id: &str, new: NewCollection) -> Result
         |row| row.get(0),
     )?;
 
+    check_goal(new.target_size, new.due_on.as_deref())?;
     conn.execute(
-        "INSERT INTO collection (id, profile_id, kind, title, description, position, meta, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)",
+        "INSERT INTO collection (id, profile_id, kind, title, description, position, meta, created_at, updated_at,
+                                 target_size, due_on)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10)",
         params![
             id,
             profile_id,
@@ -68,6 +101,8 @@ pub fn create(conn: &Connection, profile_id: &str, new: NewCollection) -> Result
             position,
             Value::Object(new.meta.unwrap_or_default()).to_string(),
             timestamp,
+            new.target_size,
+            new.due_on,
         ],
     )?;
 
@@ -134,6 +169,21 @@ pub fn update(conn: &Connection, id: &str, patch: CollectionPatch) -> Result<Col
             "meta",
             Box::new(Value::Object(meta).to_string()),
         );
+    }
+    check_goal(
+        patch.target_size.flatten(),
+        patch.due_on.as_ref().and_then(|d| d.as_deref()),
+    )?;
+    if let Some(target_size) = patch.target_size {
+        set(
+            &mut assignments,
+            &mut values,
+            "target_size",
+            Box::new(target_size),
+        );
+    }
+    if let Some(due_on) = patch.due_on {
+        set(&mut assignments, &mut values, "due_on", Box::new(due_on));
     }
 
     if assignments.is_empty() {
@@ -215,6 +265,8 @@ struct RawCollection {
     created_at: String,
     updated_at: String,
     works: i64,
+    target_size: Option<i64>,
+    due_on: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawCollection> {
@@ -229,6 +281,8 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawCollection> {
         created_at: row.get(7)?,
         updated_at: row.get(8)?,
         works: row.get(9)?,
+        target_size: row.get(10)?,
+        due_on: row.get(11)?,
     })
 }
 
@@ -242,6 +296,8 @@ impl RawCollection {
             title: self.title,
             description: self.description,
             position: self.position,
+            target_size: self.target_size,
+            due_on: self.due_on,
             created_at: self.created_at,
             updated_at: self.updated_at,
             works: self.works,
@@ -272,6 +328,8 @@ mod tests {
                 title: title.into(),
                 description: None,
                 meta: None,
+                target_size: None,
+                due_on: None,
             },
         )
         .unwrap()
@@ -383,5 +441,53 @@ mod tests {
         let (mut conn, _) = workspace();
 
         assert!(set_contents(&mut conn, "nope", &[]).is_err());
+    }
+
+    #[test]
+    fn a_collection_carries_a_goal_and_refuses_one_that_is_not() {
+        let (conn, profile_id) = workspace();
+        let album = album(&conn, &profile_id, "Twelve songs");
+        assert_eq!(album.target_size, None);
+
+        let aimed = update(
+            &conn,
+            &album.id,
+            CollectionPatch {
+                target_size: Some(Some(12)),
+                due_on: Some(Some("2027-03-01".into())),
+                ..CollectionPatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(aimed.target_size, Some(12));
+        assert_eq!(aimed.due_on.as_deref(), Some("2027-03-01"));
+
+        for patch in [
+            CollectionPatch {
+                target_size: Some(Some(0)),
+                ..CollectionPatch::default()
+            },
+            CollectionPatch {
+                due_on: Some(Some("March".into())),
+                ..CollectionPatch::default()
+            },
+            CollectionPatch {
+                due_on: Some(Some("2027-02-30".into())),
+                ..CollectionPatch::default()
+            },
+        ] {
+            assert!(update(&conn, &album.id, patch).is_err());
+        }
+        let cleared = update(
+            &conn,
+            &album.id,
+            CollectionPatch {
+                target_size: Some(None),
+                ..CollectionPatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(cleared.target_size, None);
+        assert_eq!(cleared.due_on.as_deref(), Some("2027-03-01"));
     }
 }

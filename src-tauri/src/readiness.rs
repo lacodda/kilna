@@ -258,6 +258,8 @@ mod tests {
                     title: Some(title.into()),
                     scheduled_at: Some(date.into()),
                     meta: None,
+                    scheduled_time: None,
+                    time_zone: None,
                 },
             )
             .unwrap()
@@ -284,6 +286,7 @@ mod tests {
                     .unwrap(),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -298,6 +301,7 @@ mod tests {
                     label: None,
                     meta: None,
                     make_current: true,
+                    parent_version_id: None,
                 },
             )
             .unwrap();
@@ -335,6 +339,7 @@ mod tests {
                     label: None,
                     meta: None,
                     make_current: true,
+                    parent_version_id: None,
                 },
             )
             .unwrap();

@@ -245,6 +245,8 @@ mod tests {
                 title: None,
                 scheduled_at: None,
                 meta: None,
+                scheduled_time: None,
+                time_zone: None,
             },
         )
         .unwrap()
@@ -259,6 +261,7 @@ mod tests {
                 axes: json!({ "hook": 8.0 }).as_object().cloned().unwrap(),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();

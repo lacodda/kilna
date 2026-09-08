@@ -42,6 +42,9 @@ pub struct FocusNote {
     pub work_id: Option<String>,
     pub position: i64,
     pub pinned_at: Option<String>,
+    /// The day it is meant to be done by — "ask the label by Friday". A date,
+    /// not an instant; a line with a date can be read as overdue.
+    pub due_on: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -51,6 +54,8 @@ pub struct NewFocusNote {
     pub body: String,
     #[serde(default)]
     pub work_id: Option<String>,
+    #[serde(default)]
+    pub due_on: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -60,6 +65,17 @@ pub struct FocusNotePatch {
     /// Whether it is kept at the top. `Some(true)` stamps the moment and
     /// `Some(false)` clears it; leaving it out changes nothing.
     pub pinned: Option<bool>,
+    pub due_on: Option<Option<String>>,
+}
+
+/// Refuse a due date that would not read back as one.
+fn check_due(due_on: Option<&str>) -> Result<()> {
+    match due_on {
+        Some(day) if !crate::time::is_date(day) => Err(Error::Other(format!(
+            "`{day}` is not a date — write it as YYYY-MM-DD"
+        ))),
+        _ => Ok(()),
+    }
 }
 
 /// The gap left between positions, so a note can be dropped between two others
@@ -67,7 +83,7 @@ pub struct FocusNotePatch {
 const STEP: i64 = 1024;
 
 const SELECT_NOTE: &str = "SELECT id, profile_id, body, work_id, position, pinned_at, created_at, \
-                           updated_at FROM focus_note";
+                           updated_at, due_on FROM focus_note";
 
 /// Dismiss a complaint, or refresh the moment it was dismissed.
 ///
@@ -157,9 +173,10 @@ pub fn add_note(conn: &Connection, profile_id: &str, new: NewFocusNote) -> Resul
         |row| row.get(0),
     )?;
 
+    check_due(new.due_on.as_deref())?;
     conn.execute(
-        "INSERT INTO focus_note (id, profile_id, body, work_id, position, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)",
+        "INSERT INTO focus_note (id, profile_id, body, work_id, position, created_at, updated_at, due_on)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, ?7)",
         params![
             id,
             profile_id,
@@ -167,6 +184,7 @@ pub fn add_note(conn: &Connection, profile_id: &str, new: NewFocusNote) -> Resul
             new.work_id,
             last.unwrap_or(0) + STEP,
             timestamp,
+            new.due_on,
         ],
     )?;
 
@@ -221,6 +239,10 @@ pub fn update_note(conn: &Connection, id: &str, patch: FocusNotePatch) -> Result
             "pinned_at",
             Box::new(pinned.then(now)),
         );
+    }
+    if let Some(due_on) = patch.due_on {
+        check_due(due_on.as_deref())?;
+        set(&mut assignments, &mut values, "due_on", Box::new(due_on));
     }
 
     if assignments.is_empty() {
@@ -287,6 +309,7 @@ fn read_note(row: &rusqlite::Row<'_>) -> rusqlite::Result<FocusNote> {
         pinned_at: row.get(5)?,
         created_at: row.get(6)?,
         updated_at: row.get(7)?,
+        due_on: row.get(8)?,
     })
 }
 
@@ -555,6 +578,55 @@ mod tests {
         NewFocusNote {
             body: body.into(),
             work_id: None,
+            due_on: None,
         }
+    }
+
+    #[test]
+    fn a_board_note_can_carry_a_due_date_and_only_a_real_one() {
+        let (conn, profile_id) = workspace();
+        let line = add_note(
+            &conn,
+            &profile_id,
+            NewFocusNote {
+                due_on: Some("2026-09-11".into()),
+                ..note("ask the label by Friday")
+            },
+        )
+        .unwrap();
+        assert_eq!(line.due_on.as_deref(), Some("2026-09-11"));
+
+        let refused = update_note(
+            &conn,
+            &line.id,
+            FocusNotePatch {
+                due_on: Some(Some("Friday".into())),
+                ..FocusNotePatch::default()
+            },
+        )
+        .unwrap_err();
+        assert!(refused.to_string().contains("YYYY-MM-DD"), "{refused}");
+        assert!(
+            add_note(
+                &conn,
+                &profile_id,
+                NewFocusNote {
+                    due_on: Some("2026-13-01".into()),
+                    ..note("never")
+                },
+            )
+            .is_err()
+        );
+
+        let cleared = update_note(
+            &conn,
+            &line.id,
+            FocusNotePatch {
+                due_on: Some(None),
+                ..FocusNotePatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(cleared.due_on, None);
     }
 }

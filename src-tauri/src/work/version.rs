@@ -15,6 +15,11 @@ pub struct Version {
     pub label: Option<String>,
     pub body: String,
     pub meta: Map<String, Value>,
+    /// The version this one was written from, when it was written from one.
+    /// Revisions stay a line per role for numbering; this is the tree behind
+    /// the line. `None` after the parent is deleted — a pruned branch keeps
+    /// its leaves.
+    pub parent_version_id: Option<String>,
     pub created_at: String,
 }
 
@@ -28,6 +33,7 @@ pub struct VersionSummary {
     pub label: Option<String>,
     /// Characters in the body; the list shows growth without loading it.
     pub length: i64,
+    pub parent_version_id: Option<String>,
     pub created_at: String,
     pub is_current: bool,
 }
@@ -44,14 +50,18 @@ pub struct NewVersion {
     /// almost always the one being worked on.
     #[serde(default = "default_true")]
     pub make_current: bool,
+    /// The version this one was derived from. Must belong to the same work
+    /// and the same role: a draft is not written from a style prompt.
+    #[serde(default)]
+    pub parent_version_id: Option<String>,
 }
 
 fn default_true() -> bool {
     true
 }
 
-const SELECT_VERSION: &str =
-    "SELECT id, work_id, role, revision, label, body, meta, created_at FROM work_version";
+const SELECT_VERSION: &str = "SELECT id, work_id, role, revision, label, body, meta, created_at, \
+     parent_version_id FROM work_version";
 
 /// Add a version to a work.
 ///
@@ -76,12 +86,33 @@ pub fn create(conn: &mut Connection, work_id: &str, new: NewVersion) -> Result<V
         |row| row.get(0),
     )?;
 
+    // A parent is a fact about lineage, and lineage does not cross works or
+    // roles. Checked here rather than left to the foreign key, which only
+    // knows that the row exists.
+    if let Some(parent) = &new.parent_version_id {
+        let same_line: bool = tx
+            .query_row(
+                "SELECT 1 FROM work_version WHERE id = ?1 AND work_id = ?2 AND role = ?3",
+                params![parent, work_id, new.role],
+                |_| Ok(true),
+            )
+            .optional()?
+            .unwrap_or(false);
+        if !same_line {
+            return Err(Error::Other(format!(
+                "version `{parent}` is not a `{}` version of this work, so nothing can be written from it",
+                new.role
+            )));
+        }
+    }
+
     let id = uuid::Uuid::new_v4().to_string();
     let timestamp = now();
 
     tx.execute(
-        "INSERT INTO work_version (id, work_id, role, revision, label, body, meta, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        "INSERT INTO work_version (id, work_id, role, revision, label, body, meta, created_at,
+                                   parent_version_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
         params![
             id,
             work_id,
@@ -91,6 +122,7 @@ pub fn create(conn: &mut Connection, work_id: &str, new: NewVersion) -> Result<V
             new.body,
             Value::Object(new.meta.unwrap_or_default()).to_string(),
             timestamp,
+            new.parent_version_id,
         ],
     )?;
 
@@ -128,7 +160,7 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<Version>> {
 pub fn list(conn: &Connection, work_id: &str) -> Result<Vec<VersionSummary>> {
     let mut statement = conn.prepare(
         "SELECT v.id, v.work_id, v.role, v.revision, v.label, length(v.body), v.created_at,
-                v.id = coalesce(w.current_version_id, '') AS is_current
+                v.id = coalesce(w.current_version_id, '') AS is_current, v.parent_version_id
          FROM work_version v
          JOIN work w ON w.id = v.work_id
          WHERE v.work_id = ?1
@@ -145,6 +177,7 @@ pub fn list(conn: &Connection, work_id: &str) -> Result<Vec<VersionSummary>> {
             length: row.get(5)?,
             created_at: row.get(6)?,
             is_current: row.get::<_, i64>(7)? == 1,
+            parent_version_id: row.get(8)?,
         })
     })?;
 
@@ -248,6 +281,7 @@ struct RawVersion {
     body: String,
     meta: String,
     created_at: String,
+    parent_version_id: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawVersion> {
@@ -260,6 +294,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawVersion> {
         body: row.get(5)?,
         meta: row.get(6)?,
         created_at: row.get(7)?,
+        parent_version_id: row.get(8)?,
     })
 }
 
@@ -273,6 +308,7 @@ impl RawVersion {
             revision: self.revision,
             label: self.label,
             body: self.body,
+            parent_version_id: self.parent_version_id,
             created_at: self.created_at,
         })
     }
@@ -313,6 +349,7 @@ mod tests {
             label: None,
             meta: None,
             make_current: true,
+            parent_version_id: None,
         }
     }
 
@@ -447,5 +484,88 @@ mod tests {
         let result = create(&mut conn, "nope", draft("lyrics", "orphan"));
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn a_version_remembers_the_one_it_was_written_from() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id);
+        let first = create(&mut conn, &work_id, draft("lyrics", "one")).unwrap();
+
+        let second = create(
+            &mut conn,
+            &work_id,
+            NewVersion {
+                parent_version_id: Some(first.id.clone()),
+                ..draft("lyrics", "one, revised")
+            },
+        )
+        .unwrap();
+
+        assert_eq!(second.parent_version_id.as_deref(), Some(first.id.as_str()));
+        let listed = list(&conn, &work_id).unwrap();
+        let summary = listed.iter().find(|v| v.id == second.id).unwrap();
+        assert_eq!(
+            summary.parent_version_id.as_deref(),
+            Some(first.id.as_str())
+        );
+        assert_eq!(
+            listed
+                .iter()
+                .find(|v| v.id == first.id)
+                .unwrap()
+                .parent_version_id,
+            None
+        );
+    }
+
+    #[test]
+    fn a_parent_must_be_a_version_of_the_same_work_and_role() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id);
+        let other_work = a_work(&conn, &profile_id);
+        let style = create(&mut conn, &work_id, draft("style", "warm")).unwrap();
+        let elsewhere = create(&mut conn, &other_work, draft("lyrics", "far")).unwrap();
+
+        for parent in [style.id.clone(), elsewhere.id.clone(), "nothing".to_owned()] {
+            let refused = create(
+                &mut conn,
+                &work_id,
+                NewVersion {
+                    parent_version_id: Some(parent.clone()),
+                    ..draft("lyrics", "child")
+                },
+            )
+            .unwrap_err();
+            assert!(
+                refused
+                    .to_string()
+                    .contains("nothing can be written from it"),
+                "{parent}: {refused}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_pruned_parent_leaves_the_child_without_one_rather_than_gone() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id);
+        let first = create(&mut conn, &work_id, draft("lyrics", "one")).unwrap();
+        let second = create(
+            &mut conn,
+            &work_id,
+            NewVersion {
+                parent_version_id: Some(first.id.clone()),
+                ..draft("lyrics", "two")
+            },
+        )
+        .unwrap();
+
+        delete(&mut conn, &first.id).unwrap();
+
+        let child = get(&conn, &second.id)
+            .unwrap()
+            .expect("the child is still there");
+        assert_eq!(child.parent_version_id, None);
     }
 }

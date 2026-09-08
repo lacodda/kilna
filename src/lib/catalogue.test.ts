@@ -5,7 +5,9 @@ import {
   DEFAULT_SORT,
   groupRows,
   isNarrowed,
+  columnsFor,
   loadColumns,
+  sanitizeColumns,
   loadFilter,
   loadSort,
   narrow,
@@ -38,6 +40,7 @@ const row = (over: Partial<ScoredWork>): ScoredWork => ({
   collection_id: null,
   tags: [],
   marks: [],
+  tier_pinned: false,
   version_count: 0,
   ...over,
 })
@@ -355,6 +358,26 @@ describe('the shown columns', () => {
   it('puts the title back when a stored set left it out', () => {
     const held = store(JSON.stringify(['total', 'tier']))
     expect(loadColumns(held)).toContain('title')
+  })
+
+  it('opens on the profile columns when the profile has any', () => {
+    const held = store(JSON.stringify(['title', 'id']))
+    const opened = columnsFor(['title', 'total', 'bpm'], held)
+    expect(opened).toEqual({ columns: ['title', 'total'], fromMachine: false })
+  })
+
+  it('opens on what the machine remembered until the profile has columns', () => {
+    const held = store(JSON.stringify(['title', 'id']))
+    expect(columnsFor(null, held)).toEqual({ columns: ['title', 'id'], fromMachine: true })
+    expect(columnsFor(undefined, store())).toEqual({
+      columns: DEFAULT_COLUMNS,
+      fromMachine: true,
+    })
+  })
+
+  it('treats an empty profile list like a corrupt one, not like "hide everything"', () => {
+    expect(sanitizeColumns([])).toEqual(DEFAULT_COLUMNS)
+    expect(sanitizeColumns('title')).toEqual(DEFAULT_COLUMNS)
   })
 
   it('falls back to the default when nothing stored is recognisable', () => {

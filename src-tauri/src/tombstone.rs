@@ -126,6 +126,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: true,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -136,6 +137,7 @@ mod tests {
                 axes: json!({ "hook": 7 }).as_object().cloned().unwrap(),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -147,6 +149,8 @@ mod tests {
                 title: None,
                 scheduled_at: None,
                 meta: None,
+                scheduled_time: None,
+                time_zone: None,
             },
         )
         .unwrap();
@@ -267,6 +271,7 @@ mod tests {
             NewFocusNote {
                 body: "ask the label about the artwork".into(),
                 work_id: None,
+                due_on: None,
             },
         )
         .unwrap();

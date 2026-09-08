@@ -623,6 +623,8 @@
     "work.renamed": "«{{from}}» переименовано в «{{to}}».",
     "work.status": "«{{title}}» переведено в статус {{to}}.",
     "work.restated": "«{{title}}» теперь {{to}} — было {{from}}.",
+    "tier.pinned": "«{{title}}» удержано на тире {{tier}}: {{reason}}",
+    "tier.unpinned": "«{{title}}» снова судится по оценке.",
     "status.resynced_one": "{{count}} произведение приведено в соответствие с фактами.",
     "status.resynced_few": "{{count}} произведения приведены в соответствие с фактами.",
     "status.resynced_many": "{{count}} произведений приведено в соответствие с фактами.",

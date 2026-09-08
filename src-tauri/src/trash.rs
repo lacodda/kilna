@@ -646,6 +646,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: true,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -719,6 +720,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: false,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -761,6 +763,7 @@ mod tests {
                 label: Some("second attempt".into()),
                 meta: None,
                 make_current: false,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -787,6 +790,7 @@ mod tests {
                     .expect("axes are an object"),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -819,6 +823,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: false,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -880,6 +885,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: false,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -923,6 +929,8 @@ mod tests {
                 title: "First album".into(),
                 description: None,
                 meta: None,
+                target_size: None,
+                due_on: None,
             },
         )
         .unwrap();
@@ -959,6 +967,8 @@ mod tests {
             title: title.into(),
             description: None,
             meta: None,
+            target_size: None,
+            due_on: None,
         };
         let first = collection::create(&conn, &profile_id, new_collection("First")).unwrap();
         let second = collection::create(&conn, &profile_id, new_collection("Second")).unwrap();

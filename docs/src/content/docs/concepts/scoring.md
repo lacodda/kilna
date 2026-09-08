@@ -75,6 +75,43 @@ alongside the total at the moment of scoring, using whatever tier list the
 active profile holds *then* — later edits to the tier thresholds don't
 retroactively reclassify old scores.
 
+## Three kinds of axis, one total
+
+Since v0.50 an axis can be a **scale** (a number, as above), a **flag** (yes
+or no, worth the whole scale or nothing) or a **choice** (one option from a
+short list, each worth a value on the scale). The formula does not change:
+every kind resolves to a number on the axis's scale before it is weighted, and
+a snapshot never records which kind an axis was. A number stored while an axis
+was a scale still reads after the axis becomes a flag. The shapes are set in
+the [profile document](/kilna/reference/profile-document/#axis-kinds).
+
+## One score, a verdict per kind of release
+
+A release kind may declare its own
+[`axis_weights`](/kilna/reference/profile-document/#work_kinds-release_kinds-collection_kinds)
+— a clip weighing the hook and the visuals more heavily, an audio release the
+lyrics. From the same axis values, `ProfileConfig::total_for(values, kind)`
+gives the total *as that kind of release*, by the formula above with the
+kind's weights substituted for the axes it names. A kind that reweights nothing
+gives exactly the plain total, so a profile that never uses the field sees one
+tier everywhere, as before.
+
+## Who judged
+
+Every snapshot names its **rater**, or names nobody and is the author's own.
+A second opinion — a producer's read, an editor's — is recorded as a score of
+its own beside yours, never averaged into it: two people who disagree are two
+facts, not one number.
+
+## A tier held by hand
+
+The tier a score computes can be overruled for one work: pinned to a tier the
+profile names, **with a reason**, the way a status is pinned. While the pin
+holds, the catalogue reads the pinned tier as the work's verdict and marks it
+as yours; the score itself is untouched, and *follow the facts* takes the pin
+off. A pin without a reason is refused — a number nobody can argue with later
+is a number nobody trusts.
+
 ## Why the total is computed server-side, not accepted from the caller
 
 The total and tier are always computed from the active profile's

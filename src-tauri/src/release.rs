@@ -21,6 +21,12 @@ pub struct Release {
     /// Set when a person settled this date. A pinned slot is not contested —
     /// see [`schedule`].
     pub slot_pinned_at: Option<String>,
+    /// When in the day it goes out (`HH:MM`), for the platforms that ask. The
+    /// slot stays a date; this sits beside it.
+    pub scheduled_time: Option<String>,
+    /// Whose day: an IANA zone name, so the date and time still mean one
+    /// instant when read on another machine.
+    pub time_zone: Option<String>,
     pub meta: Map<String, Value>,
     pub created_at: String,
     pub updated_at: String,
@@ -49,6 +55,10 @@ pub struct NewRelease {
     pub scheduled_at: Option<String>,
     #[serde(default)]
     pub meta: Option<Map<String, Value>>,
+    #[serde(default)]
+    pub scheduled_time: Option<String>,
+    #[serde(default)]
+    pub time_zone: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -59,14 +69,45 @@ pub struct ReleasePatch {
     pub scheduled_at: Option<Option<String>>,
     pub url: Option<Option<String>>,
     pub meta: Option<Map<String, Value>>,
+    pub scheduled_time: Option<Option<String>>,
+    pub time_zone: Option<Option<String>>,
 }
 
 /// What happened when a slot was claimed.
+///
+/// Once carried the release that lost the slot; nothing loses a slot since
+/// the contest went in v0.44, and the field went with the model package.
 #[derive(Debug, Clone, Serialize)]
 pub struct Scheduling {
     pub release: Release,
-    /// The release that lost the slot, if the new one displaced something.
-    pub displaced: Option<Release>,
+}
+
+/// Refuse a time of day or a zone that would not read back as one.
+///
+/// The zone is checked for shape only — a name with a slash, or `UTC` — not
+/// against the IANA list: the app does not carry the list, and a name the
+/// list gains next year must not be refused by a build from this one.
+fn check_when(time: Option<&str>, zone: Option<&str>) -> Result<()> {
+    if let Some(time) = time {
+        if !crate::time::is_clock_time(time) {
+            return Err(Error::Other(format!(
+                "`{time}` is not a time of day — write it as HH:MM"
+            )));
+        }
+    }
+    if let Some(zone) = zone {
+        let plausible = zone == "UTC"
+            || (zone.contains('/')
+                && zone
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '/' | '_' | '-' | '+')));
+        if !plausible {
+            return Err(Error::Other(format!(
+                "`{zone}` is not a time zone name — write it as Region/City, like Europe/Lisbon"
+            )));
+        }
+    }
+    Ok(())
 }
 
 /// How claiming a slot would end. One vocabulary for the dry run and the real
@@ -106,7 +147,7 @@ pub const PLANNED: &str = "planned";
 pub const RELEASED: &str = "released";
 
 const SELECT_RELEASE: &str = "SELECT id, work_id, kind, status, title, scheduled_at, released_at, \
-     url, slot_pinned_at, meta, created_at, updated_at FROM release";
+     url, slot_pinned_at, meta, created_at, updated_at, scheduled_time, time_zone FROM release";
 
 pub fn create(conn: &Connection, new: NewRelease) -> Result<Release> {
     let exists: bool = conn
@@ -122,11 +163,13 @@ pub fn create(conn: &Connection, new: NewRelease) -> Result<Release> {
     }
 
     let id = uuid::Uuid::new_v4().to_string();
+    check_when(new.scheduled_time.as_deref(), new.time_zone.as_deref())?;
     let timestamp = now();
 
     conn.execute(
-        "INSERT INTO release (id, work_id, kind, status, title, scheduled_at, meta, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)",
+        "INSERT INTO release (id, work_id, kind, status, title, scheduled_at, meta, created_at, updated_at,
+                              scheduled_time, time_zone)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10)",
         params![
             id,
             new.work_id,
@@ -136,6 +179,8 @@ pub fn create(conn: &Connection, new: NewRelease) -> Result<Release> {
             new.scheduled_at,
             Value::Object(new.meta.unwrap_or_default()).to_string(),
             timestamp,
+            new.scheduled_time,
+            new.time_zone,
         ],
     )?;
 
@@ -179,10 +224,6 @@ pub fn schedule(conn: &mut Connection, id: &str, slot: &str) -> Result<Schedulin
 
     Ok(Scheduling {
         release: get(conn, id)?.ok_or_else(|| unknown_release(id))?,
-        // Kept in the shape so the frontend and the journal need no migration
-        // for a field that is now always absent. It goes when the model package
-        // opens (v0.52).
-        displaced: None,
     })
 }
 
@@ -422,6 +463,21 @@ pub fn update(conn: &Connection, id: &str, patch: ReleasePatch) -> Result<Releas
     if let Some(title) = patch.title {
         set(&mut assignments, &mut values, "title", Box::new(title));
     }
+    check_when(
+        patch.scheduled_time.as_ref().and_then(|t| t.as_deref()),
+        patch.time_zone.as_ref().and_then(|z| z.as_deref()),
+    )?;
+    if let Some(time) = patch.scheduled_time {
+        set(
+            &mut assignments,
+            &mut values,
+            "scheduled_time",
+            Box::new(time),
+        );
+    }
+    if let Some(zone) = patch.time_zone {
+        set(&mut assignments, &mut values, "time_zone", Box::new(zone));
+    }
     if let Some(scheduled_at) = patch.scheduled_at {
         // Clearing the date clears the pin with it, for the reason given in
         // `unschedule`: a pin without a date is a state nothing can act on.
@@ -483,7 +539,7 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
 
 const SELECT_SCHEDULED_TEMPLATE: &str = "SELECT r.id, r.work_id, r.kind, r.status, r.title, r.scheduled_at, \
      r.released_at, r.url, r.slot_pinned_at, r.meta, r.created_at, r.updated_at, \
-     w.title, s.total, s.tier \
+     w.title, s.total, s.tier, r.scheduled_time, r.time_zone \
      FROM release r \
      JOIN work w ON w.id = r.work_id \
      LEFT JOIN work_score s ON s.id = {speaking} \
@@ -588,6 +644,8 @@ fn read_scheduled_where(
                     meta: row.get(9)?,
                     created_at: row.get(10)?,
                     updated_at: row.get(11)?,
+                    scheduled_time: row.get(15)?,
+                    time_zone: row.get(16)?,
                 },
                 row.get::<_, String>(12)?,
                 row.get::<_, Option<f64>>(13)?,
@@ -638,6 +696,8 @@ struct RawRelease {
     meta: String,
     created_at: String,
     updated_at: String,
+    scheduled_time: Option<String>,
+    time_zone: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawRelease> {
@@ -654,6 +714,8 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawRelease> {
         meta: row.get(9)?,
         created_at: row.get(10)?,
         updated_at: row.get(11)?,
+        scheduled_time: row.get(12)?,
+        time_zone: row.get(13)?,
     })
 }
 
@@ -670,6 +732,8 @@ impl RawRelease {
             released_at: self.released_at,
             url: self.url,
             slot_pinned_at: self.slot_pinned_at,
+            scheduled_time: self.scheduled_time,
+            time_zone: self.time_zone,
             created_at: self.created_at,
             updated_at: self.updated_at,
         })
@@ -713,6 +777,7 @@ mod tests {
                     axes: json!({ "hook": hook }).as_object().cloned().unwrap(),
                     version_id: None,
                     note: None,
+                    rater: None,
                 },
             )
             .unwrap();
@@ -726,6 +791,8 @@ mod tests {
                 title: Some(title.into()),
                 scheduled_at: None,
                 meta: None,
+                scheduled_time: None,
+                time_zone: None,
             },
         )
         .unwrap()
@@ -748,9 +815,7 @@ mod tests {
         let release = planned(&conn, &profile_id, "Subject", Some(8.0));
 
         let result = schedule(&mut conn, &release.id, "2026-09-01").unwrap();
-
         assert_eq!(result.release.scheduled_at.as_deref(), Some("2026-09-01"));
-        assert!(result.displaced.is_none());
     }
 
     /// A day holds as many releases as are put on it.
@@ -768,10 +833,7 @@ mod tests {
         let second = planned(&conn, &profile_id, "Second", Some(4.0));
 
         schedule(&mut conn, &first.id, "2026-09-01").unwrap();
-        let result = schedule(&mut conn, &second.id, "2026-09-01").unwrap();
-
-        assert!(result.displaced.is_none(), "nothing is evicted any more");
-
+        schedule(&mut conn, &second.id, "2026-09-01").unwrap();
         let calendar = calendar(&conn, &profile_id).unwrap();
         assert_eq!(calendar.len(), 2, "both hold the day");
         assert!(
@@ -826,8 +888,6 @@ mod tests {
         schedule(&mut conn, &release.id, "2026-09-01").unwrap();
 
         let result = schedule(&mut conn, &release.id, "2026-09-01").unwrap();
-
-        assert!(result.displaced.is_none());
         assert_eq!(result.release.scheduled_at.as_deref(), Some("2026-09-01"));
     }
 
@@ -852,6 +912,7 @@ mod tests {
                 axes: json!({ "hook": 3.0 }).as_object().cloned().unwrap(),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -992,8 +1053,7 @@ mod tests {
 
         // And the other path, for the same pair, ends the same way: scheduling
         // the weaker one onto the taken day is not refused and evicts nothing.
-        let again = schedule(&mut conn, &other.id, "2026-09-05").unwrap();
-        assert!(again.displaced.is_none());
+        schedule(&mut conn, &other.id, "2026-09-05").unwrap();
         assert_eq!(
             calendar(&conn, &profile_id)
                 .unwrap()
@@ -1029,9 +1089,7 @@ mod tests {
         let next = planned(&conn, &profile_id, "Next", Some(2.0));
 
         // History occupies the date, but it is no longer a plan competing for it.
-        let result = schedule(&mut conn, &next.id, "2026-09-01").unwrap();
-
-        assert!(result.displaced.is_none());
+        schedule(&mut conn, &next.id, "2026-09-01").unwrap();
     }
 
     #[test]
@@ -1315,6 +1373,7 @@ mod tests {
                     label: None,
                     meta: None,
                     make_current: true,
+                    parent_version_id: None,
                 },
             )
             .unwrap();
@@ -1368,6 +1427,8 @@ mod tests {
                 title: None,
                 scheduled_at: None,
                 meta: None,
+                scheduled_time: None,
+                time_zone: None,
             },
         );
 
@@ -1399,5 +1460,87 @@ mod tests {
         // A released date records what happened. Unscheduling it would rewrite
         // history, so a batch must not be able to reach it.
         assert!(scheduled_for(&conn, &out.work_id).unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_release_carries_its_time_of_day_and_zone() {
+        let (conn, profile_id) = workspace();
+        let release = planned(&conn, &profile_id, "Subject", None);
+
+        let timed = update(
+            &conn,
+            &release.id,
+            ReleasePatch {
+                scheduled_time: Some(Some("18:30".into())),
+                time_zone: Some(Some("Europe/Lisbon".into())),
+                ..ReleasePatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(timed.scheduled_time.as_deref(), Some("18:30"));
+        assert_eq!(timed.time_zone.as_deref(), Some("Europe/Lisbon"));
+
+        let cleared = update(
+            &conn,
+            &release.id,
+            ReleasePatch {
+                scheduled_time: Some(None),
+                ..ReleasePatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(cleared.scheduled_time, None);
+        assert_eq!(
+            cleared.time_zone.as_deref(),
+            Some("Europe/Lisbon"),
+            "one field at a time"
+        );
+
+        let created = create(
+            &conn,
+            NewRelease {
+                work_id: release.work_id.clone(),
+                kind: "clip".into(),
+                title: None,
+                scheduled_at: None,
+                meta: None,
+                scheduled_time: Some("07:05".into()),
+                time_zone: Some("UTC".into()),
+            },
+        )
+        .unwrap();
+        assert_eq!(created.scheduled_time.as_deref(), Some("07:05"));
+        assert_eq!(created.time_zone.as_deref(), Some("UTC"));
+    }
+
+    #[test]
+    fn a_time_or_a_zone_that_would_not_read_back_is_refused() {
+        let (conn, profile_id) = workspace();
+        let release = planned(&conn, &profile_id, "Subject", None);
+
+        for (time, zone) in [
+            (Some("25:00"), None),
+            (Some("noon"), None),
+            (None, Some("Lisbon")),
+            (None, Some("here/ there")),
+        ] {
+            let refused = update(
+                &conn,
+                &release.id,
+                ReleasePatch {
+                    scheduled_time: time.map(|t| Some(t.to_owned())),
+                    time_zone: zone.map(|z| Some(z.to_owned())),
+                    ..ReleasePatch::default()
+                },
+            )
+            .unwrap_err();
+            assert!(
+                refused.to_string().contains("write it as"),
+                "{time:?} {zone:?}: {refused}"
+            );
+        }
+        let untouched = get(&conn, &release.id).unwrap().unwrap();
+        assert_eq!(untouched.scheduled_time, None);
+        assert_eq!(untouched.time_zone, None);
     }
 }

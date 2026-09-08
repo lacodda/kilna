@@ -46,6 +46,16 @@ A **release kind** carries two extra fields:
 | --- | --- | --- |
 | `requires` | string[] | Version roles a release of this kind cannot ship without. Drives the [ready marks](/kilna/guides/planning-a-release/#ready-marks) and the not-ready warning. |
 | `icon` | string | Glyph the [calendar](/kilna/guides/planning-a-release/) draws this kind with, from the list below. |
+| `axis_weights` | object, optional | Axis weights that apply when a work is judged *for this kind* of release, keyed by axis key: `{ "hook": 4.0, "visual": 3.0 }`. An axis not named keeps the weight the axis itself declares. Absent means the axes' own weights — one tier for every kind. |
+
+A clip lives or dies on its hook and its visuals; the same song as an audio
+release is carried by its lyrics. `axis_weights` lets one score answer both
+questions: the tier a work earns *as a clip* can differ from the tier it earns
+*as an audio release*, from the same axis values. Every key must name an axis
+in `axes`, and every weight must be zero or above. The verdict per kind is
+computed by the same rule as the plain total (see
+[Scoring](/kilna/concepts/scoring/)); showing it in the catalogue and the
+calendar is a later version's work.
 
 Every key in `requires` must name a role in `version_roles`. An empty or
 absent list states no requirements: readiness is then judged on the score
@@ -126,9 +136,49 @@ What a work is judged on when scored:
 | --- | --- | --- |
 | `key` | string | Stored in every score snapshot's `axes` object. Never renamed once scores exist against it — see [Scoring](/kilna/concepts/scoring/). |
 | `label` | string | Display name. Free to rename; old scores stay readable under it. |
-| `weight` | number | Relative importance when axes combine into a total. |
-| `scale` | number | Highest value the axis accepts; values are normalized against it before weighting. |
+| `weight` | number | Relative importance when axes combine into a total. Zero or above. |
+| `scale` | number | Highest value the axis accepts; values are normalized against it before weighting. Above zero. |
 | `description` | string, optional | Guidance shown next to the axis when scoring. |
+| `kind` | `"scale"` \| `"flag"` \| `"choice"`, optional | What kind of answer the axis takes. Defaults to `scale`. |
+| `options` | array, optional | The answers a `choice` axis offers. Required for a choice, refused on any other kind. |
+
+### Axis kinds
+
+A **scale** takes a number up to `scale` — the axis every profile had until
+v0.50. A **flag** takes yes or no: "has a chorus", "explicit". Yes is worth the
+whole scale and no is worth nothing, so a flag with weight 1 and scale 10
+counts exactly like a scale axis scored 10 or 0. A **choice** takes one option
+from a short list, each worth a value on the scale:
+
+```jsonc
+{
+  "key": "length",
+  "label": "Length",
+  "weight": 1.0,
+  "scale": 10.0,
+  "kind": "choice",
+  "options": [
+    { "key": "short", "label": "Too short", "value": 4.0 },
+    { "key": "right", "label": "About right", "value": 10.0 },
+    { "key": "long", "label": "Runs long", "value": 6.0 }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `key` | string | Stored in the score snapshot. Never renamed once scores hold it. |
+| `label` | string | What the option is called when scoring. |
+| `value` | number | What the answer is worth, from 0 to the axis's `scale`. |
+
+All three kinds land in the same 0–100 total, and a snapshot never records
+which kind an axis was: a number reads on any kind, a boolean on a flag, an
+option key on a choice. So an axis can become a flag or a choice after scores
+exist against it, and the old numbers still count. An option key the profile
+no longer offers is skipped like a missing axis rather than counted as zero.
+
+The scoring interface for flags and choices arrives with the versions that
+build on the model package; the profile document accepts them now.
 
 ## `tiers`
 
@@ -243,11 +293,29 @@ The pace releases go out at:
 | `default_time` | string, optional | Time of day (`HH:MM`) a release usually ships, shown beside the date when editing a release. |
 
 Calendar slots stay whole days, and the usual time lives here as a single fact
-about the craft rather than on each release. The original reason was that a
-date was contested per day and a time would have split the contest; the contest
-went in v0.44 and the shape stayed, because the calendar is read a month at a
-time and a column of clock times is not what makes a month legible. A time on
-the release itself is in the model package (v0.52).
+about the craft. The original reason was that a date was contested per day and
+a time would have split the contest; the contest went in v0.44 and the shape
+stayed, because the calendar is read a month at a time and a column of clock
+times is not what makes a month legible. Since v0.50 a release can also carry
+its own time of day and time zone, for the platforms that ask for one; this
+default is what a release starts from.
+
+## `catalogue_columns`
+
+Which columns the [catalogue](/kilna/guides/the-catalogue/#choosing-the-columns)
+shows, by column id, in order:
+
+```jsonc
+"catalogue_columns": ["title", "marks", "tier", "total", "scored", "updated"]
+```
+
+A novel and a record are read down different columns, which is why the list
+belongs to the profile rather than to the machine. kilna writes it when you
+pick columns in the catalogue; you can also edit it here. An id this build
+does not know is dropped on read rather than refused, and the title is always
+shown. Absent means the catalogue's own default — and a workspace from before
+the field opens on what the machine remembered, writing that list here once,
+so the move costs nobody their layout.
 
 `rhythm` may be absent, which is how a profile written before the field
 existed loads: the auto-layout then refuses with an explanation instead of

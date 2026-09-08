@@ -3,12 +3,26 @@ import { invoke } from '@tauri-apps/api/core'
 // These mirror the Rust structs in src-tauri/src. Nothing enforces that they
 // agree — see ADR 0003 — so a change on one side means a change here.
 
+/** The shape of an answer along an axis: a number, yes/no, or one of a list. */
+export type AxisKind = 'scale' | 'flag' | 'choice'
+
+/** One answer a `choice` axis offers, worth `value` on the axis's scale. */
+export interface AxisOption {
+  key: string
+  label: string
+  value: number
+}
+
 export interface Axis {
   key: string
   label: string
   weight: number
   scale: number
   description?: string
+  /** Absent in a profile written before kinds existed: a scale. */
+  kind?: AxisKind
+  /** Only a `choice` axis has any. */
+  options?: AxisOption[]
 }
 
 export interface Tier {
@@ -80,6 +94,10 @@ export interface ReleaseKind extends Kind {
       in `lib/releaseIcon.ts`. Absent in a profile written before the field, and
       absent for a kind the owner invented; both fall back to a neutral mark. */
   icon?: string | null
+  /** Axis weights that apply when a work is judged for this kind of release,
+      keyed by axis key. An axis not named keeps its own weight. Absent or
+      empty means one tier for every kind. */
+  axis_weights?: Record<string, number>
 }
 
 // The pace releases go out at. `default_time` (HH:MM) is a hint shown beside
@@ -104,6 +122,10 @@ export interface ProfileConfig {
   // Absent in a profile written before the field existed: the auto-layout then
   // has nothing to pace by, and its button says so instead of guessing.
   rhythm?: Rhythm | null
+  /** Which catalogue columns to show, by id, in order. Absent means the
+      catalogue's own default. A craft reads down its own columns, which is
+      why this is on the profile and not on the machine. */
+  catalogue_columns?: string[] | null
 }
 
 export interface Profile {
@@ -143,6 +165,13 @@ export interface Work {
   marks: string[]
   current_version_id: string | null
   position: number
+  /** The tier a person is holding the work at, overruling the score; null
+      means the score speaks. The reason is on record beside it. */
+  tier_pinned: string | null
+  tier_pinned_at: string | null
+  tier_pin_reason: string | null
+  /** Set when marked to come back to. */
+  bookmarked_at: string | null
   created_at: string
   updated_at: string
 }
@@ -165,6 +194,8 @@ export interface WorkPatch {
   /** Replaces the list. The backend trims, drops blanks and deduplicates
       case-insensitively, so sending what the box holds is enough. */
   tags?: string[]
+  /** `true` stamps the bookmark, `false` clears it. */
+  bookmarked?: boolean
   marks?: string[]
   current_version_id?: string | null
 }
@@ -184,6 +215,8 @@ export interface Version {
   label: string | null
   body: string
   meta: Meta
+  /** The version this one was written from; null once that one is deleted. */
+  parent_version_id: string | null
   created_at: string
 }
 
@@ -194,6 +227,7 @@ export interface VersionSummary {
   revision: number
   label: string | null
   length: number
+  parent_version_id: string | null
   created_at: string
   is_current: boolean
 }
@@ -204,6 +238,8 @@ export interface NewVersion {
   label?: string | null
   meta?: Meta | null
   make_current?: boolean
+  /** The version this one was derived from: same work, same role. */
+  parent_version_id?: string | null
 }
 
 export interface Note {
@@ -264,6 +300,8 @@ export interface FocusNote {
   work_id: string | null
   position: number
   pinned_at: string | null
+  /** The day it is meant to be done by (YYYY-MM-DD); null when unset. */
+  due_on: string | null
   created_at: string
   updated_at: string
 }
@@ -271,12 +309,14 @@ export interface FocusNote {
 export interface NewFocusNote {
   body: string
   work_id?: string | null
+  due_on?: string | null
 }
 
 export interface FocusNotePatch {
   body?: string
   work_id?: string | null
   pinned?: boolean
+  due_on?: string | null
 }
 
 export interface Score {
@@ -287,14 +327,18 @@ export interface Score {
   total: number
   tier: string | null
   note: string | null
+  /** Who judged; null is the author. */
+  rater: string | null
   scored_at: string
   revision: number | null
 }
 
 export interface NewScore {
-  axes: Record<string, number>
+  /** A number on a scale axis, a boolean on a flag, an option key on a choice. */
+  axes: Record<string, number | boolean | string>
   version_id?: string | null
   note?: string | null
+  rater?: string | null
 }
 
 export interface ScoredWork {
@@ -302,6 +346,8 @@ export interface ScoredWork {
   title: string
   kind: string
   status: string
+  /** True when `tier` is a person's pin, not the score's verdict. */
+  tier_pinned: boolean
   total: number | null
   tier: string | null
   scored_at: string | null
@@ -341,6 +387,10 @@ export interface Release {
   url: string | null
   /** Set when a person settled this date; a pinned slot is never contested. */
   slot_pinned_at: string | null
+  /** When in the day it goes out (HH:MM); the slot itself stays a date. */
+  scheduled_time: string | null
+  /** Whose day: an IANA zone name such as `Europe/Lisbon`. */
+  time_zone: string | null
   meta: Meta
   created_at: string
   updated_at: string
@@ -375,14 +425,12 @@ export interface NewRelease {
   title?: string | null
   scheduled_at?: string | null
   meta?: Meta | null
+  scheduled_time?: string | null
+  time_zone?: string | null
 }
 
 export interface Scheduling {
   release: Release
-  /** Always null since v0.44: nothing loses a date to anything any more.
-      Kept in the shape until the model package (v0.52), so neither side
-      needs a migration for a field that is simply absent. */
-  displaced: Release | null
 }
 
 // The dry run of a claim: the same verdict `schedule_release` would act on,
@@ -402,6 +450,10 @@ export interface Collection {
   description: string | null
   position: number
   meta: Meta
+  /** How many works it is meant to hold when finished; null when unset. */
+  target_size: number | null
+  /** The day it is meant to be done by (YYYY-MM-DD); null when unset. */
+  due_on: string | null
   created_at: string
   updated_at: string
   works: number
@@ -412,6 +464,8 @@ export interface NewCollection {
   title: string
   description?: string | null
   meta?: Meta | null
+  target_size?: number | null
+  due_on?: string | null
 }
 
 export const getWorkspace = () => invoke<Workspace>('get_workspace')
@@ -440,6 +494,11 @@ export interface StatusChange {
 export const statusDrift = () => invoke<StatusChange[]>('status_drift')
 export const resyncStatuses = () => invoke<StatusChange[]>('resync_statuses')
 export const unpinStatus = (id: string) => invoke<Work>('unpin_status', { id })
+/** Hold a work at a tier by hand, with the reason on record. */
+export const pinTier = (id: string, tier: string, reason: string) =>
+  invoke<Work>('pin_tier', { id, tier, reason })
+/** Let the score speak for the work's tier again. */
+export const unpinTier = (id: string) => invoke<Work>('unpin_tier', { id })
 
 export const listVersions = (workId: string) => invoke<VersionSummary[]>('list_versions', { workId })
 export const getVersion = (id: string) => invoke<Version | null>('get_version', { id })
@@ -485,6 +544,8 @@ export interface ReleasePatch {
   scheduled_at?: string | null
   url?: string | null
   meta?: Meta
+  scheduled_time?: string | null
+  time_zone?: string | null
 }
 
 export const updateRelease = (id: string, patch: ReleasePatch) =>

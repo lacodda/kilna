@@ -225,6 +225,45 @@ pub fn unpin_status(state: State<'_, AppState>, id: String) -> Result<Work> {
     work::get(&conn, &id)?.ok_or_else(|| Error::not_found("work", &id))
 }
 
+/// Hold a work at a tier by hand, with the reason on record.
+#[tauri::command]
+pub fn pin_tier(
+    state: State<'_, AppState>,
+    id: String,
+    tier: String,
+    reason: String,
+) -> Result<Work> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let pinned = work::pin_tier(&conn, &id, &tier, &reason)?;
+    journal::record(
+        &conn,
+        &profile_id,
+        Record::new("tier.pinned")
+            .param("title", pinned.title.clone())
+            .param("tier", tier)
+            .param("reason", reason.trim().to_owned())
+            .about("work", id),
+    );
+    Ok(pinned)
+}
+
+/// Let the score speak for the work's tier again.
+#[tauri::command]
+pub fn unpin_tier(state: State<'_, AppState>, id: String) -> Result<Work> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let freed = work::unpin_tier(&conn, &id)?;
+    journal::record(
+        &conn,
+        &profile_id,
+        Record::new("tier.unpinned")
+            .param("title", freed.title.clone())
+            .about("work", id),
+    );
+    Ok(freed)
+}
+
 #[tauri::command]
 pub fn delete_work(state: State<'_, AppState>, id: String) -> Result<String> {
     let mut conn = state.conn();
@@ -1810,6 +1849,7 @@ mod tests {
                         .unwrap(),
                     version_id: None,
                     note: None,
+                    rater: None,
                 },
             )
             .unwrap();
@@ -1821,6 +1861,8 @@ mod tests {
                     title: None,
                     scheduled_at: None,
                     meta: None,
+                    scheduled_time: None,
+                    time_zone: None,
                 },
             )
             .unwrap();
@@ -1879,6 +1921,8 @@ mod tests {
                 title: None,
                 scheduled_at: Some("2026-09-03".into()),
                 meta: None,
+                scheduled_time: None,
+                time_zone: None,
             },
         )
         .unwrap();

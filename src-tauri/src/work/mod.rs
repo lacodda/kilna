@@ -29,6 +29,15 @@ pub struct Work {
     pub marks: Vec<String>,
     pub current_version_id: Option<String>,
     pub position: i64,
+    /// The tier a person is holding this work at, when the score's verdict
+    /// was overruled. `None` means the score speaks. The pattern of the
+    /// status pin, with one addition: a reason, because a pinned number
+    /// nobody can argue with later is a number nobody trusts.
+    pub tier_pinned: Option<String>,
+    pub tier_pinned_at: Option<String>,
+    pub tier_pin_reason: Option<String>,
+    /// Set when the person marked this one to come back to.
+    pub bookmarked_at: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -65,6 +74,8 @@ pub struct WorkPatch {
     pub tags: Option<Vec<String>>,
     pub marks: Option<Vec<String>>,
     pub current_version_id: Option<Option<String>>,
+    /// `Some(true)` stamps the bookmark, `Some(false)` clears it.
+    pub bookmarked: Option<bool>,
 }
 
 /// Narrowing applied to a listing.
@@ -78,7 +89,8 @@ pub struct WorkFilter {
 }
 
 const SELECT_WORK: &str = "SELECT id, profile_id, collection_id, kind, title, status, \
-     status_pinned_at, meta, tags, marks, current_version_id, position, created_at, updated_at \
+     status_pinned_at, meta, tags, marks, current_version_id, position, created_at, updated_at, \
+     tier_pinned, tier_pinned_at, tier_pin_reason, bookmarked_at \
      FROM work";
 
 /// Create a work in the given profile.
@@ -298,6 +310,14 @@ pub fn update(conn: &Connection, id: &str, patch: WorkPatch) -> Result<Work> {
             Box::new(version_id),
         );
     }
+    if let Some(bookmarked) = patch.bookmarked {
+        set(
+            &mut assignments,
+            &mut values,
+            "bookmarked_at",
+            Box::new(bookmarked.then(now)),
+        );
+    }
 
     if assignments.is_empty() {
         return get(conn, id)?.ok_or_else(|| unknown_work(id));
@@ -342,6 +362,52 @@ pub fn tags(conn: &Connection, profile_id: &str) -> Result<Vec<(String, i64)>> {
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
+/// Hold a work at a tier by hand, and say why.
+///
+/// The tier must be one the profile names — a pin to a word that does not
+/// exist is a verdict nothing can draw — and the reason must be there,
+/// because the whole point of a pin over a score is that someone can read
+/// later what the number was overruled for. The score itself is untouched:
+/// the pin sits beside it, and "follow the facts" takes it off.
+pub fn pin_tier(conn: &Connection, id: &str, tier: &str, reason: &str) -> Result<Work> {
+    let work = get(conn, id)?.ok_or_else(|| unknown_work(id))?;
+    let config = crate::profile::config_for(conn, &work.profile_id)?;
+    if !config.tiers.iter().any(|known| known.key == tier) {
+        return Err(Error::Other(format!(
+            "`{tier}` is not a tier of this profile"
+        )));
+    }
+    let reason = reason.trim();
+    if reason.is_empty() {
+        return Err(Error::Other(
+            "a pinned tier needs a reason — say what the score does not know".into(),
+        ));
+    }
+
+    let timestamp = now();
+    conn.execute(
+        "UPDATE work SET tier_pinned = ?2, tier_pinned_at = ?3, tier_pin_reason = ?4,
+                         updated_at = ?3
+          WHERE id = ?1",
+        params![id, tier, timestamp, reason],
+    )?;
+    get(conn, id)?.ok_or_else(|| unknown_work(id))
+}
+
+/// Let the score speak for the work again.
+pub fn unpin_tier(conn: &Connection, id: &str) -> Result<Work> {
+    let changed = conn.execute(
+        "UPDATE work SET tier_pinned = NULL, tier_pinned_at = NULL, tier_pin_reason = NULL,
+                         updated_at = ?2
+          WHERE id = ?1",
+        params![id, now()],
+    )?;
+    if changed == 0 {
+        return Err(unknown_work(id));
+    }
+    get(conn, id)?.ok_or_else(|| unknown_work(id))
+}
+
 pub fn delete(conn: &Connection, id: &str) -> Result<()> {
     // Versions, scores, releases, notes and assets go with it via ON DELETE CASCADE.
     let changed = conn.execute("DELETE FROM work WHERE id = ?1", params![id])?;
@@ -372,6 +438,10 @@ struct RawWork {
     position: i64,
     created_at: String,
     updated_at: String,
+    tier_pinned: Option<String>,
+    tier_pinned_at: Option<String>,
+    tier_pin_reason: Option<String>,
+    bookmarked_at: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
@@ -390,6 +460,10 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
         position: row.get(11)?,
         created_at: row.get(12)?,
         updated_at: row.get(13)?,
+        tier_pinned: row.get(14)?,
+        tier_pinned_at: row.get(15)?,
+        tier_pin_reason: row.get(16)?,
+        bookmarked_at: row.get(17)?,
     })
 }
 
@@ -408,6 +482,10 @@ impl RawWork {
             status_pinned_at: self.status_pinned_at,
             current_version_id: self.current_version_id,
             position: self.position,
+            tier_pinned: self.tier_pinned,
+            tier_pinned_at: self.tier_pinned_at,
+            tier_pin_reason: self.tier_pin_reason,
+            bookmarked_at: self.bookmarked_at,
             created_at: self.created_at,
             updated_at: self.updated_at,
         })
@@ -779,5 +857,66 @@ mod tests {
             .unwrap();
         assert_eq!(notes, 0);
         assert!(get(&conn, &work.id).unwrap().is_none());
+    }
+
+    #[test]
+    fn a_tier_is_pinned_with_its_reason_and_unpinned_whole() {
+        let (conn, profile_id) = workspace();
+        let id = create(&conn, &profile_id, song("Held")).unwrap().id;
+
+        let held = pin_tier(&conn, &id, "clip", "the label already booked the shoot").unwrap();
+        assert_eq!(held.tier_pinned.as_deref(), Some("clip"));
+        assert_eq!(
+            held.tier_pin_reason.as_deref(),
+            Some("the label already booked the shoot")
+        );
+        assert!(held.tier_pinned_at.is_some());
+
+        let freed = unpin_tier(&conn, &id).unwrap();
+        assert_eq!(freed.tier_pinned, None);
+        assert_eq!(freed.tier_pinned_at, None);
+        assert_eq!(freed.tier_pin_reason, None);
+    }
+
+    #[test]
+    fn a_pin_needs_a_tier_the_profile_knows_and_a_reason() {
+        let (conn, profile_id) = workspace();
+        let id = create(&conn, &profile_id, song("Held")).unwrap().id;
+
+        let unknown = pin_tier(&conn, &id, "platinum", "because").unwrap_err();
+        assert!(unknown.to_string().contains("not a tier"), "{unknown}");
+        let silent = pin_tier(&conn, &id, "clip", "   ").unwrap_err();
+        assert!(silent.to_string().contains("reason"), "{silent}");
+        assert!(pin_tier(&conn, "nobody", "clip", "why").is_err());
+        assert!(unpin_tier(&conn, "nobody").is_err());
+    }
+
+    #[test]
+    fn a_bookmark_is_set_and_cleared_through_the_patch() {
+        let (conn, profile_id) = workspace();
+        let id = create(&conn, &profile_id, song("Later")).unwrap().id;
+        assert_eq!(get(&conn, &id).unwrap().unwrap().bookmarked_at, None);
+
+        let marked = update(
+            &conn,
+            &id,
+            WorkPatch {
+                bookmarked: Some(true),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+        assert!(marked.bookmarked_at.is_some());
+
+        let cleared = update(
+            &conn,
+            &id,
+            WorkPatch {
+                bookmarked: Some(false),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(cleared.bookmarked_at, None);
     }
 }

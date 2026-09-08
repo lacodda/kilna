@@ -581,6 +581,8 @@
     "work.renamed": "“{{from}}” renamed to “{{to}}”.",
     "work.status": "“{{title}}” moved to {{to}}.",
     "work.restated": "“{{title}}” is {{to}} now — it was {{from}}.",
+    "tier.pinned": "“{{title}}” is held at {{tier}}: {{reason}}",
+    "tier.unpinned": "“{{title}}” is judged by its score again.",
     "status.resynced_one": "{{count}} work restated to match the facts.",
     "status.resynced_other": "{{count}} works restated to match the facts.",
     "work.deleted": "“{{title}}” deleted.",

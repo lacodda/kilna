@@ -1,3 +1,5 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use serde::{Deserialize, Serialize};
 
 /// A craft scenario. Everything that differs between music, prose and podcasting
@@ -33,6 +35,13 @@ pub struct ProfileConfig {
     /// refuses rather than inventing a cadence.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rhythm: Option<Rhythm>,
+    /// Which columns the catalogue shows, by column id, in order. A novel and a
+    /// record are read down different columns, which is what makes this a fact
+    /// about the craft rather than about the machine. Absent means the
+    /// catalogue's own default; the ids are the frontend's, and one it no
+    /// longer knows is dropped on read rather than refused.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub catalogue_columns: Option<Vec<String>>,
 }
 
 /// The pace releases go out at.
@@ -85,6 +94,15 @@ pub struct ReleaseKind {
     /// icon rather than a screen.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
+    /// Axis weights that apply when a work is judged *for this kind* of
+    /// release, keyed by axis key. A clip lives or dies on its hook and its
+    /// visuals; the same song as an audio release is carried by its lyrics.
+    /// An axis not named here keeps the weight the axis itself declares, so a
+    /// kind may reweight one axis and say nothing about the rest. Empty — the
+    /// state of every profile written before the field — means the axes'
+    /// own weights, and one tier for every kind.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub axis_weights: BTreeMap<String, f64>,
 }
 
 impl ReleaseKind {
@@ -94,6 +112,7 @@ impl ReleaseKind {
             label: label.to_owned(),
             requires: requires.iter().map(|role| (*role).to_owned()).collect(),
             icon: None,
+            axis_weights: BTreeMap::new(),
         }
     }
 
@@ -160,10 +179,66 @@ pub struct Axis {
     pub label: String,
     /// Relative importance when the axes are combined into a total.
     pub weight: f64,
-    /// Highest value the axis accepts; scores are normalised against it.
+    /// Highest value the axis accepts; scores are normalised against it. For
+    /// a flag it is the worth of "yes"; for a choice it is the value the
+    /// options are read against.
     pub scale: f64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// What kind of answer the axis takes. Absent is a scale — the state of
+    /// every axis written before the field existed.
+    #[serde(default)]
+    pub kind: AxisKind,
+    /// The answers a `choice` axis offers, each worth a value on the scale.
+    /// Meaningless, and required to be empty, for the other kinds.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub options: Vec<AxisOption>,
+}
+
+/// The shape of an answer along an axis.
+///
+/// A scale is a number up to `scale`. A flag is yes or no — "has a chorus",
+/// "explicit" — stored as a boolean and worth the whole scale or nothing. A
+/// choice is one option from a short list, stored by its key, with the value
+/// the option declares. All three land in the same 0–100 total, so a score
+/// snapshot never needs to know which kind an axis was when it was taken.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AxisKind {
+    #[default]
+    Scale,
+    Flag,
+    Choice,
+}
+
+/// One answer a `choice` axis offers.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AxisOption {
+    /// Stored in the score snapshot; never renamed once scores hold it.
+    pub key: String,
+    pub label: String,
+    /// What the answer is worth, on the axis's scale.
+    pub value: f64,
+}
+
+impl Axis {
+    /// The number a stored answer is worth on this axis, if it is readable.
+    ///
+    /// A number is taken as-is for every kind: a snapshot that predates the
+    /// axis becoming a flag or a choice still reads. A boolean reads as the
+    /// scale or zero, and a string names a choice option.
+    pub fn value_of(&self, stored: &serde_json::Value) -> Option<f64> {
+        match stored {
+            serde_json::Value::Number(number) => number.as_f64(),
+            serde_json::Value::Bool(yes) => Some(if *yes { self.scale } else { 0.0 }),
+            serde_json::Value::String(key) => self
+                .options
+                .iter()
+                .find(|option| &option.key == key)
+                .map(|option| option.value),
+            _ => None,
+        }
+    }
 }
 
 /// A band a total score falls into. `min` is on the normalised 0–100 total.
@@ -263,26 +338,258 @@ impl ProfileConfig {
     /// Combine axis values into a 0–100 total.
     ///
     /// Axes missing from `values` are skipped rather than counted as zero: a
-    /// half-filled score card should not read as a bad work.
+    /// half-filled score card should not read as a bad work. An answer the
+    /// axis cannot read — a choice key the profile no longer offers — is
+    /// skipped the same way.
     pub fn total(&self, values: &serde_json::Map<String, serde_json::Value>) -> f64 {
+        self.weigh(values, |axis| axis.weight)
+    }
+
+    /// The same values, weighed as a release of `kind` would weigh them.
+    ///
+    /// A kind that reweights nothing — or a key that names no kind — gives
+    /// exactly [`total`](Self::total): one verdict, not a second opinion.
+    pub fn total_for(
+        &self,
+        values: &serde_json::Map<String, serde_json::Value>,
+        release_kind: &str,
+    ) -> f64 {
+        let weights = self
+            .release_kinds
+            .iter()
+            .find(|kind| kind.key == release_kind)
+            .map(|kind| &kind.axis_weights);
+        self.weigh(values, |axis| {
+            weights
+                .and_then(|weights| weights.get(&axis.key))
+                .copied()
+                .unwrap_or(axis.weight)
+        })
+    }
+
+    fn weigh(
+        &self,
+        values: &serde_json::Map<String, serde_json::Value>,
+        weight_of: impl Fn(&Axis) -> f64,
+    ) -> f64 {
         let mut weighted = 0.0;
         let mut weight_sum = 0.0;
 
         for axis in &self.axes {
-            let Some(value) = values.get(&axis.key).and_then(serde_json::Value::as_f64) else {
+            let Some(value) = values
+                .get(&axis.key)
+                .and_then(|stored| axis.value_of(stored))
+            else {
                 continue;
             };
             if axis.scale <= 0.0 {
                 continue;
             }
-            weighted += (value / axis.scale) * axis.weight;
-            weight_sum += axis.weight;
+            let weight = weight_of(axis);
+            weighted += (value / axis.scale) * weight;
+            weight_sum += weight;
         }
 
         if weight_sum == 0.0 {
             return 0.0;
         }
         (weighted / weight_sum) * 100.0
+    }
+
+    /// Everything wrong with the document, in the words a person can act on.
+    ///
+    /// Empty means the profile is sound. Each line names the place — "axis 3
+    /// (`hook`)" — and the rule it breaks, because a profile is edited by
+    /// hand and "invalid config" sends the person back to guess. Only what
+    /// would make the app misbehave is refused: an empty label is a taste,
+    /// a duplicate key is a corruption waiting for the next score.
+    pub fn validate(&self) -> Vec<String> {
+        let mut problems = Vec::new();
+
+        fn unique(problems: &mut Vec<String>, what: &str, keys: impl Iterator<Item = String>) {
+            let mut seen = BTreeSet::new();
+            for (index, key) in keys.enumerate() {
+                if key.trim().is_empty() {
+                    problems.push(format!("{what} {} has no key", index + 1));
+                } else if !seen.insert(key.clone()) {
+                    problems.push(format!("{what} {} repeats the key `{key}`", index + 1));
+                }
+            }
+        }
+
+        unique(
+            &mut problems,
+            "work kind",
+            self.work_kinds.iter().map(|k| k.key.clone()),
+        );
+        unique(
+            &mut problems,
+            "release kind",
+            self.release_kinds.iter().map(|k| k.key.clone()),
+        );
+        unique(
+            &mut problems,
+            "collection kind",
+            self.collection_kinds.iter().map(|k| k.key.clone()),
+        );
+        unique(
+            &mut problems,
+            "version role",
+            self.version_roles.iter().map(|r| r.key.clone()),
+        );
+        unique(
+            &mut problems,
+            "status",
+            self.statuses.iter().map(|s| s.key.clone()),
+        );
+        unique(
+            &mut problems,
+            "axis",
+            self.axes.iter().map(|a| a.key.clone()),
+        );
+        unique(
+            &mut problems,
+            "tier",
+            self.tiers.iter().map(|t| t.key.clone()),
+        );
+        unique(
+            &mut problems,
+            "meta field",
+            self.work_meta_fields.iter().map(|f| f.key.clone()),
+        );
+        unique(
+            &mut problems,
+            "mark",
+            self.marks.iter().map(|m| m.key.clone()),
+        );
+        unique(
+            &mut problems,
+            "prompt",
+            self.prompts.iter().map(|p| p.key.clone()),
+        );
+
+        if self.statuses.is_empty() {
+            problems.push("the profile names no statuses; a work has to start somewhere".into());
+        }
+        if self.work_kinds.is_empty() {
+            problems.push("the profile names no work kinds".into());
+        }
+
+        let roles: BTreeSet<&str> = self.version_roles.iter().map(|r| r.key.as_str()).collect();
+        for (index, role) in self.version_roles.iter().enumerate() {
+            // Not a let-chain: the MSRV is older than they are.
+            let Some(target) = &role.comments_on else {
+                continue;
+            };
+            if !roles.contains(target.as_str()) {
+                problems.push(format!(
+                    "version role {} (`{}`) comments on `{target}`, which no role is",
+                    index + 1,
+                    role.key
+                ));
+            }
+        }
+
+        let axes: BTreeSet<&str> = self.axes.iter().map(|a| a.key.as_str()).collect();
+        for (index, kind) in self.release_kinds.iter().enumerate() {
+            for required in &kind.requires {
+                if !roles.contains(required.as_str()) {
+                    problems.push(format!(
+                        "release kind {} (`{}`) requires `{required}`, which no version role is",
+                        index + 1,
+                        kind.key
+                    ));
+                }
+            }
+            for (axis, weight) in &kind.axis_weights {
+                if !axes.contains(axis.as_str()) {
+                    problems.push(format!(
+                        "release kind {} (`{}`) weights `{axis}`, which no axis is",
+                        index + 1,
+                        kind.key
+                    ));
+                }
+                if !(weight.is_finite() && *weight >= 0.0) {
+                    problems.push(format!(
+                        "release kind {} (`{}`) gives `{axis}` the weight {weight}; it must be zero or above",
+                        index + 1,
+                        kind.key
+                    ));
+                }
+            }
+        }
+
+        for (index, axis) in self.axes.iter().enumerate() {
+            let place = format!("axis {} (`{}`)", index + 1, axis.key);
+            if !(axis.scale.is_finite() && axis.scale > 0.0) {
+                problems.push(format!(
+                    "{place} has the scale {}; it must be above zero",
+                    axis.scale
+                ));
+            }
+            if !(axis.weight.is_finite() && axis.weight >= 0.0) {
+                problems.push(format!(
+                    "{place} has the weight {}; it must be zero or above",
+                    axis.weight
+                ));
+            }
+            match axis.kind {
+                AxisKind::Choice => {
+                    if axis.options.is_empty() {
+                        problems.push(format!("{place} is a choice with nothing to choose from"));
+                    }
+                    unique(
+                        &mut problems,
+                        &format!("{place}: option"),
+                        axis.options.iter().map(|o| o.key.clone()),
+                    );
+                    for option in &axis.options {
+                        if !(option.value.is_finite()
+                            && option.value >= 0.0
+                            && option.value <= axis.scale)
+                        {
+                            problems.push(format!(
+                                "{place}: option `{}` is worth {}, outside 0–{}",
+                                option.key, option.value, axis.scale
+                            ));
+                        }
+                    }
+                }
+                AxisKind::Scale | AxisKind::Flag => {
+                    if !axis.options.is_empty() {
+                        problems.push(format!(
+                            "{place} lists options but is not a choice; set `kind` to `choice` or drop them"
+                        ));
+                    }
+                }
+            }
+        }
+
+        for (index, tier) in self.tiers.iter().enumerate() {
+            if !(tier.min.is_finite() && (0.0..=100.0).contains(&tier.min)) {
+                problems.push(format!(
+                    "tier {} (`{}`) starts at {}; the total runs 0–100",
+                    index + 1,
+                    tier.key,
+                    tier.min
+                ));
+            }
+        }
+
+        if let Some(rhythm) = &self.rhythm {
+            if rhythm.every_days == 0 {
+                problems.push("the rhythm must be at least one day".into());
+            }
+            if let Some(time) = &rhythm.default_time {
+                if !crate::time::is_clock_time(time) {
+                    problems.push(format!(
+                        "the rhythm's default time `{time}` is not a time of day (HH:MM)"
+                    ));
+                }
+            }
+        }
+
+        problems
     }
 
     /// The highest tier whose threshold the total reaches.
@@ -366,5 +673,158 @@ mod tests {
         let config = config();
         assert_eq!(config.tier_for(80.0).unwrap().key, "clip");
         assert_eq!(config.tier_for(74.9).unwrap().key, "hold");
+    }
+
+    fn typed() -> ProfileConfig {
+        serde_json::from_value(json!({
+            "work_kinds": [{ "key": "song", "label": "Song" }],
+            "release_kinds": [
+                { "key": "clip", "label": "Clip", "axis_weights": { "hook": 4.0, "chorus": 0.0 } },
+                { "key": "audio", "label": "Audio" }
+            ],
+            "collection_kinds": [],
+            "version_roles": [{ "key": "lyrics", "label": "Lyrics" }],
+            "statuses": [{ "key": "draft", "label": "Draft" }],
+            "axes": [
+                { "key": "hook", "label": "Hook", "weight": 1.0, "scale": 10.0 },
+                { "key": "chorus", "label": "Has a chorus", "weight": 1.0, "scale": 10.0, "kind": "flag" },
+                { "key": "length", "label": "Length", "weight": 1.0, "scale": 10.0, "kind": "choice",
+                  "options": [
+                      { "key": "short", "label": "Short", "value": 4.0 },
+                      { "key": "right", "label": "Right", "value": 10.0 }
+                  ] }
+            ],
+            "tiers": [],
+            "work_meta_fields": []
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn an_axis_written_before_kinds_existed_is_a_scale() {
+        assert_eq!(config().axes[0].kind, AxisKind::Scale);
+        assert!(config().axes[0].options.is_empty());
+    }
+
+    #[test]
+    fn a_flag_is_worth_the_scale_or_nothing_and_a_choice_its_option() {
+        let config = typed();
+        let values = json!({ "hook": 5.0, "chorus": true, "length": "short" });
+        // (0.5 + 1.0 + 0.4) / 3
+        let total = config.total(values.as_object().unwrap());
+        assert!((total - 63.333_333).abs() < 1e-3, "got {total}");
+
+        let values = json!({ "hook": 5.0, "chorus": false, "length": "short" });
+        let total = config.total(values.as_object().unwrap());
+        assert!((total - 30.0).abs() < 1e-9, "got {total}");
+    }
+
+    #[test]
+    fn an_answer_the_axis_cannot_read_is_skipped_like_a_missing_one() {
+        let config = typed();
+        let values = json!({ "hook": 5.0, "length": "epic" });
+        let total = config.total(values.as_object().unwrap());
+        assert!(
+            (total - 50.0).abs() < 1e-9,
+            "an unknown option must not count: {total}"
+        );
+    }
+
+    #[test]
+    fn a_number_still_reads_on_a_flag_or_a_choice() {
+        // A snapshot taken while the axis was a scale keeps its value.
+        let config = typed();
+        let values = json!({ "chorus": 10.0, "length": 10.0 });
+        let total = config.total(values.as_object().unwrap());
+        assert!((total - 100.0).abs() < 1e-9, "got {total}");
+    }
+
+    #[test]
+    fn a_release_kind_reweighs_the_axes_it_names_and_keeps_the_rest() {
+        let config = typed();
+        let values = json!({ "hook": 10.0, "chorus": false, "length": "short" });
+        let values = values.as_object().unwrap();
+        // Plain: (1.0 + 0 + 0.4) / 3
+        assert!((config.total(values) - 46.666_666).abs() < 1e-3);
+        // As a clip: hook ×4, chorus ×0, length keeps 1: (4.0 + 0 + 0.4) / 5
+        let clip = config.total_for(values, "clip");
+        assert!((clip - 88.0).abs() < 1e-9, "got {clip}");
+        // A kind that reweights nothing, or none at all, is the plain total.
+        assert_eq!(config.total_for(values, "audio"), config.total(values));
+        assert_eq!(
+            config.total_for(values, "no-such-kind"),
+            config.total(values)
+        );
+    }
+
+    #[test]
+    fn a_sound_profile_has_no_problems() {
+        assert_eq!(typed().validate(), Vec::<String>::new());
+        assert_eq!(config().validate(), Vec::<String>::new());
+    }
+
+    #[test]
+    fn every_problem_names_its_place() {
+        let mut config = typed();
+        config.axes.push(config.axes[0].clone());
+        config.axes[1].scale = 0.0;
+        config.axes[2].options.clear();
+        config.tiers.push(Tier {
+            key: "top".into(),
+            label: "Top".into(),
+            min: 140.0,
+        });
+        config.release_kinds[0].requires.push("melody".into());
+        config.release_kinds[0]
+            .axis_weights
+            .insert("ghost".into(), 1.0);
+        config.version_roles.push(VersionRole {
+            key: "review".into(),
+            label: "Review".into(),
+            comments_on: Some("prose".into()),
+        });
+        config.rhythm = Some(Rhythm {
+            every_days: 0,
+            default_time: Some("noon".into()),
+        });
+
+        let problems = config.validate();
+        let expect = |needle: &str| {
+            assert!(
+                problems.iter().any(|p| p.contains(needle)),
+                "no problem mentions `{needle}`:
+{}",
+                problems.join(
+                    "
+"
+                )
+            );
+        };
+        expect("axis 4 repeats the key `hook`");
+        expect("axis 2 (`chorus`) has the scale 0");
+        expect("axis 3 (`length`) is a choice with nothing to choose from");
+        expect("tier 1 (`top`) starts at 140");
+        expect("release kind 1 (`clip`) requires `melody`");
+        expect("release kind 1 (`clip`) weights `ghost`");
+        expect("version role 2 (`review`) comments on `prose`");
+        expect("the rhythm must be at least one day");
+        expect("default time `noon`");
+    }
+
+    #[test]
+    fn options_on_a_scale_are_refused_rather_than_ignored() {
+        let mut config = typed();
+        config.axes[0].options.push(AxisOption {
+            key: "x".into(),
+            label: "X".into(),
+            value: 1.0,
+        });
+        let problems = config.validate();
+        assert!(
+            problems
+                .iter()
+                .any(|p| p.contains("lists options but is not a choice")),
+            "{problems:?}"
+        );
     }
 }

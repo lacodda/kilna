@@ -69,15 +69,22 @@ structural facts in a YAML front matter block and its full bodies underneath.
 
 Each work's page includes:
 
-- Front matter: title, kind, status, created/updated timestamps, and every
-  craft-specific `meta` field.
+- Front matter: the page's `format` number, title, kind, status,
+  created/updated timestamps, a pinned tier and its reason when there is one,
+  the bookmark when set, and every craft-specific `meta` field.
 - Every version, grouped by role, newest revision first, with the current one
-  marked and the **body in full** — not a summary.
-- A table of score history: date, total, tier, and the axis values behind
-  each snapshot.
-- Every release tied to the work: kind, date (scheduled or released), and the
-  link if one was recorded.
+  marked, the revision it was written from named, and the **body in full** —
+  not a summary.
+- A table of score history: date, total, tier, who gave it, and the axis
+  values behind each snapshot.
+- Every release tied to the work: kind, date (scheduled or released), time of
+  day and zone when set, and the link if one was recorded.
 - Notes attached to the work, with their tags.
+
+The `format` line is for a reader written against these pages: it says which
+shape the page takes, and moves when a field changes meaning or a section
+changes shape — not when a field is added. Pages written by v0.50 and later
+say `format: 2`; earlier exports carried no line, which reads as format 1.
 
 Notes not attached to any work are written to a separate `notes.md` rather
 than lost. File names are derived from each work's title with unsafe

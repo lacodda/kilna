@@ -27,6 +27,26 @@ pub fn now() -> String {
         .unwrap_or_else(|_| String::from("1970-01-01T00:00:00.000Z"))
 }
 
+/// Whether `text` is a time of day as the profile and a release write one:
+/// `HH:MM`, twenty-four hours, no seconds.
+pub fn is_clock_time(text: &str) -> bool {
+    let Some((hours, minutes)) = text.split_once(':') else {
+        return false;
+    };
+    let digits = |part: &str| part.len() == 2 && part.bytes().all(|b| b.is_ascii_digit());
+    digits(hours)
+        && digits(minutes)
+        && hours.parse::<u8>().is_ok_and(|h| h < 24)
+        && minutes.parse::<u8>().is_ok_and(|m| m < 60)
+}
+
+/// Whether `text` is a calendar date as slots and due dates write one:
+/// `YYYY-MM-DD`, and a day that exists.
+pub fn is_date(text: &str) -> bool {
+    let format = time::macros::format_description!("[year]-[month]-[day]");
+    text.len() == 10 && time::Date::parse(text, &format).is_ok()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,5 +143,31 @@ mod tests {
         sorted.sort();
 
         assert_eq!(stamped, sorted, "string order disagrees with time order");
+    }
+
+    #[test]
+    fn a_clock_time_is_two_digits_a_colon_and_two_digits() {
+        for good in ["00:00", "09:30", "23:59"] {
+            assert!(is_clock_time(good), "{good}");
+        }
+        for bad in ["24:00", "9:30", "12:60", "12:30:00", "noon", "", "12-30"] {
+            assert!(!is_clock_time(bad), "{bad}");
+        }
+    }
+
+    #[test]
+    fn a_date_is_a_day_that_exists() {
+        assert!(is_date("2026-02-28"));
+        assert!(is_date("2028-02-29"));
+        for bad in [
+            "2026-02-30",
+            "2026-13-01",
+            "26-02-01",
+            "2026-2-1",
+            "2026-02-01T00:00",
+            "",
+        ] {
+            assert!(!is_date(bad), "{bad}");
+        }
     }
 }

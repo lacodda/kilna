@@ -381,21 +381,47 @@ export function loadColumns(store: SortStore = localStorage): ColumnId[] {
   try {
     const raw = store.getItem(COLUMNS_KEY)
     if (raw === null) return DEFAULT_COLUMNS
-
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return DEFAULT_COLUMNS
-
-    // Unknown ids are dropped rather than rejected wholesale: a column removed
-    // in a later build should not cost a person the rest of their layout.
-    const known = parsed.filter((id): id is ColumnId => ALL_COLUMNS.includes(id as ColumnId))
-    const shown = known.includes(REQUIRED_COLUMN) ? known : [REQUIRED_COLUMN, ...known]
-
-    // Everything hidden is indistinguishable from a corrupt value, and an empty
-    // table teaches nobody anything.
-    return shown.length > 1 || known.includes(REQUIRED_COLUMN) ? shown : DEFAULT_COLUMNS
+    return sanitizeColumns(JSON.parse(raw))
   } catch {
     return DEFAULT_COLUMNS
   }
+}
+
+/**
+ * A stored list of column ids, made safe to draw.
+ *
+ * Unknown ids are dropped rather than rejected wholesale: a column removed in
+ * a later build should not cost a person the rest of their layout. Everything
+ * hidden is indistinguishable from a corrupt value, and an empty table
+ * teaches nobody anything, so that falls back to the default.
+ */
+export function sanitizeColumns(parsed: unknown): ColumnId[] {
+  if (!Array.isArray(parsed)) return DEFAULT_COLUMNS
+  const known = parsed.filter((id): id is ColumnId => ALL_COLUMNS.includes(id as ColumnId))
+  const shown = known.includes(REQUIRED_COLUMN) ? known : [REQUIRED_COLUMN, ...known]
+  return shown.length > 1 || known.includes(REQUIRED_COLUMN) ? shown : DEFAULT_COLUMNS
+}
+
+/**
+ * The columns the catalogue opens with: the profile's, and until the profile
+ * has any, whatever this machine remembered.
+ *
+ * The profile is the home of the list since v0.50 — a novel and a record are
+ * read down different columns, so the choice belongs to the craft, not to the
+ * browser. The browser's copy is what every workspace holds from before, and
+ * it is read exactly once: the first time a profile without columns is
+ * opened, so the move costs nobody their layout. `fromMachine` says that is
+ * what happened, so the caller can write the list to the profile and be done
+ * with the key.
+ */
+export function columnsFor(
+  profileColumns: string[] | null | undefined,
+  store: SortStore = localStorage,
+): { columns: ColumnId[]; fromMachine: boolean } {
+  if (Array.isArray(profileColumns)) {
+    return { columns: sanitizeColumns(profileColumns), fromMachine: false }
+  }
+  return { columns: loadColumns(store), fromMachine: true }
 }
 
 export function saveColumns(columns: ColumnId[], store: SortStore = localStorage): void {

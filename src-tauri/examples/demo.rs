@@ -126,6 +126,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     label: None,
                     meta: None,
                     make_current: true,
+                    parent_version_id: None,
                 },
             )?;
 
@@ -143,6 +144,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         axes,
                         version_id: None,
                         note: None,
+                        rater: None,
                     },
                 )?;
             }
@@ -159,6 +161,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // The lyrics stay the work's current version; the style is a
                 // parallel body, not a replacement.
                 make_current: false,
+                parent_version_id: None,
             },
         )?;
 
@@ -185,6 +188,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     title: Some(demo.title.into()),
                     scheduled_at: None,
                     meta: None,
+                    scheduled_time: None,
+                    time_zone: None,
                 },
             )?;
 

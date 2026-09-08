@@ -165,6 +165,8 @@ mod tests {
                 title: None,
                 scheduled_at: None,
                 meta: None,
+                scheduled_time: None,
+                time_zone: None,
             },
         )
         .unwrap();
@@ -221,5 +223,21 @@ mod tests {
             .unwrap();
 
         assert_eq!(count(), before);
+    }
+
+    #[test]
+    fn the_columns_added_by_the_model_package_are_clocked_too() {
+        let (conn, profile_id) = workspace();
+        let id = a_work(&conn, &profile_id);
+
+        work::pin_tier(&conn, &id, "clip", "booked").unwrap();
+
+        let clocked = fields(&conn, &id);
+        for field in ["tier_pinned", "tier_pinned_at", "tier_pin_reason"] {
+            assert!(
+                clocked.contains(&field.to_owned()),
+                "{field} missing from {clocked:?}"
+            );
+        }
     }
 }

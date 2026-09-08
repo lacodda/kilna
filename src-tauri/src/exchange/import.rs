@@ -120,6 +120,7 @@ pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Re
                     label: Some("imported".into()),
                     meta: None,
                     make_current: true,
+                    parent_version_id: None,
                 },
             )?;
             report.versions += 1;
@@ -134,6 +135,7 @@ pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Re
                     label: Some("imported".into()),
                     meta: None,
                     make_current: false,
+                    parent_version_id: None,
                 },
             )?;
             report.versions += 1;
@@ -147,6 +149,7 @@ pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Re
                     axes,
                     version_id: None,
                     note: Some("imported".into()),
+                    rater: None,
                 },
             )?;
             report.scores += 1;
@@ -163,6 +166,8 @@ pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Re
                     title: Some(song.title.clone()),
                     scheduled_at: None,
                     meta: None,
+                    scheduled_time: None,
+                    time_zone: None,
                 },
             )?;
             release::mark_released(conn, &planned.id, None, None)?;

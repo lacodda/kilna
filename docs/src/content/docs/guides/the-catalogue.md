@@ -25,10 +25,13 @@ The title cannot be turned off: it carries the row's identity and the link into
 the work.
 
 **Your choice survives a restart**, like the sort and unlike the filters. It is
-how you prefer to read the table, not what you are doing this minute. It is kept
-per machine rather than per profile, so switching craft does not change the
-columns — that moves onto the profile when the profile document next changes
-shape.
+how you prefer to read the table, not what you are doing this minute. It is
+kept on the profile, as
+[`catalogue_columns`](/kilna/reference/profile-document/#catalogue_columns):
+a novel and a record are read down different columns, so switching craft
+switches the columns with it, and a second machine opens the same profile on
+the same table. A workspace from before this field opens on what the machine
+remembered and writes that list to the profile once.
 
 A mark your profile no longer defines is not drawn, the same rule the card
 follows: renaming a mark never touches a work.
@@ -134,8 +137,8 @@ to put the catalogue back exactly as it was; click the `×` on it to forget it.
 - **Saving under a name you already used replaces that view** rather than
   making a second one beside it. That is how you adjust one.
 - Views survive a restart, unlike the filters themselves: a named question is a
-  standing one. They are kept per machine, like the columns, and move onto the
-  profile when the profile document next changes shape.
+  standing one. They are kept per machine for now — the columns moved onto the
+  profile in v0.50, and views follow when a version has a reason to move them.
 - The chosen columns are not part of a view. They are how you read the table
   everywhere, not a property of one question.
 - Twelve at most — past that the bar stops being a short row of standing

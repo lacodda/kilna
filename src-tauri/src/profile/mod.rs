@@ -349,6 +349,16 @@ pub fn activate(conn: &mut Connection, id: &str) -> Result<()> {
 /// readable, and works keep whatever status and kind they already had even if
 /// the vocabulary that named them was edited away.
 pub fn update_config(conn: &Connection, id: &str, config: &ProfileConfig) -> Result<Profile> {
+    // Refused whole, with every problem named: a document edited by hand is
+    // fixed by reading the list, not by guessing which line the app minded.
+    let problems = config.validate();
+    if !problems.is_empty() {
+        return Err(Error::Other(format!(
+            "the profile cannot be saved as written:\n- {}",
+            problems.join("\n- ")
+        )));
+    }
+
     let changed = conn.execute(
         "UPDATE profile SET config = ?2, updated_at = ?3 WHERE id = ?1",
         params![id, serde_json::to_string(config)?, now()],
@@ -1143,5 +1153,39 @@ mod tests {
         assert_eq!(workspace.schema_version, migrations::latest_version());
         assert_eq!(workspace.works, 0);
         assert!(workspace.profile.is_some());
+    }
+
+    #[test]
+    fn every_builtin_profile_is_sound() {
+        for profile in builtin().unwrap() {
+            let problems = profile.config.validate();
+            assert!(problems.is_empty(), "{}: {problems:?}", profile.key);
+        }
+    }
+
+    #[test]
+    fn a_profile_that_would_misbehave_is_refused_with_every_problem_named() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let profile = active(&conn).unwrap().unwrap();
+        let mut broken = profile.config.clone();
+        broken.axes[0].scale = 0.0;
+        broken.tiers.push(config::Tier {
+            key: broken.tiers[0].key.clone(),
+            label: "Twice".into(),
+            min: 0.0,
+        });
+
+        let refused = update_config(&conn, &profile.id, &broken).unwrap_err();
+        let message = refused.to_string();
+        assert!(message.contains("cannot be saved"), "{message}");
+        assert!(message.contains("has the scale 0"), "{message}");
+        assert!(message.contains("repeats the key"), "{message}");
+
+        let stored = config_for(&conn, &profile.id).unwrap();
+        assert!(
+            stored.axes[0].scale > 0.0,
+            "the stored copy must be untouched"
+        );
     }
 }

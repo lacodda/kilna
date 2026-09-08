@@ -20,6 +20,9 @@ pub struct Score {
     pub total: f64,
     pub tier: Option<String>,
     pub note: Option<String>,
+    /// Who judged. `None` is the author; a name is a second opinion brought
+    /// in beside their own and kept apart from it.
+    pub rater: Option<String>,
     pub scored_at: String,
     /// Revision of the scored version, when it still exists.
     pub revision: Option<i64>,
@@ -33,6 +36,9 @@ pub struct NewScore {
     pub version_id: Option<String>,
     #[serde(default)]
     pub note: Option<String>,
+    /// Who judged; absent is the author.
+    #[serde(default)]
+    pub rater: Option<String>,
 }
 
 /// Reads one of the JSON string arrays a work carries — `tags`, `marks`.
@@ -53,7 +59,11 @@ pub struct ScoredWork {
     pub kind: String,
     pub status: String,
     pub total: Option<f64>,
+    /// The verdict: the tier a person is holding the work at when one is
+    /// pinned, otherwise the tier of the speaking score.
     pub tier: Option<String>,
+    /// True when `tier` is the person's, not the score's.
+    pub tier_pinned: bool,
     pub scored_at: Option<String>,
     /// True when the work has changed since it was last scored — the score
     /// describes an older draft.
@@ -151,8 +161,8 @@ pub fn create(conn: &Connection, work_id: &str, new: NewScore) -> Result<Score> 
     let scored_at = now();
 
     conn.execute(
-        "INSERT INTO work_score (id, work_id, version_id, axes, total, tier, note, scored_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        "INSERT INTO work_score (id, work_id, version_id, axes, total, tier, note, rater, scored_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
         params![
             id,
             work_id,
@@ -161,6 +171,7 @@ pub fn create(conn: &Connection, work_id: &str, new: NewScore) -> Result<Score> 
             total,
             tier,
             new.note,
+            new.rater.filter(|rater| !rater.trim().is_empty()),
             scored_at,
         ],
     )?;
@@ -169,7 +180,7 @@ pub fn create(conn: &Connection, work_id: &str, new: NewScore) -> Result<Score> 
 }
 
 const SELECT_SCORE: &str = "SELECT s.id, s.work_id, s.version_id, s.axes, s.total, s.tier, \
-     s.note, s.scored_at, v.revision \
+     s.note, s.scored_at, v.revision, s.rater \
      FROM work_score s LEFT JOIN work_version v ON v.id = s.version_id";
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Score>> {
@@ -231,7 +242,8 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
 /// strongest score: the best it has been shown to be.
 pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>> {
     let mut statement = conn.prepare(&format!(
-        "SELECT w.id, w.title, w.kind, w.status, s.total, s.tier, s.scored_at,
+        "SELECT w.id, w.title, w.kind, w.status, s.total,
+                coalesce(w.tier_pinned, s.tier) AS tier, s.scored_at,
                 s.scored_at IS NOT NULL AND w.updated_at > s.scored_at AS stale,
                 (SELECT count(*) FROM release r
                   WHERE r.work_id = w.id AND r.status = 'released') AS released,
@@ -240,7 +252,8 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
                     AND r.scheduled_at IS NOT NULL) AS scheduled,
                 w.updated_at, w.created_at, w.collection_id, w.tags, w.marks,
                 (SELECT count(*) FROM work_version v
-                  WHERE v.work_id = w.id) AS version_count
+                  WHERE v.work_id = w.id) AS version_count,
+                w.tier_pinned IS NOT NULL AS tier_pinned
          FROM work w
          LEFT JOIN work_score s ON s.id = {speaking}
          WHERE w.profile_id = ?1
@@ -266,6 +279,7 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
             tags: parse_string_list(&row.get::<_, String>(13)?),
             marks: parse_string_list(&row.get::<_, String>(14)?),
             version_count: row.get(15)?,
+            tier_pinned: row.get::<_, i64>(16)? == 1,
         })
     })?;
 
@@ -282,6 +296,7 @@ struct RawScore {
     note: Option<String>,
     scored_at: String,
     revision: Option<i64>,
+    rater: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawScore> {
@@ -295,6 +310,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawScore> {
         note: row.get(6)?,
         scored_at: row.get(7)?,
         revision: row.get(8)?,
+        rater: row.get(9)?,
     })
 }
 
@@ -308,6 +324,7 @@ impl RawScore {
             total: self.total,
             tier: self.tier,
             note: self.note,
+            rater: self.rater,
             scored_at: self.scored_at,
             revision: self.revision,
         })
@@ -357,6 +374,7 @@ mod tests {
                 axes: axes(json!({ "hook": mark, "text": mark, "voice": mark, "reach": mark })),
                 version_id: Some(version_id.to_owned()),
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -386,6 +404,7 @@ mod tests {
                 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -406,6 +425,7 @@ mod tests {
                 axes: axes(json!({ "hook": 2, "lyrics": 3 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -435,6 +455,8 @@ mod tests {
                 title: None,
                 scheduled_at: None,
                 meta: None,
+                scheduled_time: None,
+                time_zone: None,
             },
         )
         .unwrap();
@@ -472,6 +494,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: true,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -486,6 +509,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: true,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -518,6 +542,7 @@ mod tests {
                 axes: axes(json!({ "hook": 9, "text": 9, "voice": 9, "reach": 9 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -528,6 +553,7 @@ mod tests {
                 axes: axes(json!({ "hook": 3, "text": 3, "voice": 3, "reach": 3 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -549,6 +575,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: true,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -560,6 +587,7 @@ mod tests {
                 axes: axes(json!({ "hook": 8 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -581,6 +609,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: true,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -591,6 +620,7 @@ mod tests {
                 axes: axes(json!({ "hook": 5 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -605,6 +635,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: true,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -615,6 +646,7 @@ mod tests {
                 axes: axes(json!({ "hook": 9 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -682,6 +714,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: true,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -693,6 +726,7 @@ mod tests {
                 axes: axes(json!({ "hook": 5 })),
                 version_id: Some(stranger.id),
                 note: None,
+                rater: None,
             },
         );
 
@@ -710,6 +744,7 @@ mod tests {
                 axes: axes(json!({ "hook": 7, "lyrics": 6 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -749,6 +784,7 @@ mod tests {
                 axes: axes(json!({ "hook": 3 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -759,6 +795,7 @@ mod tests {
                 axes: axes(json!({ "hook": 9 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -782,6 +819,7 @@ mod tests {
                 axes: axes(json!({ "hook": 8 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -811,9 +849,86 @@ mod tests {
                 axes: axes(json!({ "hook": 5 })),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         );
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn a_pinned_tier_speaks_for_the_work_in_the_catalogue() {
+        let (conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id, "Held");
+        create(
+            &conn,
+            &work_id,
+            NewScore {
+                axes: axes(json!({ "hook": 2, "text": 2 })),
+                version_id: None,
+                note: None,
+                rater: None,
+            },
+        )
+        .unwrap();
+        let before = catalogue_row(&conn, &profile_id, &work_id);
+        assert!(!before.tier_pinned);
+        let scored_tier = before.tier.clone();
+
+        work::pin_tier(
+            &conn,
+            &work_id,
+            "clip",
+            "the label already booked the shoot",
+        )
+        .unwrap();
+
+        let held = catalogue_row(&conn, &profile_id, &work_id);
+        assert_eq!(held.tier.as_deref(), Some("clip"));
+        assert!(held.tier_pinned);
+        assert_eq!(held.total, before.total, "the score itself is untouched");
+
+        work::unpin_tier(&conn, &work_id).unwrap();
+        let freed = catalogue_row(&conn, &profile_id, &work_id);
+        assert_eq!(freed.tier, scored_tier);
+        assert!(!freed.tier_pinned);
+    }
+
+    #[test]
+    fn a_score_names_who_gave_it_and_a_blank_name_is_the_author() {
+        let (conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id, "Judged");
+        let theirs = create(
+            &conn,
+            &work_id,
+            NewScore {
+                axes: axes(json!({ "hook": 7 })),
+                version_id: None,
+                note: None,
+                rater: Some("the producer".into()),
+            },
+        )
+        .unwrap();
+        let mine = create(
+            &conn,
+            &work_id,
+            NewScore {
+                axes: axes(json!({ "hook": 8 })),
+                version_id: None,
+                note: None,
+                rater: Some("   ".into()),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(theirs.rater.as_deref(), Some("the producer"));
+        assert_eq!(mine.rater, None);
+        let history = history(&conn, &work_id).unwrap();
+        assert_eq!(history.len(), 2);
+        assert!(
+            history
+                .iter()
+                .any(|s| s.rater.as_deref() == Some("the producer"))
+        );
     }
 }

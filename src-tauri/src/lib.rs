@@ -51,6 +51,8 @@ pub fn run() {
             commands::status_drift,
             commands::resync_statuses,
             commands::unpin_status,
+            commands::pin_tier,
+            commands::unpin_tier,
             commands::delete_work,
             commands::delete_works,
             commands::set_works_status,

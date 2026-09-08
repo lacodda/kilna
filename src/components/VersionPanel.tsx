@@ -53,6 +53,10 @@ export function VersionPanel({ workId }: Props) {
   const [params, setParams] = useSearchParams()
   const asked = params.get('version')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // The version the draft in the editor was written from, when it was. Set
+  // by "derive from this one", cleared when the draft is saved or thrown
+  // away, and recorded on the saved version as its parent.
+  const [derivedFrom, setDerivedFrom] = useState<string | null>(null)
   const [comparedId, setComparedId] = useState<string | null>(null)
   const [reading, setReading] = useState<(typeof READINGS)[number]>('text')
 
@@ -147,12 +151,14 @@ export function VersionPanel({ workId }: Props) {
         body: draft,
         label: label.trim() === '' ? null : label.trim(),
         make_current: makeCurrentOnSave,
+        parent_version_id: derivedFrom,
       }),
     onSuccess: (version) => {
       // The draft became a version; there is nothing left to keep.
       setDrafts((all) => ({ ...all, [role]: '' }))
       clearDraft(workId, role)
       setLabel('')
+      setDerivedFrom(null)
       setSelectedId(version.id)
       settle()
     },
@@ -209,11 +215,13 @@ export function VersionPanel({ workId }: Props) {
     setRole(source.role)
     setSelectedId(id)
     setDraft(source.body)
+    setDerivedFrom(id)
 
     if (displaced.trim() === '') say.ok(t('toast.versionDerived'))
     else
       say.undoable(t('toast.versionDerived'), t('versions.restoreDraft'), () => {
         setDraft(displaced)
+        setDerivedFrom(null)
       })
   }
 

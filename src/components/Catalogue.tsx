@@ -1,4 +1,4 @@
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -18,19 +18,19 @@ import {
   deleteWorks,
   setWorksStatus,
   unscheduleWorks,
+  updateProfileConfig,
   type ScoredWork,
 } from '@/lib/api'
 import {
   ALL_COLUMNS,
+  columnsFor,
   GAPS,
   groupRows,
   isNarrowed,
-  loadColumns,
   loadFilter,
   loadSort,
   narrow,
   REQUIRED_COLUMN,
-  saveColumns,
   saveFilter,
   saveSort,
   sortRows,
@@ -106,14 +106,33 @@ export function Catalogue({ onSelect }: Props) {
     saveFilter(next)
   }
   const [sort, setSort] = useState<Sort>(loadSort)
-  // Which columns are shown outlives a restart, like the sort: it is how a
-  // person reads the table, not what they are doing this minute.
-  const [columns, setColumnsState] = useState<ColumnId[]>(loadColumns)
+  // Which columns are shown is a fact about the craft, kept on the profile
+  // since v0.50: a novel and a record are read down different columns. A
+  // workspace from before the field opens on what this machine remembered,
+  // and that list is written to the profile once so the move is invisible.
+  const [opened] = useState(() => columnsFor(profile.config.catalogue_columns))
+  const [columns, setColumnsState] = useState<ColumnId[]>(opened.columns)
+
+  const keepColumns = useMutation({
+    mutationFn: (next: ColumnId[]) =>
+      updateProfileConfig(profile.id, { ...profile.config, catalogue_columns: next }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.workspace })
+      void client.invalidateQueries({ queryKey: keys.profiles })
+    },
+    onError: (cause) => say.failedTo(t('toast.profileSaveFailed'), cause),
+  })
 
   const setColumns = (next: ColumnId[]) => {
     setColumnsState(next)
-    saveColumns(next)
+    keepColumns.mutate(next)
   }
+
+  useEffect(() => {
+    if (opened.fromMachine) keepColumns.mutate(opened.columns)
+    // Once, on the first open of a profile that has no columns yet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Grouping is deliberately of the moment, like the filter and unlike the
   // sort: it is a way of interrogating the list today, and finding the

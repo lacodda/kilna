@@ -21,6 +21,7 @@ function work(over: Partial<ScoredWork> = {}): ScoredWork {
     collection_id: null,
     tags: [],
     marks: [],
+    tier_pinned: false,
     version_count: 0,
     ...over,
   }
@@ -37,6 +38,8 @@ function release(over: Partial<ScheduledRelease> = {}): ScheduledRelease {
     released_at: null,
     url: null,
     slot_pinned_at: null,
+    scheduled_time: null,
+    time_zone: null,
     meta: {},
     created_at: TODAY,
     updated_at: TODAY,

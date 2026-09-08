@@ -52,6 +52,7 @@ fn a_batch_larger_than_the_limit_starts_some_and_queues_the_rest() {
                 label: None,
                 meta: None,
                 make_current: true,
+                parent_version_id: None,
             },
         )
         .unwrap();

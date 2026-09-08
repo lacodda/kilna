@@ -10,6 +10,15 @@ use crate::release;
 use crate::score;
 use crate::work::{self, WorkFilter, version};
 
+/// The shape of an exported page. Written into every page's front matter.
+///
+/// 1 — the original: title, kind, status, dates, meta; versions by role;
+///     scores as date, total, tier, axes; releases as kind, date, link.
+/// 2 — v0.50: a page may carry a pinned tier and its reason, and a bookmark;
+///     a revision names the revision it was written from; a score names who
+///     gave it; a release carries its time of day and zone.
+pub const FORMAT: u32 = 2;
+
 /// What an export produced, so the user can be told rather than guess.
 #[derive(Debug, Clone, Serialize)]
 pub struct ExportReport {
@@ -38,11 +47,24 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         let mut page = String::new();
 
         page.push_str("---\n");
+        // The shape of the page, so a reader written against it can say
+        // which one it understands. Bumped when a field changes meaning or
+        // a section changes shape; adding a field is not a new format.
+        page.push_str(&format!("format: {FORMAT}\n"));
         push_field(&mut page, "title", &work.title);
         push_field(&mut page, "kind", &work.kind);
         push_field(&mut page, "status", &work.status);
         push_field(&mut page, "created", &work.created_at);
         push_field(&mut page, "updated", &work.updated_at);
+        if let Some(tier) = &work.tier_pinned {
+            push_field(&mut page, "tier_pinned", tier);
+            if let Some(reason) = &work.tier_pin_reason {
+                push_field(&mut page, "tier_pin_reason", reason);
+            }
+        }
+        if let Some(bookmarked) = &work.bookmarked_at {
+            push_field(&mut page, "bookmarked", bookmarked);
+        }
         for (key, value) in &work.meta {
             // A JSON string carries its own quotes; taking them along would
             // export `"ru"` as `"\"ru\""`.
@@ -68,10 +90,19 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             let Some(full) = version::get(conn, &summary.id)? else {
                 continue;
             };
+            // Named by revision number, not by id: the page is for a person,
+            // and "from revision 3" is what the tree reads as.
+            let parent = full
+                .parent_version_id
+                .as_deref()
+                .and_then(|parent| versions.iter().find(|v| v.id == parent))
+                .map(|parent| format!(" (from revision {})", parent.revision))
+                .unwrap_or_default();
             page.push_str(&format!(
-                "\n### Revision {}{}\n\n{}\n",
+                "\n### Revision {}{}{}\n\n{}\n",
                 full.revision,
                 if summary.is_current { " (current)" } else { "" },
+                parent,
                 full.body
             ));
         }
@@ -79,7 +110,7 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         let scores = score::history(conn, &work.id)?;
         if !scores.is_empty() {
             page.push_str("\n## Scores\n\n");
-            page.push_str("| Date | Total | Tier | Axes |\n|---|---|---|---|\n");
+            page.push_str("| Date | Total | Tier | Rater | Axes |\n|---|---|---|---|---|\n");
             for score in &scores {
                 let axes = score
                     .axes
@@ -88,10 +119,11 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
                     .collect::<Vec<_>>()
                     .join(", ");
                 page.push_str(&format!(
-                    "| {} | {:.1} | {} | {} |\n",
+                    "| {} | {:.1} | {} | {} | {} |\n",
                     &score.scored_at[..10.min(score.scored_at.len())],
                     score.total,
                     score.tier.as_deref().unwrap_or("—"),
+                    score.rater.as_deref().unwrap_or("—"),
                     axes
                 ));
             }
@@ -102,14 +134,21 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             page.push_str("\n## Releases\n\n");
             for entry in &releases {
                 let release = &entry.release;
+                let when = match (&release.scheduled_time, &release.time_zone) {
+                    (Some(time), Some(zone)) => format!(" {time} {zone}"),
+                    (Some(time), None) => format!(" {time}"),
+                    (None, Some(zone)) => format!(" ({zone})"),
+                    (None, None) => String::new(),
+                };
                 page.push_str(&format!(
-                    "- **{}** — {}{}\n",
+                    "- **{}** — {}{}{}\n",
                     release.kind,
                     release
                         .released_at
                         .as_deref()
                         .or(release.scheduled_at.as_deref())
                         .unwrap_or("not scheduled"),
+                    when,
                     release
                         .url
                         .as_deref()
@@ -283,6 +322,7 @@ mod tests {
                 label: None,
                 meta: None,
                 make_current: true,
+                parent_version_id: None,
             },
         )
         .unwrap();
@@ -293,6 +333,7 @@ mod tests {
                 axes: json!({ "hook": 8 }).as_object().cloned().unwrap(),
                 version_id: None,
                 note: None,
+                rater: None,
             },
         )
         .unwrap();
@@ -374,5 +415,104 @@ mod tests {
         let name = slug("Тёплые соты", "abcdef12-0000");
 
         assert!(name.starts_with("Тёплые соты-"), "got {name}");
+    }
+
+    #[test]
+    fn a_page_names_its_format_and_the_new_facts() {
+        let (mut conn, profile_id) = workspace();
+        let dir = tempfile::tempdir().unwrap();
+        let created = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "song".into(),
+                title: "Traced".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+        let first = version::create(
+            &mut conn,
+            &created.id,
+            crate::work::version::NewVersion {
+                role: "lyrics".into(),
+                body: "one".into(),
+                label: None,
+                meta: None,
+                make_current: true,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
+        version::create(
+            &mut conn,
+            &created.id,
+            crate::work::version::NewVersion {
+                role: "lyrics".into(),
+                body: "two".into(),
+                label: None,
+                meta: None,
+                make_current: true,
+                parent_version_id: Some(first.id.clone()),
+            },
+        )
+        .unwrap();
+        score::create(
+            &conn,
+            &created.id,
+            crate::score::NewScore {
+                axes: serde_json::json!({ "hook": 7 })
+                    .as_object()
+                    .cloned()
+                    .unwrap(),
+                version_id: None,
+                note: None,
+                rater: Some("the producer".into()),
+            },
+        )
+        .unwrap();
+        work::pin_tier(&conn, &created.id, "clip", "already booked").unwrap();
+        let planned = release::create(
+            &conn,
+            release::NewRelease {
+                work_id: created.id.clone(),
+                kind: "clip".into(),
+                title: None,
+                scheduled_at: Some("2026-10-01".into()),
+                meta: None,
+                scheduled_time: Some("18:30".into()),
+                time_zone: Some("Europe/Lisbon".into()),
+            },
+        )
+        .unwrap();
+        assert_eq!(planned.scheduled_time.as_deref(), Some("18:30"));
+
+        to_markdown(&conn, dir.path()).unwrap();
+        let page = std::fs::read_dir(dir.path().join("works"))
+            .unwrap()
+            .filter_map(std::result::Result::ok)
+            .map(|entry| std::fs::read_to_string(entry.path()).unwrap())
+            .next()
+            .unwrap();
+
+        assert!(
+            page.starts_with(&format!("---\nformat: {FORMAT}\n")),
+            "{page}"
+        );
+        assert!(page.contains("tier_pinned: \"clip\""), "{page}");
+        assert!(
+            page.contains("tier_pin_reason: \"already booked\""),
+            "{page}"
+        );
+        assert!(
+            page.contains("### Revision 2 (current) (from revision 1)"),
+            "{page}"
+        );
+        assert!(
+            page.contains("| Date | Total | Tier | Rater | Axes |"),
+            "{page}"
+        );
+        assert!(page.contains("| the producer |"), "{page}");
+        assert!(page.contains("2026-10-01 18:30 Europe/Lisbon"), "{page}");
     }
 }
