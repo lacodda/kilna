@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.50.0] - 2026-09-08
+
+### Features
+- Lay the columns and keys of the scoring and release model
 ## [0.49.0] - 2026-09-07
 
 ### Features
