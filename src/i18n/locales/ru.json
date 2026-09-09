@@ -665,7 +665,8 @@
     "release.unscheduledBatch_one": "С расписания снят {{count}} выпуск.",
     "release.unscheduledBatch_few": "С расписания снято {{count}} выпуска.",
     "release.unscheduledBatch_many": "С расписания снято {{count}} выпусков.",
-    "release.unscheduledBatch_other": "С расписания снято {{count}} выпуска."
+    "release.unscheduledBatch_other": "С расписания снято {{count}} выпуска.",
+    "undo.done": "Отменено: {{action}}"
   },
   "card": {
     "tab": {
@@ -709,8 +710,25 @@
       "back": "Назад",
       "forward": "Вперёд",
       "help": "Этот список",
-      "close": "Закрыть открытое"
+      "close": "Закрыть открытое",
+      "undo": "Отменить последнее изменение"
     },
-    "typing": "Буквенные сокращения молчат, пока вы печатаете; те, что с модификатором, работают всегда."
+    "typing": "Буквенные сочетания уступают, пока вы печатаете; сочетания с модификатором продолжают работать — кроме Ctrl+Z: в поле ввода он принадлежит полю."
+  },
+  "undo": {
+    "nothing": "Отменять нечего",
+    "done": "Отменено: {{what}}",
+    "failed": "отменить это",
+    "work.create": "добавление произведения",
+    "work.update": "правку произведения",
+    "work.pinTier": "закрепление тира",
+    "note.create": "добавление заметки",
+    "note.update": "правку заметки",
+    "collection.create": "добавление коллекции",
+    "collection.update": "правку коллекции",
+    "release.create": "добавление выпуска",
+    "release.update": "правку выпуска",
+    "release.markReleased": "отметку о выпуске",
+    "entity.discard": "удаление"
   }
 }

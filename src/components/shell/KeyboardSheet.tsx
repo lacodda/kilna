@@ -102,6 +102,7 @@ export function KeyboardSheet({ open, onOpenChange }: Props) {
             </Group>
 
             <Group title={t('keys.group.everywhere')}>
+              <Row keys={['Mod', 'Z']}>{t('keys.action.undo')}</Row>
               <Row keys={['?']}>{t('keys.action.help')}</Row>
               <Row keys={['Escape']}>{t('keys.action.close')}</Row>
             </Group>

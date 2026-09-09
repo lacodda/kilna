@@ -36,10 +36,15 @@ pub struct NewNote {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct NotePatch {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub work_id: Option<Option<String>>,
 }
 

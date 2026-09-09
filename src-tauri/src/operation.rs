@@ -147,6 +147,18 @@ pub fn latest(conn: &Connection, limit: i64) -> Result<Vec<Operation>> {
     )
 }
 
+/// One operation by its stable id.
+pub fn by_id(conn: &Connection, id: &str) -> Result<Option<Operation>> {
+    Ok(read(
+        conn,
+        "SELECT seq, id, device_id, profile_id, kind, params, recorded_at
+           FROM operation WHERE id = ?1",
+        params![id],
+    )?
+    .into_iter()
+    .next())
+}
+
 /// How many operations the log holds.
 pub fn count(conn: &Connection) -> Result<i64> {
     Ok(conn.query_row("SELECT count(*) FROM operation", [], |row| row.get(0))?)

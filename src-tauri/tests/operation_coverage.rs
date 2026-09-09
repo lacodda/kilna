@@ -83,7 +83,7 @@ fn writes_to_the_workspace(body: &str) -> bool {
     // the same name does not count, and listed rather than inferred because
     // "writes" is not visible in a name: `score::catalogue` reads, `work::pin_tier`
     // writes.
-    const WRITERS: [&str; 45] = [
+    const WRITERS: [&str; 46] = [
         "::create(",
         "::create_minted(",
         "::update(",
@@ -91,6 +91,8 @@ fn writes_to_the_workspace(body: &str) -> bool {
         "::delete(",
         "::discard(",
         "::discard_works_batch(",
+        // Taking something back changes the workspace as surely as doing it.
+        "::undo(",
         "::restore(",
         "::purge(",
         "::empty(",
@@ -162,7 +164,12 @@ fn records_an_operation(body: &str) -> bool {
 /// Each entry is a promise that replaying the log without it still produces the
 /// right database, and each says why. Anything not on this list that writes has
 /// to be logged.
-const NOT_IN_THE_LOG: [(&str, &str); 13] = [
+const NOT_IN_THE_LOG: [(&str, &str); 14] = [
+    (
+        "undo_last",
+        "records its operation one level down, inside `undo::undo`'s own \
+         transaction — held by `the_undo_path_records_an_operation` below",
+    ),
     (
         "run_plugin",
         "spawns an external process and writes no rows of its own; what a plugin \
@@ -253,6 +260,24 @@ fn the_shared_deletion_helper_records_an_operation() {
         source[at..end].contains("operation::record"),
         "`discard_and_record` records no operation, so every deletion in the application \
          is missing from the log"
+    );
+}
+
+/// Taking something back is recorded like anything else that changes rows.
+///
+/// `every_mutating_command_records_an_operation` passes over `undo_last`,
+/// because the write happens inside `undo::undo`. If that stopped recording,
+/// every undo in the application would fall out of the log at once and the
+/// command above would look innocent.
+#[test]
+fn the_undo_path_records_an_operation() {
+    let source = std::fs::read_to_string(repo_root().join("src-tauri/src/undo.rs"))
+        .expect("undo.rs is readable");
+
+    assert!(
+        source.contains("operation::record"),
+        "`undo::undo` records no operation, so undoing something would leave the log \
+         claiming the change is still in force"
     );
 }
 

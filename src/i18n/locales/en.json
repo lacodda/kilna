@@ -611,7 +611,8 @@
     "work.deletedBatch_one": "{{count}} work deleted.",
     "work.deletedBatch_other": "{{count}} works deleted.",
     "release.unscheduledBatch_one": "{{count}} release taken off the calendar.",
-    "release.unscheduledBatch_other": "{{count}} releases taken off the calendar."
+    "release.unscheduledBatch_other": "{{count}} releases taken off the calendar.",
+    "undo.done": "Took back {{action}}"
   },
   "card": {
     "tab": {
@@ -655,8 +656,25 @@
       "back": "Back",
       "forward": "Forward",
       "help": "This list",
-      "close": "Close what is open"
+      "close": "Close what is open",
+      "undo": "Take back the last change"
     },
-    "typing": "Letter shortcuts stand aside while you are typing; the ones with a modifier keep working."
+    "typing": "Letter shortcuts stand aside while you are typing; the ones with a modifier keep working — except Ctrl+Z, which belongs to the field you are in."
+  },
+  "undo": {
+    "nothing": "Nothing to undo",
+    "done": "Taken back: {{what}}",
+    "failed": "take that back",
+    "work.create": "adding a work",
+    "work.update": "an edit to a work",
+    "work.pinTier": "holding a work at a tier",
+    "note.create": "adding a note",
+    "note.update": "an edit to a note",
+    "collection.create": "adding a collection",
+    "collection.update": "an edit to a collection",
+    "release.create": "adding a release",
+    "release.update": "an edit to a release",
+    "release.markReleased": "marking a release as out",
+    "entity.discard": "a deletion"
   }
 }

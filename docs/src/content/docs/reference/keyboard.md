@@ -43,13 +43,21 @@ back where you started.
 
 | Keys | What it does |
 | --- | --- |
+| `Ctrl+Z` / `⌘Z` | Take back the last thing you changed |
 | `?` | This list |
 | `Esc` | Close what is open — a dialog, the search box, a full-screen editor |
 
+Undo takes back one thing: the last change to the workspace. Not every change
+can be taken back — a plan applied to the whole calendar, a status recomputed
+across the catalogue, and other things that touch many rows at once are left
+alone rather than half-reversed. When there is nothing to take back, kilna says
+so instead of doing something else. Deleting is safe regardless of any of this:
+it goes to the [trash](/kilna/guides/the-trash/), which is a drawer, not a
+shredder.
+
 ## While you are typing
 
-A shortcut must never cost you a sentence, so the rule is simple and it has no
-exceptions:
+A shortcut must never cost you a sentence:
 
 - **Letter shortcuts stand aside.** `G` and `?` do nothing while the focus is
   in a text field, a select, or anything made editable. They are letters, and
@@ -58,6 +66,11 @@ exceptions:
   a field on purpose — it is the way *out* of where you are. `Alt+←` walks back
   from inside the version editor for the same reason: `Alt` types nothing, so
   it interrupts nothing.
+- **`Ctrl+Z` belongs to the field you are in.** It is the one shortcut with a
+  modifier that stands aside, because inside a text field it already means
+  something — take back the word you just typed. Taking back a saved edit while
+  someone meant to take back a typo would be the worst kind of helpful. Step out
+  of the field and `Ctrl+Z` is kilna's again.
 
 ## The arrows belong to what is under them
 

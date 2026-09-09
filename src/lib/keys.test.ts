@@ -27,6 +27,34 @@ describe('readStroke', () => {
     expect(readStroke(stroke('?', { typing: true }))).toBeNull()
   })
 
+  it('reads Ctrl+Z as an undo', () => {
+    expect(readStroke(stroke('z', { ctrlKey: true }))).toEqual({ kind: 'undo' })
+  })
+
+  it('reads Cmd+Z as an undo too', () => {
+    expect(readStroke(stroke('z', { metaKey: true }))).toEqual({ kind: 'undo' })
+  })
+
+  it('reads an upper-case Z the same way', () => {
+    // Some layouts report `Z` when caps lock is on; the intent is the same.
+    expect(readStroke(stroke('Z', { ctrlKey: true }))).toEqual({ kind: 'undo' })
+  })
+
+  it('leaves Ctrl+Z to the field while text is being typed', () => {
+    // The sharpest case in this file: inside a textarea Ctrl+Z is the editor's
+    // own undo. Answering it here would take back a saved edit while the person
+    // meant to take back the word they just typed.
+    expect(readStroke(stroke('z', { ctrlKey: true, typing: true }))).toBeNull()
+  })
+
+  it('leaves Ctrl+Shift+Z alone, because redo is not undo', () => {
+    expect(readStroke(stroke('z', { ctrlKey: true, shiftKey: true }))).toBeNull()
+  })
+
+  it('leaves Ctrl+Alt+Z alone', () => {
+    expect(readStroke(stroke('z', { ctrlKey: true, altKey: true }))).toBeNull()
+  })
+
   it('walks the history on the browser keys', () => {
     expect(readStroke(stroke('ArrowLeft', { altKey: true }))).toEqual({
       kind: 'history',

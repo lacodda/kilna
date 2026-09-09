@@ -17,12 +17,14 @@ pub mod profile;
 pub mod readiness;
 pub mod release;
 pub mod replay;
+pub mod reversal;
 pub mod score;
 pub mod search;
 pub mod state;
 pub mod time;
 pub mod tombstone;
 pub mod trash;
+pub mod undo;
 pub mod work;
 
 pub use error::{Error, Result};
@@ -113,6 +115,8 @@ pub fn run() {
             commands::restore_deletion,
             commands::purge_deletion,
             commands::empty_trash,
+            commands::last_undoable,
+            commands::undo_last,
             commands::assistant_status,
             commands::list_chat_summaries,
             commands::create_chat,

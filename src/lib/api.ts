@@ -474,6 +474,22 @@ export const activateProfile = (id: string) => invoke<void>('activate_profile', 
 export const updateProfileConfig = (id: string, config: ProfileConfig) =>
   invoke<Profile>('update_profile_config', { id, config })
 
+/** What pressing undo would take back. */
+export interface Undoable {
+  /** The operation that would be reversed; sent back so a stale offer is refused. */
+  operationId: string
+  /** The i18n key naming it, e.g. `undo.work.update`. */
+  action: string
+  /** Values the sentence interpolates. */
+  params: Record<string, unknown>
+}
+
+/** What undo would take back right now, or null if nothing can be. */
+export const lastUndoable = () => invoke<Undoable | null>('last_undoable')
+
+/** Take back that operation. Fails if something else has happened since. */
+export const undoLast = (operation: string) => invoke<Undoable>('undo_last', { operation })
+
 export const listWorks = (filter?: WorkFilter) => invoke<Work[]>('list_works', { filter })
 export const getWork = (id: string) => invoke<Work | null>('get_work', { id })
 export const createWork = (work: NewWork) => invoke<Work>('create_work', { work })

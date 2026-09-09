@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { opensChord, readChord, readStroke, typing, type Stroke } from '@/lib/keys'
+import { useUndo } from '@/lib/useUndo'
 
 /** How long a `g` waits for its second key before giving up, in milliseconds.
  *
@@ -34,6 +35,7 @@ function strokeOf(event: KeyboardEvent): Stroke {
  */
 export function useKeys(): { helpOpen: boolean; setHelpOpen: (open: boolean) => void } {
   const navigate = useNavigate()
+  const { undo } = useUndo()
   const [helpOpen, setHelpOpen] = useState(false)
 
   // A ref rather than state: nothing renders differently while a chord is
@@ -76,6 +78,7 @@ export function useKeys(): { helpOpen: boolean; setHelpOpen: (open: boolean) => 
       event.preventDefault()
       if (intent.kind === 'help') setHelpOpen(true)
       else if (intent.kind === 'history') navigate(intent.delta)
+      else if (intent.kind === 'undo') undo()
     }
 
     window.addEventListener('keydown', onKey)
@@ -83,7 +86,7 @@ export function useKeys(): { helpOpen: boolean; setHelpOpen: (open: boolean) => 
       window.removeEventListener('keydown', onKey)
       drop()
     }
-  }, [navigate])
+  }, [navigate, undo])
 
   return { helpOpen, setHelpOpen }
 }

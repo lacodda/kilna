@@ -20,6 +20,8 @@ export type Intent =
   | { kind: 'help' }
   /** Walk the history, the way a browser's buttons do. */
   | { kind: 'history'; delta: -1 | 1 }
+  /** Take back the last thing that changed the workspace. */
+  | { kind: 'undo' }
 
 /**
  * Enough of a `KeyboardEvent` to decide. Taking the fields rather than the
@@ -94,6 +96,18 @@ export function readStroke(stroke: Stroke): Intent | null {
   if (altKey && !ctrlKey && !metaKey && !shiftKey) {
     if (key === 'ArrowLeft') return { kind: 'history', delta: -1 }
     if (key === 'ArrowRight') return { kind: 'history', delta: 1 }
+  }
+
+  // Undo, on the modifier the platform uses. Typing wins here as everywhere,
+  // and for the sharpest reason in this file: inside a text field Ctrl+Z is the
+  // field's own undo, and stealing it would take back a saved edit while the
+  // person meant to take back the word they just typed.
+  //
+  // Shift disqualifies it rather than being ignored. Ctrl+Shift+Z is redo on
+  // most platforms, and kilna has no redo — answering it with an undo would
+  // walk backwards when the person asked to walk forwards.
+  if ((ctrlKey || metaKey) && !altKey && !shiftKey && key.toLowerCase() === 'z') {
+    return stroke.typing ? null : { kind: 'undo' }
   }
 
   // Everything below is a bare key, so a field being focused settles it.

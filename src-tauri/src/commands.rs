@@ -18,11 +18,13 @@ use crate::operation;
 use crate::plugin::{self, manifest::Plugin, manifest::Target};
 use crate::profile::{self, Profile, Workspace};
 use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
+use crate::reversal;
 use crate::score::{self, NewScore, Score, ScoredWork};
 use crate::search::{self, Hit};
 use crate::state::AppState;
 use crate::time;
 use crate::trash::{self, Deletion};
+use crate::undo;
 use crate::work::version::{self, NewVersion, Version, VersionSummary};
 use crate::work::{self, NewWork, Work, WorkFilter, WorkPatch};
 
@@ -82,6 +84,31 @@ fn recording<T>(
     operation::record(&transaction, logged)?;
     transaction.commit()?;
     Ok(done)
+}
+
+/// What the fields a patch names held before it was applied.
+///
+/// Recorded beside the patch so that an undo has something to put back. Only
+/// the patched fields: reverting a rename must not also revert a status
+/// somebody set in between — see [`crate::reversal`], which holds the rule and
+/// the tests for it.
+///
+/// A row that is not there yields an empty object rather than an error. The
+/// change about to be attempted will fail on its own and say so properly; a log
+/// helper is not the place to decide that.
+fn was<T: serde::Serialize, P: serde::Serialize>(
+    before: Option<&T>,
+    patch: &P,
+) -> Result<serde_json::Value> {
+    let (Some(before), Ok(serde_json::Value::Object(patch))) =
+        (before, serde_json::to_value(patch))
+    else {
+        return Ok(serde_json::Value::Object(serde_json::Map::new()));
+    };
+    let serde_json::Value::Object(before) = serde_json::to_value(before)? else {
+        return Ok(serde_json::Value::Object(serde_json::Map::new()));
+    };
+    Ok(serde_json::Value::Object(reversal::invert(&before, &patch)))
 }
 
 /// The stable key of a profile, for the operations log.
@@ -199,6 +226,7 @@ pub fn update_work(state: State<'_, AppState>, id: String, patch: WorkPatch) -> 
         .param("profile", profile_key(&conn, &profile_id)?)
         .param("id", id.clone())
         .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?)
         .param("at", at.clone());
 
     let updated = recording(&mut conn, logged, |tx| work::update_at(tx, &id, patch, &at))?;
@@ -318,14 +346,28 @@ pub fn pin_tier(
 ) -> Result<Work> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
+    let before = work::get(&conn, &id)?;
 
     let at = time::now();
+    // The prior pin travels with the intent so an undo can put it back exactly
+    // as it stood — `null` means there was no pin to restore. See ADR 0014.
+    let (before_tier, before_reason) =
+        before
+            .as_ref()
+            .map_or((serde_json::Value::Null, serde_json::Value::Null), |work| {
+                (
+                    serde_json::to_value(&work.tier_pinned).unwrap_or(serde_json::Value::Null),
+                    serde_json::to_value(&work.tier_pin_reason).unwrap_or(serde_json::Value::Null),
+                )
+            });
     let logged = operation::Intent::new("work.pinTier")
         .in_profile(&profile_id)
         .param("profile", profile_key(&conn, &profile_id)?)
         .param("id", id.clone())
         .param("tier", tier.clone())
         .param("reason", reason.clone())
+        .param("beforeTier", before_tier)
+        .param("beforeReason", before_reason)
         .param("at", at.clone());
 
     let pinned = recording(&mut conn, logged, |tx| {
@@ -794,6 +836,7 @@ pub fn create_note(state: State<'_, AppState>, note: NewNote) -> Result<Note> {
 pub fn update_note(state: State<'_, AppState>, id: String, patch: NotePatch) -> Result<Note> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
+    let before = note::get(&conn, &id)?;
 
     let at = time::now();
     let logged = operation::Intent::new("note.update")
@@ -801,6 +844,7 @@ pub fn update_note(state: State<'_, AppState>, id: String, patch: NotePatch) -> 
         .param("profile", profile_key(&conn, &profile_id)?)
         .param("id", id.clone())
         .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?)
         .param("at", at.clone());
 
     recording(&mut conn, logged, |tx| note::update_at(tx, &id, patch, &at))
@@ -882,6 +926,7 @@ pub fn update_focus_note(
 ) -> Result<FocusNote> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
+    let before = focus::get_note(&conn, &id)?;
 
     let at = time::now();
     let logged = operation::Intent::new("focusNote.update")
@@ -889,6 +934,7 @@ pub fn update_focus_note(
         .param("profile", profile_key(&conn, &profile_id)?)
         .param("id", id.clone())
         .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?)
         .param("at", at.clone());
 
     recording(&mut conn, logged, |tx| {
@@ -1069,6 +1115,7 @@ pub fn update_release(
         .param("profile", profile_key(&conn, &profile_id)?)
         .param("id", id.clone())
         .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?)
         .param("at", at.clone());
 
     let updated = recording(&mut conn, logged, |tx| {
@@ -1474,6 +1521,7 @@ pub fn update_collection(
 ) -> Result<Collection> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
+    let before = collection::get(&conn, &id)?;
 
     let at = time::now();
     let logged = operation::Intent::new("collection.update")
@@ -1481,6 +1529,7 @@ pub fn update_collection(
         .param("profile", profile_key(&conn, &profile_id)?)
         .param("id", id.clone())
         .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?)
         .param("at", at.clone());
 
     recording(&mut conn, logged, |tx| {
@@ -1605,6 +1654,38 @@ pub fn empty_trash(state: State<'_, AppState>) -> Result<usize> {
         .param("profile", profile_key(&conn, &profile_id)?);
 
     recording(&mut conn, logged, |tx| trash::empty(tx, &profile_id))
+}
+
+/// What pressing undo would take back, if anything.
+///
+/// Read fresh rather than remembered by the frontend: between the last action
+/// and the keystroke, a sweep or a second window may have written, and an offer
+/// built from a stale memory would name the wrong thing.
+#[tauri::command]
+pub fn last_undoable(state: State<'_, AppState>) -> Result<Option<undo::Undoable>> {
+    let conn = state.conn();
+    undo::last(&conn)
+}
+
+/// Take back the operation the offer names.
+///
+/// The id travels back rather than being implied, so that an offer read a
+/// moment ago cannot silently reverse something newer — `undo::undo` refuses
+/// when they disagree.
+#[tauri::command]
+pub fn undo_last(state: State<'_, AppState>, operation: String) -> Result<undo::Undoable> {
+    let mut conn = state.conn();
+    let taken = undo::undo(&mut conn, &operation)?;
+
+    if let Ok(profile_id) = active_profile_id(&conn) {
+        journal::record(
+            &conn,
+            &profile_id,
+            Record::new("undo.done").param("action", taken.action.clone()),
+        );
+    }
+
+    Ok(taken)
 }
 
 /// Write the active profile out as markdown.

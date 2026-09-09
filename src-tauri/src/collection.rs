@@ -45,11 +45,17 @@ pub struct NewCollection {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CollectionPatch {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub meta: Option<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target_size: Option<Option<i64>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub due_on: Option<Option<String>>,
 }
 

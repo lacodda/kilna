@@ -64,13 +64,21 @@ pub struct NewRelease {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ReleasePatch {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scheduled_at: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub meta: Option<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scheduled_time: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub time_zone: Option<Option<String>>,
 }
 
