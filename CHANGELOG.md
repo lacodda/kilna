@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.52.0] - 2026-09-09
+
+### Features
+- Take back the last thing you changed
+- Offer the undo where the edit happened
 ## [0.51.0] - 2026-09-09
 
 ### Features
