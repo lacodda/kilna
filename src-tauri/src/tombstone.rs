@@ -211,7 +211,7 @@ mod tests {
         let (work_id, [version_id, ..]) = a_full_work(&mut conn, &profile_id);
         let entry = trash::discard(&mut conn, Entity::Work, &work_id).unwrap();
 
-        trash::restore(&mut conn, &entry).unwrap();
+        trash::restore(&mut conn, &entry, None).unwrap();
 
         let stone = get(&conn, "work", &work_id).unwrap().expect("kept");
         assert!(!stone.is_buried());
@@ -226,7 +226,7 @@ mod tests {
         let (mut conn, profile_id) = workspace();
         let (work_id, _) = a_full_work(&mut conn, &profile_id);
         let entry = trash::discard(&mut conn, Entity::Work, &work_id).unwrap();
-        trash::restore(&mut conn, &entry).unwrap();
+        trash::restore(&mut conn, &entry, None).unwrap();
 
         trash::discard(&mut conn, Entity::Work, &work_id).unwrap();
 
@@ -244,7 +244,7 @@ mod tests {
         let (work_id, _) = a_full_work(&mut conn, &profile_id);
         let entry = trash::discard(&mut conn, Entity::Work, &work_id).unwrap();
 
-        trash::purge(&mut conn, &entry).unwrap();
+        trash::purge(&mut conn, &entry, None).unwrap();
         assert!(buried(&conn, "work", &work_id), "purged, still buried");
 
         let (other_id, _) = a_full_work(&mut conn, &profile_id);
@@ -302,7 +302,7 @@ mod tests {
         assert!(!buried_work_title(&conn, "another-profile", "Harbour lights").unwrap());
         assert!(!buried_work_title(&conn, &profile_id, "Paper boats").unwrap());
 
-        trash::restore(&mut conn, &entry).unwrap();
+        trash::restore(&mut conn, &entry, None).unwrap();
         assert!(!buried_work_title(&conn, &profile_id, "Harbour lights").unwrap());
     }
 }

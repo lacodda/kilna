@@ -68,9 +68,9 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            tables, 18,
+            tables, 19,
             "nine core tables, three for the assistant, the trash, two for the focus board, \
-             and three for the day two workspaces meet: device, tombstone, field_clock"
+             three for the day two workspaces meet (device, tombstone, field_clock), and the operations log"
         );
     }
 

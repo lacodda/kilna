@@ -194,7 +194,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             )?;
 
             if let Some(slot) = slot {
-                release::schedule(&mut conn, &planned.id, slot)?;
+                release::schedule(&conn, &planned.id, slot)?;
             }
         }
 

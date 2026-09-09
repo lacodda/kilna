@@ -2,6 +2,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
+use crate::minted::Minted;
 use crate::time::now;
 
 /// Ideas, lore, reference — one type distinguished by `kind` and tags rather
@@ -20,7 +21,7 @@ pub struct Note {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewNote {
     pub body: String,
     #[serde(default)]
@@ -33,7 +34,7 @@ pub struct NewNote {
     pub tags: Vec<String>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct NotePatch {
     pub title: Option<Option<String>>,
     pub body: Option<String>,
@@ -57,8 +58,22 @@ const SELECT_NOTE: &str =
     "SELECT id, profile_id, work_id, kind, title, body, tags, created_at, updated_at FROM note";
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewNote) -> Result<Note> {
-    let id = uuid::Uuid::new_v4().to_string();
-    let timestamp = now();
+    create_minted(conn, profile_id, new, Minted::fresh())
+}
+
+/// Create a note with the id and timestamp already decided.
+///
+/// The seam a replay comes back through: live, `create` mints them; replaying,
+/// the log supplies what the first run generated, so the note lands under the
+/// id everything else already names. See ADR 0014.
+pub fn create_minted(
+    conn: &Connection,
+    profile_id: &str,
+    new: NewNote,
+    minted: Minted,
+) -> Result<Note> {
+    let id = minted.id().to_owned();
+    let timestamp = minted.at().to_owned();
 
     conn.execute(
         "INSERT INTO note (id, profile_id, work_id, kind, title, body, tags, created_at, updated_at)
@@ -132,6 +147,15 @@ pub fn list(conn: &Connection, profile_id: &str, filter: &NoteFilter) -> Result<
 }
 
 pub fn update(conn: &Connection, id: &str, patch: NotePatch) -> Result<Note> {
+    update_at(conn, id, patch, &now())
+}
+
+/// Update a note with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `update` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded, so the
+/// edit lands with the time it actually happened. See ADR 0014.
+pub fn update_at(conn: &Connection, id: &str, patch: NotePatch, at: &str) -> Result<Note> {
     let mut assignments: Vec<String> = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
@@ -170,7 +194,12 @@ pub fn update(conn: &Connection, id: &str, patch: NotePatch) -> Result<Note> {
         return get(conn, id)?.ok_or_else(|| unknown_note(id));
     }
 
-    set(&mut assignments, &mut values, "updated_at", Box::new(now()));
+    set(
+        &mut assignments,
+        &mut values,
+        "updated_at",
+        Box::new(at.to_owned()),
+    );
     values.push(Box::new(id.to_owned()));
 
     let sql = format!(

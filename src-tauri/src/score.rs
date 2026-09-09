@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
+use crate::minted::Minted;
 use crate::profile;
-use crate::time::now;
 
 /// A score is a snapshot pinned to a version, never an overwrite of the work.
 /// That is what makes the effect of a revision visible — the reason scoring
@@ -28,7 +28,7 @@ pub struct Score {
     pub revision: Option<i64>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewScore {
     pub axes: Map<String, Value>,
     /// Defaults to the work's current version.
@@ -127,6 +127,20 @@ pub fn speaking_score_for(work_column: &str) -> String {
 /// from the caller: two clients must not be able to disagree about what a set
 /// of axis values is worth.
 pub fn create(conn: &Connection, work_id: &str, new: NewScore) -> Result<Score> {
+    create_minted(conn, work_id, new, Minted::fresh())
+}
+
+/// Record a score with the id and timestamp already decided.
+///
+/// The seam a replay comes back through: live, `create` mints them; replaying,
+/// the log supplies what the first run generated, so the score lands under the
+/// id everything else already names. See ADR 0014.
+pub fn create_minted(
+    conn: &Connection,
+    work_id: &str,
+    new: NewScore,
+    minted: Minted,
+) -> Result<Score> {
     let (profile_id, current_version): (String, Option<String>) = conn
         .query_row(
             "SELECT profile_id, current_version_id FROM work WHERE id = ?1",
@@ -157,8 +171,8 @@ pub fn create(conn: &Connection, work_id: &str, new: NewScore) -> Result<Score> 
         }
     }
 
-    let id = uuid::Uuid::new_v4().to_string();
-    let scored_at = now();
+    let id = minted.id().to_owned();
+    let scored_at = minted.at().to_owned();
 
     conn.execute(
         "INSERT INTO work_score (id, work_id, version_id, axes, total, tier, note, rater, scored_at)
@@ -441,7 +455,7 @@ mod tests {
     /// places or the two screens disagree about the same work.
     #[test]
     fn the_catalogue_counts_slots_and_releases() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
 
         let row = catalogue_row(&conn, &profile_id, &work_id);
@@ -467,7 +481,7 @@ mod tests {
             "a release with no date holds no slot"
         );
 
-        crate::release::schedule(&mut conn, &undated.id, "2026-09-01").unwrap();
+        crate::release::schedule(&conn, &undated.id, "2026-09-01").unwrap();
         let row = catalogue_row(&conn, &profile_id, &work_id);
         assert_eq!((row.released, row.scheduled), (0, 1));
 

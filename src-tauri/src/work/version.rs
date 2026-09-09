@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
+use crate::minted::Minted;
 use crate::time::now;
 
 /// A draft kept whole. Bodies are never stored as diffs — see ADR 0002.
@@ -38,7 +39,7 @@ pub struct VersionSummary {
     pub is_current: bool,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewVersion {
     pub role: String,
     pub body: String,
@@ -68,7 +69,32 @@ const SELECT_VERSION: &str = "SELECT id, work_id, role, revision, label, body, m
 /// The revision counts up per (work, role), so lyrics and style advance
 /// independently — revising a style prompt does not renumber the lyrics.
 pub fn create(conn: &mut Connection, work_id: &str, new: NewVersion) -> Result<Version> {
+    create_minted(conn, work_id, new, Minted::fresh(), None)
+}
+
+/// Add a version with the id and timestamp already decided, recording the
+/// operation that asked for it.
+///
+/// The seam a replay comes back through: live, `create` mints them; replaying,
+/// the log supplies what the first run generated, so the version lands under
+/// the id everything else already names. See ADR 0014.
+///
+/// The operation is written inside this function's own transaction rather than
+/// by the caller around it, for the reason [`crate::trash::discard_minted`]
+/// gives: a log entry committed beside an insert that then failed would replay
+/// into a version that never landed.
+pub fn create_minted(
+    conn: &mut Connection,
+    work_id: &str,
+    new: NewVersion,
+    minted: Minted,
+    logged: Option<crate::operation::Intent>,
+) -> Result<Version> {
     let tx = conn.transaction()?;
+
+    if let Some(logged) = logged {
+        crate::operation::record(&tx, logged)?;
+    }
 
     let exists: bool = tx
         .query_row("SELECT 1 FROM work WHERE id = ?1", params![work_id], |_| {
@@ -106,8 +132,8 @@ pub fn create(conn: &mut Connection, work_id: &str, new: NewVersion) -> Result<V
         }
     }
 
-    let id = uuid::Uuid::new_v4().to_string();
-    let timestamp = now();
+    let id = minted.id().to_owned();
+    let timestamp = minted.at().to_owned();
 
     tx.execute(
         "INSERT INTO work_version (id, work_id, role, revision, label, body, meta, created_at,

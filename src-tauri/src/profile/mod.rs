@@ -301,6 +301,33 @@ pub fn active(conn: &Connection) -> Result<Option<Profile>> {
     raw.map(RawProfile::into_profile).transpose()
 }
 
+/// The profile a stable key names, whatever id this workspace gave it.
+///
+/// A profile's id is minted by [`seed`] on the machine that first opened the
+/// workspace, so the same builtin profile has a different id in every copy. The
+/// key does not move, which is why the operations log names profiles by key and
+/// resolves them through here when a replay rebuilds elsewhere. See ADR 0014.
+pub fn id_for_key(conn: &Connection, key: &str) -> Result<Option<String>> {
+    Ok(conn
+        .query_row(
+            "SELECT id FROM profile WHERE key = ?1",
+            params![key],
+            |row| row.get(0),
+        )
+        .optional()?)
+}
+
+/// The stable key of the profile an id names.
+pub fn key_for_id(conn: &Connection, profile_id: &str) -> Result<Option<String>> {
+    Ok(conn
+        .query_row(
+            "SELECT key FROM profile WHERE id = ?1",
+            params![profile_id],
+            |row| row.get(0),
+        )
+        .optional()?)
+}
+
 /// One profile's configuration, without the rest of the row.
 ///
 /// Used by everything that has a profile id in hand and needs the vocabulary

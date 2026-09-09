@@ -98,6 +98,19 @@ fn status_named(config: &ProfileConfig, meaning: Derive) -> Option<String> {
 /// fact — a score, a schedule, a release going out — so the field never has to
 /// be written by the code that changed the fact.
 pub fn refresh(conn: &Connection, config: &ProfileConfig, work_id: &str) -> Result<Option<Change>> {
+    refresh_at(conn, config, work_id, &now())
+}
+
+/// Recompute one work's status with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `refresh` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. See ADR 0014.
+pub fn refresh_at(
+    conn: &Connection,
+    config: &ProfileConfig,
+    work_id: &str,
+    at: &str,
+) -> Result<Option<Change>> {
     let row: Option<(String, String, Option<String>)> = conn
         .query_row(
             "SELECT title, status, status_pinned_at FROM work WHERE id = ?1",
@@ -122,7 +135,7 @@ pub fn refresh(conn: &Connection, config: &ProfileConfig, work_id: &str) -> Resu
 
     conn.execute(
         "UPDATE work SET status = ?2, updated_at = ?3 WHERE id = ?1",
-        params![work_id, derived, now()],
+        params![work_id, derived, at],
     )?;
 
     Ok(Some(Change {
@@ -181,12 +194,24 @@ pub fn drift(conn: &Connection, config: &ProfileConfig, profile_id: &str) -> Res
 /// Apply what [`drift`] found. Pinned works are excluded by `drift` itself, so
 /// this cannot reach one.
 pub fn resync(conn: &Connection, config: &ProfileConfig, profile_id: &str) -> Result<Vec<Change>> {
+    resync_at(conn, config, profile_id, &now())
+}
+
+/// Apply what [`drift`] found with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `resync` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. See ADR 0014.
+pub fn resync_at(
+    conn: &Connection,
+    config: &ProfileConfig,
+    profile_id: &str,
+    at: &str,
+) -> Result<Vec<Change>> {
     let changes = drift(conn, config, profile_id)?;
-    let timestamp = now();
     for change in &changes {
         conn.execute(
             "UPDATE work SET status = ?2, updated_at = ?3 WHERE id = ?1",
-            params![change.work_id, change.to, timestamp],
+            params![change.work_id, change.to, at],
         )?;
     }
     Ok(changes)
@@ -197,11 +222,24 @@ pub fn resync(conn: &Connection, config: &ProfileConfig, profile_id: &str) -> Re
 /// Unpinning without recomputing would leave the hand-set word in place with
 /// nothing claiming it — the state the whole arrangement exists to avoid.
 pub fn unpin(conn: &Connection, config: &ProfileConfig, work_id: &str) -> Result<Option<Change>> {
+    unpin_at(conn, config, work_id, &now())
+}
+
+/// Unpin a status with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `unpin` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. See ADR 0014.
+pub fn unpin_at(
+    conn: &Connection,
+    config: &ProfileConfig,
+    work_id: &str,
+    at: &str,
+) -> Result<Option<Change>> {
     conn.execute(
         "UPDATE work SET status_pinned_at = NULL WHERE id = ?1",
         params![work_id],
     )?;
-    refresh(conn, config, work_id)
+    refresh_at(conn, config, work_id, at)
 }
 
 #[cfg(test)]
@@ -308,10 +346,10 @@ mod tests {
 
     #[test]
     fn a_slot_makes_a_work_scheduled() {
-        let (mut conn, profile_id, config) = workspace();
+        let (conn, profile_id, config) = workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
         let release_id = a_release(&conn, &work_id);
-        releases::schedule(&mut conn, &release_id, "2026-09-01").unwrap();
+        releases::schedule(&conn, &release_id, "2026-09-01").unwrap();
 
         refresh(&conn, &config, &work_id).unwrap();
         assert_eq!(status_of(&conn, &work_id), "scheduled");
@@ -321,12 +359,12 @@ mod tests {
     /// booked is released, not scheduled.
     #[test]
     fn going_out_outranks_being_booked() {
-        let (mut conn, profile_id, config) = workspace();
+        let (conn, profile_id, config) = workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
         let gone = a_release(&conn, &work_id);
         releases::mark_released(&conn, &gone, None, None).unwrap();
         let booked = a_release(&conn, &work_id);
-        releases::schedule(&mut conn, &booked, "2026-09-01").unwrap();
+        releases::schedule(&conn, &booked, "2026-09-01").unwrap();
 
         refresh(&conn, &config, &work_id).unwrap();
         assert_eq!(status_of(&conn, &work_id), "released");

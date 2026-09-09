@@ -12,13 +12,16 @@ use crate::exchange::import::{self, ImportReport};
 use crate::focus::{self, Dismissal, DismissalKey, FocusNote, FocusNotePatch, NewFocusNote};
 use crate::journal::{self, Entry, Record};
 use crate::layout;
+use crate::minted::Minted;
 use crate::note::{self, NewNote, Note, NoteFilter, NotePatch};
+use crate::operation;
 use crate::plugin::{self, manifest::Plugin, manifest::Target};
 use crate::profile::{self, Profile, Workspace};
 use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
 use crate::score::{self, NewScore, Score, ScoredWork};
 use crate::search::{self, Hit};
 use crate::state::AppState;
+use crate::time;
 use crate::trash::{self, Deletion};
 use crate::work::version::{self, NewVersion, Version, VersionSummary};
 use crate::work::{self, NewWork, Work, WorkFilter, WorkPatch};
@@ -55,6 +58,39 @@ pub fn update_profile_config(
 ) -> Result<Profile> {
     let conn = state.conn();
     profile::update_config(&conn, &id, &config)
+}
+
+/// Do something to the workspace and record the operation that asked for it, in
+/// one transaction.
+///
+/// Every mutating command goes through here, so that the log entry and the rows
+/// it describes arrive together or not at all. Writing the operation beside the
+/// change instead would leave, on the one failure in a thousand, a log that
+/// replays into a database that never existed — the failure this whole stage is
+/// against. See ADR 0014.
+///
+/// The closure gets the transaction, not the connection: a domain function that
+/// opens its own cannot be used here, and takes the operation as an argument
+/// instead — see `trash::discard_minted`.
+fn recording<T>(
+    conn: &mut rusqlite::Connection,
+    logged: operation::Intent,
+    change: impl FnOnce(&rusqlite::Transaction<'_>) -> Result<T>,
+) -> Result<T> {
+    let transaction = conn.transaction()?;
+    let done = change(&transaction)?;
+    operation::record(&transaction, logged)?;
+    transaction.commit()?;
+    Ok(done)
+}
+
+/// The stable key of a profile, for the operations log.
+///
+/// Operations name profiles by key rather than by id: an id is minted per
+/// workspace, so a log replayed into another copy would look for a profile that
+/// is not there under that name. See ADR 0014.
+fn profile_key(conn: &rusqlite::Connection, profile_id: &str) -> Result<String> {
+    profile::key_for_id(conn, profile_id)?.ok_or_else(|| Error::not_found("profile", profile_id))
 }
 
 /// The id of the active profile, or an error the frontend can show.
@@ -113,9 +149,24 @@ pub fn get_work(state: State<'_, AppState>, id: String) -> Result<Option<Work>> 
 
 #[tauri::command]
 pub fn create_work(state: State<'_, AppState>, work: NewWork) -> Result<Work> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let created = work::create(&conn, &profile_id, work)?;
+
+    // Minted out here, not inside `work::create`, so the same id and timestamp
+    // reach both the row and the log: a replay rebuilds the work under the id
+    // that every version, score and release already names. The two writes share
+    // a transaction — a log entry for a work that failed to insert would replay
+    // into a row that never existed. See ADR 0014.
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("work.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("work", serde_json::to_value(&work)?)
+        .minted(&minted);
+
+    let created = recording(&mut conn, logged, |tx| {
+        work::create_minted(tx, &profile_id, work, minted)
+    })?;
 
     journal::record(
         &conn,
@@ -135,10 +186,22 @@ pub fn create_work(state: State<'_, AppState>, work: NewWork) -> Result<Work> {
 /// a status change is the one edit the calendar and the catalogue both react to.
 #[tauri::command]
 pub fn update_work(state: State<'_, AppState>, id: String, patch: WorkPatch) -> Result<Work> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
     let before = work::get(&conn, &id)?;
-    let updated = work::update(&conn, &id, patch)?;
+
+    // The moment is decided here so the row and the log agree on it: an edit
+    // replayed at a different instant leaves a different `updated_at`, and the
+    // rebuilt database stops matching. See ADR 0014.
+    let at = time::now();
+    let logged = operation::Intent::new("work.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("at", at.clone());
+
+    let updated = recording(&mut conn, logged, |tx| work::update_at(tx, &id, patch, &at))?;
 
     if let Some(before) = before {
         if before.title != updated.title {
@@ -187,10 +250,19 @@ pub fn status_drift(state: State<'_, AppState>) -> Result<Vec<work::status::Chan
 /// Apply what [`status_drift`] reported.
 #[tauri::command]
 pub fn resync_statuses(state: State<'_, AppState>) -> Result<Vec<work::status::Change>> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
     let config = profile::config_for(&conn, &profile_id)?;
-    let changes = work::status::resync(&conn, &config, &profile_id)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("status.resync")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("at", at.clone());
+
+    let changes = recording(&mut conn, logged, |tx| {
+        work::status::resync_at(tx, &config, &profile_id, &at)
+    })?;
 
     if !changes.is_empty() {
         journal::record(
@@ -206,11 +278,22 @@ pub fn resync_statuses(state: State<'_, AppState>) -> Result<Vec<work::status::C
 /// Hand one work's status back to the automation.
 #[tauri::command]
 pub fn unpin_status(state: State<'_, AppState>, id: String) -> Result<Work> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
     let config = profile::config_for(&conn, &profile_id)?;
 
-    if let Some(change) = work::status::unpin(&conn, &config, &id)? {
+    let at = time::now();
+    let logged = operation::Intent::new("work.unpinStatus")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("at", at.clone());
+
+    let change = recording(&mut conn, logged, |tx| {
+        work::status::unpin_at(tx, &config, &id, &at)
+    })?;
+
+    if let Some(change) = change {
         journal::record(
             &conn,
             &profile_id,
@@ -233,9 +316,22 @@ pub fn pin_tier(
     tier: String,
     reason: String,
 ) -> Result<Work> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let pinned = work::pin_tier(&conn, &id, &tier, &reason)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("work.pinTier")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("tier", tier.clone())
+        .param("reason", reason.clone())
+        .param("at", at.clone());
+
+    let pinned = recording(&mut conn, logged, |tx| {
+        work::pin_tier_at(tx, &id, &tier, &reason, &at)
+    })?;
+
     journal::record(
         &conn,
         &profile_id,
@@ -251,9 +347,18 @@ pub fn pin_tier(
 /// Let the score speak for the work's tier again.
 #[tauri::command]
 pub fn unpin_tier(state: State<'_, AppState>, id: String) -> Result<Work> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let freed = work::unpin_tier(&conn, &id)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("work.unpinTier")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("at", at.clone());
+
+    let freed = recording(&mut conn, logged, |tx| work::unpin_tier_at(tx, &id, &at))?;
+
     journal::record(
         &conn,
         &profile_id,
@@ -266,23 +371,7 @@ pub fn unpin_tier(state: State<'_, AppState>, id: String) -> Result<Work> {
 
 #[tauri::command]
 pub fn delete_work(state: State<'_, AppState>, id: String) -> Result<String> {
-    let mut conn = state.conn();
-    let profile_id = active_profile_id(&conn)?;
-    // Read the title while the row is still there. Afterwards there is nothing
-    // left to ask, and an entry saying a work was deleted without saying which
-    // one is worse than no entry at all.
-    let title = journal::work_title(&conn, &id);
-    let entry = trash::discard(&mut conn, trash::Entity::Work, &id)?;
-
-    journal::record(
-        &conn,
-        &profile_id,
-        Record::new("work.deleted")
-            .param("title", title.unwrap_or_else(|| id.clone()))
-            .about("work", id),
-    );
-
-    Ok(entry)
+    discard_and_record(&state, trash::Entity::Work, &id)
 }
 
 /// What a bulk edit did. Counted rather than returned row by row: the catalogue
@@ -312,7 +401,7 @@ pub fn set_works_status(
     work_ids: Vec<String>,
     status: String,
 ) -> Result<BulkOutcome> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
 
     // Refused before anything changes rather than once per work: a status the
@@ -322,32 +411,56 @@ pub fn set_works_status(
         return Err(Error::not_found("status", &status));
     }
 
-    let mut changed = 0usize;
+    // The moment is decided here so every work in the batch, and the log
+    // entry describing it, agree on it. See ADR 0014.
+    let at = time::now();
+    let mut moved: Vec<String> = Vec::new();
     let mut skipped = 0usize;
 
-    for work_id in &work_ids {
-        let before = work::get(&conn, work_id)?;
-        if before.as_ref().is_some_and(|work| work.status == status) {
-            skipped += 1;
-            continue;
-        }
+    {
+        let tx = conn.transaction()?;
 
-        let patch = WorkPatch {
-            status: Some(status.clone()),
-            ..WorkPatch::default()
-        };
-
-        // One work failing must not take the batch with it — the others are
-        // unrelated, and a half-applied batch is more useful than none.
-        match work::update(&conn, work_id, patch) {
-            Ok(_) => changed += 1,
-            Err(cause) => {
-                eprintln!("status: {work_id} could not be moved: {cause}");
+        for work_id in &work_ids {
+            let before = work::get(&tx, work_id)?;
+            if before.as_ref().is_some_and(|work| work.status == status) {
                 skipped += 1;
+                continue;
+            }
+
+            let patch = WorkPatch {
+                status: Some(status.clone()),
+                ..WorkPatch::default()
+            };
+
+            // One work failing must not take the batch with it — the others
+            // are unrelated, and a half-applied batch is more useful than
+            // none.
+            match work::update_at(&tx, work_id, patch, &at) {
+                Ok(_) => moved.push(work_id.clone()),
+                Err(cause) => {
+                    eprintln!("status: {work_id} could not be moved: {cause}");
+                    skipped += 1;
+                }
             }
         }
+
+        // Only the works actually moved go in the log: a work already at this
+        // status was skipped, and recording it would replay `updated_at` onto
+        // a row a repeat run never touched.
+        if !moved.is_empty() {
+            let logged = operation::Intent::new("work.setStatusBatch")
+                .in_profile(&profile_id)
+                .param("profile", profile_key(&tx, &profile_id)?)
+                .param("workIds", serde_json::to_value(&moved)?)
+                .param("status", status.clone())
+                .param("at", at.clone());
+            operation::record(&tx, logged)?;
+        }
+
+        tx.commit()?;
     }
 
+    let changed = moved.len();
     if changed > 0 {
         journal::record(
             &conn,
@@ -368,32 +481,56 @@ pub fn set_works_status(
 /// booked any more goes back to saying so on its own.
 #[tauri::command]
 pub fn unschedule_works(state: State<'_, AppState>, work_ids: Vec<String>) -> Result<BulkOutcome> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
 
-    let mut changed = 0usize;
+    // The moment is decided here so every release taken off the calendar, and
+    // the log entry describing it, agree on it. See ADR 0014.
+    let at = time::now();
+    let mut released_ids: Vec<String> = Vec::new();
     let mut skipped = 0usize;
 
-    for work_id in &work_ids {
-        let scheduled = release::scheduled_for(&conn, work_id)?;
-        if scheduled.is_empty() {
-            skipped += 1;
-            continue;
-        }
+    {
+        let tx = conn.transaction()?;
 
-        for release_id in scheduled {
-            match release::unschedule(&conn, &release_id) {
-                Ok(_) => changed += 1,
-                Err(cause) => {
-                    eprintln!("calendar: {release_id} could not be unscheduled: {cause}");
-                    skipped += 1;
+        for work_id in &work_ids {
+            let scheduled = release::scheduled_for(&tx, work_id)?;
+            if scheduled.is_empty() {
+                skipped += 1;
+                continue;
+            }
+
+            for release_id in scheduled {
+                match release::unschedule_at(&tx, &release_id, &at) {
+                    Ok(_) => released_ids.push(release_id),
+                    Err(cause) => {
+                        eprintln!("calendar: {release_id} could not be unscheduled: {cause}");
+                        skipped += 1;
+                    }
                 }
             }
         }
 
+        // Only the releases actually taken off the calendar go in the log: a
+        // work with nothing booked was skipped, and recording it would replay
+        // an unschedule onto a release a repeat run never touched.
+        if !released_ids.is_empty() {
+            let logged = operation::Intent::new("release.unscheduleBatch")
+                .in_profile(&profile_id)
+                .param("profile", profile_key(&tx, &profile_id)?)
+                .param("releaseIds", serde_json::to_value(&released_ids)?)
+                .param("at", at.clone());
+            operation::record(&tx, logged)?;
+        }
+
+        tx.commit()?;
+    }
+
+    for work_id in &work_ids {
         restate(&conn, &profile_id, work_id);
     }
 
+    let changed = released_ids.len();
     if changed > 0 {
         journal::record(
             &conn,
@@ -417,35 +554,56 @@ pub fn unschedule_works(state: State<'_, AppState>, work_ids: Vec<String>) -> Re
 pub fn delete_works(state: State<'_, AppState>, ids: Vec<String>) -> Result<Vec<String>> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let mut entries = Vec::new();
 
-    for id in &ids {
-        // Read the title while the row is still there — afterwards there is
-        // nothing left to ask.
-        let title = journal::work_title(&conn, id);
-        match trash::discard(&mut conn, trash::Entity::Work, id) {
-            Ok(entry) => {
-                entries.push(entry);
-                if ids.len() == 1 {
-                    journal::record(
-                        &conn,
-                        &profile_id,
-                        Record::new("work.deleted")
-                            .param("title", title.unwrap_or_else(|| id.clone()))
-                            .about("work", id.clone()),
-                    );
-                }
-            }
-            Err(cause) => eprintln!("trash: {id} could not be discarded: {cause}"),
-        }
-    }
+    // Titles are read before anything is discarded — afterwards there is
+    // nothing left to ask.
+    let titles: Vec<Option<String>> = ids
+        .iter()
+        .map(|id| journal::work_title(&conn, id))
+        .collect();
 
-    if entries.len() > 1 {
+    // One minted trash entry per work, one operation for the whole batch: an
+    // undo has one gesture to reverse, not `ids.len()` of them. See ADR 0014.
+    //
+    // All of them share one moment. Minting each entry with its own `now()`
+    // would put `ids.len()` different timestamps into a single operation, and
+    // the log has one field to keep them in — so a rebuild would have to invent
+    // the rest. One gesture happened at one time; the entries say so.
+    let at = time::now();
+    let minted_ids: Vec<Minted> = ids
+        .iter()
+        .map(|_| Minted::of(uuid::Uuid::new_v4().to_string(), at.clone()))
+        .collect();
+    let entry_ids: Vec<String> = minted_ids.iter().map(|m| m.id().to_owned()).collect();
+    let logged = operation::Intent::new("work.discardBatch")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("workIds", serde_json::to_value(&ids)?)
+        .param("entryIds", serde_json::to_value(&entry_ids)?)
+        .param("at", at.clone());
+
+    let discarded = trash::discard_works_batch(&mut conn, &ids, &minted_ids, Some(logged))?;
+    let entries: Vec<String> = discarded.iter().map(|(_, entry)| entry.clone()).collect();
+
+    if discarded.len() == 1 {
+        let (id, _) = &discarded[0];
+        let title = ids
+            .iter()
+            .position(|candidate| candidate == id)
+            .and_then(|index| titles[index].clone());
+        journal::record(
+            &conn,
+            &profile_id,
+            Record::new("work.deleted")
+                .param("title", title.unwrap_or_else(|| id.clone()))
+                .about("work", id.clone()),
+        );
+    } else if discarded.len() > 1 {
         journal::record(
             &conn,
             &profile_id,
             Record::new("work.deletedBatch")
-                .param("count", i64::try_from(entries.len()).unwrap_or(i64::MAX)),
+                .param("count", i64::try_from(discarded.len()).unwrap_or(i64::MAX)),
         );
     }
 
@@ -472,7 +630,20 @@ pub fn create_version(
 ) -> Result<Version> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let created = version::create(&mut conn, &work_id, version)?;
+
+    // Minted here, and carried into `create_minted`, so a replay lands the
+    // version under the id everything else already names. The operation is
+    // written inside that function's own transaction — see its doc comment
+    // and ADR 0014.
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("version.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("workId", work_id.clone())
+        .param("version", serde_json::to_value(&version)?)
+        .minted(&minted);
+
+    let created = version::create_minted(&mut conn, &work_id, version, minted, Some(logged))?;
 
     journal::record(
         &conn,
@@ -519,7 +690,23 @@ fn discard_and_record(
 ) -> Result<String> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let entry_id = trash::discard(&mut conn, entity, id)?;
+
+    // One operation for all six entities, minted here so that the trash entry a
+    // restore names is the same one after a rebuild. It travels into `discard`
+    // rather than being written around it, so the log and the deletion share a
+    // transaction. See ADR 0014.
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("entity.discard")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("entity", entity.as_str())
+        .param("entityId", id)
+        .minted(&minted);
+
+    // `trash::discard_minted` opens its own transaction, so `logged` travels in
+    // as an argument instead of through `recording`: the call below reaches
+    // `operation::record` one level down, inside that same transaction.
+    let entry_id = trash::discard_minted(&mut conn, entity, id, minted, Some(logged))?;
 
     let described = trash::list(&conn, &profile_id)?
         .into_iter()
@@ -588,15 +775,35 @@ pub fn list_notes(state: State<'_, AppState>, filter: Option<NoteFilter>) -> Res
 
 #[tauri::command]
 pub fn create_note(state: State<'_, AppState>, note: NewNote) -> Result<Note> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    note::create(&conn, &profile_id, note)
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("note.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("note", serde_json::to_value(&note)?)
+        .minted(&minted);
+
+    recording(&mut conn, logged, |tx| {
+        note::create_minted(tx, &profile_id, note, minted)
+    })
 }
 
 #[tauri::command]
 pub fn update_note(state: State<'_, AppState>, id: String, patch: NotePatch) -> Result<Note> {
-    let conn = state.conn();
-    note::update(&conn, &id, patch)
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("note.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| note::update_at(tx, &id, patch, &at))
 }
 
 #[tauri::command]
@@ -613,16 +820,34 @@ pub fn dismissed_findings(state: State<'_, AppState>) -> Result<Vec<Dismissal>> 
 
 #[tauri::command]
 pub fn dismiss_finding(state: State<'_, AppState>, key: DismissalKey) -> Result<Dismissal> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    focus::dismiss(&conn, &profile_id, &key)
+
+    let at = time::now();
+    let logged = operation::Intent::new("finding.dismiss")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("key", serde_json::to_value(&key)?)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| {
+        focus::dismiss_at(tx, &profile_id, &key, &at)
+    })
 }
 
 #[tauri::command]
 pub fn restore_finding(state: State<'_, AppState>, key: DismissalKey) -> Result<()> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    focus::restore(&conn, &profile_id, &key)
+
+    let logged = operation::Intent::new("finding.restore")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("key", serde_json::to_value(&key)?);
+
+    recording(&mut conn, logged, |tx| {
+        focus::restore(tx, &profile_id, &key)
+    })
 }
 
 #[tauri::command]
@@ -634,9 +859,19 @@ pub fn list_focus_notes(state: State<'_, AppState>) -> Result<Vec<FocusNote>> {
 
 #[tauri::command]
 pub fn create_focus_note(state: State<'_, AppState>, note: NewFocusNote) -> Result<FocusNote> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    focus::add_note(&conn, &profile_id, note)
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("focusNote.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("note", serde_json::to_value(&note)?)
+        .minted(&minted);
+
+    recording(&mut conn, logged, |tx| {
+        focus::add_note_minted(tx, &profile_id, note, minted)
+    })
 }
 
 #[tauri::command]
@@ -645,15 +880,35 @@ pub fn update_focus_note(
     id: String,
     patch: FocusNotePatch,
 ) -> Result<FocusNote> {
-    let conn = state.conn();
-    focus::update_note(&conn, &id, patch)
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("focusNote.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| {
+        focus::update_note_at(tx, &id, patch, &at)
+    })
 }
 
 #[tauri::command]
 pub fn reorder_focus_notes(state: State<'_, AppState>, order: Vec<String>) -> Result<()> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    focus::reorder_notes(&mut conn, &profile_id, &order)
+
+    // The operation is written inside `reorder_notes`'s own transaction — it
+    // opens one to move every note in the arrangement together. See ADR 0014.
+    let logged = operation::Intent::new("focusNote.reorder")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("order", serde_json::to_value(&order)?);
+
+    focus::reorder_notes(&mut conn, &profile_id, &order, Some(logged))
 }
 
 /// Rub a board note out.
@@ -664,8 +919,15 @@ pub fn reorder_focus_notes(state: State<'_, AppState>, order: Vec<String>) -> Re
 /// reminders nobody opens.
 #[tauri::command]
 pub fn delete_focus_note(state: State<'_, AppState>, id: String) -> Result<()> {
-    let conn = state.conn();
-    focus::delete_note(&conn, &id)
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let logged = operation::Intent::new("focusNote.delete")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone());
+
+    recording(&mut conn, logged, |tx| focus::delete_note(tx, &id))
 }
 
 #[tauri::command]
@@ -689,9 +951,20 @@ pub fn work_tags(state: State<'_, AppState>) -> Result<Vec<(String, i64)>> {
 
 #[tauri::command]
 pub fn score_work(state: State<'_, AppState>, work_id: String, score: NewScore) -> Result<Score> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let created = score::create(&conn, &work_id, score)?;
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("score.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("workId", work_id.clone())
+        .param("score", serde_json::to_value(&score)?)
+        .minted(&minted);
+
+    let created = recording(&mut conn, logged, |tx| {
+        score::create_minted(tx, &work_id, score, minted)
+    })?;
 
     journal::record(
         &conn,
@@ -742,9 +1015,19 @@ pub fn catalogue(state: State<'_, AppState>) -> Result<Vec<ScoredWork>> {
 
 #[tauri::command]
 pub fn create_release(state: State<'_, AppState>, release: NewRelease) -> Result<Release> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let created = release::create(&conn, release)?;
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("release.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("release", serde_json::to_value(&release)?)
+        .minted(&minted);
+
+    let created = recording(&mut conn, logged, |tx| {
+        release::create_minted(tx, release, minted)
+    })?;
 
     journal::record(
         &conn,
@@ -776,10 +1059,21 @@ pub fn update_release(
     id: String,
     patch: ReleasePatch,
 ) -> Result<Release> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
     let before = release::get(&conn, &id)?;
-    let updated = release::update(&conn, &id, patch)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("release.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("at", at.clone());
+
+    let updated = recording(&mut conn, logged, |tx| {
+        release::update_at(tx, &id, patch, &at)
+    })?;
 
     let moved = before
         .as_ref()
@@ -818,7 +1112,18 @@ pub fn schedule_release(
 ) -> Result<Scheduling> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let outcome = release::schedule(&mut conn, &id, &slot)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("release.schedule")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("slot", slot.clone())
+        .param("at", at.clone());
+
+    let outcome = recording(&mut conn, logged, |tx| {
+        release::schedule_at(tx, &id, &slot, &at)
+    })?;
 
     journal::record(
         &conn,
@@ -904,16 +1209,27 @@ pub fn apply_layout(
 ) -> Result<usize> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    record_applied_layout(&mut conn, &profile_id, &placements)
+    let at = time::now();
+    let logged = operation::Intent::new("layout.apply")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("placements", serde_json::to_value(&placements)?)
+        .param("at", at.clone());
+    record_applied_layout(&mut conn, &profile_id, &placements, logged, &at)
 }
 
 /// The body of [`apply_layout`], reachable without a Tauri state.
+///
+/// The operation is written inside `layout::apply`'s own transaction — it
+/// opens one to book every placement together. See ADR 0014.
 pub fn record_applied_layout(
     conn: &mut rusqlite::Connection,
     profile_id: &str,
     placements: &[layout::Placement],
+    logged: operation::Intent,
+    at: &str,
 ) -> Result<usize> {
-    let applied = layout::apply(conn, placements)?;
+    let applied = layout::apply_at(conn, placements, Some(logged), at)?;
 
     if applied > 0 {
         // The plan arrives in date order, but the journal line should not
@@ -958,9 +1274,20 @@ pub fn preview_schedule(
 /// Settle a date so the contest leaves it alone, or hand it back.
 #[tauri::command]
 pub fn set_slot_pin(state: State<'_, AppState>, id: String, pinned: bool) -> Result<Release> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let updated = release::set_slot_pin(&conn, &id, pinned)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("release.setSlotPin")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("pinned", pinned)
+        .param("at", at.clone());
+
+    let updated = recording(&mut conn, logged, |tx| {
+        release::set_slot_pin_at(tx, &id, pinned, &at)
+    })?;
 
     // Both keys are written out literally rather than chosen inside the call.
     // The gate that checks every recorded action has a sentence reads this file
@@ -988,9 +1315,17 @@ pub fn set_slot_pin(state: State<'_, AppState>, id: String, pinned: bool) -> Res
 
 #[tauri::command]
 pub fn unschedule_release(state: State<'_, AppState>, id: String) -> Result<Release> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let release = release::unschedule(&conn, &id)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("release.unschedule")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("at", at.clone());
+
+    let release = recording(&mut conn, logged, |tx| release::unschedule_at(tx, &id, &at))?;
     restate(&conn, &profile_id, &release.work_id);
     Ok(release)
 }
@@ -1006,9 +1341,24 @@ pub fn mark_released(
     url: Option<String>,
     at: Option<String>,
 ) -> Result<Release> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let released = release::mark_released(&conn, &id, url, at)?;
+
+    // `at` here is the release's own day, the person's own intent — a
+    // separate piece of data from the operation's timestamp below, which is
+    // the moment the mark was recorded. See `release::mark_released_at`.
+    let recorded_at = time::now();
+    let logged = operation::Intent::new("release.markReleased")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("url", url.clone())
+        .param("on_day", at.clone())
+        .param("at", recorded_at.clone());
+
+    let released = recording(&mut conn, logged, |tx| {
+        release::mark_released_at(tx, &id, url, at, &recorded_at)
+    })?;
 
     journal::record(
         &conn,
@@ -1034,9 +1384,19 @@ pub fn mark_released(
 /// was before. The link is deliberately kept; see [`release::unmark_released`].
 #[tauri::command]
 pub fn unmark_released(state: State<'_, AppState>, id: String) -> Result<Release> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    let planned = release::unmark_released(&conn, &id)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("release.unmarkReleased")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("at", at.clone());
+
+    let planned = recording(&mut conn, logged, |tx| {
+        release::unmark_released_at(tx, &id, &at)
+    })?;
 
     journal::record(
         &conn,
@@ -1091,9 +1451,19 @@ pub fn create_collection(
     state: State<'_, AppState>,
     collection: NewCollection,
 ) -> Result<Collection> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    collection::create(&conn, &profile_id, collection)
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("collection.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("collection", serde_json::to_value(&collection)?)
+        .minted(&minted);
+
+    recording(&mut conn, logged, |tx| {
+        collection::create_minted(tx, &profile_id, collection, minted)
+    })
 }
 
 #[tauri::command]
@@ -1102,8 +1472,20 @@ pub fn update_collection(
     id: String,
     patch: CollectionPatch,
 ) -> Result<Collection> {
-    let conn = state.conn();
-    collection::update(&conn, &id, patch)
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("collection.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| {
+        collection::update_at(tx, &id, patch, &at)
+    })
 }
 
 #[tauri::command]
@@ -1140,7 +1522,13 @@ pub fn restore_deletion(state: State<'_, AppState>, id: String) -> Result<()> {
         .into_iter()
         .find(|entry| entry.id == id);
 
-    trash::restore(&mut conn, &id)?;
+    // The operation is written inside `trash::restore`'s own transaction — see
+    // its doc comment and ADR 0014.
+    let logged = operation::Intent::new("trash.restore")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone());
+    trash::restore(&mut conn, &id, Some(logged))?;
 
     if let Some(entry) = described {
         let mut record = Record::new("trash.restored").param("label", entry.label);
@@ -1195,15 +1583,28 @@ pub fn mark_journal_read(state: State<'_, AppState>) -> Result<usize> {
 #[tauri::command]
 pub fn purge_deletion(state: State<'_, AppState>, id: String) -> Result<()> {
     let mut conn = state.conn();
-    trash::purge(&mut conn, &id)
+    let profile_id = active_profile_id(&conn)?;
+
+    // The operation is written inside `trash::purge`'s own transaction — see
+    // its doc comment and ADR 0014.
+    let logged = operation::Intent::new("trash.purge")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone());
+    trash::purge(&mut conn, &id, Some(logged))
 }
 
 /// Empty the active profile's trash. Returns how many entries went.
 #[tauri::command]
 pub fn empty_trash(state: State<'_, AppState>) -> Result<usize> {
-    let conn = state.conn();
+    let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
-    trash::empty(&conn, &profile_id)
+
+    let logged = operation::Intent::new("trash.empty")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?);
+
+    recording(&mut conn, logged, |tx| trash::empty(tx, &profile_id))
 }
 
 /// Write the active profile out as markdown.
@@ -1810,7 +2211,19 @@ pub fn set_collection_contents(
     work_ids: Vec<String>,
 ) -> Result<()> {
     let mut conn = state.conn();
-    collection::set_contents(&mut conn, &id, &work_ids)
+    let profile_id = active_profile_id(&conn)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("collection.setContents")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("workIds", serde_json::to_value(&work_ids)?)
+        .param("at", at.clone());
+
+    // The operation is written inside `set_contents_at`'s own transaction — it
+    // opens one to move every work in the new contents together. See ADR 0014.
+    collection::set_contents_at(&mut conn, &id, &work_ids, &at, Some(logged))
 }
 
 #[cfg(test)]
@@ -1870,7 +2283,8 @@ mod tests {
         }
 
         let plan = layout::plan(&conn, &profile_id, "2026-09-01").unwrap();
-        record_applied_layout(&mut conn, &profile_id, &plan).unwrap();
+        let logged = operation::Intent::new("layout.apply").in_profile(&profile_id);
+        record_applied_layout(&mut conn, &profile_id, &plan, logged, &time::now()).unwrap();
 
         let entries = journal::list(&conn, &profile_id).unwrap();
         let batch: Vec<_> = entries

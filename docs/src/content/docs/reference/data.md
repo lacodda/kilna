@@ -107,8 +107,9 @@ many were left that way. To have one back, restore it from the
 
 ## What the workspace records about itself
 
-Two kinds of record are kept alongside your data, both written by the
-database itself rather than by any screen, so nothing can skip them:
+Three kinds of record are kept alongside your data. The first two are
+written by the database itself rather than by any screen, so nothing can
+skip them:
 
 - **A trace of every deletion.** Which row went, from which table, when, and
   whether it was restored since — without its contents. It survives emptying
@@ -119,7 +120,25 @@ database itself rather than by any screen, so nothing can skip them:
   each field last changed, not just the row. Saving a form with the same
   values leaves no mark.
 
-Both name the **device** that made the change: an identity the workspace
+The third is written by the application, because only it knows what you
+meant:
+
+- **A log of what you asked for.** Every change you make — creating a work,
+  editing it, scoring it, scheduling a release, moving a batch of works to
+  another status — is recorded as the thing you asked for, together with
+  everything carrying it out produced: the identifiers, the moment. One
+  gesture is one entry, however many rows it moved, so a change of status
+  across a dozen works reads as the one action it was. Nothing is folded
+  together and nothing is trimmed by age: the log is complete or it is not
+  the log.
+
+  It is not the [history](/kilna/guides/the-history/) you can read on screen.
+  That one is written for you, in your language, and forgets old news on
+  purpose. This one is written for the machine, and its use is that the
+  workspace can be rebuilt from it: play the entries back into an empty
+  database, and you have the same one.
+
+All three name the **device** that made the change: an identity the workspace
 mints for itself the first time it is opened by this version, and keeps for
 life. A restored backup keeps it too — it is the same workspace, continued.
 
@@ -127,4 +146,5 @@ None of this is shown in the interface today. It exists so that the day two
 copies of a workspace meet — a second computer, a phone — the facts needed to
 merge them honestly are already there for everything written since this
 version, rather than only from the day the merge was built. The reasoning is
-in [ADR 0012](https://github.com/lacodda/kilna/blob/main/docs/adr/0012-deletions-leave-a-tombstone-and-fields-carry-clocks.md).
+in [ADR 0012](https://github.com/lacodda/kilna/blob/main/docs/adr/0012-deletions-leave-a-tombstone-and-fields-carry-clocks.md)
+and, for the log, [ADR 0014](https://github.com/lacodda/kilna/blob/main/docs/adr/0014-an-operation-records-the-intent-and-what-it-generated.md).

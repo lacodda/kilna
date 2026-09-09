@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
+use crate::minted::Minted;
 use crate::time::now;
 
 /// An album, a book, a season. One level deep on purpose: a collection never
@@ -28,7 +29,7 @@ pub struct Collection {
     pub works: i64,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewCollection {
     pub kind: String,
     pub title: String,
@@ -42,7 +43,7 @@ pub struct NewCollection {
     pub due_on: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CollectionPatch {
     pub kind: Option<String>,
     pub title: Option<String>,
@@ -78,8 +79,22 @@ fn check_goal(target_size: Option<i64>, due_on: Option<&str>) -> Result<()> {
 }
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewCollection) -> Result<Collection> {
-    let id = uuid::Uuid::new_v4().to_string();
-    let timestamp = now();
+    create_minted(conn, profile_id, new, Minted::fresh())
+}
+
+/// Create a collection with the id and timestamp already decided.
+///
+/// The seam a replay comes back through: live, `create` mints them; replaying,
+/// the log supplies what the first run generated, so the collection lands
+/// under the id everything else already names. See ADR 0014.
+pub fn create_minted(
+    conn: &Connection,
+    profile_id: &str,
+    new: NewCollection,
+    minted: Minted,
+) -> Result<Collection> {
+    let id = minted.id().to_owned();
+    let timestamp = minted.at().to_owned();
 
     let position: i64 = conn.query_row(
         "SELECT coalesce(max(position), -1) + 1 FROM collection WHERE profile_id = ?1",
@@ -135,6 +150,19 @@ pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Collection>> {
 }
 
 pub fn update(conn: &Connection, id: &str, patch: CollectionPatch) -> Result<Collection> {
+    update_at(conn, id, patch, &now())
+}
+
+/// Apply a patch with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `update` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. See ADR 0014.
+pub fn update_at(
+    conn: &Connection,
+    id: &str,
+    patch: CollectionPatch,
+    at: &str,
+) -> Result<Collection> {
     let mut assignments: Vec<String> = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
@@ -190,7 +218,12 @@ pub fn update(conn: &Connection, id: &str, patch: CollectionPatch) -> Result<Col
         return get(conn, id)?.ok_or_else(|| unknown(id));
     }
 
-    set(&mut assignments, &mut values, "updated_at", Box::new(now()));
+    set(
+        &mut assignments,
+        &mut values,
+        "updated_at",
+        Box::new(at.to_owned()),
+    );
     values.push(Box::new(id.to_owned()));
 
     let sql = format!(
@@ -219,6 +252,27 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
 /// Put works in a collection in the given order. Works not listed are removed
 /// from it.
 pub fn set_contents(conn: &mut Connection, id: &str, work_ids: &[String]) -> Result<()> {
+    set_contents_at(conn, id, work_ids, &now(), None)
+}
+
+/// Set a collection's contents with the change's timestamp already decided,
+/// recording the operation that asked for it.
+///
+/// The seam a replay comes back through: live, `set_contents` stamps
+/// `now()`; replaying, the log supplies the moment the first run recorded.
+/// See ADR 0014.
+///
+/// The operation is written inside this function's own transaction rather than
+/// by the caller around it, for the reason [`crate::trash::discard_minted`]
+/// gives: a log entry committed beside a change that then failed would replay
+/// into contents that never landed.
+pub fn set_contents_at(
+    conn: &mut Connection,
+    id: &str,
+    work_ids: &[String],
+    at: &str,
+    logged: Option<crate::operation::Intent>,
+) -> Result<()> {
     let exists: bool = conn
         .query_row(
             "SELECT 1 FROM collection WHERE id = ?1",
@@ -232,17 +286,20 @@ pub fn set_contents(conn: &mut Connection, id: &str, work_ids: &[String]) -> Res
     }
 
     let tx = conn.transaction()?;
-    let timestamp = now();
+
+    if let Some(logged) = logged {
+        crate::operation::record(&tx, logged)?;
+    }
 
     tx.execute(
         "UPDATE work SET collection_id = NULL, updated_at = ?2 WHERE collection_id = ?1",
-        params![id, timestamp],
+        params![id, at],
     )?;
 
     for (position, work_id) in work_ids.iter().enumerate() {
         tx.execute(
             "UPDATE work SET collection_id = ?1, position = ?2, updated_at = ?3 WHERE id = ?4",
-            params![id, position as i64, timestamp, work_id],
+            params![id, position as i64, at, work_id],
         )?;
     }
 

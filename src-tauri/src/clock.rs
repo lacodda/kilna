@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn a_field_going_to_or_from_null_is_a_change() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let id = a_work(&conn, &profile_id);
         let planned = release::create(
             &conn,
@@ -171,7 +171,7 @@ mod tests {
         )
         .unwrap();
 
-        release::schedule(&mut conn, &planned.id, "2026-10-01").unwrap();
+        release::schedule(&conn, &planned.id, "2026-10-01").unwrap();
         let after_schedule = for_row(&conn, "release", &planned.id).unwrap();
         assert!(
             after_schedule

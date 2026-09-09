@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
+use crate::minted::Minted;
 use crate::time::now;
 
 /// A work as the frontend sees it.
@@ -46,7 +47,7 @@ pub struct Work {
 ///
 /// `Default` so a caller — a test, an importer — names only what it means and
 /// is not rewritten every time the shape gains a field.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct NewWork {
     pub kind: String,
     pub title: String,
@@ -64,7 +65,7 @@ pub struct NewWork {
 
 /// Fields that may be changed. A field left as `None` is untouched, which is
 /// why every one of them is optional rather than defaulted.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct WorkPatch {
     pub title: Option<String>,
     pub status: Option<String>,
@@ -98,13 +99,27 @@ const SELECT_WORK: &str = "SELECT id, profile_id, collection_id, kind, title, st
 /// The status defaults to the profile's first one, so a caller does not have to
 /// know the vocabulary to add something.
 pub fn create(conn: &Connection, profile_id: &str, new: NewWork) -> Result<Work> {
+    create_minted(conn, profile_id, new, Minted::fresh())
+}
+
+/// Create a work with the id and timestamp already decided.
+///
+/// The seam a replay comes back through: live, `create` mints them; replaying,
+/// the log supplies what the first run generated, so the work lands under the
+/// id everything else already names. See ADR 0014.
+pub fn create_minted(
+    conn: &Connection,
+    profile_id: &str,
+    new: NewWork,
+    minted: Minted,
+) -> Result<Work> {
     let status = match new.status {
         Some(status) => status,
         None => default_status(conn, profile_id)?,
     };
 
-    let timestamp = now();
-    let id = uuid::Uuid::new_v4().to_string();
+    let timestamp = minted.at().to_owned();
+    let id = minted.id().to_owned();
     let meta = Value::Object(new.meta.unwrap_or_default()).to_string();
     let tags = serde_json::to_string(&new.tags)?;
     let marks = serde_json::to_string(&new.marks)?;
@@ -220,6 +235,16 @@ pub fn list(conn: &Connection, profile_id: &str, filter: &WorkFilter) -> Result<
 
 /// Apply a patch. Returns the updated work.
 pub fn update(conn: &Connection, id: &str, patch: WorkPatch) -> Result<Work> {
+    update_at(conn, id, patch, &now())
+}
+
+/// Apply a patch with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `update` stamps `now()` for
+/// both `status_pinned_at` and `updated_at`; replaying, the log supplies the
+/// moment the first run recorded, so a status pin and the edit that caused it
+/// land at the same replayed instant. See ADR 0014.
+pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Result<Work> {
     let mut assignments: Vec<String> = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
@@ -248,7 +273,7 @@ pub fn update(conn: &Connection, id: &str, patch: WorkPatch) -> Result<Work> {
             &mut assignments,
             &mut values,
             "status_pinned_at",
-            Box::new(now()),
+            Box::new(at.to_owned()),
         );
     }
     if let Some(kind) = patch.kind {
@@ -323,7 +348,12 @@ pub fn update(conn: &Connection, id: &str, patch: WorkPatch) -> Result<Work> {
         return get(conn, id)?.ok_or_else(|| unknown_work(id));
     }
 
-    set(&mut assignments, &mut values, "updated_at", Box::new(now()));
+    set(
+        &mut assignments,
+        &mut values,
+        "updated_at",
+        Box::new(at.to_owned()),
+    );
     values.push(Box::new(id.to_owned()));
 
     let sql = format!(
@@ -370,6 +400,20 @@ pub fn tags(conn: &Connection, profile_id: &str) -> Result<Vec<(String, i64)>> {
 /// later what the number was overruled for. The score itself is untouched:
 /// the pin sits beside it, and "follow the facts" takes it off.
 pub fn pin_tier(conn: &Connection, id: &str, tier: &str, reason: &str) -> Result<Work> {
+    pin_tier_at(conn, id, tier, reason, &now())
+}
+
+/// Pin a tier with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `pin_tier` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. See ADR 0014.
+pub fn pin_tier_at(
+    conn: &Connection,
+    id: &str,
+    tier: &str,
+    reason: &str,
+    at: &str,
+) -> Result<Work> {
     let work = get(conn, id)?.ok_or_else(|| unknown_work(id))?;
     let config = crate::profile::config_for(conn, &work.profile_id)?;
     if !config.tiers.iter().any(|known| known.key == tier) {
@@ -384,23 +428,30 @@ pub fn pin_tier(conn: &Connection, id: &str, tier: &str, reason: &str) -> Result
         ));
     }
 
-    let timestamp = now();
     conn.execute(
         "UPDATE work SET tier_pinned = ?2, tier_pinned_at = ?3, tier_pin_reason = ?4,
                          updated_at = ?3
           WHERE id = ?1",
-        params![id, tier, timestamp, reason],
+        params![id, tier, at, reason],
     )?;
     get(conn, id)?.ok_or_else(|| unknown_work(id))
 }
 
 /// Let the score speak for the work again.
 pub fn unpin_tier(conn: &Connection, id: &str) -> Result<Work> {
+    unpin_tier_at(conn, id, &now())
+}
+
+/// Unpin a tier with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `unpin_tier` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. See ADR 0014.
+pub fn unpin_tier_at(conn: &Connection, id: &str, at: &str) -> Result<Work> {
     let changed = conn.execute(
         "UPDATE work SET tier_pinned = NULL, tier_pinned_at = NULL, tier_pin_reason = NULL,
                          updated_at = ?2
           WHERE id = ?1",
-        params![id, now()],
+        params![id, at],
     )?;
     if changed == 0 {
         return Err(unknown_work(id));

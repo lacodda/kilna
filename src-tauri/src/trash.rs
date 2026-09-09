@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
-use crate::time::now;
+use crate::minted::Minted;
 
 /// What can be thrown away, and what each kind takes with it.
 ///
@@ -43,7 +43,9 @@ impl Entity {
         }
     }
 
-    fn parse(raw: &str) -> Result<Self> {
+    /// The entity a stored name means. Public because the operations log stores
+    /// the same names and the replay has to read them back.
+    pub fn parse(raw: &str) -> Result<Self> {
         match raw {
             "work" => Ok(Self::Work),
             "version" => Ok(Self::Version),
@@ -170,14 +172,57 @@ struct Capture {
 ///
 /// Returns the id of the trash entry, which is what an undo needs.
 pub fn discard(conn: &mut Connection, entity: Entity, id: &str) -> Result<String> {
+    discard_minted(conn, entity, id, Minted::fresh(), None)
+}
+
+/// Move an entity to the trash with the entry's id and moment already decided,
+/// recording the operation that asked for it.
+///
+/// The seam a replay comes back through: a restore names the trash entry by id,
+/// so a rebuilt workspace has to bury the row under the same one. See ADR 0014.
+///
+/// The operation is written inside this function's own transaction rather than
+/// by the caller around it. A log entry committed beside a deletion that then
+/// failed would replay into the removal of a row that is still there — so the
+/// two arrive together or not at all.
+pub fn discard_minted(
+    conn: &mut Connection,
+    entity: Entity,
+    id: &str,
+    minted: Minted,
+    logged: Option<crate::operation::Intent>,
+) -> Result<String> {
     let tx = conn.transaction()?;
 
-    let (label, origin, profile_id) = describe(&tx, entity, id)?;
+    if let Some(logged) = logged {
+        crate::operation::record(&tx, logged)?;
+    }
+
+    let deletion_id = discard_in_tx(&tx, entity, id, &minted)?;
+
+    tx.commit()?;
+    Ok(deletion_id)
+}
+
+/// The body of a discard, reachable inside a transaction a caller already
+/// holds open.
+///
+/// Split out so a batch command — several works discarded under one operation
+/// — can call it once per entity without nesting a transaction inside another,
+/// which rusqlite does not allow from a bare `&mut Connection`. The caller
+/// owns the transaction, the commit, and (when there is one) the operation.
+fn discard_in_tx(
+    tx: &Transaction<'_>,
+    entity: Entity,
+    id: &str,
+    minted: &Minted,
+) -> Result<String> {
+    let (label, origin, profile_id) = describe(tx, entity, id)?;
 
     // Snapshot first, delete second: the rows have to be read while they exist.
     let mut snapshot = Map::new();
     for capture in cascade(entity) {
-        let rows = read_rows(&tx, capture.table, capture.key, id)?;
+        let rows = read_rows(tx, capture.table, capture.key, id)?;
         if !rows.is_empty() {
             snapshot.insert(capture.table.to_owned(), Value::Array(rows));
         }
@@ -190,10 +235,10 @@ pub fn discard(conn: &mut Connection, entity: Entity, id: &str) -> Result<String
     }
 
     if entity == Entity::Collection {
-        snapshot.insert(MEMBERS.to_owned(), Value::Array(members(&tx, id)?));
+        snapshot.insert(MEMBERS.to_owned(), Value::Array(members(tx, id)?));
     }
 
-    let deletion_id = uuid::Uuid::new_v4().to_string();
+    let deletion_id = minted.id().to_owned();
     tx.execute(
         "INSERT INTO deletion (id, profile_id, entity, entity_id, label, origin, reason, snapshot, deleted_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'manual', ?7, ?8)",
@@ -205,7 +250,7 @@ pub fn discard(conn: &mut Connection, entity: Entity, id: &str) -> Result<String
             label,
             origin,
             Value::Object(snapshot).to_string(),
-            now(),
+            minted.at(),
         ],
     )?;
 
@@ -216,13 +261,57 @@ pub fn discard(conn: &mut Connection, entity: Entity, id: &str) -> Result<String
         params![id],
     )?;
 
-    tx.commit()?;
     Ok(deletion_id)
 }
 
-/// Put a trashed entity back and forget the entry.
-pub fn restore(conn: &mut Connection, deletion_id: &str) -> Result<()> {
+/// Move several works to the trash under one operation.
+///
+/// Each still gets its own trash entry — an entry snapshots one entity, so
+/// each stays separately restorable — but the log holds one gesture, not one
+/// per work, so an undo has one thing to reverse. See ADR 0014.
+///
+/// Returns the trash entry id for every work actually discarded, in the same
+/// order as `ids`. A work that fails to discard (already gone, most likely) is
+/// left out rather than failing the batch — the others are unrelated.
+pub fn discard_works_batch(
+    conn: &mut Connection,
+    ids: &[String],
+    minted_ids: &[Minted],
+    logged: Option<crate::operation::Intent>,
+) -> Result<Vec<(String, String)>> {
     let tx = conn.transaction()?;
+    if let Some(logged) = logged {
+        crate::operation::record(&tx, logged)?;
+    }
+
+    let mut discarded = Vec::new();
+    for (id, minted) in ids.iter().zip(minted_ids) {
+        match discard_in_tx(&tx, Entity::Work, id, minted) {
+            Ok(entry_id) => discarded.push((id.clone(), entry_id)),
+            Err(cause) => eprintln!("trash: {id} could not be discarded: {cause}"),
+        }
+    }
+
+    tx.commit()?;
+    Ok(discarded)
+}
+
+/// Put a trashed entity back and forget the entry.
+///
+/// The operation is written inside this function's own transaction rather than
+/// by the caller around it, for the reason [`discard_minted`] gives: a log
+/// entry committed beside a restore that then failed would replay into rows
+/// coming back that never left. See ADR 0014.
+pub fn restore(
+    conn: &mut Connection,
+    deletion_id: &str,
+    logged: Option<crate::operation::Intent>,
+) -> Result<()> {
+    let tx = conn.transaction()?;
+
+    if let Some(logged) = logged {
+        crate::operation::record(&tx, logged)?;
+    }
 
     let (entity, entity_id, snapshot): (String, String, String) = tx
         .query_row(
@@ -290,8 +379,19 @@ fn members(conn: &Connection, collection_id: &str) -> Result<Vec<Value>> {
 /// Purging a work also drops the entries that only made sense underneath it: a
 /// version whose work will never come back can never be restored either, and
 /// leaving it in the trash is dead weight that only ever grows.
-pub fn purge(conn: &mut Connection, deletion_id: &str) -> Result<()> {
+///
+/// The operation is written inside this function's own transaction rather than
+/// by the caller around it, for the reason [`discard_minted`] gives. See ADR 0014.
+pub fn purge(
+    conn: &mut Connection,
+    deletion_id: &str,
+    logged: Option<crate::operation::Intent>,
+) -> Result<()> {
     let tx = conn.transaction()?;
+
+    if let Some(logged) = logged {
+        crate::operation::record(&tx, logged)?;
+    }
 
     let (entity, entity_id): (String, String) = tx
         .query_row(
@@ -674,7 +774,7 @@ mod tests {
         assert_eq!(count(&conn, "work_version"), 0, "the cascade took it");
         assert_eq!(count(&conn, "note"), 0);
 
-        restore(&mut conn, &entry).unwrap();
+        restore(&mut conn, &entry, None).unwrap();
 
         let back = work::get(&conn, &work.id)
             .unwrap()
@@ -695,7 +795,7 @@ mod tests {
         let work = work::create(&conn, &profile_id, song("Unchanged")).unwrap();
 
         let entry = discard(&mut conn, Entity::Work, &work.id).unwrap();
-        restore(&mut conn, &entry).unwrap();
+        restore(&mut conn, &entry, None).unwrap();
 
         let back = work::get(&conn, &work.id).unwrap().unwrap();
         assert_eq!(back.id, work.id);
@@ -731,7 +831,7 @@ mod tests {
         // The error has to be the one that explains itself, not a foreign-key
         // failure from an insert that was attempted anyway: the difference is
         // invisible to `is_err`, and it is the whole point of the check.
-        let refused = restore(&mut conn, &version_entry).unwrap_err();
+        let refused = restore(&mut conn, &version_entry, None).unwrap_err();
         assert!(
             matches!(refused, Error::NotRestorable(_)),
             "an orphan must be refused with a sentence, got: {refused}"
@@ -745,8 +845,8 @@ mod tests {
         assert!(!version_row.restorable, "and the screen says so beforehand");
 
         // With the work back, the version can follow.
-        restore(&mut conn, &work_entry).unwrap();
-        restore(&mut conn, &version_entry).unwrap();
+        restore(&mut conn, &work_entry, None).unwrap();
+        restore(&mut conn, &version_entry, None).unwrap();
         assert_eq!(count(&conn, "work_version"), 1);
     }
 
@@ -861,10 +961,10 @@ mod tests {
         let first_entry = discard(&mut conn, Entity::Work, &first.id).unwrap();
         discard(&mut conn, Entity::Work, &second.id).unwrap();
 
-        purge(&mut conn, &first_entry).unwrap();
+        purge(&mut conn, &first_entry, None).unwrap();
         assert_eq!(count(&conn, "deletion"), 1);
         assert!(
-            restore(&mut conn, &first_entry).is_err(),
+            restore(&mut conn, &first_entry, None).is_err(),
             "a purged entry is gone for good"
         );
 
@@ -908,7 +1008,7 @@ mod tests {
         let work_entry = discard(&mut conn, Entity::Work, &work.id).unwrap();
         assert_eq!(count(&conn, "deletion"), 3);
 
-        purge(&mut conn, &work_entry).unwrap();
+        purge(&mut conn, &work_entry, None).unwrap();
 
         // The version could never have come back once its work went for good,
         // so it goes too — but the note belonging to a different work stays.
@@ -950,7 +1050,7 @@ mod tests {
             "the work outlives the collection, unattached"
         );
 
-        restore(&mut conn, &entry).unwrap();
+        restore(&mut conn, &entry, None).unwrap();
 
         assert_eq!(
             work::get(&conn, &track.id).unwrap().unwrap().collection_id,
@@ -988,7 +1088,7 @@ mod tests {
         )
         .unwrap();
 
-        restore(&mut conn, &entry).unwrap();
+        restore(&mut conn, &entry, None).unwrap();
 
         assert_eq!(
             work::get(&conn, &track.id).unwrap().unwrap().collection_id,
@@ -1002,8 +1102,8 @@ mod tests {
         let (mut conn, _) = workspace();
 
         assert!(discard(&mut conn, Entity::Work, "nope").is_err());
-        assert!(restore(&mut conn, "nope").is_err());
-        assert!(purge(&mut conn, "nope").is_err());
+        assert!(restore(&mut conn, "nope", None).is_err());
+        assert!(purge(&mut conn, "nope", None).is_err());
     }
 
     #[test]
@@ -1028,7 +1128,7 @@ mod tests {
         assert!(listed[0].origin.is_none());
         assert!(listed[0].restorable);
 
-        restore(&mut conn, &entry).unwrap();
+        restore(&mut conn, &entry, None).unwrap();
         let back = note::get(&conn, &note.id).unwrap().unwrap();
         assert_eq!(back.tags, vec!["idea".to_owned()], "the tags came back too");
     }

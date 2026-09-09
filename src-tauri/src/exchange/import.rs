@@ -532,7 +532,7 @@ mod tests {
         let entry =
             crate::trash::discard(&mut conn, crate::trash::Entity::Work, &thrown_out).unwrap();
         // Emptying the trash is exactly the case a snapshot could not cover.
-        crate::trash::purge(&mut conn, &entry).unwrap();
+        crate::trash::purge(&mut conn, &entry, None).unwrap();
 
         let again = from_legacy(&mut conn, &source, &profile_id).unwrap();
 
@@ -561,7 +561,7 @@ mod tests {
             .unwrap()
             .id;
         let entry = crate::trash::discard(&mut conn, crate::trash::Entity::Work, &id).unwrap();
-        crate::trash::restore(&mut conn, &entry).unwrap();
+        crate::trash::restore(&mut conn, &entry, None).unwrap();
 
         let again = from_legacy(&mut conn, &source, &profile_id).unwrap();
 

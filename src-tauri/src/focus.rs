@@ -14,6 +14,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
+use crate::minted::Minted;
 use crate::time::now;
 
 /// A complaint the person has heard and put away.
@@ -26,7 +27,7 @@ pub struct Dismissal {
 }
 
 /// What identifies a dismissal: the kind, the work, and what was said.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DismissalKey {
     pub kind: String,
     pub work_id: String,
@@ -49,7 +50,7 @@ pub struct FocusNote {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewFocusNote {
     pub body: String,
     #[serde(default)]
@@ -58,7 +59,7 @@ pub struct NewFocusNote {
     pub due_on: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FocusNotePatch {
     pub body: Option<String>,
     pub work_id: Option<Option<String>>,
@@ -91,8 +92,20 @@ const SELECT_NOTE: &str = "SELECT id, profile_id, body, work_id, position, pinne
 /// offer the button while the complaint stands, and a second press is the
 /// person saying the same thing again.
 pub fn dismiss(conn: &Connection, profile_id: &str, key: &DismissalKey) -> Result<Dismissal> {
-    let dismissed_at = now();
+    dismiss_at(conn, profile_id, key, &now())
+}
 
+/// Dismiss a complaint with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `dismiss` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. The row's
+/// own id is still minted fresh here — untouched by this seam. See ADR 0014.
+pub fn dismiss_at(
+    conn: &Connection,
+    profile_id: &str,
+    key: &DismissalKey,
+    at: &str,
+) -> Result<Dismissal> {
     conn.execute(
         "INSERT INTO focus_dismissal (id, profile_id, kind, work_id, complaint, dismissed_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)
@@ -104,7 +117,7 @@ pub fn dismiss(conn: &Connection, profile_id: &str, key: &DismissalKey) -> Resul
             key.kind,
             key.work_id,
             key.complaint,
-            dismissed_at,
+            at,
         ],
     )?;
 
@@ -112,7 +125,7 @@ pub fn dismiss(conn: &Connection, profile_id: &str, key: &DismissalKey) -> Resul
         kind: key.kind.clone(),
         work_id: key.work_id.clone(),
         complaint: key.complaint.clone(),
-        dismissed_at,
+        dismissed_at: at.to_owned(),
     })
 }
 
@@ -164,8 +177,22 @@ pub fn sweep(conn: &Connection) -> Result<usize> {
 
 /// Add a note at the end of the board.
 pub fn add_note(conn: &Connection, profile_id: &str, new: NewFocusNote) -> Result<FocusNote> {
-    let id = uuid::Uuid::new_v4().to_string();
-    let timestamp = now();
+    add_note_minted(conn, profile_id, new, Minted::fresh())
+}
+
+/// Add a board note with the id and timestamp already decided.
+///
+/// The seam a replay comes back through: live, `add_note` mints them;
+/// replaying, the log supplies what the first run generated, so the note
+/// lands under the id everything else already names. See ADR 0014.
+pub fn add_note_minted(
+    conn: &Connection,
+    profile_id: &str,
+    new: NewFocusNote,
+    minted: Minted,
+) -> Result<FocusNote> {
+    let id = minted.id().to_owned();
+    let timestamp = minted.at().to_owned();
 
     let last: Option<i64> = conn.query_row(
         "SELECT max(position) FROM focus_note WHERE profile_id = ?1",
@@ -213,6 +240,19 @@ pub fn notes(conn: &Connection, profile_id: &str) -> Result<Vec<FocusNote>> {
 }
 
 pub fn update_note(conn: &Connection, id: &str, patch: FocusNotePatch) -> Result<FocusNote> {
+    update_note_at(conn, id, patch, &now())
+}
+
+/// Apply a patch with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `update_note` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. See ADR 0014.
+pub fn update_note_at(
+    conn: &Connection,
+    id: &str,
+    patch: FocusNotePatch,
+    at: &str,
+) -> Result<FocusNote> {
     let mut assignments: Vec<String> = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
@@ -249,7 +289,12 @@ pub fn update_note(conn: &Connection, id: &str, patch: FocusNotePatch) -> Result
         return get_note(conn, id)?.ok_or_else(|| unknown_note(id));
     }
 
-    set(&mut assignments, &mut values, "updated_at", Box::new(now()));
+    set(
+        &mut assignments,
+        &mut values,
+        "updated_at",
+        Box::new(at.to_owned()),
+    );
     values.push(Box::new(id.to_owned()));
 
     let sql = format!(
@@ -273,8 +318,27 @@ pub fn update_note(conn: &Connection, id: &str, patch: FocusNotePatch) -> Result
 /// the way "after that one" can when two moves race. Ids belonging to another
 /// profile are ignored, and any note left out of the list keeps a position
 /// after the ones named.
-pub fn reorder_notes(conn: &mut Connection, profile_id: &str, order: &[String]) -> Result<()> {
+///
+/// No replay seam here, unlike the editing functions around it: reordering moves
+/// `position` and stamps nothing, so there is no generated value for a replay to
+/// put back. A parameter kept only for symmetry would promise a hook that does
+/// not exist — see ADR 0014 for what the seams are for.
+///
+/// The operation is written inside this function's own transaction rather than
+/// by the caller around it, for the reason [`crate::trash::discard_minted`]
+/// gives: a log entry committed beside a reorder that then failed would replay
+/// into an arrangement that never landed.
+pub fn reorder_notes(
+    conn: &mut Connection,
+    profile_id: &str,
+    order: &[String],
+    logged: Option<crate::operation::Intent>,
+) -> Result<()> {
     let transaction = conn.transaction()?;
+
+    if let Some(logged) = logged {
+        crate::operation::record(&transaction, logged)?;
+    }
 
     for (index, id) in order.iter().enumerate() {
         let position = i64::try_from(index).unwrap_or(0) * STEP + STEP;
@@ -499,6 +563,7 @@ mod tests {
             &mut conn,
             &profile_id,
             &[third.id.clone(), first.id.clone(), second.id.clone()],
+            None,
         )
         .unwrap();
 
@@ -522,6 +587,7 @@ mod tests {
             &mut conn,
             &profile_id,
             &[second.id.clone(), first.id.clone()],
+            None,
         )
         .unwrap();
 
@@ -557,6 +623,7 @@ mod tests {
             &mut conn,
             &profile_id,
             &[theirs.id.clone(), mine.id.clone()],
+            None,
         )
         .unwrap();
 

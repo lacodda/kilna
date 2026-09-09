@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
+use crate::minted::Minted;
 use crate::time::now;
 
 /// What ships, where and when. The predecessor spread this across three tables;
@@ -45,7 +46,7 @@ pub struct ScheduledRelease {
     pub readiness: crate::readiness::Readiness,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewRelease {
     pub work_id: String,
     pub kind: String,
@@ -61,7 +62,7 @@ pub struct NewRelease {
     pub time_zone: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ReleasePatch {
     pub kind: Option<String>,
     pub status: Option<String>,
@@ -150,6 +151,15 @@ const SELECT_RELEASE: &str = "SELECT id, work_id, kind, status, title, scheduled
      url, slot_pinned_at, meta, created_at, updated_at, scheduled_time, time_zone FROM release";
 
 pub fn create(conn: &Connection, new: NewRelease) -> Result<Release> {
+    create_minted(conn, new, Minted::fresh())
+}
+
+/// Create a release with the id and timestamp already decided.
+///
+/// The seam a replay comes back through: live, `create` mints them; replaying,
+/// the log supplies what the first run generated, so the release lands under
+/// the id everything else already names. See ADR 0014.
+pub fn create_minted(conn: &Connection, new: NewRelease, minted: Minted) -> Result<Release> {
     let exists: bool = conn
         .query_row(
             "SELECT 1 FROM work WHERE id = ?1",
@@ -162,9 +172,9 @@ pub fn create(conn: &Connection, new: NewRelease) -> Result<Release> {
         return Err(Error::not_found("work", new.work_id.clone()));
     }
 
-    let id = uuid::Uuid::new_v4().to_string();
+    let id = minted.id().to_owned();
     check_when(new.scheduled_time.as_deref(), new.time_zone.as_deref())?;
-    let timestamp = now();
+    let timestamp = minted.at().to_owned();
 
     conn.execute(
         "INSERT INTO release (id, work_id, kind, status, title, scheduled_at, meta, created_at, updated_at,
@@ -211,16 +221,19 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<Release>> {
 /// What survives is the pin, with a narrower promise: `slot_pinned_at` now
 /// means "the auto-layout does not put anything here", nothing more. A person
 /// dropping a second release on a pinned day can see the lock and means it.
-pub fn schedule(conn: &mut Connection, id: &str, slot: &str) -> Result<Scheduling> {
-    let tx = conn.transaction()?;
-    let timestamp = now();
+pub fn schedule(conn: &Connection, id: &str, slot: &str) -> Result<Scheduling> {
+    schedule_at(conn, id, slot, &now())
+}
 
-    tx.execute(
+/// Put a release in a slot with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `schedule` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. See ADR 0014.
+pub fn schedule_at(conn: &Connection, id: &str, slot: &str, at: &str) -> Result<Scheduling> {
+    conn.execute(
         "UPDATE release SET scheduled_at = ?2, updated_at = ?3 WHERE id = ?1",
-        params![id, slot, timestamp],
+        params![id, slot, at],
     )?;
-
-    tx.commit()?;
 
     Ok(Scheduling {
         release: get(conn, id)?.ok_or_else(|| unknown_release(id))?,
@@ -315,6 +328,14 @@ fn judge(conn: &Connection, id: &str, slot: &str) -> Result<Contest> {
 /// Pinning a release with no date would pin nothing, so it is refused rather
 /// than silently accepted.
 pub fn set_slot_pin(conn: &Connection, id: &str, pinned: bool) -> Result<Release> {
+    set_slot_pin_at(conn, id, pinned, &now())
+}
+
+/// Pin or unpin a slot with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `set_slot_pin` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. See ADR 0014.
+pub fn set_slot_pin_at(conn: &Connection, id: &str, pinned: bool, at: &str) -> Result<Release> {
     let scheduled: Option<Option<String>> = conn
         .query_row(
             "SELECT scheduled_at FROM release WHERE id = ?1",
@@ -332,10 +353,9 @@ pub fn set_slot_pin(conn: &Connection, id: &str, pinned: bool) -> Result<Release
         ));
     }
 
-    let timestamp = now();
     conn.execute(
         "UPDATE release SET slot_pinned_at = ?2, updated_at = ?3 WHERE id = ?1",
-        params![id, pinned.then(|| timestamp.clone()), timestamp],
+        params![id, pinned.then(|| at.to_owned()), at],
     )?;
 
     get(conn, id)?.ok_or_else(|| unknown_release(id))
@@ -343,12 +363,21 @@ pub fn set_slot_pin(conn: &Connection, id: &str, pinned: bool) -> Result<Release
 
 /// Take a release out of the calendar without deleting it.
 pub fn unschedule(conn: &Connection, id: &str) -> Result<Release> {
+    unschedule_at(conn, id, &now())
+}
+
+/// Take a release out of the calendar with the change's timestamp already
+/// decided.
+///
+/// The seam a replay comes back through: live, `unschedule` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. See ADR 0014.
+pub fn unschedule_at(conn: &Connection, id: &str, at: &str) -> Result<Release> {
     // The pin goes with the date. A pin describes a date that was decided, and
     // there is no longer a date — leaving it behind creates a state nothing
     // else in the app can produce and `set_slot_pin` explicitly refuses.
     if conn.execute(
         "UPDATE release SET scheduled_at = NULL, slot_pinned_at = NULL, updated_at = ?2 WHERE id = ?1",
-        params![id, now()],
+        params![id, at],
     )? == 0
     {
         return Err(unknown_release(id));
@@ -375,16 +404,32 @@ pub fn mark_released(
     url: Option<String>,
     at: Option<String>,
 ) -> Result<Release> {
-    let timestamp = now();
-    let released_at = match at {
+    mark_released_at(conn, id, url, at, &now())
+}
+
+/// Mark a release as out with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `mark_released` stamps
+/// `now()` for `updated_at` (and, when the caller names no release day, for
+/// `released_at` too); replaying, the log supplies the moment the first run
+/// recorded. `on_day` is the release's own day, a separate piece of intent
+/// the person picks — it is untouched here. See ADR 0014.
+pub fn mark_released_at(
+    conn: &Connection,
+    id: &str,
+    url: Option<String>,
+    on_day: Option<String>,
+    at: &str,
+) -> Result<Release> {
+    let released_at = match on_day {
         Some(day) => day_stamp(&day)?,
-        None => timestamp.clone(),
+        None => at.to_owned(),
     };
 
     if conn.execute(
         "UPDATE release SET status = ?2, released_at = ?3, url = coalesce(?4, url), updated_at = ?5
          WHERE id = ?1",
-        params![id, RELEASED, released_at, url, timestamp],
+        params![id, RELEASED, released_at, url, at],
     )? == 0
     {
         return Err(unknown_release(id));
@@ -405,9 +450,18 @@ pub fn mark_released(
 /// reader — the work's derived status, the dashboard, the export — would get a
 /// different answer depending on which field it happened to look at.
 pub fn unmark_released(conn: &Connection, id: &str) -> Result<Release> {
+    unmark_released_at(conn, id, &now())
+}
+
+/// Take back the release mark with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `unmark_released` stamps
+/// `now()`; replaying, the log supplies the moment the first run recorded.
+/// See ADR 0014.
+pub fn unmark_released_at(conn: &Connection, id: &str, at: &str) -> Result<Release> {
     if conn.execute(
         "UPDATE release SET status = ?2, released_at = NULL, updated_at = ?3 WHERE id = ?1",
-        params![id, PLANNED, now()],
+        params![id, PLANNED, at],
     )? == 0
     {
         return Err(unknown_release(id));
@@ -441,6 +495,14 @@ fn day_stamp(day: &str) -> Result<String> {
 }
 
 pub fn update(conn: &Connection, id: &str, patch: ReleasePatch) -> Result<Release> {
+    update_at(conn, id, patch, &now())
+}
+
+/// Apply a patch with the change's timestamp already decided.
+///
+/// The seam a replay comes back through: live, `update` stamps `now()`;
+/// replaying, the log supplies the moment the first run recorded. See ADR 0014.
+pub fn update_at(conn: &Connection, id: &str, patch: ReleasePatch, at: &str) -> Result<Release> {
     let mut assignments: Vec<String> = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
@@ -513,7 +575,12 @@ pub fn update(conn: &Connection, id: &str, patch: ReleasePatch) -> Result<Releas
         return get(conn, id)?.ok_or_else(|| unknown_release(id));
     }
 
-    set(&mut assignments, &mut values, "updated_at", Box::new(now()));
+    set(
+        &mut assignments,
+        &mut values,
+        "updated_at",
+        Box::new(at.to_owned()),
+    );
     values.push(Box::new(id.to_owned()));
 
     let sql = format!(
@@ -811,10 +878,10 @@ mod tests {
 
     #[test]
     fn scheduling_an_empty_slot_displaces_nothing() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let release = planned(&conn, &profile_id, "Subject", Some(8.0));
 
-        let result = schedule(&mut conn, &release.id, "2026-09-01").unwrap();
+        let result = schedule(&conn, &release.id, "2026-09-01").unwrap();
         assert_eq!(result.release.scheduled_at.as_deref(), Some("2026-09-01"));
     }
 
@@ -828,12 +895,12 @@ mod tests {
     /// is refused, and nothing is quietly evicted.
     #[test]
     fn a_second_release_joins_a_day_rather_than_taking_it() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let first = planned(&conn, &profile_id, "First", Some(9.0));
         let second = planned(&conn, &profile_id, "Second", Some(4.0));
 
-        schedule(&mut conn, &first.id, "2026-09-01").unwrap();
-        schedule(&mut conn, &second.id, "2026-09-01").unwrap();
+        schedule(&conn, &first.id, "2026-09-01").unwrap();
+        schedule(&conn, &second.id, "2026-09-01").unwrap();
         let calendar = calendar(&conn, &profile_id).unwrap();
         assert_eq!(calendar.len(), 2, "both hold the day");
         assert!(
@@ -857,12 +924,12 @@ mod tests {
     /// the kind that shows up as a mystery months later.
     #[test]
     fn the_weaker_one_first_ends_the_same_way() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let weak = planned(&conn, &profile_id, "Weak", Some(4.0));
         let strong = planned(&conn, &profile_id, "Strong", Some(9.0));
 
-        schedule(&mut conn, &weak.id, "2026-09-01").unwrap();
-        schedule(&mut conn, &strong.id, "2026-09-01").unwrap();
+        schedule(&conn, &weak.id, "2026-09-01").unwrap();
+        schedule(&conn, &strong.id, "2026-09-01").unwrap();
 
         assert_eq!(calendar(&conn, &profile_id).unwrap().len(), 2);
         assert!(queue(&conn, &profile_id).unwrap().is_empty());
@@ -871,23 +938,23 @@ mod tests {
     /// An unscored release is no longer a lesser citizen of the calendar.
     #[test]
     fn an_unscored_release_can_share_a_day_with_a_scored_one() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let scored = planned(&conn, &profile_id, "Scored", Some(3.0));
         let unscored = planned(&conn, &profile_id, "Unscored", None);
 
-        schedule(&mut conn, &scored.id, "2026-09-01").unwrap();
-        schedule(&mut conn, &unscored.id, "2026-09-01").unwrap();
+        schedule(&conn, &scored.id, "2026-09-01").unwrap();
+        schedule(&conn, &unscored.id, "2026-09-01").unwrap();
 
         assert_eq!(calendar(&conn, &profile_id).unwrap().len(), 2);
     }
 
     #[test]
     fn rescheduling_the_same_release_does_not_displace_itself() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let release = planned(&conn, &profile_id, "Subject", Some(6.0));
-        schedule(&mut conn, &release.id, "2026-09-01").unwrap();
+        schedule(&conn, &release.id, "2026-09-01").unwrap();
 
-        let result = schedule(&mut conn, &release.id, "2026-09-01").unwrap();
+        let result = schedule(&conn, &release.id, "2026-09-01").unwrap();
         assert_eq!(result.release.scheduled_at.as_deref(), Some("2026-09-01"));
     }
 
@@ -900,7 +967,7 @@ mod tests {
     /// ordered by this number and a person chooses what to ship by it.
     #[test]
     fn one_score_speaks_for_a_work_on_every_screen() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let held = planned(&conn, &profile_id, "Subject", Some(7.0));
 
         // A second, weaker score taken later: with no current version named,
@@ -936,7 +1003,7 @@ mod tests {
         );
 
         // ...and the calendar is where it is read from afterwards.
-        schedule(&mut conn, &held.id, "2026-09-01").unwrap();
+        schedule(&conn, &held.id, "2026-09-01").unwrap();
         let shown = calendar(&conn, &profile_id).unwrap();
         let entry = shown.iter().find(|row| row.release.id == held.id).unwrap();
         assert_eq!(
@@ -955,10 +1022,10 @@ mod tests {
     /// lock and mean it.
     #[test]
     fn a_pinned_day_warns_the_layout_without_refusing_a_person() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
 
         let held = planned(&conn, &profile_id, "Held", Some(4.0));
-        schedule(&mut conn, &held.id, "2026-09-01").unwrap();
+        schedule(&conn, &held.id, "2026-09-01").unwrap();
         set_slot_pin(&conn, &held.id, true).unwrap();
 
         // What the auto-layout reads — always on behalf of something else, so
@@ -972,7 +1039,7 @@ mod tests {
         assert_eq!(seen.holder_title.as_deref(), Some("Held"));
 
         // What a person gets: the date, beside the pinned release.
-        schedule(&mut conn, &other.id, "2026-09-01").unwrap();
+        schedule(&conn, &other.id, "2026-09-01").unwrap();
         assert_eq!(calendar(&conn, &profile_id).unwrap().len(), 2);
 
         // And the pinned one is untouched — neither evicted nor unpinned.
@@ -989,18 +1056,18 @@ mod tests {
     /// nothing displaced was ever pinned.
     #[test]
     fn losing_the_date_loses_the_pin() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
 
         // By unscheduling.
         let first = planned(&conn, &profile_id, "First", Some(5.0));
-        schedule(&mut conn, &first.id, "2026-09-01").unwrap();
+        schedule(&conn, &first.id, "2026-09-01").unwrap();
         set_slot_pin(&conn, &first.id, true).unwrap();
         let back = unschedule(&conn, &first.id).unwrap();
         assert_eq!(back.scheduled_at, None);
         assert_eq!(back.slot_pinned_at, None, "unscheduling kept the pin");
 
         // By clearing the date through a patch.
-        schedule(&mut conn, &first.id, "2026-09-02").unwrap();
+        schedule(&conn, &first.id, "2026-09-02").unwrap();
         set_slot_pin(&conn, &first.id, true).unwrap();
         let cleared = update(
             &conn,
@@ -1028,10 +1095,10 @@ mod tests {
     /// `update` edits a booking, `schedule` books one. Neither refuses.
     #[test]
     fn both_ways_of_writing_a_date_let_a_day_be_shared() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
 
         let holder = planned(&conn, &profile_id, "Holder", Some(9.0));
-        schedule(&mut conn, &holder.id, "2026-09-05").unwrap();
+        schedule(&conn, &holder.id, "2026-09-05").unwrap();
 
         let other = planned(&conn, &profile_id, "Other", Some(1.0));
         update(
@@ -1053,7 +1120,7 @@ mod tests {
 
         // And the other path, for the same pair, ends the same way: scheduling
         // the weaker one onto the taken day is not refused and evicts nothing.
-        schedule(&mut conn, &other.id, "2026-09-05").unwrap();
+        schedule(&conn, &other.id, "2026-09-05").unwrap();
         assert_eq!(
             calendar(&conn, &profile_id)
                 .unwrap()
@@ -1076,9 +1143,9 @@ mod tests {
 
     #[test]
     fn a_released_slot_does_not_block_a_new_one() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let out = planned(&conn, &profile_id, "Already out", Some(9.0));
-        schedule(&mut conn, &out.id, "2026-09-01").unwrap();
+        schedule(&conn, &out.id, "2026-09-01").unwrap();
         mark_released(
             &conn,
             &out.id,
@@ -1089,7 +1156,7 @@ mod tests {
         let next = planned(&conn, &profile_id, "Next", Some(2.0));
 
         // History occupies the date, but it is no longer a plan competing for it.
-        schedule(&mut conn, &next.id, "2026-09-01").unwrap();
+        schedule(&conn, &next.id, "2026-09-01").unwrap();
     }
 
     #[test]
@@ -1291,9 +1358,9 @@ mod tests {
 
     #[test]
     fn unscheduling_keeps_the_release_but_frees_the_slot() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let release = planned(&conn, &profile_id, "Subject", Some(7.0));
-        schedule(&mut conn, &release.id, "2026-09-01").unwrap();
+        schedule(&conn, &release.id, "2026-09-01").unwrap();
 
         let freed = unschedule(&conn, &release.id).unwrap();
 
@@ -1312,7 +1379,7 @@ mod tests {
     /// a drift would show up as a plan booking days that are not free.
     #[test]
     fn the_preview_reports_what_the_day_holds() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
 
         let first = planned(&conn, &profile_id, "First", Some(9.0));
         let second = planned(&conn, &profile_id, "Second", Some(4.0));
@@ -1326,16 +1393,16 @@ mod tests {
 
         // Once taken, the preview names what is there — and the drop still goes
         // through, because nothing is refused any more.
-        schedule(&mut conn, &first.id, "2026-09-01").unwrap();
+        schedule(&conn, &first.id, "2026-09-01").unwrap();
         let dry = preview(&conn, &second.id, "2026-09-01").unwrap();
         assert_eq!(dry.verdict, Verdict::Taken);
         assert_eq!(dry.holder_title.as_deref(), Some("First"));
-        schedule(&mut conn, &second.id, "2026-09-01").unwrap();
+        schedule(&conn, &second.id, "2026-09-01").unwrap();
         assert_eq!(calendar(&conn, &profile_id).unwrap().len(), 2);
 
         // A pinned day reads differently from a merely taken one: that is the
         // whole of what a pin now means.
-        schedule(&mut conn, &pinned.id, "2026-09-03").unwrap();
+        schedule(&conn, &pinned.id, "2026-09-03").unwrap();
         set_slot_pin(&conn, &pinned.id, true).unwrap();
         let dry = preview(&conn, &first.id, "2026-09-03").unwrap();
         assert_eq!(dry.verdict, Verdict::Pinned);
@@ -1359,7 +1426,7 @@ mod tests {
 
         // Scored but missing both roles a clip requires.
         let bare = planned(&conn, &profile_id, "Bare", Some(6.0));
-        schedule(&mut conn, &bare.id, "2026-09-01").unwrap();
+        schedule(&conn, &bare.id, "2026-09-01").unwrap();
 
         // Scored, with a version for every required role.
         let full = planned(&conn, &profile_id, "Full", Some(7.0));
@@ -1378,7 +1445,7 @@ mod tests {
             )
             .unwrap();
         }
-        schedule(&mut conn, &full.id, "2026-09-02").unwrap();
+        schedule(&conn, &full.id, "2026-09-02").unwrap();
 
         let shown = calendar(&conn, &profile_id).unwrap();
         let of = |id: &str| shown.iter().find(|row| row.release.id == id).unwrap();
@@ -1437,11 +1504,11 @@ mod tests {
 
     #[test]
     fn scheduled_for_lists_only_what_holds_a_slot() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let booked = planned(&conn, &profile_id, "Booked", Some(9.0));
         let waiting = planned(&conn, &profile_id, "Waiting", Some(8.0));
 
-        schedule(&mut conn, &booked.id, "2026-09-10").unwrap();
+        schedule(&conn, &booked.id, "2026-09-10").unwrap();
 
         let held = scheduled_for(&conn, &booked.work_id).unwrap();
         assert_eq!(held, vec![booked.id]);
@@ -1452,9 +1519,9 @@ mod tests {
 
     #[test]
     fn scheduled_for_leaves_a_released_date_alone() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let out = planned(&conn, &profile_id, "Shipped", Some(9.0));
-        schedule(&mut conn, &out.id, "2026-09-10").unwrap();
+        schedule(&conn, &out.id, "2026-09-10").unwrap();
         mark_released(&conn, &out.id, None, None).unwrap();
 
         // A released date records what happened. Unscheduling it would rewrite
