@@ -539,7 +539,11 @@
     "versionDerived": "The text is in the editor. Saving makes it the next revision.",
     "releaseUnreleased": "No longer marked as released.",
     "linkCopied": "Link copied.",
-    "linkCopyFailed": "copy the link"
+    "linkCopyFailed": "copy the link",
+    "workEdited": "Work updated",
+    "workRenamed": "Title changed",
+    "releaseEdited": "Release updated",
+    "tagsEdited": "Tags updated"
   },
   "trash": {
     "title": "Trash",

@@ -577,7 +577,11 @@
     "versionDerived": "Текст в редакторе. Сохранение сделает его следующей ревизией.",
     "releaseUnreleased": "Отметка о выпуске снята.",
     "linkCopied": "Ссылка скопирована.",
-    "linkCopyFailed": "скопировать ссылку"
+    "linkCopyFailed": "скопировать ссылку",
+    "workEdited": "Произведение изменено",
+    "workRenamed": "Заголовок изменён",
+    "releaseEdited": "Выпуск изменён",
+    "tagsEdited": "Теги изменены"
   },
   "trash": {
     "title": "Корзина",

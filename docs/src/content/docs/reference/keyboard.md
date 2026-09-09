@@ -55,6 +55,12 @@ so instead of doing something else. Deleting is safe regardless of any of this:
 it goes to the [trash](/kilna/guides/the-trash/), which is a drawer, not a
 shredder.
 
+You will usually not need the key. Saving an edit puts a line at the corner of
+the screen naming what changed, with **Undo** beside it — the same bargain
+deleting has made since the beginning: nothing asks you to confirm beforehand,
+and one click takes it back afterwards. The keystroke is for when the line has
+gone and you have moved on.
+
 ## While you are typing
 
 A shortcut must never cost you a sentence:

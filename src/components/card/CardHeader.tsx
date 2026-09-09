@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { latestScore, listCollections, updateWork, type Work } from '@/lib/api'
 import { coverFor } from '@/lib/cover'
 import { keys } from '@/lib/query'
+import { announceEdited } from '@/lib/edited'
 import { say } from '@/lib/toast'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Badge } from '@/components/ui/badge'
@@ -193,9 +194,11 @@ function RenameDialog({
     mutationFn: (next: string) => updateWork(work.id, { title: next }),
     onSuccess: (updated) => {
       client.setQueryData(keys.work(work.id), updated)
-      void client.invalidateQueries({ queryKey: keys.works })
-      void client.invalidateQueries({ queryKey: keys.catalogue })
-      void client.invalidateQueries({ queryKey: keys.journal })
+      announceEdited({
+        client,
+        message: t('toast.workRenamed'),
+        refresh: [keys.works, keys.catalogue, keys.journal],
+      })
       onOpenChange(false)
     },
     onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),

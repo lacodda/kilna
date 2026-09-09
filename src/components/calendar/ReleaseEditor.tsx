@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { updateRelease, type ScheduledRelease } from '@/lib/api'
+import { announceEdited } from '@/lib/edited'
 import { missing } from '@/lib/readiness'
 import { openExternal } from '@/lib/link'
 import { say } from '@/lib/toast'
@@ -57,6 +58,8 @@ export function ReleaseEditor({
     setDraft(toDraft(release))
   }
 
+  const client = useQueryClient()
+
   const save = useMutation({
     mutationFn: () => {
       if (release === null) throw new Error('nothing to save')
@@ -69,9 +72,12 @@ export function ReleaseEditor({
       })
     },
     onSuccess: () => {
+      // The parent settles the queries — it has state of its own to clear and
+      // a readiness check to run first — so nothing is passed to `refresh`
+      // here. What `announceEdited` is for is the offer to take it back.
       onSaved()
       onOpenChange(false)
-      say.ok(t('toast.releaseSaved'))
+      announceEdited({ client, message: t('toast.releaseSaved'), refresh: [] })
     },
     onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })

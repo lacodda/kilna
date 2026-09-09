@@ -18,6 +18,7 @@ import { daysBetween } from '@/lib/readiness'
 import { today } from '@/lib/month'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
+import { announceEdited } from '@/lib/edited'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { KindGlyph } from '@/lib/releaseIcon'
 import { openExternal, shortLink } from '@/lib/link'
@@ -99,7 +100,13 @@ export function ReleasePanel({ workId, workTitle }: Props) {
 
   const save = useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: ReleasePatch }) => updateRelease(id, patch),
-    onSuccess: done(t('toast.releaseSaved')),
+    onSuccess: () => {
+      announceEdited({
+        client,
+        message: t('toast.releaseEdited'),
+        refresh: refreshed,
+      })
+    },
     onError: failed,
   })
 

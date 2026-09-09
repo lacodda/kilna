@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, X } from 'lucide-react'
 import { updateWork, workTags, type Mark, type Work } from '@/lib/api'
+import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
@@ -32,8 +33,11 @@ export function TagBar({ work }: { work: Work }) {
       updateWork(work.id, changes),
     onSuccess: (updated) => {
       client.setQueryData(keys.work(work.id), updated)
-      void client.invalidateQueries({ queryKey: keys.workTags })
-      void client.invalidateQueries({ queryKey: keys.catalogue })
+      announceEdited({
+        client,
+        message: t('toast.tagsEdited'),
+        refresh: [keys.workTags, keys.catalogue],
+      })
     },
     onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })

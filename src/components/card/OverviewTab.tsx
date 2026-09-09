@@ -9,6 +9,7 @@ import {
   type Work,
   type WorkPatch,
 } from '@/lib/api'
+import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
@@ -70,13 +71,11 @@ export function OverviewTab({ work }: Props) {
     },
     onSuccess: (updated) => {
       client.setQueryData(keys.work(work.id), updated)
-    },
-    onSettled: () => {
-      // The list shows title, status and kind, so any of these changes it. A
-      // rename or a status change is also written down in the history tab.
-      void client.invalidateQueries({ queryKey: keys.works })
-      void client.invalidateQueries({ queryKey: keys.catalogue })
-      void client.invalidateQueries({ queryKey: keys.journal })
+      announceEdited({
+        client,
+        message: t('toast.workEdited'),
+        refresh: [keys.works, keys.catalogue, keys.journal],
+      })
     },
   })
 
