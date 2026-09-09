@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.51.0] - 2026-09-09
+
+### Features
+- Record what was asked for, and rebuild the workspace from it
 ## [0.50.0] - 2026-09-08
 
 ### Features
