@@ -58,6 +58,7 @@ import { announceDeleted } from '@/lib/trash'
 import { say } from '@/lib/toast'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { nextTier } from '@/lib/scoring'
+import { Pin } from 'lucide-react'
 import type { Tab } from '@/components/card/tabs'
 import { BulkActions } from '@/components/assistant/BulkActions'
 import { Badge } from '@/components/ui/badge'
@@ -967,7 +968,9 @@ function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
       // catalogue row carries the total, not the score behind it. Naming the
       // axis here would mean shipping every work's axes to draw a table.
       const ahead =
-        row.total === null ? undefined : nextTier(profile.config.tiers, row.total)
+        row.total === null || row.tier_pinned
+          ? undefined
+          : nextTier(profile.config.tiers, row.total)
 
       return (
         <td className="px-3 py-2">
@@ -978,6 +981,15 @@ function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
               <span className="rounded bg-accent-soft px-1.5 py-0.5 text-xs">
                 {labelOf(profile.config.tiers, row.tier)}
               </span>
+              {/* A tier held by hand is not a tier the score arrived at, and
+                  a reader who cannot tell them apart is reading a number that
+                  means two different things. */}
+              {row.tier_pinned && (
+                <Pin
+                  aria-label={t('catalogue.tierPinned')}
+                  className="size-3 shrink-0 self-center text-faint"
+                />
+              )}
               {ahead !== undefined && row.total !== null && (
                 <span
                   className="text-[11px] text-faint tabular-nums"

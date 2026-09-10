@@ -21,6 +21,7 @@ export const keys = {
   scores: ['scores'] as const,
   scoreHistory: (workId: string) => ['scores', 'history', workId] as const,
   latestScore: (workId: string) => ['scores', 'latest', workId] as const,
+  kindVerdicts: (workId: string) => ['scores', 'kinds', workId] as const,
   catalogue: ['catalogue'] as const,
 
   releases: ['releases'] as const,

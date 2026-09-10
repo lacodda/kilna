@@ -324,7 +324,28 @@
     "crossesHere": "From here: {{tier}}",
     "rulerLabel": "Tiers, with this card at {{score}}",
     "axisTrend": "{{axis}}: {{from}} to {{to}}",
-    "noAxisTrend": "Judged once - no trend yet"
+    "noAxisTrend": "Judged once - no trend yet",
+    "pinTier": "Hold at a tier",
+    "pinTierTitle": "Hold this work at a tier",
+    "pinTierWhy": "The score keeps being recorded; the tier stops following it until you let it go.",
+    "pinTierWhich": "Tier",
+    "pinTierScored": "what the score says",
+    "pinTierReason": "Why",
+    "pinTierReasonHint": "What the axes cannot see",
+    "pinTierConfirm": "Hold it",
+    "tierPinnedBy": "Held at {{tier}} — {{reason}}.",
+    "followFacts": "Follow the facts",
+    "followFactsHint": "Let the score decide the tier again",
+    "byKind": "What each release makes of it",
+    "byKindReweighed": "This kind weighs the axes its own way",
+    "byKindSame": "This kind weighs the axes the way the profile does",
+    "rater": "Who judged",
+    "raterHint": "Leave empty when it is you",
+    "raterYou": "you",
+    "blindOn": "Score blind",
+    "blindOnHint": "Hide the past verdict and the assistant's until you have given yours",
+    "blindHidden": "The past verdict is hidden while you judge.",
+    "blindReveal": "Show it"
   },
   "catalogue": {
     "work": "Work",
@@ -392,7 +413,8 @@
       "unscheduled_one": "{{count}} release taken off the calendar",
       "unscheduled_other": "{{count}} releases taken off the calendar"
     },
-    "toNextTier": "{{gap}} more to reach {{tier}}"
+    "toNextTier": "{{gap}} more to reach {{tier}}",
+    "tierPinned": "Tier held by hand"
   },
   "assistant": {
     "title": "Assistant",
@@ -553,7 +575,10 @@
     "workEdited": "Work updated",
     "workRenamed": "Title changed",
     "releaseEdited": "Release updated",
-    "tagsEdited": "Tags updated"
+    "tagsEdited": "Tags updated",
+    "tierPinned": "Tier held by hand",
+    "tierUnpinned": "The score has its say again",
+    "tierPinFailed": "hold the tier"
   },
   "trash": {
     "title": "Trash",

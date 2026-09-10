@@ -83,6 +83,7 @@ pub fn run() {
             commands::score_work,
             commands::score_history,
             commands::latest_score,
+            commands::kind_verdicts,
             commands::delete_score,
             commands::catalogue,
             commands::create_release,

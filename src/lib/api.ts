@@ -556,6 +556,19 @@ export const scoreWork = (workId: string, score: NewScore) =>
   invoke<Score>('score_work', { workId, score })
 export const scoreHistory = (workId: string) => invoke<Score[]>('score_history', { workId })
 export const latestScore = (workId: string) => invoke<Score | null>('latest_score', { workId })
+
+/** What one release kind makes of a work's latest answers. */
+export interface KindVerdict {
+  kind: string
+  total: number
+  tier: string | null
+  /** False when the kind weighs the axes exactly as the profile does. */
+  reweighed: boolean
+}
+
+/** The same score, read down every channel the craft ships to. */
+export const kindVerdicts = (workId: string) =>
+  invoke<KindVerdict[]>('kind_verdicts', { workId })
 export const deleteScore = (id: string) => invoke<string>('delete_score', { id })
 export const catalogue = () => invoke<ScoredWork[]>('catalogue')
 

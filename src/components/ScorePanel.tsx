@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { X } from 'lucide-react'
-import { deleteScore, listVersions, scoreHistory, scoreWork } from '@/lib/api'
+import { Eye, EyeOff, X } from 'lucide-react'
+import { deleteScore, getWork, listVersions, scoreHistory, scoreWork } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
@@ -18,6 +18,8 @@ import { Select } from '@/components/ui/AppSelect'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Sparkline } from '@/components/ui/Sparkline'
 import { TierRuler } from '@/components/ui/TierRuler'
+import { TierPin } from '@/components/card/TierPin'
+import { KindVerdicts } from '@/components/card/KindVerdicts'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -42,6 +44,18 @@ export function ScorePanel({ workId }: Props) {
   // a seven here" while the person is deciding rather than after.
   const [hovered, setHovered] = useState<Record<string, number>>({})
   const [note, setNote] = useState('')
+  // Who is judging. Empty means the author, which is what the column has meant
+  // since v0.50 - so a second opinion is a name typed here, not a second
+  // workspace.
+  const [rater, setRater] = useState('')
+  // Judging blind: the past verdict and the assistant's are held back until
+  // this card has one of its own. What stays visible is what THESE marks add
+  // up to - a mirror of the verdict being given, not a hint about the last
+  // one. Per-session rather than stored: it is a way of working through one
+  // batch, not a setting about the workspace.
+  const [blind, setBlind] = useState(false)
+  const [revealed, setRevealed] = useState(false)
+  const hiding = blind && !revealed
   // Empty means "whatever the work currently points at", which is what the
   // backend already does when no version is named.
   const [versionId, setVersionId] = useState('')
@@ -54,6 +68,13 @@ export function ScorePanel({ workId }: Props) {
   const versions = useQuery({
     queryKey: keys.versions(workId),
     queryFn: () => listVersions(workId),
+  })
+
+  // The pin lives on the work, not on the score: it is one person holding one
+  // work at a tier, which is why 0013 put it in a column there.
+  const work = useQuery({
+    queryKey: keys.work(workId),
+    queryFn: () => getWork(workId),
   })
 
   const filled = Object.keys(values).length
@@ -69,6 +90,7 @@ export function ScorePanel({ workId }: Props) {
     keys.journal,
     keys.scoreHistory(workId),
     keys.latestScore(workId),
+    keys.kindVerdicts(workId),
     keys.catalogue,
     keys.works,
   ]
@@ -83,11 +105,17 @@ export function ScorePanel({ workId }: Props) {
         axes: values,
         version_id: versionId === '' ? null : versionId,
         note: note.trim() === '' ? null : note.trim(),
+        rater: rater.trim() === '' ? null : rater.trim(),
       }),
     onSuccess: () => {
       setValues({})
       setNote('')
       setVersionId('')
+      // The rater is deliberately kept: judging a batch as one person means
+      // typing the name once, not once per work.
+      // The verdict is in, so what was held back is the payoff rather than a
+      // temptation: comparing is the whole point of having judged blind.
+      setRevealed(true)
       settle()
       say.ok(t('toast.scoreSaved'))
     },
@@ -131,7 +159,32 @@ export function ScorePanel({ workId }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold">{t('score.title')}</h3>
+      <div className="flex items-center gap-3">
+        <h3 className="text-sm font-semibold">{t('score.title')}</h3>
+
+        {historyData.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setBlind((on) => !on)
+              setRevealed(false)
+            }}
+            title={t('score.blindOnHint')}
+            aria-pressed={blind}
+            className={cn(
+              'ml-auto flex cursor-pointer items-center gap-1 text-xs transition-colors',
+              blind ? 'text-accent' : 'text-faint hover:text-text',
+            )}
+          >
+            {blind ? (
+              <EyeOff aria-hidden className="size-3.5" />
+            ) : (
+              <Eye aria-hidden className="size-3.5" />
+            )}
+            {t('score.blindOn')}
+          </button>
+        )}
+      </div>
 
       {history.isError && (
         <p role="alert" className="text-sm text-bad">
@@ -224,6 +277,7 @@ export function ScorePanel({ workId }: Props) {
                     line under the total says the card moved; these say which
                     axis moved it. */}
                 {(() => {
+                  if (hiding) return null
                   const line = axisTrend(axis.key)
                   if (line.length < 2) return null
 
@@ -260,7 +314,7 @@ export function ScorePanel({ workId }: Props) {
               <Badge variant="accent">{previewTier.label}</Badge>
             )}
 
-            {trend.length > 1 && <Sparkline values={trend} />}
+            {trend.length > 1 && !hiding && <Sparkline values={trend} />}
 
             <Button
               className="ml-auto"
@@ -309,6 +363,18 @@ export function ScorePanel({ workId }: Props) {
             <p className="text-xs text-dim">{t('score.partial', { filled, count: axes.length })}</p>
           )}
 
+          {/* Held by hand, or free to follow the score. Placed under the
+              verdict it overrides, and shown even with nothing filled in:
+              a pin is about the work, not about the form being typed. */}
+          {work.data != null && (
+            <TierPin work={work.data} scored={historyData[0]?.tier ?? null} />
+          )}
+
+          {/* What the recorded score means to each channel. Reads the latest
+              score rather than the form above: a verdict per kind is about
+              what stands, not about what is being typed. */}
+          <KindVerdicts workId={workId} />
+
           {/* Both of these have been in the API since v0.3.0 and never sent.
               A score belongs to the draft it judged — usually the current one,
               which is what an empty choice means. */}
@@ -324,6 +390,18 @@ export function ScorePanel({ workId }: Props) {
                 onChange={setVersionId}
                 placeholder={t('score.currentVersion')}
                 options={versionOptions}
+              />
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
+                {t('score.rater')}
+              </span>
+              <Input
+                className="w-44"
+                value={rater}
+                onChange={(event) => setRater(event.target.value)}
+                placeholder={t('score.raterHint')}
               />
             </label>
 
@@ -343,7 +421,20 @@ export function ScorePanel({ workId }: Props) {
 
       {history.isPending && <Skeleton className="h-24 w-full" />}
 
-      {historyData.length > 0 && (
+      {hiding && historyData.length > 0 && (
+        <p className="rounded-xl border border-dashed border-line px-3 py-2 text-xs text-dim">
+          {t('score.blindHidden')}{' '}
+          <button
+            type="button"
+            onClick={() => setRevealed(true)}
+            className="cursor-pointer underline decoration-dotted underline-offset-2 transition-colors hover:text-text"
+          >
+            {t('score.blindReveal')}
+          </button>
+        </p>
+      )}
+
+      {!hiding && historyData.length > 0 && (
         <ul className="flex flex-col gap-1">
           {historyData.map((score, index) => {
             const delta = index === 0 && previous !== undefined ? score.total - previous : undefined
@@ -380,6 +471,15 @@ export function ScorePanel({ workId }: Props) {
                   <span className={cn('text-xs font-medium', delta > 0 ? 'text-good' : 'text-bad')}>
                     {delta > 0 ? '+' : ''}
                     {delta.toFixed(1)}
+                  </span>
+                )}
+                {/* Who judged, when it was not you. The column has meant
+                    "null is the author" since v0.50; showing the name only
+                    when there is one keeps your own rows unlabelled and makes
+                    a second opinion visible by contrast. */}
+                {score.rater !== null && score.rater !== '' && (
+                  <span className="rounded-full border border-line px-1.5 py-0.5 text-[11px] text-dim">
+                    {score.rater}
                   </span>
                 )}
                 {score.note !== null && score.note !== '' && (

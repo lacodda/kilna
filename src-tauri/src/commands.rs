@@ -1047,6 +1047,26 @@ pub fn latest_score(state: State<'_, AppState>, work_id: String) -> Result<Optio
     score::latest(&conn, &work_id)
 }
 
+/// What each release kind makes of this work's latest answers.
+///
+/// Computed rather than stored: the weights live in the profile, so a verdict
+/// saved beside the score would be stale the moment the craft changed its
+/// mind. An unscored work has no verdicts, which is not the same as a work
+/// every kind rates zero.
+#[tauri::command]
+pub fn kind_verdicts(
+    state: State<'_, AppState>,
+    work_id: String,
+) -> Result<Vec<profile::config::KindVerdict>> {
+    let conn = state.conn();
+    let Some(latest) = score::latest(&conn, &work_id)? else {
+        return Ok(Vec::new());
+    };
+    let profile =
+        profile::active(&conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
+    Ok(profile.config.verdicts(&latest.axes))
+}
+
 #[tauri::command]
 pub fn delete_score(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Score, &id)

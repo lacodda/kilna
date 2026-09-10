@@ -348,7 +348,28 @@
     "crossesHere": "Отсюда — «{{tier}}»",
     "rulerLabel": "Тиры, карточка на {{score}}",
     "axisTrend": "{{axis}}: от {{from}} к {{to}}",
-    "noAxisTrend": "Оценена один раз — тренда ещё нет"
+    "noAxisTrend": "Оценена один раз — тренда ещё нет",
+    "pinTier": "Закрепить тир",
+    "pinTierTitle": "Закрепить тир произведения",
+    "pinTierWhy": "Оценки продолжают записываться; тир перестаёт им следовать, пока вы его не отпустите.",
+    "pinTierWhich": "Тир",
+    "pinTierScored": "по оценке",
+    "pinTierReason": "Почему",
+    "pinTierReasonHint": "То, чего не видят оси",
+    "pinTierConfirm": "Закрепить",
+    "tierPinnedBy": "Закреплён на «{{tier}}» — {{reason}}.",
+    "followFacts": "Следовать фактам",
+    "followFactsHint": "Вернуть тиру право следовать оценке",
+    "byKind": "Что из этого делает каждый выпуск",
+    "byKindReweighed": "Этот вид взвешивает оси по-своему",
+    "byKindSame": "Этот вид взвешивает оси так же, как профиль",
+    "rater": "Кто судит",
+    "raterHint": "Пусто — значит вы",
+    "raterYou": "вы",
+    "blindOn": "Оценивать вслепую",
+    "blindOnHint": "Скрыть прошлый вердикт и мнение ассистента, пока не вынесен свой",
+    "blindHidden": "Прошлый вердикт скрыт, пока вы судите.",
+    "blindReveal": "Показать"
   },
   "catalogue": {
     "work": "Произведение",
@@ -424,7 +445,8 @@
       "unscheduled_many": "Снято {{count}} выпусков",
       "unscheduled_other": "Снято {{count}} выпуска"
     },
-    "toNextTier": "ещё {{gap}} до тира «{{tier}}»"
+    "toNextTier": "ещё {{gap}} до тира «{{tier}}»",
+    "tierPinned": "Тир закреплён вручную"
   },
   "assistant": {
     "title": "Ассистент",
@@ -592,7 +614,10 @@
     "workEdited": "Произведение изменено",
     "workRenamed": "Заголовок изменён",
     "releaseEdited": "Выпуск изменён",
-    "tagsEdited": "Теги изменены"
+    "tagsEdited": "Теги изменены",
+    "tierPinned": "Тир закреплён вручную",
+    "tierUnpinned": "Оценка снова решает",
+    "tierPinFailed": "закрепить тир"
   },
   "trash": {
     "title": "Корзина",

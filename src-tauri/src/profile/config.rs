@@ -270,6 +270,17 @@ pub struct Tier {
     pub min: f64,
 }
 
+/// What one release kind makes of a set of answers.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KindVerdict {
+    pub kind: String,
+    pub total: f64,
+    pub tier: Option<String>,
+    /// False when the kind weighs the axes exactly as the profile does, so a
+    /// reader can tell a real second opinion from an echo of the first.
+    pub reweighed: bool,
+}
+
 /// An independent body a work carries.
 ///
 /// Most roles stand alone — lyrics and style advance separately, and showing
@@ -386,6 +397,31 @@ impl ProfileConfig {
                 .copied()
                 .unwrap_or(axis.weight)
         })
+    }
+
+    /// What each release kind makes of the same answers.
+    ///
+    /// One score, read down every channel the craft ships to: a song that is
+    /// a clip and a merely adequate audio release is one work with two honest
+    /// verdicts, not a work whose number is wrong. Kinds that reweigh nothing
+    /// still appear - the point is the comparison, and a row missing from it
+    /// would read as "not applicable" rather than "same as the others".
+    pub fn verdicts(
+        &self,
+        values: &serde_json::Map<String, serde_json::Value>,
+    ) -> Vec<KindVerdict> {
+        self.release_kinds
+            .iter()
+            .map(|kind| {
+                let total = self.total_for(values, &kind.key);
+                KindVerdict {
+                    kind: kind.key.clone(),
+                    total,
+                    tier: self.tier_for(total).map(|tier| tier.key.clone()),
+                    reweighed: !kind.axis_weights.is_empty(),
+                }
+            })
+            .collect()
     }
 
     fn weigh(
@@ -872,6 +908,47 @@ mod tests {
             config.total_for(values, "no-such-kind"),
             config.total(values)
         );
+    }
+
+    #[test]
+    fn every_release_kind_gets_a_verdict_even_when_it_reweighs_nothing() {
+        let config = typed();
+        let values = json!({ "hook": 10.0, "chorus": false, "length": "short" });
+        let verdicts = config.verdicts(values.as_object().unwrap());
+
+        // One row per kind: a kind missing from the comparison would read as
+        // "not applicable" rather than "weighs them the same way".
+        assert_eq!(verdicts.len(), config.release_kinds.len());
+
+        let clip = verdicts.iter().find(|v| v.kind == "clip").unwrap();
+        let audio = verdicts.iter().find(|v| v.kind == "audio").unwrap();
+
+        assert!(clip.reweighed, "clip names its own weights");
+        assert!(!audio.reweighed, "audio names none");
+
+        // The verdicts are the per-kind totals, not the flat one repeated.
+        assert!((clip.total - 88.0).abs() < 1e-9, "got {}", clip.total);
+        assert_eq!(audio.total, config.total(values.as_object().unwrap()));
+        assert!(
+            clip.total > audio.total,
+            "the same answers read better as a clip: {} vs {}",
+            clip.total,
+            audio.total
+        );
+    }
+
+    #[test]
+    fn a_verdict_carries_the_tier_its_own_total_reaches() {
+        let config = typed();
+        let values = json!({ "hook": 10.0, "chorus": false, "length": "short" });
+        let verdicts = config.verdicts(values.as_object().unwrap());
+
+        for verdict in &verdicts {
+            // The claim is checkable: each tier is the one the profile itself
+            // returns for that verdict's own total, not for the flat total.
+            let expected = config.tier_for(verdict.total).map(|t| t.key.clone());
+            assert_eq!(verdict.tier, expected, "kind {}", verdict.kind);
+        }
     }
 
     #[test]
