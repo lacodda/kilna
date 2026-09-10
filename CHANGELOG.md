@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.54.0] - 2026-09-10
+
+### Documentation
+- Describe blind scoring, held tiers, the judge and per-kind verdicts
+
+### Features
+- Hold a tier by hand, name the judge, and judge blind
 ## [0.53.0] - 2026-09-10
 
 ### Features
