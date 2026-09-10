@@ -423,7 +423,8 @@
       "unscheduled_few": "Снято {{count}} выпуска",
       "unscheduled_many": "Снято {{count}} выпусков",
       "unscheduled_other": "Снято {{count}} выпуска"
-    }
+    },
+    "toNextTier": "ещё {{gap}} до тира «{{tier}}»"
   },
   "assistant": {
     "title": "Ассистент",

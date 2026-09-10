@@ -391,7 +391,8 @@
       "statusSet_other": "{{count}} works moved",
       "unscheduled_one": "{{count}} release taken off the calendar",
       "unscheduled_other": "{{count}} releases taken off the calendar"
-    }
+    },
+    "toNextTier": "{{gap}} more to reach {{tier}}"
   },
   "assistant": {
     "title": "Assistant",

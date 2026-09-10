@@ -57,6 +57,7 @@ import { keys } from '@/lib/query'
 import { announceDeleted } from '@/lib/trash'
 import { say } from '@/lib/toast'
 import { labelOf, useProfile } from '@/lib/useProfile'
+import { nextTier } from '@/lib/scoring'
 import type { Tab } from '@/components/card/tabs'
 import { BulkActions } from '@/components/assistant/BulkActions'
 import { Badge } from '@/components/ui/badge'
@@ -960,18 +961,39 @@ function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
         </td>
       )
 
-    case 'tier':
+    case 'tier': {
+      // How far the next tier is, when the row has been judged at all. Only
+      // the distance: which axis is cheapest needs the axis values, and a
+      // catalogue row carries the total, not the score behind it. Naming the
+      // axis here would mean shipping every work's axes to draw a table.
+      const ahead =
+        row.total === null ? undefined : nextTier(profile.config.tiers, row.total)
+
       return (
         <td className="px-3 py-2">
           {row.tier === null ? (
             <span className="text-faint">{'—'}</span>
           ) : (
-            <span className="rounded bg-accent-soft px-1.5 py-0.5 text-xs">
-              {labelOf(profile.config.tiers, row.tier)}
+            <span className="flex flex-wrap items-baseline gap-1.5">
+              <span className="rounded bg-accent-soft px-1.5 py-0.5 text-xs">
+                {labelOf(profile.config.tiers, row.tier)}
+              </span>
+              {ahead !== undefined && row.total !== null && (
+                <span
+                  className="text-[11px] text-faint tabular-nums"
+                  title={t('catalogue.toNextTier', {
+                    gap: (ahead.min - row.total).toFixed(1),
+                    tier: ahead.label,
+                  })}
+                >
+                  {`+${(ahead.min - row.total).toFixed(1)}`}
+                </span>
+              )}
             </span>
           )}
         </td>
       )
+    }
 
     case 'total':
       return (
