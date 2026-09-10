@@ -56,6 +56,61 @@ The same arithmetic marks the scales themselves: on any axis that can carry the
 card over on its own, the mark where it would cross is ringed. An axis with no
 ring cannot get there alone.
 
+## What each release makes of it
+
+A clip lives or dies on its hook and its picture; the same song as an audio
+release is carried by its words. If your profile gives a release kind
+[weights of its own](/kilna/reference/profile-document/#release_kinds), the
+panel reads one set of answers down every channel you ship to and shows what
+each makes of it — one score, several honest verdicts. Kinds that weigh the
+axes the way the profile does are shown greyed rather than left out, so the
+row means "weighs them your way" and not "does not apply".
+
+Nothing appears here until some kind actually reweighs something: otherwise
+every row would repeat the total.
+
+## Judging blind
+
+The panel normally shows you where a work stood last time — the history, the
+trend beside the total, a line per axis. That is useful when you are reading,
+and a thumb on the scale when you are judging: it is hard to give a six to
+something you called an eight in July.
+
+**Score blind** puts the past out of sight. The history, the per-axis trends
+and the assistant's opinion are held back until this card has a verdict of its
+own; recording one brings them straight back, which is the point — the
+comparison is the payoff, not the temptation.
+
+What stays visible is your own arithmetic: the total these marks add up to,
+the tier it reaches, the ruler, the distance to the next tier. Those are a
+mirror of the verdict you are giving, not a hint about the one you gave
+before.
+
+## Holding a tier by hand
+
+Sometimes the number is right and the verdict is wrong: a song is the only one
+of its kind, or it repeats a theme you have already published, and the axes
+cannot see either. **Hold at a tier** fixes the verdict where you want it and
+asks why — the reason is required, because a tier nobody can argue with later
+is a tier with a sentence attached.
+
+A held tier travels: the catalogue shows it instead of the scored one, marks
+it with a pin, and stops offering a distance to the next tier, which would be
+advice about a number nobody is chasing. Scores keep being recorded
+underneath; the tier simply stops following them.
+
+**Follow the facts** lets go, and the score decides again.
+
+## Who judged
+
+A score can carry a name. Leave **Who judged** empty and the score is yours —
+that is what the field has meant since the model was laid down. Type a name
+and the history labels that row, so a second opinion stands next to your own
+rather than replacing it.
+
+The name stays put after recording, because judging a batch as one person
+means typing it once rather than once per work.
+
 ## The score is pinned to this draft
 
 The score you just took is tied to the version of the lyrics that existed at

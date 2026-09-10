@@ -54,8 +54,11 @@ questions: the tier a work earns *as a clip* can differ from the tier it earns
 *as an audio release*, from the same axis values. Every key must name an axis
 in `axes`, and every weight must be zero or above. The verdict per kind is
 computed by the same rule as the plain total (see
-[Scoring](/kilna/concepts/scoring/)); showing it in the catalogue and the
-calendar is a later version's work.
+[Scoring](/kilna/concepts/scoring/)) and shown on the score panel, under the
+total, once at least one kind names weights of its own — see
+[What each release makes of it](/kilna/guides/scoring-a-work/#what-each-release-makes-of-it).
+A profile where no kind reweighs anything shows nothing there: every row would
+carry the number the total already gives.
 
 Every key in `requires` must name a role in `version_roles`. An empty or
 absent list states no requirements: readiness is then judged on the score
