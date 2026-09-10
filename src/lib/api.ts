@@ -23,6 +23,14 @@ export interface Axis {
   kind?: AxisKind
   /** Only a `choice` axis has any. */
   options?: AxisOption[]
+  /** What the landmark marks on this axis mean; not every mark has one. */
+  rubric?: AxisMark[]
+}
+
+/** What one mark on an axis means. `at` is on the axis's scale, not the total. */
+export interface AxisMark {
+  at: number
+  label: string
 }
 
 export interface Tier {

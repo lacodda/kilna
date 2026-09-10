@@ -315,7 +315,16 @@
     "note": "Why this score",
     "notePlaceholder": "What decided it (optional)",
     "trend": "Scores from {{from}} to {{to}}",
-    "openVersion": "Open the draft this judged"
+    "openVersion": "Open the draft this judged",
+    "toNextTier": "{{gap}} to {{tier}}",
+    "cheapest": "cheapest on {{axis}} (weight {{weight}}): {{count}} more",
+    "cheapest_one": "cheapest on {{axis}} (weight {{weight}}): one more mark",
+    "cheapest_other": "cheapest on {{axis}} (weight {{weight}}): {{count}} more marks",
+    "topTier": "The top tier, reached",
+    "crossesHere": "From here: {{tier}}",
+    "rulerLabel": "Tiers, with this card at {{score}}",
+    "axisTrend": "{{axis}}: {{from}} to {{to}}",
+    "noAxisTrend": "Judged once - no trend yet"
   },
   "catalogue": {
     "work": "Work",

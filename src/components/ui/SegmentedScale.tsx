@@ -8,6 +8,15 @@ interface Props {
   value: number | undefined
   onChange: (value: number | undefined) => void
   label: string
+  /**
+   * The mark from which the total would cross into the next tier, and what to
+   * call it. Absent when no mark on this axis gets there, and then nothing is
+   * drawn: a line promising a tier the axis cannot deliver is worse than no
+   * line at all.
+   */
+  threshold?: { mark: number; label: string }
+  /** What the mark under the pointer means, if the profile names it. */
+  onPreview?: (mark: number | undefined) => void
   className?: string
 }
 
@@ -23,7 +32,15 @@ interface Props {
  * keys, Home and End work the way they do everywhere else — and so a screen
  * reader announces a value out of a range instead of ten unlabelled buttons.
  */
-export function SegmentedScale({ scale, value, onChange, label, className }: Props) {
+export function SegmentedScale({
+  scale,
+  value,
+  onChange,
+  label,
+  threshold,
+  onPreview,
+  className,
+}: Props) {
   const { t } = useTranslation()
   const marks = Math.max(1, Math.round(scale))
 
@@ -76,6 +93,7 @@ export function SegmentedScale({ scale, value, onChange, label, className }: Pro
       aria-valuenow={value}
       aria-valuetext={value === undefined ? t('score.unjudged') : String(value)}
       onKeyDown={onKeyDown}
+      onMouseLeave={() => onPreview?.(undefined)}
       className={cn(
         'flex gap-[3px] rounded-[7px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         className,
@@ -84,6 +102,10 @@ export function SegmentedScale({ scale, value, onChange, label, className }: Pro
       {Array.from({ length: marks }, (_, index) => {
         const mark = index + 1
         const filled = value !== undefined && mark <= value
+
+        // The first mark that would carry the total over: the line goes on its
+        // leading edge, so "from here" reads as the boundary it is.
+        const crosses = threshold !== undefined && threshold.mark === mark
 
         return (
           <button
@@ -96,9 +118,17 @@ export function SegmentedScale({ scale, value, onChange, label, className }: Pro
             // Clicking the mark you are already on clears the axis, which is
             // the only way back to unjudged with the mouse.
             onClick={() => onChange(value === mark ? undefined : mark)}
+            onMouseEnter={() => onPreview?.(mark)}
+            title={crosses ? threshold.label : undefined}
             className={cn(
-              'h-[22px] flex-1 cursor-pointer rounded-[5px] transition-colors',
+              'relative h-[22px] flex-1 cursor-pointer rounded-[5px] transition-colors',
               filled ? 'bg-accent hover:bg-accent-2' : 'bg-soft hover:bg-line-2',
+              // An outline around the mark itself rather than a rule beside it.
+              // A line on the leading edge reads as the end of the scale when
+              // the mark is the last one - which is exactly when the threshold
+              // matters most. Ringing the segment says "this one" wherever it
+              // falls, and leaves the fill free to keep meaning "scored".
+              crosses && 'ring-2 ring-inset ring-good',
             )}
           />
         )

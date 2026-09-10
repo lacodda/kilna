@@ -31,6 +31,31 @@ kilna stores the total computed from the axes you gave and their weights, and
 reports which tier that total falls into — `hold`, `audio`,
 `picture` or `clip` on the Music profile's default thresholds.
 
+## What the marks mean, and what the next tier costs
+
+If your profile gives an axis a
+[rubric](/kilna/reference/profile-document/#rubrics), the sentence for the mark
+you are on appears under the scale as you move along it — so "is this a seven"
+is answered by the craft rather than by mood. A mark with no sentence of its
+own shows the nearest one below it.
+
+Under the total, a ruler lays the tiers out to scale with the card standing
+somewhere along it, and a line says how far the next tier is and where it is
+cheapest to get there:
+
+> **9.3 to Picture track** · cheapest on Hook (weight 2): 4 more marks
+
+Cheapest means *in marks*, not in weight. A heavy axis usually moves the total
+furthest per mark, but not when it is already near its ceiling, and not when
+the axes run on different scales — so kilna works out what each axis would
+actually cost and names the one that costs least. If no single axis can close
+the gap, it says the distance and offers no axis rather than pointing at one
+that would not deliver.
+
+The same arithmetic marks the scales themselves: on any axis that can carry the
+card over on its own, the mark where it would cross is ringed. An axis with no
+ring cannot get there alone.
+
 ## The score is pinned to this draft
 
 The score you just took is tied to the version of the lyrics that existed at
@@ -65,6 +90,12 @@ From the second score onwards a small line appears beside the total, drawn
 against the full scale rather than against its own range: a work that moved
 61 → 63 looks like the small change it was. Green climbs, red falls. The exact
 numbers, with what each score changed by, are in the list underneath.
+
+Each axis gets its own line too, beside its scale. The line under the total
+says the card moved; these say which axis moved it — a rewrite that lifted the
+lyrics and left the hook alone reads that way at a glance. Every score records
+what all the axes were worth at the time, so these lines come out of history
+you already have.
 
 ## Reading staleness
 

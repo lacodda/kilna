@@ -338,7 +338,17 @@
     "note": "Чем обоснована",
     "notePlaceholder": "Что решило (необязательно)",
     "trend": "Оценки от {{from}} до {{to}}",
-    "openVersion": "Открыть черновик, который оценивали"
+    "openVersion": "Открыть черновик, который оценивали",
+    "toNextTier": "{{gap}} до тира «{{tier}}»",
+    "cheapest": "дешевле всего ось «{{axis}}» (вес {{weight}}): ещё {{count}}",
+    "cheapest_one": "дешевле всего ось «{{axis}}» (вес {{weight}}): ещё одно деление",
+    "cheapest_few": "дешевле всего ось «{{axis}}» (вес {{weight}}): ещё {{count}} деления",
+    "cheapest_many": "дешевле всего ось «{{axis}}» (вес {{weight}}): ещё {{count}} делений",
+    "topTier": "Высший тир взят",
+    "crossesHere": "Отсюда — «{{tier}}»",
+    "rulerLabel": "Тиры, карточка на {{score}}",
+    "axisTrend": "{{axis}}: от {{from}} к {{to}}",
+    "noAxisTrend": "Оценена один раз — тренда ещё нет"
   },
   "catalogue": {
     "work": "Произведение",

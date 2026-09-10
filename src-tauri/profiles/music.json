@@ -36,42 +36,72 @@
         "label": "Hook",
         "weight": 2.0,
         "scale": 10.0,
-        "description": "Does the chorus stay with you after one listen?"
+        "description": "Does the chorus stay with you after one listen?",
+        "rubric": [
+          { "at": 2, "label": "you could not hum it back straight after" },
+          { "at": 5, "label": "the chorus lands, but you have heard it land before" },
+          { "at": 8, "label": "you catch yourself singing it hours later" }
+        ]
       },
       {
         "key": "lyrics",
         "label": "Lyrics",
         "weight": 1.5,
         "scale": 10.0,
-        "description": "Imagery, rhyme and whether a line earns its place."
+        "description": "Imagery, rhyme and whether a line earns its place.",
+        "rubric": [
+          { "at": 2, "label": "the lines fill the bar and say nothing" },
+          { "at": 5, "label": "clear and true, with no line you would quote" },
+          { "at": 8, "label": "at least one line you would quote to someone" }
+        ]
       },
       {
         "key": "emotion",
         "label": "Emotion",
         "weight": 1.5,
         "scale": 10.0,
-        "description": "Does it move a listener who knows nothing about it?"
+        "description": "Does it move a listener who knows nothing about it?",
+        "rubric": [
+          { "at": 2, "label": "it describes a feeling instead of causing one" },
+          { "at": 5, "label": "it moves you because you know what it is about" },
+          { "at": 8, "label": "it moves a stranger who knows none of that" }
+        ]
       },
       {
         "key": "production",
         "label": "Production",
         "weight": 1.0,
         "scale": 10.0,
-        "description": "Arrangement, mix and how finished it sounds."
+        "description": "Arrangement, mix and how finished it sounds.",
+        "rubric": [
+          { "at": 2, "label": "a demo, and it sounds like one" },
+          { "at": 5, "label": "clean, and nothing about it is interesting" },
+          { "at": 8, "label": "the arrangement is part of what the song means" }
+        ]
       },
       {
         "key": "originality",
         "label": "Originality",
         "weight": 1.0,
         "scale": 10.0,
-        "description": "Distance from the obvious version of this idea."
+        "description": "Distance from the obvious version of this idea.",
+        "rubric": [
+          { "at": 2, "label": "the first version anyone would write of this idea" },
+          { "at": 5, "label": "a familiar shape done properly" },
+          { "at": 8, "label": "you cannot name the song it is like" }
+        ]
       },
       {
         "key": "visual",
         "label": "Visual potential",
         "weight": 1.0,
         "scale": 10.0,
-        "description": "Is there a clip in it, or only a cover?"
+        "description": "Is there a clip in it, or only a cover?",
+        "rubric": [
+          { "at": 2, "label": "a cover, at most" },
+          { "at": 5, "label": "a picture track: one idea held for the length of it" },
+          { "at": 8, "label": "you can already see the cut" }
+        ]
       }
     ],
     "tiers": [

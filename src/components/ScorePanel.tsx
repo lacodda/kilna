@@ -8,7 +8,7 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { labelOf, useProfile } from '@/lib/useProfile'
-import { tierFor, total as computeTotal } from '@/lib/scoring'
+import { markReaching, rubricFor, tierFor, toNextTier, total as computeTotal } from '@/lib/scoring'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +17,7 @@ import { SegmentedScale } from '@/components/ui/SegmentedScale'
 import { Select } from '@/components/ui/AppSelect'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Sparkline } from '@/components/ui/Sparkline'
+import { TierRuler } from '@/components/ui/TierRuler'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -37,6 +38,9 @@ export function ScorePanel({ workId }: Props) {
   const { axes, tiers } = profile.config
 
   const [values, setValues] = useState<Record<string, number>>({})
+  // The mark the pointer is over, per axis, so the rubric can answer "what is
+  // a seven here" while the person is deciding rather than after.
+  const [hovered, setHovered] = useState<Record<string, number>>({})
   const [note, setNote] = useState('')
   // Empty means "whatever the work currently points at", which is what the
   // backend already does when no version is named.
@@ -55,6 +59,9 @@ export function ScorePanel({ workId }: Props) {
   const filled = Object.keys(values).length
   const preview = computeTotal(axes, values)
   const previewTier = tierFor(tiers, preview)
+  // What the next tier costs, and where it is cheapest - the advice this
+  // panel exists to give once the number stops being interesting on its own.
+  const ahead = filled === 0 ? undefined : toNextTier(axes, values, tiers, preview)
 
   // A score moves the catalogue and the work's own summary, either way — and
   // leaves a line in the journal, which the card shows underneath.
@@ -103,7 +110,17 @@ export function ScorePanel({ workId }: Props) {
   // The previous total, to show what a revision did to it.
   const previous = historyData[1]?.total
   // Oldest first for the line; the list below stays newest first.
-  const trend = [...historyData].reverse().map((score) => score.total)
+  const oldestFirst = [...historyData].reverse()
+  const trend = oldestFirst.map((score) => score.total)
+
+  // One line per axis, out of the same snapshots. A score records what every
+  // axis was worth at the time, so this needs no new storage - only reading
+  // the history down a column instead of across it. A snapshot taken before
+  // an axis existed simply has no point on that line.
+  const axisTrend = (key: string) =>
+    oldestFirst
+      .map((score) => score.axes[key])
+      .filter((value): value is number => typeof value === 'number')
 
   const versionOptions = (versions.data ?? []).map((version) => ({
     value: version.id,
@@ -148,22 +165,86 @@ export function ScorePanel({ workId }: Props) {
                 )}
               </span>
 
-              <SegmentedScale
-                scale={axis.scale}
-                value={values[axis.key]}
-                label={axis.label}
-                onChange={(next) =>
-                  setValues((current) => {
-                    const updated = { ...current }
-                    if (next === undefined) delete updated[axis.key]
-                    else updated[axis.key] = next
-                    return updated
-                  })
-                }
-              />
+              <span className="flex flex-col gap-1">
+                <SegmentedScale
+                  scale={axis.scale}
+                  value={values[axis.key]}
+                  label={axis.label}
+                  threshold={
+                    // Only drawn where it is true: the mark on THIS axis from
+                    // which the total would cross into the tier ahead. No such
+                    // mark, no line.
+                    ahead === undefined
+                      ? undefined
+                      : (() => {
+                          const mark = markReaching(axes, values, axis, ahead.tier.min)
+                          return mark === undefined
+                            ? undefined
+                            : { mark, label: t('score.crossesHere', { tier: ahead.tier.label }) }
+                        })()
+                  }
+                  onPreview={(mark) =>
+                    setHovered((current) => {
+                      const updated = { ...current }
+                      if (mark === undefined) delete updated[axis.key]
+                      else updated[axis.key] = mark
+                      return updated
+                    })
+                  }
+                  onChange={(next) =>
+                    setValues((current) => {
+                      const updated = { ...current }
+                      if (next === undefined) delete updated[axis.key]
+                      else updated[axis.key] = next
+                      return updated
+                    })
+                  }
+                />
 
-              <span className="text-right font-mono text-[13px] text-dim tabular-nums">
-                {values[axis.key] ?? '—'}
+                {/* What the mark under consideration means, when the craft has
+                    said. The mark being hovered wins over the one already set:
+                    the question while scoring is about the mark being weighed,
+                    not the one already given. */}
+                {(() => {
+                  const mark = hovered[axis.key] ?? values[axis.key]
+                  if (mark === undefined) return null
+                  const entry = rubricFor(axis, mark)
+                  if (entry === undefined) return null
+
+                  return (
+                    <span className="truncate text-[11px] text-dim" title={entry.label}>
+                      <b className="font-mono font-semibold">{entry.at}</b> — {entry.label}
+                    </span>
+                  )
+                })()}
+              </span>
+
+              <span className="flex items-center justify-end gap-2">
+                {/* This axis over time, beside the axis it belongs to. The one
+                    line under the total says the card moved; these say which
+                    axis moved it. */}
+                {(() => {
+                  const line = axisTrend(axis.key)
+                  if (line.length < 2) return null
+
+                  return (
+                    <Sparkline
+                      values={line}
+                      max={axis.scale}
+                      size={{ width: 52, height: 16 }}
+                      className="h-4 w-[52px]"
+                      label={t('score.axisTrend', {
+                        axis: axis.label,
+                        from: line[0]!.toFixed(0),
+                        to: line.at(-1)!.toFixed(0),
+                      })}
+                    />
+                  )
+                })()}
+
+                <span className="w-6 text-right font-mono text-[13px] text-dim tabular-nums">
+                  {values[axis.key] ?? '—'}
+                </span>
               </span>
             </div>
           ))}
@@ -190,6 +271,39 @@ export function ScorePanel({ workId }: Props) {
               {t('score.save')}
             </Button>
           </div>
+
+          {filled > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <TierRuler tiers={tiers} score={preview} />
+
+              {/* The sentence the panel is for: not "you are Silver" but "you
+                  are four points short, and the cheapest four are here". */}
+              <p className="text-xs text-dim">
+                {ahead === undefined ? (
+                  t('score.topTier')
+                ) : (
+                  <>
+                    <b className="font-semibold text-text">
+                      {t('score.toNextTier', {
+                        gap: ahead.gap.toFixed(1),
+                        tier: ahead.tier.label,
+                      })}
+                    </b>
+                    {ahead.cheapest !== undefined && (
+                      <>
+                        {' · '}
+                        {t('score.cheapest', {
+                          axis: ahead.cheapest.axis.label,
+                          weight: ahead.cheapest.axis.weight,
+                          count: ahead.cheapest.marks,
+                        })}
+                      </>
+                    )}
+                  </>
+                )}
+              </p>
+            </div>
+          )}
 
           {filled > 0 && filled < axes.length && (
             <p className="text-xs text-dim">{t('score.partial', { filled, count: axes.length })}</p>

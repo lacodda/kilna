@@ -193,6 +193,16 @@ pub struct Axis {
     /// Meaningless, and required to be empty, for the other kinds.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub options: Vec<AxisOption>,
+    /// What the marks on this axis mean, for the marks worth naming.
+    ///
+    /// A rubric turns "is this a seven" from a feeling into a question with an
+    /// answer: the craft says what a seven is, once, and every scoring after
+    /// that is measured against the same sentence. Only the landmarks are
+    /// named - three or so on a scale of ten - and a mark with nothing of its
+    /// own reads the nearest named mark *below* it, so the whole scale is
+    /// covered without the profile having to describe every step of it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rubric: Vec<AxisMark>,
 }
 
 /// The shape of an answer along an axis.
@@ -209,6 +219,17 @@ pub enum AxisKind {
     Scale,
     Flag,
     Choice,
+}
+
+/// What one mark on an axis means.
+///
+/// `at` is a mark on the axis's own scale, not on the 0-100 total: the person
+/// scoring is looking at this axis, and a rubric written in totals would be
+/// about a number they cannot see from here.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AxisMark {
+    pub at: f64,
+    pub label: String,
 }
 
 /// One answer a `choice` axis offers.
@@ -563,6 +584,23 @@ impl ProfileConfig {
                     }
                 }
             }
+
+            // A rubric describes marks on this axis, so a mark off the scale
+            // describes nothing, and two sentences about the same mark leave
+            // the app to pick one of them.
+            let mut named = BTreeSet::new();
+            for mark in &axis.rubric {
+                if !(mark.at.is_finite() && mark.at >= 0.0 && mark.at <= axis.scale) {
+                    problems.push(format!(
+                        "{place}: the rubric names {}, outside 0-{}",
+                        mark.at, axis.scale
+                    ));
+                    continue;
+                }
+                if !named.insert(mark.at.to_bits()) {
+                    problems.push(format!("{place}: the rubric names {} twice", mark.at));
+                }
+            }
         }
 
         for (index, tier) in self.tiers.iter().enumerate() {
@@ -624,6 +662,85 @@ mod tests {
             "work_meta_fields": []
         }))
         .unwrap()
+    }
+
+    // A profile from before rubrics existed must load, with the axis simply
+    // saying nothing about what its marks mean.
+    #[test]
+    fn an_axis_without_a_rubric_parses_as_naming_no_marks() {
+        assert!(config().axes[0].rubric.is_empty());
+    }
+
+    #[test]
+    fn a_rubric_names_marks_on_the_axis_scale() {
+        let axis: Axis = serde_json::from_value(json!({
+            "key": "hook", "label": "Hook", "weight": 2.0, "scale": 10.0,
+            "rubric": [
+                { "at": 3.0, "label": "audible, but it does not catch" },
+                { "at": 7.0, "label": "the chorus sticks on the first listen" }
+            ]
+        }))
+        .unwrap();
+
+        assert_eq!(axis.rubric.len(), 2);
+        assert_eq!(axis.rubric[1].at, 7.0);
+    }
+
+    #[test]
+    fn a_rubric_mark_off_the_scale_is_refused() {
+        let mut config = config();
+        config.axes[0].rubric = vec![AxisMark {
+            at: 12.0,
+            label: "beyond the scale".into(),
+        }];
+
+        let problems = config.validate();
+        assert!(
+            problems
+                .iter()
+                .any(|problem| problem.contains("outside 0-10")),
+            "got {problems:?}"
+        );
+    }
+
+    #[test]
+    fn a_rubric_naming_the_same_mark_twice_is_refused() {
+        let mut config = config();
+        config.axes[0].rubric = vec![
+            AxisMark {
+                at: 7.0,
+                label: "one sentence".into(),
+            },
+            AxisMark {
+                at: 7.0,
+                label: "and another".into(),
+            },
+        ];
+
+        let problems = config.validate();
+        assert!(
+            problems
+                .iter()
+                .any(|problem| problem.contains("names 7 twice")),
+            "got {problems:?}"
+        );
+    }
+
+    #[test]
+    fn a_sound_rubric_is_not_refused() {
+        let mut config = config();
+        config.axes[0].rubric = vec![
+            AxisMark {
+                at: 0.0,
+                label: "the bottom of the scale is a verdict too".into(),
+            },
+            AxisMark {
+                at: 10.0,
+                label: "and so is the top".into(),
+            },
+        ];
+
+        assert!(config.validate().is_empty(), "got {:?}", config.validate());
     }
 
     // The fixture's release kind carries no `requires`, as every profile

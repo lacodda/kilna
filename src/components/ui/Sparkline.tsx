@@ -6,6 +6,10 @@ interface Props {
   values: number[]
   /** Highest value the scale allows, so two works can be compared by eye. */
   max?: number
+  /** What the line says, for a screen reader. Defaults to the total's wording. */
+  label?: string
+  /** Drawing box, when the line sits somewhere narrower than beside a total. */
+  size?: { width: number; height: number }
   className?: string
 }
 
@@ -24,13 +28,19 @@ const PAD = 3
  * that moved 61 → 63 looks like the small change it was. A line normalised to
  * itself would draw that as a climb across the whole box.
  */
-export function Sparkline({ values, max = 100, className }: Props) {
+export function Sparkline({ values, max = 100, label, size, className }: Props) {
   const { t } = useTranslation()
   if (values.length < 2) return null
 
+  // The box is drawn at the size it will be shown at. A viewBox wider than the
+  // element scales x and y by different factors, which bends the line and
+  // stretches the end dot into a wedge - the shape stops being the data.
+  const width = size?.width ?? WIDTH
+  const height = size?.height ?? HEIGHT
+
   const top = Math.max(max, ...values)
-  const span = WIDTH - PAD * 2
-  const rise = HEIGHT - PAD * 2
+  const span = width - PAD * 2
+  const rise = height - PAD * 2
 
   const points = values.map((value, index) => {
     const x = PAD + (span * index) / (values.length - 1)
@@ -39,7 +49,9 @@ export function Sparkline({ values, max = 100, className }: Props) {
     return [x, y] as const
   })
 
-  const path = points.map(([x, y], index) => `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')
+  const path = points
+    .map(([x, y], index) => `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`)
+    .join(' ')
   const last = points.at(-1)!
   const first = values[0]!
   const latest = values.at(-1)!
@@ -47,10 +59,10 @@ export function Sparkline({ values, max = 100, className }: Props) {
 
   return (
     <svg
-      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className={cn('h-7 w-[120px] shrink-0', className)}
+      viewBox={`0 0 ${width} ${height}`}
+      className={cn('shrink-0', size === undefined && 'h-7 w-[120px]', className)}
       role="img"
-      aria-label={t('score.trend', { from: first.toFixed(1), to: latest.toFixed(1) })}
+      aria-label={label ?? t('score.trend', { from: first.toFixed(1), to: latest.toFixed(1) })}
     >
       <path
         d={path}
@@ -68,7 +80,7 @@ export function Sparkline({ values, max = 100, className }: Props) {
       <circle
         cx={last[0]}
         cy={last[1]}
-        r={2.5}
+        r={size === undefined ? 2.5 : 1.75}
         className={cn(
           direction === 'up' && 'fill-good',
           direction === 'down' && 'fill-bad',

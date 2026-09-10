@@ -141,6 +141,41 @@ What a work is judged on when scored:
 | `description` | string, optional | Guidance shown next to the axis when scoring. |
 | `kind` | `"scale"` \| `"flag"` \| `"choice"`, optional | What kind of answer the axis takes. Defaults to `scale`. |
 | `options` | array, optional | The answers a `choice` axis offers. Required for a choice, refused on any other kind. |
+| `rubric` | array, optional | What the landmark marks on this axis mean. Absent means the axis says nothing about its marks. |
+
+### Rubrics
+
+An axis's `description` asks the question; a rubric answers what the marks mean:
+
+```jsonc
+{
+  "key": "hook",
+  "label": "Hook",
+  "weight": 2.0,
+  "scale": 10.0,
+  "description": "Does the chorus stay with you after one listen?",
+  "rubric": [
+    { "at": 2, "label": "you could not hum it back straight after" },
+    { "at": 5, "label": "the chorus lands, but you have heard it land before" },
+    { "at": 8, "label": "you catch yourself singing it hours later" }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `at` | number | A mark on this axis's own scale, from 0 to `scale`. Not on the 0–100 total. |
+| `label` | string | What that mark means, in your craft's words. |
+
+Name only the landmarks — three or so on a scale of ten. A mark with nothing of
+its own reads the nearest named mark **below** it, so scoring a 6 against the
+rubric above shows the sentence written for 5. Below the lowest landmark
+nothing is shown.
+
+The point is that "is this a seven" stops being a feeling and becomes a
+question with an answer: the craft says what a seven is once, and every scoring
+after that is measured against the same sentence. Two landmarks naming the same
+mark, or a mark outside `0`–`scale`, is refused when the profile is saved.
 
 ### Axis kinds
 
