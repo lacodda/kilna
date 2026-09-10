@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.53.0] - 2026-09-10
+
+### Features
+- Say what the marks mean and what the next tier costs
+- Show how far each work is from its next tier
 ## [0.52.0] - 2026-09-09
 
 ### Features
