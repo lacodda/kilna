@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.56.0] - 2026-09-11
+
+### Documentation
+- Describe the MCP server and how an agent outside the window proposes
+
+### Features
+- Serve the workspace to an agent, who proposes rather than writes
+- Show and apply proposals from outside the window
 ## [0.55.0] - 2026-09-11
 
 ### Bug Fixes
