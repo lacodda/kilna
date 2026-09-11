@@ -85,9 +85,10 @@ it.
 
 ## `version_roles`
 
-The independent bodies a work carries, same `{ key, label }` shape. Music
-defines `lyrics` and `style`; Novel defines `text`, `outline` and `notes`. A
-work can hold one current version per role, plus every prior revision of each.
+The independent bodies a work carries, same `{ key, label }` shape plus how
+each one reads (`body`, see below). Music defines `lyrics` and `style`; Novel
+defines `text`, `outline` and `notes`. A work can hold one current version per
+role, plus every prior revision of each.
 
 ## `statuses`
 
@@ -271,7 +272,7 @@ renamed or retyped keeps your version, and one you deleted comes back.
 The independent bodies a work carries:
 
 ```jsonc
-{ "key": "review", "label": "Review", "comments_on": "lyrics" }
+{ "key": "review", "label": "Review", "comments_on": "lyrics", "body": "markdown" }
 ```
 
 | Field | Type | Meaning |
@@ -279,6 +280,15 @@ The independent bodies a work carries:
 | `key` | string | Stored on each version. |
 | `label` | string | What the lane is called. |
 | `comments_on` | string, optional | The role this one discusses. |
+| `body` | `plain` or `markdown`, optional | How a body in this role is read. Defaults to `plain`. |
+
+`body` says how the text is *shown*, never how it is stored: a `plain` role is
+a monospace column exactly as typed — lyrics, a style prompt — and a `markdown`
+role draws its headings, quotes and tables — a review, a chapter. The craft
+says which, because the application cannot tell a lyric sheet from an essay by
+looking at it. A value outside the two reads as plain, and the profile editor
+says so. A workspace written before the field gains the shipped reading for
+the roles it still shares by key; a choice you made yourself stays.
 
 Most roles stand alone: lyrics and style advance separately, and the Versions
 tab shows one lane at a time. A role that names `comments_on` is different —

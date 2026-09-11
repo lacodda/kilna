@@ -20,9 +20,9 @@
       { "key": "collection", "label": "Collection" }
     ],
     "version_roles": [
-      { "key": "text", "label": "Text" },
-      { "key": "outline", "label": "Outline" },
-      { "key": "notes", "label": "Working notes" }
+      { "key": "text", "label": "Text", "body": "markdown" },
+      { "key": "outline", "label": "Outline", "body": "markdown" },
+      { "key": "notes", "label": "Working notes", "body": "markdown" }
     ],
     "statuses": [
       { "key": "draft", "label": "Draft", "derive": "draft" },

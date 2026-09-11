@@ -19,8 +19,8 @@
       { "key": "roundup", "label": "Roundup" }
     ],
     "version_roles": [
-      { "key": "draft", "label": "Draft" },
-      { "key": "angle", "label": "Angle" }
+      { "key": "draft", "label": "Draft", "body": "markdown" },
+      { "key": "angle", "label": "Angle", "body": "plain" }
     ],
     "statuses": [
       { "key": "draft", "label": "Draft", "derive": "draft" },

@@ -19,9 +19,9 @@
       { "key": "miniseries", "label": "Miniseries" }
     ],
     "version_roles": [
-      { "key": "script", "label": "Script" },
-      { "key": "notes", "label": "Show notes" },
-      { "key": "outline", "label": "Research outline" }
+      { "key": "script", "label": "Script", "body": "plain" },
+      { "key": "notes", "label": "Show notes", "body": "markdown" },
+      { "key": "outline", "label": "Research outline", "body": "markdown" }
     ],
     "statuses": [
       { "key": "draft", "label": "Draft", "derive": "draft" },

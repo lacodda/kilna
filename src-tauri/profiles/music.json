@@ -18,10 +18,10 @@
       { "key": "cycle", "label": "Cycle" }
     ],
     "version_roles": [
-      { "key": "lyrics", "label": "Lyrics" },
-      { "key": "style", "label": "Style prompt" },
-      { "key": "review", "label": "Review", "comments_on": "lyrics" },
-      { "key": "critique", "label": "Critique", "comments_on": "lyrics" }
+      { "key": "lyrics", "label": "Lyrics", "body": "plain" },
+      { "key": "style", "label": "Style prompt", "body": "plain" },
+      { "key": "review", "label": "Review", "comments_on": "lyrics", "body": "markdown" },
+      { "key": "critique", "label": "Critique", "comments_on": "lyrics", "body": "markdown" }
     ],
     "statuses": [
       { "key": "draft", "label": "Draft", "derive": "draft" },

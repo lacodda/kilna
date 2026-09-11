@@ -214,6 +214,25 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         |role| &role.key,
     );
 
+    // How a role's body reads arrives the way a kind's glyph did: a role the
+    // workspace still shares by key gains what the shipped profile states,
+    // when the stored copy states nothing. A role the owner added keeps its
+    // blank, and a choice they made stays theirs.
+    for role in &mut config.version_roles {
+        let Some(shipped) = shipped
+            .config
+            .version_roles
+            .iter()
+            .find(|shipped| shipped.key == role.key)
+        else {
+            continue;
+        };
+        if role.body.is_none() && shipped.body.is_some() {
+            role.body = shipped.body.clone();
+            changed = true;
+        }
+    }
+
     if !changed {
         return Ok(());
     }
@@ -673,6 +692,52 @@ mod tests {
         assert_eq!(icon_of("short").as_deref(), Some("smartphone"));
         // A glyph the user picked themselves is not taken back by the upgrade.
         assert_eq!(icon_of("audio").as_deref(), Some("radio"));
+    }
+
+    #[test]
+    fn an_older_workspace_gains_the_way_its_roles_read() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        // Before the field: no role says how it reads, except one the owner
+        // set by hand, which the upgrade must leave alone.
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        for role in &mut config.version_roles {
+            role.body = if role.key == "critique" {
+                Some("plain".into())
+            } else {
+                None
+            };
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let body_of = |key: &str| {
+            config
+                .version_roles
+                .iter()
+                .find(|role| role.key == key)
+                .unwrap()
+                .body
+                .clone()
+        };
+        assert_eq!(body_of("lyrics").as_deref(), Some("plain"));
+        assert_eq!(body_of("review").as_deref(), Some("markdown"));
+        // The owner's own choice is not taken back by the upgrade.
+        assert_eq!(body_of("critique").as_deref(), Some("plain"));
     }
 
     /// A kind the owner invented is theirs alone: the shipped profile has

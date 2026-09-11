@@ -297,7 +297,19 @@ pub struct VersionRole {
     /// which keeps a half-edited profile from breaking the card.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub comments_on: Option<String>,
+    /// How a body in this role reads: `plain` (a monospace column, exactly as
+    /// typed — lyrics, a style prompt) or `markdown` (headings, quotes and
+    /// tables drawn — a review, a chapter). The craft says, because the code
+    /// cannot tell a lyric sheet from an essay by looking at it (ADR 0001).
+    /// Absent reads as plain, which is what every role was before the field
+    /// existed; a value outside the two reads as plain too, so a typo costs
+    /// headings rather than a screen.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
 }
+
+/// The two ways a body is read. See [`VersionRole::body`].
+pub const BODY_KINDS: [&str; 2] = ["plain", "markdown"];
 
 impl VersionRole {
     pub fn new(key: &str, label: &str) -> Self {
@@ -305,7 +317,13 @@ impl VersionRole {
             key: key.to_owned(),
             label: label.to_owned(),
             comments_on: None,
+            body: None,
         }
+    }
+
+    /// Whether bodies in this role are drawn as markdown.
+    pub fn reads_as_markdown(&self) -> bool {
+        self.body.as_deref() == Some("markdown")
     }
 }
 
@@ -541,6 +559,18 @@ impl ProfileConfig {
             if !roles.contains(target.as_str()) {
                 problems.push(format!(
                     "version role {} (`{}`) comments on `{target}`, which no role is",
+                    index + 1,
+                    role.key
+                ));
+            }
+        }
+        for (index, role) in self.version_roles.iter().enumerate() {
+            let Some(body) = &role.body else {
+                continue;
+            };
+            if !BODY_KINDS.contains(&body.as_str()) {
+                problems.push(format!(
+                    "version role {} (`{}`) reads its body as `{body}`; it can only be `plain` or `markdown`",
                     index + 1,
                     role.key
                 ));
@@ -976,6 +1006,7 @@ mod tests {
             key: "review".into(),
             label: "Review".into(),
             comments_on: Some("prose".into()),
+            body: None,
         });
         config.rhythm = Some(Rhythm {
             every_days: 0,
