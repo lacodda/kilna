@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.58.0] - 2026-09-11
+
+### Features
+- Narrow to a kind of work, and read each kind down its own columns
 ## [0.57.1] - 2026-09-11
 
 ### Bug Fixes
