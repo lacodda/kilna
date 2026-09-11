@@ -6,6 +6,7 @@ import {
   backupWorkspace,
   exportMarkdown,
   importLegacy,
+  mcpRegistration,
   suggestedBackupName,
   workspacePath,
 } from '@/lib/api'
@@ -141,7 +142,48 @@ export function DataView() {
         </div>
       </section>
 
+      <section className="flex flex-col gap-2">
+        <h3 className="text-sm font-semibold">{t('data.mcp')}</h3>
+        <p className="text-sm text-dim">{t('data.mcpHint')}</p>
+        <McpRegistration />
+        <p className="text-xs text-dim">{t('data.mcpAfter')}</p>
+      </section>
+
       {busy && <p className="text-sm text-dim">{t('data.working')}</p>}
+    </div>
+  )
+}
+
+/**
+ * The command that registers this build with Claude Code, ready to copy.
+ *
+ * Shown rather than run: kilna does not know which shell, which agent or
+ * whether the person wants it at all. The path is this executable's own,
+ * so it is right for the build in front of them and wrong for none.
+ */
+function McpRegistration() {
+  const { t } = useTranslation()
+  const command = useQuery({ queryKey: ['mcpRegistration'], queryFn: mcpRegistration })
+  const [copied, setCopied] = useState(false)
+
+  if (command.data === undefined) return null
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <code className="selectable min-w-0 flex-1 overflow-x-auto rounded-md border border-line bg-soft px-2.5 py-1.5 font-mono text-xs whitespace-nowrap">
+        {command.data}
+      </code>
+      <Button
+        size="sm"
+        onClick={() => {
+          void navigator.clipboard.writeText(command.data).then(() => {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          })
+        }}
+      >
+        {copied ? t('data.mcpCopied') : t('data.mcpCopy')}
+      </Button>
     </div>
   )
 }

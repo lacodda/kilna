@@ -24,6 +24,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Markdown } from '@/components/ui/Markdown'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { InsertVersionDialog } from '@/components/assistant/InsertVersionDialog'
+import { ProposedNote } from '@/components/assistant/ProposedNote'
 import { ProposedScore } from '@/components/assistant/ProposedScore'
 
 interface Props {
@@ -50,7 +51,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
   const client = useQueryClient()
 
   const [draft, setDraft] = useState('')
-  const [inserting, setInserting] = useState<string | null>(null)
+  const [inserting, setInserting] = useState<{ body: string; role?: string; label?: string } | null>(null)
   // Which entry of the slash palette the arrow keys are on. Reset whenever the
   // query changes, so the highlight never points past a shortened list.
   const [highlighted, setHighlighted] = useState(0)
@@ -61,6 +62,10 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
     queryKey: keys.transcript(chatId ?? ''),
     queryFn: () => getTranscript(chatId!),
     enabled: chatId !== null,
+    // A proposal from outside the window — `kilna --mcp` — lands in this
+    // chat without an event; while the chat is open it appears within a
+    // few seconds rather than on the next click.
+    refetchInterval: 10_000,
   })
 
   const runs = useQuery({
@@ -225,7 +230,11 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
               item={item}
               workId={workId}
               onCopy={copy}
-              onInsert={workId === undefined ? undefined : setInserting}
+              onInsert={
+                workId === undefined
+                  ? undefined
+                  : (body, role, label) => setInserting({ body, role, label })
+              }
               onStop={(id) => {
                 stop.mutate(id)
               }}
@@ -347,7 +356,9 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
             if (!open) setInserting(null)
           }}
           workId={workId}
-          body={inserting}
+          body={inserting.body}
+          role={inserting.role}
+          label={inserting.label}
         />
       )}
     </div>
@@ -367,7 +378,7 @@ function ExchangeItem({
   workId?: string
   onCopy: (body: string) => void
   /** Absent when the chat is about nothing — there is no work to version. */
-  onInsert?: (body: string) => void
+  onInsert?: (body: string, role?: string, label?: string) => void
   onStop: (runId: string) => void
   stopping: boolean
 }) {
@@ -397,6 +408,20 @@ function ExchangeItem({
 
       {body !== '' && (
         <div className="rounded-xl border border-line px-3 py-2">
+          {/* Who said it, when it was not the assistant in this panel: an
+              agent outside the window, named by its client, with what it said
+              about its proposal. */}
+          {item.answer?.source != null && (
+            <p className="mb-1.5 text-xs text-dim">
+              {t('assistant.proposedBy', { client: item.answer.source })}
+              {item.answer.note != null && item.answer.note !== '' && (
+                <>
+                  {' — '}
+                  {item.answer.note}
+                </>
+              )}
+            </p>
+          )}
           <Markdown body={body} copyLabel={t('assistant.copy')} />
           <div className="mt-1.5 flex items-center gap-1.5">
             {cost != null && <span className="text-xs text-dim">${cost.toFixed(3)}</span>}
@@ -407,7 +432,9 @@ function ExchangeItem({
                 variant="icon"
                 className="ml-auto h-6 px-1.5 text-[11px]"
                 onClick={() => {
-                  onInsert(body)
+                  const proposal = item.answer?.proposal
+                  if (proposal?.kind === 'version') onInsert(body, proposal.role, proposal.label)
+                  else onInsert(body)
                 }}
               >
                 {t('assistant.insert')}
@@ -434,8 +461,13 @@ function ExchangeItem({
       {/* What the answer proposed, with the button that applies it. Below the
           answer rather than beside the copy buttons: it is a decision, not a
           convenience, and it needs room to show the numbers first. */}
-      {workId !== undefined && item.answer?.proposal != null && item.run?.working !== true && (
-        <ProposedScore workId={workId} proposal={item.answer.proposal} />
+      {workId !== undefined &&
+        item.answer?.proposal?.kind === 'score' &&
+        item.run?.working !== true && (
+          <ProposedScore workId={workId} proposal={item.answer.proposal} />
+        )}
+      {item.answer?.proposal?.kind === 'note' && item.run?.working !== true && (
+        <ProposedNote workId={workId} proposal={item.answer.proposal} body={body} />
       )}
 
       {run?.cancelled === true && (

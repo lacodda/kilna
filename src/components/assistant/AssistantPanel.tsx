@@ -49,6 +49,9 @@ export function AssistantPanel({ workId }: Props) {
   const summaries = useQuery({
     queryKey: keys.chats(workId),
     queryFn: () => listChatSummaries(workId),
+    // A chat an agent opened from outside the window (`kilna --mcp`) shows
+    // up while the panel is open, not on the next visit.
+    refetchInterval: 30_000,
   })
 
   const active = useQuery({

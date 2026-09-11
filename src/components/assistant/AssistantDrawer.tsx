@@ -182,6 +182,8 @@ function Drawer({
   const summaries = useQuery({
     queryKey: keys.chats(),
     queryFn: () => listChatSummaries(),
+    // Same reason as the panel: a chat opened from outside the window.
+    refetchInterval: 30_000,
   })
 
   const active = useQuery({

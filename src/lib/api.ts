@@ -88,6 +88,21 @@ export interface ScoreProposal {
   missing?: string[]
 }
 
+/** A version an agent proposed from outside the window; the text is the message body. */
+export interface VersionProposal {
+  kind: 'version'
+  role: string
+  label?: string
+}
+
+/** A note an agent proposed; the note is the message body. */
+export interface NoteProposal {
+  kind: 'note'
+  title?: string
+}
+
+export type Proposal = ScoreProposal | VersionProposal | NoteProposal
+
 export interface PromptTemplate {
   key: string
   label: string
@@ -528,6 +543,8 @@ export const pinTier = (id: string, tier: string, reason: string) =>
 export const unpinTier = (id: string) => invoke<Work>('unpin_tier', { id })
 
 export const listVersions = (workId: string) => invoke<VersionSummary[]>('list_versions', { workId })
+/** The command that registers this build with Claude Code as an MCP server. */
+export const mcpRegistration = () => invoke<string>('mcp_registration')
 export const getVersion = (id: string) => invoke<Version | null>('get_version', { id })
 /** Change the open version's text in place. Refused with kind `frozen` once
     a score has read it — then the change belongs in the next revision. */

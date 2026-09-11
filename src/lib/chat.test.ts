@@ -147,8 +147,46 @@ describe('a proposal on an answer', () => {
       [],
     )
 
-    expect(items[0]?.answer?.proposal?.axes).toEqual({ hook: 8 })
-    expect(items[0]?.answer?.proposal?.note).toBe('the chorus lands')
+    const proposal = items[0]?.answer?.proposal
+    expect(proposal?.kind).toBe('score')
+    if (proposal?.kind !== 'score') throw new Error('not a score')
+    expect(proposal.axes).toEqual({ hook: 8 })
+    expect(proposal.note).toBe('the chorus lands')
+  })
+
+  it('reads a version proposed from outside the window, with who and why', () => {
+    const items = conversation(
+      [
+        message('assistant', 'the whole new text', 't1', {
+          source: 'mcp',
+          client: 'Claude Code',
+          note: 'tightened the chorus',
+          proposal: { kind: 'version', role: 'lyrics', label: 'tighter' },
+        }),
+      ],
+      [],
+    )
+
+    const answer = items[0]?.answer
+    expect(answer?.source).toBe('Claude Code')
+    expect(answer?.note).toBe('tightened the chorus')
+    expect(answer?.proposal).toEqual({ kind: 'version', role: 'lyrics', label: 'tighter' })
+  })
+
+  it('reads a proposed note, and nothing from a kind it does not know', () => {
+    const items = conversation(
+      [
+        message('assistant', 'try a key change', 't1', { proposal: { kind: 'note', title: 'Bridge' } }),
+        message('assistant', 'whatever', 't2', { proposal: { kind: 'tier', tier: 'gold' } }),
+        message('assistant', 'no role', 't3', { proposal: { kind: 'version' } }),
+      ],
+      [],
+    )
+
+    expect(items[0]?.answer?.proposal).toEqual({ kind: 'note', title: 'Bridge' })
+    expect(items[1]?.answer?.proposal).toBeNull()
+    expect(items[2]?.answer?.proposal).toBeNull()
+    expect(items[0]?.answer?.source).toBeNull()
   })
 
   it('is absent on an ordinary answer', () => {

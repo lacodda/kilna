@@ -1,4 +1,4 @@
-import type { ChatSummary, Message, Run, ScoreProposal } from '@/lib/api'
+import type { ChatSummary, Message, Proposal, Run } from '@/lib/api'
 import { inOrder, view, type RunView } from '@/lib/runs'
 
 /**
@@ -23,7 +23,11 @@ export interface Exchange {
     body: string
     cost: number | null
     /** What the answer proposed, when its action asked for something applicable. */
-    proposal: ScoreProposal | null
+    proposal: Proposal | null
+    /** Who made it, when it came from outside the window — an MCP client's name. */
+    source: string | null
+    /** What the proposer said about it, shown beside the proposal. */
+    note: string | null
   } | null
   at: string
 }
@@ -38,14 +42,31 @@ const runId = (message: Message): string | null =>
  * checked against lives in the backend, and a proposal shown live and one shown
  * on replay have to be the same thing.
  */
-const proposalOf = (message: Message): ScoreProposal | null => {
+const proposalOf = (message: Message): Proposal | null => {
   const raw = message.meta.proposal
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
-  const proposal = raw as Partial<ScoreProposal>
-  return proposal.kind === 'score' && typeof proposal.axes === 'object'
-    ? (proposal as ScoreProposal)
-    : null
+  const proposal = raw as Partial<Proposal>
+  switch (proposal.kind) {
+    case 'score':
+      return typeof (proposal as Partial<{ axes: unknown }>).axes === 'object'
+        ? (proposal as Proposal)
+        : null
+    case 'version':
+      return typeof (proposal as Partial<{ role: unknown }>).role === 'string'
+        ? (proposal as Proposal)
+        : null
+    case 'note':
+      return proposal as Proposal
+    default:
+      return null
+  }
 }
+
+/** The client a proposal came from, when it came from outside the window. */
+const sourceOf = (message: Message): string | null =>
+  message.meta.source === 'mcp' && typeof message.meta.client === 'string'
+    ? message.meta.client
+    : null
 
 /** Fold a chat's transcript and its runs into one conversation, oldest first. */
 export function conversation(messages: Message[], runs: Run[]): Exchange[] {
@@ -82,6 +103,8 @@ export function conversation(messages: Message[], runs: Run[]): Exchange[] {
         body: message.body,
         cost: typeof message.meta.cost_usd === 'number' ? message.meta.cost_usd : null,
         proposal: proposalOf(message),
+        source: sourceOf(message),
+        note: typeof message.meta.note === 'string' ? message.meta.note : null,
       }
 
       // The exchange this answers: named by run id, or — for the untagged

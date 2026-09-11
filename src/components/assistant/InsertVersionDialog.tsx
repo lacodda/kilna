@@ -17,6 +17,10 @@ interface Props {
   workId: string
   /** The answer being kept, verbatim. */
   body: string
+  /** The role a proposal named, when it named one; the person can still change it. */
+  role?: string
+  /** A name a proposal gave the version, when it gave one. */
+  label?: string
 }
 
 /**
@@ -27,15 +31,26 @@ interface Props {
  * answer worth standing behind. The application writes; the assistant never
  * touches the database itself.
  */
-export function InsertVersionDialog({ open, onOpenChange, workId, body }: Props) {
+export function InsertVersionDialog({
+  open,
+  onOpenChange,
+  workId,
+  body,
+  role: proposedRole,
+  label: proposedLabel,
+}: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const client = useQueryClient()
   const navigate = useNavigate()
 
   const roles = profile.config.version_roles
-  const [role, setRole] = useState(roles[0]?.key ?? '')
-  const [label, setLabel] = useState('')
+  const [role, setRole] = useState(
+    proposedRole !== undefined && roles.some((r) => r.key === proposedRole)
+      ? proposedRole
+      : (roles[0]?.key ?? ''),
+  )
+  const [label, setLabel] = useState(proposedLabel ?? '')
   const [makeCurrent, setMakeCurrent] = useState(false)
 
   const insert = useMutation({
