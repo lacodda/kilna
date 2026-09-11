@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.57.0] - 2026-09-11
+
+### Bug Fixes
+- Register the server for the whole machine, not one project
+
+### Documentation
+- Register in the user scope
+- Describe format 2 of the profile document
+
+### Features
+- Give each kind of work its own vocabulary
+- Read the vocabulary of the work's kind on every screen
+
+### Breaking Changes
+- `config.axes`, `tiers`, `version_roles`,
+`release_kinds` and `statuses` moved under each entry of
+`work_kinds`; the flat keys are gone from the stored document and from
+the frontend types. Old documents load and are rewritten automatically;
+a profile JSON written by hand may stay flat, which reads as the same
+vocabulary for every kind.
 ## [0.56.0] - 2026-09-11
 
 ### Documentation
