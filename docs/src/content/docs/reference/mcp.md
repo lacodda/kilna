@@ -16,10 +16,12 @@ The **Settings** screen shows the exact command for the build you are
 running, with a copy button. For Claude Code it is:
 
 ```
-claude mcp add kilna -- "C:\path\to\kilna.exe" --mcp
+claude mcp add -s user kilna -- "C:\path\to\kilna.exe" --mcp
 ```
 
-Quote the path; application directories have spaces in them. After that a
+Quote the path; application directories have spaces in them. `-s user` makes
+it every session on the machine rather than the one project you ran the
+command in, which is Claude Code's default scope. After that a
 Claude Code session anywhere on the machine can read your works and propose
 to them — no need to have kilna open, though it is fine if it is.
 
