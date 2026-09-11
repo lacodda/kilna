@@ -65,7 +65,10 @@ pub fn prepare(conn: &Connection, work_id: &str, action: &str) -> Result<Prepare
     // An action that asks for something the application can act on says the
     // shape it needs. Ordinary actions say nothing and get prose.
     if template.produces.as_deref() == Some(SCORE) {
-        prompt.push_str(&super::proposal::scoring_instruction(&profile.config));
+        prompt.push_str(&super::proposal::scoring_instruction(
+            &profile.config,
+            &work.kind,
+        ));
     }
 
     // The instruction that lets the assistant mark its own question. Only

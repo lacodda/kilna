@@ -141,18 +141,20 @@ pub fn create_minted(
     new: NewScore,
     minted: Minted,
 ) -> Result<Score> {
-    let (profile_id, current_version): (String, Option<String>) = conn
+    let (profile_id, current_version, kind): (String, Option<String>, String) = conn
         .query_row(
-            "SELECT profile_id, current_version_id FROM work WHERE id = ?1",
+            "SELECT profile_id, current_version_id, kind FROM work WHERE id = ?1",
             params![work_id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
         .optional()?
         .ok_or_else(|| Error::not_found("work", work_id))?;
 
+    // Weighed by the work's own kind: a song and a video are judged on
+    // different axes, and a total is only a number against its own scale.
     let config = profile::config_for(conn, &profile_id)?;
-    let total = config.total(&new.axes);
-    let tier = config.tier_for(total).map(|tier| tier.key.clone());
+    let total = config.total(&kind, &new.axes);
+    let tier = config.tier_for(&kind, total).map(|tier| tier.key.clone());
 
     let version_id = new.version_id.or(current_version);
     if let Some(version_id) = &version_id {
@@ -765,7 +767,9 @@ mod tests {
 
         // Drop an axis from the profile entirely.
         let mut config = profile::active(&conn).unwrap().unwrap().config;
-        config.axes.retain(|axis| axis.key != "lyrics");
+        config.work_kinds[0]
+            .axes
+            .retain(|axis| axis.key != "lyrics");
         conn.execute(
             "UPDATE profile SET config = ?2 WHERE id = ?1",
             params![profile_id, serde_json::to_string(&config).unwrap()],
@@ -944,5 +948,53 @@ mod tests {
                 .iter()
                 .any(|s| s.rater.as_deref() == Some("the producer"))
         );
+    }
+
+    /// A kind with no axes — a video in a workspace whose owner has not yet
+    /// written its judgement — is scored empty: a total of nothing and no
+    /// tier, rather than a crash or the song's axes borrowed in silence.
+    #[test]
+    fn a_kind_without_axes_is_scored_empty_rather_than_on_anothers() {
+        let conn = db::open_in_memory().unwrap();
+        profile::seed(&conn).unwrap();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let raw: String = conn
+            .query_row(
+                "SELECT config FROM profile WHERE id = ?1",
+                params![profile_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let mut config: crate::profile::config::ProfileConfig = serde_json::from_str(&raw).unwrap();
+        let video = config
+            .work_kinds
+            .iter_mut()
+            .find(|k| k.key == "video")
+            .unwrap();
+        video.axes.clear();
+        video.tiers.clear();
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![profile_id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        let work_id = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "video".into(),
+                title: "Cut one".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap()
+        .id;
+        let new_score: NewScore =
+            serde_json::from_value(serde_json::json!({ "axes": { "hook": 9 } })).unwrap();
+        let score = create(&conn, &work_id, new_score).unwrap();
+
+        assert_eq!(score.total, 0.0);
+        assert_eq!(score.tier, None);
     }
 }

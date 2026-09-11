@@ -15,15 +15,19 @@ fn main() {
             }
         });
     }
-    kilna_lib::run()
+    kilna_lib::run_in(workspace_arg(&args))
+}
+
+/// The directory `--workspace <dir>` names, when it does.
+fn workspace_arg(args: &[String]) -> Option<std::path::PathBuf> {
+    args.iter()
+        .position(|arg| arg == "--workspace")
+        .and_then(|at| args.get(at + 1))
+        .map(std::path::PathBuf::from)
 }
 
 fn serve_mcp(args: &[String]) -> kilna_lib::Result<()> {
-    let workspace = args
-        .iter()
-        .position(|arg| arg == "--workspace")
-        .and_then(|at| args.get(at + 1))
-        .map(std::path::PathBuf::from);
+    let workspace = workspace_arg(args);
     let data_dir = match workspace {
         Some(dir) => dir,
         None => kilna_lib::db::default_data_dir()?,

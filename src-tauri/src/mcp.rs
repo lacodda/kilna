@@ -170,10 +170,7 @@ fn tools() -> Vec<Value> {
     vec![
         tool(
             "workspace",
-            "The active profile: the craft's vocabulary. Kinds of work, version roles and how each \
-             reads, scoring axes with their weights and scales, tiers, statuses, kinds of release, \
-             and how many works there are. Read this first: axes and roles are named by key here, \
-             and the other tools speak in those keys.",
+            "The active profile: the craft's vocabulary, per kind of work. Each kind lists its              version roles and how each reads, its scoring axes with weights and scales, its              tiers, statuses and kinds of release; plus how many works there are. Read this              first: a work is judged and versioned in its own kind's keys, and the other tools              speak in those keys.",
             json!({}),
             &[],
         ),
@@ -368,18 +365,30 @@ pub fn run_tool(
                 [&profile.id],
                 |row| row.get(0),
             )?;
+            // One entry per kind, each with its own vocabulary: the keys an
+            // agent scores or proposes in belong to the work's kind.
+            let kinds: Vec<Value> = config
+                .work_kinds
+                .iter()
+                .map(|kind| {
+                    json!({
+                        "key": kind.key,
+                        "label": kind.label,
+                        "version_roles": kind.version_roles,
+                        "axes": kind.axes.iter().map(|a| json!({
+                            "key": a.key, "label": a.label, "weight": a.weight, "scale": a.scale,
+                            "description": a.description,
+                        })).collect::<Vec<_>>(),
+                        "tiers": kind.tiers,
+                        "statuses": kind.statuses.iter().map(|s| json!({ "key": s.key, "label": s.label })).collect::<Vec<_>>(),
+                        "release_kinds": kind.release_kinds.iter().map(|k| json!({ "key": k.key, "label": k.label })).collect::<Vec<_>>(),
+                    })
+                })
+                .collect();
             pretty(&json!({
                 "profile": { "key": profile.key, "name": profile.name, "description": profile.description },
                 "works": works,
-                "work_kinds": config.work_kinds,
-                "version_roles": config.version_roles,
-                "axes": config.axes.iter().map(|a| json!({
-                    "key": a.key, "label": a.label, "weight": a.weight, "scale": a.scale,
-                    "description": a.description,
-                })).collect::<Vec<_>>(),
-                "tiers": config.tiers,
-                "statuses": config.statuses.iter().map(|s| json!({ "key": s.key, "label": s.label })).collect::<Vec<_>>(),
-                "release_kinds": config.release_kinds.iter().map(|k| json!({ "key": k.key, "label": k.label })).collect::<Vec<_>>(),
+                "work_kinds": kinds,
             }))
         }
 
@@ -447,19 +456,21 @@ pub fn run_tool(
                     v
                 }
                 None => {
+                    let vocabulary = config.vocabulary(&found.kind);
                     let role = match arg(args, "role") {
                         Some(role) => role.to_owned(),
-                        None => config
+                        None => vocabulary
                             .version_roles
                             .first()
                             .map(|r| r.key.clone())
                             .ok_or_else(|| {
-                                Error::Other("the profile names no version roles".into())
+                                Error::Other(format!("`{}` names no version roles", found.kind))
                             })?,
                     };
-                    if !config.version_roles.iter().any(|r| r.key == role) {
+                    if !vocabulary.version_roles.iter().any(|r| r.key == role) {
                         return Err(Error::Other(format!(
-                            "no version role `{role}`; `workspace` lists them"
+                            "no version role `{role}` for `{}`; `workspace` lists them",
+                            found.kind
                         )));
                     }
                     // The current version when it is of this role; otherwise
@@ -478,6 +489,7 @@ pub fn run_tool(
                 }
             };
             let reads = config
+                .vocabulary(&found.kind)
                 .version_roles
                 .iter()
                 .find(|r| r.key == body.role)
@@ -533,9 +545,15 @@ pub fn run_tool(
         "propose_version" => {
             let found = find_work(conn, &profile.id, required(args, "work")?)?;
             let role = required(args, "role")?;
-            if !config.version_roles.iter().any(|r| r.key == role) {
+            if !config
+                .vocabulary(&found.kind)
+                .version_roles
+                .iter()
+                .any(|r| r.key == role)
+            {
                 return Err(Error::Other(format!(
-                    "no version role `{role}`; `workspace` lists them"
+                    "no version role `{role}` for `{}`; `workspace` lists them",
+                    found.kind
                 )));
             }
             let body = required(args, "body")?;
@@ -568,17 +586,20 @@ pub fn run_tool(
                     Error::Other("`axes` must be an object of axis key to mark".into())
                 })?;
             let note = arg(args, "note").map(str::to_owned);
-            let proposal = proposal::score_from(axes, note.clone(), &config).ok_or_else(|| {
-                Error::Other(format!(
-                    "none of those axes is in the profile; the axes are {}",
-                    config
-                        .axes
-                        .iter()
-                        .map(|a| a.key.as_str())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ))
-            })?;
+            let vocabulary = config.vocabulary(&found.kind);
+            let proposal =
+                proposal::score_from(axes, note.clone(), vocabulary).ok_or_else(|| {
+                    Error::Other(format!(
+                        "none of those axes belongs to `{}`; its axes are {}",
+                        found.kind,
+                        vocabulary
+                            .axes
+                            .iter()
+                            .map(|a| a.key.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ))
+                })?;
             let summary = match &proposal {
                 Proposal::Score {
                     axes,

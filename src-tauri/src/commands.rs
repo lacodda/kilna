@@ -448,8 +448,14 @@ pub fn set_works_status(
 
     // Refused before anything changes rather than once per work: a status the
     // profile does not have is a mistake about the whole batch.
+    // Any kind's word will do here: the batch may hold songs and videos, and
+    // a work whose kind lacks the word is skipped below, not refused.
     let config = profile::config_for(&conn, &profile_id)?;
-    if !config.statuses.iter().any(|known| known.key == status) {
+    if !config
+        .all_statuses()
+        .iter()
+        .any(|known| known.key == status)
+    {
         return Err(Error::not_found("status", &status));
     }
 
@@ -1095,7 +1101,8 @@ pub fn kind_verdicts(
     };
     let profile =
         profile::active(&conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
-    Ok(profile.config.verdicts(&latest.axes))
+    let work = work::get(&conn, &work_id)?.ok_or_else(|| Error::not_found("work", &work_id))?;
+    Ok(profile.config.verdicts(&work.kind, &latest.axes))
 }
 
 #[tauri::command]

@@ -14,7 +14,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use crate::profile::config::ProfileConfig;
+use crate::profile::config::{ProfileConfig, WorkKind};
 
 /// What an answer proposed, if anything.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -66,8 +66,9 @@ struct RawScore {
 /// findable, and "reply with JSON" produces a different shape every time. The
 /// axes are named with their scales because a number without its ceiling is
 /// meaningless — 7 out of 10 and 7 out of 100 are different opinions.
-pub fn scoring_instruction(config: &ProfileConfig) -> String {
+pub fn scoring_instruction(config: &ProfileConfig, kind: &str) -> String {
     let axes = config
+        .vocabulary(kind)
         .axes
         .iter()
         .map(|axis| format!("  \"{}\": <0-{}>", axis.key, axis.scale))
@@ -87,9 +88,9 @@ pub fn scoring_instruction(config: &ProfileConfig) -> String {
 /// Returns `None` rather than an error when there is no block: an action can be
 /// asked for a score and answer in prose anyway, and that is a reply to read,
 /// not a failure to report.
-pub fn read_score(body: &str, config: &ProfileConfig) -> Option<Proposal> {
+pub fn read_score(body: &str, config: &ProfileConfig, kind: &str) -> Option<Proposal> {
     let raw: RawScore = serde_json::from_str(&fenced_json(body)?).ok()?;
-    score_from(raw.axes, raw.note, config)
+    score_from(raw.axes, raw.note, config.vocabulary(kind))
 }
 
 /// A scoring proposal out of marks by axis key, checked against the profile.
@@ -100,7 +101,7 @@ pub fn read_score(body: &str, config: &ProfileConfig) -> Option<Proposal> {
 pub fn score_from(
     raw: Map<String, Value>,
     note: Option<String>,
-    config: &ProfileConfig,
+    config: &WorkKind,
 ) -> Option<Proposal> {
     let mut axes = Map::new();
     let mut unknown = Vec::new();
@@ -217,12 +218,12 @@ mod tests {
     #[test]
     fn a_well_formed_block_is_read() {
         let config = config();
-        let first = config.axes[0].key.clone();
+        let first = config.work_kinds[0].axes[0].key.clone();
         let body = block(&format!(
             r#"{{"axes": {{"{first}": 7}}, "note": "the chorus carries it"}}"#
         ));
 
-        let (axes, note, _, _) = score_of(read_score(&body, &config).unwrap());
+        let (axes, note, _, _) = score_of(read_score(&body, &config, "song").unwrap());
 
         assert_eq!(axes.get(&first).and_then(Value::as_f64), Some(7.0));
         assert_eq!(note.as_deref(), Some("the chorus carries it"));
@@ -233,7 +234,7 @@ mod tests {
         let config = config();
 
         assert_eq!(
-            read_score("I would call it strong, maybe a 7.", &config),
+            read_score("I would call it strong, maybe a 7.", &config, "song"),
             None,
             "an answer in prose is a reply to read, not a failure"
         );
@@ -242,10 +243,10 @@ mod tests {
     #[test]
     fn an_axis_the_profile_does_not_have_is_named_not_applied() {
         let config = config();
-        let first = config.axes[0].key.clone();
+        let first = config.work_kinds[0].axes[0].key.clone();
         let body = block(&format!(r#"{{"axes": {{"{first}": 5, "vibes": 9}}}}"#));
 
-        let (axes, _, unknown, _) = score_of(read_score(&body, &config).unwrap());
+        let (axes, _, unknown, _) = score_of(read_score(&body, &config, "song").unwrap());
 
         assert!(!axes.contains_key("vibes"));
         assert_eq!(unknown, vec!["vibes".to_owned()]);
@@ -254,26 +255,26 @@ mod tests {
     #[test]
     fn axes_the_answer_skipped_are_reported() {
         let config = config();
-        let first = config.axes[0].key.clone();
+        let first = config.work_kinds[0].axes[0].key.clone();
         let body = block(&format!(r#"{{"axes": {{"{first}": 5}}}}"#));
 
-        let (_, _, _, missing) = score_of(read_score(&body, &config).unwrap());
+        let (_, _, _, missing) = score_of(read_score(&body, &config, "song").unwrap());
 
-        assert_eq!(missing.len(), config.axes.len() - 1);
+        assert_eq!(missing.len(), config.work_kinds[0].axes.len() - 1);
         assert!(!missing.contains(&first));
     }
 
     #[test]
     fn a_value_past_the_scale_is_clamped_not_refused() {
         let config = config();
-        let axis = config.axes[0].clone();
+        let axis = config.work_kinds[0].axes[0].clone();
         let body = block(&format!(
             r#"{{"axes": {{"{}": {}}}}}"#,
             axis.key,
             axis.scale + 4.0
         ));
 
-        let (axes, _, _, _) = score_of(read_score(&body, &config).unwrap());
+        let (axes, _, _, _) = score_of(read_score(&body, &config, "song").unwrap());
 
         assert_eq!(
             axes.get(&axis.key).and_then(Value::as_f64),
@@ -285,10 +286,10 @@ mod tests {
     #[test]
     fn a_negative_value_is_clamped_to_zero() {
         let config = config();
-        let first = config.axes[0].key.clone();
+        let first = config.work_kinds[0].axes[0].key.clone();
         let body = block(&format!(r#"{{"axes": {{"{first}": -3}}}}"#));
 
-        let (axes, _, _, _) = score_of(read_score(&body, &config).unwrap());
+        let (axes, _, _, _) = score_of(read_score(&body, &config, "song").unwrap());
 
         assert_eq!(axes.get(&first).and_then(Value::as_f64), Some(0.0));
     }
@@ -299,7 +300,7 @@ mod tests {
         let body = block(r#"{"axes": {"vibes": 9, "energy": 4}}"#);
 
         assert_eq!(
-            read_score(&body, &config),
+            read_score(&body, &config, "song"),
             None,
             "an empty snapshot is not worth offering to write"
         );
@@ -308,13 +309,13 @@ mod tests {
     #[test]
     fn the_last_block_wins_over_an_example() {
         let config = config();
-        let axis = config.axes[0].key.clone();
+        let axis = config.work_kinds[0].axes[0].key.clone();
         let body = format!(
             "The shape looks like this:\n\n```json\n{{\"axes\": {{\"{axis}\": 0}}}}\n```\n\n\
              And here is my actual answer:\n\n```json\n{{\"axes\": {{\"{axis}\": 8}}}}\n```"
         );
 
-        let (axes, _, _, _) = score_of(read_score(&body, &config).unwrap());
+        let (axes, _, _, _) = score_of(read_score(&body, &config, "song").unwrap());
 
         assert_eq!(
             axes.get(&axis).and_then(Value::as_f64),
@@ -326,36 +327,36 @@ mod tests {
     #[test]
     fn an_unfenced_object_is_not_a_proposal() {
         let config = config();
-        let axis = config.axes[0].key.clone();
+        let axis = config.work_kinds[0].axes[0].key.clone();
         let body = format!("I would write {{\"axes\": {{\"{axis}\": 7}}}} if you asked.");
 
-        assert_eq!(read_score(&body, &config), None);
+        assert_eq!(read_score(&body, &config, "song"), None);
     }
 
     #[test]
     fn a_block_of_another_language_is_ignored() {
         let config = config();
-        let axis = config.axes[0].key.clone();
+        let axis = config.work_kinds[0].axes[0].key.clone();
         let body = format!("```python\n{{\"axes\": {{\"{axis}\": 7}}}}\n```");
 
-        assert_eq!(read_score(&body, &config), None);
+        assert_eq!(read_score(&body, &config, "song"), None);
     }
 
     #[test]
     fn broken_json_inside_the_fence_proposes_nothing() {
         let config = config();
 
-        assert_eq!(read_score(&block("{axes: oops"), &config), None);
+        assert_eq!(read_score(&block("{axes: oops"), &config, "song"), None);
     }
 
     #[test]
     fn an_unclosed_fence_proposes_nothing() {
         let config = config();
-        let axis = config.axes[0].key.clone();
+        let axis = config.work_kinds[0].axes[0].key.clone();
         let body = format!("```json\n{{\"axes\": {{\"{axis}\": 7}}}}");
 
         assert_eq!(
-            read_score(&body, &config),
+            read_score(&body, &config, "song"),
             None,
             "a block that never ended may be a truncated answer"
         );
@@ -364,10 +365,10 @@ mod tests {
     #[test]
     fn a_blank_note_is_dropped_rather_than_stored_empty() {
         let config = config();
-        let first = config.axes[0].key.clone();
+        let first = config.work_kinds[0].axes[0].key.clone();
         let body = block(&format!(r#"{{"axes": {{"{first}": 5}}, "note": "   "}}"#));
 
-        let (_, note, _, _) = score_of(read_score(&body, &config).unwrap());
+        let (_, note, _, _) = score_of(read_score(&body, &config, "song").unwrap());
 
         assert_eq!(note, None);
     }
@@ -376,9 +377,9 @@ mod tests {
     fn the_instruction_names_every_axis_with_its_scale() {
         let config = config();
 
-        let instruction = scoring_instruction(&config);
+        let instruction = scoring_instruction(&config, "song");
 
-        for axis in &config.axes {
+        for axis in &config.work_kinds[0].axes {
             assert!(
                 instruction.contains(&axis.key),
                 "every axis must be named: {}",

@@ -124,7 +124,7 @@ pub fn create_minted(
 ) -> Result<Work> {
     let status = match new.status {
         Some(status) => status,
-        None => default_status(conn, profile_id)?,
+        None => default_status(conn, profile_id, &new.kind)?,
     };
 
     let timestamp = minted.at().to_owned();
@@ -168,16 +168,14 @@ pub fn create_minted(
 /// would derive this same value on its first pass. Falls back to the first
 /// status in the list for a profile that names no draft, which is the older
 /// behaviour and still the only sensible guess.
-fn default_status(conn: &Connection, profile_id: &str) -> Result<String> {
+fn default_status(conn: &Connection, profile_id: &str, kind: &str) -> Result<String> {
     let config = crate::profile::config_for(conn, profile_id)?;
 
     config
-        .statuses
-        .iter()
-        .find(|status| status.derive == crate::profile::config::Derive::Draft)
-        .or_else(|| config.statuses.first())
+        .vocabulary(kind)
+        .starting_status()
         .map(|status| status.key.clone())
-        .ok_or_else(|| Error::Other("the profile defines no statuses".into()))
+        .ok_or_else(|| Error::Other(format!("the kind `{kind}` defines no statuses")))
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Work>> {
@@ -425,9 +423,15 @@ pub fn pin_tier_at(
 ) -> Result<Work> {
     let work = get(conn, id)?.ok_or_else(|| unknown_work(id))?;
     let config = crate::profile::config_for(conn, &work.profile_id)?;
-    if !config.tiers.iter().any(|known| known.key == tier) {
+    if !config
+        .vocabulary(&work.kind)
+        .tiers
+        .iter()
+        .any(|known| known.key == tier)
+    {
         return Err(Error::Other(format!(
-            "`{tier}` is not a tier of this profile"
+            "`{tier}` is not a tier of `{}`",
+            work.kind
         )));
     }
     let reason = reason.trim();

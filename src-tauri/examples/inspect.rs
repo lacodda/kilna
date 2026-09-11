@@ -23,12 +23,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match workspace.profile {
         Some(profile) => {
             println!("active profile  {} ({})", profile.name, profile.key);
-            println!("axes            {}", profile.config.axes.len());
-            for axis in &profile.config.axes {
+            println!(
+                "axes            {}",
+                profile.config.work_kinds[0].axes.len()
+            );
+            for axis in &profile.config.work_kinds[0].axes {
                 println!("  {:<12} weight {:>4}", axis.key, axis.weight);
             }
             println!("tiers");
-            for tier in &profile.config.tiers {
+            for tier in &profile.config.work_kinds[0].tiers {
                 println!("  {:<12} from {:>5}", tier.key, tier.min);
             }
         }

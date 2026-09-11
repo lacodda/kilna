@@ -83,7 +83,35 @@ pub fn seed(conn: &Connection) -> Result<()> {
         )?;
     }
 
+    // A profile the owner made themselves is carried forward by nobody, so
+    // its document is brought to the current format here: read, which
+    // migrates, and written back so the next read finds it done.
+    rewrite_older_formats(conn)?;
+
     ensure_one_active(conn)?;
+    Ok(())
+}
+
+/// Bring every stored profile document to [`config::FORMAT`].
+///
+/// Reading is the migration (see `RawProfileConfig`); this makes it stick.
+/// A document already in the current format is left untouched, byte for
+/// byte, so an edit the owner made by hand is not reserialised behind them.
+fn rewrite_older_formats(conn: &Connection) -> Result<()> {
+    let rows: Vec<(String, String)> = conn
+        .prepare("SELECT id, config FROM profile")?
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<rusqlite::Result<_>>()?;
+    for (id, raw) in rows {
+        if raw_format(&raw) == config::FORMAT {
+            continue;
+        }
+        let config: ProfileConfig = serde_json::from_str(&raw)?;
+        conn.execute(
+            "UPDATE profile SET config = ?2, updated_at = ?3 WHERE id = ?1",
+            params![id, serde_json::to_string(&config)?, now()],
+        )?;
+    }
     Ok(())
 }
 
@@ -151,46 +179,111 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         changed = true;
     }
 
-    for status in &mut config.statuses {
-        if status.derive != Derive::Manual {
-            continue;
-        }
-        let Some(shipped) = shipped
+    // The vocabulary lives on each kind (format 2), so everything below is
+    // carried kind by kind: the stored kind and the shipped kind meet by key,
+    // and a kind the owner invented meets nothing and keeps what it has.
+    for kind in &mut config.work_kinds {
+        let Some(shipped_kind) = shipped
             .config
-            .statuses
-            .iter()
-            .find(|shipped| shipped.key == status.key)
-        else {
-            continue;
-        };
-        if shipped.derive != Derive::Manual {
-            status.derive = shipped.derive;
-            changed = true;
-        }
-    }
-
-    for kind in &mut config.release_kinds {
-        let Some(shipped) = shipped
-            .config
-            .release_kinds
+            .work_kinds
             .iter()
             .find(|shipped| shipped.key == kind.key)
         else {
             continue;
         };
-        if kind.requires.is_empty() && !shipped.requires.is_empty() {
-            kind.requires = shipped.requires.clone();
-            changed = true;
+
+        for status in &mut kind.statuses {
+            if status.derive != Derive::Manual {
+                continue;
+            }
+            let Some(shipped) = shipped_kind
+                .statuses
+                .iter()
+                .find(|shipped| shipped.key == status.key)
+            else {
+                continue;
+            };
+            if shipped.derive != Derive::Manual {
+                status.derive = shipped.derive;
+                changed = true;
+            }
         }
-        // The glyph arrives the same way the requirements did: a workspace made
-        // before the field existed gains what the shipped profile states for a
-        // kind it still recognises by key. A kind the owner added themselves is
-        // not in the shipped list and keeps its blank -- guessing a glyph for
-        // "Vinyl pressing" is not something this code can do.
-        if kind.icon.is_none() && shipped.icon.is_some() {
-            kind.icon = shipped.icon.clone();
-            changed = true;
+
+        for release_kind in &mut kind.release_kinds {
+            let Some(shipped) = shipped_kind
+                .release_kinds
+                .iter()
+                .find(|shipped| shipped.key == release_kind.key)
+            else {
+                continue;
+            };
+            if release_kind.requires.is_empty() && !shipped.requires.is_empty() {
+                release_kind.requires = shipped.requires.clone();
+                changed = true;
+            }
+            // The glyph arrives the same way the requirements did: a workspace
+            // made before the field existed gains what the shipped profile
+            // states for a kind it still recognises by key. A kind the owner
+            // added themselves is not in the shipped list and keeps its blank
+            // -- guessing a glyph for "Vinyl pressing" is not something this
+            // code can do.
+            if release_kind.icon.is_none() && shipped.icon.is_some() {
+                release_kind.icon = shipped.icon.clone();
+                changed = true;
+            }
         }
+
+        // A role newly shipped for a kind the workspace already has is
+        // appended after the owner's; a role they renamed or retyped stays
+        // theirs, because the match is by key.
+        changed |= add_new_keys(
+            &mut kind.version_roles,
+            &shipped_kind.version_roles,
+            |role| &role.key,
+        );
+
+        // How a role's body reads arrives the way a kind's glyph did: a role
+        // the workspace still shares by key gains what the shipped profile
+        // states, when the stored copy states nothing. A choice the owner
+        // made stays theirs.
+        for role in &mut kind.version_roles {
+            let Some(shipped) = shipped_kind
+                .version_roles
+                .iter()
+                .find(|shipped| shipped.key == role.key)
+            else {
+                continue;
+            };
+            if role.body.is_none() && shipped.body.is_some() {
+                role.body = shipped.body.clone();
+                changed = true;
+            }
+        }
+    }
+
+    // A kind the shipped profile gained since this workspace was made -- a
+    // video beside the songs -- arrives with its statuses, roles and kinds of
+    // release, and WITHOUT its axes and tiers. The judgement is the craft's
+    // own: this workspace's axes are the owner's words, and a stranger's
+    // axes appearing silently beside them would be the one thing the profile
+    // must never do. The owner writes the kind's axes when they are ready to
+    // judge it; until then works of that kind are scored empty. A fresh
+    // workspace, seeded rather than carried forward, gets the whole kind.
+    let arriving: Vec<config::WorkKind> = shipped
+        .config
+        .work_kinds
+        .iter()
+        .filter(|candidate| {
+            !config
+                .work_kinds
+                .iter()
+                .any(|kind| kind.key == candidate.key)
+        })
+        .map(config::WorkKind::without_judgement)
+        .collect();
+    if !arriving.is_empty() {
+        config.work_kinds.extend(arriving);
+        changed = true;
     }
 
     if config.rhythm.is_none() && shipped.config.rhythm.is_some() {
@@ -200,36 +293,44 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
 
     // Everything the user keys by name: a vocabulary entry they renamed or
     // retyped stays theirs, and anything newly shipped is appended after it.
-    // One helper rather than three copies — the third one was written by
-    // noticing the second, and the fourth would be written by forgetting it.
     changed |= add_new_keys(
         &mut config.work_meta_fields,
         &shipped.config.work_meta_fields,
         |field| &field.key,
     );
     changed |= add_new_keys(&mut config.marks, &shipped.config.marks, |mark| &mark.key);
-    changed |= add_new_keys(
-        &mut config.version_roles,
-        &shipped.config.version_roles,
-        |role| &role.key,
-    );
 
-    // How a role's body reads arrives the way a kind's glyph did: a role the
-    // workspace still shares by key gains what the shipped profile states,
-    // when the stored copy states nothing. A role the owner added keeps its
-    // blank, and a choice they made stays theirs.
-    for role in &mut config.version_roles {
-        let Some(shipped) = shipped
-            .config
-            .version_roles
-            .iter()
-            .find(|shipped| shipped.key == role.key)
-        else {
-            continue;
-        };
-        if role.body.is_none() && shipped.body.is_some() {
-            role.body = shipped.body.clone();
-            changed = true;
+    // A stored copy still in format 1 was read into format 2 by the parser;
+    // writing it back is what makes the migration permanent rather than
+    // something every read repeats.
+    if raw_format(&raw) != config::FORMAT {
+        changed = true;
+    }
+
+    // The shipped profile's name follows it only where the stored copy still
+    // carries the name it shipped with before: "Music" became "Studio" in
+    // v0.57, because the craft makes videos too. A name the owner chose
+    // themselves is theirs, so the match is against the old shipped name,
+    // never against "anything different".
+    for (before, after) in RENAMED {
+        if shipped.name == after {
+            let renamed = conn.execute(
+                "UPDATE profile SET name = ?2, updated_at = ?3 WHERE id = ?1 AND name = ?4",
+                params![id, after, now(), before],
+            )?;
+            if renamed > 0 {
+                changed = true;
+            }
+        }
+    }
+    // The one-sentence description follows on the same terms: only where the
+    // stored copy still says exactly what the old shipped file said.
+    for (before, after) in REDESCRIBED {
+        if shipped.description == after {
+            conn.execute(
+                "UPDATE profile SET description = ?2, updated_at = ?3 WHERE id = ?1 AND description = ?4",
+                params![id, after, now(), before],
+            )?;
         }
     }
 
@@ -243,6 +344,26 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
     )?;
 
     Ok(())
+}
+
+/// Shipped profile names that changed, old to new. A stored copy still
+/// carrying the old one is renamed at the next start; see `carry_forward`.
+const RENAMED: [(&str, &str); 1] = [("Music", "Studio")];
+
+/// Shipped descriptions that changed, old to new, on the same terms as the
+/// names: a copy the owner never touched follows, a rewritten one stays.
+const REDESCRIBED: [(&str, &str); 1] = [(
+    "Songs with independent lyrics and style drafts, judged on hook and craft, shipped as clips, shorts and audio releases.",
+    "Songs and the videos made for them: lyrics and style drafts judged on hook and craft, clips and shorts judged on the cut, shipped as clips, shorts and audio releases.",
+)];
+
+/// The `format` a stored document claims — 1 when it says nothing, the way
+/// every document written before the field did.
+fn raw_format(raw: &str) -> u32 {
+    serde_json::from_str::<serde_json::Value>(raw)
+        .ok()
+        .and_then(|value| value.get("format")?.as_u64())
+        .map_or(1, |format| format as u32)
 }
 
 /// Append entries whose key the stored list does not have yet.
@@ -494,12 +615,12 @@ mod tests {
         assert!(!profiles.is_empty());
         for profile in profiles {
             assert!(
-                !profile.config.axes.is_empty(),
+                !profile.config.work_kinds[0].axes.is_empty(),
                 "{} has no axes",
                 profile.key
             );
             assert!(
-                !profile.config.tiers.is_empty(),
+                !profile.config.work_kinds[0].tiers.is_empty(),
                 "{} has no tiers",
                 profile.key
             );
@@ -569,7 +690,7 @@ mod tests {
             )
             .unwrap();
         let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
-        for status in &mut config.statuses {
+        for status in &mut config.work_kinds[0].statuses {
             status.derive = Derive::Manual;
         }
         conn.execute(
@@ -582,7 +703,7 @@ mod tests {
 
         let config = config_for(&conn, &id).unwrap();
         let derive_of = |key: &str| {
-            config
+            config.work_kinds[0]
                 .statuses
                 .iter()
                 .find(|status| status.key == key)
@@ -615,7 +736,7 @@ mod tests {
             )
             .unwrap();
         let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
-        for kind in &mut config.release_kinds {
+        for kind in &mut config.work_kinds[0].release_kinds {
             kind.requires = if kind.key == "audio" {
                 vec!["style".into()]
             } else {
@@ -632,7 +753,7 @@ mod tests {
 
         let config = config_for(&conn, &id).unwrap();
         let requires_of = |key: &str| {
-            config
+            config.work_kinds[0]
                 .release_kinds
                 .iter()
                 .find(|kind| kind.key == key)
@@ -663,7 +784,7 @@ mod tests {
             )
             .unwrap();
         let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
-        for kind in &mut config.release_kinds {
+        for kind in &mut config.work_kinds[0].release_kinds {
             kind.icon = if kind.key == "audio" {
                 Some("radio".into())
             } else {
@@ -680,7 +801,7 @@ mod tests {
 
         let config = config_for(&conn, &id).unwrap();
         let icon_of = |key: &str| {
-            config
+            config.work_kinds[0]
                 .release_kinds
                 .iter()
                 .find(|kind| kind.key == key)
@@ -709,7 +830,7 @@ mod tests {
             )
             .unwrap();
         let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
-        for role in &mut config.version_roles {
+        for role in &mut config.work_kinds[0].version_roles {
             role.body = if role.key == "critique" {
                 Some("plain".into())
             } else {
@@ -726,7 +847,7 @@ mod tests {
 
         let config = config_for(&conn, &id).unwrap();
         let body_of = |key: &str| {
-            config
+            config.work_kinds[0]
                 .version_roles
                 .iter()
                 .find(|role| role.key == key)
@@ -756,7 +877,7 @@ mod tests {
             )
             .unwrap();
         let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
-        config.release_kinds.insert(
+        config.work_kinds[0].release_kinds.insert(
             0,
             crate::profile::config::ReleaseKind::new("vinyl", "Vinyl pressing", &[]),
         );
@@ -769,7 +890,7 @@ mod tests {
         seed(&conn).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
-        let vinyl = config
+        let vinyl = config.work_kinds[0]
             .release_kinds
             .iter()
             .find(|kind| kind.key == "vinyl")
@@ -778,7 +899,7 @@ mod tests {
         // And the kinds that do ship still got theirs, so the assertion above
         // is not passing because the backfill did nothing at all.
         assert!(
-            config
+            config.work_kinds[0]
                 .release_kinds
                 .iter()
                 .any(|kind| kind.key == "clip" && kind.icon.as_deref() == Some("film"))
@@ -799,7 +920,7 @@ mod tests {
             )
             .unwrap();
         let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
-        for status in &mut config.statuses {
+        for status in &mut config.work_kinds[0].statuses {
             status.derive = Derive::Manual;
             if status.key == "released" {
                 status.label = "Out in the world".into();
@@ -814,7 +935,7 @@ mod tests {
         seed(&conn).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
-        let released = config
+        let released = config.work_kinds[0]
             .statuses
             .iter()
             .find(|status| status.key == "released")
@@ -831,73 +952,83 @@ mod tests {
             let config = &profile.config;
             let key = &profile.key;
 
-            assert!(!config.statuses.is_empty(), "{key} has no statuses");
-
-            // A profile whose statuses carry no meaning derives nothing, and
-            // the automation would sit there doing nothing with no error to
-            // show for it. Every derivable meaning needs a word, and no two
-            // words may claim the same one — the automation would pick between
-            // them by list order, which is not a decision anybody made.
-            for meaning in [
-                Derive::Draft,
-                Derive::Scored,
-                Derive::Scheduled,
-                Derive::Released,
-            ] {
-                let named: Vec<&str> = config
-                    .statuses
-                    .iter()
-                    .filter(|status| status.derive == meaning)
-                    .map(|status| status.key.as_str())
-                    .collect();
-                assert_eq!(
-                    named.len(),
-                    1,
-                    "{key} names {} status(es) for {meaning:?}: {named:?}",
-                    named.len()
-                );
-            }
             assert!(!config.work_kinds.is_empty(), "{key} has no work kinds");
-            assert!(
-                !config.version_roles.is_empty(),
-                "{key} has no version roles"
-            );
+            // Every kind carries its own vocabulary (format 2), and each has
+            // to be sound on its own: a video is judged and shipped without
+            // ever consulting the song's lists.
+            for vocab in &config.work_kinds {
+                assert!(
+                    !vocab.statuses.is_empty(),
+                    "{key}/{}: no statuses",
+                    vocab.key
+                );
 
-            // A requirement naming a role the profile does not have can never
-            // be satisfied, so every release of that kind reads as unready
-            // forever — with nothing on any screen to explain why.
-            for kind in &config.release_kinds {
-                for role in &kind.requires {
-                    assert!(
-                        config.version_roles.iter().any(|known| &known.key == role),
-                        "{key}: release kind `{}` requires role `{role}`, which the profile does not define",
-                        kind.key
+                // A profile whose statuses carry no meaning derives nothing, and
+                // the automation would sit there doing nothing with no error to
+                // show for it. Every derivable meaning needs a word, and no two
+                // words may claim the same one — the automation would pick between
+                // them by list order, which is not a decision anybody made.
+                for meaning in [
+                    Derive::Draft,
+                    Derive::Scored,
+                    Derive::Scheduled,
+                    Derive::Released,
+                ] {
+                    let named: Vec<&str> = vocab
+                        .statuses
+                        .iter()
+                        .filter(|status| status.derive == meaning)
+                        .map(|status| status.key.as_str())
+                        .collect();
+                    assert_eq!(
+                        named.len(),
+                        1,
+                        "{key} names {} status(es) for {meaning:?}: {named:?}",
+                        named.len()
                     );
                 }
+                assert!(
+                    !vocab.version_roles.is_empty(),
+                    "{key}/{}: no version roles",
+                    vocab.key
+                );
+
+                // A requirement naming a role the profile does not have can never
+                // be satisfied, so every release of that kind reads as unready
+                // forever — with nothing on any screen to explain why.
+                for kind in &vocab.release_kinds {
+                    for role in &kind.requires {
+                        assert!(
+                            vocab.version_roles.iter().any(|known| &known.key == role),
+                            "{key}: release kind `{}` requires role `{role}`, which the profile does not define",
+                            kind.key
+                        );
+                    }
+                }
+
+                // A tier reachable by nothing is a tier that never appears.
+                assert!(
+                    vocab.tiers.iter().any(|tier| tier.min == 0.0),
+                    "{key} has no tier a zero score falls into"
+                );
+                assert!(
+                    vocab.tiers.iter().all(|tier| tier.min <= 100.0),
+                    "{key} has a tier no score can reach"
+                );
+
+                // Full marks on every axis must land in the top tier, or the
+                // scoring scale and the tiers disagree with each other.
+                let full: serde_json::Map<String, serde_json::Value> = vocab
+                    .axes
+                    .iter()
+                    .map(|axis| (axis.key.clone(), serde_json::json!(axis.scale)))
+                    .collect();
+                let total = vocab.total(&full);
+                assert!(
+                    (total - 100.0).abs() < 1e-9,
+                    "{key}: full marks scored {total}, not 100"
+                );
             }
-
-            // A tier reachable by nothing is a tier that never appears.
-            assert!(
-                config.tiers.iter().any(|tier| tier.min == 0.0),
-                "{key} has no tier a zero score falls into"
-            );
-            assert!(
-                config.tiers.iter().all(|tier| tier.min <= 100.0),
-                "{key} has a tier no score can reach"
-            );
-
-            // Full marks on every axis must land in the top tier, or the
-            // scoring scale and the tiers disagree with each other.
-            let full: serde_json::Map<String, serde_json::Value> = config
-                .axes
-                .iter()
-                .map(|axis| (axis.key.clone(), serde_json::json!(axis.scale)))
-                .collect();
-            let total = config.total(&full);
-            assert!(
-                (total - 100.0).abs() < 1e-9,
-                "{key}: full marks scored {total}, not 100"
-            );
 
             // A rhythm every built-in states, and states sanely: zero days
             // between releases is not a pace, and the usual time is HH:MM or
@@ -925,7 +1056,10 @@ mod tests {
                 for fragment in prompt.template.split("{role:").skip(1) {
                     let role = fragment.split('}').next().unwrap_or_default();
                     assert!(
-                        config.version_roles.iter().any(|r| r.key == role),
+                        config.work_kinds[0]
+                            .version_roles
+                            .iter()
+                            .any(|r| r.key == role),
                         "{key}: prompt `{}` asks for unknown role `{role}`",
                         prompt.key
                     );
@@ -999,8 +1133,10 @@ mod tests {
         // A workspace from before the review roles shipped, with the user's own
         // rename on the one role it did have.
         let mut config = config_for(&conn, &id).unwrap();
-        config.version_roles.retain(|role| role.key == "lyrics");
-        config.version_roles[0].label = "Words".into();
+        config.work_kinds[0]
+            .version_roles
+            .retain(|role| role.key == "lyrics");
+        config.work_kinds[0].version_roles[0].label = "Words".into();
         conn.execute(
             "UPDATE profile SET config = ?2 WHERE id = ?1",
             params![id, serde_json::to_string(&config).unwrap()],
@@ -1009,7 +1145,9 @@ mod tests {
 
         seed(&conn).unwrap();
 
-        let roles = config_for(&conn, &id).unwrap().version_roles;
+        let roles = config_for(&conn, &id).unwrap().work_kinds[0]
+            .version_roles
+            .clone();
         let keys: Vec<&str> = roles.iter().map(|role| role.key.as_str()).collect();
         assert!(
             keys.contains(&"review"),
@@ -1261,9 +1399,10 @@ mod tests {
         seed(&conn).unwrap();
         let profile = active(&conn).unwrap().unwrap();
         let mut broken = profile.config.clone();
-        broken.axes[0].scale = 0.0;
-        broken.tiers.push(config::Tier {
-            key: broken.tiers[0].key.clone(),
+        broken.work_kinds[0].axes[0].scale = 0.0;
+        let first_tier = broken.work_kinds[0].tiers[0].key.clone();
+        broken.work_kinds[0].tiers.push(config::Tier {
+            key: first_tier,
             label: "Twice".into(),
             min: 0.0,
         });
@@ -1276,8 +1415,184 @@ mod tests {
 
         let stored = config_for(&conn, &profile.id).unwrap();
         assert!(
-            stored.axes[0].scale > 0.0,
+            stored.work_kinds[0].axes[0].scale > 0.0,
             "the stored copy must be untouched"
         );
+    }
+
+    /// A workspace written in format 1 comes up in format 2 — and the
+    /// document in the row is rewritten, so the migration happens once rather
+    /// than on every read.
+    #[test]
+    fn an_older_workspace_is_rewritten_into_format_2_once() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        // Wind the owner's own profile back to format 1: flat vocabulary, no
+        // `format`, a kind of their own beside the shipped ones.
+        let flat = serde_json::json!({
+            "work_kinds": [{ "key": "song", "label": "Song" }, { "key": "poem", "label": "Poem" }],
+            "release_kinds": [{ "key": "clip", "label": "Clip" }],
+            "collection_kinds": [],
+            "version_roles": [{ "key": "lyrics", "label": "Lyrics" }],
+            "statuses": [{ "key": "draft", "label": "Draft", "derive": "draft" }],
+            "axes": [{ "key": "imagery", "label": "Imagery", "weight": 1.0, "scale": 10.0 }],
+            "tiers": [{ "key": "hold", "label": "Hold", "min": 0.0 }],
+            "work_meta_fields": []
+        });
+        conn.execute(
+            "INSERT INTO profile (id, key, name, description, config, is_active, is_builtin, created_at, updated_at)
+             VALUES ('mine', 'mine', 'Mine', NULL, ?1, 0, 0, 'x', 'x')",
+            params![flat.to_string()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let raw: String = conn
+            .query_row("SELECT config FROM profile WHERE id = 'mine'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let written: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(
+            written["format"],
+            config::FORMAT,
+            "the row was not rewritten"
+        );
+        assert!(written.get("axes").is_none());
+        let config = config_for(&conn, "mine").unwrap();
+        assert_eq!(config.kind("poem").unwrap().axes[0].key, "imagery");
+        assert_eq!(config.kind("song").unwrap().tiers.len(), 1);
+
+        // A second start leaves the row alone: same bytes, no churn.
+        let before: String = conn
+            .query_row(
+                "SELECT config || updated_at FROM profile WHERE id = 'mine'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        seed(&conn).unwrap();
+        let after: String = conn
+            .query_row(
+                "SELECT config || updated_at FROM profile WHERE id = 'mine'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(before, after);
+    }
+
+    /// The owner's music workspace, made before videos existed, gains the
+    /// video and short kinds — with their statuses, roles and kinds of
+    /// release, and without their axes and tiers. The judgement is theirs to
+    /// write; the owner's own axes stay exactly as they were.
+    #[test]
+    fn an_older_music_workspace_gains_the_video_kinds_without_their_judgement() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        // Before videos: only the song kinds, and the owner's own axes.
+        config
+            .work_kinds
+            .retain(|kind| kind.key == "song" || kind.key == "instrumental");
+        for kind in &mut config.work_kinds {
+            kind.axes = vec![config::Axis {
+                key: "imagery".into(),
+                label: "Imagery".into(),
+                weight: 1.0,
+                scale: 10.0,
+                description: None,
+                kind: config::AxisKind::Scale,
+                options: Vec::new(),
+                rubric: Vec::new(),
+            }];
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let video = config.kind("video").expect("the video kind arrived");
+        assert!(
+            video.axes.is_empty(),
+            "a stranger's axes must not appear beside the owner's"
+        );
+        assert!(video.tiers.is_empty());
+        assert!(!video.statuses.is_empty(), "but a video can hold a work");
+        assert!(video.version_roles.iter().any(|role| role.key == "plot"));
+        assert!(!video.release_kinds.is_empty());
+        assert!(config.kind("short").is_some());
+        // The owner's judgement of a song is untouched.
+        let song = config.kind("song").unwrap();
+        assert_eq!(song.axes.len(), 1);
+        assert_eq!(song.axes[0].key, "imagery");
+    }
+
+    /// A workspace made when the profile was still called Music wakes up
+    /// with it called Studio; one whose owner named it themselves keeps that.
+    #[test]
+    fn the_old_shipped_name_follows_the_new_one_and_an_owners_name_stays() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        conn.execute("UPDATE profile SET name = 'Music' WHERE key = 'music'", [])
+            .unwrap();
+        conn.execute(
+            "UPDATE profile SET name = 'Chapters' WHERE key = 'novel'",
+            [],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let name = |key: &str| -> String {
+            conn.query_row("SELECT name FROM profile WHERE key = ?1", [key], |row| {
+                row.get(0)
+            })
+            .unwrap()
+        };
+        assert_eq!(name("music"), "Studio");
+        assert_eq!(
+            name("novel"),
+            "Chapters",
+            "a name the owner chose is not taken back"
+        );
+        let description: String = conn
+            .query_row(
+                "SELECT description FROM profile WHERE key = 'music'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            description.starts_with("Songs and the videos"),
+            "{description}"
+        );
+    }
+
+    /// A fresh workspace gets the whole shipped kind, judgement included: there
+    /// is nobody's vocabulary to keep out of the way.
+    #[test]
+    fn a_fresh_workspace_gets_the_video_kinds_whole() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let profile = active(&conn).unwrap().unwrap();
+        let video = profile.config.kind("video").unwrap();
+        assert!(!video.axes.is_empty());
+        assert!(!video.tiers.is_empty());
+        assert_eq!(profile.name, "Studio");
     }
 }

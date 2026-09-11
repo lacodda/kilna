@@ -734,11 +734,18 @@ fn read_scheduled_where(
     let config = crate::profile::config_for(conn, profile_id)?;
     let roles = crate::readiness::roles_present(conn, profile_id)?;
     let none = std::collections::BTreeSet::new();
+    // Which kind each work is, so a release is judged by its work's own
+    // vocabulary rather than by one the profile no longer keeps flat.
+    let kinds: std::collections::HashMap<String, String> = conn
+        .prepare("SELECT id, kind FROM work WHERE profile_id = ?1")?
+        .query_map(params![profile_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<rusqlite::Result<_>>()?;
 
     rows.into_iter()
         .map(|(raw, work_title, total, tier)| {
             let readiness = crate::readiness::assess(
                 &config,
+                kinds.get(&raw.work_id).map_or("", String::as_str),
                 &raw.kind,
                 roles.get(&raw.work_id).unwrap_or(&none),
                 total.is_some(),

@@ -30,7 +30,14 @@ pub fn derive_for(
     work_id: &str,
 ) -> Result<Option<String>> {
     let meaning = fact_for(conn, work_id)?;
-    Ok(status_named(config, meaning))
+    // The word for the fact is the work's kind's word: a video and a song may
+    // call "released" differently, or one of them may have no word for it.
+    let kind: String = conn.query_row(
+        "SELECT kind FROM work WHERE id = ?1",
+        params![work_id],
+        |row| row.get(0),
+    )?;
+    Ok(status_named(config.vocabulary(&kind), meaning))
 }
 
 /// The strongest fact that is true of a work right now.
@@ -81,14 +88,8 @@ fn fact_for(conn: &Connection, work_id: &str) -> Result<Derive> {
 ///
 /// `Manual` is never looked up: it is the absence of a derivation, and a
 /// profile that maps a word to it is saying "only a person puts this here".
-fn status_named(config: &ProfileConfig, meaning: Derive) -> Option<String> {
-    if meaning == Derive::Manual {
-        return None;
-    }
-    config
-        .statuses
-        .iter()
-        .find(|status| status.derive == meaning)
+fn status_named(kind: &crate::profile::config::WorkKind, meaning: Derive) -> Option<String> {
+    kind.status_meaning(meaning)
         .map(|status| status.key.clone())
 }
 
@@ -473,7 +474,9 @@ mod tests {
         let (conn, profile_id, mut config) = workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
         a_score(&conn, &work_id);
-        config.statuses.retain(|status| status.key != "scored");
+        config.work_kinds[0]
+            .statuses
+            .retain(|status| status.key != "scored");
 
         assert_eq!(derive_for(&conn, &config, &work_id).unwrap(), None);
         assert_eq!(refresh(&conn, &config, &work_id).unwrap(), None);

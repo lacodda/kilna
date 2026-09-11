@@ -141,7 +141,13 @@ fn the_binary_serves_the_protocol_on_its_own_workspace_and_stops_with_the_pipe()
         .unwrap();
     let card: Value = serde_json::from_str(text).unwrap();
     assert_eq!(card["works"], 0);
-    assert!(card["axes"].as_array().is_some_and(|axes| !axes.is_empty()));
+    // The vocabulary comes per kind (format 2): the first kind is a song,
+    // and a song has axes.
+    assert!(
+        card["work_kinds"][0]["axes"]
+            .as_array()
+            .is_some_and(|axes| !axes.is_empty())
+    );
 
     let status = server.finish();
     assert!(

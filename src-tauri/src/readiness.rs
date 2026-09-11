@@ -42,18 +42,22 @@ pub struct RoleMark {
 /// profile does not know requires nothing, like a kind with an empty list.
 pub fn assess(
     config: &ProfileConfig,
+    work_kind: &str,
     kind: &str,
     present: &BTreeSet<String>,
     scored: bool,
 ) -> Readiness {
-    let required = config
+    // The release kind and the roles it requires are the work's kind's: a
+    // video's clip and a song's clip may require different bodies.
+    let vocabulary = config.vocabulary(work_kind);
+    let required = vocabulary
         .release_kinds
         .iter()
         .find(|entry| entry.key == kind)
         .map(|entry| entry.requires.as_slice())
         .unwrap_or_default();
 
-    let roles = config
+    let roles = vocabulary
         .version_roles
         .iter()
         .map(|role| RoleMark {
@@ -178,7 +182,7 @@ mod tests {
 
     #[test]
     fn a_missing_required_role_is_marked_and_blocks_readiness() {
-        let judged = assess(&config(), "clip", &roles(&["lyrics"]), true);
+        let judged = assess(&config(), "song", "clip", &roles(&["lyrics"]), true);
 
         assert_eq!(mark_of(&judged, "lyrics"), Some(true));
         assert_eq!(mark_of(&judged, "style"), Some(false));
@@ -189,7 +193,13 @@ mod tests {
     /// missing, and must not block anything.
     #[test]
     fn an_unrequired_role_is_not_applicable_rather_than_missing() {
-        let judged = assess(&config(), "clip", &roles(&["lyrics", "style"]), true);
+        let judged = assess(
+            &config(),
+            "song",
+            "clip",
+            &roles(&["lyrics", "style"]),
+            true,
+        );
 
         assert_eq!(mark_of(&judged, "notes"), None);
         assert!(judged.ready);
@@ -197,16 +207,22 @@ mod tests {
 
     #[test]
     fn a_kind_stating_no_requirements_is_ready_once_scored() {
-        let judged = assess(&config(), "teaser", &roles(&[]), true);
+        let judged = assess(&config(), "song", "teaser", &roles(&[]), true);
 
         assert!(judged.roles.iter().all(|mark| mark.present.is_none()));
         assert!(judged.ready);
-        assert!(!assess(&config(), "teaser", &roles(&[]), false).ready);
+        assert!(!assess(&config(), "song", "teaser", &roles(&[]), false).ready);
     }
 
     #[test]
     fn an_unscored_release_is_never_ready() {
-        let judged = assess(&config(), "clip", &roles(&["lyrics", "style"]), false);
+        let judged = assess(
+            &config(),
+            "song",
+            "clip",
+            &roles(&["lyrics", "style"]),
+            false,
+        );
 
         assert!(!judged.scored);
         assert!(!judged.ready);
@@ -216,7 +232,7 @@ mod tests {
     /// vocabulary — requires nothing rather than erroring.
     #[test]
     fn an_unknown_kind_requires_nothing() {
-        let judged = assess(&config(), "gone", &roles(&[]), true);
+        let judged = assess(&config(), "song", "gone", &roles(&[]), true);
 
         assert!(judged.roles.iter().all(|mark| mark.present.is_none()));
         assert!(judged.ready);
@@ -228,9 +244,11 @@ mod tests {
     #[test]
     fn a_requirement_for_a_role_the_profile_lost_still_blocks() {
         let mut config = config();
-        config.version_roles.retain(|role| role.key != "style");
+        config.work_kinds[0]
+            .version_roles
+            .retain(|role| role.key != "style");
 
-        let judged = assess(&config, "clip", &roles(&["lyrics"]), true);
+        let judged = assess(&config, "song", "clip", &roles(&["lyrics"]), true);
 
         assert!(judged.roles.iter().all(|mark| mark.role != "style"));
         assert!(!judged.ready);

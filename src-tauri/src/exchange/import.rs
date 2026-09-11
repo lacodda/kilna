@@ -7,7 +7,7 @@ use serde_json::{Map, Value, json};
 use crate::error::{Error, Result};
 use crate::profile::{
     self,
-    config::{Derive, ProfileConfig},
+    config::{Derive, WorkKind},
 };
 use crate::release::{self, NewRelease};
 use crate::score::{self, NewScore};
@@ -56,8 +56,11 @@ pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Re
 
     // The vocabulary the import has to land in: axis keys for the positional
     // snapshots, statuses for the states the source names in its own words.
+    // Everything the source holds is a song, so the song's vocabulary is the
+    // one the import lands in.
     let config = profile::config_for(conn, profile_id)?;
-    let axis_keys: Vec<String> = config.axes.iter().map(|axis| axis.key.clone()).collect();
+    let song = config.vocabulary(LEGACY_KIND);
+    let axis_keys: Vec<String> = song.axes.iter().map(|axis| axis.key.clone()).collect();
 
     let songs = read_songs(&legacy)?;
     let mut report = ImportReport {
@@ -91,9 +94,9 @@ pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Re
             conn,
             profile_id,
             NewWork {
-                kind: "song".into(),
+                kind: LEGACY_KIND.into(),
                 title: song.title.clone(),
-                status: map_status(&config, &song.status),
+                status: map_status(config.vocabulary(LEGACY_KIND), &song.status),
                 collection_id: None,
                 meta: Some(meta),
                 // The source has no vocabulary that maps onto either: its own
@@ -293,7 +296,10 @@ fn read_axes(
 /// An unrecognised state — or a meaning the profile has no word for — becomes
 /// the profile's draft: an imported work in an unknown state is safest treated
 /// as unfinished.
-fn map_status(config: &ProfileConfig, legacy: &str) -> Option<String> {
+/// The kind every imported work takes: the source knows only songs.
+const LEGACY_KIND: &str = "song";
+
+fn map_status(config: &WorkKind, legacy: &str) -> Option<String> {
     let meaning = match legacy {
         "released" | "published" => Derive::Released,
         "scheduled" | "planned" => Derive::Scheduled,
@@ -315,11 +321,9 @@ fn map_status(config: &ProfileConfig, legacy: &str) -> Option<String> {
     word_for(config, meaning).or_else(|| word_for(config, Derive::Draft))
 }
 
-fn word_for(config: &ProfileConfig, meaning: Derive) -> Option<String> {
+fn word_for(config: &WorkKind, meaning: Derive) -> Option<String> {
     config
-        .statuses
-        .iter()
-        .find(|status| status.derive == meaning)
+        .status_meaning(meaning)
         .map(|status| status.key.clone())
 }
 

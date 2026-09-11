@@ -535,7 +535,10 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Option<Value> {
     // snapshot taken when the run started, and its event list is empty. Reading
     // it there returned nothing, always — caught by the test that expected a
     // proposal and found none.
-    let proposal = super::proposal::read_score(body, &profile.config)?;
+    // Read against the work's own kind: the axes a score names are its.
+    let chat = super::get(conn, &run.chat_id).ok()??;
+    let work = crate::work::get(conn, chat.work_id.as_deref()?).ok()??;
+    let proposal = super::proposal::read_score(body, &profile.config, &work.kind)?;
     serde_json::to_value(proposal).ok()
 }
 
@@ -1458,11 +1461,33 @@ Which one do you want?"
     #[test]
     fn a_scoring_task_attaches_what_it_proposed() {
         let (dir, path, conn, profile_id) = on_disk();
-        let chat_id = chat(&conn, &profile_id);
+        // A scoring task is always about a work: the axes a proposal is read
+        // against are the work's kind's, so the chat has to name one.
+        let work_id = crate::work::create(
+            &conn,
+            &profile_id,
+            crate::work::NewWork {
+                kind: "song".into(),
+                title: "Judged".into(),
+                ..crate::work::NewWork::default()
+            },
+        )
+        .unwrap()
+        .id;
+        let chat_id = super::super::create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: Some(work_id),
+                title: None,
+            },
+        )
+        .unwrap()
+        .id;
         let runs = Arc::new(Runs::new());
 
         let config = crate::profile::active(&conn).unwrap().unwrap().config;
-        let axis = config.axes[0].key.clone();
+        let axis = config.work_kinds[0].axes[0].key.clone();
 
         let run_id = record(&conn, &chat_id, "running");
         let mut run = get(&conn, &run_id).unwrap().unwrap();

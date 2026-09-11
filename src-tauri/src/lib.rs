@@ -32,15 +32,28 @@ pub use error::{Error, Result};
 
 use tauri::Manager;
 
-/// Build and run the desktop application.
+/// Build and run the desktop application on the usual workspace.
 pub fn run() {
+    run_in(None)
+}
+
+/// Build and run the desktop application, on `workspace` when one is given.
+///
+/// The override exists for the same reason `--mcp --workspace` does: a live
+/// run on a *copy* of a real workspace, before a change that migrates it is
+/// let near the original.
+pub fn run_in(workspace: Option<std::path::PathBuf>) {
     tauri::Builder::default()
         // Needed by the data screen to pick a directory or a file.
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
-            // Per-user application data, resolved by Tauri for the current platform.
-            let data_dir = app.path().app_data_dir()?;
+        .setup(move |app| {
+            // Per-user application data, resolved by Tauri for the current
+            // platform — unless the command line named a directory.
+            let data_dir = match &workspace {
+                Some(dir) => dir.clone(),
+                None => app.path().app_data_dir()?,
+            };
             let state = state::AppState::open(&db::default_path(&data_dir))?;
             app.manage(state);
             Ok(())

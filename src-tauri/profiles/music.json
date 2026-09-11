@@ -1,34 +1,473 @@
 {
   "key": "music",
-  "name": "Music",
-  "description": "Songs with independent lyrics and style drafts, judged on hook and craft, shipped as clips, shorts and audio releases.",
+  "name": "Studio",
+  "description": "Songs and the videos made for them: lyrics and style drafts judged on hook and craft, clips and shorts judged on the cut, shipped as clips, shorts and audio releases.",
   "config": {
     "work_kinds": [
-      { "key": "song", "label": "Song" },
-      { "key": "instrumental", "label": "Instrumental" }
+      {
+        "key": "song",
+        "label": "Song"
+      },
+      {
+        "key": "instrumental",
+        "label": "Instrumental"
+      },
+      {
+        "key": "video",
+        "label": "Video",
+        "axes": [
+          {
+            "key": "dynamics",
+            "label": "Dynamics",
+            "weight": 1.5,
+            "scale": 10.0,
+            "description": "Does the cut carry momentum, or does it sit on one shot?",
+            "rubric": [
+              {
+                "at": 2,
+                "label": "one shot held while the song happens"
+              },
+              {
+                "at": 5,
+                "label": "moves when the song moves, and nowhere else"
+              },
+              {
+                "at": 8,
+                "label": "you feel the drop before you hear it"
+              }
+            ]
+          },
+          {
+            "key": "editing",
+            "label": "Editing",
+            "weight": 1.0,
+            "scale": 10.0,
+            "description": "Cuts on the beat, shots that answer each other.",
+            "rubric": [
+              {
+                "at": 2,
+                "label": "cuts land between the beats"
+              },
+              {
+                "at": 5,
+                "label": "clean cuts, no surprises"
+              },
+              {
+                "at": 8,
+                "label": "two shots argue and a third settles it"
+              }
+            ]
+          },
+          {
+            "key": "fit",
+            "label": "Fit to the track",
+            "weight": 1.5,
+            "scale": 10.0,
+            "description": "Does the picture serve the song, or run beside it?",
+            "rubric": [
+              {
+                "at": 2,
+                "label": "a slideshow that happens to have music"
+              },
+              {
+                "at": 5,
+                "label": "illustrates the words line by line"
+              },
+              {
+                "at": 8,
+                "label": "shows what the song does not say"
+              }
+            ]
+          },
+          {
+            "key": "picture",
+            "label": "Picture",
+            "weight": 1.0,
+            "scale": 10.0,
+            "description": "Composition, light and colour, frame by frame.",
+            "rubric": [
+              {
+                "at": 2,
+                "label": "you would not pause on any frame"
+              },
+              {
+                "at": 5,
+                "label": "every frame is fine and none is a still"
+              },
+              {
+                "at": 8,
+                "label": "there is a frame you would print"
+              }
+            ]
+          },
+          {
+            "key": "story",
+            "label": "Story",
+            "weight": 1.0,
+            "scale": 10.0,
+            "description": "Is there an arc, or a mood held for three minutes?",
+            "rubric": [
+              {
+                "at": 2,
+                "label": "a mood, held"
+              },
+              {
+                "at": 5,
+                "label": "a situation with a change at the end"
+              },
+              {
+                "at": 8,
+                "label": "you could tell someone what happened"
+              }
+            ]
+          }
+        ],
+        "tiers": [
+          {
+            "key": "shelve",
+            "label": "Shelve",
+            "min": 0.0
+          },
+          {
+            "key": "rework",
+            "label": "Rework",
+            "min": 50.0
+          },
+          {
+            "key": "post",
+            "label": "Post",
+            "min": 70.0
+          },
+          {
+            "key": "lead",
+            "label": "Lead with it",
+            "min": 85.0
+          }
+        ],
+        "version_roles": [
+          {
+            "key": "plot",
+            "label": "Plot",
+            "body": "markdown"
+          }
+        ],
+        "release_kinds": [
+          {
+            "key": "youtube",
+            "label": "YouTube",
+            "requires": [
+              "plot"
+            ],
+            "icon": "film"
+          },
+          {
+            "key": "premiere",
+            "label": "Premiere",
+            "requires": [
+              "plot"
+            ],
+            "icon": "video"
+          }
+        ],
+        "statuses": [
+          {
+            "key": "draft",
+            "label": "Draft",
+            "derive": "draft"
+          },
+          {
+            "key": "scored",
+            "label": "Scored",
+            "derive": "scored"
+          },
+          {
+            "key": "scheduled",
+            "label": "Scheduled",
+            "derive": "scheduled"
+          },
+          {
+            "key": "released",
+            "label": "Released",
+            "derive": "released"
+          },
+          {
+            "key": "shelved",
+            "label": "Shelved",
+            "derive": "manual"
+          }
+        ]
+      },
+      {
+        "key": "short",
+        "label": "Short",
+        "axes": [
+          {
+            "key": "dynamics",
+            "label": "Dynamics",
+            "weight": 1.5,
+            "scale": 10.0,
+            "description": "Does the cut carry momentum, or does it sit on one shot?",
+            "rubric": [
+              {
+                "at": 2,
+                "label": "one shot held while the song happens"
+              },
+              {
+                "at": 5,
+                "label": "moves when the song moves, and nowhere else"
+              },
+              {
+                "at": 8,
+                "label": "you feel the drop before you hear it"
+              }
+            ]
+          },
+          {
+            "key": "editing",
+            "label": "Editing",
+            "weight": 1.0,
+            "scale": 10.0,
+            "description": "Cuts on the beat, shots that answer each other.",
+            "rubric": [
+              {
+                "at": 2,
+                "label": "cuts land between the beats"
+              },
+              {
+                "at": 5,
+                "label": "clean cuts, no surprises"
+              },
+              {
+                "at": 8,
+                "label": "two shots argue and a third settles it"
+              }
+            ]
+          },
+          {
+            "key": "fit",
+            "label": "Fit to the track",
+            "weight": 1.5,
+            "scale": 10.0,
+            "description": "Does the picture serve the song, or run beside it?",
+            "rubric": [
+              {
+                "at": 2,
+                "label": "a slideshow that happens to have music"
+              },
+              {
+                "at": 5,
+                "label": "illustrates the words line by line"
+              },
+              {
+                "at": 8,
+                "label": "shows what the song does not say"
+              }
+            ]
+          },
+          {
+            "key": "picture",
+            "label": "Picture",
+            "weight": 1.0,
+            "scale": 10.0,
+            "description": "Composition, light and colour, frame by frame.",
+            "rubric": [
+              {
+                "at": 2,
+                "label": "you would not pause on any frame"
+              },
+              {
+                "at": 5,
+                "label": "every frame is fine and none is a still"
+              },
+              {
+                "at": 8,
+                "label": "there is a frame you would print"
+              }
+            ]
+          },
+          {
+            "key": "story",
+            "label": "Story",
+            "weight": 1.0,
+            "scale": 10.0,
+            "description": "Is there an arc, or a mood held for three minutes?",
+            "rubric": [
+              {
+                "at": 2,
+                "label": "a mood, held"
+              },
+              {
+                "at": 5,
+                "label": "a situation with a change at the end"
+              },
+              {
+                "at": 8,
+                "label": "you could tell someone what happened"
+              }
+            ]
+          }
+        ],
+        "tiers": [
+          {
+            "key": "shelve",
+            "label": "Shelve",
+            "min": 0.0
+          },
+          {
+            "key": "rework",
+            "label": "Rework",
+            "min": 50.0
+          },
+          {
+            "key": "post",
+            "label": "Post",
+            "min": 70.0
+          },
+          {
+            "key": "lead",
+            "label": "Lead with it",
+            "min": 85.0
+          }
+        ],
+        "version_roles": [
+          {
+            "key": "plot",
+            "label": "Plot",
+            "body": "markdown"
+          }
+        ],
+        "release_kinds": [
+          {
+            "key": "short",
+            "label": "Short",
+            "requires": [
+              "plot"
+            ],
+            "icon": "smartphone"
+          }
+        ],
+        "statuses": [
+          {
+            "key": "draft",
+            "label": "Draft",
+            "derive": "draft"
+          },
+          {
+            "key": "scored",
+            "label": "Scored",
+            "derive": "scored"
+          },
+          {
+            "key": "scheduled",
+            "label": "Scheduled",
+            "derive": "scheduled"
+          },
+          {
+            "key": "released",
+            "label": "Released",
+            "derive": "released"
+          },
+          {
+            "key": "shelved",
+            "label": "Shelved",
+            "derive": "manual"
+          }
+        ]
+      }
     ],
     "release_kinds": [
-      { "key": "clip", "label": "Video clip", "requires": ["lyrics", "style"], "icon": "film" },
-      { "key": "short", "label": "Short", "requires": ["lyrics", "style"], "icon": "smartphone" },
-      { "key": "audio", "label": "Audio release", "requires": ["lyrics", "style"], "icon": "disc" }
+      {
+        "key": "clip",
+        "label": "Video clip",
+        "requires": [
+          "lyrics",
+          "style"
+        ],
+        "icon": "film"
+      },
+      {
+        "key": "short",
+        "label": "Short",
+        "requires": [
+          "lyrics",
+          "style"
+        ],
+        "icon": "smartphone"
+      },
+      {
+        "key": "audio",
+        "label": "Audio release",
+        "requires": [
+          "lyrics",
+          "style"
+        ],
+        "icon": "disc"
+      }
     ],
     "collection_kinds": [
-      { "key": "album", "label": "Album" },
-      { "key": "single", "label": "Single" },
-      { "key": "cycle", "label": "Cycle" }
+      {
+        "key": "album",
+        "label": "Album"
+      },
+      {
+        "key": "single",
+        "label": "Single"
+      },
+      {
+        "key": "cycle",
+        "label": "Cycle"
+      }
     ],
     "version_roles": [
-      { "key": "lyrics", "label": "Lyrics", "body": "plain" },
-      { "key": "style", "label": "Style prompt", "body": "plain" },
-      { "key": "review", "label": "Review", "comments_on": "lyrics", "body": "markdown" },
-      { "key": "critique", "label": "Critique", "comments_on": "lyrics", "body": "markdown" }
+      {
+        "key": "lyrics",
+        "label": "Lyrics",
+        "body": "plain"
+      },
+      {
+        "key": "style",
+        "label": "Style prompt",
+        "body": "plain"
+      },
+      {
+        "key": "review",
+        "label": "Review",
+        "comments_on": "lyrics",
+        "body": "markdown"
+      },
+      {
+        "key": "critique",
+        "label": "Critique",
+        "comments_on": "lyrics",
+        "body": "markdown"
+      }
     ],
     "statuses": [
-      { "key": "draft", "label": "Draft", "derive": "draft" },
-      { "key": "scored", "label": "Scored", "derive": "scored" },
-      { "key": "scheduled", "label": "Scheduled", "derive": "scheduled" },
-      { "key": "released", "label": "Released", "derive": "released" },
-      { "key": "shelved", "label": "Shelved", "derive": "manual" }
+      {
+        "key": "draft",
+        "label": "Draft",
+        "derive": "draft"
+      },
+      {
+        "key": "scored",
+        "label": "Scored",
+        "derive": "scored"
+      },
+      {
+        "key": "scheduled",
+        "label": "Scheduled",
+        "derive": "scheduled"
+      },
+      {
+        "key": "released",
+        "label": "Released",
+        "derive": "released"
+      },
+      {
+        "key": "shelved",
+        "label": "Shelved",
+        "derive": "manual"
+      }
     ],
     "axes": [
       {
@@ -38,9 +477,18 @@
         "scale": 10.0,
         "description": "Does the chorus stay with you after one listen?",
         "rubric": [
-          { "at": 2, "label": "you could not hum it back straight after" },
-          { "at": 5, "label": "the chorus lands, but you have heard it land before" },
-          { "at": 8, "label": "you catch yourself singing it hours later" }
+          {
+            "at": 2,
+            "label": "you could not hum it back straight after"
+          },
+          {
+            "at": 5,
+            "label": "the chorus lands, but you have heard it land before"
+          },
+          {
+            "at": 8,
+            "label": "you catch yourself singing it hours later"
+          }
         ]
       },
       {
@@ -50,9 +498,18 @@
         "scale": 10.0,
         "description": "Imagery, rhyme and whether a line earns its place.",
         "rubric": [
-          { "at": 2, "label": "the lines fill the bar and say nothing" },
-          { "at": 5, "label": "clear and true, with no line you would quote" },
-          { "at": 8, "label": "at least one line you would quote to someone" }
+          {
+            "at": 2,
+            "label": "the lines fill the bar and say nothing"
+          },
+          {
+            "at": 5,
+            "label": "clear and true, with no line you would quote"
+          },
+          {
+            "at": 8,
+            "label": "at least one line you would quote to someone"
+          }
         ]
       },
       {
@@ -62,9 +519,18 @@
         "scale": 10.0,
         "description": "Does it move a listener who knows nothing about it?",
         "rubric": [
-          { "at": 2, "label": "it describes a feeling instead of causing one" },
-          { "at": 5, "label": "it moves you because you know what it is about" },
-          { "at": 8, "label": "it moves a stranger who knows none of that" }
+          {
+            "at": 2,
+            "label": "it describes a feeling instead of causing one"
+          },
+          {
+            "at": 5,
+            "label": "it moves you because you know what it is about"
+          },
+          {
+            "at": 8,
+            "label": "it moves a stranger who knows none of that"
+          }
         ]
       },
       {
@@ -74,9 +540,18 @@
         "scale": 10.0,
         "description": "Arrangement, mix and how finished it sounds.",
         "rubric": [
-          { "at": 2, "label": "a demo, and it sounds like one" },
-          { "at": 5, "label": "clean, and nothing about it is interesting" },
-          { "at": 8, "label": "the arrangement is part of what the song means" }
+          {
+            "at": 2,
+            "label": "a demo, and it sounds like one"
+          },
+          {
+            "at": 5,
+            "label": "clean, and nothing about it is interesting"
+          },
+          {
+            "at": 8,
+            "label": "the arrangement is part of what the song means"
+          }
         ]
       },
       {
@@ -86,9 +561,18 @@
         "scale": 10.0,
         "description": "Distance from the obvious version of this idea.",
         "rubric": [
-          { "at": 2, "label": "the first version anyone would write of this idea" },
-          { "at": 5, "label": "a familiar shape done properly" },
-          { "at": 8, "label": "you cannot name the song it is like" }
+          {
+            "at": 2,
+            "label": "the first version anyone would write of this idea"
+          },
+          {
+            "at": 5,
+            "label": "a familiar shape done properly"
+          },
+          {
+            "at": 8,
+            "label": "you cannot name the song it is like"
+          }
         ]
       },
       {
@@ -98,38 +582,126 @@
         "scale": 10.0,
         "description": "Is there a clip in it, or only a cover?",
         "rubric": [
-          { "at": 2, "label": "a cover, at most" },
-          { "at": 5, "label": "a picture track: one idea held for the length of it" },
-          { "at": 8, "label": "you can already see the cut" }
+          {
+            "at": 2,
+            "label": "a cover, at most"
+          },
+          {
+            "at": 5,
+            "label": "a picture track: one idea held for the length of it"
+          },
+          {
+            "at": 8,
+            "label": "you can already see the cut"
+          }
         ]
       }
     ],
     "tiers": [
-      { "key": "hold", "label": "Hold", "min": 0.0 },
-      { "key": "audio", "label": "Audio release", "min": 55.0 },
-      { "key": "picture", "label": "Picture track", "min": 68.0 },
-      { "key": "clip", "label": "Clip", "min": 78.0 }
+      {
+        "key": "hold",
+        "label": "Hold",
+        "min": 0.0
+      },
+      {
+        "key": "audio",
+        "label": "Audio release",
+        "min": 55.0
+      },
+      {
+        "key": "picture",
+        "label": "Picture track",
+        "min": 68.0
+      },
+      {
+        "key": "clip",
+        "label": "Clip",
+        "min": 78.0
+      }
     ],
     "work_meta_fields": [
-      { "key": "bpm", "label": "BPM", "type": "number" },
-      { "key": "key", "label": "Key", "type": "text" },
-      { "key": "duration", "label": "Duration", "type": "text" },
-      { "key": "language", "label": "Language", "type": "text" },
-      { "key": "tagline", "label": "Tagline", "type": "text" },
-      { "key": "direction", "label": "Direction", "type": "text" },
-      { "key": "mood", "label": "Mood", "type": "text" },
-      { "key": "tempo", "label": "Tempo", "type": "text" },
-      { "key": "vocal", "label": "Vocal", "type": "text" },
-      { "key": "perspective", "label": "Perspective", "type": "text" },
-      { "key": "instruments", "label": "Instruments", "type": "text" },
-      { "key": "premise", "label": "Premise", "type": "multiline" }
+      {
+        "key": "bpm",
+        "label": "BPM",
+        "type": "number"
+      },
+      {
+        "key": "key",
+        "label": "Key",
+        "type": "text"
+      },
+      {
+        "key": "duration",
+        "label": "Duration",
+        "type": "text"
+      },
+      {
+        "key": "language",
+        "label": "Language",
+        "type": "text"
+      },
+      {
+        "key": "tagline",
+        "label": "Tagline",
+        "type": "text"
+      },
+      {
+        "key": "direction",
+        "label": "Direction",
+        "type": "text"
+      },
+      {
+        "key": "mood",
+        "label": "Mood",
+        "type": "text"
+      },
+      {
+        "key": "tempo",
+        "label": "Tempo",
+        "type": "text"
+      },
+      {
+        "key": "vocal",
+        "label": "Vocal",
+        "type": "text"
+      },
+      {
+        "key": "perspective",
+        "label": "Perspective",
+        "type": "text"
+      },
+      {
+        "key": "instruments",
+        "label": "Instruments",
+        "type": "text"
+      },
+      {
+        "key": "premise",
+        "label": "Premise",
+        "type": "multiline"
+      }
     ],
     "marks": [
-      { "key": "working", "label": "Working on it", "colour": "warn" },
-      { "key": "unsure", "label": "Not sure", "colour": "accent" },
-      { "key": "favourite", "label": "The good one", "colour": "good" }
+      {
+        "key": "working",
+        "label": "Working on it",
+        "colour": "warn"
+      },
+      {
+        "key": "unsure",
+        "label": "Not sure",
+        "colour": "accent"
+      },
+      {
+        "key": "favourite",
+        "label": "The good one",
+        "colour": "good"
+      }
     ],
-    "rhythm": { "every_days": 3, "default_time": "12:00" },
+    "rhythm": {
+      "every_days": 3,
+      "default_time": "12:00"
+    },
     "prompts": [
       {
         "key": "critique",

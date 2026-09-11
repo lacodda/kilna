@@ -2,24 +2,30 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
+/// The version of the document's shape. See [`ProfileConfig::format`].
+pub const FORMAT: u32 = 2;
+
 /// A craft scenario. Everything that differs between music, prose and podcasting
 /// is described here rather than in the schema.
+///
+/// **Format 2** (v0.57): the vocabulary a work is judged and shipped by — its
+/// axes, tiers, version roles, kinds of release, statuses — belongs to the
+/// *kind* of work, not to the profile. A song and a video are one craft with
+/// two vocabularies, and a video judged on "hook" and "lyrics" is nonsense.
+/// Format 1 laid all of it flat on the profile; a format 1 document is still
+/// read — see [`RawProfileConfig`] — and comes out of the parser in format 2,
+/// with the flat vocabulary handed to every kind that declared none of its own.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "RawProfileConfig")]
 pub struct ProfileConfig {
-    /// Kinds a work can take: song, chapter, episode.
-    pub work_kinds: Vec<Kind>,
-    /// Kinds a release can take: clip, short, audio release.
-    pub release_kinds: Vec<ReleaseKind>,
+    /// Which shape this document has. Written as [`FORMAT`]; read only to
+    /// know whether a stored copy still needs rewriting.
+    pub format: u32,
+    /// Kinds a work can take — song, chapter, episode, video — each with the
+    /// vocabulary it is judged and shipped by.
+    pub work_kinds: Vec<WorkKind>,
     /// Kinds a collection can take: album, book, season.
     pub collection_kinds: Vec<Kind>,
-    /// Independent bodies a work carries: lyrics and style, or text and outline.
-    pub version_roles: Vec<VersionRole>,
-    /// Statuses a work moves through, in order.
-    pub statuses: Vec<Status>,
-    /// What a work is judged on.
-    pub axes: Vec<Axis>,
-    /// Score thresholds, highest `min` first when evaluated.
-    pub tiers: Vec<Tier>,
     /// Craft-specific fields stored in `work.meta`.
     pub work_meta_fields: Vec<MetaField>,
     /// Flags a work can be given by hand, beside the derived status. Defaulted
@@ -43,6 +49,437 @@ pub struct ProfileConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub catalogue_columns: Option<Vec<String>>,
 }
+
+/// A profile document as it is written, in either format.
+///
+/// Format 1 laid the vocabulary flat on the profile; format 2 puts it under
+/// each kind. Both are read: the flat fields, when any is present, are given
+/// to every kind that declares nothing of its own — all of it or none of it,
+/// so a kind that names even one list is taken to have named its vocabulary
+/// on purpose — and then dropped. The document that comes out is format 2
+/// whichever went in, which is what lets the stored copies, the shipped
+/// files, an imported JSON and every test share one parser.
+#[derive(Debug, Clone, Deserialize)]
+pub struct RawProfileConfig {
+    #[serde(default)]
+    pub format: u32,
+    pub work_kinds: Vec<WorkKind>,
+    #[serde(default)]
+    pub collection_kinds: Vec<Kind>,
+    #[serde(default)]
+    pub work_meta_fields: Vec<MetaField>,
+    #[serde(default)]
+    pub marks: Vec<Mark>,
+    #[serde(default)]
+    pub prompts: Vec<crate::assistant::prompt::PromptTemplate>,
+    #[serde(default)]
+    pub rhythm: Option<Rhythm>,
+    #[serde(default)]
+    pub catalogue_columns: Option<Vec<String>>,
+    // Format 1: the vocabulary, flat on the profile.
+    #[serde(default)]
+    pub release_kinds: Vec<ReleaseKind>,
+    #[serde(default)]
+    pub version_roles: Vec<VersionRole>,
+    #[serde(default)]
+    pub statuses: Vec<Status>,
+    #[serde(default)]
+    pub axes: Vec<Axis>,
+    #[serde(default)]
+    pub tiers: Vec<Tier>,
+}
+
+impl From<RawProfileConfig> for ProfileConfig {
+    fn from(raw: RawProfileConfig) -> Self {
+        let flat_present = !raw.axes.is_empty()
+            || !raw.tiers.is_empty()
+            || !raw.version_roles.is_empty()
+            || !raw.release_kinds.is_empty()
+            || !raw.statuses.is_empty();
+
+        let mut work_kinds = raw.work_kinds;
+        if flat_present {
+            for kind in &mut work_kinds {
+                if kind.declares_nothing() {
+                    kind.axes = raw.axes.clone();
+                    kind.tiers = raw.tiers.clone();
+                    kind.version_roles = raw.version_roles.clone();
+                    kind.release_kinds = raw.release_kinds.clone();
+                    kind.statuses = raw.statuses.clone();
+                }
+            }
+        }
+
+        Self {
+            format: FORMAT,
+            work_kinds,
+            collection_kinds: raw.collection_kinds,
+            work_meta_fields: raw.work_meta_fields,
+            marks: raw.marks,
+            prompts: raw.prompts,
+            rhythm: raw.rhythm,
+            catalogue_columns: raw.catalogue_columns,
+        }
+    }
+}
+
+/// A kind of work, with everything the craft says about works of that kind.
+///
+/// The vocabulary lives here rather than on the profile because a craft ships
+/// more than one thing — a studio makes songs and the videos for them — and
+/// the two are judged on different axes, carry different bodies and go out
+/// through different doors. A kind that declares no axes is scored empty
+/// rather than on someone else's; a kind that declares no statuses cannot
+/// hold a work, and validation says so.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkKind {
+    pub key: String,
+    pub label: String,
+    /// What a work of this kind is judged on.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub axes: Vec<Axis>,
+    /// Score thresholds, on the 0–100 total.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tiers: Vec<Tier>,
+    /// Independent bodies a work of this kind carries.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub version_roles: Vec<VersionRole>,
+    /// Kinds of release a work of this kind goes out as.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub release_kinds: Vec<ReleaseKind>,
+    /// Statuses a work of this kind moves through, in order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub statuses: Vec<Status>,
+}
+
+impl WorkKind {
+    pub fn new(key: &str, label: &str) -> Self {
+        Self {
+            key: key.to_owned(),
+            label: label.to_owned(),
+            axes: Vec::new(),
+            tiers: Vec::new(),
+            version_roles: Vec::new(),
+            release_kinds: Vec::new(),
+            statuses: Vec::new(),
+        }
+    }
+
+    /// Whether the kind states no vocabulary at all — the state a format 1
+    /// kind is in, and the one the flat vocabulary fills.
+    pub fn declares_nothing(&self) -> bool {
+        self.axes.is_empty()
+            && self.tiers.is_empty()
+            && self.version_roles.is_empty()
+            && self.release_kinds.is_empty()
+            && self.statuses.is_empty()
+    }
+
+    /// The same kind without its judgement: axes and tiers dropped, the
+    /// structural vocabulary kept. What a kind newly shipped into an existing
+    /// workspace arrives as — a stranger's axes must not appear silently
+    /// beside the owner's own (see `profile::carry_forward`).
+    pub fn without_judgement(&self) -> Self {
+        Self {
+            axes: Vec::new(),
+            tiers: Vec::new(),
+            ..self.clone()
+        }
+    }
+
+    /// Combine axis values into a 0–100 total.
+    ///
+    /// Axes missing from `values` are skipped rather than counted as zero: a
+    /// half-filled score card should not read as a bad work. An answer the
+    /// axis cannot read — a choice key the profile no longer offers — is
+    /// skipped the same way. A kind with no axes totals zero.
+    pub fn total(&self, values: &serde_json::Map<String, serde_json::Value>) -> f64 {
+        self.weigh(values, |axis| axis.weight)
+    }
+
+    /// The same values, weighed as a release of `kind` would weigh them.
+    ///
+    /// A kind that reweights nothing — or a key that names no kind — gives
+    /// exactly [`total`](Self::total): one verdict, not a second opinion.
+    pub fn total_for(
+        &self,
+        values: &serde_json::Map<String, serde_json::Value>,
+        release_kind: &str,
+    ) -> f64 {
+        let weights = self
+            .release_kinds
+            .iter()
+            .find(|kind| kind.key == release_kind)
+            .map(|kind| &kind.axis_weights);
+        self.weigh(values, |axis| {
+            weights
+                .and_then(|weights| weights.get(&axis.key))
+                .copied()
+                .unwrap_or(axis.weight)
+        })
+    }
+
+    /// What each release kind makes of the same answers.
+    ///
+    /// One score, read down every channel the craft ships to: a song that is
+    /// a clip and a merely adequate audio release is one work with two honest
+    /// verdicts, not a work whose number is wrong. Kinds that reweigh nothing
+    /// still appear - the point is the comparison, and a row missing from it
+    /// would read as "not applicable" rather than "same as the others".
+    pub fn verdicts(
+        &self,
+        values: &serde_json::Map<String, serde_json::Value>,
+    ) -> Vec<KindVerdict> {
+        self.release_kinds
+            .iter()
+            .map(|kind| {
+                let total = self.total_for(values, &kind.key);
+                KindVerdict {
+                    kind: kind.key.clone(),
+                    total,
+                    tier: self.tier_for(total).map(|tier| tier.key.clone()),
+                    reweighed: !kind.axis_weights.is_empty(),
+                }
+            })
+            .collect()
+    }
+
+    fn weigh(
+        &self,
+        values: &serde_json::Map<String, serde_json::Value>,
+        weight_of: impl Fn(&Axis) -> f64,
+    ) -> f64 {
+        let mut weighted = 0.0;
+        let mut weight_sum = 0.0;
+
+        for axis in &self.axes {
+            let Some(value) = values
+                .get(&axis.key)
+                .and_then(|stored| axis.value_of(stored))
+            else {
+                continue;
+            };
+            if axis.scale <= 0.0 {
+                continue;
+            }
+            let weight = weight_of(axis);
+            weighted += (value / axis.scale) * weight;
+            weight_sum += weight;
+        }
+
+        if weight_sum == 0.0 {
+            return 0.0;
+        }
+        (weighted / weight_sum) * 100.0
+    }
+
+    /// The highest tier whose threshold the total reaches.
+    pub fn tier_for(&self, total: f64) -> Option<&Tier> {
+        self.tiers
+            .iter()
+            .filter(|tier| total >= tier.min)
+            .max_by(|a, b| a.min.total_cmp(&b.min))
+    }
+
+    /// The status a work of this kind starts in: the one that means draft,
+    /// or the first listed for a kind that names no draft.
+    pub fn starting_status(&self) -> Option<&Status> {
+        self.statuses
+            .iter()
+            .find(|status| status.derive == Derive::Draft)
+            .or_else(|| self.statuses.first())
+    }
+
+    /// The status that means `meaning` to the automation, if the kind has one.
+    pub fn status_meaning(&self, meaning: Derive) -> Option<&Status> {
+        if meaning == Derive::Manual {
+            return None;
+        }
+        self.statuses.iter().find(|status| status.derive == meaning)
+    }
+
+    /// Everything wrong with this kind's vocabulary, each line naming its place.
+    fn validate_into(&self, problems: &mut Vec<String>, place: &str) {
+        unique(
+            problems,
+            &format!("{place}: release kind"),
+            self.release_kinds.iter().map(|k| k.key.clone()),
+        );
+        unique(
+            problems,
+            &format!("{place}: version role"),
+            self.version_roles.iter().map(|r| r.key.clone()),
+        );
+        unique(
+            problems,
+            &format!("{place}: status"),
+            self.statuses.iter().map(|s| s.key.clone()),
+        );
+        unique(
+            problems,
+            &format!("{place}: axis"),
+            self.axes.iter().map(|a| a.key.clone()),
+        );
+        unique(
+            problems,
+            &format!("{place}: tier"),
+            self.tiers.iter().map(|t| t.key.clone()),
+        );
+
+        if self.statuses.is_empty() {
+            problems.push(format!(
+                "{place} names no statuses; a work has to start somewhere"
+            ));
+        }
+
+        let roles: BTreeSet<&str> = self.version_roles.iter().map(|r| r.key.as_str()).collect();
+        for (index, role) in self.version_roles.iter().enumerate() {
+            // Not a let-chain: the MSRV is older than they are.
+            let Some(target) = &role.comments_on else {
+                continue;
+            };
+            if !roles.contains(target.as_str()) {
+                problems.push(format!(
+                    "{place}: version role {} (`{}`) comments on `{target}`, which no role is",
+                    index + 1,
+                    role.key
+                ));
+            }
+        }
+        for (index, role) in self.version_roles.iter().enumerate() {
+            let Some(body) = &role.body else {
+                continue;
+            };
+            if !BODY_KINDS.contains(&body.as_str()) {
+                problems.push(format!(
+                    "{place}: version role {} (`{}`) reads its body as `{body}`; it can only be `plain` or `markdown`",
+                    index + 1,
+                    role.key
+                ));
+            }
+        }
+
+        let axes: BTreeSet<&str> = self.axes.iter().map(|a| a.key.as_str()).collect();
+        for (index, kind) in self.release_kinds.iter().enumerate() {
+            for required in &kind.requires {
+                if !roles.contains(required.as_str()) {
+                    problems.push(format!(
+                        "{place}: release kind {} (`{}`) requires `{required}`, which no version role is",
+                        index + 1,
+                        kind.key
+                    ));
+                }
+            }
+            for (axis, weight) in &kind.axis_weights {
+                if !axes.contains(axis.as_str()) {
+                    problems.push(format!(
+                        "{place}: release kind {} (`{}`) weights `{axis}`, which no axis is",
+                        index + 1,
+                        kind.key
+                    ));
+                }
+                if !(weight.is_finite() && *weight >= 0.0) {
+                    problems.push(format!(
+                        "{place}: release kind {} (`{}`) gives `{axis}` the weight {weight}; it must be zero or above",
+                        index + 1,
+                        kind.key
+                    ));
+                }
+            }
+        }
+
+        for (index, axis) in self.axes.iter().enumerate() {
+            let place = format!("{place}: axis {} (`{}`)", index + 1, axis.key);
+            if !(axis.scale.is_finite() && axis.scale > 0.0) {
+                problems.push(format!(
+                    "{place} has the scale {}; it must be above zero",
+                    axis.scale
+                ));
+            }
+            if !(axis.weight.is_finite() && axis.weight >= 0.0) {
+                problems.push(format!(
+                    "{place} has the weight {}; it must be zero or above",
+                    axis.weight
+                ));
+            }
+            match axis.kind {
+                AxisKind::Choice => {
+                    if axis.options.is_empty() {
+                        problems.push(format!("{place} is a choice with nothing to choose from"));
+                    }
+                    unique(
+                        problems,
+                        &format!("{place}: option"),
+                        axis.options.iter().map(|o| o.key.clone()),
+                    );
+                    for option in &axis.options {
+                        if !(option.value.is_finite()
+                            && option.value >= 0.0
+                            && option.value <= axis.scale)
+                        {
+                            problems.push(format!(
+                                "{place}: option `{}` is worth {}, outside 0–{}",
+                                option.key, option.value, axis.scale
+                            ));
+                        }
+                    }
+                }
+                AxisKind::Scale | AxisKind::Flag => {
+                    if !axis.options.is_empty() {
+                        problems.push(format!(
+                            "{place} lists options but is not a choice; set `kind` to `choice` or drop them"
+                        ));
+                    }
+                }
+            }
+
+            // A rubric is checked like the options are: a mark off the scale
+            // describes nothing, and two sentences about the same mark leave
+            // the app to pick one of them.
+            let mut named = BTreeSet::new();
+            for mark in &axis.rubric {
+                if !(mark.at.is_finite() && mark.at >= 0.0 && mark.at <= axis.scale) {
+                    problems.push(format!(
+                        "{place}: the rubric names {}, outside 0-{}",
+                        mark.at, axis.scale
+                    ));
+                    continue;
+                }
+                if !named.insert(mark.at.to_bits()) {
+                    problems.push(format!("{place}: the rubric names {} twice", mark.at));
+                }
+            }
+        }
+
+        for (index, tier) in self.tiers.iter().enumerate() {
+            if !(tier.min.is_finite() && (0.0..=100.0).contains(&tier.min)) {
+                problems.push(format!(
+                    "{place}: tier {} (`{}`) starts at {}; the total runs 0–100",
+                    index + 1,
+                    tier.key,
+                    tier.min
+                ));
+            }
+        }
+    }
+}
+
+/// Keys that repeat or are blank, reported with their position.
+fn unique(problems: &mut Vec<String>, what: &str, keys: impl Iterator<Item = String>) {
+    let mut seen = BTreeSet::new();
+    for (index, key) in keys.enumerate() {
+        if key.trim().is_empty() {
+            problems.push(format!("{what} {} has no key", index + 1));
+        } else if !seen.insert(key.clone()) {
+            problems.push(format!("{what} {} repeats the key `{key}`", index + 1));
+        }
+    }
+}
+
+/// The vocabulary of a kind the profile does not know: nothing, so that a
+/// work whose kind was removed from the profile reads as unscorable and
+/// roleless rather than crashing the screen it is on.
+static NO_KIND: std::sync::LazyLock<WorkKind> = std::sync::LazyLock::new(|| WorkKind::new("", ""));
 
 /// The pace releases go out at.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -385,112 +822,92 @@ pub enum MetaFieldType {
 }
 
 impl ProfileConfig {
-    /// Combine axis values into a 0–100 total.
-    ///
-    /// Axes missing from `values` are skipped rather than counted as zero: a
-    /// half-filled score card should not read as a bad work. An answer the
-    /// axis cannot read — a choice key the profile no longer offers — is
-    /// skipped the same way.
-    pub fn total(&self, values: &serde_json::Map<String, serde_json::Value>) -> f64 {
-        self.weigh(values, |axis| axis.weight)
+    /// The kind a key names, if the profile has it.
+    pub fn kind(&self, key: &str) -> Option<&WorkKind> {
+        self.work_kinds.iter().find(|kind| kind.key == key)
     }
 
-    /// The same values, weighed as a release of `kind` would weigh them.
-    ///
-    /// A kind that reweights nothing — or a key that names no kind — gives
-    /// exactly [`total`](Self::total): one verdict, not a second opinion.
-    pub fn total_for(
-        &self,
-        values: &serde_json::Map<String, serde_json::Value>,
-        release_kind: &str,
-    ) -> f64 {
-        let weights = self
-            .release_kinds
-            .iter()
-            .find(|kind| kind.key == release_kind)
-            .map(|kind| &kind.axis_weights);
-        self.weigh(values, |axis| {
-            weights
-                .and_then(|weights| weights.get(&axis.key))
-                .copied()
-                .unwrap_or(axis.weight)
-        })
+    /// The vocabulary of a kind: its own, or — for a kind the profile does
+    /// not know — an empty one, so nothing downstream has to ask twice.
+    pub fn vocabulary(&self, kind: &str) -> &WorkKind {
+        self.kind(kind).unwrap_or(&NO_KIND)
     }
 
-    /// What each release kind makes of the same answers.
-    ///
-    /// One score, read down every channel the craft ships to: a song that is
-    /// a clip and a merely adequate audio release is one work with two honest
-    /// verdicts, not a work whose number is wrong. Kinds that reweigh nothing
-    /// still appear - the point is the comparison, and a row missing from it
-    /// would read as "not applicable" rather than "same as the others".
+    /// Combine axis values into a 0–100 total, as `kind` weighs them.
+    pub fn total(&self, kind: &str, values: &serde_json::Map<String, serde_json::Value>) -> f64 {
+        self.vocabulary(kind).total(values)
+    }
+
+    /// The highest tier of `kind` whose threshold the total reaches.
+    pub fn tier_for(&self, kind: &str, total: f64) -> Option<&Tier> {
+        self.vocabulary(kind).tier_for(total)
+    }
+
+    /// What each release kind of `kind` makes of the same answers.
     pub fn verdicts(
         &self,
+        kind: &str,
         values: &serde_json::Map<String, serde_json::Value>,
     ) -> Vec<KindVerdict> {
-        self.release_kinds
-            .iter()
-            .map(|kind| {
-                let total = self.total_for(values, &kind.key);
-                KindVerdict {
-                    kind: kind.key.clone(),
-                    total,
-                    tier: self.tier_for(total).map(|tier| tier.key.clone()),
-                    reweighed: !kind.axis_weights.is_empty(),
-                }
-            })
-            .collect()
+        self.vocabulary(kind).verdicts(values)
     }
 
-    fn weigh(
-        &self,
-        values: &serde_json::Map<String, serde_json::Value>,
-        weight_of: impl Fn(&Axis) -> f64,
-    ) -> f64 {
-        let mut weighted = 0.0;
-        let mut weight_sum = 0.0;
+    /// Every status any kind names, once per key, first label wins. For the
+    /// screens that have no work in hand — the catalogue's filter, the batch
+    /// that moves many works — and for nothing that judges a single work.
+    pub fn all_statuses(&self) -> Vec<Status> {
+        union(
+            self.work_kinds.iter().flat_map(|kind| kind.statuses.iter()),
+            |s| &s.key,
+        )
+    }
 
-        for axis in &self.axes {
-            let Some(value) = values
-                .get(&axis.key)
-                .and_then(|stored| axis.value_of(stored))
-            else {
-                continue;
-            };
-            if axis.scale <= 0.0 {
-                continue;
-            }
-            let weight = weight_of(axis);
-            weighted += (value / axis.scale) * weight;
-            weight_sum += weight;
-        }
+    /// Every tier any kind names, once per key.
+    pub fn all_tiers(&self) -> Vec<Tier> {
+        union(
+            self.work_kinds.iter().flat_map(|kind| kind.tiers.iter()),
+            |t| &t.key,
+        )
+    }
 
-        if weight_sum == 0.0 {
-            return 0.0;
-        }
-        (weighted / weight_sum) * 100.0
+    /// Every axis any kind names, once per key.
+    pub fn all_axes(&self) -> Vec<Axis> {
+        union(
+            self.work_kinds.iter().flat_map(|kind| kind.axes.iter()),
+            |a| &a.key,
+        )
+    }
+
+    /// Every version role any kind names, once per key.
+    pub fn all_version_roles(&self) -> Vec<VersionRole> {
+        union(
+            self.work_kinds
+                .iter()
+                .flat_map(|kind| kind.version_roles.iter()),
+            |r| &r.key,
+        )
+    }
+
+    /// Every kind of release any kind names, once per key.
+    pub fn all_release_kinds(&self) -> Vec<ReleaseKind> {
+        union(
+            self.work_kinds
+                .iter()
+                .flat_map(|kind| kind.release_kinds.iter()),
+            |k| &k.key,
+        )
     }
 
     /// Everything wrong with the document, in the words a person can act on.
     ///
-    /// Empty means the profile is sound. Each line names the place — "axis 3
-    /// (`hook`)" — and the rule it breaks, because a profile is edited by
-    /// hand and "invalid config" sends the person back to guess. Only what
-    /// would make the app misbehave is refused: an empty label is a taste,
-    /// a duplicate key is a corruption waiting for the next score.
+    /// Empty means the profile is sound. Each line names the place — "work
+    /// kind `song`: axis 3 (`hook`)" — and the rule it breaks, because a
+    /// profile is edited by hand and "invalid config" sends the person back
+    /// to guess. Only what would make the app misbehave is refused: an empty
+    /// label is a taste, a duplicate key is a corruption waiting for the next
+    /// score.
     pub fn validate(&self) -> Vec<String> {
         let mut problems = Vec::new();
-
-        fn unique(problems: &mut Vec<String>, what: &str, keys: impl Iterator<Item = String>) {
-            let mut seen = BTreeSet::new();
-            for (index, key) in keys.enumerate() {
-                if key.trim().is_empty() {
-                    problems.push(format!("{what} {} has no key", index + 1));
-                } else if !seen.insert(key.clone()) {
-                    problems.push(format!("{what} {} repeats the key `{key}`", index + 1));
-                }
-            }
-        }
 
         unique(
             &mut problems,
@@ -499,185 +916,21 @@ impl ProfileConfig {
         );
         unique(
             &mut problems,
-            "release kind",
-            self.release_kinds.iter().map(|k| k.key.clone()),
-        );
-        unique(
-            &mut problems,
             "collection kind",
             self.collection_kinds.iter().map(|k| k.key.clone()),
-        );
-        unique(
-            &mut problems,
-            "version role",
-            self.version_roles.iter().map(|r| r.key.clone()),
-        );
-        unique(
-            &mut problems,
-            "status",
-            self.statuses.iter().map(|s| s.key.clone()),
-        );
-        unique(
-            &mut problems,
-            "axis",
-            self.axes.iter().map(|a| a.key.clone()),
-        );
-        unique(
-            &mut problems,
-            "tier",
-            self.tiers.iter().map(|t| t.key.clone()),
         );
         unique(
             &mut problems,
             "meta field",
             self.work_meta_fields.iter().map(|f| f.key.clone()),
         );
-        unique(
-            &mut problems,
-            "mark",
-            self.marks.iter().map(|m| m.key.clone()),
-        );
-        unique(
-            &mut problems,
-            "prompt",
-            self.prompts.iter().map(|p| p.key.clone()),
-        );
-
-        if self.statuses.is_empty() {
-            problems.push("the profile names no statuses; a work has to start somewhere".into());
-        }
         if self.work_kinds.is_empty() {
             problems.push("the profile names no work kinds".into());
         }
 
-        let roles: BTreeSet<&str> = self.version_roles.iter().map(|r| r.key.as_str()).collect();
-        for (index, role) in self.version_roles.iter().enumerate() {
-            // Not a let-chain: the MSRV is older than they are.
-            let Some(target) = &role.comments_on else {
-                continue;
-            };
-            if !roles.contains(target.as_str()) {
-                problems.push(format!(
-                    "version role {} (`{}`) comments on `{target}`, which no role is",
-                    index + 1,
-                    role.key
-                ));
-            }
-        }
-        for (index, role) in self.version_roles.iter().enumerate() {
-            let Some(body) = &role.body else {
-                continue;
-            };
-            if !BODY_KINDS.contains(&body.as_str()) {
-                problems.push(format!(
-                    "version role {} (`{}`) reads its body as `{body}`; it can only be `plain` or `markdown`",
-                    index + 1,
-                    role.key
-                ));
-            }
-        }
-
-        let axes: BTreeSet<&str> = self.axes.iter().map(|a| a.key.as_str()).collect();
-        for (index, kind) in self.release_kinds.iter().enumerate() {
-            for required in &kind.requires {
-                if !roles.contains(required.as_str()) {
-                    problems.push(format!(
-                        "release kind {} (`{}`) requires `{required}`, which no version role is",
-                        index + 1,
-                        kind.key
-                    ));
-                }
-            }
-            for (axis, weight) in &kind.axis_weights {
-                if !axes.contains(axis.as_str()) {
-                    problems.push(format!(
-                        "release kind {} (`{}`) weights `{axis}`, which no axis is",
-                        index + 1,
-                        kind.key
-                    ));
-                }
-                if !(weight.is_finite() && *weight >= 0.0) {
-                    problems.push(format!(
-                        "release kind {} (`{}`) gives `{axis}` the weight {weight}; it must be zero or above",
-                        index + 1,
-                        kind.key
-                    ));
-                }
-            }
-        }
-
-        for (index, axis) in self.axes.iter().enumerate() {
-            let place = format!("axis {} (`{}`)", index + 1, axis.key);
-            if !(axis.scale.is_finite() && axis.scale > 0.0) {
-                problems.push(format!(
-                    "{place} has the scale {}; it must be above zero",
-                    axis.scale
-                ));
-            }
-            if !(axis.weight.is_finite() && axis.weight >= 0.0) {
-                problems.push(format!(
-                    "{place} has the weight {}; it must be zero or above",
-                    axis.weight
-                ));
-            }
-            match axis.kind {
-                AxisKind::Choice => {
-                    if axis.options.is_empty() {
-                        problems.push(format!("{place} is a choice with nothing to choose from"));
-                    }
-                    unique(
-                        &mut problems,
-                        &format!("{place}: option"),
-                        axis.options.iter().map(|o| o.key.clone()),
-                    );
-                    for option in &axis.options {
-                        if !(option.value.is_finite()
-                            && option.value >= 0.0
-                            && option.value <= axis.scale)
-                        {
-                            problems.push(format!(
-                                "{place}: option `{}` is worth {}, outside 0–{}",
-                                option.key, option.value, axis.scale
-                            ));
-                        }
-                    }
-                }
-                AxisKind::Scale | AxisKind::Flag => {
-                    if !axis.options.is_empty() {
-                        problems.push(format!(
-                            "{place} lists options but is not a choice; set `kind` to `choice` or drop them"
-                        ));
-                    }
-                }
-            }
-
-            // A rubric describes marks on this axis, so a mark off the scale
-            // describes nothing, and two sentences about the same mark leave
-            // the app to pick one of them.
-            let mut named = BTreeSet::new();
-            for mark in &axis.rubric {
-                if !(mark.at.is_finite() && mark.at >= 0.0 && mark.at <= axis.scale) {
-                    problems.push(format!(
-                        "{place}: the rubric names {}, outside 0-{}",
-                        mark.at, axis.scale
-                    ));
-                    continue;
-                }
-                if !named.insert(mark.at.to_bits()) {
-                    problems.push(format!("{place}: the rubric names {} twice", mark.at));
-                }
-            }
-        }
-
-        for (index, tier) in self.tiers.iter().enumerate() {
-            if !(tier.min.is_finite() && (0.0..=100.0).contains(&tier.min)) {
-                problems.push(format!(
-                    "tier {} (`{}`) starts at {}; the total runs 0–100",
-                    index + 1,
-                    tier.key,
-                    tier.min
-                ));
-            }
+        for (index, kind) in self.work_kinds.iter().enumerate() {
+            let place = format!("work kind {} (`{}`)", index + 1, kind.key);
+            kind.validate_into(&mut problems, &place);
         }
 
         if let Some(rhythm) = &self.rhythm {
@@ -695,14 +948,22 @@ impl ProfileConfig {
 
         problems
     }
+}
 
-    /// The highest tier whose threshold the total reaches.
-    pub fn tier_for(&self, total: f64) -> Option<&Tier> {
-        self.tiers
-            .iter()
-            .filter(|tier| total >= tier.min)
-            .max_by(|a, b| a.min.total_cmp(&b.min))
+/// Entries once per key, first seen first: the union of a vocabulary across
+/// kinds, for the screens that speak to every kind at once.
+fn union<'a, T: Clone + 'a>(
+    entries: impl Iterator<Item = &'a T>,
+    key: impl Fn(&T) -> &String,
+) -> Vec<T> {
+    let mut seen = BTreeSet::new();
+    let mut out = Vec::new();
+    for entry in entries {
+        if seen.insert(key(entry).clone()) {
+            out.push(entry.clone());
+        }
     }
+    out
 }
 
 #[cfg(test)]
@@ -734,7 +995,7 @@ mod tests {
     // saying nothing about what its marks mean.
     #[test]
     fn an_axis_without_a_rubric_parses_as_naming_no_marks() {
-        assert!(config().axes[0].rubric.is_empty());
+        assert!(config().work_kinds[0].axes[0].rubric.is_empty());
     }
 
     #[test]
@@ -755,7 +1016,7 @@ mod tests {
     #[test]
     fn a_rubric_mark_off_the_scale_is_refused() {
         let mut config = config();
-        config.axes[0].rubric = vec![AxisMark {
+        config.work_kinds[0].axes[0].rubric = vec![AxisMark {
             at: 12.0,
             label: "beyond the scale".into(),
         }];
@@ -772,7 +1033,7 @@ mod tests {
     #[test]
     fn a_rubric_naming_the_same_mark_twice_is_refused() {
         let mut config = config();
-        config.axes[0].rubric = vec![
+        config.work_kinds[0].axes[0].rubric = vec![
             AxisMark {
                 at: 7.0,
                 label: "one sentence".into(),
@@ -795,7 +1056,7 @@ mod tests {
     #[test]
     fn a_sound_rubric_is_not_refused() {
         let mut config = config();
-        config.axes[0].rubric = vec![
+        config.work_kinds[0].axes[0].rubric = vec![
             AxisMark {
                 at: 0.0,
                 label: "the bottom of the scale is a verdict too".into(),
@@ -813,7 +1074,7 @@ mod tests {
     // written before the field existed does.
     #[test]
     fn a_release_kind_without_requirements_parses_as_requiring_nothing() {
-        assert!(config().release_kinds[0].requires.is_empty());
+        assert!(config().work_kinds[0].release_kinds[0].requires.is_empty());
     }
 
     // The fixture states no rhythm either — a profile from before the field
@@ -834,28 +1095,28 @@ mod tests {
     fn total_weighs_the_axes() {
         let values = json!({ "hook": 10.0, "text": 4.0 });
         // (1.0 * 2 + 0.4 * 1) / 3 = 0.8
-        let total = config().total(values.as_object().unwrap());
+        let total = config().total("song", values.as_object().unwrap());
         assert!((total - 80.0).abs() < 1e-9, "got {total}");
     }
 
     #[test]
     fn a_missing_axis_does_not_count_as_zero() {
         let values = json!({ "hook": 8.0 });
-        let total = config().total(values.as_object().unwrap());
+        let total = config().total("song", values.as_object().unwrap());
         assert!((total - 80.0).abs() < 1e-9, "got {total}");
     }
 
     #[test]
     fn an_empty_score_card_totals_zero_rather_than_dividing_by_zero() {
         let values = json!({});
-        assert_eq!(config().total(values.as_object().unwrap()), 0.0);
+        assert_eq!(config().total("song", values.as_object().unwrap()), 0.0);
     }
 
     #[test]
     fn tier_picks_the_highest_threshold_reached() {
         let config = config();
-        assert_eq!(config.tier_for(80.0).unwrap().key, "clip");
-        assert_eq!(config.tier_for(74.9).unwrap().key, "hold");
+        assert_eq!(config.tier_for("song", 80.0).unwrap().key, "clip");
+        assert_eq!(config.tier_for("song", 74.9).unwrap().key, "hold");
     }
 
     fn typed() -> ProfileConfig {
@@ -885,8 +1146,8 @@ mod tests {
 
     #[test]
     fn an_axis_written_before_kinds_existed_is_a_scale() {
-        assert_eq!(config().axes[0].kind, AxisKind::Scale);
-        assert!(config().axes[0].options.is_empty());
+        assert_eq!(config().work_kinds[0].axes[0].kind, AxisKind::Scale);
+        assert!(config().work_kinds[0].axes[0].options.is_empty());
     }
 
     #[test]
@@ -894,11 +1155,11 @@ mod tests {
         let config = typed();
         let values = json!({ "hook": 5.0, "chorus": true, "length": "short" });
         // (0.5 + 1.0 + 0.4) / 3
-        let total = config.total(values.as_object().unwrap());
+        let total = config.total("song", values.as_object().unwrap());
         assert!((total - 63.333_333).abs() < 1e-3, "got {total}");
 
         let values = json!({ "hook": 5.0, "chorus": false, "length": "short" });
-        let total = config.total(values.as_object().unwrap());
+        let total = config.total("song", values.as_object().unwrap());
         assert!((total - 30.0).abs() < 1e-9, "got {total}");
     }
 
@@ -906,7 +1167,7 @@ mod tests {
     fn an_answer_the_axis_cannot_read_is_skipped_like_a_missing_one() {
         let config = typed();
         let values = json!({ "hook": 5.0, "length": "epic" });
-        let total = config.total(values.as_object().unwrap());
+        let total = config.total("song", values.as_object().unwrap());
         assert!(
             (total - 50.0).abs() < 1e-9,
             "an unknown option must not count: {total}"
@@ -918,7 +1179,7 @@ mod tests {
         // A snapshot taken while the axis was a scale keeps its value.
         let config = typed();
         let values = json!({ "chorus": 10.0, "length": 10.0 });
-        let total = config.total(values.as_object().unwrap());
+        let total = config.total("song", values.as_object().unwrap());
         assert!((total - 100.0).abs() < 1e-9, "got {total}");
     }
 
@@ -928,15 +1189,18 @@ mod tests {
         let values = json!({ "hook": 10.0, "chorus": false, "length": "short" });
         let values = values.as_object().unwrap();
         // Plain: (1.0 + 0 + 0.4) / 3
-        assert!((config.total(values) - 46.666_666).abs() < 1e-3);
+        assert!((config.total("song", values) - 46.666_666).abs() < 1e-3);
         // As a clip: hook ×4, chorus ×0, length keeps 1: (4.0 + 0 + 0.4) / 5
-        let clip = config.total_for(values, "clip");
+        let clip = config.vocabulary("song").total_for(values, "clip");
         assert!((clip - 88.0).abs() < 1e-9, "got {clip}");
         // A kind that reweights nothing, or none at all, is the plain total.
-        assert_eq!(config.total_for(values, "audio"), config.total(values));
         assert_eq!(
-            config.total_for(values, "no-such-kind"),
-            config.total(values)
+            config.vocabulary("song").total_for(values, "audio"),
+            config.total("song", values)
+        );
+        assert_eq!(
+            config.vocabulary("song").total_for(values, "no-such-kind"),
+            config.total("song", values)
         );
     }
 
@@ -944,11 +1208,11 @@ mod tests {
     fn every_release_kind_gets_a_verdict_even_when_it_reweighs_nothing() {
         let config = typed();
         let values = json!({ "hook": 10.0, "chorus": false, "length": "short" });
-        let verdicts = config.verdicts(values.as_object().unwrap());
+        let verdicts = config.verdicts("song", values.as_object().unwrap());
 
         // One row per kind: a kind missing from the comparison would read as
         // "not applicable" rather than "weighs them the same way".
-        assert_eq!(verdicts.len(), config.release_kinds.len());
+        assert_eq!(verdicts.len(), config.work_kinds[0].release_kinds.len());
 
         let clip = verdicts.iter().find(|v| v.kind == "clip").unwrap();
         let audio = verdicts.iter().find(|v| v.kind == "audio").unwrap();
@@ -958,7 +1222,10 @@ mod tests {
 
         // The verdicts are the per-kind totals, not the flat one repeated.
         assert!((clip.total - 88.0).abs() < 1e-9, "got {}", clip.total);
-        assert_eq!(audio.total, config.total(values.as_object().unwrap()));
+        assert_eq!(
+            audio.total,
+            config.total("song", values.as_object().unwrap())
+        );
         assert!(
             clip.total > audio.total,
             "the same answers read better as a clip: {} vs {}",
@@ -971,12 +1238,14 @@ mod tests {
     fn a_verdict_carries_the_tier_its_own_total_reaches() {
         let config = typed();
         let values = json!({ "hook": 10.0, "chorus": false, "length": "short" });
-        let verdicts = config.verdicts(values.as_object().unwrap());
+        let verdicts = config.verdicts("song", values.as_object().unwrap());
 
         for verdict in &verdicts {
             // The claim is checkable: each tier is the one the profile itself
             // returns for that verdict's own total, not for the flat total.
-            let expected = config.tier_for(verdict.total).map(|t| t.key.clone());
+            let expected = config
+                .tier_for("song", verdict.total)
+                .map(|t| t.key.clone());
             assert_eq!(verdict.tier, expected, "kind {}", verdict.kind);
         }
     }
@@ -990,19 +1259,22 @@ mod tests {
     #[test]
     fn every_problem_names_its_place() {
         let mut config = typed();
-        config.axes.push(config.axes[0].clone());
-        config.axes[1].scale = 0.0;
-        config.axes[2].options.clear();
-        config.tiers.push(Tier {
+        let first_axis = config.work_kinds[0].axes[0].clone();
+        config.work_kinds[0].axes.push(first_axis);
+        config.work_kinds[0].axes[1].scale = 0.0;
+        config.work_kinds[0].axes[2].options.clear();
+        config.work_kinds[0].tiers.push(Tier {
             key: "top".into(),
             label: "Top".into(),
             min: 140.0,
         });
-        config.release_kinds[0].requires.push("melody".into());
-        config.release_kinds[0]
+        config.work_kinds[0].release_kinds[0]
+            .requires
+            .push("melody".into());
+        config.work_kinds[0].release_kinds[0]
             .axis_weights
             .insert("ghost".into(), 1.0);
-        config.version_roles.push(VersionRole {
+        config.work_kinds[0].version_roles.push(VersionRole {
             key: "review".into(),
             label: "Review".into(),
             comments_on: Some("prose".into()),
@@ -1039,7 +1311,7 @@ mod tests {
     #[test]
     fn options_on_a_scale_are_refused_rather_than_ignored() {
         let mut config = typed();
-        config.axes[0].options.push(AxisOption {
+        config.work_kinds[0].axes[0].options.push(AxisOption {
             key: "x".into(),
             label: "X".into(),
             value: 1.0,
@@ -1051,5 +1323,147 @@ mod tests {
                 .any(|p| p.contains("lists options but is not a choice")),
             "{problems:?}"
         );
+    }
+
+    // ---- format 2: the vocabulary belongs to the kind -----------------------
+
+    fn flat_document() -> serde_json::Value {
+        json!({
+            "work_kinds": [{ "key": "song", "label": "Song" }, { "key": "instrumental", "label": "Instrumental" }],
+            "release_kinds": [{ "key": "clip", "label": "Clip" }],
+            "collection_kinds": [],
+            "version_roles": [{ "key": "lyrics", "label": "Lyrics" }],
+            "statuses": [{ "key": "draft", "label": "Draft", "derive": "draft" }],
+            "axes": [{ "key": "hook", "label": "Hook", "weight": 1.0, "scale": 10.0 }],
+            "tiers": [{ "key": "hold", "label": "Hold", "min": 0.0 }],
+            "work_meta_fields": []
+        })
+    }
+
+    #[test]
+    fn a_flat_document_hands_its_vocabulary_to_every_kind_that_declares_none() {
+        let config: ProfileConfig = serde_json::from_value(flat_document()).unwrap();
+
+        assert_eq!(config.format, FORMAT);
+        for kind in &config.work_kinds {
+            assert_eq!(kind.axes.len(), 1, "{}", kind.key);
+            assert_eq!(kind.tiers.len(), 1, "{}", kind.key);
+            assert_eq!(kind.version_roles.len(), 1, "{}", kind.key);
+            assert_eq!(kind.release_kinds.len(), 1, "{}", kind.key);
+            assert_eq!(kind.statuses.len(), 1, "{}", kind.key);
+        }
+    }
+
+    #[test]
+    fn a_kind_that_declares_anything_keeps_only_what_it_declared() {
+        let mut document = flat_document();
+        document["work_kinds"].as_array_mut().unwrap().push(json!({
+            "key": "video", "label": "Video",
+            "statuses": [{ "key": "cut", "label": "Cut" }]
+        }));
+        let config: ProfileConfig = serde_json::from_value(document).unwrap();
+
+        let video = config.kind("video").unwrap();
+        assert!(
+            video.axes.is_empty(),
+            "a video must not inherit the song's axes"
+        );
+        assert!(video.tiers.is_empty());
+        assert!(video.version_roles.is_empty());
+        assert_eq!(video.statuses[0].key, "cut");
+        assert_eq!(config.kind("song").unwrap().axes.len(), 1);
+    }
+
+    #[test]
+    fn the_written_document_has_no_flat_vocabulary_left() {
+        let config: ProfileConfig = serde_json::from_value(flat_document()).unwrap();
+        let written = serde_json::to_value(&config).unwrap();
+
+        assert_eq!(written["format"], FORMAT);
+        for flat in [
+            "axes",
+            "tiers",
+            "version_roles",
+            "release_kinds",
+            "statuses",
+        ] {
+            assert!(
+                written.get(flat).is_none(),
+                "`{flat}` must live under the kinds now"
+            );
+        }
+        assert_eq!(written["work_kinds"][0]["axes"][0]["key"], "hook");
+
+        // And it reads back as the same thing: format 2 in, format 2 out.
+        let again: ProfileConfig = serde_json::from_value(written).unwrap();
+        assert_eq!(again.kind("song").unwrap().axes.len(), 1);
+        assert_eq!(again.format, FORMAT);
+    }
+
+    #[test]
+    fn an_unknown_kind_reads_as_an_empty_vocabulary_rather_than_a_panic() {
+        let config: ProfileConfig = serde_json::from_value(flat_document()).unwrap();
+        let values = json!({ "hook": 9.0 });
+        let values = values.as_object().unwrap();
+
+        assert!(config.kind("poem").is_none());
+        assert!(config.vocabulary("poem").axes.is_empty());
+        assert_eq!(config.total("poem", values), 0.0);
+        assert!(config.tier_for("poem", 50.0).is_none());
+        assert!(config.verdicts("poem", values).is_empty());
+        assert!(config.vocabulary("poem").starting_status().is_none());
+    }
+
+    #[test]
+    fn the_unions_name_each_key_once_with_the_first_label() {
+        let mut document = flat_document();
+        document["work_kinds"].as_array_mut().unwrap().push(json!({
+            "key": "video", "label": "Video",
+            "statuses": [{ "key": "draft", "label": "Rough cut" }, { "key": "posted", "label": "Posted" }],
+            "tiers": [{ "key": "post", "label": "Post", "min": 70.0 }]
+        }));
+        let config: ProfileConfig = serde_json::from_value(document).unwrap();
+
+        let statuses = config.all_statuses();
+        assert_eq!(
+            statuses.iter().map(|s| s.key.as_str()).collect::<Vec<_>>(),
+            vec!["draft", "posted"]
+        );
+        assert_eq!(statuses[0].label, "Draft", "the first kind's label wins");
+        assert_eq!(
+            config
+                .all_tiers()
+                .iter()
+                .map(|t| t.key.as_str())
+                .collect::<Vec<_>>(),
+            vec!["hold", "post"]
+        );
+    }
+
+    #[test]
+    fn a_kind_without_statuses_is_a_problem_named_by_its_place() {
+        let mut document = flat_document();
+        document["work_kinds"].as_array_mut().unwrap().push(json!({
+            "key": "video", "label": "Video",
+            "axes": [{ "key": "cut", "label": "Cut", "weight": 1.0, "scale": 10.0 }]
+        }));
+        let config: ProfileConfig = serde_json::from_value(document).unwrap();
+        let problems = config.validate();
+        assert!(
+            problems
+                .iter()
+                .any(|p| p.contains("work kind 3 (`video`) names no statuses")),
+            "{problems:?}"
+        );
+    }
+
+    #[test]
+    fn without_judgement_keeps_the_doors_and_drops_the_axes() {
+        let config: ProfileConfig = serde_json::from_value(flat_document()).unwrap();
+        let bare = config.kind("song").unwrap().without_judgement();
+        assert!(bare.axes.is_empty() && bare.tiers.is_empty());
+        assert_eq!(bare.statuses.len(), 1);
+        assert_eq!(bare.version_roles.len(), 1);
+        assert_eq!(bare.release_kinds.len(), 1);
     }
 }

@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         println!(
             "  roles         {}",
-            config
+            config.work_kinds[0]
                 .version_roles
                 .iter()
                 .map(|r| r.label.as_str())
@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         println!(
             "  axes          {}",
-            config
+            config.work_kinds[0]
                 .axes
                 .iter()
                 .map(|a| format!("{} ×{}", a.label, a.weight))
@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         println!(
             "  tiers         {}",
-            config
+            config.work_kinds[0]
                 .tiers
                 .iter()
                 .map(|t| format!("{} ≥{}", t.label, t.min))
@@ -95,8 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "\nactive now: {} — statuses: {}",
         active.name,
-        active
-            .config
+        active.config.work_kinds[0]
             .statuses
             .iter()
             .map(|s| s.label.as_str())
