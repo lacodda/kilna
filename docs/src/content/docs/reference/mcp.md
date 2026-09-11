@@ -1,0 +1,93 @@
+---
+title: MCP server
+description: kilna --mcp serves your workspace to an agent over the Model Context Protocol — reading is open, writing is a proposal you apply with one click.
+---
+
+`kilna --mcp` is the same build without a window: the workspace served to an
+agent — Claude Code, or anything else that speaks the
+[Model Context Protocol](https://modelcontextprotocol.io) — over standard
+input and output. No port, no key, no network: the client starts the process
+and talks to it through a pipe, and the process stops when the client hangs
+up.
+
+## Registering it
+
+The **Settings** screen shows the exact command for the build you are
+running, with a copy button. For Claude Code it is:
+
+```
+claude mcp add kilna -- "C:\path\to\kilna.exe" --mcp
+```
+
+Quote the path; application directories have spaces in them. After that a
+Claude Code session anywhere on the machine can read your works and propose
+to them — no need to have kilna open, though it is fine if it is.
+
+`--workspace <dir>` points the server at another workspace directory. Without
+it, it opens the one the window uses.
+
+## What an agent can read
+
+| Tool | What it answers |
+| --- | --- |
+| `workspace` | The active profile's vocabulary: kinds of work, version roles and how each reads, axes with weights and scales, tiers, statuses, kinds of release; how many works. Read first — every other tool speaks in these keys. |
+| `catalogue` | Every work with its verdict: id, title, kind, status, total and tier, whether the score is stale, releases out and scheduled, when it was last touched. Filter by a substring of the title, a kind, a status. |
+| `work` | One card: fields and meta, tags, every version by role (id, revision, label, length, which is current), the latest score with its axes, the releases, how many notes. No bodies. |
+| `text` | The body of a version: the current one of a role, or a revision by id. Plain roles come back exactly as typed. |
+| `scores` | The score history of a work, newest first. |
+| `calendar` | Every release with a date, in calendar order; `from` starts at a day. |
+| `notes` | Notes, all of them or one work's. |
+| `search` | Works, versions, notes and replies by text; every hit names its work. |
+
+A work is named by id, or by its exact title. A title two works share is
+refused with the ids to choose from, rather than guessed.
+
+## What an agent can propose
+
+Nothing an agent does writes a version, a score or a note. It **proposes**,
+and the proposal lands as a message in a chat on the work, named after the
+client — *Claude Code*, say — where the same buttons that apply the
+assistant's own proposals apply this one:
+
+| Tool | Where it lands |
+| --- | --- |
+| `propose_version` | The text of a new version in a role, with a note on what changed. **Insert as version** in the chat keeps it, verbatim, as the next revision — you pick whether it becomes current. |
+| `propose_score` | Marks along the profile's axes, checked the way the assistant's own are: unknown axes are named, marks are clamped to the scale. **Apply** writes the snapshot. |
+| `propose_note` | A note, on a work or on nothing in particular. **Add as note** keeps it. |
+
+Each proposal leaves a line in the [history](/kilna/guides/the-history/) —
+*Claude Code proposed a version for "Harbour lights"* — so the bell in the
+corner counts it, and the chat it went into is one click away from any
+screen through the assistant's floating button.
+
+This is the rule the assistant panel has followed since v0.28, applied to an
+assistant outside the window: it proposes, you apply. See
+[ADR 0016](https://github.com/lacodda/kilna/blob/main/docs/adr/0016-an-agent-outside-the-window-proposes-too.md).
+
+## A session, end to end
+
+```
+> Use kilna: what is the weakest scored song, and what would you change?
+
+  workspace  → seven axes, tiers HOLD / PIC / CLIP …
+  catalogue  → 207 works; "Harbour lights" scored 54, tier HOLD
+  text       → the current lyrics
+  scores     → 54: hook 5, lyrics 6 …
+
+  The chorus repeats its first line; here is a version with a turn in it.
+
+  propose_version → "Proposed a `lyrics` version for “Harbour lights”.
+                     It is in the chat on the work, waiting to be inserted — or not."
+```
+
+In kilna: the bell shows one new line, the work's chat *Claude Code* holds
+the text with **Insert as version** under it. Insert, or don't.
+
+## Protocol
+
+JSON-RPC 2.0, one message per line, protocol version `2024-11-05`. The
+server answers `initialize`, `ping`, `tools/list` and `tools/call`; a
+notification gets no answer, an unknown method gets a `-32601` error, and a
+tool that fails answers *inside* the result with `isError` so the agent
+reads the reason. Nothing but protocol goes to stdout; diagnostics go to
+stderr.
