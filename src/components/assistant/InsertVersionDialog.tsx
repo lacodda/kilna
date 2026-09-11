@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router'
 import { createVersion } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
@@ -30,6 +31,7 @@ export function InsertVersionDialog({ open, onOpenChange, workId, body }: Props)
   const { t } = useTranslation()
   const profile = useProfile()
   const client = useQueryClient()
+  const navigate = useNavigate()
 
   const roles = profile.config.version_roles
   const [role, setRole] = useState(roles[0]?.key ?? '')
@@ -44,13 +46,16 @@ export function InsertVersionDialog({ open, onOpenChange, workId, body }: Props)
         label: label.trim() === '' ? null : label.trim(),
         make_current: makeCurrent,
       }),
-    onSuccess: () => {
+    onSuccess: (version) => {
       // The same set a hand-written version disturbs.
       for (const key of [keys.journal, keys.versions(workId), keys.work(workId), keys.works]) {
         void client.invalidateQueries({ queryKey: key })
       }
       say.ok(t('assistant.inserted'))
       onOpenChange(false)
+      // The new version shows itself rather than leaving a toast to vouch for
+      // it: the Versions tab opens on the very draft that was just kept.
+      void navigate(`/works/${workId}/versions?version=${version.id}`)
     },
     onError: (cause) => {
       say.failedTo(t('toast.versionSaveFailed'), cause)

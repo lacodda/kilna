@@ -61,6 +61,15 @@ export function VersionList({
     row?.focus()
   }, [openId])
 
+  // The open version shows itself in the list. A version minted by typing, or
+  // saved from the form, is opened by the panel — and a row that is open but
+  // scrolled out of the list is a version nobody can see was made.
+  useEffect(() => {
+    if (openId === null) return
+    const row = list.current?.querySelector<HTMLElement>(`[data-version="${openId}"]`)
+    row?.scrollIntoView({ block: 'nearest' })
+  }, [openId, versions.length])
+
   const step = (direction: -1 | 1) => {
     const next = neighbour(versions, openId, direction)
     if (next !== null) onOpen(next.id)
