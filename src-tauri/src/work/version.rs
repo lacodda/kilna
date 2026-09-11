@@ -249,6 +249,55 @@ pub fn set_current(conn: &Connection, work_id: &str, version_id: &str) -> Result
     Ok(())
 }
 
+/// Change the body of a version in place.
+///
+/// The one edit a version accepts, and only while nothing has judged it. The
+/// editing session keeps its changes in one version rather than minting one
+/// per keystroke or one per opening (ADR 0015) — but a score is a snapshot of
+/// the text it read (ADR 0002), and a body rewritten underneath one would
+/// silently change what the number was about. A scored version refuses with
+/// its own error kind, so the session can start the next revision instead of
+/// showing a refusal.
+pub fn update_body_at(conn: &Connection, id: &str, body: &str, at: &str) -> Result<Version> {
+    let Some(work_id) = conn
+        .query_row(
+            "SELECT work_id FROM work_version WHERE id = ?1",
+            params![id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?
+    else {
+        return Err(Error::not_found("version", id));
+    };
+
+    let scored: bool = conn
+        .query_row(
+            "SELECT 1 FROM work_score WHERE version_id = ?1 LIMIT 1",
+            params![id],
+            |_| Ok(true),
+        )
+        .optional()?
+        .unwrap_or(false);
+    if scored {
+        return Err(Error::Frozen(format!(
+            "version `{id}` has been scored; a score is a snapshot of the text it read, so the next revision is where this change goes"
+        )));
+    }
+
+    conn.execute(
+        "UPDATE work_version SET body = ?2 WHERE id = ?1",
+        params![id, body],
+    )?;
+    // The work moved too: its summary, its place in "recently edited", the
+    // catalogue's sort by change all read `updated_at`.
+    conn.execute(
+        "UPDATE work SET updated_at = ?2 WHERE id = ?1",
+        params![work_id, at],
+    )?;
+
+    get(conn, id)?.ok_or_else(|| Error::Other("the version vanished after update".into()))
+}
+
 /// Delete a version.
 ///
 /// Deleting the current one leaves the work pointing at the newest remaining
@@ -501,6 +550,74 @@ mod tests {
 
         let work = work::get(&conn, &work_id).unwrap().unwrap();
         assert!(work.current_version_id.is_none());
+    }
+
+    #[test]
+    fn a_body_changes_in_place_until_something_judges_it() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id);
+        let version = create(&mut conn, &work_id, draft("lyrics", "first line")).unwrap();
+        let before = work::get(&conn, &work_id).unwrap().unwrap().updated_at;
+
+        let changed = update_body_at(
+            &conn,
+            &version.id,
+            "first line, then a second",
+            "2030-01-01T00:00:00.000Z",
+        )
+        .unwrap();
+
+        assert_eq!(changed.body, "first line, then a second");
+        assert_eq!(
+            changed.revision, version.revision,
+            "an edit is not a new revision"
+        );
+        assert_eq!(get(&conn, &version.id).unwrap().unwrap().body, changed.body);
+        let after = work::get(&conn, &work_id).unwrap().unwrap().updated_at;
+        assert_ne!(after, before, "the work did not register the change");
+        assert_eq!(after, "2030-01-01T00:00:00.000Z");
+    }
+
+    #[test]
+    fn a_scored_version_refuses_to_change_and_says_why() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id);
+        let version = create(&mut conn, &work_id, draft("lyrics", "judged as is")).unwrap();
+        let new_score: crate::score::NewScore =
+            serde_json::from_value(serde_json::json!({ "axes": { "hook": 7 } })).unwrap();
+        crate::score::create(&conn, &work_id, new_score).unwrap();
+
+        let refused =
+            update_body_at(&conn, &version.id, "judged, then changed", &now()).unwrap_err();
+
+        assert_eq!(refused.kind(), "frozen", "{refused}");
+        assert_eq!(
+            get(&conn, &version.id).unwrap().unwrap().body,
+            "judged as is",
+            "a refusal must leave the text as the score read it"
+        );
+    }
+
+    #[test]
+    fn a_body_change_is_clocked_on_the_field_it_changed() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id);
+        let version = create(&mut conn, &work_id, draft("lyrics", "one")).unwrap();
+
+        update_body_at(&conn, &version.id, "two", &now()).unwrap();
+
+        let fields: Vec<String> = conn
+            .prepare("SELECT field FROM field_clock WHERE entity = 'work_version' AND entity_id = ?1 ORDER BY field")
+            .unwrap()
+            .query_map(params![version.id], |row| row.get(0))
+            .unwrap()
+            .collect::<rusqlite::Result<_>>()
+            .unwrap();
+        assert_eq!(
+            fields,
+            vec!["body"],
+            "the clock names the field that moved, and only it"
+        );
     }
 
     #[test]

@@ -205,6 +205,13 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
             note::update_at(conn, &id, patch, &at)?;
         }
 
+        "version.edit" => {
+            let id = required(params, "id")?;
+            let body = required(params, "body")?;
+            let at = required(params, "at")?;
+            version::update_body_at(conn, &id, &body, &at)?;
+        }
+
         "finding.dismiss" => {
             let profile_id = workspace_profile(conn, params)?;
             let key = from_params(params, "key")?;

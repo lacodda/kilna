@@ -64,6 +64,7 @@ pub fn run() {
             commands::list_versions,
             commands::get_version,
             commands::create_version,
+            commands::update_version_body,
             commands::set_current_version,
             commands::delete_version,
             commands::list_notes,

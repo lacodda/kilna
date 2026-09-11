@@ -707,6 +707,37 @@ pub fn create_version(
 }
 
 #[tauri::command]
+pub fn update_version_body(
+    state: State<'_, AppState>,
+    id: String,
+    body: String,
+) -> Result<Version> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    // The body before, whole, so an undo has something to put back. Not a
+    // diff: a body is one field, and a diff would be a second way of storing
+    // text (ADR 0002). Nothing is journaled here — the session's edits are one
+    // change to the person, and the version's creation already made its line.
+    let before = version::get(&conn, &id)?
+        .map(|found| found.body)
+        .unwrap_or_default();
+
+    let at = time::now();
+    let logged = operation::Intent::new("version.edit")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("body", body.clone())
+        .param("before", before)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| {
+        version::update_body_at(tx, &id, &body, &at)
+    })
+}
+
+#[tauri::command]
 pub fn set_current_version(
     state: State<'_, AppState>,
     work_id: String,

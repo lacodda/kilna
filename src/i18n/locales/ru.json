@@ -765,6 +765,8 @@
     "work.pinTier": "закрепление тира",
     "note.create": "добавление заметки",
     "note.update": "правку заметки",
+    "version.create": "добавление версии",
+    "version.edit": "правку версии",
     "collection.create": "добавление коллекции",
     "collection.update": "правку коллекции",
     "release.create": "добавление выпуска",

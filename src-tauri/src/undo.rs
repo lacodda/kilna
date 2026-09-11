@@ -88,6 +88,8 @@ pub fn reversible(kind: &str) -> bool {
             | "work.pinTier"
             | "note.create"
             | "note.update"
+            | "version.create"
+            | "version.edit"
             | "collection.create"
             | "collection.update"
             | "release.create"
@@ -175,6 +177,16 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
                 crate::collection::update_at(tx, &id, patch, &at).map(|_| ())
             })?;
         }
+        // A body goes back to what it was, whole. Refused the same way the
+        // edit would be if the version has been scored since: the score read
+        // this text, and an undo may no more rewrite it than a keystroke may.
+        "version.edit" => {
+            let id = required(params, "id")?;
+            let before = required(params, "before")?;
+            edit(conn, logged, &at, |tx| {
+                crate::work::version::update_body_at(tx, &id, &before, &at).map(|_| ())
+            })?;
+        }
 
         // A tier pin goes back to whatever it was, including to no pin at all.
         "work.pinTier" => {
@@ -197,7 +209,8 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
         // Undoing a creation throws the thing away — into the trash, never
         // outright. Someone can change their mind twice, and a row destroyed by
         // an undo would be gone in a way nothing else in kilna is.
-        "work.create" | "note.create" | "collection.create" | "release.create" => {
+        "work.create" | "note.create" | "collection.create" | "release.create"
+        | "version.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -264,6 +277,7 @@ fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
         "note.create" => crate::trash::Entity::Note,
         "collection.create" => crate::trash::Entity::Collection,
         "release.create" => crate::trash::Entity::Release,
+        "version.create" => crate::trash::Entity::Version,
         other => return Err(Error::Other(format!("`{other}` creates nothing"))),
     };
     Ok((entity, required(&entry.params, "id")?))

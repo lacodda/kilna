@@ -710,6 +710,8 @@
     "work.pinTier": "holding a work at a tier",
     "note.create": "adding a note",
     "note.update": "an edit to a note",
+    "version.create": "adding a version",
+    "version.edit": "an edit to a version",
     "collection.create": "adding a collection",
     "collection.update": "an edit to a collection",
     "release.create": "adding a release",

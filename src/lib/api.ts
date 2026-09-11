@@ -65,6 +65,9 @@ export interface VersionRole extends Kind {
   /** The role this one discusses. A review is read beside what it reviews,
       not in its place; a role without this stands alone. */
   comments_on?: string
+  /** How a body in this role reads. Absent, or anything but `markdown`, is
+      plain: a monospace column, exactly as typed. */
+  body?: 'plain' | 'markdown' | (string & {})
 }
 
 export interface MetaField {
@@ -526,6 +529,10 @@ export const unpinTier = (id: string) => invoke<Work>('unpin_tier', { id })
 
 export const listVersions = (workId: string) => invoke<VersionSummary[]>('list_versions', { workId })
 export const getVersion = (id: string) => invoke<Version | null>('get_version', { id })
+/** Change the open version's text in place. Refused with kind `frozen` once
+    a score has read it — then the change belongs in the next revision. */
+export const updateVersionBody = (id: string, body: string) =>
+  invoke<Version>('update_version_body', { id, body })
 export const createVersion = (workId: string, version: NewVersion) =>
   invoke<Version>('create_version', { workId, version })
 export const setCurrentVersion = (workId: string, versionId: string) =>

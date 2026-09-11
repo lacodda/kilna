@@ -40,6 +40,12 @@ pub enum Error {
     #[error("{0}")]
     Assistant(String),
 
+    /// The row is a snapshot something else points at, so it cannot change
+    /// in place — a scored version, whose score read exactly this text. Its
+    /// own kind because the remedy is specific: start the next revision.
+    #[error("{0}")]
+    Frozen(String),
+
     #[error("{0}")]
     Other(String),
 }
@@ -59,6 +65,7 @@ impl Error {
             Self::NotRestorable(_) => "notRestorable",
             Self::LayoutStale(_) => "layoutStale",
             Self::Assistant(_) => "assistant",
+            Self::Frozen(_) => "frozen",
             Self::Other(_) => "other",
         }
     }
@@ -104,6 +111,7 @@ mod tests {
         let kinds = [
             Error::Other(String::new()).kind(),
             Error::Assistant(String::new()).kind(),
+            Error::Frozen(String::new()).kind(),
             Error::NotRestorable(String::new()).kind(),
             Error::not_found("work", "w1").kind(),
             Error::SchemaTooNew {

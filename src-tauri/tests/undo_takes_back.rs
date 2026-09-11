@@ -18,6 +18,7 @@
 use rusqlite::Connection;
 
 use kilna_lib::minted::Minted;
+use kilna_lib::work::version;
 use kilna_lib::work::{NewWork, WorkPatch};
 use kilna_lib::{db, operation, profile, undo, work};
 
@@ -348,7 +349,7 @@ fn an_irreversible_operation_is_not_offered() {
 fn every_operation_is_undoable_or_says_why_not() {
     // The reason is not read by the code — it is read by whoever runs into this
     // test after adding a kind, which is exactly when it needs to exist.
-    const NOT_UNDOABLE: [(&str, &str); 21] = [
+    const NOT_UNDOABLE: [(&str, &str); 20] = [
         (
             "status.resync",
             "recomputes many works from the facts at once; the statuses it \
@@ -394,10 +395,6 @@ fn every_operation_is_undoable_or_says_why_not() {
         (
             "collection.setContents",
             "replaces a whole membership list; the previous list is not recorded",
-        ),
-        (
-            "version.create",
-            "a version is never edited and rarely regretted; deleting it is one click",
         ),
         (
             "score.create",
@@ -470,6 +467,84 @@ fn every_operation_is_undoable_or_says_why_not() {
     assert!(
         stale.is_empty(),
         "these are listed as impossible to undo but `undo::reversible` says otherwise: {stale:?}"
+    );
+}
+
+/// A version's body goes back whole, and the revision number does not move.
+#[test]
+fn a_body_edit_is_taken_back() {
+    let (mut conn, profile_id, work_id) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let version = version::create(
+        &mut conn,
+        &work_id,
+        serde_json::from_value(serde_json::json!({ "role": "lyrics", "body": "as written" }))
+            .unwrap(),
+    )
+    .unwrap();
+
+    let at = kilna_lib::time::now();
+    let logged = operation::Intent::new("version.edit")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("id", version.id.clone())
+        .param("body", "as rewritten")
+        .param("before", "as written")
+        .param("at", at.clone());
+    let transaction = conn.transaction().unwrap();
+    version::update_body_at(&transaction, &version.id, "as rewritten", &at).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let offer = undo::last(&conn).unwrap().expect("the edit can be undone");
+    assert_eq!(offer.action, "undo.version.edit");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+
+    let back = version::get(&conn, &version.id).unwrap().unwrap();
+    assert_eq!(back.body, "as written", "the text did not come back");
+    assert_eq!(back.revision, version.revision);
+}
+
+/// Undoing the version an editing session minted throws it away — into the
+/// trash, like every other undone creation, so a second change of mind is
+/// one click.
+#[test]
+fn a_created_version_is_taken_back_into_the_trash() {
+    let (mut conn, profile_id, work_id) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let new: kilna_lib::work::version::NewVersion =
+        serde_json::from_value(serde_json::json!({ "role": "lyrics", "body": "a first change" }))
+            .unwrap();
+    let minted = Minted::fresh();
+    let version_id = minted.id().to_owned();
+    let logged = operation::Intent::new("version.create")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("workId", work_id.clone())
+        .param("version", serde_json::to_value(&new).unwrap())
+        .minted(&minted);
+    version::create_minted(&mut conn, &work_id, new, minted, Some(logged)).unwrap();
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("the creation can be undone");
+    assert_eq!(offer.action, "undo.version.create");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+
+    assert!(
+        version::get(&conn, &version_id).unwrap().is_none(),
+        "the version is still there"
+    );
+    let trashed: i64 = conn
+        .query_row(
+            "SELECT count(*) FROM deletion WHERE entity = 'version' AND entity_id = ?1",
+            [&version_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        trashed, 1,
+        "an undone creation goes to the trash, not into thin air"
     );
 }
 
