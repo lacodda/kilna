@@ -732,11 +732,12 @@ fn deliver(
 ///
 /// Shown in the settings so nobody has to find the executable by hand; the
 /// path is this process's own, quoted, because application directories have
-/// spaces in them.
+/// spaces in them. User scope, because the promise is a session anywhere on
+/// the machine and Claude Code's default scope is the current project only.
 pub fn registration_command() -> Result<String> {
     let exe = std::env::current_exe()?;
     Ok(format!(
-        "claude mcp add kilna -- \"{}\" --mcp",
+        "claude mcp add -s user kilna -- \"{}\" --mcp",
         exe.display()
     ))
 }
@@ -1026,7 +1027,7 @@ mod tests {
     fn the_registration_command_quotes_the_executable() {
         let command = registration_command().unwrap();
         assert!(
-            command.starts_with("claude mcp add kilna -- \""),
+            command.starts_with("claude mcp add -s user kilna -- \""),
             "{command}"
         );
         assert!(command.ends_with("\" --mcp"), "{command}");
