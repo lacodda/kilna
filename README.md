@@ -49,7 +49,7 @@ A song, a chapter, and a podcast episode differ in vocabulary and in how they're
 }
 ```
 
-kilna ships with **Music**, **Novel**, **Podcast** and **Blog**. Switch profile and the same screens speak about chapters and pull, or episodes and the cold open. No new code, no migration — the schema never moves.
+A profile holds several kinds of work, and each kind carries its own vocabulary: in **Studio** a song is judged on hook and lyrics and ships as a clip or an audio release, while a video is judged on dynamics and editing, carries a plot rather than lyrics, and goes out on YouTube. kilna ships with **Studio**, **Novel**, **Podcast** and **Blog**. Switch profile and the same screens speak about chapters and pull, or episodes and the cold open. No new code, no migration — the schema never moves.
 
 ## AI panel
 

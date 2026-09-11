@@ -32,7 +32,7 @@ it, it opens the one the window uses.
 
 | Tool | What it answers |
 | --- | --- |
-| `workspace` | The active profile's vocabulary: kinds of work, version roles and how each reads, axes with weights and scales, tiers, statuses, kinds of release; how many works. Read first — every other tool speaks in these keys. |
+| `workspace` | The active profile's vocabulary, per kind of work: each kind's version roles and how each reads, axes with weights and scales, tiers, statuses, kinds of release; how many works. Read first — a work is judged in its own kind's keys, and every other tool speaks in them. |
 | `catalogue` | Every work with its verdict: id, title, kind, status, total and tier, whether the score is stale, releases out and scheduled, when it was last touched. Filter by a substring of the title, a kind, a status. |
 | `work` | One card: fields and meta, tags, every version by role (id, revision, label, length, which is current), the latest score with its axes, the releases, how many notes. No bodies. |
 | `text` | The body of a version: the current one of a role, or a revision by id. Plain roles come back exactly as typed. |

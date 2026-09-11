@@ -43,14 +43,17 @@ A profile's `config` object is a single JSON document with these sections
 (see the full field reference at
 [Profile document](/kilna/reference/profile-document/)):
 
-- `work_kinds`, `release_kinds`, `collection_kinds` — the kinds of thing a
-  work, a release, and a collection can be.
-- `version_roles` — the independent bodies a work carries (lyrics/style,
-  text/outline, script/notes).
-- `statuses` — what a work moves through, in order, each naming what it means
-  to the automation that keeps it up to date.
-- `axes` — what a work is judged on, each with a weight and a scale.
-- `tiers` — score thresholds a total lands in.
+- `work_kinds` — the kinds of thing a work can be, each carrying the
+  vocabulary below (since v0.57: a song and a video are judged, versioned
+  and shipped differently, so each kind says how).
+  - `release_kinds` — the doors works of this kind go out through.
+  - `version_roles` — the independent bodies a work carries (lyrics/style,
+    text/outline, script/notes, plot).
+  - `statuses` — what a work moves through, in order, each naming what it
+    means to the automation that keeps it up to date.
+  - `axes` — what a work is judged on, each with a weight and a scale.
+  - `tiers` — score thresholds a total lands in.
+- `collection_kinds` — the kinds of thing a collection can be.
 - `work_meta_fields` — craft-specific fields (BPM, point-of-view, guest name)
   stored in the work's `meta`.
 - `rhythm` — how many days the craft keeps between releases, and the usual

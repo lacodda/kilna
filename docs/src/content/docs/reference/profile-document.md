@@ -5,9 +5,56 @@ description: Every field of a profile configuration, with its type, illustrated 
 
 A profile is a JSON document with a `key`, a `name`, a `description`, and a
 `config` object holding everything that shapes the craft. This page documents
-every field of `config`, using the built-in **Music** profile
-(`src-tauri/profiles/music.json`) for examples. See
+every field of `config`, using the built-in **Studio** profile
+(`src-tauri/profiles/music.json`, key `music`) for examples. See
 [Profiles](/kilna/concepts/profiles/) for the reasoning behind the shape.
+
+## Where the vocabulary lives
+
+Since v0.57 the vocabulary a work is judged and shipped by — `axes`,
+`tiers`, `version_roles`, `release_kinds`, `statuses` — belongs to the
+**kind** of work, not to the profile. A studio makes songs and the videos cut
+to them, and a video judged on *hook* and *lyrics* is nonsense: each kind
+names its own.
+
+```jsonc
+{
+  "format": 2,
+  "work_kinds": [
+    { "key": "song",  "label": "Song",  "axes": [...], "tiers": [...], "version_roles": [...], "release_kinds": [...], "statuses": [...] },
+    { "key": "video", "label": "Video", "axes": [...], "tiers": [...], "version_roles": [...], "release_kinds": [...], "statuses": [...] }
+  ],
+  "collection_kinds": [...],
+  "work_meta_fields": [...],
+  "marks": [...], "prompts": [...], "rhythm": {...}
+}
+```
+
+The lists a kind leaves out are empty for works of that kind: a kind with no
+`axes` is scored empty, a kind with no `statuses` cannot hold a work and the
+editor says so. What stays on the profile is what is genuinely about the
+profile: collection kinds, meta fields, marks, prompts, the rhythm, the
+catalogue columns.
+
+**A flat document still reads.** A profile written the old way — the five
+lists beside `work_kinds` — is taken as *every kind gets these*: each kind
+that declares nothing of its own receives the flat lists, all of them, and
+the document comes out in format 2. A kind that names even one list is taken
+to have named its vocabulary on purpose and receives nothing from the flat
+ones. The shipped Novel, Blog and Podcast profiles are written flat for that
+reason; Studio writes `song` and `instrumental` flat and gives `video` and
+`short` their own. A stored profile still in the old shape is rewritten once,
+at the next start.
+
+**A kind that arrives later arrives without its judgement.** When a kilna
+update ships a new kind into a profile your workspace already has — the way
+v0.57 shipped `video` and `short` into Studio — the kind arrives with its
+statuses, roles and kinds of release, and *without* its axes and tiers. Your
+axes are your own words; a stranger's would not appear silently beside them.
+Works of the new kind are scored empty until you write its axes in the
+profile editor. A fresh workspace gets the whole kind.
+
+The sections below describe each list; every one of them sits under a kind.
 
 ## Top level
 
@@ -27,12 +74,18 @@ collection can take:
 { "key": "song", "label": "Song" }
 ```
 
+A **work kind** carries the five lists described on this page — its `axes`,
+`tiers`, `version_roles`, `release_kinds` and `statuses` — beside its key
+and label; `release_kinds` therefore sit inside the work kind whose works go
+out that way, and a video's *YouTube* and a song's *clip* are different
+doors. `collection_kinds` stay on the profile.
+
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `key` | string | Stable value stored on the row. Never shown directly. |
 | `label` | string | What the screen displays. Renamable at any time. |
 
-The Music profile's `work_kinds` are `song` and `instrumental`; its
+Studio's `work_kinds` are `song`, `instrumental`, `video` and `short`; its
 `collection_kinds` are `album`, `single` and `cycle` — a **collection** groups
 works one level deep, without nesting.
 
@@ -233,8 +286,9 @@ Score bands, evaluated highest-`min`-first:
 | `label` | string | Display name. |
 | `min` | number | Minimum total (0–100) required to reach this tier. |
 
-Music's tiers run `hold` (0), `audio` (55), `picture` (68), `clip` (78) — a
-total of 80 lands in `clip`, the highest threshold it clears.
+A song's tiers in Studio run `hold` (0), `audio` (55), `picture` (68),
+`clip` (78) — a total of 80 lands in `clip`, the highest threshold it clears.
+A video's run `shelve`, `rework`, `post`, `lead`: a kind's tiers are its own.
 
 ## `work_meta_fields`
 
