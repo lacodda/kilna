@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Message, Run } from '@/lib/api'
-import { chatLabel, conversation } from '@/lib/chat'
+import { chatLabel, conversation, pending } from '@/lib/chat'
 
 let counter = 0
 const message = (
@@ -220,5 +220,46 @@ describe('chatLabel', () => {
     expect(chatLabel({ ...base, title: 'Named', first_prompt: 'asked' }, 'New chat')).toBe('Named')
     expect(chatLabel({ ...base, first_prompt: 'asked' }, 'New chat')).toBe('asked')
     expect(chatLabel(base, 'New chat')).toBe('New chat')
+  })
+})
+
+describe('pending', () => {
+  it('counts proposals nobody applied and skips the applied, the prose and the growing', () => {
+    const items = conversation(
+      [
+        message('assistant', 'a', '2026-01-01T00:00:00Z', {
+          proposal: { kind: 'version', role: 'lyrics' },
+        }),
+        message('assistant', 'b', '2026-01-01T00:00:01Z', {
+          proposal: { kind: 'note' },
+          applied: { message_id: 'x', at: '2026-01-01T00:00:02Z', notes: ['n1'] },
+        }),
+        message('assistant', 'c', '2026-01-01T00:00:03Z', {
+          proposal: { kind: 'work', title: 'Winter road', work_kind: 'song' },
+        }),
+        message('assistant', 'just prose', '2026-01-01T00:00:04Z'),
+      ],
+      [],
+    )
+
+    const waiting = pending(items)
+
+    expect(waiting.map((item) => item.answer?.body)).toEqual(['a', 'c'])
+    expect(items[1]?.answer?.applied?.notes).toEqual(['n1'])
+    expect(items[2]?.answer?.proposal?.kind).toBe('work')
+  })
+
+  it('does not read a mark without a moment as applied', () => {
+    const items = conversation(
+      [
+        message('assistant', 'a', '2026-01-01T00:00:00Z', {
+          proposal: { kind: 'note' },
+          applied: 'yes',
+        }),
+      ],
+      [],
+    )
+    expect(items[0]?.answer?.applied).toBeNull()
+    expect(pending(items)).toHaveLength(1)
   })
 })

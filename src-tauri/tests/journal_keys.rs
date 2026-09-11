@@ -31,18 +31,23 @@ fn repo_root() -> PathBuf {
 /// worded six different ways, and this scanner does not have to guess.
 fn keys_written() -> BTreeSet<String> {
     // Every file that writes the journal. `commands.rs` is the window's side;
-    // `mcp.rs` records what an agent outside it proposed.
-    let source = ["src-tauri/src/commands.rs", "src-tauri/src/mcp.rs"]
-        .iter()
-        .map(|file| {
-            std::fs::read_to_string(repo_root().join(file))
-                .unwrap_or_else(|err| panic!("{file} is readable: {err}"))
-        })
-        .collect::<Vec<_>>()
-        .join(
-            "
+    // `mcp.rs` records what an agent outside it proposed; `assistant/apply.rs`
+    // records what a person applied of it.
+    let source = [
+        "src-tauri/src/commands.rs",
+        "src-tauri/src/mcp.rs",
+        "src-tauri/src/assistant/apply.rs",
+    ]
+    .iter()
+    .map(|file| {
+        std::fs::read_to_string(repo_root().join(file))
+            .unwrap_or_else(|err| panic!("{file} is readable: {err}"))
+    })
+    .collect::<Vec<_>>()
+    .join(
+        "
 ",
-        );
+    );
 
     // A key computed in the argument — `Record::new(if x { "a" } else { "b" })`
     // — is invisible to the scan below, and an unseen key reaches the screen

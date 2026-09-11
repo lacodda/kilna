@@ -164,7 +164,7 @@ fn records_an_operation(body: &str) -> bool {
 /// Each entry is a promise that replaying the log without it still produces the
 /// right database, and each says why. Anything not on this list that writes has
 /// to be logged.
-const NOT_IN_THE_LOG: [(&str, &str); 14] = [
+const NOT_IN_THE_LOG: [(&str, &str); 16] = [
     (
         "undo_last",
         "records its operation one level down, inside `undo::undo`'s own \
@@ -197,6 +197,13 @@ const NOT_IN_THE_LOG: [(&str, &str); 14] = [
     ("create_chat", "as above"),
     ("rename_chat", "as above"),
     ("delete_chat", "as above"),
+    (
+        "apply_proposal",
+        "records one operation per row it writes, inside `assistant::apply` — the \
+         same intents the hand-driven commands record; held by \
+         `a_package_in_a_chat_on_nothing_creates_the_whole_work_through_the_log` there",
+    ),
+    ("apply_pending_proposals", "as above, once per proposal"),
 ];
 
 #[test]

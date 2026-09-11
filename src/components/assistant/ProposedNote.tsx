@@ -1,19 +1,15 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Check } from 'lucide-react'
-import { createNote, type NoteProposal } from '@/lib/api'
-import { announceEdited } from '@/lib/edited'
+import type { Applied, NoteProposal } from '@/lib/api'
 import { keys } from '@/lib/query'
-import { say } from '@/lib/toast'
+import { useApplyProposal } from '@/lib/useApplyProposal'
 import { Button } from '@/components/ui/button'
+import { AppliedMark } from '@/components/assistant/AppliedMark'
 
 interface Props {
-  /** The work the note is about; absent for a note on nothing in particular. */
-  workId?: string
+  messageId: string
   proposal: NoteProposal
-  /** The note itself — the message body, verbatim. */
-  body: string
+  /** Set once somebody applied it; read from the message. */
+  applied: Applied | null
 }
 
 /**
@@ -21,29 +17,17 @@ interface Props {
  *
  * Same bargain as a proposed score: the text is readable before it is
  * written, and a person writes it. Kept, it is an ordinary note — the same
- * table, no mark saying a machine suggested it — and the toast offers to
- * take it back, since adding a note is one of the things undo covers.
+ * table, no mark saying a machine suggested it — on the chat's work, or on
+ * nothing when the chat is about nothing. The toast offers to take it back,
+ * since adding a note is one of the things undo covers.
  */
-export function ProposedNote({ workId, proposal, body }: Props) {
+export function ProposedNote({ messageId, proposal, applied }: Props) {
   const { t } = useTranslation()
-  const client = useQueryClient()
-  const [kept, setKept] = useState(false)
 
-  const keep = useMutation({
-    mutationFn: () =>
-      createNote({
-        body,
-        title: proposal.title ?? null,
-        work_id: workId ?? null,
-      }),
-    onSuccess: () => {
-      setKept(true)
-      const refresh = [keys.notes, keys.journal]
-      announceEdited({ client, message: t('assistant.noteAdded'), refresh })
-    },
-    onError: (cause) => {
-      say.failed(cause)
-    },
+  const keep = useApplyProposal({
+    messageId,
+    message: t('assistant.noteAdded'),
+    refresh: [keys.notes],
   })
 
   return (
@@ -57,16 +41,22 @@ export function ProposedNote({ workId, proposal, body }: Props) {
           </>
         )}
       </span>
-      <Button
-        className="ml-auto"
-        size="sm"
-        variant={kept ? 'icon' : 'primary'}
-        disabled={kept || keep.isPending}
-        onClick={() => keep.mutate()}
-      >
-        {kept ? <Check aria-hidden className="size-3.5" /> : null}
-        {kept ? t('assistant.noteKept') : t('assistant.addNote')}
-      </Button>
+      <span className="ml-auto">
+        {applied !== null ? (
+          <AppliedMark applied={applied} label={t('assistant.noteKept')} />
+        ) : (
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={keep.isPending}
+            onClick={() => {
+              keep.mutate(undefined)
+            }}
+          >
+            {t('assistant.addNote')}
+          </Button>
+        )}
+      </span>
     </div>
   )
 }

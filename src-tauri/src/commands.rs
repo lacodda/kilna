@@ -74,7 +74,7 @@ pub fn update_profile_config(
 /// The closure gets the transaction, not the connection: a domain function that
 /// opens its own cannot be used here, and takes the operation as an argument
 /// instead — see `trash::discard_minted`.
-fn recording<T>(
+pub(crate) fn recording<T>(
     conn: &mut rusqlite::Connection,
     logged: operation::Intent,
     change: impl FnOnce(&rusqlite::Transaction<'_>) -> Result<T>,
@@ -96,7 +96,7 @@ fn recording<T>(
 /// A row that is not there yields an empty object rather than an error. The
 /// change about to be attempted will fail on its own and say so properly; a log
 /// helper is not the place to decide that.
-fn was<T: serde::Serialize, P: serde::Serialize>(
+pub(crate) fn was<T: serde::Serialize, P: serde::Serialize>(
     before: Option<&T>,
     patch: &P,
 ) -> Result<serde_json::Value> {
@@ -137,7 +137,7 @@ fn active_profile_id(conn: &rusqlite::Connection) -> Result<String> {
 /// predecessor wrote the field from four places and it drifted apart from what
 /// was true. A pinned work is left alone by [`work::status::refresh`] itself,
 /// so a call site never has to remember to check.
-fn restate(conn: &rusqlite::Connection, profile_id: &str, work_id: &str) {
+pub(crate) fn restate(conn: &rusqlite::Connection, profile_id: &str, work_id: &str) {
     let config = match profile::config_for(conn, profile_id) {
         Ok(config) => config,
         Err(cause) => {
@@ -1943,6 +1943,42 @@ pub fn rename_chat(state: State<'_, AppState>, id: String, title: Option<String>
 pub fn get_transcript(state: State<'_, AppState>, chat_id: String) -> Result<Option<Transcript>> {
     let conn = state.conn();
     assistant::transcript(&conn, &chat_id)
+}
+
+/// Apply what a message proposes — a version, a score, a note, a whole
+/// package — and mark the message applied.
+///
+/// One command for every kind, so the chat's buttons and *apply all* go the
+/// same way and the mark is the same mark. Records its operations one level
+/// down, one per row written, inside `assistant::apply` — the same intents
+/// the hand-driven commands above record, so a replay cannot tell them apart.
+#[tauri::command]
+pub fn apply_proposal(
+    state: State<'_, AppState>,
+    message_id: String,
+    overrides: Option<assistant::apply::Overrides>,
+) -> Result<assistant::apply::Outcome> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    assistant::apply::apply(
+        &mut conn,
+        &profile_id,
+        &message_id,
+        overrides.unwrap_or_default(),
+    )
+}
+
+/// Apply every proposal in a chat nobody has applied yet — one click for a
+/// week of an agent's suggestions. Records its operations as `apply_proposal`
+/// does, one per row.
+#[tauri::command]
+pub fn apply_pending_proposals(
+    state: State<'_, AppState>,
+    chat_id: String,
+) -> Result<Vec<assistant::apply::Outcome>> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    assistant::apply::apply_pending(&mut conn, &profile_id, &chat_id)
 }
 
 #[tauri::command]

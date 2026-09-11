@@ -7,12 +7,14 @@
 //!
 //! Reading is open: the catalogue, a card, a body, the scores, the calendar,
 //! the notes, a search. Writing is not. An agent **proposes** — a version, a
-//! score, a note — and the proposal lands as a message in a chat on the work,
-//! where the buttons that already apply the assistant's own proposals apply
-//! this one too. Nothing here writes a version, a score or a note directly:
-//! the rule since v0.28, "the assistant proposes, a person applies", holds
-//! for an assistant outside the window exactly as for the one inside it.
-//! See ADR 0016.
+//! score, a note, or a whole work as one package — and the proposal lands as
+//! a message in a chat on the work (in the client's own chat, for a work that
+//! does not exist yet), where the buttons that already apply the assistant's
+//! own proposals apply this one too. Nothing here writes a version, a score
+//! or a note directly: the rule since v0.28, "the assistant proposes, a
+//! person applies", holds for an assistant outside the window exactly as for
+//! the one inside it. See ADR 0016; the package and the mark a person leaves
+//! on an applied proposal are ADR 0018.
 
 use std::collections::BTreeMap;
 use std::io::{BufRead, Write};
@@ -20,7 +22,8 @@ use std::io::{BufRead, Write};
 use rusqlite::Connection;
 use serde_json::{Map, Value, json};
 
-use crate::assistant::proposal::{self, Proposal};
+use crate::assistant::apply;
+use crate::assistant::proposal::{self, PackagedNote, PackagedVersion, Proposal};
 use crate::error::{Error, Result};
 use crate::journal::{self, Record};
 use crate::note::{self, NoteFilter};
@@ -140,9 +143,12 @@ fn initialize() -> Value {
         "serverInfo": { "name": "kilna", "version": env!("CARGO_PKG_VERSION") },
         "instructions": "The workspace of a content maker: works, their versions, scores along the \
     craft's axes, releases in a calendar, notes. Start with `workspace` to learn the craft's \
-    vocabulary (roles, axes, statuses), then `catalogue` and `work` to find and read. You cannot \
-    write a version, a score or a note: you PROPOSE one with `propose_version`, `propose_score` or \
-    `propose_note`, and the person applies it in kilna with one click, or does not. Name works by \
+    vocabulary (roles, axes, fields, statuses), then `catalogue` and `work` to find and read. You \
+    cannot write: you PROPOSE, and the person applies it in kilna with one click, or does not. \
+    `propose_work` proposes a whole new work — title, kind, overview fields, versions by role, a \
+    score, notes — or, given `work`, a package of those for an existing one; prefer it whenever \
+    you have more than one thing to say about a work, so the person applies it all at once. \
+    `propose_version`, `propose_score` and `propose_note` propose one thing each. Name works by \
     id when you have one; an exact title works too.",
     })
 }
@@ -233,6 +239,52 @@ fn tools() -> Vec<Value> {
              Each hit names the work it belongs to.",
             json!({ "query": text_arg("What to look for") }),
             &["query"],
+        ),
+        tool(
+            "propose_work",
+            "Propose a whole work, or a package of changes to one, applied together with one \
+             click. Without `work`: a NEW work — `title` and `kind` are required, plus any of \
+             the rest. With `work`: a package for that work — `title` and `kind` are ignored, \
+             the rest is added to it. `fields` are the overview fields of the profile (see \
+             `workspace`: `fields`), by key — a premise, a mood, a tagline go here, not into a \
+             note. `versions` are texts by role; on a new work they become its current versions, \
+             on an existing one they wait beside the current. `score` is marks along the kind's \
+             axes. `notes` are notes on the work. Unknown fields and axes are named and left \
+             out; an unknown role or kind refuses the whole package. Nothing is written until \
+             the person applies it.",
+            json!({
+                "work": text_arg("An existing work to package changes for: its id, or its exact title. Omit to propose a new work"),
+                "title": text_arg("The title of the new work; required without `work`"),
+                "kind": text_arg("The kind of the new work, as `workspace` lists them; required without `work`"),
+                "fields": { "type": "object", "description": "Overview field key to value, as `workspace` lists the fields", "additionalProperties": true },
+                "versions": {
+                    "type": "array",
+                    "description": "Texts by role, each stored exactly as given",
+                    "items": { "type": "object", "properties": {
+                        "role": text_arg("The version role key, as `workspace` lists them"),
+                        "body": text_arg("The whole text of the version"),
+                        "label": text_arg("A short name for the version, optional"),
+                    }, "required": ["role", "body"] },
+                },
+                "score": {
+                    "type": "object",
+                    "description": "Marks along the kind's axes, with an optional note",
+                    "properties": {
+                        "axes": { "type": "object", "additionalProperties": { "type": "number" } },
+                        "note": text_arg("One sentence on why, optional"),
+                    },
+                    "required": ["axes"],
+                },
+                "notes": {
+                    "type": "array",
+                    "description": "Notes on the work",
+                    "items": { "type": "object", "properties": {
+                        "title": text_arg("A title for the note, optional"),
+                        "body": text_arg("The note itself"),
+                    }, "required": ["body"] },
+                },
+            }),
+            &[],
         ),
         tool(
             "propose_version",
@@ -367,6 +419,11 @@ pub fn run_tool(
             )?;
             // One entry per kind, each with its own vocabulary: the keys an
             // agent scores or proposes in belong to the work's kind.
+            let fields: Vec<Value> = config
+                .work_meta_fields
+                .iter()
+                .map(|f| json!({ "key": f.key, "label": f.label, "type": f.field_type }))
+                .collect();
             let kinds: Vec<Value> = config
                 .work_kinds
                 .iter()
@@ -388,6 +445,7 @@ pub fn run_tool(
             pretty(&json!({
                 "profile": { "key": profile.key, "name": profile.name, "description": profile.description },
                 "works": works,
+                "fields": fields,
                 "work_kinds": kinds,
             }))
         }
@@ -643,6 +701,142 @@ pub fn run_tool(
             Ok(summary)
         }
 
+        "propose_work" => {
+            let found = match arg(args, "work") {
+                Some(named) => Some(find_work(conn, &profile.id, named)?),
+                None => None,
+            };
+            let (title, kind) = match &found {
+                Some(w) => (None, w.kind.clone()),
+                None => {
+                    let title = required(args, "title").map_err(|_| {
+                        Error::Other("a new work needs a `title`; name `work` to package changes for an existing one".into())
+                    })?;
+                    let kind = required(args, "kind").map_err(|_| {
+                        Error::Other("a new work needs a `kind`; `workspace` lists them".into())
+                    })?;
+                    (Some(title.to_owned()), kind.to_owned())
+                }
+            };
+            if config.kind(&kind).is_none() {
+                return Err(Error::Other(format!(
+                    "no kind of work `{kind}`; `workspace` lists them"
+                )));
+            }
+            let vocabulary = config.vocabulary(&kind);
+
+            let (fields, unknown_fields) = proposal::fields_from(
+                args.get("fields")
+                    .and_then(Value::as_object)
+                    .cloned()
+                    .unwrap_or_default(),
+                &config,
+            );
+
+            let mut versions = Vec::new();
+            for item in args
+                .get("versions")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                let item = item.as_object().cloned().unwrap_or_default();
+                let role = required(&item, "role")?;
+                if !vocabulary.version_roles.iter().any(|r| r.key == role) {
+                    return Err(Error::Other(format!(
+                        "no version role `{role}` for `{kind}`; `workspace` lists them"
+                    )));
+                }
+                versions.push(PackagedVersion {
+                    role: role.to_owned(),
+                    body: required(&item, "body")?.to_owned(),
+                    label: arg(&item, "label").map(str::to_owned),
+                });
+            }
+
+            let score = match args.get("score").and_then(Value::as_object) {
+                Some(raw) => {
+                    let axes = raw
+                        .get("axes")
+                        .and_then(Value::as_object)
+                        .cloned()
+                        .ok_or_else(|| {
+                            Error::Other(
+                                "`score.axes` must be an object of axis key to mark".into(),
+                            )
+                        })?;
+                    let note = arg(raw, "note").map(str::to_owned);
+                    Some(proposal::marks_from(axes, note, vocabulary).ok_or_else(|| {
+                        Error::Other(format!(
+                            "none of the score's axes belongs to `{kind}`; its axes are {}",
+                            vocabulary
+                                .axes
+                                .iter()
+                                .map(|a| a.key.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        ))
+                    })?)
+                }
+                None => None,
+            };
+
+            let mut notes = Vec::new();
+            for item in args
+                .get("notes")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                let item = item.as_object().cloned().unwrap_or_default();
+                notes.push(PackagedNote {
+                    title: arg(&item, "title").map(str::to_owned),
+                    body: required(&item, "body")?.to_owned(),
+                });
+            }
+
+            if found.is_some()
+                && fields.is_empty()
+                && versions.is_empty()
+                && score.is_none()
+                && notes.is_empty()
+            {
+                return Err(Error::Other(
+                    "the package is empty: give `fields`, `versions`, `score` or `notes`".into(),
+                ));
+            }
+
+            let proposal = Proposal::Work {
+                title,
+                work_kind: Some(kind.clone()),
+                fields,
+                unknown_fields,
+                versions,
+                score,
+                notes,
+            };
+            let body = apply::render_package(&proposal, &config, &kind);
+            let summary = package_summary(&proposal);
+            deliver(
+                conn,
+                &profile.id,
+                session,
+                found.as_ref(),
+                proposal,
+                &body,
+                None,
+            )?;
+            Ok(match found {
+                Some(w) => format!(
+                    "Proposed a package for “{}” — {summary}. It waits in the chat on the work; one click applies all of it.",
+                    w.title
+                ),
+                None => format!(
+                    "Proposed a new work — {summary}. It waits in the chat named after you; one click creates it with everything in it."
+                ),
+            })
+        }
+
         "propose_note" => {
             let found = match arg(args, "work") {
                 Some(named) => Some(find_work(conn, &profile.id, named)?),
@@ -672,7 +866,7 @@ pub fn run_tool(
 
         other => Err(Error::Other(format!(
             "no tool named `{other}`; the tools are workspace, catalogue, work, text, scores, \
-             calendar, notes, search, propose_version, propose_score, propose_note"
+             calendar, notes, search, propose_work, propose_version, propose_score, propose_note"
         ))),
     }
 }
@@ -719,13 +913,7 @@ fn deliver(
         }
     };
 
-    let mut meta = Map::new();
-    meta.insert("source".into(), json!("mcp"));
-    meta.insert("client".into(), json!(client));
-    meta.insert("proposal".into(), serde_json::to_value(&proposal)?);
-    if let Some(note) = note {
-        meta.insert("note".into(), json!(note));
-    }
+    let meta = apply::proposal_meta(&client, &proposal, note)?;
     let message = assistant::append(conn, &chat_id, assistant::ASSISTANT, body, meta)?;
 
     // Literal keys, one per sentence in the locale: the journal gate reads
@@ -737,6 +925,12 @@ fn deliver(
         (Proposal::Score { .. }, _) => Record::new("proposal.score"),
         (Proposal::Note { .. }, Some(_)) => Record::new("proposal.note"),
         (Proposal::Note { .. }, None) => Record::new("proposal.freeNote"),
+        (Proposal::Work { .. }, Some(_)) => Record::new("proposal.package"),
+        // A work that does not exist yet has no row to file the line under;
+        // the title it would have is the one thing the sentence can name.
+        (Proposal::Work { title, .. }, None) => {
+            Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
+        }
     };
     let mut record = record.param("client", client);
     if let Some(w) = work {
@@ -747,6 +941,64 @@ fn deliver(
     journal::record(conn, profile_id, record);
 
     Ok(message)
+}
+
+/// What a package holds, in one clause for the agent's answer.
+fn package_summary(proposal: &Proposal) -> String {
+    let Proposal::Work {
+        title,
+        fields,
+        unknown_fields,
+        versions,
+        score,
+        notes,
+        ..
+    } = proposal
+    else {
+        return String::new();
+    };
+    let mut parts = Vec::new();
+    if let Some(title) = title {
+        parts.push(format!("“{title}”"));
+    }
+    if !versions.is_empty() {
+        parts.push(format!(
+            "{} version{} ({})",
+            versions.len(),
+            if versions.len() == 1 { "" } else { "s" },
+            versions
+                .iter()
+                .map(|v| v.role.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
+    if !fields.is_empty() {
+        parts.push(format!(
+            "fields {}",
+            fields.keys().cloned().collect::<Vec<_>>().join(", ")
+        ));
+    }
+    if let Some(marks) = score {
+        parts.push(format!("a score on {} axes", marks.axes.len()));
+        if !marks.unknown.is_empty() {
+            parts.push(format!("axes ignored: {}", marks.unknown.join(", ")));
+        }
+    }
+    if !notes.is_empty() {
+        parts.push(format!(
+            "{} note{}",
+            notes.len(),
+            if notes.len() == 1 { "" } else { "s" }
+        ));
+    }
+    if !unknown_fields.is_empty() {
+        parts.push(format!(
+            "fields ignored (not in the profile): {}",
+            unknown_fields.join(", ")
+        ));
+    }
+    parts.join(", ")
 }
 
 /// The command that registers this build with Claude Code.
@@ -1042,6 +1294,182 @@ mod tests {
             .unwrap()
             .remove(0);
         assert_eq!(chat.title.as_deref(), Some(UNNAMED_CLIENT));
+    }
+
+    #[test]
+    fn a_proposed_work_waits_in_the_clients_chat_on_nothing_with_everything_readable() {
+        let (conn, _) = workspace();
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({
+                "title": "Winter road", "kind": "song",
+                "fields": { "premise": "a road at night", "colour": "blue" },
+                "versions": [{ "role": "lyrics", "body": "snow on the road", "label": "first" }],
+                "score": { "axes": { "hook": 7, "sparkle": 2 }, "note": "quiet" },
+                "notes": [{ "title": "Concept", "body": "the road as witness" }]
+            })),
+        )
+        .unwrap();
+        assert!(answer.contains("Proposed a new work"), "{answer}");
+        assert!(
+            answer.contains("colour"),
+            "ignored fields are named: {answer}"
+        );
+        assert!(
+            answer.contains("sparkle"),
+            "ignored axes are named: {answer}"
+        );
+
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        assert_eq!(
+            work::list(&conn, &profile_id, &WorkFilter::default())
+                .unwrap()
+                .len(),
+            1,
+            "a proposal is not a work"
+        );
+        let chats = assistant::summaries(&conn, &profile_id, None).unwrap();
+        let chat = chats
+            .iter()
+            .find(|c| c.work_id.is_none())
+            .expect("a chat on nothing");
+        assert_eq!(chat.title.as_deref(), Some("Claude Code"));
+        let message = assistant::transcript(&conn, &chat.id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0);
+        assert_eq!(message.meta["proposal"]["kind"], "work");
+        assert_eq!(message.meta["proposal"]["title"], "Winter road");
+        assert_eq!(
+            message.meta["proposal"]["fields"]["premise"],
+            "a road at night"
+        );
+        assert!(message.meta["proposal"]["fields"].get("colour").is_none());
+        assert_eq!(
+            message.meta["proposal"]["versions"][0]["body"],
+            "snow on the road"
+        );
+        assert_eq!(message.meta["proposal"]["score"]["axes"]["hook"], 7.0);
+        assert!(
+            message.body.contains("snow on the road"),
+            "readable before applied: {}",
+            message.body
+        );
+        assert!(message.body.contains("Winter road"), "{}", message.body);
+        assert!(apply::is_pending(&message));
+
+        let lines: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM journal WHERE action = 'proposal.work'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(lines, 1);
+    }
+
+    #[test]
+    fn a_package_for_a_work_joins_its_chat() {
+        let (conn, work_id) = workspace();
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(
+                json!({ "work": work_id, "title": "ignored", "kind": "video",
+                           "versions": [{ "role": "style", "body": "brushed drums" }] }),
+            ),
+        )
+        .unwrap();
+        assert!(
+            answer.contains("Proposed a package for “Harbour lights”"),
+            "{answer}"
+        );
+
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let chats = assistant::summaries(&conn, &profile_id, Some(&work_id)).unwrap();
+        assert_eq!(chats.len(), 1);
+        let message = assistant::transcript(&conn, &chats[0].id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0);
+        assert_eq!(message.meta["proposal"]["kind"], "work");
+        assert!(
+            message.meta["proposal"].get("title").is_none(),
+            "an existing work keeps its title"
+        );
+        assert_eq!(message.meta["proposal"]["kind"], "work");
+        assert_eq!(message.meta["proposal"]["versions"][0]["role"], "style");
+    }
+
+    #[test]
+    fn a_package_that_names_a_role_the_kind_lacks_is_refused_whole() {
+        let (conn, work_id) = workspace();
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({ "work": work_id, "versions": [{ "role": "storyboard", "body": "x" }] })),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("storyboard"), "{err}");
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        assert!(
+            assistant::summaries(&conn, &profile_id, Some(&work_id))
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn a_new_work_needs_a_title_and_a_kind_the_profile_has() {
+        let (conn, _) = workspace();
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({ "kind": "song" })),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("`title`"), "{err}");
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({ "title": "x", "kind": "sculpture" })),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("sculpture"), "{err}");
+    }
+
+    #[test]
+    fn an_empty_package_for_a_work_is_refused() {
+        let (conn, work_id) = workspace();
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({ "work": work_id })),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("empty"), "{err}");
+    }
+
+    #[test]
+    fn the_workspace_lists_the_overview_fields() {
+        let (conn, _) = workspace();
+        let answer = run_tool(&conn, &claude(), "workspace", &args(json!({}))).unwrap();
+        let answer: Value = serde_json::from_str(&answer).unwrap();
+        assert!(answer["fields"].as_array().is_some_and(|f| !f.is_empty()));
+        assert!(answer["fields"][0]["key"].is_string());
     }
 
     #[test]

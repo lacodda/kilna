@@ -1,4 +1,4 @@
-import type { ChatSummary, Message, Proposal, Run } from '@/lib/api'
+import type { Applied, ChatSummary, Message, Proposal, Run } from '@/lib/api'
 import { inOrder, view, type RunView } from '@/lib/runs'
 
 /**
@@ -28,6 +28,9 @@ export interface Exchange {
     source: string | null
     /** What the proposer said about it, shown beside the proposal. */
     note: string | null
+    /** What applying the proposal made, once somebody did. On the message,
+     * not in the component: the mark has to survive the next fetch. */
+    applied: Applied | null
   } | null
   at: string
 }
@@ -57,9 +60,18 @@ const proposalOf = (message: Message): Proposal | null => {
         : null
     case 'note':
       return proposal as Proposal
+    case 'work':
+      return proposal as Proposal
     default:
       return null
   }
+}
+
+/** The mark an applied proposal carries, when it carries one. */
+const appliedOf = (message: Message): Applied | null => {
+  const raw = message.meta.applied
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
+  return typeof (raw as Partial<Applied>).at === 'string' ? (raw as Applied) : null
 }
 
 /** The client a proposal came from, when it came from outside the window. */
@@ -105,6 +117,7 @@ export function conversation(messages: Message[], runs: Run[]): Exchange[] {
         proposal: proposalOf(message),
         source: sourceOf(message),
         note: typeof message.meta.note === 'string' ? message.meta.note : null,
+        applied: appliedOf(message),
       }
 
       // The exchange this answers: named by run id, or — for the untagged
@@ -137,6 +150,18 @@ export function conversation(messages: Message[], runs: Run[]): Exchange[] {
 
   // Stable sort: same-instant items keep the transcript's order.
   return items.sort((left, right) => (left.at < right.at ? -1 : left.at > right.at ? 1 : 0))
+}
+
+/**
+ * The exchanges whose proposal nobody has applied yet — what *apply all*
+ * would take. An answer still growing is not counted: its proposal is not
+ * settled.
+ */
+export function pending(items: Exchange[]): Exchange[] {
+  return items.filter(
+    (item) =>
+      item.answer?.proposal != null && item.answer.applied === null && item.run?.working !== true,
+  )
 }
 
 /** What the list calls a chat: its name, its first question, or the fallback. */

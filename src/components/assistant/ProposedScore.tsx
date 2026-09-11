@@ -1,16 +1,17 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Check } from 'lucide-react'
-import { scoreWork, type ScoreProposal } from '@/lib/api'
+import type { Applied, ScoreProposal } from '@/lib/api'
 import { keys } from '@/lib/query'
-import { say } from '@/lib/toast'
+import { useApplyProposal } from '@/lib/useApplyProposal'
 import { useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
+import { AppliedMark } from '@/components/assistant/AppliedMark'
 
 interface Props {
   workId: string
+  messageId: string
   proposal: ScoreProposal
+  /** Set once somebody applied it; read from the message. */
+  applied: Applied | null
 }
 
 /**
@@ -21,35 +22,22 @@ interface Props {
  * than a line saying "scored": what is about to be written is readable before
  * it is written, exactly as a rendered prompt is readable before it is sent.
  *
- * Applied, it becomes an ordinary snapshot: same table, same history, no mark
- * saying a machine suggested it. The note carries that, in the assistant's own
- * words, because "why" is the part a bare number cannot hold.
+ * Applied, it becomes an ordinary snapshot: same table, same history. The
+ * note carries the "why" in the assistant's own words, because "why" is the
+ * part a bare number cannot hold; a score from an agent outside the window
+ * names that agent as its judge, so the history does not read it as the
+ * author's own.
  */
-export function ProposedScore({ workId, proposal }: Props) {
+export function ProposedScore({ workId, messageId, proposal, applied }: Props) {
   const { t } = useTranslation()
   const axes = useVocabulary(workId).axes
-  const client = useQueryClient()
-  const [applied, setApplied] = useState(false)
 
-  const apply = useMutation({
-    mutationFn: () =>
-      scoreWork(workId, {
-        axes: proposal.axes,
-        note: proposal.note ?? null,
-      }),
-    onSuccess: () => {
-      setApplied(true)
-      // One coarse prefix over every score query: the history, the latest, and
-      // whatever the catalogue derived from them all moved at once.
-      void client.invalidateQueries({ queryKey: keys.scores })
-      void client.invalidateQueries({ queryKey: keys.work(workId) })
-      void client.invalidateQueries({ queryKey: keys.works })
-      void client.invalidateQueries({ queryKey: keys.catalogue })
-      say.ok(t('assistant.scoreApplied'))
-    },
-    onError: (cause) => {
-      say.failed(cause)
-    },
+  const apply = useApplyProposal({
+    messageId,
+    message: t('assistant.scoreApplied'),
+    // One coarse prefix over every score query: the history, the latest, and
+    // whatever the catalogue derived from them all moved at once.
+    refresh: [keys.scores, keys.work(workId), keys.works, keys.catalogue],
   })
 
   // The profile's own label for each axis, so the panel reads the way the
@@ -97,18 +85,15 @@ export function ProposedScore({ workId, proposal }: Props) {
       )}
 
       <div className="mt-2 flex justify-end">
-        {applied ? (
-          <span className="flex items-center gap-1 text-xs text-dim">
-            <Check aria-hidden className="size-3.5" />
-            {t('assistant.scoreApplied')}
-          </span>
+        {applied !== null ? (
+          <AppliedMark applied={applied} label={t('assistant.scoreApplied')} />
         ) : (
           <Button
             size="sm"
             variant="primary"
             disabled={apply.isPending}
             onClick={() => {
-              apply.mutate()
+              apply.mutate(undefined)
             }}
           >
             {t('assistant.scoreApply')}

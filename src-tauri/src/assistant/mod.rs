@@ -1,3 +1,4 @@
+pub mod apply;
 pub mod cli;
 pub mod prompt;
 pub mod proposal;
@@ -219,6 +220,50 @@ pub fn transcript(conn: &Connection, chat_id: &str) -> Result<Option<Transcript>
         .collect::<Result<Vec<_>>>()?;
 
     Ok(Some(Transcript { chat, messages }))
+}
+
+/// One message by id.
+pub fn message(conn: &Connection, id: &str) -> Result<Option<Message>> {
+    let raw = conn
+        .query_row(
+            "SELECT id, chat_id, role, body, meta, created_at FROM chat_message WHERE id = ?1",
+            params![id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, String>(5)?,
+                ))
+            },
+        )
+        .optional()?;
+    raw.map(|(id, chat_id, role, body, meta, created_at)| {
+        Ok(Message {
+            meta: serde_json::from_str(&meta)?,
+            id,
+            chat_id,
+            role,
+            body,
+            created_at,
+        })
+    })
+    .transpose()
+}
+
+/// Replace a message's meta — how a proposal is marked applied. The body
+/// and the moment stay: what was said is not what changed.
+pub fn set_meta(conn: &Connection, id: &str, meta: &Map<String, Value>) -> Result<()> {
+    if conn.execute(
+        "UPDATE chat_message SET meta = ?2 WHERE id = ?1",
+        params![id, Value::Object(meta.clone()).to_string()],
+    )? == 0
+    {
+        return Err(Error::not_found("message", id));
+    }
+    Ok(())
 }
 
 pub fn delete(conn: &Connection, id: &str) -> Result<()> {

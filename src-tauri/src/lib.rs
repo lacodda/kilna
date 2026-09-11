@@ -140,6 +140,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::rename_chat,
             commands::get_transcript,
             commands::delete_chat,
+            commands::apply_proposal,
+            commands::apply_pending_proposals,
             commands::ask_assistant,
             commands::start_run,
             commands::cancel_run,

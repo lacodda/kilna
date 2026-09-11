@@ -101,7 +101,63 @@ export interface NoteProposal {
   title?: string
 }
 
-export type Proposal = ScoreProposal | VersionProposal | NoteProposal
+/** A version inside a package; the text travels with it. */
+export interface PackagedVersion {
+  role: string
+  body: string
+  label?: string
+}
+
+export interface PackagedNote {
+  title?: string
+  body: string
+}
+
+/** Marks along the axes, checked against the kind — the inside of a score proposal. */
+export interface Marks {
+  axes: Record<string, number>
+  note?: string
+  unknown?: string[]
+  missing?: string[]
+}
+
+/** A whole work, or a package of changes to the chat's work, applied with one
+    click. A chat on nothing receives new works — then `title` and `work_kind`
+    say what it is; a chat on a work receives packages for it. */
+export interface WorkProposal {
+  kind: 'work'
+  title?: string
+  work_kind?: string
+  /** Overview field key to value, already checked against the profile. */
+  fields?: Record<string, unknown>
+  unknown_fields?: string[]
+  versions?: PackagedVersion[]
+  score?: Marks
+  notes?: PackagedNote[]
+}
+
+export type Proposal = ScoreProposal | VersionProposal | NoteProposal | WorkProposal
+
+/** What applying a proposal made — stamped on the message as `meta.applied`. */
+export interface Applied {
+  message_id: string
+  at: string
+  work_id?: string
+  /** The package created the work rather than adding to one. */
+  created_work?: boolean
+  versions?: string[]
+  score?: string
+  notes?: string[]
+  /** The overview fields written, by key. */
+  fields?: string[]
+}
+
+/** What a person may change about a proposed version on the way in. */
+export interface ProposalOverrides {
+  role?: string
+  label?: string
+  make_current?: boolean
+}
 
 export interface PromptTemplate {
   key: string
@@ -879,6 +935,12 @@ export const renameChat = (id: string, title: string | null) =>
 export const getTranscript = (chatId: string) =>
   invoke<Transcript | null>('get_transcript', { chatId })
 export const deleteChat = (id: string) => invoke<void>('delete_chat', { id })
+/** Apply what a message proposes — any kind — and mark the message. */
+export const applyProposal = (messageId: string, overrides?: ProposalOverrides) =>
+  invoke<Applied>('apply_proposal', { messageId, overrides: overrides ?? null })
+/** Apply every proposal in a chat nobody has applied yet, oldest first. */
+export const applyPendingProposals = (chatId: string) =>
+  invoke<Applied[]>('apply_pending_proposals', { chatId })
 export const askAssistant = (chatId: string, prompt: string) =>
   invoke<Message>('ask_assistant', { chatId, prompt })
 export const startRun = (chatId: string, prompt: string) =>

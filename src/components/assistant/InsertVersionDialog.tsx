@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
-import { createVersion } from '@/lib/api'
+import { applyProposal, createVersion } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useVocabulary } from '@/lib/useProfile'
@@ -21,6 +21,9 @@ interface Props {
   role?: string
   /** A name a proposal gave the version, when it gave one. */
   label?: string
+  /** The message carrying the proposal, when the answer is one: inserting
+   * then goes through the proposal so the message is marked applied. */
+  messageId?: string
 }
 
 /**
@@ -38,6 +41,7 @@ export function InsertVersionDialog({
   body,
   role: proposedRole,
   label: proposedLabel,
+  messageId,
 }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
@@ -53,23 +57,42 @@ export function InsertVersionDialog({
   const [makeCurrent, setMakeCurrent] = useState(false)
 
   const insert = useMutation({
-    mutationFn: () =>
-      createVersion(workId, {
+    mutationFn: async (): Promise<string> => {
+      const trimmed = label.trim() === '' ? null : label.trim()
+      // A proposal is applied as a proposal — the same write, and the
+      // message is marked; a plain answer is inserted as a hand would.
+      if (messageId !== undefined) {
+        const applied = await applyProposal(messageId, {
+          role,
+          label: trimmed ?? undefined,
+          make_current: makeCurrent,
+        })
+        return applied.versions?.[0] ?? ''
+      }
+      const version = await createVersion(workId, {
         role,
         body,
-        label: label.trim() === '' ? null : label.trim(),
+        label: trimmed,
         make_current: makeCurrent,
-      }),
-    onSuccess: (version) => {
+      })
+      return version.id
+    },
+    onSuccess: (versionId) => {
       // The same set a hand-written version disturbs.
-      for (const key of [keys.journal, keys.versions(workId), keys.work(workId), keys.works]) {
+      for (const key of [
+        keys.journal,
+        keys.versions(workId),
+        keys.work(workId),
+        keys.works,
+        keys.transcripts,
+      ]) {
         void client.invalidateQueries({ queryKey: key })
       }
       say.ok(t('assistant.inserted'))
       onOpenChange(false)
       // The new version shows itself rather than leaving a toast to vouch for
       // it: the Versions tab opens on the very draft that was just kept.
-      void navigate(`/works/${workId}/versions?version=${version.id}`)
+      void navigate(`/works/${workId}/versions?version=${versionId}`)
     },
     onError: (cause) => {
       say.failedTo(t('toast.versionSaveFailed'), cause)

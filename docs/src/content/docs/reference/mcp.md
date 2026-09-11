@@ -1,6 +1,6 @@
 ---
 title: MCP server
-description: kilna --mcp serves your workspace to an agent over the Model Context Protocol — reading is open, writing is a proposal you apply with one click.
+description: kilna --mcp serves your workspace to an agent over the Model Context Protocol — reading is open, writing is a proposal you apply with one click, a whole work at a time if you like.
 ---
 
 `kilna --mcp` is the same build without a window: the workspace served to an
@@ -32,7 +32,7 @@ it, it opens the one the window uses.
 
 | Tool | What it answers |
 | --- | --- |
-| `workspace` | The active profile's vocabulary, per kind of work: each kind's version roles and how each reads, axes with weights and scales, tiers, statuses, kinds of release; how many works. Read first — a work is judged in its own kind's keys, and every other tool speaks in them. |
+| `workspace` | The active profile's vocabulary: the overview fields, and per kind of work its version roles and how each reads, axes with weights and scales, tiers, statuses, kinds of release; how many works. Read first — a work is judged in its own kind's keys, and every other tool speaks in them. |
 | `catalogue` | Every work with its verdict: id, title, kind, status, total and tier, whether the score is stale, releases out and scheduled, when it was last touched. Filter by a substring of the title, a kind, a status. |
 | `work` | One card: fields and meta, tags, every version by role (id, revision, label, length, which is current), the latest score with its axes, the releases, how many notes. No bodies. |
 | `text` | The body of a version: the current one of a role, or a revision by id. Plain roles come back exactly as typed. |
@@ -46,25 +46,37 @@ refused with the ids to choose from, rather than guessed.
 
 ## What an agent can propose
 
-Nothing an agent does writes a version, a score or a note. It **proposes**,
-and the proposal lands as a message in a chat on the work, named after the
-client — *Claude Code*, say — where the same buttons that apply the
-assistant's own proposals apply this one:
+Nothing an agent does writes a work, a version, a score or a note. It
+**proposes**, and the proposal lands as a message in a chat named after the
+client — *Claude Code*, say — on the work, or on nothing for a work that
+does not exist yet. The same buttons that apply the assistant's own
+proposals apply these:
 
 | Tool | Where it lands |
 | --- | --- |
-| `propose_version` | The text of a new version in a role, with a note on what changed. **Insert as version** in the chat keeps it, verbatim, as the next revision — you pick whether it becomes current. |
-| `propose_score` | Marks along the profile's axes, checked the way the assistant's own are: unknown axes are named, marks are clamped to the scale. **Apply** writes the snapshot. |
+| `propose_work` | A whole work — title, kind, overview fields, versions by role, a score, notes — or, with `work`, a package of those for an existing one. The message shows everything the package would write; **Create the work** or **Apply the package** writes all of it in one click. On a new work the version in the first role becomes current; on an existing one the package's versions wait beside the current. |
+| `propose_version` | The text of a new version in a role, with a note on what changed. **Insert as version** keeps it, verbatim, under that role and not current; **Choose role…** opens the dialog to change the role, name it or make it current on the way in. |
+| `propose_score` | Marks along the kind's axes, checked the way the assistant's own are: unknown axes are named, marks are clamped to the scale. **Apply** writes the snapshot, judged by the agent — its name is the score's rater. |
 | `propose_note` | A note, on a work or on nothing in particular. **Add as note** keeps it. |
 
+An applied proposal stays marked in the chat — *Inserted*, *Scored*,
+*Created*, with a link to the work a package made — and cannot be applied
+twice. When a chat holds more than one unapplied proposal, **Apply all**
+takes them in order, and stops at the first that cannot be applied, saying
+which. Every application is written as the same operations you would
+write by hand, so undo takes each back on its own.
+
 Each proposal leaves a line in the [history](/kilna/guides/the-history/) —
-*Claude Code proposed a version for "Harbour lights"* — so the bell in the
-corner counts it, and the chat it went into is one click away from any
-screen through the assistant's floating button.
+*Claude Code proposed a version for "Harbour lights"*, *Claude Code
+proposed a new work, "Winter road"* — so the bell in the corner counts it,
+and the chat it went into is one click away from any screen through the
+assistant's floating button.
 
 This is the rule the assistant panel has followed since v0.28, applied to an
 assistant outside the window: it proposes, you apply. See
-[ADR 0016](https://github.com/lacodda/kilna/blob/main/docs/adr/0016-an-agent-outside-the-window-proposes-too.md).
+[ADR 0016](https://github.com/lacodda/kilna/blob/main/docs/adr/0016-an-agent-outside-the-window-proposes-too.md)
+and, for packages and the mark,
+[ADR 0018](https://github.com/lacodda/kilna/blob/main/docs/adr/0018-a-proposal-is-applied-by-the-application-and-marked.md).
 
 ## A session, end to end
 
@@ -84,6 +96,24 @@ assistant outside the window: it proposes, you apply. See
 
 In kilna: the bell shows one new line, the work's chat *Claude Code* holds
 the text with **Insert as version** under it. Insert, or don't.
+
+A new song, whole:
+
+```
+> Use kilna: make a song from this idea — lyrics, a style prompt, the premise
+  on the card, and your score.
+
+  workspace     → kinds song / instrumental …; fields bpm, key, …, premise
+  propose_work  → "Proposed a new work — “Winter road”, 2 versions (lyrics, style),
+                   fields premise, a score on 7 axes. It waits in the chat named
+                   after you; one click creates it with everything in it."
+```
+
+In kilna: the assistant's floating button opens the chat *Claude Code*
+with the whole package rendered — the lyrics in a monospace block, the
+style prompt, the premise, the marks — and **Create the work** under it.
+One click, and the song is on the catalogue with its lyrics current, its
+premise on the overview, its score in the history judged by *Claude Code*.
 
 ## Protocol
 

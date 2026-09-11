@@ -49,6 +49,9 @@ export const keys = {
   allChats: ['chats'] as const,
   chats: (workId?: string) => ['chats', workId ?? null] as const,
   transcript: (chatId: string) => ['transcript', chatId] as const,
+  // Every transcript: a proposal applied marks its message, whichever chat
+  // it is in, and the component that applied it need not know the chat.
+  transcripts: ['transcript'] as const,
   runs: (chatId: string) => ['runs', chatId] as const,
   activeRuns: ['runs', 'active'] as const,
   activeTasks: ['runs', 'tasks'] as const,

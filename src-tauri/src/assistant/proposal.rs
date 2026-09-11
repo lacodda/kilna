@@ -10,6 +10,8 @@
 //! a parser and not a writer: everything here turns text into something the
 //! frontend can display next to an "apply" button, and nothing here touches the
 //! database. Decided in v0.28 for versions, and it holds unchanged for scores.
+//! What a person applies becomes rows in [`super::apply`] — the one place a
+//! proposal is written, and the place that marks it applied.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -17,7 +19,7 @@ use serde_json::{Map, Value};
 use crate::profile::config::{ProfileConfig, WorkKind};
 
 /// What an answer proposed, if anything.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Proposal {
     /// Values along the profile's scoring axes.
@@ -25,14 +27,14 @@ pub enum Proposal {
         /// Axis key to value, already checked against the profile.
         axes: Map<String, Value>,
         /// The assistant's reasoning, when it gave any.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         note: Option<String>,
         /// Axes the answer named that the profile does not have, and axes of
         /// the profile the answer skipped. Shown rather than hidden: a
         /// proposal that only half fits is worth applying, but not silently.
-        #[serde(skip_serializing_if = "Vec::is_empty")]
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
         unknown: Vec<String>,
-        #[serde(skip_serializing_if = "Vec::is_empty")]
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
         missing: Vec<String>,
     },
     /// A new version in a role. The text itself is the message body — that
@@ -40,15 +42,74 @@ pub enum Proposal {
     /// only where it goes. Made by an agent outside the window (`kilna --mcp`).
     Version {
         role: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         label: Option<String>,
     },
     /// A note, on the chat's work or on nothing in particular; the body is
     /// the message body. Made by an agent outside the window.
     Note {
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         title: Option<String>,
     },
+    /// A whole work, or a package of changes to one: the fields of the
+    /// overview, versions by role, a score, notes — applied together with one
+    /// click. Made by an agent outside the window.
+    ///
+    /// Which of the two it is comes from the chat the message is in: a chat
+    /// on a work receives packages for that work, a chat on nothing receives
+    /// new works, which then need `title` and `kind`. The texts travel here
+    /// rather than in the message body, because there are several; the body
+    /// is a rendering of the package a person reads before applying it.
+    Work {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        title: Option<String>,
+        /// The kind of the new work. Not `kind`: that name is the tag that
+        /// says which variant this is.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        work_kind: Option<String>,
+        /// Overview field key to value, already checked against the profile.
+        #[serde(default, skip_serializing_if = "Map::is_empty")]
+        fields: Map<String, Value>,
+        /// Field keys the package named that the profile does not have.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        unknown_fields: Vec<String>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        versions: Vec<PackagedVersion>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        score: Option<Marks>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        notes: Vec<PackagedNote>,
+    },
+}
+
+/// A version inside a package: the text travels with it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PackagedVersion {
+    pub role: String,
+    pub body: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+}
+
+/// A note inside a package.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PackagedNote {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    pub body: String,
+}
+
+/// Marks along the axes, checked against the kind — the inside of a score
+/// proposal, reused by a package.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Marks {
+    pub axes: Map<String, Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unknown: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub missing: Vec<String>,
 }
 
 /// The shape an answer is asked to produce.
@@ -103,6 +164,26 @@ pub fn score_from(
     note: Option<String>,
     config: &WorkKind,
 ) -> Option<Proposal> {
+    let Marks {
+        axes,
+        note,
+        unknown,
+        missing,
+    } = marks_from(raw, note, config)?;
+    Some(Proposal::Score {
+        axes,
+        note,
+        unknown,
+        missing,
+    })
+}
+
+/// Marks by axis key, checked against a kind — see [`score_from`].
+pub fn marks_from(
+    raw: Map<String, Value>,
+    note: Option<String>,
+    config: &WorkKind,
+) -> Option<Marks> {
     let mut axes = Map::new();
     let mut unknown = Vec::new();
 
@@ -139,12 +220,46 @@ pub fn score_from(
 
     unknown.sort();
 
-    Some(Proposal::Score {
+    Some(Marks {
         axes,
         note: note.filter(|note| !note.trim().is_empty()),
         unknown,
         missing,
     })
+}
+
+/// Overview fields out of a map by key, checked against the profile.
+///
+/// The same bargain as the axes: a key the profile has no field for is named
+/// rather than written — a value under an unknown key would sit in `meta`
+/// where no screen shows it. Values are kept as given; the overview stores
+/// what is typed and a number that is not one yet stays as typed there too.
+/// Empty values are dropped: an agent that sends `""` for a field it has
+/// nothing to say about must not blank what is there.
+pub fn fields_from(
+    raw: Map<String, Value>,
+    config: &ProfileConfig,
+) -> (Map<String, Value>, Vec<String>) {
+    let mut fields = Map::new();
+    let mut unknown = Vec::new();
+
+    for (key, value) in raw {
+        if !config.work_meta_fields.iter().any(|field| field.key == key) {
+            unknown.push(key);
+            continue;
+        }
+        let empty = match &value {
+            Value::Null => true,
+            Value::String(text) => text.trim().is_empty(),
+            _ => false,
+        };
+        if !empty {
+            fields.insert(key, value);
+        }
+    }
+
+    unknown.sort();
+    (fields, unknown)
 }
 
 /// The contents of the last fenced json block in a body.
@@ -390,5 +505,49 @@ mod tests {
             instruction.contains("```json"),
             "the block has to be findable"
         );
+    }
+
+    #[test]
+    fn fields_are_checked_against_the_profile_and_blanks_are_dropped() {
+        let config = config();
+        let first = config.work_meta_fields[0].key.clone();
+        let mut raw = Map::new();
+        raw.insert(first.clone(), Value::from("three"));
+        raw.insert("colour".into(), Value::from("blue"));
+        raw.insert("premise".into(), Value::from("   "));
+
+        let (fields, unknown) = fields_from(raw, &config);
+
+        assert_eq!(fields.get(&first).and_then(Value::as_str), Some("three"));
+        assert!(
+            !fields.contains_key("premise"),
+            "a blank value must not blank a field"
+        );
+        assert_eq!(unknown, vec!["colour".to_owned()]);
+    }
+
+    #[test]
+    fn a_stored_proposal_reads_back_as_it_was_written() {
+        let proposal = Proposal::Work {
+            title: Some("Harbour lights".into()),
+            work_kind: Some("song".into()),
+            fields: Map::new(),
+            unknown_fields: Vec::new(),
+            versions: vec![PackagedVersion {
+                role: "lyrics".into(),
+                body: "one line".into(),
+                label: None,
+            }],
+            score: None,
+            notes: Vec::new(),
+        };
+        let stored = serde_json::to_value(&proposal).unwrap();
+        assert_eq!(stored["kind"], "work");
+        assert!(
+            stored.get("fields").is_none(),
+            "empty parts are not written"
+        );
+        let read: Proposal = serde_json::from_value(stored).unwrap();
+        assert_eq!(read, proposal);
     }
 }

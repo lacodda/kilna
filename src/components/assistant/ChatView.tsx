@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  applyPendingProposals,
   cancelRun,
   createChat,
   getTranscript,
@@ -12,7 +13,7 @@ import {
   type Run,
   type RunEmission,
 } from '@/lib/api'
-import { conversation, type Exchange } from '@/lib/chat'
+import { conversation, pending, type Exchange } from '@/lib/chat'
 import { reading } from '@/lib/palette'
 import { withEvent } from '@/lib/runs'
 import { keys } from '@/lib/query'
@@ -26,6 +27,8 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { InsertVersionDialog } from '@/components/assistant/InsertVersionDialog'
 import { ProposedNote } from '@/components/assistant/ProposedNote'
 import { ProposedScore } from '@/components/assistant/ProposedScore'
+import { ProposedVersion } from '@/components/assistant/ProposedVersion'
+import { ProposedWork } from '@/components/assistant/ProposedWork'
 
 interface Props {
   /** Null when the chat does not exist yet — sending the first message creates it. */
@@ -51,7 +54,12 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
   const client = useQueryClient()
 
   const [draft, setDraft] = useState('')
-  const [inserting, setInserting] = useState<{ body: string; role?: string; label?: string } | null>(null)
+  const [inserting, setInserting] = useState<{
+    body: string
+    role?: string
+    label?: string
+    messageId?: string
+  } | null>(null)
   // Which entry of the slash palette the arrow keys are on. Reset whenever the
   // query changes, so the highlight never points past a shortened list.
   const [highlighted, setHighlighted] = useState(0)
@@ -167,6 +175,26 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
   const items = conversation(transcript.data?.messages ?? [], runs.data ?? [])
   const working = items.some((item) => item.run?.working === true)
   const sending = ask.isPending || runTemplate.isPending
+  const waiting = pending(items)
+
+  // Every proposal in the chat, one click: an agent that sends a lyric, a
+  // style, a score and two notes as five messages is applied as one package
+  // would be. Each still lands as its own operation, so undo takes them back
+  // one at a time.
+  const applyAll = useMutation({
+    mutationFn: () => applyPendingProposals(chatId ?? ''),
+    onSuccess: (applied) => {
+      say.ok(t('assistant.appliedAll', { count: applied.length }))
+    },
+    onError: (cause) => {
+      say.failed(cause)
+    },
+    // Whatever was applied — all of it, or the ones before the failure —
+    // moved works, versions, scores and notes; one broad refresh.
+    onSettled: () => {
+      void client.invalidateQueries()
+    },
+  })
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'nearest' })
@@ -222,6 +250,23 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
 
       {loading && <Skeleton className="h-20 w-full" />}
 
+      {chatId !== null && waiting.length > 1 && (
+        <div className="flex items-center gap-2 rounded-xl border border-line bg-soft px-3 py-2 text-sm">
+          <span className="text-dim">{t('assistant.pendingCount', { count: waiting.length })}</span>
+          <Button
+            className="ml-auto"
+            size="sm"
+            variant="primary"
+            disabled={applyAll.isPending}
+            onClick={() => {
+              applyAll.mutate()
+            }}
+          >
+            {t('assistant.applyAll')}
+          </Button>
+        </div>
+      )}
+
       {items.length > 0 && (
         <ul className="flex max-h-96 flex-col gap-3 overflow-y-auto">
           {items.map((item) => (
@@ -233,7 +278,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
               onInsert={
                 workId === undefined
                   ? undefined
-                  : (body, role, label) => setInserting({ body, role, label })
+                  : (body, role, label, messageId) => setInserting({ body, role, label, messageId })
               }
               onStop={(id) => {
                 stop.mutate(id)
@@ -359,6 +404,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
           body={inserting.body}
           role={inserting.role}
           label={inserting.label}
+          messageId={inserting.messageId}
         />
       )}
     </div>
@@ -378,7 +424,7 @@ function ExchangeItem({
   workId?: string
   onCopy: (body: string) => void
   /** Absent when the chat is about nothing — there is no work to version. */
-  onInsert?: (body: string, role?: string, label?: string) => void
+  onInsert?: (body: string, role?: string, label?: string, messageId?: string) => void
   onStop: (runId: string) => void
   stopping: boolean
 }) {
@@ -389,6 +435,13 @@ function ExchangeItem({
   // still growing, or when the run ended before an answer was stored.
   const body = item.answer?.body ?? run?.body ?? ''
   const cost = item.answer?.cost ?? run?.cost ?? null
+  const proposal = item.answer?.proposal ?? null
+  const applied = item.answer?.applied ?? null
+  const settled = item.run?.working !== true
+  // A proposed version or package has its own buttons below; the toolbar's
+  // *insert* on it would keep a rendering of a package as a lyric.
+  const insertable =
+    onInsert !== undefined && settled && proposal?.kind !== 'version' && proposal?.kind !== 'work'
 
   return (
     <li className="flex flex-col gap-1.5">
@@ -426,15 +479,13 @@ function ExchangeItem({
           <div className="mt-1.5 flex items-center gap-1.5">
             {cost != null && <span className="text-xs text-dim">${cost.toFixed(3)}</span>}
             {/* An answer still growing is not worth keeping yet. */}
-            {onInsert !== undefined && item.run?.working !== true && (
+            {insertable && (
               <Button
                 size="sm"
                 variant="icon"
                 className="ml-auto h-6 px-1.5 text-[11px]"
                 onClick={() => {
-                  const proposal = item.answer?.proposal
-                  if (proposal?.kind === 'version') onInsert(body, proposal.role, proposal.label)
-                  else onInsert(body)
+                  onInsert(body)
                 }}
               >
                 {t('assistant.insert')}
@@ -443,11 +494,7 @@ function ExchangeItem({
             <Button
               size="sm"
               variant="icon"
-              className={
-                onInsert !== undefined && item.run?.working !== true
-                  ? 'h-6 px-1.5 text-[11px]'
-                  : 'ml-auto h-6 px-1.5 text-[11px]'
-              }
+              className={insertable ? 'h-6 px-1.5 text-[11px]' : 'ml-auto h-6 px-1.5 text-[11px]'}
               onClick={() => {
                 onCopy(body)
               }}
@@ -461,13 +508,39 @@ function ExchangeItem({
       {/* What the answer proposed, with the button that applies it. Below the
           answer rather than beside the copy buttons: it is a decision, not a
           convenience, and it needs room to show the numbers first. */}
+      {workId !== undefined && item.answer !== null && proposal?.kind === 'score' && settled && (
+        <ProposedScore
+          workId={workId}
+          messageId={item.answer.id}
+          proposal={proposal}
+          applied={applied}
+        />
+      )}
+      {item.answer !== null && proposal?.kind === 'note' && settled && (
+        <ProposedNote messageId={item.answer.id} proposal={proposal} applied={applied} />
+      )}
       {workId !== undefined &&
-        item.answer?.proposal?.kind === 'score' &&
-        item.run?.working !== true && (
-          <ProposedScore workId={workId} proposal={item.answer.proposal} />
+        item.answer !== null &&
+        onInsert !== undefined &&
+        proposal?.kind === 'version' &&
+        settled && (
+          <ProposedVersion
+            workId={workId}
+            messageId={item.answer.id}
+            proposal={proposal}
+            applied={applied}
+            onChoose={() => {
+              onInsert(body, proposal.role, proposal.label, item.answer?.id)
+            }}
+          />
         )}
-      {item.answer?.proposal?.kind === 'note' && item.run?.working !== true && (
-        <ProposedNote workId={workId} proposal={item.answer.proposal} body={body} />
+      {item.answer !== null && proposal?.kind === 'work' && settled && (
+        <ProposedWork
+          workId={workId}
+          messageId={item.answer.id}
+          proposal={proposal}
+          applied={applied}
+        />
       )}
 
       {run?.cancelled === true && (
