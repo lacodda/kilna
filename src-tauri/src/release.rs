@@ -39,6 +39,10 @@ pub struct ScheduledRelease {
     #[serde(flatten)]
     pub release: Release,
     pub work_title: String,
+    /// The kind of the work — a song, a video — so a chip can say what the
+    /// thing going out *is*, not only what kind of release it is. Two kinds
+    /// of work may ship the same kind of release under the same glyph.
+    pub work_kind: String,
     /// Latest total for the work, so a slot can be judged against its neighbours.
     pub total: Option<f64>,
     pub tier: Option<String>,
@@ -751,6 +755,7 @@ fn read_scheduled_where(
                 total.is_some(),
             );
             Ok(ScheduledRelease {
+                work_kind: kinds.get(&raw.work_id).cloned().unwrap_or_default(),
                 release: raw.into_release()?,
                 work_title,
                 total,
@@ -1369,6 +1374,10 @@ mod tests {
         assert_eq!(queue[0].work_title, "Best");
         assert_eq!(queue[1].work_title, "Middle");
         assert_eq!(queue[2].work_title, "Unscored");
+        assert!(
+            queue.iter().all(|entry| entry.work_kind == "song"),
+            "a slot names the kind of its work"
+        );
     }
 
     #[test]

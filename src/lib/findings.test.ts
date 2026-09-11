@@ -56,6 +56,7 @@ function release(over: Partial<ScheduledRelease> = {}): ScheduledRelease {
   return {
     id: 'r1',
     work_id: 'w1',
+    work_kind: 'song',
     kind: 'single',
     status: 'planned',
     title: null,

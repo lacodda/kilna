@@ -216,6 +216,9 @@ export interface ProfileConfig {
       catalogue's own default. A craft reads down its own columns, which is
       why this is on the profile and not on the machine. */
   catalogue_columns?: string[] | null
+  /** The columns shown while the catalogue is narrowed to one kind of work,
+      by kind key; a kind without an entry reads down `catalogue_columns`. */
+  catalogue_columns_by_kind?: Record<string, string[]> | null
 }
 
 export interface Profile {
@@ -504,6 +507,9 @@ export interface Readiness {
 // The backend flattens the release into this, so the fields sit side by side.
 export interface ScheduledRelease extends Release {
   work_title: string
+  /** The kind of the work — a song, a video — for a chip to say what is
+      going out, not only what kind of release it is. */
+  work_kind: string
   total: number | null
   tier: string | null
   readiness: Readiness

@@ -227,7 +227,14 @@ function WeekRow({
         style={{ background: coverFor(release.work_id) }}
       />
       <span className="min-w-0 flex-1 truncate text-sm font-semibold">{release.work_title}</span>
-      <Badge variant="soft">{labelOf(allOf(profile.config, 'release_kinds'), release.kind)}</Badge>
+      {/* What it is and what goes out — a video's YouTube release and a
+          song's clip are told apart by the first word, once the profile has
+          more than one kind of work. */}
+      <Badge variant="soft">
+        {profile.config.work_kinds.length > 1
+          ? `${labelOf(profile.config.work_kinds, release.work_kind)} · ${labelOf(allOf(profile.config, 'release_kinds'), release.kind)}`
+          : labelOf(allOf(profile.config, 'release_kinds'), release.kind)}
+      </Badge>
       <ReadyMarks readiness={release.readiness} released={false} daysLeft={daysLeft} />
     </button>
   )

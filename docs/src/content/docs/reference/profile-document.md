@@ -419,6 +419,22 @@ shown. Absent means the catalogue's own default — and a workspace from before
 the field opens on what the machine remembered, writing that list here once,
 so the move costs nobody their layout.
 
+## `catalogue_columns_by_kind`
+
+The columns the catalogue shows while it is narrowed to one kind of work, by
+kind key:
+
+```jsonc
+"catalogue_columns_by_kind": {
+  "video": ["title", "marks", "versions", "updated"]
+}
+```
+
+A video is read down other columns than a song. kilna writes an entry when you
+choose columns with the catalogue narrowed to that kind; a kind without an
+entry reads down `catalogue_columns`. Optional — a document without the key is
+the same document, and a build that does not know an id drops it on read.
+
 `rhythm` may be absent, which is how a profile written before the field
 existed loads: the auto-layout then refuses with an explanation instead of
 inventing a pace. A workspace whose stored copy has no rhythm gains the

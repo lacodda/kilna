@@ -38,7 +38,6 @@
     "status": "Статус",
     "kind": "Вид",
     "anyStatus": "Любой статус",
-    "anyKind": "Любой вид",
     "none": "Ничего не найдено."
   },
   "work": {
@@ -405,6 +404,7 @@
     "viewNamePlaceholder": "Неоценённые клипы",
     "viewSave": "Сохранить",
     "viewRemove": "Забыть срез «{{name}}»",
+    "kindAll": "Все",
     "gaps": "Требует работы",
     "gap": {
       "unscored": "Без оценки",

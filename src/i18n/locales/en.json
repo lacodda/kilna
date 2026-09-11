@@ -38,7 +38,6 @@
     "status": "Status",
     "kind": "Kind",
     "anyStatus": "Any status",
-    "anyKind": "Any kind",
     "none": "No works match."
   },
   "work": {
@@ -381,6 +380,7 @@
     "viewNamePlaceholder": "Unscored clips",
     "viewSave": "Save",
     "viewRemove": "Forget the view \"{{name}}\"",
+    "kindAll": "All",
     "gaps": "Needs work",
     "gap": {
       "unscored": "Not scored",

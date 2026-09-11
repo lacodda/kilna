@@ -24,6 +24,8 @@ import {
 import {
   ALL_COLUMNS,
   columnsFor,
+  columnsForKind,
+  withColumns,
   GAPS,
   groupRows,
   isNarrowed,
@@ -113,11 +115,21 @@ export function Catalogue({ onSelect }: Props) {
   // workspace from before the field opens on what this machine remembered,
   // and that list is written to the profile once so the move is invisible.
   const [opened] = useState(() => columnsFor(profile.config.catalogue_columns))
-  const [columns, setColumnsState] = useState<ColumnId[]>(opened.columns)
+  // The kind the table is narrowed to reads down its own columns, so the
+  // list is derived from the filter rather than held once. What this screen
+  // just chose is kept beside the profile's copy, by kind key ('' for no
+  // kind): the table must not flick back to the old list between the click
+  // and the profile coming back with the new one.
+  const [chosen, setChosen] = useState<Record<string, ColumnId[]>>({})
+  const kindKey = filter.kind ?? ''
+  const columns = chosen[kindKey] ?? columnsForKind(profile.config, filter.kind).columns
 
   const keepColumns = useMutation({
-    mutationFn: (next: ColumnId[]) =>
-      updateProfileConfig(profile.id, { ...profile.config, catalogue_columns: next }),
+    mutationFn: ({ kind, next }: { kind: string | undefined; next: ColumnId[] }) =>
+      updateProfileConfig(profile.id, {
+        ...profile.config,
+        ...withColumns(profile.config, kind, next),
+      }),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.workspace })
       void client.invalidateQueries({ queryKey: keys.profiles })
@@ -126,12 +138,12 @@ export function Catalogue({ onSelect }: Props) {
   })
 
   const setColumns = (next: ColumnId[]) => {
-    setColumnsState(next)
-    keepColumns.mutate(next)
+    setChosen((current) => ({ ...current, [kindKey]: next }))
+    keepColumns.mutate({ kind: filter.kind, next })
   }
 
   useEffect(() => {
-    if (opened.fromMachine) keepColumns.mutate(opened.columns)
+    if (opened.fromMachine) keepColumns.mutate({ kind: undefined, next: opened.columns })
     // Once, on the first open of a profile that has no columns yet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -147,6 +159,8 @@ export function Catalogue({ onSelect }: Props) {
     queryKey: keys.catalogue,
     queryFn: fetchCatalogue,
   })
+  const kindCounts = new Map<string, number>()
+  for (const row of rows.data ?? []) kindCounts.set(row.kind, (kindCounts.get(row.kind) ?? 0) + 1)
 
   const add = useMutation({
     mutationFn: createWork,
@@ -317,6 +331,46 @@ export function Catalogue({ onSelect }: Props) {
         </Button>
       </form>
 
+      {/* The kind of work as a row of chips, not one more dropdown: it is the
+          mode the catalogue is in — songs, videos — and a mode is read at a
+          glance and switched in one click. Hidden while the profile has one
+          kind: "all" beside the only thing there is would be a choice of one.
+          The counts are of the whole catalogue, so a kind reads as empty
+          rather than as absent. */}
+      {profile.config.work_kinds.length > 1 && (
+        <div role="group" aria-label={t('works.kind')} className="flex flex-wrap items-center gap-2">
+          {[
+            { key: undefined, label: t('catalogue.kindAll'), count: rows.data?.length ?? 0 },
+            ...profile.config.work_kinds.map((kind) => ({
+              key: kind.key,
+              label: kind.label,
+              count: kindCounts.get(kind.key) ?? 0,
+            })),
+          ].map((entry) => {
+            const active = filter.kind === entry.key
+            return (
+              <button
+                key={entry.key ?? ''}
+                type="button"
+                aria-pressed={active}
+                // The chip that is on turns off: back to every kind, without
+                // a separate control for it.
+                onClick={() => setFromControl({ kind: active ? undefined : entry.key })}
+                className={cn(
+                  'cursor-pointer rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+                  active
+                    ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
+                    : 'border-line text-dim hover:border-line-2 hover:text-text',
+                )}
+              >
+                {entry.label}
+                <span className="ml-1.5 text-[10.5px] text-faint tabular-nums">{entry.count}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <Input
           className="max-w-96 font-mono text-[12.5px]"
@@ -333,14 +387,6 @@ export function Catalogue({ onSelect }: Props) {
           onChange={(value) => setFromControl({ status: value || undefined })}
           placeholder={t('works.anyStatus')}
           options={allOf(profile.config, 'statuses').map((s) => ({ value: s.key, label: s.label }))}
-        />
-        <Select
-          className="w-44"
-          aria-label={t('works.kind')}
-          value={filter.kind ?? ''}
-          onChange={(value) => setFromControl({ kind: value || undefined })}
-          placeholder={t('works.anyKind')}
-          options={profile.config.work_kinds.map((k) => ({ value: k.key, label: k.label }))}
         />
         <Select
           className="w-44"
@@ -764,7 +810,7 @@ function Rows({
                     </td>
 
                     {columns.map((id) => (
-                      <Cell key={id} column={id} row={row} />
+                      <Cell key={id} column={id} row={row} kindNarrowed={filter.kind !== undefined} />
                     ))}
 
                     <td className="py-2 text-right">
@@ -898,7 +944,16 @@ const COLUMN_SPECS: Record<ColumnId, ColumnSpec> = {
 }
 
 /** One cell, drawn from the column that asked for it. */
-function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
+function Cell({
+  column,
+  row,
+  kindNarrowed,
+}: {
+  column: ColumnId
+  row: ScoredWork
+  /** The table shows one kind of work: naming it on every row says nothing. */
+  kindNarrowed: boolean
+}) {
   const { t } = useTranslation()
   const profile = useProfile()
   const vocabulary = vocabularyOf(profile.config, row.kind)
@@ -917,8 +972,13 @@ function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
         <td className="whitespace-nowrap px-3 py-2">
           <span className="font-medium">{row.title}</span>
           <span className="ml-2 text-xs text-dim">
-            {labelOf(vocabulary.statuses, row.status)} {'·'}{' '}
-            {labelOf(profile.config.work_kinds, row.kind)}
+            {labelOf(vocabulary.statuses, row.status)}
+            {!kindNarrowed && (
+              <>
+                {' · '}
+                {labelOf(profile.config.work_kinds, row.kind)}
+              </>
+            )}
           </span>
         </td>
       )

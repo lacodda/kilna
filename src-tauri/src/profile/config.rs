@@ -48,6 +48,12 @@ pub struct ProfileConfig {
     /// longer knows is dropped on read rather than refused.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub catalogue_columns: Option<Vec<String>>,
+    /// The columns the catalogue shows while it is narrowed to one kind of
+    /// work, by kind key. A video is read down other columns than a song;
+    /// a kind with no entry reads down `catalogue_columns`. An optional key
+    /// added in format 2 — a document without it is the same document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub catalogue_columns_by_kind: Option<BTreeMap<String, Vec<String>>>,
 }
 
 /// A profile document as it is written, in either format.
@@ -76,6 +82,8 @@ pub struct RawProfileConfig {
     pub rhythm: Option<Rhythm>,
     #[serde(default)]
     pub catalogue_columns: Option<Vec<String>>,
+    #[serde(default)]
+    pub catalogue_columns_by_kind: Option<BTreeMap<String, Vec<String>>>,
     // Format 1: the vocabulary, flat on the profile.
     #[serde(default)]
     pub release_kinds: Vec<ReleaseKind>,
@@ -119,6 +127,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             prompts: raw.prompts,
             rhythm: raw.rhythm,
             catalogue_columns: raw.catalogue_columns,
+            catalogue_columns_by_kind: raw.catalogue_columns_by_kind,
         }
     }
 }

@@ -42,9 +42,18 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
   const released = slot.status === 'released'
   const gaps = missing(slot.readiness)
 
+  // What the work is, beside what kind of release this is. Two kinds of work
+  // may ship the same kind of release under the same glyph — a video's
+  // YouTube release and a song's clip both say "film" — and then the glyph
+  // alone cannot tell a video from a song. Said only while the profile has
+  // more than one kind of work: with one there is nothing to tell apart.
+  const manyKinds = profile.config.work_kinds.length > 1
+  const workKindLabel = labelOf(profile.config.work_kinds, slot.work_kind)
+  const what = manyKinds ? `${workKindLabel} · ${kindLabel}` : kindLabel
+
   // The word for everyone the glyph does not reach. The card below is a
   // shortcut for people who can see it hover; this is the fact itself.
-  const label = `${slot.work_title} · ${kindLabel}`
+  const label = `${slot.work_title} · ${what}`
 
   const body = (
     <div
@@ -102,6 +111,11 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
             {slot.slot_pinned_at !== null && (
               <Lock aria-hidden className="size-2.5 shrink-0 text-white/70" />
             )}
+            {manyKinds && (
+              <span className="max-w-14 shrink truncate rounded-[3px] bg-black/35 px-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-white/80">
+                {workKindLabel}
+              </span>
+            )}
             {/* The kind, as the glyph its profile names. Two letters stood here
                 while the code was not allowed to know which kinds exist
                 (ADR 0001) — the profile now names the glyph too, so the rule
@@ -145,7 +159,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
         <p className="text-sm font-semibold leading-tight">{slot.work_title}</p>
         <p className="mt-0.5 flex items-center gap-1.5 text-xs text-dim">
           <KindGlyph icon={kind?.icon} className="size-3.5 shrink-0" />
-          {kindLabel}
+          {what}
         </p>
 
         <dl className="mt-2 flex flex-col gap-1 text-xs">

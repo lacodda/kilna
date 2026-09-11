@@ -69,7 +69,12 @@ accent colour.
 Each booked release shows as a chip in its day, in the colour the work carries
 everywhere else in kilna. The chip's top line holds the grip, the
 [ready marks](#ready-marks), the lock if the date is pinned, and the glyph for
-the kind of release; the title gets the day's full width underneath.
+the kind of release; the title gets the day's full width underneath. Once
+the profile has more than one kind of work, the top line also names the kind
+of the work — *Video*, *Song* — because two kinds of work may ship the same
+kind of release under the same glyph, and a video's YouTube release should
+not read as a song's clip. The dashboard's week says the same beside each
+release.
 Already-released chips are dimmed: they are history sitting on a date, not a
 plan competing for one.
 

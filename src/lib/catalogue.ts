@@ -424,6 +424,47 @@ export function columnsFor(
   return { columns: loadColumns(store), fromMachine: true }
 }
 
+/** The slice of a profile the column choice reads and writes. */
+export interface ColumnHome {
+  catalogue_columns?: string[] | null
+  catalogue_columns_by_kind?: Record<string, string[]> | null
+}
+
+/**
+ * The columns for the table as it is narrowed: a kind's own list when the
+ * profile keeps one for it, the profile's list otherwise.
+ *
+ * A video is read down other columns than a song, and the catalogue narrowed
+ * to videos is the moment that shows. A kind that was never given columns of
+ * its own reads down the shared list rather than the default, so narrowing
+ * never costs a person the layout they already chose.
+ */
+export function columnsForKind(
+  home: ColumnHome,
+  kind: string | undefined,
+  store: SortStore = localStorage,
+): { columns: ColumnId[]; fromMachine: boolean } {
+  const own = kind === undefined ? undefined : home.catalogue_columns_by_kind?.[kind]
+  if (Array.isArray(own)) return { columns: sanitizeColumns(own), fromMachine: false }
+  return columnsFor(home.catalogue_columns, store)
+}
+
+/**
+ * The profile fields to write so that `columnsForKind` answers `next` for
+ * this kind — and only for it: choosing columns while narrowed to videos
+ * must not change how songs are read.
+ */
+export function withColumns(
+  home: ColumnHome,
+  kind: string | undefined,
+  next: ColumnId[],
+): ColumnHome {
+  if (kind === undefined) return { catalogue_columns: next }
+  return {
+    catalogue_columns_by_kind: { ...(home.catalogue_columns_by_kind ?? {}), [kind]: next },
+  }
+}
+
 export function saveColumns(columns: ColumnId[], store: SortStore = localStorage): void {
   try {
     store.setItem(COLUMNS_KEY, JSON.stringify(columns))

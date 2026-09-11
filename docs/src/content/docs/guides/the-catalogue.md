@@ -33,6 +33,13 @@ switches the columns with it, and a second machine opens the same profile on
 the same table. A workspace from before this field opens on what the machine
 remembered and writes that list to the profile once.
 
+**Each kind of work can be read down its own columns.** Narrow the catalogue
+to a kind and choose columns: the choice is kept for that kind, as
+[`catalogue_columns_by_kind`](/kilna/reference/profile-document/#catalogue_columns_by_kind),
+and the shared list stays as it was. A kind you never chose columns for reads
+down the shared list. Videos will grow columns of their own — scenes, frames —
+as the video stages land; the place for them is already there.
+
 A mark your profile no longer defines is not drawn, the same rule the card
 follows: renaming a mark never touches a work.
 
@@ -84,8 +91,15 @@ remember to perform.
 
 ## Narrowing the list
 
+**The kind of work** sits above the search box as a row of chips — **All**,
+then each kind your profile has, with the count of works behind it — as
+soon as the profile has more than one kind. It is the mode the catalogue is
+in: songs, videos, shorts. Choosing a kind shows only those works and stops
+naming the kind on every row; choosing it again goes back to all of them.
+The row is the same filter as `kind:` in the box, so a saved view keeps it.
+
 The search box matches titles as you type, in whatever alphabet they are
-written in. The three dropdowns narrow by status, kind and tier.
+written in. The two dropdowns narrow by status and tier.
 
 ### Narrowing from the box
 

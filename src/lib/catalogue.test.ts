@@ -6,6 +6,8 @@ import {
   groupRows,
   isNarrowed,
   columnsFor,
+  columnsForKind,
+  withColumns,
   loadColumns,
   sanitizeColumns,
   loadFilter,
@@ -372,6 +374,41 @@ describe('the shown columns', () => {
     expect(columnsFor(undefined, store())).toEqual({
       columns: DEFAULT_COLUMNS,
       fromMachine: true,
+    })
+  })
+
+  it('reads a kind down its own columns and every other kind down the shared list', () => {
+    const home = {
+      catalogue_columns: ['title', 'total'],
+      catalogue_columns_by_kind: { video: ['title', 'versions', 'bpm'] },
+    }
+    expect(columnsForKind(home, 'video', store())).toEqual({
+      columns: ['title', 'versions'],
+      fromMachine: false,
+    })
+    expect(columnsForKind(home, 'song', store())).toEqual({
+      columns: ['title', 'total'],
+      fromMachine: false,
+    })
+    expect(columnsForKind(home, undefined, store())).toEqual({
+      columns: ['title', 'total'],
+      fromMachine: false,
+    })
+  })
+
+  it('writes a kind its own columns without touching the others', () => {
+    const home = {
+      catalogue_columns: ['title', 'total'],
+      catalogue_columns_by_kind: { song: ['title', 'marks'] },
+    }
+    expect(withColumns(home, 'video', ['title', 'versions'])).toEqual({
+      catalogue_columns_by_kind: { song: ['title', 'marks'], video: ['title', 'versions'] },
+    })
+    expect(withColumns(home, undefined, ['title', 'id'])).toEqual({
+      catalogue_columns: ['title', 'id'],
+    })
+    expect(withColumns({}, 'video', ['title'])).toEqual({
+      catalogue_columns_by_kind: { video: ['title'] },
     })
   })
 
