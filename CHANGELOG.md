@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.55.0] - 2026-09-11
+
+### Bug Fixes
+- Run the sidebar the full height of the window
+- Show the recorded marks on the scales and keep the rubric row still
+
+### Documentation
+- Describe the editing session, how roles read and the scales that show the score
+
+### Features
+- Let a version role say how its body reads
+- Change a version's body in place until something judges it
+- Click into the text and it is the next revision
 ## [0.54.0] - 2026-09-10
 
 ### Documentation
