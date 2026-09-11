@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.59.0] - 2026-09-11
+
+### Features
+- A work made from another, with the version it was taken at
 ## [0.58.0] - 2026-09-11
 
 ### Features
