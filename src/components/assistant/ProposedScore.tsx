@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import { scoreWork, type ScoreProposal } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { useProfile } from '@/lib/useProfile'
+import { useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -27,7 +27,7 @@ interface Props {
  */
 export function ProposedScore({ workId, proposal }: Props) {
   const { t } = useTranslation()
-  const profile = useProfile()
+  const axes = useVocabulary(workId).axes
   const client = useQueryClient()
   const [applied, setApplied] = useState(false)
 
@@ -56,8 +56,8 @@ export function ProposedScore({ workId, proposal }: Props) {
   // score screen does rather than showing raw keys.
   const named = Object.entries(proposal.axes).map(([key, value]) => ({
     key,
-    label: profile.config.axes.find((axis) => axis.key === key)?.label ?? key,
-    scale: profile.config.axes.find((axis) => axis.key === key)?.scale,
+    label: axes.find((axis) => axis.key === key)?.label ?? key,
+    scale: axes.find((axis) => axis.key === key)?.scale,
     value,
   }))
 

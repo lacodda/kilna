@@ -8,7 +8,7 @@ import { coverFor } from '@/lib/cover'
 import { keys } from '@/lib/query'
 import { announceEdited } from '@/lib/edited'
 import { say } from '@/lib/toast'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/AppDialog'
@@ -35,6 +35,7 @@ interface Props {
 export function CardHeader({ work, releases }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const vocabulary = vocabularyOf(profile.config, work.kind)
 
   // The tier and total belong here rather than only on the Score tab: they are
   // the verdict, and the verdict is what someone opens a card to check.
@@ -99,11 +100,11 @@ export function CardHeader({ work, releases }: Props) {
             <h2 className="text-[21px] font-[650] tracking-[-0.01em]">{work.title}</h2>
 
             <Badge>{labelOf(profile.config.work_kinds, work.kind)}</Badge>
-            <Badge variant="accent">{labelOf(profile.config.statuses, work.status)}</Badge>
+            <Badge variant="accent">{labelOf(vocabulary.statuses, work.status)}</Badge>
 
             {latest !== null && (
               <Badge variant="soft">
-                {latest.tier !== null && `${labelOf(profile.config.tiers, latest.tier)} · `}
+                {latest.tier !== null && `${labelOf(vocabulary.tiers, latest.tier)} · `}
                 <span className="font-mono tabular-nums">{Math.round(latest.total * 10) / 10}</span>
               </Badge>
             )}

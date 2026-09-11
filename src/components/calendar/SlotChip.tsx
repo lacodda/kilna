@@ -5,7 +5,7 @@ import { coverFor } from '@/lib/cover'
 import { KindGlyph } from '@/lib/releaseIcon'
 import { daysBetween, missing } from '@/lib/readiness'
 import { openExternal, shortLink } from '@/lib/link'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { PreviewCard, PreviewCardPopup, PreviewCardTrigger } from '@/components/ui/preview-card'
 import { cn } from '@/lib/utils'
@@ -35,9 +35,10 @@ interface Props {
 export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = false }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const releaseKinds = allOf(profile.config, 'release_kinds')
 
-  const kind = profile.config.release_kinds.find((entry) => entry.key === slot.kind)
-  const kindLabel = labelOf(profile.config.release_kinds, slot.kind)
+  const kind = releaseKinds.find((entry) => entry.key === slot.kind)
+  const kindLabel = labelOf(releaseKinds, slot.kind)
   const released = slot.status === 'released'
   const gaps = missing(slot.readiness)
 
@@ -157,7 +158,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
           {slot.tier !== null && (
             <div className="flex justify-between gap-3">
               <dt className="text-faint">{t('calendar.previewTier')}</dt>
-              <dd>{labelOf(profile.config.tiers, slot.tier)}</dd>
+              <dd>{labelOf(allOf(profile.config, 'tiers'), slot.tier)}</dd>
             </div>
           )}
           <div className="flex justify-between gap-3">
@@ -172,7 +173,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
                         .map((gap) =>
                           gap === 'score'
                             ? t('calendar.missingScore')
-                            : labelOf(profile.config.version_roles, gap),
+                            : labelOf(allOf(profile.config, 'version_roles'), gap),
                         )
                         .join(', '),
                     })}

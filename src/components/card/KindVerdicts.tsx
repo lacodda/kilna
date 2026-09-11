@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { kindVerdicts } from '@/lib/api'
 import { keys } from '@/lib/query'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -23,7 +23,9 @@ interface Props {
  */
 export function KindVerdicts({ workId }: Props) {
   const { t } = useTranslation()
-  const profile = useProfile()
+  // The doors and tiers of this work's own kind: a verdict per release kind
+  // is a reading of one work, and its kind says which kinds and which tiers.
+  const { release_kinds: releaseKinds, tiers } = useVocabulary(workId)
 
   const verdicts = useQuery({
     queryKey: keys.kindVerdicts(workId),
@@ -53,11 +55,11 @@ export function KindVerdicts({ workId }: Props) {
               !row.reweighed && 'opacity-60',
             )}
           >
-            <span className="text-dim">{labelOf(profile.config.release_kinds, row.kind)}</span>
+            <span className="text-dim">{labelOf(releaseKinds, row.kind)}</span>
             <span className="font-mono font-semibold tabular-nums">{row.total.toFixed(1)}</span>
             {row.tier !== null && (
               <span className="rounded bg-soft px-1 py-0.5 text-[10px]">
-                {labelOf(profile.config.tiers, row.tier)}
+                {labelOf(tiers, row.tier)}
               </span>
             )}
           </li>

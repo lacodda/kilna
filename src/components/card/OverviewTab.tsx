@@ -12,7 +12,7 @@ import {
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { useProfile } from '@/lib/useProfile'
+import { useProfile, vocabularyOf } from '@/lib/useProfile'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/input'
@@ -35,6 +35,7 @@ interface Props {
 export function OverviewTab({ work }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const vocabulary = vocabularyOf(profile.config, work.kind)
   const client = useQueryClient()
 
   // The field is edited locally but owned by the query: whenever the stored
@@ -135,7 +136,7 @@ export function OverviewTab({ work }: Props) {
               className="w-full"
               value={work.status}
               onChange={(status) => patch.mutate({ status })}
-              options={profile.config.statuses.map((s) => ({ value: s.key, label: s.label }))}
+              options={vocabulary.statuses.map((s) => ({ value: s.key, label: s.label }))}
             />
           </Field>
 

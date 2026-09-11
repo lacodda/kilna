@@ -11,11 +11,17 @@ import {
 
 const TODAY = '2026-08-28'
 
-const CONFIG: Pick<ProfileConfig, 'tiers' | 'prompts'> = {
-  tiers: [
-    { key: 'hold', label: 'Hold', min: 0 },
-    { key: 'audio', label: 'Audio', min: 55 },
-    { key: 'clip', label: 'Clip', min: 78 },
+const CONFIG: Pick<ProfileConfig, 'work_kinds' | 'prompts'> = {
+  work_kinds: [
+    {
+      key: 'song',
+      label: 'Song',
+      tiers: [
+        { key: 'hold', label: 'Hold', min: 0 },
+        { key: 'audio', label: 'Audio', min: 55 },
+        { key: 'clip', label: 'Clip', min: 78 },
+      ],
+    },
   ],
   prompts: [
     { key: 'score', label: 'Score it', description: '', template: '', produces: 'score' },
@@ -239,7 +245,7 @@ describe('findings', () => {
   })
 
   it('offers no action a profile does not have', () => {
-    const bare = { tiers: CONFIG.tiers, prompts: [] }
+    const bare = { work_kinds: CONFIG.work_kinds, prompts: [] }
     const found = findings([work({ total: null, tier: null, scored_at: null })], [], bare, TODAY)
 
     expect(found.find((f) => f.kind === 'unscored')?.action).toBeUndefined()

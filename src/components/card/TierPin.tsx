@@ -5,7 +5,7 @@ import { Pin } from 'lucide-react'
 import { type Work, pinTier, unpinTier } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/AppDialog'
 import { Input } from '@/components/ui/input'
@@ -32,6 +32,7 @@ interface Props {
 export function TierPin({ work, scored }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const tiers = vocabularyOf(profile.config, work.kind).tiers
   const client = useQueryClient()
 
   const [open, setOpen] = useState(false)
@@ -74,7 +75,7 @@ export function TierPin({ work, scored }: Props) {
   }
 
   const start = () => {
-    setTier(work.tier_pinned ?? scored ?? profile.config.tiers[0]?.key ?? '')
+    setTier(work.tier_pinned ?? scored ?? tiers[0]?.key ?? '')
     setReason(work.tier_pin_reason ?? '')
     setOpen(true)
   }
@@ -84,7 +85,7 @@ export function TierPin({ work, scored }: Props) {
       {pinned ? (
         <p className="text-xs text-dim">
           {t('score.tierPinnedBy', {
-            tier: labelOf(profile.config.tiers, work.tier_pinned!),
+            tier: labelOf(tiers, work.tier_pinned!),
             reason: work.tier_pin_reason ?? '',
           })}{' '}
           <button
@@ -133,7 +134,7 @@ export function TierPin({ work, scored }: Props) {
               value={tier}
               onChange={setTier}
               aria-label={t('score.pinTierWhich')}
-              options={profile.config.tiers.map((entry) => ({
+              options={tiers.map((entry) => ({
                 value: entry.key,
                 label:
                   entry.key === scored

@@ -3,7 +3,7 @@ import { CalendarRange } from 'lucide-react'
 import type { ScheduledRelease } from '@/lib/api'
 import { countByKind, type KindFilter } from '@/lib/calendarFilter'
 import { KindGlyph } from '@/lib/releaseIcon'
-import { useProfile } from '@/lib/useProfile'
+import { allOf, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -30,7 +30,7 @@ export function KindFilterBar({ slots, value, onChange }: Props) {
   // Only kinds the calendar actually holds. A profile states every kind the
   // craft can ship; a filter for a kind with nothing behind it is a button
   // that can only ever empty the screen.
-  const kinds = profile.config.release_kinds.filter((kind) => counts.has(kind.key))
+  const kinds = allOf(profile.config, 'release_kinds').filter((kind) => counts.has(kind.key))
 
   // One kind is not a choice. The row would say "all" beside the only thing
   // there is, which reads as a broken filter rather than a simple calendar.

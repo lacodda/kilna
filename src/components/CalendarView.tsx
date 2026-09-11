@@ -16,7 +16,7 @@ import {
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { PromptDialog } from '@/components/ui/AppDialog'
@@ -199,7 +199,7 @@ export function CalendarView({ onSelect }: Props) {
                   {/* No date yet, so no deadline: the gaps show, calmly. */}
                   <ReadyMarks readiness={entry.readiness} released={false} daysLeft={null} />
                   <span className="text-xs text-faint">
-                    {labelOf(profile.config.release_kinds, entry.kind)}
+                    {labelOf(allOf(profile.config, 'release_kinds'), entry.kind)}
                   </span>
                   <span
                     className="w-10 text-right font-mono tabular-nums"

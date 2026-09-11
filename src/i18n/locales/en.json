@@ -322,6 +322,8 @@
     "save": "Record score",
     "delete": "Delete this score",
     "mirroring": "These are the marks of the recorded score. Move one to judge again.",
+    "noAxes": "This kind of work has no axes yet, so there is nothing to judge it on.",
+    "noAxesLink": "Write its axes in the profile.",
     "partial": "{{filled}} of {{count}} axes filled — the unfilled ones are skipped, not counted as zero.",
     "unjudged": "not judged",
     "ofVersion": "Judging",

@@ -2,7 +2,14 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
-import { updateProfileConfig, type Axis, type Kind, type ProfileConfig, type Tier } from '@/lib/api'
+import {
+  updateProfileConfig,
+  type Axis,
+  type Kind,
+  type ProfileConfig,
+  type Tier,
+  type WorkKind,
+} from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
@@ -36,12 +43,14 @@ export function ProfileEditor() {
 
   const saveStatus = useSaveStatus(save.isPending, save.isError)
 
-  const setAxis = (index: number, changes: Partial<Axis>) => {
-    patch({ axes: config.axes.map((axis, i) => (i === index ? { ...axis, ...changes } : axis)) })
-  }
-
-  const setTier = (index: number, changes: Partial<Tier>) => {
-    patch({ tiers: config.tiers.map((tier, i) => (i === index ? { ...tier, ...changes } : tier)) })
+  // Writes go back into the same `work_kinds[i]` entry: copy the config,
+  // replace the one kind, keep `format` and everything else untouched.
+  const setKind = (index: number, changes: Partial<WorkKind>) => {
+    patch({
+      work_kinds: config.work_kinds.map((kind, i) =>
+        i === index ? { ...kind, ...changes } : kind,
+      ),
+    })
   }
 
   return (
@@ -51,73 +60,17 @@ export function ProfileEditor() {
         <p className="text-sm text-dim">{profile.description}</p>
       </header>
 
-      <section className="flex flex-col gap-2">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
-          {t('editor.axes')}
-        </h4>
-        <p className="text-xs text-dim">{t('editor.axesHint')}</p>
-        <ul className="flex flex-col gap-1.5">
-          {config.axes.map((axis, index) => (
-            <li key={axis.key} className="flex items-center gap-2">
-              <code className="w-28 shrink-0 font-mono text-xs text-dim">{axis.key}</code>
-              <Input
-                className="flex-1"
-                value={axis.label}
-                onChange={(event) => setAxis(index, { label: event.target.value })}
-                aria-label={`${axis.key} label`}
-              />
-              <Input
-                className="w-20"
-                type="number"
-                min={0}
-                step={0.5}
-                value={axis.weight}
-                onChange={(event) => setAxis(index, { weight: Number(event.target.value) })}
-                aria-label={`${axis.key} weight`}
-              />
-              <Button
-                variant="danger"
-                size="icon-sm"
-                title={t('editor.removeAxis')}
-                onClick={() =>
-                  patch({ axes: config.axes.filter((_, i) => i !== index) })
-                }
-              >
-                <X aria-hidden className="size-3.5" />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
-          {t('editor.tiers')}
-        </h4>
-        <p className="text-xs text-dim">{t('editor.tiersHint')}</p>
-        <ul className="flex flex-col gap-1.5">
-          {config.tiers.map((tier, index) => (
-            <li key={tier.key} className="flex items-center gap-2">
-              <code className="w-28 shrink-0 font-mono text-xs text-dim">{tier.key}</code>
-              <Input
-                className="flex-1"
-                value={tier.label}
-                onChange={(event) => setTier(index, { label: event.target.value })}
-                aria-label={`${tier.key} label`}
-              />
-              <Input
-                className="w-20"
-                type="number"
-                min={0}
-                max={100}
-                value={tier.min}
-                onChange={(event) => setTier(index, { min: Number(event.target.value) })}
-                aria-label={`${tier.key} threshold`}
-              />
-            </li>
-          ))}
-        </ul>
-      </section>
+      {/* Since v0.57 the vocabulary belongs to the kind, not the profile: a
+          song and a video are judged on different axes and go out through
+          different doors. One section per `work_kinds[]` entry, heading
+          being the kind's own label. */}
+      {config.work_kinds.map((kind, kindIndex) => (
+        <KindVocabulary
+          key={kind.key}
+          kind={kind}
+          onChange={(changes) => setKind(kindIndex, changes)}
+        />
+      ))}
 
       <section className="flex flex-col gap-2">
         <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
@@ -172,19 +125,9 @@ export function ProfileEditor() {
       </section>
 
       <Vocabulary
-        label={t('editor.statuses')}
-        entries={config.statuses}
-        onChange={(statuses) => patch({ statuses })}
-      />
-      <Vocabulary
         label={t('editor.workKinds')}
         entries={config.work_kinds}
         onChange={(work_kinds) => patch({ work_kinds })}
-      />
-      <Vocabulary
-        label={t('editor.releaseKinds')}
-        entries={config.release_kinds}
-        onChange={(release_kinds) => patch({ release_kinds })}
       />
 
       <section className="flex flex-col gap-2">
@@ -221,6 +164,116 @@ export function ProfileEditor() {
 
       <p className="text-xs text-dim">{t('editor.keysHint')}</p>
     </div>
+  )
+}
+
+/**
+ * One kind's own vocabulary: its axes, tiers, statuses and release kinds.
+ *
+ * Axis keys are deliberately not editable here either — the same past-score
+ * reasoning applies per kind now, not just per profile.
+ */
+function KindVocabulary({
+  kind,
+  onChange,
+}: {
+  kind: WorkKind
+  onChange: (changes: Partial<WorkKind>) => void
+}) {
+  const { t } = useTranslation()
+
+  const axes = kind.axes ?? []
+  const tiers = kind.tiers ?? []
+
+  const setAxis = (index: number, changes: Partial<Axis>) => {
+    onChange({ axes: axes.map((axis, i) => (i === index ? { ...axis, ...changes } : axis)) })
+  }
+
+  const setTier = (index: number, changes: Partial<Tier>) => {
+    onChange({ tiers: tiers.map((tier, i) => (i === index ? { ...tier, ...changes } : tier)) })
+  }
+
+  return (
+    <section className="flex flex-col gap-4 border-t border-line pt-4">
+      <h3 className="text-sm font-semibold">{kind.label}</h3>
+
+      <section className="flex flex-col gap-2">
+        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
+          {t('editor.axes')}
+        </h4>
+        <p className="text-xs text-dim">{t('editor.axesHint')}</p>
+        <ul className="flex flex-col gap-1.5">
+          {axes.map((axis, index) => (
+            <li key={axis.key} className="flex items-center gap-2">
+              <code className="w-28 shrink-0 font-mono text-xs text-dim">{axis.key}</code>
+              <Input
+                className="flex-1"
+                value={axis.label}
+                onChange={(event) => setAxis(index, { label: event.target.value })}
+                aria-label={`${axis.key} label`}
+              />
+              <Input
+                className="w-20"
+                type="number"
+                min={0}
+                step={0.5}
+                value={axis.weight}
+                onChange={(event) => setAxis(index, { weight: Number(event.target.value) })}
+                aria-label={`${axis.key} weight`}
+              />
+              <Button
+                variant="danger"
+                size="icon-sm"
+                title={t('editor.removeAxis')}
+                onClick={() => onChange({ axes: axes.filter((_, i) => i !== index) })}
+              >
+                <X aria-hidden className="size-3.5" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
+          {t('editor.tiers')}
+        </h4>
+        <p className="text-xs text-dim">{t('editor.tiersHint')}</p>
+        <ul className="flex flex-col gap-1.5">
+          {tiers.map((tier, index) => (
+            <li key={tier.key} className="flex items-center gap-2">
+              <code className="w-28 shrink-0 font-mono text-xs text-dim">{tier.key}</code>
+              <Input
+                className="flex-1"
+                value={tier.label}
+                onChange={(event) => setTier(index, { label: event.target.value })}
+                aria-label={`${tier.key} label`}
+              />
+              <Input
+                className="w-20"
+                type="number"
+                min={0}
+                max={100}
+                value={tier.min}
+                onChange={(event) => setTier(index, { min: Number(event.target.value) })}
+                aria-label={`${tier.key} threshold`}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <Vocabulary
+        label={t('editor.statuses')}
+        entries={kind.statuses ?? []}
+        onChange={(statuses) => onChange({ statuses })}
+      />
+      <Vocabulary
+        label={t('editor.releaseKinds')}
+        entries={kind.release_kinds ?? []}
+        onChange={(release_kinds) => onChange({ release_kinds })}
+      />
+    </section>
   )
 }
 

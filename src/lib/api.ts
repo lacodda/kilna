@@ -133,14 +133,22 @@ export interface Rhythm {
   default_time: string | null
 }
 
+/** A kind of work with the vocabulary it is judged and shipped by (format 2).
+    A list a kind leaves out is empty for works of that kind — a video with
+    no axes is scored empty, not on the song's. */
+export interface WorkKind extends Kind {
+  axes?: Axis[]
+  tiers?: Tier[]
+  version_roles?: VersionRole[]
+  release_kinds?: ReleaseKind[]
+  statuses?: Status[]
+}
+
 export interface ProfileConfig {
-  work_kinds: Kind[]
-  release_kinds: ReleaseKind[]
+  /** The shape of the document; 2 since v0.57. */
+  format: number
+  work_kinds: WorkKind[]
   collection_kinds: Kind[]
-  version_roles: VersionRole[]
-  statuses: Status[]
-  axes: Axis[]
-  tiers: Tier[]
   work_meta_fields: MetaField[]
   // Absent in a profile written before marks existed.
   marks?: Mark[]

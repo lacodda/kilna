@@ -1,5 +1,16 @@
 import { createContext, useContext } from 'react'
-import type { Profile } from '@/lib/api'
+import { useQuery } from '@tanstack/react-query'
+import {
+  getWork,
+  type Axis,
+  type Profile,
+  type ProfileConfig,
+  type ReleaseKind,
+  type Status,
+  type Tier,
+  type VersionRole,
+} from '@/lib/api'
+import { keys } from '@/lib/query'
 
 // The active profile is the vocabulary every screen speaks in, so it is read
 // once and shared rather than fetched per component.
@@ -17,4 +28,74 @@ export function useProfile(): Profile {
 // raw key so an unknown value is visible rather than blank.
 export function labelOf(kinds: { key: string; label: string }[], key: string): string {
   return kinds.find((kind) => kind.key === key)?.label ?? key
+}
+
+/** The vocabulary of one kind of work, every list present (empty when the
+    kind leaves it out). */
+export interface Vocabulary {
+  axes: Axis[]
+  tiers: Tier[]
+  version_roles: VersionRole[]
+  release_kinds: ReleaseKind[]
+  statuses: Status[]
+}
+
+const NOTHING: Vocabulary = { axes: [], tiers: [], version_roles: [], release_kinds: [], statuses: [] }
+
+/**
+ * What the profile says about works of `kind`.
+ *
+ * Since v0.57 the vocabulary belongs to the kind, not the profile: a song and
+ * a video are judged on different axes and go out through different doors.
+ * A kind the profile does not know reads as empty rather than as someone
+ * else's — nothing to score, no roles, no releases — so a work whose kind was
+ * removed still opens.
+ */
+export function vocabularyOf(config: ProfileConfig, kind: string | undefined): Vocabulary {
+  const found = kind === undefined ? undefined : config.work_kinds.find((k) => k.key === kind)
+  if (found === undefined) return NOTHING
+  return {
+    axes: found.axes ?? [],
+    tiers: found.tiers ?? [],
+    version_roles: found.version_roles ?? [],
+    release_kinds: found.release_kinds ?? [],
+    statuses: found.statuses ?? [],
+  }
+}
+
+/**
+ * One list across every kind, once per key, first label wins.
+ *
+ * For the screens that speak to every kind at once — the catalogue's filters,
+ * the calendar's kind bar, a batch moving many works — and for nothing that
+ * judges a single work: those read the work's own kind.
+ */
+export function allOf<K extends keyof Vocabulary>(config: ProfileConfig, list: K): Vocabulary[K] {
+  const seen = new Set<string>()
+  const out: { key: string; label: string }[] = []
+  for (const kind of config.work_kinds) {
+    for (const entry of (kind[list] ?? []) as { key: string; label: string }[]) {
+      if (seen.has(entry.key)) continue
+      seen.add(entry.key)
+      out.push(entry)
+    }
+  }
+  return out as Vocabulary[K]
+}
+
+/** The kind of a work, once it is known; `undefined` while loading. */
+export function useWorkKind(workId: string | undefined): string | undefined {
+  const work = useQuery({
+    queryKey: keys.work(workId ?? ''),
+    queryFn: () => getWork(workId!),
+    enabled: workId !== undefined,
+  })
+  return work.data?.kind
+}
+
+/** The vocabulary of a work's kind, empty until the work is known. */
+export function useVocabulary(workId: string | undefined): Vocabulary {
+  const profile = useProfile()
+  const kind = useWorkKind(workId)
+  return vocabularyOf(profile.config, kind)
 }

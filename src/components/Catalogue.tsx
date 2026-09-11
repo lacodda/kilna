@@ -56,7 +56,7 @@ import {
 import { keys } from '@/lib/query'
 import { announceDeleted } from '@/lib/trash'
 import { say } from '@/lib/toast'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { allOf, labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { nextTier } from '@/lib/scoring'
 import { Pin } from 'lucide-react'
 import type { Tab } from '@/components/card/tabs'
@@ -238,9 +238,9 @@ export function Catalogue({ onSelect }: Props) {
   // The profile's own words, which the query box resolves values against so
   // `tier:Picture` works as well as `tier:pic`.
   const vocabulary: Vocabulary = {
-    statuses: profile.config.statuses,
+    statuses: allOf(profile.config, 'statuses'),
     kinds: profile.config.work_kinds,
-    tiers: profile.config.tiers,
+    tiers: allOf(profile.config, 'tiers'),
   }
 
   // What the box shows. Held apart from the filter rather than derived from it,
@@ -332,7 +332,7 @@ export function Catalogue({ onSelect }: Props) {
           value={filter.status ?? ''}
           onChange={(value) => setFromControl({ status: value || undefined })}
           placeholder={t('works.anyStatus')}
-          options={profile.config.statuses.map((s) => ({ value: s.key, label: s.label }))}
+          options={allOf(profile.config, 'statuses').map((s) => ({ value: s.key, label: s.label }))}
         />
         <Select
           className="w-44"
@@ -348,7 +348,7 @@ export function Catalogue({ onSelect }: Props) {
           value={filter.tier ?? ''}
           onChange={(value) => setFromControl({ tier: value || undefined })}
           placeholder={t('catalogue.anyTier')}
-          options={profile.config.tiers.map((tier) => ({ value: tier.key, label: tier.label }))}
+          options={allOf(profile.config, 'tiers').map((tier) => ({ value: tier.key, label: tier.label }))}
         />
       </div>
 
@@ -531,8 +531,8 @@ function Rows({
   const groupLabel = (key: string | null) => {
     if (key === null) return t('catalogue.groupNone')
     return groupBy === 'status'
-      ? labelOf(profile.config.statuses, key)
-      : labelOf(profile.config.tiers, key)
+      ? labelOf(allOf(profile.config, 'statuses'), key)
+      : labelOf(allOf(profile.config, 'tiers'), key)
   }
 
   // Only what is on screen can be ticked by the header box: filtering something
@@ -621,7 +621,7 @@ function Rows({
               dropdown among flat buttons read as the loudest thing here, and
               deleting must not be the easiest click to make by accident. */}
           <BulkMenu
-            statuses={profile.config.statuses}
+            statuses={allOf(profile.config, 'statuses')}
             busy={busy || deleting}
             onSetStatus={(status) => onSetStatus(chosen, status)}
             onUnschedule={() => onUnschedule(chosen)}
@@ -901,6 +901,7 @@ const COLUMN_SPECS: Record<ColumnId, ColumnSpec> = {
 function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const vocabulary = vocabularyOf(profile.config, row.kind)
 
   switch (column) {
     case 'id':
@@ -916,7 +917,7 @@ function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
         <td className="whitespace-nowrap px-3 py-2">
           <span className="font-medium">{row.title}</span>
           <span className="ml-2 text-xs text-dim">
-            {labelOf(profile.config.statuses, row.status)} {'·'}{' '}
+            {labelOf(vocabulary.statuses, row.status)} {'·'}{' '}
             {labelOf(profile.config.work_kinds, row.kind)}
           </span>
         </td>
@@ -970,7 +971,7 @@ function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
       const ahead =
         row.total === null || row.tier_pinned
           ? undefined
-          : nextTier(profile.config.tiers, row.total)
+          : nextTier(vocabulary.tiers, row.total)
 
       return (
         <td className="px-3 py-2">
@@ -979,7 +980,7 @@ function Cell({ column, row }: { column: ColumnId; row: ScoredWork }) {
           ) : (
             <span className="flex flex-wrap items-baseline gap-1.5">
               <span className="rounded bg-accent-soft px-1.5 py-0.5 text-xs">
-                {labelOf(profile.config.tiers, row.tier)}
+                {labelOf(vocabulary.tiers, row.tier)}
               </span>
               {/* A tier held by hand is not a tier the score arrived at, and
                   a reader who cannot tell them apart is reading a number that

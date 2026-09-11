@@ -8,7 +8,7 @@ import type { Ghost } from '@/lib/layout'
 import { byDate, monthGrid, sameMonth, shiftMonth, today, type Month } from '@/lib/month'
 import { accentFor } from '@/lib/cover'
 import { releaseIcon } from '@/lib/releaseIcon'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { SlotChip } from '@/components/calendar/SlotChip'
 import { useChipDrag } from '@/lib/useChipDrag'
@@ -57,6 +57,7 @@ export function MonthGrid({
 }: Props) {
   const { t, i18n } = useTranslation()
   const profile = useProfile()
+  const releaseKinds = allOf(profile.config, 'release_kinds')
 
   // Where the grid is on screen, so the hook knows when the pointer has
   // reached an edge and the month should turn.
@@ -84,7 +85,7 @@ export function MonthGrid({
   // The profile's entry for a kind, or nothing when the calendar still holds a
   // release of a kind the profile has since dropped. Nothing is a real answer
   // here: the chip falls back to the neutral glyph rather than disappearing.
-  const kindOf = (key: string) => profile.config.release_kinds.find((kind) => kind.key === key)
+  const kindOf = (key: string) => releaseKinds.find((kind) => kind.key === key)
 
   // The one day showing everything it holds, if any. One at a time: several
   // expanded days at once and the grid stops being a month at a glance, which
@@ -289,7 +290,7 @@ export function MonthGrid({
                 {(ghosts?.get(day.date) ?? []).map((ghost) => (
                   <div
                     key={ghost.releaseId}
-                    title={`${ghost.title} · ${labelOf(profile.config.release_kinds, ghost.kind)}`}
+                    title={`${ghost.title} · ${labelOf(releaseKinds, ghost.kind)}`}
                     className="flex flex-wrap items-center gap-x-1.5 rounded-[7px] border border-dashed px-1.5 py-1 text-[11px]"
                     style={{ borderColor: accentFor(ghost.workId) }}
                   >

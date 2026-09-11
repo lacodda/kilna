@@ -13,7 +13,7 @@ import { findings, visible } from '@/lib/findings'
 import { today } from '@/lib/month'
 import { keys } from '@/lib/query'
 import { missing } from '@/lib/readiness'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -171,7 +171,7 @@ function DecisionRow({
   const { release, daysLeft } = decision
 
   const gaps = missing(release.readiness).map((gap) =>
-    gap === 'score' ? t('calendar.missingScore') : labelOf(profile.config.version_roles, gap),
+    gap === 'score' ? t('calendar.missingScore') : labelOf(allOf(profile.config, 'version_roles'), gap),
   )
 
   return (
@@ -227,7 +227,7 @@ function WeekRow({
         style={{ background: coverFor(release.work_id) }}
       />
       <span className="min-w-0 flex-1 truncate text-sm font-semibold">{release.work_title}</span>
-      <Badge variant="soft">{labelOf(profile.config.release_kinds, release.kind)}</Badge>
+      <Badge variant="soft">{labelOf(allOf(profile.config, 'release_kinds'), release.kind)}</Badge>
       <ReadyMarks readiness={release.readiness} released={false} daysLeft={daysLeft} />
     </button>
   )
@@ -253,7 +253,7 @@ function CoverCard({
       <span className="block px-3 py-2">
         <span className="block truncate text-[12.5px] font-semibold">{work.title}</span>
         <span className="block font-mono text-[11px] text-faint">
-          {work.tier === null ? '' : `${labelOf(profile.config.tiers, work.tier)} · `}
+          {work.tier === null ? '' : `${labelOf(allOf(profile.config, 'tiers'), work.tier)} · `}
           {work.total?.toFixed(1) ?? ''}
         </span>
       </span>

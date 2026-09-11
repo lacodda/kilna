@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Check, CheckCheck, FileText, Gauge } from 'lucide-react'
 import type { Readiness } from '@/lib/api'
 import { missing, urgency } from '@/lib/readiness'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -53,7 +53,7 @@ export function ReadyMarks({ readiness, released, daysLeft, className }: Props) 
 
   const gaps = missing(readiness)
   const names = gaps.map((gap) =>
-    gap === 'score' ? t('calendar.missingScore') : labelOf(profile.config.version_roles, gap),
+    gap === 'score' ? t('calendar.missingScore') : labelOf(allOf(profile.config, 'version_roles'), gap),
   )
 
   return (

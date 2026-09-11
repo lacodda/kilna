@@ -18,7 +18,7 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { useBodyEditing } from '@/lib/useBodyEditing'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/Markdown'
@@ -66,9 +66,8 @@ function readsAsMarkdown(roles: VersionRole[], role: string): boolean {
 // showing them interleaved would suggest otherwise.
 export function VersionPanel({ workId }: Props) {
   const { t } = useTranslation()
-  const profile = useProfile()
   const client = useQueryClient()
-  const roles = profile.config.version_roles
+  const roles = useVocabulary(workId).version_roles
 
   const [role, setRole] = useState(roles[0]?.key ?? '')
   // A version named in the address wins until something else is picked. That

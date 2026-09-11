@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router'
 import { createVersion } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { useProfile } from '@/lib/useProfile'
+import { useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/AppDialog'
 import { Input } from '@/components/ui/input'
@@ -40,11 +40,10 @@ export function InsertVersionDialog({
   label: proposedLabel,
 }: Props) {
   const { t } = useTranslation()
-  const profile = useProfile()
   const client = useQueryClient()
   const navigate = useNavigate()
 
-  const roles = profile.config.version_roles
+  const roles = useVocabulary(workId).version_roles
   const [role, setRole] = useState(
     proposedRole !== undefined && roles.some((r) => r.key === proposedRole)
       ? proposedRole

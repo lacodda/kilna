@@ -19,7 +19,7 @@ import { today } from '@/lib/month'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { announceEdited } from '@/lib/edited'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { KindGlyph } from '@/lib/releaseIcon'
 import { openExternal, shortLink } from '@/lib/link'
 import { cn } from '@/lib/utils'
@@ -46,9 +46,8 @@ interface Props {
  */
 export function ReleasePanel({ workId, workTitle }: Props) {
   const { t } = useTranslation()
-  const profile = useProfile()
   const client = useQueryClient()
-  const kinds = profile.config.release_kinds
+  const kinds = useVocabulary(workId).release_kinds
 
   const [kind, setKind] = useState(kinds[0]?.key ?? '')
   const [editing, setEditing] = useState<ScheduledRelease | null>(null)

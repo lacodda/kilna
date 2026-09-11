@@ -7,7 +7,7 @@ import { deleteScore, getWork, listVersions, scoreHistory, scoreWork } from '@/l
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
-import { labelOf, useProfile } from '@/lib/useProfile'
+import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { markReaching, rubricFor, tierFor, toNextTier, total as computeTotal } from '@/lib/scoring'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -35,9 +35,8 @@ interface Props {
  */
 export function ScorePanel({ workId }: Props) {
   const { t } = useTranslation()
-  const profile = useProfile()
   const client = useQueryClient()
-  const { axes, tiers } = profile.config
+  const { axes, tiers, version_roles } = useVocabulary(workId)
 
   // What the person has set on the scales this time — `null` until a mark is
   // moved. Until then the scales mirror the recorded score, so opening the
@@ -178,7 +177,7 @@ export function ScorePanel({ workId }: Props) {
 
   const versionOptions = (versions.data ?? []).map((version) => ({
     value: version.id,
-    label: `${labelOf(profile.config.version_roles, version.role)} · ${
+    label: `${labelOf(version_roles, version.role)} · ${
       version.label ?? t('versions.revision', { number: version.revision })
     }${version.is_current ? ` · ${t('versions.current')}` : ''}`,
   }))
@@ -220,6 +219,18 @@ export function ScorePanel({ workId }: Props) {
 
       <Panel className="overflow-hidden">
         <div className="flex flex-col gap-2.5 p-4">
+          {/* A kind with no axes yet — a video in a workspace whose owner has
+              not written its judgement — is scored empty rather than on the
+              song's axes. Said here, with the way to the editor, because an
+              empty panel reads as broken and it is not. */}
+          {axes.length === 0 && (
+            <p className="text-sm text-dim">
+              {t('score.noAxes')}{' '}
+              <Link to="/settings" className="underline decoration-dotted underline-offset-2 hover:text-text">
+                {t('score.noAxesLink')}
+              </Link>
+            </p>
+          )}
           {axes.map((axis) => (
             <div
               key={axis.key}

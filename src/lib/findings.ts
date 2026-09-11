@@ -1,4 +1,4 @@
-import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api'
+import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork, Tier } from '@/lib/api'
 import { daysBetween } from '@/lib/readiness'
 
 /**
@@ -75,7 +75,7 @@ function isOpen(work: ScoredWork): boolean {
 export function findings(
   works: readonly ScoredWork[],
   calendar: readonly ScheduledRelease[],
-  config: Pick<ProfileConfig, 'tiers' | 'prompts'>,
+  config: Pick<ProfileConfig, 'work_kinds' | 'prompts'>,
   today: string,
 ): Finding[] {
   const actions = new Set(config.prompts.map((prompt) => prompt.key))
@@ -152,10 +152,18 @@ export function findings(
 function weakScheduled(
   works: readonly ScoredWork[],
   calendar: readonly ScheduledRelease[],
-  config: Pick<ProfileConfig, 'tiers'>,
+  config: Pick<ProfileConfig, 'work_kinds'>,
   today: string,
 ): Finding[] {
-  const weakest = [...config.tiers].sort((a, b) => a.min - b.min)[0]
+  // The union across every kind, once per key: a finding about the plan as a
+  // whole has no single work in hand to read a vocabulary from.
+  const tiers = new Map<string, Tier>()
+  for (const kind of config.work_kinds) {
+    for (const tier of kind.tiers ?? []) {
+      if (!tiers.has(tier.key)) tiers.set(tier.key, tier)
+    }
+  }
+  const weakest = [...tiers.values()].sort((a, b) => a.min - b.min)[0]
   if (weakest === undefined) return []
 
   // What could take the slot instead: judged, unbooked, and stronger than the
