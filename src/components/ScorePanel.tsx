@@ -39,7 +39,11 @@ export function ScorePanel({ workId }: Props) {
   const client = useQueryClient()
   const { axes, tiers } = profile.config
 
-  const [values, setValues] = useState<Record<string, number>>({})
+  // What the person has set on the scales this time — `null` until a mark is
+  // moved. Until then the scales mirror the recorded score, so opening the
+  // tab shows the verdict that stands rather than an empty form with the
+  // verdict listed underneath; after a save they mirror the one just given.
+  const [form, setForm] = useState<Record<string, number> | null>(null)
   // The mark the pointer is over, per axis, so the rubric can answer "what is
   // a seven here" while the person is deciding rather than after.
   const [hovered, setHovered] = useState<Record<string, number>>({})
@@ -77,6 +81,22 @@ export function ScorePanel({ workId }: Props) {
     queryFn: () => getWork(workId),
   })
 
+  const historyData = history.data ?? []
+  // The marks of the latest score, restricted to axes the profile still has:
+  // a snapshot taken before an axis was removed keeps that mark, but the
+  // scale for it is gone.
+  const recorded: Record<string, number> = {}
+  for (const axis of axes) {
+    const mark = historyData[0]?.axes[axis.key]
+    if (typeof mark === 'number') recorded[axis.key] = mark
+  }
+  // Judging blind hides the past verdict, and the scales are the past verdict
+  // too — so blind starts from empty scales, not from a mirror of last time.
+  const values = form ?? (hiding ? {} : recorded)
+  const touched = form !== null
+  const setValues = (update: (current: Record<string, number>) => Record<string, number>) =>
+    setForm(update(values))
+
   const filled = Object.keys(values).length
   const preview = computeTotal(axes, values)
   const previewTier = tierFor(tiers, preview)
@@ -108,7 +128,8 @@ export function ScorePanel({ workId }: Props) {
         rater: rater.trim() === '' ? null : rater.trim(),
       }),
     onSuccess: () => {
-      setValues({})
+      // Back to mirroring: the score just saved is now the recorded one.
+      setForm(null)
       setNote('')
       setVersionId('')
       // The rater is deliberately kept: judging a batch as one person means
@@ -134,7 +155,6 @@ export function ScorePanel({ workId }: Props) {
     onError: (cause) => say.failedTo(t('toast.scoreSaveFailed'), cause),
   })
 
-  const historyData = history.data ?? []
   // The previous total, to show what a revision did to it.
   const previous = historyData[1]?.total
   // Oldest first for the line; the list below stays newest first.
@@ -149,6 +169,12 @@ export function ScorePanel({ workId }: Props) {
     oldestFirst
       .map((score) => score.axes[key])
       .filter((value): value is number => typeof value === 'number')
+
+  // The rubric entry for the mark being weighed on an axis, if the craft wrote one.
+  const rubricLine = (axis: (typeof axes)[number]) => {
+    const mark = hovered[axis.key] ?? values[axis.key]
+    return mark === undefined ? undefined : rubricFor(axis, mark)
+  }
 
   const versionOptions = (versions.data ?? []).map((version) => ({
     value: version.id,
@@ -257,19 +283,23 @@ export function ScorePanel({ workId }: Props) {
                 {/* What the mark under consideration means, when the craft has
                     said. The mark being hovered wins over the one already set:
                     the question while scoring is about the mark being weighed,
-                    not the one already given. */}
-                {(() => {
-                  const mark = hovered[axis.key] ?? values[axis.key]
-                  if (mark === undefined) return null
-                  const entry = rubricFor(axis, mark)
-                  if (entry === undefined) return null
+                    not the one already given.
 
-                  return (
-                    <span className="truncate text-[11px] text-dim" title={entry.label}>
-                      <b className="font-mono font-semibold">{entry.at}</b> — {entry.label}
-                    </span>
-                  )
-                })()}
+                    The line keeps its row whether or not it has anything to
+                    say. Appearing on hover pushed the axes below out from under
+                    the pointer, the hover ended, the line went, the axes came
+                    back under the pointer — a strobe. */}
+                <span className="block h-4 truncate text-[11px] leading-4 text-dim" title={rubricLine(axis)?.label}>
+                  {(() => {
+                    const entry = rubricLine(axis)
+                    if (entry === undefined) return '\u00a0'
+                    return (
+                      <>
+                        <b className="font-mono font-semibold">{entry.at}</b> — {entry.label}
+                      </>
+                    )
+                  })()}
+                </span>
               </span>
 
               <span className="flex items-center justify-end gap-2">
@@ -319,12 +349,16 @@ export function ScorePanel({ workId }: Props) {
             <Button
               className="ml-auto"
               variant="primary"
-              disabled={filled === 0 || save.isPending}
+              disabled={filled === 0 || !touched || save.isPending}
               onClick={() => save.mutate()}
             >
               {t('score.save')}
             </Button>
           </div>
+
+          {!touched && filled > 0 && (
+            <p className="text-xs text-faint">{t('score.mirroring')}</p>
+          )}
 
           {filled > 0 && (
             <div className="flex flex-col gap-1.5">
