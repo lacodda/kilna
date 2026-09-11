@@ -96,6 +96,8 @@ pub fn reversible(kind: &str) -> bool {
             | "release.update"
             | "release.markReleased"
             | "entity.discard"
+            | "link.create"
+            | "link.delete"
     )
 }
 
@@ -226,6 +228,42 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
         "entity.discard" => {
             let entry_id = required(params, "id")?;
             crate::trash::restore(conn, &entry_id, Some(logged.param("at", at.clone())))?;
+        }
+
+        // A link is a fact about two works with no body of its own: undoing
+        // its making removes it outright, and undoing its removal puts the
+        // same row back under the same id and moment, from the copy the
+        // deletion recorded.
+        "link.create" => {
+            let id = crate::minted::Minted::from_params(params)?.id().to_owned();
+            edit(conn, logged, &at, |tx| crate::link::delete(tx, &id))?;
+        }
+
+        "link.delete" => {
+            let id = required(params, "id")?;
+            let before = params
+                .get("before")
+                .and_then(Value::as_object)
+                .ok_or_else(|| Error::Other("the deletion recorded no link to put back".into()))?;
+            let profile_id = entry
+                .profile_id
+                .clone()
+                .ok_or_else(|| Error::Other("the deletion names no profile".into()))?;
+            let new: crate::link::NewLink = serde_json::from_value(Value::Object(before.clone()))?;
+            let created_at = before
+                .get("created_at")
+                .and_then(Value::as_str)
+                .unwrap_or(at.as_str())
+                .to_owned();
+            edit(conn, logged, &at, |tx| {
+                crate::link::create_minted(
+                    tx,
+                    &profile_id,
+                    new,
+                    crate::minted::Minted::of(id.clone(), created_at.clone()),
+                )
+                .map(|_| ())
+            })?;
         }
 
         // A release that went out is taken back out of the world. The link it

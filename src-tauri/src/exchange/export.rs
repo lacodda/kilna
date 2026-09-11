@@ -129,6 +129,27 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             }
         }
 
+        let sources = crate::link::sources(conn, &work.id)?;
+        if !sources.is_empty() {
+            page.push_str("\n## Made from\n\n");
+            for link in &sources {
+                page.push_str(&format!(
+                    "- **{}** ({}, {}){}{}\n",
+                    link.source_title,
+                    link.source_kind,
+                    link.role,
+                    link.taken_revision
+                        .map(|r| format!(" — taken at revision {r}"))
+                        .unwrap_or_default(),
+                    if link.drifted {
+                        " — changed since"
+                    } else {
+                        ""
+                    }
+                ));
+            }
+        }
+
         let releases = release::for_work(conn, &profile.id, &work.id)?;
         if !releases.is_empty() {
             page.push_str("\n## Releases\n\n");

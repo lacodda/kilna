@@ -76,7 +76,10 @@ export function VersionPanel({ workId }: Props) {
   const [params, setParams] = useSearchParams()
   const asked = params.get('version')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [comparedId, setComparedId] = useState<string | null>(null)
+  // A comparison named in the address, the way a version is: a link whose
+  // source moved on points here with both — the version taken and the one
+  // it is on now — and the diff is open on arrival.
+  const [comparedId, setComparedId] = useState<string | null>(() => params.get('compare'))
   const [reading, setReading] = useState<Reading>('view')
   const [commentReading, setCommentReading] = useState<Exclude<Reading, 'changes'>>('view')
   const [stage, setStage] = useState<{ pane: Pane; level: Exclude<Level, 'inline'> } | null>(null)

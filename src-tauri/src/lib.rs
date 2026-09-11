@@ -9,6 +9,7 @@ pub mod exchange;
 pub mod focus;
 pub mod journal;
 pub mod layout;
+pub mod link;
 pub mod mcp;
 pub mod minted;
 pub mod note;
@@ -122,6 +123,10 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::update_collection,
             commands::delete_collection,
             commands::set_collection_contents,
+            commands::list_links,
+            commands::create_link,
+            commands::delete_link,
+            commands::derive_work,
             commands::search,
             commands::list_journal,
             commands::journal_for_work,

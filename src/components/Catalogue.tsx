@@ -182,7 +182,9 @@ export function Catalogue({ onSelect }: Props) {
     const trimmed = title.trim()
     if (trimmed === '') return
 
-    const kind = profile.config.work_kinds[0]?.key
+    // The kind the catalogue is narrowed to, else the profile's first: with
+    // the Video chip on, "Add" makes a video, which is what the chip says.
+    const kind = filter.kind ?? profile.config.work_kinds[0]?.key
     if (kind === undefined) return
 
     add.mutate({ kind, title: trimmed })

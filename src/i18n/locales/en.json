@@ -528,6 +528,28 @@
     "appliedAll_one": "{{count}} proposal applied.",
     "appliedAll_other": "{{count}} proposals applied."
   },
+  "links": {
+    "sources": "Made from",
+    "noSources": "Made from nothing in particular. Name a source below, or leave it.",
+    "derived": "Made from this",
+    "noDerived": "Nothing has been made from this yet.",
+    "makeFromThis": "Make a {{kind}} from this",
+    "made": "Made “{{title}}” from this.",
+    "pickPlaceholder": "Name a source — start typing a title",
+    "matches": "Works matching",
+    "noMatch": "No work by that title",
+    "linked": "Linked to “{{title}}”.",
+    "remove": "Remove the link",
+    "removed": "Link removed.",
+    "role": {
+      "donor": "Source"
+    },
+    "takenAt": "taken at r{{revision}}",
+    "unchanged": "unchanged since",
+    "driftedTo": "changed since — now r{{revision}}",
+    "driftedInPlace": "changed since — the same revision, edited",
+    "seeDiff": "See what changed"
+  },
   "notes": {
     "title": "Notes",
     "add": "Add",
@@ -675,6 +697,8 @@
     "proposal.score": "{{client}} proposed a score for “{{title}}”.",
     "proposal.note": "{{client}} proposed a note on “{{title}}”.",
     "proposal.freeNote": "{{client}} proposed a note.",
+    "link.created": "“{{title}}” is made from “{{source}}”.",
+    "link.removed": "“{{title}}” is no longer made from “{{source}}”.",
     "proposal.work": "{{client}} proposed a new work, “{{title}}”.",
     "proposal.package": "{{client}} proposed a package for “{{title}}”.",
     "version.deleted": "Version “{{label}}” deleted.",
@@ -710,6 +734,7 @@
       "versions": "Versions",
       "score": "Score",
       "releases": "Releases",
+      "links": "Links",
       "notes": "Notes",
       "assistant": "Assistant",
       "history": "History"
@@ -767,6 +792,8 @@
     "release.create": "adding a release",
     "release.update": "an edit to a release",
     "release.markReleased": "marking a release as out",
-    "entity.discard": "a deletion"
+    "entity.discard": "a deletion",
+    "link.create": "linking a source",
+    "link.delete": "removing a link"
   }
 }

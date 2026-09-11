@@ -25,13 +25,14 @@ use kilna_lib::{db, operation, profile, release, replay, work};
 
 /// Tables a rebuilt workspace has to match on. Everything the person's work
 /// lives in; nothing about this machine or this conversation.
-const COMPARED: [&str; 8] = [
+const COMPARED: [&str; 9] = [
     "work",
     "work_version",
     "work_score",
     "release",
     "note",
     "collection",
+    "work_link",
     "focus_note",
     "tombstone",
 ];

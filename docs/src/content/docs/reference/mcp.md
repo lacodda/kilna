@@ -34,7 +34,7 @@ it, it opens the one the window uses.
 | --- | --- |
 | `workspace` | The active profile's vocabulary: the overview fields, and per kind of work its version roles and how each reads, axes with weights and scales, tiers, statuses, kinds of release; how many works. Read first — a work is judged in its own kind's keys, and every other tool speaks in them. |
 | `catalogue` | Every work with its verdict: id, title, kind, status, total and tier, whether the score is stale, releases out and scheduled, when it was last touched. Filter by a substring of the title, a kind, a status. |
-| `work` | One card: fields and meta, tags, every version by role (id, revision, label, length, which is current), the latest score with its axes, the releases, how many notes. No bodies. |
+| `work` | One card: fields and meta, tags, every version by role (id, revision, label, length, which is current), the latest score with its axes, the releases, how many notes, what it was made from (`sources`, each saying whether the source has moved on since) and what was made from it (`derived`). No bodies. |
 | `text` | The body of a version: the current one of a role, or a revision by id. Plain roles come back exactly as typed. |
 | `scores` | The score history of a work, newest first. |
 | `calendar` | Every release with a date, in calendar order; `from` starts at a day. |

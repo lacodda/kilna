@@ -26,6 +26,7 @@ use crate::assistant::apply;
 use crate::assistant::proposal::{self, PackagedNote, PackagedVersion, Proposal};
 use crate::error::{Error, Result};
 use crate::journal::{self, Record};
+use crate::link;
 use crate::note::{self, NoteFilter};
 use crate::work::version;
 use crate::work::{self, WorkFilter};
@@ -197,7 +198,9 @@ fn tools() -> Vec<Value> {
             "work",
             "One work as its card shows it: the fields and meta, tags, every version by role \
              (id, revision, label, length, which is current), the latest score with its axes, \
-             the releases, how many notes. Bodies are not included — read one with `text`.",
+             the releases, how many notes, what it was made from (`sources`, with whether the \
+             source has moved on since) and what was made from it (`derived`). Bodies are not \
+             included — read one with `text`.",
             json!({ "work": work_arg() }),
             &["work"],
         ),
@@ -483,6 +486,7 @@ pub fn run_tool(
             }
             let latest = score::latest(conn, &found.id)?;
             let releases = release::for_work(conn, &profile.id, &found.id)?;
+            let links = link::for_work(conn, &found.id)?;
             let notes: i64 = conn.query_row(
                 "SELECT count(*) FROM note WHERE work_id = ?1",
                 [&found.id],
@@ -497,6 +501,13 @@ pub fn run_tool(
                 "latest_score": latest,
                 "releases": releases,
                 "notes": notes,
+                "sources": links.sources.iter().map(|l| json!({
+                    "work": l.source_id, "title": l.source_title, "kind": l.source_kind, "role": l.role,
+                    "taken_at_version": l.source_version_id, "drifted": l.drifted,
+                })).collect::<Vec<_>>(),
+                "derived": links.derived.iter().map(|d| json!({
+                    "work": d.work_id, "title": d.title, "kind": d.kind, "status": d.status, "role": d.role,
+                })).collect::<Vec<_>>(),
             }))
         }
 

@@ -114,7 +114,8 @@ skip them:
 - **A trace of every deletion.** Which row went, from which table, when, and
   whether it was restored since — without its contents. It survives emptying
   the trash and is what lets the import above tell *deleted* from *never
-  here*.
+  here*. A [link between works](/kilna/guides/made-from/) is traced the same
+  way.
 - **A clock per field.** For everything you edit in place — a work, a
   release, a note, a collection, a profile, a chat, a board note — the moment
   each field last changed, not just the row. Saving a form with the same

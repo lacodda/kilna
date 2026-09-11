@@ -12,6 +12,7 @@ use crate::exchange::import::{self, ImportReport};
 use crate::focus::{self, Dismissal, DismissalKey, FocusNote, FocusNotePatch, NewFocusNote};
 use crate::journal::{self, Entry, Record};
 use crate::layout;
+use crate::link::{self, Links, NewLink};
 use crate::minted::Minted;
 use crate::note::{self, NewNote, Note, NoteFilter, NotePatch};
 use crate::operation;
@@ -1598,6 +1599,175 @@ pub fn update_collection(
 #[tauri::command]
 pub fn delete_collection(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Collection, &id)
+}
+
+/// What a work was made from, and what was made from it.
+#[tauri::command]
+pub fn list_links(state: State<'_, AppState>, work_id: String) -> Result<Links> {
+    let conn = state.conn();
+    link::for_work(&conn, &work_id)
+}
+
+/// Say that a work was made from another, remembering the source's version.
+#[tauri::command]
+pub fn create_link(state: State<'_, AppState>, link: NewLink) -> Result<link::Link> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    record_link(&mut conn, &profile_id, link)
+}
+
+/// The body of `create_link`, shared with `derive_work`: the operation, the
+/// row and the journal line, in that order.
+fn record_link(
+    conn: &mut rusqlite::Connection,
+    profile_id: &str,
+    new: NewLink,
+) -> Result<link::Link> {
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("link.create")
+        .in_profile(profile_id)
+        .param("profile", profile_key(conn, profile_id)?)
+        .param("link", serde_json::to_value(&new)?)
+        .minted(&minted);
+
+    let created = recording(conn, logged, |tx| {
+        link::create_minted(tx, profile_id, new, minted)
+    })?;
+
+    journal::record(
+        conn,
+        profile_id,
+        Record::new("link.created")
+            .param(
+                "title",
+                journal::work_title(conn, &created.work_id).unwrap_or_default(),
+            )
+            .param("source", created.source_title.clone())
+            .about("work", created.work_id.clone()),
+    );
+
+    Ok(created)
+}
+
+/// Unsay it. The link goes outright, tombstoned by the schema: it is a fact
+/// about two works, not a thing with a body worth a drawer in the trash.
+#[tauri::command]
+pub fn delete_link(state: State<'_, AppState>, id: String) -> Result<()> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let before = link::get(&conn, &id)?.ok_or_else(|| Error::not_found("link", &id))?;
+
+    // The row itself goes into the log, so an undo can put it back under the
+    // same id and moment: a link has no drawer in the trash to come back from.
+    let logged = operation::Intent::new("link.delete")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param(
+            "before",
+            serde_json::json!({
+                "work_id": before.work_id,
+                "source_id": before.source_id,
+                "role": before.role,
+                "source_version_id": before.source_version_id,
+                "created_at": before.created_at,
+            }),
+        );
+
+    recording(&mut conn, logged, |tx| link::delete(tx, &id))?;
+
+    journal::record(
+        &conn,
+        &profile_id,
+        Record::new("link.removed")
+            .param(
+                "title",
+                journal::work_title(&conn, &before.work_id).unwrap_or_default(),
+            )
+            .param("source", before.source_title)
+            .about("work", before.work_id),
+    );
+
+    Ok(())
+}
+
+/// Make a work from another: a video from a song.
+///
+/// The new work takes the source's title and the overview fields the profile
+/// has — the inputs flow once, at creation, and never again (decision of
+/// 2026-09-10): what the source does afterwards is a fact the link reports,
+/// not a change pushed into the work. Its text is not copied: a video's roles
+/// are its own. Two operations, as a hand would make them — the work, then
+/// the link — so a replay rebuilds both under their ids.
+#[tauri::command]
+pub fn derive_work(
+    state: State<'_, AppState>,
+    source_id: String,
+    kind: String,
+    title: Option<String>,
+) -> Result<Work> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let source =
+        work::get(&conn, &source_id)?.ok_or_else(|| Error::not_found("work", &source_id))?;
+    let config = profile::config_for(&conn, &profile_id)?;
+    if config.kind(&kind).is_none() {
+        return Err(Error::Other(format!(
+            "the profile has no kind of work `{kind}`"
+        )));
+    }
+    // Only fields the profile has: a stray key in the source's meta is not
+    // carried into a new work.
+    let meta: serde_json::Map<String, serde_json::Value> = source
+        .meta
+        .iter()
+        .filter(|(key, _)| {
+            config
+                .work_meta_fields
+                .iter()
+                .any(|field| field.key == **key)
+        })
+        .map(|(key, value)| (key.clone(), value.clone()))
+        .collect();
+    let new = NewWork {
+        kind,
+        title: title
+            .map(|title| title.trim().to_owned())
+            .filter(|title| !title.is_empty())
+            .unwrap_or_else(|| source.title.clone()),
+        meta: Some(meta),
+        ..NewWork::default()
+    };
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("work.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("work", serde_json::to_value(&new)?)
+        .minted(&minted);
+    let created = recording(&mut conn, logged, |tx| {
+        work::create_minted(tx, &profile_id, new, minted)
+    })?;
+    journal::record(
+        &conn,
+        &profile_id,
+        Record::new("work.created")
+            .param("title", created.title.clone())
+            .about("work", created.id.clone()),
+    );
+
+    record_link(
+        &mut conn,
+        &profile_id,
+        NewLink {
+            work_id: created.id.clone(),
+            source_id,
+            role: None,
+            source_version_id: None,
+        },
+    )?;
+
+    Ok(created)
 }
 
 /// Anything matching a query: works, version bodies, notes, chat messages.

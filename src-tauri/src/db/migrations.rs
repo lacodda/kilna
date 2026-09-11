@@ -82,6 +82,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "version_body_clock",
         sql: include_str!("../../migrations/0014_version_body_clock.sql"),
     },
+    Migration {
+        version: 15,
+        name: "work_link",
+        sql: include_str!("../../migrations/0015_work_link.sql"),
+    },
 ];
 
 /// The newest schema this build understands.

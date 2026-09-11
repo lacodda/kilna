@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
-import { deleteWork, getWork, releasesForWork } from '@/lib/api'
+import { deleteWork, getWork, listLinks, releasesForWork } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { noteDeleted, noteOpened } from '@/lib/recent'
 import { say } from '@/lib/toast'
@@ -11,6 +11,7 @@ import { announceDeleted } from '@/lib/trash'
 import { Button } from '@/components/ui/button'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { CardHeader } from '@/components/card/CardHeader'
+import { LinksTab } from '@/components/card/LinksTab'
 import { OverviewTab } from '@/components/card/OverviewTab'
 import { DEFAULT_TAB, isTab, type Tab } from '@/components/card/tabs'
 import { VersionPanel } from '@/components/VersionPanel'
@@ -55,6 +56,12 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   const releases = useQuery({
     queryKey: keys.releasesForWork(workId),
     queryFn: () => releasesForWork(workId),
+  })
+  // For the count on the tab: "Links (2)" is how a song shows it has clips
+  // without anyone opening the tab.
+  const links = useQuery({
+    queryKey: keys.linksFor(workId),
+    queryFn: () => listLinks(workId),
   })
 
   const remove = useMutation({
@@ -103,7 +110,11 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   // cut in two by a stripe of background. The body gets its own margin instead.
   return (
     <div className="flex flex-col">
-      <CardHeader work={current} releases={releases.data?.length ?? 0} />
+      <CardHeader
+        work={current}
+        releases={releases.data?.length ?? 0}
+        links={(links.data?.sources.length ?? 0) + (links.data?.derived.length ?? 0)}
+      />
 
       <div className="mt-4">
         <TabBody tab={tab} workId={workId} work={current} />
@@ -149,6 +160,8 @@ function TabBody({
       return <ScorePanel workId={workId} />
     case 'releases':
       return <ReleasePanel workId={workId} workTitle={work.title} />
+    case 'links':
+      return <LinksTab work={work} />
     case 'notes':
       return <NotePanel workId={workId} />
     // The mockup has no assistant tab — it puts the panel in a drawer with a

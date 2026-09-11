@@ -577,6 +577,28 @@
     "appliedAll_many": "Применено {{count}} предложений.",
     "appliedAll_other": "Применено {{count}} предложения."
   },
+  "links": {
+    "sources": "Сделано из",
+    "noSources": "Ни из чего в частности. Назовите источник ниже — или оставьте так.",
+    "derived": "Сделано из этого",
+    "noDerived": "Из этого пока ничего не сделано.",
+    "makeFromThis": "Сделать {{kind}} из этого",
+    "made": "«{{title}}» сделано из этого.",
+    "pickPlaceholder": "Назвать источник — начните вводить название",
+    "matches": "Подходящие произведения",
+    "noMatch": "Нет произведения с таким названием",
+    "linked": "Связано с «{{title}}».",
+    "remove": "Убрать связь",
+    "removed": "Связь убрана.",
+    "role": {
+      "donor": "Источник"
+    },
+    "takenAt": "взято на r{{revision}}",
+    "unchanged": "с тех пор не менялось",
+    "driftedTo": "изменилось — сейчас r{{revision}}",
+    "driftedInPlace": "изменилось — та же редакция, правлена",
+    "seeDiff": "Что изменилось"
+  },
   "notes": {
     "title": "Заметки",
     "add": "Добавить",
@@ -729,6 +751,8 @@
     "proposal.score": "{{client}} предлагает оценку для «{{title}}».",
     "proposal.note": "{{client}} предлагает заметку к «{{title}}».",
     "proposal.freeNote": "{{client}} предлагает заметку.",
+    "link.created": "«{{title}}» сделано из «{{source}}».",
+    "link.removed": "«{{title}}» больше не сделано из «{{source}}».",
     "proposal.work": "{{client}} предлагает новое произведение — «{{title}}».",
     "proposal.package": "{{client}} предлагает пакет для «{{title}}».",
     "version.created": "{{role}} {{revision}} добавлена в «{{title}}».",
@@ -775,6 +799,7 @@
       "versions": "Версии",
       "score": "Оценка",
       "releases": "Выпуски",
+      "links": "Связи",
       "notes": "Заметки",
       "assistant": "Ассистент",
       "history": "История"
@@ -832,6 +857,8 @@
     "release.create": "добавление выпуска",
     "release.update": "правку выпуска",
     "release.markReleased": "отметку о выпуске",
-    "entity.discard": "удаление"
+    "entity.discard": "удаление",
+    "link.create": "связь с источником",
+    "link.delete": "удаление связи"
   }
 }

@@ -300,6 +300,54 @@ export interface WorkFilter {
   search?: string
 }
 
+/** A work this one was made from, as the card reads it. */
+export interface Link {
+  id: string
+  /** The work that was made from the other. */
+  work_id: string
+  /** The work it was made from. */
+  source_id: string
+  role: string
+  /** The source's current version when the link was made; null when it had
+      none, or that version was deleted since. */
+  source_version_id: string | null
+  created_at: string
+  source_title: string
+  source_kind: string
+  source_status: string
+  source_current_version_id: string | null
+  taken_revision: number | null
+  current_revision: number | null
+  /** The source has moved on since: another version is current, or the one
+      taken was edited in place. A fact for the card to mark, not a verdict. */
+  drifted: boolean
+}
+
+/** A work made from this one. */
+export interface Derived {
+  link_id: string
+  work_id: string
+  title: string
+  kind: string
+  status: string
+  role: string
+  created_at: string
+}
+
+export interface Links {
+  sources: Link[]
+  derived: Derived[]
+}
+
+export interface NewLink {
+  work_id: string
+  source_id: string
+  /** `donor` when omitted. */
+  role?: string | null
+  /** The source's current version when omitted. */
+  source_version_id?: string | null
+}
+
 export interface Version {
   id: string
   work_id: string
@@ -592,6 +640,12 @@ export const createWork = (work: NewWork) => invoke<Work>('create_work', { work 
 export const updateWork = (id: string, patch: WorkPatch) => invoke<Work>('update_work', { id, patch })
 export const deleteWork = (id: string) => invoke<string>('delete_work', { id })
 export const deleteWorks = (ids: string[]) => invoke<string[]>('delete_works', { ids })
+export const listLinks = (workId: string) => invoke<Links>('list_links', { workId })
+export const createLink = (link: NewLink) => invoke<Link>('create_link', { link })
+export const deleteLink = (id: string) => invoke<void>('delete_link', { id })
+/** Make a work of `kind` from another: title and overview fields copied once, a donor link. */
+export const deriveWork = (sourceId: string, kind: string, title?: string) =>
+  invoke<Work>('derive_work', { sourceId, kind, title: title ?? null })
 export const setWorksStatus = (workIds: string[], status: string) =>
   invoke<BulkOutcome>('set_works_status', { workIds, status })
 

@@ -314,6 +314,100 @@ fn undoing_a_deletion_brings_the_row_back() {
     );
 }
 
+/// A link made is taken back by removing it; a link removed is taken back by
+/// putting the same row back — same id, same moment, same version taken.
+#[test]
+fn a_link_is_taken_back_both_ways() {
+    let (mut conn, profile_id, song_id) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let video_id = work::create(
+        &conn,
+        &profile_id,
+        NewWork {
+            kind: "video".into(),
+            title: "Harbour lights".into(),
+            ..NewWork::default()
+        },
+    )
+    .unwrap()
+    .id;
+
+    let new = kilna_lib::link::NewLink {
+        work_id: video_id.clone(),
+        source_id: song_id.clone(),
+        role: None,
+        source_version_id: None,
+    };
+    let minted = Minted::fresh();
+    let link_id = minted.id().to_owned();
+    let logged = operation::Intent::new("link.create")
+        .in_profile(&profile_id)
+        .param("profile", key.clone())
+        .param("link", serde_json::to_value(&new).unwrap())
+        .minted(&minted);
+    let transaction = conn.transaction().unwrap();
+    kilna_lib::link::create_minted(&transaction, &profile_id, new, minted).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("a link made can be undone");
+    assert_eq!(offer.action, "undo.link.create");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    assert!(
+        kilna_lib::link::get(&conn, &link_id).unwrap().is_none(),
+        "the link is still there"
+    );
+
+    // Made again, then removed the way the command removes it, then undone.
+    let minted = Minted::fresh();
+    let link_id = minted.id().to_owned();
+    let transaction = conn.transaction().unwrap();
+    let made = kilna_lib::link::create_minted(
+        &transaction,
+        &profile_id,
+        kilna_lib::link::NewLink {
+            work_id: video_id.clone(),
+            source_id: song_id.clone(),
+            role: None,
+            source_version_id: None,
+        },
+        minted,
+    )
+    .unwrap();
+    transaction.commit().unwrap();
+    let logged = operation::Intent::new("link.delete")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("id", link_id.clone())
+        .param(
+            "before",
+            serde_json::json!({
+                "work_id": made.work_id, "source_id": made.source_id, "role": made.role,
+                "source_version_id": made.source_version_id, "created_at": made.created_at,
+            }),
+        );
+    let transaction = conn.transaction().unwrap();
+    kilna_lib::link::delete(&transaction, &link_id).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+    assert!(kilna_lib::link::get(&conn, &link_id).unwrap().is_none());
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("a link removed can be undone");
+    assert_eq!(offer.action, "undo.link.delete");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+
+    let back = kilna_lib::link::get(&conn, &link_id)
+        .unwrap()
+        .expect("the link came back");
+    assert_eq!(back.created_at, made.created_at, "under its own moment");
+    assert_eq!(back.source_id, song_id);
+    assert_eq!(back.role, "donor");
+}
+
 /// An operation kind that is not reversible is not offered.
 ///
 /// The list in `undo::reversible` is the promise; this checks the promise is

@@ -7,6 +7,8 @@ interface Props {
   workId: string
   /** Shown beside the Releases tab; omitted when there are none. */
   releases?: number
+  /** Shown beside the Links tab: sources and works made from this, together. */
+  links?: number
 }
 
 /**
@@ -16,7 +18,7 @@ interface Props {
  * be linked to from a note, a journal entry or a chat — the same reason the open
  * work became `/works/:id` in v0.11.
  */
-export function TabBar({ workId, releases = 0 }: Props) {
+export function TabBar({ workId, releases = 0, links = 0 }: Props) {
   const { t } = useTranslation()
 
   return (
@@ -47,6 +49,11 @@ export function TabBar({ workId, releases = 0 }: Props) {
           {tab === 'releases' && releases > 0 && (
             <span className="rounded-full border border-line px-1.5 text-[11px] text-faint">
               {releases}
+            </span>
+          )}
+          {tab === 'links' && links > 0 && (
+            <span className="rounded-full border border-line px-1.5 text-[11px] text-faint">
+              {links}
             </span>
           )}
         </NavLink>

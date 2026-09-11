@@ -121,6 +121,17 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "asset",
                 key: "work_id",
             },
+            // A link is about two works and cascades from either; the
+            // snapshot takes it from both sides, so a video restored gets
+            // its song back and a song restored gets its videos back.
+            Capture {
+                table: "work_link",
+                key: "work_id",
+            },
+            Capture {
+                table: "work_link",
+                key: "source_id",
+            },
         ],
         Entity::Version => &[Capture {
             table: "work_version",
@@ -223,8 +234,16 @@ fn discard_in_tx(
     let mut snapshot = Map::new();
     for capture in cascade(entity) {
         let rows = read_rows(tx, capture.table, capture.key, id)?;
-        if !rows.is_empty() {
-            snapshot.insert(capture.table.to_owned(), Value::Array(rows));
+        if rows.is_empty() {
+            continue;
+        }
+        // A table captured from two sides lands under one key: the snapshot
+        // is by table, and a restore reads it by table.
+        match snapshot.get_mut(capture.table) {
+            Some(Value::Array(existing)) => existing.extend(rows),
+            _ => {
+                snapshot.insert(capture.table.to_owned(), Value::Array(rows));
+            }
         }
     }
 
@@ -332,7 +351,13 @@ pub fn restore(
         return Err(Error::NotRestorable(missing));
     }
 
+    let mut restored: std::collections::HashSet<&str> = std::collections::HashSet::new();
     for capture in cascade(entity) {
+        // A table captured from two sides was snapshotted once; it is put
+        // back once.
+        if !restored.insert(capture.table) {
+            continue;
+        }
         let Some(Value::Array(rows)) = snapshot.get(capture.table) else {
             continue;
         };
@@ -340,6 +365,13 @@ pub fn restore(
             let Value::Object(row) = row else {
                 return Err(Error::Other("a trashed row is not an object".into()));
             };
+            // A link is about two works. One restored while the other is
+            // still gone has nothing to point at, and inserting it would fail
+            // on the foreign key; it stays out, as the cascade left it, and
+            // comes back with the other work if that one is restored.
+            if capture.table == "work_link" && !link_has_both_sides(&tx, row)? {
+                continue;
+            }
             insert_row(&tx, capture.table, row)?;
         }
     }
@@ -363,6 +395,25 @@ pub fn restore(
     tx.commit()?;
 
     Ok(())
+}
+
+/// Whether both works a trashed link joins are alive.
+fn link_has_both_sides(conn: &Connection, row: &Map<String, Value>) -> Result<bool> {
+    for side in ["work_id", "source_id"] {
+        let Some(id) = row.get(side).and_then(Value::as_str) else {
+            return Ok(false);
+        };
+        let alive: bool = conn
+            .query_row("SELECT 1 FROM work WHERE id = ?1", params![id], |_| {
+                Ok(true)
+            })
+            .optional()?
+            .unwrap_or(false);
+        if !alive {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 /// Ids of the works currently in a collection.

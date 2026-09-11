@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { latestScore, listCollections, updateWork, type Work } from '@/lib/api'
+import { deriveWork, latestScore, listCollections, updateWork, type Work } from '@/lib/api'
 import { coverFor } from '@/lib/cover'
 import { keys } from '@/lib/query'
 import { announceEdited } from '@/lib/edited'
@@ -22,6 +22,8 @@ interface Props {
   work: Work
   /** Shown on the Releases tab; the card already knows the count. */
   releases: number
+  /** Shown on the Links tab: sources and works made from this. */
+  links?: number
 }
 
 /**
@@ -32,7 +34,7 @@ interface Props {
  * real covers arrive; it is what makes one card distinguishable from another
  * before a single word is read.
  */
-export function CardHeader({ work, releases }: Props) {
+export function CardHeader({ work, releases, links = 0 }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const vocabulary = vocabularyOf(profile.config, work.kind)
@@ -123,7 +125,7 @@ export function CardHeader({ work, releases }: Props) {
           <MetaStrip work={work} />
         </div>
 
-        <TabBar workId={work.id} releases={releases} />
+        <TabBar workId={work.id} releases={releases} links={links} />
       </header>
 
       <RenameDialog work={work} open={renaming} onOpenChange={setRenaming} />
@@ -140,6 +142,24 @@ export function CardHeader({ work, releases }: Props) {
  */
 function HeaderActions({ work, onRename }: { work: Work; onRename: () => void }) {
   const { t } = useTranslation()
+  const profile = useProfile()
+  const client = useQueryClient()
+  const navigate = useNavigate()
+
+  // A work of another kind made from this one — a video from a song. One
+  // entry per other kind of the profile, so the menu says what can be made
+  // rather than opening a dialog to ask.
+  const derive = useMutation({
+    mutationFn: (kind: string) => deriveWork(work.id, kind),
+    onSuccess: (created) => {
+      for (const key of [keys.works, keys.catalogue, keys.links, keys.journal]) {
+        void client.invalidateQueries({ queryKey: key })
+      }
+      say.ok(t('links.made', { title: created.title }))
+      void navigate(`/works/${created.id}/links`)
+    },
+    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
+  })
 
   // The tick only after the clipboard confirms — the rule from v0.28: telling
   // someone a copy succeeded when it did not is worse than saying nothing.
@@ -165,6 +185,13 @@ function HeaderActions({ work, onRename }: { work: Work; onRename: () => void })
           // it lives.
           onSelect: () => copy(`kilna://works/${work.id}`),
         },
+        ...profile.config.work_kinds
+          .filter((kind) => kind.key !== work.kind)
+          .map((kind) => ({
+            key: `derive:${kind.key}`,
+            label: t('links.makeFromThis', { kind: kind.label }),
+            onSelect: () => derive.mutate(kind.key),
+          })),
       ]}
     />
   )
