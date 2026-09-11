@@ -1,88 +1,130 @@
 ---
 title: Writing a version
-description: The editor — drafts that survive a closed window, naming versions, revising a version into the next one, previewing markdown, writing full screen, and comparing two drafts side by side.
+description: The editor — click into the text and it is the next revision, one version per sitting, the whole screen for writing, how each role reads, naming a version, and comparing two drafts side by side.
 ---
 
-Every draft of a work is kept whole. You never overwrite the last one, and
-nothing is stored as a diff — so going back to what you wrote three weeks ago
-is opening it, not reconstructing it.
+Every draft of a work is kept whole. Nothing is stored as a diff — so going
+back to what you wrote three weeks ago is opening it, not reconstructing it.
 
 This is the **Versions** tab of a work's card.
 
-## Your draft is not lost
+## Revising is clicking into the text
 
-Text in the editor is kept as you type, and it is still there after you close
-kilna and open it again. A draft belongs to one work and one role: what you
-write as lyrics stays under lyrics, and switching to the style prompt gives you
-that role's own draft rather than carrying yours over.
+The open version is there to be read. Click into it and it is there to be
+written: the text becomes a box, the card steps aside so the text has the
+whole content area, and you type.
 
-A small *Draft kept* note appears while there is unsaved text. It is a
-reassurance, not a state you have to clear — the draft disappears by becoming a
-version, and in no other way except your own deletion. Emptying a work from the
-trash for good takes its drafts with it, since nothing could reach them
-afterwards.
+The first change starts the next revision. kilna mints it from the version
+you clicked into, makes it the current one, and every change after that goes
+into it — written a moment after you pause, with a quiet *saved* beside the
+title. There is no save step. `Ctrl+S` writes right now instead of a moment
+later, for the hand that presses it anyway.
 
-## Saving a version
+The revision you started from stays exactly as it was. That is the promise
+the history makes, and it is why the first keystroke makes a new version
+rather than changing the one you opened.
 
-**Save as new version** turns the draft into a version with the next revision
-number for that role. Two things are worth setting before you do:
+### One version per sitting
 
-**A name.** Optional, and worth it. `tightened chorus` says more in the list a
-month later than `Revision 4`. Unnamed versions are listed by their number, so
-there is no penalty for skipping it.
+What makes this one revision rather than fifty is the sitting. All the
+changes you make to the open text are one version, until you leave it — you
+open another version or another role, or you go to a different tab — or
+until you pause for twenty minutes. The next change after that starts the
+next revision.
 
-**Whether it becomes current.** Ticked by default, because a new draft is
-usually the one you are working on. Untick it to record an experiment without
-promoting it — the work keeps pointing at the version it pointed at before, and
-scores and exports keep reading that one. You can always promote it later with
-the star beside its row.
+So an evening of work on a lyric is one version, and the next morning's
+changes are the next one. Neither "a version every time the editor opens" nor
+"a version every ten minutes" says anything true about the writing; the
+sitting does.
 
-## Revising a version
+### A judged version does not change
 
-Versions never change once saved. There is no *edit* — a revision you can
-rewrite afterwards is not a record of what you wrote, and every score, release
-and comparison pointing at it would quietly start describing different text.
+A score is a snapshot of the text it read. Once a version has been scored,
+its text is frozen: the next change you type into it starts a new revision
+instead, silently, because that is what you meant anyway. The version the
+score judged stays as the score saw it.
 
-Revising is therefore *starting the next revision from this one*. The **new
-version from this one** button on any row loads that version's text into the
-editor, where you change the line you came to change and save it as the next
-revision. The one you started from stays exactly as it was.
+## Reading
 
-If you already had unsaved text in that role, it is set aside rather than
-guarded by a question: the toast that confirms the copy offers **bring the
-draft back**, which returns what was there. That is the same trade kilna makes
-for deletion — one click to take it back afterwards beats one click every
-time.
+Each pane has three ways of showing the text, as icons in its corner:
 
-## Reading what you wrote
+- **Read** shows the body the way its role reads (below). This is the
+  default, and clicking into it is how you start writing.
+- **Edit** is the same text in a box, in place, for the small fix that does
+  not need the room.
+- **Changes** compares the open version with the revision before it, without
+  your having to find that revision first. On the first revision of a role
+  there is nothing before it, and kilna says so rather than comparing it
+  with itself.
 
-The open version can be read three ways:
+### How a role reads
 
-- **Text** shows exactly what is stored, in a monospace column.
-- **Preview** renders it as markdown — headings, emphasis, lists, quotes.
-- **Changes** compares it with the revision before it, without your having to
-  find that revision first. On the first revision of a role there is nothing
-  before it, and kilna says so rather than comparing it with itself.
+The profile says how each role's text is drawn, because kilna cannot tell a
+lyric sheet from an essay by looking at it:
 
-Text and Preview are also in the editor while you write, so you can check how a
-lyric sheet or an outline will read before it becomes a version.
+- A **plain** role — lyrics, a style prompt — is a monospace column, exactly
+  as typed. A verse is a shape on the page, and the shape is part of it.
+- A **markdown** role — a review, a chapter — draws its headings, quotes,
+  lists and tables.
 
-kilna stores your text exactly as you typed it. Markdown is a way of *looking*
-at it, never a conversion: nothing is rewritten, and a draft full of asterisks
-you did not mean as emphasis is still stored with those asterisks.
+Music ships lyrics and style as plain, review and critique as markdown; the
+[profile document](/kilna/reference/profile-document/#version_roles) is where
+that is set. Either way kilna stores the text exactly as you typed it.
+Markdown is a way of *looking* at it, never a conversion.
 
-## Full screen
+## The whole screen
 
-The **full screen** button takes the editor over the whole window. A page of
-lyrics read inside a six-row box is not read at all. `Esc` leaves it, and
-nothing about the draft changes on the way in or out.
+Clicking into the text gives it the whole content area, with the sidebar in
+place. The **expand** icon does the same without starting to write, for
+reading a long text. The **focus** icon goes one further: the text alone,
+over the whole window, nothing else.
+
+`Esc` steps back one level at a time — from focus to the content area, from
+the content area to the card. Nothing about the text changes on the way in
+or out.
+
+## Beside the text
+
+A role written *about* another — a review or a critique of the lyrics — sits
+beside the text it discusses, matched revision for revision: a review of
+revision 2 is shown beside revision 2 and not beside revision 5. It reads,
+edits and expands the same way the text does, in its own sitting.
+
+## Writing a version from nothing, or from a copy
+
+Two moments need a decision before the text, and they open the form:
+
+- **There is no version in this role yet.** The form is there because there
+  is nothing to click into.
+- **You want a copy to work on.** The **new version from this one** button
+  on any row copies that version's text into the form — for a rewrite that
+  keeps the original open beside it, or for a version that wants a name.
+  **New version** at the top of the tab opens the same form empty.
+
+The form is the only place a version is **named**. `tightened chorus` says
+more in the list a month later than `Revision 4`; unnamed versions are listed
+by number, so there is no penalty for skipping it. **Make this the current
+version** is ticked by default; untick it to record an experiment without
+promoting it — scores and exports keep reading the version the work pointed
+at before, and the star beside any row promotes it later.
+
+Text in the form is kept as you type, and is still there after you close
+kilna and open it again — a small *Draft kept* note says so. The draft
+disappears by becoming a version, and in no other way except your own
+deletion. If you copy a version into a form that already holds a draft, the
+draft is set aside rather than guarded by a question: the toast offers
+**bring the draft back**.
+
+Once saved, the new version opens and the list scrolls to it. A version made
+anywhere else — from the assistant's *insert as version*, say — does the
+same: the tab opens on it, so a version is never only a toast.
 
 ## Comparing two versions
 
-**Changes** answers the usual question — *what moved since last time* — against
-the revision immediately before the open one. To compare against some other
-version, the **±** button on any row in the list puts that one on the left
-instead.
+**Changes** answers the usual question — *what moved since last time* —
+against the revision immediately before the open one. To compare against
+some other version, the **±** button on any row in the list puts that one on
+the left instead.
 
 Either way they appear side by side: the older text on the left, the newer on
 the right, with lines that left marked in red and lines that arrived marked in
@@ -94,8 +136,7 @@ prose — a verse, a scene, a script — and prose is revised by the line. Seein
 a word-level diff of a rewritten verse is confetti.
 
 Press **±** again to stop comparing, or open the version you were comparing
-against and it clears itself. **Text** or **Preview** leaves the comparison
-too.
+against and it clears itself. **Read** or **Edit** leaves the comparison too.
 
 ## Walking the history
 

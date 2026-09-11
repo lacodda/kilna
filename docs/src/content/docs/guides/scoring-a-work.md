@@ -21,6 +21,12 @@ unjudged. The scale is also a keyboard control: Tab moves between axes, the
 arrow keys move a mark at a time, Home and End jump to either end, and
 Backspace clears the axis. Judging six axes never needs the mouse.
 
+A work that has been scored before opens with the recorded marks already on
+the scales — the verdict that stands, on the scales rather than only in the
+history underneath. **Save** stays off until you move a mark, so you cannot
+record the same verdict twice by accident; move one and the scales are yours
+again. After a save the scales settle on the score you just gave.
+
 You don't need every axis filled. Leaving `production`, `originality` and
 `visual` blank doesn't count against the work — they're excluded from the
 total entirely rather than treated as zero. See
@@ -78,7 +84,8 @@ something you called an eight in July.
 
 **Score blind** puts the past out of sight. The history, the per-axis trends
 and the assistant's opinion are held back until this card has a verdict of its
-own; recording one brings them straight back, which is the point — the
+own, and the scales start empty rather than on the recorded marks; recording
+a verdict brings everything straight back, which is the point — the
 comparison is the payoff, not the temptation.
 
 What stays visible is your own arithmetic: the total these marks add up to,

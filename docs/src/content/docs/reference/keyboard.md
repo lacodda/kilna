@@ -45,7 +45,7 @@ back where you started.
 | --- | --- |
 | `Ctrl+Z` / `⌘Z` | Take back the last thing you changed |
 | `?` | This list |
-| `Esc` | Close what is open — a dialog, the search box, a full-screen editor |
+| `Esc` | Close what is open — a dialog, the search box; a text on the whole screen steps back one level |
 
 Undo takes back one thing: the last change to the workspace. Not every change
 can be taken back — a plan applied to the whole calendar, a status recomputed
@@ -72,6 +72,9 @@ A shortcut must never cost you a sentence:
   a field on purpose — it is the way *out* of where you are. `Alt+←` walks back
   from inside the version editor for the same reason: `Alt` types nothing, so
   it interrupts nothing.
+- **`Ctrl+S` writes the open text now.** The text in a version saves itself
+  a moment after you pause; the key is for the hand that presses it anyway,
+  and it writes immediately instead of a moment later.
 - **`Ctrl+Z` belongs to the field you are in.** It is the one shortcut with a
   modifier that stands aside, because inside a text field it already means
   something — take back the word you just typed. Taking back a saved edit while
