@@ -137,7 +137,11 @@ function ShellSkeleton() {
             inside asks it to open a chat. */}
         <AssistantLauncher>
           <div className="grid h-full grid-cols-[216px_1fr] grid-rows-[52px_1fr] [grid-template-areas:'side_top'_'side_main']">
-          <div className="[grid-area:side]">
+          {/* `min-h-0` for the same reason the main column has it: the rail
+              is a grid item, and without it the nav measured its content
+              rather than the track, so its border and footer stopped
+              halfway down a tall window. */}
+          <div className="min-h-0 [grid-area:side]">
             <Sidebar
               profileId={workspace.profile.id}
               // The open work belongs to the profile being left.

@@ -76,7 +76,9 @@ export function Sidebar({ profileId, onProfileSwitched }: Props) {
   const ThemeIcon = THEME_ICONS[theme]
 
   return (
-    <nav className="flex flex-col gap-0.5 border-r border-line px-2.5 pt-3.5 pb-3">
+    // `h-full` so the rail runs the height of the window: the footer sits at
+    // the bottom because the nav reaches it, not because the content does.
+    <nav className="flex h-full flex-col gap-0.5 overflow-y-auto border-r border-line px-2.5 pt-3.5 pb-3">
       <div className="flex items-center gap-2.5 px-2 pb-3.5">
         <svg className="size-[26px] shrink-0" viewBox="0 0 32 32" aria-hidden>
           <path d="M16 2 28 9v14L16 30 4 23V9z" fill="var(--accent)" />
