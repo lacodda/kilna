@@ -35,6 +35,20 @@ pub enum Proposal {
         #[serde(skip_serializing_if = "Vec::is_empty")]
         missing: Vec<String>,
     },
+    /// A new version in a role. The text itself is the message body — that
+    /// is what *insert as version* keeps, verbatim — so the proposal carries
+    /// only where it goes. Made by an agent outside the window (`kilna --mcp`).
+    Version {
+        role: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        label: Option<String>,
+    },
+    /// A note, on the chat's work or on nothing in particular; the body is
+    /// the message body. Made by an agent outside the window.
+    Note {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        title: Option<String>,
+    },
 }
 
 /// The shape an answer is asked to produce.
@@ -75,11 +89,23 @@ pub fn scoring_instruction(config: &ProfileConfig) -> String {
 /// not a failure to report.
 pub fn read_score(body: &str, config: &ProfileConfig) -> Option<Proposal> {
     let raw: RawScore = serde_json::from_str(&fenced_json(body)?).ok()?;
+    score_from(raw.axes, raw.note, config)
+}
 
+/// A scoring proposal out of marks by axis key, checked against the profile.
+///
+/// The check the fenced block gets, and the same one an agent's `propose_score`
+/// gets: unknown axes are named rather than dropped silently, marks are clamped
+/// to the axis scale, and marks on no known axis at all are nothing to propose.
+pub fn score_from(
+    raw: Map<String, Value>,
+    note: Option<String>,
+    config: &ProfileConfig,
+) -> Option<Proposal> {
     let mut axes = Map::new();
     let mut unknown = Vec::new();
 
-    for (key, value) in raw.axes {
+    for (key, value) in raw {
         match config.axes.iter().find(|axis| axis.key == key) {
             // Clamped rather than refused: an answer that says 11 out of 10
             // means "as high as it goes", and throwing the whole proposal away
@@ -114,7 +140,7 @@ pub fn read_score(body: &str, config: &ProfileConfig) -> Option<Proposal> {
 
     Some(Proposal::Score {
         axes,
-        note: raw.note.filter(|note| !note.trim().is_empty()),
+        note: note.filter(|note| !note.trim().is_empty()),
         unknown,
         missing,
     })
@@ -181,7 +207,10 @@ mod tests {
             note,
             unknown,
             missing,
-        } = proposal;
+        } = proposal
+        else {
+            panic!("a fenced block reads as a score");
+        };
         (axes, note, unknown, missing)
     }
 

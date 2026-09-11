@@ -48,6 +48,33 @@ pub fn default_path(app_data_dir: &Path) -> PathBuf {
     app_data_dir.join(DATABASE_FILE)
 }
 
+/// Where the application keeps its data on this platform, without Tauri.
+///
+/// The same directory Tauri's `app_data_dir` resolves to for this identifier
+/// — per-user application data — so `kilna --mcp` opens the workspace the
+/// window uses. Resolved by hand because the headless mode has no app handle
+/// to ask; the three rules below are the ones Tauri applies.
+pub fn default_data_dir() -> Result<PathBuf> {
+    const IDENTIFIER: &str = "com.lacodda.kilna";
+    let base = if cfg!(target_os = "windows") {
+        std::env::var_os("APPDATA").map(PathBuf::from)
+    } else if cfg!(target_os = "macos") {
+        std::env::var_os("HOME").map(|home| PathBuf::from(home).join("Library/Application Support"))
+    } else {
+        std::env::var_os("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .or_else(|| {
+                std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".local/share"))
+            })
+    };
+    base.map(|dir| dir.join(IDENTIFIER)).ok_or_else(|| {
+        crate::error::Error::Other(
+            "cannot tell where application data lives on this machine; pass --workspace <dir>"
+                .into(),
+        )
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1900,6 +1900,13 @@ pub fn assistant_status() -> cli::Availability {
 
 /// Chats of the active profile as the list draws them — named, priced, tied
 /// to their work. `work_id` narrows to one work's chats.
+/// The command that registers this build with Claude Code, for the settings
+/// screen to show. Read-only: it names this executable, nothing more.
+#[tauri::command]
+pub fn mcp_registration() -> Result<String> {
+    crate::mcp::registration_command()
+}
+
 #[tauri::command]
 pub fn list_chat_summaries(
     state: State<'_, AppState>,

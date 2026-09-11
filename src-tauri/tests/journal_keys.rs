@@ -30,8 +30,19 @@ fn repo_root() -> PathBuf {
 /// entities instead. That is deliberate: a key assembled in one place cannot be
 /// worded six different ways, and this scanner does not have to guess.
 fn keys_written() -> BTreeSet<String> {
-    let source = std::fs::read_to_string(repo_root().join("src-tauri/src/commands.rs"))
-        .expect("commands.rs is readable");
+    // Every file that writes the journal. `commands.rs` is the window's side;
+    // `mcp.rs` records what an agent outside it proposed.
+    let source = ["src-tauri/src/commands.rs", "src-tauri/src/mcp.rs"]
+        .iter()
+        .map(|file| {
+            std::fs::read_to_string(repo_root().join(file))
+                .unwrap_or_else(|err| panic!("{file} is readable: {err}"))
+        })
+        .collect::<Vec<_>>()
+        .join(
+            "
+",
+        );
 
     // A key computed in the argument — `Record::new(if x { "a" } else { "b" })`
     // — is invisible to the scan below, and an unseen key reaches the screen

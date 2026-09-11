@@ -9,6 +9,7 @@ pub mod exchange;
 pub mod focus;
 pub mod journal;
 pub mod layout;
+pub mod mcp;
 pub mod minted;
 pub mod note;
 pub mod operation;
@@ -120,6 +121,7 @@ pub fn run() {
             commands::last_undoable,
             commands::undo_last,
             commands::assistant_status,
+            commands::mcp_registration,
             commands::list_chat_summaries,
             commands::create_chat,
             commands::rename_chat,
