@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.57.1] - 2026-09-11
+
+### Bug Fixes
+- Offer no single undo after a package
+
+### Features
+- Propose a whole work, and apply proposals with one click
 ## [0.57.0] - 2026-09-11
 
 ### Bug Fixes
