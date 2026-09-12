@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.60.0] - 2026-09-12
+
+### Features
+- A storyboard row per scene, owned by the work
 ## [0.59.0] - 2026-09-11
 
 ### Features
