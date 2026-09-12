@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.60.1] - 2026-09-12
+
+### Bug Fixes
+- Render a note's body as markdown
 ## [0.60.0] - 2026-09-12
 
 ### Features
