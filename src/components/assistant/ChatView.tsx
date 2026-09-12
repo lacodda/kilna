@@ -26,6 +26,7 @@ import { Markdown } from '@/components/ui/Markdown'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { InsertVersionDialog } from '@/components/assistant/InsertVersionDialog'
 import { ProposedNote } from '@/components/assistant/ProposedNote'
+import { ProposedScenes } from '@/components/assistant/ProposedScenes'
 import { ProposedScore } from '@/components/assistant/ProposedScore'
 import { ProposedVersion } from '@/components/assistant/ProposedVersion'
 import { ProposedWork } from '@/components/assistant/ProposedWork'
@@ -438,10 +439,14 @@ function ExchangeItem({
   const proposal = item.answer?.proposal ?? null
   const applied = item.answer?.applied ?? null
   const settled = item.run?.working !== true
-  // A proposed version or package has its own buttons below; the toolbar's
-  // *insert* on it would keep a rendering of a package as a lyric.
+  // A proposed version, package or storyboard has its own buttons below; the
+  // toolbar's *insert* on it would keep a rendering of a package as a lyric.
   const insertable =
-    onInsert !== undefined && settled && proposal?.kind !== 'version' && proposal?.kind !== 'work'
+    onInsert !== undefined &&
+    settled &&
+    proposal?.kind !== 'version' &&
+    proposal?.kind !== 'work' &&
+    proposal?.kind !== 'scenes'
 
   return (
     <li className="flex flex-col gap-1.5">
@@ -536,6 +541,14 @@ function ExchangeItem({
         )}
       {item.answer !== null && proposal?.kind === 'work' && settled && (
         <ProposedWork
+          workId={workId}
+          messageId={item.answer.id}
+          proposal={proposal}
+          applied={applied}
+        />
+      )}
+      {workId !== undefined && item.answer !== null && proposal?.kind === 'scenes' && settled && (
+        <ProposedScenes
           workId={workId}
           messageId={item.answer.id}
           proposal={proposal}

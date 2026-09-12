@@ -18,7 +18,7 @@ use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
-use crate::assistant::proposal::{Marks, PackagedNote, Proposal};
+use crate::assistant::proposal::{Marks, PackagedNote, PackagedScene, Proposal};
 use crate::assistant::{self, ASSISTANT, Chat, Message};
 use crate::commands::{recording, restate, was};
 use crate::error::{Error, Result};
@@ -27,8 +27,10 @@ use crate::minted::Minted;
 use crate::note::{self, NewNote};
 use crate::operation;
 use crate::profile;
+use crate::scene::{self, NewScene, ScenePatch};
 use crate::score::{self, NewScore};
 use crate::time;
+use crate::trash;
 use crate::work::version::{self, NewVersion};
 use crate::work::{self, NewWork, WorkPatch};
 
@@ -64,6 +66,13 @@ pub struct Outcome {
     /// The overview fields written, by key.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub fields: Vec<String>,
+    /// Scenes written onto the board: created, or rewritten in place when
+    /// a board was replaced.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scenes: Vec<String>,
+    /// Scenes a replaced board sent to the trash, by trash entry.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub removed_scenes: Vec<String>,
 }
 
 /// Whether a message carries a proposal nobody has applied yet.
@@ -198,6 +207,7 @@ pub fn apply(
             versions,
             score,
             notes,
+            scenes,
             ..
         } => {
             // A package on a work adds to it; one in a chat on nothing is a
@@ -287,8 +297,69 @@ pub fn apply(
                     .notes
                     .push(write_note(conn, profile_id, Some(&work_id), packaged)?);
             }
+            // A package adds its scenes after the last; replacing a board
+            // is the scenes proposal's own decision, not a package's.
+            if !scenes.is_empty() {
+                check_storyboard(&config, &kind)?;
+                for packaged in scenes {
+                    let position = packaged.position;
+                    outcome
+                        .scenes
+                        .push(write_scene(conn, profile_id, &work_id, packaged, position)?);
+                }
+            }
             outcome.created_work = fresh;
             outcome.work_id = Some(work_id);
+        }
+
+        Proposal::Scenes { scenes, replace } => {
+            let work_id = on_work(&chat, "a storyboard")?;
+            let found =
+                work::get(conn, &work_id)?.ok_or_else(|| Error::not_found("work", &work_id))?;
+            check_storyboard(&config, &found.kind)?;
+            if replace {
+                // By number: the scene that already holds a number is
+                // rewritten in place and keeps its id, what the new board
+                // does not number goes to the trash, and a number nobody
+                // holds is a new row. A board rebuilt from scratch would
+                // be a board whose every row is a stranger to what pointed
+                // at it.
+                let mut standing = scene::for_work(conn, &work_id)?;
+                for (index, packaged) in scenes.into_iter().enumerate() {
+                    let position = packaged.position.unwrap_or(index as i64 + 1);
+                    match standing.iter().position(|s| s.position == position) {
+                        Some(at) => {
+                            let existing = standing.remove(at);
+                            outcome.scenes.push(rewrite_scene(
+                                conn,
+                                profile_id,
+                                &existing.id,
+                                packaged,
+                                position,
+                            )?);
+                        }
+                        None => outcome.scenes.push(write_scene(
+                            conn,
+                            profile_id,
+                            &work_id,
+                            packaged,
+                            Some(position),
+                        )?),
+                    }
+                }
+                for leftover in standing {
+                    outcome
+                        .removed_scenes
+                        .push(discard_scene(conn, profile_id, &leftover.id)?);
+                }
+            } else {
+                for packaged in scenes {
+                    let position = packaged.position;
+                    outcome
+                        .scenes
+                        .push(write_scene(conn, profile_id, &work_id, packaged, position)?);
+                }
+            }
         }
     }
 
@@ -515,6 +586,121 @@ fn write_note(
     Ok(created.id)
 }
 
+/// A kind that has a storyboard, or the reason it takes no scenes.
+fn check_storyboard(config: &profile::config::ProfileConfig, kind: &str) -> Result<()> {
+    if scene::kind_has_scenes(config, kind) {
+        Ok(())
+    } else {
+        Err(Error::Other(format!(
+            "`{kind}` has no storyboard: the kind names no kinds of shot and no prompt blocks"
+        )))
+    }
+}
+
+/// The row a packaged scene becomes, numbered as told or after the last.
+fn write_scene(
+    conn: &mut Connection,
+    profile_id: &str,
+    work_id: &str,
+    packaged: PackagedScene,
+    position: Option<i64>,
+) -> Result<String> {
+    let new = NewScene {
+        work_id: work_id.to_owned(),
+        position,
+        section: packaged.section,
+        starts_at: packaged.starts_at,
+        ends_at: packaged.ends_at,
+        shot_type: packaged.shot_type,
+        description: Some(packaged.description),
+        blocks: Some(packaged.blocks),
+    };
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("scene.create")
+        .in_profile(profile_id)
+        .param("profile", profile_key(conn, profile_id)?)
+        .param("scene", serde_json::to_value(&new)?)
+        .minted(&minted);
+    let created = recording(conn, logged, |tx| {
+        scene::create_minted(tx, profile_id, new, minted)
+    })?;
+    journal::record(
+        conn,
+        profile_id,
+        Record::new("scene.created")
+            .param(
+                "title",
+                journal::work_title(conn, work_id).unwrap_or_default(),
+            )
+            .param("number", created.position)
+            .about("work", work_id.to_owned()),
+    );
+    Ok(created.id)
+}
+
+/// A scene rewritten whole by a replaced board: every field set, the blocks
+/// as a set, so the log's `before` holds the row as it was and an undo puts
+/// the whole row back.
+fn rewrite_scene(
+    conn: &mut Connection,
+    profile_id: &str,
+    id: &str,
+    packaged: PackagedScene,
+    position: i64,
+) -> Result<String> {
+    let before = scene::get(conn, id)?;
+    let patch = ScenePatch {
+        position: Some(position),
+        section: Some(packaged.section),
+        starts_at: Some(packaged.starts_at),
+        ends_at: Some(packaged.ends_at),
+        shot_type: Some(packaged.shot_type),
+        description: Some(packaged.description),
+        blocks: Some(packaged.blocks),
+    };
+    let at = time::now();
+    let logged = operation::Intent::new("scene.update")
+        .in_profile(profile_id)
+        .param("profile", profile_key(conn, profile_id)?)
+        .param("id", id.to_owned())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?)
+        .param("at", at.clone());
+    recording(conn, logged, |tx| scene::update_at(tx, id, patch, &at))?;
+    Ok(id.to_owned())
+}
+
+/// A scene the new board has no number for, sent to the trash the way the
+/// board's own delete button sends one: the same operation, the same line
+/// in the history, so it comes back through the trash like any deletion.
+fn discard_scene(conn: &mut Connection, profile_id: &str, id: &str) -> Result<String> {
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("entity.discard")
+        .in_profile(profile_id)
+        .param("profile", profile_key(conn, profile_id)?)
+        .param("entity", trash::Entity::Scene.as_str())
+        .param("entityId", id)
+        .minted(&minted);
+    let entry_id = trash::discard_minted(conn, trash::Entity::Scene, id, minted, Some(logged))?;
+    let described = trash::list(conn, profile_id)?
+        .into_iter()
+        .find(|entry| entry.id == entry_id);
+    let mut record = Record::new("scene.deleted").param(
+        "label",
+        described
+            .as_ref()
+            .map_or_else(|| id.to_owned(), |entry| entry.label.clone()),
+    );
+    if let Some(origin) = described.as_ref().and_then(|entry| entry.origin.clone()) {
+        record = record.param("origin", origin);
+    }
+    if let Some(work_id) = trash::snapshot_work_id(conn, trash::Entity::Scene, id) {
+        record = record.about("work", work_id);
+    }
+    journal::record(conn, profile_id, record);
+    Ok(entry_id)
+}
+
 /// The message body a package is shown with: everything it would write,
 /// readable before it is written.
 ///
@@ -534,6 +720,7 @@ pub fn render_package(
         versions,
         score,
         notes,
+        scenes,
         ..
     } = proposal
     else {
@@ -622,7 +809,113 @@ pub fn render_package(
         }
     }
 
+    if !scenes.is_empty() {
+        out.push_str("### Scenes\n\n");
+        out.push_str(&render_board(scenes, vocabulary, false));
+        out.push_str("\n\n");
+    }
+
     out.trim_end().to_owned()
+}
+
+/// The message body a proposed storyboard is shown with: the board as a
+/// table — number, section, seconds, kind of shot, description — and under
+/// it each scene's prompt blocks in fences, readable before a row is
+/// written. Numbers are the scenes' own when given, else their order, the
+/// same rule the application follows on a replaced board; an added scene
+/// without a number is shown as `+`, since where it lands is after the last
+/// at the moment of applying.
+pub fn render_board(
+    scenes: &[PackagedScene],
+    vocabulary: &profile::config::WorkKind,
+    replace: bool,
+) -> String {
+    let mut out = String::new();
+    let has_shots = !vocabulary.shot_types.is_empty();
+    let shot_label = |key: &str| {
+        vocabulary
+            .shot_types
+            .iter()
+            .find(|s| s.key == key)
+            .map_or(key.to_owned(), |s| s.label.clone())
+    };
+    let number = |index: usize, scene: &PackagedScene| match scene.position {
+        Some(position) => position.to_string(),
+        None if replace => (index + 1).to_string(),
+        None => "+".to_owned(),
+    };
+
+    out.push_str(if has_shots {
+        "| # | Section | Time | Shot | Description |\n| --- | --- | --- | --- | --- |\n"
+    } else {
+        "| # | Section | Time | Description |\n| --- | --- | --- | --- |\n"
+    });
+    for (index, scene) in scenes.iter().enumerate() {
+        let time = match (scene.starts_at, scene.ends_at) {
+            (Some(from), Some(to)) => format!("{}–{}", timecode(from), timecode(to)),
+            (Some(from), None) => format!("{}–", timecode(from)),
+            (None, Some(to)) => format!("–{}", timecode(to)),
+            (None, None) => String::new(),
+        };
+        let cell = |text: &str| text.replace('|', "\\|").replace('\n', " ");
+        let mut row = vec![
+            number(index, scene),
+            cell(scene.section.as_deref().unwrap_or("")),
+            time,
+        ];
+        if has_shots {
+            row.push(cell(
+                &scene.shot_type.as_deref().map_or(String::new(), shot_label),
+            ));
+        }
+        row.push(cell(&scene.description));
+        out.push_str(&format!("| {} |\n", row.join(" | ")));
+    }
+
+    for (index, scene) in scenes.iter().enumerate() {
+        let blocks: Vec<_> = vocabulary
+            .scene_blocks
+            .iter()
+            .filter_map(|block| {
+                scene
+                    .blocks
+                    .get(&block.key)
+                    .and_then(Value::as_str)
+                    .map(|text| (block.label.as_str(), text))
+            })
+            .collect();
+        if blocks.is_empty() {
+            continue;
+        }
+        out.push_str(&format!("\n**Scene {}**\n", number(index, scene)));
+        for (label, text) in blocks {
+            let fence = "`".repeat(longest_backtick_run(text).max(2) + 1);
+            out.push_str(&format!(
+                "\n_{label}_\n\n{fence}\n{}\n{fence}\n",
+                text.trim_end()
+            ));
+        }
+    }
+
+    out.trim_end().to_owned()
+}
+
+/// Seconds as `m:ss`, with a fraction only when there is one.
+fn timecode(seconds: f64) -> String {
+    let whole = seconds.floor();
+    let minutes = (whole / 60.0) as i64;
+    let rest = whole - (minutes * 60) as f64;
+    let fraction = seconds - whole;
+    if fraction > 0.0 {
+        let digits = format!("{fraction:.2}");
+        format!(
+            "{minutes}:{:02}{}",
+            rest as i64,
+            digits[1..].trim_end_matches('0')
+        )
+    } else {
+        format!("{minutes}:{:02}", rest as i64)
+    }
 }
 
 fn longest_backtick_run(text: &str) -> usize {
@@ -765,7 +1058,271 @@ mod tests {
                 title: Some("Concept".into()),
                 body: "the road as the only witness".into(),
             }],
+            scenes: Vec::new(),
         }
+    }
+
+    /// A video in the profile — a kind with a storyboard — with `boarded`
+    /// scenes already on it, numbered from 1.
+    fn video(conn: &Connection, profile_id: &str, boarded: usize) -> (String, Vec<String>) {
+        let work_id = work::create(
+            conn,
+            profile_id,
+            NewWork {
+                kind: "video".into(),
+                title: "The clip".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap()
+        .id;
+        let ids = (0..boarded)
+            .map(|index| {
+                scene::create(
+                    conn,
+                    profile_id,
+                    NewScene {
+                        work_id: work_id.clone(),
+                        description: Some(format!("old scene {}", index + 1)),
+                        ..NewScene::default()
+                    },
+                )
+                .unwrap()
+                .id
+            })
+            .collect();
+        (work_id, ids)
+    }
+
+    fn packaged(description: &str) -> PackagedScene {
+        let mut blocks = Map::new();
+        blocks.insert("still".into(), json!(format!("{description}, 35mm")));
+        PackagedScene {
+            position: None,
+            section: Some("chorus".into()),
+            starts_at: Some(12.0),
+            ends_at: Some(16.5),
+            shot_type: Some("wide".into()),
+            description: description.into(),
+            blocks,
+        }
+    }
+
+    #[test]
+    fn added_scenes_land_after_the_last_through_the_log_and_mark_the_message() {
+        let (mut conn, profile_id, _) = workspace();
+        let (video_id, _) = video(&conn, &profile_id, 1);
+        let chat = chat_on(&conn, &profile_id, Some(&video_id));
+        let message = propose(
+            &conn,
+            &chat,
+            "the board",
+            Proposal::Scenes {
+                scenes: vec![packaged("new two"), packaged("new three")],
+                replace: false,
+            },
+        );
+
+        let outcome = apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+
+        assert_eq!(outcome.scenes.len(), 2);
+        assert!(outcome.removed_scenes.is_empty());
+        let board = scene::for_work(&conn, &video_id).unwrap();
+        assert_eq!(
+            board
+                .iter()
+                .map(|s| (s.position, s.description.as_str()))
+                .collect::<Vec<_>>(),
+            vec![(1, "old scene 1"), (2, "new two"), (3, "new three")]
+        );
+        assert_eq!(board[1].shot_type.as_deref(), Some("wide"));
+        assert_eq!(board[1].blocks["still"], "new two, 35mm");
+        assert_eq!(board[1].ends_at, Some(16.5));
+        assert_eq!(
+            operation_kinds(&conn),
+            vec!["scene.create", "scene.create"],
+            "the same operations a hand writes; the seeded scene went in without the log"
+        );
+        let marked = assistant::message(&conn, &message).unwrap().unwrap();
+        assert_eq!(
+            marked.meta["applied"]["scenes"].as_array().unwrap().len(),
+            2
+        );
+        assert!(
+            apply(&mut conn, &profile_id, &message, Overrides::default()).is_err(),
+            "not twice"
+        );
+    }
+
+    #[test]
+    fn a_replaced_board_rewrites_by_number_and_sends_the_rest_to_the_trash() {
+        let (mut conn, profile_id, _) = workspace();
+        let (video_id, old) = video(&conn, &profile_id, 3);
+        let chat = chat_on(&conn, &profile_id, Some(&video_id));
+        let message = propose(
+            &conn,
+            &chat,
+            "the board",
+            Proposal::Scenes {
+                scenes: vec![packaged("rewritten one"), packaged("rewritten two")],
+                replace: true,
+            },
+        );
+
+        let outcome = apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+
+        assert_eq!(
+            outcome.scenes,
+            vec![old[0].clone(), old[1].clone()],
+            "a scene with the same number keeps its id"
+        );
+        assert_eq!(outcome.removed_scenes.len(), 1);
+        let board = scene::for_work(&conn, &video_id).unwrap();
+        assert_eq!(
+            board
+                .iter()
+                .map(|s| (s.position, s.description.as_str()))
+                .collect::<Vec<_>>(),
+            vec![(1, "rewritten one"), (2, "rewritten two")]
+        );
+        assert_eq!(board[0].section.as_deref(), Some("chorus"));
+        assert_eq!(board[0].blocks["still"], "rewritten one, 35mm");
+        assert_eq!(
+            operation_kinds(&conn),
+            vec!["scene.update", "scene.update", "entity.discard"]
+        );
+        let trashed = trash::list(&conn, &profile_id).unwrap();
+        assert_eq!(trashed.len(), 1);
+        assert_eq!(trashed[0].id, outcome.removed_scenes[0]);
+        assert!(
+            trashed[0].label.contains('3'),
+            "the third scene is what went: {}",
+            trashed[0].label
+        );
+    }
+
+    #[test]
+    fn a_replaced_board_grows_where_the_old_one_was_shorter() {
+        let (mut conn, profile_id, _) = workspace();
+        let (video_id, old) = video(&conn, &profile_id, 1);
+        let chat = chat_on(&conn, &profile_id, Some(&video_id));
+        let message = propose(
+            &conn,
+            &chat,
+            "the board",
+            Proposal::Scenes {
+                scenes: vec![packaged("one"), packaged("two")],
+                replace: true,
+            },
+        );
+
+        let outcome = apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+
+        assert_eq!(outcome.scenes[0], old[0]);
+        assert_eq!(outcome.scenes.len(), 2);
+        assert_eq!(operation_kinds(&conn), vec!["scene.update", "scene.create"]);
+        assert_eq!(scene::count(&conn, &video_id).unwrap(), 2);
+    }
+
+    #[test]
+    fn a_storyboard_for_a_kind_without_one_is_refused_before_anything_is_written() {
+        let (mut conn, profile_id, song_id) = workspace();
+        let chat = chat_on(&conn, &profile_id, Some(&song_id));
+        let message = propose(
+            &conn,
+            &chat,
+            "the board",
+            Proposal::Scenes {
+                scenes: vec![packaged("one")],
+                replace: true,
+            },
+        );
+
+        let err = apply(&mut conn, &profile_id, &message, Overrides::default())
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("no storyboard"), "{err}");
+        assert!(operation_kinds(&conn).is_empty());
+        assert!(is_pending(
+            &assistant::message(&conn, &message).unwrap().unwrap()
+        ));
+    }
+
+    #[test]
+    fn a_package_on_a_new_video_creates_its_board_with_it() {
+        let (mut conn, profile_id, _) = workspace();
+        let chat = chat_on(&conn, &profile_id, None);
+        let message = propose(
+            &conn,
+            &chat,
+            "rendered",
+            Proposal::Work {
+                title: Some("Winter road — the clip".into()),
+                work_kind: Some("video".into()),
+                fields: Map::new(),
+                unknown_fields: Vec::new(),
+                versions: Vec::new(),
+                score: None,
+                notes: Vec::new(),
+                scenes: vec![packaged("the road"), packaged("the car")],
+            },
+        );
+
+        let outcome = apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+
+        assert!(outcome.created_work);
+        assert_eq!(outcome.scenes.len(), 2);
+        let board = scene::for_work(&conn, outcome.work_id.as_deref().unwrap()).unwrap();
+        assert_eq!(
+            board.iter().map(|s| s.position).collect::<Vec<_>>(),
+            vec![1, 2]
+        );
+        assert_eq!(
+            operation_kinds(&conn),
+            vec!["work.create", "scene.create", "scene.create"]
+        );
+    }
+
+    #[test]
+    fn a_rendered_board_is_a_table_with_the_blocks_under_it() {
+        let conn = db::open_in_memory().unwrap();
+        profile::seed(&conn).unwrap();
+        let config = profile::active(&conn).unwrap().unwrap().config;
+        let vocabulary = config.vocabulary("video");
+        let mut second = packaged("hands on a rope");
+        second.position = Some(7);
+        second.starts_at = None;
+        second.ends_at = None;
+        second.blocks = Map::new();
+
+        let added = render_board(
+            &[packaged("the harbour"), second.clone()],
+            vocabulary,
+            false,
+        );
+        assert!(
+            added.contains("| + | chorus | 0:12–0:16.5 | Wide | the harbour |"),
+            "{added}"
+        );
+        assert!(
+            added.contains("| 7 | chorus |  | Wide | hands on a rope |"),
+            "{added}"
+        );
+        assert!(
+            added.contains("**Scene +**\n\n_Still frame_\n\n```\nthe harbour, 35mm\n```"),
+            "{added}"
+        );
+        assert!(
+            !added.contains("**Scene 7**"),
+            "no blocks, no section: {added}"
+        );
+
+        let replaced = render_board(&[packaged("the harbour")], vocabulary, true);
+        assert!(
+            replaced.contains("| 1 | chorus |"),
+            "a replaced board numbers in order: {replaced}"
+        );
     }
 
     #[test]
@@ -984,6 +1541,7 @@ mod tests {
                 versions,
                 score: None,
                 notes: Vec::new(),
+                scenes: Vec::new(),
             },
         );
 
@@ -1030,6 +1588,7 @@ mod tests {
                 versions,
                 score,
                 notes,
+                scenes: Vec::new(),
             },
         );
 
@@ -1172,6 +1731,7 @@ mod tests {
             }],
             score: None,
             notes: Vec::new(),
+            scenes: Vec::new(),
         };
 
         let body = render_package(&proposal, &config, "song");

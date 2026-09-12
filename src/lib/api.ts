@@ -113,6 +113,27 @@ export interface PackagedNote {
   body: string
 }
 
+/** A scene inside a proposal: the fields of a row, checked against the kind's words. */
+export interface PackagedScene {
+  /** The number on the board; after the last when omitted on an added scene. */
+  position?: number
+  section?: string
+  starts_at?: number
+  ends_at?: number
+  shot_type?: string
+  description?: string
+  /** Prompt blocks by the kind's `scene_blocks` key. */
+  blocks?: Record<string, string>
+}
+
+/** A storyboard for the chat's work: scenes added after the last, or the board replaced. */
+export interface ScenesProposal {
+  kind: 'scenes'
+  scenes: PackagedScene[]
+  /** Replace the board: same numbers rewritten in place, the rest to the trash. */
+  replace?: boolean
+}
+
 /** Marks along the axes, checked against the kind — the inside of a score proposal. */
 export interface Marks {
   axes: Record<string, number>
@@ -134,9 +155,11 @@ export interface WorkProposal {
   versions?: PackagedVersion[]
   score?: Marks
   notes?: PackagedNote[]
+  /** The storyboard of a new video, or scenes added to an existing one's board. */
+  scenes?: PackagedScene[]
 }
 
-export type Proposal = ScoreProposal | VersionProposal | NoteProposal | WorkProposal
+export type Proposal = ScoreProposal | VersionProposal | NoteProposal | WorkProposal | ScenesProposal
 
 /** What applying a proposal made — stamped on the message as `meta.applied`. */
 export interface Applied {
@@ -150,6 +173,10 @@ export interface Applied {
   notes?: string[]
   /** The overview fields written, by key. */
   fields?: string[]
+  /** Scenes written onto the board: created, or rewritten in place on a replaced board. */
+  scenes?: string[]
+  /** Scenes a replaced board sent to the trash, by trash entry. */
+  removed_scenes?: string[]
 }
 
 /** What a person may change about a proposed version on the way in. */

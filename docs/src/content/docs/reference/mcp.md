@@ -47,15 +47,16 @@ refused with the ids to choose from, rather than guessed.
 
 ## What an agent can propose
 
-Nothing an agent does writes a work, a version, a score or a note. It
-**proposes**, and the proposal lands as a message in a chat named after the
+Nothing an agent does writes a work, a version, a score, a note or a
+scene. It **proposes**, and the proposal lands as a message in a chat named after the
 client — *Claude Code*, say — on the work, or on nothing for a work that
 does not exist yet. The same buttons that apply the assistant's own
 proposals apply these:
 
 | Tool | Where it lands |
 | --- | --- |
-| `propose_work` | A whole work — title, kind, overview fields, versions by role, a score, notes — or, with `work`, a package of those for an existing one. The message shows everything the package would write; **Create the work** or **Apply the package** writes all of it in one click. On a new work the version in the first role becomes current; on an existing one the package's versions wait beside the current. |
+| `propose_work` | A whole work — title, kind, overview fields, versions by role, a score, notes, and for a kind with a storyboard its scenes — or, with `work`, a package of those for an existing one. The message shows everything the package would write; **Create the work** or **Apply the package** writes all of it in one click. On a new work the version in the first role becomes current; on an existing one the package's versions wait beside the current, and its scenes go after the last on the board. |
+| `propose_scenes` | A storyboard for a video or a short: scenes with their number, section, seconds, kind of shot, description and prompt blocks, in the kind's own words. The message shows the board as a table with every block under it. **Add to the board** numbers the scenes after the last; with `replace`, **Replace the board** rewrites a scene with the same number in place — it keeps its id — sends the rest of the old board to the trash, and creates the numbers nobody held. A kind with no storyboard, an unknown kind of shot or block key, a scene that ends before it starts refuse the whole package. |
 | `propose_version` | The text of a new version in a role, with a note on what changed. **Insert as version** keeps it, verbatim, under that role and not current; **Choose role…** opens the dialog to change the role, name it or make it current on the way in. |
 | `propose_score` | Marks along the kind's axes, checked the way the assistant's own are: unknown axes are named, marks are clamped to the scale. **Apply** writes the snapshot, judged by the agent — its name is the score's rater. |
 | `propose_note` | A note, on a work or on nothing in particular. **Add as note** keeps it. |
@@ -75,9 +76,11 @@ assistant's floating button.
 
 This is the rule the assistant panel has followed since v0.28, applied to an
 assistant outside the window: it proposes, you apply. See
-[ADR 0016](https://github.com/lacodda/kilna/blob/main/docs/adr/0016-an-agent-outside-the-window-proposes-too.md)
-and, for packages and the mark,
-[ADR 0018](https://github.com/lacodda/kilna/blob/main/docs/adr/0018-a-proposal-is-applied-by-the-application-and-marked.md).
+[ADR 0016](https://github.com/lacodda/kilna/blob/main/docs/adr/0016-an-agent-outside-the-window-proposes-too.md);
+for packages and the mark,
+[ADR 0018](https://github.com/lacodda/kilna/blob/main/docs/adr/0018-a-proposal-is-applied-by-the-application-and-marked.md);
+for storyboards and what replacing one means,
+[ADR 0022](https://github.com/lacodda/kilna/blob/main/docs/adr/0022-a-storyboard-is-proposed-whole-and-replaced-by-number.md).
 
 ## A session, end to end
 
@@ -115,6 +118,60 @@ with the whole package rendered — the lyrics in a monospace block, the
 style prompt, the premise, the marks — and **Create the work** under it.
 One click, and the song is on the catalogue with its lyrics current, its
 premise on the overview, its score in the history judged by *Claude Code*.
+
+## A video from a song, end to end
+
+The storyboard of a video is rows the agent can propose like anything
+else. The whole road, from the song to a board ready for the generators:
+
+```
+> Use kilna: make a video for "Winter road" — plot, context, and a storyboard
+  with prompts for every scene.
+
+  workspace       → kind video: roles plot / context / style, shot types wide,
+                    medium, close, detail, insert, title; blocks still, motion, negative
+  work            → "Winter road", song, lyrics current
+  text            → the lyrics
+
+  propose_work    → "Proposed a new work — “Winter road — the clip”, 2 versions
+                     (plot, context), 6 scenes. It waits in the chat named after you;
+                     one click creates it with everything in it."
+```
+
+In kilna: **Create the work** — and the video is on the catalogue with its
+plot and its context current, and six scenes on the **Scenes** tab, each
+with its seconds, its kind of shot and a still-frame prompt to copy. Then
+link it to the song on the **Links** tab as *made from*, or ask the agent
+to do it in the same breath.
+
+The board is not final on the first pass. A second round works on the
+existing work:
+
+```
+> Use kilna: the chorus scenes of "Winter road — the clip" are too static —
+  redo the board with more close-ups, and time it to the lyrics.
+
+  scenes          → the six scenes as they stand
+  text (context)  → the hero, the palette, the lens
+  text (plot)     → the plot
+
+  propose_scenes  → "Proposed a storyboard of 8 scenes to replace the 6 on the
+                     board of “Winter road — the clip”. It waits in the chat on
+                     the work; one click replaces the board."
+```
+
+In kilna: the chat on the video shows the new board as a table, every
+prompt block under it, and **Replace the board** with a line saying what
+that does. One click: scenes 1–6 are rewritten in place, 7 and 8 are
+created. Had the new board been shorter, the scenes beyond it would be in
+the trash, and undo walks the whole thing back a scene at a time. To grow
+the board instead of redoing it, the agent leaves `replace` out and the
+scenes go after the last.
+
+The plot and the context are versions, so they take the usual road:
+`propose_version` in the `plot` or `context` role, **Insert as version**
+on the Versions tab. There is no separate tool for them — a video's plot
+is a body with revisions like a lyric.
 
 ## Protocol
 

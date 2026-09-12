@@ -62,6 +62,10 @@ const proposalOf = (message: Message): Proposal | null => {
       return proposal as Proposal
     case 'work':
       return proposal as Proposal
+    case 'scenes':
+      return Array.isArray((proposal as Partial<{ scenes: unknown }>).scenes)
+        ? (proposal as Proposal)
+        : null
     default:
       return null
   }

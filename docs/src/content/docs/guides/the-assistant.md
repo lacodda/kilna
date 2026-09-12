@@ -255,10 +255,11 @@ where you can inspect or delete them; kilna never reads them back.
 The same rule works the other way round. `kilna --mcp` serves your workspace
 to an agent outside kilna — a Claude Code session in a terminal, say — over
 the Model Context Protocol: it can read your works, their versions, scores
-and calendar, and it can *propose* a version, a score or a note. The proposal
-lands in a chat on the work, named after the agent, with the same buttons
-the panel's own proposals have: **Insert as version**, **Apply**, **Add as
-note**. The bell counts each one. See [MCP server](/kilna/reference/mcp/)
+and calendar, and it can *propose* a version, a score, a note, a storyboard
+for a video, or a whole work as one package. The proposal lands in a chat on
+the work, named after the agent, with the same buttons the panel's own
+proposals have: **Insert as version**, **Apply**, **Add as note**, **Add to
+the board**, **Create the work**. The bell counts each one. See [MCP server](/kilna/reference/mcp/)
 for the tools and how to register it; the **Settings** screen shows the
 command for the build you are running.
 

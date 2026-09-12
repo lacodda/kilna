@@ -37,8 +37,16 @@ export function ProposedWork({ workId, messageId, proposal, applied }: Props) {
     messageId,
     message: t(fresh ? 'assistant.workCreated' : 'assistant.packageApplied'),
     refresh: fresh
-      ? [keys.works, keys.catalogue, keys.notes, keys.scores, keys.allChats]
-      : [keys.works, keys.work(workId), keys.versions(workId), keys.scores, keys.notes, keys.catalogue],
+      ? [keys.works, keys.catalogue, keys.notes, keys.scores, keys.scenes, keys.allChats]
+      : [
+          keys.works,
+          keys.work(workId),
+          keys.versions(workId),
+          keys.scores,
+          keys.notes,
+          keys.scenes,
+          keys.catalogue,
+        ],
   })
 
   const versions = proposal.versions ?? []
@@ -61,6 +69,8 @@ export function ProposedWork({ workId, messageId, proposal, applied }: Props) {
     parts.push(t('assistant.packageScore', { count: Object.keys(proposal.score.axes).length }))
   }
   if (notes.length > 0) parts.push(t('assistant.packageNotes', { count: notes.length }))
+  const scenes = proposal.scenes ?? []
+  if (scenes.length > 0) parts.push(t('assistant.packageScenes', { count: scenes.length }))
 
   const unknownFields = proposal.unknown_fields ?? []
   const unknownAxes = proposal.score?.unknown ?? []

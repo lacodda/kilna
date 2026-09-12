@@ -72,7 +72,7 @@ Asking something starts a run that belongs to the chat, not to the screen you we
 
 The core works without it. The panel is amplification, not a requirement — if the CLI isn't installed, the panel says so and everything else carries on.
 
-The same rule runs the other way: `kilna --mcp` serves the workspace to an agent outside the window over the [Model Context Protocol](https://modelcontextprotocol.io) — a Claude Code session anywhere on the machine reads your works, versions, scores and calendar, and *proposes* a version, a score, a note, or a whole work as one package, which lands in a chat with the same apply buttons — one click for the package, and *apply all* for a chat full of proposals. Register it with one command from the Settings screen. See [MCP server](https://lacodda.github.io/kilna/reference/mcp/).
+The same rule runs the other way: `kilna --mcp` serves the workspace to an agent outside the window over the [Model Context Protocol](https://modelcontextprotocol.io) — a Claude Code session anywhere on the machine reads your works, versions, scores and calendar, and *proposes* a version, a score, a note, a storyboard for a video, or a whole work as one package, which lands in a chat with the same apply buttons — one click for the package, and *apply all* for a chat full of proposals. Register it with one command from the Settings screen. See [MCP server](https://lacodda.github.io/kilna/reference/mcp/).
 
 ## Plugins
 

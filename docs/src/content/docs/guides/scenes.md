@@ -49,9 +49,11 @@ animation prompt into the video model, the negative beside either. The
 blocks a scene carries are the kind's `scene_blocks`; a block the profile
 no longer names is still shown, read-only, so no text is ever hidden.
 
-Templates that fill the blocks from the context and the scene, and the
-regeneration of one block, come in v0.62 and v0.64. Today the blocks are
-written by hand, or by the assistant into a note you paste from.
+The blocks are written by hand, or proposed by an agent outside the window:
+`propose_scenes` over [MCP](/kilna/reference/mcp/#a-video-from-a-song-end-to-end)
+lands a whole board in the chat on the work, every block filled, with
+**Add to the board** or **Replace the board** under it. Actions on the
+Scenes tab that do the same from inside kilna come in v0.63.
 
 ## What else a scene touches
 
@@ -63,9 +65,13 @@ written by hand, or by the assistant into a note you paste from.
   is deleted.
 - **The export** writes a *Scenes* section on the work's page: the board
   as a table, then each scene's blocks.
-- An agent reading over [MCP](/kilna/reference/mcp/) sees the kinds of shot
+- An agent over [MCP](/kilna/reference/mcp/) sees the kinds of shot
   and blocks in `workspace`, how many scenes a work has in `work`, and the
-  whole board with `scenes`.
+  whole board with `scenes`; it proposes a board with `propose_scenes`, or
+  a new video with its board in one `propose_work` package. A replaced
+  board rewrites a scene with the same number in place — it keeps its id —
+  and sends the rest of the old board to the trash, one operation per
+  scene, so undo walks it back the way it walks back your own edits.
 
 Why a scene is a row rather than a chapter of a text, and why it belongs to
 the work, is in

@@ -79,7 +79,50 @@ pub enum Proposal {
         score: Option<Marks>,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         notes: Vec<PackagedNote>,
+        /// The storyboard of a new video, or scenes added to an existing
+        /// one's board. Only for a kind that has a storyboard.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        scenes: Vec<PackagedScene>,
     },
+    /// A storyboard for the chat's work: scenes added after the last, or
+    /// the whole board replaced. Made by an agent outside the window.
+    ///
+    /// Its own variant rather than a package with only scenes, because the
+    /// decision is different: *add to the board* keeps what is there and
+    /// *replace the board* takes it to the trash, and the button has to say
+    /// which. The body is a rendering of the board a person reads first.
+    Scenes {
+        scenes: Vec<PackagedScene>,
+        /// Replace the board rather than add to it: a scene with the same
+        /// number is rewritten in place, the rest of the old board goes to
+        /// the trash, and numbers without a scene yet are created.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        replace: bool,
+    },
+}
+
+/// A scene inside a proposal: the fields of a row, already checked against
+/// the kind's words — the shot type and the block keys are the kind's, and
+/// the span is a span.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PackagedScene {
+    /// The number on the board; after the last when omitted on an added
+    /// scene, and in order from 1 on a replaced board.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub section: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub starts_at: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ends_at: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shot_type: Option<String>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub description: String,
+    /// Prompt blocks by the kind's `scene_blocks` key.
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub blocks: Map<String, Value>,
 }
 
 /// A version inside a package: the text travels with it.
@@ -321,6 +364,140 @@ pub fn fields_from(
 
     unknown.sort();
     (fields, unknown)
+}
+
+/// Scenes out of what an agent sent, checked against the kind — the check
+/// the storyboard's own writer makes, made here so the package is refused
+/// whole before it lands, the way an unknown role refuses a package.
+///
+/// A shot type or a block key the kind does not name is a refusal, not an
+/// omission: a scene typed as `closeup` when the vocabulary says `close`
+/// would never be found by the board's filter, and a block under a key no
+/// template reads would never be shown. A kind with no storyboard at all
+/// takes no scenes. Numbers, when given, start at 1; a scene cannot end
+/// before it starts.
+pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<PackagedScene>> {
+    use crate::error::Error;
+
+    if kind.shot_types.is_empty() && kind.scene_blocks.is_empty() {
+        return Err(Error::Other(format!(
+            "`{}` has no storyboard: the kind names no kinds of shot and no prompt blocks",
+            kind.key
+        )));
+    }
+    let names = |keys: &mut dyn Iterator<Item = &str>| {
+        let listed: Vec<String> = keys.map(|key| format!("`{key}`")).collect();
+        if listed.is_empty() {
+            "none".to_owned()
+        } else {
+            listed.join(", ")
+        }
+    };
+
+    let mut scenes = Vec::with_capacity(raw.len());
+    for (index, item) in raw.iter().enumerate() {
+        let Some(item) = item.as_object() else {
+            return Err(Error::Other(format!(
+                "scene {} is not an object",
+                index + 1
+            )));
+        };
+        let text = |key: &str| {
+            item.get(key)
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(str::to_owned)
+        };
+        let number = |key: &str| item.get(key).and_then(Value::as_f64);
+
+        let position = match item.get("position") {
+            None | Some(Value::Null) => None,
+            Some(value) => match value.as_i64() {
+                Some(position) if position >= 1 => Some(position),
+                _ => {
+                    return Err(Error::Other(format!(
+                        "scene {}: a scene is numbered from 1",
+                        index + 1
+                    )));
+                }
+            },
+        };
+
+        let shot_type = text("shot_type");
+        if let Some(shot) = shot_type.as_deref() {
+            if !kind.shot_types.iter().any(|s| s.key == shot) {
+                return Err(Error::Other(format!(
+                    "scene {}: no kind of shot `{shot}` for `{}`; its kinds of shot are {}",
+                    index + 1,
+                    kind.key,
+                    names(&mut kind.shot_types.iter().map(|s| s.key.as_str()))
+                )));
+            }
+        }
+
+        let mut blocks = Map::new();
+        if let Some(given) = item.get("blocks") {
+            let Some(given) = given.as_object() else {
+                return Err(Error::Other(format!(
+                    "scene {}: `blocks` must be an object of block key to text",
+                    index + 1
+                )));
+            };
+            for (key, value) in given {
+                if !kind.scene_blocks.iter().any(|b| b.key == *key) {
+                    return Err(Error::Other(format!(
+                        "scene {}: no prompt block `{key}` for `{}`; its blocks are {}",
+                        index + 1,
+                        kind.key,
+                        names(&mut kind.scene_blocks.iter().map(|b| b.key.as_str()))
+                    )));
+                }
+                // A block is text; a blank one is no block, so an agent that
+                // sends "" for what it has nothing to say about leaves the box
+                // empty rather than filling it with nothing.
+                match value {
+                    Value::String(body) if !body.trim().is_empty() => {
+                        blocks.insert(key.clone(), Value::String(body.clone()));
+                    }
+                    Value::String(_) | Value::Null => {}
+                    other => {
+                        blocks.insert(key.clone(), Value::String(other.to_string()));
+                    }
+                }
+            }
+        }
+
+        let starts_at = number("starts_at");
+        let ends_at = number("ends_at");
+        if let (Some(from), Some(to)) = (starts_at, ends_at) {
+            if to < from {
+                return Err(Error::Other(format!(
+                    "scene {}: it ends at {to} before it starts at {from}",
+                    index + 1
+                )));
+            }
+        }
+        for at in [starts_at, ends_at].into_iter().flatten() {
+            if !(at.is_finite() && at >= 0.0) {
+                return Err(Error::Other(format!(
+                    "scene {}: seconds are counted from 0",
+                    index + 1
+                )));
+            }
+        }
+
+        scenes.push(PackagedScene {
+            position,
+            section: text("section"),
+            starts_at,
+            ends_at,
+            shot_type,
+            description: text("description").unwrap_or_default(),
+            blocks,
+        });
+    }
+    Ok(scenes)
 }
 
 /// The contents of the last fenced json block in a body.
@@ -601,6 +778,7 @@ mod tests {
             }],
             score: None,
             notes: Vec::new(),
+            scenes: Vec::new(),
         };
         let stored = serde_json::to_value(&proposal).unwrap();
         assert_eq!(stored["kind"], "work");

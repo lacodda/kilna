@@ -15,14 +15,17 @@ interface Options {
   onApplied?: (applied: Applied) => void
 }
 
-/** How many operations applying wrote: the work, each version, the score, each note, the fields. */
+/** How many operations applying wrote: the work, each version, the score, each note, the
+ * fields, each scene written and each scene a replaced board sent to the trash. */
 export function writesOf(applied: Applied): number {
   return (
     (applied.created_work === true ? 1 : 0) +
     (applied.versions?.length ?? 0) +
     (applied.score !== undefined ? 1 : 0) +
     (applied.notes?.length ?? 0) +
-    (applied.created_work !== true && (applied.fields?.length ?? 0) > 0 ? 1 : 0)
+    (applied.created_work !== true && (applied.fields?.length ?? 0) > 0 ? 1 : 0) +
+    (applied.scenes?.length ?? 0) +
+    (applied.removed_scenes?.length ?? 0)
   )
 }
 

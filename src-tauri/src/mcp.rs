@@ -150,8 +150,9 @@ fn initialize() -> Value {
     `propose_work` proposes a whole new work — title, kind, overview fields, versions by role, a \
     score, notes — or, given `work`, a package of those for an existing one; prefer it whenever \
     you have more than one thing to say about a work, so the person applies it all at once. \
-    `propose_version`, `propose_score` and `propose_note` propose one thing each. Name works by \
-    id when you have one; an exact title works too.",
+    `propose_version`, `propose_score` and `propose_note` propose one thing each; \
+    `propose_scenes` proposes a storyboard for a video or a short, added to the board or \
+    replacing it. Name works by id when you have one; an exact title works too.",
     })
 }
 
@@ -166,6 +167,23 @@ fn tool(name: &str, description: &str, properties: Value, required: &[&str]) -> 
 
 fn work_arg() -> Value {
     json!({ "type": "string", "description": "A work: its id, or its exact title" })
+}
+
+/// The schema of a list of scenes, the same for a package and a storyboard.
+fn scenes_arg(description: &str) -> Value {
+    json!({
+        "type": "array",
+        "description": description,
+        "items": { "type": "object", "properties": {
+            "position": { "type": "integer", "description": "The number on the board, from 1; after the last when omitted" },
+            "section": text_arg("The part of the text it plays against: intro, verse 1, chorus"),
+            "starts_at": { "type": "number", "description": "Seconds from the start of the video" },
+            "ends_at": { "type": "number", "description": "Seconds from the start; not before `starts_at`" },
+            "shot_type": text_arg("A key of the kind's `shot_types`"),
+            "description": text_arg("What happens in the scene"),
+            "blocks": { "type": "object", "description": "Prompt blocks by the kind's `scene_blocks` key, each the text a generator is given", "additionalProperties": { "type": "string" } },
+        } },
+    })
 }
 
 fn text_arg(description: &str) -> Value {
@@ -296,8 +314,33 @@ fn tools() -> Vec<Value> {
                         "body": text_arg("The note itself"),
                     }, "required": ["body"] },
                 },
+                "scenes": scenes_arg(
+                    "The storyboard of a new video, or scenes added after the last of an \
+                     existing one's board; only for a kind with a storyboard (see `workspace`: \
+                     `shot_types`, `scene_blocks`)"
+                ),
             }),
             &[],
+        ),
+        tool(
+            "propose_scenes",
+            "Propose a storyboard for a work whose kind has one — a video, a short: a package \
+             of scenes, each with its number, the section of the text it plays against, its \
+             seconds, its kind of shot, a description and its prompt blocks. By default the \
+             scenes are ADDED after the last on the board; with `replace` the board is \
+             replaced — a scene with the same number is rewritten in place, the rest of the \
+             old board goes to the trash. Read `scenes` first when the board is not empty, \
+             and the `context` and `plot` roles with `text` for what every scene shares. \
+             The kind of shot and the block keys are the kind's own words (see `workspace`); \
+             an unknown one refuses the whole package. The board lands in the chat on the \
+             work, rendered as a table, with an *add to the board* or *replace the board* \
+             button; nothing is written until the person applies it.",
+            json!({
+                "work": work_arg(),
+                "scenes": scenes_arg("The scenes, in order"),
+                "replace": { "type": "boolean", "description": "Replace the board rather than add to it; false by default" },
+            }),
+            &["work", "scenes"],
         ),
         tool(
             "propose_version",
@@ -825,14 +868,21 @@ pub fn run_tool(
                 });
             }
 
+            let scenes = match args.get("scenes").and_then(Value::as_array) {
+                Some(raw) if !raw.is_empty() => proposal::scenes_from(raw, vocabulary)?,
+                _ => Vec::new(),
+            };
+
             if found.is_some()
                 && fields.is_empty()
                 && versions.is_empty()
                 && score.is_none()
                 && notes.is_empty()
+                && scenes.is_empty()
             {
                 return Err(Error::Other(
-                    "the package is empty: give `fields`, `versions`, `score` or `notes`".into(),
+                    "the package is empty: give `fields`, `versions`, `score`, `notes` or `scenes`"
+                        .into(),
                 ));
             }
 
@@ -844,6 +894,7 @@ pub fn run_tool(
                 versions,
                 score,
                 notes,
+                scenes,
             };
             let body = apply::render_package(&proposal, &config, &kind);
             let summary = package_summary(&proposal);
@@ -864,6 +915,47 @@ pub fn run_tool(
                 None => format!(
                     "Proposed a new work — {summary}. It waits in the chat named after you; one click creates it with everything in it."
                 ),
+            })
+        }
+
+        "propose_scenes" => {
+            let found = find_work(conn, &profile.id, required(args, "work")?)?;
+            let vocabulary = config.vocabulary(&found.kind);
+            let raw = args
+                .get("scenes")
+                .and_then(Value::as_array)
+                .filter(|raw| !raw.is_empty())
+                .ok_or_else(|| Error::Other("`scenes` must be a non-empty array".into()))?;
+            let scenes = proposal::scenes_from(raw, vocabulary)?;
+            let replace = args
+                .get("replace")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            let count = scenes.len();
+            let standing = scene::count(conn, &found.id)?;
+            let body = apply::render_board(&scenes, vocabulary, replace);
+            let proposal = Proposal::Scenes { scenes, replace };
+            deliver(
+                conn,
+                &profile.id,
+                session,
+                Some(&found),
+                proposal,
+                &body,
+                None,
+            )?;
+            Ok(if replace {
+                format!(
+                    "Proposed a storyboard of {count} scene{} to replace the {standing} on the board of “{}”. It waits in the chat on the work; one click replaces the board.",
+                    if count == 1 { "" } else { "s" },
+                    found.title
+                )
+            } else {
+                format!(
+                    "Proposed {count} scene{} to add after the {standing} on the board of “{}”. It waits in the chat on the work; one click adds them.",
+                    if count == 1 { "" } else { "s" },
+                    found.title
+                )
             })
         }
 
@@ -896,7 +988,7 @@ pub fn run_tool(
 
         other => Err(Error::Other(format!(
             "no tool named `{other}`; the tools are workspace, catalogue, work, text, scores, \
-             calendar, notes, search, propose_work, propose_version, propose_score, propose_note"
+             calendar, notes, scenes, search, propose_work, propose_version, propose_score,              propose_note, propose_scenes"
         ))),
     }
 }
@@ -957,6 +1049,7 @@ fn deliver(
         (Proposal::Note { .. }, Some(_)) => Record::new("proposal.note"),
         (Proposal::Note { .. }, None) => Record::new("proposal.freeNote"),
         (Proposal::Work { .. }, Some(_)) => Record::new("proposal.package"),
+        (Proposal::Scenes { .. }, _) => Record::new("proposal.scenes"),
         // A work that does not exist yet has no row to file the line under;
         // the title it would have is the one thing the sentence can name.
         (Proposal::Work { title, .. }, None) => {
@@ -983,6 +1076,7 @@ fn package_summary(proposal: &Proposal) -> String {
         versions,
         score,
         notes,
+        scenes,
         ..
     } = proposal
     else {
@@ -1021,6 +1115,13 @@ fn package_summary(proposal: &Proposal) -> String {
             "{} note{}",
             notes.len(),
             if notes.len() == 1 { "" } else { "s" }
+        ));
+    }
+    if !scenes.is_empty() {
+        parts.push(format!(
+            "{} scene{}",
+            scenes.len(),
+            if scenes.len() == 1 { "" } else { "s" }
         ));
     }
     if !unknown_fields.is_empty() {
@@ -1081,6 +1182,224 @@ mod tests {
         Session {
             client: Some("Claude Code".into()),
         }
+    }
+
+    /// A video in the workspace's profile — a kind with a storyboard.
+    fn video(conn: &Connection) -> String {
+        let profile_id = profile::active(conn).unwrap().unwrap().id;
+        work::create(
+            conn,
+            &profile_id,
+            NewWork {
+                kind: "video".into(),
+                title: "Harbour lights — the clip".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap()
+        .id
+    }
+
+    fn first_message(conn: &Connection, work_id: &str) -> assistant::Message {
+        let profile_id = profile::active(conn).unwrap().unwrap().id;
+        let chats = assistant::summaries(conn, &profile_id, Some(work_id)).unwrap();
+        assert_eq!(chats.len(), 1, "one chat, the client's");
+        assistant::transcript(conn, &chats[0].id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0)
+    }
+
+    #[test]
+    fn a_proposed_storyboard_waits_in_the_chat_as_a_readable_board() {
+        let (conn, _) = workspace();
+        let video_id = video(&conn);
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_scenes",
+            &args(json!({
+                "work": video_id,
+                "scenes": [
+                    { "section": "intro", "starts_at": 0, "ends_at": 4.5, "shot_type": "wide",
+                      "description": "the harbour at dawn",
+                      "blocks": { "still": "a harbour, first light, 35mm", "negative": "no people" } },
+                    { "section": "verse 1", "shot_type": "close", "description": "hands on a rope" }
+                ]
+            })),
+        )
+        .unwrap();
+        assert!(
+            answer.contains("Proposed 2 scenes to add after the 0"),
+            "{answer}"
+        );
+
+        assert_eq!(
+            scene::count(&conn, &video_id).unwrap(),
+            0,
+            "a proposal is not a scene"
+        );
+        let message = first_message(&conn, &video_id);
+        assert_eq!(message.meta["proposal"]["kind"], "scenes");
+        assert!(message.meta["proposal"].get("replace").is_none());
+        assert_eq!(message.meta["proposal"]["scenes"][0]["shot_type"], "wide");
+        assert_eq!(
+            message.meta["proposal"]["scenes"][0]["blocks"]["still"],
+            "a harbour, first light, 35mm"
+        );
+        assert!(apply::is_pending(&message));
+        for expected in [
+            "| # | Section | Time | Shot | Description |",
+            "| + | intro | 0:00–0:04.5 | Wide | the harbour at dawn |",
+            "| + | verse 1 |  | Close-up | hands on a rope |",
+            "_Still frame_",
+            "a harbour, first light, 35mm",
+        ] {
+            assert!(
+                message.body.contains(expected),
+                "readable before applied — missing {expected:?} in:\n{}",
+                message.body
+            );
+        }
+
+        let lines: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM journal WHERE action = 'proposal.scenes'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(lines, 1);
+    }
+
+    #[test]
+    fn a_replacing_storyboard_says_so_and_numbers_its_scenes_in_order() {
+        let (conn, _) = workspace();
+        let video_id = video(&conn);
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_scenes",
+            &args(json!({
+                "work": video_id, "replace": true,
+                "scenes": [{ "description": "one" }, { "description": "two" }]
+            })),
+        )
+        .unwrap();
+        assert!(answer.contains("to replace the 0 on the board"), "{answer}");
+        let message = first_message(&conn, &video_id);
+        assert_eq!(message.meta["proposal"]["replace"], true);
+        assert!(
+            message.body.contains("| 2 |  |  |  | two |"),
+            "{}",
+            message.body
+        );
+    }
+
+    #[test]
+    fn a_storyboard_in_the_wrong_words_is_refused_whole() {
+        let (conn, song_id) = workspace();
+        let video_id = video(&conn);
+
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_scenes",
+            &args(json!({ "work": video_id, "scenes": [{ "shot_type": "closeup" }] })),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("closeup") && err.contains("`close`"), "{err}");
+
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_scenes",
+            &args(json!({ "work": video_id, "scenes": [{ "blocks": { "prompt": "x" } }] })),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("`prompt`") && err.contains("`still`"), "{err}");
+
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_scenes",
+            &args(json!({ "work": video_id, "scenes": [{ "starts_at": 9, "ends_at": 3 }] })),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("before it starts"), "{err}");
+
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_scenes",
+            &args(json!({ "work": song_id, "scenes": [{ "description": "x" }] })),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("no storyboard"), "{err}");
+
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_scenes",
+            &args(json!({ "work": video_id, "scenes": [] })),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("non-empty"), "{err}");
+
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        assert!(
+            assistant::summaries(&conn, &profile_id, Some(&video_id))
+                .unwrap()
+                .is_empty(),
+            "nothing landed"
+        );
+    }
+
+    #[test]
+    fn a_new_video_can_bring_its_storyboard_in_the_package() {
+        let (conn, _) = workspace();
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({
+                "title": "Winter road — the clip", "kind": "video",
+                "versions": [{ "role": "plot", "body": "a road, a car, a light" }],
+                "scenes": [{ "section": "intro", "shot_type": "wide", "description": "the road" }]
+            })),
+        )
+        .unwrap();
+        assert!(answer.contains("1 scene"), "{answer}");
+
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let chats = assistant::summaries(&conn, &profile_id, None).unwrap();
+        let chat = chats.iter().find(|c| c.work_id.is_none()).unwrap();
+        let message = assistant::transcript(&conn, &chat.id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0);
+        assert_eq!(message.meta["proposal"]["scenes"][0]["section"], "intro");
+        assert!(message.body.contains("### Scenes"), "{}", message.body);
+
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({ "title": "x", "kind": "song", "scenes": [{ "description": "x" }] })),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(
+            err.contains("no storyboard"),
+            "a song takes no scenes: {err}"
+        );
     }
 
     fn args(value: Value) -> Map<String, Value> {
