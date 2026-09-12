@@ -98,6 +98,12 @@ export function Markdown({
         '[&_a]:text-accent-2 [&_a]:underline',
         '[&_strong]:font-semibold [&_em]:italic',
         '[&_hr]:my-4 [&_hr]:border-line',
+        // A table reads as a table: a note that lists images against their
+        // meaning, a scene board pasted from a chat. Ruled lightly, scrolled
+        // when wider than the column rather than breaking the page.
+        '[&_table]:my-2 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:border-collapse',
+        '[&_th]:border [&_th]:border-line [&_th]:bg-soft [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-semibold',
+        '[&_td]:border [&_td]:border-line [&_td]:px-2 [&_td]:py-1 [&_td]:align-top',
         '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
         className,
       )}

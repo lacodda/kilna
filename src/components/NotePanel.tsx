@@ -8,6 +8,7 @@ import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Markdown } from '@/components/ui/Markdown'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/Skeleton'
 
@@ -85,7 +86,11 @@ export function NotePanel({ workId }: Props) {
               className="flex items-start gap-2 rounded-xl border border-line p-2.5"
             >
               <div className="flex-1">
-                <p className="selectable whitespace-pre-wrap text-sm">{note.body}</p>
+                {/* Rendered, not shown raw: a note is where a table of images
+                    or a list of phrases lands, and pipes and asterisks are not
+                    what its author wrote it to be read as. Line breaks inside a
+                    paragraph are kept, as everywhere markdown is rendered here. */}
+                <Markdown body={note.body} className="text-sm" />
                 {note.tags.length > 0 && (
                   <p className="mt-1 flex flex-wrap gap-1">
                     {note.tags.map((tag) => (
