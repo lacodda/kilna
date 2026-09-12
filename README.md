@@ -56,7 +56,7 @@ A profile holds several kinds of work, and each kind carries its own vocabulary:
 
 kilna talks to Claude through your installed [Claude Code](https://claude.com/claude-code) CLI — your subscription, your session, your skills. Nothing is sent anywhere else, and there is no API key to configure.
 
-Prompt templates come from the active profile, with placeholders filled from the work in front of you:
+Actions come from the active profile: a short message with placeholders filled from the work in front of you, and a **method** — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say — that reaches the model as a system instruction. Studio ships a critique of lyrics in blocks and a way of judging finished work along your axes with their rubrics; rewrite them in Settings, or add your own. Started under a revision on the Versions tab, an action reads that revision and what it proposes is bound to it.
 
 ```jsonc
 {

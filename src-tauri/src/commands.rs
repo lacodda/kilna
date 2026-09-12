@@ -2309,8 +2309,15 @@ pub fn start_task(
     state: State<'_, AppState>,
     work_id: String,
     action: String,
+    version_id: Option<String>,
 ) -> Result<StartedTask> {
-    spawn_task(&app, state.inner(), &work_id, &action)
+    spawn_task(
+        &app,
+        state.inner(),
+        &work_id,
+        &action,
+        version_id.as_deref(),
+    )
 }
 
 /// Start one task and put a thread on it.
@@ -2324,6 +2331,7 @@ fn spawn_task(
     state: &AppState,
     work_id: &str,
     action: &str,
+    version_id: Option<&str>,
 ) -> Result<StartedTask> {
     let runs = Arc::clone(state.runs());
     let workdir = state.assistant_dir();
@@ -2339,7 +2347,7 @@ fn spawn_task(
 
     let (prepared, run, stream) = {
         let conn = state.conn();
-        let prepared = assistant::task::prepare(&conn, work_id, action)?;
+        let prepared = assistant::task::prepare(&conn, work_id, action, version_id)?;
         let (run, stream) = assistant_run::start_as(
             &conn,
             &runs,
@@ -2400,7 +2408,7 @@ fn drain_queue(app: &AppHandle) {
         // its own thread with it, and that thread drains again when it ends.
         // Only a failure keeps this loop going, and only to reach the next
         // task that might work.
-        let outcome = spawn_task(app, state, &next.work_id, &next.action);
+        let outcome = spawn_task(app, state, &next.work_id, &next.action, None);
         let _ = app.emit(TASK_QUEUE_EVENT, queue_state(state));
 
         match outcome {
@@ -2516,7 +2524,7 @@ pub fn start_tasks(
         }
 
         if inner.runs().has_slot() {
-            match spawn_task(&app, inner, work_id, &action) {
+            match spawn_task(&app, inner, work_id, &action, None) {
                 Ok(_) => started += 1,
                 // One work failing must not take the batch with it: the others
                 // are unrelated, and a half-run batch is more useful than none.
@@ -2619,7 +2627,7 @@ pub fn render_prompt(
     template: String,
 ) -> Result<String> {
     let conn = state.conn();
-    prompt::for_work(&conn, &work_id, &template)
+    prompt::for_work(&conn, &work_id, &template, None)
 }
 
 #[tauri::command]

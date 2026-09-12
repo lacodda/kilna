@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok_or("the profile defines no prompts")?;
     println!("action: {}", template.label);
 
-    let prompt = assistant::prompt::for_work(&conn, &target.id, &template.template)?;
+    let prompt = assistant::prompt::for_work(&conn, &target.id, &template.template, None)?;
     println!("\n--- prompt ---\n{prompt}\n");
 
     let chat = assistant::create(
@@ -61,6 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         NewChat {
             work_id: Some(target.id.clone()),
             title: Some(template.label.clone()),
+            ..Default::default()
         },
     )?;
 

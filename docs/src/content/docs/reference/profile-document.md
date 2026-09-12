@@ -498,8 +498,9 @@ specifically.
 | `key` | string | Identifies the prompt. Also what kilna recognises a running action by, so an action started from a card cannot be started twice at once. |
 | `label` | string | Button text, in the AI panel and on a work's Overview tab. |
 | `description` | string, optional | Shown as a hint under the label. |
-| `template` | string | The text sent to Claude, with placeholders filled per work. |
-| `produces` | string, optional | What the action asks for beyond prose. Only `"score"` is understood; anything else is treated as absent. |
+| `template` | string | The message sent to Claude, with placeholders filled per work. Keep it short: the method carries the how. |
+| `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
+| `produces` | string, optional | What the action asks for beyond prose: `"score"`, or `"version:<role>"` — the whole answer offered as a version in that role. Anything else is treated as absent. |
 
 The same prompt is offered in three places: in the panel it fills the composer
 for you to read and send, typing `/` reaches the same list from the keyboard,
@@ -509,9 +510,17 @@ and on **Overview** a click starts it at once in a chat of its own. See
 ### `produces`
 
 An action with `"produces": "score"` asks the assistant to end its reply with a
-json block holding a value for every axis of the profile. kilna appends that
-instruction itself — naming the axes and their scales — so the template only has
-to say what to judge and how honestly.
+json block holding a value for every axis of the work's kind. kilna appends
+that instruction itself — the axes with their labels, descriptions, rubric
+marks and weights, and the tiers with what the total means — so the template
+only has to say what to judge and how honestly. A template that names axes of
+its own contradicts the instruction; the shipped `score` templates no longer
+do, and a stored copy still reading exactly as it shipped before v0.61 follows.
+
+An action with `"produces": "version:<role>"` offers its whole answer as a
+version in that role — Studio's `critique` produces `version:critique`. The
+instruction kilna appends tells the model to write only the text, with no
+preamble, since the answer is kept word for word.
 
 The answer comes back with the numbers laid out and a button that applies them
 as an ordinary score. **kilna never lets the assistant write to the workspace**:
@@ -527,11 +536,13 @@ profile written for a future kilna still loads.
 ### Template placeholders
 
 - `{title}`, `{kind}`, `{status}` — the work's own fields.
-- `{body}` — the current version's body, whatever role that happens to be.
+- `{body}` — the current version's body, whatever role that happens to be; or,
+  for an action started from the versions tab, the revision open there.
 - `{role:lyrics}`, `{role:style}`, … — the latest revision of a specific
   version role, regardless of which one is current. This is what lets a
   prompt like Novel's "Check against the outline" pull in both `{role:text}`
-  and `{role:outline}` at once.
+  and `{role:outline}` at once. An action started on a revision reads that
+  revision for its own role.
 
 An unrecognized placeholder — a typo — is left visible in the rendered prompt
 rather than silently blanked, on the reasoning that a visible `{typo}` is

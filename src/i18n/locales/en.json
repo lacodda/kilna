@@ -68,6 +68,7 @@
     "title": "Versions",
     "role": "Role",
     "revision": "Revision {{number}}",
+    "actionsOn": "On {{name}} — what comes back is about this revision.",
     "current": "current",
     "length": "{{count}} character",
     "length_other": "{{count}} characters",
@@ -601,7 +602,24 @@
     "removeAxis": "Remove this axis",
     "save": "Save profile",
     "saved": "Saved.",
-    "keysHint": "Existing works keep the status and kind they already had, even if you edit the wording here."
+    "keysHint": "Existing works keep the status and kind they already had, even if you edit the wording here.",
+    "promptsHint": "Each action is a short message with placeholders, a method the assistant is briefed with, and what the answer becomes. Keys are fixed once made.",
+    "actionLabel": "Button text",
+    "actionDescription": "A hint under the label (optional)",
+    "actionTemplate": "Message",
+    "actionTemplateHint": "Sent as the message, with {title}, {body} and {role:lyrics} filled from the work. Keep it short; the method carries the how.",
+    "actionMethod": "Method",
+    "actionMethodHint": "How the action is done: the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; goes to the model as a system instruction.",
+    "actionMethodPlaceholder": "# Role\n\n# What to check\n\n# Output\n\n# Never write",
+    "actionProduces": "The answer becomes",
+    "producesProse": "Text to read",
+    "producesScore": "A score along the axes",
+    "producesVersion": "A version: {{role}}",
+    "addAction": "Add action",
+    "removeAction": "Remove this action",
+    "actionKey": "Key of the new action",
+    "actionKeyPlaceholder": "new-action-key",
+    "actionKeyTaken": "An action with this key already exists."
   },
   "plugins": {
     "title": "Plugins"

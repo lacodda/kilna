@@ -126,10 +126,59 @@ struct RawScore {
 /// Spelled out rather than left to the model's judgement: the block has to be
 /// findable, and "reply with JSON" produces a different shape every time. The
 /// axes are named with their scales because a number without its ceiling is
-/// meaningless — 7 out of 10 and 7 out of 100 are different opinions.
+/// meaningless — 7 out of 10 and 7 out of 100 are different opinions. And
+/// they are named with everything else the profile says about them — the
+/// label, the question the axis asks, the marks of its rubric, its weight —
+/// because that is the judgement the author wrote down, and a model handed
+/// only `"hook": <0-10>` judges by its own. The tiers follow, so the answer
+/// knows what its total means.
 pub fn scoring_instruction(config: &ProfileConfig, kind: &str) -> String {
-    let axes = config
-        .vocabulary(kind)
+    let vocabulary = config.vocabulary(kind);
+
+    let mut guide = String::new();
+    for axis in &vocabulary.axes {
+        guide.push_str(&format!(
+            "- `{}` — {} (0 to {}, weight {})",
+            axis.key, axis.label, axis.scale, axis.weight
+        ));
+        if let Some(description) = axis.description.as_deref().filter(|d| !d.trim().is_empty()) {
+            guide.push_str(&format!(": {}", description.trim()));
+        }
+        guide.push('\n');
+        if !axis.options.is_empty() {
+            let options = axis
+                .options
+                .iter()
+                .map(|option| format!("{} = {}", option.value, option.label))
+                .collect::<Vec<_>>()
+                .join("; ");
+            guide.push_str(&format!("  answers: {options}\n"));
+        }
+        for mark in &axis.rubric {
+            guide.push_str(&format!("  {} — {}\n", mark.at, mark.label));
+        }
+    }
+
+    let tiers = if vocabulary.tiers.is_empty() {
+        String::new()
+    } else {
+        let mut sorted: Vec<_> = vocabulary.tiers.iter().collect();
+        sorted.sort_by(|a, b| {
+            b.min
+                .partial_cmp(&a.min)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        format!(
+            "\nThe total is the weighted mean of the axes on a 0–100 scale; the tiers are: {}.\n",
+            sorted
+                .iter()
+                .map(|tier| format!("{} from {}", tier.label, tier.min))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    };
+
+    let shape = vocabulary
         .axes
         .iter()
         .map(|axis| format!("  \"{}\": <0-{}>", axis.key, axis.scale))
@@ -137,10 +186,22 @@ pub fn scoring_instruction(config: &ProfileConfig, kind: &str) -> String {
         .join(",\n");
 
     format!(
-        "\n\nEnd your reply with a fenced json block, exactly this shape and \
-         nothing else inside it:\n\n```json\n{{\n  \"axes\": {{\n{axes}\n  }},\n  \
+        "\n\nJudge it along these axes, exactly as the profile defines them:\n\n{guide}{tiers}\n\
+         End your reply with a fenced json block, exactly this shape and \
+         nothing else inside it:\n\n```json\n{{\n  \"axes\": {{\n{shape}\n  }},\n  \
          \"note\": \"one sentence on why\"\n}}\n```\n\nSay whatever you like \
          above the block. Use every axis listed and no others."
+    )
+}
+
+/// What an action that produces a version appends to its prompt.
+///
+/// The whole answer is what gets kept, verbatim, so the model is told not to
+/// wrap it: a preamble or a closing question would become part of the text.
+pub fn version_instruction(role_label: &str) -> String {
+    format!(
+        "\n\nYour whole reply is kept as the {role_label}, word for word: write only it — no \
+         preamble, no closing question, no fences around the whole."
     )
 }
 
@@ -549,5 +610,78 @@ mod tests {
         );
         let read: Proposal = serde_json::from_value(stored).unwrap();
         assert_eq!(read, proposal);
+    }
+}
+
+#[cfg(test)]
+mod instruction_tests {
+    use super::*;
+    use crate::profile::config::{Axis, AxisKind, AxisMark, Tier, WorkKind};
+
+    /// The model is told what the author wrote about each axis — the label,
+    /// the question, the marks of the rubric, the weight — and what the
+    /// total means; not only a key and a ceiling.
+    #[test]
+    fn the_scoring_instruction_carries_labels_rubrics_and_tiers() {
+        let mut kind = WorkKind::new("song", "Song");
+        kind.axes.push(Axis {
+            key: "imagery".into(),
+            label: "Imagery".into(),
+            weight: 2.0,
+            scale: 10.0,
+            description: Some("Can the picture be seen?".into()),
+            kind: AxisKind::Scale,
+            options: Vec::new(),
+            rubric: vec![
+                AxisMark {
+                    at: 3.0,
+                    label: "worn images".into(),
+                },
+                AxisMark {
+                    at: 8.0,
+                    label: "one fresh image per verse".into(),
+                },
+            ],
+        });
+        kind.tiers.push(Tier {
+            key: "hold".into(),
+            label: "Hold".into(),
+            min: 55.0,
+        });
+        kind.tiers.push(Tier {
+            key: "clip".into(),
+            label: "Clip".into(),
+            min: 80.0,
+        });
+        let config = ProfileConfig {
+            format: crate::profile::config::FORMAT,
+            work_kinds: vec![kind],
+            collection_kinds: Vec::new(),
+            work_meta_fields: Vec::new(),
+            marks: Vec::new(),
+            prompts: Vec::new(),
+            rhythm: None,
+            catalogue_columns: None,
+            catalogue_columns_by_kind: None,
+        };
+
+        let text = scoring_instruction(&config, "song");
+
+        for expected in [
+            "`imagery` — Imagery (0 to 10, weight 2)",
+            "Can the picture be seen?",
+            "3 — worn images",
+            "8 — one fresh image per verse",
+            "Clip from 80, Hold from 55",
+            "\"imagery\": <0-10>",
+        ] {
+            assert!(text.contains(expected), "missing {expected:?} in:\n{text}");
+        }
+    }
+
+    #[test]
+    fn a_version_instruction_names_the_role() {
+        let text = version_instruction("Critique");
+        assert!(text.contains("kept as the Critique"), "{text}");
     }
 }

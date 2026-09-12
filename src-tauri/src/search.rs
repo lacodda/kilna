@@ -412,6 +412,7 @@ mod tests {
             NewChat {
                 work_id: Some(work.clone()),
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();

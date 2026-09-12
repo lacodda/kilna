@@ -262,6 +262,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: Some("About the bridge".into()),
+                ..Default::default()
             },
         )
         .unwrap();

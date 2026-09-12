@@ -11,6 +11,12 @@ import { Button } from '@/components/ui/button'
 
 interface Props {
   workId: string
+  /** The version the actions are about, when started from the versions tab:
+      the template reads it and a score or a commentary binds to it. Without
+      it the action is about the work as it stands. */
+  versionId?: string
+  /** A line over the buttons saying what they act on. */
+  hint?: string
 }
 
 /**
@@ -27,7 +33,7 @@ interface Props {
  * that thread's session as context, and it buries the answer in someone else's
  * subject.
  */
-export function ActionBar({ workId }: Props) {
+export function ActionBar({ workId, versionId, hint }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const client = useQueryClient()
@@ -57,7 +63,7 @@ export function ActionBar({ workId }: Props) {
   }, [client])
 
   const start = useMutation({
-    mutationFn: (action: string) => startTask(workId, action),
+    mutationFn: (action: string) => startTask(workId, action, versionId),
     onSuccess: (started) => {
       void client.invalidateQueries({ queryKey: keys.activeTasks })
       void client.invalidateQueries({ queryKey: keys.allChats })
@@ -80,6 +86,7 @@ export function ActionBar({ workId }: Props) {
   return (
     <section className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold">{t('assistant.actions')}</h3>
+      {hint !== undefined && <p className="text-xs text-dim">{hint}</p>}
 
       <div className="flex flex-wrap gap-1.5">
         {actions.map((action) => {

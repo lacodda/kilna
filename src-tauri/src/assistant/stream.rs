@@ -166,6 +166,16 @@ pub fn finished_meta(cost_usd: Option<f64>, duration_ms: Option<u64>) -> Map<Str
 pub struct Stream {
     child: Child,
     lines: std::io::Lines<BufReader<ChildStdout>>,
+    /// The file the method was handed over in, removed when the run is done.
+    method_file: Option<std::path::PathBuf>,
+}
+
+impl Drop for Stream {
+    fn drop(&mut self) {
+        if let Some(path) = self.method_file.take() {
+            let _ = std::fs::remove_file(path);
+        }
+    }
 }
 
 /// A way to stop a run that does not go through the reader.
@@ -227,10 +237,18 @@ impl Stream {
     /// The prompt goes in over stdin for the reason spelled out in
     /// [`super::cli::ask`]: on Windows the executable is a `.cmd`, and Rust
     /// refuses to pass an argument containing a newline to a batch file.
+    ///
+    /// `method` is the action's method (ADR 0021), appended to the CLI's
+    /// system prompt. It goes through a file rather than an argument for
+    /// the same `.cmd` reason as the prompt: a method is pages of text with
+    /// newlines. The file lives in the system's temporary directory, not in
+    /// `workdir` — that one is kept empty on purpose — and is removed when
+    /// the stream is dropped.
     pub fn start(
         prompt: &str,
         session_id: Option<&str>,
         workdir: Option<&std::path::Path>,
+        method: Option<&str>,
     ) -> Result<Self> {
         let mut command = super::cli::command();
         command.args([
@@ -247,6 +265,19 @@ impl Stream {
         if let Some(dir) = workdir {
             command.current_dir(dir);
         }
+
+        let method_file = match method {
+            Some(method) => {
+                let path =
+                    std::env::temp_dir().join(format!("kilna-method-{}.md", uuid::Uuid::new_v4()));
+                std::fs::write(&path, method).map_err(|error| {
+                    Error::Assistant(format!("could not write the action's method: {error}"))
+                })?;
+                command.arg("--append-system-prompt-file").arg(&path);
+                Some(path)
+            }
+            None => None,
+        };
 
         let mut child = command
             .stdin(Stdio::piped())
@@ -278,6 +309,7 @@ impl Stream {
         Ok(Self {
             child,
             lines: BufReader::new(stdout).lines(),
+            method_file,
         })
     }
 

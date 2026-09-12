@@ -108,8 +108,9 @@
         "key": "score",
         "label": "Score the post",
         "description": "Rate it along the profile axes, with a reason.",
-        "template": "Here is a post called \"{title}\".\n\n{body}\n\nJudge it along these axes: Hook (Does the first paragraph survive contact with a stranger's attention span), Usefulness (Could a reader act on this, or is it just an opinion floating by), Clarity (Sentence by sentence: does every paragraph earn the next one), Angle (Is there a take here, or a restatement of what everyone already thinks), Shareability (Is there a line worth quoting out of context).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
-        "produces": "score"
+        "template": "Here is a post called \"{title}\".\n\n{body}\n\nJudge it along the axes below.\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+        "produces": "score",
+        "method": "# Judge of finished work\n\n## Role\n\nYou are judging release potential — how the finished piece stands against the profile's axes — not helping to improve it. Score each axis on its own scale as the profile describes it; the marks of a rubric, where given, are the anchors: find the nearest one below the work and place it there. Do not average impressions across axes, and do not let a strong axis lift a weak one.\n\n## How to judge\n\n1. Read the whole piece once as a listener or reader would, without a pen.\n2. Read it again per axis, in the profile's order, and write one line of evidence for each axis before the number — a quote or a concrete observation, not an adjective.\n3. Be honest rather than kind: a flattering score is worth nothing to the author, and a 10 is reserved for work with nothing left to fix on that axis.\n4. Where the profile names tiers, say which tier the total lands in and what, if anything, would move it up one.\n\n## Output\n\nYour reasoning first: the evidence per axis, one line each, then the tier and what would move it. Then the fenced json block exactly as instructed, and nothing after it.\n"
       }
     ]
   }

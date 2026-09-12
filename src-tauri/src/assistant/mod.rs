@@ -27,6 +27,15 @@ pub struct Chat {
     /// question is still unanswered. Null when nothing is pending.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub waiting_since: Option<String>,
+    /// The profile action that opened this chat, when one did. Read on
+    /// every turn for the action's method (ADR 0021).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub action: Option<String>,
+    /// The version the action was started on, when it was started on one
+    /// rather than on the work's current version. What the chat proposes
+    /// is about it, and applying binds to it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_id: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -48,12 +57,16 @@ pub struct Transcript {
     pub messages: Vec<Message>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct NewChat {
     #[serde(default)]
     pub work_id: Option<String>,
     #[serde(default)]
     pub title: Option<String>,
+    #[serde(default)]
+    pub action: Option<String>,
+    #[serde(default)]
+    pub version_id: Option<String>,
 }
 
 /// A chat as the list draws it: named, priced, tied to its work.
@@ -82,16 +95,25 @@ pub struct ChatSummary {
 pub const USER: &str = "user";
 pub const ASSISTANT: &str = "assistant";
 
-const SELECT_CHAT: &str = "SELECT id, profile_id, work_id, title, session_id, waiting_since,                            created_at, updated_at FROM chat";
+const SELECT_CHAT: &str = "SELECT id, profile_id, work_id, title, session_id, waiting_since, \
+                            created_at, updated_at, action, version_id FROM chat";
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewChat) -> Result<Chat> {
     let id = uuid::Uuid::new_v4().to_string();
     let timestamp = now();
 
     conn.execute(
-        "INSERT INTO chat (id, profile_id, work_id, title, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
-        params![id, profile_id, new.work_id, new.title, timestamp],
+        "INSERT INTO chat (id, profile_id, work_id, title, action, version_id, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)",
+        params![
+            id,
+            profile_id,
+            new.work_id,
+            new.title,
+            new.action,
+            new.version_id,
+            timestamp
+        ],
     )?;
 
     get(conn, &id)?.ok_or_else(|| Error::Other("the chat vanished after insert".into()))
@@ -402,6 +424,8 @@ fn read_chat(row: &rusqlite::Row<'_>) -> rusqlite::Result<Chat> {
         waiting_since: row.get(5)?,
         created_at: row.get(6)?,
         updated_at: row.get(7)?,
+        action: row.get(8)?,
+        version_id: row.get(9)?,
     })
 }
 
@@ -429,6 +453,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: Some("Scratch".into()),
+                ..Default::default()
             },
         )
         .unwrap();
@@ -449,6 +474,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -484,6 +510,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -532,6 +559,7 @@ mod tests {
             NewChat {
                 work_id: Some(work.id.clone()),
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -550,6 +578,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -572,6 +601,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -588,6 +618,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -619,6 +650,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -652,6 +684,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -683,6 +716,7 @@ mod tests {
             NewChat {
                 work_id: Some(work.id.clone()),
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -692,6 +726,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -712,6 +747,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -723,6 +759,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -754,6 +791,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: Some("Named".into()),
+                ..Default::default()
             },
         )
         .unwrap();
@@ -779,6 +817,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -804,6 +843,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -827,6 +867,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: Some("Asked first".into()),
+                ..Default::default()
             },
         )
         .unwrap();
@@ -836,6 +877,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: Some("Asked later".into()),
+                ..Default::default()
             },
         )
         .unwrap();
@@ -869,6 +911,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..Default::default()
             },
         )
         .unwrap();

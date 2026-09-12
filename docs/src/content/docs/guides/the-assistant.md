@@ -41,6 +41,13 @@ So the profile's actions sit on the **Overview** tab as well, and there a click
 starts the work immediately. Nothing opens, nothing waits for you: kilna says
 which action went and leaves you where you were.
 
+They sit under the text on the **Versions** tab too, and there they are about
+the revision you have open — not whichever is current. The template reads that
+revision, and what comes back is bound to it: a score applied from that chat is
+a snapshot of that revision, a critique kept as a version says which revision
+it discusses and is shown beside it. The line over the buttons names the
+revision, so there is no guessing which text a critique read.
+
 Each one gets a **chat of its own**, named after the action and the work —
 *Critique the lyrics · Harbour lights*. It never lands in a conversation you
 already have going, for two reasons: it would bury the answer under someone
@@ -110,17 +117,51 @@ towards asking: a banner you dismiss with one click costs a glance, a question
 you never noticed costs the hour the work stood still. Only actions are read
 this way. A question you asked yourself in the panel is already on your screen.
 
+## An action's method
+
+A message with placeholders says *what* to do. How it is done — the role the
+assistant takes, what it checks and in what order, the shape of the answer,
+what it must never say — is the action's **method**: a markdown document of
+its own, shipped with the profile and edited in Settings beside the message.
+It reaches the model as a system instruction on every turn of the chat the
+action opened, so a follow-up question in a critique chat is still answered
+by the critic.
+
+Studio ships two: a critique of lyrics in blocks — rhymes, images, structure,
+singability, fit with the craft's DNA — with a section on the craft's DNA
+written to be rewritten for your own project; and a way of judging finished
+work along the profile's axes. The other profiles ship the second. Rewrite
+them in **Settings → Assistant actions**; the key of an action stays fixed,
+because a running task and its chat are recognised by it. An action can also
+be added there, or removed.
+
+Where an action is started from the panel's composer, the method does not
+ride along: the composer is for reading the message before it is sent, and
+the message is all that goes. Start the action from a card to have the
+method with it.
+
 ## Actions that come back with a score
 
 Most actions answer in prose and you decide what to do with it. An action can
 also ask for something kilna knows how to act on — the profile's `score` action
 does, and any action can by declaring `"produces": "score"`.
 
+The instruction kilna appends names the axes as your profile defines them —
+label, the question each asks, the marks of its rubric, its weight — and the
+tiers with what the total means, so the model judges by your rubric rather
+than by its own idea of a hook.
+
 Such an answer arrives with the numbers laid out under it, axis by axis, with
 the assistant's one-line reason and a button that applies them. Applying writes
-an ordinary score — same snapshot, same history, tied to the current version,
-carrying that reason as its note. Nothing marks it as machine-suggested,
-because once you have pressed the button it is your score.
+an ordinary score — same snapshot, same history, tied to the revision the
+action was started on (the current one, from the overview), carrying that
+reason as its note. Nothing marks it as machine-suggested, because once you
+have pressed the button it is your score.
+
+An action can also produce a **version**: `"produces": "version:critique"`
+offers the whole answer as a version in that role, with the same *Insert as
+version* button an agent's proposal gets. Studio's critique does, so a
+critique is kept beside the text it read rather than lost in a chat.
 
 If the answer judged an axis your profile does not have, or skipped one it does,
 the panel says so rather than quietly dropping it. A proposal that only half

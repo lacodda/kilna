@@ -937,6 +937,7 @@ fn deliver(
                 assistant::NewChat {
                     work_id: work_id.map(str::to_owned),
                     title: Some(client.clone()),
+                    ..assistant::NewChat::default()
                 },
             )?
             .id

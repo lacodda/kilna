@@ -164,8 +164,14 @@ export interface PromptTemplate {
   label: string
   template: string
   description?: string
-  /** What the action asks for beyond prose. Absent means an ordinary action. */
-  produces?: 'score'
+  /** What the action asks for beyond prose: `score`, or `version:<role>` —
+      the whole answer kept as a version in that role. Absent means prose;
+      a value this build does not know reads as prose too. */
+  produces?: string
+  /** How the action is done — the role the assistant takes, what it checks,
+      the shape of the answer, what it must never say. Reaches the model as a
+      system instruction, not as part of the message. See ADR 0021. */
+  method?: string
 }
 
 // What a release of this kind cannot ship without: version role keys. An empty
@@ -425,6 +431,9 @@ export interface VersionSummary {
   parent_version_id: string | null
   created_at: string
   is_current: boolean
+  /** For a commentary: the version it was written about, when it was written
+      about one. Paired by this first; by revision number only when absent. */
+  about_version_id: string | null
 }
 
 export interface NewVersion {
@@ -1096,8 +1105,11 @@ export interface TaskQueue {
   waiting: string[]
 }
 
-export const startTask = (workId: string, action: string) =>
-  invoke<StartedTask>('start_task', { workId, action })
+/** Start an action on a work — on one of its versions when `versionId` is
+    given: the template reads that version, and what the answer proposes is
+    bound to it. */
+export const startTask = (workId: string, action: string, versionId?: string) =>
+  invoke<StartedTask>('start_task', { workId, action, versionId: versionId ?? null })
 export const startTasks = (workIds: readonly string[], action: string) =>
   invoke<StartedBatch>('start_tasks', { workIds, action })
 export const activeTasks = () => invoke<string[]>('active_tasks')

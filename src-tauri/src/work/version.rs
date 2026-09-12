@@ -37,6 +37,10 @@ pub struct VersionSummary {
     pub parent_version_id: Option<String>,
     pub created_at: String,
     pub is_current: bool,
+    /// For a version in a commenting role: the version it comments on, when
+    /// it was written about one (`meta.about`). The versions tab pairs by
+    /// this first, and by revision number only for commentary that has none.
+    pub about_version_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -186,7 +190,8 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<Version>> {
 pub fn list(conn: &Connection, work_id: &str) -> Result<Vec<VersionSummary>> {
     let mut statement = conn.prepare(
         "SELECT v.id, v.work_id, v.role, v.revision, v.label, length(v.body), v.created_at,
-                v.id = coalesce(w.current_version_id, '') AS is_current, v.parent_version_id
+                v.id = coalesce(w.current_version_id, '') AS is_current, v.parent_version_id,
+                json_extract(v.meta, '$.about')
          FROM work_version v
          JOIN work w ON w.id = v.work_id
          WHERE v.work_id = ?1
@@ -204,6 +209,7 @@ pub fn list(conn: &Connection, work_id: &str) -> Result<Vec<VersionSummary>> {
             created_at: row.get(6)?,
             is_current: row.get::<_, i64>(7)? == 1,
             parent_version_id: row.get(8)?,
+            about_version_id: row.get(9)?,
         })
     })?;
 

@@ -17,6 +17,9 @@ use rusqlite::Connection;
 use crate::error::{Error, Result};
 use crate::profile;
 use crate::work;
+use crate::work::version;
+
+use super::prompt::Produces;
 
 /// A task the caller asked for, before anything was started.
 pub struct Prepared {
@@ -45,10 +48,20 @@ pub fn key(action: &str, work_id: &str) -> String {
 /// Render `action` of the active profile against `work_id` and open a chat for
 /// it.
 ///
+/// `version_id` is the version the action is about — the one open on the
+/// versions tab. It is what the template reads and what the answer's
+/// proposal will bind to; without it the action is about the work as it
+/// stands.
+///
 /// Fails when the profile has no such action: a card offering a button the
 /// profile dropped is a card that has to be told, not one that should quietly
 /// send an empty prompt.
-pub fn prepare(conn: &Connection, work_id: &str, action: &str) -> Result<Prepared> {
+pub fn prepare(
+    conn: &Connection,
+    work_id: &str,
+    action: &str,
+    version_id: Option<&str>,
+) -> Result<Prepared> {
     let profile =
         profile::active(conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
 
@@ -60,15 +73,38 @@ pub fn prepare(conn: &Connection, work_id: &str, action: &str) -> Result<Prepare
         .ok_or_else(|| Error::not_found("prompt", action))?;
 
     let work = work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
-    let mut prompt = super::prompt::for_work(conn, work_id, &template.template)?;
+    // Checked here rather than left to the render: a version of another work
+    // must be refused before a chat is opened for it.
+    if let Some(id) = version_id {
+        let found = version::get(conn, id)?.ok_or_else(|| Error::not_found("version", id))?;
+        if found.work_id != work.id {
+            return Err(Error::Other(format!(
+                "version `{id}` is not a version of “{}”",
+                work.title
+            )));
+        }
+    }
+    let mut prompt = super::prompt::for_work(conn, work_id, &template.template, version_id)?;
 
     // An action that asks for something the application can act on says the
     // shape it needs. Ordinary actions say nothing and get prose.
-    if template.produces.as_deref() == Some(SCORE) {
-        prompt.push_str(&super::proposal::scoring_instruction(
+    match template.produces() {
+        Produces::Score => prompt.push_str(&super::proposal::scoring_instruction(
             &profile.config,
             &work.kind,
-        ));
+        )),
+        Produces::Version(role) => {
+            let label = profile
+                .config
+                .vocabulary(&work.kind)
+                .version_roles
+                .iter()
+                .find(|r| r.key == role)
+                .map(|r| r.label.clone())
+                .unwrap_or(role);
+            prompt.push_str(&super::proposal::version_instruction(&label));
+        }
+        Produces::Prose => {}
     }
 
     // The instruction that lets the assistant mark its own question. Only
@@ -87,6 +123,8 @@ pub fn prepare(conn: &Connection, work_id: &str, action: &str) -> Result<Prepare
         super::NewChat {
             work_id: Some(work_id.to_owned()),
             title: Some(title.clone()),
+            action: Some(action.to_owned()),
+            version_id: version_id.map(str::to_owned),
         },
     )?;
 
@@ -157,7 +195,7 @@ mod tests {
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
-        let prepared = prepare(&conn, &work_id, &action.key).unwrap();
+        let prepared = prepare(&conn, &work_id, &action.key, None).unwrap();
 
         let chat = super::super::get(&conn, &prepared.chat_id)
             .unwrap()
@@ -172,8 +210,8 @@ mod tests {
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
-        let first = prepare(&conn, &work_id, &action.key).unwrap();
-        let second = prepare(&conn, &work_id, &action.key).unwrap();
+        let first = prepare(&conn, &work_id, &action.key, None).unwrap();
+        let second = prepare(&conn, &work_id, &action.key, None).unwrap();
 
         assert_ne!(
             first.chat_id, second.chat_id,
@@ -187,7 +225,7 @@ mod tests {
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
-        let prepared = prepare(&conn, &work_id, &action.key).unwrap();
+        let prepared = prepare(&conn, &work_id, &action.key, None).unwrap();
 
         let chat = super::super::get(&conn, &prepared.chat_id)
             .unwrap()
@@ -208,7 +246,7 @@ mod tests {
         );
         let action = some_action(&conn);
 
-        let prepared = prepare(&conn, &work_id, &action.key).unwrap();
+        let prepared = prepare(&conn, &work_id, &action.key, None).unwrap();
 
         assert!(
             !prepared.prompt.contains('{'),
@@ -228,7 +266,7 @@ mod tests {
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
-        let prepared = prepare(&conn, &work_id, &action.key).unwrap();
+        let prepared = prepare(&conn, &work_id, &action.key, None).unwrap();
 
         assert!(
             prepared.prompt.contains(crate::assistant::waiting::MARKER),
@@ -246,7 +284,7 @@ mod tests {
         let (mut conn, profile_id) = workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
 
-        let refused = prepare(&conn, &work_id, "no-such-action");
+        let refused = prepare(&conn, &work_id, "no-such-action", None);
 
         assert!(refused.is_err());
     }
@@ -256,7 +294,7 @@ mod tests {
         let (mut conn, profile_id) = workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
 
-        let _ = prepare(&conn, &work_id, "no-such-action");
+        let _ = prepare(&conn, &work_id, "no-such-action", None);
 
         let chats: i64 = conn
             .query_row("SELECT count(*) FROM chat", [], |row| row.get(0))
@@ -270,7 +308,7 @@ mod tests {
         let (conn, _) = workspace();
         let action = some_action(&conn);
 
-        assert!(prepare(&conn, "nope", &action.key).is_err());
+        assert!(prepare(&conn, "nope", &action.key, None).is_err());
     }
 
     #[test]
@@ -278,5 +316,119 @@ mod tests {
         assert_eq!(key("critique", "w1"), key("critique", "w1"));
         assert_ne!(key("critique", "w1"), key("critique", "w2"));
         assert_ne!(key("critique", "w1"), key("score", "w1"));
+    }
+}
+
+#[cfg(test)]
+mod version_tests {
+    use super::*;
+    use crate::db;
+    use crate::work::NewWork;
+    use crate::work::version::{self, NewVersion};
+
+    fn workspace() -> (Connection, String) {
+        let conn = db::open_in_memory().unwrap();
+        profile::seed(&conn).unwrap();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        (conn, profile_id)
+    }
+
+    /// A task started on a version reads that version, remembers it on the
+    /// chat with the action, and a task started on the work as a whole
+    /// remembers the action alone.
+    #[test]
+    fn a_task_on_a_version_reads_it_and_the_chat_remembers_it() {
+        let (mut conn, profile_id) = workspace();
+        let work = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "song".into(),
+                title: "Harbour lights".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+        let mut make = |body: &str| {
+            version::create(
+                &mut conn,
+                &work.id,
+                NewVersion {
+                    role: "lyrics".into(),
+                    body: body.into(),
+                    label: None,
+                    meta: None,
+                    make_current: true,
+                    parent_version_id: None,
+                },
+            )
+            .unwrap()
+            .id
+        };
+        let first = make("the cranes go still");
+        make("the cranes go on");
+
+        let prepared = prepare(&conn, &work.id, "critique", Some(&first)).unwrap();
+        assert!(
+            prepared.prompt.contains("the cranes go still")
+                && !prepared.prompt.contains("the cranes go on"),
+            "{}",
+            prepared.prompt
+        );
+        let chat = super::super::get(&conn, &prepared.chat_id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(chat.action.as_deref(), Some("critique"));
+        assert_eq!(chat.version_id.as_deref(), Some(first.as_str()));
+
+        let whole = prepare(&conn, &work.id, "critique", None).unwrap();
+        let chat = super::super::get(&conn, &whole.chat_id).unwrap().unwrap();
+        assert_eq!(chat.action.as_deref(), Some("critique"));
+        assert!(chat.version_id.is_none());
+        assert!(whole.prompt.contains("the cranes go on"), "the latest");
+    }
+
+    /// The shipped critique produces a version in the `critique` role, and
+    /// the prompt says so: the whole answer is what is kept.
+    #[test]
+    fn an_action_that_produces_a_version_says_so_in_the_prompt() {
+        let (mut conn, profile_id) = workspace();
+        let work = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "song".into(),
+                title: "Harbour lights".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+        version::create(
+            &mut conn,
+            &work.id,
+            NewVersion {
+                role: "lyrics".into(),
+                body: "x".into(),
+                label: None,
+                meta: None,
+                make_current: true,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
+        let prepared = prepare(&conn, &work.id, "critique", None).unwrap();
+        assert!(
+            prepared.prompt.contains("kept as the Critique"),
+            "{}",
+            prepared.prompt
+        );
+        let scored = prepare(&conn, &work.id, "score", None).unwrap();
+        assert!(
+            scored
+                .prompt
+                .contains("exactly as the profile defines them"),
+            "{}",
+            scored.prompt
+        );
     }
 }

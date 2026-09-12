@@ -320,7 +320,19 @@ pub fn start_as(
     // rather than minutes later when the reply lands.
     let _ = super::clear_waiting(conn, chat_id);
 
-    let stream = Stream::start(prompt, chat.session_id.as_deref(), workdir)?;
+    // The action's method, when the chat was opened by one: read at every
+    // turn rather than sent once, because a follow-up in a critique chat is
+    // still a critique, and the CLI keeps no system prompt across resumes.
+    let method = chat
+        .action
+        .as_deref()
+        .and_then(|action| method_of(conn, action));
+    let stream = Stream::start(
+        prompt,
+        chat.session_id.as_deref(),
+        workdir,
+        method.as_deref(),
+    )?;
 
     let started_at = now();
     conn.execute(
@@ -512,6 +524,18 @@ pub fn pump<S, F>(
     }
 }
 
+/// The method of an action of the active profile, when it has one.
+fn method_of(conn: &Connection, action: &str) -> Option<String> {
+    let profile = crate::profile::active(conn).ok()??;
+    profile
+        .config
+        .prompts
+        .iter()
+        .find(|prompt| prompt.key == action)?
+        .method()
+        .map(str::to_owned)
+}
+
 /// What this run's answer proposed, when its action asked for something the
 /// application can act on.
 ///
@@ -527,19 +551,26 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Option<Value> {
         .iter()
         .find(|prompt| prompt.key == action)?;
 
-    if template.produces.as_deref() != Some(super::task::SCORE) {
-        return None;
+    match template.produces() {
+        super::prompt::Produces::Prose => None,
+        // The whole answer is the version; the proposal only says where it
+        // goes. Bound to the version the chat is about by `apply`, which
+        // reads the chat.
+        super::prompt::Produces::Version(role) => {
+            serde_json::to_value(super::proposal::Proposal::Version { role, label: None }).ok()
+        }
+        super::prompt::Produces::Score => {
+            // The answer is handed in rather than read off the run: `run` is
+            // the snapshot taken when the run started, and its event list is
+            // empty. Reading it there returned nothing, always — caught by
+            // the test that expected a proposal and found none.
+            // Read against the work's own kind: the axes a score names are its.
+            let chat = super::get(conn, &run.chat_id).ok()??;
+            let work = crate::work::get(conn, chat.work_id.as_deref()?).ok()??;
+            let proposal = super::proposal::read_score(body, &profile.config, &work.kind)?;
+            serde_json::to_value(proposal).ok()
+        }
     }
-
-    // The answer is handed in rather than read off the run: `run` is the
-    // snapshot taken when the run started, and its event list is empty. Reading
-    // it there returned nothing, always — caught by the test that expected a
-    // proposal and found none.
-    // Read against the work's own kind: the axes a score names are its.
-    let chat = super::get(conn, &run.chat_id).ok()??;
-    let work = crate::work::get(conn, chat.work_id.as_deref()?).ok()??;
-    let proposal = super::proposal::read_score(body, &profile.config, &work.kind)?;
-    serde_json::to_value(proposal).ok()
 }
 
 /// Record what was asked, tied to the run that will answer it.
@@ -689,6 +720,7 @@ mod tests {
             NewChat {
                 work_id: None,
                 title: None,
+                ..NewChat::default()
             },
         )
         .unwrap()
@@ -1480,6 +1512,7 @@ Which one do you want?"
             NewChat {
                 work_id: Some(work_id),
                 title: None,
+                ..NewChat::default()
             },
         )
         .unwrap()
@@ -1529,6 +1562,69 @@ Which one do you want?"
         drop(dir);
     }
 
+    /// An action that produces a version attaches a version proposal in
+    /// its role: the whole answer, offered as a critique beside the text.
+    #[test]
+    fn a_version_producing_task_attaches_a_version_proposal() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let work_id = crate::work::create(
+            &conn,
+            &profile_id,
+            crate::work::NewWork {
+                kind: "song".into(),
+                title: "Judged".into(),
+                ..crate::work::NewWork::default()
+            },
+        )
+        .unwrap()
+        .id;
+        let chat_id = super::super::create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: Some(work_id),
+                title: None,
+                action: Some("critique".into()),
+                ..NewChat::default()
+            },
+        )
+        .unwrap()
+        .id;
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some(format!("critique:{chat_id}"));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: "## CRITIQUE
+
+The second verse is the weak one."
+                    .into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap();
+        let proposal = answer.meta.get("proposal").expect("a version is proposed");
+        assert_eq!(proposal["kind"], "version");
+        assert_eq!(proposal["role"], "critique");
+        drop(dir);
+    }
+
     /// An ordinary action answers in prose, and nothing is proposed.
     #[test]
     fn a_plain_task_attaches_no_proposal() {
@@ -1538,7 +1634,9 @@ Which one do you want?"
 
         let run_id = record(&conn, &chat_id, "running");
         let mut run = get(&conn, &run_id).unwrap().unwrap();
-        run.task = Some(format!("critique:{chat_id}"));
+        // `polish` answers in prose; `critique` has produced a version since
+        // v0.61 and is covered below.
+        run.task = Some(format!("polish:{chat_id}"));
         runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
 
         let collector: Arc<Collector> = Arc::new(Collector::default());

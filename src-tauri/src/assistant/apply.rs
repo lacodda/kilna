@@ -134,6 +134,15 @@ pub fn apply(
             // Not current unless the person said so: an answer worth keeping
             // is not yet an answer worth standing behind — the dialog's rule.
             let make_current = overrides.make_current.unwrap_or(false);
+            // A commentary is about the version its chat was started on: the
+            // critique of revision 2 says so, and the versions tab shows it
+            // beside revision 2 rather than beside whichever revision shares
+            // its number.
+            let meta = about_version(conn, &chat, &work_id).map(|about| {
+                let mut meta = serde_json::Map::new();
+                meta.insert("about".into(), serde_json::Value::String(about));
+                meta
+            });
             let version = write_version(
                 conn,
                 profile_id,
@@ -142,7 +151,7 @@ pub fn apply(
                     role,
                     body: message.body.clone(),
                     label,
-                    meta: None,
+                    meta,
                     make_current,
                     parent_version_id: None,
                 },
@@ -152,10 +161,14 @@ pub fn apply(
 
         Proposal::Score { axes, note, .. } => {
             let work_id = on_work(&chat, "a score")?;
+            // Tied to the version the chat is about, when it is about one:
+            // a score judged revision 2 is a snapshot of revision 2.
+            let version_id = about_version(conn, &chat, &work_id);
             outcome.score = Some(write_score(
                 conn,
                 profile_id,
                 &work_id,
+                version_id,
                 Marks {
                     axes,
                     note,
@@ -265,7 +278,9 @@ pub fn apply(
                 )?);
             }
             if let Some(marks) = score {
-                outcome.score = Some(write_score(conn, profile_id, &work_id, marks, client)?);
+                outcome.score = Some(write_score(
+                    conn, profile_id, &work_id, None, marks, client,
+                )?);
             }
             for packaged in notes {
                 outcome
@@ -426,16 +441,27 @@ fn write_version(
     Ok(created.id)
 }
 
+/// The version a chat is about, when it still is: the one the action was
+/// started on, if it belongs to this work and has not been deleted since.
+/// Anything else binds to nothing, which the score reads as "the current
+/// version" — the same answer a chat started from the overview gives.
+fn about_version(conn: &Connection, chat: &assistant::Chat, work_id: &str) -> Option<String> {
+    let id = chat.version_id.as_deref()?;
+    let found = version::get(conn, id).ok()??;
+    (found.work_id == work_id).then_some(found.id)
+}
+
 fn write_score(
     conn: &mut Connection,
     profile_id: &str,
     work_id: &str,
+    version_id: Option<String>,
     marks: Marks,
     rater: Option<String>,
 ) -> Result<String> {
     let new = NewScore {
         axes: marks.axes,
-        version_id: None,
+        version_id,
         note: marks.note,
         rater,
     };
@@ -673,6 +699,7 @@ mod tests {
             assistant::NewChat {
                 work_id: work_id.map(str::to_owned),
                 title: Some("Claude Code".into()),
+                ..assistant::NewChat::default()
             },
         )
         .unwrap()
@@ -1150,5 +1177,160 @@ mod tests {
         let body = render_package(&proposal, &config, "song");
 
         assert!(body.contains("````\na line with ``` in it\n````"), "{body}");
+    }
+}
+
+#[cfg(test)]
+mod bound_to_a_version_tests {
+    use super::*;
+    use crate::db;
+    use crate::profile;
+    use crate::work::version::{self, NewVersion};
+    use crate::work::{self, NewWork};
+
+    fn two_revisions() -> (Connection, String, String, String) {
+        let mut conn = db::open_in_memory().unwrap();
+        profile::seed(&conn).unwrap();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let work_id = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "song".into(),
+                title: "Harbour lights".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap()
+        .id;
+        let mut make = |body: &str| {
+            version::create(
+                &mut conn,
+                &work_id,
+                NewVersion {
+                    role: "lyrics".into(),
+                    body: body.into(),
+                    label: None,
+                    meta: None,
+                    make_current: true,
+                    parent_version_id: None,
+                },
+            )
+            .unwrap()
+            .id
+        };
+        let first = make("one");
+        make("two");
+        (conn, profile_id, work_id, first)
+    }
+
+    fn chat_about(conn: &Connection, profile_id: &str, work_id: &str, version_id: &str) -> String {
+        assistant::create(
+            conn,
+            profile_id,
+            assistant::NewChat {
+                work_id: Some(work_id.to_owned()),
+                title: Some("Critique".into()),
+                action: Some("critique".into()),
+                version_id: Some(version_id.to_owned()),
+            },
+        )
+        .unwrap()
+        .id
+    }
+
+    /// A score applied from a chat about revision 1 is a snapshot of
+    /// revision 1, although revision 2 is current.
+    #[test]
+    fn a_score_binds_to_the_version_the_chat_is_about() {
+        let (mut conn, profile_id, work_id, first) = two_revisions();
+        let chat_id = chat_about(&conn, &profile_id, &work_id, &first);
+        let config = profile::active(&conn).unwrap().unwrap().config;
+        let axis = config.vocabulary("song").axes[0].key.clone();
+        let mut axes = Map::new();
+        axes.insert(axis, serde_json::json!(7));
+        let meta = proposal_meta(
+            "Claude Code",
+            &Proposal::Score {
+                axes,
+                note: None,
+                unknown: Vec::new(),
+                missing: Vec::new(),
+            },
+            None,
+        )
+        .unwrap();
+        let message_id = assistant::append(&conn, &chat_id, ASSISTANT, "judged", meta)
+            .unwrap()
+            .id;
+        let outcome = apply(&mut conn, &profile_id, &message_id, Overrides::default()).unwrap();
+
+        let score = crate::score::get(&conn, &outcome.score.unwrap())
+            .unwrap()
+            .unwrap();
+        assert_eq!(score.version_id.as_deref(), Some(first.as_str()));
+    }
+
+    /// A version applied from a chat about revision 1 says it is about
+    /// revision 1, and the summary reads it back.
+    #[test]
+    fn a_commentary_says_which_version_it_is_about() {
+        let (mut conn, profile_id, work_id, first) = two_revisions();
+        let chat_id = chat_about(&conn, &profile_id, &work_id, &first);
+        let meta = proposal_meta(
+            "Claude Code",
+            &Proposal::Version {
+                role: "critique".into(),
+                label: None,
+            },
+            None,
+        )
+        .unwrap();
+        let message_id = assistant::append(&conn, &chat_id, ASSISTANT, "weak second line", meta)
+            .unwrap()
+            .id;
+        let outcome = apply(&mut conn, &profile_id, &message_id, Overrides::default()).unwrap();
+
+        let id = &outcome.versions[0];
+        let summary = version::list(&conn, &work_id)
+            .unwrap()
+            .into_iter()
+            .find(|v| &v.id == id)
+            .unwrap();
+        assert_eq!(summary.about_version_id.as_deref(), Some(first.as_str()));
+        assert_eq!(summary.role, "critique");
+    }
+
+    /// The version the chat was about is gone: the proposal still applies,
+    /// bound to nothing rather than refused.
+    #[test]
+    fn a_deleted_version_binds_to_nothing() {
+        let (mut conn, profile_id, work_id, first) = two_revisions();
+        let chat_id = chat_about(&conn, &profile_id, &work_id, &first);
+        conn.execute("DELETE FROM work_version WHERE id = ?1", [&first])
+            .unwrap();
+        let config = profile::active(&conn).unwrap().unwrap().config;
+        let axis = config.vocabulary("song").axes[0].key.clone();
+        let mut axes = Map::new();
+        axes.insert(axis, serde_json::json!(7));
+        let meta = proposal_meta(
+            "Claude Code",
+            &Proposal::Score {
+                axes,
+                note: None,
+                unknown: Vec::new(),
+                missing: Vec::new(),
+            },
+            None,
+        )
+        .unwrap();
+        let message_id = assistant::append(&conn, &chat_id, ASSISTANT, "judged", meta)
+            .unwrap()
+            .id;
+        let outcome = apply(&mut conn, &profile_id, &message_id, Overrides::default()).unwrap();
+        let score = crate::score::get(&conn, &outcome.score.unwrap())
+            .unwrap()
+            .unwrap();
+        assert_ne!(score.version_id.as_deref(), Some(first.as_str()));
     }
 }

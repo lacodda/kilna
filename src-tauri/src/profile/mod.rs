@@ -179,6 +179,38 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         changed = true;
     }
 
+    // An action's method (ADR 0021) arrives on the terms a role's body did:
+    // where the stored action names none and the shipped one does. What the
+    // action produces follows only where the stored copy says nothing. And a
+    // `score` template still reading exactly as it shipped before v0.61 —
+    // naming the axes by hand — is moved to the shipped wording, because the
+    // instruction now states the axes from the profile and a template that
+    // names other ones contradicts it; a template the owner reworded stays.
+    for prompt in &mut config.prompts {
+        let Some(shipped) = shipped
+            .config
+            .prompts
+            .iter()
+            .find(|shipped| shipped.key == prompt.key)
+        else {
+            continue;
+        };
+        if prompt.method().is_none() && shipped.method().is_some() {
+            prompt.method = shipped.method.clone();
+            changed = true;
+        }
+        if prompt.produces.is_none() && shipped.produces.is_some() {
+            prompt.produces = shipped.produces.clone();
+            changed = true;
+        }
+        if SCORE_TEMPLATES_BEFORE_METHODS.contains(&prompt.template.as_str())
+            && prompt.template != shipped.template
+        {
+            prompt.template = shipped.template.clone();
+            changed = true;
+        }
+    }
+
     // The vocabulary lives on each kind (format 2), so everything below is
     // carried kind by kind: the stored kind and the shipped kind meet by key,
     // and a kind the owner invented meets nothing and keeps what it has.
@@ -364,6 +396,17 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
 /// Shipped profile names that changed, old to new. A stored copy still
 /// carrying the old one is renamed at the next start; see `carry_forward`.
 const RENAMED: [(&str, &str); 1] = [("Music", "Studio")];
+
+/// The `score` templates as the four profiles shipped them before v0.61,
+/// when the axes were named in the template's own words. A stored copy
+/// still reading exactly like one of these follows the shipped wording;
+/// see `carry_forward`.
+const SCORE_TEMPLATES_BEFORE_METHODS: [&str; 4] = [
+    "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nJudge it along these axes: Hook (Does the chorus stay with you after one listen), Lyrics (Imagery, rhyme and whether a line earns its place), Emotion (Does it move a listener who knows nothing about it), Production (Arrangement, mix and how finished it sounds), Originality (Distance from the obvious version of this idea), Visual potential (Is there a clip in it, or only a cover).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+    "Here is a chapter called \"{title}\".\n\n{body}\n\nJudge it along these axes: Pull (Does the reader turn the page, or put the book down here), Prose (Sentence by sentence: rhythm, precision, nothing limp), Character (Do people behave like people rather than like plot requirements), Structure (Does the chapter earn its place and end where it should), Tension (Is something at stake on every page).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+    "Here are the notes for an episode called \"{title}\".\n\n{body}\n\nJudge it along these axes: Hook (Does the cold open earn the next thirty seconds), Clarity (Could a listener explain the point to someone else afterward), Pacing (Where does it drag, and would a listener skip ahead), Insight (Is there a claim here nobody else is making, or just a summary), Delivery (Energy, pauses, whether it sounds read or spoken), Shareability (Is there a moment worth clipping and sending to a friend).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+    "Here is a post called \"{title}\".\n\n{body}\n\nJudge it along these axes: Hook (Does the first paragraph survive contact with a stranger's attention span), Usefulness (Could a reader act on this, or is it just an opinion floating by), Clarity (Sentence by sentence: does every paragraph earn the next one), Angle (Is there a take here, or a restatement of what everyone already thinks), Shareability (Is there a line worth quoting out of context).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+];
 
 /// Shipped descriptions that changed, old to new, on the same terms as the
 /// names: a copy the owner never touched follows, a rewritten one stays.
@@ -1608,6 +1651,59 @@ mod tests {
             1,
             "a list the owner narrowed is theirs"
         );
+    }
+
+    /// A workspace whose actions predate methods: the shipped method
+    /// arrives where the stored action has none, the shipped `produces`
+    /// where the stored one says nothing, and a `score` template still
+    /// reading exactly as it shipped follows the new wording. A template
+    /// the owner reworded stays, and so does a method they wrote.
+    #[test]
+    fn methods_arrive_and_an_unchanged_score_template_follows() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        for prompt in &mut config.prompts {
+            prompt.method = None;
+            if prompt.key == "score" {
+                prompt.template = SCORE_TEMPLATES_BEFORE_METHODS[0].to_owned();
+            }
+            if prompt.key == "critique" {
+                prompt.produces = None;
+            }
+            if prompt.key == "polish" {
+                prompt.template = "My own polish".into();
+                prompt.method = Some("My own way".into());
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let by_key = |key: &str| config.prompts.iter().find(|p| p.key == key).unwrap();
+        assert!(by_key("score").method().is_some(), "the method arrived");
+        assert!(
+            !by_key("score").template.contains("Hook ("),
+            "the template no longer names the axes by hand"
+        );
+        assert_eq!(
+            by_key("critique").produces.as_deref(),
+            Some("version:critique")
+        );
+        assert_eq!(by_key("polish").template, "My own polish", "reworded stays");
+        assert_eq!(by_key("polish").method.as_deref(), Some("My own way"));
     }
 
     /// A workspace made when the profile was still called Music wakes up

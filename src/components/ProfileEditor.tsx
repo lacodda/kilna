@@ -1,21 +1,26 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import {
   updateProfileConfig,
   type Axis,
   type Kind,
   type ProfileConfig,
+  type PromptTemplate,
   type Tier,
+  type VersionRole,
   type WorkKind,
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { useProfile } from '@/lib/useProfile'
+import { allOf, useProfile } from '@/lib/useProfile'
+import { Select } from '@/components/ui/AppSelect'
 import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/input'
 import { SaveState, useSaveStatus } from '@/components/ui/SaveState'
+import { Textarea } from '@/components/ui/textarea'
 
 // Editing the scenario, not designing a schema: the tables never change, only
 // the vocabulary and the criteria. Axis keys are deliberately not editable —
@@ -130,30 +135,11 @@ export function ProfileEditor() {
         onChange={(work_kinds) => patch({ work_kinds })}
       />
 
-      <section className="flex flex-col gap-2">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
-          {t('editor.prompts')}
-        </h4>
-        <ul className="flex flex-col gap-1.5">
-          {config.prompts.map((prompt, index) => (
-            <li key={prompt.key} className="flex items-center gap-2">
-              <code className="w-28 shrink-0 font-mono text-xs text-dim">{prompt.key}</code>
-              <Input
-                className="flex-1"
-                value={prompt.label}
-                onChange={(event) =>
-                  patch({
-                    prompts: config.prompts.map((p, i) =>
-                      i === index ? { ...p, label: event.target.value } : p,
-                    ),
-                  })
-                }
-                aria-label={`${prompt.key} label`}
-              />
-            </li>
-          ))}
-        </ul>
-      </section>
+      <ActionsEditor
+        actions={config.prompts}
+        roles={allOf(config, 'version_roles')}
+        onChange={(prompts) => patch({ prompts })}
+      />
 
       <div className="flex items-center gap-3">
         <Button variant="primary" disabled={save.isPending} onClick={() => save.mutate()}>
@@ -290,6 +276,145 @@ function KindVocabulary({
           onChange={(scene_blocks) => onChange({ scene_blocks })}
         />
       )}
+    </section>
+  )
+}
+
+/**
+ * The profile's actions, whole: the wording, the method and what each
+ * produces — not only the label. A method is the craft's own way of doing
+ * the action (ADR 0021), shipped with the profile and edited here; the
+ * key stays fixed once made, because a running task and a chat are
+ * recognised by it.
+ */
+function ActionsEditor({
+  actions,
+  roles,
+  onChange,
+}: {
+  actions: PromptTemplate[]
+  roles: VersionRole[]
+  onChange: (actions: PromptTemplate[]) => void
+}) {
+  const { t } = useTranslation()
+  const [newKey, setNewKey] = useState('')
+
+  const set = (index: number, changes: Partial<PromptTemplate>) => {
+    onChange(actions.map((action, i) => (i === index ? { ...action, ...changes } : action)))
+  }
+
+  // Prose is the absence of a value, and Base UI items may not carry an
+  // empty one: it is the select's placeholder, and picking it clears.
+  const producesOptions = [
+    { value: 'score', label: t('editor.producesScore') },
+    ...roles.map((role) => ({
+      value: `version:${role.key}`,
+      label: t('editor.producesVersion', { role: role.label }),
+    })),
+  ]
+
+  // A key typed as a slug: lower case, letters, digits and dashes, unique.
+  const key = newKey.trim().toLowerCase()
+  const keyTaken = actions.some((action) => action.key === key)
+  const keyValid = /^[a-z][a-z0-9_-]*$/.test(key) && !keyTaken
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
+        {t('editor.prompts')}
+      </h4>
+      <p className="text-xs text-dim">{t('editor.promptsHint')}</p>
+      <ul className="flex flex-col gap-4">
+        {actions.map((action, index) => (
+          <li key={action.key} className="flex flex-col gap-2 rounded-xl border border-line p-3">
+            <div className="flex items-center gap-2">
+              <code className="shrink-0 font-mono text-xs text-dim">{action.key}</code>
+              <Input
+                className="flex-1"
+                value={action.label}
+                onChange={(event) => set(index, { label: event.target.value })}
+                aria-label={t('editor.actionLabel')}
+              />
+              <Select
+                className="w-56"
+                aria-label={t('editor.actionProduces')}
+                placeholder={t('editor.producesProse')}
+                value={
+                  action.produces !== undefined &&
+                  producesOptions.some((option) => option.value === action.produces)
+                    ? action.produces
+                    : ''
+                }
+                onChange={(value) => set(index, { produces: value === '' ? undefined : value })}
+                options={producesOptions}
+              />
+              <Button
+                variant="danger"
+                size="icon-sm"
+                title={t('editor.removeAction')}
+                aria-label={t('editor.removeAction')}
+                onClick={() => onChange(actions.filter((_, i) => i !== index))}
+              >
+                <X aria-hidden className="size-3.5" />
+              </Button>
+            </div>
+            <Input
+              value={action.description ?? ''}
+              placeholder={t('editor.actionDescription')}
+              aria-label={t('editor.actionDescription')}
+              onChange={(event) =>
+                set(index, { description: event.target.value === '' ? undefined : event.target.value })
+              }
+            />
+            <Field label={t('editor.actionTemplate')} hint={t('editor.actionTemplateHint')}>
+              <Textarea
+                autoResize
+                maxRows={10}
+                rows={3}
+                className="font-mono text-xs"
+                value={action.template}
+                onChange={(event) => set(index, { template: event.target.value })}
+              />
+            </Field>
+            <Field label={t('editor.actionMethod')} hint={t('editor.actionMethodHint')}>
+              <Textarea
+                autoResize
+                maxRows={24}
+                rows={4}
+                className="font-mono text-xs"
+                value={action.method ?? ''}
+                placeholder={t('editor.actionMethodPlaceholder')}
+                onChange={(event) =>
+                  set(index, { method: event.target.value === '' ? undefined : event.target.value })
+                }
+              />
+            </Field>
+          </li>
+        ))}
+      </ul>
+      <div className="flex items-center gap-2">
+        <Input
+          className="w-48 font-mono text-xs"
+          value={newKey}
+          placeholder={t('editor.actionKeyPlaceholder')}
+          aria-label={t('editor.actionKey')}
+          onChange={(event) => setNewKey(event.target.value)}
+        />
+        <Button
+          size="sm"
+          disabled={!keyValid}
+          onClick={() => {
+            onChange([...actions, { key, label: key, template: '' }])
+            setNewKey('')
+          }}
+        >
+          <Plus aria-hidden className="size-3.5" />
+          {t('editor.addAction')}
+        </Button>
+        {key !== '' && keyTaken && (
+          <span className="text-xs text-bad">{t('editor.actionKeyTaken')}</span>
+        )}
+      </div>
     </section>
   )
 }

@@ -27,6 +27,7 @@ import { Select } from '@/components/ui/AppSelect'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { VersionDiff } from '@/components/versions/VersionDiff'
 import { VersionEditor } from '@/components/versions/VersionEditor'
+import { ActionBar } from '@/components/assistant/ActionBar'
 import { VersionList } from '@/components/versions/VersionList'
 
 interface Props {
@@ -143,12 +144,17 @@ export function VersionPanel({ workId }: Props) {
 
   // The commentary on the open revision — not the newest commentary there is.
   // A review of revision 2 says nothing about revision 5, and showing it beside
-  // 5 would be the panel asserting something nobody wrote.
+  // 5 would be the panel asserting something nobody wrote. Commentary that
+  // says which version it is about (`about_version_id`, written by an action
+  // started on that version) is paired by that; commentary that does not is
+  // paired by revision number, the way it always was.
   const comments = (versions.data ?? []).filter(
     (version) =>
       openSummary !== null &&
       commentRoles.some((r) => r.key === version.role) &&
-      version.revision === openSummary.revision,
+      (version.about_version_id !== null
+        ? version.about_version_id === openSummary.id
+        : version.revision === openSummary.revision),
   )
   const [openCommentId, setOpenCommentId] = useState<string | null>(null)
   const commentId =
@@ -487,6 +493,20 @@ export function VersionPanel({ workId }: Props) {
               {comments.length > 0 &&
                 (stage?.pane === 'comment' ? <StagePlaceholder /> : commentPane('inline'))}
             </div>
+          )}
+
+          {/* The profile's actions, on this very revision: a critique or a
+              score started here reads the text above and comes back bound to
+              it — the same buttons the overview has, with the version named. */}
+          {open.data != null && reading !== 'edit' && (
+            <ActionBar
+              workId={workId}
+              versionId={open.data.id}
+              hint={t('versions.actionsOn', {
+                name:
+                  open.data.label ?? t('versions.revision', { number: open.data.revision }),
+              })}
+            />
           )}
 
           {showForm && (
