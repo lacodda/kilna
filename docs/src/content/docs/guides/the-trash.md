@@ -4,7 +4,7 @@ description: How deleting works in kilna — the undo in the message, the Trash 
 ---
 
 Nothing in kilna is lost by pressing a button. Deleting a work, a version, a
-score, a release, a note or a collection moves it to the **Trash**, where it
+score, a release, a note, a scene or a collection moves it to the **Trash**, where it
 waits until you decide otherwise.
 
 That is why kilna never asks *are you sure*. A confirmation dialog charges a
@@ -26,7 +26,7 @@ available for as long as you want it.
 ## What comes back with what
 
 Deleting a work takes everything hanging off it: its versions, scores,
-releases, notes and assets. Restoring it brings all of them back, under the
+releases, notes, scenes and assets. Restoring it brings all of them back, under the
 same identifiers they had — including the pointer to whichever version was
 current — so links and references still resolve. A round trip through the
 trash is not an edit: timestamps are what they were, not what they would be

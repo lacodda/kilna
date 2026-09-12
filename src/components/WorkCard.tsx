@@ -3,16 +3,18 @@ import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
-import { deleteWork, getWork, listLinks, releasesForWork } from '@/lib/api'
+import { deleteWork, getWork, listLinks, listScenes, releasesForWork } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { noteDeleted, noteOpened } from '@/lib/recent'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
+import { hasScenes, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { CardHeader } from '@/components/card/CardHeader'
 import { LinksTab } from '@/components/card/LinksTab'
 import { OverviewTab } from '@/components/card/OverviewTab'
+import { ScenesTab } from '@/components/card/ScenesTab'
 import { DEFAULT_TAB, isTab, type Tab } from '@/components/card/tabs'
 import { VersionPanel } from '@/components/VersionPanel'
 import { ScorePanel } from '@/components/ScorePanel'
@@ -42,6 +44,7 @@ interface Props {
 export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
+  const profile = useProfile()
   const work = useQuery({ queryKey: keys.work(workId), queryFn: () => getWork(workId) })
 
   // Noted once the title is known, since the list shows names rather than ids.
@@ -62,6 +65,14 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   const links = useQuery({
     queryKey: keys.linksFor(workId),
     queryFn: () => listLinks(workId),
+  })
+  // The storyboard is a fact of the kind: a song has none, and asking for
+  // its scenes would be a query for a tab that is not drawn.
+  const storyboard = hasScenes(profile.config, work.data?.kind)
+  const scenes = useQuery({
+    queryKey: keys.scenesFor(workId),
+    queryFn: () => listScenes(workId),
+    enabled: storyboard,
   })
 
   const remove = useMutation({
@@ -114,6 +125,7 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
         work={current}
         releases={releases.data?.length ?? 0}
         links={(links.data?.sources.length ?? 0) + (links.data?.derived.length ?? 0)}
+        scenes={storyboard ? (scenes.data?.length ?? 0) : undefined}
       />
 
       <div className="mt-4">
@@ -156,6 +168,8 @@ function TabBody({
       )
     case 'versions':
       return <VersionPanel workId={workId} />
+    case 'scenes':
+      return <ScenesTab work={work} />
     case 'score':
       return <ScorePanel workId={workId} />
     case 'releases':

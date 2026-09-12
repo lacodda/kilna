@@ -63,13 +63,21 @@ pub struct NewFocusNote {
 pub struct FocusNotePatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub work_id: Option<Option<String>>,
     /// Whether it is kept at the top. `Some(true)` stamps the moment and
     /// `Some(false)` clears it; leaving it out changes nothing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pinned: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub due_on: Option<Option<String>>,
 }
 

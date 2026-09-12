@@ -12,6 +12,25 @@
 
 use serde_json::{Map, Value};
 
+/// Read a patch field that can be cleared: absent means "leave it", `null`
+/// means "clear it", a value means "set it".
+///
+/// Serde reads `null` into an `Option<Option<T>>` as the outer `None` — the
+/// same as absent — so without this every "clear it" a patch carried, and
+/// every inverse [`invert`] wrote for a field that had no value, quietly
+/// became "leave it": a note's title could not be cleared, and undoing "put
+/// this work in a collection" left it there. The field says
+/// `deserialize_with = "crate::reversal::nullable"` and the two are told
+/// apart again. Found by the scene's undo test on 2026-09-12; the older
+/// patches had the same hole.
+pub fn nullable<'de, D, T>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::Deserialize<'de>,
+{
+    <Option<T> as serde::Deserialize>::deserialize(deserializer).map(Some)
+}
+
 /// A patch field whose name is not the column it sets.
 ///
 /// Almost every patch key matches the row's own field, and inverting is then a
@@ -56,6 +75,24 @@ mod tests {
 
     fn object(value: Value) -> Map<String, Value> {
         value.as_object().expect("a JSON object").clone()
+    }
+
+    #[derive(serde::Deserialize)]
+    struct Patch {
+        #[serde(default, deserialize_with = "nullable")]
+        title: Option<Option<String>>,
+    }
+
+    /// The three states a clearable field can be in, told apart on the way
+    /// in: absent, null, a value. Without `nullable`, null reads as absent.
+    #[test]
+    fn a_null_in_a_patch_is_clear_it_and_an_absent_key_is_leave_it() {
+        let absent: Patch = serde_json::from_value(json!({})).unwrap();
+        let cleared: Patch = serde_json::from_value(json!({ "title": null })).unwrap();
+        let set: Patch = serde_json::from_value(json!({ "title": "x" })).unwrap();
+        assert!(absent.title.is_none(), "absent is leave it");
+        assert_eq!(cleared.title, Some(None), "null is clear it");
+        assert_eq!(set.title, Some(Some("x".into())));
     }
 
     #[test]

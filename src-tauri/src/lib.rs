@@ -20,6 +20,7 @@ pub mod readiness;
 pub mod release;
 pub mod replay;
 pub mod reversal;
+pub mod scene;
 pub mod score;
 pub mod search;
 pub mod state;
@@ -127,6 +128,10 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::create_link,
             commands::delete_link,
             commands::derive_work,
+            commands::list_scenes,
+            commands::create_scene,
+            commands::update_scene,
+            commands::delete_scene,
             commands::search,
             commands::list_journal,
             commands::journal_for_work,

@@ -273,6 +273,23 @@ function KindVocabulary({
         entries={kind.release_kinds ?? []}
         onChange={(release_kinds) => onChange({ release_kinds })}
       />
+      {/* The storyboard's words, for a kind that has any: a song lists none
+          and shows nothing here. Keys, as everywhere on this screen, come
+          from the document; the labels are what is renamed. */}
+      {(kind.shot_types ?? []).length > 0 && (
+        <Vocabulary
+          label={t('editor.shotTypes')}
+          entries={kind.shot_types ?? []}
+          onChange={(shot_types) => onChange({ shot_types })}
+        />
+      )}
+      {(kind.scene_blocks ?? []).length > 0 && (
+        <Vocabulary
+          label={t('editor.sceneBlocks')}
+          entries={kind.scene_blocks ?? []}
+          onChange={(scene_blocks) => onChange({ scene_blocks })}
+        />
+      )}
     </section>
   )
 }

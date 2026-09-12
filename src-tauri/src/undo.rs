@@ -98,6 +98,8 @@ pub fn reversible(kind: &str) -> bool {
             | "entity.discard"
             | "link.create"
             | "link.delete"
+            | "scene.create"
+            | "scene.update"
     )
 }
 
@@ -165,6 +167,13 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
                 crate::note::update_at(tx, &id, patch, &at).map(|_| ())
             })?;
         }
+        "scene.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::scene::ScenePatch = from_params(params, "before")?;
+            edit(conn, logged, &at, |tx| {
+                crate::scene::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
         "release.update" => {
             let id = required(params, "id")?;
             let patch: crate::release::ReleasePatch = from_params(params, "before")?;
@@ -212,7 +221,7 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
         // outright. Someone can change their mind twice, and a row destroyed by
         // an undo would be gone in a way nothing else in kilna is.
         "work.create" | "note.create" | "collection.create" | "release.create"
-        | "version.create" => {
+        | "version.create" | "scene.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -316,6 +325,7 @@ fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
         "collection.create" => crate::trash::Entity::Collection,
         "release.create" => crate::trash::Entity::Release,
         "version.create" => crate::trash::Entity::Version,
+        "scene.create" => crate::trash::Entity::Scene,
         other => return Err(Error::Other(format!("`{other}` creates nothing"))),
     };
     Ok((entity, required(&entry.params, "id")?))

@@ -29,6 +29,7 @@ pub enum Entity {
     Release,
     Note,
     Collection,
+    Scene,
 }
 
 impl Entity {
@@ -40,6 +41,7 @@ impl Entity {
             Self::Release => "release",
             Self::Note => "note",
             Self::Collection => "collection",
+            Self::Scene => "scene",
         }
     }
 
@@ -53,6 +55,7 @@ impl Entity {
             "release" => Ok(Self::Release),
             "note" => Ok(Self::Note),
             "collection" => Ok(Self::Collection),
+            "scene" => Ok(Self::Scene),
             other => Err(Error::Other(format!("unknown trash entity `{other}`"))),
         }
     }
@@ -66,6 +69,7 @@ impl Entity {
             Self::Release => "release",
             Self::Note => "note",
             Self::Collection => "collection",
+            Self::Scene => "scene",
         }
     }
 }
@@ -121,6 +125,11 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "asset",
                 key: "work_id",
             },
+            // The storyboard belongs to the work (ADR 0020) and goes with it.
+            Capture {
+                table: "scene",
+                key: "work_id",
+            },
             // A link is about two works and cascades from either; the
             // snapshot takes it from both sides, so a video restored gets
             // its song back and a song restored gets its videos back.
@@ -153,6 +162,10 @@ fn cascade(entity: Entity) -> &'static [Capture] {
         ],
         Entity::Note => &[Capture {
             table: "note",
+            key: "id",
+        }],
+        Entity::Scene => &[Capture {
+            table: "scene",
             key: "id",
         }],
         // Works are not deleted with a collection — they are only let go of. The
@@ -565,7 +578,9 @@ fn missing_parent(
         // These stand on their own; the profile they need is checked by the
         // insert itself.
         Entity::Work | Entity::Collection => return Ok(None),
-        Entity::Version | Entity::Score | Entity::Release | Entity::Note => "work_id",
+        Entity::Version | Entity::Score | Entity::Release | Entity::Note | Entity::Scene => {
+            "work_id"
+        }
     };
 
     let rows = match snapshot.get(entity.table()) {
@@ -651,6 +666,16 @@ fn describe(
                 describe_row,
             )
             .optional()?,
+        // Named by its number and the part it plays against: "Scene 4 · chorus".
+        Entity::Scene => conn
+            .query_row(
+                "SELECT 'Scene ' || s.position || coalesce(' · ' || nullif(s.section, ''), ''),
+                        w.title, s.profile_id
+                 FROM scene s JOIN work w ON w.id = s.work_id WHERE s.id = ?1",
+                params![id],
+                describe_row,
+            )
+            .optional()?,
     };
 
     found.ok_or_else(|| Error::not_found(entity_label(entity), id))
@@ -671,6 +696,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Release => "release",
         Entity::Note => "note",
         Entity::Collection => "collection",
+        Entity::Scene => "scene",
     }
 }
 

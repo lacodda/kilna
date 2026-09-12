@@ -77,6 +77,9 @@ Each work's page includes:
   not a summary.
 - A table of score history: date, total, tier, who gave it, and the axis
   values behind each snapshot.
+- The storyboard, for a work that has one: the scenes as a table — number,
+  section, seconds, kind of shot, description — then each scene's prompt
+  blocks in full.
 - Every release tied to the work: kind, date (scheduled or released), time of
   day and zone when set, and the link if one was recorded.
 - Notes attached to the work, with their tags.
@@ -117,8 +120,8 @@ skip them:
   here*. A [link between works](/kilna/guides/made-from/) is traced the same
   way.
 - **A clock per field.** For everything you edit in place — a work, a
-  release, a note, a collection, a profile, a chat, a board note — the moment
-  each field last changed, not just the row. Saving a form with the same
+  release, a note, a scene, a collection, a profile, a chat, a board note —
+  the moment each field last changed, not just the row. Saving a form with the same
   values leaves no mark.
 
 The third is written by the application, because only it knows what you

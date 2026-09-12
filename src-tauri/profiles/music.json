@@ -149,6 +149,11 @@
             "key": "plot",
             "label": "Plot",
             "body": "markdown"
+          },
+          {
+            "key": "context",
+            "label": "Context",
+            "body": "markdown"
           }
         ],
         "release_kinds": [
@@ -194,6 +199,49 @@
             "key": "shelved",
             "label": "Shelved",
             "derive": "manual"
+          }
+        ],
+        "shot_types": [
+          {
+            "key": "wide",
+            "label": "Wide"
+          },
+          {
+            "key": "medium",
+            "label": "Medium"
+          },
+          {
+            "key": "close",
+            "label": "Close-up"
+          },
+          {
+            "key": "detail",
+            "label": "Detail"
+          },
+          {
+            "key": "insert",
+            "label": "Insert"
+          },
+          {
+            "key": "title",
+            "label": "Title card"
+          }
+        ],
+        "scene_blocks": [
+          {
+            "key": "still",
+            "label": "Still frame",
+            "hint": "The frame as a picture: subject, light, lens, mood."
+          },
+          {
+            "key": "motion",
+            "label": "Animation",
+            "hint": "What moves, and how the camera moves, from that frame."
+          },
+          {
+            "key": "negative",
+            "label": "Negative",
+            "hint": "What must not appear."
           }
         ]
       },
@@ -334,6 +382,11 @@
             "key": "plot",
             "label": "Plot",
             "body": "markdown"
+          },
+          {
+            "key": "context",
+            "label": "Context",
+            "body": "markdown"
           }
         ],
         "release_kinds": [
@@ -371,6 +424,49 @@
             "key": "shelved",
             "label": "Shelved",
             "derive": "manual"
+          }
+        ],
+        "shot_types": [
+          {
+            "key": "wide",
+            "label": "Wide"
+          },
+          {
+            "key": "medium",
+            "label": "Medium"
+          },
+          {
+            "key": "close",
+            "label": "Close-up"
+          },
+          {
+            "key": "detail",
+            "label": "Detail"
+          },
+          {
+            "key": "insert",
+            "label": "Insert"
+          },
+          {
+            "key": "title",
+            "label": "Title card"
+          }
+        ],
+        "scene_blocks": [
+          {
+            "key": "still",
+            "label": "Still frame",
+            "hint": "The frame as a picture: subject, light, lens, mood."
+          },
+          {
+            "key": "motion",
+            "label": "Animation",
+            "hint": "What moves, and how the camera moves, from that frame."
+          },
+          {
+            "key": "negative",
+            "label": "Negative",
+            "hint": "What must not appear."
           }
         ]
       }

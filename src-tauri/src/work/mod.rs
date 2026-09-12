@@ -73,7 +73,11 @@ pub struct WorkPatch {
     pub status: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub collection_id: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub meta: Option<Map<String, Value>>,
@@ -81,7 +85,11 @@ pub struct WorkPatch {
     pub tags: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub marks: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub current_version_id: Option<Option<String>>,
     /// `Some(true)` stamps the bookmark, `Some(false)` clears it.
     #[serde(default, skip_serializing_if = "Option::is_none")]

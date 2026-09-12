@@ -41,7 +41,7 @@ use crate::error::{Error, Result};
 use crate::minted::Minted;
 use crate::operation::{self, Operation};
 use crate::work::version;
-use crate::{collection, focus, link, note, profile, release, score, trash, work};
+use crate::{collection, focus, link, note, profile, release, scene, score, trash, work};
 
 /// What a replay did, and what it could not do.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -346,6 +346,19 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
         "link.delete" => {
             let id = required(params, "id")?;
             link::delete(conn, &id)?;
+        }
+
+        "scene.create" => {
+            let profile_id = workspace_profile(conn, params)?;
+            let new = from_params(params, "scene")?;
+            scene::create_minted(conn, &profile_id, new, minted(params)?)?;
+        }
+
+        "scene.update" => {
+            let id = required(params, "id")?;
+            let patch = from_params(params, "patch")?;
+            let at = required(params, "at")?;
+            scene::update_at(conn, &id, patch, &at)?;
         }
 
         "entity.discard" => {

@@ -76,7 +76,8 @@ collection can take:
 
 A **work kind** carries the five lists described on this page — its `axes`,
 `tiers`, `version_roles`, `release_kinds` and `statuses` — beside its key
-and label; `release_kinds` therefore sit inside the work kind whose works go
+and label, and, for a kind whose works are made in scenes, the two lists of
+[its storyboard](#shot_types-and-scene_blocks); `release_kinds` therefore sit inside the work kind whose works go
 out that way, and a video's *YouTube* and a song's *clip* are different
 doors. `collection_kinds` stay on the profile.
 
@@ -439,6 +440,42 @@ the same document, and a build that does not know an id drops it on read.
 existed loads: the auto-layout then refuses with an explanation instead of
 inventing a pace. A workspace whose stored copy has no rhythm gains the
 shipped one at the next start; a pace you set yourself is left alone.
+
+## `shot_types` and `scene_blocks`
+
+Two optional lists on a **work kind**, for a kind whose works are made in
+scenes — Studio's `video` and `short`. A kind that names neither has no
+storyboard, and its cards draw no [Scenes](/kilna/guides/scenes/) tab. A
+document without them is the same document: format 2 is not changed.
+
+```jsonc
+{
+  "key": "video", "label": "Video",
+  "shot_types": [
+    { "key": "wide", "label": "Wide" },
+    { "key": "close", "label": "Close-up" },
+    { "key": "detail", "label": "Detail" }
+  ],
+  "scene_blocks": [
+    { "key": "still", "label": "Still frame", "hint": "The frame as a picture: subject, light, lens, mood." },
+    { "key": "motion", "label": "Animation", "hint": "What moves, and how the camera moves, from that frame." },
+    { "key": "negative", "label": "Negative", "hint": "What must not appear." }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `shot_types[].key` | string | Stored on the scene as its kind of shot. A scene can only take a key this list names — the board is narrowed by it, and a kind of shot typed freely would never be found. |
+| `shot_types[].label` | string | What the strip and the picker show. Renamable. |
+| `scene_blocks[].key` | string | The key a scene stores that block's text under, and the key a template (v0.62) will read. A block under a key this list does not name is refused on write. |
+| `scene_blocks[].label` | string | The caption over the box and on its copy button. |
+| `scene_blocks[].hint` | string, optional | A line under the box saying what goes in it. |
+
+Studio also gives both kinds a `context` [version role](#version_roles)
+for what every scene shares — the hero, the palette, the lens. A workspace
+that already has the video kinds gains the two lists at the next start,
+where its stored copy names none; a list you narrowed is left alone.
 
 ## `prompts`
 

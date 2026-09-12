@@ -28,6 +28,7 @@ use crate::error::{Error, Result};
 use crate::journal::{self, Record};
 use crate::link;
 use crate::note::{self, NoteFilter};
+use crate::scene;
 use crate::work::version;
 use crate::work::{self, WorkFilter};
 use crate::{assistant, profile, release, score, search};
@@ -177,7 +178,7 @@ fn tools() -> Vec<Value> {
     vec![
         tool(
             "workspace",
-            "The active profile: the craft's vocabulary, per kind of work. Each kind lists its              version roles and how each reads, its scoring axes with weights and scales, its              tiers, statuses and kinds of release; plus how many works there are. Read this              first: a work is judged and versioned in its own kind's keys, and the other tools              speak in those keys.",
+            "The active profile: the craft's vocabulary, per kind of work. Each kind lists its              version roles and how each reads, its scoring axes with weights and scales, its              tiers, statuses and kinds of release, and, for a kind with a storyboard, its kinds of shot and the prompt blocks a scene carries; plus how many works there are. Read this              first: a work is judged and versioned in its own kind's keys, and the other tools              speak in those keys.",
             json!({}),
             &[],
         ),
@@ -198,9 +199,9 @@ fn tools() -> Vec<Value> {
             "work",
             "One work as its card shows it: the fields and meta, tags, every version by role \
              (id, revision, label, length, which is current), the latest score with its axes, \
-             the releases, how many notes, what it was made from (`sources`, with whether the \
-             source has moved on since) and what was made from it (`derived`). Bodies are not \
-             included — read one with `text`.",
+             the releases, how many notes and scenes, what it was made from (`sources`, with \
+             whether the source has moved on since) and what was made from it (`derived`). \
+             Bodies are not included — read one with `text`; the storyboard with `scenes`.",
             json!({ "work": work_arg() }),
             &["work"],
         ),
@@ -235,6 +236,15 @@ fn tools() -> Vec<Value> {
             "Notes in the profile, newest first — all of them, or those of one work.",
             json!({ "work": work_arg(), "query": text_arg("A substring of the title or body") }),
             &[],
+        ),
+        tool(
+            "scenes",
+            "The storyboard of a work, in order: each scene's number, section, seconds, kind of \
+             shot (a key of the kind's `shot_types`), description and prompt blocks (by the kind's \
+             `scene_blocks` key). The shared context is the current version of the `context` \
+             role — read it with `text`. Empty for a kind with no storyboard.",
+            json!({ "work": work_arg() }),
+            &["work"],
         ),
         tool(
             "search",
@@ -442,6 +452,8 @@ pub fn run_tool(
                         "tiers": kind.tiers,
                         "statuses": kind.statuses.iter().map(|s| json!({ "key": s.key, "label": s.label })).collect::<Vec<_>>(),
                         "release_kinds": kind.release_kinds.iter().map(|k| json!({ "key": k.key, "label": k.label })).collect::<Vec<_>>(),
+                        "shot_types": kind.shot_types,
+                        "scene_blocks": kind.scene_blocks,
                     })
                 })
                 .collect();
@@ -492,6 +504,7 @@ pub fn run_tool(
                 [&found.id],
                 |row| row.get(0),
             )?;
+            let scenes = scene::count(conn, &found.id)?;
             pretty(&json!({
                 "id": found.id, "title": found.title, "kind": found.kind, "status": found.status,
                 "meta": found.meta, "tags": found.tags, "marks": found.marks,
@@ -501,6 +514,7 @@ pub fn run_tool(
                 "latest_score": latest,
                 "releases": releases,
                 "notes": notes,
+                "scenes": scenes,
                 "sources": links.sources.iter().map(|l| json!({
                     "work": l.source_id, "title": l.source_title, "kind": l.source_kind, "role": l.role,
                     "taken_at_version": l.source_version_id, "drifted": l.drifted,
@@ -607,6 +621,11 @@ pub fn run_tool(
                 ..NoteFilter::default()
             };
             pretty(&note::list(conn, &profile.id, &filter)?)
+        }
+
+        "scenes" => {
+            let found = find_work(conn, &profile.id, required(args, "work")?)?;
+            pretty(&scene::for_work(conn, &found.id)?)
         }
 
         "search" => pretty(&search::find(conn, &profile.id, required(args, "query")?)?),

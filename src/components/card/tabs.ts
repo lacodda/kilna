@@ -5,7 +5,17 @@
  * check — a second copy would be a second chance for a URL to name a tab the bar
  * does not draw.
  */
-export const TABS = ['overview', 'versions', 'score', 'releases', 'links', 'notes', 'assistant', 'history'] as const
+export const TABS = [
+  'overview',
+  'versions',
+  'scenes',
+  'score',
+  'releases',
+  'links',
+  'notes',
+  'assistant',
+  'history',
+] as const
 
 export type Tab = (typeof TABS)[number]
 

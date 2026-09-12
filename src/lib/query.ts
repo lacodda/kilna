@@ -19,6 +19,8 @@ export const keys = {
   // One prefix over every work's links: a link changes two cards at once.
   links: ['links'] as const,
   linksFor: (workId: string) => ['links', workId] as const,
+  scenes: ['scenes'] as const,
+  scenesFor: (workId: string) => ['scenes', workId] as const,
   version: (id: string) => ['version', id] as const,
 
   scores: ['scores'] as const,

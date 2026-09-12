@@ -599,6 +599,31 @@
     "driftedInPlace": "изменилось — та же редакция, правлена",
     "seeDiff": "Что изменилось"
   },
+  "scenes": {
+    "context": "Контекст",
+    "noContext": "Общего пока нет — герой, палитра, оптика. Его читает каждая сцена.",
+    "writeContext": "Написать контекст",
+    "editContext": "Править контекст",
+    "shotType": "Тип кадра",
+    "allShots": "Все",
+    "noShot": "Тип не задан",
+    "empty": "Сцен пока нет. Добавьте первую ниже.",
+    "noneOfShot": "Сцен с таким типом кадра нет.",
+    "noneForKind": "У произведений этого вида нет раскадровки. Задайте виду типы кадров или блоки промпта в профиле — и она появится.",
+    "add": "Добавить сцену",
+    "added": "Сцена {{number}} добавлена.",
+    "delete": "Удалить эту сцену",
+    "section": "Секция",
+    "sectionPlaceholder": "секция — интро, куплет 1, припев",
+    "startsAt": "Начало",
+    "endsAt": "Конец",
+    "badTime": "«{{text}}» — не время; пишите как 1:23 или 0:04.5.",
+    "description": "Описание",
+    "descriptionPlaceholder": "Что происходит в этой сцене",
+    "copy": "Скопировать блок «{{block}}»",
+    "copied": "«{{block}}» скопирован",
+    "unlistedBlock": "Блок, которого профиль больше не называет, — сохранён, здесь не правится."
+  },
   "notes": {
     "title": "Заметки",
     "add": "Добавить",
@@ -619,6 +644,8 @@
     "statuses": "Статусы",
     "workKinds": "Виды произведений",
     "releaseKinds": "Виды выпусков",
+    "shotTypes": "Типы кадров",
+    "sceneBlocks": "Блоки промпта сцены",
     "prompts": "Действия ассистента",
     "removeAxis": "Убрать эту ось",
     "save": "Сохранить профиль",
@@ -679,6 +706,9 @@
     "releaseUnscheduled": "Вернулось в очередь.",
     "noteSaveFailed": "Не удалось сохранить заметку.",
     "noteDeleted": "Заметка удалена.",
+    "sceneDeleted": "Сцена {{number}} удалена.",
+    "sceneEdited": "Сцена изменена",
+    "sceneSaveFailed": "Не удалось сохранить сцену.",
     "profileSwitched": "Профиль переключён на «{{name}}».",
     "profileSaveFailed": "Не удалось сохранить профиль.",
     "loadFailed": "Не удалось загрузить.",
@@ -722,7 +752,8 @@
       "score": "Оценка",
       "release": "Выпуск",
       "note": "Заметка",
-      "collection": "Коллекция"
+      "collection": "Коллекция",
+      "scene": "Сцена"
     }
   },
   "journal": {
@@ -753,6 +784,7 @@
     "proposal.freeNote": "{{client}} предлагает заметку.",
     "link.created": "«{{title}}» сделано из «{{source}}».",
     "link.removed": "«{{title}}» больше не сделано из «{{source}}».",
+    "scene.created": "Сцена {{number}} добавлена в «{{title}}».",
     "proposal.work": "{{client}} предлагает новое произведение — «{{title}}».",
     "proposal.package": "{{client}} предлагает пакет для «{{title}}».",
     "version.created": "{{role}} {{revision}} добавлена в «{{title}}».",
@@ -773,6 +805,7 @@
     "release.unreleased": "«{{title}}» больше не считается вышедшим как {{kind}}.",
     "release.deleted": "Выпуск «{{label}}» удалён.",
     "note.deleted": "Заметка «{{label}}» удалена.",
+    "scene.deleted": "Сцена «{{label}}» удалена.",
     "collection.deleted": "Коллекция «{{label}}» удалена.",
     "trash.restored": "«{{label}}» восстановлено.",
     "assistant.batchStarted_one": "«{{action}}» запрошено для {{count}} произведения.",
@@ -797,6 +830,7 @@
     "tab": {
       "overview": "Обзор",
       "versions": "Версии",
+      "scenes": "Сцены",
       "score": "Оценка",
       "releases": "Выпуски",
       "links": "Связи",
@@ -859,6 +893,8 @@
     "release.markReleased": "отметку о выпуске",
     "entity.discard": "удаление",
     "link.create": "связь с источником",
-    "link.delete": "удаление связи"
+    "link.delete": "удаление связи",
+    "scene.create": "добавление сцены",
+    "scene.update": "правку сцены"
   }
 }

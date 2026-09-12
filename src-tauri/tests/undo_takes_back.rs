@@ -650,3 +650,146 @@ fn an_empty_log_offers_nothing() {
 
     assert!(undo::last(&conn).unwrap().is_none());
 }
+
+/// A scene added is taken back into the trash; an edit to one puts back only
+/// the fields the edit named — the blocks as a set, and nothing beside them.
+#[test]
+fn a_scene_is_taken_back_both_ways() {
+    let (mut conn, profile_id, _song_id) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let video_id = work::create(
+        &conn,
+        &profile_id,
+        NewWork {
+            kind: "video".into(),
+            title: "Harbour lights".into(),
+            ..NewWork::default()
+        },
+    )
+    .unwrap()
+    .id;
+
+    // Added the way the command adds it.
+    let new = kilna_lib::scene::NewScene {
+        work_id: video_id.clone(),
+        description: Some("a lighthouse at dusk".into()),
+        ..kilna_lib::scene::NewScene::default()
+    };
+    let minted = Minted::fresh();
+    let scene_id = minted.id().to_owned();
+    let logged = operation::Intent::new("scene.create")
+        .in_profile(&profile_id)
+        .param("profile", key.clone())
+        .param("scene", serde_json::to_value(&new).unwrap())
+        .minted(&minted);
+    let transaction = conn.transaction().unwrap();
+    kilna_lib::scene::create_minted(&transaction, &profile_id, new, minted).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    // Edited the way the command edits it: the blocks as a set, and a section.
+    let before = kilna_lib::scene::get(&conn, &scene_id).unwrap().unwrap();
+    let patch = kilna_lib::scene::ScenePatch {
+        section: Some(Some("chorus".into())),
+        blocks: Some(
+            serde_json::json!({ "still": "a lighthouse, warm light" })
+                .as_object()
+                .unwrap()
+                .clone(),
+        ),
+        ..kilna_lib::scene::ScenePatch::default()
+    };
+    let before_json = serde_json::to_value(&before).unwrap();
+    let patch_json = serde_json::to_value(&patch).unwrap();
+    let inverse = kilna_lib::reversal::invert(
+        before_json.as_object().unwrap(),
+        patch_json.as_object().unwrap(),
+    );
+    let at = kilna_lib::time::now();
+    let logged = operation::Intent::new("scene.update")
+        .in_profile(&profile_id)
+        .param("profile", key.clone())
+        .param("id", scene_id.clone())
+        .param("patch", patch_json.clone())
+        .param("before", serde_json::Value::Object(inverse))
+        .param("at", at.clone());
+    let transaction = conn.transaction().unwrap();
+    kilna_lib::scene::update_at(&transaction, &scene_id, patch, &at).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+    // Something else changes the description meanwhile; the undo must leave it.
+    kilna_lib::scene::update(
+        &conn,
+        &scene_id,
+        kilna_lib::scene::ScenePatch {
+            description: Some("a gull over the harbour".into()),
+            ..kilna_lib::scene::ScenePatch::default()
+        },
+    )
+    .unwrap();
+    // That edit was not logged, so the offer is still the logged one.
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("an edit to a scene can be undone");
+    assert_eq!(offer.action, "undo.scene.update");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    let back = kilna_lib::scene::get(&conn, &scene_id).unwrap().unwrap();
+    assert!(back.section.is_none(), "the section is back to none");
+    assert!(
+        back.blocks.is_empty(),
+        "the blocks are back to the empty set"
+    );
+    assert_eq!(
+        back.description, "a gull over the harbour",
+        "a field the edit did not name is left alone"
+    );
+
+    // The undo of the update is itself logged; the creation is further back
+    // and no longer the last operation, so it is checked on its own board.
+    let (mut conn, profile_id, _) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let video_id = work::create(
+        &conn,
+        &profile_id,
+        NewWork {
+            kind: "video".into(),
+            title: "Harbour lights".into(),
+            ..NewWork::default()
+        },
+    )
+    .unwrap()
+    .id;
+    let new = kilna_lib::scene::NewScene {
+        work_id: video_id,
+        ..kilna_lib::scene::NewScene::default()
+    };
+    let minted = Minted::fresh();
+    let scene_id = minted.id().to_owned();
+    let logged = operation::Intent::new("scene.create")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("scene", serde_json::to_value(&new).unwrap())
+        .minted(&minted);
+    let transaction = conn.transaction().unwrap();
+    kilna_lib::scene::create_minted(&transaction, &profile_id, new, minted).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("a scene added can be undone");
+    assert_eq!(offer.action, "undo.scene.create");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    assert!(
+        kilna_lib::scene::get(&conn, &scene_id).unwrap().is_none(),
+        "the scene is still on the board"
+    );
+    let trashed = kilna_lib::trash::list(&conn, &profile_id).unwrap();
+    assert!(
+        trashed
+            .iter()
+            .any(|entry| entry.entity_id == scene_id && entry.label == "Scene 1"),
+        "into the trash, not destroyed: {trashed:?}"
+    );
+}

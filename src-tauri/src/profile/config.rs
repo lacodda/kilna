@@ -159,6 +159,15 @@ pub struct WorkKind {
     /// Statuses a work of this kind moves through, in order.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub statuses: Vec<Status>,
+    /// Kinds of shot a scene of this kind's storyboard can be — wide, close,
+    /// detail. A kind that names none (a song) has no storyboard. An optional
+    /// key added in v0.60 — a document without it is the same document.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub shot_types: Vec<Kind>,
+    /// The prompt blocks a scene carries — a still frame, an animation, a
+    /// negative — each edited and copied on its own.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scene_blocks: Vec<SceneBlock>,
 }
 
 impl WorkKind {
@@ -171,6 +180,8 @@ impl WorkKind {
             version_roles: Vec::new(),
             release_kinds: Vec::new(),
             statuses: Vec::new(),
+            shot_types: Vec::new(),
+            scene_blocks: Vec::new(),
         }
     }
 
@@ -333,6 +344,16 @@ impl WorkKind {
             problems,
             &format!("{place}: tier"),
             self.tiers.iter().map(|t| t.key.clone()),
+        );
+        unique(
+            problems,
+            &format!("{place}: kind of shot"),
+            self.shot_types.iter().map(|s| s.key.clone()),
+        );
+        unique(
+            problems,
+            &format!("{place}: scene block"),
+            self.scene_blocks.iter().map(|b| b.key.clone()),
         );
 
         if self.statuses.is_empty() {
@@ -514,6 +535,28 @@ impl Kind {
         Self {
             key: key.to_owned(),
             label: label.to_owned(),
+        }
+    }
+}
+
+/// One prompt block a scene carries: a still frame, an animation, a
+/// negative. The key is what the scene stores its text under and what a
+/// template (v0.62) will read; the hint is a line under the box saying what
+/// goes in it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SceneBlock {
+    pub key: String,
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hint: Option<String>,
+}
+
+impl SceneBlock {
+    pub fn new(key: &str, label: &str) -> Self {
+        Self {
+            key: key.to_owned(),
+            label: label.to_owned(),
+            hint: None,
         }
     }
 }

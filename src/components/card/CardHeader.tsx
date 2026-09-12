@@ -24,6 +24,8 @@ interface Props {
   releases: number
   /** Shown on the Links tab: sources and works made from this. */
   links?: number
+  /** Undefined for a kind with no storyboard: the tab is then not drawn. */
+  scenes?: number
 }
 
 /**
@@ -34,7 +36,7 @@ interface Props {
  * real covers arrive; it is what makes one card distinguishable from another
  * before a single word is read.
  */
-export function CardHeader({ work, releases, links = 0 }: Props) {
+export function CardHeader({ work, releases, links = 0, scenes }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const vocabulary = vocabularyOf(profile.config, work.kind)
@@ -125,7 +127,7 @@ export function CardHeader({ work, releases, links = 0 }: Props) {
           <MetaStrip work={work} />
         </div>
 
-        <TabBar workId={work.id} releases={releases} links={links} />
+        <TabBar workId={work.id} releases={releases} links={links} scenes={scenes} />
       </header>
 
       <RenameDialog work={work} open={renaming} onOpenChange={setRenaming} />

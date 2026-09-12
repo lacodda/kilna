@@ -550,6 +550,31 @@
     "driftedInPlace": "changed since — the same revision, edited",
     "seeDiff": "See what changed"
   },
+  "scenes": {
+    "context": "Context",
+    "noContext": "Nothing shared yet — the hero, the palette, the lens. Every scene reads it.",
+    "writeContext": "Write the context",
+    "editContext": "Edit the context",
+    "shotType": "Kind of shot",
+    "allShots": "All",
+    "noShot": "Shot not set",
+    "empty": "No scenes yet. Add the first below.",
+    "noneOfShot": "No scenes of that kind of shot.",
+    "noneForKind": "Works of this kind have no storyboard. Give the kind kinds of shot or prompt blocks in the profile to open one.",
+    "add": "Add scene",
+    "added": "Scene {{number}} added.",
+    "delete": "Delete this scene",
+    "section": "Section",
+    "sectionPlaceholder": "section — intro, verse 1, chorus",
+    "startsAt": "Starts at",
+    "endsAt": "Ends at",
+    "badTime": "“{{text}}” is not a time — type it as 1:23 or 0:04.5.",
+    "description": "Description",
+    "descriptionPlaceholder": "What happens in this scene",
+    "copy": "Copy the {{block}} block",
+    "copied": "{{block}} copied",
+    "unlistedBlock": "A block the profile no longer names — kept, not edited here."
+  },
   "notes": {
     "title": "Notes",
     "add": "Add",
@@ -570,6 +595,8 @@
     "statuses": "Statuses",
     "workKinds": "Work kinds",
     "releaseKinds": "Release kinds",
+    "shotTypes": "Kinds of shot",
+    "sceneBlocks": "Prompt blocks of a scene",
     "prompts": "Assistant actions",
     "removeAxis": "Remove this axis",
     "save": "Save profile",
@@ -630,6 +657,9 @@
     "releaseUnscheduled": "Back in the queue.",
     "noteSaveFailed": "Could not save the note.",
     "noteDeleted": "Note deleted.",
+    "sceneDeleted": "Scene {{number}} deleted.",
+    "sceneEdited": "Scene changed",
+    "sceneSaveFailed": "Could not save the scene.",
     "profileSwitched": "Switched to {{name}}.",
     "profileSaveFailed": "Could not save the profile.",
     "loadFailed": "Could not load that.",
@@ -671,7 +701,8 @@
       "score": "Score",
       "release": "Release",
       "note": "Note",
-      "collection": "Collection"
+      "collection": "Collection",
+      "scene": "Scene"
     }
   },
   "journal": {
@@ -699,6 +730,7 @@
     "proposal.freeNote": "{{client}} proposed a note.",
     "link.created": "“{{title}}” is made from “{{source}}”.",
     "link.removed": "“{{title}}” is no longer made from “{{source}}”.",
+    "scene.created": "Scene {{number}} added to “{{title}}”.",
     "proposal.work": "{{client}} proposed a new work, “{{title}}”.",
     "proposal.package": "{{client}} proposed a package for “{{title}}”.",
     "version.deleted": "Version “{{label}}” deleted.",
@@ -716,6 +748,7 @@
     "release.unreleased": "“{{title}}” is no longer out as a {{kind}}.",
     "release.deleted": "Release “{{label}}” deleted.",
     "note.deleted": "Note “{{label}}” deleted.",
+    "scene.deleted": "Scene “{{label}}” deleted.",
     "collection.deleted": "Collection “{{label}}” deleted.",
     "trash.restored": "“{{label}}” restored.",
     "assistant.batchStarted_one": "{{action}} asked of {{count}} work.",
@@ -732,6 +765,7 @@
     "tab": {
       "overview": "Overview",
       "versions": "Versions",
+      "scenes": "Scenes",
       "score": "Score",
       "releases": "Releases",
       "links": "Links",
@@ -794,6 +828,8 @@
     "release.markReleased": "marking a release as out",
     "entity.discard": "a deletion",
     "link.create": "linking a source",
-    "link.delete": "removing a link"
+    "link.delete": "removing a link",
+    "scene.create": "adding a scene",
+    "scene.update": "an edit to a scene"
   }
 }

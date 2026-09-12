@@ -192,12 +192,22 @@ export interface Rhythm {
 /** A kind of work with the vocabulary it is judged and shipped by (format 2).
     A list a kind leaves out is empty for works of that kind — a video with
     no axes is scored empty, not on the song's. */
+/** One prompt block a scene carries: a still frame, an animation, a negative. */
+export interface SceneBlock extends Kind {
+  /** A line under the box saying what goes in it. */
+  hint?: string | null
+}
+
 export interface WorkKind extends Kind {
   axes?: Axis[]
   tiers?: Tier[]
   version_roles?: VersionRole[]
   release_kinds?: ReleaseKind[]
   statuses?: Status[]
+  /** Kinds of shot a scene can be; a kind naming none has no storyboard. */
+  shot_types?: Kind[]
+  /** The prompt blocks a scene carries, each edited and copied on its own. */
+  scene_blocks?: SceneBlock[]
 }
 
 export interface ProfileConfig {
@@ -346,6 +356,50 @@ export interface NewLink {
   role?: string | null
   /** The source's current version when omitted. */
   source_version_id?: string | null
+}
+
+/** One row of a work's storyboard. Owned by the work — see ADR 0020. */
+export interface Scene {
+  id: string
+  profile_id: string
+  work_id: string
+  /** The scene's number on the board, from 1. */
+  position: number
+  /** The part of the text it plays against: intro, verse 1, chorus. */
+  section: string | null
+  /** Seconds from the start; null until the board is timed. */
+  starts_at: number | null
+  ends_at: number | null
+  /** A key of the kind's `shot_types`; null when not yet decided. */
+  shot_type: string | null
+  description: string
+  /** Prompt blocks by the kind's `scene_blocks` key. */
+  blocks: Record<string, string>
+  created_at: string
+  updated_at: string
+}
+
+export interface NewScene {
+  work_id: string
+  /** After the last scene when omitted. */
+  position?: number | null
+  section?: string | null
+  starts_at?: number | null
+  ends_at?: number | null
+  shot_type?: string | null
+  description?: string | null
+  blocks?: Record<string, string> | null
+}
+
+/** What an edit may change; `blocks` replaces the whole set. */
+export interface ScenePatch {
+  position?: number
+  section?: string | null
+  starts_at?: number | null
+  ends_at?: number | null
+  shot_type?: string | null
+  description?: string
+  blocks?: Record<string, string>
 }
 
 export interface Version {
@@ -646,6 +700,11 @@ export const deleteLink = (id: string) => invoke<void>('delete_link', { id })
 /** Make a work of `kind` from another: title and overview fields copied once, a donor link. */
 export const deriveWork = (sourceId: string, kind: string, title?: string) =>
   invoke<Work>('derive_work', { sourceId, kind, title: title ?? null })
+export const listScenes = (workId: string) => invoke<Scene[]>('list_scenes', { workId })
+export const createScene = (scene: NewScene) => invoke<Scene>('create_scene', { scene })
+export const updateScene = (id: string, patch: ScenePatch) =>
+  invoke<Scene>('update_scene', { id, patch })
+export const deleteScene = (id: string) => invoke<string>('delete_scene', { id })
 export const setWorksStatus = (workIds: string[], status: string) =>
   invoke<BulkOutcome>('set_works_status', { workIds, status })
 
@@ -780,7 +839,14 @@ export const setCollectionContents = (id: string, workIds: string[]) =>
   invoke<void>('set_collection_contents', { id, workIds })
 
 /** What a trashed entry was. Mirrors the backend's `trash::Entity`. */
-export type DeletedEntity = 'work' | 'version' | 'score' | 'release' | 'note' | 'collection'
+export type DeletedEntity =
+  | 'work'
+  | 'version'
+  | 'score'
+  | 'release'
+  | 'note'
+  | 'collection'
+  | 'scene'
 
 export interface Deletion {
   id: string

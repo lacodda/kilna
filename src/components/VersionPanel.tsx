@@ -69,11 +69,14 @@ export function VersionPanel({ workId }: Props) {
   const client = useQueryClient()
   const roles = useVocabulary(workId).version_roles
 
-  const [role, setRole] = useState(roles[0]?.key ?? '')
+  // A role named in the address opens that lane: the Scenes tab sends the
+  // shared context here with `?role=context`, and a link to a lane should
+  // land in it rather than on the first role.
+  const [params, setParams] = useSearchParams()
+  const [role, setRole] = useState(params.get('role') ?? roles[0]?.key ?? '')
   // A version named in the address wins until something else is picked. That
   // is what lets a score row open the very draft it judged — and what makes
   // that link work from a note or a message, the same promise the tabs made.
-  const [params, setParams] = useSearchParams()
   const asked = params.get('version')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // A comparison named in the address, the way a version is: a link whose

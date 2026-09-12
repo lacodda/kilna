@@ -129,6 +129,40 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             }
         }
 
+        // The storyboard: the board as a table, then each scene's blocks in
+        // full — a block is a prompt, and a prompt cut to a cell is no use.
+        let scenes = crate::scene::for_work(conn, &work.id)?;
+        if !scenes.is_empty() {
+            page.push_str("\n## Scenes\n\n");
+            page.push_str(
+                "| # | Section | From | To | Shot | Description |\n|---|---|---|---|---|---|\n",
+            );
+            for scene in &scenes {
+                page.push_str(&format!(
+                    "| {} | {} | {} | {} | {} | {} |\n",
+                    scene.position,
+                    scene.section.as_deref().unwrap_or("—"),
+                    scene.starts_at.map(seconds).unwrap_or_else(|| "—".into()),
+                    scene.ends_at.map(seconds).unwrap_or_else(|| "—".into()),
+                    scene.shot_type.as_deref().unwrap_or("—"),
+                    scene.description.replace('\n', " ").replace('|', "\\|"),
+                ));
+            }
+            for scene in &scenes {
+                if scene.blocks.is_empty() {
+                    continue;
+                }
+                page.push_str(&format!("\n### Scene {}\n", scene.position));
+                for (key, value) in &scene.blocks {
+                    let text = match value {
+                        serde_json::Value::String(text) => text.clone(),
+                        other => other.to_string(),
+                    };
+                    page.push_str(&format!("\n**{key}**\n\n{text}\n"));
+                }
+            }
+        }
+
         let sources = crate::link::sources(conn, &work.id)?;
         if !sources.is_empty() {
             page.push_str("\n## Made from\n\n");
@@ -261,6 +295,18 @@ fn slug(title: &str, id: &str) -> String {
         format!("untitled-{head}")
     } else {
         format!("{}-{head}", short.trim())
+    }
+}
+
+/// Seconds as `m:ss`, the way the board shows them; a fraction is kept to
+/// a tenth when there is one.
+fn seconds(value: f64) -> String {
+    let minutes = (value / 60.0).floor();
+    let rest = value - minutes * 60.0;
+    if (rest * 10.0).round() % 10.0 == 0.0 {
+        format!("{}:{:02}", minutes as i64, rest.round() as i64)
+    } else {
+        format!("{}:{:04.1}", minutes as i64, rest)
     }
 }
 

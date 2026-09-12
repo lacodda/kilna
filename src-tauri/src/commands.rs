@@ -20,6 +20,7 @@ use crate::plugin::{self, manifest::Plugin, manifest::Target};
 use crate::profile::{self, Profile, Workspace};
 use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
 use crate::reversal;
+use crate::scene::{self, NewScene, Scene, ScenePatch};
 use crate::score::{self, NewScore, Score, ScoredWork};
 use crate::search::{self, Hit};
 use crate::state::AppState;
@@ -1768,6 +1769,71 @@ pub fn derive_work(
     )?;
 
     Ok(created)
+}
+
+/// The storyboard of a work, in order.
+#[tauri::command]
+pub fn list_scenes(state: State<'_, AppState>, work_id: String) -> Result<Vec<Scene>> {
+    let conn = state.conn();
+    scene::for_work(&conn, &work_id)
+}
+
+/// Add a scene to a work's storyboard — after the last, unless numbered.
+#[tauri::command]
+pub fn create_scene(state: State<'_, AppState>, scene: NewScene) -> Result<Scene> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("scene.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("scene", serde_json::to_value(&scene)?)
+        .minted(&minted);
+
+    let created = recording(&mut conn, logged, |tx| {
+        scene::create_minted(tx, &profile_id, scene, minted)
+    })?;
+
+    journal::record(
+        &conn,
+        &profile_id,
+        Record::new("scene.created")
+            .param(
+                "title",
+                journal::work_title(&conn, &created.work_id).unwrap_or_default(),
+            )
+            .param("number", created.position)
+            .about("work", created.work_id.clone()),
+    );
+
+    Ok(created)
+}
+
+/// Edit a scene: one field, or the prompt blocks as a set.
+#[tauri::command]
+pub fn update_scene(state: State<'_, AppState>, id: String, patch: ScenePatch) -> Result<Scene> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let before = scene::get(&conn, &id)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("scene.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| {
+        scene::update_at(tx, &id, patch, &at)
+    })
+}
+
+#[tauri::command]
+pub fn delete_scene(state: State<'_, AppState>, id: String) -> Result<String> {
+    discard_and_record(&state, trash::Entity::Scene, &id)
 }
 
 /// Anything matching a query: works, version bodies, notes, chat messages.

@@ -259,6 +259,21 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
                 changed = true;
             }
         }
+
+        // The storyboard's vocabulary arrives on the same terms as a role's
+        // body: a kind the workspace has by key, whose stored copy names no
+        // kinds of shot and no prompt blocks, gains what the shipped profile
+        // states. The video kind reached the owner's workspace in v0.57
+        // before scenes existed, and without this it would have no Scenes
+        // tab. A list the owner narrowed or renamed is left alone.
+        if kind.shot_types.is_empty() && !shipped_kind.shot_types.is_empty() {
+            kind.shot_types = shipped_kind.shot_types.clone();
+            changed = true;
+        }
+        if kind.scene_blocks.is_empty() && !shipped_kind.scene_blocks.is_empty() {
+            kind.scene_blocks = shipped_kind.scene_blocks.clone();
+            changed = true;
+        }
     }
 
     // A kind the shipped profile gained since this workspace was made -- a
@@ -1540,6 +1555,59 @@ mod tests {
         let song = config.kind("song").unwrap();
         assert_eq!(song.axes.len(), 1);
         assert_eq!(song.axes[0].key, "imagery");
+    }
+
+    /// The owner's workspace gained the video kinds in v0.57, before scenes
+    /// existed: its stored video kind names no kinds of shot, no blocks and
+    /// no `context` role. At the next start it gains all three, on the same
+    /// terms a role's body arrived — where the stored copy states nothing.
+    /// A list the owner narrowed is left alone.
+    #[test]
+    fn a_workspace_with_video_kinds_from_before_scenes_gains_the_storyboard_words() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        for kind in &mut config.work_kinds {
+            if kind.key == "video" {
+                kind.shot_types.clear();
+                kind.scene_blocks.clear();
+                kind.version_roles.retain(|role| role.key != "context");
+            }
+            if kind.key == "short" {
+                // The owner kept one kind of shot on purpose.
+                kind.shot_types.retain(|shot| shot.key == "close");
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let video = config.kind("video").unwrap();
+        assert!(!video.shot_types.is_empty(), "the kinds of shot arrived");
+        assert!(!video.scene_blocks.is_empty(), "the blocks arrived");
+        assert!(
+            video.version_roles.iter().any(|role| role.key == "context"),
+            "the context role arrived"
+        );
+        let short = config.kind("short").unwrap();
+        assert_eq!(
+            short.shot_types.len(),
+            1,
+            "a list the owner narrowed is theirs"
+        );
     }
 
     /// A workspace made when the profile was still called Music wakes up

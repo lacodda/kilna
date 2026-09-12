@@ -58,7 +58,7 @@ fn keys_written() -> BTreeSet<String> {
         .filter(|(index, _)| {
             let argument = &source[index + "Record::new(".len()..];
             // `format!("{}.deleted", …)` is the one computed form this gate
-            // knows about: the six trash entities are enumerated below, so its
+            // knows about: the seven trash entities are enumerated below, so its
             // keys are covered.
             !argument.starts_with('"') && !argument.starts_with(r#"format!("{}.deleted""#)
         })
@@ -92,6 +92,7 @@ fn keys_written() -> BTreeSet<String> {
         kilna_lib::trash::Entity::Release,
         kilna_lib::trash::Entity::Note,
         kilna_lib::trash::Entity::Collection,
+        kilna_lib::trash::Entity::Scene,
     ] {
         found.insert(format!("{}.deleted", entity.as_str()));
     }

@@ -3,9 +3,11 @@ import { useQuery } from '@tanstack/react-query'
 import {
   getWork,
   type Axis,
+  type Kind,
   type Profile,
   type ProfileConfig,
   type ReleaseKind,
+  type SceneBlock,
   type Status,
   type Tier,
   type VersionRole,
@@ -38,9 +40,19 @@ export interface Vocabulary {
   version_roles: VersionRole[]
   release_kinds: ReleaseKind[]
   statuses: Status[]
+  shot_types: Kind[]
+  scene_blocks: SceneBlock[]
 }
 
-const NOTHING: Vocabulary = { axes: [], tiers: [], version_roles: [], release_kinds: [], statuses: [] }
+const NOTHING: Vocabulary = {
+  axes: [],
+  tiers: [],
+  version_roles: [],
+  release_kinds: [],
+  statuses: [],
+  shot_types: [],
+  scene_blocks: [],
+}
 
 /**
  * What the profile says about works of `kind`.
@@ -60,7 +72,18 @@ export function vocabularyOf(config: ProfileConfig, kind: string | undefined): V
     version_roles: found.version_roles ?? [],
     release_kinds: found.release_kinds ?? [],
     statuses: found.statuses ?? [],
+    shot_types: found.shot_types ?? [],
+    scene_blocks: found.scene_blocks ?? [],
   }
+}
+
+/**
+ * Whether works of `kind` have a storyboard: the kind names kinds of shot or
+ * prompt blocks. A song does not, and its card draws no Scenes tab.
+ */
+export function hasScenes(config: ProfileConfig, kind: string | undefined): boolean {
+  const vocabulary = vocabularyOf(config, kind)
+  return vocabulary.shot_types.length > 0 || vocabulary.scene_blocks.length > 0
 }
 
 /**
