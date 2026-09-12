@@ -162,6 +162,7 @@ The states a work moves through, in order. Music: `draft`, `scored`,
 | `key` | string | Stored on the work. |
 | `label` | string | Display name; free to rename. |
 | `derive` | string, optional | What this status means to the automation. Defaults to `manual`. |
+| `colour` | string, optional | The badge's emphasis on the card and down the catalogue — `plain`, `accent`, `good`, `warn`, `bad` or `info`, the same roles a mark takes. Absent draws the badge in outline; the word is always there. Studio ships *Scored* accent, *Scheduled* warn, *Released* good, *Shelved* plain, and a status without a colour gains the shipped one at the next start. |
 
 `derive` is how the automation knows which of *your* words means "it went
 out", without the app dictating the words. One status per meaning:
@@ -360,14 +361,15 @@ Versions tab exactly as it was.
 Flags a work can be given by hand, beside the status the app derives:
 
 ```jsonc
-{ "key": "working", "label": "Working on it", "colour": "warn" }
+{ "key": "working", "label": "Working on it", "colour": "warn", "icon": "wrench" }
 ```
 
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `key` | string | Stored on the work; renaming the label never touches a work. |
 | `label` | string | What the chip says. |
-| `colour` | `"plain"` \| `"accent"` \| `"good"` \| `"warn"` \| `"bad"` | A palette role rather than a colour, so it reads in both themes. Defaults to `plain`. |
+| `colour` | `"plain"` \| `"accent"` \| `"good"` \| `"warn"` \| `"bad"` \| `"info"` | A palette role rather than a colour, so it reads in both themes. Defaults to `plain`. |
+| `icon` | string | A glyph beside the word, from this list: `tag`, `wrench`, `clock`, `circle-help`, `flame`, `star`, `bookmark`, `eye`, `check`, `heart`, `lightbulb`, `thumbs-up`, `gauge`, `flag`, `pin`. A name outside it draws `tag`; the word is always there. Studio ships `wrench`, `circle-help` and `thumbs-up` for its three marks, and a mark without a glyph gains the shipped one at the next start. |
 
 A mark is not a status: the status says where a work stands in the process and
 is worked out from what happened, while a mark says something the data cannot

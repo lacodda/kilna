@@ -11,6 +11,8 @@ export interface CatalogueFilter {
   /** One of the author's own words, matched whole and case-insensitively. */
   tag?: string
   gap?: Gap
+  /** Only the starred: works marked to come back to. */
+  bookmarked?: true
 }
 
 /** A column the table can be ordered by. */
@@ -55,6 +57,7 @@ export function narrow(rows: ScoredWork[], filter: CatalogueFilter): ScoredWork[
     // tool in the box the vaguest.
     if (filter.tag !== undefined && !hasTag(row, filter.tag)) return false
     if (filter.gap !== undefined && !hasGap(row, filter.gap)) return false
+    if (filter.bookmarked === true && row.bookmarked_at === null) return false
     if (needle !== '' && !row.title.toLowerCase().includes(needle)) return false
     return true
   })
@@ -101,7 +104,8 @@ export function isNarrowed(filter: CatalogueFilter): boolean {
     filter.kind !== undefined ||
     filter.tier !== undefined ||
     filter.tag !== undefined ||
-    filter.gap !== undefined
+    filter.gap !== undefined ||
+    filter.bookmarked === true
   )
 }
 
@@ -295,6 +299,8 @@ function isFilter(value: unknown): value is CatalogueFilter {
     const held = candidate[field]
     if (held !== undefined && typeof held !== 'string') return false
   }
+
+  if (candidate.bookmarked !== undefined && candidate.bookmarked !== true) return false
 
   const gap = candidate.gap
   return gap === undefined || GAPS.includes(gap as Gap)

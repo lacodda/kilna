@@ -23,6 +23,7 @@ function work(over: Partial<ScoredWork> = {}): ScoredWork {
     marks: [],
     tier_pinned: false,
     version_count: 0,
+    bookmarked_at: null,
     ...over,
   }
 }

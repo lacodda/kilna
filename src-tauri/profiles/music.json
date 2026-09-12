@@ -183,22 +183,26 @@
           {
             "key": "scored",
             "label": "Scored",
-            "derive": "scored"
+            "derive": "scored",
+            "colour": "accent"
           },
           {
             "key": "scheduled",
             "label": "Scheduled",
-            "derive": "scheduled"
+            "derive": "scheduled",
+            "colour": "warn"
           },
           {
             "key": "released",
             "label": "Released",
-            "derive": "released"
+            "derive": "released",
+            "colour": "good"
           },
           {
             "key": "shelved",
             "label": "Shelved",
-            "derive": "manual"
+            "derive": "manual",
+            "colour": "plain"
           }
         ],
         "shot_types": [
@@ -408,22 +412,26 @@
           {
             "key": "scored",
             "label": "Scored",
-            "derive": "scored"
+            "derive": "scored",
+            "colour": "accent"
           },
           {
             "key": "scheduled",
             "label": "Scheduled",
-            "derive": "scheduled"
+            "derive": "scheduled",
+            "colour": "warn"
           },
           {
             "key": "released",
             "label": "Released",
-            "derive": "released"
+            "derive": "released",
+            "colour": "good"
           },
           {
             "key": "shelved",
             "label": "Shelved",
-            "derive": "manual"
+            "derive": "manual",
+            "colour": "plain"
           }
         ],
         "shot_types": [
@@ -547,22 +555,26 @@
       {
         "key": "scored",
         "label": "Scored",
-        "derive": "scored"
+        "derive": "scored",
+        "colour": "accent"
       },
       {
         "key": "scheduled",
         "label": "Scheduled",
-        "derive": "scheduled"
+        "derive": "scheduled",
+        "colour": "warn"
       },
       {
         "key": "released",
         "label": "Released",
-        "derive": "released"
+        "derive": "released",
+        "colour": "good"
       },
       {
         "key": "shelved",
         "label": "Shelved",
-        "derive": "manual"
+        "derive": "manual",
+        "colour": "plain"
       }
     ],
     "axes": [
@@ -781,17 +793,20 @@
       {
         "key": "working",
         "label": "Working on it",
-        "colour": "warn"
+        "colour": "warn",
+        "icon": "wrench"
       },
       {
         "key": "unsure",
         "label": "Not sure",
-        "colour": "accent"
+        "colour": "accent",
+        "icon": "circle-help"
       },
       {
         "key": "favourite",
         "label": "The good one",
-        "colour": "good"
+        "colour": "good",
+        "icon": "thumbs-up"
       }
     ],
     "rhythm": {

@@ -6,6 +6,7 @@ import { updateWork, workTags, type Mark, type Work } from '@/lib/api'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
+import { markIconOf } from '@/lib/markIcon'
 import { useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 
@@ -77,6 +78,7 @@ export function TagBar({ work }: { work: Work }) {
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
       {marks.map((mark) => {
         const on = raised.has(mark.key)
+        const Icon = markIconOf(mark)
         return (
           <button
             key={mark.key}
@@ -90,12 +92,15 @@ export function TagBar({ work }: { work: Work }) {
               })
             }
             className={cn(
-              'cursor-pointer rounded-full border px-2 py-0.5 text-[11px] transition-colors',
+              'inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors',
               // Off is an outline: the row of what could be raised is always
               // there, so raising one is a click and not a hunt through a menu.
-              on ? MARK_ON[mark.colour ?? 'plain'] : 'border-line text-faint hover:text-dim',
+              on
+                ? cn('font-medium', MARK_ON[mark.colour ?? 'plain'])
+                : 'border-line text-faint hover:text-dim',
             )}
           >
+            <Icon aria-hidden className="size-3" />
             {mark.label}
           </button>
         )
@@ -183,4 +188,5 @@ const MARK_ON: Record<string, string> = {
   good: 'border-transparent bg-good-soft text-good',
   warn: 'border-transparent bg-warn-soft text-warn',
   bad: 'border-transparent bg-bad-soft text-bad',
+  info: 'border-transparent bg-info-soft text-info',
 }

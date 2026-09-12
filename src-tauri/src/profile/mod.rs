@@ -306,6 +306,22 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
             kind.scene_blocks = shipped_kind.scene_blocks.clone();
             changed = true;
         }
+
+        // A status badge's colour, on the same terms: by key, only where the
+        // stored status names none.
+        for status in &mut kind.statuses {
+            let Some(shipped_status) = shipped_kind
+                .statuses
+                .iter()
+                .find(|shipped| shipped.key == status.key)
+            else {
+                continue;
+            };
+            if status.colour.is_none() && shipped_status.colour.is_some() {
+                status.colour = shipped_status.colour;
+                changed = true;
+            }
+        }
     }
 
     // A kind the shipped profile gained since this workspace was made -- a
@@ -346,6 +362,20 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         |field| &field.key,
     );
     changed |= add_new_keys(&mut config.marks, &shipped.config.marks, |mark| &mark.key);
+
+    // A mark's glyph arrives the way a role's body does: a mark the
+    // workspace still shares by key gains the shipped icon when its stored
+    // copy names none. The three built-in marks reached every workspace
+    // before marks had glyphs; a glyph the owner chose stays theirs.
+    for mark in &mut config.marks {
+        let Some(shipped_mark) = shipped.config.marks.iter().find(|m| m.key == mark.key) else {
+            continue;
+        };
+        if mark.icon.is_none() && shipped_mark.icon.is_some() {
+            mark.icon = shipped_mark.icon.clone();
+            changed = true;
+        }
+    }
 
     // A stored copy still in format 1 was read into format 2 by the parser;
     // writing it back is what makes the migration permanent rather than
@@ -1598,6 +1628,80 @@ mod tests {
         let song = config.kind("song").unwrap();
         assert_eq!(song.axes.len(), 1);
         assert_eq!(song.axes[0].key, "imagery");
+    }
+
+    /// Marks had no glyph and statuses no colour before v0.63: a stored copy
+    /// naming none gains what the shipped profile states, by key, and a
+    /// glyph or a colour the owner chose stays theirs.
+    #[test]
+    fn a_workspace_from_before_glyphs_gains_mark_icons_and_status_colours() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        for mark in &mut config.marks {
+            mark.icon = if mark.key == "unsure" {
+                Some("flame".into())
+            } else {
+                None
+            };
+        }
+        for kind in &mut config.work_kinds {
+            for status in &mut kind.statuses {
+                status.colour = if status.key == "released" {
+                    Some(config::MarkColour::Bad)
+                } else {
+                    None
+                };
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let icon = |key: &str| {
+            config
+                .marks
+                .iter()
+                .find(|m| m.key == key)
+                .and_then(|m| m.icon.clone())
+        };
+        assert_eq!(icon("working").as_deref(), Some("wrench"), "arrived");
+        assert_eq!(
+            icon("unsure").as_deref(),
+            Some("flame"),
+            "the owner's stays"
+        );
+        let song = config.kind("song").unwrap();
+        let colour = |key: &str| {
+            song.statuses
+                .iter()
+                .find(|s| s.key == key)
+                .and_then(|s| s.colour)
+        };
+        assert_eq!(colour("scored"), Some(config::MarkColour::Accent));
+        assert_eq!(
+            colour("released"),
+            Some(config::MarkColour::Bad),
+            "the owner's stays"
+        );
+        assert_eq!(
+            colour("draft"),
+            None,
+            "a status shipped without a colour gains none"
+        );
     }
 
     /// The owner's workspace gained the video kinds in v0.57, before scenes

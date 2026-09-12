@@ -627,6 +627,10 @@ pub struct Status {
     /// under the owner's hand rather than having meaning guessed for it.
     #[serde(default)]
     pub derive: Derive,
+    /// The palette role the status badge takes — emphasis, never the message:
+    /// the word is always there beside it. Absent draws the badge in outline.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub colour: Option<MarkColour>,
 }
 
 impl Status {
@@ -635,6 +639,7 @@ impl Status {
             key: key.to_owned(),
             label: label.to_owned(),
             derive,
+            colour: None,
         }
     }
 }
@@ -837,6 +842,12 @@ pub struct Mark {
     /// for.
     #[serde(default)]
     pub colour: MarkColour,
+    /// A glyph beside the word, from the short list the screen knows —
+    /// `wrench`, `circle-help`, `thumbs-up`… (see the profile reference). A
+    /// name the screen does not know draws the default glyph rather than
+    /// nothing, and the word is always there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -849,6 +860,7 @@ pub enum MarkColour {
     Good,
     Warn,
     Bad,
+    Info,
 }
 
 /// A typed field inside `work.meta`.

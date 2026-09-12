@@ -48,16 +48,22 @@ export interface Kind {
 // never derived: it is a decision someone made, with no fact behind it.
 export type Derive = 'manual' | 'draft' | 'scored' | 'scheduled' | 'released'
 
+/** A palette role rather than a colour, so it reads in both themes. */
+export type MarkColour = 'plain' | 'accent' | 'good' | 'warn' | 'bad' | 'info'
+
 export interface Status extends Kind {
   derive: Derive
+  /** The badge's emphasis; absent draws it in outline. The word is always there. */
+  colour?: MarkColour | null
 }
 
 /** A flag the author raises by hand, beside the status the app derives. */
 export interface Mark {
   key: string
   label: string
-  /** A palette role rather than a colour, so it reads in both themes. */
-  colour?: 'plain' | 'accent' | 'good' | 'warn' | 'bad'
+  colour?: MarkColour
+  /** A glyph beside the word, by name — see `lib/markIcon` for the list. */
+  icon?: string
 }
 
 /** An independent body a work carries. */
@@ -597,6 +603,8 @@ export interface ScoredWork {
   tags: string[]
   /** Keys into the profile's marks, drawn only while the profile defines them. */
   marks: string[]
+  /** Set when the work is starred: marked to come back to. */
+  bookmarked_at: string | null
   /** How many versions the work holds, across every role. */
   version_count: number
 }

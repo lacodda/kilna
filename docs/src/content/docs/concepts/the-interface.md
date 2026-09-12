@@ -102,18 +102,25 @@ The name comes first and the craft's numbers under it: BPM and key are
 reference you consult, not what you identify the card by. The fields there are
 read-only, and long ones are cut short with the whole value a hover away — you
 edit them on **Overview**, because a header you can type into is a header that
-shifts under the cursor while it saves. Renaming opens a dialog for the same
-reason.
+shifts under the cursor while it saves.
+
+**The name has its own row of things done to it.** The pencil turns the
+heading into a box of the same height — Enter saves, Escape cancels,
+leaving the box saves — so the header does not move while you rename. Next
+to it: copy the title, the id (click it to copy), and the **star**: *come
+back to this one*. The star is not a status and not a mark; the catalogue
+has a chip that shows only the starred.
 
 **Under the name: marks and tags.** Marks are the flags your profile
-offers — *Working on it*, *Not sure*, *The good one* — raised and lowered with
-a click. Tags are your own words for what the work is; the box completes from
-what the workspace already says, so a vocabulary converges instead of
-scattering into near-misses. Neither moves the work: the status above is worked
-out from what happened, and these are what only you know.
+offers — *Working on it*, *Not sure*, *The good one* — each with its glyph
+and colour, raised and lowered with a click. Tags are your own words for
+what the work is; the box completes from what the workspace already says, so
+a vocabulary converges instead of scattering into near-misses. Neither moves
+the work: the status above is worked out from what happened, and these are
+what only you know.
 
-**The menu at the end of the row** copies the title, the id or a link to the
-card, and renames.
+**The menu at the end of the row** copies a link to the card and makes a
+work of another kind from this one — a video from a song.
 
 **A review sits beside what it reviews.** If your profile has a role that
 comments on another — Music ships two, a read against the axes and a critique

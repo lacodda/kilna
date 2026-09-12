@@ -44,6 +44,7 @@ const row = (over: Partial<ScoredWork>): ScoredWork => ({
   marks: [],
   tier_pinned: false,
   version_count: 0,
+  bookmarked_at: null,
   ...over,
 })
 
@@ -518,5 +519,34 @@ describe('grouping', () => {
       const held = groupRows(rows, by).flatMap((block) => block.rows)
       expect(held).toHaveLength(rows.length)
     }
+  })
+})
+
+describe('the star', () => {
+  it('narrows to the starred, and to nothing else', () => {
+    const rows = [
+      row({ work_id: 'a', bookmarked_at: '2026-09-12T10:00:00Z' }),
+      row({ work_id: 'b' }),
+    ]
+    expect(narrow(rows, { bookmarked: true }).map((r) => r.work_id)).toEqual(['a'])
+    expect(narrow(rows, {})).toHaveLength(2)
+  })
+
+  it('counts as narrowing, so an empty result explains itself', () => {
+    expect(isNarrowed({ bookmarked: true })).toBe(true)
+  })
+
+  it('survives the session, but only as "on"', () => {
+    const held = new Map<string, string>()
+    const store: SortStore = {
+      getItem: (key) => held.get(key) ?? null,
+      setItem: (key, value) => void held.set(key, value),
+    }
+    saveFilter({ bookmarked: true }, store)
+    expect(loadFilter(store)).toEqual({ bookmarked: true })
+    // A stored `false` is not a shape this build writes; it is read as no
+    // filter rather than as a chip that is off.
+    store.setItem('kilna.catalogue.filter', JSON.stringify({ bookmarked: false }))
+    expect(loadFilter(store)).toEqual({})
   })
 })

@@ -25,11 +25,11 @@
     ],
     "statuses": [
       { "key": "draft", "label": "Draft", "derive": "draft" },
-      { "key": "recorded", "label": "Recorded", "derive": "manual" },
-      { "key": "scored", "label": "Scored", "derive": "scored" },
-      { "key": "scheduled", "label": "Scheduled", "derive": "scheduled" },
-      { "key": "released", "label": "Released", "derive": "released" },
-      { "key": "shelved", "label": "Shelved", "derive": "manual" }
+      { "key": "recorded", "label": "Recorded", "derive": "manual", "colour": "info" },
+      { "key": "scored", "label": "Scored", "derive": "scored", "colour": "accent" },
+      { "key": "scheduled", "label": "Scheduled", "derive": "scheduled", "colour": "warn" },
+      { "key": "released", "label": "Released", "derive": "released", "colour": "good" },
+      { "key": "shelved", "label": "Shelved", "derive": "manual", "colour": "plain" }
     ],
     "axes": [
       {

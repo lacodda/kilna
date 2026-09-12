@@ -1,18 +1,18 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Copy, Pencil, Star } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { deriveWork, latestScore, listCollections, updateWork, type Work } from '@/lib/api'
 import { coverFor } from '@/lib/cover'
 import { keys } from '@/lib/query'
 import { announceEdited } from '@/lib/edited'
+import { badgeVariantOf } from '@/lib/markIcon'
 import { say } from '@/lib/toast'
 import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { useStar } from '@/lib/useStar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Dialog } from '@/components/ui/AppDialog'
-import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/input'
 import { RowMenu } from '@/components/ui/RowMenu'
 import { TabBar } from '@/components/card/TabBar'
@@ -56,11 +56,7 @@ export function CardHeader({ work, releases, links = 0, scenes }: Props) {
 
   const collection = collections.data?.find((item) => item.id === work.collection_id)
   const latest = score.data ?? null
-
-  // Renaming opens a dialog rather than turning the heading into a field. The
-  // header is sticky, and a box that saves on blur inside it moves under the
-  // cursor as it does — the same reason the meta values here are read-only.
-  const [renaming, setRenaming] = useState(false)
+  const status = vocabulary.statuses.find((s) => s.key === work.status)
 
   // Two siblings rather than one header, because a sticky element can never
   // leave its own parent's box: wrapped together, the bar would unstick the
@@ -101,10 +97,10 @@ export function CardHeader({ work, releases, links = 0, scenes }: Props) {
             header that can be typed into shifts under the cursor as it saves. */}
         <div className="px-[18px] pt-3 pb-2.5">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-            <h2 className="text-[21px] font-[650] tracking-[-0.01em]">{work.title}</h2>
+            <Title work={work} />
 
             <Badge>{labelOf(profile.config.work_kinds, work.kind)}</Badge>
-            <Badge variant="accent">{labelOf(vocabulary.statuses, work.status)}</Badge>
+            <Badge variant={badgeVariantOf(status?.colour)}>{status?.label ?? work.status}</Badge>
 
             {latest !== null && (
               <Badge variant="soft">
@@ -118,7 +114,7 @@ export function CardHeader({ work, releases, links = 0, scenes }: Props) {
             {/* Pushed to the end of the row: the actions are what you reach
                 for, not what tells you whose card this is. */}
             <span className="ml-auto">
-              <HeaderActions work={work} onRename={() => setRenaming(true)} />
+              <HeaderActions work={work} />
             </span>
           </div>
 
@@ -129,20 +125,129 @@ export function CardHeader({ work, releases, links = 0, scenes }: Props) {
 
         <TabBar workId={work.id} releases={releases} links={links} scenes={scenes} />
       </header>
-
-      <RenameDialog work={work} open={renaming} onOpenChange={setRenaming} />
     </>
   )
 }
 
 /**
- * What you can do to the work from its header.
+ * The name, and the three things done to it: rename in place, copy it, copy
+ * the id — with the star beside them.
  *
- * Copying is here rather than on the Overview tab because it is what you do
- * *with* a card, not to it: quoting the title in a message, pasting the id into
- * a script, sending someone the card itself.
+ * Renaming turns the heading into a box of the same height, so the sticky
+ * header does not move under the cursor: Enter saves, Escape cancels, and
+ * leaving the box saves what was typed — the same bargain as every field on
+ * the Scenes tab. The dialog it replaces was one click and one dialog more
+ * than a name deserves. The id is copied by clicking it: it is here to be
+ * pasted into a script or told to an agent, not read.
  */
-function HeaderActions({ work, onRename }: { work: Work; onRename: () => void }) {
+function Title({ work }: { work: Work }) {
+  const { t } = useTranslation()
+  const client = useQueryClient()
+  const [draft, setDraft] = useState<string | null>(null)
+  const star = useStar(work.id)
+  const starred = work.bookmarked_at !== null
+
+  const rename = useMutation({
+    mutationFn: (next: string) => updateWork(work.id, { title: next }),
+    onSuccess: (updated) => {
+      client.setQueryData(keys.work(work.id), updated)
+      announceEdited({
+        client,
+        message: t('toast.workRenamed'),
+        refresh: [keys.works, keys.catalogue, keys.journal],
+      })
+    },
+    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
+  })
+
+  const commit = () => {
+    const next = (draft ?? '').trim()
+    setDraft(null)
+    // An empty box or an unchanged name is a cancel, not an error: nothing was
+    // asked for, so nothing is said about it.
+    if (next === '' || next === work.title) return
+    rename.mutate(next)
+  }
+
+  // The tick only after the clipboard confirms — the rule from v0.28: telling
+  // someone a copy succeeded when it did not is worse than saying nothing.
+  const copy = (value: string) => {
+    navigator.clipboard.writeText(value).then(
+      () => say.ok(t('work.copied')),
+      (cause: unknown) => say.failedTo(t('work.copied'), cause),
+    )
+  }
+
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1">
+      {draft === null ? (
+        <h2 className="truncate text-[21px] font-[650] tracking-[-0.01em]">{work.title}</h2>
+      ) : (
+        <Input
+          autoFocus
+          value={draft}
+          aria-label={t('work.title')}
+          title={t('work.renameHint')}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') commit()
+            if (event.key === 'Escape') setDraft(null)
+          }}
+          className="h-8 w-80 max-w-full text-[17px] font-[650] tracking-[-0.01em]"
+        />
+      )}
+      {draft === null && (
+        <>
+          <Button
+            variant="icon"
+            size="icon-sm"
+            title={t('work.rename')}
+            aria-label={t('work.rename')}
+            onClick={() => setDraft(work.title)}
+          >
+            <Pencil aria-hidden />
+          </Button>
+          <Button
+            variant="icon"
+            size="icon-sm"
+            title={t('work.copyTitle')}
+            aria-label={t('work.copyTitle')}
+            onClick={() => copy(work.title)}
+          >
+            <Copy aria-hidden />
+          </Button>
+          <button
+            type="button"
+            title={t('work.copyIdHint')}
+            onClick={() => copy(work.id)}
+            className="cursor-pointer rounded px-1 font-mono text-[11.5px] text-faint transition-colors hover:text-dim"
+          >
+            {work.id.slice(0, 8)}
+          </button>
+          <Button
+            variant="icon"
+            size="icon-sm"
+            aria-pressed={starred}
+            title={t(starred ? 'work.unstar' : 'work.star')}
+            aria-label={t(starred ? 'work.unstar' : 'work.star')}
+            disabled={star.isPending}
+            onClick={() => star.mutate(!starred)}
+            className={starred ? 'text-warn hover:text-warn' : undefined}
+          >
+            <Star aria-hidden className={starred ? 'fill-current' : undefined} />
+          </Button>
+        </>
+      )}
+    </span>
+  )
+}
+
+/**
+ * What you can do to the work from its header, beyond the name's own row:
+ * copy a link to the card, make another kind of work from this one.
+ */
+function HeaderActions({ work }: { work: Work }) {
   const { t } = useTranslation()
   const profile = useProfile()
   const client = useQueryClient()
@@ -176,9 +281,6 @@ function HeaderActions({ work, onRename }: { work: Work; onRename: () => void })
     <RowMenu
       label={work.title}
       actions={[
-        { key: 'rename', label: t('work.rename'), onSelect: onRename },
-        { key: 'title', label: t('work.copyTitle'), onSelect: () => copy(work.title) },
-        { key: 'id', label: t('work.copyId'), onSelect: () => copy(work.id) },
         {
           key: 'link',
           label: t('work.copyLink'),
@@ -196,74 +298,6 @@ function HeaderActions({ work, onRename }: { work: Work; onRename: () => void })
           })),
       ]}
     />
-  )
-}
-
-function RenameDialog({
-  work,
-  open,
-  onOpenChange,
-}: {
-  work: Work
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const { t } = useTranslation()
-  const client = useQueryClient()
-  const [title, setTitle] = useState(work.title)
-
-  // The box starts from what the work is called each time it opens, not from
-  // whatever was typed and abandoned last time.
-  const [syncedTo, setSyncedTo] = useState(work.title)
-  if (open && syncedTo !== work.title) {
-    setSyncedTo(work.title)
-    setTitle(work.title)
-  }
-
-  const rename = useMutation({
-    mutationFn: (next: string) => updateWork(work.id, { title: next }),
-    onSuccess: (updated) => {
-      client.setQueryData(keys.work(work.id), updated)
-      announceEdited({
-        client,
-        message: t('toast.workRenamed'),
-        refresh: [keys.works, keys.catalogue, keys.journal],
-      })
-      onOpenChange(false)
-    },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
-  })
-
-  const submit = () => {
-    const next = title.trim()
-    // An empty box or an unchanged name is a cancel, not an error: nothing was
-    // asked for, so nothing is said about it.
-    if (next === '' || next === work.title) return onOpenChange(false)
-    rename.mutate(next)
-  }
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t('work.rename')}
-      footer={
-        <Button variant="primary" disabled={rename.isPending} onClick={submit}>
-          {t('work.rename')}
-        </Button>
-      }
-    >
-      <Field label={t('work.title')} hint={t('work.renameHint')}>
-        <Input
-          autoFocus
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') submit()
-          }}
-        />
-      </Field>
-    </Dialog>
   )
 }
 

@@ -91,6 +91,9 @@ pub struct ScoredWork {
     /// How many versions the work holds, across every role. The count a person
     /// reads as "how much work went in here".
     pub version_count: i64,
+    /// Set when the person marked this one to come back to — the star on the
+    /// row, and what the catalogue's star filter reads.
+    pub bookmarked_at: Option<String>,
 }
 
 /// The score that speaks for a work, as a subquery returning one `work_score.id`.
@@ -269,7 +272,8 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
                 w.updated_at, w.created_at, w.collection_id, w.tags, w.marks,
                 (SELECT count(*) FROM work_version v
                   WHERE v.work_id = w.id) AS version_count,
-                w.tier_pinned IS NOT NULL AS tier_pinned
+                w.tier_pinned IS NOT NULL AS tier_pinned,
+                w.bookmarked_at
          FROM work w
          LEFT JOIN work_score s ON s.id = {speaking}
          WHERE w.profile_id = ?1
@@ -296,6 +300,7 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
             marks: parse_string_list(&row.get::<_, String>(14)?),
             version_count: row.get(15)?,
             tier_pinned: row.get::<_, i64>(16)? == 1,
+            bookmarked_at: row.get(17)?,
         })
     })?;
 

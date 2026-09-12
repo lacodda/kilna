@@ -101,6 +101,19 @@ The row is the same filter as `kind:` in the box, so a saved view keeps it.
 The search box matches titles as you type, in whatever alphabet they are
 written in. The two dropdowns narrow by status and tier.
 
+**The star** beside them shows only the works you starred — the ones to
+come back to. A star is raised and lowered with a click, on the row or on
+the card's header, and undo takes it back like any edit; it derives
+nothing and is not a word of the profile, which is why it is a chip and
+not a token in the box.
+
+**Each row says where the work stands** as a badge in the status's own
+colour — *Scored*, *Scheduled*, *Released* — and what it is in outline
+until the catalogue is narrowed to a kind. The colours are the profile's
+([`statuses[].colour`](/kilna/reference/profile-document/#statuses)); a
+status without one reads in outline. Marks in their column carry their
+glyph and colour the same way the card's chips do.
+
 ### Narrowing from the box
 
 The box also reads operators, so a slice you would otherwise click together

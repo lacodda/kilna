@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronRight,
   Columns3,
+  Star,
   X,
 } from 'lucide-react'
 import {
@@ -64,6 +65,8 @@ import { Pin } from 'lucide-react'
 import type { Tab } from '@/components/card/tabs'
 import { BulkActions } from '@/components/assistant/BulkActions'
 import { Badge } from '@/components/ui/badge'
+import { badgeVariantOf, markIconOf } from '@/lib/markIcon'
+import { useStar } from '@/lib/useStar'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Input } from '@/components/ui/input'
@@ -398,6 +401,24 @@ export function Catalogue({ onSelect }: Props) {
           placeholder={t('catalogue.anyTier')}
           options={allOf(profile.config, 'tiers').map((tier) => ({ value: tier.key, label: tier.label }))}
         />
+        {/* The starred, as one chip: the works marked to come back to. Not a
+            token in the box — a star is raised and lowered with a click, and
+            is asked for the same way. */}
+        <button
+          type="button"
+          aria-pressed={filter.bookmarked === true}
+          title={t('catalogue.starredHint')}
+          onClick={() => setFromControl({ bookmarked: filter.bookmarked === true ? undefined : true })}
+          className={cn(
+            'inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+            filter.bookmarked === true
+              ? 'border-transparent bg-warn-soft font-semibold text-warn'
+              : 'border-line text-dim hover:border-line-2 hover:text-text',
+          )}
+        >
+          <Star aria-hidden className={cn('size-3', filter.bookmarked === true && 'fill-current')} />
+          {t('catalogue.starred')}
+        </button>
       </div>
 
       {/* Says what the box can do without a doc, and says it once — the hint
@@ -833,6 +854,34 @@ function Rows({
 }
 
 /**
+ * The star on a row: on when the work is marked to come back to, and a click
+ * either way. It stops the row's own click, which would open the card.
+ */
+function RowStar({ row }: { row: ScoredWork }) {
+  const { t } = useTranslation()
+  const star = useStar(row.work_id)
+  const on = row.bookmarked_at !== null
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      title={t(on ? 'work.unstar' : 'work.star')}
+      disabled={star.isPending}
+      onClick={(event) => {
+        event.stopPropagation()
+        star.mutate(!on)
+      }}
+      className={cn(
+        'cursor-pointer rounded-md p-0.5 transition-colors',
+        on ? 'text-warn' : 'text-faint/60 hover:text-dim',
+      )}
+    >
+      <Star aria-hidden className={cn('size-3.5', on && 'fill-current')} />
+    </button>
+  )
+}
+
+/**
  * One row of the catalogue, with both ways into its actions.
  *
  * The right click is `RowContextMenu` rendering the `<tr>` itself rather than
@@ -936,7 +985,7 @@ interface ColumnSpec {
 const COLUMN_SPECS: Record<ColumnId, ColumnSpec> = {
   id: { label: 'catalogue.column.id', sort: null, width: 'w-28' },
   title: { label: 'catalogue.work', sort: 'title' },
-  marks: { label: 'catalogue.column.marks', sort: null, width: 'w-24' },
+  marks: { label: 'catalogue.column.marks', sort: null },
   versions: { label: 'catalogue.column.versions', sort: 'versions', align: 'right', width: 'w-16' },
   tier: { label: 'catalogue.tier', sort: 'tier' },
   total: { label: 'catalogue.total', sort: 'total', align: 'right' },
@@ -966,24 +1015,31 @@ function Cell({
       // as part of the sentence a row makes.
       return <td className="px-3 py-2 font-mono text-xs text-faint">{row.work_id.slice(0, 8)}</td>
 
-    case 'title':
+    case 'title': {
+      const status = vocabulary.statuses.find((s) => s.key === row.status)
       return (
         // The title and what it is stay on one line. Squeezed, a two-word title
         // broke mid-phrase and the row grew to three lines; the table now
         // scrolls sideways instead of folding.
         <td className="whitespace-nowrap px-3 py-2">
-          <span className="font-medium">{row.title}</span>
-          <span className="ml-2 text-xs text-dim">
-            {labelOf(vocabulary.statuses, row.status)}
+          <span className="inline-flex items-center gap-2">
+            <RowStar row={row} />
+            <span className="font-medium">{row.title}</span>
+            {/* Where it stands as a badge in the status's own colour, and what
+                it is in outline — read at a glance down the column, the way
+                the header reads them. */}
+            <Badge variant={badgeVariantOf(status?.colour)} className="px-2 text-[11px]">
+              {status?.label ?? row.status}
+            </Badge>
             {!kindNarrowed && (
-              <>
-                {' · '}
+              <Badge className="px-2 text-[11px]">
                 {labelOf(profile.config.work_kinds, row.kind)}
-              </>
+              </Badge>
             )}
           </span>
         </td>
       )
+    }
 
     case 'marks': {
       // A mark the profile no longer defines is not drawn - the same rule the
@@ -993,20 +1049,26 @@ function Cell({
       const defined = profile.config.marks ?? []
       const shown = row.marks.filter((key) => defined.some((mark) => mark.key === key))
       return (
-        <td className="px-3 py-2">
+        <td className="whitespace-nowrap px-3 py-2">
           {shown.length === 0 ? (
             <span className="text-faint">{'—'}</span>
           ) : (
-            <span className="flex flex-wrap gap-1">
-              {shown.map((key) => (
-                <span
-                  key={key}
-                  className="rounded bg-soft px-1.5 py-0.5 text-[11px] text-dim"
-                  title={labelOf(defined, key)}
-                >
-                  {labelOf(defined, key)}
-                </span>
-              ))}
+            <span className="inline-flex flex-wrap gap-1">
+              {shown.map((key) => {
+                const mark = defined.find((m) => m.key === key)
+                const Icon = markIconOf(mark ?? {})
+                return (
+                  <Badge
+                    key={key}
+                    variant={badgeVariantOf(mark?.colour ?? 'plain')}
+                    className="gap-1 px-2 text-[11px]"
+                    title={mark?.label ?? key}
+                  >
+                    <Icon aria-hidden className="size-3" />
+                    {mark?.label ?? key}
+                  </Badge>
+                )
+              })}
             </span>
           )}
         </td>
