@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.62.0] - 2026-09-12
+
+### Features
+- Propose a storyboard, added to the board or replacing it
 ## [0.61.0] - 2026-09-12
 
 ### Features
