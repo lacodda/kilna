@@ -137,6 +137,7 @@ export function ProfileEditor() {
 
       <ActionsEditor
         actions={config.prompts}
+        kinds={config.work_kinds}
         roles={allOf(config, 'version_roles')}
         onChange={(prompts) => patch({ prompts })}
       />
@@ -289,10 +290,12 @@ function KindVocabulary({
  */
 function ActionsEditor({
   actions,
+  kinds,
   roles,
   onChange,
 }: {
   actions: PromptTemplate[]
+  kinds: WorkKind[]
   roles: VersionRole[]
   onChange: (actions: PromptTemplate[]) => void
 }) {
@@ -311,7 +314,18 @@ function ActionsEditor({
       value: `version:${role.key}`,
       label: t('editor.producesVersion', { role: role.label }),
     })),
+    { value: 'scenes', label: t('editor.producesScenes') },
+    { value: 'scenes:add', label: t('editor.producesScenesAdd') },
+    { value: 'scenes:revise', label: t('editor.producesScenesRevise') },
   ]
+  const scopeOptions = [{ value: 'scene', label: t('editor.scopeScene') }]
+
+  // The kinds an action is for, as chips: none on means every kind.
+  const toggleKind = (index: number, key: string) => {
+    const current = actions[index]?.kinds ?? []
+    const next = current.includes(key) ? current.filter((k) => k !== key) : [...current, key]
+    set(index, { kinds: next.length === 0 ? undefined : next })
+  }
 
   // A key typed as a slug: lower case, letters, digits and dashes, unique.
   const key = newKey.trim().toLowerCase()
@@ -366,6 +380,43 @@ function ActionsEditor({
                 set(index, { description: event.target.value === '' ? undefined : event.target.value })
               }
             />
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-2xs font-semibold uppercase tracking-caption text-faint">
+                {t('editor.actionKinds')}
+              </span>
+              <div role="group" aria-label={t('editor.actionKinds')} className="flex flex-wrap gap-1.5">
+                {kinds.map((kind) => {
+                  const on = (action.kinds ?? []).includes(kind.key)
+                  return (
+                    <button
+                      key={kind.key}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => toggleKind(index, kind.key)}
+                      className={
+                        on
+                          ? 'cursor-pointer rounded-full border border-transparent bg-accent-soft px-2.5 py-0.5 text-[11.5px] font-semibold text-accent-2'
+                          : 'cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-[11.5px] text-dim hover:border-line-2 hover:text-text'
+                      }
+                    >
+                      {kind.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <span className="text-xs text-faint">
+                {(action.kinds ?? []).length === 0 ? t('editor.actionKindsAll') : ''}
+              </span>
+              <span className="flex-1" />
+              <Select
+                className="w-44"
+                aria-label={t('editor.actionScope')}
+                placeholder={t('editor.scopeWork')}
+                value={action.scope === 'scene' ? 'scene' : ''}
+                onChange={(value) => set(index, { scope: value === '' ? undefined : value })}
+                options={scopeOptions}
+              />
+            </div>
             <Field label={t('editor.actionTemplate')} hint={t('editor.actionTemplateHint')}>
               <Textarea
                 autoResize

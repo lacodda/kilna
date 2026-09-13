@@ -7,8 +7,8 @@ import type { RunEmission } from '@/lib/api'
  * answer to the same question — is this button already working? The frontend
  * asks it to draw the button, the backend asks it to refuse a second run.
  */
-export function taskKey(action: string, workId: string): string {
-  return `${action}:${workId}`
+export function taskKey(action: string, workId: string, sceneId?: string): string {
+  return sceneId === undefined ? `${action}:${workId}` : `${action}:${workId}:${sceneId}`
 }
 
 /**

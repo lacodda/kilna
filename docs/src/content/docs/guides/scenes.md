@@ -27,13 +27,18 @@ From top to bottom:
   It is the current version of the `context` role, a body like the plot,
   so it has revisions and the assistant can read it with `text`. The
   button opens it on the Versions tab; the Scenes tab shows it.
+- **AI actions** — the profile's actions for this kind: in Studio, the
+  plot from the source and the storyboard from the plot. A click starts
+  one; what comes back is a proposal, applied with one button. See
+  [Actions on the board](#actions-on-the-board).
 - **A strip of kinds of shot** with counts — *All · Wide · Close-up ·
   Detail…* Click one to see only those scenes: "show me every detail" is
   one click, and the chip that is on turns off.
 - **One card per scene.** The number, the section (*intro*, *verse 1*,
   *chorus* — free text until the text's own markup gives the board its
   frame), the seconds it runs from and to, the kind of shot, a description,
-  and a box per prompt block.
+  and a box per prompt block — and, in the row, the profile's scene
+  actions: *Prompts for the scene* in Studio.
 - **Add scene** at the bottom, numbered after the last.
 
 Every field saves when you leave it. A time is typed as `1:23` or `0:04.5`
@@ -49,11 +54,46 @@ animation prompt into the video model, the negative beside either. The
 blocks a scene carries are the kind's `scene_blocks`; a block the profile
 no longer names is still shown, read-only, so no text is ever hidden.
 
-The blocks are written by hand, or proposed by an agent outside the window:
-`propose_scenes` over [MCP](/kilna/reference/mcp/#a-video-from-a-song-end-to-end)
-lands a whole board in the chat on the work, every block filled, with
-**Add to the board** or **Replace the board** under it. Actions on the
-Scenes tab that do the same from inside kilna come in v0.63.
+The blocks are written by hand, or proposed: by an action on the row (below),
+or by an agent outside the window — `propose_scenes` over
+[MCP](/kilna/reference/mcp/#a-video-from-a-song-end-to-end) lands a whole
+board in the chat on the work, every block filled, with **Add to the board**,
+**Replace the board** or **Revise the scenes** under it.
+
+## Actions on the board
+
+The profile's actions for a kind with a storyboard sit above the board, and
+a scene action sits on each row. Studio ships three, and a profile can
+carry any number — see
+[`prompts`](/kilna/reference/profile-document/#prompts):
+
+1. **Plot from the source.** The video is [made from](/kilna/guides/made-from/)
+   a song; the action reads the song's lyrics and writes the plot, kept as
+   a version in the `plot` role — the video's story beat by beat against
+   the sections of the text, with the recurring things named the same way
+   every time. A video made from nothing is told to link its source first.
+2. **Storyboard from the plot.** Reads the plot, the context and the board
+   as it stands, and proposes the whole board: one scene per beat, the
+   kinds of shot varied on purpose, a description that says what is seen.
+   No prompt blocks — those are written per scene. **Replace the board**
+   rewrites a scene with the same number in place, so what pointed at it
+   still does; the plot and the context have to be written first, and the
+   action says so if they are not.
+3. **Prompts for the scene.** On the row. Reads the context, the board for
+   continuity and this scene, and proposes its prompt blocks — the still,
+   the animation, the negative — as a **revision**: only this scene, only
+   the blocks. **Revise the scenes** writes them; the rest of the board is
+   not touched, and nothing goes to the trash.
+
+The eye beside each button shows exactly what it sends — the message with
+the board filled in, the method behind it — and takes reference files by
+path: a picture of the hero, a frame from the last video. An empty board
+is an entrance to these actions rather than an empty tab.
+
+The action's answer is read against the profile: a block in the wrong
+words — a kind of shot the profile does not have, a revision that numbers
+another scene — is not silently nothing; the chat says why there is no
+button, and the answer is still there to read.
 
 ## What else a scene touches
 

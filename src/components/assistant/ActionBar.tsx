@@ -1,13 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { activeTasks, startTask, type RunEmission } from '@/lib/api'
+import { Eye } from 'lucide-react'
+import { activeTasks, startTask, type PromptTemplate, type RunEmission } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { movesTaskList, taskKey } from '@/lib/tasks'
-import { useProfile } from '@/lib/useProfile'
+import { useProfile, useWorkKind } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
+import { TaskPreviewDialog } from '@/components/assistant/TaskPreviewDialog'
 
 interface Props {
   workId: string
@@ -15,8 +17,27 @@ interface Props {
       the template reads it and a score or a commentary binds to it. Without
       it the action is about the work as it stands. */
   versionId?: string
+  /** The scene the actions are about: only scene actions are offered, and
+      each starts on this row of the board. Without it, work actions. */
+  sceneId?: string
   /** A line over the buttons saying what they act on. */
   hint?: string
+  /** Buttons only, no heading: for a row of the board. */
+  compact?: boolean
+}
+
+/** The actions of the profile that belong here: for this kind, at this scope. */
+export function actionsFor(
+  actions: PromptTemplate[],
+  kind: string | undefined,
+  scope: 'work' | 'scene',
+): PromptTemplate[] {
+  if (kind === undefined) return []
+  return actions.filter(
+    (action) =>
+      (action.kinds === undefined || action.kinds.length === 0 || action.kinds.includes(kind)) &&
+      (action.scope === 'scene' ? 'scene' : 'work') === scope,
+  )
 }
 
 /**
@@ -26,17 +47,25 @@ interface Props {
  * composer so the prompt can be read before it is paid for. This bar is the
  * other way of using them: hands on the work, wanting the thing done, not
  * wanting to move. A click starts a run and says where it went — nothing to
- * watch, nothing to wait for.
+ * watch, nothing to wait for. The eye beside a button shows exactly what the
+ * click would send — the message and the method — and starts it from there,
+ * with reference files if the method should look at some.
+ *
+ * Only the actions for the work's kind are offered: a critique of lyrics on
+ * a video would send a prompt with a hole in it. Scene actions are offered
+ * on a row of the board, not here, and the other way round.
  *
  * The answer lands in a chat of its own, never in whatever conversation
  * happened to be open. Two reasons: a task dropped into a live thread inherits
  * that thread's session as context, and it buries the answer in someone else's
  * subject.
  */
-export function ActionBar({ workId, versionId, hint }: Props) {
+export function ActionBar({ workId, versionId, sceneId, hint, compact = false }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const kind = useWorkKind(workId)
   const client = useQueryClient()
+  const [previewing, setPreviewing] = useState<PromptTemplate | null>(null)
 
   // Which actions are already going. Asked of the backend rather than kept
   // here: a run started before this card was opened still owns its button, and
@@ -63,7 +92,7 @@ export function ActionBar({ workId, versionId, hint }: Props) {
   }, [client])
 
   const start = useMutation({
-    mutationFn: (action: string) => startTask(workId, action, versionId),
+    mutationFn: (action: string) => startTask(workId, action, { versionId, sceneId }),
     onSuccess: (started) => {
       void client.invalidateQueries({ queryKey: keys.activeTasks })
       void client.invalidateQueries({ queryKey: keys.allChats })
@@ -74,7 +103,7 @@ export function ActionBar({ workId, versionId, hint }: Props) {
     },
   })
 
-  const actions = profile.config.prompts
+  const actions = actionsFor(profile.config.prompts, kind, sceneId === undefined ? 'work' : 'scene')
   if (actions.length === 0) return null
 
   const busy = new Set(running.data ?? [])
@@ -83,27 +112,24 @@ export function ActionBar({ workId, versionId, hint }: Props) {
   // read, and this goes back to null whether the start succeeded or failed.
   const pending = start.isPending ? start.variables : null
 
-  return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold">{t('assistant.actions')}</h3>
-      {hint !== undefined && <p className="text-xs text-dim">{hint}</p>}
+  const buttons = (
+    <div className="flex flex-wrap gap-1.5">
+      {actions.map((action) => {
+        // The key the backend refuses duplicates by, built the same way on
+        // both sides. Only this button's own task disables it: three runs
+        // may go at once, and greying out the whole row because one action
+        // was clicked would say otherwise.
+        //
+        // The list is the single source of that answer — a click that is
+        // still in flight is covered by `pending` rather than by a
+        // second piece of state that would have to be cleared by hand.
+        const working = busy.has(taskKey(action.key, workId, sceneId)) || pending === action.key
 
-      <div className="flex flex-wrap gap-1.5">
-        {actions.map((action) => {
-          // The key the backend refuses duplicates by, built the same way on
-          // both sides. Only this button's own task disables it: three runs
-          // may go at once, and greying out the whole row because one action
-          // was clicked would say otherwise.
-          //
-          // The list is the single source of that answer — a click that is
-          // still in flight is covered by `pending` rather than by a
-          // second piece of state that would have to be cleared by hand.
-          const working = busy.has(taskKey(action.key, workId)) || pending === action.key
-
-          return (
+        return (
+          <span key={action.key} className="inline-flex items-stretch">
             <Button
-              key={action.key}
               size="sm"
+              className="rounded-r-none"
               title={action.description}
               disabled={working}
               onClick={() => {
@@ -112,9 +138,52 @@ export function ActionBar({ workId, versionId, hint }: Props) {
             >
               {working ? t('assistant.actionWorking', { label: action.label }) : action.label}
             </Button>
-          )
-        })}
-      </div>
-    </section>
+            <Button
+              size="sm"
+              className="rounded-l-none border-l-0 px-1.5"
+              title={t('assistant.previewTask', { label: action.label })}
+              aria-label={t('assistant.previewTask', { label: action.label })}
+              disabled={working}
+              onClick={() => {
+                setPreviewing(action)
+              }}
+            >
+              <Eye aria-hidden className="size-3.5" />
+            </Button>
+          </span>
+        )
+      })}
+    </div>
+  )
+
+  return (
+    <>
+      {compact ? (
+        buttons
+      ) : (
+        <section className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold">{t('assistant.actions')}</h3>
+          {hint !== undefined && <p className="text-xs text-dim">{hint}</p>}
+          {buttons}
+        </section>
+      )}
+      {previewing !== null && (
+        <TaskPreviewDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setPreviewing(null)
+          }}
+          workId={workId}
+          action={previewing}
+          versionId={versionId}
+          sceneId={sceneId}
+          onStarted={() => {
+            setPreviewing(null)
+            void client.invalidateQueries({ queryKey: keys.activeTasks })
+            void client.invalidateQueries({ queryKey: keys.allChats })
+          }}
+        />
+      )}
+    </>
   )
 }

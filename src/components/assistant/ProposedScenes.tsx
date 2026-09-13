@@ -29,18 +29,41 @@ interface Props {
 export function ProposedScenes({ workId, messageId, proposal, applied }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const replace = proposal.replace === true
+  // A proposal stored by v0.62 said `replace: true` where v0.64 says
+  // `change: 'replace'`; read as it was meant.
+  const change = proposal.change ?? (proposal.replace === true ? 'replace' : 'add')
+  const replace = change === 'replace'
+  const words = {
+    add: {
+      title: 'assistant.proposedScenes',
+      button: 'assistant.addScenes',
+      done: 'assistant.scenesAdded',
+      mark: 'assistant.scenesAddedMark',
+    },
+    replace: {
+      title: 'assistant.proposedScenesReplace',
+      button: 'assistant.replaceScenes',
+      done: 'assistant.scenesReplaced',
+      mark: 'assistant.scenesReplacedMark',
+    },
+    revise: {
+      title: 'assistant.proposedScenesRevise',
+      button: 'assistant.reviseScenes',
+      done: 'assistant.scenesRevised',
+      mark: 'assistant.scenesRevisedMark',
+    },
+  }[change]
 
   const apply = useApplyProposal({
     messageId,
-    message: t(replace ? 'assistant.scenesReplaced' : 'assistant.scenesAdded'),
+    message: t(words.done),
     refresh: [keys.scenes, keys.work(workId), keys.deletions],
   })
 
   return (
     <div className="mx-3 flex flex-col gap-1.5 rounded-xl border border-line bg-soft px-3 py-2 text-sm">
       <p className="text-xs font-semibold text-dim">
-        {t(replace ? 'assistant.proposedScenesReplace' : 'assistant.proposedScenes')}
+        {t(words.title)}
         {' · '}
         <span className="font-normal">
           {t('assistant.packageScenes', { count: proposal.scenes.length })}
@@ -52,10 +75,7 @@ export function ProposedScenes({ workId, messageId, proposal, applied }: Props) 
       <div className="flex items-center justify-end gap-2">
         {applied !== null ? (
           <>
-            <AppliedMark
-              applied={applied}
-              label={t(replace ? 'assistant.scenesReplacedMark' : 'assistant.scenesAddedMark')}
-            />
+            <AppliedMark applied={applied} label={t(words.mark)} />
             <Button
               size="sm"
               variant="icon"
@@ -76,7 +96,7 @@ export function ProposedScenes({ workId, messageId, proposal, applied }: Props) 
               apply.mutate(undefined)
             }}
           >
-            {t(replace ? 'assistant.replaceScenes' : 'assistant.addScenes')}
+            {t(words.button)}
           </Button>
         )}
       </div>

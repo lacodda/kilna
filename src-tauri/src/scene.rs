@@ -442,6 +442,25 @@ impl RawScene {
     }
 }
 
+/// Seconds as `m:ss`, with a fraction only when there is one — how a span
+/// reads on a rendered board and in a prompt.
+pub fn timecode(seconds: f64) -> String {
+    let whole = seconds.floor();
+    let minutes = (whole / 60.0) as i64;
+    let rest = whole - (minutes * 60) as f64;
+    let fraction = seconds - whole;
+    if fraction > 0.0 {
+        let digits = format!("{fraction:.2}");
+        format!(
+            "{minutes}:{:02}{}",
+            rest as i64,
+            digits[1..].trim_end_matches('0')
+        )
+    } else {
+        format!("{minutes}:{:02}", rest as i64)
+    }
+}
+
 /// Whether works of a kind have a storyboard at all: the kind names kinds
 /// of shot or prompt blocks. A song has neither, and no Scenes tab.
 pub fn kind_has_scenes(config: &ProfileConfig, kind: &str) -> bool {

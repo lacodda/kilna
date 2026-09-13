@@ -67,7 +67,7 @@ fn a_batch_larger_than_the_limit_starts_some_and_queues_the_rest() {
     // Exactly what `start_tasks` does per work.
     for work_id in &work_ids {
         if runs.has_slot() {
-            let prepared = task::prepare(&conn, work_id, &action, None).unwrap();
+            let prepared = task::prepare(&conn, work_id, &action, task::About::default()).unwrap();
             let (_run, stream) = assistant::run::start_as(
                 &conn,
                 &runs,
@@ -75,6 +75,7 @@ fn a_batch_larger_than_the_limit_starts_some_and_queues_the_rest() {
                 &prepared.prompt,
                 None,
                 Some(prepared.key),
+                &prepared.attachments,
             )
             .unwrap();
             // Kept alive for the length of the check: dropping the stream

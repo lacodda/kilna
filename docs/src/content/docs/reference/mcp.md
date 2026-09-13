@@ -56,7 +56,7 @@ proposals apply these:
 | Tool | Where it lands |
 | --- | --- |
 | `propose_work` | A whole work — title, kind, overview fields, versions by role, a score, notes, and for a kind with a storyboard its scenes — or, with `work`, a package of those for an existing one. The message shows everything the package would write; **Create the work** or **Apply the package** writes all of it in one click. On a new work the version in the first role becomes current; on an existing one the package's versions wait beside the current, and its scenes go after the last on the board. |
-| `propose_scenes` | A storyboard for a video or a short: scenes with their number, section, seconds, kind of shot, description and prompt blocks, in the kind's own words. The message shows the board as a table with every block under it. **Add to the board** numbers the scenes after the last; with `replace`, **Replace the board** rewrites a scene with the same number in place — it keeps its id — sends the rest of the old board to the trash, and creates the numbers nobody held. A kind with no storyboard, an unknown kind of shot or block key, a scene that ends before it starts refuse the whole package. |
+| `propose_scenes` | A storyboard for a video or a short: scenes with their number, section, seconds, kind of shot, description and prompt blocks, in the kind's own words. The message shows the board as a table with every block under it. `change` says what happens to the board that is there: `add` (the default) — **Add to the board** numbers the scenes after the last; `replace` — **Replace the board** rewrites a scene with the same number in place — it keeps its id — sends the rest of the old board to the trash, and creates the numbers nobody held; `revise` — **Revise the scenes** changes only the numbered scenes, only in the fields given (a field left out is kept, `blocks` are set together), and sends nothing to the trash. A kind with no storyboard, an unknown kind of shot or block key, a scene that ends before it starts, a revision without numbers refuse the whole package. |
 | `propose_version` | The text of a new version in a role, with a note on what changed. **Insert as version** keeps it, verbatim, under that role and not current; **Choose role…** opens the dialog to change the role, name it or make it current on the way in. |
 | `propose_score` | Marks along the kind's axes, checked the way the assistant's own are: unknown axes are named, marks are clamped to the scale. **Apply** writes the snapshot, judged by the agent — its name is the score's rater. |
 | `propose_note` | A note, on a work or on nothing in particular. **Add as note** keeps it. |
@@ -165,8 +165,9 @@ prompt block under it, and **Replace the board** with a line saying what
 that does. One click: scenes 1–6 are rewritten in place, 7 and 8 are
 created. Had the new board been shorter, the scenes beyond it would be in
 the trash, and undo walks the whole thing back a scene at a time. To grow
-the board instead of redoing it, the agent leaves `replace` out and the
-scenes go after the last.
+the board instead of redoing it, the agent leaves `change` out and the
+scenes go after the last; to rewrite the prompts of scenes 3 and 4 and
+nothing else, it sends those two with their numbers and `change: revise`.
 
 The plot and the context are versions, so they take the usual road:
 `propose_version` in the `plot` or `context` role, **Insert as version**

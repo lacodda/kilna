@@ -158,6 +158,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::list_runs,
             commands::active_runs,
             commands::start_task,
+            commands::preview_task,
             commands::start_tasks,
             commands::active_tasks,
             commands::task_queue,

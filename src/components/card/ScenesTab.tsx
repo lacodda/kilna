@@ -29,6 +29,7 @@ import { Panel } from '@/components/ui/panel'
 import { Select } from '@/components/ui/AppSelect'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import { ActionBar, actionsFor } from '@/components/assistant/ActionBar'
 
 interface Props {
   work: Work
@@ -115,11 +116,22 @@ export function ScenesTab({ work }: Props) {
   }
   const shown = shotType === undefined ? all : all.filter((scene) => scene.shot_type === shotType)
 
+  // Whether the profile has anything to offer here: the empty board is an
+  // entrance to the actions when there are actions, and a plain board when
+  // there are none.
+  const hasActions = actionsFor(profile.config.prompts, work.kind, 'work').length > 0
+
   return (
     <div className="flex flex-col gap-4">
       {vocabulary.version_roles.some((role) => role.key === CONTEXT_ROLE) && (
         <ContextPanel workId={work.id} />
       )}
+
+      {/* The profile's actions for this kind, on the board's own tab: the
+          plot from the source, the board from the plot. A click starts a
+          task and the answer comes back as a proposal, applied with one
+          button; nothing here is written by the assistant itself. */}
+      <ActionBar workId={work.id} hint={t('scenes.actionsHint')} />
 
       {/* The kind of shot as a row of chips, the way the catalogue narrows to
           a kind: "show me every detail" is one click, and the chip that is
@@ -164,7 +176,7 @@ export function ScenesTab({ work }: Props) {
       )}
 
       {scenes.data !== undefined && all.length === 0 && (
-        <p className="text-sm text-dim">{t('scenes.empty')}</p>
+        <p className="text-sm text-dim">{t(hasActions ? 'scenes.emptyWithActions' : 'scenes.empty')}</p>
       )}
       {scenes.data !== undefined && all.length > 0 && shown.length === 0 && (
         <p className="text-sm text-dim">{t('scenes.noneOfShot')}</p>
@@ -179,6 +191,7 @@ export function ScenesTab({ work }: Props) {
             <SceneCard
               key={`${scene.id}:${scene.updated_at}`}
               scene={scene}
+              workId={work.id}
               vocabulary={vocabulary}
               saving={patch.isPending && patch.variables?.id === scene.id}
               onPatch={(changes) => patch.mutate({ id: scene.id, changes })}
@@ -248,12 +261,14 @@ function ContextPanel({ workId }: { workId: string }) {
  */
 function SceneCard({
   scene,
+  workId,
   vocabulary,
   saving,
   onPatch,
   onDelete,
 }: {
   scene: Scene
+  workId: string
   vocabulary: Vocabulary
   saving: boolean
   onPatch: (changes: ScenePatch) => void
@@ -334,6 +349,9 @@ function SceneCard({
           )}
           <span className="flex-1" />
           {saving && <span className="text-xs text-faint">{t('save.saving')}</span>}
+          {/* The profile's scene actions — the prompts for this scene — start
+              on this row and come back as a revision of it. */}
+          <ActionBar workId={workId} sceneId={scene.id} compact />
           <Button
             variant="danger"
             size="icon-sm"

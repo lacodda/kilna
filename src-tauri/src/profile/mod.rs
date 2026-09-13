@@ -203,6 +203,18 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
             prompt.produces = shipped.produces.clone();
             changed = true;
         }
+        // The kinds and the scope (v0.64) arrive the same way: an action
+        // stored before they existed is for every kind, which is what
+        // `critique` on a video was — a button sending a prompt with a
+        // hole in it — until the shipped copy said `song`.
+        if prompt.kinds.is_empty() && !shipped.kinds.is_empty() {
+            prompt.kinds = shipped.kinds.clone();
+            changed = true;
+        }
+        if prompt.scope.is_none() && shipped.scope.is_some() {
+            prompt.scope = shipped.scope.clone();
+            changed = true;
+        }
         if SCORE_TEMPLATES_BEFORE_METHODS.contains(&prompt.template.as_str())
             && prompt.template != shipped.template
         {
@@ -431,7 +443,14 @@ const RENAMED: [(&str, &str); 1] = [("Music", "Studio")];
 /// when the axes were named in the template's own words. A stored copy
 /// still reading exactly like one of these follows the shipped wording;
 /// see `carry_forward`.
-const SCORE_TEMPLATES_BEFORE_METHODS: [&str; 4] = [
+const SCORE_TEMPLATES_BEFORE_METHODS: [&str; 5] = [
+    // Studio's v0.61 wording read `{role:lyrics}`, which a video does not
+    // have; from v0.64 the action is for every kind and reads `{body}`.
+    "Here are the lyrics of a song called \"{title}\".
+
+{role:lyrics}
+
+Judge it as a finished song, along the axes below. Be honest rather than kind: a score that flatters is worth nothing.",
     "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nJudge it along these axes: Hook (Does the chorus stay with you after one listen), Lyrics (Imagery, rhyme and whether a line earns its place), Emotion (Does it move a listener who knows nothing about it), Production (Arrangement, mix and how finished it sounds), Originality (Distance from the obvious version of this idea), Visual potential (Is there a clip in it, or only a cover).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
     "Here is a chapter called \"{title}\".\n\n{body}\n\nJudge it along these axes: Pull (Does the reader turn the page, or put the book down here), Prose (Sentence by sentence: rhythm, precision, nothing limp), Character (Do people behave like people rather than like plot requirements), Structure (Does the chapter earn its place and end where it should), Tension (Is something at stake on every page).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
     "Here are the notes for an episode called \"{title}\".\n\n{body}\n\nJudge it along these axes: Hook (Does the cold open earn the next thirty seconds), Clarity (Could a listener explain the point to someone else afterward), Pacing (Where does it drag, and would a listener skip ahead), Insight (Is there a claim here nobody else is making, or just a summary), Delivery (Energy, pauses, whether it sounds read or spoken), Shareability (Is there a moment worth clipping and sending to a friend).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
@@ -1139,18 +1158,29 @@ mod tests {
                 assert!(sane, "{key} has a default time of `{time}`, not HH:MM");
             }
 
-            // Prompts may only ask for roles the profile actually has.
+            // Prompts may only ask for roles every kind they are for has;
+            // `validate` refuses otherwise, and a shipped file must pass it.
             for prompt in &config.prompts {
+                let kinds: Vec<_> = config
+                    .work_kinds
+                    .iter()
+                    .filter(|kind| prompt.applies_to(&kind.key))
+                    .collect();
+                assert!(
+                    !kinds.is_empty(),
+                    "{key}: prompt `{}` is for no kind",
+                    prompt.key
+                );
                 for fragment in prompt.template.split("{role:").skip(1) {
                     let role = fragment.split('}').next().unwrap_or_default();
-                    assert!(
-                        config.work_kinds[0]
-                            .version_roles
-                            .iter()
-                            .any(|r| r.key == role),
-                        "{key}: prompt `{}` asks for unknown role `{role}`",
-                        prompt.key
-                    );
+                    for kind in &kinds {
+                        assert!(
+                            kind.version_roles.iter().any(|r| r.key == role),
+                            "{key}: prompt `{}` asks `{}` for unknown role `{role}`",
+                            prompt.key,
+                            kind.key
+                        );
+                    }
                 }
             }
         }
@@ -1862,5 +1892,32 @@ mod tests {
         assert!(!video.axes.is_empty());
         assert!(!video.tiers.is_empty());
         assert_eq!(profile.name, "Studio");
+    }
+
+    #[test]
+    fn seed_carries_kinds_and_scope_onto_actions_stored_without_them() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let mut config = active(&conn).unwrap().unwrap().config;
+        for prompt in &mut config.prompts {
+            prompt.kinds.clear();
+            prompt.scope = None;
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?1 WHERE key = 'music'",
+            params![serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let reloaded = active(&conn).unwrap().unwrap().config;
+        let by_key = |key: &str| reloaded.prompts.iter().find(|p| p.key == key).unwrap();
+        assert_eq!(by_key("critique").kinds, vec!["song"]);
+        assert_eq!(by_key("prompts").scope.as_deref(), Some("scene"));
+        assert!(
+            by_key("score").kinds.is_empty(),
+            "an action for every kind stays so"
+        );
     }
 }

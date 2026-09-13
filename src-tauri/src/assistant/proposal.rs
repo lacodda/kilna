@@ -84,21 +84,59 @@ pub enum Proposal {
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         scenes: Vec<PackagedScene>,
     },
-    /// A storyboard for the chat's work: scenes added after the last, or
-    /// the whole board replaced. Made by an agent outside the window.
+    /// A storyboard for the chat's work: scenes added after the last, the
+    /// whole board replaced, or numbered scenes revised in place. Made by
+    /// an agent outside the window, or by an action of the Scenes tab.
     ///
     /// Its own variant rather than a package with only scenes, because the
-    /// decision is different: *add to the board* keeps what is there and
-    /// *replace the board* takes it to the trash, and the button has to say
-    /// which. The body is a rendering of the board a person reads first.
+    /// decision is different: *add to the board* keeps what is there,
+    /// *replace the board* takes the rest to the trash, *revise* touches
+    /// only the numbers it names — and the button has to say which. The
+    /// body is a rendering of the board a person reads first.
     Scenes {
         scenes: Vec<PackagedScene>,
-        /// Replace the board rather than add to it: a scene with the same
-        /// number is rewritten in place, the rest of the old board goes to
-        /// the trash, and numbers without a scene yet are created.
-        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-        replace: bool,
+        /// What the proposal does to the board that is there.
+        #[serde(default)]
+        change: BoardChange,
     },
+}
+
+/// What a scenes proposal does to the board already on the work.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BoardChange {
+    /// The scenes go after the last; the board is otherwise untouched.
+    #[default]
+    Add,
+    /// The scenes are the whole board: a scene with the same number is
+    /// rewritten in place, the rest of the old board goes to the trash, and
+    /// numbers without a scene yet are created.
+    Replace,
+    /// Only the scenes named by number change, and only in what the
+    /// proposal says about them: a field left out is kept, the blocks are
+    /// set together when given. The rest of the board is untouched.
+    Revise,
+}
+
+impl BoardChange {
+    /// The value as it is written in `produces` and in the tool's argument.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            BoardChange::Add => "add",
+            BoardChange::Replace => "replace",
+            BoardChange::Revise => "revise",
+        }
+    }
+
+    /// `add`, `replace` or `revise`; anything else is none.
+    pub fn parse(value: &str) -> Option<Self> {
+        match value.trim() {
+            "add" => Some(BoardChange::Add),
+            "replace" => Some(BoardChange::Replace),
+            "revise" => Some(BoardChange::Revise),
+            _ => None,
+        }
+    }
 }
 
 /// A scene inside a proposal: the fields of a row, already checked against
@@ -246,6 +284,157 @@ pub fn version_instruction(role_label: &str) -> String {
         "\n\nYour whole reply is kept as the {role_label}, word for word: write only it — no \
          preamble, no closing question, no fences around the whole."
     )
+}
+
+/// What an action that produces scenes appends to its prompt.
+///
+/// The kind's words are spelled out with their labels and hints, the way a
+/// score's axes are, because a block under a key the kind does not name is
+/// refused whole and a model handed only `"blocks": {}` invents its own. The
+/// shape differs by what the action does to the board: a replaced board is
+/// numbered from 1 in order, an added scene may leave its number out, and a
+/// revision names the numbers it changes. `only` narrows a revision to one
+/// scene — the one the action was started on.
+pub fn scenes_instruction(kind: &WorkKind, change: BoardChange, only: Option<i64>) -> String {
+    let shots = if kind.shot_types.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "\nKinds of shot, by key: {}.\n",
+            kind.shot_types
+                .iter()
+                .map(|shot| format!("`{}` = {}", shot.key, shot.label))
+                .collect::<Vec<_>>()
+                .join("; ")
+        )
+    };
+    let blocks = if kind.scene_blocks.is_empty() {
+        String::new()
+    } else {
+        let mut listed =
+            String::from("\nPrompt blocks, by key — each is the text a generator is given:\n");
+        for block in &kind.scene_blocks {
+            listed.push_str(&format!("- `{}` — {}", block.key, block.label));
+            if let Some(hint) = block.hint.as_deref().filter(|hint| !hint.trim().is_empty()) {
+                listed.push_str(&format!(": {}", hint.trim()));
+            }
+            listed.push('\n');
+        }
+        listed
+    };
+
+    let numbering = match (change, only) {
+        (BoardChange::Replace, _) => {
+            "The scenes are the whole board, numbered from 1 in order; give every field you can."
+        }
+        (BoardChange::Add, _) => {
+            "The scenes go after the last one on the board; leave `position` out."
+        }
+        (BoardChange::Revise, None) => {
+            "Give only the scenes you change, each with its `position` as numbered on the board, and only the fields you change: a field left out is kept, `blocks` are set together."
+        }
+        (BoardChange::Revise, Some(_)) => {
+            "Give this one scene only, with its `position` exactly as numbered on the board, and only the fields you change: a field left out is kept, `blocks` are set together."
+        }
+    };
+    let only = match only {
+        Some(position) => format!(" The scene is number {position}."),
+        None => String::new(),
+    };
+
+    let shot_line = if kind.shot_types.is_empty() {
+        String::new()
+    } else {
+        "      \"shot_type\": \"<a key from the kinds of shot>\",\n".to_owned()
+    };
+    let block_lines = kind
+        .scene_blocks
+        .iter()
+        .map(|block| format!("        \"{}\": \"<text>\"", block.key))
+        .collect::<Vec<_>>()
+        .join(",\n");
+    let blocks_line = if kind.scene_blocks.is_empty() {
+        String::new()
+    } else {
+        format!("      \"blocks\": {{\n{block_lines}\n      }}\n")
+    };
+
+    format!(
+        "\n\nEnd your reply with a fenced json block, exactly this shape and nothing else \
+         inside it:\n\n```json\n{{\n  \"scenes\": [\n    {{\n      \"position\": <number from 1>,\n      \
+         \"section\": \"<the part of the text it plays against>\",\n      \"starts_at\": <seconds>,\n      \
+         \"ends_at\": <seconds>,\n{shot_line}      \"description\": \"<what happens in the scene>\",\n{blocks_line}    }}\n  ]\n}}\n```\n\n\
+         {numbering}{only} Leave out a field you have nothing for rather than inventing it.\n{shots}{blocks}\
+         Say whatever you like above the block. Use only the keys listed."
+    )
+}
+
+/// What reading a storyboard out of an answer came to.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ReadScenes {
+    /// No block: an answer to read.
+    Nothing,
+    /// A board, checked against the kind.
+    Proposal(Box<Proposal>),
+    /// A block that could not become a board, and why — said rather than
+    /// dropped, because a button that never appears is a silent nothing.
+    Refused(String),
+}
+
+/// Find a storyboard in an answer, if it holds one.
+///
+/// A block in the wrong words is not silently nothing: the answer is still
+/// an answer, but the reason there is no button travels with it. `only`
+/// narrows a revision to the scene the action was about — a revision that
+/// numbers another scene is refused rather than applied to a stranger.
+pub fn read_scenes(
+    body: &str,
+    kind: &WorkKind,
+    change: BoardChange,
+    only: Option<i64>,
+) -> ReadScenes {
+    let Some(block) = fenced_json(body) else {
+        return ReadScenes::Nothing;
+    };
+    let raw: RawScenes = match serde_json::from_str(&block) {
+        Ok(raw) => raw,
+        Err(error) => {
+            return ReadScenes::Refused(format!("the json block is not a board: {error}"));
+        }
+    };
+    if raw.scenes.is_empty() {
+        return ReadScenes::Refused("the json block names no scenes".into());
+    }
+    let scenes = match scenes_from(&raw.scenes, kind) {
+        Ok(scenes) => scenes,
+        Err(error) => return ReadScenes::Refused(error.to_string()),
+    };
+    if change == BoardChange::Revise {
+        if let Some(missing) = scenes.iter().position(|scene| scene.position.is_none()) {
+            return ReadScenes::Refused(format!(
+                "scene {} of the revision has no `position`; a revision names the numbers it changes",
+                missing + 1
+            ));
+        }
+        if let Some(only) = only {
+            if let Some(other) = scenes
+                .iter()
+                .find(|scene| scene.position != Some(only))
+                .and_then(|scene| scene.position)
+            {
+                return ReadScenes::Refused(format!(
+                    "the answer revised scene {other}; the action was about scene {only}"
+                ));
+            }
+        }
+    }
+    ReadScenes::Proposal(Box::new(Proposal::Scenes { scenes, change }))
+}
+
+#[derive(Deserialize)]
+struct RawScenes {
+    #[serde(default)]
+    scenes: Vec<Value>,
 }
 
 /// Find a scoring proposal in an answer, if it holds one.
@@ -788,6 +977,118 @@ mod tests {
         );
         let read: Proposal = serde_json::from_value(stored).unwrap();
         assert_eq!(read, proposal);
+    }
+
+    #[test]
+    fn a_storyboard_block_is_read_and_a_wrong_word_is_refused_with_its_reason() {
+        let config = config();
+        let kind = config.vocabulary("video");
+
+        let read = read_scenes(
+            &block(
+                r#"{"scenes": [{"section": "intro", "shot_type": "wide", "description": "the harbour", "blocks": {"still": "cranes"}}]}"#,
+            ),
+            kind,
+            BoardChange::Replace,
+            None,
+        );
+        let ReadScenes::Proposal(boxed) = read else {
+            panic!("a board is read: {read:?}");
+        };
+        let Proposal::Scenes { scenes, change } = *boxed else {
+            panic!("a board");
+        };
+        assert_eq!(change, BoardChange::Replace);
+        assert_eq!(scenes[0].shot_type.as_deref(), Some("wide"));
+        assert_eq!(scenes[0].blocks["still"], "cranes");
+
+        assert_eq!(
+            read_scenes("only prose", kind, BoardChange::Replace, None),
+            ReadScenes::Nothing
+        );
+        let ReadScenes::Refused(why) = read_scenes(
+            &block(r#"{"scenes": [{"shot_type": "closeup"}]}"#),
+            kind,
+            BoardChange::Replace,
+            None,
+        ) else {
+            panic!("a wrong word is refused with its reason");
+        };
+        assert!(why.contains("no kind of shot `closeup`"), "{why}");
+        let ReadScenes::Refused(why) =
+            read_scenes(&block(r#"{"scenes": []}"#), kind, BoardChange::Add, None)
+        else {
+            panic!("an empty board is refused");
+        };
+        assert!(why.contains("names no scenes"), "{why}");
+    }
+
+    #[test]
+    fn a_revision_names_its_numbers_and_holds_to_its_scene() {
+        let config = config();
+        let kind = config.vocabulary("video");
+
+        let ReadScenes::Refused(why) = read_scenes(
+            &block(r#"{"scenes": [{"blocks": {"still": "x"}}]}"#),
+            kind,
+            BoardChange::Revise,
+            None,
+        ) else {
+            panic!("a revision without numbers is refused");
+        };
+        assert!(why.contains("has no `position`"), "{why}");
+
+        let ReadScenes::Refused(why) = read_scenes(
+            &block(r#"{"scenes": [{"position": 2, "blocks": {"still": "x"}}]}"#),
+            kind,
+            BoardChange::Revise,
+            Some(1),
+        ) else {
+            panic!("a revision of another scene is refused");
+        };
+        assert!(
+            why.contains("revised scene 2; the action was about scene 1"),
+            "{why}"
+        );
+
+        let ReadScenes::Proposal(boxed) = read_scenes(
+            &block(r#"{"scenes": [{"position": 1, "blocks": {"still": "x"}}]}"#),
+            kind,
+            BoardChange::Revise,
+            Some(1),
+        ) else {
+            panic!("the scene's own revision is read");
+        };
+        let Proposal::Scenes { scenes, change } = *boxed else {
+            panic!("a board");
+        };
+        assert_eq!(change, BoardChange::Revise);
+        assert_eq!(scenes[0].position, Some(1));
+    }
+
+    #[test]
+    fn the_scenes_instruction_names_the_kinds_words_and_the_change() {
+        let config = config();
+        let kind = config.vocabulary("video");
+
+        let whole = scenes_instruction(kind, BoardChange::Replace, None);
+        assert!(whole.contains("`wide` = Wide"), "{whole}");
+        assert!(
+            whole.contains("- `still` — Still frame: The frame as a picture"),
+            "{whole}"
+        );
+        assert!(whole.contains("numbered from 1 in order"), "{whole}");
+        assert!(
+            whole.contains("\"shot_type\": \"<a key from the kinds of shot>\""),
+            "{whole}"
+        );
+
+        let one = scenes_instruction(kind, BoardChange::Revise, Some(3));
+        assert!(one.contains("this one scene only"), "{one}");
+        assert!(one.contains("The scene is number 3."), "{one}");
+
+        let added = scenes_instruction(kind, BoardChange::Add, None);
+        assert!(added.contains("leave `position` out"), "{added}");
     }
 }
 

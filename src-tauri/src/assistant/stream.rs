@@ -229,6 +229,22 @@ impl Stopper {
     }
 }
 
+/// The folders the attached files live in, each once, in order of first
+/// use. A file with no parent — a bare name — is skipped: it was checked to
+/// exist against the process's own directory, which the CLI does not get.
+pub fn folders_of(attachments: &[std::path::PathBuf]) -> Vec<std::path::PathBuf> {
+    let mut folders: Vec<std::path::PathBuf> = Vec::new();
+    for path in attachments {
+        let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) else {
+            continue;
+        };
+        if !folders.iter().any(|f| f == parent) {
+            folders.push(parent.to_path_buf());
+        }
+    }
+    folders
+}
+
 impl Stream {
     /// Start a turn and return before it finishes.
     ///
@@ -244,11 +260,16 @@ impl Stream {
     /// newlines. The file lives in the system's temporary directory, not in
     /// `workdir` — that one is kept empty on purpose — and is removed when
     /// the stream is dropped.
+    ///
+    /// `attachments` are reference files the prompt names by path. The CLI
+    /// reads only inside the directories it is given, so each file's folder
+    /// is added with `--add-dir`; nothing is copied into `workdir`.
     pub fn start(
         prompt: &str,
         session_id: Option<&str>,
         workdir: Option<&std::path::Path>,
         method: Option<&str>,
+        attachments: &[std::path::PathBuf],
     ) -> Result<Self> {
         let mut command = super::cli::command();
         command.args([
@@ -264,6 +285,9 @@ impl Stream {
         }
         if let Some(dir) = workdir {
             command.current_dir(dir);
+        }
+        for dir in folders_of(attachments) {
+            command.arg("--add-dir").arg(dir);
         }
 
         let method_file = match method {

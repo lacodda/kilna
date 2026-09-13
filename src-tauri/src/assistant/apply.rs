@@ -18,7 +18,7 @@ use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
-use crate::assistant::proposal::{Marks, PackagedNote, PackagedScene, Proposal};
+use crate::assistant::proposal::{BoardChange, Marks, PackagedNote, PackagedScene, Proposal};
 use crate::assistant::{self, ASSISTANT, Chat, Message};
 use crate::commands::{recording, restate, was};
 use crate::error::{Error, Result};
@@ -102,7 +102,20 @@ pub fn apply(
     if message.meta.contains_key("applied") {
         return Err(Error::Other("this proposal is already applied".into()));
     }
-    let proposal: Proposal = match message.meta.get("proposal") {
+    // A storyboard stored by v0.62 carried `replace: true` where v0.64
+    // writes `change: "replace"`; read as it was meant, not as `add`.
+    let stored = message.meta.get("proposal").cloned().map(|mut value| {
+        if value.get("kind").and_then(Value::as_str) == Some("scenes")
+            && value.get("replace").and_then(Value::as_bool) == Some(true)
+            && value.get("change").is_none()
+        {
+            if let Some(object) = value.as_object_mut() {
+                object.insert("change".into(), json!("replace"));
+            }
+        }
+        value
+    });
+    let proposal: Proposal = match stored.as_ref() {
         Some(raw) => serde_json::from_value(raw.clone())?,
         None => return Err(Error::Other("this message proposes nothing".into())),
     };
@@ -312,52 +325,83 @@ pub fn apply(
             outcome.work_id = Some(work_id);
         }
 
-        Proposal::Scenes { scenes, replace } => {
+        Proposal::Scenes { scenes, change } => {
             let work_id = on_work(&chat, "a storyboard")?;
             let found =
                 work::get(conn, &work_id)?.ok_or_else(|| Error::not_found("work", &work_id))?;
             check_storyboard(&config, &found.kind)?;
-            if replace {
-                // By number: the scene that already holds a number is
-                // rewritten in place and keeps its id, what the new board
-                // does not number goes to the trash, and a number nobody
-                // holds is a new row. A board rebuilt from scratch would
-                // be a board whose every row is a stranger to what pointed
-                // at it.
-                let mut standing = scene::for_work(conn, &work_id)?;
-                for (index, packaged) in scenes.into_iter().enumerate() {
-                    let position = packaged.position.unwrap_or(index as i64 + 1);
-                    match standing.iter().position(|s| s.position == position) {
-                        Some(at) => {
-                            let existing = standing.remove(at);
-                            outcome.scenes.push(rewrite_scene(
+            match change {
+                BoardChange::Replace => {
+                    // By number: the scene that already holds a number is
+                    // rewritten in place and keeps its id, what the new
+                    // board does not number goes to the trash, and a number
+                    // nobody holds is a new row. A board rebuilt from
+                    // scratch would be a board whose every row is a stranger
+                    // to what pointed at it.
+                    let mut standing = scene::for_work(conn, &work_id)?;
+                    for (index, packaged) in scenes.into_iter().enumerate() {
+                        let position = packaged.position.unwrap_or(index as i64 + 1);
+                        match standing.iter().position(|s| s.position == position) {
+                            Some(at) => {
+                                let existing = standing.remove(at);
+                                outcome.scenes.push(rewrite_scene(
+                                    conn,
+                                    profile_id,
+                                    &existing.id,
+                                    packaged,
+                                    position,
+                                )?);
+                            }
+                            None => outcome.scenes.push(write_scene(
+                                conn,
+                                profile_id,
+                                &work_id,
+                                packaged,
+                                Some(position),
+                            )?),
+                        }
+                    }
+                    for leftover in standing {
+                        outcome
+                            .removed_scenes
+                            .push(discard_scene(conn, profile_id, &leftover.id)?);
+                    }
+                }
+                BoardChange::Revise => {
+                    // Only the numbers named, and only in what is said about
+                    // them: the rest of the board is not looked at. A number
+                    // nobody holds is a new row, as on a replaced board — a
+                    // revision that adds scene 9 to a board of 8 is a
+                    // revision, not a mistake.
+                    let standing = scene::for_work(conn, &work_id)?;
+                    for packaged in scenes {
+                        let position = packaged.position.ok_or_else(|| {
+                            Error::Other("a revised scene names its number on the board".into())
+                        })?;
+                        match standing.iter().find(|s| s.position == position) {
+                            Some(existing) => outcome.scenes.push(revise_scene(
                                 conn,
                                 profile_id,
                                 &existing.id,
                                 packaged,
-                                position,
-                            )?);
+                            )?),
+                            None => outcome.scenes.push(write_scene(
+                                conn,
+                                profile_id,
+                                &work_id,
+                                packaged,
+                                Some(position),
+                            )?),
                         }
-                        None => outcome.scenes.push(write_scene(
-                            conn,
-                            profile_id,
-                            &work_id,
-                            packaged,
-                            Some(position),
-                        )?),
                     }
                 }
-                for leftover in standing {
-                    outcome
-                        .removed_scenes
-                        .push(discard_scene(conn, profile_id, &leftover.id)?);
-                }
-            } else {
-                for packaged in scenes {
-                    let position = packaged.position;
-                    outcome
-                        .scenes
-                        .push(write_scene(conn, profile_id, &work_id, packaged, position)?);
+                BoardChange::Add => {
+                    for packaged in scenes {
+                        let position = packaged.position;
+                        outcome
+                            .scenes
+                            .push(write_scene(conn, profile_id, &work_id, packaged, position)?);
+                    }
                 }
             }
         }
@@ -670,6 +714,38 @@ fn rewrite_scene(
     Ok(id.to_owned())
 }
 
+/// A scene revised in place: only what the proposal says about it changes.
+/// A field left out is kept — a revision that brings the prompt blocks says
+/// nothing about the seconds — and the blocks are set together when given,
+/// as the board's own editor sets them.
+fn revise_scene(
+    conn: &mut Connection,
+    profile_id: &str,
+    id: &str,
+    packaged: PackagedScene,
+) -> Result<String> {
+    let before = scene::get(conn, id)?;
+    let patch = ScenePatch {
+        position: None,
+        section: packaged.section.map(Some),
+        starts_at: packaged.starts_at.map(Some),
+        ends_at: packaged.ends_at.map(Some),
+        shot_type: packaged.shot_type.map(Some),
+        description: (!packaged.description.trim().is_empty()).then_some(packaged.description),
+        blocks: (!packaged.blocks.is_empty()).then_some(packaged.blocks),
+    };
+    let at = time::now();
+    let logged = operation::Intent::new("scene.update")
+        .in_profile(profile_id)
+        .param("profile", profile_key(conn, profile_id)?)
+        .param("id", id.to_owned())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?)
+        .param("at", at.clone());
+    recording(conn, logged, |tx| scene::update_at(tx, id, patch, &at))?;
+    Ok(id.to_owned())
+}
+
 /// A scene the new board has no number for, sent to the trash the way the
 /// board's own delete button sends one: the same operation, the same line
 /// in the history, so it comes back through the trash like any deletion.
@@ -811,7 +887,7 @@ pub fn render_package(
 
     if !scenes.is_empty() {
         out.push_str("### Scenes\n\n");
-        out.push_str(&render_board(scenes, vocabulary, false));
+        out.push_str(&render_board(scenes, vocabulary, BoardChange::Add));
         out.push_str("\n\n");
     }
 
@@ -828,7 +904,7 @@ pub fn render_package(
 pub fn render_board(
     scenes: &[PackagedScene],
     vocabulary: &profile::config::WorkKind,
-    replace: bool,
+    change: BoardChange,
 ) -> String {
     let mut out = String::new();
     let has_shots = !vocabulary.shot_types.is_empty();
@@ -841,7 +917,7 @@ pub fn render_board(
     };
     let number = |index: usize, scene: &PackagedScene| match scene.position {
         Some(position) => position.to_string(),
-        None if replace => (index + 1).to_string(),
+        None if change == BoardChange::Replace => (index + 1).to_string(),
         None => "+".to_owned(),
     };
 
@@ -900,23 +976,7 @@ pub fn render_board(
     out.trim_end().to_owned()
 }
 
-/// Seconds as `m:ss`, with a fraction only when there is one.
-fn timecode(seconds: f64) -> String {
-    let whole = seconds.floor();
-    let minutes = (whole / 60.0) as i64;
-    let rest = whole - (minutes * 60) as f64;
-    let fraction = seconds - whole;
-    if fraction > 0.0 {
-        let digits = format!("{fraction:.2}");
-        format!(
-            "{minutes}:{:02}{}",
-            rest as i64,
-            digits[1..].trim_end_matches('0')
-        )
-    } else {
-        format!("{minutes}:{:02}", rest as i64)
-    }
-}
+use crate::scene::timecode;
 
 fn longest_backtick_run(text: &str) -> usize {
     let mut longest = 0;
@@ -1119,7 +1179,7 @@ mod tests {
             "the board",
             Proposal::Scenes {
                 scenes: vec![packaged("new two"), packaged("new three")],
-                replace: false,
+                change: BoardChange::Add,
             },
         );
 
@@ -1165,7 +1225,7 @@ mod tests {
             "the board",
             Proposal::Scenes {
                 scenes: vec![packaged("rewritten one"), packaged("rewritten two")],
-                replace: true,
+                change: BoardChange::Replace,
             },
         );
 
@@ -1212,7 +1272,7 @@ mod tests {
             "the board",
             Proposal::Scenes {
                 scenes: vec![packaged("one"), packaged("two")],
-                replace: true,
+                change: BoardChange::Replace,
             },
         );
 
@@ -1234,7 +1294,7 @@ mod tests {
             "the board",
             Proposal::Scenes {
                 scenes: vec![packaged("one")],
-                replace: true,
+                change: BoardChange::Replace,
             },
         );
 
@@ -1299,7 +1359,7 @@ mod tests {
         let added = render_board(
             &[packaged("the harbour"), second.clone()],
             vocabulary,
-            false,
+            BoardChange::Add,
         );
         assert!(
             added.contains("| + | chorus | 0:12–0:16.5 | Wide | the harbour |"),
@@ -1318,7 +1378,7 @@ mod tests {
             "no blocks, no section: {added}"
         );
 
-        let replaced = render_board(&[packaged("the harbour")], vocabulary, true);
+        let replaced = render_board(&[packaged("the harbour")], vocabulary, BoardChange::Replace);
         assert!(
             replaced.contains("| 1 | chorus |"),
             "a replaced board numbers in order: {replaced}"
@@ -1737,6 +1797,103 @@ mod tests {
         let body = render_package(&proposal, &config, "song");
 
         assert!(body.contains("````\na line with ``` in it\n````"), "{body}");
+    }
+
+    #[test]
+    fn a_revised_scene_changes_only_what_it_names_and_the_rest_of_the_board_stands() {
+        let (mut conn, profile_id, _) = workspace();
+        let (video_id, old) = video(&conn, &profile_id, 3);
+        let chat = chat_on(&conn, &profile_id, Some(&video_id));
+        let mut blocks = Map::new();
+        blocks.insert("still".into(), json!("a new still"));
+        let revised = PackagedScene {
+            position: Some(2),
+            section: None,
+            starts_at: None,
+            ends_at: None,
+            shot_type: Some("close".into()),
+            description: String::new(),
+            blocks,
+        };
+        let mut added = packaged("a fourth");
+        added.position = Some(4);
+        let message = propose(
+            &conn,
+            &chat,
+            "the blocks",
+            Proposal::Scenes {
+                scenes: vec![revised, added],
+                change: BoardChange::Revise,
+            },
+        );
+
+        let outcome = apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+
+        assert_eq!(outcome.scenes[0], old[1], "the revised scene keeps its id");
+        assert!(
+            outcome.removed_scenes.is_empty(),
+            "a revision sends nothing to the trash"
+        );
+        let board = scene::for_work(&conn, &video_id).unwrap();
+        assert_eq!(
+            board
+                .iter()
+                .map(|s| (s.position, s.description.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                (1, "old scene 1"),
+                (2, "old scene 2"),
+                (3, "old scene 3"),
+                (4, "a fourth")
+            ],
+            "a blank description is kept as it was; a number nobody held is new"
+        );
+        assert_eq!(board[1].blocks["still"], "a new still");
+        assert_eq!(board[1].shot_type.as_deref(), Some("close"));
+        assert_eq!(operation_kinds(&conn), vec!["scene.update", "scene.create"]);
+
+        let unnumbered = propose(
+            &conn,
+            &chat,
+            "no number",
+            Proposal::Scenes {
+                scenes: vec![packaged("x")],
+                change: BoardChange::Revise,
+            },
+        );
+        let refused = apply(&mut conn, &profile_id, &unnumbered, Overrides::default()).unwrap_err();
+        assert!(
+            refused.to_string().contains("names its number"),
+            "{refused}"
+        );
+    }
+
+    #[test]
+    fn a_storyboard_stored_by_v0_62_with_the_replace_flag_still_replaces() {
+        let (mut conn, profile_id, _) = workspace();
+        let (video_id, old) = video(&conn, &profile_id, 2);
+        let chat = chat_on(&conn, &profile_id, Some(&video_id));
+        let mut meta = Map::new();
+        meta.insert(
+            "proposal".into(),
+            json!({
+                "kind": "scenes",
+                "replace": true,
+                "scenes": [{ "description": "the only scene" }]
+            }),
+        );
+        let message = assistant::append(&conn, &chat, ASSISTANT, "the board", meta)
+            .unwrap()
+            .id;
+
+        let outcome = apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+
+        assert_eq!(outcome.scenes, vec![old[0].clone()], "rewritten in place");
+        assert_eq!(
+            outcome.removed_scenes.len(),
+            1,
+            "the rest went to the trash"
+        );
     }
 }
 

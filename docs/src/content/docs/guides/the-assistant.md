@@ -39,7 +39,18 @@ want the thing done.
 
 So the profile's actions sit on the **Overview** tab as well, and there a click
 starts the work immediately. Nothing opens, nothing waits for you: kilna says
-which action went and leaves you where you were.
+which action went and leaves you where you were. Only the actions for the
+work's kind are there — a critique of lyrics is not offered on a video,
+because the profile says which kinds each action is for.
+
+Beside every button is an **eye**. It opens exactly what the click would send:
+the message with the work's text filled in and the instruction kilna appends,
+and the method the run is briefed with. It is the same text, composed by the
+same call — the preview and the run cannot part. From there you can also hand
+the run **reference files**: paths, one per line, or chosen with the file
+dialog. They are named in the message with an instruction to read them first,
+and the run is given leave to read their folders; a path that is not a file is
+refused in the preview, not by a run ten minutes later. **Start** sends it.
 
 They sit under the text on the **Versions** tab too, and there they are about
 the revision you have open — not whichever is current. The template reads that
@@ -138,7 +149,14 @@ be added there, or removed.
 Where an action is started from the panel's composer, the method does not
 ride along: the composer is for reading the message before it is sent, and
 the message is all that goes. Start the action from a card to have the
-method with it.
+method with it — the eye on the card shows the method too.
+
+An action is refused before it opens a chat when it would send a hole: a role
+the work has no version in yet (*“Harbour lights” has no Plot yet: write it
+first*), a donor the work is not made from, a scene action started without a
+scene. And a template cannot lose the placeholder that carries the text
+without Settings saying so at save — see
+[the profile document](/kilna/reference/profile-document/#template-placeholders).
 
 ## Actions that come back with a score
 
@@ -166,6 +184,36 @@ critique is kept beside the text it read rather than lost in a chat.
 If the answer judged an axis your profile does not have, or skipped one it does,
 the panel says so rather than quietly dropping it. A proposal that only half
 fits is still worth applying — but not without knowing.
+
+## Actions on the board
+
+A kind with a storyboard — Studio's *Video* and *Short* — has its actions on
+the **Scenes** tab as well, above the board, and an action can produce
+**scenes**: `"produces": "scenes"` asks for the whole board, and the answer
+comes back as the same proposal an agent's `propose_scenes` makes — the board
+as a table, every block under it, **Replace the board** under that. Studio
+ships three:
+
+- **Plot from the source** reads the lyrics of the song the video is
+  [made from](/kilna/guides/made-from/) and writes the plot — kept as a
+  version in the `plot` role. A video made from nothing is told to link its
+  source first.
+- **Storyboard from the plot** reads the plot, the context and the board as it
+  stands, and proposes the board: sections, kinds of shot, descriptions — no
+  prompt blocks, those come per scene.
+- **Prompts for the scene** sits on each row of the board. It reads the
+  context, the board for continuity and the scene itself, and proposes the
+  scene's prompt blocks as a **revision** — only that scene, only the blocks;
+  the rest of the board is not touched. Scene 2's prompts can be written while
+  scene 1's are still going.
+
+An empty board is an entrance to these, not an empty tab: it says to write the
+plot and the context and let the action draw the board. When an answer's block
+cannot become a proposal — a kind of shot the profile does not have, a
+revision that numbered another scene — the chat says why under the answer
+rather than showing nothing. The methods behind the three are in **Settings →
+Assistant actions** like any other, and the words they use — the kinds of
+shot, the blocks — are the profile's own.
 
 The rule underneath is the same one everywhere in kilna: **the assistant
 proposes, you apply.** It is never given a way to write to your workspace, which

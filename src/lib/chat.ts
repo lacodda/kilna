@@ -31,6 +31,9 @@ export interface Exchange {
     /** What applying the proposal made, once somebody did. On the message,
      * not in the component: the mark has to survive the next fetch. */
     applied: Applied | null
+    /** Why the action's block could not become a proposal, when it could
+     * not — said rather than dropped, so a missing button is never silent. */
+    refused: string | null
   } | null
   at: string
 }
@@ -122,6 +125,8 @@ export function conversation(messages: Message[], runs: Run[]): Exchange[] {
         source: sourceOf(message),
         note: typeof message.meta.note === 'string' ? message.meta.note : null,
         applied: appliedOf(message),
+        refused:
+          typeof message.meta.proposal_refused === 'string' ? message.meta.proposal_refused : null,
       }
 
       // The exchange this answers: named by run id, or — for the untagged

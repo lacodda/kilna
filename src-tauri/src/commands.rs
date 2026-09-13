@@ -2310,13 +2310,46 @@ pub fn start_task(
     work_id: String,
     action: String,
     version_id: Option<String>,
+    scene_id: Option<String>,
+    attachments: Option<Vec<String>>,
 ) -> Result<StartedTask> {
+    let attachments = attachments.unwrap_or_default();
     spawn_task(
         &app,
         state.inner(),
         &work_id,
         &action,
-        version_id.as_deref(),
+        assistant::task::About {
+            version_id: version_id.as_deref(),
+            scene_id: scene_id.as_deref(),
+            attachments: &attachments,
+        },
+    )
+}
+
+/// What a task would send, without sending it: the prompt and the method,
+/// composed by the very call that starts one, so the preview and the run
+/// cannot part.
+#[tauri::command]
+pub fn preview_task(
+    state: State<'_, AppState>,
+    work_id: String,
+    action: String,
+    version_id: Option<String>,
+    scene_id: Option<String>,
+    attachments: Option<Vec<String>>,
+) -> Result<assistant::task::Composed> {
+    let attachments = attachments.unwrap_or_default();
+    let conn = state.conn();
+    assistant::task::compose(
+        &conn,
+        &work_id,
+        &action,
+        assistant::task::About {
+            version_id: version_id.as_deref(),
+            scene_id: scene_id.as_deref(),
+            attachments: &attachments,
+        },
     )
 }
 
@@ -2331,14 +2364,17 @@ fn spawn_task(
     state: &AppState,
     work_id: &str,
     action: &str,
-    version_id: Option<&str>,
+    about: assistant::task::About<'_>,
 ) -> Result<StartedTask> {
     let runs = Arc::clone(state.runs());
     let workdir = state.assistant_dir();
 
     // Checked before the chat is opened: a refused duplicate must not leave an
     // empty chat behind for every impatient second click.
-    let key = assistant::task::key(action, work_id);
+    let key = match about.scene_id {
+        Some(scene_id) => assistant::task::scene_key(action, work_id, scene_id),
+        None => assistant::task::key(action, work_id),
+    };
     if runs.task_running(&key) {
         return Err(crate::error::Error::Assistant(
             "This is already running. Wait for it to finish.".into(),
@@ -2347,7 +2383,7 @@ fn spawn_task(
 
     let (prepared, run, stream) = {
         let conn = state.conn();
-        let prepared = assistant::task::prepare(&conn, work_id, action, version_id)?;
+        let prepared = assistant::task::prepare(&conn, work_id, action, about)?;
         let (run, stream) = assistant_run::start_as(
             &conn,
             &runs,
@@ -2355,6 +2391,7 @@ fn spawn_task(
             &prepared.prompt,
             workdir.as_deref(),
             Some(prepared.key.clone()),
+            &prepared.attachments,
         )?;
         (prepared, run, stream)
     };
@@ -2408,7 +2445,13 @@ fn drain_queue(app: &AppHandle) {
         // its own thread with it, and that thread drains again when it ends.
         // Only a failure keeps this loop going, and only to reach the next
         // task that might work.
-        let outcome = spawn_task(app, state, &next.work_id, &next.action, None);
+        let outcome = spawn_task(
+            app,
+            state,
+            &next.work_id,
+            &next.action,
+            assistant::task::About::default(),
+        );
         let _ = app.emit(TASK_QUEUE_EVENT, queue_state(state));
 
         match outcome {
@@ -2524,7 +2567,13 @@ pub fn start_tasks(
         }
 
         if inner.runs().has_slot() {
-            match spawn_task(&app, inner, work_id, &action, None) {
+            match spawn_task(
+                &app,
+                inner,
+                work_id,
+                &action,
+                assistant::task::About::default(),
+            ) {
                 Ok(_) => started += 1,
                 // One work failing must not take the batch with it: the others
                 // are unrelated, and a half-run batch is more useful than none.
@@ -2627,7 +2676,7 @@ pub fn render_prompt(
     template: String,
 ) -> Result<String> {
     let conn = state.conn();
-    prompt::for_work(&conn, &work_id, &template, None)
+    prompt::for_work(&conn, &work_id, &template, prompt::Context::default())
 }
 
 #[tauri::command]

@@ -1010,7 +1010,143 @@ impl ProfileConfig {
             }
         }
 
+        self.validate_prompts(&mut problems);
+
         problems
+    }
+
+    /// The actions, checked against the vocabulary they read: a placeholder
+    /// no kind of the action fills, a role the answer cannot be kept in, a
+    /// storyboard a kind does not have. Refused at save rather than found
+    /// as a hole in a prompt — the predecessor let an edited template lose
+    /// its text placeholder and sent critiques of nothing for a month.
+    fn validate_prompts(&self, problems: &mut Vec<String>) {
+        use crate::assistant::prompt::{Produces, SCENE_SCOPE, Scope, is_known_placeholder};
+
+        unique(
+            problems,
+            "action",
+            self.prompts.iter().map(|prompt| prompt.key.clone()),
+        );
+
+        for (index, prompt) in self.prompts.iter().enumerate() {
+            let place = format!("action {} (`{}`)", index + 1, prompt.key);
+            if prompt.template.trim().is_empty() {
+                problems.push(format!("{place} has no message"));
+            }
+            for kind in &prompt.kinds {
+                if self.kind(kind).is_none() {
+                    problems.push(format!(
+                        "{place} names a work kind `{kind}` the profile does not have"
+                    ));
+                }
+            }
+            if let Some(scope) = prompt.scope.as_deref().map(str::trim) {
+                if scope != SCENE_SCOPE && scope != "work" {
+                    problems.push(format!(
+                        "{place}: `scope` is `work` or `scene`, not `{scope}`"
+                    ));
+                }
+            }
+            if !prompt.produces_is_known() {
+                problems.push(format!(
+                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add` or `scenes:revise`, not `{}`",
+                    prompt.produces.as_deref().unwrap_or_default().trim()
+                ));
+            }
+
+            // The kinds the action is offered on: the ones it names, or all.
+            let kinds: Vec<&WorkKind> = if prompt.kinds.is_empty() {
+                self.work_kinds.iter().collect()
+            } else {
+                prompt.kinds.iter().filter_map(|k| self.kind(k)).collect()
+            };
+            let lacking = |has: &dyn Fn(&WorkKind) -> bool| -> Vec<String> {
+                kinds
+                    .iter()
+                    .filter(|kind| !has(kind))
+                    .map(|kind| format!("`{}`", kind.key))
+                    .collect()
+            };
+            fn has_role<'a>(role: &'a str) -> impl Fn(&WorkKind) -> bool + 'a {
+                move |kind: &WorkKind| kind.version_roles.iter().any(|r| r.key == role)
+            }
+            let has_board =
+                |kind: &WorkKind| !kind.shot_types.is_empty() || !kind.scene_blocks.is_empty();
+
+            let placeholders = prompt.placeholders();
+            for name in &placeholders {
+                if !is_known_placeholder(name) {
+                    problems.push(format!("{place} reads `{{{name}}}`, which nothing fills"));
+                    continue;
+                }
+                if let Some(role) = name.strip_prefix("role:") {
+                    let missing = lacking(&has_role(role));
+                    if !missing.is_empty() {
+                        problems.push(format!(
+                            "{place} reads `{{{name}}}`, but {} {} no `{role}` role",
+                            missing.join(", "),
+                            if missing.len() == 1 { "has" } else { "have" }
+                        ));
+                    }
+                }
+                if name == "scenes" || name == "scene" {
+                    let missing = lacking(&has_board);
+                    if !missing.is_empty() {
+                        problems.push(format!(
+                            "{place} reads `{{{name}}}`, but {} {} no storyboard",
+                            missing.join(", "),
+                            if missing.len() == 1 { "has" } else { "have" }
+                        ));
+                    }
+                }
+            }
+            let reads_scene = placeholders.iter().any(|name| name == "scene");
+            match prompt.scope() {
+                Scope::Scene if !reads_scene => {
+                    problems.push(format!(
+                        "{place} is about a scene but never reads `{{scene}}`"
+                    ));
+                }
+                Scope::Work if reads_scene => {
+                    problems.push(format!(
+                        "{place} reads `{{scene}}` but is not about a scene: give it `\"scope\": \"scene\"`"
+                    ));
+                }
+                _ => {}
+            }
+
+            match prompt.produces() {
+                Produces::Version(role) => {
+                    let missing = lacking(&has_role(&role));
+                    if !missing.is_empty() {
+                        problems.push(format!(
+                            "{place} produces `version:{role}`, but {} {} no `{role}` role",
+                            missing.join(", "),
+                            if missing.len() == 1 { "has" } else { "have" }
+                        ));
+                    }
+                }
+                Produces::Scenes(change) => {
+                    let missing = lacking(&has_board);
+                    if !missing.is_empty() {
+                        problems.push(format!(
+                            "{place} produces scenes, but {} {} no storyboard",
+                            missing.join(", "),
+                            if missing.len() == 1 { "has" } else { "have" }
+                        ));
+                    }
+                    if prompt.scope() == Scope::Scene
+                        && change != crate::assistant::proposal::BoardChange::Revise
+                    {
+                        problems.push(format!(
+                            "{place} is about a scene and must produce `scenes:revise`, not the whole board"
+                        ));
+                    }
+                }
+                Produces::Score | Produces::Prose => {}
+            }
+        }
     }
 }
 
@@ -1529,5 +1665,133 @@ mod tests {
         assert_eq!(bare.statuses.len(), 1);
         assert_eq!(bare.version_roles.len(), 1);
         assert_eq!(bare.release_kinds.len(), 1);
+    }
+
+    fn studio() -> ProfileConfig {
+        let conn = crate::db::open_in_memory().unwrap();
+        crate::profile::seed(&conn).unwrap();
+        crate::profile::active(&conn).unwrap().unwrap().config
+    }
+
+    fn action(template: &str) -> crate::assistant::prompt::PromptTemplate {
+        crate::assistant::prompt::PromptTemplate {
+            key: "x".into(),
+            label: "X".into(),
+            template: template.into(),
+            description: None,
+            produces: None,
+            method: None,
+            kinds: Vec::new(),
+            scope: None,
+        }
+    }
+
+    #[test]
+    fn an_action_with_a_hole_in_it_is_refused_at_save() {
+        let mut config = studio();
+        config.prompts = vec![action("Check {typo} of {title}")];
+        let problems = config.validate();
+        assert!(
+            problems
+                .iter()
+                .any(|p| p.contains("reads `{typo}`, which nothing fills")),
+            "{problems:?}"
+        );
+
+        // A role not every kind of the action has: the shipped Studio
+        // kinds without lyrics are named, and naming the kinds fixes it.
+        let mut config = studio();
+        config.prompts = vec![action("{role:lyrics}")];
+        let problems = config.validate();
+        assert!(
+            problems
+                .iter()
+                .any(|p| p
+                    .contains("reads `{role:lyrics}`, but `video`, `short` have no `lyrics` role")),
+            "{problems:?}"
+        );
+        config.prompts[0].kinds = vec!["song".into()];
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
+
+        let mut config = studio();
+        let mut a = action("{role:plot}");
+        a.kinds = vec!["video".into()];
+        a.produces = Some("version:critique".into());
+        config.prompts = vec![a];
+        let problems = config.validate();
+        assert!(
+            problems
+                .iter()
+                .any(|p| p
+                    .contains("produces `version:critique`, but `video` has no `critique` role")),
+            "{problems:?}"
+        );
+
+        let mut config = studio();
+        let mut a = action("{scenes}");
+        a.kinds = vec!["song".into()];
+        config.prompts = vec![a];
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("reads `{scenes}`, but `song` has no storyboard")),
+            "{:?}",
+            config.validate()
+        );
+    }
+
+    #[test]
+    fn a_scene_action_is_held_to_its_shape() {
+        let mut config = studio();
+        let mut a = action("{scene}");
+        a.kinds = vec!["video".into()];
+        config.prompts = vec![a.clone()];
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("give it `\"scope\": \"scene\"`")),
+            "{:?}",
+            config.validate()
+        );
+
+        a.scope = Some("scene".into());
+        a.produces = Some("scenes".into());
+        config.prompts = vec![a.clone()];
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("must produce `scenes:revise`")),
+            "{:?}",
+            config.validate()
+        );
+
+        a.produces = Some("scenes:revise".into());
+        config.prompts = vec![a];
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
+
+        let mut config = studio();
+        let mut a = action("{title}");
+        a.scope = Some("scene".into());
+        a.produces = Some("something-later".into());
+        a.kinds = vec!["poem".into()];
+        config.prompts = vec![a];
+        let problems = config.validate();
+        assert!(
+            problems.iter().any(|p| p.contains("never reads `{scene}`")),
+            "{problems:?}"
+        );
+        assert!(
+            problems.iter().any(|p| p.contains("`produces` is `score`")),
+            "{problems:?}"
+        );
+        assert!(
+            problems
+                .iter()
+                .any(|p| p.contains("work kind `poem` the profile does not have")),
+            "{problems:?}"
+        );
     }
 }

@@ -276,7 +276,7 @@ pub fn start(
     prompt: &str,
     workdir: Option<&std::path::Path>,
 ) -> Result<(Run, Arc<Mutex<Stream>>)> {
-    start_as(conn, runs, chat_id, prompt, workdir, None)
+    start_as(conn, runs, chat_id, prompt, workdir, None, &[])
 }
 
 /// Start a run that is also a named task, refusing if that task is already
@@ -292,6 +292,7 @@ pub fn start_as(
     prompt: &str,
     workdir: Option<&std::path::Path>,
     task: Option<String>,
+    attachments: &[std::path::PathBuf],
 ) -> Result<(Run, Arc<Mutex<Stream>>)> {
     let chat = super::get(conn, chat_id)?.ok_or_else(|| Error::not_found("chat", chat_id))?;
 
@@ -332,6 +333,7 @@ pub fn start_as(
         chat.session_id.as_deref(),
         workdir,
         method.as_deref(),
+        attachments,
     )?;
 
     let started_at = now();
@@ -439,8 +441,14 @@ pub fn pump<S, F>(
                 // a panel replaying the chat offers the same thing it offered
                 // live. Parsed here rather than in the frontend because the
                 // profile it is checked against lives on this side.
-                if let Some(proposal) = proposed(&conn, run, body) {
-                    meta.insert("proposal".into(), proposal);
+                match proposed(&conn, run, body) {
+                    Read::Proposal(proposal) => {
+                        meta.insert("proposal".into(), proposal);
+                    }
+                    Read::Refused(why) => {
+                        meta.insert("proposal_refused".into(), json!(why));
+                    }
+                    Read::Nothing => {}
                 }
 
                 let _ = super::append(&conn, &run.chat_id, super::ASSISTANT, body, meta);
@@ -536,28 +544,45 @@ fn method_of(conn: &Connection, action: &str) -> Option<String> {
         .map(str::to_owned)
 }
 
+/// What reading an answer for a proposal came to.
+enum Read {
+    /// Nothing to act on: prose, or a typed prompt.
+    Nothing,
+    /// A proposal, as `meta.proposal`.
+    Proposal(Value),
+    /// The action asked for something and the answer's block could not be
+    /// read as it: said on the message rather than dropped, because a
+    /// button that never appears is a silent nothing.
+    Refused(String),
+}
+
 /// What this run's answer proposed, when its action asked for something the
 /// application can act on.
 ///
 /// Nothing is proposed for a typed prompt: only a profile action declares what
 /// it produces, and only a task carries the key that names the action.
-fn proposed(conn: &Connection, run: &Run, body: &str) -> Option<Value> {
-    let action = run.task.as_ref()?.split(':').next()?.to_owned();
-    let profile = crate::profile::active(conn).ok()??;
-
-    let template = profile
-        .config
-        .prompts
-        .iter()
-        .find(|prompt| prompt.key == action)?;
+fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
+    let Some(task_key) = run.task.as_deref() else {
+        return Read::Nothing;
+    };
+    let Some(template) = super::task::action_of_key(conn, task_key) else {
+        return Read::Nothing;
+    };
+    let Some(profile) = crate::profile::active(conn).ok().flatten() else {
+        return Read::Nothing;
+    };
+    let value = |proposal: super::proposal::Proposal| match serde_json::to_value(proposal) {
+        Ok(value) => Read::Proposal(value),
+        Err(error) => Read::Refused(error.to_string()),
+    };
 
     match template.produces() {
-        super::prompt::Produces::Prose => None,
+        super::prompt::Produces::Prose => Read::Nothing,
         // The whole answer is the version; the proposal only says where it
         // goes. Bound to the version the chat is about by `apply`, which
         // reads the chat.
         super::prompt::Produces::Version(role) => {
-            serde_json::to_value(super::proposal::Proposal::Version { role, label: None }).ok()
+            value(super::proposal::Proposal::Version { role, label: None })
         }
         super::prompt::Produces::Score => {
             // The answer is handed in rather than read off the run: `run` is
@@ -565,12 +590,36 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Option<Value> {
             // empty. Reading it there returned nothing, always — caught by
             // the test that expected a proposal and found none.
             // Read against the work's own kind: the axes a score names are its.
-            let chat = super::get(conn, &run.chat_id).ok()??;
-            let work = crate::work::get(conn, chat.work_id.as_deref()?).ok()??;
-            let proposal = super::proposal::read_score(body, &profile.config, &work.kind)?;
-            serde_json::to_value(proposal).ok()
+            let Some(work) = work_of_chat(conn, &run.chat_id) else {
+                return Read::Nothing;
+            };
+            match super::proposal::read_score(body, &profile.config, &work.kind) {
+                Some(proposal) => value(proposal),
+                None => Read::Nothing,
+            }
+        }
+        super::prompt::Produces::Scenes(change) => {
+            let Some(work) = work_of_chat(conn, &run.chat_id) else {
+                return Read::Nothing;
+            };
+            // A scene action's key names its scene; the answer is held to
+            // that number so a revision cannot land on a stranger.
+            let only = super::task::scene_of_key(task_key)
+                .and_then(|id| crate::scene::get(conn, id).ok().flatten())
+                .map(|scene| scene.position);
+            let vocabulary = profile.config.vocabulary(&work.kind);
+            match super::proposal::read_scenes(body, vocabulary, change, only) {
+                super::proposal::ReadScenes::Nothing => Read::Nothing,
+                super::proposal::ReadScenes::Proposal(proposal) => value(*proposal),
+                super::proposal::ReadScenes::Refused(why) => Read::Refused(why),
+            }
         }
     }
+}
+
+fn work_of_chat(conn: &Connection, chat_id: &str) -> Option<crate::work::Work> {
+    let chat = super::get(conn, chat_id).ok()??;
+    crate::work::get(conn, chat.work_id.as_deref()?).ok()?
 }
 
 /// Record what was asked, tied to the run that will answer it.
@@ -1683,6 +1732,7 @@ The second verse is the weak one."
             "again",
             None,
             Some("critique:w1".into()),
+            &[],
         ) else {
             panic!("the same task must not run twice at once");
         };

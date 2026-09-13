@@ -11,15 +11,22 @@
 //! has something to show at once. The chat is always new: dropping a task into
 //! whatever conversation happened to be open would bury it in someone else's
 //! thread and, worse, hand it that thread's session as context.
+//!
+//! What a task sends is composed once, by [`compose`], and the preview a card
+//! offers is the same call without the chat: the preview and the run cannot
+//! part, because there is only one text.
+
+use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
 
 use crate::error::{Error, Result};
 use crate::profile;
+use crate::scene;
 use crate::work;
 use crate::work::version;
 
-use super::prompt::Produces;
+use super::prompt::{Context, Produces, PromptTemplate, Scope};
 
 /// A task the caller asked for, before anything was started.
 pub struct Prepared {
@@ -31,6 +38,25 @@ pub struct Prepared {
     pub key: String,
     /// The chat's name, so the list does not show a task as an untitled chat.
     pub title: String,
+    /// Reference files the run may read, by path.
+    pub attachments: Vec<PathBuf>,
+}
+
+/// What a task would send: the text, the method behind it, its name — read
+/// before it is started, or started as it is.
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+pub struct Composed {
+    /// The message, exactly as the run receives it.
+    pub prompt: String,
+    /// The action's method, exactly as the run is briefed with it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub method: Option<String>,
+    /// What this task is, for the duplicate check.
+    pub key: String,
+    /// The chat's name.
+    pub title: String,
+    #[serde(skip)]
+    pub attachments: Vec<PathBuf>,
 }
 
 /// The `produces` value naming a scoring action.
@@ -45,23 +71,46 @@ pub fn key(action: &str, work_id: &str) -> String {
     format!("{action}:{work_id}")
 }
 
-/// Render `action` of the active profile against `work_id` and open a chat for
-/// it.
+/// The key of a scene action: this action, on this work, on this scene.
+/// The prompts of scene 2 can be written while scene 1's are still going.
+pub fn scene_key(action: &str, work_id: &str, scene_id: &str) -> String {
+    format!("{action}:{work_id}:{scene_id}")
+}
+
+/// The scene a task key names, when it names one.
+pub fn scene_of_key(key: &str) -> Option<&str> {
+    key.splitn(3, ':').nth(2)
+}
+
+/// What a task is about, beyond the work.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct About<'a> {
+    /// The version the action is about — the one open on the versions tab.
+    /// It is what the template reads and what the answer's proposal will
+    /// bind to; without it the action is about the work as it stands.
+    pub version_id: Option<&'a str>,
+    /// The scene a scene action is about.
+    pub scene_id: Option<&'a str>,
+    /// Reference files the run may read: images, documents, anything the
+    /// method should look at. Listed in the prompt by path, and the run is
+    /// given leave to read their folders.
+    pub attachments: &'a [String],
+}
+
+/// Compose `action` of the active profile against `work_id`: the prompt as
+/// it will be sent, the method as it will be briefed.
 ///
-/// `version_id` is the version the action is about — the one open on the
-/// versions tab. It is what the template reads and what the answer's
-/// proposal will bind to; without it the action is about the work as it
-/// stands.
-///
-/// Fails when the profile has no such action: a card offering a button the
-/// profile dropped is a card that has to be told, not one that should quietly
-/// send an empty prompt.
-pub fn prepare(
+/// Fails when the profile has no such action, when the action is not for
+/// the work's kind, when a scene action has no scene, when a file does not
+/// exist, or when the template reads a donor the work does not have: a
+/// card offering a button the profile dropped is a card that has to be told,
+/// not one that should quietly send an empty prompt.
+pub fn compose(
     conn: &Connection,
     work_id: &str,
     action: &str,
-    version_id: Option<&str>,
-) -> Result<Prepared> {
+    about: About<'_>,
+) -> Result<Composed> {
     let profile =
         profile::active(conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
 
@@ -73,9 +122,15 @@ pub fn prepare(
         .ok_or_else(|| Error::not_found("prompt", action))?;
 
     let work = work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
+    if !template.applies_to(&work.kind) {
+        return Err(Error::Other(format!(
+            "“{}” is not an action for a {}",
+            template.label, work.kind
+        )));
+    }
     // Checked here rather than left to the render: a version of another work
     // must be refused before a chat is opened for it.
-    if let Some(id) = version_id {
+    if let Some(id) = about.version_id {
         let found = version::get(conn, id)?.ok_or_else(|| Error::not_found("version", id))?;
         if found.work_id != work.id {
             return Err(Error::Other(format!(
@@ -84,19 +139,48 @@ pub fn prepare(
             )));
         }
     }
-    let mut prompt = super::prompt::for_work(conn, work_id, &template.template, version_id)?;
+    let scene = match (template.scope(), about.scene_id) {
+        (Scope::Scene, None) => {
+            return Err(Error::Other(format!(
+                "“{}” is about a scene: start it from one",
+                template.label
+            )));
+        }
+        (Scope::Scene, Some(id)) => {
+            let found = scene::get(conn, id)?.ok_or_else(|| Error::not_found("scene", id))?;
+            if found.work_id != work.id {
+                return Err(Error::Other(format!(
+                    "scene `{id}` is not a scene of “{}”",
+                    work.title
+                )));
+            }
+            Some(found)
+        }
+        // A work action started with a scene in hand is about the work: the
+        // scene is not read, and the key does not name it.
+        (Scope::Work, _) => None,
+    };
+
+    let mut prompt = super::prompt::for_work(
+        conn,
+        work_id,
+        &template.template,
+        Context {
+            version_id: about.version_id,
+            scene_id: scene.as_ref().map(|s| s.id.as_str()),
+        },
+    )?;
 
     // An action that asks for something the application can act on says the
     // shape it needs. Ordinary actions say nothing and get prose.
+    let vocabulary = profile.config.vocabulary(&work.kind);
     match template.produces() {
         Produces::Score => prompt.push_str(&super::proposal::scoring_instruction(
             &profile.config,
             &work.kind,
         )),
         Produces::Version(role) => {
-            let label = profile
-                .config
-                .vocabulary(&work.kind)
+            let label = vocabulary
                 .version_roles
                 .iter()
                 .find(|r| r.key == role)
@@ -104,7 +188,34 @@ pub fn prepare(
                 .unwrap_or(role);
             prompt.push_str(&super::proposal::version_instruction(&label));
         }
+        Produces::Scenes(change) => {
+            if !scene::kind_has_scenes(&profile.config, &work.kind) {
+                return Err(Error::Other(format!(
+                    "a {} has no storyboard for “{}” to propose scenes on",
+                    work.kind, template.label
+                )));
+            }
+            prompt.push_str(&super::proposal::scenes_instruction(
+                vocabulary,
+                change,
+                scene.as_ref().map(|s| s.position),
+            ));
+        }
         Produces::Prose => {}
+    }
+
+    // Reference files: named in the prompt so the run knows they are there
+    // and the chat shows what went. A path that is not a file is refused
+    // now, not discovered by a run that reports "no such file" ten minutes
+    // later.
+    let attachments = attachments_of(about.attachments)?;
+    if !attachments.is_empty() {
+        prompt.push_str("\n\nReference files — read each of them before answering:\n");
+        for path in &attachments {
+            prompt.push_str(&format!("- {}\n", path.display()));
+        }
+        let trimmed = prompt.trim_end().len();
+        prompt.truncate(trimmed);
     }
 
     // The instruction that lets the assistant mark its own question. Only
@@ -115,31 +226,95 @@ pub fn prepare(
     // Named on creation rather than left to borrow its first question: a
     // rendered template can open with pages of the work's own text, and a
     // chat list full of lyrics tells nobody which task produced what.
-    let title = format!("{} · {}", template.label, work.title);
+    let title = match &scene {
+        Some(scene) => format!("{} · {} · #{}", template.label, work.title, scene.position),
+        None => format!("{} · {}", template.label, work.title),
+    };
+    let key = match &scene {
+        Some(scene) => scene_key(action, work_id, &scene.id),
+        None => key(action, work_id),
+    };
+
+    Ok(Composed {
+        prompt,
+        method: template.method().map(str::to_owned),
+        key,
+        title,
+        attachments,
+    })
+}
+
+/// The files as paths, each checked to exist. Repeated paths are listed
+/// once.
+fn attachments_of(given: &[String]) -> Result<Vec<PathBuf>> {
+    let mut paths: Vec<PathBuf> = Vec::new();
+    for raw in given {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let path = Path::new(trimmed);
+        if !path.is_file() {
+            return Err(Error::Other(format!("no file at {trimmed}")));
+        }
+        if !paths.iter().any(|p| p == path) {
+            paths.push(path.to_path_buf());
+        }
+    }
+    Ok(paths)
+}
+
+/// Render `action` of the active profile against `work_id` and open a chat for
+/// it — [`compose`] with the chat.
+pub fn prepare(
+    conn: &Connection,
+    work_id: &str,
+    action: &str,
+    about: About<'_>,
+) -> Result<Prepared> {
+    let composed = compose(conn, work_id, action, about)?;
+    let profile =
+        profile::active(conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
 
     let chat = super::create(
         conn,
         &profile.id,
         super::NewChat {
             work_id: Some(work_id.to_owned()),
-            title: Some(title.clone()),
+            title: Some(composed.title.clone()),
             action: Some(action.to_owned()),
-            version_id: version_id.map(str::to_owned),
+            version_id: about.version_id.map(str::to_owned),
         },
     )?;
 
     Ok(Prepared {
         chat_id: chat.id,
-        prompt,
-        key: key(action, work_id),
-        title,
+        prompt: composed.prompt,
+        key: composed.key,
+        title: composed.title,
+        attachments: composed.attachments,
     })
+}
+
+/// The action of the active profile a task key names, when the profile
+/// still has it.
+pub fn action_of_key(conn: &Connection, task_key: &str) -> Option<PromptTemplate> {
+    let action = task_key.split(':').next()?;
+    let profile = profile::active(conn).ok()??;
+    profile
+        .config
+        .prompts
+        .iter()
+        .find(|prompt| prompt.key == action)
+        .cloned()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::db;
+    use crate::link::{self, NewLink};
+    use crate::scene::NewScene;
     use crate::work::NewWork;
     use crate::work::version::{self, NewVersion};
 
@@ -195,7 +370,7 @@ mod tests {
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
-        let prepared = prepare(&conn, &work_id, &action.key, None).unwrap();
+        let prepared = prepare(&conn, &work_id, &action.key, About::default()).unwrap();
 
         let chat = super::super::get(&conn, &prepared.chat_id)
             .unwrap()
@@ -210,8 +385,8 @@ mod tests {
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
-        let first = prepare(&conn, &work_id, &action.key, None).unwrap();
-        let second = prepare(&conn, &work_id, &action.key, None).unwrap();
+        let first = prepare(&conn, &work_id, &action.key, About::default()).unwrap();
+        let second = prepare(&conn, &work_id, &action.key, About::default()).unwrap();
 
         assert_ne!(
             first.chat_id, second.chat_id,
@@ -225,7 +400,7 @@ mod tests {
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
-        let prepared = prepare(&conn, &work_id, &action.key, None).unwrap();
+        let prepared = prepare(&conn, &work_id, &action.key, About::default()).unwrap();
 
         let chat = super::super::get(&conn, &prepared.chat_id)
             .unwrap()
@@ -246,7 +421,7 @@ mod tests {
         );
         let action = some_action(&conn);
 
-        let prepared = prepare(&conn, &work_id, &action.key, None).unwrap();
+        let prepared = prepare(&conn, &work_id, &action.key, About::default()).unwrap();
 
         assert!(
             !prepared.prompt.contains('{'),
@@ -266,7 +441,7 @@ mod tests {
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
-        let prepared = prepare(&conn, &work_id, &action.key, None).unwrap();
+        let prepared = prepare(&conn, &work_id, &action.key, About::default()).unwrap();
 
         assert!(
             prepared.prompt.contains(crate::assistant::waiting::MARKER),
@@ -284,7 +459,7 @@ mod tests {
         let (mut conn, profile_id) = workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
 
-        let refused = prepare(&conn, &work_id, "no-such-action", None);
+        let refused = prepare(&conn, &work_id, "no-such-action", About::default());
 
         assert!(refused.is_err());
     }
@@ -294,7 +469,7 @@ mod tests {
         let (mut conn, profile_id) = workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
 
-        let _ = prepare(&conn, &work_id, "no-such-action", None);
+        let _ = prepare(&conn, &work_id, "no-such-action", About::default());
 
         let chats: i64 = conn
             .query_row("SELECT count(*) FROM chat", [], |row| row.get(0))
@@ -308,7 +483,7 @@ mod tests {
         let (conn, _) = workspace();
         let action = some_action(&conn);
 
-        assert!(prepare(&conn, "nope", &action.key, None).is_err());
+        assert!(prepare(&conn, "nope", &action.key, About::default()).is_err());
     }
 
     #[test]
@@ -316,6 +491,242 @@ mod tests {
         assert_eq!(key("critique", "w1"), key("critique", "w1"));
         assert_ne!(key("critique", "w1"), key("critique", "w2"));
         assert_ne!(key("critique", "w1"), key("score", "w1"));
+    }
+
+    fn video(conn: &Connection, profile_id: &str) -> String {
+        work::create(
+            conn,
+            profile_id,
+            NewWork {
+                kind: "video".into(),
+                title: "The clip".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap()
+        .id
+    }
+
+    fn context(conn: &mut Connection, video_id: &str) {
+        version::create(
+            conn,
+            video_id,
+            NewVersion {
+                role: "context".into(),
+                body: "hero: a woman in a red coat".into(),
+                label: None,
+                meta: None,
+                make_current: false,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn the_preview_is_what_the_task_sends() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
+
+        let composed = compose(&conn, &work_id, "critique", About::default()).unwrap();
+        let prepared = prepare(&conn, &work_id, "critique", About::default()).unwrap();
+
+        assert_eq!(prepared.prompt, composed.prompt);
+        assert_eq!(prepared.key, composed.key);
+        assert_eq!(prepared.title, composed.title);
+        assert!(
+            composed.method.is_some(),
+            "the critique ships with a method"
+        );
+        assert!(composed.prompt.contains("the cranes"));
+    }
+
+    #[test]
+    fn an_action_not_for_the_kind_is_refused() {
+        let (conn, profile_id) = workspace();
+        let video_id = video(&conn, &profile_id);
+
+        let refused = compose(&conn, &video_id, "critique", About::default()).unwrap_err();
+
+        assert!(
+            refused.to_string().contains("not an action for a video"),
+            "{refused}"
+        );
+    }
+
+    #[test]
+    fn a_scene_action_needs_its_scene_and_names_it_in_the_key() {
+        let (mut conn, profile_id) = workspace();
+        let video_id = video(&conn, &profile_id);
+        context(&mut conn, &video_id);
+        let scene = crate::scene::create(
+            &conn,
+            &profile_id,
+            NewScene {
+                work_id: video_id.clone(),
+                description: Some("she turns".into()),
+                ..NewScene::default()
+            },
+        )
+        .unwrap();
+
+        let refused = compose(&conn, &video_id, "prompts", About::default()).unwrap_err();
+        assert!(
+            refused.to_string().contains("start it from one"),
+            "{refused}"
+        );
+
+        let composed = compose(
+            &conn,
+            &video_id,
+            "prompts",
+            About {
+                scene_id: Some(&scene.id),
+                ..About::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(composed.key, format!("prompts:{video_id}:{}", scene.id));
+        assert_eq!(scene_of_key(&composed.key), Some(scene.id.as_str()));
+        assert_eq!(scene_of_key("critique:w1"), None);
+        assert!(composed.title.ends_with("· #1"), "{}", composed.title);
+        assert!(
+            composed.prompt.contains("Scene 1\n\nshe turns"),
+            "{}",
+            composed.prompt
+        );
+        assert!(
+            composed.prompt.contains("The scene is number 1."),
+            "{}",
+            composed.prompt
+        );
+        assert!(
+            composed.prompt.contains("`still`"),
+            "the instruction names the kind's blocks: {}",
+            composed.prompt
+        );
+
+        // Started as a task, the chat is tied to the work and the key
+        // refuses a second click on this scene, not on the board.
+        let prepared = prepare(
+            &conn,
+            &video_id,
+            "prompts",
+            About {
+                scene_id: Some(&scene.id),
+                ..About::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(prepared.key, composed.key);
+    }
+
+    #[test]
+    fn a_storyboard_action_needs_the_plot_first() {
+        let (conn, profile_id) = workspace();
+        let video_id = video(&conn, &profile_id);
+
+        let refused = compose(&conn, &video_id, "storyboard", About::default()).unwrap_err();
+
+        assert!(refused.to_string().contains("has no Plot yet"), "{refused}");
+    }
+
+    #[test]
+    fn the_plot_action_reads_the_donor_and_refuses_without_one() {
+        let (mut conn, profile_id) = workspace();
+        let song_id = work_with_body(
+            &mut conn,
+            &profile_id,
+            "Harbour lights",
+            "the cranes go still",
+        );
+        let video_id = video(&conn, &profile_id);
+
+        let refused = compose(&conn, &video_id, "plot", About::default()).unwrap_err();
+        assert!(refused.to_string().contains("Links tab"), "{refused}");
+
+        link::create(
+            &conn,
+            &profile_id,
+            NewLink {
+                work_id: video_id.clone(),
+                source_id: song_id,
+                role: None,
+                source_version_id: None,
+            },
+        )
+        .unwrap();
+        let composed = compose(&conn, &video_id, "plot", About::default()).unwrap();
+        assert!(
+            composed
+                .prompt
+                .contains("made from “Harbour lights” (song)"),
+            "{}",
+            composed.prompt
+        );
+        assert!(composed.prompt.contains("the cranes go still"));
+        assert!(
+            composed.prompt.contains("kept as the Plot"),
+            "a version instruction names the role: {}",
+            composed.prompt
+        );
+    }
+
+    #[test]
+    fn reference_files_are_listed_and_a_missing_one_is_refused() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
+        let dir = std::env::temp_dir().join(format!("kilna-refs-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("hero.png");
+        std::fs::write(&file, b"png").unwrap();
+        let given = vec![
+            file.display().to_string(),
+            file.display().to_string(),
+            "  ".into(),
+        ];
+
+        let composed = compose(
+            &conn,
+            &work_id,
+            "critique",
+            About {
+                attachments: &given,
+                ..About::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            composed.attachments,
+            vec![file.clone()],
+            "once, and blanks dropped"
+        );
+        assert!(
+            composed.prompt.contains(&format!(
+                "Reference files — read each of them before answering:\n- {}",
+                file.display()
+            )),
+            "{}",
+            composed.prompt
+        );
+        assert_eq!(
+            super::super::stream::folders_of(&composed.attachments),
+            vec![dir.clone()]
+        );
+
+        let missing = vec![dir.join("nope.png").display().to_string()];
+        let refused = compose(
+            &conn,
+            &work_id,
+            "critique",
+            About {
+                attachments: &missing,
+                ..About::default()
+            },
+        )
+        .unwrap_err();
+        assert!(refused.to_string().contains("no file at"), "{refused}");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
 
@@ -368,7 +779,16 @@ mod version_tests {
         let first = make("the cranes go still");
         make("the cranes go on");
 
-        let prepared = prepare(&conn, &work.id, "critique", Some(&first)).unwrap();
+        let prepared = prepare(
+            &conn,
+            &work.id,
+            "critique",
+            About {
+                version_id: Some(&first),
+                ..About::default()
+            },
+        )
+        .unwrap();
         assert!(
             prepared.prompt.contains("the cranes go still")
                 && !prepared.prompt.contains("the cranes go on"),
@@ -381,7 +801,7 @@ mod version_tests {
         assert_eq!(chat.action.as_deref(), Some("critique"));
         assert_eq!(chat.version_id.as_deref(), Some(first.as_str()));
 
-        let whole = prepare(&conn, &work.id, "critique", None).unwrap();
+        let whole = prepare(&conn, &work.id, "critique", About::default()).unwrap();
         let chat = super::super::get(&conn, &whole.chat_id).unwrap().unwrap();
         assert_eq!(chat.action.as_deref(), Some("critique"));
         assert!(chat.version_id.is_none());
@@ -416,13 +836,13 @@ mod version_tests {
             },
         )
         .unwrap();
-        let prepared = prepare(&conn, &work.id, "critique", None).unwrap();
+        let prepared = prepare(&conn, &work.id, "critique", About::default()).unwrap();
         assert!(
             prepared.prompt.contains("kept as the Critique"),
             "{}",
             prepared.prompt
         );
-        let scored = prepare(&conn, &work.id, "score", None).unwrap();
+        let scored = prepare(&conn, &work.id, "score", About::default()).unwrap();
         assert!(
             scored
                 .prompt

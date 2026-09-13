@@ -133,10 +133,17 @@ export interface PackagedScene {
 }
 
 /** A storyboard for the chat's work: scenes added after the last, or the board replaced. */
+/** What a scenes proposal does to the board that is there. */
+export type BoardChange = 'add' | 'replace' | 'revise'
+
 export interface ScenesProposal {
   kind: 'scenes'
   scenes: PackagedScene[]
-  /** Replace the board: same numbers rewritten in place, the rest to the trash. */
+  /** `add` after the last (the default); `replace` the board — same numbers
+      rewritten in place, the rest to the trash; `revise` only the numbered
+      scenes, only in the fields given. */
+  change?: BoardChange
+  /** The v0.62 flag on a stored proposal; `change` supersedes it. */
   replace?: boolean
 }
 
@@ -205,6 +212,10 @@ export interface PromptTemplate {
       the shape of the answer, what it must never say. Reaches the model as a
       system instruction, not as part of the message. See ADR 0021. */
   method?: string
+  /** The kinds of work the action is for; absent or empty means every kind. */
+  kinds?: string[]
+  /** `scene` for an action started from a row of the board; otherwise the work. */
+  scope?: string
 }
 
 // What a release of this kind cannot ship without: version role keys. An empty
@@ -1140,11 +1151,43 @@ export interface TaskQueue {
   waiting: string[]
 }
 
+/** What a task is about beyond the work: the version open on the versions
+    tab, the scene of a scene action, reference files the run may read. */
+export interface TaskAbout {
+  versionId?: string
+  sceneId?: string
+  attachments?: string[]
+}
+
 /** Start an action on a work — on one of its versions when `versionId` is
     given: the template reads that version, and what the answer proposes is
-    bound to it. */
-export const startTask = (workId: string, action: string, versionId?: string) =>
-  invoke<StartedTask>('start_task', { workId, action, versionId: versionId ?? null })
+    bound to it; on a scene of its board for a scene action. */
+export const startTask = (workId: string, action: string, about: TaskAbout = {}) =>
+  invoke<StartedTask>('start_task', {
+    workId,
+    action,
+    versionId: about.versionId ?? null,
+    sceneId: about.sceneId ?? null,
+    attachments: about.attachments ?? [],
+  })
+
+/** What a task would send: composed by the call that starts one. */
+export interface ComposedTask {
+  prompt: string
+  method?: string
+  key: string
+  title: string
+}
+
+/** What starting the action would send, without sending it. */
+export const previewTask = (workId: string, action: string, about: TaskAbout = {}) =>
+  invoke<ComposedTask>('preview_task', {
+    workId,
+    action,
+    versionId: about.versionId ?? null,
+    sceneId: about.sceneId ?? null,
+    attachments: about.attachments ?? [],
+  })
 export const startTasks = (workIds: readonly string[], action: string) =>
   invoke<StartedBatch>('start_tasks', { workIds, action })
 export const activeTasks = () => invoke<string[]>('active_tasks')

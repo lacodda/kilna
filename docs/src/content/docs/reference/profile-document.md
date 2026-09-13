@@ -502,11 +502,15 @@ specifically.
 | `description` | string, optional | Shown as a hint under the label. |
 | `template` | string | The message sent to Claude, with placeholders filled per work. Keep it short: the method carries the how. |
 | `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
-| `produces` | string, optional | What the action asks for beyond prose: `"score"`, or `"version:<role>"` — the whole answer offered as a version in that role. Anything else is treated as absent. |
+| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`. Anything else loads as prose and is refused when the profile is saved. |
+| `kinds` | list of strings, optional | The work kinds the action is offered on. Absent or empty is every kind. An action that reads `{role:lyrics}` is for the kinds that have lyrics — Studio's song actions say `["song"]` — because a button for it on a video would send a prompt with a hole in it. |
+| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. Absent is the work. |
 
 The same prompt is offered in three places: in the panel it fills the composer
 for you to read and send, typing `/` reaches the same list from the keyboard,
-and on **Overview** a click starts it at once in a chat of its own. See
+and on **Overview** — and on **Scenes**, for a kind with a storyboard — a click
+starts it at once in a chat of its own, with an eye beside the button that
+shows exactly what the click sends. See
 [The assistant](/kilna/guides/the-assistant/).
 
 ### `produces`
@@ -531,9 +535,22 @@ scale is clamped rather than refused, an axis the profile does not have is shown
 and not applied, and an answer that ignored the instruction and replied in prose
 is simply an answer.
 
+An action with `"produces": "scenes"` asks for a storyboard: kilna appends the
+shape of the json block with the kind's kinds of shot and prompt blocks spelled
+out, and the answer comes back as the same proposal an agent's `propose_scenes`
+makes — the board as a table, every block under it, and one button. `scenes`
+is the whole board, replacing what is there by number; `scenes:add` puts the
+scenes after the last; `scenes:revise` changes only the scenes it numbers, and
+only in the fields it gives — the shape a scene action needs. A block in the
+wrong words — a kind of shot the profile does not have, a revision that
+numbers another scene — is not silently nothing: the chat says why there is
+no button. See [Scenes](/kilna/guides/scenes/#actions-on-the-board).
+
 Every shipped profile carries a `score` action. Anything else declaring
-`produces` gets the same treatment; an unrecognised value is ignored, so a
-profile written for a future kilna still loads.
+`produces` gets the same treatment; an unrecognised value is ignored when the
+profile loads, so a profile written for a future kilna still opens — and named
+when the profile is saved, so a typo does not become an action that never
+proposes.
 
 ### Template placeholders
 
@@ -544,11 +561,26 @@ profile written for a future kilna still loads.
   version role, regardless of which one is current. This is what lets a
   prompt like Novel's "Check against the outline" pull in both `{role:text}`
   and `{role:outline}` at once. An action started on a revision reads that
-  revision for its own role.
+  revision for its own role. A role the work has no version in yet is a
+  refusal — *“Harbour lights” has no Plot yet: write it first* — not an
+  empty gap.
+- `{scenes}` — the storyboard as a table: number, section, seconds, kind of
+  shot, description. The blocks stay out. An empty board says so.
+- `{scene}` — the scene a scene action was started on, whole: its fields and
+  every block it holds. Only in an action with `"scope": "scene"`.
+- `{donor}` — the first work this one was [made from](/kilna/guides/made-from/),
+  as *“Harbour lights” (song)*; `{donor:lyrics}`, `{donor:style}`, … — the
+  latest revision of that role on the donor. A work made from nothing refuses
+  the action and says to link the source first.
 
-An unrecognized placeholder — a typo — is left visible in the rendered prompt
-rather than silently blanked, on the reasoning that a visible `{typo}` is
-easier to diagnose than a quiet gap in the text sent to Claude.
+Saving a profile checks every template against the vocabulary it reads: a
+placeholder nothing fills, a `{role:x}` not every kind of the action has,
+`{scenes}` on a kind without a storyboard, a scene action that never reads
+`{scene}` — each is named and the save is refused, the way a duplicate axis
+key is. This is the check the predecessor lacked: a template edited to lose
+the placeholder carrying the text sent critiques of nothing for a month. At
+render time an unrecognized placeholder is still left visible rather than
+silently blanked, for a stored profile that predates the check.
 
 `prompts` defaults to an empty list when absent, so a profile written before
 the AI panel existed still loads without modification.

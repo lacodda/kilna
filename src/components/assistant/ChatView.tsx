@@ -510,6 +510,14 @@ function ExchangeItem({
         </div>
       )}
 
+      {/* The action asked for something and the answer's block could not be
+          read as it: said, so a button that never appears is never silent. */}
+      {item.answer?.refused != null && settled && (
+        <p role="alert" className="mx-3 text-xs text-warn">
+          {t('assistant.proposalRefused', { why: item.answer.refused })}
+        </p>
+      )}
+
       {/* What the answer proposed, with the button that applies it. Below the
           answer rather than beside the copy buttons: it is a decision, not a
           convenience, and it needs room to show the numbers first. */}

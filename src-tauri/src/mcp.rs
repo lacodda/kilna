@@ -23,7 +23,7 @@ use rusqlite::Connection;
 use serde_json::{Map, Value, json};
 
 use crate::assistant::apply;
-use crate::assistant::proposal::{self, PackagedNote, PackagedVersion, Proposal};
+use crate::assistant::proposal::{self, BoardChange, PackagedNote, PackagedVersion, Proposal};
 use crate::error::{Error, Result};
 use crate::journal::{self, Record};
 use crate::link;
@@ -324,21 +324,11 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "propose_scenes",
-            "Propose a storyboard for a work whose kind has one — a video, a short: a package \
-             of scenes, each with its number, the section of the text it plays against, its \
-             seconds, its kind of shot, a description and its prompt blocks. By default the \
-             scenes are ADDED after the last on the board; with `replace` the board is \
-             replaced — a scene with the same number is rewritten in place, the rest of the \
-             old board goes to the trash. Read `scenes` first when the board is not empty, \
-             and the `context` and `plot` roles with `text` for what every scene shares. \
-             The kind of shot and the block keys are the kind's own words (see `workspace`); \
-             an unknown one refuses the whole package. The board lands in the chat on the \
-             work, rendered as a table, with an *add to the board* or *replace the board* \
-             button; nothing is written until the person applies it.",
+            "Propose a storyboard for a work whose kind has one — a video, a short: a package              of scenes, each with its number, the section of the text it plays against, its              seconds, its kind of shot, a description and its prompt blocks. `change` says              what happens to the board that is there: `add` (the default) puts the scenes              after the last; `replace` makes them the whole board — a scene with the same              number is rewritten in place, the rest of the old board goes to the trash;              `revise` touches only the numbers named, and only in the fields given — a field              left out is kept, `blocks` are set together. Read `scenes` first when the board              is not empty, and the `context` and `plot` roles with `text` for what every              scene shares. The kind of shot and the block keys are the kind's own words (see              `workspace`); an unknown one refuses the whole package. The board lands in the              chat on the work, rendered as a table, with an *add to the board*, *replace the              board* or *revise the scenes* button; nothing is written until the person              applies it.",
             json!({
                 "work": work_arg(),
                 "scenes": scenes_arg("The scenes, in order"),
-                "replace": { "type": "boolean", "description": "Replace the board rather than add to it; false by default" },
+                "change": { "type": "string", "enum": ["add", "replace", "revise"], "description": "What happens to the board that is there: add after the last (default), replace the whole board, or revise only the numbered scenes" },
             }),
             &["work", "scenes"],
         ),
@@ -927,14 +917,26 @@ pub fn run_tool(
                 .filter(|raw| !raw.is_empty())
                 .ok_or_else(|| Error::Other("`scenes` must be a non-empty array".into()))?;
             let scenes = proposal::scenes_from(raw, vocabulary)?;
-            let replace = args
-                .get("replace")
-                .and_then(Value::as_bool)
-                .unwrap_or(false);
+            let change = match args.get("change").and_then(Value::as_str) {
+                None => BoardChange::Add,
+                Some(value) => BoardChange::parse(value).ok_or_else(|| {
+                    Error::Other(format!(
+                        "`change` is `add`, `replace` or `revise`, not `{value}`"
+                    ))
+                })?,
+            };
+            if change == BoardChange::Revise {
+                if let Some(missing) = scenes.iter().position(|scene| scene.position.is_none()) {
+                    return Err(Error::Other(format!(
+                        "scene {}: a revised scene names its `position` on the board",
+                        missing + 1
+                    )));
+                }
+            }
             let count = scenes.len();
             let standing = scene::count(conn, &found.id)?;
-            let body = apply::render_board(&scenes, vocabulary, replace);
-            let proposal = Proposal::Scenes { scenes, replace };
+            let body = apply::render_board(&scenes, vocabulary, change);
+            let proposal = Proposal::Scenes { scenes, change };
             deliver(
                 conn,
                 &profile.id,
@@ -944,18 +946,20 @@ pub fn run_tool(
                 &body,
                 None,
             )?;
-            Ok(if replace {
-                format!(
-                    "Proposed a storyboard of {count} scene{} to replace the {standing} on the board of “{}”. It waits in the chat on the work; one click replaces the board.",
-                    if count == 1 { "" } else { "s" },
+            let plural = if count == 1 { "" } else { "s" };
+            Ok(match change {
+                BoardChange::Replace => format!(
+                    "Proposed a storyboard of {count} scene{plural} to replace the {standing} on the board of “{}”. It waits in the chat on the work; one click replaces the board.",
                     found.title
-                )
-            } else {
-                format!(
-                    "Proposed {count} scene{} to add after the {standing} on the board of “{}”. It waits in the chat on the work; one click adds them.",
-                    if count == 1 { "" } else { "s" },
+                ),
+                BoardChange::Revise => format!(
+                    "Proposed a revision of {count} scene{plural} on the board of “{}”. It waits in the chat on the work; one click revises them in place.",
                     found.title
-                )
+                ),
+                BoardChange::Add => format!(
+                    "Proposed {count} scene{plural} to add after the {standing} on the board of “{}”. It waits in the chat on the work; one click adds them.",
+                    found.title
+                ),
             })
         }
 
@@ -1242,7 +1246,7 @@ mod tests {
         );
         let message = first_message(&conn, &video_id);
         assert_eq!(message.meta["proposal"]["kind"], "scenes");
-        assert!(message.meta["proposal"].get("replace").is_none());
+        assert_eq!(message.meta["proposal"]["change"], "add");
         assert_eq!(message.meta["proposal"]["scenes"][0]["shot_type"], "wide");
         assert_eq!(
             message.meta["proposal"]["scenes"][0]["blocks"]["still"],
@@ -1282,14 +1286,14 @@ mod tests {
             &claude(),
             "propose_scenes",
             &args(json!({
-                "work": video_id, "replace": true,
+                "work": video_id, "change": "replace",
                 "scenes": [{ "description": "one" }, { "description": "two" }]
             })),
         )
         .unwrap();
         assert!(answer.contains("to replace the 0 on the board"), "{answer}");
         let message = first_message(&conn, &video_id);
-        assert_eq!(message.meta["proposal"]["replace"], true);
+        assert_eq!(message.meta["proposal"]["change"], "replace");
         assert!(
             message.body.contains("| 2 |  |  |  | two |"),
             "{}",
