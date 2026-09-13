@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.64.0] - 2026-09-13
+
+### Features
+- Actions on the board, previewed as sent
+
+### Breaking Changes
+- A scenes proposal carries `change` (add, replace, revise) instead of the `replace` flag, and `propose_scenes` takes `change` in place of `replace`; a stored `replace: true` still applies as a replacement.
 ## [0.63.0] - 2026-09-12
 
 ### Features
