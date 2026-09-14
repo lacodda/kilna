@@ -741,7 +741,7 @@
       {
         "key": "duration",
         "label": "Duration",
-        "type": "text"
+        "type": "number"
       },
       {
         "key": "language",

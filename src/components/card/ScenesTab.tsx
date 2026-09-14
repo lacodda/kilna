@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
-import { Copy, Plus, Trash2 } from 'lucide-react'
+import { Clock, Copy, Plus, Trash2 } from 'lucide-react'
 import {
   createScene,
   deleteScene,
   getVersion,
   listScenes,
   listVersions,
+  timeScenes,
   updateScene,
   type Scene,
   type SceneBlock,
@@ -89,6 +90,18 @@ export function ScenesTab({ work }: Props) {
       refresh()
       say.failedTo(t('toast.sceneSaveFailed'), cause)
     },
+  })
+
+  // The board's first timing: the work's length divided between the scenes,
+  // dragged by hand from there. Refused when the work has no length, and the
+  // refusal says where to give it one.
+  const time = useMutation({
+    mutationFn: () => timeScenes(work.id),
+    onSuccess: (timed) => {
+      refresh()
+      say.ok(t('scenes.timed', { count: timed.length }))
+    },
+    onError: (cause) => say.failedTo(t('toast.sceneTimeFailed'), cause),
   })
 
   const remove = useMutation({
@@ -201,11 +214,23 @@ export function ScenesTab({ work }: Props) {
         </ol>
       )}
 
-      <div>
+      <div className="flex flex-wrap items-center gap-2">
         <Button variant="soft" size="sm" disabled={add.isPending} onClick={() => add.mutate()}>
           <Plus aria-hidden className="size-3.5" />
           {t('scenes.add')}
         </Button>
+        {all.length > 0 && (
+          <Button
+            variant="soft"
+            size="sm"
+            disabled={time.isPending}
+            onClick={() => time.mutate()}
+            title={t('scenes.timeHint')}
+          >
+            <Clock aria-hidden className="size-3.5" />
+            {t('scenes.time')}
+          </Button>
+        )}
       </div>
     </div>
   )

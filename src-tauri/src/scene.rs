@@ -461,6 +461,132 @@ pub fn timecode(seconds: f64) -> String {
     }
 }
 
+/// The key a work's length is kept under, in the profile's meta fields.
+///
+/// A number of seconds since 2026-09-14: the field shipped as text holding
+/// "3:45", which nothing could divide by. Migration 0018 retyped it and
+/// converted what was already written.
+pub const DURATION: &str = "duration";
+
+/// A work's length in seconds, when its meta carries one.
+///
+/// Read leniently: the field is a number now, but a workspace whose owner
+/// typed into it before the retype — or after retyping it back — can still
+/// hold a string, and `3:45` there means the same length as `225`. A value
+/// that means nothing readable is no length at all rather than a zero, so
+/// the board is left untimed instead of being collapsed onto one instant.
+pub fn duration_of(work: &crate::work::Work) -> Option<f64> {
+    let value = work.meta.get(DURATION)?;
+    if let Some(seconds) = value.as_f64() {
+        return (seconds.is_finite() && seconds > 0.0).then_some(seconds);
+    }
+    let text = value.as_str()?.trim();
+    if text.is_empty() {
+        return None;
+    }
+    let mut seconds = 0.0_f64;
+    for part in text.split(':') {
+        let part: f64 = part.trim().parse().ok()?;
+        if !part.is_finite() || part < 0.0 {
+            return None;
+        }
+        seconds = seconds * 60.0 + part;
+    }
+    (seconds > 0.0).then_some(seconds)
+}
+
+/// The timings a work's length gives its board, one span per scene.
+///
+/// The length is divided evenly between the scenes in the order they stand
+/// and handed back as spans — the first frame of the board, not the last:
+/// "the duration divides the scenes proportionally, by hand from there"
+/// (decision of 2026-09-11). Evenly rather than weighted, because nothing on
+/// a scene yet says how long it wants to be; a beat that needs longer is
+/// dragged out by the person, and the neighbours are theirs to settle.
+///
+/// Seconds are rounded to a tenth so the board reads in whole numbers rather
+/// than in the tail of a division, and every span but the last is joined to
+/// the next: a gap opened by rounding would show up in v0.69's gap check as a
+/// hole nobody made. The last scene ends on the length itself.
+pub fn timings(duration: f64, scenes: usize) -> Vec<(f64, f64)> {
+    if scenes == 0 || !(duration.is_finite() && duration > 0.0) {
+        return Vec::new();
+    }
+    let edge = |index: usize| -> f64 {
+        if index == scenes {
+            duration
+        } else {
+            ((duration * index as f64 / scenes as f64) * 10.0).round() / 10.0
+        }
+    };
+    (0..scenes)
+        .map(|index| (edge(index), edge(index + 1)))
+        .collect()
+}
+
+/// Time every scene of a board from the work's length, in one change.
+///
+/// One operation rather than one per scene, for the same reason a collection's
+/// contents are set in one: timing a board is a single gesture, and an undo of
+/// it has to be single too — taking back a fifty-scene division one scene at a
+/// time would leave the board in forty-nine states nobody asked for. The spans
+/// the scenes held before travel in the operation's `before`, so the undo puts
+/// exactly those back (ADR 0014).
+///
+/// Refuses rather than guesses when the work has no length: a board timed from
+/// nothing would be fifty scenes all starting at zero.
+pub fn time_board_at(
+    conn: &mut Connection,
+    work_id: &str,
+    at: &str,
+    logged: Option<crate::operation::Intent>,
+) -> Result<Vec<Scene>> {
+    let work = crate::work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
+    let duration = duration_of(&work).ok_or_else(|| {
+        Error::Other("this work has no duration yet: give it one on the Overview tab".into())
+    })?;
+
+    let scenes = for_work(conn, work_id)?;
+    if scenes.is_empty() {
+        return Err(Error::Other("this board has no scenes to time".into()));
+    }
+
+    let spans = timings(duration, scenes.len());
+    let tx = conn.transaction()?;
+
+    if let Some(logged) = logged {
+        crate::operation::record(&tx, logged)?;
+    }
+
+    for (scene, (starts_at, ends_at)) in scenes.iter().zip(spans) {
+        tx.execute(
+            "UPDATE scene SET starts_at = ?1, ends_at = ?2, updated_at = ?3 WHERE id = ?4",
+            rusqlite::params![starts_at, ends_at, at, scene.id],
+        )?;
+    }
+
+    tx.commit()?;
+    for_work(conn, work_id)
+}
+
+/// Put back the spans a board held, one row each — the undo of a timing.
+///
+/// Takes the transaction rather than opening one: the undo writes its own
+/// operation beside this change, and the two belong to the same commit.
+pub fn restore_spans_in(
+    tx: &Connection,
+    spans: &[(String, Option<f64>, Option<f64>)],
+    at: &str,
+) -> Result<()> {
+    for (id, starts_at, ends_at) in spans {
+        tx.execute(
+            "UPDATE scene SET starts_at = ?1, ends_at = ?2, updated_at = ?3 WHERE id = ?4",
+            rusqlite::params![starts_at, ends_at, at, id],
+        )?;
+    }
+    Ok(())
+}
+
 /// Whether works of a kind have a storyboard at all: the kind names kinds
 /// of shot or prompt blocks. A song has neither, and no Scenes tab.
 pub fn kind_has_scenes(config: &ProfileConfig, kind: &str) -> bool {
@@ -495,6 +621,124 @@ mod tests {
         )
         .unwrap()
         .id
+    }
+
+    /// The length divides evenly, the spans join, and the last ends on the
+    /// length itself — a board timed from 3:45 covers 225 seconds with no gap
+    /// and no overhang.
+    #[test]
+    fn a_length_divides_the_board_evenly_and_joins_the_spans() {
+        let spans = timings(225.0, 4);
+        assert_eq!(spans.len(), 4);
+        assert_eq!(spans[0].0, 0.0, "the board starts at zero");
+        assert_eq!(spans[3].1, 225.0, "the last scene ends on the length");
+        for pair in spans.windows(2) {
+            assert_eq!(
+                pair[0].1, pair[1].0,
+                "a rounded span must join the next, or v0.69 would read the                  rounding as a gap nobody made"
+            );
+        }
+    }
+
+    /// A length that does not divide cleanly still covers the whole board:
+    /// the rounding lands inside, never on the ends.
+    ///
+    /// 227.25 is the length that catches a rounded last edge — round it like
+    /// the inner ones and the board ends at 227.2, four hundredths short of
+    /// the work. The board must cover the work exactly, or the last frame is
+    /// missing time nobody can see was dropped.
+    #[test]
+    fn a_length_that_does_not_divide_cleanly_still_covers_the_board() {
+        for (duration, scenes) in [(100.0, 7), (227.25, 6), (95.25, 4)] {
+            let spans = timings(duration, scenes);
+            assert_eq!(spans.first().unwrap().0, 0.0, "{duration} starts at zero");
+            assert_eq!(
+                spans.last().unwrap().1,
+                duration,
+                "{duration} must be covered to its own last second"
+            );
+            for pair in spans.windows(2) {
+                assert_eq!(pair[0].1, pair[1].0, "{duration} leaves no gap");
+            }
+        }
+    }
+
+    /// Nothing to divide, or nothing to divide between, times nothing — a
+    /// board of scenes all starting at zero is worse than an untimed one.
+    #[test]
+    fn nothing_to_divide_times_nothing() {
+        assert!(timings(225.0, 0).is_empty());
+        assert!(timings(0.0, 4).is_empty());
+        assert!(timings(-5.0, 4).is_empty());
+        assert!(timings(f64::NAN, 4).is_empty());
+    }
+
+    /// The length is read as a number, and — for a workspace that still holds
+    /// the text the field shipped as — as a time as well. Prose is no length.
+    #[test]
+    fn a_length_is_read_as_seconds_or_as_a_time() {
+        let (conn, profile_id) = workspace();
+        let work_id = video(&conn, &profile_id);
+        let read = |value: serde_json::Value| {
+            let mut meta = serde_json::Map::new();
+            meta.insert(DURATION.into(), value);
+            work::update(
+                &conn,
+                &work_id,
+                work::WorkPatch {
+                    meta: Some(meta),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+            duration_of(&work::get(&conn, &work_id).unwrap().unwrap())
+        };
+
+        assert_eq!(read(json!(225)), Some(225.0));
+        assert_eq!(
+            read(json!("3:45")),
+            Some(225.0),
+            "a stored time still reads"
+        );
+        assert_eq!(read(json!("1:02:03")), Some(3723.0));
+        assert_eq!(read(json!("about four minutes")), None);
+        assert_eq!(read(json!("")), None);
+        assert_eq!(read(json!(0)), None, "a length of nothing is no length");
+    }
+
+    /// Timing a board writes every scene; a work with no length refuses
+    /// rather than collapsing the board onto one instant.
+    #[test]
+    fn timing_a_board_needs_a_length() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = video(&conn, &profile_id);
+        for _ in 0..3 {
+            create(&conn, &profile_id, scene(&work_id)).unwrap();
+        }
+
+        let refused = time_board_at(&mut conn, &work_id, "2026-09-14T10:00:00.000Z", None);
+        assert!(refused.is_err(), "no length, no timing");
+
+        let mut meta = serde_json::Map::new();
+        meta.insert(DURATION.into(), json!(90));
+        work::update(
+            &conn,
+            &work_id,
+            work::WorkPatch {
+                meta: Some(meta),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        let timed = time_board_at(&mut conn, &work_id, "2026-09-14T10:00:00.000Z", None).unwrap();
+        assert_eq!(timed.len(), 3);
+        assert_eq!(timed[0].starts_at, Some(0.0));
+        assert_eq!(timed[2].ends_at, Some(90.0));
+        assert_eq!(
+            timed[0].ends_at, timed[1].starts_at,
+            "the spans join on the board, not only in the arithmetic"
+        );
     }
 
     fn scene(work_id: &str) -> NewScene {

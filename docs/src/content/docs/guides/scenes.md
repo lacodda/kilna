@@ -39,10 +39,24 @@ From top to bottom:
   frame), the seconds it runs from and to, the kind of shot, a description,
   and a box per prompt block — and, in the row, the profile's scene
   actions: *Prompts for the scene* in Studio.
-- **Add scene** at the bottom, numbered after the last.
+- **Add scene** at the bottom, numbered after the last, and — once the
+  board has scenes — **Time the board**.
 
 Every field saves when you leave it. A time is typed as `1:23` or `0:04.5`
-and stored as seconds; a scene cannot end before it starts. The kind of
+and stored as seconds; a scene cannot end before it starts.
+
+### Timing the board
+
+**Time the board** divides the work's `duration` — a number of seconds in
+its overview fields — evenly between the scenes, in the order they stand.
+It is the board's first timing rather than its last word: drag the spans
+by hand from there, and the neighbours are yours to settle.
+
+The spans join, and the last scene ends on the length itself, so the board
+covers the work with no gap and no overhang. A work with no duration is
+refused rather than timed: fifty scenes all starting at zero is worse than
+fifty untimed ones. Timing is one change, so one **Undo** puts every span
+back the way it was — including a span you had set by hand. The kind of
 shot is chosen from the profile's list, never typed: a scene called
 *closeup* when the list says *Close-up* would never be found by the strip.
 

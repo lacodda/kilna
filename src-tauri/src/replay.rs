@@ -361,6 +361,12 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
             scene::update_at(conn, &id, patch, &at)?;
         }
 
+        "scene.time" => {
+            let work_id = required(params, "workId")?;
+            let at = required(params, "at")?;
+            scene::time_board_at(conn, &work_id, &at, None)?;
+        }
+
         "entity.discard" => {
             let entity = trash::Entity::parse(&required(params, "entity")?)?;
             let id = required(params, "entityId")?;

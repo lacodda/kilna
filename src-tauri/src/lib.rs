@@ -132,6 +132,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::create_scene,
             commands::update_scene,
             commands::delete_scene,
+            commands::time_scenes,
             commands::search,
             commands::list_journal,
             commands::journal_for_work,

@@ -793,3 +793,105 @@ fn a_scene_is_taken_back_both_ways() {
         "into the trash, not destroyed: {trashed:?}"
     );
 }
+
+/// Timing a board is one gesture, and taking it back is one too: every scene
+/// goes back to the span it held, including the ones that held none. Undoing
+/// it scene by scene would leave the board in as many half-timed states as it
+/// has scenes.
+#[test]
+fn a_timed_board_is_taken_back_whole() {
+    let (mut conn, profile_id, _song_id) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let video_id = work::create(
+        &conn,
+        &profile_id,
+        NewWork {
+            kind: "video".into(),
+            title: "Harbour lights".into(),
+            meta: Some(
+                serde_json::json!({ "duration": 90 })
+                    .as_object()
+                    .unwrap()
+                    .clone(),
+            ),
+            ..NewWork::default()
+        },
+    )
+    .unwrap()
+    .id;
+
+    let mut scene_ids = Vec::new();
+    for _ in 0..3 {
+        scene_ids.push(
+            kilna_lib::scene::create(
+                &conn,
+                &profile_id,
+                kilna_lib::scene::NewScene {
+                    work_id: video_id.clone(),
+                    ..kilna_lib::scene::NewScene::default()
+                },
+            )
+            .unwrap()
+            .id,
+        );
+    }
+
+    // One scene was timed by hand before the board was: its span is what the
+    // undo has to put back, not "nothing".
+    kilna_lib::scene::update(
+        &conn,
+        &scene_ids[1],
+        kilna_lib::scene::ScenePatch {
+            starts_at: Some(Some(12.0)),
+            ends_at: Some(Some(15.0)),
+            ..kilna_lib::scene::ScenePatch::default()
+        },
+    )
+    .unwrap();
+
+    // Timed the way the command times it.
+    let before: Vec<serde_json::Value> = kilna_lib::scene::for_work(&conn, &video_id)
+        .unwrap()
+        .into_iter()
+        .map(|scene| {
+            serde_json::json!({
+                "id": scene.id,
+                "startsAt": scene.starts_at,
+                "endsAt": scene.ends_at,
+            })
+        })
+        .collect();
+    let at = kilna_lib::time::now();
+    let logged = operation::Intent::new("scene.time")
+        .in_profile(&profile_id)
+        .param("profile", key.clone())
+        .param("workId", video_id.clone())
+        .param("before", serde_json::to_value(&before).unwrap())
+        .param("at", at.clone());
+    kilna_lib::scene::time_board_at(&mut conn, &video_id, &at, Some(logged)).unwrap();
+
+    let timed = kilna_lib::scene::for_work(&conn, &video_id).unwrap();
+    assert_eq!(timed[0].starts_at, Some(0.0));
+    assert_eq!(timed[2].ends_at, Some(90.0));
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("a timed board can be undone");
+    assert_eq!(offer.action, "undo.scene.time");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+
+    let back = kilna_lib::scene::for_work(&conn, &video_id).unwrap();
+    assert!(
+        back[0].starts_at.is_none() && back[0].ends_at.is_none(),
+        "a scene that held no span holds none again"
+    );
+    assert_eq!(
+        (back[1].starts_at, back[1].ends_at),
+        (Some(12.0), Some(15.0)),
+        "the span set by hand comes back as it was, not as nothing"
+    );
+    assert!(
+        back[2].starts_at.is_none(),
+        "the last scene is back to untimed too"
+    );
+}

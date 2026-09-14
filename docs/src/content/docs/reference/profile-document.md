@@ -313,6 +313,13 @@ a piece came from. It gets a text area spanning the panel rather than a
 single-line box, and it is left out of the card header: the header is the line
 you glance at, and a paragraph printed there pushes the work off screen.
 
+`duration` is a **number of seconds**, and the Scenes tab divides it between
+the scenes of a board (see [Scenes](/kilna/guides/scenes/#timing-the-board)).
+It shipped as `text` holding `3:45` until 0.65; the migration retyped it and
+converted what was already written. A workspace that had retyped the field
+itself keeps its own version, the way every renamed field does — the board
+still reads `3:45` there, but the Overview box will not hold you to a number.
+
 Music defines the reference numbers (`bpm`, `key`, `duration`, `language`) plus
 what a song is about: `tagline`, `direction`, `mood`, `tempo`, `vocal`,
 `perspective`, `instruments` and a `multiline` `premise`. Podcast additionally

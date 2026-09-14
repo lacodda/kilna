@@ -1831,6 +1831,53 @@ pub fn update_scene(state: State<'_, AppState>, id: String, patch: ScenePatch) -
     })
 }
 
+/// Divide the work's length between the scenes of its board.
+///
+/// The first timing of a board, not the last word on it: every span after
+/// this is dragged by hand. One operation for the whole board — see
+/// `scene::time_board_at`.
+#[tauri::command]
+pub fn time_scenes(state: State<'_, AppState>, work_id: String) -> Result<Vec<Scene>> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    // The spans as they stand, so the undo puts back exactly these.
+    let before: Vec<serde_json::Value> = scene::for_work(&conn, &work_id)?
+        .into_iter()
+        .map(|scene| {
+            serde_json::json!({
+                "id": scene.id,
+                "startsAt": scene.starts_at,
+                "endsAt": scene.ends_at,
+            })
+        })
+        .collect();
+
+    let at = time::now();
+    let logged = operation::Intent::new("scene.time")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("workId", work_id.clone())
+        .param("before", serde_json::to_value(&before)?)
+        .param("at", at.clone());
+
+    let timed = scene::time_board_at(&mut conn, &work_id, &at, Some(logged))?;
+
+    journal::record(
+        &conn,
+        &profile_id,
+        Record::new("scene.timed")
+            .param(
+                "title",
+                journal::work_title(&conn, &work_id).unwrap_or_default(),
+            )
+            .param("count", timed.len() as i64)
+            .about("work", work_id.clone()),
+    );
+
+    Ok(timed)
+}
+
 #[tauri::command]
 pub fn delete_scene(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Scene, &id)

@@ -760,6 +760,8 @@ export const createScene = (scene: NewScene) => invoke<Scene>('create_scene', { 
 export const updateScene = (id: string, patch: ScenePatch) =>
   invoke<Scene>('update_scene', { id, patch })
 export const deleteScene = (id: string) => invoke<string>('delete_scene', { id })
+/** Divide the work's length between the scenes of its board. */
+export const timeScenes = (workId: string) => invoke<Scene[]>('time_scenes', { workId })
 export const setWorksStatus = (workIds: string[], status: string) =>
   invoke<BulkOutcome>('set_works_status', { workIds, status })
 

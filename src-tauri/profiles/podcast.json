@@ -82,7 +82,7 @@
       { "key": "flagship", "label": "Flagship episode", "min": 80.0 }
     ],
     "work_meta_fields": [
-      { "key": "duration", "label": "Duration", "type": "text" },
+      { "key": "duration", "label": "Duration", "type": "number" },
       { "key": "guest", "label": "Guest", "type": "text" },
       { "key": "recorded_on", "label": "Recorded on", "type": "date" },
       { "key": "explicit", "label": "Explicit", "type": "boolean" }

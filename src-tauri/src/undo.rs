@@ -100,6 +100,7 @@ pub fn reversible(kind: &str) -> bool {
             | "link.delete"
             | "scene.create"
             | "scene.update"
+            | "scene.time"
     )
 }
 
@@ -172,6 +173,26 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
             let patch: crate::scene::ScenePatch = from_params(params, "before")?;
             edit(conn, logged, &at, |tx| {
                 crate::scene::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // A timed board goes back span by span, in one change: the timing was
+        // one gesture, and so is taking it back. `before` carries the spans
+        // the scenes held, including the ones that held none.
+        "scene.time" => {
+            #[derive(serde::Deserialize)]
+            #[serde(rename_all = "camelCase")]
+            struct Span {
+                id: String,
+                starts_at: Option<f64>,
+                ends_at: Option<f64>,
+            }
+            let before: Vec<Span> = from_params(params, "before")?;
+            let spans: Vec<(String, Option<f64>, Option<f64>)> = before
+                .into_iter()
+                .map(|span| (span.id, span.starts_at, span.ends_at))
+                .collect();
+            edit(conn, logged, &at, |tx| {
+                crate::scene::restore_spans_in(tx, &spans, &at)
             })?;
         }
         "release.update" => {
