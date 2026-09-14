@@ -895,3 +895,85 @@ fn a_timed_board_is_taken_back_whole() {
         "the last scene is back to untimed too"
     );
 }
+
+/// Framing a board makes every scene in one gesture, so taking it back
+/// leaves none of them behind — in the trash, not destroyed, for the person
+/// who undid by mistake.
+#[test]
+fn a_framed_board_is_taken_back_whole() {
+    let (mut conn, profile_id, song_id) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    kilna_lib::work::version::create(
+        &mut conn,
+        &song_id,
+        kilna_lib::work::version::NewVersion {
+            role: "lyrics".into(),
+            body: "[Intro]\n\n[Verse 1]\na line\n\n[Chorus]\nthe hook\n".into(),
+            label: None,
+            meta: None,
+            make_current: true,
+            parent_version_id: None,
+        },
+    )
+    .unwrap();
+
+    let video_id = work::create(
+        &conn,
+        &profile_id,
+        NewWork {
+            kind: "video".into(),
+            title: "Harbour lights".into(),
+            ..NewWork::default()
+        },
+    )
+    .unwrap()
+    .id;
+    kilna_lib::link::create(
+        &conn,
+        &profile_id,
+        kilna_lib::link::NewLink {
+            work_id: video_id.clone(),
+            source_id: song_id.clone(),
+            role: None,
+            source_version_id: None,
+        },
+    )
+    .unwrap();
+
+    // Framed the way the command frames it.
+    let parts = kilna_lib::scene::parts_of_source(&conn, &video_id, "lyrics").unwrap();
+    let minted: Vec<Minted> = (0..parts).map(|_| Minted::fresh()).collect();
+    let ids: Vec<String> = minted.iter().map(|one| one.id().to_owned()).collect();
+    let at = kilna_lib::time::now();
+    let logged = operation::Intent::new("scene.frame")
+        .in_profile(&profile_id)
+        .param("profile", key.clone())
+        .param("workId", video_id.clone())
+        .param("role", "lyrics".to_owned())
+        .param("ids", serde_json::to_value(&ids).unwrap())
+        .param("at", at.clone());
+    let framed =
+        kilna_lib::scene::frame_from_text(&mut conn, &video_id, "lyrics", &minted, Some(logged))
+            .unwrap();
+    assert_eq!(framed.len(), 3);
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("a framed board can be undone");
+    assert_eq!(offer.action, "undo.scene.frame");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+
+    assert_eq!(
+        kilna_lib::scene::count(&conn, &video_id).unwrap(),
+        0,
+        "the whole frame goes, not all but one"
+    );
+    let trashed = kilna_lib::trash::list(&conn, &profile_id).unwrap();
+    assert_eq!(
+        ids.iter()
+            .filter(|id| trashed.iter().any(|entry| &&entry.entity_id == id))
+            .count(),
+        3,
+        "into the trash, not destroyed: {trashed:?}"
+    );
+}

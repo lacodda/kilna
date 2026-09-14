@@ -1831,6 +1831,52 @@ pub fn update_scene(state: State<'_, AppState>, id: String, patch: ScenePatch) -
     })
 }
 
+/// Build the board's frame from the parts the source text marks out.
+///
+/// One scene per part, in the text's order, carrying the part's name. The
+/// scenes' ids are minted here and travel in the operation, so a workspace
+/// rebuilt from the log lands on the same rows.
+#[tauri::command]
+pub fn frame_scenes(
+    state: State<'_, AppState>,
+    work_id: String,
+    role: String,
+) -> Result<Vec<Scene>> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    // How many parts the text marks out right now: the ids are minted for
+    // exactly those, and framing refuses if the text has changed since.
+    let parts = scene::parts_of_source(&conn, &work_id, &role)?;
+    let at = time::now();
+    let minted: Vec<Minted> = (0..parts).map(|_| Minted::fresh()).collect();
+    let ids: Vec<String> = minted.iter().map(|one| one.id().to_owned()).collect();
+
+    let logged = operation::Intent::new("scene.frame")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("workId", work_id.clone())
+        .param("role", role.clone())
+        .param("ids", serde_json::to_value(&ids)?)
+        .param("at", at.clone());
+
+    let framed = scene::frame_from_text(&mut conn, &work_id, &role, &minted, Some(logged))?;
+
+    journal::record(
+        &conn,
+        &profile_id,
+        Record::new("scene.framed")
+            .param(
+                "title",
+                journal::work_title(&conn, &work_id).unwrap_or_default(),
+            )
+            .param("count", framed.len() as i64)
+            .about("work", work_id.clone()),
+    );
+
+    Ok(framed)
+}
+
 /// Divide the work's length between the scenes of its board.
 ///
 /// The first timing of a board, not the last word on it: every span after

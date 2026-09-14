@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
-import { Clock, Copy, Plus, Trash2 } from 'lucide-react'
+import { Clock, Copy, Plus, Rows3, Trash2 } from 'lucide-react'
 import {
   createScene,
   deleteScene,
+  frameScenes,
   getVersion,
+  listLinks,
   listScenes,
   listVersions,
   timeScenes,
@@ -90,6 +92,25 @@ export function ScenesTab({ work }: Props) {
       refresh()
       say.failedTo(t('toast.sceneSaveFailed'), cause)
     },
+  })
+
+  // What the board could be framed from: the first work this one is made
+  // from. Nothing to frame without it, and the empty board says so.
+  const links = useQuery({
+    queryKey: [...keys.links, work.id],
+    queryFn: () => listLinks(work.id),
+  })
+  const donor = links.data?.sources[0]
+  const donorRoles =
+    donor === undefined ? [] : vocabularyOf(profile.config, donor.source_kind).version_roles
+
+  const frame = useMutation({
+    mutationFn: (role: string) => frameScenes(work.id, role),
+    onSuccess: (framed) => {
+      refresh()
+      say.ok(t('scenes.framed', { count: framed.length }))
+    },
+    onError: (cause) => say.failedTo(t('toast.sceneFrameFailed'), cause),
   })
 
   // The board's first timing: the work's length divided between the scenes,
@@ -189,7 +210,32 @@ export function ScenesTab({ work }: Props) {
       )}
 
       {scenes.data !== undefined && all.length === 0 && (
-        <p className="text-sm text-dim">{t(hasActions ? 'scenes.emptyWithActions' : 'scenes.empty')}</p>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-dim">
+            {t(hasActions ? 'scenes.emptyWithActions' : 'scenes.empty')}
+          </p>
+          {/* The frame from the source text: one scene per part the lyric
+              marks out. Shown only when there is a source to read and roles
+              to read it in — a button that can only refuse is no entrance. */}
+          {donorRoles.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-dim">{t('scenes.frameFrom')}</span>
+              {donorRoles.map((role) => (
+                <Button
+                  key={role.key}
+                  variant="soft"
+                  size="sm"
+                  disabled={frame.isPending}
+                  onClick={() => frame.mutate(role.key)}
+                  title={t('scenes.frameHint')}
+                >
+                  <Rows3 aria-hidden className="size-3.5" />
+                  {role.label}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
       {scenes.data !== undefined && all.length > 0 && shown.length === 0 && (
         <p className="text-sm text-dim">{t('scenes.noneOfShot')}</p>

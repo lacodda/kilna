@@ -762,6 +762,9 @@ export const updateScene = (id: string, patch: ScenePatch) =>
 export const deleteScene = (id: string) => invoke<string>('delete_scene', { id })
 /** Divide the work's length between the scenes of its board. */
 export const timeScenes = (workId: string) => invoke<Scene[]>('time_scenes', { workId })
+/** Build the board's frame from the parts the source text marks out. */
+export const frameScenes = (workId: string, role: string) =>
+  invoke<Scene[]>('frame_scenes', { workId, role })
 export const setWorksStatus = (workIds: string[], status: string) =>
   invoke<BulkOutcome>('set_works_status', { workIds, status })
 

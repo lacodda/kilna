@@ -311,6 +311,21 @@ pub fn discard_works_batch(
     minted_ids: &[Minted],
     logged: Option<crate::operation::Intent>,
 ) -> Result<Vec<(String, String)>> {
+    discard_batch(conn, Entity::Work, ids, minted_ids, logged)
+}
+
+/// The same for any entity: several rows to the trash under one operation.
+///
+/// A gesture that made several rows is taken back as one gesture — the frame
+/// a board is built with, for instance — so the undo has one operation to
+/// write and the trash one moment to group by.
+pub fn discard_batch(
+    conn: &mut Connection,
+    entity: Entity,
+    ids: &[String],
+    minted_ids: &[Minted],
+    logged: Option<crate::operation::Intent>,
+) -> Result<Vec<(String, String)>> {
     let tx = conn.transaction()?;
     if let Some(logged) = logged {
         crate::operation::record(&tx, logged)?;
@@ -318,7 +333,7 @@ pub fn discard_works_batch(
 
     let mut discarded = Vec::new();
     for (id, minted) in ids.iter().zip(minted_ids) {
-        match discard_in_tx(&tx, Entity::Work, id, minted) {
+        match discard_in_tx(&tx, entity, id, minted) {
             Ok(entry_id) => discarded.push((id.clone(), entry_id)),
             Err(cause) => eprintln!("trash: {id} could not be discarded: {cause}"),
         }

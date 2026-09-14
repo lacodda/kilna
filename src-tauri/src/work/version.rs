@@ -308,6 +308,92 @@ pub fn update_body_at(conn: &Connection, id: &str, body: &str, at: &str) -> Resu
 ///
 /// Deleting the current one leaves the work pointing at the newest remaining
 /// version in the same role, rather than at nothing.
+/// A part of a text, as its own markup names it.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct Section {
+    /// The name the text gives it: `Verse 1`, `Chorus`, `Припев`.
+    pub name: String,
+    /// The lines under it, joined -- empty for a marker with nothing beneath.
+    pub body: String,
+}
+
+/// The sections a text marks out for itself.
+///
+/// A lyric is written with its parts named on their own lines -- `[Verse 1]`,
+/// `[Chorus]`, `(Bridge)` -- and that markup is the frame a storyboard is
+/// built on: one scene per part, before a person touches it. Read from the
+/// workspace's own texts rather than from a fixed list of names: 330 of the
+/// 346 lyrics in the workspace this was written against mark their parts this
+/// way, in two languages, and some name the part and then describe it
+/// (`[Verse 1: Intimate Whisper]`).
+///
+/// Only a line that is *nothing but* a marker counts. A bracket inside a line
+/// of the text is part of the line, and a heading (`## Chorus`) is not read as
+/// a marker at all: headings belong to the other roles -- a critique, a style
+/// note -- where they structure prose rather than name a part of a song, and
+/// reading them here would cut a review into scenes.
+///
+/// Anything above the first marker is left out: a lyric often opens with a
+/// line of style or a title, and that is not a part of the song.
+pub fn sections(body: &str) -> Vec<Section> {
+    let mut sections: Vec<Section> = Vec::new();
+    let mut lines: Vec<&str> = Vec::new();
+
+    for line in body.lines() {
+        if let Some(name) = marker(line) {
+            if let Some(open) = sections.last_mut() {
+                open.body = joined(&lines);
+            }
+            lines.clear();
+            sections.push(Section {
+                name,
+                body: String::new(),
+            });
+        } else if !sections.is_empty() {
+            lines.push(line);
+        }
+    }
+    if let Some(open) = sections.last_mut() {
+        open.body = joined(&lines);
+    }
+
+    sections
+}
+
+/// The name on a line that is nothing but a marker, if it is one.
+fn marker(line: &str) -> Option<String> {
+    let line = line.trim();
+    let inside = line
+        .strip_prefix('[')
+        .and_then(|rest| rest.strip_suffix(']'))
+        .or_else(|| {
+            line.strip_prefix('(')
+                .and_then(|rest| rest.strip_suffix(')'))
+        })?;
+    let inside = inside.trim();
+    // A bracket holding another bracket is not a marker but a line that
+    // happens to start and end with one.
+    if inside.is_empty() || inside.contains('[') || inside.contains(']') {
+        return None;
+    }
+    Some(inside.to_owned())
+}
+
+/// The lines of a part, with the blank lines around it trimmed away.
+fn joined(lines: &[&str]) -> String {
+    let mut lines = lines;
+    while lines.first().is_some_and(|line| line.trim().is_empty()) {
+        lines = &lines[1..];
+    }
+    while lines.last().is_some_and(|line| line.trim().is_empty()) {
+        lines = &lines[..lines.len() - 1];
+    }
+    lines.join(
+        "
+",
+    )
+}
+
 pub fn delete(conn: &mut Connection, id: &str) -> Result<()> {
     let tx = conn.transaction()?;
 
@@ -401,6 +487,114 @@ mod tests {
     use crate::db;
     use crate::profile;
     use crate::work::{self, NewWork};
+
+    /// The markup a lyric actually uses: a marker on its own line, the lines
+    /// under it, a preamble above the first marker that belongs to no part.
+    #[test]
+    fn a_text_divides_at_the_markers_it_carries() {
+        let body = "a note about the style
+
+[Verse 1]
+first line
+second line
+
+[Chorus]
+the hook
+
+(Bridge)
+turning
+";
+        let parts = sections(body);
+        assert_eq!(
+            parts.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(),
+            ["Verse 1", "Chorus", "Bridge"],
+            "round brackets mark a part too, and the preamble is no part"
+        );
+        assert_eq!(
+            parts[0].body,
+            "first line
+second line"
+        );
+        assert_eq!(parts[1].body, "the hook");
+    }
+
+    /// A part named and left empty is the material, not a miss: `[End]`,
+    /// `[Guitar Solo]`, a `[Chorus]` repeated by marker alone. It is a part of
+    /// the song and becomes a scene like any other.
+    #[test]
+    fn a_marker_with_no_lines_is_still_a_part() {
+        let parts = sections(
+            "[Intro]
+
+[Verse 1]
+a line
+
+[End]
+",
+        );
+        assert_eq!(parts.len(), 3);
+        assert!(parts[0].body.is_empty(), "an intro with no words is a part");
+        assert!(parts[2].body.is_empty(), "and so is the end");
+    }
+
+    /// Only a line that is nothing but a marker counts. A bracket inside a
+    /// line belongs to the line, and a heading is not a marker at all —
+    /// headings structure the prose of a critique or a style note, and
+    /// reading them here would cut a review into scenes.
+    #[test]
+    fn a_bracket_inside_a_line_and_a_heading_are_not_markers() {
+        assert!(
+            sections(
+                "she said [quietly] and left
+the door open
+"
+            )
+            .is_empty(),
+            "a bracket mid-line is part of the line"
+        );
+        assert!(
+            sections(
+                "## Chorus
+
+the hook
+"
+            )
+            .is_empty(),
+            "a heading is not a part of a song"
+        );
+        assert!(
+            sections(
+                "[a line [with] brackets]
+"
+            )
+            .is_empty(),
+            "a bracket holding another is a line, not a marker"
+        );
+        assert!(
+            sections(
+                "[]
+text
+"
+            )
+            .is_empty(),
+            "an empty marker is none"
+        );
+    }
+
+    /// A text with no markup has no parts — said plainly, rather than coming
+    /// back as one part holding everything.
+    #[test]
+    fn a_text_with_no_markup_has_no_parts() {
+        assert!(
+            sections(
+                "just a few lines
+with no markers at all
+"
+            )
+            .is_empty()
+        );
+        assert!(sections("").is_empty());
+    }
 
     fn workspace() -> (Connection, String) {
         let conn = db::open_in_memory().unwrap();

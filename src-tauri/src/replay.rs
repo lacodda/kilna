@@ -367,6 +367,20 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
             scene::time_board_at(conn, &work_id, &at, None)?;
         }
 
+        "scene.frame" => {
+            let work_id = required(params, "workId")?;
+            let role = required(params, "role")?;
+            let at = required(params, "at")?;
+            let ids: Vec<String> = from_params(params, "ids")?;
+            // The ids the first run minted, so the rebuilt board is the same
+            // board — see `Minted` on why a replacement is refused instead.
+            let minted: Vec<crate::minted::Minted> = ids
+                .into_iter()
+                .map(|id| crate::minted::Minted::of(id, at.clone()))
+                .collect();
+            scene::frame_from_text(conn, &work_id, &role, &minted, None)?;
+        }
+
         "entity.discard" => {
             let entity = trash::Entity::parse(&required(params, "entity")?)?;
             let id = required(params, "entityId")?;

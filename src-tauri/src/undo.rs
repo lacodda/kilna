@@ -101,6 +101,7 @@ pub fn reversible(kind: &str) -> bool {
             | "scene.create"
             | "scene.update"
             | "scene.time"
+            | "scene.frame"
     )
 }
 
@@ -175,6 +176,23 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
                 crate::scene::update_at(tx, &id, patch, &at).map(|_| ())
             })?;
         }
+        // A framed board goes to the trash whole: the frame made every scene
+        // in one gesture, and taking it back leaves none of them behind. They
+        // are in the trash, not destroyed, so a person who undid by mistake
+        // has them back.
+        "scene.frame" => {
+            let ids: Vec<String> = from_params(params, "ids")?;
+            let minted: Vec<crate::minted::Minted> =
+                ids.iter().map(|_| crate::minted::Minted::fresh()).collect();
+            crate::trash::discard_batch(
+                conn,
+                crate::trash::Entity::Scene,
+                &ids,
+                &minted,
+                Some(logged.param("at", at.clone())),
+            )?;
+        }
+
         // A timed board goes back span by span, in one change: the timing was
         // one gesture, and so is taking it back. `before` carries the spans
         // the scenes held, including the ones that held none.

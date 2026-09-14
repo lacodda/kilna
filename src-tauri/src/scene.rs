@@ -587,6 +587,116 @@ pub fn restore_spans_in(
     Ok(())
 }
 
+/// How many parts the source text marks out, for a caller about to frame a
+/// board from it. Reads through the same donor and role that framing does, so
+/// the two cannot disagree about what they are counting.
+pub fn parts_of_source(conn: &Connection, work_id: &str, role: &str) -> Result<usize> {
+    let work = crate::work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
+    let donor = crate::link::sources(conn, work_id)?
+        .into_iter()
+        .find(|source| source.role == crate::link::DONOR)
+        .ok_or_else(|| {
+            Error::Other(format!(
+                "“{}” is not made from anything yet: link its source on the Links tab first",
+                work.title
+            ))
+        })?;
+    let body = crate::work::version::latest(conn, &donor.source_id, role)?
+        .map(|version| version.body)
+        .unwrap_or_default();
+    Ok(crate::work::version::sections(&body).len())
+}
+
+/// Build a board from the parts a text marks out for itself.
+///
+/// One scene per part, in the text's own order, each carrying the part's name
+/// as its section — the frame a person then works on, not a finished board.
+/// The text is the donor's: a video is made from a song (ADR 0019), and the
+/// song's lyric is what has the parts. The description is left empty; what is
+/// *seen* in a scene is not what is *sung* in it, and filling the description
+/// with the lines would put words in the person's mouth that they would have
+/// to delete before writing the shot.
+///
+/// Refuses rather than half-builds: a board that already has scenes is left
+/// alone (the person chooses to replace it by emptying it first), and a text
+/// with no markup says so instead of producing one scene holding everything.
+/// `minted` carries one id per part, in order: the ids travel in the
+/// operation so a workspace rebuilt from the log lands on the same rows
+/// rather than inventing new ones. `parts` is how many the caller minted —
+/// it must match what the text marks out, or the operation is refused
+/// rather than played against a text that has changed since.
+pub fn frame_from_text(
+    conn: &mut Connection,
+    work_id: &str,
+    role: &str,
+    minted: &[Minted],
+    logged: Option<crate::operation::Intent>,
+) -> Result<Vec<Scene>> {
+    let work = crate::work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
+
+    if count(conn, work_id)? > 0 {
+        return Err(Error::Other(
+            "this board already has scenes: empty it first to build a new frame".into(),
+        ));
+    }
+
+    let donor = crate::link::sources(conn, work_id)?
+        .into_iter()
+        .find(|source| source.role == crate::link::DONOR)
+        .ok_or_else(|| {
+            Error::Other(format!(
+                "“{}” is not made from anything yet: link its source on the Links tab first",
+                work.title
+            ))
+        })?;
+
+    let body = crate::work::version::latest(conn, &donor.source_id, role)?
+        .map(|version| version.body)
+        .ok_or_else(|| {
+            Error::Other(format!(
+                "“{}” has no {role} to read the parts from",
+                donor.source_title
+            ))
+        })?;
+
+    let sections = crate::work::version::sections(&body);
+    if sections.is_empty() {
+        return Err(Error::Other(format!(
+            "“{}” marks no parts: name them in the text — [Verse 1], [Chorus] — and try again",
+            donor.source_title
+        )));
+    }
+    if sections.len() != minted.len() {
+        return Err(Error::Other(format!(
+            "the text now marks {} parts, not {}: read it again rather than framing a board that does not match it",
+            sections.len(),
+            minted.len()
+        )));
+    }
+
+    let profile_id = work.profile_id.clone();
+    let tx = conn.transaction()?;
+    if let Some(logged) = logged {
+        crate::operation::record(&tx, logged)?;
+    }
+    for (index, (section, minted)) in sections.iter().zip(minted).enumerate() {
+        create_minted(
+            &tx,
+            &profile_id,
+            NewScene {
+                work_id: work_id.to_owned(),
+                position: Some(index as i64 + 1),
+                section: Some(section.name.clone()),
+                ..NewScene::default()
+            },
+            minted.clone(),
+        )?;
+    }
+    tx.commit()?;
+
+    for_work(conn, work_id)
+}
+
 /// Whether works of a kind have a storyboard at all: the kind names kinds
 /// of shot or prompt blocks. A song has neither, and no Scenes tab.
 pub fn kind_has_scenes(config: &ProfileConfig, kind: &str) -> bool {
@@ -739,6 +849,144 @@ mod tests {
             timed[0].ends_at, timed[1].starts_at,
             "the spans join on the board, not only in the arithmetic"
         );
+    }
+
+    /// The frame is one scene per part of the source text, in its order,
+    /// carrying the part's name and nothing else: what is *seen* in a scene
+    /// is not what is *sung* in it, and a description filled with the lines
+    /// would be words the person has to delete before writing the shot.
+    #[test]
+    fn a_board_is_framed_from_the_parts_of_its_source() {
+        let (mut conn, profile_id) = workspace();
+        let song_id = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "song".into(),
+                title: "Harbour lights".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap()
+        .id;
+        crate::work::version::create(
+            &mut conn,
+            &song_id,
+            crate::work::version::NewVersion {
+                role: "lyrics".into(),
+                body: "[Intro]
+
+[Verse 1]
+a line
+
+[Chorus]
+the hook
+"
+                .into(),
+                label: None,
+                meta: None,
+                make_current: true,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
+
+        let video_id = video(&conn, &profile_id);
+
+        // No source yet: framing says where to give it one.
+        let orphan = crate::scene::parts_of_source(&conn, &video_id, "lyrics");
+        assert!(
+            orphan.is_err(),
+            "a video made from nothing cannot be framed"
+        );
+
+        crate::link::create(
+            &conn,
+            &profile_id,
+            crate::link::NewLink {
+                work_id: video_id.clone(),
+                source_id: song_id.clone(),
+                role: None,
+                source_version_id: None,
+            },
+        )
+        .unwrap();
+
+        let parts = crate::scene::parts_of_source(&conn, &video_id, "lyrics").unwrap();
+        assert_eq!(parts, 3);
+        let minted: Vec<Minted> = (0..parts).map(|_| Minted::fresh()).collect();
+        let framed = frame_from_text(&mut conn, &video_id, "lyrics", &minted, None).unwrap();
+
+        assert_eq!(
+            framed
+                .iter()
+                .map(|scene| scene.section.as_deref().unwrap_or_default())
+                .collect::<Vec<_>>(),
+            ["Intro", "Verse 1", "Chorus"],
+            "one scene per part, in the text's order"
+        );
+        assert_eq!(framed[0].position, 1);
+        assert_eq!(framed[2].position, 3);
+        assert!(
+            framed.iter().all(|scene| scene.description.is_empty()),
+            "the lines of the song are not the description of the shot"
+        );
+
+        // A board that already has scenes is left alone rather than doubled.
+        let minted: Vec<Minted> = (0..parts).map(|_| Minted::fresh()).collect();
+        let refused = frame_from_text(&mut conn, &video_id, "lyrics", &minted, None);
+        assert!(refused.is_err(), "a board with scenes is not framed again");
+        assert_eq!(count(&conn, &video_id).unwrap(), 3, "and nothing was added");
+    }
+
+    /// A source with no markup is said plainly, not framed into one scene
+    /// holding the whole song.
+    #[test]
+    fn a_source_with_no_markup_is_refused() {
+        let (mut conn, profile_id) = workspace();
+        let song_id = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "song".into(),
+                title: "Harbour lights".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap()
+        .id;
+        crate::work::version::create(
+            &mut conn,
+            &song_id,
+            crate::work::version::NewVersion {
+                role: "lyrics".into(),
+                body: "a few lines
+with no markers
+"
+                .into(),
+                label: None,
+                meta: None,
+                make_current: true,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
+        let video_id = video(&conn, &profile_id);
+        crate::link::create(
+            &conn,
+            &profile_id,
+            crate::link::NewLink {
+                work_id: video_id.clone(),
+                source_id: song_id,
+                role: None,
+                source_version_id: None,
+            },
+        )
+        .unwrap();
+
+        let refused = frame_from_text(&mut conn, &video_id, "lyrics", &[], None);
+        assert!(refused.is_err());
+        assert_eq!(count(&conn, &video_id).unwrap(), 0, "no half-built board");
     }
 
     fn scene(work_id: &str) -> NewScene {

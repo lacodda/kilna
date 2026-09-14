@@ -598,6 +598,9 @@
     "noneForKind": "Works of this kind have no storyboard. Give the kind kinds of shot or prompt blocks in the profile to open one.",
     "add": "Add scene",
     "added": "Scene {{number}} added.",
+    "frameFrom": "Frame the board from:",
+    "frameHint": "One scene per part the text marks out — [Verse 1], [Chorus] — in its own order.",
+    "framed": "Framed into {{count}} scenes.",
     "time": "Time the board",
     "timeHint": "Divide the work's duration between the scenes, evenly — drag from there.",
     "timed": "Timed across {{count}} scenes.",
@@ -724,6 +727,7 @@
     "sceneEdited": "Scene changed",
     "sceneSaveFailed": "Could not save the scene.",
     "sceneTimeFailed": "Could not time the board.",
+    "sceneFrameFailed": "Could not frame the board.",
     "profileSwitched": "Switched to {{name}}.",
     "profileSaveFailed": "Could not save the profile.",
     "loadFailed": "Could not load that.",
@@ -798,6 +802,7 @@
     "link.removed": "“{{title}}” is no longer made from “{{source}}”.",
     "scene.created": "Scene {{number}} added to “{{title}}”.",
     "scene.timed": "The board of “{{title}}” timed across {{count}} scenes.",
+    "scene.framed": "The board of “{{title}}” framed into {{count}} scenes.",
     "proposal.work": "{{client}} proposed a new work, “{{title}}”.",
     "proposal.package": "{{client}} proposed a package for “{{title}}”.",
     "proposal.scenes": "{{client}} proposed a storyboard for “{{title}}”.",
@@ -899,6 +904,7 @@
     "link.delete": "removing a link",
     "scene.create": "adding a scene",
     "scene.update": "an edit to a scene",
-    "scene.time": "timing a board"
+    "scene.time": "timing a board",
+    "scene.frame": "framing a board"
   }
 }

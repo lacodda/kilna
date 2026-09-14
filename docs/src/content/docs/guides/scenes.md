@@ -45,6 +45,28 @@ From top to bottom:
 Every field saves when you leave it. A time is typed as `1:23` or `0:04.5`
 and stored as seconds; a scene cannot end before it starts.
 
+### Framing the board from the text
+
+An empty board offers to build itself from the source. A video is made from
+a song ([Links](/kilna/guides/made-from/)), and a lyric names its own parts —
+`[Verse 1]`, `[Chorus]`, `(Bridge)`, in any language. **Frame the board
+from:** and the role's name gives you one scene per part, in the text's own
+order, each carrying the part's name as its section.
+
+The description is left empty on purpose: what is *seen* in a scene is not
+what is *sung* in it, and lines pasted into the description would be words
+you have to delete before writing the shot.
+
+Only a line that is *nothing but* a marker counts — a bracket inside a line
+belongs to the line, and a `## Heading` is not a marker at all. A part named
+with nothing under it (`[Instrumental]`, `[End]`, a `[Chorus]` repeated by
+marker alone) is still a part, and becomes a scene like any other.
+
+A board that already has scenes is left alone; empty it first if you want a
+new frame. A text with no markup says so rather than producing one scene
+holding the whole song. Framing is one change, so one **Undo** puts the
+whole frame in the trash.
+
 ### Timing the board
 
 **Time the board** divides the work's `duration` — a number of seconds in
