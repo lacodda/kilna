@@ -34,11 +34,21 @@ From top to bottom:
 - **A strip of kinds of shot** with counts — *All · Wide · Close-up ·
   Detail…* Click one to see only those scenes: "show me every detail" is
   one click, and the chip that is on turns off.
-- **One card per scene.** The number, the section (*intro*, *verse 1*,
-  *chorus* — free text until the text's own markup gives the board its
-  frame), the seconds it runs from and to, the kind of shot, a description,
-  and a box per prompt block — and, in the row, the profile's scene
-  actions: *Prompts for the scene* in Studio.
+- **The board as a table**, one row per scene: the number, the section
+  (*intro*, *verse 1*, *chorus*), the seconds it runs from and to, the kind
+  of shot, the first line of the description, how far the scene is filled
+  in, and the profile's scene actions as icons — *Prompts for the scene* in
+  Studio. Fifty scenes read as fifty rows you can compare, not fifty cards
+  you scroll past.
+
+  **Click the description to open the row.** Underneath it, the description
+  in full and a box per prompt block, each with its own copy button. The
+  long text is folded away, not left out.
+
+  **Filled in** is computed, never stored: *empty* when nothing is written,
+  *ready* when the scene has a description and every prompt block the
+  profile names, *started* in between. A kind with no prompt blocks asks
+  only for a description.
 - **Add scene** at the bottom, numbered after the last, and — once the
   board has scenes — **Time the board**.
 

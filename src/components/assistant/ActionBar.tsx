@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Eye } from 'lucide-react'
+import { Eye, Sparkles } from 'lucide-react'
 import { activeTasks, startTask, type PromptTemplate, type RunEmission } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
@@ -127,16 +127,28 @@ export function ActionBar({ workId, versionId, sceneId, hint, compact = false }:
 
         return (
           <span key={action.key} className="inline-flex items-stretch">
+            {/* On a row of a table the label does not fit: the board gives
+                an action about as much room as an icon, and a button drawn
+                at its full width lands on top of the cell beside it — as it
+                did on a fifty-scene board, measured. Compact keeps the name
+                in the tooltip and for a screen reader, and shows the mark. */}
             <Button
               size="sm"
               className="rounded-r-none"
-              title={action.description}
+              title={compact ? action.label : action.description}
+              aria-label={compact ? action.label : undefined}
               disabled={working}
               onClick={() => {
                 start.mutate(action.key)
               }}
             >
-              {working ? t('assistant.actionWorking', { label: action.label }) : action.label}
+              {compact ? (
+                <Sparkles aria-hidden className="size-3.5" />
+              ) : working ? (
+                t('assistant.actionWorking', { label: action.label })
+              ) : (
+                action.label
+              )}
             </Button>
             <Button
               size="sm"
