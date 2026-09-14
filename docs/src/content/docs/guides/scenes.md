@@ -55,6 +55,26 @@ From top to bottom:
 Every field saves when you leave it. A time is typed as `1:23` or `0:04.5`
 and stored as seconds; a scene cannot end before it starts.
 
+### Who is in it, where it happens
+
+A scene points at the notes it is about — a character, a place — rather
+than describing them again in the shot. A hero written three ways across
+fifty descriptions is three heroes to anything that reads them; a
+reference is one person.
+
+Open a row and choose from the notes whose kind the profile names as a
+kind of note (`character`, `location`, `lore` in Studio — see
+[the profile document](/kilna/reference/profile-document/#note_kinds)).
+The names show in the **About** column, and a chip appears above the
+board for everyone the board names: click one and the board narrows to
+**every scene with her in it**.
+
+A character is a note, not a table of its own: its own editing screen
+comes later and edits that same note. Deleting a scene takes its
+references with it and leaves the notes alone; deleting a character takes
+her out of the scenes, and restoring her from the trash puts her back
+into them.
+
 ### Framing the board from the text
 
 An empty board offers to build itself from the source. A video is made from

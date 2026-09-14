@@ -102,6 +102,8 @@ pub fn reversible(kind: &str) -> bool {
             | "scene.update"
             | "scene.time"
             | "scene.frame"
+            | "scene.attachNote"
+            | "scene.detachNote"
     )
 }
 
@@ -176,6 +178,24 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
                 crate::scene::update_at(tx, &id, patch, &at).map(|_| ())
             })?;
         }
+        // Saying a scene is about someone is taken back by saying it is not,
+        // and the other way round. There is nothing to keep: the row holds a
+        // scene, a note and the moment, and the moment is the undo's own.
+        "scene.attachNote" => {
+            let scene_id = required(params, "sceneId")?;
+            let note_id = required(params, "noteId")?;
+            edit(conn, logged, &at, |tx| {
+                crate::scene_note::detach(tx, &scene_id, &note_id)
+            })?;
+        }
+        "scene.detachNote" => {
+            let scene_id = required(params, "sceneId")?;
+            let note_id = required(params, "noteId")?;
+            edit(conn, logged, &at, |tx| {
+                crate::scene_note::attach(tx, &scene_id, &note_id).map(|_| ())
+            })?;
+        }
+
         // A framed board goes to the trash whole: the frame made every scene
         // in one gesture, and taking it back leaves none of them behind. They
         // are in the trash, not destroyed, so a person who undid by mistake

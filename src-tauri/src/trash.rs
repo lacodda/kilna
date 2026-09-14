@@ -130,6 +130,13 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "scene",
                 key: "work_id",
             },
+            // And what those scenes are about goes with the scenes. Keyed
+            // through the board rather than by a column of its own: the row
+            // names a scene, and the scenes are the work's.
+            Capture {
+                table: "scene_note",
+                key: "scene_id IN (SELECT id FROM scene WHERE work_id = ?)",
+            },
             // A link is about two works and cascades from either; the
             // snapshot takes it from both sides, so a video restored gets
             // its song back and a song restored gets its videos back.
@@ -160,14 +167,29 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 key: "release_id",
             },
         ],
-        Entity::Note => &[Capture {
-            table: "note",
-            key: "id",
-        }],
-        Entity::Scene => &[Capture {
-            table: "scene",
-            key: "id",
-        }],
+        Entity::Note => &[
+            Capture {
+                table: "note",
+                key: "id",
+            },
+            // What a scene said this note was in. Captured so a character
+            // restored is back in the scenes that named them, rather than
+            // coming back as a note nothing points at.
+            Capture {
+                table: "scene_note",
+                key: "note_id",
+            },
+        ],
+        Entity::Scene => &[
+            Capture {
+                table: "scene",
+                key: "id",
+            },
+            Capture {
+                table: "scene_note",
+                key: "scene_id",
+            },
+        ],
         // Works are not deleted with a collection — they are only let go of. The
         // membership they lose is captured separately, under `members`.
         Entity::Collection => &[Capture {
@@ -189,7 +211,22 @@ const MEMBERS: &str = "members";
 /// deleted.
 struct Capture {
     table: &'static str,
+    /// The column the row is found by — or, where the tie is indirect, a
+    /// whole condition naming the value once as `?`. A work's scenes are
+    /// found by `work_id`; what those scenes are *about* is found through
+    /// the board, because the row names a scene and not the work.
     key: &'static str,
+}
+
+impl Capture {
+    /// The `WHERE` clause this capture reads and deletes by.
+    fn condition(&self) -> String {
+        if self.key.contains('?') {
+            self.key.to_owned()
+        } else {
+            format!("{} = ?", self.key)
+        }
+    }
 }
 
 /// Delete an entity, keeping a snapshot of it and everything beneath it.
@@ -246,7 +283,7 @@ fn discard_in_tx(
     // Snapshot first, delete second: the rows have to be read while they exist.
     let mut snapshot = Map::new();
     for capture in cascade(entity) {
-        let rows = read_rows(tx, capture.table, capture.key, id)?;
+        let rows = read_rows(tx, capture.table, &capture.condition(), id)?;
         if rows.is_empty() {
             continue;
         }
@@ -719,10 +756,11 @@ fn entity_label(entity: Entity) -> &'static str {
 ///
 /// Reading by name rather than by position means a column added in a later
 /// migration lands in the snapshot without this function being told about it.
-fn read_rows(conn: &Connection, table: &str, key: &str, value: &str) -> Result<Vec<Value>> {
-    // `table` and `key` come from the fixed cascade table above, never from
-    // input, which is why they can be formatted into the SQL.
-    let mut statement = conn.prepare(&format!("SELECT * FROM {table} WHERE {key} = ?1"))?;
+fn read_rows(conn: &Connection, table: &str, condition: &str, value: &str) -> Result<Vec<Value>> {
+    // `table` and `condition` come from the fixed cascade table above, never
+    // from input, which is why they can be formatted into the SQL. The
+    // condition names the value once, as the single `?` it carries.
+    let mut statement = conn.prepare(&format!("SELECT * FROM {table} WHERE {condition}"))?;
     let columns: Vec<String> = statement
         .column_names()
         .into_iter()

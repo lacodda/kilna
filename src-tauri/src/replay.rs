@@ -367,6 +367,18 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
             scene::time_board_at(conn, &work_id, &at, None)?;
         }
 
+        "scene.attachNote" => {
+            let scene_id = required(params, "sceneId")?;
+            let note_id = required(params, "noteId")?;
+            crate::scene_note::attach_minted(conn, &scene_id, &note_id, minted(params)?)?;
+        }
+
+        "scene.detachNote" => {
+            let scene_id = required(params, "sceneId")?;
+            let note_id = required(params, "noteId")?;
+            crate::scene_note::detach(conn, &scene_id, &note_id)?;
+        }
+
         "scene.frame" => {
             let work_id = required(params, "workId")?;
             let role = required(params, "role")?;

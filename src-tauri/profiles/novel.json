@@ -14,6 +14,12 @@
       { "key": "submission", "label": "Submission", "requires": ["text"], "icon": "send" },
       { "key": "published", "label": "Publication", "requires": ["text"], "icon": "book" }
     ],
+    "note_kinds": [
+    { "key": "character", "label": "Character" },
+    { "key": "location", "label": "Location" },
+    { "key": "lore", "label": "Lore" },
+    { "key": "note", "label": "Note" }
+    ],
     "collection_kinds": [
       { "key": "book", "label": "Book" },
       { "key": "part", "label": "Part" },

@@ -508,6 +508,12 @@
         "icon": "disc"
       }
     ],
+    "note_kinds": [
+    { "key": "character", "label": "Character" },
+    { "key": "location", "label": "Location" },
+    { "key": "lore", "label": "Lore" },
+    { "key": "note", "label": "Note" }
+    ],
     "collection_kinds": [
       {
         "key": "album",

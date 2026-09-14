@@ -374,6 +374,12 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         |field| &field.key,
     );
     changed |= add_new_keys(&mut config.marks, &shipped.config.marks, |mark| &mark.key);
+    // The kinds a note can take, new in 0.65: a workspace that predates them
+    // gains the craft's words, and a kind the owner added or renamed stays
+    // theirs — matched by key like every other vocabulary.
+    changed |= add_new_keys(&mut config.note_kinds, &shipped.config.note_kinds, |kind| {
+        &kind.key
+    });
 
     // A mark's glyph arrives the way a role's body does: a mark the
     // workspace still shares by key gains the shipped icon when its stored
@@ -1738,6 +1744,47 @@ mod tests {
     /// existed: its stored video kind names no kinds of shot, no blocks and
     /// no `context` role. At the next start it gains all three, on the same
     /// terms a role's body arrived — where the stored copy states nothing.
+    /// The kinds a note can take arrive in a workspace made before them, and
+    /// a kind the owner wrote themselves is left alone: the same rule every
+    /// vocabulary follows — matched by key, theirs stays theirs.
+    #[test]
+    fn a_workspace_from_before_note_kinds_gains_them_and_keeps_its_own() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        // As a workspace written before 0.65 looks: no kinds of note at all,
+        // plus one the owner added for themselves.
+        config.note_kinds = vec![config::Kind::new("prop", "Prop")];
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let gained = config_for(&conn, &id).unwrap().note_kinds;
+        let keys: Vec<&str> = gained.iter().map(|kind| kind.key.as_str()).collect();
+        assert!(
+            keys.contains(&"character"),
+            "the craft's words arrive: {keys:?}"
+        );
+        assert!(keys.contains(&"location"));
+        assert!(
+            keys.contains(&"prop"),
+            "and the owner's own stays: {keys:?}"
+        );
+        assert_eq!(keys[0], "prop", "theirs first, the shipped ones after");
+    }
+
     /// A list the owner narrowed is left alone.
     #[test]
     fn a_workspace_with_video_kinds_from_before_scenes_gains_the_storyboard_words() {

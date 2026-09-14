@@ -102,6 +102,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "duration_in_seconds",
         sql: include_str!("../../migrations/0018_duration_in_seconds.sql"),
     },
+    Migration {
+        version: 19,
+        name: "scene_note",
+        sql: include_str!("../../migrations/0019_scene_note.sql"),
+    },
 ];
 
 /// The newest schema this build understands.

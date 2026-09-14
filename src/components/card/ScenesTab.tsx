@@ -4,17 +4,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { ChevronRight, Clock, Copy, Plus, Rows3, Trash2 } from 'lucide-react'
 import {
+  attachSceneNote,
   createScene,
   deleteScene,
+  detachSceneNote,
   frameScenes,
   getVersion,
   listLinks,
+  listNotes,
+  listSceneNotes,
   listScenes,
   listVersions,
   timeScenes,
   updateScene,
+  type Note,
   type Scene,
   type SceneBlock,
+  type SceneNote,
   type ScenePatch,
   type Work,
 } from '@/lib/api'
@@ -43,6 +49,8 @@ interface Props {
 const CONTEXT_ROLE = 'context'
 
 /** The queries a scene changes: the board, and the feed. */
+/** The queries a scene changes: the board (its rows and what they are
+    about, which share the prefix), and the feed. */
 const REFRESHED = [keys.scenes, keys.journal] as const
 
 /**
@@ -104,6 +112,44 @@ export function ScenesTab({ work }: Props) {
     },
   })
 
+  // Who and where: what each scene is about, and every note it could name.
+  // Read for the whole board in one go rather than per row.
+  const about = useQuery({
+    queryKey: [...keys.scenes, 'notes', work.id],
+    queryFn: () => listSceneNotes(work.id),
+  })
+  const noteKinds = profile.config.note_kinds ?? []
+  const castable = useQuery({
+    queryKey: [...keys.notes, 'castable'],
+    queryFn: () => listNotes(),
+    enabled: noteKinds.length > 0,
+  })
+  const cast = (castable.data ?? []).filter((note) =>
+    noteKinds.some((kind) => kind.key === note.kind),
+  )
+  // Which note the board is narrowed to: "every scene with her in it".
+  const [withNote, setWithNote] = useState<string | undefined>(undefined)
+
+  const aboutByScene = new Map<string, SceneNote[]>()
+  for (const link of about.data ?? []) {
+    const held = aboutByScene.get(link.scene_id)
+    if (held === undefined) aboutByScene.set(link.scene_id, [link])
+    else held.push(link)
+  }
+
+  const attach = useMutation({
+    mutationFn: ({ sceneId, noteId }: { sceneId: string; noteId: string }) =>
+      attachSceneNote(sceneId, noteId),
+    onSuccess: () => refresh(),
+    onError: (cause) => say.failedTo(t('toast.sceneSaveFailed'), cause),
+  })
+  const detach = useMutation({
+    mutationFn: ({ sceneId, noteId }: { sceneId: string; noteId: string }) =>
+      detachSceneNote(sceneId, noteId),
+    onSuccess: () => refresh(),
+    onError: (cause) => say.failedTo(t('toast.sceneSaveFailed'), cause),
+  })
+
   // What the board could be framed from: the first work this one is made
   // from. Nothing to frame without it, and the empty board says so.
   const links = useQuery({
@@ -158,7 +204,13 @@ export function ScenesTab({ work }: Props) {
   for (const scene of all) {
     if (scene.shot_type !== null) counts.set(scene.shot_type, (counts.get(scene.shot_type) ?? 0) + 1)
   }
-  const shown = shotType === undefined ? all : all.filter((scene) => scene.shot_type === shotType)
+  const byShot = shotType === undefined ? all : all.filter((scene) => scene.shot_type === shotType)
+  const shown =
+    withNote === undefined
+      ? byShot
+      : byShot.filter((scene) =>
+          (aboutByScene.get(scene.id) ?? []).some((link) => link.note_id === withNote),
+        )
 
   // Whether the profile has anything to offer here: the empty board is an
   // entrance to the actions when there are actions, and a plain board when
@@ -212,6 +264,39 @@ export function ScenesTab({ work }: Props) {
         </div>
       )}
 
+      {/* Who and where, as a row of chips beside the kinds of shot: "every
+          scene with her in it" is one click. Only the notes some scene of
+          this board actually names — a cast list of everyone in the
+          workspace would be a list nobody reads. */}
+      {(() => {
+        const named = new Map<string, SceneNote>()
+        for (const link of about.data ?? []) if (!named.has(link.note_id)) named.set(link.note_id, link)
+        if (named.size === 0) return null
+        return (
+          <div role="group" aria-label={t('scenes.about')} className="flex flex-wrap items-center gap-2">
+            {[...named.values()].map((link) => {
+              const active = withNote === link.note_id
+              return (
+                <button
+                  key={link.note_id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setWithNote(active ? undefined : link.note_id)}
+                  className={cn(
+                    'cursor-pointer rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+                    active
+                      ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
+                      : 'border-line text-dim hover:border-line-2 hover:text-text',
+                  )}
+                >
+                  {link.note_title ?? t('scenes.untitledNote')}
+                </button>
+              )
+            })}
+          </div>
+        )
+      })()}
+
       {scenes.isPending && <Skeleton className="h-24 w-full" />}
       {scenes.isError && (
         <p role="alert" className="text-sm text-bad">
@@ -259,23 +344,25 @@ export function ScenesTab({ work }: Props) {
           blocks — opens under it. */}
       {shown.length > 0 && (
         <div className="min-w-0 overflow-x-auto">
-          {/* `table-fixed` and no `min-w-max`: the description column is the
-              one that gives way, so the readiness and the row's actions stay
-              on screen at the width the window actually has. Measured on a
-              fifty-scene board: with the table sizing itself to its content
-              the last 374px — the mark and both buttons — sat past the edge,
-              reachable only by scrolling a board nobody scrolls sideways. */}
-          <table className="w-full table-fixed text-sm">
+          {/* `table-fixed` so the description is the column that gives way,
+              and a minimum width so it does not give way to nothing: with
+              every other column fixed, eight columns in a 926px pane left
+              the description six pixels wide — measured, on a fifty-scene
+              board. Below the minimum the pane scrolls sideways, which is
+              the honest answer at that width; above it the description takes
+              everything the others do not. */}
+          <table className="w-full min-w-[68rem] table-fixed text-sm">
             <thead className="sticky top-0 z-10 bg-bg">
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-dim">
                 <th className="w-10 px-2 py-2 text-right">{t('scenes.number')}</th>
-                <th className="w-40 px-2 py-2">{t('scenes.section')}</th>
-                <th className="w-48 px-2 py-2">{t('scenes.span')}</th>
+                <th className="w-36 px-2 py-2">{t('scenes.section')}</th>
+                <th className="w-44 px-2 py-2">{t('scenes.span')}</th>
                 {vocabulary.shot_types.length > 0 && (
-                  <th className="w-40 px-2 py-2">{t('scenes.shotType')}</th>
+                  <th className="w-36 px-2 py-2">{t('scenes.shotType')}</th>
                 )}
                 {/* No width: the column that takes what is left, and truncates. */}
                 <th className="px-2 py-2">{t('scenes.description')}</th>
+                {noteKinds.length > 0 && <th className="w-36 px-2 py-2">{t('scenes.about')}</th>}
                 <th className="w-28 px-2 py-2">{t('scenes.readiness')}</th>
                 <th className="w-24 px-2 py-2" />
               </tr>
@@ -295,6 +382,10 @@ export function ScenesTab({ work }: Props) {
                   saving={patch.isPending && patch.variables?.id === scene.id}
                   onPatch={(changes) => patch.mutate({ id: scene.id, changes })}
                   onDelete={() => remove.mutate(scene)}
+                  about={aboutByScene.get(scene.id) ?? []}
+                  cast={cast}
+                  onAttach={(noteId) => attach.mutate({ sceneId: scene.id, noteId })}
+                  onDetach={(noteId) => detach.mutate({ sceneId: scene.id, noteId })}
                 />
               ))}
             </tbody>
@@ -387,6 +478,10 @@ function SceneRow({
   saving,
   onPatch,
   onDelete,
+  about,
+  cast,
+  onAttach,
+  onDetach,
 }: {
   scene: Scene
   workId: string
@@ -396,6 +491,12 @@ function SceneRow({
   saving: boolean
   onPatch: (changes: ScenePatch) => void
   onDelete: () => void
+  /** Who is in this scene, where it happens. */
+  about: SceneNote[]
+  /** Every note the profile lets a scene name. */
+  cast: Note[]
+  onAttach: (noteId: string) => void
+  onDetach: (noteId: string) => void
 }) {
   const { t } = useTranslation()
   const [starts, setStarts] = useState(formatSeconds(scene.starts_at))
@@ -427,7 +528,8 @@ function SceneRow({
   )
 
   const readiness = readinessOf(scene, vocabulary.scene_blocks)
-  const columns = vocabulary.shot_types.length > 0 ? 7 : 6
+  const columns = 6 + (vocabulary.shot_types.length > 0 ? 1 : 0) + (cast.length > 0 ? 1 : 0)
+  const named = new Set(about.map((link) => link.note_id))
 
   return (
     <>
@@ -506,6 +608,27 @@ function SceneRow({
             </span>
           </button>
         </td>
+        {cast.length > 0 && (
+          // Who and where, as names rather than as text inside the shot: a
+          // hero written three ways across fifty scenes is three heroes to
+          // anything that reads them. Chosen in the open row below.
+          <td className="px-2 py-1.5">
+            <span className="flex flex-wrap gap-1">
+              {about.length === 0 ? (
+                <span className="text-xs text-faint">—</span>
+              ) : (
+                about.map((link) => (
+                  <span
+                    key={link.note_id}
+                    className="rounded-full border border-line px-1.5 py-0.5 text-[11px] text-dim"
+                  >
+                    {link.note_title ?? t('scenes.untitledNote')}
+                  </span>
+                ))
+              )}
+            </span>
+          </td>
+        )}
         <td className="px-2 py-1.5">
           <ReadinessMark readiness={readiness} blocks={vocabulary.scene_blocks.length} />
         </td>
@@ -544,6 +667,31 @@ function SceneRow({
                     onPatch({ description: event.target.value })
                 }}
               />
+
+              {cast.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-dim">{t('scenes.aboutHint')}</span>
+                  {cast.map((note) => {
+                    const chosen = named.has(note.id)
+                    return (
+                      <button
+                        key={note.id}
+                        type="button"
+                        aria-pressed={chosen}
+                        onClick={() => (chosen ? onDetach(note.id) : onAttach(note.id))}
+                        className={cn(
+                          'cursor-pointer rounded-full border px-2 py-0.5 text-[11.5px] transition-colors',
+                          chosen
+                            ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
+                            : 'border-line text-dim hover:border-line-2 hover:text-text',
+                        )}
+                      >
+                        {note.title ?? t('scenes.untitledNote')}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
 
               {vocabulary.scene_blocks.length > 0 && (
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">

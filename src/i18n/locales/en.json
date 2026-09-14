@@ -601,6 +601,9 @@
     "number": "#",
     "describeIt": "Describe the shot",
     "span": "Seconds",
+    "about": "About",
+    "aboutHint": "Who is in it, where it happens:",
+    "untitledNote": "Untitled",
     "readiness": "Filled in",
     "readiness_empty": "Empty",
     "readiness_started": "Started",
@@ -914,6 +917,8 @@
     "scene.create": "adding a scene",
     "scene.update": "an edit to a scene",
     "scene.time": "timing a board",
-    "scene.frame": "framing a board"
+    "scene.frame": "framing a board",
+    "scene.attachNote": "saying what a scene is about",
+    "scene.detachNote": "taking that out of a scene"
   }
 }

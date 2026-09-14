@@ -21,6 +21,7 @@ use crate::profile::{self, Profile, Workspace};
 use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
 use crate::reversal;
 use crate::scene::{self, NewScene, Scene, ScenePatch};
+use crate::scene_note::{self, SceneNote};
 use crate::score::{self, NewScore, Score, ScoredWork};
 use crate::search::{self, Hit};
 use crate::state::AppState;
@@ -1828,6 +1829,57 @@ pub fn update_scene(state: State<'_, AppState>, id: String, patch: ScenePatch) -
 
     recording(&mut conn, logged, |tx| {
         scene::update_at(tx, &id, patch, &at)
+    })
+}
+
+/// What every scene of a board is about: the people in it, the places.
+#[tauri::command]
+pub fn list_scene_notes(state: State<'_, AppState>, work_id: String) -> Result<Vec<SceneNote>> {
+    let conn = state.conn();
+    scene_note::for_work(&conn, &work_id)
+}
+
+/// Say that a scene is about a note — a character, a place.
+#[tauri::command]
+pub fn attach_scene_note(
+    state: State<'_, AppState>,
+    scene_id: String,
+    note_id: String,
+) -> Result<SceneNote> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("scene.attachNote")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("sceneId", scene_id.clone())
+        .param("noteId", note_id.clone())
+        .minted(&minted);
+
+    recording(&mut conn, logged, |tx| {
+        scene_note::attach_minted(tx, &scene_id, &note_id, minted)
+    })
+}
+
+/// Stop a scene being about a note.
+#[tauri::command]
+pub fn detach_scene_note(
+    state: State<'_, AppState>,
+    scene_id: String,
+    note_id: String,
+) -> Result<()> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let logged = operation::Intent::new("scene.detachNote")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("sceneId", scene_id.clone())
+        .param("noteId", note_id.clone());
+
+    recording(&mut conn, logged, |tx| {
+        scene_note::detach(tx, &scene_id, &note_id)
     })
 }
 

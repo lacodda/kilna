@@ -21,6 +21,7 @@ pub mod release;
 pub mod replay;
 pub mod reversal;
 pub mod scene;
+pub mod scene_note;
 pub mod score;
 pub mod search;
 pub mod state;
@@ -134,6 +135,9 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::delete_scene,
             commands::time_scenes,
             commands::frame_scenes,
+            commands::list_scene_notes,
+            commands::attach_scene_note,
+            commands::detach_scene_note,
             commands::search,
             commands::list_journal,
             commands::journal_for_work,

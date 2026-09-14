@@ -54,6 +54,17 @@ pub struct ProfileConfig {
     /// added in format 2 — a document without it is the same document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub catalogue_columns_by_kind: Option<BTreeMap<String, Vec<String>>>,
+    /// Kinds a note can take: a character, a location, a piece of lore, a
+    /// plain note. One table with a kind rather than a table each (ADR 0001),
+    /// and the kinds are the craft's words rather than the application's: a
+    /// novel has characters and places, a podcast has guests and segments.
+    ///
+    /// A scene points at notes of these kinds, which is what makes "every
+    /// scene with her in it" a question the board can answer. An optional key
+    /// added in format 2 — a document without it is the same document, and a
+    /// note keeps taking any kind a person writes.
+    #[serde(default)]
+    pub note_kinds: Vec<Kind>,
 }
 
 /// A profile document as it is written, in either format.
@@ -84,6 +95,8 @@ pub struct RawProfileConfig {
     pub catalogue_columns: Option<Vec<String>>,
     #[serde(default)]
     pub catalogue_columns_by_kind: Option<BTreeMap<String, Vec<String>>>,
+    #[serde(default)]
+    pub note_kinds: Vec<Kind>,
     // Format 1: the vocabulary, flat on the profile.
     #[serde(default)]
     pub release_kinds: Vec<ReleaseKind>,
@@ -128,6 +141,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             rhythm: raw.rhythm,
             catalogue_columns: raw.catalogue_columns,
             catalogue_columns_by_kind: raw.catalogue_columns_by_kind,
+            note_kinds: raw.note_kinds,
         }
     }
 }

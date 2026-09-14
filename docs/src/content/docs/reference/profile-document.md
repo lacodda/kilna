@@ -313,6 +313,21 @@ a piece came from. It gets a text area spanning the panel rather than a
 single-line box, and it is left out of the card header: the header is the line
 you glance at, and a paragraph printed there pushes the work off screen.
 
+## `note_kinds`
+
+The kinds a note can take, each a `key` and a `label`: Studio and Novel
+ship `character`, `location`, `lore` and `note`; Podcast ships `guest`,
+`segment` and `note`; Blog ships `source` and `note`. A scene points at
+notes of these kinds, which is what lets a board answer "every scene with
+her in it" (see [Scenes](/kilna/guides/scenes/#who-is-in-it-where-it-happens)).
+
+An optional key added in 0.65 — a document without it is the same
+document, and a note still takes any kind you write. A profile naming no
+kinds of note lets a scene point at any note at all; once it names some, a
+scene may only point at those. A workspace made before them gains the
+craft's kinds on the next launch, and one you renamed or added stays
+yours, the way every vocabulary does.
+
 `duration` is a **number of seconds**, and the Scenes tab divides it between
 the scenes of a board (see [Scenes](/kilna/guides/scenes/#timing-the-board)).
 It shipped as `text` holding `3:45` until 0.65; the migration retyped it and

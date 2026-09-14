@@ -279,6 +279,10 @@ export interface ProfileConfig {
   /** The columns shown while the catalogue is narrowed to one kind of work,
       by kind key; a kind without an entry reads down `catalogue_columns`. */
   catalogue_columns_by_kind?: Record<string, string[]> | null
+  /** Kinds a note can take — a character, a place, a piece of lore. A scene
+      points at notes of these kinds. Absent in a profile written before
+      them; a note still takes any kind a person writes. */
+  note_kinds?: Kind[]
 }
 
 export interface Profile {
@@ -765,6 +769,24 @@ export const timeScenes = (workId: string) => invoke<Scene[]>('time_scenes', { w
 /** Build the board's frame from the parts the source text marks out. */
 export const frameScenes = (workId: string, role: string) =>
   invoke<Scene[]>('frame_scenes', { workId, role })
+
+/** A note a scene is about: who is in it, where it happens. */
+export interface SceneNote {
+  id: string
+  scene_id: string
+  note_id: string
+  /** The note's own kind — `character`, `location` — as the profile names it. */
+  note_kind: string
+  note_title: string | null
+  created_at: string
+}
+
+export const listSceneNotes = (workId: string) =>
+  invoke<SceneNote[]>('list_scene_notes', { workId })
+export const attachSceneNote = (sceneId: string, noteId: string) =>
+  invoke<SceneNote>('attach_scene_note', { sceneId, noteId })
+export const detachSceneNote = (sceneId: string, noteId: string) =>
+  invoke<void>('detach_scene_note', { sceneId, noteId })
 export const setWorksStatus = (workIds: string[], status: string) =>
   invoke<BulkOutcome>('set_works_status', { workIds, status })
 

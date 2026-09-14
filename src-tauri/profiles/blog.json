@@ -13,6 +13,10 @@
       { "key": "newsletter", "label": "Newsletter send", "requires": ["draft"], "icon": "mail" },
       { "key": "syndication", "label": "Syndication", "requires": ["draft"], "icon": "share-2" }
     ],
+    "note_kinds": [
+    { "key": "source", "label": "Source" },
+    { "key": "note", "label": "Note" }
+    ],
     "collection_kinds": [
       { "key": "series", "label": "Series" },
       { "key": "category", "label": "Category" },

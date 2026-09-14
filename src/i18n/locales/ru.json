@@ -652,6 +652,9 @@
     "number": "№",
     "describeIt": "Опишите кадр",
     "span": "Секунды",
+    "about": "О чём",
+    "aboutHint": "Кто в кадре, где происходит:",
+    "untitledNote": "Без названия",
     "readiness": "Заполнено",
     "readiness_empty": "Пусто",
     "readiness_started": "Начато",
@@ -981,6 +984,8 @@
     "scene.create": "добавление сцены",
     "scene.update": "правку сцены",
     "scene.time": "разметку доски по времени",
-    "scene.frame": "сборку доски из текста"
+    "scene.frame": "сборку доски из текста",
+    "scene.attachNote": "указание, о чём сцена",
+    "scene.detachNote": "удаление этого из сцены"
   }
 }

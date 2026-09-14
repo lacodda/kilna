@@ -13,6 +13,11 @@
       { "key": "clip", "label": "Audio clip", "requires": ["script"], "icon": "audio-lines" },
       { "key": "video", "label": "Video upload", "requires": ["script"], "icon": "video" }
     ],
+    "note_kinds": [
+    { "key": "guest", "label": "Guest" },
+    { "key": "segment", "label": "Segment" },
+    { "key": "note", "label": "Note" }
+    ],
     "collection_kinds": [
       { "key": "season", "label": "Season" },
       { "key": "series", "label": "Series" },
