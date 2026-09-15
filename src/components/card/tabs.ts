@@ -11,6 +11,7 @@ export const TABS = [
   'scenes',
   'score',
   'releases',
+  'files',
   'links',
   'notes',
   'assistant',

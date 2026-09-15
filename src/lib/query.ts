@@ -38,6 +38,7 @@ export const keys = {
   // One key for every work's cover: attaching one changes the catalogue,
   // the card, the calendar and the dashboard at once.
   covers: ['covers'] as const,
+  assetsFor: (workId: string) => ['assets', workId] as const,
   notes: ['notes'] as const,
   tags: ['tags'] as const,
   workTags: ['workTags'] as const,

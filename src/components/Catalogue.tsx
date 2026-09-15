@@ -57,6 +57,8 @@ import {
   type ViewShape,
 } from '@/lib/views'
 import { keys } from '@/lib/query'
+import { coverImageFor } from '@/lib/cover'
+import { useCovers } from '@/lib/useCovers'
 import { announceDeleted } from '@/lib/trash'
 import { say } from '@/lib/toast'
 import { allOf, labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
@@ -1008,6 +1010,7 @@ function Cell({
   const { t } = useTranslation()
   const profile = useProfile()
   const vocabulary = vocabularyOf(profile.config, row.kind)
+  const covers = useCovers()
 
   switch (column) {
     case 'id':
@@ -1024,6 +1027,14 @@ function Cell({
         <td className="whitespace-nowrap px-3 py-2">
           <span className="inline-flex items-center gap-2">
             <RowStar row={row} />
+            {/* The cover as a chip beside the title rather than a column of
+                its own: a column of pictures costs every row its height,
+                and what the catalogue is read down is titles. */}
+            <span
+              aria-hidden
+              className="size-5 shrink-0 rounded-[5px] border border-line/60"
+              style={{ background: coverImageFor(row.work_id, covers.get(row.work_id)) }}
+            />
             <span className="font-medium">{row.title}</span>
             {/* Where it stands as a badge in the status's own colour, and what
                 it is in outline — read at a glance down the column, the way

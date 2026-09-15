@@ -12,6 +12,7 @@ import { hasScenes, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { CardHeader } from '@/components/card/CardHeader'
+import { FilesTab } from '@/components/card/FilesTab'
 import { LinksTab } from '@/components/card/LinksTab'
 import { OverviewTab } from '@/components/card/OverviewTab'
 import { ScenesTab } from '@/components/card/ScenesTab'
@@ -174,6 +175,8 @@ function TabBody({
       return <ScorePanel workId={workId} />
     case 'releases':
       return <ReleasePanel workId={workId} workTitle={work.title} />
+    case 'files':
+      return <FilesTab work={work} />
     case 'links':
       return <LinksTab work={work} />
     case 'notes':

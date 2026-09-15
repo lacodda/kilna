@@ -628,6 +628,21 @@
     "copied": "{{block}} copied",
     "unlistedBlock": "A block the profile no longer names — kept, not edited here."
   },
+  "files": {
+    "attach": "Attach a file",
+    "setCover": "Set a cover",
+    "changeCover": "Change the cover",
+    "cover": "Cover",
+    "detach": "Remove this file",
+    "detached": "File removed.",
+    "attached": "“{{name}}” attached.",
+    "attachFailed": "Could not attach the file.",
+    "detachFailed": "Could not remove the file.",
+    "pictures": "Pictures",
+    "copiedIn": "A file is copied into the workspace, so a backup carries it.",
+    "empty": "No files yet. A cover shows on the card, in the catalogue and in the calendar.",
+    "dropHere": "Drop the files here."
+  },
   "notes": {
     "title": "Notes",
     "add": "Add",
@@ -854,6 +869,7 @@
       "scenes": "Scenes",
       "score": "Score",
       "releases": "Releases",
+      "files": "Files",
       "links": "Links",
       "notes": "Notes",
       "assistant": "Assistant",

@@ -2228,11 +2228,14 @@ pub fn export_markdown(state: State<'_, AppState>, directory: String) -> Result<
     export::to_markdown(&conn, std::path::Path::new(&directory))
 }
 
-/// Copy the workspace somewhere safe.
+/// Copy the workspace somewhere safe — the database and the files with it.
 #[tauri::command]
 pub fn backup_workspace(state: State<'_, AppState>, destination: String) -> Result<String> {
+    // Asked for before the connection is taken, because preparing it may
+    // create the directory and that is not work to do under the lock.
+    let media = state.media_dir().ok();
     let conn = state.conn();
-    let written = backup::write(&conn, std::path::Path::new(&destination))?;
+    let written = backup::write(&conn, std::path::Path::new(&destination), media.as_deref())?;
     Ok(written.display().to_string())
 }
 
