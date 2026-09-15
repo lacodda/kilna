@@ -93,7 +93,11 @@ focus, and several things want them:
   first letters;
 - the **score scale** takes `←` and `→` to move a mark, with `Tab` between axes;
 - a **calendar chip** being carried by keyboard is placed with the arrows, and
-  `Esc` puts it back where it was.
+  `Esc` puts it back where it was;
+- a **frame opened full screen** walks scene to scene with `←` and `→`,
+  skipping scenes that have no picture yet, and `Esc` closes it;
+- an open **scene row** takes `Ctrl+V` to paste a picture from the clipboard
+  straight onto that scene.
 
 ## A menu on every row
 

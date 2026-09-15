@@ -52,8 +52,9 @@ From top to bottom:
 
   **Filled in** is computed, never stored: *empty* when nothing is written,
   *ready* when the scene has a description and every prompt block the
-  profile names, *started* in between. A kind with no prompt blocks asks
-  only for a description.
+  profile names, *started* in between, and *shot* once one of its
+  [frames](#frames) is chosen. A kind with no prompt blocks asks only for a
+  description.
 - **Add scene** at the bottom, numbered after the last, and — once the
   board has scenes — **Time the board**.
 
@@ -116,6 +117,41 @@ fifty untimed ones. Timing is one change, so one **Undo** puts every span
 back the way it was — including a span you had set by hand. The kind of
 shot is chosen from the profile's list, never typed: a scene called
 *closeup* when the list says *Close-up* would never be found by the strip.
+
+## Frames
+
+A prompt goes into a generator and pictures come back — usually four for one
+prompt, because choosing between them is the work. All four belong on the
+scene: open its row and they sit in a strip under the prompt blocks.
+
+A picture gets there three ways, whichever is nearest:
+
+- **Add a picture** opens the file picker.
+- **Drag a file onto the window** while the scene's row is open.
+- **Ctrl+V** pastes a picture straight from the generator's own tab — no
+  saving to disk first.
+
+The file is copied into the workspace the same way any other is (see
+[Files and covers](/kilna/guides/files-and-covers/)), so a frame travels with
+a backup of the workspace and keeps working when the original is tidied
+away.
+
+**Choosing one.** The tick on a frame says the video is cut from that one.
+A scene has at most one chosen frame — choosing a second moves the mark
+rather than adding it — and **Choose none** goes back to having candidates
+and no verdict, which is an ordinary place to be in the middle of the work.
+The chosen frame appears beside the scene's number on the board, so the
+storyboard answers both questions at a glance: which picture is this scene,
+and which scene is this picture.
+
+**Looking at them properly.** Click a frame to open it full screen. The
+arrows — and the ← and → keys — walk from scene to scene rather than between
+the candidates of one scene: at that size what you are checking is whether
+the story reads. Scenes with no frame yet are skipped. Escape closes.
+
+**Removing one** takes the picture out of the workspace with it. Like
+detaching any file, it is not undoable: a row put back beside bytes that are
+gone is a broken picture, not an undo.
 
 ## Prompt blocks
 
