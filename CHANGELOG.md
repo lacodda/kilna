@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.68.0] - 2026-09-15
+
+### Features
+- A scene keeps the frames drawn for it, and says which one it is
+- Frames on the board, three ways in, and a scene that is shot
 ## [0.67.0] - 2026-09-15
 
 ### Features
