@@ -37,6 +37,9 @@ time = { version = "=0.3.45", features = ["formatting", "macros"] }
 uuid = { version = "1", features = ["v4"] }
 tauri-plugin-dialog = "2.7.3"
 tauri-plugin-opener = "2.5.5"
+# A pasted picture arrives as bytes and needs a file to be copied from; the
+# window is not given filesystem permissions for one temporary write.
+tempfile = "3"
 
 [dev-dependencies]
 tempfile = "3"

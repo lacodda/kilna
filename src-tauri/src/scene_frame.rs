@@ -107,6 +107,38 @@ pub fn attach_minted(
     get(conn, &frame_id)?.ok_or_else(|| Error::not_found("scene_frame", &frame_id))
 }
 
+/// Hang a picture that arrived as bytes rather than as a file — a paste.
+///
+/// The clipboard hands the window pixels, not a path, and the window has no
+/// business writing to the disk itself: it would need a filesystem plugin and
+/// the permissions that come with it, for one picture on its way into a
+/// directory this process already owns. So the bytes come here, land in a
+/// temporary file, and take exactly the same road as a picked file — one copy
+/// path, not two, and nothing to keep in step later.
+pub fn attach_bytes(
+    conn: &Connection,
+    media_dir: &Path,
+    scene_id: &str,
+    bytes: &[u8],
+    name: &str,
+) -> Result<SceneFrame> {
+    let safe = Path::new(name)
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .filter(|name| !name.is_empty())
+        .unwrap_or_else(|| "pasted.png".to_owned());
+
+    let holding = tempfile::Builder::new()
+        .prefix("kilna-paste-")
+        .tempdir()
+        .map_err(|cause| Error::Other(format!("could not hold the pasted picture: {cause}")))?;
+    let source = holding.path().join(&safe);
+    std::fs::write(&source, bytes)
+        .map_err(|cause| Error::Other(format!("could not write the pasted picture: {cause}")))?;
+
+    attach(conn, media_dir, scene_id, &source)
+}
+
 /// Take a frame off a scene, bytes and all.
 ///
 /// Irreversible, and for the reason ADR 0027 gives about detaching: a row

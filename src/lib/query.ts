@@ -21,6 +21,10 @@ export const keys = {
   linksFor: (workId: string) => ['links', workId] as const,
   scenes: ['scenes'] as const,
   scenesFor: (workId: string) => ['scenes', workId] as const,
+  // The frames of a whole board in one key: the storyboard draws every scene
+  // together, and a frame arriving changes the row it lands on and the
+  // readiness of that row at the same time.
+  sceneFramesFor: (workId: string) => ['sceneFrames', workId] as const,
   version: (id: string) => ['version', id] as const,
 
   scores: ['scores'] as const,

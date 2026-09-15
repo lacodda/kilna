@@ -8,10 +8,12 @@ import {
   createScene,
   deleteScene,
   detachSceneNote,
+  fileSrc,
   frameScenes,
   getVersion,
   listLinks,
   listNotes,
+  listSceneFrames,
   listSceneNotes,
   listScenes,
   listVersions,
@@ -20,6 +22,7 @@ import {
   type Note,
   type Scene,
   type SceneBlock,
+  type SceneFrame,
   type SceneNote,
   type ScenePatch,
   type Work,
@@ -27,7 +30,7 @@ import {
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { formatSeconds, parseTimecode } from '@/lib/timecode'
-import { readinessOf, type Readiness } from '@/lib/scenes'
+import { chosenFrame, framesByScene, readinessOf, type Readiness } from '@/lib/scenes'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { useProfile, vocabularyOf, type Vocabulary } from '@/lib/useProfile'
@@ -40,6 +43,8 @@ import { Select } from '@/components/ui/AppSelect'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { ActionBar, actionsFor } from '@/components/assistant/ActionBar'
+import { FrameViewer, type Viewing } from '@/components/card/FrameViewer'
+import { SceneFrames } from '@/components/card/SceneFrames'
 
 interface Props {
   work: Work
@@ -96,6 +101,10 @@ export function ScenesTab({ work }: Props) {
     watching.current = watch
   }
 
+  // Which frame the viewer is showing, if it is open. Held with the other
+  // board-wide state so the hooks run in the same order every render.
+  const [viewing, setViewing] = useState<Viewing | null>(null)
+
   // Which rows have their description and prompts open. Kept here rather
   // than in the row so opening one survives the board being re-read.
   const [opened, setOpened] = useState<ReadonlySet<string>>(new Set())
@@ -143,6 +152,13 @@ export function ScenesTab({ work }: Props) {
     queryKey: [...keys.scenes, 'notes', work.id],
     queryFn: () => listSceneNotes(work.id),
   })
+  // The pictures of the whole board, in one read for the same reason.
+  const frames = useQuery({
+    queryKey: keys.sceneFramesFor(work.id),
+    queryFn: () => listSceneFrames(work.id),
+  })
+  const framesForScene = framesByScene(frames.data ?? [])
+
   const noteKinds = profile.config.note_kinds ?? []
   const castable = useQuery({
     queryKey: [...keys.notes, 'castable'],
@@ -236,6 +252,25 @@ export function ScenesTab({ work }: Props) {
       : byShot.filter((scene) =>
           (aboutByScene.get(scene.id) ?? []).some((link) => link.note_id === withNote),
         )
+
+  // The viewer walks the scenes that have something to show, in board order.
+  // Built from what is on screen, so a filtered board walks only what it shows
+  // — the arrows never lead somewhere the person cannot see they are.
+  const withFrames = shown.filter((scene) => (framesForScene.get(scene.id) ?? []).length > 0)
+  const viewingAt = viewing
+    ? withFrames.findIndex((scene) => scene.id === viewing.sceneId)
+    : -1
+  const canStep = (direction: -1 | 1) =>
+    viewingAt >= 0 && viewingAt + direction >= 0 && viewingAt + direction < withFrames.length
+  const step = (direction: -1 | 1) => {
+    if (!canStep(direction)) return
+    const next = withFrames[viewingAt + direction]
+    if (!next) return
+    const frames = framesForScene.get(next.id) ?? []
+    // The chosen frame is what the scene *is*; without one, its first.
+    const frame = chosenFrame(frames) ?? frames[0]
+    if (frame) setViewing({ sceneId: next.id, number: next.position, frame })
+  }
 
   // Whether the profile has anything to offer here: the empty board is an
   // entrance to the actions when there are actions, and a plain board when
@@ -409,6 +444,10 @@ export function ScenesTab({ work }: Props) {
                   onDelete={() => remove.mutate(scene)}
                   paneWidth={paneWidth}
                   about={aboutByScene.get(scene.id) ?? []}
+                  frames={framesForScene.get(scene.id) ?? []}
+                  onViewFrame={(frame) =>
+                    setViewing({ sceneId: scene.id, number: scene.position, frame })
+                  }
                   cast={cast}
                   onAttach={(noteId) => attach.mutate({ sceneId: scene.id, noteId })}
                   onDetach={(noteId) => detach.mutate({ sceneId: scene.id, noteId })}
@@ -437,6 +476,13 @@ export function ScenesTab({ work }: Props) {
           </Button>
         )}
       </div>
+
+      <FrameViewer
+        viewing={viewing}
+        onClose={() => setViewing(null)}
+        onStep={step}
+        canStep={canStep}
+      />
     </div>
   )
 }
@@ -506,6 +552,8 @@ function SceneRow({
   onDelete,
   paneWidth,
   about,
+  frames,
+  onViewFrame,
   cast,
   onAttach,
   onDetach,
@@ -523,6 +571,9 @@ function SceneRow({
   paneWidth: number | null
   /** Who is in this scene, where it happens. */
   about: SceneNote[]
+  /** The pictures drawn for it, in order. */
+  frames: SceneFrame[]
+  onViewFrame: (frame: SceneFrame) => void
   /** Every note the profile lets a scene name. */
   cast: Note[]
   onAttach: (noteId: string) => void
@@ -557,7 +608,8 @@ function SceneRow({
     (key) => !vocabulary.scene_blocks.some((block) => block.key === key),
   )
 
-  const readiness = readinessOf(scene, vocabulary.scene_blocks)
+  const readiness = readinessOf(scene, vocabulary.scene_blocks, frames)
+  const chosen = chosenFrame(frames)
   const columns = 6 + (vocabulary.shot_types.length > 0 ? 1 : 0) + (cast.length > 0 ? 1 : 0)
   const named = new Set(about.map((link) => link.note_id))
 
@@ -565,7 +617,29 @@ function SceneRow({
     <>
       <tr className="border-b border-line align-middle">
         <td className="px-2 py-1.5 text-right text-sm font-semibold tabular-nums">
-          {scene.position}
+          <span className="flex items-center justify-end gap-1.5">
+            {/* The frame the scene is cut from, beside its number: the board
+                answers "which scene is this picture" and "which picture is
+                this scene" in the same glance — what the predecessor could
+                not do. A thumbnail rather than a column, so a board without
+                pictures costs no width. */}
+            {chosen && (
+              <button
+                type="button"
+                onClick={() => onViewFrame(chosen)}
+                title={chosen.original_name ?? t('scenes.openFrame')}
+                aria-label={t('scenes.openFrame')}
+                className="overflow-hidden rounded border border-good"
+              >
+                <img
+                  src={fileSrc(chosen.path)}
+                  alt=""
+                  className="size-7 object-contain"
+                />
+              </button>
+            )}
+            {scene.position}
+          </span>
         </td>
         <td className="px-2 py-1.5">
           <Input
@@ -758,6 +832,16 @@ function SceneRow({
                   ))}
                 </div>
               )}
+
+              {/* The pictures, under the prompts they came from: the prompt is
+                  copied out to a generator and the answer comes back here. */}
+              <SceneFrames
+                workId={workId}
+                sceneId={scene.id}
+                number={scene.position}
+                frames={frames}
+                onOpen={onViewFrame}
+              />
             </div>
           </td>
         </tr>
@@ -776,13 +860,25 @@ function SceneRow({
  */
 function ReadinessMark({ readiness, blocks }: { readiness: Readiness; blocks: number }) {
   const { t } = useTranslation()
-  const tone = readiness === 'ready' ? 'bg-good' : readiness === 'started' ? 'bg-warn' : 'bg-line-2'
+  // `shot` is a step past `ready`, so it reads as the same good colour filled
+  // in rather than as a different judgement.
+  const tone =
+    readiness === 'shot'
+      ? 'bg-good ring-2 ring-good/30'
+      : readiness === 'ready'
+        ? 'bg-good'
+        : readiness === 'started'
+          ? 'bg-warn'
+          : 'bg-line-2'
+  const hint =
+    readiness === 'shot'
+      ? t('scenes.readinessHintShot')
+      : blocks > 0
+        ? t('scenes.readinessHint')
+        : t('scenes.readinessHintNoBlocks')
 
   return (
-    <span
-      className="flex items-center gap-1.5 text-xs text-dim"
-      title={blocks > 0 ? t('scenes.readinessHint') : t('scenes.readinessHintNoBlocks')}
-    >
+    <span className="flex items-center gap-1.5 text-xs text-dim" title={hint}>
       <span aria-hidden className={cn('size-2 shrink-0 rounded-full', tone)} />
       {t(`scenes.readiness_${readiness}`)}
     </span>

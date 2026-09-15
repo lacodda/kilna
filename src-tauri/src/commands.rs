@@ -2123,6 +2123,43 @@ pub fn attach_scene_frame(
     Ok(attached)
 }
 
+/// Hang a pasted picture on a scene: the clipboard gives bytes, not a path.
+///
+/// The window sends the bytes rather than writing a file itself, so the
+/// application needs no filesystem permissions for a picture on its way into
+/// a directory this process already owns.
+#[tauri::command]
+pub fn paste_scene_frame(
+    state: State<'_, AppState>,
+    scene_id: String,
+    bytes: Vec<u8>,
+    name: String,
+) -> Result<scene_frame::SceneFrame> {
+    let media = state.media_dir()?;
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    // The bytes are not written into the log: an operation carrying a picture
+    // would make the log the size of the pictures. It is recorded as the
+    // arrival it is, and like `scene.attachFrame` it is not replayed.
+    let logged = operation::Intent::new("scene.attachFrame")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("sceneId", scene_id.clone())
+        .param("source", format!("<pasted: {name}>"));
+
+    let attached = recording(&mut conn, logged, |tx| {
+        scene_frame::attach_bytes(tx, &media, &scene_id, &bytes, &name)
+    })?;
+
+    let entry = Record::new("scene.framed")
+        .param("name", attached.original_name.clone().unwrap_or_default())
+        .about("scene", scene_id);
+    journal::record(&conn, &profile_id, entry);
+
+    Ok(attached)
+}
+
 /// Take a frame off a scene, and the copy the workspace made with it.
 ///
 /// Not the trash, for the reason ADR 0027 gives: a row restored beside bytes

@@ -167,6 +167,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::detach_asset,
             commands::list_scene_frames,
             commands::attach_scene_frame,
+            commands::paste_scene_frame,
             commands::detach_scene_frame,
             commands::select_scene_frame,
             commands::clear_scene_frame,
