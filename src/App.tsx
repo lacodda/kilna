@@ -216,10 +216,14 @@ function ShellSkeleton() {
                       </div>
                     }
                   />
+                  {/* Like the catalogue: the screen holds the window's
+                      height rather than growing with its list, so the queue
+                      scrolls inside its own column and the month it is being
+                      read against stays on screen. */}
                   <Route
                     path="/calendar"
                     element={
-                      <div className="p-6">
+                      <div className="flex h-full min-h-0 flex-col p-6">
                         <CalendarView onSelect={openWork} />
                       </div>
                     }

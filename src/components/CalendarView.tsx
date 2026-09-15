@@ -166,14 +166,32 @@ export function CalendarView({ onSelect }: Props) {
     // that the month wins the width: 22rem of queue left the days ~77px wide,
     // and a day that narrow shows three letters of a title — what the pilot
     // saw. The queue drops under the calendar instead of squeezing it.
-    <div className={cn('grid gap-6', width === 'queue' && 'xl:grid-cols-[20rem_1fr]')}>
+    //
+    // The screen holds the window's height rather than growing with the queue.
+    // It used to grow: 250-odd releases waiting for a date made the page as
+    // tall as the list, and scrolling down to reach the bottom of the queue
+    // carried the month off the top of the window with it - the one thing on
+    // this screen the queue is being read AGAINST. Now the month stays put and
+    // the list scrolls inside its own column, the way the catalogue's table
+    // has since v0.47.
+    <div
+      className={cn(
+        'grid h-full min-h-0 gap-6',
+        width === 'queue' && 'xl:grid-cols-[20rem_1fr]',
+      )}
+    >
       {/* Hidden entirely in the full-width layout rather than collapsed: a
           narrow strip of it would still take the width the month is being
           given. Claiming a slot from the queue goes with it — that is what
           the layout is for, and the toggle is one click away. */}
-      <section className={cn('flex flex-col gap-3', width === 'full' && 'hidden')}>
-        <h3 className="text-sm font-semibold">{t('calendar.queue')}</h3>
-        <p className="text-xs text-dim">{t('calendar.queueHint')}</p>
+      <section
+        className={cn(
+          'flex min-h-0 flex-col gap-3',
+          width === 'full' && 'hidden',
+        )}
+      >
+        <h3 className="shrink-0 text-sm font-semibold">{t('calendar.queue')}</h3>
+        <p className="shrink-0 text-xs text-dim">{t('calendar.queueHint')}</p>
 
         {queued.isPending ? (
           <SkeletonList rows={4} />
@@ -184,7 +202,11 @@ export function CalendarView({ onSelect }: Props) {
         ) : queued.data.length === 0 ? (
           <p className="py-6 text-sm text-dim">{t('calendar.queueEmpty')}</p>
         ) : (
-          <ul className="flex flex-col gap-1">
+          // The scroller is the list and not the column: the heading, the
+          // layout button and the claim form are how the queue is ACTED on,
+          // and a scroller that swallowed them would hide the button at the
+          // bottom of two hundred rows.
+          <ul className="-mr-1 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
             {queued.data.map((entry) => (
               <li key={entry.id}>
                 <button
@@ -250,7 +272,10 @@ export function CalendarView({ onSelect }: Props) {
         )}
       </section>
 
-      <section className="flex flex-col gap-3">
+      {/* The month column scrolls on its own too: on a short window the grid
+          plus the filter row can outgrow the height the screen now holds, and
+          a column that cannot scroll would simply cut the last week off. */}
+      <section className="flex min-h-0 flex-col gap-3 overflow-y-auto">
         {slots.isPending ? (
           <SkeletonMonth />
         ) : slots.isError ? (

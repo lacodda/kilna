@@ -1,6 +1,7 @@
 import { Dialog as Base } from '@base-ui/react/dialog'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'dowel-ui'
+import { LayerProvider } from './layer'
 
 /*
  * Dialog.
@@ -111,7 +112,11 @@ export function DialogPopup({
         className={cn(dialogPopupVariants({ size }), '[z-index:var(--z-modal)]', className)}
         {...props}
       >
-        {children}
+        {/* A popup opened inside the dialog rides one rung above it. The
+          * stacking scale ranks a popover below a modal, and a popover that
+          * portals INTO the dialog is clipped by the scroll box above, so
+          * what travels is the layer rather than the popup. See `layer.tsx`. */}
+        <LayerProvider rung="modal-popup">{children}</LayerProvider>
       </Base.Popup>
     </Base.Portal>
   )
