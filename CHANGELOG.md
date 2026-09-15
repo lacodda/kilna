@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.67.0] - 2026-09-15
+
+### Features
+- A file copied into the workspace, with a row that knows whose it is
+- The window may show the workspace files, and commands to attach them
+- A work wears its cover
+- A Files tab, a cover in the catalogue, and a backup that carries both
 ## [0.66.0] - 2026-09-15
 
 ### Features
