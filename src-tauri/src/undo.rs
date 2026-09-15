@@ -104,6 +104,9 @@ pub fn reversible(kind: &str) -> bool {
             | "scene.frame"
             | "scene.attachNote"
             | "scene.detachNote"
+            | "scene.selectFrame"
+            | "scene.clearFrame"
+            | "scene.reorderFrames"
     )
 }
 
@@ -193,6 +196,27 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
             let note_id = required(params, "noteId")?;
             edit(conn, logged, &at, |tx| {
                 crate::scene_note::attach(tx, &scene_id, &note_id).map(|_| ())
+            })?;
+        }
+
+        // Choosing which frame the video is cut from is taken back to the
+        // frame it was cut from before — not to "undecided", which is a
+        // different state and not the one the person left.
+        "scene.selectFrame" | "scene.clearFrame" => {
+            let scene_id = required(params, "sceneId")?;
+            let before: Option<String> = from_params(params, "before").unwrap_or(None);
+            edit(conn, logged, &at, |tx| match before.as_deref() {
+                Some(id) => crate::scene_frame::select(tx, id).map(|_| ()),
+                None => crate::scene_frame::clear_selection(tx, &scene_id),
+            })?;
+        }
+
+        // The order is put back as a whole list, the way it was rewritten.
+        "scene.reorderFrames" => {
+            let scene_id = required(params, "sceneId")?;
+            let before: Vec<String> = from_params(params, "before")?;
+            edit(conn, logged, &at, |tx| {
+                crate::scene_frame::reorder(tx, &scene_id, &before).map(|_| ())
             })?;
         }
 

@@ -443,7 +443,7 @@ fn an_irreversible_operation_is_not_offered() {
 fn every_operation_is_undoable_or_says_why_not() {
     // The reason is not read by the code — it is read by whoever runs into this
     // test after adding a kind, which is exactly when it needs to exist.
-    const NOT_UNDOABLE: [(&str, &str); 22] = [
+    const NOT_UNDOABLE: [(&str, &str); 24] = [
         (
             "status.resync",
             "recomputes many works from the facts at once; the statuses it \
@@ -517,6 +517,14 @@ fn every_operation_is_undoable_or_says_why_not() {
         (
             "asset.detach",
             "the bytes are gone with the row; a row put back beside a file that              no longer exists is the broken picture the deletion avoided",
+        ),
+        (
+            "scene.attachFrame",
+            "it carries a file into the workspace, as `asset.attach` does, and              taking it back is `detach_scene_frame`, which removes the bytes too",
+        ),
+        (
+            "scene.detachFrame",
+            "the picture is gone with the row; putting the row back beside a              file that no longer exists is the broken frame the deletion avoided",
         ),
     ];
 
@@ -983,5 +991,82 @@ fn a_framed_board_is_taken_back_whole() {
             .count(),
         3,
         "into the trash, not destroyed: {trashed:?}"
+    );
+}
+
+/// Choosing a frame is taken back to the frame that was chosen before, not to
+/// an undecided scene. A board where the undo forgot the previous verdict
+/// would quietly lose a decision the person had already made.
+#[test]
+fn undoing_a_chosen_frame_puts_the_previous_one_back() {
+    let (mut conn, profile_id, _song_id) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let media = tempfile::tempdir().unwrap();
+    let source = tempfile::tempdir().unwrap();
+
+    let video_id = work::create(
+        &conn,
+        &profile_id,
+        NewWork {
+            kind: "video".into(),
+            title: "Harbour lights".into(),
+            ..NewWork::default()
+        },
+    )
+    .unwrap()
+    .id;
+    let scene_id = kilna_lib::scene::create(
+        &conn,
+        &profile_id,
+        kilna_lib::scene::NewScene {
+            work_id: video_id,
+            ..kilna_lib::scene::NewScene::default()
+        },
+    )
+    .unwrap()
+    .id;
+
+    let mut frames = Vec::new();
+    for name in ["still-v1.png", "still-v2.png"] {
+        let file = source.path().join(name);
+        std::fs::write(&file, b"not really a png").unwrap();
+        frames.push(kilna_lib::scene_frame::attach(&conn, media.path(), &scene_id, &file).unwrap());
+    }
+
+    // The first verdict, unlogged: it is the state the logged one replaces.
+    kilna_lib::scene_frame::select(&conn, &frames[0].id).unwrap();
+
+    // The second, recorded the way the command records it.
+    let before = kilna_lib::scene_frame::for_scene(&conn, &scene_id)
+        .unwrap()
+        .into_iter()
+        .find(|one| one.is_selected)
+        .map(|one| one.id);
+    let logged = operation::Intent::new("scene.selectFrame")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("id", frames[1].id.clone())
+        .param("sceneId", scene_id.clone())
+        .param("before", serde_json::to_value(&before).unwrap());
+    let transaction = conn.transaction().unwrap();
+    kilna_lib::scene_frame::select(&transaction, &frames[1].id).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("choosing a frame can be undone");
+    assert_eq!(offer.action, "undo.scene.selectFrame");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+
+    let chosen: Vec<_> = kilna_lib::scene_frame::for_scene(&conn, &scene_id)
+        .unwrap()
+        .into_iter()
+        .filter(|one| one.is_selected)
+        .collect();
+    assert_eq!(chosen.len(), 1, "still exactly one verdict");
+    assert_eq!(
+        chosen[0].id, frames[0].id,
+        "and it is the frame that was chosen before, not none"
     );
 }

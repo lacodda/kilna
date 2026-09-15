@@ -23,6 +23,7 @@ use crate::profile::{self, Profile, Workspace};
 use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
 use crate::reversal;
 use crate::scene::{self, NewScene, Scene, ScenePatch};
+use crate::scene_frame;
 use crate::scene_note::{self, SceneNote};
 use crate::score::{self, NewScore, Score, ScoredWork};
 use crate::search::{self, Hit};
@@ -2073,6 +2074,150 @@ pub fn detach_asset(state: State<'_, AppState>, id: String) -> Result<()> {
         .param("id", id.clone());
 
     recording(&mut conn, logged, |tx| asset::delete(tx, &id))
+}
+
+/// The frames of every scene of a board, in order — one read for a
+/// storyboard of fifty scenes.
+#[tauri::command]
+pub fn list_scene_frames(
+    state: State<'_, AppState>,
+    work_id: String,
+) -> Result<Vec<scene_frame::SceneFrame>> {
+    let conn = state.conn();
+    scene_frame::for_work(&conn, &work_id)
+}
+
+/// Copy a picture into the workspace and hang it on a scene.
+///
+/// The path comes from the picker, from a drop, or from a pasted image the
+/// window wrote to a temporary file; by the time it gets here it is a place
+/// on this machine, and the bytes are copied into the workspace's `media/`.
+#[tauri::command]
+pub fn attach_scene_frame(
+    state: State<'_, AppState>,
+    scene_id: String,
+    source: String,
+) -> Result<scene_frame::SceneFrame> {
+    let media = state.media_dir()?;
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("scene.attachFrame")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("sceneId", scene_id.clone())
+        .param("source", source.clone())
+        .minted(&minted);
+
+    let source = PathBuf::from(&source);
+    let attached = recording(&mut conn, logged, |tx| {
+        scene_frame::attach_minted(tx, &media, &scene_id, &source, minted)
+    })?;
+
+    let entry = Record::new("scene.framed")
+        .param("name", attached.original_name.clone().unwrap_or_default())
+        .about("scene", scene_id);
+    journal::record(&conn, &profile_id, entry);
+
+    Ok(attached)
+}
+
+/// Take a frame off a scene, and the copy the workspace made with it.
+///
+/// Not the trash, for the reason ADR 0027 gives: a row restored beside bytes
+/// that are gone is a broken picture, not an undo.
+#[tauri::command]
+pub fn detach_scene_frame(state: State<'_, AppState>, id: String) -> Result<()> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let logged = operation::Intent::new("scene.detachFrame")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone());
+
+    recording(&mut conn, logged, |tx| scene_frame::detach(tx, &id))
+}
+
+/// Cut the video from this frame — and from no other of its scene.
+#[tauri::command]
+pub fn select_scene_frame(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<scene_frame::SceneFrame> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    // Which frame the scene was cut from before, so an undo puts that one
+    // back rather than leaving the scene undecided — the verdict it had is
+    // not the same as no verdict.
+    let frame = scene_frame::get(&conn, &id)?
+        .ok_or_else(|| crate::error::Error::not_found("scene_frame", &id))?;
+    let before = scene_frame::for_scene(&conn, &frame.scene_id)?
+        .into_iter()
+        .find(|one| one.is_selected)
+        .map(|one| one.id);
+
+    let logged = operation::Intent::new("scene.selectFrame")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("sceneId", frame.scene_id.clone())
+        .param("before", serde_json::to_value(&before)?);
+
+    recording(&mut conn, logged, |tx| scene_frame::select(tx, &id))
+}
+
+/// Go back to having no frame chosen for a scene.
+#[tauri::command]
+pub fn clear_scene_frame(state: State<'_, AppState>, scene_id: String) -> Result<()> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    // The verdict being cleared, so an undo can put it back.
+    let before = scene_frame::for_scene(&conn, &scene_id)?
+        .into_iter()
+        .find(|one| one.is_selected)
+        .map(|one| one.id);
+
+    let logged = operation::Intent::new("scene.clearFrame")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("sceneId", scene_id.clone())
+        .param("before", serde_json::to_value(&before)?);
+
+    recording(&mut conn, logged, |tx| {
+        scene_frame::clear_selection(tx, &scene_id)
+    })
+}
+
+/// Put a scene's frames in the order given, first to last.
+#[tauri::command]
+pub fn reorder_scene_frames(
+    state: State<'_, AppState>,
+    scene_id: String,
+    ids: Vec<String>,
+) -> Result<Vec<scene_frame::SceneFrame>> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    // The order they stood in, so an undo restores it exactly.
+    let before: Vec<String> = scene_frame::for_scene(&conn, &scene_id)?
+        .into_iter()
+        .map(|one| one.id)
+        .collect();
+
+    let logged = operation::Intent::new("scene.reorderFrames")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("sceneId", scene_id.clone())
+        .param("ids", serde_json::to_value(&ids)?)
+        .param("before", serde_json::to_value(&before)?);
+
+    recording(&mut conn, logged, |tx| {
+        scene_frame::reorder(tx, &scene_id, &ids)
+    })
 }
 
 /// Anything matching a query: works, version bodies, notes, chat messages.

@@ -371,7 +371,41 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
         // own directory, and a rebuild from the log has the log, not the
         // bytes. Replaying the copy would need the source path to still hold
         // what it held then — see the module note on what is left out.
-        "asset.attach" | "asset.detach" => {}
+        //
+        // Hanging a frame on a scene carries a file, so it is left out for
+        // the same reason. What it decides about frames already there is
+        // not: an order and a verdict are the person's judgement, and a
+        // board rebuilt without them would come back shuffled and undecided.
+        "asset.attach" | "asset.detach" | "scene.attachFrame" | "scene.detachFrame" => {}
+
+        "scene.selectFrame" => {
+            let id = required(params, "id")?;
+            // The frame is gone when its file was never replayed; the
+            // verdict it carried has nothing left to sit on.
+            if crate::scene_frame::get(conn, &id)?.is_some() {
+                crate::scene_frame::select(conn, &id)?;
+            }
+        }
+
+        "scene.clearFrame" => {
+            let scene_id = required(params, "sceneId")?;
+            crate::scene_frame::clear_selection(conn, &scene_id)?;
+        }
+
+        "scene.reorderFrames" => {
+            let scene_id = required(params, "sceneId")?;
+            let ids: Vec<String> = from_params(params, "ids")?;
+            // Frames whose files were not replayed are not there to order;
+            // ordering what remains keeps the rest in the sequence chosen.
+            let present: Vec<String> = crate::scene_frame::for_scene(conn, &scene_id)?
+                .into_iter()
+                .map(|frame| frame.id)
+                .collect();
+            let kept: Vec<String> = ids.into_iter().filter(|id| present.contains(id)).collect();
+            if kept.len() == present.len() {
+                crate::scene_frame::reorder(conn, &scene_id, &kept)?;
+            }
+        }
 
         "scene.attachNote" => {
             let scene_id = required(params, "sceneId")?;

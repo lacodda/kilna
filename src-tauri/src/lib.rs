@@ -22,6 +22,7 @@ pub mod release;
 pub mod replay;
 pub mod reversal;
 pub mod scene;
+pub mod scene_frame;
 pub mod scene_note;
 pub mod score;
 pub mod search;
@@ -164,6 +165,12 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::list_release_assets,
             commands::list_covers,
             commands::detach_asset,
+            commands::list_scene_frames,
+            commands::attach_scene_frame,
+            commands::detach_scene_frame,
+            commands::select_scene_frame,
+            commands::clear_scene_frame,
+            commands::reorder_scene_frames,
             commands::search,
             commands::list_journal,
             commands::journal_for_work,
