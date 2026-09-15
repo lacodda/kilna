@@ -50,7 +50,7 @@ pub struct Asset {
 }
 
 /// What to attach, and to what.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct NewAsset {
     #[serde(default)]
     pub work_id: Option<String>,

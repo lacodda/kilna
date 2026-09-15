@@ -59,6 +59,26 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
                 None => app.path().app_data_dir()?,
             };
             let state = state::AppState::open(&db::default_path(&data_dir))?;
+
+            // The window may show the files the workspace holds, and only
+            // those. The scope is granted here rather than in the config
+            // because the directory is not known until now: `--workspace`
+            // moves it, and a path written into `tauri.conf.json` would be
+            // right for one workspace and wrong for the next.
+            match state.media_dir() {
+                Ok(media) => {
+                    if let Err(cause) = app.asset_protocol_scope().allow_directory(&media, true) {
+                        eprintln!(
+                            "assets: the window may not read {}: {cause}",
+                            media.display()
+                        );
+                    }
+                }
+                // Said, not fatal: everything but the pictures still works,
+                // and refusing to start over a directory would be worse.
+                Err(cause) => eprintln!("assets: no directory for files: {cause}"),
+            }
+
             app.manage(state);
             Ok(())
         })
@@ -139,6 +159,11 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::list_scene_notes,
             commands::attach_scene_note,
             commands::detach_scene_note,
+            commands::attach_asset,
+            commands::list_work_assets,
+            commands::list_release_assets,
+            commands::list_covers,
+            commands::detach_asset,
             commands::search,
             commands::list_journal,
             commands::journal_for_work,

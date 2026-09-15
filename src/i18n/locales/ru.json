@@ -871,6 +871,7 @@
     "scene.created": "Сцена {{number}} добавлена в «{{title}}».",
     "scene.timed": "Доска «{{title}}» размечена по времени — {{count}} сцен.",
     "scene.framed": "Доска «{{title}}» собрана из текста — {{count}} сцен.",
+    "asset.attached": "Файл «{{name}}» прикреплён.",
     "proposal.work": "{{client}} предлагает новое произведение — «{{title}}».",
     "proposal.package": "{{client}} предлагает пакет для «{{title}}».",
     "proposal.scenes": "{{client}} предлагает раскадровку для «{{title}}».",

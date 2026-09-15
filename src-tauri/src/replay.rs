@@ -367,6 +367,12 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
             scene::time_board_at(conn, &work_id, &at, None)?;
         }
 
+        // An asset is not replayed: the row names a file in the workspace's
+        // own directory, and a rebuild from the log has the log, not the
+        // bytes. Replaying the copy would need the source path to still hold
+        // what it held then — see the module note on what is left out.
+        "asset.attach" | "asset.detach" => {}
+
         "scene.attachNote" => {
             let scene_id = required(params, "sceneId")?;
             let note_id = required(params, "noteId")?;

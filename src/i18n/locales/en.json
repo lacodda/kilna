@@ -815,6 +815,7 @@
     "scene.created": "Scene {{number}} added to “{{title}}”.",
     "scene.timed": "The board of “{{title}}” timed across {{count}} scenes.",
     "scene.framed": "The board of “{{title}}” framed into {{count}} scenes.",
+    "asset.attached": "“{{name}}” attached.",
     "proposal.work": "{{client}} proposed a new work, “{{title}}”.",
     "proposal.package": "{{client}} proposed a package for “{{title}}”.",
     "proposal.scenes": "{{client}} proposed a storyboard for “{{title}}”.",

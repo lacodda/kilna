@@ -443,7 +443,7 @@ fn an_irreversible_operation_is_not_offered() {
 fn every_operation_is_undoable_or_says_why_not() {
     // The reason is not read by the code — it is read by whoever runs into this
     // test after adding a kind, which is exactly when it needs to exist.
-    const NOT_UNDOABLE: [(&str, &str); 20] = [
+    const NOT_UNDOABLE: [(&str, &str); 22] = [
         (
             "status.resync",
             "recomputes many works from the facts at once; the statuses it \
@@ -509,6 +509,14 @@ fn every_operation_is_undoable_or_says_why_not() {
         (
             "trash.restore",
             "restoring is itself the undo of a deletion; undoing it would be a redo",
+        ),
+        (
+            "asset.attach",
+            "the copy it made would have to be unmade, and the row is the only              thing the log holds — taking it back is `detach_asset`, which              removes the bytes as well",
+        ),
+        (
+            "asset.detach",
+            "the bytes are gone with the row; a row put back beside a file that              no longer exists is the broken picture the deletion avoided",
         ),
     ];
 

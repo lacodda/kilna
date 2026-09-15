@@ -1,7 +1,9 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::asset;
 use crate::assistant::run::{self as assistant_run, Emission, Run, Sink};
 use crate::assistant::{self, Chat, Message, NewChat, Transcript, cli, prompt};
 use crate::collection::{self, Collection, CollectionPatch, NewCollection};
@@ -1979,6 +1981,98 @@ pub fn time_scenes(state: State<'_, AppState>, work_id: String) -> Result<Vec<Sc
 #[tauri::command]
 pub fn delete_scene(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Scene, &id)
+}
+
+/// Copy a file into the workspace and attach it to a work or a release.
+///
+/// The path comes from the file picker, so it is a place on this machine;
+/// the bytes are copied into the workspace's own `media/` directory and the
+/// row holds where they landed.
+#[tauri::command]
+pub fn attach_asset(
+    state: State<'_, AppState>,
+    source: String,
+    asset: asset::NewAsset,
+) -> Result<asset::Asset> {
+    let media = state.media_dir()?;
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("asset.attach")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("source", source.clone())
+        .param("asset", serde_json::to_value(&asset)?)
+        .minted(&minted);
+
+    let source = PathBuf::from(&source);
+    let attached = recording(&mut conn, logged, |tx| {
+        asset::attach_minted(tx, &profile_id, &media, &source, asset, minted)
+    })?;
+
+    let named = Record::new("asset.attached").param(
+        "name",
+        attached
+            .original_name
+            .clone()
+            .or_else(|| attached.label.clone())
+            .unwrap_or_default(),
+    );
+    // A file attached to a release belongs to no work, and the feed's line
+    // is about the file either way.
+    let entry = match attached.work_id.as_deref() {
+        Some(work_id) => named.about("work", work_id.to_owned()),
+        None => named,
+    };
+    journal::record(&conn, &profile_id, entry);
+
+    Ok(attached)
+}
+
+/// The files attached to a work, oldest first.
+#[tauri::command]
+pub fn list_work_assets(state: State<'_, AppState>, work_id: String) -> Result<Vec<asset::Asset>> {
+    let conn = state.conn();
+    asset::for_work(&conn, &work_id)
+}
+
+/// The files attached to a release, oldest first.
+#[tauri::command]
+pub fn list_release_assets(
+    state: State<'_, AppState>,
+    release_id: String,
+) -> Result<Vec<asset::Asset>> {
+    let conn = state.conn();
+    asset::for_release(&conn, &release_id)
+}
+
+/// The cover of every work that has one, by work id — one read for a
+/// catalogue of two hundred rows.
+#[tauri::command]
+pub fn list_covers(state: State<'_, AppState>) -> Result<Vec<(String, String)>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    asset::covers_of(&conn, &profile_id)
+}
+
+/// Forget a file and remove the copy the workspace made.
+///
+/// Not the trash: what the trash promises is that a deletion can be taken
+/// back, and a row restored beside bytes that are gone is a promise broken.
+/// A file is detached and the copy goes with it; the original, wherever it
+/// came from, was never touched.
+#[tauri::command]
+pub fn detach_asset(state: State<'_, AppState>, id: String) -> Result<()> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let logged = operation::Intent::new("asset.detach")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone());
+
+    recording(&mut conn, logged, |tx| asset::delete(tx, &id))
 }
 
 /// Anything matching a query: works, version bodies, notes, chat messages.
