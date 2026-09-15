@@ -6,8 +6,11 @@ use rusqlite::Connection;
 use crate::assistant::queue::Queue;
 use crate::assistant::run::Runs;
 use crate::db;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::journal;
+
+/// The directory of files beside the workspace, by name.
+const MEDIA_DIR: &str = "media";
 use crate::profile;
 
 /// The open workspace, shared by every command.
@@ -76,6 +79,29 @@ impl AppState {
 
     pub fn path(&self) -> &Path {
         &self.path
+    }
+
+    /// Where the files a person attaches live: `media/`, beside the workspace.
+    ///
+    /// Beside rather than inside: the database holds the path and the bytes
+    /// stay on disk (ADR 0002), because binaries in the database bloat every
+    /// backup and every future sync of it. Beside rather than anywhere else
+    /// on the machine, so that one directory is the whole workspace — the
+    /// backup takes it with the database (decision of 2026-09-15), and moving
+    /// a workspace is moving a folder.
+    ///
+    /// An error rather than `None`: a run with no directory can still start
+    /// where kilna did, but a file with nowhere to go has nowhere to go.
+    pub fn media_dir(&self) -> Result<PathBuf> {
+        let dir = self
+            .path
+            .parent()
+            .ok_or_else(|| Error::Other("the workspace has no directory to keep files in".into()))?
+            .join(MEDIA_DIR);
+        std::fs::create_dir_all(&dir).map_err(|cause| {
+            Error::Other(format!("could not prepare the files directory: {cause}"))
+        })?;
+        Ok(dir)
     }
 
     /// Where assistant runs start: a directory next to the workspace that is

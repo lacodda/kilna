@@ -1,3 +1,4 @@
+pub mod asset;
 pub mod assistant;
 pub mod clock;
 pub mod collection;
