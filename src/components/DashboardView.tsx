@@ -7,7 +7,8 @@ import {
   dismissedFindings,
   type ScoredWork,
 } from '@/lib/api'
-import { coverFor } from '@/lib/cover'
+import { coverImageFor } from '@/lib/cover'
+import { useCovers } from '@/lib/useCovers'
 import { isQuiet, summarise, type Decision } from '@/lib/dashboard'
 import { findings, visible } from '@/lib/findings'
 import { today } from '@/lib/month'
@@ -166,6 +167,7 @@ function DecisionRow({
   decision: Decision
   onSelect: (workId: string, tab?: string) => void
 }) {
+  const covers = useCovers()
   const { t } = useTranslation()
   const profile = useProfile()
   const { release, daysLeft } = decision
@@ -186,7 +188,7 @@ function DecisionRow({
       <span
         aria-hidden
         className="size-8 shrink-0 rounded-lg"
-        style={{ background: coverFor(release.work_id) }}
+        style={{ background: coverImageFor(release.work_id, covers.get(release.work_id)) }}
       />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold">{release.work_title}</span>
@@ -208,6 +210,7 @@ function WeekRow({
   entry: Decision
   onSelect: (workId: string, tab?: string) => void
 }) {
+  const covers = useCovers()
   const { t } = useTranslation()
   const profile = useProfile()
   const { release, daysLeft } = entry
@@ -224,7 +227,7 @@ function WeekRow({
       <span
         aria-hidden
         className="size-8 shrink-0 rounded-lg"
-        style={{ background: coverFor(release.work_id) }}
+        style={{ background: coverImageFor(release.work_id, covers.get(release.work_id)) }}
       />
       <span className="min-w-0 flex-1 truncate text-sm font-semibold">{release.work_title}</span>
       {/* What it is and what goes out — a video's YouTube release and a
@@ -248,6 +251,7 @@ function CoverCard({
   work: ScoredWork
   onSelect: (workId: string, tab?: string) => void
 }) {
+  const covers = useCovers()
   const profile = useProfile()
 
   return (
@@ -256,7 +260,7 @@ function CoverCard({
       onClick={() => onSelect(work.work_id)}
       className="cursor-pointer overflow-hidden rounded-2xl border border-line bg-raise text-left transition-transform hover:-translate-y-0.5 hover:border-line-2"
     >
-      <span aria-hidden className="block h-20" style={{ background: coverFor(work.work_id) }} />
+      <span aria-hidden className="block h-20" style={{ background: coverImageFor(work.work_id, covers.get(work.work_id)) }} />
       <span className="block px-3 py-2">
         <span className="block truncate text-[12.5px] font-semibold">{work.title}</span>
         <span className="block font-mono text-[11px] text-faint">

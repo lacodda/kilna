@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 
 // These mirror the Rust structs in src-tauri/src. Nothing enforces that they
 // agree — see ADR 0003 — so a change on one side means a change here.
@@ -769,6 +769,48 @@ export const timeScenes = (workId: string) => invoke<Scene[]>('time_scenes', { w
 /** Build the board's frame from the parts the source text marks out. */
 export const frameScenes = (workId: string, role: string) =>
   invoke<Scene[]>('frame_scenes', { workId, role })
+
+/** A file attached to a work or a release: a cover, a reference. */
+export interface Asset {
+  id: string
+  profile_id: string
+  work_id: string | null
+  release_id: string | null
+  /** What it is for: `cover`, or a plain attachment. */
+  kind: string
+  /** Where the bytes are, inside the workspace's own files directory. */
+  path: string
+  label: string | null
+  /** The name the file arrived under — what the world outside calls it. */
+  original_name: string | null
+  created_at: string
+}
+
+/** What to attach, and to what. */
+export interface NewAsset {
+  work_id?: string
+  release_id?: string
+  /** `cover`, or nothing for a plain attachment. */
+  kind?: string
+  label?: string
+}
+
+export const attachAsset = (source: string, asset: NewAsset) =>
+  invoke<Asset>('attach_asset', { source, asset })
+export const listWorkAssets = (workId: string) =>
+  invoke<Asset[]>('list_work_assets', { workId })
+export const listReleaseAssets = (releaseId: string) =>
+  invoke<Asset[]>('list_release_assets', { releaseId })
+/** The cover of every work that has one, as [work id, path] pairs. */
+export const listCovers = () => invoke<[string, string][]>('list_covers')
+export const detachAsset = (id: string) => invoke<void>('detach_asset', { id })
+
+/** A file in the workspace, as a URL the window may fetch.
+
+    A path on disk is not one: the webview reaches a local file through the
+    asset protocol, whose scope is granted at startup for the workspace's own
+    files directory and nothing else. */
+export const fileSrc = (path: string) => convertFileSrc(path)
 
 /** A note a scene is about: who is in it, where it happens. */
 export interface SceneNote {

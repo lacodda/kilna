@@ -4,7 +4,8 @@ import { Link, useNavigate } from 'react-router'
 import { ArrowLeft, Copy, Pencil, Star } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { deriveWork, latestScore, listCollections, updateWork, type Work } from '@/lib/api'
-import { coverFor } from '@/lib/cover'
+import { coverImageFor } from '@/lib/cover'
+import { useCovers } from '@/lib/useCovers'
 import { keys } from '@/lib/query'
 import { announceEdited } from '@/lib/edited'
 import { badgeVariantOf } from '@/lib/markIcon'
@@ -40,6 +41,7 @@ export function CardHeader({ work, releases, links = 0, scenes }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const vocabulary = vocabularyOf(profile.config, work.kind)
+  const cover = useCovers().get(work.id)
 
   // The tier and total belong here rather than only on the Score tab: they are
   // the verdict, and the verdict is what someone opens a card to check.
@@ -72,7 +74,7 @@ export function CardHeader({ work, releases, links = 0, scenes }: Props) {
       <div className="rounded-t-[18px] border border-b-0 border-line">
         <div
           className="relative h-[118px] rounded-t-[17px]"
-          style={{ background: coverFor(work.id) }}
+          style={{ background: coverImageFor(work.id, cover) }}
         >
           <Link
             to="/catalogue"

@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { search, type Hit, type HitKind } from '@/lib/api'
-import { coverFor } from '@/lib/cover'
+import { coverImageFor } from '@/lib/cover'
+import { useCovers } from '@/lib/useCovers'
 import { keys } from '@/lib/query'
 import { loadRecent } from '@/lib/recent'
 import { cn } from '@/lib/utils'
@@ -58,6 +59,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
 }
 
 function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
+  const covers = useCovers()
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
@@ -197,7 +199,7 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
                         <span
                           aria-hidden
                           className="size-6 shrink-0 rounded-md"
-                          style={{ background: coverFor(hit.work_id) }}
+                          style={{ background: coverImageFor(hit.work_id, covers.get(hit.work_id)) }}
                         />
                       }
                       hint={hit.detail}

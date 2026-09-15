@@ -47,3 +47,23 @@ export function accentFor(id: string): string {
   const [from] = GRADIENTS[pick(id)] ?? GRADIENTS[0]!
   return from
 }
+
+/**
+ * A work's cover as a `background` value: the picture when it has one, the
+ * gradient when it has not.
+ *
+ * The gradient stays underneath rather than being replaced. A picture still
+ * loading, or one whose file went missing under the workspace, then shows
+ * the colour the work has always had instead of a white hole — and a cover
+ * with transparency sits on its own work's colour.
+ *
+ * `src` is a URL the webview can fetch, not a path on disk: a file becomes
+ * one through `fileSrc`. Quotes and backslashes in it are escaped as a CSS
+ * string — `CSS.escape` is for identifiers and would mangle a URL.
+ */
+export function coverImageFor(id: string, src: string | undefined): string {
+  const gradient = coverFor(id)
+  if (src === undefined) return gradient
+  const quoted = src.replaceAll('\\', '\\\\').replaceAll('"', '\\"')
+  return `url("${quoted}") center / cover no-repeat, ${gradient}`
+}

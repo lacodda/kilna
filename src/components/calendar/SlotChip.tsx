@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { GripVertical, Lock } from 'lucide-react'
 import type { ScheduledRelease } from '@/lib/api'
-import { coverFor } from '@/lib/cover'
+import { coverImageFor } from '@/lib/cover'
+import { useCovers } from '@/lib/useCovers'
 import { KindGlyph } from '@/lib/releaseIcon'
 import { daysBetween, missing } from '@/lib/readiness'
 import { openExternal, shortLink } from '@/lib/link'
@@ -33,6 +34,7 @@ interface Props {
  * day's full width underneath.
  */
 export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = false }: Props) {
+  const covers = useCovers()
   const { t } = useTranslation()
   const profile = useProfile()
   const releaseKinds = allOf(profile.config, 'release_kinds')
@@ -72,7 +74,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
       )}
       // The work's own colour, so the same song is the same colour wherever
       // it appears — the cover, the card, this chip.
-      style={{ background: coverFor(slot.work_id) }}
+      style={{ background: coverImageFor(slot.work_id, covers.get(slot.work_id)) }}
     >
         {/* The top line: what you grab and what the release's state is. Both
             are small and fixed-width, so they cost the title nothing. */}

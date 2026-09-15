@@ -35,6 +35,9 @@ export const keys = {
   releaseQueue: ['releaseQueue'] as const,
 
   collections: ['collections'] as const,
+  // One key for every work's cover: attaching one changes the catalogue,
+  // the card, the calendar and the dashboard at once.
+  covers: ['covers'] as const,
   notes: ['notes'] as const,
   tags: ['tags'] as const,
   workTags: ['workTags'] as const,
