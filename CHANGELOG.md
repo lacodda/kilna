@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.66.0] - 2026-09-15
+
+### Features
+- Regenerate one prompt block, and say how long a run took
 ## [0.65.0] - 2026-09-14
 
 ### Features
@@ -11,7 +15,7 @@ All notable changes to this project are documented in this file.
 - A scene points at who is in it and where it happens
 
 ### Breaking Changes
-- A work's `duration` is a number of seconds, not text: the field is retyped in every profile and the values already written are converted by migration 0018 — `m:ss` and `h:mm:ss` become seconds, and anything else is left exactly as it stands. Nothing to do by hand. A workspace that had retyped the field itself keeps its own version, and a duration written there as `3:45` is still read as a length.
+- Time a board from the work's duration
 ## [0.64.0] - 2026-09-13
 
 ### Features
