@@ -42,7 +42,12 @@ From top to bottom:
   you scroll past.
 
   **Click the description to open the row.** Underneath it, the description
-  in full and a box per prompt block, each with its own copy button. The
+  in full and a box per prompt block, each with its own copy button — and a
+  **regenerate** button that aims a scene action at that block alone, with
+  the eye beside it showing exactly what would be sent. Two blocks of a
+  scene regenerate side by side; the same block twice does not start
+  again while it is going. What comes back is laid over the scene, so a
+  rewritten animation cannot delete the still. The
   long text is folded away, not left out.
 
   **Filled in** is computed, never stored: *empty* when nothing is written,

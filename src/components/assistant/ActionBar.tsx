@@ -20,6 +20,10 @@ interface Props {
   /** The scene the actions are about: only scene actions are offered, and
       each starts on this row of the board. Without it, work actions. */
   sceneId?: string
+  /** One prompt block of that scene: the action is aimed at this block and
+      the answer is held to it. Two blocks of a scene run side by side; the
+      same block twice does not. */
+  block?: string
   /** A line over the buttons saying what they act on. */
   hint?: string
   /** Buttons only, no heading: for a row of the board. */
@@ -60,7 +64,14 @@ export function actionsFor(
  * that thread's session as context, and it buries the answer in someone else's
  * subject.
  */
-export function ActionBar({ workId, versionId, sceneId, hint, compact = false }: Props) {
+export function ActionBar({
+  workId,
+  versionId,
+  sceneId,
+  block,
+  hint,
+  compact = false,
+}: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const kind = useWorkKind(workId)
@@ -92,7 +103,7 @@ export function ActionBar({ workId, versionId, sceneId, hint, compact = false }:
   }, [client])
 
   const start = useMutation({
-    mutationFn: (action: string) => startTask(workId, action, { versionId, sceneId }),
+    mutationFn: (action: string) => startTask(workId, action, { versionId, sceneId, block }),
     onSuccess: (started) => {
       void client.invalidateQueries({ queryKey: keys.activeTasks })
       void client.invalidateQueries({ queryKey: keys.allChats })
@@ -123,7 +134,7 @@ export function ActionBar({ workId, versionId, sceneId, hint, compact = false }:
         // The list is the single source of that answer — a click that is
         // still in flight is covered by `pending` rather than by a
         // second piece of state that would have to be cleared by hand.
-        const working = busy.has(taskKey(action.key, workId, sceneId)) || pending === action.key
+        const working = busy.has(taskKey(action.key, workId, sceneId, block)) || pending === action.key
 
         return (
           <span key={action.key} className="inline-flex items-stretch">
@@ -189,6 +200,7 @@ export function ActionBar({ workId, versionId, sceneId, hint, compact = false }:
           action={previewing}
           versionId={versionId}
           sceneId={sceneId}
+          block={block}
           onStarted={() => {
             setPreviewing(null)
             void client.invalidateQueries({ queryKey: keys.activeTasks })

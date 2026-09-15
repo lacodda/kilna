@@ -603,12 +603,14 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
                 return Read::Nothing;
             };
             // A scene action's key names its scene; the answer is held to
-            // that number so a revision cannot land on a stranger.
+            // that number so a revision cannot land on a stranger. A key
+            // that names a block holds it to that block too.
             let only = super::task::scene_of_key(task_key)
                 .and_then(|id| crate::scene::get(conn, id).ok().flatten())
                 .map(|scene| scene.position);
+            let only_block = super::task::block_of_key(task_key);
             let vocabulary = profile.config.vocabulary(&work.kind);
-            match super::proposal::read_scenes(body, vocabulary, change, only) {
+            match super::proposal::read_scenes(body, vocabulary, change, only, only_block) {
                 super::proposal::ReadScenes::Nothing => Read::Nothing,
                 super::proposal::ReadScenes::Proposal(proposal) => value(*proposal),
                 super::proposal::ReadScenes::Refused(why) => Read::Refused(why),

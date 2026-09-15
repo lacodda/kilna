@@ -77,9 +77,39 @@ pub fn scene_key(action: &str, work_id: &str, scene_id: &str) -> String {
     format!("{action}:{work_id}:{scene_id}")
 }
 
+/// The key of a task about one prompt block of one scene.
+///
+/// A fourth segment, so two blocks of the same scene run side by side and the
+/// same block twice does not: the registry refuses by string equality, and
+/// what a person means by "already running" is this block, not this scene.
+pub fn block_key(action: &str, work_id: &str, scene_id: &str, block: &str) -> String {
+    format!("{action}:{work_id}:{scene_id}:{block}")
+}
+
+/// The prompt blocks a kind names, for a refusal that says what was offered.
+fn named_blocks(blocks: &[crate::profile::config::SceneBlock]) -> String {
+    if blocks.is_empty() {
+        return "none".to_owned();
+    }
+    blocks
+        .iter()
+        .map(|block| format!("`{}`", block.key))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// The block a task key names, if it names one.
+pub fn block_of_key(key: &str) -> Option<&str> {
+    key.splitn(4, ':').nth(3)
+}
+
 /// The scene a task key names, when it names one.
+///
+/// Reads the third segment only: a key that also names a block has four, and
+/// the scene is still the third. Splitting into three would hand back
+/// `scene:block` as the scene id and find no scene at all.
 pub fn scene_of_key(key: &str) -> Option<&str> {
-    key.splitn(3, ':').nth(2)
+    key.split(':').nth(2)
 }
 
 /// What a task is about, beyond the work.
@@ -91,6 +121,10 @@ pub struct About<'a> {
     pub version_id: Option<&'a str>,
     /// The scene a scene action is about.
     pub scene_id: Option<&'a str>,
+    /// One prompt block of that scene, when the action is about a single
+    /// block rather than the whole scene: regenerating the animation without
+    /// touching the still. A key of the kind's `scene_blocks`.
+    pub block: Option<&'a str>,
     /// Reference files the run may read: images, documents, anything the
     /// method should look at. Listed in the prompt by path, and the run is
     /// given leave to read their folders.
@@ -161,6 +195,35 @@ pub fn compose(
         (Scope::Work, _) => None,
     };
 
+    // One block of that scene, when the action is aimed at one. Refused
+    // before a chat is opened: a block the kind does not name would be a
+    // task whose answer nothing could apply, and a block without a scene is
+    // a block of nothing.
+    let vocabulary_for_block = profile.config.vocabulary(&work.kind);
+    let block = match (&scene, about.block) {
+        (_, None) => None,
+        (None, Some(_)) => {
+            return Err(Error::Other(format!(
+                "“{}” is not about a scene, so it is not about a block of one",
+                template.label
+            )));
+        }
+        (Some(_), Some(key)) => {
+            if !vocabulary_for_block
+                .scene_blocks
+                .iter()
+                .any(|block| block.key == key)
+            {
+                return Err(Error::Other(format!(
+                    "`{key}` is not a prompt block of a {}; the profile names {}",
+                    vocabulary_for_block.label.to_lowercase(),
+                    named_blocks(&vocabulary_for_block.scene_blocks)
+                )));
+            }
+            Some(key)
+        }
+    };
+
     let mut prompt = super::prompt::for_work(
         conn,
         work_id,
@@ -199,6 +262,7 @@ pub fn compose(
                 vocabulary,
                 change,
                 scene.as_ref().map(|s| s.position),
+                block,
             ));
         }
         Produces::Prose => {}
@@ -230,9 +294,10 @@ pub fn compose(
         Some(scene) => format!("{} · {} · #{}", template.label, work.title, scene.position),
         None => format!("{} · {}", template.label, work.title),
     };
-    let key = match &scene {
-        Some(scene) => scene_key(action, work_id, &scene.id),
-        None => key(action, work_id),
+    let key = match (&scene, block) {
+        (Some(scene), Some(block)) => block_key(action, work_id, &scene.id, block),
+        (Some(scene), None) => scene_key(action, work_id, &scene.id),
+        (None, _) => key(action, work_id),
     };
 
     Ok(Composed {
@@ -552,6 +617,92 @@ mod tests {
             refused.to_string().contains("not an action for a video"),
             "{refused}"
         );
+    }
+
+    /// A task about one prompt block carries the block in its key, so two
+    /// blocks of the same scene go side by side and the same block twice does
+    /// not — the registry refuses by string equality, and what a person means
+    /// by "already running" is this block.
+    ///
+    /// A block the kind does not name is refused before a chat is opened, and
+    /// so is a block on an action that is not about a scene at all.
+    #[test]
+    fn a_task_about_one_block_names_it_in_the_key_and_refuses_a_stranger() {
+        let (mut conn, profile_id) = workspace();
+        let video_id = video(&conn, &profile_id);
+        context(&mut conn, &video_id);
+        let scene = crate::scene::create(
+            &conn,
+            &profile_id,
+            NewScene {
+                work_id: video_id.clone(),
+                description: Some("she turns".into()),
+                ..NewScene::default()
+            },
+        )
+        .unwrap();
+
+        let about = |block: Option<&'static str>| About {
+            scene_id: Some(&scene.id),
+            block,
+            ..About::default()
+        };
+
+        let still = compose(&conn, &video_id, "prompts", about(Some("still"))).unwrap();
+        let motion = compose(&conn, &video_id, "prompts", about(Some("motion"))).unwrap();
+        assert_eq!(
+            still.key,
+            format!("prompts:{video_id}:{}:still", scene.id),
+            "the block is the fourth segment"
+        );
+        assert_ne!(
+            still.key, motion.key,
+            "two blocks of one scene are two tasks"
+        );
+        assert_eq!(
+            block_of_key(&still.key),
+            Some("still"),
+            "and the key reads back"
+        );
+        assert_eq!(block_of_key(&motion.key), Some("motion"));
+
+        // The scene is still found in a key that also names a block.
+        assert_eq!(scene_of_key(&still.key), Some(scene.id.as_str()));
+        assert_eq!(
+            block_of_key(&format!("prompts:{video_id}:{}", scene.id)),
+            None
+        );
+
+        // The prompt asks for that block and nothing else.
+        assert!(
+            still.prompt.contains("`still` block only"),
+            "{}",
+            still.prompt
+        );
+
+        // A block the kind does not name, refused by name.
+        let refused = compose(&conn, &video_id, "prompts", about(Some("grade")))
+            .unwrap_err()
+            .to_string();
+        assert!(refused.contains("`grade`"), "{refused}");
+        assert!(
+            refused.contains("`still`"),
+            "names what it does have: {refused}"
+        );
+
+        // A block on an action that is not about a scene.
+        let refused = compose(
+            &conn,
+            &video_id,
+            "plot",
+            About {
+                block: Some("still"),
+                ..About::default()
+            },
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(refused.contains("not about a scene"), "{refused}");
     }
 
     #[test]

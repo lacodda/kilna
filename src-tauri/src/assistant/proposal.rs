@@ -294,8 +294,14 @@ pub fn version_instruction(role_label: &str) -> String {
 /// shape differs by what the action does to the board: a replaced board is
 /// numbered from 1 in order, an added scene may leave its number out, and a
 /// revision names the numbers it changes. `only` narrows a revision to one
-/// scene — the one the action was started on.
-pub fn scenes_instruction(kind: &WorkKind, change: BoardChange, only: Option<i64>) -> String {
+/// scene — the one the action was started on — and `only_block` narrows it
+/// further to one prompt block of that scene.
+pub fn scenes_instruction(
+    kind: &WorkKind,
+    change: BoardChange,
+    only: Option<i64>,
+    only_block: Option<&str>,
+) -> String {
     let shots = if kind.shot_types.is_empty() {
         String::new()
     } else {
@@ -337,9 +343,16 @@ pub fn scenes_instruction(kind: &WorkKind, change: BoardChange, only: Option<i64
             "Give this one scene only, with its `position` exactly as numbered on the board, and only the fields you change: a field left out is kept, `blocks` are set together."
         }
     };
-    let only = match only {
-        Some(position) => format!(" The scene is number {position}."),
-        None => String::new(),
+    let only = match (only, only_block) {
+        // Aimed at one block: the scene is given whole so its other prompts
+        // are there to write against, but only this one comes back. The
+        // others are not the answer's to touch — and an answer that brought
+        // them would be laid over the scene, not put in its place.
+        (Some(position), Some(block)) => format!(
+            " The scene is number {position}. Give the `{block}` block only: leave every other block out, and change nothing else about the scene."
+        ),
+        (Some(position), None) => format!(" The scene is number {position}."),
+        (None, _) => String::new(),
     };
 
     let shot_line = if kind.shot_types.is_empty() {
@@ -386,12 +399,14 @@ pub enum ReadScenes {
 /// A block in the wrong words is not silently nothing: the answer is still
 /// an answer, but the reason there is no button travels with it. `only`
 /// narrows a revision to the scene the action was about — a revision that
-/// numbers another scene is refused rather than applied to a stranger.
+/// numbers another scene is refused rather than applied to a stranger — and
+/// `only_block` narrows it to one prompt block of that scene the same way.
 pub fn read_scenes(
     body: &str,
     kind: &WorkKind,
     change: BoardChange,
     only: Option<i64>,
+    only_block: Option<&str>,
 ) -> ReadScenes {
     let Some(block) = fenced_json(body) else {
         return ReadScenes::Nothing;
@@ -424,6 +439,21 @@ pub fn read_scenes(
             {
                 return ReadScenes::Refused(format!(
                     "the answer revised scene {other}; the action was about scene {only}"
+                ));
+            }
+        }
+        // Aimed at one block, an answer that writes another is refused the
+        // same way an answer about another scene is. It would be applied —
+        // the blocks are laid over, not put in place — but it would still
+        // rewrite a prompt nobody asked it to, and quietly.
+        if let Some(only_block) = only_block {
+            if let Some(other) = scenes
+                .iter()
+                .flat_map(|scene| scene.blocks.keys())
+                .find(|key| key.as_str() != only_block)
+            {
+                return ReadScenes::Refused(format!(
+                    "the answer wrote the `{other}` block; the action was about `{only_block}`"
                 ));
             }
         }
@@ -991,6 +1021,7 @@ mod tests {
             kind,
             BoardChange::Replace,
             None,
+            None,
         );
         let ReadScenes::Proposal(boxed) = read else {
             panic!("a board is read: {read:?}");
@@ -1003,7 +1034,7 @@ mod tests {
         assert_eq!(scenes[0].blocks["still"], "cranes");
 
         assert_eq!(
-            read_scenes("only prose", kind, BoardChange::Replace, None),
+            read_scenes("only prose", kind, BoardChange::Replace, None, None),
             ReadScenes::Nothing
         );
         let ReadScenes::Refused(why) = read_scenes(
@@ -1011,13 +1042,18 @@ mod tests {
             kind,
             BoardChange::Replace,
             None,
+            None,
         ) else {
             panic!("a wrong word is refused with its reason");
         };
         assert!(why.contains("no kind of shot `closeup`"), "{why}");
-        let ReadScenes::Refused(why) =
-            read_scenes(&block(r#"{"scenes": []}"#), kind, BoardChange::Add, None)
-        else {
+        let ReadScenes::Refused(why) = read_scenes(
+            &block(r#"{"scenes": []}"#),
+            kind,
+            BoardChange::Add,
+            None,
+            None,
+        ) else {
             panic!("an empty board is refused");
         };
         assert!(why.contains("names no scenes"), "{why}");
@@ -1033,6 +1069,7 @@ mod tests {
             kind,
             BoardChange::Revise,
             None,
+            None,
         ) else {
             panic!("a revision without numbers is refused");
         };
@@ -1043,6 +1080,7 @@ mod tests {
             kind,
             BoardChange::Revise,
             Some(1),
+            None,
         ) else {
             panic!("a revision of another scene is refused");
         };
@@ -1056,6 +1094,7 @@ mod tests {
             kind,
             BoardChange::Revise,
             Some(1),
+            None,
         ) else {
             panic!("the scene's own revision is read");
         };
@@ -1066,12 +1105,74 @@ mod tests {
         assert_eq!(scenes[0].position, Some(1));
     }
 
+    /// An action aimed at one block says so, and holds the answer to it: a
+    /// reply that rewrites another block is refused rather than applied
+    /// quietly over a prompt nobody asked about.
+    #[test]
+    fn an_action_about_one_block_asks_for_it_and_holds_the_answer_to_it() {
+        let config = config();
+        let kind = config.vocabulary("video");
+
+        let aimed = scenes_instruction(kind, BoardChange::Revise, Some(2), Some("motion"));
+        assert!(aimed.contains("The scene is number 2."), "{aimed}");
+        assert!(
+            aimed.contains("`motion` block only"),
+            "the instruction names the block: {aimed}"
+        );
+        assert!(
+            aimed.contains("leave every other block out"),
+            "and says what to leave alone: {aimed}"
+        );
+        // A continued line in Rust keeps the next line's indentation unless
+        // the backslash eats it, and `cargo fmt` then joins the two with the
+        // spaces still in. The sentence is read by a model and, in the
+        // preview dialog, by a person; a run of spaces inside it is the tell.
+        // Checked on the prose, not on the json example above it, which is
+        // indented on purpose.
+        let prose = aimed
+            .rsplit("```")
+            .next()
+            .expect("the instruction carries its example");
+        assert!(
+            !prose.contains("  "),
+            "the sentence carries a wrapped line's indentation: {prose:?}"
+        );
+
+        let read = read_scenes(
+            &block(r#"{"scenes": [{"position": 2, "blocks": {"motion": "a slower push"}}]}"#),
+            kind,
+            BoardChange::Revise,
+            Some(2),
+            Some("motion"),
+        );
+        assert!(
+            matches!(read, ReadScenes::Proposal(_)),
+            "the block it was asked for is read"
+        );
+
+        let ReadScenes::Refused(why) = read_scenes(
+            &block(
+                r#"{"scenes": [{"position": 2, "blocks": {"motion": "ok", "still": "and this"}}]}"#,
+            ),
+            kind,
+            BoardChange::Revise,
+            Some(2),
+            Some("motion"),
+        ) else {
+            panic!("an answer that writes another block is refused");
+        };
+        assert!(
+            why.contains("`still` block") && why.contains("about `motion`"),
+            "{why}"
+        );
+    }
+
     #[test]
     fn the_scenes_instruction_names_the_kinds_words_and_the_change() {
         let config = config();
         let kind = config.vocabulary("video");
 
-        let whole = scenes_instruction(kind, BoardChange::Replace, None);
+        let whole = scenes_instruction(kind, BoardChange::Replace, None, None);
         assert!(whole.contains("`wide` = Wide"), "{whole}");
         assert!(
             whole.contains("- `still` — Still frame: The frame as a picture"),
@@ -1083,11 +1184,11 @@ mod tests {
             "{whole}"
         );
 
-        let one = scenes_instruction(kind, BoardChange::Revise, Some(3));
+        let one = scenes_instruction(kind, BoardChange::Revise, Some(3), None);
         assert!(one.contains("this one scene only"), "{one}");
         assert!(one.contains("The scene is number 3."), "{one}");
 
-        let added = scenes_instruction(kind, BoardChange::Add, None);
+        let added = scenes_instruction(kind, BoardChange::Add, None, None);
         assert!(added.contains("leave `position` out"), "{added}");
     }
 }

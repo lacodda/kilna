@@ -23,6 +23,8 @@ export interface RunView {
   cancelled: boolean
   working: boolean
   cost: number | null
+  /** How long the run took, in milliseconds, as the CLI reported it. */
+  durationMs: number | null
   startedAt: string
 }
 
@@ -32,6 +34,7 @@ export function view(run: Run): RunView {
   const blocks: string[] = []
   let failure: string | null = null
   let cost: number | null = null
+  let durationMs: number | null = null
 
   for (const event of run.events) {
     switch (event.kind) {
@@ -47,6 +50,7 @@ export function view(run: Run): RunView {
         // result and nothing else.
         if (blocks.length === 0 && event.body.trim() !== '') blocks.push(event.body)
         cost = event.cost_usd ?? null
+        durationMs = event.duration_ms ?? null
         break
       case 'failed':
         failure = event.message
@@ -67,6 +71,7 @@ export function view(run: Run): RunView {
     cancelled: run.state === 'cancelled',
     working: run.state === 'running',
     cost,
+    durationMs,
     startedAt: run.started_at,
   }
 }
@@ -100,4 +105,21 @@ export function inOrder(runs: Run[]): Run[] {
     // Runs started inside the same second still need a stable order.
     return left.id < right.id ? -1 : 1
   })
+}
+
+/**
+ * How long a run took, as a person reads it: `4s`, `1m 12s`, `2h 05m`.
+ *
+ * Rounded to the second, because a run is answered by a model over a network
+ * and the milliseconds are noise; under a second it says `<1s` rather than
+ * `0s`, which would read as "instant" for something that did happen.
+ */
+export function formatDuration(ms: number | null): string | null {
+  if (ms === null || !Number.isFinite(ms) || ms < 0) return null
+  const seconds = Math.round(ms / 1000)
+  if (seconds < 1) return '<1s'
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ${String(seconds % 60).padStart(2, '0')}s`
+  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
 }

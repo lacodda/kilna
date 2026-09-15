@@ -15,6 +15,23 @@ describe('taskKey', () => {
     expect(taskKey('critique', 'w1')).not.toBe(taskKey('critique', 'w2'))
     expect(taskKey('critique', 'w1')).not.toBe(taskKey('score', 'w1'))
   })
+
+  it('separates a scene from the work, and a block from its scene', () => {
+    // The shape the backend builds, segment for segment: the frontend draws
+    // the busy button from it and the backend refuses a second run by it, so
+    // a difference between the two is a button that lies.
+    expect(taskKey('prompts', 'w1', 's1')).toBe('prompts:w1:s1')
+    expect(taskKey('prompts', 'w1', 's1', 'still')).toBe('prompts:w1:s1:still')
+
+    // Two blocks of one scene are two tasks; the same block twice is one.
+    expect(taskKey('prompts', 'w1', 's1', 'still')).not.toBe(
+      taskKey('prompts', 'w1', 's1', 'motion'),
+    )
+    expect(taskKey('prompts', 'w1', 's1', 'still')).toBe(taskKey('prompts', 'w1', 's1', 'still'))
+
+    // And a block task is not the whole-scene task.
+    expect(taskKey('prompts', 'w1', 's1', 'still')).not.toBe(taskKey('prompts', 'w1', 's1'))
+  })
 })
 
 describe('announcement', () => {

@@ -16,6 +16,8 @@ interface Props {
   action: PromptTemplate
   versionId?: string
   sceneId?: string
+  /** One prompt block of that scene, when the action is aimed at one. */
+  block?: string
   onStarted: () => void
 }
 
@@ -44,6 +46,7 @@ export function TaskPreviewDialog({
   action,
   versionId,
   sceneId,
+  block,
   onStarted,
 }: Props) {
   const { t } = useTranslation()
@@ -53,15 +56,29 @@ export function TaskPreviewDialog({
   const [attachments, setAttachments] = useState<string[]>([])
 
   const preview = useQuery({
-    queryKey: ['task-preview', workId, action.key, versionId ?? '', sceneId ?? '', attachments],
-    queryFn: () => previewTask(workId, action.key, { versionId, sceneId, attachments }),
+    queryKey: [
+      'task-preview',
+      workId,
+      action.key,
+      versionId ?? '',
+      sceneId ?? '',
+      block ?? '',
+      attachments,
+    ],
+    queryFn: () => previewTask(workId, action.key, { versionId, sceneId, block, attachments }),
     enabled: isOpen,
     staleTime: 0,
     retry: false,
   })
 
   const start = useMutation({
-    mutationFn: () => startTask(workId, action.key, { versionId, sceneId, attachments: pathsOf(attachmentsText) }),
+    mutationFn: () =>
+      startTask(workId, action.key, {
+        versionId,
+        sceneId,
+        block,
+        attachments: pathsOf(attachmentsText),
+      }),
     onSuccess: (started) => {
       say.info(t('assistant.taskStarted', { title: started.title }))
       onStarted()

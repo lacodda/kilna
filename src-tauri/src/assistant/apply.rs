@@ -716,8 +716,9 @@ fn rewrite_scene(
 
 /// A scene revised in place: only what the proposal says about it changes.
 /// A field left out is kept — a revision that brings the prompt blocks says
-/// nothing about the seconds — and the blocks are set together when given,
-/// as the board's own editor sets them.
+/// nothing about the seconds — and a block left out is kept too: the blocks
+/// named are laid over the ones the scene holds, so an action aimed at one
+/// block cannot delete the others (0.66). An emptied block is cleared.
 fn revise_scene(
     conn: &mut Connection,
     profile_id: &str,
@@ -725,6 +726,27 @@ fn revise_scene(
     packaged: PackagedScene,
 ) -> Result<String> {
     let before = scene::get(conn, id)?;
+    // The blocks the revision names are laid over the ones the scene holds,
+    // not put in their place. A task aimed at one block — the animation,
+    // rewritten without touching the still — comes back carrying only that
+    // block, and setting the map whole would delete the two it said nothing
+    // about. A block whose text comes back empty is cleared, which is what
+    // an emptied box means on the board.
+    let blocks = (!packaged.blocks.is_empty()).then(|| {
+        let mut merged = before
+            .as_ref()
+            .map(|scene| scene.blocks.clone())
+            .unwrap_or_default();
+        for (key, value) in packaged.blocks {
+            let emptied = value.as_str().is_some_and(|text| text.trim().is_empty());
+            if emptied {
+                merged.remove(&key);
+            } else {
+                merged.insert(key, value);
+            }
+        }
+        merged
+    });
     let patch = ScenePatch {
         position: None,
         section: packaged.section.map(Some),
@@ -732,7 +754,7 @@ fn revise_scene(
         ends_at: packaged.ends_at.map(Some),
         shot_type: packaged.shot_type.map(Some),
         description: (!packaged.description.trim().is_empty()).then_some(packaged.description),
-        blocks: (!packaged.blocks.is_empty()).then_some(packaged.blocks),
+        blocks,
     };
     let at = time::now();
     let logged = operation::Intent::new("scene.update")
@@ -1866,6 +1888,147 @@ mod tests {
             refused.to_string().contains("names its number"),
             "{refused}"
         );
+    }
+
+    /// A revision that carries one block leaves the others where they are.
+    ///
+    /// This is what makes a task about a single block possible at all: the
+    /// answer comes back holding only the block it was asked for, and the
+    /// scene's other prompts are not its to delete. An emptied block is
+    /// cleared, which is what clearing the box on the board means.
+    #[test]
+    fn a_revised_block_is_laid_over_the_others_not_put_in_their_place() {
+        let (mut conn, profile_id, _) = workspace();
+        let (video_id, old) = video(&conn, &profile_id, 2);
+
+        let mut standing = Map::new();
+        standing.insert("still".into(), json!("the still as it was"));
+        standing.insert("motion".into(), json!("the motion as it was"));
+        standing.insert("negative".into(), json!("no hands"));
+        scene::update(
+            &conn,
+            &old[1],
+            scene::ScenePatch {
+                blocks: Some(standing),
+                ..scene::ScenePatch::default()
+            },
+        )
+        .unwrap();
+
+        let chat = chat_on(&conn, &profile_id, Some(&video_id));
+        let mut only_motion = Map::new();
+        only_motion.insert("motion".into(), json!("a slower push in"));
+        let mut revised = packaged("");
+        revised.position = Some(2);
+        revised.blocks = only_motion;
+        let message = propose(
+            &conn,
+            &chat,
+            "just the animation",
+            Proposal::Scenes {
+                scenes: vec![revised],
+                change: BoardChange::Revise,
+            },
+        );
+
+        apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+
+        let board = scene::for_work(&conn, &video_id).unwrap();
+        assert_eq!(board[1].blocks["motion"], "a slower push in");
+        assert_eq!(
+            board[1].blocks["still"], "the still as it was",
+            "a block nobody asked about was deleted"
+        );
+        assert_eq!(board[1].blocks["negative"], "no hands");
+
+        // And an emptied block is cleared rather than kept.
+        let mut emptied = Map::new();
+        emptied.insert("negative".into(), json!("   "));
+        let mut clearing = packaged("");
+        clearing.position = Some(2);
+        clearing.blocks = emptied;
+        let message = propose(
+            &conn,
+            &chat,
+            "drop the negative",
+            Proposal::Scenes {
+                scenes: vec![clearing],
+                change: BoardChange::Revise,
+            },
+        );
+        apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+
+        let board = scene::for_work(&conn, &video_id).unwrap();
+        assert!(
+            !board[1].blocks.contains_key("negative"),
+            "an emptied block is cleared"
+        );
+        assert_eq!(
+            board[1].blocks["motion"], "a slower push in",
+            "and the rest stands"
+        );
+    }
+
+    /// A timed board survives a revision of what its scenes say.
+    ///
+    /// The board is timed once and dragged by hand from there (0.65); a
+    /// revision is about the words, and the seconds are the person's. The
+    /// instruction tells the model to leave out what it does not change, but
+    /// the shape it is given names `starts_at` and `ends_at`, so nothing but
+    /// this holds the line: a revision that mentions no seconds must not
+    /// move a single one.
+    #[test]
+    fn revising_a_scene_leaves_the_seconds_the_person_set() {
+        let (mut conn, profile_id, _) = workspace();
+        let (video_id, old) = video(&conn, &profile_id, 3);
+
+        // Timed the way the board times itself.
+        for (index, id) in old.iter().enumerate() {
+            let from = index as f64 * 30.0;
+            scene::update(
+                &conn,
+                id,
+                scene::ScenePatch {
+                    starts_at: Some(Some(from)),
+                    ends_at: Some(Some(from + 30.0)),
+                    ..scene::ScenePatch::default()
+                },
+            )
+            .unwrap();
+        }
+
+        let chat = chat_on(&conn, &profile_id, Some(&video_id));
+        let mut revised = packaged("a better second scene");
+        revised.position = Some(2);
+        revised.starts_at = None;
+        revised.ends_at = None;
+        let message = propose(
+            &conn,
+            &chat,
+            "the words, not the clock",
+            Proposal::Scenes {
+                scenes: vec![revised],
+                change: BoardChange::Revise,
+            },
+        );
+
+        apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+
+        let board = scene::for_work(&conn, &video_id).unwrap();
+        assert_eq!(
+            board
+                .iter()
+                .map(|s| (s.position, s.starts_at, s.ends_at))
+                .collect::<Vec<_>>(),
+            vec![
+                (1, Some(0.0), Some(30.0)),
+                (2, Some(30.0), Some(60.0)),
+                (3, Some(60.0), Some(90.0)),
+            ],
+            "a revision of the words moved the clock"
+        );
+        assert_eq!(board[1].description, "a better second scene");
+        assert_eq!(board[1].position, 2, "and the number is the person's too");
     }
 
     #[test]

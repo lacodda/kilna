@@ -1183,6 +1183,10 @@ export interface TaskQueue {
 export interface TaskAbout {
   versionId?: string
   sceneId?: string
+  /** One prompt block of that scene, when the action is about a single block
+      rather than the whole scene: regenerating the animation without touching
+      the still. A key of the kind's `scene_blocks`. */
+  block?: string
   attachments?: string[]
 }
 
@@ -1190,13 +1194,7 @@ export interface TaskAbout {
     given: the template reads that version, and what the answer proposes is
     bound to it; on a scene of its board for a scene action. */
 export const startTask = (workId: string, action: string, about: TaskAbout = {}) =>
-  invoke<StartedTask>('start_task', {
-    workId,
-    action,
-    versionId: about.versionId ?? null,
-    sceneId: about.sceneId ?? null,
-    attachments: about.attachments ?? [],
-  })
+  invoke<StartedTask>('start_task', { workId, action, about })
 
 /** What a task would send: composed by the call that starts one. */
 export interface ComposedTask {
@@ -1208,13 +1206,7 @@ export interface ComposedTask {
 
 /** What starting the action would send, without sending it. */
 export const previewTask = (workId: string, action: string, about: TaskAbout = {}) =>
-  invoke<ComposedTask>('preview_task', {
-    workId,
-    action,
-    versionId: about.versionId ?? null,
-    sceneId: about.sceneId ?? null,
-    attachments: about.attachments ?? [],
-  })
+  invoke<ComposedTask>('preview_task', { workId, action, about })
 export const startTasks = (workIds: readonly string[], action: string) =>
   invoke<StartedBatch>('start_tasks', { workIds, action })
 export const activeTasks = () => invoke<string[]>('active_tasks')

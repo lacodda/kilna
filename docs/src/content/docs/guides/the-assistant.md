@@ -272,7 +272,9 @@ While a run is going the panel shows what it is doing rather than a spinner:
   read, the pattern being searched for;
 - blocks of the answer, as they arrive.
 
-The reply lands in the chat when the run finishes, with what it cost.
+The reply lands in the chat when the run finishes, with what it cost and how
+long it took — the two facts the CLI reports about a finished turn, under the
+answer it belongs to.
 
 **Stop** ends a run. What it had already said stays — a stopped run is a short
 answer, not an erased one. Stopping is not instant: if the answer arrives in

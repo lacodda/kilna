@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
@@ -71,6 +71,31 @@ export function ScenesTab({ work }: Props) {
   const client = useQueryClient()
   const vocabulary = vocabularyOf(profile.config, work.kind)
   const [shotType, setShotType] = useState<string | undefined>(undefined)
+  // How wide the board's pane actually is. The table may be wider than it —
+  // eight columns do not fit a card on a laptop — and an open row must stay
+  // inside what the eye can see rather than inheriting the table's width.
+  const [paneWidth, setPaneWidth] = useState<number | null>(null)
+  const watching = useRef<ResizeObserver | null>(null)
+  // A callback ref rather than an effect: the pane is drawn only once the
+  // board has rows, and an effect that runs before that measures nothing and
+  // never runs again. This fires the moment the node arrives and again when
+  // it leaves.
+  //
+  // `clientWidth`, not the observer's `contentRect`: the pane is the box that
+  // scrolls and its content is the table, which is wider. What an open row
+  // must fit inside is the part a person can see.
+  const pane = (box: HTMLDivElement | null) => {
+    watching.current?.disconnect()
+    watching.current = null
+    if (box === null) return
+    setPaneWidth(box.clientWidth)
+    const watch = new ResizeObserver(() => {
+      setPaneWidth(box.clientWidth)
+    })
+    watch.observe(box)
+    watching.current = watch
+  }
+
   // Which rows have their description and prompts open. Kept here rather
   // than in the row so opening one survives the board being re-read.
   const [opened, setOpened] = useState<ReadonlySet<string>>(new Set())
@@ -343,7 +368,7 @@ export function ScenesTab({ work }: Props) {
           named. What does not fit a row — the description and the prompt
           blocks — opens under it. */}
       {shown.length > 0 && (
-        <div className="min-w-0 overflow-x-auto">
+        <div ref={pane} className="min-w-0 overflow-x-auto">
           {/* `table-fixed` so the description is the column that gives way,
               and a minimum width so it does not give way to nothing: with
               every other column fixed, eight columns in a 926px pane left
@@ -382,6 +407,7 @@ export function ScenesTab({ work }: Props) {
                   saving={patch.isPending && patch.variables?.id === scene.id}
                   onPatch={(changes) => patch.mutate({ id: scene.id, changes })}
                   onDelete={() => remove.mutate(scene)}
+                  paneWidth={paneWidth}
                   about={aboutByScene.get(scene.id) ?? []}
                   cast={cast}
                   onAttach={(noteId) => attach.mutate({ sceneId: scene.id, noteId })}
@@ -478,6 +504,7 @@ function SceneRow({
   saving,
   onPatch,
   onDelete,
+  paneWidth,
   about,
   cast,
   onAttach,
@@ -491,6 +518,9 @@ function SceneRow({
   saving: boolean
   onPatch: (changes: ScenePatch) => void
   onDelete: () => void
+  /** The width of the board's visible pane, when it has been measured: the
+      open row is held to it rather than to the table's own width. */
+  paneWidth: number | null
   /** Who is in this scene, where it happens. */
   about: SceneNote[]
   /** Every note the profile lets a scene name. */
@@ -654,7 +684,16 @@ function SceneRow({
       {open && (
         <tr className="border-b border-line bg-soft/40">
           <td colSpan={columns} className="px-2 py-3">
-            <div className="flex flex-col gap-3">
+            {/* The open row is read, not scrolled. The table is wider than
+                the pane whenever the board carries every column, and a row
+                that inherited that width put the last prompt block off the
+                edge — measured. `sticky left-0` with the pane's own width
+                holds the panel where the eye is while the table scrolls
+                under it. */}
+            <div
+              className="sticky left-0 flex flex-col gap-3"
+              style={paneWidth === null ? undefined : { width: paneWidth - 16 }}
+            >
               <Textarea
                 autoResize
                 maxRows={8}
@@ -700,6 +739,8 @@ function SceneRow({
                       key={block.key}
                       block={block}
                       text={scene.blocks[block.key] ?? ''}
+                      workId={workId}
+                      sceneId={scene.id}
                       onSave={(text) => saveBlock(block.key, text)}
                     />
                   ))}
@@ -756,10 +797,17 @@ function ReadinessMark({ readiness, blocks }: { readiness: Readiness; blocks: nu
 function BlockBox({
   block,
   text,
+  workId,
+  sceneId,
   onSave,
 }: {
   block: SceneBlock
   text: string
+  /** The work and scene this block belongs to — the scene actions are
+      offered here aimed at this block alone. Absent for a block the profile
+      no longer names: there is nothing to regenerate into. */
+  workId?: string
+  sceneId?: string
   /** Absent for a block the profile no longer names: read, not written. */
   onSave?: (text: string) => void
 }) {
@@ -788,6 +836,13 @@ function BlockBox({
         >
           <Copy aria-hidden className="size-3.5" />
         </Button>
+        {/* The profile's scene actions, aimed at this block: the animation
+            rewritten without touching the still. The answer is held to this
+            block, and what it brings is laid over the scene rather than put
+            in its place. */}
+        {workId !== undefined && sceneId !== undefined && (
+          <ActionBar workId={workId} sceneId={sceneId} block={block.key} compact />
+        )}
       </div>
       <Textarea
         autoResize

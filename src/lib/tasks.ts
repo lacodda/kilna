@@ -6,9 +6,20 @@ import type { RunEmission } from '@/lib/api'
  * Built the same way here and in the backend, because both sides need the same
  * answer to the same question — is this button already working? The frontend
  * asks it to draw the button, the backend asks it to refuse a second run.
+ *
+ * A task aimed at one prompt block of a scene carries the block as a fourth
+ * segment, so two blocks of the same scene run side by side and the same block
+ * twice does not.
  */
-export function taskKey(action: string, workId: string, sceneId?: string): string {
-  return sceneId === undefined ? `${action}:${workId}` : `${action}:${workId}:${sceneId}`
+export function taskKey(
+  action: string,
+  workId: string,
+  sceneId?: string,
+  block?: string,
+): string {
+  if (sceneId === undefined) return `${action}:${workId}`
+  if (block === undefined) return `${action}:${workId}:${sceneId}`
+  return `${action}:${workId}:${sceneId}:${block}`
 }
 
 /**

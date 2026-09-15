@@ -2430,6 +2430,38 @@ pub fn start_run(
     Ok(run)
 }
 
+/// What a task is about, as the window sends it.
+///
+/// One argument rather than four: the version, the scene, the block and the
+/// reference files travel together everywhere else, and a command with eight
+/// parameters is one where a caller swaps two of the same type without the
+/// compiler noticing.
+#[derive(Default, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskAbout {
+    #[serde(default)]
+    pub version_id: Option<String>,
+    #[serde(default)]
+    pub scene_id: Option<String>,
+    /// One prompt block of that scene, when the action is aimed at one.
+    #[serde(default)]
+    pub block: Option<String>,
+    #[serde(default)]
+    pub attachments: Option<Vec<String>>,
+}
+
+impl TaskAbout {
+    /// The borrowed form the task module reads.
+    fn as_about<'a>(&'a self, attachments: &'a [String]) -> assistant::task::About<'a> {
+        assistant::task::About {
+            version_id: self.version_id.as_deref(),
+            scene_id: self.scene_id.as_deref(),
+            block: self.block.as_deref(),
+            attachments,
+        }
+    }
+}
+
 /// What a started task tells the card: where it went, and what it is.
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -2454,21 +2486,16 @@ pub fn start_task(
     state: State<'_, AppState>,
     work_id: String,
     action: String,
-    version_id: Option<String>,
-    scene_id: Option<String>,
-    attachments: Option<Vec<String>>,
+    about: Option<TaskAbout>,
 ) -> Result<StartedTask> {
-    let attachments = attachments.unwrap_or_default();
+    let about = about.unwrap_or_default();
+    let attachments = about.attachments.clone().unwrap_or_default();
     spawn_task(
         &app,
         state.inner(),
         &work_id,
         &action,
-        assistant::task::About {
-            version_id: version_id.as_deref(),
-            scene_id: scene_id.as_deref(),
-            attachments: &attachments,
-        },
+        about.as_about(&attachments),
     )
 }
 
@@ -2480,22 +2507,12 @@ pub fn preview_task(
     state: State<'_, AppState>,
     work_id: String,
     action: String,
-    version_id: Option<String>,
-    scene_id: Option<String>,
-    attachments: Option<Vec<String>>,
+    about: Option<TaskAbout>,
 ) -> Result<assistant::task::Composed> {
-    let attachments = attachments.unwrap_or_default();
+    let about = about.unwrap_or_default();
+    let attachments = about.attachments.clone().unwrap_or_default();
     let conn = state.conn();
-    assistant::task::compose(
-        &conn,
-        &work_id,
-        &action,
-        assistant::task::About {
-            version_id: version_id.as_deref(),
-            scene_id: scene_id.as_deref(),
-            attachments: &attachments,
-        },
-    )
+    assistant::task::compose(&conn, &work_id, &action, about.as_about(&attachments))
 }
 
 /// Start one task and put a thread on it.

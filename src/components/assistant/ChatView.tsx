@@ -15,7 +15,7 @@ import {
 } from '@/lib/api'
 import { conversation, pending, type Exchange } from '@/lib/chat'
 import { reading } from '@/lib/palette'
-import { withEvent } from '@/lib/runs'
+import { formatDuration, withEvent } from '@/lib/runs'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
@@ -436,6 +436,9 @@ function ExchangeItem({
   // still growing, or when the run ended before an answer was stored.
   const body = item.answer?.body ?? run?.body ?? ''
   const cost = item.answer?.cost ?? run?.cost ?? null
+  // What the run cost in time as well as in money: the two facts the CLI
+  // reports about a finished turn, side by side under the answer.
+  const took = formatDuration(item.answer?.durationMs ?? run?.durationMs ?? null)
   const proposal = item.answer?.proposal ?? null
   const applied = item.answer?.applied ?? null
   const settled = item.run?.working !== true
@@ -483,6 +486,7 @@ function ExchangeItem({
           <Markdown body={body} copyLabel={t('assistant.copy')} />
           <div className="mt-1.5 flex items-center gap-1.5">
             {cost != null && <span className="text-xs text-dim">${cost.toFixed(3)}</span>}
+            {took !== null && <span className="text-xs text-faint">{took}</span>}
             {/* An answer still growing is not worth keeping yet. */}
             {insertable && (
               <Button
