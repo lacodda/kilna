@@ -554,10 +554,14 @@ export function ScenesTab({ work }: Props) {
               board. Below the minimum the pane scrolls sideways, which is
               the honest answer at that width; above it the description takes
               everything the others do not. */}
-          <table className="w-full min-w-[68rem] table-fixed text-sm">
+          <table className="w-full min-w-[72rem] table-fixed text-sm">
             <thead className="sticky top-0 z-10 bg-bg">
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-dim">
-                <th className="w-10 px-2 py-2 text-right">{t('scenes.number')}</th>
+                {/* Wide enough for the number FIELD and the chosen
+                    frame beside it: at `w-10` the column fitted a
+                    rendered number and clipped the input to a stub —
+                    measured on a fifty-scene board. */}
+                <th className="w-24 px-2 py-2 text-right">{t('scenes.number')}</th>
                 <th className="w-36 px-2 py-2">{t('scenes.section')}</th>
                 <th className="w-44 px-2 py-2">{t('scenes.span')}</th>
                 {vocabulary.shot_types.length > 0 && (

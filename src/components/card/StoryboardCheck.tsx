@@ -100,7 +100,10 @@ function Line({ complaint, onGo }: { complaint: Complaint; onGo: (sceneId: strin
   // plain text.
   if (target === undefined) {
     return (
-      <li className="flex items-start gap-2 text-sm text-dim">
+      // The same padding the button below carries, so a line about the whole
+      // board stands in the same column as the lines about scenes rather
+      // than four pixels to their left — measured on a real board.
+      <li className="flex items-start gap-2 px-1 py-0.5 text-sm text-dim">
         <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0 text-warn" />
         <span>{text}</span>
       </li>
