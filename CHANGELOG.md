@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.70.0] - 2026-09-16
+
+### Bug Fixes
+- The number column fits the field it now holds
+
+### Documentation
+- Numbering the board, and what it still owes
+
+### Features
+- A number you can type, and a board that closes up behind it
+- What the board still owes, counted above the board
 ## [0.69.0] - 2026-09-16
 
 ### Bug Fixes
