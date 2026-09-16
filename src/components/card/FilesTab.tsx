@@ -14,6 +14,7 @@ import {
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
+import { groupMaterials } from '@/lib/materials'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -157,18 +158,29 @@ export function FilesTab({ work }: Props) {
         <p className="text-sm text-dim">{t('files.empty')}</p>
       )}
 
-      {all.length > 0 && (
-        <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
-          {all.map((asset) => (
-            <FileCard
-              key={asset.id}
-              asset={asset}
-              isCover={asset.id === cover?.id}
-              onDetach={() => detach.mutate(asset)}
-            />
-          ))}
-        </ul>
-      )}
+      {/* Grouped by what a file is for, not one flat list. A board of fifty
+          scenes with four candidates each puts two hundred pictures in here,
+          and the cover used to be somewhere among them. */}
+      {groupMaterials(all).map((group) => (
+        <section key={group.kind} className="flex flex-col gap-2">
+          <h3 className="text-2xs font-semibold uppercase tracking-caption text-faint">
+            {t(`files.group.${group.kind}`)}
+            <span className="ml-1.5 font-normal normal-case tracking-normal text-dim">
+              {group.assets.length}
+            </span>
+          </h3>
+          <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
+            {group.assets.map((asset) => (
+              <FileCard
+                key={asset.id}
+                asset={asset}
+                isCover={asset.id === cover?.id}
+                onDetach={() => detach.mutate(asset)}
+              />
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   )
 }

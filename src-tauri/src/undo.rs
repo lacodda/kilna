@@ -84,6 +84,7 @@ pub fn reversible(kind: &str) -> bool {
     matches!(
         kind,
         "work.create"
+            | "work.clone"
             | "work.update"
             | "work.pinTier"
             | "note.create"
@@ -315,7 +316,7 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
         // Undoing a creation throws the thing away — into the trash, never
         // outright. Someone can change their mind twice, and a row destroyed by
         // an undo would be gone in a way nothing else in kilna is.
-        "work.create" | "note.create" | "collection.create" | "release.create"
+        "work.create" | "work.clone" | "note.create" | "collection.create" | "release.create"
         | "version.create" | "scene.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
@@ -415,7 +416,7 @@ fn edit(
 /// rebuilt from the log.
 fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
     let entity = match entry.kind.as_str() {
-        "work.create" => crate::trash::Entity::Work,
+        "work.create" | "work.clone" => crate::trash::Entity::Work,
         "note.create" => crate::trash::Entity::Note,
         "collection.create" => crate::trash::Entity::Collection,
         "release.create" => crate::trash::Entity::Release,

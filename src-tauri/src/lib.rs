@@ -1,6 +1,7 @@
 pub mod asset;
 pub mod assistant;
 pub mod clock;
+pub mod clone;
 pub mod collection;
 pub mod commands;
 pub mod db;
@@ -206,6 +207,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::waiting_chats,
             commands::clear_waiting,
             commands::render_prompt,
+            commands::clone_work,
             commands::write_text_file,
             commands::export_markdown,
             commands::backup_workspace,

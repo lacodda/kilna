@@ -867,6 +867,18 @@ export const clearSceneFrame = (sceneId: string, kind: string) =>
   invoke<void>('clear_scene_frame', { sceneId, kind })
 export const reorderSceneFrames = (sceneId: string, kind: string, ids: string[]) =>
   invoke<SceneFrame[]>('reorder_scene_frames', { sceneId, kind, ids })
+/** What a clone came out as, for the sentence the window says afterwards. */
+export interface Cloned {
+  work: Work
+  scenes: number
+  materials: number
+}
+
+/** A second attempt at a video: the same donor and board, its own work. The
+ * first is left exactly as it was — the two are meant to be compared. */
+export const cloneWork = (workId: string, title: string) =>
+  invoke<Cloned>('clone_work', { workId, title })
+
 /** Write a text the window composed to a path the person picked. The window
  * has no filesystem rights; the backend does the writing. */
 export const writeTextFile = (path: string, text: string) =>

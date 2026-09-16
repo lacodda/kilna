@@ -2408,6 +2408,44 @@ pub fn undo_last(state: State<'_, AppState>, operation: String) -> Result<undo::
     Ok(taken)
 }
 
+/// A second attempt at a video: the same donor, the same board, its own life.
+///
+/// Not "a version of the whole video" — a scene belongs to a work, and the
+/// second attempt is a second work (decision of 2026-09-11). The first one is
+/// left exactly as it was, which is the point: the two are compared.
+#[tauri::command]
+pub fn clone_work(
+    state: State<'_, AppState>,
+    work_id: String,
+    title: String,
+) -> Result<crate::clone::Cloned> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    // The new work's id is decided here rather than inside, so the operation
+    // carries it: a replay lands the clone under the id everything else
+    // already names, and an undo knows which work to discard.
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("work.clone")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("workId", work_id.clone())
+        .param("title", title.clone())
+        .minted(&minted);
+
+    let made = recording(&mut conn, logged, |tx| {
+        crate::clone::clone_work_minted(tx, &work_id, &title, minted)
+    })?;
+
+    let entry = Record::new("work.cloned")
+        .param("title", made.work.title.clone())
+        .param("scenes", made.scenes.to_string())
+        .about("work", made.work.id.clone());
+    journal::record(&conn, &profile_id, entry);
+
+    Ok(made)
+}
+
 /// Write a text the window composed to a place the person picked.
 ///
 /// The window has no filesystem permissions and is not given any for this:

@@ -3,7 +3,17 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { save } from '@tauri-apps/plugin-dialog'
-import { ChevronRight, Clock, Copy, ListVideo, Plus, Rows3, Save, Trash2 } from 'lucide-react'
+import {
+  ChevronRight,
+  Clock,
+  Copy,
+  CopyPlus,
+  ListVideo,
+  Plus,
+  Rows3,
+  Save,
+  Trash2,
+} from 'lucide-react'
 import {
   attachSceneNote,
   createScene,
@@ -14,6 +24,7 @@ import {
   getVersion,
   listLinks,
   listNotes,
+  cloneWork,
   listSceneFrames,
   writeTextFile,
   listSceneNotes,
@@ -50,6 +61,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Markdown } from '@/components/ui/Markdown'
 import { Panel } from '@/components/ui/panel'
+import { PromptDialog } from '@/components/ui/AppDialog'
 import { Select } from '@/components/ui/AppSelect'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Textarea } from '@/components/ui/textarea'
@@ -83,10 +95,12 @@ const REFRESHED = [keys.scenes, keys.journal] as const
  */
 export function ScenesTab({ work }: Props) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const profile = useProfile()
   const client = useQueryClient()
   const vocabulary = vocabularyOf(profile.config, work.kind)
   const [shotType, setShotType] = useState<string | undefined>(undefined)
+  const [cloning, setCloning] = useState(false)
   // How wide the board's pane actually is. The table may be wider than it —
   // eight columns do not fit a card on a laptop — and an open row must stay
   // inside what the eye can see rather than inheriting the table's width.
@@ -219,6 +233,20 @@ export function ScenesTab({ work }: Props) {
       say.ok(t('scenes.framed', { count: framed.length }))
     },
     onError: (cause) => say.failedTo(t('toast.sceneFrameFailed'), cause),
+  })
+
+  const clone = useMutation({
+    mutationFn: (title: string) => cloneWork(work.id, title),
+    onSuccess: (made) => {
+      setCloning(false)
+      void client.invalidateQueries({ queryKey: keys.works })
+      void client.invalidateQueries({ queryKey: keys.journal })
+      say.ok(t('scenes.clone.done', { title: made.work.title, count: made.scenes }))
+      // Straight into the copy: the whole point is to start changing it, and
+      // leaving the person on the original is a click they did not ask for.
+      void navigate(`/works/${made.work.id}/scenes`)
+    },
+    onError: (cause: unknown) => say.failedTo(t('scenes.clone.action'), cause),
   })
 
   // The board's first timing: the work's length divided between the scenes,
@@ -527,9 +555,33 @@ export function ScenesTab({ work }: Props) {
               <Save aria-hidden className="size-3.5" />
               {t('scenes.montage.save')}
             </Button>
+            {/* Not a version of the video: a second work from the same donor,
+                with this board copied into it. The first stays as it is,
+                which is the point — the two get compared. */}
+            <Button
+              variant="soft"
+              size="sm"
+              disabled={clone.isPending}
+              title={t('scenes.clone.hint')}
+              onClick={() => setCloning(true)}
+            >
+              <CopyPlus aria-hidden className="size-3.5" />
+              {t('scenes.clone.action')}
+            </Button>
           </>
         )}
       </div>
+
+      <PromptDialog
+        open={cloning}
+        onOpenChange={setCloning}
+        title={t('scenes.clone.title')}
+        description={t('scenes.clone.hint')}
+        label={t('scenes.clone.title')}
+        initialValue={t('scenes.clone.suffix', { title: work.title })}
+        confirmLabel={t('scenes.clone.action')}
+        onSubmit={(title) => clone.mutate(title)}
+      />
 
       <FrameViewer
         viewing={viewing}

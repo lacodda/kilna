@@ -171,6 +171,62 @@ pub fn attach_bytes(
     attach(conn, media_dir, scene_id, kind, &source)
 }
 
+/// Hang a copy of an existing row on another scene, pointing at the same
+/// bytes.
+///
+/// For cloning a board (v0.69). The asset row is the clone's own — it belongs
+/// to the clone's work and carries the clone's kind — while `path` is the one
+/// already in the workspace: the second attempt reuses the first one's
+/// pictures, and copying two hundred files per click would buy nothing but
+/// disk. `asset::delete` knows the path may be shared and takes the bytes
+/// only with the last row naming them.
+///
+/// The verdict travels too. A clone of a board that had chosen its stills is
+/// a board that has chosen its stills; making the person pick all fifty again
+/// would be the copy pretending to be less finished than what it copied.
+pub fn hang_existing(
+    conn: &Connection,
+    scene_id: &str,
+    source: &SceneFrame,
+    profile_id: &str,
+    work_id: &str,
+    minted: Minted,
+) -> Result<SceneFrame> {
+    check_kind(&source.kind)?;
+    let asset_id = format!("{}-asset", minted.id());
+    conn.execute(
+        "INSERT INTO asset (id, profile_id, work_id, release_id, kind, path, label, original_name, created_at)
+         VALUES (?1, ?2, ?3, NULL, ?4, ?5, NULL, ?6, ?7)",
+        params![
+            asset_id,
+            profile_id,
+            work_id,
+            source.kind,
+            source.path,
+            source.original_name,
+            minted.at()
+        ],
+    )?;
+
+    let frame_id = format!("{}-frame", minted.id());
+    conn.execute(
+        "INSERT INTO scene_frame (id, profile_id, scene_id, asset_id, kind, position, is_selected, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        params![
+            frame_id,
+            profile_id,
+            scene_id,
+            asset_id,
+            source.kind,
+            source.position,
+            i64::from(source.is_selected),
+            minted.at()
+        ],
+    )?;
+
+    get(conn, &frame_id)?.ok_or_else(|| Error::not_found("scene_frame", &frame_id))
+}
+
 /// Take a frame off a scene, bytes and all.
 ///
 /// Irreversible, and for the reason ADR 0027 gives about detaching: a row

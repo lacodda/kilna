@@ -666,6 +666,13 @@
       "copied": "The montage list is on the clipboard.",
       "saved": "Montage list saved.",
       "missing": "—"
+    },
+    "clone": {
+      "action": "Make a second attempt",
+      "hint": "A new video from the same donor, with this board copied into it. This one is left as it is.",
+      "title": "Name the second attempt",
+      "suffix": "{{title}} (2)",
+      "done": "{{title}} — {{count}} scenes copied."
     }
   },
   "files": {
@@ -681,7 +688,13 @@
     "pictures": "Pictures",
     "copiedIn": "A file is copied into the workspace, so a backup carries it.",
     "empty": "No files yet. A cover shows on the card, in the catalogue and in the calendar.",
-    "dropHere": "Drop the files here."
+    "dropHere": "Drop the files here.",
+    "group": {
+      "cover": "Cover",
+      "frame": "Scene stills",
+      "video": "Scene clips",
+      "other": "Other files"
+    }
   },
   "notes": {
     "title": "Notes",
@@ -852,6 +865,7 @@
     "repeated_one": "{{count}} time",
     "repeated_other": "{{count}} times",
     "work.created": "“{{title}}” added.",
+    "work.cloned": "“{{title}}” started as a second attempt, with {{scenes}} scenes copied.",
     "work.renamed": "“{{from}}” renamed to “{{to}}”.",
     "work.status": "“{{title}}” moved to {{to}}.",
     "work.restated": "“{{title}}” is {{to}} now — it was {{from}}.",

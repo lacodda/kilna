@@ -259,6 +259,22 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
         return Ok(());
     };
     conn.execute("DELETE FROM asset WHERE id = ?1", params![id])?;
+
+    // The bytes go only when the last row pointing at them is gone. Since
+    // v0.69 a cloned video hangs its own rows on the SAME files — the second
+    // attempt usually reuses most of the first one's pictures, and copying
+    // them would double the workspace on every clone. That makes a path
+    // something more than one row may name, so deleting a row is no longer
+    // proof that nobody is looking at the file.
+    let still_used: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM asset WHERE path = ?1",
+        params![asset.path],
+        |row| row.get(0),
+    )?;
+    if still_used > 0 {
+        return Ok(());
+    }
+
     let path = PathBuf::from(&asset.path);
     if let Err(cause) = std::fs::remove_file(&path) {
         // Said, not raised: the row is gone either way, and a file left
