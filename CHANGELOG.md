@@ -2,7 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.69.0] - 2026-09-16
+
+### Bug Fixes
+- A month that clears the dialog, and a queue that scrolls alone
+
+### Documentation
+- The video strip, the montage list, and a second attempt
+
+### Features
+- A scene's material has a kind, so a video is one of them
+- Clips beside the stills, and the list a board is cut from
+- Files in groups, and a second attempt at a video
 ## [0.68.0] - 2026-09-15
+
+### Documentation
+- Frames on the board, and the decision behind them
 
 ### Features
 - A scene keeps the frames drawn for it, and says which one it is
