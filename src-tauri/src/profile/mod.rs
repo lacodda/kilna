@@ -389,7 +389,9 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
     // gains the craft's own words; without this the dial would fall back to the
     // line's generic stops in every workspace that already existed, which is
     // every real one. A stop the owner renamed or added stays theirs.
-    changed |= add_new_keys(&mut config.stages, &shipped.config.stages, |stage| &stage.key);
+    changed |= add_new_keys(&mut config.stages, &shipped.config.stages, |stage| {
+        &stage.key
+    });
 
     // The kinds a note can take, new in 0.65: a workspace that predates them
     // gains the craft's words, and a kind the owner added or renamed stays
