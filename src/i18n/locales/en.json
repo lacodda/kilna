@@ -54,6 +54,7 @@
     "noDate": "Pick a date",
     "addTag": "Tag",
     "tagPlaceholder": "A word for what this is",
+    "tagNoMatch": "A new word — press Enter to add it",
     "removeTag": "Remove the tag \"{{tag}}\"",
     "markOn": "Mark as \"{{mark}}\"",
     "markOff": "Take off \"{{mark}}\"",
@@ -171,6 +172,9 @@
     "statusInStep": "Every status matches the facts.",
     "statusResynced_one": "{{count}} work restated.",
     "statusResynced_other": "{{count}} works restated.",
+    "cardView": "The work card",
+    "cardViewHint": "What the card draws beside the title. The fields themselves are untouched either way — hiding a row only stops it being drawn.",
+    "showMetaStrip": "Show the row of craft fields",
     "export": "Export",
     "exportHint": "Every work as markdown — front matter, full bodies, scores, releases and notes. Readable without kilna.",
     "exportAction": "Export to a folder…",
@@ -457,7 +461,8 @@
       "marks": "Marks",
       "versions": "Versions",
       "created": "Added",
-      "updated": "Edited"
+      "updated": "Edited",
+      "stage": "Stage"
     },
     "groupBy": "Group by",
     "groupNone": "No grouping",
@@ -918,7 +923,9 @@
     "tagsEdited": "Tags updated",
     "tierPinned": "Tier held by hand",
     "tierUnpinned": "The score has its say again",
-    "tierPinFailed": "hold the tier"
+    "tierPinFailed": "hold the tier",
+    "stageSet": "Stage set",
+    "stageCleared": "Stage cleared"
   },
   "trash": {
     "title": "Trash",
@@ -1087,5 +1094,12 @@
     "scene.frame": "framing a board",
     "scene.attachNote": "saying what a scene is about",
     "scene.detachNote": "taking that out of a scene"
+  },
+  "stage": {
+    "label": "Stage",
+    "set": "Set how far along this is",
+    "unset": "Stage not set",
+    "atPercent": "{{stage}} — {{percent}}%",
+    "clear": "Clear"
   }
 }
