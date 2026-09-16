@@ -249,6 +249,14 @@ function WeekRow({
           ? `${labelOf(profile.config.work_kinds, release.work_kind)} · ${labelOf(allOf(profile.config, 'release_kinds'), release.kind)}`
           : labelOf(allOf(profile.config, 'release_kinds'), release.kind)}
       </Badge>
+      {/* How finished the work is, beside how ready the release is: the marks
+          say whether it could go out, the dial says whether it is done. */}
+      {release.work_stage !== null && (
+        <StageDial
+          percent={release.work_stage}
+          stage={stageAt(profile.config, release.work_stage)}
+        />
+      )}
       <ReadyMarks readiness={release.readiness} released={false} daysLeft={daysLeft} />
     </button>
   )
