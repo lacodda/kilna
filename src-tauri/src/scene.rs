@@ -587,6 +587,124 @@ pub fn restore_spans_in(
     Ok(())
 }
 
+/// Number a board 1..N in the order given, in one change.
+///
+/// The board's numbers are *set* from a list of ids, not nudged by arithmetic:
+/// "insert a scene between 7 and 8" and "drag 12 up to 3" are the same gesture
+/// said twice, and both arrive here as the order the person wants. An
+/// `insert_at` that did `position = position + 1 WHERE position >= n` would be
+/// cheaper and would spread whatever mess it found — `position` carries no
+/// UNIQUE on purpose (0016: a scene restored from the trash keeps its number
+/// and must not be refused), so a board with two 7s and no 5 is a state that
+/// happens, and it is exactly the state this stage exists to fix. Setting the
+/// order cannot spread it: whatever the board held, afterwards it holds 1..N.
+///
+/// Naming every scene exactly once is the price, and it is also the check. A
+/// list that forgets one or names an outsider is refused rather than played
+/// against half a board, the way `scene_frame::reorder` refuses the same way.
+///
+/// Nothing but `position` moves. The frames and the clips hang on `scene_id`
+/// (0021), and the file in `media/` is named by the asset's id (ADR 0002), so
+/// no name anywhere holds a scene's number and there is nothing to rename
+/// behind a shift — the pictures follow their scenes by not being tied to
+/// their numbers in the first place.
+///
+/// The spans are left alone. A person who renumbers has changed what happens
+/// when, and the seconds are theirs to settle or to divide again from the
+/// length; carrying a span along with its scene would put scene 3 at 0:48
+/// because it used to be scene 12, which is not a board anyone meant.
+pub fn renumber(
+    conn: &mut Connection,
+    work_id: &str,
+    ids: &[String],
+    at: &str,
+    logged: Option<crate::operation::Intent>,
+) -> Result<Vec<Scene>> {
+    let scenes = for_work(conn, work_id)?;
+    check_order(&scenes, ids)?;
+
+    let tx = conn.transaction()?;
+    if let Some(logged) = logged {
+        crate::operation::record(&tx, logged)?;
+    }
+    renumber_in(&tx, ids, at)?;
+    tx.commit()?;
+
+    for_work(conn, work_id)
+}
+
+/// Set the numbers, one row each — the body of a renumbering, and the body of
+/// its undo.
+///
+/// Takes the transaction rather than opening one: an undo writes its own
+/// operation beside the change, and the two belong to the same commit.
+pub fn renumber_in(tx: &Connection, ids: &[String], at: &str) -> Result<()> {
+    for (index, id) in ids.iter().enumerate() {
+        tx.execute(
+            "UPDATE scene SET position = ?1, updated_at = ?2 WHERE id = ?3",
+            params![index as i64 + 1, at, id],
+        )?;
+    }
+    Ok(())
+}
+
+/// Put back the numbers a board held, one row each — the undo of a
+/// renumbering.
+///
+/// The numbers rather than the order, because the board a renumbering was
+/// called on is often crooked — a hole, a twin, a number typed by hand — and
+/// that is precisely the state it was called on to end. Putting it back as a
+/// tidy 1..N would leave the person looking at a board they have never seen,
+/// which is not taking anything back.
+///
+/// Takes the transaction rather than opening one: the undo writes its own
+/// operation beside this change, and the two belong to the same commit.
+pub fn restore_numbers_in(tx: &Connection, places: &[(String, i64)], at: &str) -> Result<()> {
+    for (id, position) in places {
+        tx.execute(
+            "UPDATE scene SET position = ?1, updated_at = ?2 WHERE id = ?3",
+            params![position, at, id],
+        )?;
+    }
+    Ok(())
+}
+
+/// That the order names each scene of the board exactly once.
+///
+/// Refused rather than tolerated in either direction: a short list would leave
+/// scenes holding numbers from the old order beside the new one, and a list
+/// naming a scene twice would hand two rows the same number — both of them the
+/// disorder this call is supposed to end.
+fn check_order(scenes: &[Scene], ids: &[String]) -> Result<()> {
+    let known: std::collections::BTreeSet<&str> =
+        scenes.iter().map(|scene| scene.id.as_str()).collect();
+    let named: std::collections::BTreeSet<&str> = ids.iter().map(String::as_str).collect();
+    if named.len() != ids.len() || named != known {
+        return Err(Error::Other(
+            "renumbering a board names each of its scenes exactly once".into(),
+        ));
+    }
+    Ok(())
+}
+
+/// The order that puts a scene at a number, with the rest closing up behind it.
+///
+/// The screen's arithmetic, kept here so the rule about what "position 8" means
+/// is written once and tested: the scene is taken out of the order and put back
+/// at the place asked for, counted in the board the person is looking at. A
+/// number past the end means the end, and a number below 1 means the front,
+/// because a person who drags past the edge means the edge.
+pub fn order_moving(scenes: &[Scene], id: &str, to: i64) -> Vec<String> {
+    let mut order: Vec<String> = scenes
+        .iter()
+        .map(|scene| scene.id.clone())
+        .filter(|held| held != id)
+        .collect();
+    let at = (to - 1).clamp(0, order.len() as i64) as usize;
+    order.insert(at, id.to_owned());
+    order
+}
+
 /// How many parts the source text marks out, for a caller about to frame a
 /// board from it. Reads through the same donor and role that framing does, so
 /// the two cannot disagree about what they are counting.
@@ -1229,5 +1347,287 @@ with no markers
             .collect::<rusqlite::Result<_>>()
             .unwrap();
         assert_eq!(fields, ["description"], "one field changed, one clock");
+    }
+
+    /// A board numbered from a list is 1..N, whatever it held before.
+    ///
+    /// The board here starts out with the disorder `position` deliberately
+    /// allows — two scenes numbered 7, nothing numbered 2 — because that is
+    /// the state a restored scene and a hand-typed number leave behind, and
+    /// it is what this call exists to end. An arithmetic shift would carry
+    /// the mess forward; setting the order cannot.
+    #[test]
+    fn a_renumbering_ends_the_disorder_it_finds() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = video(&conn, &profile_id);
+
+        let ids: Vec<String> = [7, 1, 7, 4]
+            .iter()
+            .map(|position| {
+                create(
+                    &conn,
+                    &profile_id,
+                    NewScene {
+                        work_id: work_id.clone(),
+                        position: Some(*position),
+                        ..NewScene::default()
+                    },
+                )
+                .unwrap()
+                .id
+            })
+            .collect();
+
+        // The order the person wants: the last scene first, then the rest.
+        let wanted = vec![
+            ids[3].clone(),
+            ids[0].clone(),
+            ids[1].clone(),
+            ids[2].clone(),
+        ];
+        let board = renumber(&mut conn, &work_id, &wanted, &now(), None).unwrap();
+
+        assert_eq!(
+            board.iter().map(|scene| scene.position).collect::<Vec<_>>(),
+            [1, 2, 3, 4],
+            "the numbers are set, not nudged: no hole and no twin survives"
+        );
+        assert_eq!(
+            board
+                .iter()
+                .map(|scene| scene.id.clone())
+                .collect::<Vec<_>>(),
+            wanted,
+            "and they stand in the order asked for"
+        );
+    }
+
+    /// A list that forgets a scene, or names an outsider, or names one twice,
+    /// is refused — each of them would leave the board half-numbered, which
+    /// is the state this call exists to remove.
+    #[test]
+    fn a_renumbering_names_every_scene_exactly_once() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = video(&conn, &profile_id);
+        let other = video(&conn, &profile_id);
+
+        let scene_of = |work: &str| {
+            create(
+                &conn,
+                &profile_id,
+                NewScene {
+                    work_id: work.to_owned(),
+                    ..NewScene::default()
+                },
+            )
+            .unwrap()
+            .id
+        };
+        let first = scene_of(&work_id);
+        let second = scene_of(&work_id);
+        let stranger = scene_of(&other);
+
+        let numbers = |conn: &Connection| -> Vec<i64> {
+            for_work(conn, &work_id)
+                .unwrap()
+                .iter()
+                .map(|scene| scene.position)
+                .collect()
+        };
+        let before = numbers(&conn);
+
+        for wrong in [
+            vec![first.clone()],
+            vec![first.clone(), second.clone(), stranger.clone()],
+            // Every scene named, but one of them twice: the set of
+            // names matches the board, and the list is still wrong.
+            // This is the one a set comparison alone lets through.
+            vec![first.clone(), second.clone(), first.clone()],
+            vec![first.clone(), first.clone()],
+            vec![first.clone(), stranger.clone()],
+        ] {
+            assert!(
+                renumber(&mut conn, &work_id, &wrong, &now(), None).is_err(),
+                "a list of {} names the board wrongly and must be refused",
+                wrong.len()
+            );
+        }
+
+        assert_eq!(
+            before,
+            numbers(&conn),
+            "a refused renumbering changes nothing"
+        );
+    }
+
+    /// The pictures stay with their scenes across a shift.
+    ///
+    /// Nothing renames anything: a frame hangs on the scene's id (0021) and
+    /// the file in `media/` is named by the asset's id (ADR 0002), so no name
+    /// anywhere carries a scene's number. This holds that to be true rather
+    /// than assumed — the plan expected a renaming pass here, and there is
+    /// none to write.
+    #[test]
+    fn the_frames_follow_their_scenes_through_a_shift() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = video(&conn, &profile_id);
+
+        let scenes: Vec<String> = (0..3)
+            .map(|_| {
+                create(
+                    &conn,
+                    &profile_id,
+                    NewScene {
+                        work_id: work_id.clone(),
+                        ..NewScene::default()
+                    },
+                )
+                .unwrap()
+                .id
+            })
+            .collect();
+
+        let media = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        let file = outside.path().join("a-picture.png");
+        std::fs::write(&file, b"not really a picture").unwrap();
+
+        // The last scene of the board holds the picture; after the shift it
+        // is the first, and the picture is still its own.
+        let last = scenes[2].clone();
+        let frame = crate::scene_frame::attach(
+            &conn,
+            media.path(),
+            &last,
+            crate::scene_frame::FRAME,
+            &file,
+        )
+        .unwrap();
+        let stored = frame.path.clone();
+
+        let wanted = vec![last.clone(), scenes[0].clone(), scenes[1].clone()];
+        renumber(&mut conn, &work_id, &wanted, &now(), None).unwrap();
+
+        let held = crate::scene_frame::for_scene(&conn, &last).unwrap();
+        assert_eq!(held.len(), 1, "the scene still holds its picture");
+        assert_eq!(
+            held[0].path, stored,
+            "and the file neither moved nor changed name"
+        );
+        assert!(
+            std::path::Path::new(&stored).exists(),
+            "and the bytes are where they were"
+        );
+        assert_eq!(
+            for_work(&conn, &work_id).unwrap()[0].id,
+            last,
+            "while the scene holding it is now the first"
+        );
+    }
+
+    /// The spans are left where they are: a renumbering changes what happens
+    /// in what order, and the seconds are the person's to settle. Carrying a
+    /// span along with its scene would put the last scene at 0:00 because it
+    /// is now the first, which is not a board anyone meant.
+    #[test]
+    fn a_renumbering_leaves_the_spans_alone() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = video(&conn, &profile_id);
+
+        let ids: Vec<String> = [(0.0, 10.0), (10.0, 20.0)]
+            .iter()
+            .map(|(starts_at, ends_at)| {
+                create(
+                    &conn,
+                    &profile_id,
+                    NewScene {
+                        work_id: work_id.clone(),
+                        starts_at: Some(*starts_at),
+                        ends_at: Some(*ends_at),
+                        ..NewScene::default()
+                    },
+                )
+                .unwrap()
+                .id
+            })
+            .collect();
+
+        let board = renumber(
+            &mut conn,
+            &work_id,
+            &[ids[1].clone(), ids[0].clone()],
+            &now(),
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(
+            (board[0].starts_at, board[0].ends_at),
+            (Some(10.0), Some(20.0)),
+            "the scene kept the seconds it was given, and only moved"
+        );
+    }
+
+    /// The order that puts a scene at a number, with the rest closing up.
+    ///
+    /// The screen's arithmetic for "insert between 7 and 8" and "drag 12 up
+    /// to 3", written once. Dragging past either edge means the edge, because
+    /// a person who drags past the end means the end.
+    #[test]
+    fn an_order_puts_a_scene_where_it_was_dropped() {
+        let (conn, profile_id) = workspace();
+        let work_id = video(&conn, &profile_id);
+
+        let ids: Vec<String> = (0..4)
+            .map(|_| {
+                create(
+                    &conn,
+                    &profile_id,
+                    NewScene {
+                        work_id: work_id.clone(),
+                        ..NewScene::default()
+                    },
+                )
+                .unwrap()
+                .id
+            })
+            .collect();
+        let board = for_work(&conn, &work_id).unwrap();
+
+        // The last scene to the front, and the first to the back.
+        assert_eq!(
+            order_moving(&board, &ids[3], 1),
+            vec![
+                ids[3].clone(),
+                ids[0].clone(),
+                ids[1].clone(),
+                ids[2].clone()
+            ]
+        );
+        assert_eq!(
+            order_moving(&board, &ids[0], 4),
+            vec![
+                ids[1].clone(),
+                ids[2].clone(),
+                ids[3].clone(),
+                ids[0].clone()
+            ]
+        );
+        // Into the middle: the scene lands AT the number asked for, counted
+        // in the board as the person sees it.
+        assert_eq!(
+            order_moving(&board, &ids[3], 2)[1],
+            ids[3],
+            "it stands second, as asked"
+        );
+        // Past either edge is the edge, not a refusal and not a hole.
+        assert_eq!(order_moving(&board, &ids[1], 99).last(), Some(&ids[1]));
+        assert_eq!(order_moving(&board, &ids[1], -3).first(), Some(&ids[1]));
+        // Every scene still there, exactly once — the list `renumber` accepts.
+        let mut sorted = order_moving(&board, &ids[2], 1);
+        sorted.sort();
+        let mut all = ids.clone();
+        all.sort();
+        assert_eq!(sorted, all);
     }
 }

@@ -912,6 +912,105 @@ fn a_timed_board_is_taken_back_whole() {
     );
 }
 
+/// Renumbering is one gesture over the whole board, so taking it back is one
+/// too: the order the board stood in comes back, not four scenes out of five
+/// while the fifth keeps the number it was given.
+///
+/// The board here is deliberately crooked to start with — a number typed by
+/// hand, a twin — because that is the state `position` allows and the state a
+/// renumbering is called on. The undo has to restore THAT, not a tidy
+/// 1,2,3,4: putting the board somewhere it never was is not taking anything
+/// back.
+#[test]
+fn a_renumbered_board_goes_back_to_the_order_it_stood_in() {
+    let (mut conn, profile_id, _song_id) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let video_id = work::create(
+        &conn,
+        &profile_id,
+        NewWork {
+            kind: "video".into(),
+            title: "Harbour lights".into(),
+            ..NewWork::default()
+        },
+    )
+    .unwrap()
+    .id;
+
+    let mut scene_ids = Vec::new();
+    for position in [3, 1, 3, 9] {
+        scene_ids.push(
+            kilna_lib::scene::create(
+                &conn,
+                &profile_id,
+                kilna_lib::scene::NewScene {
+                    work_id: video_id.clone(),
+                    position: Some(position),
+                    ..kilna_lib::scene::NewScene::default()
+                },
+            )
+            .unwrap()
+            .id,
+        );
+    }
+
+    let numbers = |conn: &rusqlite::Connection| -> Vec<(String, i64)> {
+        kilna_lib::scene::for_work(conn, &video_id)
+            .unwrap()
+            .into_iter()
+            .map(|scene| (scene.id, scene.position))
+            .collect()
+    };
+    let crooked = numbers(&conn);
+
+    // Renumbered the way the command renumbers it: the NUMBERS travel in
+    // `before`, so the undo can put back a crooked board rather than a tidy
+    // one the board has never been.
+    let places: Vec<serde_json::Value> = crooked
+        .iter()
+        .map(|(id, position)| serde_json::json!({ "id": id, "position": position }))
+        .collect();
+    let wanted: Vec<String> = crooked.iter().rev().map(|(id, _)| id.clone()).collect();
+    let at = kilna_lib::time::now();
+    let logged = operation::Intent::new("scene.renumber")
+        .in_profile(&profile_id)
+        .param("profile", key.clone())
+        .param("workId", video_id.clone())
+        .param("ids", serde_json::to_value(&wanted).unwrap())
+        .param("before", serde_json::to_value(&places).unwrap())
+        .param("at", at.clone());
+    kilna_lib::scene::renumber(&mut conn, &video_id, &wanted, &at, Some(logged)).unwrap();
+
+    assert_eq!(
+        numbers(&conn)
+            .into_iter()
+            .map(|(_, position)| position)
+            .collect::<Vec<_>>(),
+        [1, 2, 3, 4],
+        "the board came out straight, whatever it held before"
+    );
+    assert_eq!(
+        numbers(&conn)
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect::<Vec<_>>(),
+        wanted,
+        "and in the order asked for"
+    );
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("a renumbered board can be undone");
+    assert_eq!(offer.action, "undo.scene.renumber");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+
+    assert_eq!(
+        numbers(&conn),
+        crooked,
+        "every scene holds the number it held, crooked board and all"
+    );
+}
+
 /// Framing a board makes every scene in one gesture, so taking it back
 /// leaves none of them behind — in the trash, not destroyed, for the person
 /// who undid by mistake.

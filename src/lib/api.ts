@@ -764,6 +764,11 @@ export const createScene = (scene: NewScene) => invoke<Scene>('create_scene', { 
 export const updateScene = (id: string, patch: ScenePatch) =>
   invoke<Scene>('update_scene', { id, patch })
 export const deleteScene = (id: string) => invoke<string>('delete_scene', { id })
+/** Number a board in the order given: 1..N, in one change. The whole order
+    travels because both gestures — putting a scene between two others and
+    moving one that is there — are the same thing said twice. */
+export const renumberScenes = (workId: string, ids: string[]) =>
+  invoke<Scene[]>('renumber_scenes', { workId, ids })
 /** Divide the work's length between the scenes of its board. */
 export const timeScenes = (workId: string) => invoke<Scene[]>('time_scenes', { workId })
 /** Build the board's frame from the parts the source text marks out. */

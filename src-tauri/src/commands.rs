@@ -1979,6 +1979,55 @@ pub fn time_scenes(state: State<'_, AppState>, work_id: String) -> Result<Vec<Sc
     Ok(timed)
 }
 
+/// Number a board in the order given: 1..N, in one change.
+///
+/// The whole order travels rather than one scene and a target number, because
+/// both gestures the screen offers — putting a new scene between two others,
+/// and moving one that is already there — are the same thing said twice, and
+/// the list says it once. The order the board held travels in the operation,
+/// so the undo is this same call with that list (see `scene::renumber`).
+#[tauri::command]
+pub fn renumber_scenes(
+    state: State<'_, AppState>,
+    work_id: String,
+    ids: Vec<String>,
+) -> Result<Vec<Scene>> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    // The numbers as they stand, so the undo puts back exactly these — not
+    // a tidy 1..N, which is very likely a board this one has never been.
+    let before: Vec<serde_json::Value> = scene::for_work(&conn, &work_id)?
+        .into_iter()
+        .map(|scene| serde_json::json!({ "id": scene.id, "position": scene.position }))
+        .collect();
+
+    let at = time::now();
+    let logged = operation::Intent::new("scene.renumber")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("workId", work_id.clone())
+        .param("ids", serde_json::to_value(&ids)?)
+        .param("before", serde_json::to_value(&before)?)
+        .param("at", at.clone());
+
+    let numbered = scene::renumber(&mut conn, &work_id, &ids, &at, Some(logged))?;
+
+    journal::record(
+        &conn,
+        &profile_id,
+        Record::new("scene.renumbered")
+            .param(
+                "title",
+                journal::work_title(&conn, &work_id).unwrap_or_default(),
+            )
+            .param("count", numbered.len() as i64)
+            .about("work", work_id.clone()),
+    );
+
+    Ok(numbered)
+}
+
 #[tauri::command]
 pub fn delete_scene(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Scene, &id)

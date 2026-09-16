@@ -102,6 +102,7 @@ pub fn reversible(kind: &str) -> bool {
             | "scene.create"
             | "scene.update"
             | "scene.time"
+            | "scene.renumber"
             | "scene.frame"
             | "scene.attachNote"
             | "scene.detachNote"
@@ -248,6 +249,28 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
                 &minted,
                 Some(logged.param("at", at.clone())),
             )?;
+        }
+
+        // A renumbered board goes back to the numbers it held, one row each.
+        //
+        // The numbers travel, not just the order, because the board a
+        // renumbering is called on is often crooked — that is what it is FOR
+        // — and putting it back as a tidy 1..N would leave it somewhere it
+        // has never been. An undo owes the person the board they had.
+        "scene.renumber" => {
+            #[derive(serde::Deserialize)]
+            struct Place {
+                id: String,
+                position: i64,
+            }
+            let before: Vec<Place> = from_params(params, "before")?;
+            let places: Vec<(String, i64)> = before
+                .into_iter()
+                .map(|place| (place.id, place.position))
+                .collect();
+            edit(conn, logged, &at, |tx| {
+                crate::scene::restore_numbers_in(tx, &places, &at)
+            })?;
         }
 
         // A timed board goes back span by span, in one change: the timing was

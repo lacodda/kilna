@@ -157,6 +157,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::update_scene,
             commands::delete_scene,
             commands::time_scenes,
+            commands::renumber_scenes,
             commands::frame_scenes,
             commands::list_scene_notes,
             commands::attach_scene_note,

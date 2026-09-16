@@ -367,6 +367,25 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
             scene::time_board_at(conn, &work_id, &at, None)?;
         }
 
+        // The order is replayed against the board that is there. A workspace
+        // rebuilt from the log has every scene the log made, so the list will
+        // name them all; a board that has since lost one is not renumbered
+        // against a list that names a scene it no longer has, because
+        // `renumber` refuses that rather than numbering half of it.
+        "scene.renumber" => {
+            let work_id = required(params, "workId")?;
+            let ids: Vec<String> = from_params(params, "ids")?;
+            let at = required(params, "at")?;
+            let present: Vec<String> = scene::for_work(conn, &work_id)?
+                .into_iter()
+                .map(|scene| scene.id)
+                .collect();
+            let kept: Vec<String> = ids.into_iter().filter(|id| present.contains(id)).collect();
+            if kept.len() == present.len() {
+                scene::renumber(conn, &work_id, &kept, &at, None)?;
+            }
+        }
+
         // An asset is not replayed: the row names a file in the workspace's
         // own directory, and a rebuild from the log has the log, not the
         // bytes. Replaying the copy would need the source path to still hold
