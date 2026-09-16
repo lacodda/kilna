@@ -12,12 +12,12 @@ last earned, and when it was scored. Clicking a row opens it.
 ## Choosing the columns
 
 The **columns button** above the table, to the right, says which columns it
-draws. Beside the ones it opens with there are four more:
+draws. It opens with the title, the stage dial, the marks, the tier, the score,
+when it was judged and when it last changed; beside those there are three more:
 
 | Column | What it says |
 | --- | --- |
 | ID | The work's identifier, shortened — what a plugin or the assistant calls it |
-| Marks | The flags your profile offers, raised on this work by hand |
 | Versions | How many versions the work holds, across every role |
 | Added | When it was first written down |
 
@@ -98,14 +98,29 @@ in: songs, videos, shorts. Choosing a kind shows only those works and stops
 naming the kind on every row; choosing it again goes back to all of them.
 The row is the same filter as `kind:` in the box, so a saved view keeps it.
 
-The search box matches titles as you type, in whatever alphabet they are
-written in. The two dropdowns narrow by status and tier.
+The search box matches **anything the work says**, not only its title: the
+lyric, the notes on it, the craft fields, what the assistant said about it. So
+*which of my songs mention a fridge* is a question you can type — `холодильник`
+— and typing two words narrows to the works that say both. Titles keep
+narrowing as you type, and the rest arrives a moment later; see
+[Finding things](/kilna/guides/finding-things/#a-word-finds-the-forms-of-a-word)
+for how a word is matched.
+
+The two dropdowns narrow by status and tier.
 
 **The star** beside them shows only the works you starred — the ones to
 come back to. A star is raised and lowered with a click, on the row or on
 the card's header, and undo takes it back like any edit; it derives
 nothing and is not a word of the profile, which is why it is a chip and
 not a token in the box.
+
+**The dial** in its own column says how finished each work is, as its author
+judges it — an empty ring for one nobody has judged yet. Click it to set the
+stage from the row; the same dial sits beside the star on the card, on the
+calendar chip and on the dashboard. It is not the status: a work is routinely
+*Scored* and still *Polishing*. See
+[`stages`](/kilna/reference/profile-document/#stages) for the stops and how to
+name your own.
 
 **Each row says where the work stands** as a badge in the status's own
 colour — *Scored*, *Scheduled*, *Released* — and what it is in outline
@@ -129,9 +144,10 @@ tier:clip status:draft winter
 | `kind:` | Your profile's kinds of work |
 | `tier:` | Your profile's tiers |
 | `tag:` | A tag you put on the work yourself |
+| `stage:` | How far along the work is — a stop's name, or its number |
 
-Anything that is not an operator searches titles, as it always did. **Quote a
-phrase** to keep it together: `"paper boats" tier:clip`.
+Anything that is not an operator searches the full text. **Quote a phrase** to
+keep it together: `"paper boats" tier:clip`.
 
 A few things about how it reads what you type:
 
@@ -140,6 +156,9 @@ A few things about how it reads what you type:
   finds the same works. Case never matters, in any alphabet.
 - **A tag is matched whole.** `tag:win` does not find *winter* — tags are words
   you chose, so the exact one is the one you mean.
+- **A stage is named or numbered.** `stage:polish`, `stage:Polishing` and
+  `stage:80` all mean the same stop. The line is written back as the number, so
+  a saved view keeps meaning the same thing if you rename the stop later.
 - **A colon you did not intend as an operator stays in the search.** A work
   called *Ratio: a love song* is found by typing its title, because `Ratio` is
   not a field kilna knows.

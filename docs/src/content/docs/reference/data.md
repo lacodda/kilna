@@ -71,7 +71,8 @@ Each work's page includes:
 
 - Front matter: the page's `format` number, title, kind, status,
   created/updated timestamps, a pinned tier and its reason when there is one,
-  the bookmark when set, and every craft-specific `meta` field.
+  the bookmark when set, the stage as a percentage when the work has been
+  judged, and every craft-specific `meta` field.
 - Every version, grouped by role, newest revision first, with the current one
   marked, the revision it was written from named, and the **body in full** —
   not a summary.

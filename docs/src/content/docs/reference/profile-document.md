@@ -26,14 +26,14 @@ names its own.
   ],
   "collection_kinds": [...],
   "work_meta_fields": [...],
-  "marks": [...], "prompts": [...], "rhythm": {...}
+  "marks": [...], "stages": [...], "prompts": [...], "rhythm": {...}
 }
 ```
 
 The lists a kind leaves out are empty for works of that kind: a kind with no
 `axes` is scored empty, a kind with no `statuses` cannot hold a work and the
 editor says so. What stays on the profile is what is genuinely about the
-profile: collection kinds, meta fields, marks, prompts, the rhythm, the
+profile: collection kinds, meta fields, marks, stages, prompts, the rhythm, the
 catalogue columns.
 
 **A flat document still reads.** A profile written the old way — the five
@@ -447,6 +447,48 @@ apart means clearing the flags does not clear the vocabulary.
 
 Marks are optional: a profile written before they existed loads with none, and
 the built-in ones arrive in an existing workspace on the next launch.
+
+## `stages`
+
+The stops on the way from an idea to a finished work — what the dial beside the
+star snaps to:
+
+```jsonc
+{ "key": "polish", "label": "Polishing", "percent": 80, "colour": "accent" }
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `key` | string | Names the stop. The work stores the percentage, not this, so renaming a stop never touches a work. |
+| `label` | string | What the tooltip says, and what `stage:` accepts in the catalogue's box. |
+| `percent` | integer 0–100 | Where the stop sits, and how much of the dial it fills. |
+| `colour` | `"plain"` \| `"accent"` \| `"good"` \| `"warn"` \| `"bad"` \| `"info"` | A palette role rather than a colour. Defaults to `plain`. |
+
+A stage is not a status. A status says where the work stands in the *process*
+and is derived from facts — it was scored, a release was booked, it shipped. A
+stage says how finished the *work itself* is, which no fact can answer: a song
+can have a complete lyric and still be three verses of placeholder, and only
+its author knows that. The two are independent, and a work is routinely
+`Scored` and `Polishing` at once.
+
+It is not a mark either: a mark is raised or not, and the question here is one
+of degree.
+
+**The work stores a percentage, not a key.** A dial is a fraction by nature, and
+a second table mapping key to fraction would be a second truth about the same
+thing. A percentage between two stops belongs to the lower one — 79 is still
+*Polishing*, because rounding up would tell you a song is finished when you
+said it was nearly.
+
+**Unset is a third state.** A work nobody has judged draws an empty ring, and it
+is not the same as a work judged to be a bare idea at 0 — that one draws a dot.
+`Backspace` on the dial, or clicking the stop it already stands on, takes a work
+back to unset.
+
+Stages are optional: a profile that names none uses the line's six — *Idea*,
+*Rough draft*, *Half there*, *Nearly there*, *Polishing*, *Finished*, at 0, 20,
+40, 60, 80 and 100. A dial with nothing to snap to is not a dial, so this is one
+of the few places the app answers for a craft that said nothing.
 
 ## `rhythm`
 

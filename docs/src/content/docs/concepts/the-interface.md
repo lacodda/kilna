@@ -102,14 +102,28 @@ The name comes first and the craft's numbers under it: BPM and key are
 reference you consult, not what you identify the card by. The fields there are
 read-only, and long ones are cut short with the whole value a hover away — you
 edit them on **Overview**, because a header you can type into is a header that
-shifts under the cursor while it saves.
+shifts under the cursor while it saves. **The row of craft fields is off unless
+you ask for it** — Settings has the switch, under *The work card* — because a
+row of eight truncated values is a poor way to read fields Overview lays out in
+full. Turning it off hides the row and nothing else: the values stay, Overview
+still edits them, exports still carry them.
 
 **The name has its own row of things done to it.** The pencil turns the
 heading into a box of the same height — Enter saves, Escape cancels,
 leaving the box saves — so the header does not move while you rename. Next
-to it: copy the title, the id (click it to copy), and the **star**: *come
-back to this one*. The star is not a status and not a mark; the catalogue
-has a chip that shows only the starred.
+to it: copy the title, the id (click it to copy), the **star** — *come back to
+this one* — and the **dial**: how finished the work is, as you judge it. The
+star is not a status and not a mark; the catalogue has a chip that shows only
+the starred.
+
+**The dial** opens a row of stops — *Idea*, *Rough take*, … *Finished* — and
+clicking one sets it. The same dial appears in the catalogue's own column, on
+a calendar chip and on the dashboard, so how far along something is reads the
+same everywhere. An empty ring means nobody has judged it yet, which is not
+the same as judging it a bare idea; clicking the stop it already stands on, or
+`Backspace`, takes it back to unjudged. The stops are your profile's
+([`stages`](/kilna/reference/profile-document/#stages)); a work that shipped
+was set to finished when the workspace gained the dial.
 
 **Under the name: marks and tags.** Marks are the flags your profile
 offers — *Working on it*, *Not sure*, *The good one* — each with its glyph

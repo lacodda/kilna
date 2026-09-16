@@ -22,7 +22,7 @@ It looks in four places at once, and groups what it finds:
 
 | Group | What is searched |
 | --- | --- |
-| Works | Titles |
+| Works | Titles, the craft fields, and the tags |
 | Drafts | The full text of every version, in every role |
 | Notes | The body and the title of notes attached to a work |
 | Assistant | What was said in chats about a work |
@@ -52,13 +52,27 @@ the line it was found in, with a little of what surrounds it, so you can tell
 Searching for `гавань` finds **Гавань огней**, and `HARBOUR` finds
 *Harbour lights*.
 
-That is worth saying because it is not free. SQLite's own case-insensitive
+That is worth saying because it is not free. SQLite's *plain* case-insensitive
 matching covers ASCII and nothing else — to it, `Г` and `г` are unrelated
-bytes. kilna folds case itself, in full Unicode, which is why a Russian
-workspace is as searchable as an English one.
+bytes. The search index folds in full Unicode, which is why a Russian workspace
+is as searchable as an English one.
 
-The catalogue's own search box folds case the same way, for the same reason —
-and so does matching a `tag:` there.
+## A word finds the forms of a word
+
+Typing `холодильник` finds a line that says *в холодильнике*, and `кофе` finds
+*кофейня*. Every word you type is matched as a beginning rather than as a whole
+word, because there is no stemmer for Russian here and the word as typed is
+rarely the word as written.
+
+The same rule is why `light` finds *lights* — and why `lights` does **not** find
+*light*. Type the shorter form when you are not sure.
+
+Two words narrow rather than widen: `холодильник кофе` finds the works that say
+both, which is the question "where did I write about both of those" and the
+reason the box is useful at all.
+
+Punctuation is never syntax. A stray quote, a dash, a colon — they are searched
+for as text, or ignored, and never turn into an error you have to decode.
 
 ## What it does not do yet
 
@@ -67,13 +81,14 @@ and so does matching a `tag:` there.
   that line", across drafts, notes and chats, and every hit opens a work.
   Narrowing a list down to a set of works is a different question, and the
   [catalogue's own box](/kilna/guides/the-catalogue/#narrowing-from-the-box)
-  answers it with `status:`, `kind:`, `tier:` and `tag:`.
-- **Whole words only in the sense that substrings match** — `arbour` finds
-  *Harbour*. There is no stemming, so `lights` does not find *light*.
+  answers it with `status:`, `kind:`, `tier:`, `tag:` and `stage:` — and with
+  the same full-text search behind it.
+- **A word is matched from its beginning, not from its middle.** `холод` finds
+  *холодильник*; `дильник` finds nothing.
 - **Nothing outside the active profile.** Switching profiles switches what is
   searchable, like everywhere else in kilna.
 
-Search reads every body in the profile on each query. That is instant for a
-workspace of a few hundred works and will not stay instant forever; when it
-stops being instant, the answer is an index, and the place to put one is the
-same function this box already calls.
+The text is kept in an index that is written as you write, rather than read
+back on every keystroke, so the answer does not slow down as the workspace
+grows. Nothing has to be rebuilt or maintained by hand: editing a lyric updates
+what it finds, and deleting a work takes it out.
