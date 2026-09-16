@@ -8,6 +8,7 @@ import {
   Clock,
   Copy,
   CopyPlus,
+  ListPlus,
   ListVideo,
   Plus,
   Rows3,
@@ -30,6 +31,7 @@ import {
   listSceneNotes,
   listScenes,
   listVersions,
+  renumberScenes,
   timeScenes,
   updateScene,
   type Note,
@@ -43,11 +45,14 @@ import {
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { montageFileName, montageList } from '@/lib/montage'
+import { checkStoryboard } from '@/lib/storyboard'
 import { formatSeconds, parseTimecode } from '@/lib/timecode'
 import {
   chosenFrame,
+  durationOf,
   framesByScene,
   ofKind,
+  orderMoving,
   readinessOf,
   FRAME,
   VIDEO,
@@ -68,6 +73,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ActionBar, actionsFor } from '@/components/assistant/ActionBar'
 import { FrameViewer, type Viewing } from '@/components/card/FrameViewer'
 import { SceneFrames } from '@/components/card/SceneFrames'
+import { StoryboardCheck } from '@/components/card/StoryboardCheck'
 
 interface Props {
   work: Work
@@ -261,6 +267,49 @@ export function ScenesTab({ work }: Props) {
     onError: (cause) => say.failedTo(t('toast.sceneTimeFailed'), cause),
   })
 
+  // The board's order, set from a list. Both gestures the row offers end up
+  // here: the number typed on a scene, and the scene added after another.
+  const renumber = useMutation({
+    mutationFn: (ids: string[]) => renumberScenes(work.id, ids),
+    onSuccess: () => {
+      refresh()
+      say.ok(t('scenes.renumbered'))
+    },
+    onError: (cause) => {
+      // The board is re-read so the numbers on screen are the stored ones:
+      // a refused renumbering left them exactly as they were.
+      refresh()
+      say.failedTo(t('scenes.renumberFailed'), cause)
+    },
+  })
+
+  // A scene between two others: it is created at the end — the only place a
+  // new row can go before the board knows about it — and the board is then
+  // numbered with it in the place asked for. Two steps rather than one
+  // because the scene has no id until it exists, and the order is a list of
+  // ids; the person sees one gesture because the second step follows the
+  // first without asking.
+  const insert = useMutation({
+    mutationFn: async (after: Scene) => {
+      // The board as the backend has it, not as the screen filtered it: the
+      // order names every scene, and a list built from a narrowed view would
+      // be refused for the ones it left out — rightly.
+      const board = await listScenes(work.id)
+      const created = await createScene({ work_id: work.id })
+      const order = orderMoving([...board, created], created.id, after.position + 1)
+      return renumberScenes(work.id, order)
+    },
+    onSuccess: (board, after) => {
+      refresh()
+      say.ok(t('scenes.added', { number: after.position + 1 }))
+      return board
+    },
+    onError: (cause) => {
+      refresh()
+      say.failedTo(t('toast.sceneSaveFailed'), cause)
+    },
+  })
+
   const remove = useMutation({
     mutationFn: (scene: Scene) => deleteScene(scene.id),
     onSuccess: (deletionId, scene) =>
@@ -280,6 +329,17 @@ export function ScenesTab({ work }: Props) {
   }
 
   const all = scenes.data ?? []
+
+  // What the board still owes. Computed from what this tab already holds —
+  // the rows, the blocks the kind names, the pictures, the work's length —
+  // rather than asked for: a second read would be a second opinion about the
+  // same board, able to disagree with the rows beside it.
+  const board = checkStoryboard(
+    all,
+    vocabulary.scene_blocks,
+    framesForScene,
+    durationOf(work),
+  )
   const counts = new Map<string, number>()
   for (const scene of all) {
     if (scene.shot_type !== null) counts.set(scene.shot_type, (counts.get(scene.shot_type) ?? 0) + 1)
@@ -458,6 +518,23 @@ export function ScenesTab({ work }: Props) {
           )}
         </div>
       )}
+      {/* The harvest, above the board: what is counted and what is missing.
+          A click on a line opens the scene it names — on a board of fifty,
+          a report that says "scene 34" and leaves you to find it costs more
+          than it saves. */}
+      <StoryboardCheck
+        board={board}
+        onGo={(sceneId) => {
+          // Opening the row is the whole gesture: the description and the
+          // prompts are what a complaint is almost always about, and the
+          // browser takes the eye there.
+          setOpened((open) => new Set(open).add(sceneId))
+          document
+            .getElementById(`scene-${sceneId}`)
+            ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        }}
+      />
+
       {scenes.data !== undefined && all.length > 0 && shown.length === 0 && (
         <p className="text-sm text-dim">{t('scenes.noneOfShot')}</p>
       )}
@@ -517,6 +594,10 @@ export function ScenesTab({ work }: Props) {
                   cast={cast}
                   onAttach={(noteId) => attach.mutate({ sceneId: scene.id, noteId })}
                   onDetach={(noteId) => detach.mutate({ sceneId: scene.id, noteId })}
+                  onMoveTo={(position) => renumber.mutate(orderMoving(all, scene.id, position))}
+                  onInsertAfter={() => insert.mutate(scene)}
+                  total={all.length}
+                  moving={renumber.isPending || insert.isPending}
                 />
               ))}
             </tbody>
@@ -663,6 +744,10 @@ function SceneRow({
   cast,
   onAttach,
   onDetach,
+  onMoveTo,
+  onInsertAfter,
+  total,
+  moving,
 }: {
   scene: Scene
   workId: string
@@ -684,10 +769,34 @@ function SceneRow({
   cast: Note[]
   onAttach: (noteId: string) => void
   onDetach: (noteId: string) => void
+  /** Put this scene at that number, the rest closing up behind it. */
+  onMoveTo: (position: number) => void
+  /** Add a scene straight after this one, rather than at the end. */
+  onInsertAfter: () => void
+  /** How many scenes the board has, so a number past the end is refused
+   * here rather than silently understood as the end. */
+  total: number
+  /** The board is being renumbered: the fields wait rather than queue up a
+   * second order against a board that is still moving. */
+  moving: boolean
 }) {
   const { t } = useTranslation()
   const [starts, setStarts] = useState(formatSeconds(scene.starts_at))
   const [ends, setEnds] = useState(formatSeconds(scene.ends_at))
+  const [number, setNumber] = useState(String(scene.position))
+
+  const moveTo = (text: string) => {
+    const wanted = Number(text.trim())
+    if (text.trim() === '' || !Number.isInteger(wanted) || wanted < 1 || wanted > total) {
+      say.warn(t('scenes.badNumber', { text, total }))
+      // Back to the number the scene actually holds, for the same reason the
+      // timecode field goes back: a field showing an order that was not
+      // applied would be a second truth about where the scene stands.
+      setNumber(String(scene.position))
+      return
+    }
+    if (wanted !== scene.position) onMoveTo(wanted)
+  }
 
   const saveTime = (field: 'starts_at' | 'ends_at', text: string, stored: number | null) => {
     const parsed = parseTimecode(text)
@@ -721,7 +830,7 @@ function SceneRow({
 
   return (
     <>
-      <tr className="border-b border-line align-middle">
+      <tr id={`scene-${scene.id}`} className="border-b border-line align-middle">
         <td className="px-2 py-1.5 text-right text-sm font-semibold tabular-nums">
           <span className="flex items-center justify-end gap-1.5">
             {/* The frame the scene is cut from, beside its number: the board
@@ -744,7 +853,38 @@ function SceneRow({
                 />
               </button>
             )}
-            {scene.position}
+            {/* The number is where the board is reordered from, because the
+                number IS the order: typing 3 on scene 12 says "this one
+                happens third" in the same place the person is already
+                reading the order. A drag would be the other way to say it,
+                and it is the wrong way on a board you scroll — dragging 12
+                to 3 on a fifty-scene table means holding the mouse while the
+                rows crawl past. Typing works whether the target is on screen
+                or forty rows away.
+
+                The board closes up behind the move: the rest are renumbered
+                1..N, never nudged, so a board with holes or twins comes out
+                of it straight (decision of 2026-09-16). */}
+            <Input
+              className="w-11 text-right font-semibold tabular-nums"
+              value={number}
+              inputMode="numeric"
+              aria-label={t('scenes.moveTo')}
+              title={t('scenes.moveToHint')}
+              disabled={moving}
+              onChange={(event) => setNumber(event.target.value)}
+              onBlur={(event) => moveTo(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') event.currentTarget.blur()
+                // Escape puts back what is stored rather than what was
+                // typed: the field is a command, and a command is cancelled,
+                // not half-entered.
+                if (event.key === 'Escape') {
+                  setNumber(String(scene.position))
+                  event.currentTarget.blur()
+                }
+              }}
+            />
           </span>
         </td>
         <td className="px-2 py-1.5">
@@ -848,6 +988,19 @@ function SceneRow({
             {/* The profile's scene actions — the prompts for this scene —
                 start on this row and come back as a revision of it. */}
             <ActionBar workId={workId} sceneId={scene.id} compact />
+            {/* A scene between two others, which until now meant adding one
+                at the end and typing its way back up the board. The new row
+                lands directly after this one and the rest shift down. */}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title={t('scenes.insertAfter')}
+              aria-label={t('scenes.insertAfter')}
+              disabled={moving}
+              onClick={onInsertAfter}
+            >
+              <ListPlus aria-hidden className="size-3.5" />
+            </Button>
             <Button
               variant="danger"
               size="icon-sm"

@@ -673,6 +673,40 @@
       "title": "Name the second attempt",
       "suffix": "{{title}} (2)",
       "done": "{{title}} — {{count}} scenes copied."
+    },
+    "moveTo": "Number",
+    "moveToHint": "The scene's place in the cut. Type a number and the board closes up behind it.",
+    "badNumber": "“{{text}}” is not a place on this board — type a number from 1 to {{total}}.",
+    "insertAfter": "Add a scene after this one",
+    "renumbered": "The board is renumbered.",
+    "renumberFailed": "renumber the board",
+    "check": {
+      "title": "What the board still owes",
+      "tally": "{{scenes}} scenes · {{written}} written · {{framed}} with a picture · {{filmed}} with a clip",
+      "nothingMissing": "Nothing missing: every scene is written, drawn and filmed, and the timing holds.",
+      "empty": "Scene {{number}} is untouched — no description, no prompts.",
+      "noPrompt": "Scene {{number}} is half written — a description or a prompt block is missing.",
+      "noFrame": "Scene {{number}} has no picture drawn for it.",
+      "undecidedFrame_one": "Scene {{number}} has a picture, and it has not been chosen.",
+      "undecidedFrame_other": "Scene {{number}} has {{count}} pictures and none chosen.",
+      "noVideo": "Scene {{number}} has no clip animated from its picture.",
+      "undecidedVideo_one": "Scene {{number}} has a clip, and it has not been chosen.",
+      "undecidedVideo_other": "Scene {{number}} has {{count}} clips and none chosen.",
+      "gap": "A hole of {{seconds}} before scene {{number}}.",
+      "overlap": "Scene {{number}} starts {{seconds}} before the one before it ends.",
+      "untimed_one": "One scene has no seconds.",
+      "untimed_other": "{{count}} scenes have no seconds.",
+      "length": "The board and the work's length are {{seconds}} apart.",
+      "run": {
+        "empty": "Scenes {{from}} to {{to}} are untouched — {{count}} of them.",
+        "noPrompt": "Scenes {{from}} to {{to}} are half written — {{count}} of them.",
+        "noFrame": "Scenes {{from}} to {{to}} are waiting for a picture — {{count}} of them.",
+        "undecidedFrame": "Scenes {{from}} to {{to}} have pictures and no verdict — {{count}} of them.",
+        "noVideo": "Scenes {{from}} to {{to}} are waiting for a clip — {{count}} of them.",
+        "undecidedVideo": "Scenes {{from}} to {{to}} have clips and no verdict — {{count}} of them.",
+        "gap": "Holes before scenes {{from}} to {{to}} — {{count}} of them.",
+        "overlap": "Scenes {{from}} to {{to}} overlap what runs before them — {{count}} of them."
+      }
     }
   },
   "files": {
@@ -883,6 +917,7 @@
     "link.removed": "“{{title}}” is no longer made from “{{source}}”.",
     "scene.created": "Scene {{number}} added to “{{title}}”.",
     "scene.timed": "The board of “{{title}}” timed across {{count}} scenes.",
+    "scene.renumbered": "The board of “{{title}}” renumbered across {{count}} scenes.",
     "scene.framed": "The board of “{{title}}” framed into {{count}} scenes.",
     "asset.attached": "“{{name}}” attached.",
     "proposal.work": "{{client}} proposed a new work, “{{title}}”.",
