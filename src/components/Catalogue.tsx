@@ -45,6 +45,9 @@ import {
   type Sort,
   type SortColumn,
 } from '@/lib/catalogue'
+import { StagePicker } from '@/components/StagePicker'
+import { stagesOf } from '@/lib/stages'
+import { worksMatching } from '@/lib/api'
 import { formatQuery, parseQuery, type Vocabulary } from '@/lib/searchQuery'
 import {
   addView,
@@ -56,6 +59,7 @@ import {
   type SavedView,
   type ViewShape,
 } from '@/lib/views'
+import { useDebounced } from '@/lib/useDebounced'
 import { keys } from '@/lib/query'
 import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
@@ -262,6 +266,7 @@ export function Catalogue({ onSelect }: Props) {
     statuses: allOf(profile.config, 'statuses'),
     kinds: profile.config.work_kinds,
     tiers: allOf(profile.config, 'tiers'),
+    stages: stagesOf(profile.config),
   }
 
   // What the box shows. Held apart from the filter rather than derived from it,
@@ -570,6 +575,28 @@ function Rows({
 }) {
   const { t } = useTranslation()
   const profile = useProfile()
+
+  // What the rows themselves cannot answer: which works say this somewhere
+  // inside them - in a lyric, a note, a craft field, a reply from the
+  // assistant. Debounced, because it is a round trip and the box is typed in.
+  const text = filter.search?.trim() ?? ''
+  const settled = useDebounced(text, 160)
+  const matches = useQuery({
+    queryKey: keys.worksMatching(settled),
+    queryFn: () => worksMatching(settled),
+    enabled: settled !== '',
+    // The corpus does not change while a word is being typed, and every
+    // keystroke that ends in the same query should cost nothing.
+    staleTime: 30_000,
+  })
+  // While the answer for the current word is still on its way, the previous
+  // one is worse than none: it would narrow to the hits for `холод` while the
+  // box reads `холодильник`. Titles keep narrowing in the meantime.
+  const matching =
+    settled === '' || settled !== text || matches.data === undefined
+      ? undefined
+      : matches.data
+
   // Where the last plain tick landed, so a shift-click has something to reach
   // back to. A ref rather than state: it changes what the *next* click means
   // and nothing on screen depends on it. Declared above the early returns
@@ -592,7 +619,7 @@ function Rows({
     return <EmptyState title={t('empty.worksTitle')} body={t('empty.worksBody')} />
   }
 
-  const visible = sortRows(narrow(rows, filter), sort)
+  const visible = sortRows(narrow(rows, filter, matching), sort)
   const narrowed = isNarrowed(filter)
   const blocks = groupRows(visible, groupBy)
 
@@ -750,7 +777,10 @@ function Rows({
             enough to need scrolling is one whose columns must remain named. */}
         <thead className="sticky top-0 z-10 bg-bg">
           <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-dim">
-            <th className="w-9 py-2">
+            {/* The tick column carries the same side padding as every other
+                cell: with none, the box sat flush against the star in the
+                next one and the two read as one control. */}
+            <th className="w-9 py-2 pl-3 pr-2">
               <input
                 type="checkbox"
                 className="size-3.5 cursor-pointer accent-[var(--accent)]"
@@ -817,7 +847,10 @@ function Rows({
                     actions={actionsFor(row)}
                     onOpen={() => onSelect(row.work_id)}
                   >
-                    <td className="py-2" onClick={(event) => event.stopPropagation()}>
+                    <td
+                      className="py-2 pl-3 pr-2"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       <input
                         type="checkbox"
                         className="size-3.5 cursor-pointer accent-[var(--accent)]"
@@ -987,6 +1020,7 @@ interface ColumnSpec {
 const COLUMN_SPECS: Record<ColumnId, ColumnSpec> = {
   id: { label: 'catalogue.column.id', sort: null, width: 'w-28' },
   title: { label: 'catalogue.work', sort: 'title' },
+  stage: { label: 'catalogue.column.stage', sort: 'stage', width: 'w-14' },
   marks: { label: 'catalogue.column.marks', sort: null },
   versions: { label: 'catalogue.column.versions', sort: 'versions', align: 'right', width: 'w-16' },
   tier: { label: 'catalogue.tier', sort: 'tier' },
@@ -1085,6 +1119,16 @@ function Cell({
         </td>
       )
     }
+
+    case 'stage':
+      return (
+        // The dial and nothing else: a word per row would be a second column
+        // of text beside the title, and the whole point of a dial is that a
+        // column of them is read at a glance. The word is in the tooltip.
+        <td className="px-3 py-2" onClick={(event) => event.stopPropagation()}>
+          <StagePicker workId={row.work_id} percent={row.stage} compact />
+        </td>
+      )
 
     case 'versions':
       return (

@@ -298,6 +298,15 @@ export interface WorkKind extends Kind {
   scene_blocks?: SceneBlock[]
 }
 
+/** One stop on the way from an idea to a finished work. */
+export interface Stage {
+  key: string
+  label: string
+  /** Where this stop sits, 0..=100 — what the dial draws. */
+  percent: number
+  colour?: string
+}
+
 export interface ProfileConfig {
   /** The shape of the document; 2 since v0.57. */
   format: number
@@ -306,6 +315,9 @@ export interface ProfileConfig {
   work_meta_fields: MetaField[]
   // Absent in a profile written before marks existed.
   marks?: Mark[]
+  /** The stops of the stage dial. Absent, or empty, means the craft names
+      none and the line's own stops are used — see `lib/stages`. */
+  stages?: Stage[]
   prompts: PromptTemplate[]
   // Absent in a profile written before the field existed: the auto-layout then
   // has nothing to pace by, and its button says so instead of guessing.
@@ -367,6 +379,9 @@ export interface Work {
   tier_pin_reason: string | null
   /** Set when marked to come back to. */
   bookmarked_at: string | null
+  /** How finished the work is, 0..=100, as the author judges it. `null` means
+      nobody has said yet — which is not a judgement of zero. */
+  stage: number | null
   created_at: string
   updated_at: string
 }
@@ -391,6 +406,8 @@ export interface WorkPatch {
   tags?: string[]
   /** `true` stamps the bookmark, `false` clears it. */
   bookmarked?: boolean
+  /** How finished the work is, 0..=100; `null` takes it back to unjudged. */
+  stage?: number | null
   marks?: string[]
   current_version_id?: string | null
 }
@@ -660,6 +677,8 @@ export interface ScoredWork {
   bookmarked_at: string | null
   /** How many versions the work holds, across every role. */
   version_count: number
+  /** How finished the work is, 0..=100; `null` while nobody has said. */
+  stage: number | null
 }
 
 /** What a bulk edit did. The catalogue reloads afterwards; these are for the toast. */
@@ -712,6 +731,9 @@ export interface ScheduledRelease extends Release {
   total: number | null
   tier: string | null
   readiness: Readiness
+  /** How finished the work itself is, 0..=100; `null` while nobody has said.
+      Not `readiness`, which asks whether the release could go out. */
+  work_stage: number | null
 }
 
 export interface NewRelease {
@@ -1174,6 +1196,13 @@ export interface Hit {
 }
 
 export const search = (query: string) => invoke<Hit[]>('search', { query })
+
+/** The works whose text answers a query, best match first — ids only.
+ *
+ * What the catalogue's box asks, as against the palette's: the rows are
+ * already on the screen, so only the narrowing comes back. */
+export const worksMatching = (query: string) =>
+  invoke<string[]>('works_matching', { query })
 
 export const listJournal = () => invoke<JournalEntry[]>('list_journal')
 export const journalForWork = (workId: string) =>

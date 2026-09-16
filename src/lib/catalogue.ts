@@ -13,11 +13,16 @@ export interface CatalogueFilter {
   gap?: Gap
   /** Only the starred: works marked to come back to. */
   bookmarked?: true
+  /** A stage stop, as its percentage — works standing at exactly that stop.
+      The percentage and not the key, because a row carries the number and the
+      keys live in the profile: this module stays about rows. */
+  stage?: number
 }
 
 /** A column the table can be ordered by. */
 export type SortColumn =
   | 'title'
+  | 'stage'
   | 'tier'
   | 'total'
   | 'scored'
@@ -38,14 +43,27 @@ export const DEFAULT_SORT: Sort = { column: 'total', direction: 'desc' }
 /**
  * Narrow the catalogue in the app rather than in SQL.
  *
- * The whole catalogue is one query and a few hundred rows at most, so filtering
- * here costs nothing and buys two things the database cannot give as cheaply:
- * the unfiltered total is still in hand for a "showing N of M" count, and the
- * case folding is JavaScript's, which handles Cyrillic — SQLite's `LIKE` folds
- * ASCII only, the defect that cost v0.19 a fix in two places.
+ * The fields narrow here: the whole catalogue is one query and a few hundred
+ * rows at most, so filtering costs nothing and the unfiltered total stays in
+ * hand for a "showing N of M" count.
+ *
+ * The text does not, and cannot. A row holds a title, not the lyric under it,
+ * so "which of my songs mention a fridge" is a question these rows have no way
+ * to answer — it is asked of the index and arrives as `matching`, the ids the
+ * search found, in the order it ranked them. `undefined` means nothing was
+ * typed; an empty list means nothing matched, which is a different answer and
+ * must narrow to nothing.
+ *
+ * The title is still matched here as well, so a half-typed title narrows on the
+ * keystroke rather than on the round trip.
  */
-export function narrow(rows: ScoredWork[], filter: CatalogueFilter): ScoredWork[] {
+export function narrow(
+  rows: ScoredWork[],
+  filter: CatalogueFilter,
+  matching?: readonly string[],
+): ScoredWork[] {
   const needle = filter.search?.trim().toLowerCase() ?? ''
+  const found = matching === undefined ? undefined : new Set(matching)
 
   return rows.filter((row) => {
     if (filter.status !== undefined && row.status !== filter.status) return false
@@ -58,7 +76,15 @@ export function narrow(rows: ScoredWork[], filter: CatalogueFilter): ScoredWork[
     if (filter.tag !== undefined && !hasTag(row, filter.tag)) return false
     if (filter.gap !== undefined && !hasGap(row, filter.gap)) return false
     if (filter.bookmarked === true && row.bookmarked_at === null) return false
-    if (needle !== '' && !row.title.toLowerCase().includes(needle)) return false
+    if (filter.stage !== undefined && row.stage !== filter.stage) return false
+    if (needle !== '') {
+      // Either way of matching is enough: the index knows the bodies, and the
+      // title check keeps a partly typed name narrowing before the search
+      // answers. `холодильник` finds the lyric; `холод` finds the title.
+      const byTitle = row.title.toLowerCase().includes(needle)
+      const byText = found?.has(row.work_id) ?? false
+      if (!byTitle && !byText) return false
+    }
     return true
   })
 }
@@ -155,6 +181,10 @@ function valueOf(row: ScoredWork, column: SortColumn): string | number | null {
       return row.status
     case 'versions':
       return row.version_count
+    case 'stage':
+      // Unjudged is not zero, so it sorts as absent and lands last with
+      // everything else nobody has answered for.
+      return row.stage
     case 'created':
       return row.created_at
     case 'updated':
@@ -332,6 +362,7 @@ const ASCENDING_FIRST: SortColumn[] = ['title', 'status']
 export type ColumnId =
   | 'id'
   | 'title'
+  | 'stage'
   | 'marks'
   | 'versions'
   | 'tier'
@@ -343,6 +374,7 @@ export type ColumnId =
 export const ALL_COLUMNS: ColumnId[] = [
   'id',
   'title',
+  'stage',
   'marks',
   'versions',
   'tier',
@@ -361,6 +393,7 @@ export const ALL_COLUMNS: ColumnId[] = [
  */
 export const DEFAULT_COLUMNS: ColumnId[] = [
   'title',
+  'stage',
   'marks',
   'tier',
   'total',

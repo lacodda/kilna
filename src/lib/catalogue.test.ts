@@ -44,6 +44,7 @@ const row = (over: Partial<ScoredWork>): ScoredWork => ({
   marks: [],
   tier_pinned: false,
   version_count: 0,
+  stage: null,
   bookmarked_at: null,
   ...over,
 })
@@ -52,6 +53,76 @@ describe('narrow', () => {
   it('keeps everything when nothing is set', () => {
     const rows = [row({ work_id: 'a' }), row({ work_id: 'b' })]
     expect(narrow(rows, {})).toHaveLength(2)
+  })
+
+  // The release's own question. A row carries a title, not the lyric under it,
+  // so a work found by a word in its body can only arrive as an id from the
+  // index — and it has to be kept even though the title says nothing.
+  it('keeps a work the index matched on text the row does not carry', () => {
+    const rows = [row({ work_id: 'kitchen', title: 'Кухня' }), row({ work_id: 'bay', title: 'Гавань' })]
+
+    const kept = narrow(rows, { search: 'холодильник' }, ['kitchen'])
+
+    expect(kept.map((r) => r.work_id)).toEqual(['kitchen'])
+  })
+
+  // While the answer is on its way there is no list at all, and the title
+  // still has to narrow — otherwise every keystroke would flash the whole
+  // catalogue before settling.
+  it('narrows on the title alone while the index has not answered', () => {
+    const rows = [row({ title: 'Гавань огней' }), row({ title: 'Paper boats' })]
+
+    expect(narrow(rows, { search: 'гавань' }, undefined)).toHaveLength(1)
+  })
+
+  // An empty list is an answer — "nothing matched" — and must not read as
+  // "no answer yet", or a search for a word nobody wrote would show everything.
+  it('narrows to nothing when the index matched nothing', () => {
+    // The titles deliberately do NOT contain the word, so that treating the
+    // empty answer as "no answer yet" cannot pass by falling back to the title
+    // check — the fallback would find nothing here either. The second case is
+    // the one that bites: a row whose title matches must still be kept, since
+    // either way of matching is enough.
+    const rows = [row({ work_id: 'a', title: 'Гавань' }), row({ work_id: 'b', title: 'Paper' })]
+
+    expect(narrow(rows, { search: 'холодильник' }, [])).toHaveLength(0)
+    // Nothing in the bodies, but the title says it: kept, and kept because the
+    // title said so rather than because the empty list was ignored.
+    expect(narrow(rows, { search: 'гавань' }, []).map((r) => r.work_id)).toEqual(['a'])
+  })
+
+  // Whether a row survives must not depend on how many others did. With the
+  // empty answer misread as "still loading", a search whose only hits are in
+  // bodies shows the whole catalogue instead of nothing — the failure is
+  // invisible unless a row that should be dropped is put in front of it.
+  it('drops a row the index did not match even when it matched others', () => {
+    const rows = [
+      row({ work_id: 'kitchen', title: 'Кухня' }),
+      row({ work_id: 'bay', title: 'Гавань' }),
+    ]
+
+    expect(narrow(rows, { search: 'холодильник' }, ['kitchen']).map((r) => r.work_id)).toEqual([
+      'kitchen',
+    ])
+    expect(narrow(rows, { search: 'холодильник' }, []).map((r) => r.work_id)).toEqual([])
+  })
+
+  it('narrows to one stage stop', () => {
+    const rows = [
+      row({ work_id: 'a', stage: 80 }),
+      row({ work_id: 'b', stage: 20 }),
+      row({ work_id: 'c', stage: null }),
+    ]
+
+    expect(narrow(rows, { stage: 80 }).map((r) => r.work_id)).toEqual(['a'])
+  })
+
+  // Zero is a judgement, not an absence: "this is a bare idea" is a different
+  // answer from "nobody has said", and the unjudged row must not come along.
+  it('tells a stage of zero from no stage at all', () => {
+    const rows = [row({ work_id: 'idea', stage: 0 }), row({ work_id: 'unsaid', stage: null })]
+
+    expect(narrow(rows, { stage: 0 }).map((r) => r.work_id)).toEqual(['idea'])
   })
 
   it('matches a title regardless of case, in Russian too', () => {

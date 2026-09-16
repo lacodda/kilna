@@ -35,6 +35,8 @@ export interface Vocabulary {
   statuses: Term[]
   kinds: Term[]
   tiers: Term[]
+  /** The stage stops, each carrying the percentage the filter is written in. */
+  stages: (Term & { percent: number })[]
 }
 
 /**
@@ -45,7 +47,7 @@ export interface Vocabulary {
  * week and is read off the row at a glance, not hunted for. Adding `mark:`
  * later costs one entry in this list.
  */
-export const FIELDS = ['status', 'kind', 'tier', 'tag'] as const
+export const FIELDS = ['status', 'kind', 'tier', 'tag', 'stage'] as const
 export type Field = (typeof FIELDS)[number]
 
 const IS_FIELD = new Set<string>(FIELDS)
@@ -98,7 +100,7 @@ function resolve(terms: Term[], value: string): string | undefined {
 /** What a parsed line asks for. */
 export interface ParsedQuery {
   /** The filter fields the operators set. Absent fields were not mentioned. */
-  filter: Pick<CatalogueFilter, 'status' | 'kind' | 'tier' | 'tag'>
+  filter: Pick<CatalogueFilter, 'status' | 'kind' | 'tier' | 'tag' | 'stage'>
   /** Everything that was not an operator, joined back into one phrase. */
   text: string
   /** Operators naming something this profile does not have, for telling the person. */
@@ -139,6 +141,30 @@ export function parseQuery(query: string, vocabulary: Vocabulary): ParsedQuery {
       continue
     }
 
+    if (field === 'stage') {
+      // A stop is named by its key or its label like any other vocabulary, but
+      // the filter holds the percentage it stands at - so the resolution is the
+      // same and the value that comes out of it is not a key.
+      // A bare number first, because that is what `formatQuery` writes and the
+      // round trip has to hold on a machine whose profile names the stops
+      // differently from the one the line was written on.
+      const asNumber = /^\d{1,3}$/.test(value) ? Number(value) : undefined
+      const stop =
+        asNumber !== undefined
+          ? vocabulary.stages.find((entry) => entry.percent === asNumber)
+          : vocabulary.stages.find(
+              (entry) =>
+                entry.key.toLowerCase() === value.toLowerCase() ||
+                entry.label.toLowerCase() === value.toLowerCase(),
+            )
+      if (stop === undefined) {
+        unknown.push({ field: 'stage', value })
+      } else {
+        filter.stage = stop.percent
+      }
+      continue
+    }
+
     const resolved = resolve(vocabularyFor(vocabulary, field as Field), value)
     if (resolved === undefined) {
       unknown.push({ field: field as Field, value })
@@ -159,9 +185,11 @@ function vocabularyFor(vocabulary: Vocabulary, field: Field): Term[] {
       return vocabulary.kinds
     case 'tier':
       return vocabulary.tiers
-    // Tags have no vocabulary to resolve against; the caller returns before
-    // reaching here, and this keeps the switch exhaustive.
+    // Tags and stages are resolved by the caller - a tag against nothing, a
+    // stage into a number rather than a key - and return before reaching here.
+    // Listed so the switch stays exhaustive.
     case 'tag':
+    case 'stage':
       return []
   }
 }
@@ -177,10 +205,15 @@ export function formatQuery(filter: CatalogueFilter): string {
   const parts: string[] = []
 
   for (const field of FIELDS) {
+    if (field === 'stage') continue
     const value = filter[field]
     if (value === undefined || value === '') continue
     parts.push(`${field}:${quote(value)}`)
   }
+
+  // Written back as the number it is stored as, so the round trip holds without
+  // the profile: `stage:80` parses to 80 whatever that stop is called.
+  if (filter.stage !== undefined) parts.push(`stage:${filter.stage}`)
 
   const text = filter.search?.trim() ?? ''
   if (text !== '') parts.push(quote(text))

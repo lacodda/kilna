@@ -8,6 +8,10 @@ const vocabulary: Vocabulary = {
     { key: 'ready', label: 'Ready' },
   ],
   kinds: [{ key: 'song', label: 'Song' }],
+  stages: [
+    { key: 'idea', label: 'Idea', percent: 0 },
+    { key: 'polish', label: 'Polishing', percent: 80 },
+  ],
   tiers: [
     { key: 'clip', label: 'Clip' },
     { key: 'pic', label: 'Picture' },
@@ -53,8 +57,38 @@ describe('parseQuery', () => {
       statuses: [{ key: 'draft', label: 'Черновик' }],
       kinds: [],
       tiers: [],
+      stages: [],
     }
     expect(parseQuery('status:ЧЕРНОВИК', russian).filter.status).toBe('draft')
+  })
+
+  it('reads a stage by its key, its label or its number', () => {
+    for (const line of ['stage:polish', 'stage:Polishing', 'stage:POLISH', 'stage:80']) {
+      expect(parseQuery(line, vocabulary).filter.stage, line).toBe(80)
+    }
+  })
+
+  // The number is what is stored and what `formatQuery` writes, so a line
+  // written on one machine has to parse on another whose profile calls the
+  // same stop something else.
+  it('writes a stage back as its number, and reads it back', () => {
+    const line = formatQuery({ stage: 80 })
+    expect(line).toBe('stage:80')
+    expect(parseQuery(line, vocabulary).filter.stage).toBe(80)
+  })
+
+  it('reports a stage the profile does not have rather than filtering on it', () => {
+    const parsed = parseQuery('stage:mixed', vocabulary)
+    expect(parsed.filter.stage).toBeUndefined()
+    expect(parsed.unknown).toEqual([{ field: 'stage', value: 'mixed' }])
+  })
+
+  // A stage of zero is a judgement — "this is a bare idea" — and `0` is falsy
+  // in a language where that matters. A filter that quietly dropped it would
+  // make the first stop the only one that cannot be searched for.
+  it('keeps a stage of zero', () => {
+    expect(parseQuery('stage:idea', vocabulary).filter.stage).toBe(0)
+    expect(formatQuery({ stage: 0 })).toBe('stage:0')
   })
 
   // The reason unknown fields are not an error: a title can contain a colon,

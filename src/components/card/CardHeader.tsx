@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router'
 import { ArrowLeft, Copy, Pencil, Star } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { deriveWork, latestScore, listCollections, updateWork, type Work } from '@/lib/api'
+import { useCardView } from '@/lib/cardView'
 import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
 import { keys } from '@/lib/query'
@@ -16,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RowMenu } from '@/components/ui/RowMenu'
+import { StagePicker } from '@/components/StagePicker'
 import { TabBar } from '@/components/card/TabBar'
 import { TagBar } from '@/components/card/TagBar'
 
@@ -239,6 +241,11 @@ function Title({ work }: { work: Work }) {
           >
             <Star aria-hidden className={starred ? 'fill-current' : undefined} />
           </Button>
+
+          {/* Beside the star, because the two are the same kind of thing: what
+              the author says about the work by hand, as against everything
+              else on this header, which is derived from what happened. */}
+          <StagePicker workId={work.id} percent={work.stage} />
         </>
       )}
     </span>
@@ -306,6 +313,12 @@ function HeaderActions({ work }: { work: Work }) {
 function MetaStrip({ work }: { work: Work }) {
   const { i18n } = useTranslation()
   const profile = useProfile()
+  const { view } = useCardView()
+
+  // Off unless this machine asked for it. Switched rather than deleted: the
+  // strip is the fastest way to compare a tempo against a mood for whoever
+  // works that way, and the fields themselves are untouched either way.
+  if (!view.metaStrip) return null
 
   const filled = profile.config.work_meta_fields.filter(
     (field) =>

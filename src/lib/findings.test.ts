@@ -48,6 +48,7 @@ function work(over: Partial<ScoredWork> = {}): ScoredWork {
     marks: [],
     tier_pinned: false,
     version_count: 0,
+    stage: null,
     bookmarked_at: null,
     ...over,
   }
@@ -58,6 +59,7 @@ function release(over: Partial<ScheduledRelease> = {}): ScheduledRelease {
     id: 'r1',
     work_id: 'w1',
     work_kind: 'song',
+    work_stage: null,
     kind: 'single',
     status: 'planned',
     title: null,

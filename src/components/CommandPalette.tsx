@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { search, type Hit, type HitKind } from '@/lib/api'
 import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
+import { useDebounced } from '@/lib/useDebounced'
 import { keys } from '@/lib/query'
 import { loadRecent } from '@/lib/recent'
 import { cn } from '@/lib/utils'
@@ -64,13 +65,9 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
 
-  // Typing is faster than SQLite is slow, but not by much once a workspace has
-  // a few hundred bodies in it — so the query trails the keystrokes.
-  const [settled, setSettled] = useState('')
-  useEffect(() => {
-    const timer = setTimeout(() => setSettled(query), 140)
-    return () => clearTimeout(timer)
-  }, [query])
+  // The query trails the keystrokes: typing is faster than SQLite is slow, but
+  // not by much once a workspace has a few hundred bodies in it.
+  const settled = useDebounced(query, 140)
 
   const hits = useQuery({
     queryKey: keys.search(settled),

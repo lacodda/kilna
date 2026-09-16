@@ -52,6 +52,8 @@ export const keys = {
   workTags: ['workTags'] as const,
   deletions: ['deletions'] as const,
   search: (query: string) => ['search', query] as const,
+  /** The catalogue's own question: which works answer this text. */
+  worksMatching: (query: string) => ['worksMatching', query] as const,
 
   // One coarse prefix over the feed, a work's history and the unread count:
   // every mutation that writes an entry disturbs all three, and none of them is

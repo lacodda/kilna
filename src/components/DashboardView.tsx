@@ -15,6 +15,8 @@ import { today } from '@/lib/month'
 import { keys } from '@/lib/query'
 import { missing } from '@/lib/readiness'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
+import { StageDial } from '@/components/StageDial'
+import { stageAt } from '@/lib/stages'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -194,6 +196,15 @@ function DecisionRow({
         <span className="block truncate text-sm font-semibold">{release.work_title}</span>
         <span className="block truncate text-[11.5px] text-faint">{gaps.join(', ')}</span>
       </span>
+      {/* Beside the readiness marks, which answer a different question: those
+          say whether the release could go out, this says how finished the work
+          behind it is. */}
+      {release.work_stage !== null && (
+        <StageDial
+          percent={release.work_stage}
+          stage={stageAt(profile.config, release.work_stage)}
+        />
+      )}
       <ReadyMarks readiness={release.readiness} released={false} daysLeft={daysLeft} />
       <Badge variant={daysLeft < 0 ? 'bad' : daysLeft <= 2 ? 'warn' : 'soft'}>
         {when(t, daysLeft)}

@@ -7,6 +7,8 @@ import { KindGlyph } from '@/lib/releaseIcon'
 import { daysBetween, missing } from '@/lib/readiness'
 import { openExternal, shortLink } from '@/lib/link'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
+import { StageDial } from '@/components/StageDial'
+import { stageAt } from '@/lib/stages'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { PreviewCard, PreviewCardPopup, PreviewCardTrigger } from '@/components/ui/preview-card'
 import { cn } from '@/lib/utils'
@@ -110,6 +112,23 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
               // the amber and red legible on any of them.
               className={cn('rounded-[4px] bg-black/35 px-0.5 py-px', released && 'text-white/70')}
             />
+            {/* How far along the work is, beside how ready the release is:
+                the two answer different questions and a chip that showed only
+                the second would call a placeholder lyric ready to ship. */}
+            {slot.work_stage !== null && (
+              <span
+                className={cn(
+                  'shrink-0 rounded-[4px] bg-black/35 px-0.5 py-px',
+                  released && 'opacity-70',
+                )}
+              >
+                <StageDial
+                  percent={slot.work_stage}
+                  stage={stageAt(profile.config, slot.work_stage)}
+                  size={10}
+                />
+              </span>
+            )}
             {slot.slot_pinned_at !== null && (
               <Lock aria-hidden className="size-2.5 shrink-0 text-white/70" />
             )}
