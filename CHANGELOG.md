@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.71.0] - 2026-09-16
+
+### Bug Fixes
+- A release field's hint and template say which is which
+
+### Features
+- What a release goes out as, written from the work
+- The boxes a release goes out in, and a month of them at once
+- A work packed into a folder, and a package that plans how it ships
+- The boxes a release goes out in, edited on the screen
 ## [0.70.0] - 2026-09-16
 
 ### Bug Fixes
