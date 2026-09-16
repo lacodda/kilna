@@ -205,9 +205,16 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
         "scene.selectFrame" | "scene.clearFrame" => {
             let scene_id = required(params, "sceneId")?;
             let before: Option<String> = from_params(params, "before").unwrap_or(None);
+            // Absent on anything logged before 0022, when a still was all a
+            // scene could hold.
+            let kind = params
+                .get("kind")
+                .and_then(|value| value.as_str())
+                .unwrap_or(crate::scene_frame::FRAME)
+                .to_owned();
             edit(conn, logged, &at, |tx| match before.as_deref() {
                 Some(id) => crate::scene_frame::select(tx, id).map(|_| ()),
-                None => crate::scene_frame::clear_selection(tx, &scene_id),
+                None => crate::scene_frame::clear_selection(tx, &scene_id, &kind),
             })?;
         }
 
@@ -215,8 +222,13 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
         "scene.reorderFrames" => {
             let scene_id = required(params, "sceneId")?;
             let before: Vec<String> = from_params(params, "before")?;
+            let kind = params
+                .get("kind")
+                .and_then(|value| value.as_str())
+                .unwrap_or(crate::scene_frame::FRAME)
+                .to_owned();
             edit(conn, logged, &at, |tx| {
-                crate::scene_frame::reorder(tx, &scene_id, &before).map(|_| ())
+                crate::scene_frame::reorder(tx, &scene_id, &kind, &before).map(|_| ())
             })?;
         }
 

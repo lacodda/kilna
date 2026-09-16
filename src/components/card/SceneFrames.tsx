@@ -15,17 +15,24 @@ import {
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
+import { VIDEO } from '@/lib/scenes'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
 /** The picture formats a generator gives back, and the picker offers. */
 export const PICTURES = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif']
 
+/** The clip formats an animator gives back. */
+export const VIDEOS = ['mp4', 'webm', 'mov', 'm4v']
+
 interface Props {
   workId: string
   sceneId: string
   /** The scene's number, for the sentences that name it. */
   number: number
+  /** Which of the scene's material this strip shows: `frame` or `video`. */
+  kind: string
+  /** The scene's material OF THIS KIND, already filtered by the caller. */
   frames: SceneFrame[]
   /** Open the viewer on this frame. */
   onOpen: (frame: SceneFrame) => void
@@ -46,8 +53,15 @@ interface Props {
  * dropped while another scene was open must not land in this one — the lesson
  * the Files tab wrote down in v0.67.
  */
-export function SceneFrames({ workId, sceneId, number, frames, onOpen }: Props) {
+export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: Props) {
   const { t } = useTranslation()
+  // One component for both strips rather than a copy of it for clips: they
+  // differ in the words, the file extensions and the element that draws a
+  // thumbnail, and in nothing else - the same three doors in, the same
+  // choosing, the same removal.
+  const isVideo = kind === VIDEO
+  const word = (key: string, values?: Record<string, unknown>) =>
+    t(isVideo ? `scenes.video.${key}` : `scenes.${key}`, values ?? {})
   const client = useQueryClient()
   const [over, setOver] = useState(false)
   const region = useRef<HTMLDivElement>(null)
@@ -58,20 +72,20 @@ export function SceneFrames({ workId, sceneId, number, frames, onOpen }: Props) 
   }
 
   const attach = useMutation({
-    mutationFn: (source: string) => attachSceneFrame(sceneId, source),
+    mutationFn: (source: string) => attachSceneFrame(sceneId, kind, source),
     onSuccess: () => {
       refresh()
-      say.ok(t('scenes.frameAdded', { number }))
+      say.ok(word('frameAdded', { number }))
     },
     onError: (error: unknown) => say.failed(String(error)),
   })
 
   const paste = useMutation({
     mutationFn: ({ bytes, name }: { bytes: Uint8Array; name: string }) =>
-      pasteSceneFrame(sceneId, bytes, name),
+      pasteSceneFrame(sceneId, kind, bytes, name),
     onSuccess: () => {
       refresh()
-      say.ok(t('scenes.framePasted', { number }))
+      say.ok(word('framePasted', { number }))
     },
     onError: (error: unknown) => say.failed(String(error)),
   })
@@ -83,7 +97,7 @@ export function SceneFrames({ workId, sceneId, number, frames, onOpen }: Props) 
   })
 
   const unchoose = useMutation({
-    mutationFn: () => clearSceneFrame(sceneId),
+    mutationFn: () => clearSceneFrame(sceneId, kind),
     onSuccess: refresh,
     onError: (error: unknown) => say.failed(String(error)),
   })
@@ -97,7 +111,7 @@ export function SceneFrames({ workId, sceneId, number, frames, onOpen }: Props) 
   const pick = async () => {
     const chosen = await open({
       multiple: false,
-      filters: [{ name: t('scenes.frames'), extensions: PICTURES }],
+      filters: [{ name: word('frames'), extensions: isVideo ? VIDEOS : PICTURES }],
     })
     if (typeof chosen === 'string') attach.mutate(chosen)
   }
@@ -136,6 +150,11 @@ export function SceneFrames({ workId, sceneId, number, frames, onOpen }: Props) 
   // window filesystem permissions for one temporary write, when the backend
   // already owns the directory the picture is going to.
   useEffect(() => {
+    // Only the stills. Ctrl+V exists here because a picture is LOOKED AT in
+    // the generator's own tab and copied from it; a clip is downloaded and
+    // then dragged, so a paste listener on the video strip would only ever
+    // catch a picture dropped into the wrong list.
+    if (isVideo) return
     const onPaste = async (event: ClipboardEvent) => {
       const items = event.clipboardData?.files
       if (!items || items.length === 0) return
@@ -157,7 +176,7 @@ export function SceneFrames({ workId, sceneId, number, frames, onOpen }: Props) 
     window.addEventListener('paste', onPaste)
     return () => window.removeEventListener('paste', onPaste)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sceneId, number])
+  }, [sceneId, number, isVideo])
 
   return (
     <div
@@ -168,21 +187,21 @@ export function SceneFrames({ workId, sceneId, number, frames, onOpen }: Props) 
       )}
     >
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-xs font-medium text-dim">{t('scenes.frames')}</span>
+        <span className="text-xs font-medium text-dim">{word('frames')}</span>
         <Button size="sm" variant="ghost" onClick={() => void pick()} disabled={attach.isPending}>
           <ImagePlus className="size-3.5" aria-hidden />
-          {t('scenes.addFrame')}
+          {word('addFrame')}
         </Button>
         {frames.some((frame) => frame.is_selected) && (
           <Button size="sm" variant="ghost" onClick={() => unchoose.mutate()}>
-            {t('scenes.unchooseFrame')}
+            {word('unchooseFrame')}
           </Button>
         )}
       </div>
 
       {frames.length === 0 ? (
         <p className="text-xs text-dim">
-          {over ? t('scenes.dropFrame') : t('scenes.addFrameHint')}
+          {over ? word('dropFrame') : word('addFrameHint')}
         </p>
       ) : (
         <ul className="flex flex-wrap gap-2">
@@ -195,23 +214,36 @@ export function SceneFrames({ workId, sceneId, number, frames, onOpen }: Props) 
                   'block overflow-hidden rounded border bg-surface-2',
                   frame.is_selected ? 'border-good ring-1 ring-good' : 'border-line',
                 )}
-                title={frame.original_name ?? t('scenes.openFrame')}
+                title={frame.original_name ?? word('openFrame')}
               >
                 {/* Contained, never cropped: a frame may be wide or tall and
                     a common crop would misrepresent one of them. */}
-                <img
-                  src={fileSrc(frame.path)}
-                  alt={frame.original_name ?? ''}
-                  className="size-24 object-contain"
-                />
+                {isVideo ? (
+                  // Muted, and not preloaded past its first frame: a strip of
+                  // four clips that each fetched themselves whole would spend
+                  // the board's memory on pictures of their opening second,
+                  // which is all that is shown here.
+                  <video
+                    src={fileSrc(frame.path)}
+                    muted
+                    preload="metadata"
+                    className="size-24 bg-surface-2 object-contain"
+                  />
+                ) : (
+                  <img
+                    src={fileSrc(frame.path)}
+                    alt={frame.original_name ?? ''}
+                    className="size-24 object-contain"
+                  />
+                )}
               </button>
 
               <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 bg-surface/80 p-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
                 <button
                   type="button"
                   onClick={() => choose.mutate(frame.id)}
-                  title={frame.is_selected ? t('scenes.chosenFrame') : t('scenes.chooseFrame')}
-                  aria-label={frame.is_selected ? t('scenes.chosenFrame') : t('scenes.chooseFrame')}
+                  title={frame.is_selected ? word('chosenFrame') : word('chooseFrame')}
+                  aria-label={frame.is_selected ? word('chosenFrame') : word('chooseFrame')}
                   className={cn('rounded p-0.5', frame.is_selected ? 'text-good' : 'text-dim')}
                 >
                   <Check className="size-3.5" aria-hidden />
@@ -219,8 +251,8 @@ export function SceneFrames({ workId, sceneId, number, frames, onOpen }: Props) 
                 <button
                   type="button"
                   onClick={() => onOpen(frame)}
-                  title={t('scenes.openFrame')}
-                  aria-label={t('scenes.openFrame')}
+                  title={word('openFrame')}
+                  aria-label={word('openFrame')}
                   className="rounded p-0.5 text-dim"
                 >
                   <Maximize2 className="size-3.5" aria-hidden />
@@ -228,8 +260,8 @@ export function SceneFrames({ workId, sceneId, number, frames, onOpen }: Props) 
                 <button
                   type="button"
                   onClick={() => remove.mutate(frame.id)}
-                  title={t('scenes.removeFrame')}
-                  aria-label={t('scenes.removeFrame')}
+                  title={word('removeFrame')}
+                  aria-label={word('removeFrame')}
                   className="rounded p-0.5 text-dim hover:text-bad"
                 >
                   <Trash2 className="size-3.5" aria-hidden />

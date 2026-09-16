@@ -646,7 +646,27 @@
     "descriptionPlaceholder": "What happens in this scene",
     "copy": "Copy the {{block}} block",
     "copied": "{{block}} copied",
-    "unlistedBlock": "A block the profile no longer names — kept, not edited here."
+    "unlistedBlock": "A block the profile no longer names — kept, not edited here.",
+    "video": {
+      "frames": "Video",
+      "addFrame": "Add a clip",
+      "addFrameHint": "Pick a file or drop one here.",
+      "dropFrame": "Drop the clip here",
+      "openFrame": "Open full screen",
+      "chooseFrame": "Use this take",
+      "chosenFrame": "The take in use",
+      "unchooseFrame": "Choose none",
+      "removeFrame": "Remove this clip",
+      "frameAdded": "Clip added to scene {{number}}.",
+      "framePasted": "Pasted clip added to scene {{number}}."
+    },
+    "montage": {
+      "copy": "Copy the montage list",
+      "save": "Save the montage list",
+      "copied": "The montage list is on the clipboard.",
+      "saved": "Montage list saved.",
+      "missing": "—"
+    }
   },
   "files": {
     "attach": "Attach a file",

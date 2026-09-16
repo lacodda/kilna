@@ -64,7 +64,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for n in 1..=4 {
         let file = holding.path().join(format!("still-v{n}.png"));
         std::fs::write(&file, format!("pretend png {n}").as_bytes())?;
-        made.push(scene_frame::attach(&conn, &media, &target.id, &file)?);
+        made.push(scene_frame::attach(
+            &conn,
+            &media,
+            &target.id,
+            scene_frame::FRAME,
+            &file,
+        )?);
     }
     let frames = scene_frame::for_scene(&conn, &target.id)?;
     println!("frames hung     {} (was {before})", frames.len() - before);
@@ -84,6 +90,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &conn,
         &media,
         &target.id,
+        scene_frame::FRAME,
         b"pretend pasted png",
         "clipboard.png",
     )?;

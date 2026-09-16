@@ -1030,7 +1030,16 @@ fn undoing_a_chosen_frame_puts_the_previous_one_back() {
     for name in ["still-v1.png", "still-v2.png"] {
         let file = source.path().join(name);
         std::fs::write(&file, b"not really a png").unwrap();
-        frames.push(kilna_lib::scene_frame::attach(&conn, media.path(), &scene_id, &file).unwrap());
+        frames.push(
+            kilna_lib::scene_frame::attach(
+                &conn,
+                media.path(),
+                &scene_id,
+                kilna_lib::scene_frame::FRAME,
+                &file,
+            )
+            .unwrap(),
+        );
     }
 
     // The first verdict, unlogged: it is the state the logged one replaces.

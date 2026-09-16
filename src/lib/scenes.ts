@@ -1,5 +1,9 @@
 import type { Scene, SceneBlock, SceneFrame } from '@/lib/api'
 
+/** What a row of a scene's material is: the still, or the clip cut from it. */
+export const FRAME = 'frame'
+export const VIDEO = 'video'
+
 /** How far a scene is from being ready to shoot, and then from being shot. */
 export type Readiness = 'empty' | 'started' | 'ready' | 'shot'
 
@@ -25,6 +29,13 @@ export type Readiness = 'empty' | 'started' | 'ready' | 'shot'
  * is the middle of the work, not the end of it. The scene is shot when one of
  * them has been chosen.
  *
+ * Shot is about the STILL. Since v0.69 a scene also holds the clips animated
+ * from it, in the same list under a kind, and a chosen clip must not stand in
+ * for a chosen picture: a board where the clip was picked and the still never
+ * was is not a board that has been shot, it is one in a state nobody meant.
+ * Whether the video is cut is a further question, and the montage list is
+ * where it gets asked.
+ *
  * A kind that names no blocks asks only for a description; a board of such a
  * kind is ready as soon as it is described.
  */
@@ -38,7 +49,8 @@ export function readinessOf(
 
   if (!described && written === 0) return 'empty'
   if (described && written === blocks.length) {
-    return frames.some((frame) => frame.is_selected) ? 'shot' : 'ready'
+    const picked = frames.some((frame) => frame.kind === FRAME && frame.is_selected)
+    return picked ? 'shot' : 'ready'
   }
   return 'started'
 }
@@ -54,7 +66,17 @@ export function framesByScene(frames: SceneFrame[]): Map<string, SceneFrame[]> {
   return byScene
 }
 
-/** The frame a scene is cut from, if it has chosen one. */
+/** One kind of a scene's material, in the order it stands in. */
+export function ofKind(frames: SceneFrame[] | undefined, kind: string): SceneFrame[] {
+  return (frames ?? []).filter((frame) => frame.kind === kind)
+}
+
+/** The still a scene is cut from, if it has chosen one. */
 export function chosenFrame(frames: SceneFrame[] | undefined): SceneFrame | undefined {
-  return frames?.find((frame) => frame.is_selected)
+  return frames?.find((frame) => frame.kind === FRAME && frame.is_selected)
+}
+
+/** The clip a scene is cut to, if one has been chosen. */
+export function chosenVideo(frames: SceneFrame[] | undefined): SceneFrame | undefined {
+  return frames?.find((frame) => frame.kind === VIDEO && frame.is_selected)
 }

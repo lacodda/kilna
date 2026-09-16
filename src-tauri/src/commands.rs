@@ -2096,6 +2096,7 @@ pub fn list_scene_frames(
 pub fn attach_scene_frame(
     state: State<'_, AppState>,
     scene_id: String,
+    kind: String,
     source: String,
 ) -> Result<scene_frame::SceneFrame> {
     let media = state.media_dir()?;
@@ -2107,12 +2108,13 @@ pub fn attach_scene_frame(
         .in_profile(&profile_id)
         .param("profile", profile_key(&conn, &profile_id)?)
         .param("sceneId", scene_id.clone())
+        .param("kind", kind.clone())
         .param("source", source.clone())
         .minted(&minted);
 
     let source = PathBuf::from(&source);
     let attached = recording(&mut conn, logged, |tx| {
-        scene_frame::attach_minted(tx, &media, &scene_id, &source, minted)
+        scene_frame::attach_minted(tx, &media, &scene_id, &kind, &source, minted)
     })?;
 
     let entry = Record::new("scene.framed")
@@ -2132,6 +2134,7 @@ pub fn attach_scene_frame(
 pub fn paste_scene_frame(
     state: State<'_, AppState>,
     scene_id: String,
+    kind: String,
     bytes: Vec<u8>,
     name: String,
 ) -> Result<scene_frame::SceneFrame> {
@@ -2146,10 +2149,11 @@ pub fn paste_scene_frame(
         .in_profile(&profile_id)
         .param("profile", profile_key(&conn, &profile_id)?)
         .param("sceneId", scene_id.clone())
+        .param("kind", kind.clone())
         .param("source", format!("<pasted: {name}>"));
 
     let attached = recording(&mut conn, logged, |tx| {
-        scene_frame::attach_bytes(tx, &media, &scene_id, &bytes, &name)
+        scene_frame::attach_bytes(tx, &media, &scene_id, &kind, &bytes, &name)
     })?;
 
     let entry = Record::new("scene.framed")
@@ -2208,24 +2212,23 @@ pub fn select_scene_frame(
 
 /// Go back to having no frame chosen for a scene.
 #[tauri::command]
-pub fn clear_scene_frame(state: State<'_, AppState>, scene_id: String) -> Result<()> {
+pub fn clear_scene_frame(state: State<'_, AppState>, scene_id: String, kind: String) -> Result<()> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
 
-    // The verdict being cleared, so an undo can put it back.
-    let before = scene_frame::for_scene(&conn, &scene_id)?
-        .into_iter()
-        .find(|one| one.is_selected)
-        .map(|one| one.id);
+    // The verdict being cleared, so an undo can put it back. Of this kind
+    // only: the chosen still is not touched by a change of mind about a clip.
+    let before = scene_frame::selected(&conn, &scene_id, &kind)?.map(|one| one.id);
 
     let logged = operation::Intent::new("scene.clearFrame")
         .in_profile(&profile_id)
         .param("profile", profile_key(&conn, &profile_id)?)
         .param("sceneId", scene_id.clone())
+        .param("kind", kind.clone())
         .param("before", serde_json::to_value(&before)?);
 
     recording(&mut conn, logged, |tx| {
-        scene_frame::clear_selection(tx, &scene_id)
+        scene_frame::clear_selection(tx, &scene_id, &kind)
     })
 }
 
@@ -2234,13 +2237,14 @@ pub fn clear_scene_frame(state: State<'_, AppState>, scene_id: String) -> Result
 pub fn reorder_scene_frames(
     state: State<'_, AppState>,
     scene_id: String,
+    kind: String,
     ids: Vec<String>,
 ) -> Result<Vec<scene_frame::SceneFrame>> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
 
     // The order they stood in, so an undo restores it exactly.
-    let before: Vec<String> = scene_frame::for_scene(&conn, &scene_id)?
+    let before: Vec<String> = scene_frame::of_kind(&conn, &scene_id, &kind)?
         .into_iter()
         .map(|one| one.id)
         .collect();
@@ -2249,11 +2253,12 @@ pub fn reorder_scene_frames(
         .in_profile(&profile_id)
         .param("profile", profile_key(&conn, &profile_id)?)
         .param("sceneId", scene_id.clone())
+        .param("kind", kind.clone())
         .param("ids", serde_json::to_value(&ids)?)
         .param("before", serde_json::to_value(&before)?);
 
     recording(&mut conn, logged, |tx| {
-        scene_frame::reorder(tx, &scene_id, &ids)
+        scene_frame::reorder(tx, &scene_id, &kind, &ids)
     })
 }
 
@@ -2401,6 +2406,30 @@ pub fn undo_last(state: State<'_, AppState>, operation: String) -> Result<undo::
     }
 
     Ok(taken)
+}
+
+/// Write a text the window composed to a place the person picked.
+///
+/// The window has no filesystem permissions and is not given any for this:
+/// it already holds the text — the montage list is rendered from what the
+/// board is showing — and what it lacks is the right to write a file. So the
+/// text comes here and the backend writes it, the same division the pasted
+/// frame settled in v0.68.
+///
+/// The path is the one the save dialog returned, so the person chose it; this
+/// refuses only to write a directory, which the dialog cannot return but a
+/// caller could pass.
+#[tauri::command]
+pub fn write_text_file(path: String, text: String) -> Result<String> {
+    let target = std::path::Path::new(&path);
+    if target.is_dir() {
+        return Err(crate::error::Error::Other(format!(
+            "{path} is a directory, not a file"
+        )));
+    }
+    std::fs::write(target, text)
+        .map_err(|cause| crate::error::Error::Other(format!("could not write {path}: {cause}")))?;
+    Ok(path)
 }
 
 /// Write the active profile out as markdown.

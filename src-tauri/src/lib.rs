@@ -206,6 +206,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::waiting_chats,
             commands::clear_waiting,
             commands::render_prompt,
+            commands::write_text_file,
             commands::export_markdown,
             commands::backup_workspace,
             commands::suggested_backup_name,

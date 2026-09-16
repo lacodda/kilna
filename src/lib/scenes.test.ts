@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { Scene, SceneBlock, SceneFrame } from '@/lib/api'
-import { chosenFrame, framesByScene, readinessOf } from '@/lib/scenes'
+import {
+  chosenFrame,
+  chosenVideo,
+  framesByScene,
+  ofKind,
+  readinessOf,
+  FRAME,
+  VIDEO,
+} from '@/lib/scenes'
 
 const BLOCKS: SceneBlock[] = [
   { key: 'still', label: 'Still' },
@@ -60,14 +68,20 @@ describe('readinessOf', () => {
   })
 })
 
-const frame = (id: string, sceneId: string, isSelected = false): SceneFrame => ({
+const frame = (
+  id: string,
+  sceneId: string,
+  isSelected = false,
+  kind: string = FRAME,
+): SceneFrame => ({
   id,
   scene_id: sceneId,
   asset_id: `a-${id}`,
+  kind,
   position: 1,
   is_selected: isSelected,
-  path: `/media/${id}.png`,
-  original_name: `${id}.png`,
+  path: `/media/${id}.${kind === VIDEO ? 'mp4' : 'png'}`,
+  original_name: `${id}.${kind === VIDEO ? 'mp4' : 'png'}`,
   created_at: '',
 })
 
@@ -106,5 +120,40 @@ describe('chosenFrame', () => {
     expect(chosenFrame([frame('f1', 's'), frame('f2', 's', true)])?.id).toBe('f2')
     expect(chosenFrame([frame('f1', 's')])).toBeUndefined()
     expect(chosenFrame(undefined)).toBeUndefined()
+  })
+})
+
+describe('a scene that holds clips as well as stills', () => {
+  const full = scene('a lighthouse', { still: 'a', motion: 'b' })
+
+  it('is shot by its chosen STILL, never by a chosen clip', () => {
+    // The trap the kind exists to close: a clip chosen while the picture
+    // never was is not a scene that has been shot, and calling it one would
+    // let a board report itself finished with nothing drawn.
+    const onlyClip = [frame('v1', 's1', true, VIDEO)]
+    expect(readinessOf(full, BLOCKS, onlyClip)).toBe('ready')
+
+    const both = [frame('f1', 's1', true), frame('v1', 's1', true, VIDEO)]
+    expect(readinessOf(full, BLOCKS, both)).toBe('shot')
+  })
+
+  it('tells the chosen still from the chosen clip', () => {
+    const material = [
+      frame('f1', 's1'),
+      frame('f2', 's1', true),
+      frame('v1', 's1', true, VIDEO),
+    ]
+    expect(chosenFrame(material)?.id).toBe('f2')
+    expect(chosenVideo(material)?.id).toBe('v1')
+  })
+
+  it('splits material by kind, keeping the order of each list', () => {
+    const material = [
+      frame('f1', 's1'),
+      frame('v1', 's1', false, VIDEO),
+      frame('f2', 's1'),
+    ]
+    expect(ofKind(material, FRAME).map((one) => one.id)).toEqual(['f1', 'f2'])
+    expect(ofKind(material, VIDEO).map((one) => one.id)).toEqual(['v1'])
   })
 })

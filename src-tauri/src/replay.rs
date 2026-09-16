@@ -389,7 +389,7 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
 
         "scene.clearFrame" => {
             let scene_id = required(params, "sceneId")?;
-            crate::scene_frame::clear_selection(conn, &scene_id)?;
+            crate::scene_frame::clear_selection(conn, &scene_id, &material_kind(params))?;
         }
 
         "scene.reorderFrames" => {
@@ -397,13 +397,14 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
             let ids: Vec<String> = from_params(params, "ids")?;
             // Frames whose files were not replayed are not there to order;
             // ordering what remains keeps the rest in the sequence chosen.
-            let present: Vec<String> = crate::scene_frame::for_scene(conn, &scene_id)?
+            let kind = material_kind(params);
+            let present: Vec<String> = crate::scene_frame::of_kind(conn, &scene_id, &kind)?
                 .into_iter()
                 .map(|frame| frame.id)
                 .collect();
             let kept: Vec<String> = ids.into_iter().filter(|id| present.contains(id)).collect();
             if kept.len() == present.len() {
-                crate::scene_frame::reorder(conn, &scene_id, &kept)?;
+                crate::scene_frame::reorder(conn, &scene_id, &kind, &kept)?;
             }
         }
 
@@ -511,6 +512,20 @@ fn required(params: &Map<String, Value>, key: &str) -> Result<String> {
         .and_then(Value::as_str)
         .map(str::to_owned)
         .ok_or_else(|| Error::Other(format!("the operation carries no `{key}`")))
+}
+
+/// Which kind of a scene's material an operation is about.
+///
+/// Operations logged before 0022 carry no `kind`, and every one of them was
+/// about a still — the only thing a scene could hold. Reading them as frames
+/// is what makes a log written by v0.68 replay correctly under v0.69, rather
+/// than failing on a key that did not exist when it was written.
+fn material_kind(params: &Map<String, Value>) -> String {
+    params
+        .get("kind")
+        .and_then(Value::as_str)
+        .unwrap_or(crate::scene_frame::FRAME)
+        .to_owned()
 }
 
 /// The operation's payload, read back into the type the domain function takes.

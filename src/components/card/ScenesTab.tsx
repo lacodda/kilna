@@ -2,7 +2,8 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
-import { ChevronRight, Clock, Copy, Plus, Rows3, Trash2 } from 'lucide-react'
+import { save } from '@tauri-apps/plugin-dialog'
+import { ChevronRight, Clock, Copy, ListVideo, Plus, Rows3, Save, Trash2 } from 'lucide-react'
 import {
   attachSceneNote,
   createScene,
@@ -14,6 +15,7 @@ import {
   listLinks,
   listNotes,
   listSceneFrames,
+  writeTextFile,
   listSceneNotes,
   listScenes,
   listVersions,
@@ -29,8 +31,17 @@ import {
 } from '@/lib/api'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
+import { montageFileName, montageList } from '@/lib/montage'
 import { formatSeconds, parseTimecode } from '@/lib/timecode'
-import { chosenFrame, framesByScene, readinessOf, type Readiness } from '@/lib/scenes'
+import {
+  chosenFrame,
+  framesByScene,
+  ofKind,
+  readinessOf,
+  FRAME,
+  VIDEO,
+  type Readiness,
+} from '@/lib/scenes'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { useProfile, vocabularyOf, type Vocabulary } from '@/lib/useProfile'
@@ -245,6 +256,33 @@ export function ScenesTab({ work }: Props) {
   for (const scene of all) {
     if (scene.shot_type !== null) counts.set(scene.shot_type, (counts.get(scene.shot_type) ?? 0) + 1)
   }
+  // The list is rendered from the WHOLE board, never from the filtered view:
+  // a cut is the video end to end, and handing an editor the four scenes that
+  // happened to match a filter would be a list that silently omits the rest.
+  const montage = () =>
+    montageList(all, framesForScene, { missing: t('scenes.montage.missing') })
+
+  const copyMontage = () => {
+    navigator.clipboard.writeText(montage()).then(
+      () => say.ok(t('scenes.montage.copied')),
+      (cause: unknown) => say.failedTo(t('scenes.montage.copy'), cause),
+    )
+  }
+
+  const saveMontage = async () => {
+    try {
+      const path = await save({
+        defaultPath: montageFileName(work.title),
+        filters: [{ name: 'Text', extensions: ['txt'] }],
+      })
+      if (typeof path !== 'string') return
+      await writeTextFile(path, montage())
+      say.ok(t('scenes.montage.saved'))
+    } catch (cause) {
+      say.failedTo(t('scenes.montage.save'), cause)
+    }
+  }
+
   const byShot = shotType === undefined ? all : all.filter((scene) => scene.shot_type === shotType)
   const shown =
     withNote === undefined
@@ -474,6 +512,22 @@ export function ScenesTab({ work }: Props) {
             <Clock aria-hidden className="size-3.5" />
             {t('scenes.time')}
           </Button>
+        )}
+
+        {/* What the board is cut from, as text: the same list to the
+            clipboard or to a file, because one of them is at hand and the
+            other survives the next copy. */}
+        {all.length > 0 && (
+          <>
+            <Button variant="soft" size="sm" onClick={copyMontage}>
+              <ListVideo aria-hidden className="size-3.5" />
+              {t('scenes.montage.copy')}
+            </Button>
+            <Button variant="soft" size="sm" onClick={() => void saveMontage()}>
+              <Save aria-hidden className="size-3.5" />
+              {t('scenes.montage.save')}
+            </Button>
+          </>
         )}
       </div>
 
@@ -834,12 +888,23 @@ function SceneRow({
               )}
 
               {/* The pictures, under the prompts they came from: the prompt is
-                  copied out to a generator and the answer comes back here. */}
+                  copied out to a generator and the answer comes back here.
+                  Then the clips, under the pictures they were animated from -
+                  which is the order the work happens in. */}
               <SceneFrames
                 workId={workId}
                 sceneId={scene.id}
                 number={scene.position}
-                frames={frames}
+                kind={FRAME}
+                frames={ofKind(frames, FRAME)}
+                onOpen={onViewFrame}
+              />
+              <SceneFrames
+                workId={workId}
+                sceneId={scene.id}
+                number={scene.position}
+                kind={VIDEO}
+                frames={ofKind(frames, VIDEO)}
                 onOpen={onViewFrame}
               />
             </div>

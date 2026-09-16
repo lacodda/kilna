@@ -1,8 +1,14 @@
-//! The pictures drawn for a scene, in order, and the one it is cut from.
+//! The material drawn for a scene, in order, and the one it is cut from.
 //!
 //! A generator answers a prompt with four pictures, not one, and choosing
 //! between them *is* the work. So a scene keeps them all: four rows, an
 //! order, and at most one of them marked as the scene's own.
+//!
+//! Since 0022 a row also says what it IS — a still, or the video animated
+//! from one. The two have the same life, so they share the table and the code
+//! rather than one of them getting a twin; what the kind buys is that they are
+//! counted, ordered and chosen separately. A scene with its still picked AND
+//! its clip picked is the ordinary end state, and the schema says so.
 //!
 //! A frame points at an asset rather than repeating it. The bytes were
 //! already copied into the workspace by `asset` (v0.67) and named by their
@@ -26,13 +32,33 @@ use crate::minted::Minted;
 /// not what the craft judges.
 pub const FRAME: &str = "frame";
 
+/// The same, for the video animated from a still.
+pub const VIDEO: &str = "video";
+
+/// The kinds of material a scene holds, in the order the board shows them:
+/// the picture is decided first, and the animation comes from it.
+pub const KINDS: [&str; 2] = [FRAME, VIDEO];
+
+/// Refuse a kind the board has no column for, rather than writing a row
+/// nothing will ever read back.
+fn check_kind(kind: &str) -> Result<()> {
+    if KINDS.contains(&kind) {
+        return Ok(());
+    }
+    Err(Error::Other(format!(
+        "a scene holds {FRAME} or {VIDEO}, not {kind:?}"
+    )))
+}
+
 /// A picture drawn for a scene, as the board shows it.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SceneFrame {
     pub id: String,
     pub scene_id: String,
     pub asset_id: String,
-    /// Its place among the scene's frames, from 1.
+    /// What this is: a still, or the video animated from one.
+    pub kind: String,
+    /// Its place among the scene's material OF THAT KIND, from 1.
     pub position: i64,
     /// Whether the video is cut from this one.
     pub is_selected: bool,
@@ -44,18 +70,19 @@ pub struct SceneFrame {
     pub created_at: String,
 }
 
-const SELECT: &str = "SELECT f.id, f.scene_id, f.asset_id, f.position, f.is_selected, \
+const SELECT: &str = "SELECT f.id, f.scene_id, f.asset_id, f.kind, f.position, f.is_selected, \
      a.path, a.original_name, f.created_at \
      FROM scene_frame f JOIN asset a ON a.id = f.asset_id";
 
-/// Copy a picture into the workspace and hang it on a scene.
+/// Copy a picture or a clip into the workspace and hang it on a scene.
 pub fn attach(
     conn: &Connection,
     media_dir: &Path,
     scene_id: &str,
+    kind: &str,
     source: &Path,
 ) -> Result<SceneFrame> {
-    attach_minted(conn, media_dir, scene_id, source, Minted::fresh())
+    attach_minted(conn, media_dir, scene_id, kind, source, Minted::fresh())
 }
 
 /// Copy and hang with the id and moment already decided — the seam a replay
@@ -68,9 +95,11 @@ pub fn attach_minted(
     conn: &Connection,
     media_dir: &Path,
     scene_id: &str,
+    kind: &str,
     source: &Path,
     minted: Minted,
 ) -> Result<SceneFrame> {
+    check_kind(kind)?;
     let scene =
         crate::scene::get(conn, scene_id)?.ok_or_else(|| Error::not_found("scene", scene_id))?;
 
@@ -81,24 +110,26 @@ pub fn attach_minted(
         source,
         NewAsset {
             work_id: Some(scene.work_id.clone()),
-            kind: Some(FRAME.into()),
+            kind: Some(kind.to_owned()),
             ..NewAsset::default()
         },
         minted.clone(),
     )?;
 
-    // The frame goes last: the order a person sees is the order the pictures
-    // arrived in, until they say otherwise.
-    let next = next_position(conn, scene_id)?;
+    // It goes last among its OWN kind: the order a person sees is the order
+    // the pictures arrived in, until they say otherwise, and a clip arriving
+    // must not push the stills along.
+    let next = next_position(conn, scene_id, kind)?;
     let frame_id = format!("{}-frame", minted.id());
     conn.execute(
-        "INSERT INTO scene_frame (id, profile_id, scene_id, asset_id, position, is_selected, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6)",
+        "INSERT INTO scene_frame (id, profile_id, scene_id, asset_id, kind, position, is_selected, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, ?7)",
         params![
             frame_id,
             scene.profile_id,
             scene_id,
             stored.id,
+            kind,
             next,
             minted.at()
         ],
@@ -119,6 +150,7 @@ pub fn attach_bytes(
     conn: &Connection,
     media_dir: &Path,
     scene_id: &str,
+    kind: &str,
     bytes: &[u8],
     name: &str,
 ) -> Result<SceneFrame> {
@@ -136,7 +168,7 @@ pub fn attach_bytes(
     std::fs::write(&source, bytes)
         .map_err(|cause| Error::Other(format!("could not write the pasted picture: {cause}")))?;
 
-    attach(conn, media_dir, scene_id, &source)
+    attach(conn, media_dir, scene_id, kind, &source)
 }
 
 /// Take a frame off a scene, bytes and all.
@@ -153,16 +185,21 @@ pub fn detach(conn: &Connection, id: &str) -> Result<()> {
     Ok(())
 }
 
-/// Cut the video from this frame, and from no other of its scene.
+/// Make this the scene's own — and no other OF ITS KIND.
 ///
-/// The old mark is cleared first: the schema allows one chosen frame per
-/// scene, and setting the new one before clearing the old would collide with
-/// the index rather than replace it.
+/// The old mark is cleared first: the schema allows one chosen row per kind
+/// per scene, and setting the new one before clearing the old would collide
+/// with the index rather than replace it.
+///
+/// The kind is in that clearing, and it is the whole point. Choosing which
+/// clip the montage uses must leave the chosen still alone: they are two
+/// verdicts about one scene, not two answers to one question.
 pub fn select(conn: &Connection, id: &str) -> Result<SceneFrame> {
     let frame = get(conn, id)?.ok_or_else(|| Error::not_found("scene_frame", id))?;
     conn.execute(
-        "UPDATE scene_frame SET is_selected = 0 WHERE scene_id = ?1 AND is_selected = 1",
-        params![frame.scene_id],
+        "UPDATE scene_frame SET is_selected = 0 \
+         WHERE scene_id = ?1 AND kind = ?2 AND is_selected = 1",
+        params![frame.scene_id, frame.kind],
     )?;
     conn.execute(
         "UPDATE scene_frame SET is_selected = 1 WHERE id = ?1",
@@ -171,12 +208,17 @@ pub fn select(conn: &Connection, id: &str) -> Result<SceneFrame> {
     get(conn, id)?.ok_or_else(|| Error::not_found("scene_frame", id))
 }
 
-/// Stop cutting from any frame of this scene: four candidates and no verdict
-/// is the ordinary middle of the work, and a person may go back to it.
-pub fn clear_selection(conn: &Connection, scene_id: &str) -> Result<()> {
+/// Take back the verdict on one kind of this scene's material: four
+/// candidates and no choice is the ordinary middle of the work, and a person
+/// may go back to it.
+///
+/// One kind, not both, for the reason `select` gives: unchoosing a clip is
+/// not a statement about the still it was animated from.
+pub fn clear_selection(conn: &Connection, scene_id: &str, kind: &str) -> Result<()> {
+    check_kind(kind)?;
     conn.execute(
-        "UPDATE scene_frame SET is_selected = 0 WHERE scene_id = ?1",
-        params![scene_id],
+        "UPDATE scene_frame SET is_selected = 0 WHERE scene_id = ?1 AND kind = ?2",
+        params![scene_id, kind],
     )?;
     Ok(())
 }
@@ -186,23 +228,32 @@ pub fn clear_selection(conn: &Connection, scene_id: &str) -> Result<()> {
 /// Positions are rewritten from 1 rather than swapped: a list the person
 /// dragged into shape is the answer, and arithmetic on neighbours is how
 /// gaps and duplicates get in.
-pub fn reorder(conn: &Connection, scene_id: &str, ids: &[String]) -> Result<Vec<SceneFrame>> {
-    let known: Vec<String> = for_scene(conn, scene_id)?
+pub fn reorder(
+    conn: &Connection,
+    scene_id: &str,
+    kind: &str,
+    ids: &[String],
+) -> Result<Vec<SceneFrame>> {
+    check_kind(kind)?;
+    // One kind at a time: the stills and the clips are two lists on the
+    // screen, and a reorder of one that had to name the other would be a
+    // caller obliged to send back rows it never showed.
+    let known: Vec<String> = of_kind(conn, scene_id, kind)?
         .into_iter()
         .map(|frame| frame.id)
         .collect();
     if ids.len() != known.len() || !known.iter().all(|id| ids.contains(id)) {
         return Err(Error::Other(
-            "reordering a scene's frames names each of them exactly once".into(),
+            "reordering a scene's material names each row of that kind exactly once".into(),
         ));
     }
     for (index, id) in ids.iter().enumerate() {
         conn.execute(
-            "UPDATE scene_frame SET position = ?1 WHERE id = ?2 AND scene_id = ?3",
-            params![index as i64 + 1, id, scene_id],
+            "UPDATE scene_frame SET position = ?1 WHERE id = ?2 AND scene_id = ?3 AND kind = ?4",
+            params![index as i64 + 1, id, scene_id, kind],
         )?;
     }
-    for_scene(conn, scene_id)
+    of_kind(conn, scene_id, kind)
 }
 
 /// One frame.
@@ -212,10 +263,10 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<SceneFrame>> {
     Ok(row)
 }
 
-/// The frames of one scene, in order.
+/// Everything one scene holds, stills first and then clips, each in order.
 pub fn for_scene(conn: &Connection, scene_id: &str) -> Result<Vec<SceneFrame>> {
     let mut statement = conn.prepare(&format!(
-        "{SELECT} WHERE f.scene_id = ?1 ORDER BY f.position, f.rowid"
+        "{SELECT} WHERE f.scene_id = ?1 ORDER BY f.kind, f.position, f.rowid"
     ))?;
     let rows = statement
         .query_map(params![scene_id], read)?
@@ -223,12 +274,37 @@ pub fn for_scene(conn: &Connection, scene_id: &str) -> Result<Vec<SceneFrame>> {
     Ok(rows)
 }
 
+/// One kind of one scene's material, in order — the stills, or the clips.
+pub fn of_kind(conn: &Connection, scene_id: &str, kind: &str) -> Result<Vec<SceneFrame>> {
+    check_kind(kind)?;
+    let mut statement = conn.prepare(&format!(
+        "{SELECT} WHERE f.scene_id = ?1 AND f.kind = ?2 ORDER BY f.position, f.rowid"
+    ))?;
+    let rows = statement
+        .query_map(params![scene_id, kind], read)?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(rows)
+}
+
+/// What the scene is cut from, of one kind: its chosen still, or its chosen
+/// clip. `None` while the verdict is still out, which is ordinary.
+pub fn selected(conn: &Connection, scene_id: &str, kind: &str) -> Result<Option<SceneFrame>> {
+    check_kind(kind)?;
+    let mut statement = conn.prepare(&format!(
+        "{SELECT} WHERE f.scene_id = ?1 AND f.kind = ?2 AND f.is_selected = 1"
+    ))?;
+    let row = statement
+        .query_row(params![scene_id, kind], read)
+        .optional()?;
+    Ok(row)
+}
+
 /// The frames of every scene of a board, in one read: fifty scenes drawn with
 /// fifty queries is the shape that made the predecessor's screens slow.
 pub fn for_work(conn: &Connection, work_id: &str) -> Result<Vec<SceneFrame>> {
     let mut statement = conn.prepare(&format!(
         "{SELECT} JOIN scene s ON s.id = f.scene_id
-         WHERE s.work_id = ?1 ORDER BY s.position, f.position, f.rowid"
+         WHERE s.work_id = ?1 ORDER BY s.position, f.kind, f.position, f.rowid"
     ))?;
     let rows = statement
         .query_map(params![work_id], read)?
@@ -249,10 +325,10 @@ pub fn scene_of(conn: &Connection, asset_id: &str) -> Result<Option<String>> {
     Ok(row)
 }
 
-fn next_position(conn: &Connection, scene_id: &str) -> Result<i64> {
+fn next_position(conn: &Connection, scene_id: &str, kind: &str) -> Result<i64> {
     let last: Option<i64> = conn.query_row(
-        "SELECT MAX(position) FROM scene_frame WHERE scene_id = ?1",
-        params![scene_id],
+        "SELECT MAX(position) FROM scene_frame WHERE scene_id = ?1 AND kind = ?2",
+        params![scene_id, kind],
         |row| row.get(0),
     )?;
     Ok(last.unwrap_or(0) + 1)
@@ -263,11 +339,12 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<SceneFrame> {
         id: row.get(0)?,
         scene_id: row.get(1)?,
         asset_id: row.get(2)?,
-        position: row.get(3)?,
-        is_selected: row.get::<_, i64>(4)? == 1,
-        path: row.get(5)?,
-        original_name: row.get(6)?,
-        created_at: row.get(7)?,
+        kind: row.get(3)?,
+        position: row.get(4)?,
+        is_selected: row.get::<_, i64>(5)? == 1,
+        path: row.get(6)?,
+        original_name: row.get(7)?,
+        created_at: row.get(8)?,
     })
 }
 
@@ -326,7 +403,7 @@ mod tests {
 
         for n in 1..=4 {
             let file = a_picture(source.path(), &format!("still-v{n}.png"));
-            attach(&conn, media.path(), &scene_id, &file).unwrap();
+            attach(&conn, media.path(), &scene_id, FRAME, &file).unwrap();
         }
 
         let frames = for_scene(&conn, &scene_id).unwrap();
@@ -360,6 +437,7 @@ mod tests {
             &conn,
             media.path(),
             &scene_id,
+            FRAME,
             &a_picture(source.path(), "a.png"),
         )
         .unwrap();
@@ -367,6 +445,7 @@ mod tests {
             &conn,
             media.path(),
             &scene_id,
+            FRAME,
             &a_picture(source.path(), "b.png"),
         )
         .unwrap();
@@ -382,7 +461,7 @@ mod tests {
         assert_eq!(chosen.len(), 1, "one scene, one verdict");
         assert_eq!(chosen[0].id, second.id);
 
-        clear_selection(&conn, &scene_id).unwrap();
+        clear_selection(&conn, &scene_id, FRAME).unwrap();
         assert!(
             for_scene(&conn, &scene_id)
                 .unwrap()
@@ -404,6 +483,7 @@ mod tests {
             &conn,
             media.path(),
             &scene_id,
+            FRAME,
             &a_picture(source.path(), "a.png"),
         )
         .unwrap();
@@ -411,6 +491,7 @@ mod tests {
             &conn,
             media.path(),
             &scene_id,
+            FRAME,
             &a_picture(source.path(), "b.png"),
         )
         .unwrap();
@@ -441,6 +522,7 @@ mod tests {
             &conn,
             media.path(),
             &scene_id,
+            FRAME,
             &a_picture(source.path(), "a.png"),
         )
         .unwrap();
@@ -448,21 +530,22 @@ mod tests {
             &conn,
             media.path(),
             &scene_id,
+            FRAME,
             &a_picture(source.path(), "b.png"),
         )
         .unwrap();
 
-        let reordered = reorder(&conn, &scene_id, &[b.id.clone(), a.id.clone()]).unwrap();
+        let reordered = reorder(&conn, &scene_id, FRAME, &[b.id.clone(), a.id.clone()]).unwrap();
         assert_eq!(reordered[0].id, b.id);
         assert_eq!(reordered[0].position, 1);
         assert_eq!(reordered[1].position, 2);
 
         assert!(
-            reorder(&conn, &scene_id, std::slice::from_ref(&a.id)).is_err(),
+            reorder(&conn, &scene_id, FRAME, std::slice::from_ref(&a.id)).is_err(),
             "a list missing a frame is refused"
         );
         assert!(
-            reorder(&conn, &scene_id, &[a.id.clone(), a.id.clone()]).is_err(),
+            reorder(&conn, &scene_id, FRAME, &[a.id.clone(), a.id.clone()]).is_err(),
             "a list naming one twice is refused"
         );
     }
@@ -478,6 +561,7 @@ mod tests {
             &conn,
             media.path(),
             &scene_id,
+            FRAME,
             &a_picture(source.path(), "a.png"),
         )
         .unwrap();
@@ -500,6 +584,7 @@ mod tests {
             &conn,
             media.path(),
             &scene_id,
+            FRAME,
             &a_picture(source.path(), "a.png"),
         )
         .unwrap();
@@ -514,6 +599,7 @@ mod tests {
             &conn,
             media.path(),
             &scene_id,
+            FRAME,
             &a_picture(source.path(), "b.png"),
         )
         .unwrap();
@@ -521,6 +607,116 @@ mod tests {
         assert!(
             get(&conn, &again.id).unwrap().is_none(),
             "and with the scene it was drawn for"
+        );
+    }
+
+    /// The whole point of the kind: a scene reaches an end state where its
+    /// still is chosen AND its clip is chosen. The pair of verdicts is not a
+    /// collision, and choosing one must not take back the other.
+    #[test]
+    fn a_scene_chooses_a_still_and_a_clip_without_either_unseating_the_other() {
+        let (conn, profile_id, media) = workspace();
+        let (_, scene_id) = a_scene(&conn, &profile_id);
+        let source = tempfile::tempdir().unwrap();
+
+        let still = attach(
+            &conn,
+            media.path(),
+            &scene_id,
+            FRAME,
+            &a_picture(source.path(), "still.png"),
+        )
+        .unwrap();
+        let clip = attach(
+            &conn,
+            media.path(),
+            &scene_id,
+            VIDEO,
+            &a_picture(source.path(), "clip.mp4"),
+        )
+        .unwrap();
+
+        select(&conn, &still.id).unwrap();
+        select(&conn, &clip.id).unwrap();
+
+        assert_eq!(
+            selected(&conn, &scene_id, FRAME).unwrap().map(|one| one.id),
+            Some(still.id.clone()),
+            "choosing the clip left the chosen still alone"
+        );
+        assert_eq!(
+            selected(&conn, &scene_id, VIDEO).unwrap().map(|one| one.id),
+            Some(clip.id.clone()),
+        );
+
+        // And taking back one verdict is not a statement about the other.
+        clear_selection(&conn, &scene_id, VIDEO).unwrap();
+        assert!(selected(&conn, &scene_id, VIDEO).unwrap().is_none());
+        assert_eq!(
+            selected(&conn, &scene_id, FRAME).unwrap().map(|one| one.id),
+            Some(still.id),
+            "unchoosing the clip is not unchoosing the still"
+        );
+    }
+
+    /// Each kind is numbered from 1 on its own. A clip arriving must not push
+    /// the stills along, or the board would renumber pictures nobody touched.
+    #[test]
+    fn the_two_kinds_are_ordered_separately() {
+        let (conn, profile_id, media) = workspace();
+        let (_, scene_id) = a_scene(&conn, &profile_id);
+        let source = tempfile::tempdir().unwrap();
+
+        for name in ["a.png", "b.png"] {
+            attach(
+                &conn,
+                media.path(),
+                &scene_id,
+                FRAME,
+                &a_picture(source.path(), name),
+            )
+            .unwrap();
+        }
+        let clip = attach(
+            &conn,
+            media.path(),
+            &scene_id,
+            VIDEO,
+            &a_picture(source.path(), "take.mp4"),
+        )
+        .unwrap();
+
+        assert_eq!(clip.position, 1, "the first clip is the first clip");
+        assert_eq!(
+            of_kind(&conn, &scene_id, FRAME)
+                .unwrap()
+                .iter()
+                .map(|one| one.position)
+                .collect::<Vec<_>>(),
+            vec![1, 2],
+            "the stills kept their own numbering"
+        );
+        assert_eq!(of_kind(&conn, &scene_id, VIDEO).unwrap().len(), 1);
+    }
+
+    /// A kind the board has no column for is refused at the door rather than
+    /// written as a row nothing will read back.
+    #[test]
+    fn a_kind_the_board_does_not_know_is_refused() {
+        let (conn, profile_id, media) = workspace();
+        let (_, scene_id) = a_scene(&conn, &profile_id);
+        let source = tempfile::tempdir().unwrap();
+
+        assert!(
+            attach(
+                &conn,
+                media.path(),
+                &scene_id,
+                "audio",
+                &a_picture(source.path(), "hum.wav"),
+            )
+            .is_err(),
+            "a scene holds stills and clips, and says so"
         );
     }
 }

@@ -835,9 +835,13 @@ export interface SceneFrame {
   id: string
   scene_id: string
   asset_id: string
-  /** Its place among the scene's frames, from 1. */
+  /** What this is: `frame` for the still, `video` for the clip animated
+   * from one. */
+  kind: string
+  /** Its place among the scene's material of that kind, from 1. */
   position: number
-  /** Whether the video is cut from this one. At most one per scene. */
+  /** Whether the scene's own. At most one per kind per scene, so a scene may
+   * have both its still and its clip chosen. */
   is_selected: boolean
   /** Where the bytes are, inside the workspace's own files directory. */
   path: string
@@ -848,19 +852,25 @@ export interface SceneFrame {
 
 export const listSceneFrames = (workId: string) =>
   invoke<SceneFrame[]>('list_scene_frames', { workId })
-export const attachSceneFrame = (sceneId: string, source: string) =>
-  invoke<SceneFrame>('attach_scene_frame', { sceneId, source })
+export const attachSceneFrame = (sceneId: string, kind: string, source: string) =>
+  invoke<SceneFrame>('attach_scene_frame', { sceneId, kind, source })
 /** A pasted picture: the clipboard gives bytes, so the bytes are what travels. */
-export const pasteSceneFrame = (sceneId: string, bytes: Uint8Array, name: string) =>
-  invoke<SceneFrame>('paste_scene_frame', { sceneId, bytes: Array.from(bytes), name })
+export const pasteSceneFrame = (sceneId: string, kind: string, bytes: Uint8Array, name: string) =>
+  invoke<SceneFrame>('paste_scene_frame', { sceneId, kind, bytes: Array.from(bytes), name })
 export const detachSceneFrame = (id: string) =>
   invoke<void>('detach_scene_frame', { id })
 export const selectSceneFrame = (id: string) =>
   invoke<SceneFrame>('select_scene_frame', { id })
-export const clearSceneFrame = (sceneId: string) =>
-  invoke<void>('clear_scene_frame', { sceneId })
-export const reorderSceneFrames = (sceneId: string, ids: string[]) =>
-  invoke<SceneFrame[]>('reorder_scene_frames', { sceneId, ids })
+/** Take back the verdict on one kind: unchoosing a clip says nothing about
+ * the still it was animated from. */
+export const clearSceneFrame = (sceneId: string, kind: string) =>
+  invoke<void>('clear_scene_frame', { sceneId, kind })
+export const reorderSceneFrames = (sceneId: string, kind: string, ids: string[]) =>
+  invoke<SceneFrame[]>('reorder_scene_frames', { sceneId, kind, ids })
+/** Write a text the window composed to a path the person picked. The window
+ * has no filesystem rights; the backend does the writing. */
+export const writeTextFile = (path: string, text: string) =>
+  invoke<string>('write_text_file', { path, text })
 export const setWorksStatus = (workIds: string[], status: string) =>
   invoke<BulkOutcome>('set_works_status', { workIds, status })
 
