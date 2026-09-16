@@ -385,6 +385,12 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         |field| &field.key,
     );
     changed |= add_new_keys(&mut config.marks, &shipped.config.marks, |mark| &mark.key);
+    // The stops of the stage dial, new in 0.72. A workspace that predates them
+    // gains the craft's own words; without this the dial would fall back to the
+    // line's generic stops in every workspace that already existed, which is
+    // every real one. A stop the owner renamed or added stays theirs.
+    changed |= add_new_keys(&mut config.stages, &shipped.config.stages, |stage| &stage.key);
+
     // The kinds a note can take, new in 0.65: a workspace that predates them
     // gains the craft's words, and a kind the owner added or renamed stays
     // theirs — matched by key like every other vocabulary.
@@ -1352,6 +1358,77 @@ mod tests {
                 .map(|field| field.field_type),
             Some(config::MetaFieldType::Multiline),
             "and arrives with its own type, not as plain text"
+        );
+    }
+
+    // Caught on the owner's own workspace during the live run of v0.72: every
+    // real workspace predates the stage dial, so without this the craft's stops
+    // never arrive and the dial silently falls back to the line's generic ones.
+    #[test]
+    fn seed_carries_newly_shipped_stages_into_an_existing_profile() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        // A workspace created before stages existed: the list is empty, which
+        // is exactly what `#[serde(default)]` leaves behind.
+        let id: String = conn
+            .query_row("SELECT id FROM profile WHERE key = 'music'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let mut config = config_for(&conn, &id).unwrap();
+        assert!(
+            !config.stages.is_empty(),
+            "the shipped profile has stages to lose"
+        );
+        config.stages.clear();
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let gained = config_for(&conn, &id).unwrap().stages;
+        assert!(
+            !gained.is_empty(),
+            "the craft's own stops arrive rather than the line's fallback"
+        );
+        assert_eq!(
+            gained.last().map(|stage| stage.percent),
+            Some(100),
+            "and the scale still ends where a finished work stands"
+        );
+    }
+
+    #[test]
+    fn carrying_stages_forward_leaves_the_users_own_stops_alone() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        let id: String = conn
+            .query_row("SELECT id FROM profile WHERE key = 'music'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let mut config = config_for(&conn, &id).unwrap();
+        for stage in &mut config.stages {
+            stage.label = format!("{} (mine)", stage.label);
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let kept = config_for(&conn, &id).unwrap().stages;
+        assert!(
+            kept.iter().all(|stage| stage.label.ends_with("(mine)")),
+            "renamed stops stay renamed: {:?}",
+            kept.iter().map(|s| &s.label).collect::<Vec<_>>()
         );
     }
 
