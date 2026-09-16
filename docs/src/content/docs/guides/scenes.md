@@ -58,8 +58,12 @@ From top to bottom:
 - **Add scene** at the bottom, numbered after the last, and — once the
   board has scenes — **Time the board**.
 
+Above the board sits [what it still owes](#what-the-board-still-owes): the
+counts, and the list of what is missing.
+
 Every field saves when you leave it. A time is typed as `1:23` or `0:04.5`
-and stored as seconds; a scene cannot end before it starts.
+and stored as seconds; a scene cannot end before it starts. The **number**
+is a field too — see [Numbering the board](#numbering-the-board).
 
 ### Who is in it, where it happens
 
@@ -217,6 +221,73 @@ nothing. Removing a picture from one board leaves the other looking at it.
 
 `Ctrl+Z` takes the whole clone back, board and all.
 
+## Numbering the board
+
+A scene's number is its place in the cut, so the number is where the board
+is reordered from. **Type a number on the row** and the scene goes there;
+the rest close up behind it.
+
+- Scene 12 said to happen third becomes scene 3, and what was 3 to 11
+  each move down one.
+- **Add a scene after this one** — the icon on the row — puts a new row
+  directly below instead of at the end of the board.
+
+Either way the board comes out numbered 1, 2, 3… with no hole and no two
+scenes sharing a number, whatever it looked like before. A number outside
+the board is refused rather than guessed at, and the field goes back to
+what the scene actually holds.
+
+**The pictures follow their scenes.** Nothing is renamed and no file
+moves: a frame belongs to a scene, not to a number, and a file in the
+workspace is named by its own id. Scene 12's four candidates are scene 3's
+four candidates a moment later, with the chosen one still chosen.
+
+**The seconds stay where they are.** Reordering says what happens in what
+order, not when; the spans are yours to settle afterwards, by hand or by
+timing the board again. A span that travelled with its scene would put the
+third scene at 0:48 because it used to be the twelfth.
+
+`Ctrl+Z` takes a renumbering back whole — the board returns to the order it
+stood in, not scene by scene.
+
+## What the board still owes
+
+A storyboard looks finished long before it is. Fifty rows all carrying a
+number and a description read as a full board at a glance; the four
+without a prompt, the hole between scene 11 and 12, and the minute of
+video nothing accounts for turn up later — in the editing program, with
+the files already in hand.
+
+The panel above the board is that pass, made before then. It counts what
+is done — *50 scenes · 47 written · 31 with a picture · 8 with a clip* —
+and lists what is missing:
+
+- **A scene nobody has touched**, and a scene written only halfway.
+- **A scene with no picture drawn for it**, kept apart from one with
+  pictures and no verdict: the first needs a generator, the second needs
+  you. Clips are told apart the same way.
+- **A hole or an overlap** between two scenes, with how big it is.
+- **Scenes with no seconds**, counted once rather than listed, while the
+  board is only partly timed.
+- **The board and the work's length** parting company.
+
+**A stretch saying the same thing is one line.** A board moves through its
+stages in one piece: everything is written before anything is drawn. So
+forty scenes all waiting for a picture read as *Scenes 3 to 42 are waiting
+for a picture — 40 of them*, not as forty copies of one sentence. Two stay
+two — two lines are two scenes — and scenes that are **not** neighbours
+never join: three holes in work that is otherwise finished are three places
+to go, and that is exactly what the list is for.
+
+**Click a line to go to the scene** — the row opens where you land, and a
+stretch takes you to the first of it, where the work resumes.
+
+Nothing here is stored or has to be asked for: the counts are read off the
+board as it stands this second, by the same rule the *Filled in* column
+uses, so the panel and the rows cannot tell you two different things. A
+board where nothing is timed yet is not nagged about timing; that is a
+board at an earlier stage of the work, not a board with fifty faults.
+
 ## Prompt blocks
 
 Each block has its own **copy** button, because a block goes into a
@@ -268,13 +339,14 @@ button, and the answer is still there to read.
 
 ## What else a scene touches
 
-- **Undo** takes back adding a scene, an edit to one, its deletion, and a
-  second attempt at a whole video.
+- **Undo** takes back adding a scene, an edit to one, its deletion, a
+  renumbering of the whole board, and a second attempt at a whole video.
   `Ctrl+Z` works from anywhere, and the toast after each offers the same.
 - **The trash** keeps a deleted scene under its work — *Scene 4 · chorus*
   — and takes a work's scenes with the work, bringing them back with it.
 - **The history** says *Scene 4 added to "Harbour lights"*, when one is
-  deleted, and when a video is started as a second attempt.
+  deleted, when the board is renumbered, and when a video is started as a
+  second attempt.
 - **The export** writes a *Scenes* section on the work's page: the board
   as a table, then each scene's blocks.
 - An agent over [MCP](/kilna/reference/mcp/) sees the kinds of shot
