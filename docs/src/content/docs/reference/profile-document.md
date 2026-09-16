@@ -137,6 +137,48 @@ written before the field gains the shipped glyphs at the next start, for the
 kinds it still shares by key; a kind you added yourself keeps whatever you gave
 it.
 
+### What a release goes out as
+
+A release kind may name the fields a release of it ships with — the title it
+goes out under, the text beneath it, the words it is found by:
+
+```json
+{
+  "key": "clip",
+  "label": "Video clip",
+  "requires": ["lyrics", "style"],
+  "icon": "film",
+  "fields": [
+    { "key": "title", "label": "Title", "type": "line", "template": "{title}", "limit": 205 },
+    { "key": "description", "label": "Description", "type": "text", "template": "{role:lyrics}" },
+    { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated." },
+    { "key": "pinned", "label": "Pinned comment", "type": "text" }
+  ]
+}
+```
+
+| Key | What it is |
+| --- | --- |
+| `key` | What the value is stored under, in the release's `meta`. Renaming the label never loses what was written; renaming the key does. |
+| `label` | The word above the box. |
+| `type` | `line` (a title), `text` (paragraphs) or `tags` (a list, kept as text with commas between). Absent is `line`. |
+| `template` | What the field is filled with when generated, in the placeholder language [below](#template-placeholders). Absent means the field is only ever typed by hand. |
+| `hint` | A line under the box saying what goes in it. |
+| `limit` | How many characters the destination accepts. Counted beside the box, never enforced — kilna is not the authority on what a platform takes this month. |
+
+A kind with no `fields` says nothing about itself, and its releases show no
+boxes. That is the state of every profile written before the field existed; a
+workspace made before it gains the shipped lists for the release kinds it
+still shares by key, and a kind you have already given fields of your own is
+left alone.
+
+A field's template is checked against **one** work kind — the kind that owns
+the release kind — which makes the check sharper than an action's:
+`{role:plot}` in a song's clip is refused at save even though the video kind
+has a plot. `{scene}` is refused outright: it is one row of a storyboard,
+filled from the row an action was started on, and a release is about the whole
+work. Use `{scenes}` for the board.
+
 ## `version_roles`
 
 The independent bodies a work carries, same `{ key, label }` shape plus how

@@ -217,6 +217,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::clone_work,
             commands::write_text_file,
             commands::export_markdown,
+            commands::export_package,
+            commands::can_export_package,
             commands::backup_workspace,
             commands::suggested_backup_name,
             commands::workspace_path,

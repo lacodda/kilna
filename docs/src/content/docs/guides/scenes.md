@@ -200,6 +200,39 @@ to end, and a list quietly missing the scenes a filter hid would be worse
 than no list. A scene with nothing chosen still gets its line, with a dash,
 because the list is also how you see what is still missing.
 
+## The whole thing in a folder
+
+The montage list is what one editing program needs. **Export a package** is
+what a person needs: you choose a folder, and kilna makes one inside it named
+after the work, holding everything at once.
+
+```
+The long way round-9f3a1c2b/
+  board.md       the board as a table, then every scene with its prompts in full
+  release.md     what each release goes out as: title, description, tags, comment
+  material/
+    01-still-chosen-harbour-v3.png
+    01-clip-1-chosen-harbour.mp4
+    02-still-2.png
+```
+
+The pictures are copied under names that say what they are — the scene number
+first, so the folder sorts into the order the video is cut in, then whether it
+is a still or a clip, then whether it is the chosen one. A folder of files
+named by their ids is a folder you open one by one.
+
+Everything in it is text and ordinary files. Nothing in the folder needs kilna
+to read, which is the point: the folder is what you have in front of you while
+the thing is actually made.
+
+`release.md` is left out entirely when nothing has been written about any
+release yet, rather than written as an empty heading — see [what a release
+goes out as](/kilna/guides/planning-a-release/#what-a-release-goes-out-as). A
+picture whose file has gone missing does not take the package with it; the
+rest is still written, and `board.md` still says which scene it belonged to.
+Afterwards kilna says how many scenes still have nothing chosen, because a
+package is also how you find out what the board is missing.
+
 ## A second attempt
 
 **Make a second attempt** copies the board into a new video and leaves this

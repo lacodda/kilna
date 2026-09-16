@@ -2,12 +2,13 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
-import { save } from '@tauri-apps/plugin-dialog'
+import { open, save } from '@tauri-apps/plugin-dialog'
 import {
   ChevronRight,
   Clock,
   Copy,
   CopyPlus,
+  FolderDown,
   ListPlus,
   ListVideo,
   Plus,
@@ -27,6 +28,7 @@ import {
   listNotes,
   cloneWork,
   listSceneFrames,
+  exportPackage,
   writeTextFile,
   listSceneNotes,
   listScenes,
@@ -371,6 +373,32 @@ export function ScenesTab({ work }: Props) {
     }
   }
 
+  // The whole thing in a folder: the board with every prompt, the pictures
+  // under names that say what they are, and what the releases go out as. The
+  // folder is made inside the one chosen, named after the work, so choosing
+  // the same parent twice does not put two works in one heap.
+  const savePackage = async () => {
+    try {
+      const directory = await open({ directory: true, title: t('scenes.package.title') })
+      if (typeof directory !== 'string') return
+      const report = await exportPackage(work.id, directory)
+      say.ok(
+        t('scenes.package.done', {
+          scenes: report.scenes,
+          files: report.files,
+          path: report.directory,
+        }),
+      )
+      // Said separately, and only when there is something to say: a package
+      // is also how someone finds out what the board is still missing.
+      if (report.withoutMaterial > 0) {
+        say.warn(t('scenes.package.withoutMaterial', { count: report.withoutMaterial }))
+      }
+    } catch (cause) {
+      say.failedTo(t('scenes.package.failed'), cause)
+    }
+  }
+
   const byShot = shotType === undefined ? all : all.filter((scene) => scene.shot_type === shotType)
   const shown =
     withNote === undefined
@@ -639,6 +667,18 @@ export function ScenesTab({ work }: Props) {
             <Button variant="soft" size="sm" onClick={() => void saveMontage()}>
               <Save aria-hidden className="size-3.5" />
               {t('scenes.montage.save')}
+            </Button>
+            {/* The montage list is what one program needs; this is what a
+                person needs: everything at once, in a folder, readable
+                without kilna. */}
+            <Button
+              variant="soft"
+              size="sm"
+              title={t('scenes.package.hint')}
+              onClick={() => void savePackage()}
+            >
+              <FolderDown aria-hidden className="size-3.5" />
+              {t('scenes.package.action')}
             </Button>
             {/* Not a version of the video: a second work from the same donor,
                 with this board copied into it. The first stays as it is,

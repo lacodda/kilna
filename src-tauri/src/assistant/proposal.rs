@@ -83,6 +83,13 @@ pub enum Proposal {
         /// one's board. Only for a kind that has a storyboard.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         scenes: Vec<PackagedScene>,
+        /// Releases to plan, with what each goes out as. An agent that has
+        /// just written a video's board is the one that knows what its
+        /// description should say, and making it propose the release
+        /// separately would mean a second round trip for one half of one
+        /// thought.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        releases: Vec<PackagedRelease>,
     },
     /// A storyboard for the chat's work: scenes added after the last, the
     /// whole board replaced, or numbered scenes revised in place. Made by
@@ -170,6 +177,28 @@ pub struct PackagedVersion {
     pub body: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
+}
+
+/// A release inside a package: the kind it ships as, when, and what it says
+/// about itself.
+///
+/// The fields are checked against the release kind's own, so a package cannot
+/// leave a value under a key no box will ever show. A date is optional: a
+/// release with none is queued, which is what "plan this, I will find it a
+/// day" means.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PackagedRelease {
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheduled_at: Option<String>,
+    /// Field key to value, already checked against the release kind.
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub fields: Map<String, Value>,
+    /// Field keys the package named that this release kind does not have.
+    /// Shown rather than hidden, the way a work's unknown fields are: a
+    /// proposal that only half fits is worth applying, but not silently.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unknown_fields: Vec<String>,
 }
 
 /// A note inside a package.
@@ -559,6 +588,40 @@ pub fn marks_from(
 /// what is typed and a number that is not one yet stays as typed there too.
 /// Empty values are dropped: an agent that sends `""` for a field it has
 /// nothing to say about must not blank what is there.
+/// The fields of a proposed release, split into what the release kind has and
+/// what it does not.
+///
+/// The same rule a work's overview fields follow: an unknown key is reported
+/// rather than stored, and a blank value is dropped rather than written as an
+/// empty box. The vocabulary is the release kind's, not the profile's — a
+/// clip and a beta read are asked for different things, and a key belonging
+/// to the other one is as unknown here as a key belonging to nothing.
+pub fn release_fields_from(
+    raw: Map<String, Value>,
+    kind: &crate::profile::config::ReleaseKind,
+) -> (Map<String, Value>, Vec<String>) {
+    let mut fields = Map::new();
+    let mut unknown = Vec::new();
+
+    for (key, value) in raw {
+        if !kind.fields.iter().any(|field| field.key == key) {
+            unknown.push(key);
+            continue;
+        }
+        let empty = match &value {
+            Value::Null => true,
+            Value::String(text) => text.trim().is_empty(),
+            _ => false,
+        };
+        if !empty {
+            fields.insert(key, value);
+        }
+    }
+
+    unknown.sort();
+    (fields, unknown)
+}
+
 pub fn fields_from(
     raw: Map<String, Value>,
     config: &ProfileConfig,
@@ -998,6 +1061,7 @@ mod tests {
             score: None,
             notes: Vec::new(),
             scenes: Vec::new(),
+            releases: Vec::new(),
         };
         let stored = serde_json::to_value(&proposal).unwrap();
         assert_eq!(stored["kind"], "work");

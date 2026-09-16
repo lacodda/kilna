@@ -55,7 +55,7 @@ proposals apply these:
 
 | Tool | Where it lands |
 | --- | --- |
-| `propose_work` | A whole work — title, kind, overview fields, versions by role, a score, notes, and for a kind with a storyboard its scenes — or, with `work`, a package of those for an existing one. The message shows everything the package would write; **Create the work** or **Apply the package** writes all of it in one click. On a new work the version in the first role becomes current; on an existing one the package's versions wait beside the current, and its scenes go after the last on the board. |
+| `propose_work` | A whole work — title, kind, overview fields, versions by role, a score, notes, for a kind with a storyboard its scenes, and the releases it ships as with the text each goes out under — or, with `work`, a package of those for an existing one. The message shows everything the package would write; **Create the work** or **Apply the package** writes all of it in one click. On a new work the version in the first role becomes current; on an existing one the package's versions wait beside the current, and its scenes go after the last on the board. A `releases` entry names its kind of release, optionally the day it goes out, and `fields` — what it goes out as, by the field keys that kind names. A kind of release the work does not ship refuses the whole package; a field key that kind does not have is named and left out. |
 | `propose_scenes` | A storyboard for a video or a short: scenes with their number, section, seconds, kind of shot, description and prompt blocks, in the kind's own words. The message shows the board as a table with every block under it. `change` says what happens to the board that is there: `add` (the default) — **Add to the board** numbers the scenes after the last; `replace` — **Replace the board** rewrites a scene with the same number in place — it keeps its id — sends the rest of the old board to the trash, and creates the numbers nobody held; `revise` — **Revise the scenes** changes only the numbered scenes, only in the fields given (a field left out is kept, `blocks` are set together), and sends nothing to the trash. A kind with no storyboard, an unknown kind of shot or block key, a scene that ends before it starts, a revision without numbers refuse the whole package. |
 | `propose_version` | The text of a new version in a role, with a note on what changed. **Insert as version** keeps it, verbatim, under that role and not current; **Choose role…** opens the dialog to change the role, name it or make it current on the way in. |
 | `propose_score` | Marks along the kind's axes, checked the way the assistant's own are: unknown axes are named, marks are clamped to the scale. **Apply** writes the snapshot, judged by the agent — its name is the score's rater. |
@@ -143,6 +143,22 @@ plot and its context current, and six scenes on the **Scenes** tab, each
 with its seconds, its kind of shot and a still-frame prompt to copy. Then
 link it to the song on the **Links** tab as *made from*, or ask the agent
 to do it in the same breath.
+
+The same package can plan how it ships. An agent that has just written the
+board is the one that knows what the description should say, so making it
+propose that separately would be a second round trip for one half of one
+thought:
+
+```
+> Use kilna: …and plan it as a YouTube release on the 2nd, with a title,
+  a description and tags.
+
+  propose_work    → "Proposed a new work — “Winter road — the clip”, 2 versions
+                     (plot, context), 6 scenes, 1 release (youtube)."
+```
+
+Applying it plans the release with its boxes already filled — see [what a
+release goes out as](/kilna/guides/planning-a-release/#what-a-release-goes-out-as).
 
 The board is not final on the first pass. A second round works on the
 existing work:

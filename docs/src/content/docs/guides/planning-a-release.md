@@ -233,6 +233,54 @@ an undone mark is usually a mis-click or a release pulled after the fact, and
 the address it was published under is the one part worth not retyping. Clearing
 it is a separate edit.
 
+## What a release goes out as
+
+A release carries the text it ships under — a title, a description, tags, a
+comment to pin beneath it. Which boxes appear is your profile's answer, not
+kilna's: a video clip is asked for four things, a beta read for two, and a
+kind that names no fields simply shows none. The list is the release kind's
+`fields` — see [the profile document](/kilna/reference/profile-document/).
+
+Open a release on the Releases tab of its work and the boxes are underneath
+it. They save as you leave each one, and each can be copied on its own, which
+is what you are doing with them: pasting them into the place the thing is
+actually being published.
+
+### Writing them from the work
+
+A field may carry a **template**, and then kilna can fill it for you. The
+template is written in the same language an [assistant
+action](/kilna/guides/the-assistant/) uses — `{title}`, `{role:lyrics}`,
+`{scenes}` — and it means exactly the same thing in both places.
+
+**Write these from the work** fills every templated field at once. Fields
+without a template are never touched: those are the ones you type by hand, and
+overwriting them with nothing is the one thing the button must not do. If a
+field reads a version role the work has not been written in yet, it is not
+filled blank — kilna says which field is waiting on what, and the rest are
+still written.
+
+Once something is written, the button asks before replacing it.
+
+### A character count, not a limit
+
+A field may state how many characters the place it is going will accept. The
+count is shown beside the box and turns red past the limit, and that is all it
+does. kilna is not the authority on what a platform accepts this month, and a
+box that refuses to hold what you typed is a box you would type somewhere
+else.
+
+### A month at once
+
+On the calendar, **Write what they go out as** fills every release still
+planned in the month on screen. It reads the whole month rather than what the
+kind chips are showing: narrowing the view is a way of looking, not an
+instruction about which releases to write.
+
+What has already gone out is never touched. Its metadata is the record of what
+it went out under, and rewriting that from today's text would quietly rewrite
+history.
+
 ## The link
 
 A release's link opens in your browser and can be copied from the row's menu.

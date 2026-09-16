@@ -148,8 +148,9 @@ fn initialize() -> Value {
     vocabulary (roles, axes, fields, statuses), then `catalogue` and `work` to find and read. You \
     cannot write: you PROPOSE, and the person applies it in kilna with one click, or does not. \
     `propose_work` proposes a whole new work — title, kind, overview fields, versions by role, a \
-    score, notes — or, given `work`, a package of those for an existing one; prefer it whenever \
-    you have more than one thing to say about a work, so the person applies it all at once. \
+    score, notes, a storyboard, and the releases it ships as with the text each goes out under — \
+    or, given `work`, a package of those for an existing one; prefer it whenever you have more \
+    than one thing to say about a work, so the person applies it all at once. \
     `propose_version`, `propose_score` and `propose_note` propose one thing each; \
     `propose_scenes` proposes a storyboard for a video or a short, added to the board or \
     replacing it. Name works by id when you have one; an exact title works too.",
@@ -280,9 +281,11 @@ fn tools() -> Vec<Value> {
              `workspace`: `fields`), by key — a premise, a mood, a tagline go here, not into a \
              note. `versions` are texts by role; on a new work they become its current versions, \
              on an existing one they wait beside the current. `score` is marks along the kind's \
-             axes. `notes` are notes on the work. Unknown fields and axes are named and left \
-             out; an unknown role or kind refuses the whole package. Nothing is written until \
-             the person applies it.",
+             axes. `notes` are notes on the work. `releases` plans releases and says what each \
+             goes out as — its title, its description, its tags, the comment pinned under it — \
+             by the field keys the kind of release names (see `workspace`). Unknown fields and \
+             axes are named and left out; an unknown role or kind refuses the whole package. \
+             Nothing is written until the person applies it.",
             json!({
                 "work": text_arg("An existing work to package changes for: its id, or its exact title. Omit to propose a new work"),
                 "title": text_arg("The title of the new work; required without `work`"),
@@ -319,6 +322,15 @@ fn tools() -> Vec<Value> {
                      existing one's board; only for a kind with a storyboard (see `workspace`: \
                      `shot_types`, `scene_blocks`)"
                 ),
+                "releases": {
+                    "type": "array",
+                    "description": "Releases to plan for the work, each with what it goes out as",
+                    "items": { "type": "object", "properties": {
+                        "kind": text_arg("The kind of release, as `workspace` lists them for this kind of work"),
+                        "scheduled_at": text_arg("The day it goes out, as 2026-10-02. Omit to leave it queued without a date"),
+                        "fields": { "type": "object", "description": "What it goes out as, by field key of this kind of release: a title, a description, tags, a comment to pin", "additionalProperties": true },
+                    }, "required": ["kind"] },
+                },
             }),
             &[],
         ),
@@ -863,15 +875,57 @@ pub fn run_tool(
                 _ => Vec::new(),
             };
 
+            let mut releases = Vec::new();
+            for item in args
+                .get("releases")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                let item = item.as_object().cloned().unwrap_or_default();
+                let release_kind = required(&item, "kind")?;
+                let Some(defined) = vocabulary
+                    .release_kinds
+                    .iter()
+                    .find(|k| k.key == release_kind)
+                else {
+                    return Err(Error::Other(format!(
+                        "no kind of release `{release_kind}` for `{kind}`; `workspace` lists them"
+                    )));
+                };
+                let scheduled_at = arg(&item, "scheduled_at").map(str::to_owned);
+                if let Some(date) = &scheduled_at {
+                    if !crate::time::is_date(date) {
+                        return Err(Error::Other(format!(
+                            "`scheduled_at` is a date like 2026-10-02, not `{date}`"
+                        )));
+                    }
+                }
+                let (fields, unknown_fields) = proposal::release_fields_from(
+                    item.get("fields")
+                        .and_then(Value::as_object)
+                        .cloned()
+                        .unwrap_or_default(),
+                    defined,
+                );
+                releases.push(proposal::PackagedRelease {
+                    kind: release_kind.to_owned(),
+                    scheduled_at,
+                    fields,
+                    unknown_fields,
+                });
+            }
+
             if found.is_some()
                 && fields.is_empty()
                 && versions.is_empty()
                 && score.is_none()
                 && notes.is_empty()
                 && scenes.is_empty()
+                && releases.is_empty()
             {
                 return Err(Error::Other(
-                    "the package is empty: give `fields`, `versions`, `score`, `notes` or `scenes`"
+                    "the package is empty: give `fields`, `versions`, `score`, `notes`, `scenes` or `releases`"
                         .into(),
                 ));
             }
@@ -885,6 +939,7 @@ pub fn run_tool(
                 score,
                 notes,
                 scenes,
+                releases,
             };
             let body = apply::render_package(&proposal, &config, &kind);
             let summary = package_summary(&proposal);
@@ -1081,6 +1136,7 @@ fn package_summary(proposal: &Proposal) -> String {
         score,
         notes,
         scenes,
+        releases,
         ..
     } = proposal
     else {
@@ -1128,11 +1184,34 @@ fn package_summary(proposal: &Proposal) -> String {
             if scenes.len() == 1 { "" } else { "s" }
         ));
     }
+    if !releases.is_empty() {
+        parts.push(format!(
+            "{} release{} ({})",
+            releases.len(),
+            if releases.len() == 1 { "" } else { "s" },
+            releases
+                .iter()
+                .map(|r| r.kind.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
     if !unknown_fields.is_empty() {
         parts.push(format!(
             "fields ignored (not in the profile): {}",
             unknown_fields.join(", ")
         ));
+    }
+    // Named per release rather than pooled: two releases may each ignore a
+    // different key, and one merged list would not say which.
+    for release in releases {
+        if !release.unknown_fields.is_empty() {
+            parts.push(format!(
+                "`{}` fields ignored (not of that kind of release): {}",
+                release.kind,
+                release.unknown_fields.join(", ")
+            ));
+        }
     }
     parts.join(", ")
 }
@@ -1404,6 +1483,164 @@ mod tests {
             err.contains("no storyboard"),
             "a song takes no scenes: {err}"
         );
+    }
+
+    #[test]
+    fn a_package_can_plan_a_release_and_say_what_it_goes_out_as() {
+        let (conn, _) = workspace();
+
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({
+                "title": "Winter road — the clip", "kind": "video",
+                "versions": [{ "role": "plot", "body": "a road, a car, a light" }],
+                "releases": [{
+                    "kind": "youtube",
+                    "scheduled_at": "2026-10-02",
+                    "fields": {
+                        "title": "Winter road",
+                        "description": "a road, a car, a light",
+                        "tags": "winter, road, night",
+                    },
+                }],
+            })),
+        )
+        .unwrap();
+
+        assert!(answer.contains("1 release (youtube)"), "{answer}");
+
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let chats = assistant::summaries(&conn, &profile_id, None).unwrap();
+        let chat = chats.iter().find(|c| c.work_id.is_none()).unwrap();
+        let message = assistant::transcript(&conn, &chat.id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0);
+
+        assert_eq!(message.meta["proposal"]["releases"][0]["kind"], "youtube");
+        assert_eq!(
+            message.meta["proposal"]["releases"][0]["fields"]["title"],
+            "Winter road"
+        );
+        assert!(
+            message.body.contains("### YouTube — 2026-10-02"),
+            "the kind's own word and its day, in what the person reads before applying: {}",
+            message.body
+        );
+        assert!(message.body.contains("Winter road"), "{}", message.body);
+    }
+
+    #[test]
+    fn a_release_of_a_kind_this_work_does_not_ship_refuses_the_package() {
+        let (conn, _) = workspace();
+
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({
+                "title": "Winter road", "kind": "song",
+                "releases": [{ "kind": "youtube" }],
+            })),
+        )
+        .unwrap_err()
+        .to_string();
+
+        assert!(
+            err.contains("no kind of release `youtube` for `song`"),
+            "a song ships clips, shorts and audio; `youtube` belongs to the video: {err}"
+        );
+    }
+
+    #[test]
+    fn a_release_field_the_kind_does_not_have_is_named_and_left_out() {
+        let (conn, _) = workspace();
+
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({
+                "title": "Winter road — the clip", "kind": "video",
+                "releases": [{
+                    "kind": "premiere",
+                    // `premiere` ships a title and a description, not tags.
+                    "fields": { "title": "Winter road", "tags": "winter" },
+                }],
+            })),
+        )
+        .unwrap();
+
+        assert!(
+            answer.contains("`premiere` fields ignored (not of that kind of release): tags"),
+            "a package that only half fits is worth applying, but not silently: {answer}"
+        );
+
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let chats = assistant::summaries(&conn, &profile_id, None).unwrap();
+        let chat = chats.iter().find(|c| c.work_id.is_none()).unwrap();
+        let message = assistant::transcript(&conn, &chat.id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0);
+        assert!(
+            message.meta["proposal"]["releases"][0]["fields"]
+                .get("tags")
+                .is_none(),
+            "a value under a key no box will ever show is not stored"
+        );
+    }
+
+    #[test]
+    fn a_day_that_is_not_a_day_is_refused() {
+        let (conn, _) = workspace();
+
+        let err = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({
+                "title": "Winter road — the clip", "kind": "video",
+                "releases": [{ "kind": "youtube", "scheduled_at": "next Thursday" }],
+            })),
+        )
+        .unwrap_err()
+        .to_string();
+
+        assert!(err.contains("is a date like 2026-10-02"), "{err}");
+    }
+
+    #[test]
+    fn a_package_holding_only_a_release_is_not_empty() {
+        let (conn, _) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let work = crate::work::create(
+            &conn,
+            &profile_id,
+            crate::work::NewWork {
+                kind: "video".into(),
+                title: "Winter road — the clip".into(),
+                ..crate::work::NewWork::default()
+            },
+        )
+        .unwrap();
+
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({
+                "work": work.id,
+                "releases": [{ "kind": "youtube" }],
+            })),
+        )
+        .unwrap();
+
+        assert!(answer.contains("1 release"), "{answer}");
     }
 
     fn args(value: Value) -> Map<String, Value> {

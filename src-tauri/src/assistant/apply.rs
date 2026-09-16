@@ -18,7 +18,9 @@ use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
-use crate::assistant::proposal::{BoardChange, Marks, PackagedNote, PackagedScene, Proposal};
+use crate::assistant::proposal::{
+    BoardChange, Marks, PackagedNote, PackagedRelease, PackagedScene, Proposal,
+};
 use crate::assistant::{self, ASSISTANT, Chat, Message};
 use crate::commands::{recording, restate, was};
 use crate::error::{Error, Result};
@@ -73,6 +75,9 @@ pub struct Outcome {
     /// Scenes a replaced board sent to the trash, by trash entry.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub removed_scenes: Vec<String>,
+    /// Releases planned by the package.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub releases: Vec<String>,
 }
 
 /// Whether a message carries a proposal nobody has applied yet.
@@ -221,6 +226,7 @@ pub fn apply(
             score,
             notes,
             scenes,
+            releases,
             ..
         } => {
             // A package on a work adds to it; one in a chat on nothing is a
@@ -320,6 +326,15 @@ pub fn apply(
                         .scenes
                         .push(write_scene(conn, profile_id, &work_id, packaged, position)?);
                 }
+            }
+            // The releases the package plans, with what each goes out as.
+            // Last, because a release is about the finished thing: the
+            // versions it requires and the board it describes have to be on
+            // the work before it makes sense to plan shipping it.
+            for packaged in releases {
+                outcome
+                    .releases
+                    .push(write_release(conn, profile_id, &work_id, &kind, packaged)?);
             }
             outcome.created_work = fresh;
             outcome.work_id = Some(work_id);
@@ -605,6 +620,52 @@ fn write_score(
     Ok(created.id)
 }
 
+/// Plan a release, with what it goes out as.
+///
+/// Refused when the kind of release is not one this kind of work ships: a
+/// release nobody could have planned by hand is not one a package may plan
+/// either.
+fn write_release(
+    conn: &mut Connection,
+    profile_id: &str,
+    work_id: &str,
+    work_kind: &str,
+    packaged: PackagedRelease,
+) -> Result<String> {
+    let config = profile::config_for(conn, profile_id)?;
+    if !config
+        .vocabulary(work_kind)
+        .release_kinds
+        .iter()
+        .any(|kind| kind.key == packaged.kind)
+    {
+        return Err(Error::Other(format!(
+            "the profile has no kind of release `{}` for `{work_kind}`",
+            packaged.kind
+        )));
+    }
+
+    let new = crate::release::NewRelease {
+        work_id: work_id.to_owned(),
+        kind: packaged.kind,
+        title: None,
+        scheduled_at: packaged.scheduled_at,
+        meta: Some(packaged.fields),
+        scheduled_time: None,
+        time_zone: None,
+    };
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("release.create")
+        .in_profile(profile_id)
+        .param("profile", profile_key(conn, profile_id)?)
+        .param("release", serde_json::to_value(&new)?)
+        .minted(&minted);
+    let created = recording(conn, logged, |tx| {
+        crate::release::create_minted(tx, new, minted)
+    })?;
+    Ok(created.id)
+}
+
 fn write_note(
     conn: &mut Connection,
     profile_id: &str,
@@ -819,6 +880,7 @@ pub fn render_package(
         score,
         notes,
         scenes,
+        releases,
         ..
     } = proposal
     else {
@@ -911,6 +973,41 @@ pub fn render_package(
         out.push_str("### Scenes\n\n");
         out.push_str(&render_board(scenes, vocabulary, BoardChange::Add));
         out.push_str("\n\n");
+    }
+
+    for packaged in releases {
+        let kind = vocabulary
+            .release_kinds
+            .iter()
+            .find(|k| k.key == packaged.kind);
+        let heading = kind.map_or(packaged.kind.as_str(), |k| k.label.as_str());
+        match &packaged.scheduled_at {
+            Some(date) => out.push_str(&format!("### {heading} — {date}\n\n")),
+            // No date is not a missing one: a release with none is queued,
+            // which is what "plan this, I will find it a day" means.
+            None => out.push_str(&format!("### {heading}\n\n")),
+        }
+        for (key, value) in &packaged.fields {
+            let label = kind
+                .and_then(|k| k.fields.iter().find(|f| f.key == *key))
+                .map_or(key.as_str(), |f| f.label.as_str());
+            let shown = match value {
+                Value::String(text) => text.clone(),
+                other => other.to_string(),
+            };
+            if shown.contains('\n') {
+                out.push_str(&format!("**{label}**\n\n{}\n\n", shown.trim_end()));
+            } else {
+                out.push_str(&format!("- **{label}:** {shown}\n"));
+            }
+        }
+        out.push('\n');
+        if !packaged.unknown_fields.is_empty() {
+            out.push_str(&format!(
+                "_Not fields of this kind of release, left out: {}._\n\n",
+                packaged.unknown_fields.join(", ")
+            ));
+        }
     }
 
     out.trim_end().to_owned()
@@ -1141,6 +1238,7 @@ mod tests {
                 body: "the road as the only witness".into(),
             }],
             scenes: Vec::new(),
+            releases: Vec::new(),
         }
     }
 
@@ -1348,6 +1446,7 @@ mod tests {
                 score: None,
                 notes: Vec::new(),
                 scenes: vec![packaged("the road"), packaged("the car")],
+                releases: Vec::new(),
             },
         );
 
@@ -1624,6 +1723,7 @@ mod tests {
                 score: None,
                 notes: Vec::new(),
                 scenes: Vec::new(),
+                releases: Vec::new(),
             },
         );
 
@@ -1671,6 +1771,7 @@ mod tests {
                 score,
                 notes,
                 scenes: Vec::new(),
+                releases: Vec::new(),
             },
         );
 
@@ -1814,6 +1915,7 @@ mod tests {
             score: None,
             notes: Vec::new(),
             scenes: Vec::new(),
+            releases: Vec::new(),
         };
 
         let body = render_package(&proposal, &config, "song");

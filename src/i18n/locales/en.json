@@ -744,6 +744,15 @@
         "gap": "Holes before scenes {{from}} to {{to}} — {{count}} of them.",
         "overlap": "Scenes {{from}} to {{to}} overlap what runs before them — {{count}} of them."
       }
+    },
+    "package": {
+      "action": "Export a package",
+      "hint": "The board with every prompt, the pictures, and what the releases go out as — in one folder, readable without kilna.",
+      "title": "Where to put the package",
+      "done": "Packed {{scenes}} scenes and {{files}} files into {{path}}",
+      "withoutMaterial_one": "{{count}} scene has nothing chosen for it yet.",
+      "withoutMaterial_other": "{{count}} scenes have nothing chosen for them yet.",
+      "failed": "Could not write the package."
     }
   },
   "files": {

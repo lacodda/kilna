@@ -11,6 +11,7 @@ use crate::error::{Error, Result};
 use crate::exchange::backup;
 use crate::exchange::export::{self, ExportReport};
 use crate::exchange::import::{self, ImportReport};
+use crate::exchange::package;
 use crate::focus::{self, Dismissal, DismissalKey, FocusNote, FocusNotePatch, NewFocusNote};
 use crate::journal::{self, Entry, Record};
 use crate::layout;
@@ -2766,6 +2767,30 @@ pub fn write_text_file(path: String, text: String) -> Result<String> {
 pub fn export_markdown(state: State<'_, AppState>, directory: String) -> Result<ExportReport> {
     let conn = state.conn();
     export::to_markdown(&conn, std::path::Path::new(&directory))
+}
+
+/// Pack a work into a folder: its board with every prompt, the pictures under
+/// names that say what they are, and what its releases go out as.
+///
+/// Reads only — nothing about the work changes, so there is no operation to
+/// record. What it writes is outside the workspace entirely.
+#[tauri::command]
+pub fn export_package(
+    state: State<'_, AppState>,
+    work_id: String,
+    directory: String,
+) -> Result<package::PackageReport> {
+    let conn = state.conn();
+    package::write(&conn, &work_id, std::path::Path::new(&directory))
+}
+
+/// Whether a work has anything worth packing: a board, or something written
+/// about a release. What the button hangs on, so a song with neither is not
+/// offered a folder holding one nearly empty page.
+#[tauri::command]
+pub fn can_export_package(state: State<'_, AppState>, work_id: String) -> Result<bool> {
+    let conn = state.conn();
+    package::has_anything(&conn, &work_id)
 }
 
 /// Copy the workspace somewhere safe — the database and the files with it.

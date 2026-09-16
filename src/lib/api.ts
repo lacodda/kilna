@@ -170,6 +170,19 @@ export interface WorkProposal {
   notes?: PackagedNote[]
   /** The storyboard of a new video, or scenes added to an existing one's board. */
   scenes?: PackagedScene[]
+  /** Releases to plan, with what each goes out as. */
+  releases?: PackagedRelease[]
+}
+
+/** A release inside a package: the kind it ships as, when, and what it says
+    about itself. */
+export interface PackagedRelease {
+  kind: string
+  scheduled_at?: string | null
+  /** Field key to value, already checked against the release kind. */
+  fields?: Record<string, unknown>
+  /** Field keys the package named that this kind of release does not have. */
+  unknown_fields?: string[]
 }
 
 export type Proposal = ScoreProposal | VersionProposal | NoteProposal | WorkProposal | ScenesProposal
@@ -190,6 +203,8 @@ export interface Applied {
   scenes?: string[]
   /** Scenes a replaced board sent to the trash, by trash entry. */
   removed_scenes?: string[]
+  /** Releases planned by the package. */
+  releases?: string[]
 }
 
 /** What a person may change about a proposed version on the way in. */
@@ -1273,6 +1288,27 @@ export interface ImportReport {
   /** Titles deleted here earlier, not brought back. */
   deleted: number
 }
+
+/** What a package export produced, so the person is told rather than guesses
+    where it went. */
+export interface PackageReport {
+  /** The folder that was written, absolute — named after the work, inside the
+      one that was chosen. */
+  directory: string
+  scenes: number
+  /** Pictures and clips copied beside the text. */
+  files: number
+  /** Releases whose metadata went into the folder. */
+  releases: number
+  /** Scenes with nothing chosen: a package is also how someone finds out
+      what the board is still missing. */
+  withoutMaterial: number
+}
+
+export const exportPackage = (workId: string, directory: string) =>
+  invoke<PackageReport>('export_package', { workId, directory })
+export const canExportPackage = (workId: string) =>
+  invoke<boolean>('can_export_package', { workId })
 
 export const exportMarkdown = (directory: string) =>
   invoke<ExportReport>('export_markdown', { directory })
