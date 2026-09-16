@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink } from 'lucide-react'
+import { ChevronRight, ExternalLink } from 'lucide-react'
 import {
   createRelease,
   deleteRelease,
@@ -25,6 +25,7 @@ import { openExternal, shortLink } from '@/lib/link'
 import { cn } from '@/lib/utils'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { MarkReleasedDialog } from '@/components/releases/MarkReleasedDialog'
+import { ReleaseFields } from '@/components/releases/ReleaseFields'
 import { ReleaseRowEditor } from '@/components/releases/ReleaseRowEditor'
 import { Button } from '@/components/ui/button'
 import { RowContextMenu, RowMenu, type RowAction } from '@/components/ui/RowMenu'
@@ -52,6 +53,10 @@ export function ReleasePanel({ workId, workTitle }: Props) {
   const [kind, setKind] = useState(kinds[0]?.key ?? '')
   const [editing, setEditing] = useState<ScheduledRelease | null>(null)
   const [marking, setMarking] = useState<ScheduledRelease | null>(null)
+  // Which release has its metadata open. One at a time: four descriptions
+  // unrolled at once is a page nobody can find their place on, and the
+  // question being asked is always about one release.
+  const [showing, setShowing] = useState<string | null>(null)
 
   const releases = useQuery({
     queryKey: keys.releasesForWork(workId),
@@ -198,12 +203,14 @@ export function ReleasePanel({ workId, workTitle }: Props) {
             const url = entry.url
             const kindEntry = kinds.find((entry_) => entry_.key === entry.kind)
 
+            const open = showing === entry.id
+
             return (
+              <li key={entry.id} className="flex flex-col gap-1">
               <RowContextMenu
-                key={entry.id}
                 actions={actionsFor(entry)}
                 render={
-                  <li
+                  <div
                     className={cn(
                       'flex items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm',
                       // What went out is history sitting in the list, not a plan
@@ -216,6 +223,18 @@ export function ReleasePanel({ workId, workTitle }: Props) {
                   />
                 }
               >
+                <button
+                  type="button"
+                  onClick={() => setShowing(open ? null : entry.id)}
+                  aria-expanded={open}
+                  aria-label={t('releases.meta.title')}
+                  className="-my-1 -ml-1 shrink-0 rounded p-1 text-faint hover:text-fg"
+                >
+                  <ChevronRight
+                    aria-hidden
+                    className={cn('size-3.5 transition-transform', open && 'rotate-90')}
+                  />
+                </button>
                 <KindGlyph icon={kindEntry?.icon} className="size-3.5 shrink-0 text-dim" />
                 <span className="font-medium">{labelOf(kinds, entry.kind)}</span>
 
@@ -253,6 +272,13 @@ export function ReleasePanel({ workId, workTitle }: Props) {
                   <RowMenu actions={actionsFor(entry)} label={t('releases.actions')} />
                 </span>
               </RowContextMenu>
+
+              {open && (
+                <div className="pl-6">
+                  <ReleaseFields release={entry} />
+                </div>
+              )}
+              </li>
             )
           })}
         </ul>

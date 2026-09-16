@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronsLeft, ChevronsRight } from 'lucide-react'
 import {
   applyLayout,
+  generateReleaseFieldsBatch,
   calendar as fetchCalendar,
   markReleased,
   planLayout,
@@ -19,7 +20,7 @@ import { say } from '@/lib/toast'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/DatePicker'
-import { PromptDialog } from '@/components/ui/AppDialog'
+import { Dialog, PromptDialog } from '@/components/ui/AppDialog'
 import { SkeletonList, SkeletonMonth } from '@/components/ui/Skeleton'
 import { KindFilterBar } from '@/components/calendar/KindFilterBar'
 import { MonthGrid } from '@/components/calendar/MonthGrid'
@@ -29,6 +30,7 @@ import { filterByKind, filterGhosts, type KindFilter } from '@/lib/calendarFilte
 import { loadLayout, otherLayout, saveLayout, type CalendarLayout } from '@/lib/calendarLayout'
 import { ghostsOf } from '@/lib/layout'
 import { monthOf, today, type Month } from '@/lib/month'
+import { batchable } from '@/lib/releaseFields'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -64,6 +66,10 @@ export function CalendarView({ onSelect }: Props) {
   // this array; any other calendar change makes it a picture of the past, so
   // `settle` clears it.
   const [layout, setLayout] = useState<Placement[] | null>(null)
+  // Whether the batch is asking before it writes. It always asks: it replaces
+  // the wording of every release in the month at once, and that is a great
+  // deal to undo one release at a time.
+  const [fillingFields, setFillingFields] = useState(false)
 
   const slots = useQuery({ queryKey: keys.calendar, queryFn: fetchCalendar })
   const queued = useQuery({ queryKey: keys.releaseQueue, queryFn: releaseQueue })
@@ -147,6 +153,35 @@ export function CalendarView({ onSelect }: Props) {
     onError: (cause) => say.failedTo(t('toast.layoutFailed'), cause),
   })
 
+  // What the month's releases go out as, written in one pass. The point is a
+  // week of the calendar: someone who planned six videos writes their
+  // metadata together or not at all.
+  const fillFields = useMutation({
+    mutationFn: (ids: string[]) => generateReleaseFieldsBatch(ids),
+    onSuccess: (outcome) => {
+      void client.invalidateQueries({ queryKey: keys.releases })
+      void client.invalidateQueries({ queryKey: keys.journal })
+      if (outcome.filled > 0) {
+        say.ok(t('calendar.fields.done', { count: outcome.filled }))
+      } else {
+        say.ok(t('calendar.fields.doneNone'))
+      }
+      // One line per refusal, because each is a different work waiting on a
+      // different thing, and a single line holding six of them is read by
+      // nobody.
+      for (const refusal of outcome.refused) {
+        say.warn(
+          t('calendar.fields.refusedRow', {
+            title: refusal.workTitle,
+            label: refusal.label,
+            reason: refusal.reason,
+          }),
+        )
+      }
+    },
+    onError: (cause) => say.failedTo(t('calendar.fields.failed'), cause),
+  })
+
   const book = useMutation({
     mutationFn: (placements: Placement[]) => applyLayout(placements),
     onSuccess: () => {
@@ -160,6 +195,17 @@ export function CalendarView({ onSelect }: Props) {
       say.failedTo(t('toast.layoutFailed'), cause)
     },
   })
+
+  // The planned releases of the month on screen: what the batch is about.
+  // Read off the unfiltered month for the reason the button's comment gives.
+  const monthly = batchable(
+    (slots.data ?? []).filter(
+      (entry) =>
+        entry.scheduled_at !== null &&
+        entry.scheduled_at.slice(0, 7) ===
+          `${month.year}-${String(month.month).padStart(2, '0')}`,
+    ),
+  )
 
   return (
     // The queue takes a fixed column only where there is room for both. Below
@@ -318,13 +364,29 @@ export function CalendarView({ onSelect }: Props) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <KindFilterBar slots={slots.data} value={kind} onChange={setKind} />
 
+              {/* Everything still planned in the month, written in one pass.
+                  Sits with the filters because it is about the month on
+                  screen, and reads what the month holds rather than what the
+                  chips are showing: a narrowed view is a way of looking, not
+                  an instruction about which releases to write. */}
+              {monthly.length > 0 && (
+                <Button
+                  size="sm"
+                  className="ml-auto"
+                  disabled={fillFields.isPending}
+                  onClick={() => setFillingFields(true)}
+                >
+                  {t('calendar.fields.action')}
+                </Button>
+              )}
+
               {/* On the same line as the filters, at the far end: both are
                   about what the month shows, and neither is an action on a
                   release. */}
               <Button
                 variant="icon"
                 size="icon-sm"
-                className="ml-auto"
+                className={monthly.length > 0 ? undefined : 'ml-auto'}
                 aria-label={t(width === 'queue' ? 'calendar.widen' : 'calendar.showQueue')}
                 title={t(width === 'queue' ? 'calendar.widen' : 'calendar.showQueue')}
                 onClick={() => {
@@ -406,6 +468,34 @@ export function CalendarView({ onSelect }: Props) {
           setReleasing(null)
         }}
       />
+
+      {/* Always asked, unlike the single release's button: this replaces the
+          wording of a whole month at once, and that is a great deal to walk
+          back one release at a time. */}
+      <Dialog
+        open={fillingFields}
+        onOpenChange={setFillingFields}
+        title={t('calendar.fields.title')}
+      >
+        <p className="text-sm text-dim">
+          {t('calendar.fields.body', { count: monthly.length })}
+        </p>
+        <div className="mt-3 flex justify-end gap-2">
+          <Button type="button" onClick={() => setFillingFields(false)}>
+            {t('dialog.cancel')}
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => {
+              setFillingFields(false)
+              fillFields.mutate(monthly)
+            }}
+          >
+            {t('calendar.fields.confirm')}
+          </Button>
+        </div>
+      </Dialog>
     </div>
   )
 }

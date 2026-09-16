@@ -35,6 +35,10 @@ export const keys = {
 
   releases: ['releases'] as const,
   releasesForWork: (workId: string) => ['releases', 'work', workId] as const,
+  // What one release goes out as. Its own key rather than part of the work's
+  // list: the boxes refetch as they are typed into, and pulling the whole
+  // list each time would redraw every row around them.
+  releaseFields: (releaseId: string) => ['releases', 'fields', releaseId] as const,
   calendar: ['calendar'] as const,
   releaseQueue: ['releaseQueue'] as const,
 

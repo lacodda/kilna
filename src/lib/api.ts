@@ -230,6 +230,29 @@ export interface ReleaseKind extends Kind {
       keyed by axis key. An axis not named keeps its own weight. Absent or
       empty means one tier for every kind. */
   axis_weights?: Record<string, number>
+  /** What a release of this kind says about itself. Absent or empty means it
+      says nothing, and the tab shows no metadata for it. */
+  fields?: ReleaseField[]
+}
+
+/** The shape of the box a release field is typed in. */
+export type ReleaseFieldType = 'line' | 'text' | 'tags'
+
+/** One thing written about a release: the box, and the template it starts
+    from. The key is what the value is stored under in `release.meta`, so
+    renaming the label never loses what was written. */
+export interface ReleaseField extends Kind {
+  type: ReleaseFieldType
+  /** What the field is filled with when generated, in the prompt language
+      (`{title}`, `{role:lyrics}`, `{scenes}`). Absent means it is only ever
+      typed by hand. */
+  template?: string | null
+  /** A line under the box saying what goes in it. */
+  hint?: string | null
+  /** How many characters the place this is going will accept. Counted beside
+      the box, never enforced — kilna is not the authority on what a platform
+      accepts this month. */
+  limit?: number | null
 }
 
 // The pace releases go out at. `default_time` (HH:MM) is a hint shown beside
@@ -1008,6 +1031,62 @@ export interface Placement {
 export const planLayout = (today: string) => invoke<Placement[]>('plan_layout', { today })
 export const applyLayout = (placements: Placement[]) =>
   invoke<number>('apply_layout', { placements })
+
+/** A release field as a screen needs it: what it is, what is written in it,
+    and whether the profile could write it. */
+export interface ReleaseFieldValue {
+  key: string
+  label: string
+  type: ReleaseFieldType
+  value: string
+  hint?: string | null
+  limit?: number | null
+  /** Whether the profile can fill this field on its own. */
+  has_template: boolean
+}
+
+/** A field the profile could not fill, in the renderer's own words. */
+export interface ReleaseFieldRefusal {
+  key: string
+  label: string
+  reason: string
+}
+
+/** What a generation produced: the values, and what it could not write. */
+export interface GeneratedFields {
+  values: Meta
+  refused: ReleaseFieldRefusal[]
+}
+
+export const releaseFields = (id: string) =>
+  invoke<ReleaseFieldValue[]>('release_fields', { id })
+// Keys the profile does not declare are refused: the map is open on purpose,
+// but a typed key no field names could only come from a bug.
+export const setReleaseFields = (id: string, values: Record<string, string>) =>
+  invoke<Release>('set_release_fields', { id, values })
+// What the profile would write, without writing it.
+export const previewReleaseFields = (id: string) =>
+  invoke<GeneratedFields>('preview_release_fields', { id })
+export const generateReleaseFields = (id: string) =>
+  invoke<GeneratedFields>('generate_release_fields', { id })
+
+/** A field a batch could not fill, named by the work it is on. */
+export interface BatchFieldRefusal {
+  releaseId: string
+  workTitle: string
+  label: string
+  reason: string
+}
+
+/** What a batch generation did, and to what. */
+export interface GeneratedBatch {
+  filled: number
+  skipped: number
+  refused: BatchFieldRefusal[]
+}
+
+export const generateReleaseFieldsBatch = (ids: string[]) =>
+  invoke<GeneratedBatch>('generate_release_fields_batch', { ids })
 
 export const calendar = () => invoke<ScheduledRelease[]>('calendar')
 export const releaseQueue = () => invoke<ScheduledRelease[]>('release_queue')
