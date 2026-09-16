@@ -53,3 +53,21 @@ from its id, so a row of works reads as one family. The picture is laid
 *over* that colour rather than replacing it, so a cover still loading, or
 one whose file went missing, shows the work's own colour instead of a white
 hole.
+
+## Files in groups
+
+The tab shows a work's files grouped by what they are for: the cover first,
+then the stills its scenes are drawn from, then the clips animated from
+those, then everything else. A group with nothing in it is not drawn at all.
+
+The grouping earns its place on a storyboard. Scene stills and clips are
+files on the work like any other, so a board of fifty scenes with four
+candidates each puts two hundred pictures in this tab — in one flat list the
+cover would be somewhere in the middle of them. Scene material is normally
+handled on the board itself (see [Scenes](/kilna/guides/scenes/)); this tab
+is where you see all of it at once, and what it costs.
+
+A file may belong to more than one work: copying a board points the copy at
+the same pictures rather than duplicating them. Removing it from one work
+leaves the other looking at it, and the bytes go only when the last work
+using them lets go.

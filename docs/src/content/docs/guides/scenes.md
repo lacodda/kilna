@@ -151,7 +151,71 @@ the story reads. Scenes with no frame yet are skipped. Escape closes.
 
 **Removing one** takes the picture out of the workspace with it. Like
 detaching any file, it is not undoable: a row put back beside bytes that are
-gone is a broken picture, not an undo.
+gone is a broken picture, not an undo. A picture shared with a copy of the
+board stays on disk until the last board using it lets go.
+
+## Video
+
+Under the pictures is a second strip, for the clips animated from them. It
+works the way the frames do — the picker or a file dragged onto the window,
+several takes side by side, a tick on the one the montage uses — with two
+differences.
+
+`Ctrl+V` is not there: a clip is downloaded and then dragged, not copied out
+of a browser tab the way a picture is.
+
+And the two verdicts are independent. A scene has at most one chosen still
+**and** at most one chosen clip, so picking a take never disturbs the picture
+it was animated from, and **Choose none** on one says nothing about the
+other. A scene counts as *shot* when its **picture** is chosen — a clip
+picked while the still never was is not a finished scene, it is a scene in a
+state nobody meant.
+
+## The montage list
+
+**Copy the montage list** puts the whole board on the clipboard as text;
+**Save the montage list** writes the same thing to a `.txt` you name. A
+scene takes one block — its number and span, then the files it uses:
+
+```
+01  0:00–0:04  C:\Users\you\kilna\media\a1b2c3.png
+               C:\Users\you\kilna\media\d4e5f6.mp4
+02  0:04–0:09  C:\Users\you\kilna\media\7a8b9c.png
+               —
+```
+
+It is text rather than a project file on purpose: an `.edl` or an `.xml` is a
+better answer for exactly one editing program and a worse one for every
+other, and text pastes into any of them, into a note, or into a terminal
+unchanged.
+
+Two things it does deliberately. It names only what was **chosen**, not every
+candidate — otherwise it would be a list nobody could hand to an editor. And
+it is always the whole board, never the filtered view: a cut is the video end
+to end, and a list quietly missing the scenes a filter hid would be worse
+than no list. A scene with nothing chosen still gets its line, with a dash,
+because the list is also how you see what is still missing.
+
+## A second attempt
+
+**Make a second attempt** copies the board into a new video and leaves this
+one exactly as it is — the two are meant to be compared.
+
+The copy hangs on the same donor, so it can still be reframed from the same
+text, and it brings every candidate across rather than only the chosen ones:
+the pictures you are still deciding against are part of the work. The
+verdicts come with them, so a board that had chosen its stills arrives having
+chosen them.
+
+What does not come across is the score and the releases. A copy has not been
+judged and has not gone out, and carrying that over would be the copy
+claiming the original's reception.
+
+The pictures themselves are not duplicated on disk — both boards point at the
+same files, which is why a clone of fifty scenes is instant and costs
+nothing. Removing a picture from one board leaves the other looking at it.
+
+`Ctrl+Z` takes the whole clone back, board and all.
 
 ## Prompt blocks
 
@@ -204,12 +268,13 @@ button, and the answer is still there to read.
 
 ## What else a scene touches
 
-- **Undo** takes back adding a scene, an edit to one, and its deletion.
+- **Undo** takes back adding a scene, an edit to one, its deletion, and a
+  second attempt at a whole video.
   `Ctrl+Z` works from anywhere, and the toast after each offers the same.
 - **The trash** keeps a deleted scene under its work — *Scene 4 · chorus*
   — and takes a work's scenes with the work, bringing them back with it.
-- **The history** says *Scene 4 added to "Harbour lights"*, and when one
-  is deleted.
+- **The history** says *Scene 4 added to "Harbour lights"*, when one is
+  deleted, and when a video is started as a second attempt.
 - **The export** writes a *Scenes* section on the work's page: the board
   as a table, then each scene's blocks.
 - An agent over [MCP](/kilna/reference/mcp/) sees the kinds of shot
