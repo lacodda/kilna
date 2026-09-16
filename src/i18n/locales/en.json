@@ -838,7 +838,9 @@
       "line": "one line",
       "text": "paragraphs",
       "tags": "tags"
-    }
+    },
+    "fieldHintLabel": "Hint under the box",
+    "fieldTemplateLabel": "Filled from the work"
   },
   "plugins": {
     "title": "Plugins"

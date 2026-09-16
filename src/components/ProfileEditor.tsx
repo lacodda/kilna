@@ -239,30 +239,37 @@ function ReleaseFieldsEditor({
                       }}
                     />
                   </div>
-                  <Input
-                    value={field.hint ?? ''}
-                    placeholder={t('editor.fieldHint')}
-                    aria-label={t('editor.fieldHint')}
-                    onChange={(event) =>
-                      set(kindIndex, fieldIndex, {
-                        hint: event.target.value === '' ? null : event.target.value,
-                      })
-                    }
-                  />
-                  <Textarea
-                    value={field.template ?? ''}
-                    placeholder={t('editor.fieldTemplate')}
-                    aria-label={t('editor.fieldTemplate')}
-                    autoResize
-                    maxRows={6}
-                    rows={2}
-                    className="font-mono text-xs"
-                    onChange={(event) =>
-                      set(kindIndex, fieldIndex, {
-                        template: event.target.value === '' ? null : event.target.value,
-                      })
-                    }
-                  />
+                  <Field label={t('editor.fieldHintLabel')}>
+                    <Input
+                      value={field.hint ?? ''}
+                      placeholder={t('editor.fieldHint')}
+                      aria-label={t('editor.fieldHintLabel')}
+                      onChange={(event) =>
+                        set(kindIndex, fieldIndex, {
+                          hint: event.target.value === '' ? null : event.target.value,
+                        })
+                      }
+                    />
+                  </Field>
+                  {/* Labelled, as the actions editor labels its own template:
+                      three unlabelled boxes stacked under a field are three
+                      boxes nobody can tell apart once they are empty. */}
+                  <Field label={t('editor.fieldTemplateLabel')}>
+                    <Textarea
+                      value={field.template ?? ''}
+                      placeholder={t('editor.fieldTemplate')}
+                      aria-label={t('editor.fieldTemplateLabel')}
+                      autoResize
+                      maxRows={6}
+                      rows={2}
+                      className="font-mono text-xs"
+                      onChange={(event) =>
+                        set(kindIndex, fieldIndex, {
+                          template: event.target.value === '' ? null : event.target.value,
+                        })
+                      }
+                    />
+                  </Field>
                 </li>
               ))}
             </ul>
