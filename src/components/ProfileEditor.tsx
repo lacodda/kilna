@@ -11,6 +11,8 @@ import {
   type Tier,
   type VersionRole,
   type WorkKind,
+  type ReleaseKind,
+  type ReleaseField,
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
@@ -155,6 +157,123 @@ export function ProfileEditor() {
 }
 
 /**
+ * What a release of each kind goes out as.
+ *
+ * Labels, hints, limits and templates — not keys: a key is what the value is
+ * stored under on every release already planned, and renaming one would
+ * orphan what was written under it, exactly as renaming an axis key would
+ * orphan its scores. The same rule the rest of this screen follows.
+ *
+ * Adding and removing fields is deliberately not here either. A field is a
+ * box on a screen and a key in a stored map, and the place to decide there
+ * should be one more of those is the profile document, where the whole shape
+ * is visible at once.
+ */
+function ReleaseFieldsEditor({
+  kinds,
+  onChange,
+}: {
+  kinds: ReleaseKind[]
+  onChange: (kinds: ReleaseKind[]) => void
+}) {
+  const { t } = useTranslation()
+
+  const set = (kindIndex: number, fieldIndex: number, changes: Partial<ReleaseField>) => {
+    onChange(
+      kinds.map((kind, i) =>
+        i === kindIndex
+          ? {
+              ...kind,
+              fields: (kind.fields ?? []).map((field, j) =>
+                j === fieldIndex ? { ...field, ...changes } : field,
+              ),
+            }
+          : kind,
+      ),
+    )
+  }
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
+        {t('editor.releaseFields')}
+      </h4>
+      <p className="text-xs text-dim">{t('editor.releaseFieldsHint')}</p>
+
+      {kinds.map((kind, kindIndex) =>
+        (kind.fields ?? []).length === 0 ? null : (
+          <div key={kind.key} className="flex flex-col gap-2 rounded-xl border border-line p-3">
+            <div className="flex items-center gap-2">
+              <code className="font-mono text-xs text-dim">{kind.key}</code>
+              <span className="text-sm font-medium">{kind.label}</span>
+            </div>
+
+            <ul className="flex flex-col gap-3">
+              {(kind.fields ?? []).map((field, fieldIndex) => (
+                <li key={field.key} className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <code className="shrink-0 font-mono text-xs text-dim">{field.key}</code>
+                    <Input
+                      className="flex-1"
+                      value={field.label}
+                      aria-label={t('editor.fieldLabel')}
+                      onChange={(event) => set(kindIndex, fieldIndex, { label: event.target.value })}
+                    />
+                    <span className="shrink-0 text-2xs uppercase tracking-caption text-faint">
+                      {t(`editor.fieldType.${field.type}`)}
+                    </span>
+                    <Input
+                      className="w-24"
+                      type="number"
+                      min={1}
+                      value={field.limit ?? ''}
+                      placeholder={t('editor.fieldLimit')}
+                      aria-label={t('editor.fieldLimit')}
+                      onChange={(event) => {
+                        const raw = event.target.value
+                        set(kindIndex, fieldIndex, {
+                          // Nothing typed is nobody counting, not a limit of
+                          // zero — which the profile refuses to save anyway.
+                          limit: raw === '' ? null : Math.max(1, Math.trunc(Number(raw))),
+                        })
+                      }}
+                    />
+                  </div>
+                  <Input
+                    value={field.hint ?? ''}
+                    placeholder={t('editor.fieldHint')}
+                    aria-label={t('editor.fieldHint')}
+                    onChange={(event) =>
+                      set(kindIndex, fieldIndex, {
+                        hint: event.target.value === '' ? null : event.target.value,
+                      })
+                    }
+                  />
+                  <Textarea
+                    value={field.template ?? ''}
+                    placeholder={t('editor.fieldTemplate')}
+                    aria-label={t('editor.fieldTemplate')}
+                    autoResize
+                    maxRows={6}
+                    rows={2}
+                    className="font-mono text-xs"
+                    onChange={(event) =>
+                      set(kindIndex, fieldIndex, {
+                        template: event.target.value === '' ? null : event.target.value,
+                      })
+                    }
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ),
+      )}
+    </section>
+  )
+}
+
+/**
  * One kind's own vocabulary: its axes, tiers, statuses and release kinds.
  *
  * Axis keys are deliberately not editable here either — the same past-score
@@ -260,6 +379,16 @@ function KindVocabulary({
         entries={kind.release_kinds ?? []}
         onChange={(release_kinds) => onChange({ release_kinds })}
       />
+      {/* What a release of each kind says about itself. Under the release
+          kinds because that is what it belongs to, and only for the kinds
+          that have any: a profile that says nothing about its releases
+          should show an empty screen, not an invitation. */}
+      {(kind.release_kinds ?? []).some((entry) => (entry.fields ?? []).length > 0) && (
+        <ReleaseFieldsEditor
+          kinds={kind.release_kinds ?? []}
+          onChange={(release_kinds) => onChange({ release_kinds })}
+        />
+      )}
       {/* The storyboard's words, for a kind that has any: a song lists none
           and shows nothing here. Keys, as everywhere on this screen, come
           from the document; the labels are what is renamed. */}

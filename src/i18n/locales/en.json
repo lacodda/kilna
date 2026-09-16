@@ -827,7 +827,18 @@
     "removeAction": "Remove this action",
     "actionKey": "Key of the new action",
     "actionKeyPlaceholder": "new-action-key",
-    "actionKeyTaken": "An action with this key already exists."
+    "actionKeyTaken": "An action with this key already exists.",
+    "releaseFields": "What a release goes out as",
+    "releaseFieldsHint": "The boxes a release of each kind is filled in with. Keys are fixed — a planned release stores what was written under them. A template fills the box from the work; it reads the same placeholders an action does.",
+    "fieldLabel": "The word above the box",
+    "fieldHint": "A line under the box, optional",
+    "fieldLimit": "no limit",
+    "fieldTemplate": "Filled from the work, e.g. {title}. Leave empty to type it by hand every time.",
+    "fieldType": {
+      "line": "one line",
+      "text": "paragraphs",
+      "tags": "tags"
+    }
   },
   "plugins": {
     "title": "Plugins"
