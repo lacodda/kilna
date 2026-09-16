@@ -32,6 +32,12 @@ pub struct ProfileConfig {
     /// so a profile written before they existed still loads.
     #[serde(default)]
     pub marks: Vec<Mark>,
+    /// The stops along the way from an idea to a finished work. A craft names
+    /// its own - a novel's "second draft" is not a song's "mixed" - and an
+    /// empty list means the craft has nothing to say, in which case
+    /// [`stages`] answers with the line's own stops rather than nothing.
+    #[serde(default)]
+    pub stages: Vec<Stage>,
     /// Actions the AI panel offers. Defaulted so a profile written before the
     /// panel existed still loads.
     #[serde(default)]
@@ -88,6 +94,8 @@ pub struct RawProfileConfig {
     #[serde(default)]
     pub marks: Vec<Mark>,
     #[serde(default)]
+    pub stages: Vec<Stage>,
+    #[serde(default)]
     pub prompts: Vec<crate::assistant::prompt::PromptTemplate>,
     #[serde(default)]
     pub rhythm: Option<Rhythm>,
@@ -137,6 +145,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             collection_kinds: raw.collection_kinds,
             work_meta_fields: raw.work_meta_fields,
             marks: raw.marks,
+            stages: raw.stages,
             prompts: raw.prompts,
             rhythm: raw.rhythm,
             catalogue_columns: raw.catalogue_columns,
@@ -982,6 +991,54 @@ impl VersionRole {
     }
 }
 
+/// One stop on the way from an idea to a finished work.
+///
+/// The third thing a work carries about itself, beside the derived status and
+/// the hand-raised marks, and it overlaps neither. A status says where the work
+/// stands in the *process* and is worked out from facts — it was scored, it was
+/// booked, it shipped. A stage says how finished the *work itself* is, which no
+/// fact can answer: only the author knows that a song with a full lyric is
+/// still three verses of placeholder.
+///
+/// `percent` is what is stored on the work, and what the dial draws. The key
+/// and the label are how a person speaks about it.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Stage {
+    pub key: String,
+    pub label: String,
+    /// Where this stop sits, 0..=100.
+    pub percent: i64,
+    /// One of the palette's own roles, so a stage reads correctly in both
+    /// themes.
+    #[serde(default)]
+    pub colour: MarkColour,
+}
+
+/// The stops a craft gets when it names none of its own.
+///
+/// A dial with nothing to snap to is not a dial, so this is not an empty list:
+/// six stops are enough to say something useful and few enough to click through
+/// without reading. A profile that means something else says so and this is
+/// never consulted.
+pub fn default_stages() -> Vec<Stage> {
+    [
+        ("idea", "Idea", 0, MarkColour::Plain),
+        ("raw", "Rough draft", 20, MarkColour::Plain),
+        ("half", "Half there", 40, MarkColour::Warn),
+        ("nearly", "Nearly there", 60, MarkColour::Warn),
+        ("polish", "Polishing", 80, MarkColour::Accent),
+        ("done", "Finished", 100, MarkColour::Good),
+    ]
+    .into_iter()
+    .map(|(key, label, percent, colour)| Stage {
+        key: key.to_owned(),
+        label: label.to_owned(),
+        percent,
+        colour,
+    })
+    .collect()
+}
+
 /// A flag the author raises on a work by hand.
 ///
 /// Not a status: a status says where the work stands in the process and is
@@ -1056,6 +1113,28 @@ impl ProfileConfig {
     /// not know — an empty one, so nothing downstream has to ask twice.
     pub fn vocabulary(&self, kind: &str) -> &WorkKind {
         self.kind(kind).unwrap_or(&NO_KIND)
+    }
+
+    /// The stops of the dial: the craft's own, or the line's when it names none.
+    ///
+    /// Answered here rather than at each caller, so a screen and an exporter
+    /// cannot disagree about what an empty list means.
+    pub fn stages(&self) -> Vec<Stage> {
+        if self.stages.is_empty() {
+            default_stages()
+        } else {
+            self.stages.clone()
+        }
+    }
+
+    /// The stop a percentage belongs to: the last one it has reached.
+    ///
+    /// Not the nearest: a work at 79 is still polishing, not "finished", and
+    /// rounding up would tell the author their song is done.
+    pub fn stage_at(&self, percent: i64) -> Option<Stage> {
+        self.stages()
+            .into_iter()
+            .rfind(|stage| stage.percent <= percent)
     }
 
     /// Combine axis values into a 0–100 total, as `kind` weighs them.

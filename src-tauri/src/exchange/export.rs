@@ -65,6 +65,9 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         if let Some(bookmarked) = &work.bookmarked_at {
             push_field(&mut page, "bookmarked", bookmarked);
         }
+        if let Some(stage) = work.stage {
+            push_field(&mut page, "stage", &stage.to_string());
+        }
         for (key, value) in &work.meta {
             // A JSON string carries its own quotes; taking them along would
             // export `"ru"` as `"\"ru\""`.

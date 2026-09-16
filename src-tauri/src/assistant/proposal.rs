@@ -1303,6 +1303,7 @@ mod instruction_tests {
             collection_kinds: Vec::new(),
             work_meta_fields: Vec::new(),
             marks: Vec::new(),
+            stages: Vec::new(),
             prompts: Vec::new(),
             rhythm: None,
             catalogue_columns: None,

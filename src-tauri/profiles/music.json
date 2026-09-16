@@ -956,6 +956,44 @@
         "icon": "thumbs-up"
       }
     ],
+    "stages": [
+      {
+        "key": "idea",
+        "label": "Idea",
+        "percent": 0,
+        "colour": "plain"
+      },
+      {
+        "key": "sketch",
+        "label": "Rough take",
+        "percent": 20,
+        "colour": "plain"
+      },
+      {
+        "key": "half",
+        "label": "Half there",
+        "percent": 40,
+        "colour": "warn"
+      },
+      {
+        "key": "nearly",
+        "label": "Full draft",
+        "percent": 60,
+        "colour": "warn"
+      },
+      {
+        "key": "polish",
+        "label": "Polishing",
+        "percent": 80,
+        "colour": "accent"
+      },
+      {
+        "key": "done",
+        "label": "Finished",
+        "percent": 100,
+        "colour": "good"
+      }
+    ],
     "rhythm": {
       "every_days": 3,
       "default_time": "12:00"

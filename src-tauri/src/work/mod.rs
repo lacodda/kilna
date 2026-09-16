@@ -39,6 +39,10 @@ pub struct Work {
     pub tier_pin_reason: Option<String>,
     /// Set when the person marked this one to come back to.
     pub bookmarked_at: Option<String>,
+    /// How finished the work is, 0..=100, as the author judges it. `None` means
+    /// nobody has said yet, which is not the same as "a bare idea" — the stops
+    /// along the way are the profile's `stages`.
+    pub stage: Option<i64>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -94,6 +98,15 @@ pub struct WorkPatch {
     /// `Some(true)` stamps the bookmark, `Some(false)` clears it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bookmarked: Option<bool>,
+    /// How finished the work is, 0..=100. Nullable on purpose: `Some(None)`
+    /// takes the judgement back to "nobody has said", which a bare number
+    /// cannot express.
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub stage: Option<Option<i64>>,
 }
 
 /// Narrowing applied to a listing.
@@ -108,7 +121,7 @@ pub struct WorkFilter {
 
 const SELECT_WORK: &str = "SELECT id, profile_id, collection_id, kind, title, status, \
      status_pinned_at, meta, tags, marks, current_version_id, position, created_at, updated_at, \
-     tier_pinned, tier_pinned_at, tier_pin_reason, bookmarked_at \
+     tier_pinned, tier_pinned_at, tier_pin_reason, bookmarked_at, stage \
      FROM work";
 
 /// Create a work in the given profile.
@@ -358,6 +371,17 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
             Box::new(bookmarked.then(now)),
         );
     }
+    if let Some(stage) = patch.stage {
+        // Clamped rather than refused: the number comes from a dial, and a
+        // caller that manages to send 140 means "finished", not "fail this
+        // edit". The profile's stops live inside the same range.
+        set(
+            &mut assignments,
+            &mut values,
+            "stage",
+            Box::new(stage.map(|value| value.clamp(0, 100))),
+        );
+    }
 
     if assignments.is_empty() {
         return get(conn, id)?.ok_or_else(|| unknown_work(id));
@@ -514,6 +538,7 @@ struct RawWork {
     tier_pinned_at: Option<String>,
     tier_pin_reason: Option<String>,
     bookmarked_at: Option<String>,
+    stage: Option<i64>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
@@ -536,6 +561,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
         tier_pinned_at: row.get(15)?,
         tier_pin_reason: row.get(16)?,
         bookmarked_at: row.get(17)?,
+        stage: row.get(18)?,
     })
 }
 
@@ -558,6 +584,7 @@ impl RawWork {
             tier_pinned_at: self.tier_pinned_at,
             tier_pin_reason: self.tier_pin_reason,
             bookmarked_at: self.bookmarked_at,
+            stage: self.stage,
             created_at: self.created_at,
             updated_at: self.updated_at,
         })

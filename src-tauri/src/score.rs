@@ -94,6 +94,9 @@ pub struct ScoredWork {
     /// Set when the person marked this one to come back to — the star on the
     /// row, and what the catalogue's star filter reads.
     pub bookmarked_at: Option<String>,
+    /// How finished the work is, 0..=100, as the author judges it. `None` while
+    /// nobody has said — the dial on the row draws an empty ring for that.
+    pub stage: Option<i64>,
 }
 
 /// The score that speaks for a work, as a subquery returning one `work_score.id`.
@@ -273,7 +276,7 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
                 (SELECT count(*) FROM work_version v
                   WHERE v.work_id = w.id) AS version_count,
                 w.tier_pinned IS NOT NULL AS tier_pinned,
-                w.bookmarked_at
+                w.bookmarked_at, w.stage
          FROM work w
          LEFT JOIN work_score s ON s.id = {speaking}
          WHERE w.profile_id = ?1
@@ -301,6 +304,7 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
             version_count: row.get(15)?,
             tier_pinned: row.get::<_, i64>(16)? == 1,
             bookmarked_at: row.get(17)?,
+            stage: row.get(18)?,
         })
     })?;
 

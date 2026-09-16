@@ -553,6 +553,10 @@ pub fn run_tool(
             pretty(&json!({
                 "id": found.id, "title": found.title, "kind": found.kind, "status": found.status,
                 "meta": found.meta, "tags": found.tags, "marks": found.marks,
+                // How finished the author says it is, 0..=100. Worth telling an
+                // agent: a full lyric at stage 20 is a sketch to build on, not
+                // a work to polish, and nothing else in this shape says so.
+                "stage": found.stage,
                 "tier_pinned": found.tier_pinned, "tier_pin_reason": found.tier_pin_reason,
                 "created_at": found.created_at, "updated_at": found.updated_at,
                 "versions": by_role,

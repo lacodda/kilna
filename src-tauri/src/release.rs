@@ -48,6 +48,11 @@ pub struct ScheduledRelease {
     pub tier: Option<String>,
     /// How far this release is from shippable — see [`crate::readiness`].
     pub readiness: crate::readiness::Readiness,
+    /// How finished the work itself is, as its author judges it, 0..=100.
+    /// Different from `readiness`, which asks whether the release could go out:
+    /// a work can have every role filled and still be three verses of
+    /// placeholder, and only the author knows that.
+    pub work_stage: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -764,6 +769,12 @@ fn read_scheduled_where(
         .prepare("SELECT id, kind FROM work WHERE profile_id = ?1")?
         .query_map(params![profile_id], |row| Ok((row.get(0)?, row.get(1)?)))?
         .collect::<rusqlite::Result<_>>()?;
+    // And how far along each one is, so a chip can show the dial beside the
+    // readiness marks. Only the works that have been judged are in the map.
+    let stages: std::collections::HashMap<String, i64> = conn
+        .prepare("SELECT id, stage FROM work WHERE profile_id = ?1 AND stage IS NOT NULL")?
+        .query_map(params![profile_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<rusqlite::Result<_>>()?;
 
     rows.into_iter()
         .map(|(raw, work_title, total, tier)| {
@@ -776,6 +787,7 @@ fn read_scheduled_where(
             );
             Ok(ScheduledRelease {
                 work_kind: kinds.get(&raw.work_id).cloned().unwrap_or_default(),
+                work_stage: stages.get(&raw.work_id).copied(),
                 release: raw.into_release()?,
                 work_title,
                 total,
