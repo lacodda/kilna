@@ -181,6 +181,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::clear_scene_frame,
             commands::reorder_scene_frames,
             commands::search,
+            commands::works_matching,
             commands::list_journal,
             commands::journal_for_work,
             commands::unread_journal,

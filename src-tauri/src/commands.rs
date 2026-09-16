@@ -2565,6 +2565,18 @@ pub fn search(state: State<'_, AppState>, query: String) -> Result<Vec<Hit>> {
     search::find(&conn, &profile_id, &query)
 }
 
+/// The works whose text answers a query, best match first.
+///
+/// What the catalogue's box asks, as opposed to the palette's: it wants the
+/// list narrowed to the works that say something, not the half dozen lines
+/// that say it. Ids only — the rows are already on the screen.
+#[tauri::command]
+pub fn works_matching(state: State<'_, AppState>, query: String) -> Result<Vec<String>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    search::works_matching(&conn, &profile_id, &query)
+}
+
 /// Everything in the active profile's trash, newest first.
 #[tauri::command]
 pub fn list_deletions(state: State<'_, AppState>) -> Result<Vec<Deletion>> {

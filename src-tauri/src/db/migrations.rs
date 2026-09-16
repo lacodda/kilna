@@ -122,6 +122,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "scene_media_kind",
         sql: include_str!("../../migrations/0022_scene_media_kind.sql"),
     },
+    Migration {
+        version: 23,
+        name: "stage_and_search_index",
+        sql: include_str!("../../migrations/0023_stage_and_search_index.sql"),
+    },
 ];
 
 /// The newest schema this build understands.

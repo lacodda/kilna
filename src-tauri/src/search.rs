@@ -5,20 +5,27 @@
 //! *where did I write that line*, *what did I note about it*, *what did the
 //! assistant say*.
 //!
-//! ## Why the matching is done here rather than in SQL
+//! ## Why FTS5, and why it replaced a loop in Rust
 //!
-//! SQLite's `LIKE` is case-insensitive for ASCII and nothing else: `лето` does
-//! not match `Лето`, because the built-in `lower()` leaves every non-ASCII byte
-//! alone. Half of this app's text is Russian, so a search that only works in
-//! English is not a search.
+//! This module used to read every version body of the profile into memory on
+//! each keystroke and fold it with Rust's `to_lowercase`, because SQLite's
+//! `LIKE` folds ASCII only: `лето` did not match `Лето`, and half of this
+//! app's text is Russian. That was the right call while the alternative was
+//! `LIKE`.
 //!
-//! Rust has the whole of Unicode, so rows are folded and compared here. The
-//! query still narrows in SQL where it can — by profile, by kind — so the loop
-//! only ever sees one profile's text.
+//! FTS5's `unicode61` tokenizer folds the whole of Unicode, so the reason for
+//! the loop is gone — and with it the cost of reading a catalogue's worth of
+//! text per keystroke. The index is `search_index`, filled and maintained by
+//! the triggers of migration 0023.
 //!
-//! FTS5 is the eventual answer for a large workspace. The seam for it is this
-//! module: `find` is the only thing the commands call, and what it does inside
-//! is nobody else's business.
+//! ## The one thing FTS5 does not do for Russian
+//!
+//! There is no stemmer. A bare `холодильник` matches only that exact word, so
+//! *в холодильнике* is missed — which is precisely the search a person means.
+//! Every term is therefore turned into a prefix term (`холодильник*`), which
+//! finds both. `query_of` is where that happens, and it is also where the
+//! query syntax of FTS5 is defused: what the person typed is words to search
+//! for, never an expression to run.
 
 use rusqlite::{Connection, params};
 use serde::Serialize;
@@ -33,6 +40,18 @@ pub enum Kind {
     Version,
     Note,
     Message,
+}
+
+impl Kind {
+    /// The tag the index stores, and the one a query asks for.
+    fn as_entity(self) -> &'static str {
+        match self {
+            Kind::Work => "work",
+            Kind::Version => "version",
+            Kind::Note => "note",
+            Kind::Message => "message",
+        }
+    }
 }
 
 /// One thing found.
@@ -61,8 +80,8 @@ const PER_KIND: usize = 6;
 /// Case-folded form used for comparison.
 ///
 /// `to_lowercase` rather than `to_ascii_lowercase`, which is the entire point:
-/// it knows that `Л` is `л`. Allocation per row is fine at this size — the
-/// alternative is a false negative in half the workspace.
+/// it knows that `Л` is `л`. Kept although the search itself now folds in
+/// SQLite, because the catalogue's own field filters still compare in Rust.
 pub fn fold(text: &str) -> String {
     text.to_lowercase()
 }
@@ -72,206 +91,250 @@ pub fn matches(haystack: &str, needle_folded: &str) -> bool {
     fold(haystack).contains(needle_folded)
 }
 
-/// A window of text around the first match, for showing what was found.
+/// The FTS5 expression for what a person typed, or `None` if it held no words.
 ///
-/// Character-based rather than byte-based: slicing a Cyrillic body by bytes
-/// panics on a boundary, and the panic would be in the search box.
-fn excerpt(body: &str, needle_folded: &str, width: usize) -> String {
-    let folded = fold(body);
-    let Some(byte_at) = folded.find(needle_folded) else {
-        return body.chars().take(width).collect();
-    };
+/// Two jobs, and the second is the one that bites. The first is prefixes: with
+/// no Russian stemmer, `холодильник` alone misses *в холодильнике*, so every
+/// term becomes `холодильник*`.
+///
+/// The second is that FTS5's query syntax is a language — `AND`, `NEAR`, `-`,
+/// `"`, `*`, `(` all mean something in it. A person typing `don't` or `rock —
+/// ballad` is not writing an expression, and a syntax error in a search box
+/// reads as "the search is broken". Every term is therefore wrapped in double
+/// quotes, with the quote character itself doubled, which makes it a literal
+/// string to FTS5; the `*` is appended outside the quotes, where it still
+/// means "prefix".
+pub fn query_of(query: &str) -> Option<String> {
+    let terms: Vec<String> = query
+        // Punctuation is never part of a term: `unicode61` splits on it too, so
+        // keeping it would only produce terms that cannot match.
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|term| !term.is_empty())
+        .map(|term| format!("\"{}\"*", term.replace('"', "\"\"")))
+        .collect();
 
-    // Byte offset in the folded string is not a character offset in the
-    // original — folding can change length — so the count of characters before
-    // the match is what carries over.
-    let chars_before = folded[..byte_at].chars().count();
-    let start = chars_before.saturating_sub(width / 3);
-
-    let mut out: String = body.chars().skip(start).take(width).collect();
-    if start > 0 {
-        out.insert(0, '…');
+    if terms.is_empty() {
+        return None;
     }
-    if body.chars().count() > start + width {
-        out.push('…');
-    }
-    // A body is many lines; a hit is one line of interface.
-    out.split_whitespace().collect::<Vec<_>>().join(" ")
+    // Every word has to appear: typing a second word narrows a search, it does
+    // not widen it.
+    Some(terms.join(" AND "))
 }
 
 /// Everything matching `query` in one profile, grouped by kind.
 pub fn find(conn: &Connection, profile_id: &str, query: &str) -> Result<Vec<Hit>> {
-    let needle = fold(query.trim());
-    if needle.is_empty() {
+    let Some(expression) = query_of(query) else {
         return Ok(Vec::new());
-    }
+    };
 
     let mut hits = Vec::new();
-    hits.extend(works(conn, profile_id, &needle)?);
-    hits.extend(versions(conn, profile_id, &needle)?);
-    hits.extend(notes(conn, profile_id, &needle)?);
-    hits.extend(messages(conn, profile_id, &needle)?);
+    for kind in [Kind::Work, Kind::Version, Kind::Note, Kind::Message] {
+        hits.extend(of_kind(conn, profile_id, &expression, kind)?);
+    }
     Ok(hits)
 }
 
-fn works(conn: &Connection, profile_id: &str, needle: &str) -> Result<Vec<Hit>> {
+/// Which works answer `query`, anywhere in them, best first.
+///
+/// The palette's question is "show me the thing I am thinking of"; the
+/// catalogue's is "which of my works mention a fridge", and that is a different
+/// answer — one row per work, however many lines inside it matched, and no cap,
+/// because the catalogue is a list to read down rather than a menu to pick
+/// from.
+///
+/// Returned as ids rather than as rows: the catalogue already holds its rows,
+/// with their scores, tiers and columns, and a second shape of the same work
+/// would be a second truth about it.
+pub fn works_matching(conn: &Connection, profile_id: &str, query: &str) -> Result<Vec<String>> {
+    let Some(expression) = query_of(query) else {
+        return Ok(Vec::new());
+    };
+
+    // `min(rank)` is the best line found in the work: a song whose chorus is
+    // about the fridge should outrank one that mentions it once in a note.
     let mut statement = conn.prepare(
-        "SELECT id, title, kind, status FROM work
-          WHERE profile_id = ?1
-          ORDER BY updated_at DESC, rowid DESC",
+        "SELECT s.work_id
+           FROM search_index s
+          WHERE search_index MATCH ?1
+            AND s.profile_id = ?2
+            AND s.work_id IS NOT NULL
+          GROUP BY s.work_id
+          ORDER BY min(rank)",
     )?;
 
-    let rows = statement
-        .query_map(params![profile_id], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, String>(3)?,
-            ))
+    let ids = statement
+        .query_map(params![expression, profile_id], |row| {
+            row.get::<_, String>(0)
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
-
-    Ok(rows
-        .into_iter()
-        .filter(|(_, title, _, _)| matches(title, needle))
-        .take(PER_KIND)
-        .enumerate()
-        .map(|(index, (id, title, kind, status))| Hit {
-            kind: Kind::Work,
-            work_id: id,
-            work_title: title.clone(),
-            title,
-            detail: format!("{kind} · {status}"),
-            rank: index as i64,
-        })
-        .collect())
+    Ok(ids)
 }
 
-fn versions(conn: &Connection, profile_id: &str, needle: &str) -> Result<Vec<Hit>> {
+/// The hits of one kind, best first.
+///
+/// One query per kind rather than one query sorted afterwards: the cap is per
+/// kind, and asking for six of each is what lets a single well-matched note
+/// survive a thousand matching lyric lines.
+fn of_kind(conn: &Connection, profile_id: &str, expression: &str, kind: Kind) -> Result<Vec<Hit>> {
+    // `snippet` is the index's own excerpt: the window around the match, with
+    // the match itself marked. Rust cannot do better here without reading the
+    // body back, and it is what made the old search read every body.
     let mut statement = conn.prepare(
-        "SELECT v.work_id, w.title, v.role, v.revision, v.label, v.body
-           FROM work_version v
-           JOIN work w ON w.id = v.work_id
-          WHERE w.profile_id = ?1
-          ORDER BY v.created_at DESC, v.rowid DESC",
+        "SELECT s.entity_id, s.work_id, snippet(search_index, 4, '', '', '…', 12)
+           FROM search_index s
+          WHERE search_index MATCH ?1
+            AND s.profile_id = ?2
+            AND s.entity = ?3
+          ORDER BY rank
+          LIMIT ?4",
     )?;
 
     let rows = statement
-        .query_map(params![profile_id], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, i64>(3)?,
-                row.get::<_, Option<String>>(4)?,
-                row.get::<_, String>(5)?,
-            ))
-        })?
+        .query_map(
+            params![expression, profile_id, kind.as_entity(), PER_KIND as i64],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )?
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
-    Ok(rows
-        .into_iter()
-        .filter(|(_, _, _, _, _, body)| matches(body, needle))
-        .take(PER_KIND)
-        .enumerate()
-        .map(
-            |(index, (work_id, work_title, role, revision, label, body))| Hit {
+    let mut hits = Vec::with_capacity(rows.len());
+    for (index, (entity_id, work_id, snippet)) in rows.into_iter().enumerate() {
+        // A hit with nowhere to open is worse than no hit: the row is skipped
+        // rather than offered. Only notes and chats can be work-less.
+        let Some(work_id) = work_id else { continue };
+        let Some(described) = describe(conn, kind, &entity_id, &work_id, &snippet)? else {
+            continue;
+        };
+        hits.push(Hit {
+            rank: index as i64,
+            ..described
+        });
+    }
+    Ok(hits)
+}
+
+/// Dress one indexed row as a hit: what it is called, and where it came from.
+///
+/// The index holds only the text that was searched, so the line and the label
+/// are read from the row itself. One small query per hit, and there are at
+/// most `PER_KIND` of them per kind.
+fn describe(
+    conn: &Connection,
+    kind: Kind,
+    entity_id: &str,
+    work_id: &str,
+    snippet: &str,
+) -> Result<Option<Hit>> {
+    let found = match kind {
+        Kind::Work => conn
+            .query_row(
+                "SELECT title, kind, status FROM work WHERE id = ?1",
+                params![entity_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .map(|(title, kind_key, status)| Hit {
+                kind: Kind::Work,
+                work_id: work_id.to_owned(),
+                work_title: title.clone(),
+                // A work's own line is its title, not the snippet: the point of
+                // finding a work is recognising it.
+                title,
+                detail: format!("{kind_key} · {status}"),
+                rank: 0,
+            }),
+        Kind::Version => conn
+            .query_row(
+                "SELECT w.title, v.role, v.revision, v.label
+                   FROM work_version v JOIN work w ON w.id = v.work_id
+                  WHERE v.id = ?1",
+                params![entity_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, Option<String>>(3)?,
+                    ))
+                },
+            )
+            .map(|(work_title, role, revision, label)| Hit {
                 kind: Kind::Version,
-                work_id,
+                work_id: work_id.to_owned(),
                 work_title,
-                // The line it was found in, not the version's name: the name is in
-                // the detail, and what was searched for is the text.
-                title: excerpt(&body, needle, 90),
+                // The line it was found in, not the version's name: the name is
+                // in the detail, and what was searched for is the text.
+                title: one_line(snippet),
                 detail: format!(
                     "{role} · {}",
                     label.unwrap_or_else(|| format!("v{revision}"))
                 ),
-                rank: index as i64,
-            },
-        )
-        .collect())
+                rank: 0,
+            }),
+        Kind::Note => conn
+            .query_row(
+                "SELECT w.title, n.title, n.kind
+                   FROM note n JOIN work w ON w.id = n.work_id
+                  WHERE n.id = ?1",
+                params![entity_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .map(|(work_title, title, note_kind)| Hit {
+                kind: Kind::Note,
+                work_id: work_id.to_owned(),
+                work_title,
+                title: title.unwrap_or_else(|| one_line(snippet)),
+                detail: note_kind,
+                rank: 0,
+            }),
+        Kind::Message => conn
+            .query_row(
+                "SELECT w.title, m.role
+                   FROM chat_message m
+                   JOIN chat c ON c.id = m.chat_id
+                   JOIN work w ON w.id = c.work_id
+                  WHERE m.id = ?1",
+                params![entity_id],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+            )
+            .map(|(work_title, role)| Hit {
+                kind: Kind::Message,
+                work_id: work_id.to_owned(),
+                work_title,
+                title: one_line(snippet),
+                detail: role,
+                rank: 0,
+            }),
+    };
+
+    match found {
+        Ok(hit) => Ok(Some(hit)),
+        // The row went away between the index and this query — a deletion mid
+        // search. Dropping it beats failing the whole search for one stale row.
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(error) => Err(error.into()),
+    }
 }
 
-fn notes(conn: &Connection, profile_id: &str, needle: &str) -> Result<Vec<Hit>> {
-    let mut statement = conn.prepare(
-        "SELECT n.work_id, w.title, n.title, n.body, n.kind
-           FROM note n
-           JOIN work w ON w.id = n.work_id
-          WHERE n.profile_id = ?1
-          ORDER BY n.updated_at DESC, n.rowid DESC",
-    )?;
-
-    let rows = statement
-        .query_map(params![profile_id], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, Option<String>>(2)?,
-                row.get::<_, String>(3)?,
-                row.get::<_, String>(4)?,
-            ))
-        })?
-        .collect::<rusqlite::Result<Vec<_>>>()?;
-
-    Ok(rows
-        .into_iter()
-        .filter(|(_, _, title, body, _)| {
-            matches(body, needle) || title.as_deref().is_some_and(|t| matches(t, needle))
-        })
-        .take(PER_KIND)
-        .enumerate()
-        .map(|(index, (work_id, work_title, title, body, kind))| Hit {
-            kind: Kind::Note,
-            work_id,
-            work_title,
-            title: title.unwrap_or_else(|| excerpt(&body, needle, 90)),
-            detail: kind,
-            rank: index as i64,
-        })
-        .collect())
-}
-
-fn messages(conn: &Connection, profile_id: &str, needle: &str) -> Result<Vec<Hit>> {
-    let mut statement = conn.prepare(
-        "SELECT c.work_id, w.title, m.role, m.body
-           FROM chat_message m
-           JOIN chat c ON c.id = m.chat_id
-           JOIN work w ON w.id = c.work_id
-          WHERE c.profile_id = ?1
-          ORDER BY m.created_at DESC, m.rowid DESC",
-    )?;
-
-    let rows = statement
-        .query_map(params![profile_id], |row| {
-            Ok((
-                row.get::<_, Option<String>>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, String>(3)?,
-            ))
-        })?
-        .collect::<rusqlite::Result<Vec<_>>>()?;
-
-    Ok(rows
-        .into_iter()
-        // A chat not attached to a work has nowhere to open; skipping it beats
-        // offering a hit that goes nowhere.
-        .filter_map(|(work_id, work_title, role, body)| {
-            work_id.map(|id| (id, work_title, role, body))
-        })
-        .filter(|(_, _, _, body)| matches(body, needle))
-        .take(PER_KIND)
-        .enumerate()
-        .map(|(index, (work_id, work_title, role, body))| Hit {
-            kind: Kind::Message,
-            work_id,
-            work_title,
-            title: excerpt(&body, needle, 90),
-            detail: role,
-            rank: index as i64,
-        })
-        .collect())
+/// A body is many lines; a hit is one line of interface.
+fn one_line(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 #[cfg(test)]
@@ -318,9 +381,10 @@ mod tests {
         assert_eq!(hits[0].title, "Harbour lights");
     }
 
-    // The reason this module exists. SQLite's own `lower()` and `LIKE` ignore
-    // case for ASCII only, so a Russian workspace would find nothing typed in
-    // the wrong case — which is most of the time.
+    // The reason this module was written by hand for a year. SQLite's own
+    // `lower()` and `LIKE` ignore case for ASCII only, so a Russian workspace
+    // would find nothing typed in the wrong case — which is most of the time.
+    // FTS5's `unicode61` is what now makes this pass.
     #[test]
     fn case_is_ignored_in_russian_too() {
         let (conn, profile_id) = workspace();
@@ -329,6 +393,99 @@ mod tests {
         for query in ["гавань", "ГАВАНЬ", "ГаВаНь", "огней"] {
             let hits = find(&conn, &profile_id, query).unwrap();
             assert_eq!(hits.len(), 1, "`{query}` should have found the work");
+        }
+    }
+
+    // Russian has no stemmer here, so the word as typed is rarely the word as
+    // written: a person looking for a fridge types `холодильник` and the line
+    // says `в холодильнике`. Without prefix terms this finds nothing at all,
+    // which is the whole feature failing quietly.
+    #[test]
+    fn a_word_matches_its_russian_inflections() {
+        let (conn, profile_id) = workspace();
+        let work = song(&conn, &profile_id, "Кухня");
+        let mut conn = conn;
+        version::create(
+            &mut conn,
+            &work,
+            NewVersion {
+                role: "lyrics".into(),
+                body: "Тихо гудит в холодильнике свет, и кофейня закрыта".into(),
+                label: None,
+                meta: None,
+                make_current: true,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
+
+        for query in ["холодильник", "кофе", "ХОЛОДИЛЬНИК"] {
+            let hits = find(&conn, &profile_id, query).unwrap();
+            assert!(
+                hits.iter().any(|hit| hit.kind == Kind::Version),
+                "`{query}` should have found the line"
+            );
+        }
+    }
+
+    // Two words narrow, they do not widen: a work matching only one of them is
+    // not what the person asked for.
+    #[test]
+    fn every_word_has_to_appear() {
+        let (conn, profile_id) = workspace();
+        song(&conn, &profile_id, "Harbour lights");
+        song(&conn, &profile_id, "Harbour bells");
+
+        let hits = find(&conn, &profile_id, "harbour lights").unwrap();
+
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].title, "Harbour lights");
+    }
+
+    // FTS5's query language is a language, and a search box is not a place to
+    // write one. Anything typed is words, never syntax — a stray quote or a
+    // dash must not turn into a syntax error the person cannot read.
+    #[test]
+    fn punctuation_is_searched_for_not_executed() {
+        let (conn, profile_id) = workspace();
+        song(&conn, &profile_id, "Harbour lights");
+
+        for query in ["\"", "harbour OR", "-harbour", "harbour AND (", "NEAR("] {
+            let hits = find(&conn, &profile_id, query);
+            assert!(hits.is_ok(), "`{query}` should not have failed: {hits:?}");
+        }
+        // And the words inside the noise still work.
+        assert_eq!(find(&conn, &profile_id, "\"harbour\"").unwrap().len(), 1);
+    }
+
+    // The craft fields are where half of a song's description lives, and they
+    // were not searched at all before: `meta` was never even selected.
+    #[test]
+    fn a_work_is_found_by_its_craft_fields_and_tags() {
+        let (conn, profile_id) = workspace();
+        let work = song(&conn, &profile_id, "Harbour lights");
+        work::update(
+            &conn,
+            &work,
+            work::WorkPatch {
+                meta: Some(
+                    serde_json::json!({ "mood": "melancholy surrealism" })
+                        .as_object()
+                        .unwrap()
+                        .clone(),
+                ),
+                tags: Some(vec!["winter".into()]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        for query in ["surrealism", "winter"] {
+            let hits = find(&conn, &profile_id, query).unwrap();
+            assert!(
+                hits.iter().any(|hit| hit.work_id == work),
+                "`{query}` should have found the work"
+            );
         }
     }
 
@@ -360,23 +517,55 @@ mod tests {
         assert!(!version.title.contains('\n'));
     }
 
+    // An edited body is a different body. The index is kept by triggers, and a
+    // trigger that fires only on insert would answer with last week's text.
     #[test]
-    fn an_excerpt_around_a_late_match_is_trimmed_on_both_sides() {
-        let body = "a ".repeat(80) + "needle" + &" b".repeat(80);
-        let cut = excerpt(&body, "needle", 40);
+    fn an_edited_body_is_searched_as_it_now_reads() {
+        let (conn, profile_id) = workspace();
+        let work = song(&conn, &profile_id, "Harbour lights");
+        let mut conn = conn;
+        let version = version::create(
+            &mut conn,
+            &work,
+            NewVersion {
+                role: "lyrics".into(),
+                body: "The cranes go still at seven".into(),
+                label: None,
+                meta: None,
+                make_current: true,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
 
-        assert!(cut.contains("needle"), "got: {cut}");
-        assert!(cut.starts_with('…'), "got: {cut}");
-        assert!(cut.ends_with('…'), "got: {cut}");
+        conn.execute(
+            "UPDATE work_version SET body = ?1 WHERE id = ?2",
+            params!["The gulls go quiet at seven", version.id],
+        )
+        .unwrap();
+
+        assert!(
+            find(&conn, &profile_id, "cranes").unwrap().is_empty(),
+            "the old text should be gone from the index"
+        );
+        assert!(
+            find(&conn, &profile_id, "gulls")
+                .unwrap()
+                .iter()
+                .any(|hit| hit.kind == Kind::Version),
+            "the new text should be in it"
+        );
     }
 
-    // Slicing a Cyrillic body by byte offsets panics on a character boundary,
-    // and the panic would happen inside the search box.
+    // A deleted work must not leave hits pointing at nothing.
     #[test]
-    fn an_excerpt_of_cyrillic_text_does_not_panic() {
-        let body = "Гавань огней, где вода держит шум и я считаю огни на том берегу".to_owned();
-        let cut = excerpt(&body, &fold("огни"), 20);
-        assert!(cut.contains("огни"), "got: {cut}");
+    fn a_deleted_work_leaves_the_index() {
+        let (conn, profile_id) = workspace();
+        let work = song(&conn, &profile_id, "Harbour lights");
+        conn.execute("DELETE FROM work WHERE id = ?1", params![work])
+            .unwrap();
+
+        assert!(find(&conn, &profile_id, "harbour").unwrap().is_empty());
     }
 
     #[test]
@@ -439,6 +628,8 @@ mod tests {
 
         assert!(find(&conn, &profile_id, "").unwrap().is_empty());
         assert!(find(&conn, &profile_id, "   ").unwrap().is_empty());
+        // Punctuation alone holds no words either.
+        assert!(find(&conn, &profile_id, " -- ").unwrap().is_empty());
     }
 
     #[test]
@@ -469,5 +660,94 @@ mod tests {
         let hits = find(&conn, &profile_id, "harbour").unwrap();
 
         assert_eq!(hits.len(), PER_KIND);
+    }
+
+    // The catalogue's question, and the whole point of the release: a work is
+    // found by a word inside its lyric, with nothing of the sort in its title.
+    #[test]
+    fn a_work_is_listed_for_a_word_only_its_body_holds() {
+        let (conn, profile_id) = workspace();
+        let kitchen = song(&conn, &profile_id, "Кухня");
+        let harbour = song(&conn, &profile_id, "Гавань огней");
+        let mut conn = conn;
+        version::create(
+            &mut conn,
+            &kitchen,
+            NewVersion {
+                role: "lyrics".into(),
+                body: "Тихо гудит в холодильнике свет".into(),
+                label: None,
+                meta: None,
+                make_current: true,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
+
+        let found = works_matching(&conn, &profile_id, "холодильник").unwrap();
+
+        assert_eq!(found, vec![kitchen]);
+        assert!(!found.contains(&harbour));
+    }
+
+    // One row per work, however many lines inside it matched: a catalogue that
+    // listed a song four times because four verses mention the sea would be
+    // worse than one that could not search at all.
+    #[test]
+    fn a_work_is_listed_once_however_often_it_matches() {
+        let (conn, profile_id) = workspace();
+        let work = song(&conn, &profile_id, "Sea songs");
+        let mut conn = conn;
+        for index in 0..3 {
+            version::create(
+                &mut conn,
+                &work,
+                NewVersion {
+                    role: "lyrics".into(),
+                    body: format!("the sea again, take {index}"),
+                    label: None,
+                    meta: None,
+                    make_current: false,
+                    parent_version_id: None,
+                },
+            )
+            .unwrap();
+        }
+
+        let found = works_matching(&conn, &profile_id, "sea").unwrap();
+
+        assert_eq!(found, vec![work]);
+    }
+
+    // Unlike the palette, the catalogue is a list to read down: capping it at
+    // six would quietly hide the rest of the answer.
+    #[test]
+    fn the_catalogue_answer_is_not_capped() {
+        let (conn, profile_id) = workspace();
+        for index in 0..PER_KIND + 4 {
+            song(&conn, &profile_id, &format!("Harbour {index}"));
+        }
+
+        let found = works_matching(&conn, &profile_id, "harbour").unwrap();
+
+        assert_eq!(found.len(), PER_KIND + 4);
+    }
+
+    #[test]
+    fn the_catalogue_answer_stays_inside_its_profile() {
+        let (conn, profile_id) = workspace();
+        conn.execute(
+            "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
+             SELECT 'other', 'other', 'Other', config, 0, 0, created_at, updated_at FROM profile LIMIT 1",
+            [],
+        )
+        .unwrap();
+        let mine = song(&conn, &profile_id, "Harbour lights");
+        song(&conn, "other", "Harbour bells");
+
+        assert_eq!(
+            works_matching(&conn, &profile_id, "harbour").unwrap(),
+            vec![mine]
+        );
     }
 }

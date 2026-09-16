@@ -87,9 +87,16 @@ mod tests {
         let conn = open(&path).unwrap();
 
         assert!(path.exists());
+        // The search index is an FTS5 virtual table, and SQLite backs one with
+        // half a dozen shadow tables of its own (`search_index_data`, `_idx`,
+        // `_docsize`…). They are the index's private business, so they are
+        // excluded by name rather than counted: this test is about the tables
+        // the product has, not about how FTS5 stores a posting list.
         let tables: i64 = conn
             .query_row(
-                "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
+                "SELECT count(*) FROM sqlite_master \
+                  WHERE type = 'table' AND name NOT LIKE 'sqlite_%' \
+                    AND name NOT LIKE 'search_index%'",
                 [],
                 |row| row.get(0),
             )
