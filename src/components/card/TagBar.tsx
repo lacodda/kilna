@@ -2,6 +2,15 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, X } from 'lucide-react'
+import {
+  Combobox,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxPopup,
+} from '@/components/ui/combobox'
+import { usePopupContainer } from '@/components/ui/layer'
 import { updateWork, workTags, type Mark, type Work } from '@/lib/api'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
@@ -27,7 +36,9 @@ export function TagBar({ work }: { work: Work }) {
   const profile = useProfile()
   const client = useQueryClient()
   const [adding, setAdding] = useState(false)
+  const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
+  const container = usePopupContainer()
 
   const patch = useMutation({
     mutationFn: (changes: { tags?: string[]; marks?: string[] }) =>
@@ -59,6 +70,7 @@ export function TagBar({ work }: { work: Work }) {
     const value = tag.trim()
     if (value === '') return
     setDraft('')
+    setOpen(false)
     setAdding(false)
     // Sent as typed; the backend trims, drops blanks and folds duplicates, so
     // the rule lives in one place rather than in every box that adds a tag.
@@ -128,48 +140,67 @@ export function TagBar({ work }: { work: Work }) {
       ))}
 
       {adding ? (
-        <span className="relative">
-          <input
+        // A Combobox rather than an input with a list under it. The hand-made
+        // version had no way to close: an outside click and Escape both need a
+        // dismiss layer around the popup, and writing one per dropdown is how
+        // an app ends up with three that behave differently. Base UI's brings
+        // the layer, the portal and the arrow keys with it.
+        <Combobox
+          items={suggestions}
+          // Filtered here, against the tags already on the work as well as the
+          // query, so the list never offers a word that is already a chip.
+          filter={null}
+          value={draft}
+          onValueChange={(next) => setDraft(typeof next === 'string' ? next : '')}
+          open={open}
+          onOpenChange={(next) => {
+            setOpen(next)
+            // Closing is the end of the errand, not a pause in it: leaving the
+            // box behind would put a second, empty tag field on the card.
+            if (!next) {
+              setDraft('')
+              setAdding(false)
+            }
+          }}
+        >
+          <ComboboxInput
             autoFocus
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') addTag(draft)
-              if (event.key === 'Escape') {
-                setDraft('')
-                setAdding(false)
-              }
-            }}
-            // Not on blur: clicking a suggestion blurs the box, and saving on
-            // blur would race the click and swallow it.
             placeholder={t('work.tagPlaceholder')}
             aria-label={t('work.addTag')}
-            className="w-40 rounded-full border border-accent bg-transparent px-2 py-0.5 text-[11px] outline-none"
+            onKeyDown={(event) => {
+              // A tag is whatever the author types, so Enter takes the typed
+              // word. Only when nothing is highlighted: with a highlighted row
+              // Enter belongs to the list.
+              if (event.key === 'Enter' && !event.defaultPrevented) addTag(draft)
+            }}
+            className="h-auto w-40 rounded-full border-accent px-2 py-0.5 text-[11px]"
           />
-          {suggestions.length > 0 && (
-            <span className="absolute left-0 top-6 z-30 flex w-48 flex-col rounded-[10px] border border-line bg-raise p-1 shadow-lg">
-              {suggestions.map((tag) => (
-                <button
+
+          <ComboboxPopup container={container} className="w-48 p-1">
+            <ComboboxList>
+              {(tag: string) => (
+                <ComboboxItem
                   key={tag}
-                  type="button"
-                  onMouseDown={(event) => {
-                    // Down, not click: the input's blur would otherwise close
-                    // the list before the click landed.
-                    event.preventDefault()
-                    addTag(tag)
-                  }}
-                  className="cursor-pointer rounded-[7px] px-2 py-1 text-left text-[11px] text-dim transition-colors hover:bg-soft hover:text-text"
+                  value={tag}
+                  onClick={() => addTag(tag)}
+                  className="rounded-[7px] px-2 py-1 text-[11px]"
                 >
                   {tag}
-                </button>
-              ))}
-            </span>
-          )}
-        </span>
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+            <ComboboxEmpty className="px-2 py-1 text-[11px]">
+              {t('work.tagNoMatch')}
+            </ComboboxEmpty>
+          </ComboboxPopup>
+        </Combobox>
       ) : (
         <button
           type="button"
-          onClick={() => setAdding(true)}
+          onClick={() => {
+            setAdding(true)
+            setOpen(true)
+          }}
           title={t('work.addTag')}
           className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-dashed border-line px-2 py-0.5 text-[11px] text-faint transition-colors hover:border-line-2 hover:text-dim"
         >
