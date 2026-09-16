@@ -9,10 +9,49 @@
       { "key": "story", "label": "Short story" }
     ],
     "release_kinds": [
-      { "key": "beta", "label": "To beta readers", "requires": ["text"], "icon": "users" },
-      { "key": "serial", "label": "Serial instalment", "requires": ["text"], "icon": "book-open" },
-      { "key": "submission", "label": "Submission", "requires": ["text"], "icon": "send" },
-      { "key": "published", "label": "Publication", "requires": ["text"], "icon": "book" }
+      {
+        "key": "beta",
+        "label": "To beta readers",
+        "requires": ["text"],
+        "icon": "users",
+        "fields": [
+          { "key": "title", "label": "Title", "type": "line", "template": "{title}"} ,
+          { "key": "brief", "label": "What to read for", "type": "text", "hint": "What you want the reader watching for this time."} 
+        ]
+      },
+      {
+        "key": "serial",
+        "label": "Serial instalment",
+        "requires": ["text"],
+        "icon": "book-open",
+        "fields": [
+          { "key": "title", "label": "Title", "type": "line", "template": "{title}"} ,
+          { "key": "teaser", "label": "Teaser", "type": "text", "hint": "The lines that go above the fold."} ,
+          { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated."} 
+        ]
+      },
+      {
+        "key": "submission",
+        "label": "Submission",
+        "requires": ["text"],
+        "icon": "send",
+        "fields": [
+          { "key": "title", "label": "Title", "type": "line", "template": "{title}"} ,
+          { "key": "cover_letter", "label": "Cover letter", "type": "text", "hint": "Who you are, what this is, why them."} ,
+          { "key": "synopsis", "label": "Synopsis", "type": "text", "template": "{role:outline}", "hint": "The whole story, ending included."} 
+        ]
+      },
+      {
+        "key": "published",
+        "label": "Publication",
+        "requires": ["text"],
+        "icon": "book",
+        "fields": [
+          { "key": "title", "label": "Title", "type": "line", "template": "{title}"} ,
+          { "key": "blurb", "label": "Blurb", "type": "text", "hint": "The back cover."} ,
+          { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated."} 
+        ]
+      }
     ],
     "note_kinds": [
     { "key": "character", "label": "Character" },

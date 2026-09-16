@@ -20,6 +20,7 @@ pub mod plugin;
 pub mod profile;
 pub mod readiness;
 pub mod release;
+pub mod release_meta;
 pub mod replay;
 pub mod reversal;
 pub mod scene;
@@ -130,6 +131,11 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::create_release,
             commands::update_release,
             commands::delete_release,
+            commands::release_fields,
+            commands::set_release_fields,
+            commands::preview_release_fields,
+            commands::generate_release_fields,
+            commands::generate_release_fields_batch,
             commands::preview_schedule,
             commands::warn_unready_releases,
             commands::schedule_release,

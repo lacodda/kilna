@@ -275,6 +275,17 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
                 release_kind.icon = shipped.icon.clone();
                 changed = true;
             }
+            // What a release of this kind says about itself arrives whole or
+            // not at all: a workspace that already lists fields for this kind
+            // has an owner who decided what a release says, and appending the
+            // shipped ones to that would put two titles in one box. A
+            // workspace with none gains the shipped list, which is how a live
+            // workspace made before v0.71 comes to have release metadata at
+            // all.
+            if release_kind.fields.is_empty() && !shipped.fields.is_empty() {
+                release_kind.fields = shipped.fields.clone();
+                changed = true;
+            }
         }
 
         // A role newly shipped for a kind the workspace already has is

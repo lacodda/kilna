@@ -430,6 +430,65 @@ impl WorkKind {
                     ));
                 }
             }
+
+            // What a release of this kind says about itself. Checked here
+            // rather than beside the actions, because a release field is read
+            // against ONE kind of work - the kind that owns this release kind
+            // - while an action may be offered on many. That makes the check
+            // sharper than the one an action gets: `{role:lyrics}` in a
+            // video's release title is wrong here even though some other kind
+            // has lyrics.
+            unique(
+                problems,
+                &format!("{place}: field of release kind `{}`", kind.key),
+                kind.fields.iter().map(|field| field.key.clone()),
+            );
+            for (number, field) in kind.fields.iter().enumerate() {
+                let at = format!(
+                    "{place}: release kind {} (`{}`), field {} (`{}`)",
+                    index + 1,
+                    kind.key,
+                    number + 1,
+                    field.key
+                );
+                if field.label.trim().is_empty() {
+                    problems.push(format!("{at} has no label"));
+                }
+                if field.limit == Some(0) {
+                    problems.push(format!(
+                        "{at} is limited to no characters at all; leave the limit out instead"
+                    ));
+                }
+                let Some(template) = field.template() else {
+                    continue;
+                };
+                for name in crate::assistant::prompt::placeholders(template) {
+                    if !crate::assistant::prompt::is_known_placeholder(&name) {
+                        problems.push(format!("{at} reads `{{{name}}}`, which nothing fills"));
+                        continue;
+                    }
+                    if let Some(role) = name.strip_prefix("role:") {
+                        if !roles.contains(role) {
+                            problems.push(format!(
+                                "{at} reads `{{{name}}}`, but this kind has no `{role}` role"
+                            ));
+                        }
+                    }
+                    if (name == "scenes" || name == "scene")
+                        && self.shot_types.is_empty()
+                        && self.scene_blocks.is_empty()
+                    {
+                        problems.push(format!(
+                            "{at} reads `{{{name}}}`, but this kind has no storyboard"
+                        ));
+                    }
+                    if name == "scene" {
+                        problems.push(format!(
+                            "{at} reads `{{scene}}`, which is one row of a board; a release is about the whole work, so it reads `{{scenes}}`"
+                        ));
+                    }
+                }
+            }
         }
 
         for (index, axis) in self.axes.iter().enumerate() {
@@ -606,6 +665,93 @@ pub struct ReleaseKind {
     /// own weights, and one tier for every kind.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub axis_weights: BTreeMap<String, f64>,
+    /// What has to be written *about* a release of this kind before it can go
+    /// out: a title, a description, tags, a comment to pin under it. The
+    /// craft's own list, because the fields a video ships with and the fields
+    /// a paperback ships with have nothing in common but being text someone
+    /// has to write.
+    ///
+    /// Each field may carry a template, so the writing starts from the work
+    /// rather than from an empty box. Empty — the state of every profile
+    /// written before the field existed — means a release of this kind says
+    /// nothing about itself, and the tab shows no metadata for it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fields: Vec<ReleaseField>,
+}
+
+/// One thing written about a release: the box it is typed in, and the
+/// template it starts from.
+///
+/// The key is what the value is stored under in `release.meta`, so renaming
+/// the label never loses what was written. The template is in the same
+/// language as an AI action's prompt — `{title}`, `{role:lyrics}`, `{scenes}`
+/// — because a placeholder that meant one thing in one box and another thing
+/// in the next box would be two vocabularies wearing one syntax. See
+/// [`crate::assistant::prompt`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseField {
+    pub key: String,
+    pub label: String,
+    /// The shape of the box. Absent is a line: the state a field written
+    /// before the type existed reads as.
+    #[serde(default, rename = "type")]
+    pub field_type: ReleaseFieldType,
+    /// What the field is filled with when it is generated, in the prompt
+    /// language. Absent means the field is only ever typed by hand — which is
+    /// the honest answer for a link, and a bad one for a description.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template: Option<String>,
+    /// A line under the box saying what goes in it — the platform's limit,
+    /// the house style. The same role `hint` plays on a scene block.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hint: Option<String>,
+    /// How many characters the place this is going will accept. Absent means
+    /// nobody is counting. Shown as a count beside the box rather than
+    /// enforced: kilna is not the authority on what YouTube accepts this
+    /// month, and a field it refuses to hold is a field typed somewhere else.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+}
+
+/// The shape of a release field's box.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ReleaseFieldType {
+    /// One line: a title.
+    #[default]
+    Line,
+    /// Paragraphs: a description, a comment to pin.
+    Text,
+    /// A list of words, kept as text with a comma between them — the form
+    /// every platform's box takes, and the form that survives a copy.
+    Tags,
+}
+
+impl ReleaseField {
+    pub fn new(key: &str, label: &str, field_type: ReleaseFieldType) -> Self {
+        Self {
+            key: key.to_owned(),
+            label: label.to_owned(),
+            field_type,
+            template: None,
+            hint: None,
+            limit: None,
+        }
+    }
+
+    /// The same field, filled from a template.
+    pub fn from_template(mut self, template: &str) -> Self {
+        self.template = Some(template.to_owned());
+        self
+    }
+
+    /// The template, when the field states one worth rendering: blank is none.
+    pub fn template(&self) -> Option<&str> {
+        self.template
+            .as_deref()
+            .map(str::trim)
+            .filter(|t| !t.is_empty())
+    }
 }
 
 impl ReleaseKind {
@@ -616,6 +762,7 @@ impl ReleaseKind {
             requires: requires.iter().map(|role| (*role).to_owned()).collect(),
             icon: None,
             axis_weights: BTreeMap::new(),
+            fields: Vec::new(),
         }
     }
 
@@ -1698,6 +1845,152 @@ mod tests {
             kinds: Vec::new(),
             scope: None,
         }
+    }
+
+    /// The shipped Studio profile, with `song`'s clip release given the
+    /// fields named here.
+    fn clip_fields(fields: Vec<ReleaseField>) -> ProfileConfig {
+        let mut config = studio();
+        for kind in &mut config.work_kinds {
+            for release_kind in &mut kind.release_kinds {
+                if release_kind.key == "clip" {
+                    release_kind.fields = fields.clone();
+                }
+            }
+        }
+        config
+    }
+
+    #[test]
+    fn the_shipped_profiles_say_what_a_release_goes_out_as() {
+        let config = studio();
+
+        let song = config.vocabulary("song");
+        let clip = song
+            .release_kinds
+            .iter()
+            .find(|kind| kind.key == "clip")
+            .expect("the studio profile ships a clip release");
+
+        let keys: Vec<&str> = clip.fields.iter().map(|field| field.key.as_str()).collect();
+        assert_eq!(keys, vec!["title", "description", "tags", "pinned"]);
+        assert!(
+            clip.fields[0].template().is_some(),
+            "the title is filled from the work rather than typed every time"
+        );
+    }
+
+    #[test]
+    fn a_release_field_with_a_hole_in_it_is_refused_at_save() {
+        let config = clip_fields(vec![
+            ReleaseField::new("title", "Title", ReleaseFieldType::Line).from_template("{typo}"),
+        ]);
+
+        let problems = config.validate();
+
+        assert!(
+            problems
+                .iter()
+                .any(|problem| problem.contains("reads `{typo}`, which nothing fills")),
+            "{problems:?}"
+        );
+    }
+
+    #[test]
+    fn a_release_field_is_held_to_the_roles_its_own_kind_has() {
+        // `plot` is a role of the video kinds, not of a song — and the clip
+        // release belongs to the song. An action naming no kinds would be
+        // judged against every kind and could pass on the strength of the
+        // video's roles; a release field cannot, because it is read against
+        // exactly one kind.
+        let config = clip_fields(vec![
+            ReleaseField::new("description", "Description", ReleaseFieldType::Text)
+                .from_template("{role:plot}"),
+        ]);
+
+        let problems = config.validate();
+
+        assert!(
+            problems
+                .iter()
+                .any(|problem| problem
+                    .contains("reads `{role:plot}`, but this kind has no `plot` role")),
+            "{problems:?}"
+        );
+    }
+
+    #[test]
+    fn a_release_field_reads_the_board_not_a_row_of_it() {
+        // `{scene}` is one row, filled from the scene an action was started
+        // on. A release is about the whole work and is started from no row at
+        // all, so the placeholder would render empty forever.
+        let config = clip_fields(vec![
+            ReleaseField::new("description", "Description", ReleaseFieldType::Text)
+                .from_template("{scene}"),
+        ]);
+
+        let problems = config.validate();
+
+        assert!(
+            problems
+                .iter()
+                .any(|problem| problem.contains("it reads `{scenes}`")),
+            "{problems:?}"
+        );
+    }
+
+    #[test]
+    fn two_release_fields_cannot_share_a_key() {
+        let config = clip_fields(vec![
+            ReleaseField::new("title", "Title", ReleaseFieldType::Line),
+            ReleaseField::new("title", "Headline", ReleaseFieldType::Line),
+        ]);
+
+        let problems = config.validate();
+
+        assert!(
+            problems
+                .iter()
+                .any(|problem| problem.contains("repeats the key `title`")),
+            "one key is one box: the second would overwrite the first in `release.meta`. {problems:?}"
+        );
+    }
+
+    #[test]
+    fn a_release_field_needs_a_label_and_a_limit_worth_having() {
+        let config = clip_fields(vec![ReleaseField {
+            key: "title".into(),
+            label: "  ".into(),
+            field_type: ReleaseFieldType::Line,
+            template: None,
+            hint: None,
+            limit: Some(0),
+        }]);
+
+        let problems = config.validate();
+
+        assert!(
+            problems
+                .iter()
+                .any(|problem| problem.contains("has no label")),
+            "{problems:?}"
+        );
+        assert!(
+            problems
+                .iter()
+                .any(|problem| problem.contains("limited to no characters at all")),
+            "{problems:?}"
+        );
+    }
+
+    #[test]
+    fn a_release_field_reading_a_role_its_kind_has_is_accepted() {
+        let config = clip_fields(vec![
+            ReleaseField::new("description", "Description", ReleaseFieldType::Text)
+                .from_template("{title}\n\n{role:lyrics}"),
+        ]);
+
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
     }
 
     #[test]

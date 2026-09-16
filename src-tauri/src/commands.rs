@@ -21,6 +21,7 @@ use crate::operation;
 use crate::plugin::{self, manifest::Plugin, manifest::Target};
 use crate::profile::{self, Profile, Workspace};
 use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
+use crate::release_meta;
 use crate::reversal;
 use crate::scene::{self, NewScene, Scene, ScenePatch};
 use crate::scene_frame;
@@ -1211,6 +1212,247 @@ pub fn update_release(
 #[tauri::command]
 pub fn delete_release(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Release, &id)
+}
+
+/// What a release says about itself, field by field.
+///
+/// The fields are the release kind's, so a clip is asked for a title, a
+/// description, tags and a pinned comment, and a beta read is asked for
+/// nothing at all -- see [`release_meta`].
+#[tauri::command]
+pub fn release_fields(state: State<'_, AppState>, id: String) -> Result<Vec<release_meta::Field>> {
+    let conn = state.conn();
+    release_meta::fields(&conn, &id)
+}
+
+/// Write a release's metadata.
+///
+/// Goes through the same patch the rest of the tab writes through, which is
+/// what gives it undo and the operation log without a line of its own: `meta`
+/// is a column of the release, and editing it is editing the release. The
+/// values arrive as text because that is what every box on the screen holds,
+/// and what every platform they are bound for accepts.
+///
+/// Keys the profile does not declare are refused rather than stored. The map
+/// is open on purpose -- an agent's package and an older profile may both
+/// have left things in it, and those are kept -- but a *typed* key that no
+/// field names could only come from a bug, and storing it would leave a value
+/// no screen can ever show again.
+#[tauri::command]
+pub fn set_release_fields(
+    state: State<'_, AppState>,
+    id: String,
+    values: std::collections::BTreeMap<String, String>,
+) -> Result<Release> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let before = release::get(&conn, &id)?.ok_or_else(|| Error::not_found("release", &id))?;
+    let known = release_meta::fields(&conn, &id)?;
+    for key in values.keys() {
+        if !known.iter().any(|field| &field.key == key) {
+            return Err(Error::not_found("release field", key));
+        }
+    }
+
+    let mut meta = before.meta.clone();
+    for (key, value) in &values {
+        meta.insert(key.clone(), serde_json::Value::String(value.clone()));
+    }
+
+    let patch = ReleasePatch {
+        meta: Some(meta),
+        ..ReleasePatch::default()
+    };
+
+    let at = time::now();
+    let logged = operation::Intent::new("release.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(Some(&before), &patch)?)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| {
+        release::update_at(tx, &id, patch, &at)
+    })
+}
+
+/// What the profile would write in a release's fields, without writing it.
+///
+/// Shown before it lands, because a generated description replaces one
+/// someone may have edited by hand, and a button that overwrites without
+/// showing what it is about to write is a button people stop pressing.
+#[tauri::command]
+pub fn preview_release_fields(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<release_meta::Generated> {
+    let conn = state.conn();
+    release_meta::generate(&conn, &id)
+}
+
+/// Fill a release's fields from the profile's templates.
+///
+/// Only templated fields are touched; what has no template stays as it was
+/// typed. Fields the renderer refused are reported back rather than written
+/// blank -- see [`release_meta::generate`].
+#[tauri::command]
+pub fn generate_release_fields(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<release_meta::Generated> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let before = release::get(&conn, &id)?.ok_or_else(|| Error::not_found("release", &id))?;
+    let generated = release_meta::generate(&conn, &id)?;
+
+    // Nothing rendered: the release is left exactly as it was, and no
+    // operation is logged. An undo entry for a change that did not happen is
+    // a step the user has to walk back past for nothing.
+    if generated.values.is_empty() {
+        return Ok(generated);
+    }
+
+    let patch = ReleasePatch {
+        meta: Some(release_meta::merged(&before.meta, &generated.values)),
+        ..ReleasePatch::default()
+    };
+
+    let at = time::now();
+    let logged = operation::Intent::new("release.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(Some(&before), &patch)?)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| {
+        release::update_at(tx, &id, patch, &at)
+    })?;
+
+    Ok(generated)
+}
+
+/// What a batch generation did, and to what.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GeneratedBatch {
+    /// Releases that gained at least one field.
+    pub filled: usize,
+    /// Releases whose kind declares no templated field at all: nothing was
+    /// asked of them, and nothing happened. Not an error -- this is the
+    /// reason the number is smaller than the selection.
+    pub skipped: usize,
+    /// Fields that could not be rendered, with the release they belong to.
+    /// Carried out of the batch rather than counted, because "seven releases
+    /// are waiting for lyrics" is only useful if you can see which seven.
+    pub refused: Vec<BatchRefusal>,
+}
+
+/// A field a batch could not fill, named by the work it is on.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BatchRefusal {
+    pub release_id: String,
+    pub work_title: String,
+    pub label: String,
+    pub reason: String,
+}
+
+/// Fill the fields of several releases at once.
+///
+/// The point of the batch is a week of the calendar: a person who has planned
+/// six videos writes their metadata in one go or not at all. Each release is
+/// generated exactly as it would be alone, and one release failing does not
+/// take the rest with it -- the same rule every batch here follows.
+///
+/// One journal line for the whole batch, not one per release.
+#[tauri::command]
+pub fn generate_release_fields_batch(
+    state: State<'_, AppState>,
+    ids: Vec<String>,
+) -> Result<GeneratedBatch> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let mut filled = 0usize;
+    let mut skipped = 0usize;
+    let mut refused: Vec<BatchRefusal> = Vec::new();
+
+    for id in &ids {
+        let Some(before) = release::get(&conn, id)? else {
+            skipped += 1;
+            continue;
+        };
+        let generated = match release_meta::generate(&conn, id) {
+            Ok(generated) => generated,
+            Err(cause) => {
+                eprintln!("release fields: {id} could not be generated: {cause}");
+                skipped += 1;
+                continue;
+            }
+        };
+
+        if !generated.refused.is_empty() {
+            let title = journal::work_title(&conn, &before.work_id).unwrap_or_default();
+            for refusal in &generated.refused {
+                refused.push(BatchRefusal {
+                    release_id: id.clone(),
+                    work_title: title.clone(),
+                    label: refusal.label.clone(),
+                    reason: refusal.reason.clone(),
+                });
+            }
+        }
+
+        if generated.values.is_empty() {
+            skipped += 1;
+            continue;
+        }
+
+        let patch = ReleasePatch {
+            meta: Some(release_meta::merged(&before.meta, &generated.values)),
+            ..ReleasePatch::default()
+        };
+
+        let at = time::now();
+        let logged = operation::Intent::new("release.update")
+            .in_profile(&profile_id)
+            .param("profile", profile_key(&conn, &profile_id)?)
+            .param("id", id.clone())
+            .param("patch", serde_json::to_value(&patch)?)
+            .param("before", was(Some(&before), &patch)?)
+            .param("at", at.clone());
+
+        match recording(&mut conn, logged, |tx| {
+            release::update_at(tx, id, patch, &at)
+        }) {
+            Ok(_) => filled += 1,
+            Err(cause) => {
+                eprintln!("release fields: {id} could not be written: {cause}");
+                skipped += 1;
+            }
+        }
+    }
+
+    if filled > 0 {
+        journal::record(
+            &conn,
+            &profile_id,
+            Record::new("release.fieldsBatch")
+                .param("count", i64::try_from(filled).unwrap_or(i64::MAX)),
+        );
+    }
+
+    Ok(GeneratedBatch {
+        filled,
+        skipped,
+        refused,
+    })
 }
 
 /// Claim a calendar slot. Displacing a weaker release is reported back rather

@@ -163,7 +163,37 @@
             "requires": [
               "plot"
             ],
-            "icon": "film"
+            "icon": "film",
+            "fields": [
+              {
+                "key": "title",
+                "label": "Title",
+                "type": "line",
+                "template": "{title}",
+                "hint": "What the video is listed under.",
+                "limit": 205
+              },
+              {
+                "key": "description",
+                "label": "Description",
+                "type": "text",
+                "template": "{role:plot}",
+                "hint": "The text under the video.",
+                "limit": 5000
+              },
+              {
+                "key": "tags",
+                "label": "Tags",
+                "type": "tags",
+                "hint": "Comma separated."
+              },
+              {
+                "key": "pinned",
+                "label": "Pinned comment",
+                "type": "text",
+                "hint": "The comment left under it, pinned to the top."
+              }
+            ]
           },
           {
             "key": "premiere",
@@ -171,7 +201,23 @@
             "requires": [
               "plot"
             ],
-            "icon": "video"
+            "icon": "video",
+            "fields": [
+              {
+                "key": "title",
+                "label": "Title",
+                "type": "line",
+                "template": "{title}",
+                "limit": 205
+              },
+              {
+                "key": "description",
+                "label": "Description",
+                "type": "text",
+                "template": "{role:plot}",
+                "limit": 5000
+              }
+            ]
           }
         ],
         "statuses": [
@@ -400,7 +446,29 @@
             "requires": [
               "plot"
             ],
-            "icon": "smartphone"
+            "icon": "smartphone",
+            "fields": [
+              {
+                "key": "title",
+                "label": "Title",
+                "type": "line",
+                "template": "{title}",
+                "hint": "Short enough to read on a phone.",
+                "limit": 100
+              },
+              {
+                "key": "description",
+                "label": "Description",
+                "type": "text",
+                "limit": 5000
+              },
+              {
+                "key": "tags",
+                "label": "Tags",
+                "type": "tags",
+                "hint": "Comma separated."
+              }
+            ]
           }
         ],
         "statuses": [
@@ -487,7 +555,37 @@
           "lyrics",
           "style"
         ],
-        "icon": "film"
+        "icon": "film",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Title",
+            "type": "line",
+            "template": "{title}",
+            "hint": "What the video is listed under.",
+            "limit": 205
+          },
+          {
+            "key": "description",
+            "label": "Description",
+            "type": "text",
+            "template": "{role:lyrics}",
+            "hint": "The text under the video. The lyrics are a starting point, not the whole of it.",
+            "limit": 5000
+          },
+          {
+            "key": "tags",
+            "label": "Tags",
+            "type": "tags",
+            "hint": "Comma separated. What someone would search for to land here."
+          },
+          {
+            "key": "pinned",
+            "label": "Pinned comment",
+            "type": "text",
+            "hint": "The comment left under it, pinned to the top."
+          }
+        ]
       },
       {
         "key": "short",
@@ -496,7 +594,29 @@
           "lyrics",
           "style"
         ],
-        "icon": "smartphone"
+        "icon": "smartphone",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Title",
+            "type": "line",
+            "template": "{title}",
+            "hint": "Short enough to read on a phone.",
+            "limit": 100
+          },
+          {
+            "key": "description",
+            "label": "Description",
+            "type": "text",
+            "limit": 5000
+          },
+          {
+            "key": "tags",
+            "label": "Tags",
+            "type": "tags",
+            "hint": "Comma separated."
+          }
+        ]
       },
       {
         "key": "audio",
@@ -505,7 +625,28 @@
           "lyrics",
           "style"
         ],
-        "icon": "disc"
+        "icon": "disc",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Title",
+            "type": "line",
+            "template": "{title}",
+            "limit": 205
+          },
+          {
+            "key": "description",
+            "label": "Description",
+            "type": "text",
+            "template": "{role:lyrics}"
+          },
+          {
+            "key": "tags",
+            "label": "Tags",
+            "type": "tags",
+            "hint": "Comma separated."
+          }
+        ]
       }
     ],
     "note_kinds": [

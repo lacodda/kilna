@@ -9,9 +9,37 @@
       { "key": "guide", "label": "Guide" }
     ],
     "release_kinds": [
-      { "key": "publish", "label": "Site publish", "requires": ["draft"], "icon": "globe" },
-      { "key": "newsletter", "label": "Newsletter send", "requires": ["draft"], "icon": "mail" },
-      { "key": "syndication", "label": "Syndication", "requires": ["draft"], "icon": "share-2" }
+      {
+        "key": "publish",
+        "label": "Site publish",
+        "requires": ["draft"],
+        "icon": "globe",
+        "fields": [
+          { "key": "title", "label": "Title", "type": "line", "template": "{title}"} ,
+          { "key": "excerpt", "label": "Excerpt", "type": "text", "hint": "The paragraph that shows in a list and in a search result.", "limit": 160} ,
+          { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated."} 
+        ]
+      },
+      {
+        "key": "newsletter",
+        "label": "Newsletter send",
+        "requires": ["draft"],
+        "icon": "mail",
+        "fields": [
+          { "key": "subject", "label": "Subject line", "type": "line", "template": "{title}", "hint": "What it says in an inbox.", "limit": 80} ,
+          { "key": "preheader", "label": "Preheader", "type": "line", "hint": "The line shown after the subject before anyone opens it.", "limit": 100} 
+        ]
+      },
+      {
+        "key": "syndication",
+        "label": "Syndication",
+        "requires": ["draft"],
+        "icon": "share-2",
+        "fields": [
+          { "key": "title", "label": "Title", "type": "line", "template": "{title}"} ,
+          { "key": "canonical_note", "label": "Where it first ran", "type": "text", "hint": "The note that says this appeared elsewhere first."} 
+        ]
+      }
     ],
     "note_kinds": [
     { "key": "source", "label": "Source" },

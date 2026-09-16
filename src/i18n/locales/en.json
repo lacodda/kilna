@@ -301,6 +301,21 @@
     "preview": {
       "taken": "{{title}} is already on this day",
       "pinned": "{{title}} is here, and the date is kept"
+    },
+    "fields": {
+      "action": "Write what they go out as",
+      "title": "Write what they go out as",
+      "body_one": "The profile writes the fields of {{count}} planned release from its work. What is written now is replaced.",
+      "body_other": "The profile writes the fields of {{count}} planned releases from their works. What is written now is replaced.",
+      "confirm": "Write them",
+      "done_one": "{{count}} release written.",
+      "done_other": "{{count}} releases written.",
+      "doneNone": "Nothing written: none of these releases has a field filled from its work.",
+      "skipped_one": "{{count}} left alone.",
+      "skipped_other": "{{count}} left alone.",
+      "refusedTitle": "Waiting on the work",
+      "refusedRow": "{{title}} — {{label}}: {{reason}}",
+      "failed": "Could not write the releases."
     }
   },
   "releases": {
@@ -317,7 +332,29 @@
     "unmarkReleased": "It did not go out",
     "wentOutOn": "Went out on",
     "wentOutOnHint": "The day it shipped, if that is not today.",
-    "linkLooksWrong": "That is not a web address, so it will not open."
+    "linkLooksWrong": "That is not a web address, so it will not open.",
+    "meta": {
+      "title": "What it goes out as",
+      "none": "Nothing is written about a {{kind}} release. The profile decides what a release of each kind says about itself.",
+      "written": "{{written}} of {{total}} written",
+      "complete": "All written",
+      "generate": "Write these from the work",
+      "regenerate": "Write them again",
+      "generated": "Written from the work.",
+      "generatedNothing": "Nothing to write: no field of this kind is filled from the work.",
+      "generateFailed": "Could not write the fields.",
+      "copy": "Copy",
+      "copied": "{{label}} is on the clipboard.",
+      "copyFailed": "Could not copy that.",
+      "saved": "Saved.",
+      "saveFailed": "Could not save what the release goes out as.",
+      "overLimit": "{{count}} over",
+      "ofLimit": "{{used}} of {{limit}}",
+      "refused": "Not written: {{label}} — {{reason}}",
+      "confirmTitle": "Write these again?",
+      "confirmBody": "What is written now is replaced by what the profile makes from the work. Fields the profile does not fill are left alone.",
+      "confirmAction": "Write them again"
+    }
   },
   "score": {
     "title": "Score",
@@ -949,7 +986,9 @@
     "work.deletedBatch_other": "{{count}} works deleted.",
     "release.unscheduledBatch_one": "{{count}} release taken off the calendar.",
     "release.unscheduledBatch_other": "{{count}} releases taken off the calendar.",
-    "undo.done": "Took back {{action}}"
+    "undo.done": "Took back {{action}}",
+    "release.fieldsBatch_one": "Wrote what {{count}} release goes out as.",
+    "release.fieldsBatch_other": "Wrote what {{count}} releases go out as."
   },
   "card": {
     "tab": {

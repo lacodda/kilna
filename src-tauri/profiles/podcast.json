@@ -9,9 +9,40 @@
       { "key": "trailer", "label": "Trailer" }
     ],
     "release_kinds": [
-      { "key": "feed", "label": "Feed release", "requires": ["script"], "icon": "rss" },
-      { "key": "clip", "label": "Audio clip", "requires": ["script"], "icon": "audio-lines" },
-      { "key": "video", "label": "Video upload", "requires": ["script"], "icon": "video" }
+      {
+        "key": "feed",
+        "label": "Feed release",
+        "requires": ["script"],
+        "icon": "rss",
+        "fields": [
+          { "key": "title", "label": "Title", "type": "line", "template": "{title}", "limit": 255} ,
+          { "key": "description", "label": "Show notes", "type": "text", "template": "{role:notes}", "hint": "What the episode covers, and the links it mentions."} ,
+          { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated."} 
+        ]
+      },
+      {
+        "key": "clip",
+        "label": "Audio clip",
+        "requires": ["script"],
+        "icon": "audio-lines",
+        "fields": [
+          { "key": "title", "label": "Title", "type": "line", "template": "{title}", "limit": 100} ,
+          { "key": "description", "label": "Description", "type": "text", "limit": 5000} ,
+          { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated."} 
+        ]
+      },
+      {
+        "key": "video",
+        "label": "Video upload",
+        "requires": ["script"],
+        "icon": "video",
+        "fields": [
+          { "key": "title", "label": "Title", "type": "line", "template": "{title}", "limit": 205} ,
+          { "key": "description", "label": "Description", "type": "text", "template": "{role:notes}", "limit": 5000} ,
+          { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated."} ,
+          { "key": "pinned", "label": "Pinned comment", "type": "text"} 
+        ]
+      }
     ],
     "note_kinds": [
     { "key": "guest", "label": "Guest" },
