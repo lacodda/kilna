@@ -11,7 +11,9 @@ import {
   workspacePath,
 } from '@/lib/api'
 import { say } from '@/lib/toast'
+import { useCardView } from '@/lib/cardView'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ProfileEditor } from '@/components/ProfileEditor'
 import { StatusDrift } from '@/components/StatusDrift'
@@ -22,6 +24,7 @@ export function DataView() {
   const { t } = useTranslation()
   const client = useQueryClient()
   const [busy, setBusy] = useState(false)
+  const { view, setCardView } = useCardView()
 
   // The path never changes while the app runs, so it is asked for once.
   const path = useQuery({
@@ -94,6 +97,22 @@ export function DataView() {
       <hr className="border-line" />
 
       <StatusDrift />
+
+      <hr className="border-line" />
+
+      {/* What the card draws, as this machine likes it. A switch and not a
+          checkbox: there is no Save button on this screen, and the card two
+          routes away changes the moment it moves. */}
+      <section className="flex flex-col gap-2">
+        <h3 className="text-sm font-semibold">{t('data.cardView')}</h3>
+        <p className="text-sm text-dim">{t('data.cardViewHint')}</p>
+        <Switch
+          checked={view.metaStrip}
+          onCheckedChange={(on) => setCardView({ metaStrip: on })}
+        >
+          {t('data.showMetaStrip')}
+        </Switch>
+      </section>
 
       <hr className="border-line" />
 
