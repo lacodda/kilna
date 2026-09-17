@@ -102,10 +102,11 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            tables, 23,
+            tables, 24,
             "nine core tables, three for the assistant, the trash, two for the focus board, \
              three for the day two workspaces meet (device, tombstone, field_clock), the operations log, \
-             the link between works, the scene, what a scene is about, and the frames drawn for it"
+             the link between works, the scene, what a scene is about, the frames drawn for it, \
+             and the stretches a short is cut from"
         );
     }
 

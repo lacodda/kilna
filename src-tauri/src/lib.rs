@@ -4,6 +4,7 @@ pub mod clock;
 pub mod clone;
 pub mod collection;
 pub mod commands;
+pub mod cut;
 pub mod db;
 pub mod device;
 pub mod error;
@@ -168,6 +169,13 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::list_scene_notes,
             commands::attach_scene_note,
             commands::detach_scene_note,
+            commands::list_cuts,
+            commands::list_cuts_from,
+            commands::create_cut,
+            commands::update_cut,
+            commands::reorder_cuts,
+            commands::delete_cut,
+            commands::cut_shot_list,
             commands::attach_asset,
             commands::list_work_assets,
             commands::list_release_assets,
