@@ -1,109 +1,93 @@
-<img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/banner.svg" alt="kilna" width="720">
+<p align="center"><img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/banner.svg" alt="kilna - from raw idea to shipped work" width="720"></p>
 
-# kilna
+> You write songs, chapters, episodes or articles. The work lives in one place, the release plan in another, and the decision about what deserves to ship lives in your head. kilna closes that loop.
 
-**A desktop workbench for content makers — from raw idea to shipped work.**
+<p align="center">
+  <a href="https://github.com/lacodda/kilna/releases/latest"><img src="https://img.shields.io/github/v/release/lacodda/kilna?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/lacodda/kilna/actions"><img src="https://img.shields.io/github/actions/workflow/status/lacodda/kilna/ci.yml?style=flat-square" alt="CI"></a>
+  <a href="https://github.com/lacodda/kilna/blob/main/LICENSE"><img src="https://img.shields.io/github/license/lacodda/kilna?style=flat-square" alt="License"></a>
+</p>
 
-You write songs, chapters, episodes, or articles. The work lives in one place, the release plan in another, and the decision about what actually deserves to ship lives in your head. kilna closes that loop.
+<p align="center"><img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="The kilna catalogue with the search palette open over it: one box finding a work by title and two drafts by a line inside them, with the assistant's floating button in the corner" width="1200"></p>
 
-> **Status: early development.** The loop is closed end to end — a work gains versions, a version earns a score, a score wins a calendar slot, and the slot ends in a release you mark by hand — with four craft profiles, an AI panel over your own Claude Code CLI, an MCP server for agents outside the window, and a plugin protocol. Nothing is deleted outright and nothing happens unnoticed: there is a trash behind every deletion and a history behind every change. The interface speaks English and Russian. Builds for Windows, macOS and Linux are on the [Releases page](https://github.com/lacodda/kilna/releases); none of them are signed yet, so your OS will warn you about an unidentified developer.
+## Why
 
-<img src="https://raw.githubusercontent.com/lacodda/kilna/main/assets/screenshot.png" alt="The kilna catalogue with the search palette open over it: one box finding a work by title and two drafts by a line inside them, with the assistant's floating button in the corner" width="1200">
+Every craft repeats the same cycle, and every tool covers one arc of it. Drafts
+end up in an editor, the plan in a spreadsheet, and the judgement of what is
+actually ready stays in your head - where it quietly becomes "whatever I
+touched last".
 
-## The loop
+kilna models the whole cycle once:
 
 ```
 work  →  versions  →  score  →  calendar slot  →  shipped
 ```
 
-Every craft repeats the same cycle. kilna models it once and lets your craft configure the vocabulary.
+The structure is fixed; the vocabulary is yours. A song is judged on hook and
+lyrics and ships as a clip; a chapter carries text and an outline and ships as
+a release. Same screens, same loop, different words - configured in a profile
+rather than coded.
 
-- **Work with versions.** Every draft is kept whole — no diff chains, no lost revisions. A song keeps lyrics and style separately; a chapter keeps text and outline. Name them, compare any two side by side, and write full screen; an unsaved draft survives a closed window.
-- **A video is made in scenes.** A kind whose works are made in scenes — a video, a short — carries a storyboard: one table, a row per scene with its number, the part of the text it plays against, its seconds, a kind of shot from your profile's list, who is in it and where, and how far it is filled in. Open a row for the description in full and a prompt block per generator, each with its own copy button; the scaffold is fixed and you type inside the blocks. An empty board builds its own frame from the source text — one scene per part the lyric marks out — and the work's duration divides between the scenes with one click. A scene points at notes rather than naming people in prose, so *every scene with her in it* is one click too. The pictures a generator sends back live on the scene they were drawn for — pick a file, drag one in, or paste straight from the generator's tab with `Ctrl+V` — and all four candidates sit side by side until you tick the one the video is cut from; that one shows beside the scene's number, and full screen the arrows walk the board scene by scene. Under them a second strip holds the clips animated from those pictures, with its own takes and its own tick, so a scene ends up knowing both which picture it is and which clip the montage uses. The whole board goes to an editor as a montage list — number, span and the two file paths per scene — copied or saved as a text file that any program reads. Unhappy with the result? A second attempt copies the board into a new video from the same source and leaves the first one to compare against, sharing the pictures rather than duplicating them. What every scene shares — the hero, the palette, the lens — is a body with revisions like the plot. See [Scenes](https://lacodda.github.io/kilna/guides/scenes/).
-- **Files and covers.** Attach pictures to a work — drop them on its Files tab or pick them — and one becomes its cover, shown on the card, in the catalogue, on its calendar chip and in search. A file is *copied* into the workspace rather than pointed at where it lay, so a cover keeps working the day you tidy your downloads, and a backup carries the pictures with the database. See [Files and covers](https://lacodda.github.io/kilna/guides/files-and-covers/).
-- **Scoring that means something.** Rate a work along axes you define, weighted into a tier — a scale you click or drive from the keyboard, with each axis showing the question it asks. Scores are snapshots tied to a version, with a note on why, so you can see that rewriting the second verse moved it from 62 to 78.
-- **A status you never have to keep up.** Scoring makes a work scored, a calendar slot makes it scheduled, going out makes it released — worked out from what happened, in your profile's own words. Set one by hand and it stays put; the automation steps over that work entirely until you hand it back.
-- **A calendar you can trust.** A day holds what you put on it, and says what is already there before you add beside it; a day you settled by hand is left alone by the automation. One click lays the whole queue out to your profile's rhythm, as a preview you approve before anything is booked.
-- **Shipping is a state, not an integration.** Mark it out, paste the link. Plugins can automate it later; the loop closes without them.
-- **A first screen that answers "what now".** kilna opens on what needs a decision — a slot this week the work is not ready for, overdue first — then the week as it stands, then the shortlist of scored work going nowhere yet. Already-released work never appears: the automation shows what can still be done. Below that, standing findings — a score describing a draft you have since rewritten, the weakest work holding a slot while something stronger waits, a draft nobody has opened in a month — each with the profile action that would answer it, read-only until you press it. Say you have heard one and it goes quiet — until the complaint itself changes, which makes it news again; add your own lines beside them, pinned or ordered as you like.
-- **A catalogue you arrange.** One list of everything you are making, with the columns you choose — the identifier, marks you raise by hand, how many versions a work holds, when it was added or last edited — folded into blocks by status or tier when you want to read it that way. Tick a run of rows with `Shift`, then move them all to a status, take them off the calendar, or delete them in one go. See [The catalogue](https://lacodda.github.io/kilna/guides/the-catalogue/).
-- **One box finds anything.** `Ctrl+K` searches titles, every draft's full text, notes and assistant replies at once — and folds case in full Unicode, so a Russian workspace is as searchable as an English one. Before you type it lists the works you had open lately, so reopening one is two keys.
-- **The whole shell answers to the keyboard.** `G` then a letter jumps between screens, `Alt+←` walks back the way a browser does, and `?` shows the list from wherever you are. Letter shortcuts stand aside while you are typing and the bare arrows always belong to whatever is under them, so nothing is ever taken out from under a sentence. Every row offers its actions to a right click as well as to the three dots. See [Keyboard](https://lacodda.github.io/kilna/reference/keyboard/).
+## What you get
 
-## Profiles, not a form builder
+- **Drafts kept whole.** Every version is stored complete - no diff chains, no
+  lost revisions - and any two compare side by side.
+- **Scoring that means something.** Rate along axes you define, weighted into a
+  tier, tied to the version that earned it, with a note on why.
+- **A status you never keep up by hand.** Scoring, scheduling and shipping are
+  worked out from what happened; set one yourself and the automation leaves
+  that work alone.
+- **A first screen that answers "what now".** Overdue slots first, then the
+  week, then scored work going nowhere - each with the action that would
+  answer it.
+- **A storyboard for what is made in scenes.** A video or a short carries a
+  table of scenes, prompts per generator, the pictures they came back with, and
+  a montage list any editor reads.
+- **An assistant that proposes, never writes.** kilna talks to Claude through
+  your own [Claude Code](https://claude.com/claude-code) CLI - your
+  subscription, no API key - and every answer lands as a proposal you apply
+  with one button. `kilna --mcp` gives an agent outside the window the same
+  door.
+- **Your data stays yours.** Local SQLite, media as plain files, a markdown
+  export readable without kilna. A trash behind every deletion and a history
+  behind every change. No account, no server.
 
-A song, a chapter, and a podcast episode differ in vocabulary and in how they're judged — not in structure. So the schema is fixed and the craft is configuration:
+## Install
 
-```jsonc
-{
-  "work_kinds":    ["song"],
-  "release_kinds": ["clip", "short", "audio-release"],
-  "statuses": [
-    { "key": "draft",    "label": "Draft",    "derive": "draft" },
-    { "key": "released", "label": "Released", "derive": "released" },
-    { "key": "shelved",  "label": "Shelved",  "derive": "manual" }
-  ],
-  "axes": [
-    { "key": "hook", "label": "Hook", "weight": 2,   "scale": 10 },
-    { "key": "text", "label": "Text", "weight": 1.5, "scale": 10 }
-  ],
-  "tiers": [{ "key": "clip", "min": 75 }, { "key": "hold", "min": 0 }]
-}
-```
+Download the installer for your platform from the
+[latest release](https://github.com/lacodda/kilna/releases/latest): `.msi` or
+`.exe` for Windows, `.dmg` for macOS, `.AppImage`, `.deb` or `.rpm` for Linux.
 
-A profile holds several kinds of work, and each kind carries its own vocabulary: in **Studio** a song is judged on hook and lyrics and ships as a clip or an audio release, while a video is judged on dynamics and editing, carries a plot rather than lyrics, and goes out on YouTube. kilna ships with **Studio**, **Novel**, **Podcast** and **Blog**. Switch profile and the same screens speak about chapters and pull, or episodes and the cold open. No new code, no migration — the schema never moves.
+The builds are not signed yet, so your OS will warn about an unidentified
+developer.
 
-## AI panel
+The first run asks for a workspace directory and a craft profile - kilna ships
+with **Studio**, **Novel**, **Podcast** and **Blog**, and either can be changed
+later. See [Getting started](https://lacodda.github.io/kilna/getting-started/).
 
-kilna talks to Claude through your installed [Claude Code](https://claude.com/claude-code) CLI — your subscription, your session, your skills. Nothing is sent anywhere else, and there is no API key to configure.
+## Status
 
-Actions come from the active profile: a short message with placeholders filled from the work in front of you, and a **method** — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say — that reaches the model as a system instruction. Studio ships a critique of lyrics in blocks, a way of judging finished work along your axes with their rubrics, and three for a video — the plot from the song it is made from, the storyboard from the plot, the prompts for a scene — each coming back as a proposal you apply with one button; rewrite them in Settings, or add your own. An action says which kinds it is for, so a critique of lyrics is not offered on a video, and a template that loses the placeholder carrying the text is refused at save rather than sent with a hole in it. Started under a revision on the Versions tab, an action reads that revision and what it proposes is bound to it; the eye beside every button shows exactly what the click sends — the message and the method — and takes reference files by path.
-
-```jsonc
-{
-  "key": "critique",
-  "label": "Critique the lyrics",
-  "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nWhich lines are weak?"
-}
-```
-
-So "Critique the lyrics" means the right thing in a music profile and something else entirely in a novel one. Conversations are kept in the workspace, and a follow-up question continues where the last one left off.
-
-Asking something starts a run that belongs to the chat, not to the screen you were on: leave the card, open another work, come back — it is still going, and the panel replays what it said while you were away. A floating button carries a badge while runs are in flight and opens every chat from any screen — a work can hold several chats, and a chat does not need a work to be about. Answers render as markdown with one-click copy, and an answer worth keeping becomes a version of the work with one more. A profile action means two things by design: in the panel it fills the composer so you read what is about to be sent (typing `/` reaches the same list from the keyboard), and on a work's Overview tab — or its Scenes tab — it runs at once in a chat of its own — you are told when it lands, wherever you are, and the same action cannot be started twice on the same work. An action that stops to ask you something says so with a banner instead of leaving the question in a chat you are not watching, and an action can come back with a score along your axes for you to apply with one button. **The assistant never writes to your workspace**: it proposes, you apply. Runs start in an empty directory, so the model sees what the prompt carries — not whatever files kilna was launched next to. You can watch the tools it uses as it works, stop it, and have up to three going at once — tick a batch of works in the catalogue and the rest queue for a free slot, counted down by a bar you can see from any screen. See [The assistant](https://lacodda.github.io/kilna/guides/the-assistant/).
-
-The core works without it. The panel is amplification, not a requirement — if the CLI isn't installed, the panel says so and everything else carries on.
-
-The same rule runs the other way: `kilna --mcp` serves the workspace to an agent outside the window over the [Model Context Protocol](https://modelcontextprotocol.io) — a Claude Code session anywhere on the machine reads your works, versions, scores and calendar, and *proposes* a version, a score, a note, a storyboard for a video, or a whole work as one package, which lands in a chat with the same apply buttons — one click for the package, and *apply all* for a chat full of proposals. Register it with one command from the Settings screen. See [MCP server](https://lacodda.github.io/kilna/reference/mcp/).
-
-## Plugins
-
-Integrations are ordinary executables named `kilna-plugin-*`, found on your `PATH` or in the workspace's `plugins` directory. kilna runs one with `--manifest` to ask what it offers, then with `run` and a JSON invocation on stdin:
-
-```jsonc
-{ "command": "count", "target": "work", "subject": { "title": "…", "bodies": { "lyrics": "…" } } }
-```
-
-Whatever the plugin returns under `meta` is merged into that row — it can add and overwrite its own keys, never clear the rest. Plugins live for the duration of a call; nothing starts a service, and nothing is loaded into kilna's process.
-
-[kilna-plugin-wordcount](https://github.com/lacodda/kilna-plugin-wordcount) is the reference implementation.
-
-## Your data stays yours
-
-Local SQLite, media as plain files on disk, and a markdown export of everything — front matter, full bodies, scores and releases, readable without kilna. Back the whole workspace up to a single file. No account, no server, no lock-in.
-
-Nothing is lost by pressing a button either: deleting moves things to a [trash](https://lacodda.github.io/kilna/guides/the-trash/) you can restore from, so kilna never asks you to confirm — the undo is in the message.
-
-And nothing happens unnoticed. Every change leaves a line in [History](https://lacodda.github.io/kilna/guides/the-history/) — what happened, to what, and when — so a question you only think to ask three weeks later still has an answer. The bell in the top bar lights only for the entries that need a look, such as a release pushed out of its slot by a stronger work.
+v0.73.0, in daily use. The loop is closed end to end - a work gains versions, a
+version earns a score, a score wins a calendar slot, and the slot ends in a
+release you mark by hand - with four craft profiles, the assistant panel, an
+MCP server and a plugin protocol. The interface speaks English and Russian.
+What landed in each version:
+[CHANGELOG](https://github.com/lacodda/kilna/blob/main/CHANGELOG.md).
 
 ## Documentation
 
-Full documentation: [lacodda.github.io/kilna](https://lacodda.github.io/kilna).
+**[lacodda.github.io/kilna](https://lacodda.github.io/kilna)** - the loop,
+profiles, scenes, the assistant, the keyboard and the plugin protocol.
 
-## Contributing
+Writing a plugin: integrations are ordinary executables named `kilna-plugin-*`
+that answer on stdin - see
+[the guide](https://lacodda.github.io/kilna/guides/writing-a-plugin/) and
+[kilna-plugin-wordcount](https://github.com/lacodda/kilna-plugin-wordcount),
+the reference implementation.
 
-Building the app, running tests and repository layout:
+Building it yourself:
 [CONTRIBUTING.md](https://github.com/lacodda/kilna/blob/main/CONTRIBUTING.md).
 
 ## License
 
-MIT
+MIT (c) [Kirill Lakhtachev](https://lacodda.com)
