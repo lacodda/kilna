@@ -93,6 +93,7 @@ fn keys_written() -> BTreeSet<String> {
         kilna_lib::trash::Entity::Note,
         kilna_lib::trash::Entity::Collection,
         kilna_lib::trash::Entity::Scene,
+        kilna_lib::trash::Entity::Cut,
     ] {
         found.insert(format!("{}.deleted", entity.as_str()));
     }
@@ -160,5 +161,69 @@ fn no_sentence_is_written_for_an_action_nobody_records() {
     assert!(
         stale.is_empty(),
         "these sentences describe actions nothing records any more: {stale:?}"
+    );
+}
+
+/// Every kind `undo` offers to take back, read out of the match arm that
+/// decides it.
+///
+/// Scanned from the source for the reason `keys_written` gives: a kind no test
+/// happens to undo would otherwise contribute nothing, and that is the one most
+/// likely to be missing its sentence.
+fn kinds_reversible() -> BTreeSet<String> {
+    let source = std::fs::read_to_string(repo_root().join("src-tauri/src/undo.rs"))
+        .expect("undo.rs is readable");
+    let start = source
+        .find("pub fn reversible(")
+        .expect("undo.rs states which kinds are reversible");
+    // The arm itself, not the function: `reversible` ends with `)\n}`, and
+    // reading past it swallows the next function's prose as a "kind".
+    let body = &source[start..];
+    let end = body.find("\n    )").expect("the match arm ends");
+    let arm = &body[..end];
+
+    let mut found = BTreeSet::new();
+    for (index, _) in arm.match_indices('"') {
+        let after = &arm[index + 1..];
+        let Some(close) = after.find('"') else {
+            continue;
+        };
+        let kind = &after[..close];
+        // The arm holds only dotted kind names; anything else is prose.
+        if kind.contains('.') {
+            found.insert(kind.to_owned());
+        }
+    }
+    found
+}
+
+/// The undo toast says "Took back {{what}}", and `what` is looked up as
+/// `undo.<kind>` — so a reversible kind with no sentence puts the raw key in
+/// front of the person: *Took back undo.cut.create*.
+///
+/// `check-locales.mjs` cannot see this either: a key missing from both locales
+/// is consistent, which is exactly how this shipped unnoticed once.
+#[test]
+fn every_kind_undo_offers_to_take_back_has_a_sentence() {
+    let reversible = kinds_reversible();
+    assert!(
+        reversible.len() > 10,
+        "the scan of `reversible` found almost nothing — it has stopped testing anything"
+    );
+
+    let source = std::fs::read_to_string(repo_root().join("src/i18n/locales/en.json"))
+        .expect("en.json is readable");
+    let locale: serde_json::Value = serde_json::from_str(&source).expect("en.json is valid JSON");
+    let translated: BTreeSet<String> = locale["undo"]
+        .as_object()
+        .expect("the locale has an undo section")
+        .keys()
+        .map(|key| base_key(key).to_owned())
+        .collect();
+
+    let missing: Vec<&String> = reversible.difference(&translated).collect();
+    assert!(
+        missing.is_empty(),
+        "undo offers to take these back but has no sentence for them in en.json: {missing:?}"
     );
 }
