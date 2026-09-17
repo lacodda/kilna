@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.72.0] - 2026-09-16
+
+### Bug Fixes
+- The tag suggestions close on Escape and on a click outside
+- The craft's own stage stops reach a workspace that predates them
+- The dial is on the week's rows, not only on the decisions
+
+### Documentation
+- The stage dial, full-text search and the card's field row
+
+### Features
+- Find a work by a word inside it, not only in its title
+- How finished a work is, as its author judges it
+- A dial beside the star, and a column of them in the catalogue
+- The row of craft fields is a setting, not a fixture
+- Words for the stage dial, the card switch and a new tag
+
+### style
+- Rustfmt the carried-forward stages
 ## [0.71.0] - 2026-09-16
 
 ### Bug Fixes
