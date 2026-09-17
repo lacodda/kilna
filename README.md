@@ -95,29 +95,14 @@ Nothing is lost by pressing a button either: deleting moves things to a [trash](
 
 And nothing happens unnoticed. Every change leaves a line in [History](https://lacodda.github.io/kilna/guides/the-history/) — what happened, to what, and when — so a question you only think to ask three weeks later still has an answer. The bell in the top bar lights only for the entries that need a look, such as a release pushed out of its slot by a stronger work.
 
-## Built with
+## Documentation
 
-[Tauri v2](https://v2.tauri.app/) · Rust · SQLite · React
+Full documentation: [lacodda.github.io/kilna](https://lacodda.github.io/kilna).
 
-## Development
+## Contributing
 
-Requires Rust (1.85 or newer), Node 22+ and pnpm.
-
-```sh
-pnpm install
-pnpm tauri dev            # run the app
-pnpm lint                 # eslint + tsc + locales + tests
-pnpm test                 # frontend unit tests
-cd src-tauri
-cargo test                # backend tests
-cargo clippy -- -D warnings
-```
-
-The workspace database is created under the platform's application data
-directory on first run. Schema changes are versioned migrations in
-`src-tauri/migrations/`; the schema is never edited in place.
-
-Full documentation: [lacodda.github.io/kilna](https://lacodda.github.io/kilna). Architecture decisions live in [docs/adr](https://github.com/lacodda/kilna/tree/main/docs/adr).
+Building the app, running tests and repository layout:
+[CONTRIBUTING.md](https://github.com/lacodda/kilna/blob/main/CONTRIBUTING.md).
 
 ## License
 
