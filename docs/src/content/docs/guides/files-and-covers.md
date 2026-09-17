@@ -17,6 +17,9 @@ step. Setting a second one changes the cover: the newest is the one that
 shows, and the one it replaced stays attached rather than disappearing
 behind your back. Remove it and the older one is the cover again.
 
+Where the cover is drawn rather than photographed, the tab opens with the
+prompt it is drawn from — see [Shorts](/kilna/guides/shorts/#the-covers-prompt).
+
 ## Where the file goes
 
 **A file is copied into the workspace**, not pointed at where it lay. The

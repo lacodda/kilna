@@ -19,7 +19,7 @@ second attempt at a video is a second video
 A work whose kind has a storyboard — in Studio, a *Video* or a *Short* —
 opens a **Scenes** tab on its card. A song has none: the tab is for kinds
 whose profile names kinds of shot or prompt blocks (see
-[the profile document](/kilna/reference/profile-document/#shot_types-and-scene_blocks)).
+[the profile document](/kilna/reference/profile-document/#shot_types-scene_blocks-and-cover_blocks)).
 
 From top to bottom:
 

@@ -77,7 +77,7 @@ collection can take:
 A **work kind** carries the five lists described on this page — its `axes`,
 `tiers`, `version_roles`, `release_kinds` and `statuses` — beside its key
 and label, and, for a kind whose works are made in scenes, the two lists of
-[its storyboard](#shot_types-and-scene_blocks); `release_kinds` therefore sit inside the work kind whose works go
+[its storyboard](#shot_types-scene_blocks-and-cover_blocks); `release_kinds` therefore sit inside the work kind whose works go
 out that way, and a video's *YouTube* and a song's *clip* are different
 doors. `collection_kinds` stay on the profile.
 
@@ -549,12 +549,12 @@ existed loads: the auto-layout then refuses with an explanation instead of
 inventing a pace. A workspace whose stored copy has no rhythm gains the
 shipped one at the next start; a pace you set yourself is left alone.
 
-## `shot_types` and `scene_blocks`
+## `shot_types`, `scene_blocks` and `cover_blocks`
 
-Two optional lists on a **work kind**, for a kind whose works are made in
-scenes — Studio's `video` and `short`. A kind that names neither has no
-storyboard, and its cards draw no [Scenes](/kilna/guides/scenes/) tab. A
-document without them is the same document: format 2 is not changed.
+Three optional lists on a **work kind**. The first two are for a kind whose
+works are made in scenes — Studio's `video` and `short`. A kind that names
+neither has no storyboard, and its cards draw no [Scenes](/kilna/guides/scenes/)
+tab. A document without them is the same document: format 2 is not changed.
 
 ```jsonc
 {
@@ -568,6 +568,11 @@ document without them is the same document: format 2 is not changed.
     { "key": "still", "label": "Still frame", "hint": "The frame as a picture: subject, light, lens, mood." },
     { "key": "motion", "label": "Animation", "hint": "What moves, and how the camera moves, from that frame." },
     { "key": "negative", "label": "Negative", "hint": "What must not appear." }
+  ],
+  "cover_blocks": [
+    { "key": "picture", "label": "Picture", "hint": "What the thumbnail shows: subject, framing, light, mood." },
+    { "key": "negative", "label": "Negative", "hint": "What must not appear on it." },
+    { "key": "typography", "label": "Typography", "hint": "The words on the cover, and how they sit: size, weight, place." }
   ]
 }
 ```
@@ -579,11 +584,26 @@ document without them is the same document: format 2 is not changed.
 | `scene_blocks[].key` | string | The key a scene stores that block's text under, and the key a template (v0.62) will read. A block under a key this list does not name is refused on write. |
 | `scene_blocks[].label` | string | The caption over the box and on its copy button. |
 | `scene_blocks[].hint` | string, optional | A line under the box saying what goes in it. |
+| `cover_blocks[].key` | string | The key a work stores that block's text under, in `work.cover`. A block under a key this list does not name is refused on write, the same as a scene block. |
+| `cover_blocks[].label` | string | The caption over the box and on its copy button. |
+| `cover_blocks[].hint` | string, optional | A line under the box saying what goes in it. |
 
 Studio also gives both kinds a `context` [version role](#version_roles)
 for what every scene shares — the hero, the palette, the lens. A workspace
 that already has the video kinds gains the two lists at the next start,
 where its stored copy names none; a list you narrowed is left alone.
+
+`cover_blocks` is the same shape as `scene_blocks` and for the same reason:
+the craft names the parts of a cover's prompt, the code does not know them.
+It is not about the storyboard — a song's cover is its album's and a song has
+no scenes, so a kind can carry either list without the other. Studio gives
+`video` and `short` three blocks each: `picture`, `negative` and
+`typography` — what the thumbnail shows, what must not appear on it, and the
+words that sit on it. A kind that names none has no cover prompt, and the
+screen draws nothing where the prompt would be. Added in v0.73 — a document
+without it is the same document, and a workspace that already has the video
+kinds gains it at the next start, where its stored copy names none; a list
+you narrowed yourself is left alone, the way `scene_blocks` is.
 
 ## `prompts`
 

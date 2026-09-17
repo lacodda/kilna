@@ -119,7 +119,8 @@ skip them:
   whether it was restored since — without its contents. It survives emptying
   the trash and is what lets the import above tell *deleted* from *never
   here*. A [link between works](/kilna/guides/made-from/) is traced the same
-  way.
+  way, and so is a cut — one stretch of a short's splice, taken from a donor
+  video.
 - **A clock per field.** For everything you edit in place — a work, a
   release, a note, a scene, a collection, a profile, a chat, a board note —
   the moment each field last changed, not just the row. Saving a form with the same
