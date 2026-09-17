@@ -296,6 +296,10 @@ export interface WorkKind extends Kind {
   shot_types?: Kind[]
   /** The prompt blocks a scene carries, each edited and copied on its own. */
   scene_blocks?: SceneBlock[]
+  /** The parts of the prompt a work's cover is drawn from — what to draw,
+      what to keep out, what words go on it. A kind naming none has no cover
+      prompt, and the tab that edits one does not appear. */
+  cover_blocks?: SceneBlock[]
 }
 
 /** One stop on the way from an idea to a finished work. */
@@ -382,6 +386,9 @@ export interface Work {
   /** How finished the work is, 0..=100, as the author judges it. `null` means
       nobody has said yet — which is not a judgement of zero. */
   stage: number | null
+  /** The prompt the cover picture is drawn from, by the kind's `cover_blocks`
+      key. Empty for a craft whose covers are not written. */
+  cover: Record<string, string>
   created_at: string
   updated_at: string
 }
@@ -408,6 +415,9 @@ export interface WorkPatch {
   bookmarked?: boolean
   /** How finished the work is, 0..=100; `null` takes it back to unjudged. */
   stage?: number | null
+  /** Replaces the whole set, the way a scene's blocks do: the screen edits one
+      block and sends them all, so an undo puts the set back. */
+  cover?: Record<string, string>
   marks?: string[]
   current_version_id?: string | null
 }
@@ -834,6 +844,79 @@ export const timeScenes = (workId: string) => invoke<Scene[]>('time_scenes', { w
 /** Build the board's frame from the parts the source text marks out. */
 export const frameScenes = (workId: string, role: string) =>
   invoke<Scene[]>('frame_scenes', { workId, role })
+
+/**
+ * One stretch of a longer work a short is spliced from.
+ *
+ * A short cut from a finished video and one shot for itself are the same kind
+ * of work; what tells them apart is whether there are any of these. The
+ * seconds are on the source's own timeline, and a short holds a list of them
+ * because it is routinely spliced from more than one stretch.
+ */
+export interface Cut {
+  id: string
+  profile_id: string
+  /** The short this stretch is part of. */
+  work_id: string
+  /** The work it is taken out of. */
+  source_id: string
+  /** Seconds on the source's timeline, from its start. */
+  starts_at: number
+  ends_at: number
+  /** Its place in the splice, from 1. */
+  position: number
+  label: string | null
+  created_at: string
+  updated_at: string
+  /** The source's title, so the track draws without a second read. */
+  source_title: string
+  /** The source's length, which the track is drawn against; `null` when the
+      donor has no duration yet, and the track then has no scale. */
+  source_duration: number | null
+}
+
+export interface NewCut {
+  work_id: string
+  source_id: string
+  starts_at: number
+  ends_at: number
+  /** At the end of the splice when omitted. */
+  position?: number | null
+  label?: string | null
+}
+
+/** What an edit may change. Dragging one end sends one number. */
+export interface CutPatch {
+  starts_at?: number
+  ends_at?: number
+  position?: number
+  label?: string | null
+}
+
+/** One line of what a cutter is told to do: this stretch, of this file. */
+export interface Shot {
+  cut_id: string
+  position: number
+  starts_at: number
+  ends_at: number
+  source_id: string
+  source_title: string
+  /** The donor's video on disk; `null` when it has not been rendered yet. */
+  path: string | null
+}
+
+export const listCuts = (workId: string) => invoke<Cut[]>('list_cuts', { workId })
+/** What has been cut out of this work — the question a donor's card asks. */
+export const listCutsFrom = (sourceId: string) => invoke<Cut[]>('list_cuts_from', { sourceId })
+export const createCut = (cut: NewCut) => invoke<Cut>('create_cut', { cut })
+export const updateCut = (id: string, patch: CutPatch) => invoke<Cut>('update_cut', { id, patch })
+export const deleteCut = (id: string) => invoke<string>('delete_cut', { id })
+/** Put a splice in the order given, 1..N, in one change. */
+export const reorderCuts = (workId: string, ids: string[]) =>
+  invoke<Cut[]>('reorder_cuts', { workId, ids })
+/** The stretches in order, each beside the donor's file: what the cutting
+    plugin is handed. The core never opens the file itself. */
+export const cutShotList = (workId: string) => invoke<Shot[]>('cut_shot_list', { workId })
 
 /** A file attached to a work or a release: a cover, a reference. */
 export interface Asset {

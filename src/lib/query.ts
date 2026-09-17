@@ -21,6 +21,13 @@ export const keys = {
   linksFor: (workId: string) => ['links', workId] as const,
   scenes: ['scenes'] as const,
   scenesFor: (workId: string) => ['scenes', workId] as const,
+  // One prefix over every splice: a stretch changes the short's track and the
+  // donor's card at the same time, the way a link changes two cards.
+  cuts: ['cuts'] as const,
+  cutsFor: (workId: string) => ['cuts', workId] as const,
+  // What the cutter is told to do. Under the same prefix, because a stretch
+  // moving changes it and so does a video arriving on the donor.
+  shotsFor: (workId: string) => ['cuts', 'shots', workId] as const,
   // The frames of a whole board in one key: the storyboard draws every scene
   // together, and a frame arriving changes the row it lands on and the
   // readiness of that row at the same time.

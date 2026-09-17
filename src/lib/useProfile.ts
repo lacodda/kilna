@@ -42,6 +42,7 @@ export interface Vocabulary {
   statuses: Status[]
   shot_types: Kind[]
   scene_blocks: SceneBlock[]
+  cover_blocks: SceneBlock[]
 }
 
 const NOTHING: Vocabulary = {
@@ -52,6 +53,7 @@ const NOTHING: Vocabulary = {
   statuses: [],
   shot_types: [],
   scene_blocks: [],
+  cover_blocks: [],
 }
 
 /**
@@ -74,6 +76,7 @@ export function vocabularyOf(config: ProfileConfig, kind: string | undefined): V
     statuses: found.statuses ?? [],
     shot_types: found.shot_types ?? [],
     scene_blocks: found.scene_blocks ?? [],
+    cover_blocks: found.cover_blocks ?? [],
   }
 }
 
