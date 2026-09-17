@@ -43,8 +43,17 @@ struct Queued {
 ///   that has a date — existing or placed here, planned or already out. The
 ///   rhythm is the pace of the whole output, not of one work.
 /// * **Scatter**: two releases of the same work never sit on neighbouring
-///   days. Spacing already guarantees this for a rhythm of two days or more;
-///   a daily rhythm is where it earns its keep.
+///   days, and neither do two works cut from the same video. Spacing already
+///   guarantees this for a rhythm of two days or more; a daily rhythm is
+///   where it earns its keep.
+///
+///   The second half is the shorts rule (v0.73), and it is the same rule
+///   rather than a second mechanism: two shorts cut from one video on
+///   consecutive days are the same video twice to anyone watching, whatever
+///   the two shorts are called. A short with no donor — one shot for itself —
+///   has no source to clash on and is scattered by its work alone. There is
+///   no separate queue and no shuffle (decision of 2026-09-11): a rule that
+///   holds every day beats an order that happens to look spread out.
 /// * **Order**: the queue is walked strongest-first, each release taking the
 ///   earliest day the rules allow. Everything queued is placed — the preview
 ///   is where a person decides whether they meant that.
@@ -67,11 +76,17 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
     let spacing = Duration::days(i64::from(rhythm.every_days) - 1);
     let today = parse_date(today)?;
 
-    // The ground: every date any release sits on, and each work's own dates.
-    // Released entries count too — something that went out yesterday sets the
-    // pace exactly as a plan for yesterday would have.
+    // Which videos each work is cut from, read once for the whole workspace.
+    // Asking per release would repeat the query on every day the scan walks
+    // past, and the scan walks past a lot of days.
+    let sources = crate::cut::sources_by_work(conn, profile_id)?;
+
+    // The ground: every date any release sits on, each work's own dates, and
+    // each donor's. Released entries count too — something that went out
+    // yesterday sets the pace exactly as a plan for yesterday would have.
     let mut taken: BTreeSet<Date> = BTreeSet::new();
     let mut work_dates: BTreeMap<String, BTreeSet<Date>> = BTreeMap::new();
+    let mut source_dates: BTreeMap<String, BTreeSet<Date>> = BTreeMap::new();
     for entry in release::calendar(conn, profile_id)? {
         let Some(date) = entry.release.scheduled_at.as_deref() else {
             continue;
@@ -82,6 +97,9 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
             .entry(entry.release.work_id.clone())
             .or_default()
             .insert(date);
+        for source in sources.get(&entry.release.work_id).into_iter().flatten() {
+            source_dates.entry(source.clone()).or_default().insert(date);
+        }
     }
 
     let mut remaining: Vec<Queued> = release::queue(conn, profile_id)?
@@ -118,6 +136,10 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
     // most `every_days + 2` days past the previous one, and each pre-existing
     // date blocks a window shorter than `2 * every_days`. Running out means a
     // bug in the loop, and an error beats scanning dates forever.
+    //
+    // The donor rule does not widen this. It blocks the same two-day window
+    // around a placement that the work rule blocks, on a different key, so
+    // the worst case a placement can push the scan is what it already was.
     let mut scans_left = (remaining.len() as i64 + 2) * (i64::from(rhythm.every_days) + 2)
         + taken.len() as i64 * 2 * i64::from(rhythm.every_days)
         + 366;
@@ -135,19 +157,31 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
             .next()
             .is_none();
         if spaced {
-            // The strongest release whose work keeps clear of the neighbouring
-            // days. When every remaining work is too close, the day stays
-            // empty and the scan moves on — scatter is a rule, not a wish.
+            // The strongest release whose work — and whose donors — keep clear
+            // of the neighbouring days. When everything remaining is too
+            // close, the day stays empty and the scan moves on: scatter is a
+            // rule, not a wish.
             let day_before = date - Duration::DAY;
             let day_after = date + Duration::DAY;
-            let pick = remaining.iter().position(|queued| {
-                work_dates
-                    .get(&queued.work_id)
+            let clear = |dates: &BTreeMap<String, BTreeSet<Date>>, key: &str| {
+                dates
+                    .get(key)
                     .is_none_or(|dates| dates.range(day_before..=day_after).next().is_none())
+            };
+            let pick = remaining.iter().position(|queued| {
+                clear(&work_dates, &queued.work_id)
+                    && sources
+                        .get(&queued.work_id)
+                        .into_iter()
+                        .flatten()
+                        .all(|source| clear(&source_dates, source))
             });
             if let Some(index) = pick {
                 let queued = remaining.remove(index);
                 taken.insert(date);
+                for source in sources.get(&queued.work_id).into_iter().flatten() {
+                    source_dates.entry(source.clone()).or_default().insert(date);
+                }
                 work_dates.entry(queued.work_id).or_default().insert(date);
                 placements.push(Placement {
                     release_id: queued.id,
@@ -411,6 +445,117 @@ mod tests {
                 ("2026-09-05", "w"),
             ]
         );
+    }
+
+    /// Two shorts cut from one video are the same video twice to anyone
+    /// watching, so they scatter as one work's releases do — even though they
+    /// are two separate works with two separate titles.
+    ///
+    /// Mutating the donor half of the `pick` filter must put "Hook" and
+    /// "Bridge" on consecutive days and break this.
+    #[test]
+    fn two_shorts_from_one_video_do_not_land_on_neighbouring_days() {
+        let (conn, profile_id) = workspace(1);
+
+        let donor = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "video".into(),
+                title: "Harbour lights".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+
+        // Two shorts out of that one video, and one shot for itself. All three
+        // are equally strong, so nothing but the rules decides the order.
+        let hook = shorts_release(&conn, &profile_id, "Anchor", Some(&donor.id));
+        let bridge = shorts_release(&conn, &profile_id, "Bridge", Some(&donor.id));
+        let own = shorts_release(&conn, &profile_id, "Zephyr", None);
+
+        let plan = plan(&conn, &profile_id, "2026-09-01").unwrap();
+        assert_eq!(plan.len(), 3, "everything queued is placed");
+
+        let day_of = |release_id: &str| {
+            plan.iter()
+                .find(|placement| placement.release_id == release_id)
+                .map(|placement| parse_date(&placement.date).unwrap())
+                .unwrap()
+        };
+        let (hook_day, bridge_day) = (day_of(&hook), day_of(&bridge));
+        assert!(
+            (hook_day - bridge_day).abs() > Duration::DAY,
+            "two shorts from one video sat on {hook_day} and {bridge_day}"
+        );
+
+        // And the short with no donor is free to take the day between them:
+        // the rule is about the video, not about shorts as a category.
+        let own_day = day_of(&own);
+        assert!(
+            own_day > hook_day.min(bridge_day) && own_day < hook_day.max(bridge_day),
+            "a short shot for itself has no source to clash on"
+        );
+    }
+
+    /// A short, its donor link, and one queued release for it. `donor` of
+    /// `None` is a short shot for itself.
+    fn shorts_release(
+        conn: &Connection,
+        profile_id: &str,
+        title: &str,
+        donor: Option<&str>,
+    ) -> String {
+        let work = work::create(
+            conn,
+            profile_id,
+            NewWork {
+                kind: "short".into(),
+                title: title.into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+        score::create(
+            conn,
+            &work.id,
+            NewScore {
+                axes: json!({ "story": 7.0 }).as_object().cloned().unwrap(),
+                version_id: None,
+                note: None,
+                rater: None,
+            },
+        )
+        .unwrap();
+        if let Some(donor) = donor {
+            crate::cut::create(
+                conn,
+                profile_id,
+                crate::cut::NewCut {
+                    work_id: work.id.clone(),
+                    source_id: donor.to_owned(),
+                    starts_at: 10.0,
+                    ends_at: 22.0,
+                    position: None,
+                    label: None,
+                },
+            )
+            .unwrap();
+        }
+        release::create(
+            conn,
+            NewRelease {
+                work_id: work.id,
+                kind: "short".into(),
+                title: Some(title.into()),
+                scheduled_at: None,
+                meta: None,
+                scheduled_time: None,
+                time_zone: None,
+            },
+        )
+        .unwrap()
+        .id
     }
 
     /// The same inputs give the same plan, byte for byte. The preview's whole
