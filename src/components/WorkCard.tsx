@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
-import { deleteWork, getWork, listLinks, listScenes, releasesForWork } from '@/lib/api'
+import { deleteWork, getWork, listCuts, listLinks, listScenes, releasesForWork } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { noteDeleted, noteOpened } from '@/lib/recent'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
+import { canBeCut } from '@/lib/cuts'
 import { hasScenes, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { SkeletonCard } from '@/components/ui/Skeleton'
@@ -15,6 +16,7 @@ import { CardHeader } from '@/components/card/CardHeader'
 import { FilesTab } from '@/components/card/FilesTab'
 import { LinksTab } from '@/components/card/LinksTab'
 import { OverviewTab } from '@/components/card/OverviewTab'
+import { CutsTab } from '@/components/card/CutsTab'
 import { ScenesTab } from '@/components/card/ScenesTab'
 import { DEFAULT_TAB, isTab, type Tab } from '@/components/card/tabs'
 import { VersionPanel } from '@/components/VersionPanel'
@@ -76,6 +78,15 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
     enabled: storyboard,
   })
 
+  // The splice, for the tab and its count. Always asked: unlike a storyboard,
+  // whether a work was cut out of another is a fact about the work rather than
+  // about its kind, and the only way to know is to look.
+  const cuts = useQuery({ queryKey: keys.cutsFor(workId), queryFn: () => listCuts(workId) })
+  const spliced = canBeCut(
+    cuts.data ?? [],
+    links.data?.sources.length ?? 0,
+  )
+
   const remove = useMutation({
     mutationFn: () => deleteWork(workId),
     onSuccess: (deletionId) => {
@@ -127,6 +138,7 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
         releases={releases.data?.length ?? 0}
         links={(links.data?.sources.length ?? 0) + (links.data?.derived.length ?? 0)}
         scenes={storyboard ? (scenes.data?.length ?? 0) : undefined}
+        cuts={spliced ? (cuts.data?.length ?? 0) : undefined}
       />
 
       <div className="mt-4">
@@ -171,6 +183,8 @@ function TabBody({
       return <VersionPanel workId={workId} />
     case 'scenes':
       return <ScenesTab work={work} />
+    case 'cuts':
+      return <CutsTab work={work} />
     case 'score':
       return <ScorePanel workId={workId} />
     case 'releases':

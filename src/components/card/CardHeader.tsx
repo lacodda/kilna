@@ -29,6 +29,8 @@ interface Props {
   links?: number
   /** Undefined for a kind with no storyboard: the tab is then not drawn. */
   scenes?: number
+  /** Undefined for a work that was not cut out of anything: no Cut tab. */
+  cuts?: number
 }
 
 /**
@@ -39,7 +41,7 @@ interface Props {
  * real covers arrive; it is what makes one card distinguishable from another
  * before a single word is read.
  */
-export function CardHeader({ work, releases, links = 0, scenes }: Props) {
+export function CardHeader({ work, releases, links = 0, scenes, cuts }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const vocabulary = vocabularyOf(profile.config, work.kind)
@@ -127,7 +129,7 @@ export function CardHeader({ work, releases, links = 0, scenes }: Props) {
           <MetaStrip work={work} />
         </div>
 
-        <TabBar workId={work.id} releases={releases} links={links} scenes={scenes} />
+        <TabBar workId={work.id} releases={releases} links={links} scenes={scenes} cuts={cuts} />
       </header>
     </>
   )

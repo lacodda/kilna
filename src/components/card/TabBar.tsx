@@ -12,6 +12,9 @@ interface Props {
   /** Shown beside the Scenes tab; the tab is not drawn at all while this is
       undefined — a kind with no storyboard has no Scenes. */
   scenes?: number
+  /** Shown beside the Cut tab; undefined draws no tab — a work with no donor
+      and no stretches was not cut out of anything. */
+  cuts?: number
 }
 
 /**
@@ -21,7 +24,7 @@ interface Props {
  * be linked to from a note, a journal entry or a chat — the same reason the open
  * work became `/works/:id` in v0.11.
  */
-export function TabBar({ workId, releases = 0, links = 0, scenes }: Props) {
+export function TabBar({ workId, releases = 0, links = 0, scenes, cuts }: Props) {
   const { t } = useTranslation()
 
   return (
@@ -37,7 +40,10 @@ export function TabBar({ workId, releases = 0, links = 0, scenes }: Props) {
     // vertical scrollbar down the side of the tabs, which is what the pilot
     // saw. The vertical axis is explicitly clipped: tabs never scroll upwards.
     <nav className="flex gap-0.5 overflow-x-auto overflow-y-hidden border-t border-line bg-raise [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {TABS.filter((tab) => tab !== 'scenes' || scenes !== undefined).map((tab) => (
+      {TABS.filter(
+        (tab) =>
+          (tab !== 'scenes' || scenes !== undefined) && (tab !== 'cuts' || cuts !== undefined),
+      ).map((tab) => (
         <NavLink
           key={tab}
           to={`/works/${workId}/${tab}`}
@@ -62,6 +68,11 @@ export function TabBar({ workId, releases = 0, links = 0, scenes }: Props) {
           {tab === 'scenes' && scenes !== undefined && scenes > 0 && (
             <span className="rounded-full border border-line px-1.5 text-[11px] text-faint">
               {scenes}
+            </span>
+          )}
+          {tab === 'cuts' && cuts !== undefined && cuts > 0 && (
+            <span className="rounded-full border border-line px-1.5 text-[11px] text-faint">
+              {cuts}
             </span>
           )}
         </NavLink>

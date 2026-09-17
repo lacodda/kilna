@@ -17,6 +17,7 @@ import { say } from '@/lib/toast'
 import { groupMaterials } from '@/lib/materials'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { CoverPrompt } from '@/components/card/CoverPrompt'
 import { Skeleton } from '@/components/ui/Skeleton'
 
 interface Props {
@@ -129,6 +130,11 @@ export function FilesTab({ work }: Props) {
         over && 'outline-2 outline-dashed outline-offset-4 outline-accent',
       )}
     >
+      {/* Above the pictures, because writing the prompt and looking at what
+          came back is one activity. Draws nothing for a kind whose covers are
+          not written. */}
+      <CoverPrompt work={work} />
+
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick(COVER)}>
           <ImageIcon aria-hidden className="size-3.5" />

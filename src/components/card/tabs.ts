@@ -9,6 +9,7 @@ export const TABS = [
   'overview',
   'versions',
   'scenes',
+  'cuts',
   'score',
   'releases',
   'files',
