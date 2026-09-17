@@ -2,7 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
-## [0.72.0] - 2026-09-16
+## [0.73.0] - 2026-09-17
+
+### Bug Fixes
+- Say what is being taken back, instead of printing the key
+
+### Documentation
+- Shorts, the cut list and the cover's prompt
+
+### Features
+- Keep which stretches of a video a short is made of
+- Take, move, reorder and drop a stretch
+- The prompt a work's cover picture is drawn from
+- Two shorts of one video never land on neighbouring days
+- The arithmetic of a splice, and the calls behind it
+- A track of the donor, and the cover's prompt above its picture
+- Words for the splice, the cover's prompt and five silent undos
+## [0.72.0] - 2026-09-17
 
 ### Bug Fixes
 - The tag suggestions close on Escape and on a click outside
