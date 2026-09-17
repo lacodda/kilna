@@ -79,32 +79,24 @@ export function Markdown({
     <div
       ref={container}
       className={cn(
-        // Rendered prose is the text someone came to read: selection is handed
-        // back here, where the shell switched it off.
-        'selectable text-sm leading-relaxed',
-        // Tailwind's preflight strips list markers and heading sizes, so the
-        // few tags markdown actually produces are styled back by hand rather
-        // than by pulling in a typography plugin for one screen.
-        '[&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold',
-        '[&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-semibold',
-        '[&_h3]:mt-3 [&_h3]:mb-1.5 [&_h3]:text-sm [&_h3]:font-semibold',
-        '[&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2',
-        '[&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5',
-        '[&_li]:my-0.5',
-        '[&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-line-2 [&_blockquote]:pl-3 [&_blockquote]:text-dim',
-        '[&_code]:rounded [&_code]:bg-soft [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em]',
-        '[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-[9px] [&_pre]:bg-soft [&_pre]:p-3',
-        '[&_pre_code]:bg-transparent [&_pre_code]:p-0',
-        '[&_a]:text-accent-2 [&_a]:underline',
-        '[&_strong]:font-semibold [&_em]:italic',
-        '[&_hr]:my-4 [&_hr]:border-line',
-        // A table reads as a table: a note that lists images against their
-        // meaning, a scene board pasted from a chat. Ruled lightly, scrolled
-        // when wider than the column rather than breaking the page.
-        '[&_table]:my-2 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:border-collapse',
-        '[&_th]:border [&_th]:border-line [&_th]:bg-soft [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-semibold',
-        '[&_td]:border [&_td]:border-line [&_td]:px-2 [&_td]:py-1 [&_td]:align-top',
-        '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
+        /*
+         * `prose-tight` from dowel, which is where these rules live now.
+         *
+         * They were twenty lines of `[&_h1]:…` arbitrary variants here - the
+         * shape a product is forced into, because rendered markdown arrives as
+         * HTML nobody authored and there is no element to put a class on. Only
+         * a descendant selector reaches those tags, and a className string is
+         * the only place a component can write one.
+         *
+         * The tight variant rather than the full one: this is text inside a
+         * panel that already has its own width, so the reading measure is the
+         * container's. The rhythm matches what was drawn here before.
+         */
+        'prose prose-tight',
+        // Selection is handed back where the shell switched it off. The
+        // stylesheet does this too; kept because `selectable` is this app's
+        // own word for it and other screens are checked against it.
+        'selectable',
         className,
       )}
       dangerouslySetInnerHTML={{ __html: html }}

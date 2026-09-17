@@ -17,6 +17,9 @@
  */
 @import 'dowel-ui/theme.css';
 @import 'dowel-ui/accents/kilna.css';
+/* Rendered markdown - the assistant's replies, notes, version bodies - through
+ * one stylesheet instead of thirty arbitrary variants inside a className. */
+@import 'dowel-ui/prose.css';
 
 /*
  * The window is a window, not a page.
