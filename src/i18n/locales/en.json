@@ -982,6 +982,7 @@
     "link.created": "“{{title}}” is made from “{{source}}”.",
     "link.removed": "“{{title}}” is no longer made from “{{source}}”.",
     "scene.created": "Scene {{number}} added to “{{title}}”.",
+    "cut.created": "A stretch of “{{source}}” taken into “{{title}}”.",
     "scene.timed": "The board of “{{title}}” timed across {{count}} scenes.",
     "scene.renumbered": "The board of “{{title}}” renumbered across {{count}} scenes.",
     "scene.framed": "The board of “{{title}}” framed into {{count}} scenes.",
@@ -1005,6 +1006,7 @@
     "release.deleted": "Release “{{label}}” deleted.",
     "note.deleted": "Note “{{label}}” deleted.",
     "scene.deleted": "Scene “{{label}}” deleted.",
+    "cut.deleted": "Stretch “{{label}}” dropped.",
     "collection.deleted": "Collection “{{label}}” deleted.",
     "trash.restored": "“{{label}}” restored.",
     "assistant.batchStarted_one": "{{action}} asked of {{count}} work.",
@@ -1024,6 +1026,7 @@
       "overview": "Overview",
       "versions": "Versions",
       "scenes": "Scenes",
+      "cuts": "Cut",
       "score": "Score",
       "releases": "Releases",
       "files": "Files",
@@ -1093,7 +1096,15 @@
     "scene.time": "timing a board",
     "scene.frame": "framing a board",
     "scene.attachNote": "saying what a scene is about",
-    "scene.detachNote": "taking that out of a scene"
+    "scene.detachNote": "taking that out of a scene",
+    "work.clone": "copying a work",
+    "scene.renumber": "renumbering a board",
+    "scene.selectFrame": "choosing a scene's frame",
+    "scene.clearFrame": "taking back that choice",
+    "scene.reorderFrames": "reordering a scene's material",
+    "cut.create": "taking a stretch",
+    "cut.update": "moving a stretch",
+    "cut.reorder": "reordering the splice"
   },
   "stage": {
     "label": "Stage",
@@ -1101,5 +1112,32 @@
     "unset": "Stage not set",
     "atPercent": "{{stage}} — {{percent}}%",
     "clear": "Clear"
+  },
+  "cuts": {
+    "title": "Cut from",
+    "runs": "{{length}} in {{count}} stretches",
+    "runs_one": "{{length}} in one stretch",
+    "noDonor": "Nothing to cut from yet. Name the video this was made from on the Links tab, and its length becomes the track.",
+    "takeFrom": "Take from {{title}}",
+    "name": "What this stretch is",
+    "namePlaceholder": "Name it, if it helps",
+    "noLength": "{{title}} has no length yet, so there is nothing to draw the track against. Set its duration on its Overview tab.",
+    "remove": "Drop this stretch",
+    "removed": "Stretch dropped",
+    "shotList": "The cut list",
+    "readyToCut": "Every stretch has its file. This is what a cutter is handed.",
+    "blocked": {
+      "empty": "Nothing to cut yet: take a stretch out of the video above.",
+      "noFile": "A video this is cut from has no file attached yet, so there is nowhere to cut it out of."
+    },
+    "save": "Save the cut list",
+    "saved": "Cut list saved"
+  },
+  "cover": {
+    "title": "Cover",
+    "hint": "The prompt the cover picture is drawn from. The picture itself goes below, like any other file.",
+    "saved": "Cover prompt saved",
+    "copy": "Copy",
+    "copied": "Copied"
   }
 }
