@@ -7,7 +7,13 @@ use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
 use crate::minted::Minted;
+use crate::profile::config::WorkKind;
 use crate::time::now;
+
+/// The parts of a cover's prompt, by the kind's `cover_blocks` key. The same
+/// shape a scene's prompt blocks take, because it is the same thing one level
+/// up: text a person edits and copies a part at a time.
+pub type Blocks = Map<String, Value>;
 
 /// A work as the frontend sees it.
 #[derive(Debug, Clone, Serialize)]
@@ -43,6 +49,12 @@ pub struct Work {
     /// nobody has said yet, which is not the same as "a bare idea" — the stops
     /// along the way are the profile's `stages`.
     pub stage: Option<i64>,
+    /// The prompt the work's cover picture is drawn from, by the kind's
+    /// `cover_blocks` key: what to draw, what to keep out, what words go on
+    /// it. A body rather than a field (which is why it is not in `meta`), and
+    /// one per work (which is why it is not a scene). Empty for a craft whose
+    /// covers are not written, and for every work made before v0.73.
+    pub cover: Blocks,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -107,6 +119,11 @@ pub struct WorkPatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub stage: Option<Option<i64>>,
+    /// Replaces the whole set, the way `ScenePatch::blocks` does and for the
+    /// same reason: the screen edits one block and sends them all, so the
+    /// log's `before` holds the set as it was and an undo puts the set back.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover: Option<Blocks>,
 }
 
 /// Narrowing applied to a listing.
@@ -121,7 +138,7 @@ pub struct WorkFilter {
 
 const SELECT_WORK: &str = "SELECT id, profile_id, collection_id, kind, title, status, \
      status_pinned_at, meta, tags, marks, current_version_id, position, created_at, updated_at, \
-     tier_pinned, tier_pinned_at, tier_pin_reason, bookmarked_at, stage \
+     tier_pinned, tier_pinned_at, tier_pin_reason, bookmarked_at, stage, cover \
      FROM work";
 
 /// Create a work in the given profile.
@@ -180,6 +197,39 @@ pub fn create_minted(
     )?;
 
     get(conn, &id)?.ok_or_else(|| Error::Other("the work vanished after insert".into()))
+}
+
+/// A cover prompt written in words the craft does not have is a prompt
+/// nothing will ever read back, so it is refused at the door rather than
+/// stored where only a future reader would find it wrong.
+///
+/// The twin of `scene::check_blocks`, deliberately not shared with it: the two
+/// take their vocabulary from different fields of the kind, and a helper
+/// parameterised by which field would be a helper whose only job is to hide
+/// which field. The rule is a dozen lines; the confusion would be permanent.
+fn check_cover(kind: &WorkKind, cover: &Blocks) -> Result<()> {
+    for (key, value) in cover {
+        if !kind.cover_blocks.iter().any(|block| block.key == *key) {
+            let named: Vec<String> = kind
+                .cover_blocks
+                .iter()
+                .map(|block| format!("`{}`", block.key))
+                .collect();
+            return Err(Error::Other(format!(
+                "`{key}` is not a part of a {}'s cover; the profile names {}",
+                kind.label.to_lowercase(),
+                if named.is_empty() {
+                    "none".to_owned()
+                } else {
+                    named.join(", ")
+                }
+            )));
+        }
+        if !value.is_string() {
+            return Err(Error::Other(format!("the cover's `{key}` must hold text")));
+        }
+    }
+    Ok(())
 }
 
 /// The status a work starts in: the profile's word for a draft.
@@ -304,6 +354,7 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
             Box::new(at.to_owned()),
         );
     }
+    let kind_after = patch.kind.clone();
     if let Some(kind) = patch.kind {
         set(&mut assignments, &mut values, "kind", Box::new(kind));
     }
@@ -380,6 +431,22 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
             &mut values,
             "stage",
             Box::new(stage.map(|value| value.clamp(0, 100))),
+        );
+    }
+    if let Some(cover) = &patch.cover {
+        // Judged against the kind the work will have when this edit lands,
+        // not the one it has now: an edit that changes the kind and writes
+        // the new kind's blocks in one gesture is one gesture, and checking
+        // against the old kind would refuse it.
+        let before = get(conn, id)?.ok_or_else(|| unknown_work(id))?;
+        let kind = kind_after.as_deref().unwrap_or(&before.kind);
+        let config = crate::profile::config_for(conn, &before.profile_id)?;
+        check_cover(config.vocabulary(kind), cover)?;
+        set(
+            &mut assignments,
+            &mut values,
+            "cover",
+            Box::new(serde_json::to_string(cover)?),
         );
     }
 
@@ -539,6 +606,7 @@ struct RawWork {
     tier_pin_reason: Option<String>,
     bookmarked_at: Option<String>,
     stage: Option<i64>,
+    cover: String,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
@@ -562,6 +630,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
         tier_pin_reason: row.get(16)?,
         bookmarked_at: row.get(17)?,
         stage: row.get(18)?,
+        cover: row.get(19)?,
     })
 }
 
@@ -571,6 +640,7 @@ impl RawWork {
             meta: serde_json::from_str(&self.meta)?,
             tags: serde_json::from_str(&self.tags)?,
             marks: serde_json::from_str(&self.marks)?,
+            cover: serde_json::from_str(&self.cover)?,
             id: self.id,
             profile_id: self.profile_id,
             collection_id: self.collection_id,

@@ -329,6 +329,20 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
             kind.scene_blocks = shipped_kind.scene_blocks.clone();
             changed = true;
         }
+        // The cover's parts (v0.73) arrive the same way, and must: every
+        // workspace alive has its kinds already, so a field added to the
+        // shipped profile reaches nobody unless it is named here. Without
+        // this the Cover tab would be empty in the one workspace that has
+        // years of shorts in it.
+        if kind.cover_blocks.is_empty() && !shipped_kind.cover_blocks.is_empty() {
+            kind.cover_blocks = shipped_kind.cover_blocks.clone();
+            changed = true;
+        }
+        // The cover's parts (v0.73) arrive the same way, and must: every
+        // workspace alive has its kinds already, so a field added to the
+        // shipped profile reaches nobody unless it is named here. Without
+        // this the Cover tab would be empty in the one workspace that has
+        // years of shorts in it.
 
         // A status badge's colour, on the same terms: by key, only where the
         // stored status names none.
@@ -1898,6 +1912,9 @@ mod tests {
             if kind.key == "short" {
                 // The owner kept one kind of shot on purpose.
                 kind.shot_types.retain(|shot| shot.key == "close");
+                // And their shorts predate covers having parts at all — the
+                // state of every workspace alive when v0.73 lands.
+                kind.cover_blocks.clear();
             }
         }
         conn.execute(
@@ -1921,6 +1938,10 @@ mod tests {
             short.shot_types.len(),
             1,
             "a list the owner narrowed is theirs"
+        );
+        assert!(
+            !short.cover_blocks.is_empty(),
+            "the cover's parts arrived in a workspace that had the kind already"
         );
     }
 

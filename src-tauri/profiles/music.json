@@ -293,6 +293,23 @@
             "label": "Negative",
             "hint": "What must not appear."
           }
+        ],
+        "cover_blocks": [
+          {
+            "key": "picture",
+            "label": "Picture",
+            "hint": "What the thumbnail shows: subject, framing, light, mood."
+          },
+          {
+            "key": "negative",
+            "label": "Negative",
+            "hint": "What must not appear on it."
+          },
+          {
+            "key": "typography",
+            "label": "Typography",
+            "hint": "The words on the cover, and how they sit: size, weight, place."
+          }
         ]
       },
       {
@@ -543,6 +560,23 @@
             "key": "negative",
             "label": "Negative",
             "hint": "What must not appear."
+          }
+        ],
+        "cover_blocks": [
+          {
+            "key": "picture",
+            "label": "Picture",
+            "hint": "What the thumbnail shows: subject, framing, light, mood."
+          },
+          {
+            "key": "negative",
+            "label": "Negative",
+            "hint": "What must not appear on it."
+          },
+          {
+            "key": "typography",
+            "label": "Typography",
+            "hint": "The words on the cover, and how they sit: size, weight, place."
           }
         ]
       }
