@@ -30,6 +30,7 @@ pub enum Entity {
     Note,
     Collection,
     Scene,
+    Cut,
 }
 
 impl Entity {
@@ -42,6 +43,7 @@ impl Entity {
             Self::Note => "note",
             Self::Collection => "collection",
             Self::Scene => "scene",
+            Self::Cut => "cut",
         }
     }
 
@@ -56,6 +58,7 @@ impl Entity {
             "note" => Ok(Self::Note),
             "collection" => Ok(Self::Collection),
             "scene" => Ok(Self::Scene),
+            "cut" => Ok(Self::Cut),
             other => Err(Error::Other(format!("unknown trash entity `{other}`"))),
         }
     }
@@ -70,6 +73,7 @@ impl Entity {
             Self::Note => "note",
             Self::Collection => "collection",
             Self::Scene => "scene",
+            Self::Cut => "cut",
         }
     }
 }
@@ -148,6 +152,17 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "work_link",
                 key: "source_id",
             },
+            // The stretches of a splice, from both sides for the reason the
+            // link gives: a short restored gets its cuts back, and a video
+            // restored gets back the marks the shorts made in it.
+            Capture {
+                table: "cut",
+                key: "work_id",
+            },
+            Capture {
+                table: "cut",
+                key: "source_id",
+            },
         ],
         Entity::Version => &[Capture {
             table: "work_version",
@@ -190,6 +205,11 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 key: "scene_id",
             },
         ],
+        // A stretch of a splice is one row and hangs nothing off itself.
+        Entity::Cut => &[Capture {
+            table: "cut",
+            key: "id",
+        }],
         // Works are not deleted with a collection — they are only let go of. The
         // membership they lose is captured separately, under `members`.
         Entity::Collection => &[Capture {
@@ -626,13 +646,17 @@ fn missing_parent(
     entity: Entity,
     snapshot: &Map<String, Value>,
 ) -> Result<Option<String>> {
-    let parent = match entity {
+    let parents: &[&str] = match entity {
         // These stand on their own; the profile they need is checked by the
         // insert itself.
         Entity::Work | Entity::Collection => return Ok(None),
         Entity::Version | Entity::Score | Entity::Release | Entity::Note | Entity::Scene => {
-            "work_id"
+            &["work_id"]
         }
+        // A stretch of a splice names two works and needs both: without the
+        // short it belongs to nothing, and without the video it is seconds of
+        // nowhere. Either being gone is the same refusal.
+        Entity::Cut => &["work_id", "source_id"],
     };
 
     let rows = match snapshot.get(entity.table()) {
@@ -642,21 +666,27 @@ fn missing_parent(
     let Some(Value::Object(row)) = rows.first() else {
         return Ok(None);
     };
-    // A note need not belong to a work at all.
-    let Some(Value::String(work_id)) = row.get(parent) else {
-        return Ok(None);
-    };
 
-    let exists: bool = conn
-        .query_row("SELECT 1 FROM work WHERE id = ?1", params![work_id], |_| {
-            Ok(true)
-        })
-        .optional()?
-        .unwrap_or(false);
+    for parent in parents {
+        // A note need not belong to a work at all.
+        let Some(Value::String(work_id)) = row.get(*parent) else {
+            continue;
+        };
+        let exists: bool = conn
+            .query_row("SELECT 1 FROM work WHERE id = ?1", params![work_id], |_| {
+                Ok(true)
+            })
+            .optional()?
+            .unwrap_or(false);
+        if !exists {
+            return Ok(Some(
+                "the work this belonged to is gone — restore it first, or this has nowhere to go"
+                    .to_owned(),
+            ));
+        }
+    }
 
-    Ok((!exists).then(|| {
-        "the work this belonged to is gone — restore it first, or this has nowhere to go".to_owned()
-    }))
+    Ok(None)
 }
 
 /// A one-line name, where it came from, and the profile it belongs to.
@@ -728,6 +758,25 @@ fn describe(
                 describe_row,
             )
             .optional()?,
+        // Named by where it was taken from: "Harbour lights 0:48-1:01". The
+        // person recognises a stretch by the video and the moment, which is
+        // why the source's title is in the name and not only in the origin.
+        Entity::Cut => conn
+            .query_row(
+                "SELECT src.title || ' ' ||
+                        cast(cast(c.starts_at / 60 AS INTEGER) AS TEXT) || ':' ||
+                        substr('0' || cast(cast(c.starts_at % 60 AS INTEGER) AS TEXT), -2) ||
+                        '-' ||
+                        cast(cast(c.ends_at / 60 AS INTEGER) AS TEXT) || ':' ||
+                        substr('0' || cast(cast(c.ends_at % 60 AS INTEGER) AS TEXT), -2),
+                        w.title, c.profile_id
+                 FROM cut c JOIN work w ON w.id = c.work_id
+                            JOIN work src ON src.id = c.source_id
+                 WHERE c.id = ?1",
+                params![id],
+                describe_row,
+            )
+            .optional()?,
     };
 
     found.ok_or_else(|| Error::not_found(entity_label(entity), id))
@@ -749,6 +798,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Note => "note",
         Entity::Collection => "collection",
         Entity::Scene => "scene",
+        Entity::Cut => "cut",
     }
 }
 

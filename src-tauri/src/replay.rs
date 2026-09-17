@@ -361,6 +361,35 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
             scene::update_at(conn, &id, patch, &at)?;
         }
 
+        "cut.create" => {
+            let profile_id = workspace_profile(conn, params)?;
+            let new = from_params(params, "cut")?;
+            crate::cut::create_minted(conn, &profile_id, new, minted(params)?)?;
+        }
+
+        "cut.update" => {
+            let id = required(params, "id")?;
+            let patch = from_params(params, "patch")?;
+            crate::cut::update(conn, &id, patch)?;
+        }
+
+        // The order is replayed against the splice that is there, for the
+        // reason `scene.renumber` gives: a workspace rebuilt from the log has
+        // every stretch the log made, and one that has since lost a stretch is
+        // not reordered against a list naming it — `reorder` refuses that
+        // rather than numbering half of the splice.
+        "cut.reorder" => {
+            let work_id = required(params, "workId")?;
+            let ids: Vec<String> = from_params(params, "ids")?;
+            let present: Vec<String> = crate::cut::for_work(conn, &work_id)?
+                .into_iter()
+                .map(|cut| cut.id)
+                .collect();
+            if ids.len() == present.len() && present.iter().all(|id| ids.contains(id)) {
+                crate::cut::reorder(conn, &work_id, &ids)?;
+            }
+        }
+
         "scene.time" => {
             let work_id = required(params, "workId")?;
             let at = required(params, "at")?;

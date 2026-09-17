@@ -109,6 +109,9 @@ pub fn reversible(kind: &str) -> bool {
             | "scene.selectFrame"
             | "scene.clearFrame"
             | "scene.reorderFrames"
+            | "cut.create"
+            | "cut.update"
+            | "cut.reorder"
     )
 }
 
@@ -181,6 +184,22 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
             let patch: crate::scene::ScenePatch = from_params(params, "before")?;
             edit(conn, logged, &at, |tx| {
                 crate::scene::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        "cut.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::cut::CutPatch = from_params(params, "before")?;
+            edit(conn, logged, &at, |tx| {
+                crate::cut::update(tx, &id, patch).map(|_| ())
+            })?;
+        }
+        // The splice goes back to the order it held. The list travelled in
+        // the operation, so this is the same call with the earlier order.
+        "cut.reorder" => {
+            let work_id = required(params, "workId")?;
+            let ids: Vec<String> = from_params(params, "before")?;
+            edit(conn, logged, &at, |tx| {
+                crate::cut::reorder(tx, &work_id, &ids).map(|_| ())
             })?;
         }
         // Saying a scene is about someone is taken back by saying it is not,
@@ -340,7 +359,7 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
         // outright. Someone can change their mind twice, and a row destroyed by
         // an undo would be gone in a way nothing else in kilna is.
         "work.create" | "work.clone" | "note.create" | "collection.create" | "release.create"
-        | "version.create" | "scene.create" => {
+        | "version.create" | "scene.create" | "cut.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -445,6 +464,7 @@ fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
         "release.create" => crate::trash::Entity::Release,
         "version.create" => crate::trash::Entity::Version,
         "scene.create" => crate::trash::Entity::Scene,
+        "cut.create" => crate::trash::Entity::Cut,
         other => return Err(Error::Other(format!("`{other}` creates nothing"))),
     };
     Ok((entity, required(&entry.params, "id")?))

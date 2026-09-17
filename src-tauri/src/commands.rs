@@ -7,6 +7,7 @@ use crate::asset;
 use crate::assistant::run::{self as assistant_run, Emission, Run, Sink};
 use crate::assistant::{self, Chat, Message, NewChat, Transcript, cli, prompt};
 use crate::collection::{self, Collection, CollectionPatch, NewCollection};
+use crate::cut;
 use crate::error::{Error, Result};
 use crate::exchange::backup;
 use crate::exchange::export::{self, ExportReport};
@@ -2274,6 +2275,120 @@ pub fn renumber_scenes(
 #[tauri::command]
 pub fn delete_scene(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Scene, &id)
+}
+
+/// The stretches a short is spliced from, in order.
+#[tauri::command]
+pub fn list_cuts(state: State<'_, AppState>, work_id: String) -> Result<Vec<cut::Cut>> {
+    let conn = state.conn();
+    cut::for_work(&conn, &work_id)
+}
+
+/// What has been cut out of this work — the question a donor's card asks.
+#[tauri::command]
+pub fn list_cuts_from(state: State<'_, AppState>, source_id: String) -> Result<Vec<cut::Cut>> {
+    let conn = state.conn();
+    cut::from_source(&conn, &source_id)
+}
+
+/// Take a stretch of a source into a short.
+#[tauri::command]
+pub fn create_cut(state: State<'_, AppState>, cut: cut::NewCut) -> Result<cut::Cut> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("cut.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("cut", serde_json::to_value(&cut)?)
+        .minted(&minted);
+
+    let created = recording(&mut conn, logged, |tx| {
+        cut::create_minted(tx, &profile_id, cut, minted)
+    })?;
+
+    journal::record(
+        &conn,
+        &profile_id,
+        Record::new("cut.created")
+            .param(
+                "title",
+                journal::work_title(&conn, &created.work_id).unwrap_or_default(),
+            )
+            .param("source", created.source_title.clone())
+            .about("work", created.work_id.clone()),
+    );
+
+    Ok(created)
+}
+
+/// Move an end of a stretch, renumber it, or name it.
+#[tauri::command]
+pub fn update_cut(
+    state: State<'_, AppState>,
+    id: String,
+    patch: cut::CutPatch,
+) -> Result<cut::Cut> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let before = cut::get(&conn, &id)?;
+
+    let logged = operation::Intent::new("cut.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?);
+
+    recording(&mut conn, logged, |tx| cut::update(tx, &id, patch))
+}
+
+/// Put a splice in the order given, 1..N, in one change.
+///
+/// The whole order travels rather than one stretch and a target number, for
+/// the reason `renumber_scenes` gives: both gestures the screen offers are
+/// the same thing said twice, and the list says it once. The order the splice
+/// held travels in the operation, so the undo is this same call with it.
+#[tauri::command]
+pub fn reorder_cuts(
+    state: State<'_, AppState>,
+    work_id: String,
+    ids: Vec<String>,
+) -> Result<Vec<cut::Cut>> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    // The order as it stands, so the undo puts back exactly this.
+    let before: Vec<String> = cut::for_work(&conn, &work_id)?
+        .into_iter()
+        .map(|cut| cut.id)
+        .collect();
+
+    let logged = operation::Intent::new("cut.reorder")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("workId", work_id.clone())
+        .param("ids", serde_json::to_value(&ids)?)
+        .param("before", serde_json::to_value(&before)?);
+
+    recording(&mut conn, logged, |tx| cut::reorder(tx, &work_id, &ids))
+}
+
+#[tauri::command]
+pub fn delete_cut(state: State<'_, AppState>, id: String) -> Result<String> {
+    discard_and_record(&state, trash::Entity::Cut, &id)
+}
+
+/// What a short is, told to something that can cut video.
+///
+/// The core's whole part in making the file: the stretches in order, each
+/// beside the donor's video on disk. The plugin of v1.10 reads this and runs
+/// ffmpeg — the core does not (decision of 2026-09-11).
+#[tauri::command]
+pub fn cut_shot_list(state: State<'_, AppState>, work_id: String) -> Result<Vec<cut::Shot>> {
+    let conn = state.conn();
+    cut::shot_list(&conn, &work_id)
 }
 
 /// Copy a file into the workspace and attach it to a work or a release.
