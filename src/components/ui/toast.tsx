@@ -23,7 +23,7 @@ import { cn } from 'dowel-ui'
 export const toastVariants = cva(
   [
     'relative w-[min(22rem,calc(100vw-2rem))] overflow-hidden',
-    'rounded-lg border border-line bg-raise p-3 pl-4 text-text shadow-float',
+    'rounded-lg border border-line bg-raise p-3 pl-4 text-text shadow-raise',
     // The stripe. `before` rather than a border, so the corner radius stays
     // the panel's own.
     'before:absolute before:inset-y-0 before:left-0 before:w-1',

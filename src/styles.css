@@ -61,8 +61,24 @@ body {
  * and bounced. The bounce is a property of the scroller under the fingers,
  * so the rule goes on all of them. Scroll chaining goes with it: a flick that
  * reaches the end of a list stops there instead of moving the screen behind.
+ *
+ * On SCROLLERS, though, and not on every element. The rule was written as `*`,
+ * which reads as the same sentence and is not: `overscroll-behavior` governs
+ * what an element hands to its parent, so on a node that does not scroll it
+ * means "and nothing may be passed on from here". A wheel over any ordinary
+ * div - a line of text, a chip, the padding around a panel - then reached that
+ * div and stopped, instead of travelling up to the box that did scroll. That
+ * is the wheel doing nothing on the full-screen text, and the scrolling that
+ * felt wrong in other places. Naming the scrolling boxes keeps the bounce and
+ * the chaining stopped where they were the problem, and lets everything else
+ * pass the gesture up as it should.
  */
-* {
+.overflow-auto,
+.overflow-y-auto,
+.overflow-x-auto,
+.overflow-scroll,
+.overflow-y-scroll,
+.overflow-x-scroll {
   overscroll-behavior: none;
 }
 

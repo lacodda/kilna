@@ -29,7 +29,7 @@ import { cn } from 'dowel-ui'
 
 export const previewCardPopupVariants = cva(
   [
-    'rounded-lg border border-line bg-raise p-4 text-sm text-text shadow-float',
+    'rounded-lg border border-line bg-raise p-4 text-sm text-text shadow-raise',
     'focus-visible:outline-none',
     // The enter and the leave. `duration-*` reads the token directly because
     // Tailwind's own utility takes a literal number.

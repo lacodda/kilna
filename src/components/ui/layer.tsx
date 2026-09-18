@@ -66,7 +66,17 @@ export function LayerProvider({ rung, children }: { rung: Rung; children: ReactN
     // The host draws nothing - it is a place on the body and a raised floor.
     // It stays `position: static`, so Base UI still measures the popup against
     // the viewport and the trigger, exactly as it would at the body itself.
-    node.style.setProperty('--z-floating', String(POPUP_FLOORS[rung]))
+    //
+    // Every rung a popup might read is raised, not `--z-floating` alone. A
+    // popover reads floating, a menu and a select read `--z-menu` - and for as
+    // long as only one of them was lifted, the select in a dialog and the ±
+    // menu on the full-screen stage stayed on the page's own floor and drew
+    // under the overlay that opened them. Which variable a component happens
+    // to read is not something its caller should have to know.
+    const floor = String(POPUP_FLOORS[rung])
+    node.style.setProperty('--z-floating', floor)
+    node.style.setProperty('--z-menu', floor)
+    node.style.setProperty('--z-popup', floor)
     document.body.append(node)
     return () => node.remove()
   }, [rung])

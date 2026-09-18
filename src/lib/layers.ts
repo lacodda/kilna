@@ -26,6 +26,7 @@ export const DOWEL_SCALE = {
 /** The floors kilna threads between them, for a popup that belongs to an
  * overlay rather than to the page. */
 export const POPUP_FLOORS = {
+  'stage-popup': 51,
   'modal-popup': 61,
   'palette-popup': 71,
 } as const
@@ -37,6 +38,13 @@ export type Rung = keyof typeof POPUP_FLOORS
  * belong to - the bug this whole mechanism exists to avoid, in the other
  * direction. */
 export const FLOOR_BANDS: Record<Rung, { above: number; below: number }> = {
+  'stage-popup': { above: DOWEL_SCALE.overlay, below: DOWEL_SCALE.modal },
   'modal-popup': { above: DOWEL_SCALE.modal, below: DOWEL_SCALE.palette },
   'palette-popup': { above: DOWEL_SCALE.palette, below: DOWEL_SCALE.toast },
 }
+
+/** Where a full-screen stage sits: the version panel's focus mode covers the
+ * page but is not a dialog, so it takes the overlay rung rather than a raw
+ * Tailwind `z-50` beside the ladder. It had one, and the ± menu - a `--z-menu`
+ * of 30 - opened underneath it, which read as a button that did nothing. */
+export const STAGE_LAYER = DOWEL_SCALE.overlay

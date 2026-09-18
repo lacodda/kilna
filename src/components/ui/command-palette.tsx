@@ -50,17 +50,48 @@ export const commandPalettePopupVariants = cva(
 export const CommandPalette = Base.Root
 
 /** A row. The same clothes as a Combobox row, on purpose: a palette is a list
- * of choices, and two lists of choices in one product should not differ. */
-export const CommandPaletteItem = Base.Item
+ * of choices, and two lists of choices in one product should not differ.
+ *
+ * They did differ, for as long as this was a bare re-export: the comment said
+ * "the same clothes" and the component wore none, so the rows inherited the
+ * popup's 16px and stood a third taller than every other list in the set. A
+ * live run caught it - the palette looked like a different product. */
+export function CommandPaletteItem({ className, ...props }: Base.Item.Props) {
+  return <Base.Item className={cn(comboboxItemVariants(), className)} {...props} />
+}
 
 /** The list. Takes a render function over the filtered items. */
-export const CommandPaletteList = Base.List
+export function CommandPaletteList({ className, ...props }: Base.List.Props) {
+  return <Base.List className={cn('overflow-y-auto p-1', className)} {...props} />
+}
 
-/** Shown when nothing matches. The words are the product's. */
-export const CommandPaletteEmpty = Base.Empty
+/** Shown when nothing matches. The words are the product's.
+ *
+ * Base UI keeps it mounted so the announcement fires, which means its padding
+ * is spent whether or not it has anything to say - and a palette with six
+ * results had a 48px hole under the field. It collapses when empty instead. */
+export function CommandPaletteEmpty({ className, ...props }: Base.Empty.Props) {
+  return (
+    <Base.Empty
+      className={cn('px-2 py-3 text-center text-sm text-faint empty:hidden empty:p-0', className)}
+      {...props}
+    />
+  )
+}
 
 /** A labelled group, for a palette that lists more than one kind of thing. */
 export const CommandPaletteGroup = Base.Group
+
+/** The caption above a group. */
+export const CommandPaletteGroupLabel = Base.GroupLabel
+
+/** The rows of one group, as a render function over that group's items.
+ *
+ * A palette that lists works, versions and notes together is a `List` over the
+ * groups with a `Collection` inside each. Mapping a group's rows by hand also
+ * works, but then the palette has to be told how to match an item to a value -
+ * and for rows fetched fresh from a server, identity comparison never does. */
+export const CommandPaletteCollection = Base.Collection
 
 export interface CommandPalettePopupProps
   extends Omit<Base.Popup.Props, 'aria-label'>,
@@ -101,8 +132,25 @@ export function CommandPalettePopup({
       />
       <Base.Positioner
         className="[z-index:var(--z-palette)]"
-        // Anchored to the viewport rather than to a trigger: a palette has no
-        // trigger to point at, and the one it does have is a keystroke.
+        /* The anchor is a point at the top of the viewport, given explicitly.
+         *
+         * A positioner places a popup against an anchor and hides itself with
+         * an inline `opacity: 0` until it has measured one. A palette has no
+         * trigger to point at - it is opened by a keystroke - so without this
+         * the measure never resolves: the popup sits in the DOM at the right
+         * size, fully transparent, rendering nothing and reporting no error.
+         * Found by reading the computed style off the positioner rather than
+         * the popup, which was opaque the whole time.
+         *
+         * A zero-height rectangle a fifth of the way down puts the palette
+         * where the eye already is rather than dead centre. */
+        anchor={{
+          getBoundingClientRect: () => {
+            const width = typeof window === 'undefined' ? 0 : window.innerWidth
+            const top = typeof window === 'undefined' ? 0 : window.innerHeight * 0.18
+            return new DOMRect(width / 2, top, 0, 0)
+          },
+        }}
         positionMethod="fixed"
         side="bottom"
         align="center"

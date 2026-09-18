@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, Plus, Search } from 'lucide-react'
+import { FileText, Plus, Search } from 'lucide-react'
 import { getWork, listJournal, markJournalRead, unreadJournal, type JournalEntry } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { openWorkId } from '@/lib/route'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { CommandPalette } from '@/components/CommandPalette'
 import { sentence, when } from '@/components/JournalFeed'
@@ -202,8 +201,7 @@ function RecentLine({ entry }: { entry: JournalEntry }) {
 }
 
 /**
- * The New button: one click for a profile with one kind of work, a menu of
- * the kinds for one with several - and the dialog with the title after that.
+ * The New button: an icon beside the bell, and the dialog behind it.
  */
 function NewWork({ onCreated }: { onCreated: (workId: string) => void }) {
   const { t } = useTranslation()
@@ -211,38 +209,34 @@ function NewWork({ onCreated }: { onCreated: (workId: string) => void }) {
   const [kind, setKind] = useState<string | null>(null)
   const kinds = profile.config.work_kinds
 
-  const button = (
-    <Button variant="soft" size="sm" className="gap-1 pl-2 pr-2.5">
-      <Plus aria-hidden className="size-3.5" />
-      {t('shell.new')}
-      {kinds.length > 1 && <ChevronDown aria-hidden className="size-3 opacity-70" />}
-    </Button>
-  )
-
   return (
     <>
-      {kinds.length > 1 ? (
-        <Menu>
-          <MenuTrigger render={button} />
-          <MenuPopup align="end">
-            {kinds.map((entry) => (
-              <MenuItem key={entry.key} onClick={() => setKind(entry.key)}>
-                {entry.label}
-              </MenuItem>
-            ))}
-          </MenuPopup>
-        </Menu>
-      ) : (
-        <Button
-          variant="soft"
-          size="sm"
-          className="gap-1 pl-2 pr-2.5"
-          onClick={() => setKind(kinds[0]?.key ?? null)}
-        >
-          <Plus aria-hidden className="size-3.5" />
-          {t('shell.new')}
-        </Button>
-      )}
+      {/* One press, straight to the dialog.
+
+          This was a labelled button with a dropdown of the kinds, and it asked
+          the question twice: the menu named Song, Instrumental, Video, Short -
+          and then the dialog opened with a Kind field offering the same four,
+          because a kind pressed by mistake must not cost the dialog. So the
+          menu only delayed the box where the title is typed, which is the
+          thing actually being added. The dialog opens on the first kind and
+          the field inside changes it.
+
+          A page with a plus over it, the way the bell beside it carries its
+          count: the shape says what is made, the plus says a new one. */}
+      <Button
+        variant="icon"
+        size="icon-sm"
+        className="relative"
+        title={t('shell.new')}
+        aria-label={t('shell.new')}
+        onClick={() => setKind(kinds[0]?.key ?? null)}
+      >
+        <FileText aria-hidden />
+        <Plus
+          aria-hidden
+          className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-raise text-accent"
+        />
+      </Button>
       <NewWorkDialog kind={kind} onClose={() => setKind(null)} onCreated={onCreated} />
     </>
   )

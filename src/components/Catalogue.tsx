@@ -634,6 +634,18 @@ function Rows({
   // width keeps the title from being squeezed to nothing when the others
   // add up to more than the window: the table scrolls instead.
   const titleSized = widths.isHandSized('title')
+
+  /*
+   * Whether the title is held against the left edge.
+   *
+   * Only while it is the first column. It is the one column that cannot be
+   * turned off, but it CAN be dragged along the row, and a held cell has to
+   * name the distance it stops at - `left: 36px`, the tick's width. Dragged
+   * into third place it would stop 36px from the edge with two columns
+   * sliding underneath it, which is worse than not holding it at all. So the
+   * hold follows the usual arrangement and lets go of an unusual one.
+   */
+  const titleStuck = columns[0] === 'title'
   const total =
     SELECT_WIDTH + MENU_WIDTH + columns.reduce((sum, id) => sum + (widths.widthOf(id) ?? 0), 0)
   const colWidth = (id: ColumnId): number | undefined => {
@@ -786,16 +798,6 @@ function Rows({
     },
   ]
 
-  if (visible.length === 0) {
-    return (
-      <EmptyState
-        title={t('empty.worksFiltered')}
-        body={t('empty.worksFilteredBody')}
-        action={<Button onClick={onClearFilters}>{t('empty.clearFilters')}</Button>}
-      />
-    )
-  }
-
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-2">
       {/* Only while rows are ticked. It replaces nothing and hides nothing — the
@@ -888,7 +890,7 @@ function Rows({
             {/* The tick column carries the same side padding as every other
                 cell: with none, the box sat flush against the star in the
                 next one and the two read as one control. */}
-            <th className="w-9 py-2 pl-3 pr-2">
+            <th className={cn('w-9 py-2 pl-3 pr-2', STUCK_LEFT_TICK, 'z-[2]')}>
               <input
                 type="checkbox"
                 className="size-3.5 cursor-pointer accent-[var(--accent)]"
@@ -919,12 +921,36 @@ function Rows({
                   onMeasure={() => {
                     if (header.current) widths.measure(measureColumns<ColumnId>(header.current))
                   }}
+                  stuck={id === 'title' && titleStuck}
                 />
               )
             })}
-            <th className="w-10 py-2" />
+            <th className={cn('w-10 py-2', STUCK_RIGHT_MENU, 'z-[2]')} />
           </tr>
         </thead>
+        {/* Nothing matched, and the headings stay above the gap.
+
+            This used to return the empty state INSTEAD of the table, so
+            narrowing a filter to nothing took the whole apparatus away with
+            the rows - the funnel that was just used, and every other heading,
+            vanished with them. What is left then looks less like an answer
+            than like a screen that broke: the filter cannot be widened from
+            the controls that set it, because they are gone. The table is the
+            furniture; only its contents are missing. */}
+        {visible.length === 0 && (
+          <tbody>
+            <tr>
+              <td colSpan={columns.length + 2} className="p-0">
+                <EmptyState
+                  title={t('empty.worksFiltered')}
+                  body={t('empty.worksFilteredBody')}
+                  action={<Button onClick={onClearFilters}>{t('empty.clearFilters')}</Button>}
+                />
+              </td>
+            </tr>
+          </tbody>
+        )}
+
         {blocks.map((block) => {
           const key = block.key ?? GROUPLESS
           const folded = groupBy !== 'none' && collapsed.has(key)
@@ -959,7 +985,7 @@ function Rows({
                     onOpen={() => onSelect(row.work_id)}
                   >
                     <td
-                      className="py-2 pl-3 pr-2"
+                      className={cn('py-2 pl-3 pr-2', STUCK_LEFT_TICK)}
                       onClick={(event) => event.stopPropagation()}
                     >
                       <input
@@ -979,10 +1005,16 @@ function Rows({
                     </td>
 
                     {columns.map((id) => (
-                      <Cell key={id} column={id} row={row} kindNarrowed={filter.kind !== undefined} />
+                      <Cell
+                        key={id}
+                        column={id}
+                        row={row}
+                        kindNarrowed={filter.kind !== undefined}
+                        titleStuck={titleStuck}
+                      />
                     ))}
 
-                    <td className="py-2 text-right">
+                    <td className={cn('py-2 text-right', STUCK_RIGHT_MENU)}>
                       <RowMenu
                         label={t('catalogue.rowMenu', { title: row.title })}
                         actions={actionsFor(row)}
@@ -1049,7 +1081,9 @@ function Row({
       render={
         <tr
           className={cn(
-            'cursor-pointer border-b border-line hover:bg-soft',
+            // `group`: the held cells paint their own background, so the row's
+            // tint cannot reach them by inheritance - they read it from here.
+            'group cursor-pointer border-b border-line hover:bg-soft',
             // While its menu is open the row stays lit, so it is obvious which
             // of twenty rows the actions belong to.
             'data-[popup-open]:bg-soft',
@@ -1079,6 +1113,7 @@ function Column({
   filter,
   widths,
   onMeasure,
+  stuck = false,
 }: {
   id: ColumnId
   /** The sort it drives, or null for a column that answers no ordering question. */
@@ -1094,6 +1129,8 @@ function Column({
   /** Measure every header cell: called as a drag begins, before the first
    * width is set and the layout goes fixed. */
   onMeasure: () => void
+  /** Whether this heading is held against the left edge with its column. */
+  stuck?: boolean
 }) {
   const { t } = useTranslation()
   const active = sortable !== null && sort.column === sortable
@@ -1120,7 +1157,14 @@ function Column({
       // last letter against the next header's first, and "Total"/"Scored" read
       // as one word. Overflow is clipped once widths are the person's: a
       // column dragged narrower than its heading shows the start of it.
-      className={cn('group relative overflow-hidden whitespace-nowrap px-3 py-2 font-medium', width)}
+      className={cn(
+        'group relative overflow-hidden whitespace-nowrap px-3 py-2 font-medium',
+        width,
+        // Held with its column, and above it: at the top-left corner the
+        // heading and the first cell overlap, and the heading wins.
+        stuck && cn(STUCK_LEFT_TITLE, 'z-[2]'),
+      )}
+      style={stuck ? { left: TITLE_LEFT, minWidth: TITLE_MIN_WIDTH } : undefined}
     >
       <span className={cn('flex items-center gap-1', align === 'right' && 'justify-end')}>
         {sortable === null ? (
@@ -1206,6 +1250,36 @@ const GROUPLESS = ' none'
 const SELECT_WIDTH = 36
 const MENU_WIDTH = 40
 
+/*
+ * What stays while the table slides under it.
+ *
+ * The table scrolls sideways once there are more columns than window, and
+ * everything travelled - so a row scrolled far enough to read its dates was a
+ * row you could no longer name, tick or act on. The three that answer "which
+ * work is this and what do I do with it" are held: the tick and the title
+ * against the left edge, the row menu against the right.
+ *
+ * Each needs its own background. A sticky cell is painted over by whatever
+ * slides beneath it otherwise, and the rows would read through the title.
+ * `bg-bg` matches the table's own surface; the row's hover tint is drawn by
+ * the row underneath and does not reach a cell that paints itself, which is
+ * why the held cells take the hover colour from the row through `group`.
+ *
+ * The title keeps a floor under its width. It is draggable like any column,
+ * and dragged to nothing it would hold a stripe of empty background against
+ * the edge - the owner asked that some of the name always remain.
+ */
+const STUCK_LEFT_TICK =
+  'sticky left-0 z-[1] bg-bg group-hover:bg-soft group-data-[popup-open]:bg-soft'
+const STUCK_LEFT_TITLE = 'sticky z-[1] bg-bg group-hover:bg-soft group-data-[popup-open]:bg-soft'
+const STUCK_RIGHT_MENU =
+  'sticky right-0 z-[1] bg-bg group-hover:bg-soft group-data-[popup-open]:bg-soft'
+
+/** Where the title column begins: hard against the tick, which never moves. */
+const TITLE_LEFT = SELECT_WIDTH
+/** The least of a title that stays readable when its column is dragged in. */
+const TITLE_MIN_WIDTH = 180
+
 /** How one column is headed, sized, aligned and narrowed. */
 interface ColumnSpec {
   label: string
@@ -1252,11 +1326,14 @@ function Cell({
   column,
   row,
   kindNarrowed,
+  titleStuck = false,
 }: {
   column: ColumnId
   row: ScoredWork
   /** The table shows one kind of work: naming it on every row says nothing. */
   kindNarrowed: boolean
+  /** Whether the title is being held against the left edge with its heading. */
+  titleStuck?: boolean
 }) {
   const { t } = useTranslation()
   const profile = useProfile()
@@ -1276,7 +1353,16 @@ function Cell({
         // broke mid-phrase and the row grew to three lines; the table now
         // scrolls sideways instead of folding - and a column dragged narrow
         // clips the title with an ellipsis rather than wrapping it.
-        <td className="overflow-hidden whitespace-nowrap px-3 py-2">
+        //
+        // It is also held against the left edge, right after the tick, so a row
+        // scrolled sideways can still be named. See STUCK_LEFT_TITLE.
+        <td
+          className={cn(
+            'overflow-hidden whitespace-nowrap px-3 py-2',
+            titleStuck && STUCK_LEFT_TITLE,
+          )}
+          style={titleStuck ? { left: TITLE_LEFT, minWidth: TITLE_MIN_WIDTH } : undefined}
+        >
           <span className="inline-flex max-w-full items-center gap-2">
             <RowStar row={row} />
             {/* The cover as a chip beside the title rather than a column of

@@ -15,6 +15,7 @@ import {
 import { changedLines, countChanges, diffLines } from '@/lib/diff'
 import { clearDraft, readDraft, writeDraft } from '@/lib/drafts'
 import { predecessor } from '@/lib/history'
+import { STAGE_LAYER } from '@/lib/layers'
 import { keys } from '@/lib/query'
 import { findRepeats } from '@/lib/repeats'
 import { say } from '@/lib/toast'
@@ -23,6 +24,7 @@ import { useBodyEditing } from '@/lib/useBodyEditing'
 import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { LayerProvider } from '@/components/ui/layer'
 import { MarkedText, MarkedTextarea } from '@/components/ui/marked-text'
 import { Markdown } from '@/components/ui/Markdown'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
@@ -867,15 +869,26 @@ function BodyPane({
 
   if (level === 'inline') return frame
 
+  /* The stage sits on the token ladder, not beside it.
+   *
+   * It carried a raw Tailwind `z-50` - a literal 50, chosen to clear the page
+   * rather than to take a place in the scale. Menus are `--z-menu`, a 30, so
+   * the ± control opened its list of versions UNDERNEATH the stage covering
+   * the window: the button highlighted, nothing appeared, and it read as
+   * broken. `LayerProvider` hands anything opened in here a floor above the
+   * stage, the same way a dialog does for the popups inside it. */
   return (
-    <div
-      className={cn(
-        'z-40 flex flex-col gap-2 bg-bg p-6',
-        level === 'focus' ? 'fixed inset-0 z-50' : 'absolute inset-0',
-      )}
-    >
-      <p className="text-xs text-faint">{t('versions.stageHint')}</p>
-      <div className="flex min-h-0 flex-1 flex-col">{frame}</div>
-    </div>
+    <LayerProvider rung="stage-popup">
+      <div
+        className={cn(
+          'flex flex-col gap-2 bg-bg p-6',
+          level === 'focus' ? 'fixed inset-0' : 'absolute inset-0',
+        )}
+        style={{ zIndex: STAGE_LAYER }}
+      >
+        <p className="text-xs text-faint">{t('versions.stageHint')}</p>
+        <div className="flex min-h-0 flex-1 flex-col">{frame}</div>
+      </div>
+    </LayerProvider>
   )
 }
