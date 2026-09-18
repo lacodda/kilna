@@ -75,7 +75,15 @@ export function CardHeader({ work, releases, links = 0, scenes, cuts }: Props) {
           that is the one place on the card that carries nothing else — and on a
           narrow window the list beside it is gone, leaving the browser's back
           button as the only way out. */}
-      <div className="rounded-t-[18px] border border-b-0 border-line">
+      {/* The gap above the card belongs to the COVER, not to the screen.
+
+          The screen wrapper deliberately has no top padding: the header below
+          is sticky, and padding there is a strip the scrolled text shows
+          through above it. But with nothing at all the cover met the title bar
+          flush, which is what the pilot photographed. A margin here is on the
+          part that scrolls AWAY, so it opens the card at rest and leaves
+          nothing behind for the text to appear in. */}
+      <div className="mt-4 rounded-t-[18px] border border-b-0 border-line">
         <div
           className="relative h-[118px] rounded-t-[17px]"
           style={{ background: coverImageFor(work.id, cover) }}

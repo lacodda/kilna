@@ -25,6 +25,7 @@ import { SkeletonList, SkeletonMonth } from '@/components/ui/Skeleton'
 import { KindFilterBar } from '@/components/calendar/KindFilterBar'
 import { MonthGrid } from '@/components/calendar/MonthGrid'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
+import { NewWorkDialog } from '@/components/shell/NewWorkDialog'
 import { ReleaseEditor } from '@/components/calendar/ReleaseEditor'
 import { filterByKind, filterGhosts, type KindFilter } from '@/lib/calendarFilter'
 import { loadLayout, otherLayout, saveLayout, type CalendarLayout } from '@/lib/calendarLayout'
@@ -62,6 +63,10 @@ export function CalendarView({ onSelect }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   // The release waiting for a link, or null when the dialog is closed.
   const [releasing, setReleasing] = useState<string | null>(null)
+  // The kind the new-work dialog opens on, from a day's `+` or its right-click
+  // menu, or null when it is closed. A month is where the next thing to make
+  // is decided, and until now a work could only be added from the title bar.
+  const [adding, setAdding] = useState<string | null>(null)
   // The auto-layout plan being previewed, or null. Applying books exactly
   // this array; any other calendar change makes it a picture of the past, so
   // `settle` clears it.
@@ -425,6 +430,11 @@ export function CalendarView({ onSelect }: Props) {
               onOpenRelease={setEditingId}
               onMove={(id, date) => move.mutate({ id, date })}
               onUnschedule={(id) => unschedule.mutate(id)}
+              // The day is not carried into the dialog yet: a work is made
+              // here, and its release is booked from the queue as before. The
+              // day it was asked for is the obvious next step, and is written
+              // down as a wish rather than guessed at here.
+              onAddOn={() => setAdding(profile.config.work_kinds[0]?.key ?? null)}
             />
 
             {slots.data.length === 0 && layout === null && (
@@ -439,6 +449,12 @@ export function CalendarView({ onSelect }: Props) {
           and opened again. An invalidated query keeps serving what it has while
           it refetches, so the row does not vanish out from under the dialog —
           checked by pinning with the dialog open. */}
+      <NewWorkDialog
+        kind={adding}
+        onClose={() => setAdding(null)}
+        onCreated={onSelect}
+      />
+
       <ReleaseEditor
         release={slots.data?.find((entry) => entry.id === editingId) ?? null}
         onOpenChange={(open) => {

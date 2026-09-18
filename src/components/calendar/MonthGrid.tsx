@@ -2,13 +2,14 @@ import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { previewSchedule, type ScheduledRelease } from '@/lib/api'
 import type { Ghost } from '@/lib/layout'
 import { byDate, monthGrid, sameMonth, shiftMonth, today, type Month } from '@/lib/month'
 import { accentFor } from '@/lib/cover'
 import { releaseIcon } from '@/lib/releaseIcon'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
+import { RowContextMenu } from '@/components/ui/RowMenu'
 import { Button } from '@/components/ui/button'
 import { SlotChip } from '@/components/calendar/SlotChip'
 import { useChipDrag } from '@/lib/useChipDrag'
@@ -29,6 +30,9 @@ interface Props {
   onMove: (releaseId: string, date: string) => void
   /** A release dragged onto the bin. */
   onUnschedule: (releaseId: string) => void
+  /** Add a work that goes out on this day: the `+` a day shows under the
+   * pointer, and the one entry in its right-click menu. */
+  onAddOn: (date: string) => void
 }
 
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
@@ -54,6 +58,7 @@ export function MonthGrid({
   onOpenRelease,
   onMove,
   onUnschedule,
+  onAddOn,
 }: Props) {
   const { t, i18n } = useTranslation()
   const profile = useProfile()
@@ -199,15 +204,24 @@ export function MonthGrid({
           const verdict = verdictFor(day.date)
 
           return (
-            <div
+            <RowContextMenu
               key={day.date}
+              actions={[
+                {
+                  key: 'add',
+                  label: t('calendar.addOnDay'),
+                  onSelect: () => onAddOn(day.date),
+                },
+              ]}
+              render={
+            <div
               // The date this cell stands for, read back from the element the
               // pointer was released over. A day of a neighbouring month is
               // dimmed but no longer inert: dragging reaches it, and the month
               // turns under the pointer anyway.
               data-day={day.date}
               className={cn(
-                'min-h-24 bg-bg p-1.5 transition-colors',
+                'group relative min-h-24 bg-bg p-1.5 transition-colors',
                 !day.inMonth && 'opacity-40',
                 // Today is where the eye starts. The number alone carried it
                 // until now, and on a grid of forty-two cells a coloured digit
@@ -231,14 +245,40 @@ export function MonthGrid({
                   ? () => setOver((current) => (current === day.date ? null : current))
                   : undefined
               }
+            />
+              }
             >
-              <div
-                className={cn(
-                  'mb-1 text-right font-mono text-[11px] tabular-nums',
-                  isToday ? 'font-semibold text-accent-2' : 'text-faint',
-                )}
-              >
-                {Number(day.date.slice(8))}
+              <div className="mb-1 flex items-center justify-between gap-1">
+                {/* Under the pointer only, and out of the flow of the chips:
+                    a plus on every one of forty-two cells is forty-two plus
+                    signs to read past. It is `opacity-0` rather than absent so
+                    the row does not reflow as the pointer crosses the month,
+                    and `focus-visible` brings it back for the keyboard, which
+                    has no hover to offer. */}
+                <button
+                  type="button"
+                  title={t('calendar.addOnDay')}
+                  aria-label={t('calendar.addOnDay')}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onAddOn(day.date)
+                  }}
+                  className={cn(
+                    'inline-flex size-4 cursor-pointer items-center justify-center rounded-[5px]',
+                    'text-faint opacity-0 transition-opacity hover:bg-soft hover:text-text',
+                    'group-hover:opacity-100 focus-visible:opacity-100',
+                  )}
+                >
+                  <Plus aria-hidden className="size-3" />
+                </button>
+                <span
+                  className={cn(
+                    'text-right font-mono text-[11px] tabular-nums',
+                    isToday ? 'font-semibold text-accent-2' : 'text-faint',
+                  )}
+                >
+                  {Number(day.date.slice(8))}
+                </span>
               </div>
 
               <div className="flex flex-col gap-1">
@@ -321,7 +361,7 @@ export function MonthGrid({
                   </p>
                 )}
               </div>
-            </div>
+            </RowContextMenu>
           )
         })}
       </div>

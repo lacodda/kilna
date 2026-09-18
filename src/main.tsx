@@ -26,6 +26,29 @@ getCurrentWindow()
   .show()
   .catch(() => undefined)
 
+/*
+ * The webview's own right-click menu does not belong in a desktop app.
+ *
+ * "Back", "Reload", "Save as", "Print", "Inspect" are a browser's answers, and
+ * this is not a browser: none of them mean anything over a song, and the first
+ * two can lose what is being typed. They also cover the app's own context
+ * menus, which is what the owner photographed.
+ *
+ * Not everywhere, though. Inside a text field the menu is the only way to Cut,
+ * Copy and Paste with the mouse, and there is no app menu to replace it - so a
+ * field, a textarea and anything `contenteditable` keep theirs, as does a
+ * selection someone has just made in order to copy it. Everywhere else the
+ * gesture belongs to the app, and a component that wants it takes it with its
+ * own handler.
+ */
+document.addEventListener('contextmenu', (event) => {
+  const target = event.target
+  if (!(target instanceof Element)) return
+  if (target.closest('input, textarea, [contenteditable=""], [contenteditable="true"]')) return
+  if ((window.getSelection()?.toString() ?? '') !== '') return
+  event.preventDefault()
+})
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>

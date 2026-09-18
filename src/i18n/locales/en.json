@@ -266,6 +266,7 @@
     "nextMonth": "Next month",
     "thisMonth": "This month",
     "allKinds": "All",
+    "addOnDay": "Add a work",
     "moreOnDay_one": "+{{count}} more",
     "moreOnDay_other": "+{{count}} more",
     "showFewer": "Show fewer",

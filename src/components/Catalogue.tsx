@@ -62,6 +62,7 @@ import {
 } from '@/components/ui/column-resize-handle'
 import { FilterPopover } from '@/components/ui/filter-popover'
 import { ReorderGrip, ReorderIndicator, useReorder } from '@/components/ui/reorderable-list'
+import { StageDial } from '@/components/StageDial'
 import { StagePicker } from '@/components/StagePicker'
 import { stagesOf } from '@/lib/stages'
 import { worksMatching } from '@/lib/api'
@@ -390,22 +391,32 @@ export function Catalogue({ onSelect }: Props) {
           placeholder={t('catalogue.anyTier')}
           options={allOf(profile.config, 'tiers').map((tier) => ({ value: tier.key, label: tier.label }))}
         />
-        {/* The starred, as one chip: the works marked to come back to. Not a
-            token in the box — a star is raised and lowered with a click, and
-            is asked for the same way. */}
+        {/* The works marked to come back to. Not a token in the box - a star is
+            raised and lowered with a click, and is asked for the same way.
+
+            Built like the two selects beside it rather than like the kind chips
+            above: it stands in the row of CONTROLS, and as a small round chip
+            among two `h-9` fields it read as something left over from the row
+            above. Same height, same border, same radius; what stays its own is
+            the warn colour it takes when it is on, because that is the state
+            and a select has no equivalent. */}
         <button
           type="button"
           aria-pressed={filter.bookmarked === true}
           title={t('catalogue.starredHint')}
           onClick={() => setFromControl({ bookmarked: filter.bookmarked === true ? undefined : true })}
           className={cn(
-            'inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+            'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-sm transition-colors',
+            'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent',
             filter.bookmarked === true
-              ? 'border-transparent bg-warn-soft font-semibold text-warn'
+              ? 'border-warn/40 bg-warn-soft font-medium text-warn'
               : 'border-line text-dim hover:border-line-2 hover:text-text',
           )}
         >
-          <Star aria-hidden className={cn('size-3', filter.bookmarked === true && 'fill-current')} />
+          <Star
+            aria-hidden
+            className={cn('size-3.5', filter.bookmarked === true && 'fill-current')}
+          />
           {t('catalogue.starred')}
         </button>
       </div>
@@ -696,10 +707,16 @@ function Rows({
         )
       case 'stages':
         return shell(
+          // The dial the rows are drawn with, and the fraction it stands for.
+          // The stop's NAME is what goes: the column shows a ring, so a funnel
+          // listing "Rough take", "Half there", "Full draft" asked the eye to
+          // match six words against six pictures it had just read. The dial
+          // beside the percentage is the same thing the row shows.
           <CheckList
             options={stagesOf(profile.config).map((stop) => ({
               value: stop.percent,
-              label: `${stop.label} · ${stop.percent}%`,
+              label: `${stop.percent}%`,
+              icon: <StageDial percent={stop.percent} stage={stop} size={16} className="shrink-0" />,
             }))}
             chosen={columnFilters.stages ?? []}
             onChange={(stages) => onColumnFilters({ ...columnFilters, stages })}
@@ -1209,7 +1226,9 @@ function CheckList<T extends string | number>({
   chosen,
   onChange,
 }: {
-  options: { value: T; label: string }[]
+  /** `icon` is drawn before the label, for a column the rows draw as a picture
+   * rather than as a word - the funnel then offers what the column shows. */
+  options: { value: T; label: string; icon?: ReactNode }[]
   chosen: T[]
   onChange: (next: T[]) => void
 }) {
@@ -1234,6 +1253,7 @@ function CheckList<T extends string | number>({
                 )
               }
             />
+            {option.icon}
             <span className="truncate">{option.label}</span>
           </label>
         )

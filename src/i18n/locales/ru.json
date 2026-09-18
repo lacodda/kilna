@@ -285,6 +285,7 @@
     "nextMonth": "Следующий месяц",
     "thisMonth": "Текущий месяц",
     "allKinds": "Всё",
+    "addOnDay": "Добавить произведение",
     "moreOnDay_one": "+ещё {{count}}",
     "moreOnDay_few": "+ещё {{count}}",
     "moreOnDay_many": "+ещё {{count}}",
