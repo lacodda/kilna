@@ -1,7 +1,7 @@
 {
   "key": "music",
   "name": "Studio",
-  "description": "Songs and the videos made for them: lyrics and style drafts judged on hook and craft, clips and shorts judged on the cut, shipped as clips, shorts and audio releases.",
+  "description": "Songs and the videos made for them: lyrics and style drafts judged on hook and craft, shipped as audio releases; the clips and shorts cut to them are works of their own, judged on the cut.",
   "config": {
     "work_kinds": [
       {
@@ -582,76 +582,6 @@
       }
     ],
     "release_kinds": [
-      {
-        "key": "clip",
-        "label": "Video clip",
-        "requires": [
-          "lyrics",
-          "style"
-        ],
-        "icon": "film",
-        "fields": [
-          {
-            "key": "title",
-            "label": "Title",
-            "type": "line",
-            "template": "{title}",
-            "hint": "What the video is listed under.",
-            "limit": 205
-          },
-          {
-            "key": "description",
-            "label": "Description",
-            "type": "text",
-            "template": "{role:lyrics}",
-            "hint": "The text under the video. The lyrics are a starting point, not the whole of it.",
-            "limit": 5000
-          },
-          {
-            "key": "tags",
-            "label": "Tags",
-            "type": "tags",
-            "hint": "Comma separated. What someone would search for to land here."
-          },
-          {
-            "key": "pinned",
-            "label": "Pinned comment",
-            "type": "text",
-            "hint": "The comment left under it, pinned to the top."
-          }
-        ]
-      },
-      {
-        "key": "short",
-        "label": "Short",
-        "requires": [
-          "lyrics",
-          "style"
-        ],
-        "icon": "smartphone",
-        "fields": [
-          {
-            "key": "title",
-            "label": "Title",
-            "type": "line",
-            "template": "{title}",
-            "hint": "Short enough to read on a phone.",
-            "limit": 100
-          },
-          {
-            "key": "description",
-            "label": "Description",
-            "type": "text",
-            "limit": 5000
-          },
-          {
-            "key": "tags",
-            "label": "Tags",
-            "type": "tags",
-            "hint": "Comma separated."
-          }
-        ]
-      },
       {
         "key": "audio",
         "label": "Audio release",

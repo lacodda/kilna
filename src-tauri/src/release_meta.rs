@@ -252,9 +252,9 @@ mod tests {
         (conn, profile_id)
     }
 
-    /// A song with a clip release planned for it, and the lyrics its
+    /// A song with an audio release planned for it, and the lyrics its
     /// description template reads.
-    fn song_with_clip(conn: &mut Connection, profile_id: &str, lyrics: Option<&str>) -> String {
+    fn song_with_audio(conn: &mut Connection, profile_id: &str, lyrics: Option<&str>) -> String {
         let work = work::create(
             conn,
             profile_id,
@@ -286,7 +286,7 @@ mod tests {
             conn,
             NewRelease {
                 work_id: work.id,
-                kind: "clip".into(),
+                kind: "audio".into(),
                 title: Some("Harbour lights".into()),
                 scheduled_at: None,
                 meta: None,
@@ -301,22 +301,22 @@ mod tests {
     #[test]
     fn the_fields_are_the_release_kinds_own() {
         let (mut conn, profile_id) = workspace();
-        let id = song_with_clip(&mut conn, &profile_id, None);
+        let id = song_with_audio(&mut conn, &profile_id, None);
 
         let fields = fields(&conn, &id).unwrap();
 
         let keys: Vec<&str> = fields.iter().map(|f| f.key.as_str()).collect();
         assert_eq!(
             keys,
-            vec!["title", "description", "tags", "pinned"],
-            "a clip is asked for what a clip goes out as, in the profile's order"
+            vec!["title", "description", "tags"],
+            "an audio release is asked for what it goes out as, in the profile's order"
         );
     }
 
     #[test]
     fn a_release_of_a_kind_the_profile_lost_still_reads() {
         let (mut conn, profile_id) = workspace();
-        let id = song_with_clip(&mut conn, &profile_id, None);
+        let id = song_with_audio(&mut conn, &profile_id, None);
         release::update(
             &conn,
             &id,
@@ -338,7 +338,7 @@ mod tests {
     #[test]
     fn generating_fills_the_templated_fields_and_leaves_the_rest_alone() {
         let (mut conn, profile_id) = workspace();
-        let id = song_with_clip(&mut conn, &profile_id, Some("the lamps come on at four"));
+        let id = song_with_audio(&mut conn, &profile_id, Some("the lamps come on at four"));
 
         let generated = generate(&conn, &id).unwrap();
 
@@ -362,7 +362,7 @@ mod tests {
     fn a_field_waiting_on_a_missing_role_is_named_rather_than_written_blank() {
         let (mut conn, profile_id) = workspace();
         // No lyrics: the description template reads `{role:lyrics}`.
-        let id = song_with_clip(&mut conn, &profile_id, None);
+        let id = song_with_audio(&mut conn, &profile_id, None);
 
         let generated = generate(&conn, &id).unwrap();
 
@@ -388,7 +388,7 @@ mod tests {
     #[test]
     fn generating_keeps_meta_no_field_describes() {
         let (mut conn, profile_id) = workspace();
-        let id = song_with_clip(&mut conn, &profile_id, Some("a body"));
+        let id = song_with_audio(&mut conn, &profile_id, Some("a body"));
         // What a plugin left behind: `release.meta` is open, and a generate
         // button is not a reason to lose it.
         release::update(
@@ -459,14 +459,14 @@ mod tests {
     #[test]
     fn fullness_counts_what_is_written() {
         let (mut conn, profile_id) = workspace();
-        let id = song_with_clip(&mut conn, &profile_id, Some("a body"));
+        let id = song_with_audio(&mut conn, &profile_id, Some("a body"));
 
         let empty = fullness(&fields(&conn, &id).unwrap());
         assert_eq!(
             empty,
             Fullness {
                 written: 0,
-                total: 4
+                total: 3
             }
         );
         assert!(!empty.complete());
@@ -488,16 +488,16 @@ mod tests {
             after,
             Fullness {
                 written: 2,
-                total: 4
+                total: 3
             },
-            "the two templated fields are written; the two typed by hand are not"
+            "the two templated fields are written; the one typed by hand is not"
         );
     }
 
     #[test]
     fn a_blank_field_counts_as_unwritten() {
         let (mut conn, profile_id) = workspace();
-        let id = song_with_clip(&mut conn, &profile_id, None);
+        let id = song_with_audio(&mut conn, &profile_id, None);
         release::update(
             &conn,
             &id,

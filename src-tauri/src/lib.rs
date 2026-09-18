@@ -7,6 +7,7 @@ pub mod commands;
 pub mod cut;
 pub mod db;
 pub mod device;
+pub mod doors;
 pub mod error;
 pub mod exchange;
 pub mod focus;

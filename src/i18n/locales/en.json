@@ -1019,7 +1019,8 @@
     "release.unscheduledBatch_other": "{{count}} releases taken off the calendar.",
     "undo.done": "Took back {{action}}",
     "release.fieldsBatch_one": "Wrote what {{count}} release goes out as.",
-    "release.fieldsBatch_other": "Wrote what {{count}} releases go out as."
+    "release.fieldsBatch_other": "Wrote what {{count}} releases go out as.",
+    "upgrade.doorsMoved": "{{count}} releases moved onto works of their own: a clip is a video, a short is a short."
   },
   "card": {
     "tab": {

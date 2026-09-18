@@ -498,10 +498,23 @@ Judge it as a finished song, along the axes below. Be honest rather than kind: a
 
 /// Shipped descriptions that changed, old to new, on the same terms as the
 /// names: a copy the owner never touched follows, a rewritten one stays.
-const REDESCRIBED: [(&str, &str); 1] = [(
-    "Songs with independent lyrics and style drafts, judged on hook and craft, shipped as clips, shorts and audio releases.",
-    "Songs and the videos made for them: lyrics and style drafts judged on hook and craft, clips and shorts judged on the cut, shipped as clips, shorts and audio releases.",
-)];
+/// Every wording the file ever shipped maps to the current one, so a copy
+/// that skipped a release still arrives.
+const REDESCRIBED: [(&str, &str); 2] = [
+    (
+        "Songs with independent lyrics and style drafts, judged on hook and craft, shipped as clips, shorts and audio releases.",
+        STUDIO_DESCRIPTION,
+    ),
+    (
+        "Songs and the videos made for them: lyrics and style drafts judged on hook and craft, clips and shorts judged on the cut, shipped as clips, shorts and audio releases.",
+        STUDIO_DESCRIPTION,
+    ),
+];
+
+/// The Studio profile's one-sentence description as it ships since v0.74:
+/// a song's door is the audio release, and the clips and shorts cut to it
+/// are works of their own (ADR 0030).
+const STUDIO_DESCRIPTION: &str = "Songs and the videos made for them: lyrics and style drafts judged on hook and craft, shipped as audio releases; the clips and shorts cut to them are works of their own, judged on the cut.";
 
 /// The `format` a stored document claims — 1 when it says nothing, the way
 /// every document written before the field did.
@@ -872,8 +885,9 @@ mod tests {
         let conn = db::open_in_memory().unwrap();
         seed(&conn).unwrap();
 
-        // Wind the stored copy back: the same kinds, requiring nothing — and
-        // one the user narrowed by hand, which must stay narrowed.
+        // Wind the stored copy back: the same doors on the video, requiring
+        // nothing — and one the user narrowed by hand, which must stay
+        // narrowed.
         let (id, raw): (String, String) = conn
             .query_row(
                 "SELECT id, config FROM profile WHERE key = 'music'",
@@ -882,9 +896,14 @@ mod tests {
             )
             .unwrap();
         let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
-        for kind in &mut config.work_kinds[0].release_kinds {
-            kind.requires = if kind.key == "audio" {
-                vec!["style".into()]
+        let video = config
+            .work_kinds
+            .iter_mut()
+            .find(|kind| kind.key == "video")
+            .unwrap();
+        for kind in &mut video.release_kinds {
+            kind.requires = if kind.key == "premiere" {
+                vec!["context".into()]
             } else {
                 Vec::new()
             };
@@ -899,7 +918,8 @@ mod tests {
 
         let config = config_for(&conn, &id).unwrap();
         let requires_of = |key: &str| {
-            config.work_kinds[0]
+            config
+                .vocabulary("video")
                 .release_kinds
                 .iter()
                 .find(|kind| kind.key == key)
@@ -907,9 +927,9 @@ mod tests {
                 .requires
                 .clone()
         };
-        assert_eq!(requires_of("clip"), vec!["lyrics", "style"]);
+        assert_eq!(requires_of("youtube"), vec!["plot"]);
         // A list the user set themselves is not overwritten by the upgrade.
-        assert_eq!(requires_of("audio"), vec!["style"]);
+        assert_eq!(requires_of("premiere"), vec!["context"]);
     }
 
     /// Same delivery path again, for the glyph the calendar draws a kind with.
@@ -930,12 +950,14 @@ mod tests {
             )
             .unwrap();
         let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
-        for kind in &mut config.work_kinds[0].release_kinds {
-            kind.icon = if kind.key == "audio" {
-                Some("radio".into())
-            } else {
-                None
-            };
+        for kind in &mut config.work_kinds {
+            for door in &mut kind.release_kinds {
+                door.icon = if door.key == "premiere" {
+                    Some("radio".into())
+                } else {
+                    None
+                };
+            }
         }
         conn.execute(
             "UPDATE profile SET config = ?2 WHERE id = ?1",
@@ -946,19 +968,21 @@ mod tests {
         seed(&conn).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
-        let icon_of = |key: &str| {
-            config.work_kinds[0]
+        let icon_of = |kind: &str, key: &str| {
+            config
+                .vocabulary(kind)
                 .release_kinds
                 .iter()
-                .find(|kind| kind.key == key)
+                .find(|door| door.key == key)
                 .unwrap()
                 .icon
                 .clone()
         };
-        assert_eq!(icon_of("clip").as_deref(), Some("film"));
-        assert_eq!(icon_of("short").as_deref(), Some("smartphone"));
+        assert_eq!(icon_of("song", "audio").as_deref(), Some("disc"));
+        assert_eq!(icon_of("video", "youtube").as_deref(), Some("film"));
+        assert_eq!(icon_of("short", "short").as_deref(), Some("smartphone"));
         // A glyph the user picked themselves is not taken back by the upgrade.
-        assert_eq!(icon_of("audio").as_deref(), Some("radio"));
+        assert_eq!(icon_of("video", "premiere").as_deref(), Some("radio"));
     }
 
     #[test]
@@ -1027,6 +1051,13 @@ mod tests {
             0,
             crate::profile::config::ReleaseKind::new("vinyl", "Vinyl pressing", &[]),
         );
+        // The shipped door beside it loses its glyph, so the backfill has
+        // something to do that the assertion below can tell from nothing.
+        for door in &mut config.work_kinds[0].release_kinds {
+            if door.key == "audio" {
+                door.icon = None;
+            }
+        }
         conn.execute(
             "UPDATE profile SET config = ?2 WHERE id = ?1",
             params![id, serde_json::to_string(&config).unwrap()],
@@ -1048,7 +1079,7 @@ mod tests {
             config.work_kinds[0]
                 .release_kinds
                 .iter()
-                .any(|kind| kind.key == "clip" && kind.icon.as_deref() == Some("film"))
+                .any(|kind| kind.key == "audio" && kind.icon.as_deref() == Some("disc"))
         );
     }
 

@@ -1102,7 +1102,8 @@
     "release.fieldsBatch_one": "Составлено, чем выходит {{count}} выпуск.",
     "release.fieldsBatch_few": "Составлено, чем выходят {{count}} выпуска.",
     "release.fieldsBatch_many": "Составлено, чем выходят {{count}} выпусков.",
-    "release.fieldsBatch_other": "Составлено, чем выходят {{count}} выпусков."
+    "release.fieldsBatch_other": "Составлено, чем выходят {{count}} выпусков.",
+    "upgrade.doorsMoved": "Выпусков перенесено на собственные произведения: {{count}} — клип стал видео, шортс шортсом."
   },
   "card": {
     "tab": {

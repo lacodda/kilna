@@ -32,11 +32,13 @@ fn repo_root() -> PathBuf {
 fn keys_written() -> BTreeSet<String> {
     // Every file that writes the journal. `commands.rs` is the window's side;
     // `mcp.rs` records what an agent outside it proposed; `assistant/apply.rs`
-    // records what a person applied of it.
+    // records what a person applied of it; `doors.rs` records what the
+    // upgrade at open moved.
     let source = [
         "src-tauri/src/commands.rs",
         "src-tauri/src/mcp.rs",
         "src-tauri/src/assistant/apply.rs",
+        "src-tauri/src/doors.rs",
     ]
     .iter()
     .map(|file| {
