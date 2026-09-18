@@ -64,9 +64,9 @@ ring cannot get there alone.
 
 ## What each release makes of it
 
-A clip lives or dies on its hook and its picture; the same song as an audio
-release is carried by its words. If your profile gives a release kind
-[weights of its own](/kilna/reference/profile-document/#release_kinds), the
+A premiere lives or dies on its dynamics; the same video as an ordinary
+upload is carried by its fit to the track. If your profile gives a release
+kind [weights of its own](/kilna/reference/profile-document/#release_kinds), the
 panel reads one set of answers down every channel you ship to and shows what
 each makes of it — one score, several honest verdicts. Kinds that weigh the
 axes the way the profile does are shown greyed rather than left out, so the
