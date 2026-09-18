@@ -1,9 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Diff, Eye, Maximize2, Minimize2, PenLine, Plus, Scan } from 'lucide-react'
+import { Diff, Eye, Maximize2, Minimize2, PenLine, Plus, Scan, X } from 'lucide-react'
 import {
   createVersion,
   deleteVersion,
@@ -12,20 +12,23 @@ import {
   setCurrentVersion,
   type VersionRole,
 } from '@/lib/api'
+import { changedLines, countChanges, diffLines } from '@/lib/diff'
 import { clearDraft, readDraft, writeDraft } from '@/lib/drafts'
 import { predecessor } from '@/lib/history'
 import { keys } from '@/lib/query'
+import { findRepeats } from '@/lib/repeats'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { useBodyEditing } from '@/lib/useBodyEditing'
 import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { MarkedText, MarkedTextarea } from '@/components/ui/MarkedText'
 import { Markdown } from '@/components/ui/Markdown'
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 import { SaveState } from '@/components/ui/SaveState'
 import { Select } from '@/components/ui/AppSelect'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { VersionDiff } from '@/components/versions/VersionDiff'
 import { VersionEditor } from '@/components/versions/VersionEditor'
 import { ActionBar } from '@/components/assistant/ActionBar'
 import { VersionList } from '@/components/versions/VersionList'
@@ -39,13 +42,13 @@ interface Props {
  *
  * `view` draws the body the way its role reads — a monospace column for
  * lyrics, rendered markdown for a review. `edit` is the same text in a box,
- * saving itself into the version of the sitting. `changes` compares with the
- * revision before it — the question asked most often of a history, and one
- * that should not cost a hunt through the list for the other side. Picking a
- * version with the ± button overrides it, because then the comparison was
- * asked for explicitly.
+ * saving itself into the version of the sitting. Comparing is not a third
+ * way of reading but a second column beside either: the version picked with
+ * ± stands on the right with its lines that are gone marked, while the text
+ * on the left is read or written with its new lines marked — so a rewrite
+ * keeps the original in view, at any width.
  */
-type Reading = 'view' | 'edit' | 'changes'
+type Reading = 'view' | 'edit'
 
 /**
  * How much of the screen the text takes.
@@ -85,7 +88,7 @@ export function VersionPanel({ workId }: Props) {
   // it is on now — and the diff is open on arrival.
   const [comparedId, setComparedId] = useState<string | null>(() => params.get('compare'))
   const [reading, setReading] = useState<Reading>('view')
-  const [commentReading, setCommentReading] = useState<Exclude<Reading, 'changes'>>('view')
+  const [commentReading, setCommentReading] = useState<Reading>('view')
   const [stage, setStage] = useState<{ pane: Pane; level: Exclude<Level, 'inline'> } | null>(null)
 
   // The form for a version written from nothing or from a copy. It is not on
@@ -169,9 +172,15 @@ export function VersionPanel({ workId }: Props) {
     placeholderData: keepPreviousData,
   })
 
-  // What `changes` compares against when nothing was picked by hand.
+  // The version beside the open one, when one was picked. The predecessor is
+  // not assumed: it is offered first in the picker, one click away, rather
+  // than opened by a mode of its own. A pick that no longer names a version
+  // of this role, or names the open one, is no pick.
   const before = predecessor(summaries, openId)
-  const againstId = comparedId ?? (reading === 'changes' ? (before?.id ?? null) : null)
+  const againstId =
+    comparedId !== null && comparedId !== openId && summaries.some((v) => v.id === comparedId)
+      ? comparedId
+      : null
 
   const compared = useQuery({
     queryKey: keys.version(againstId ?? ''),
@@ -307,9 +316,10 @@ export function VersionPanel({ workId }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [stage])
 
+  // The comparison stays through it: writing with the original beside the
+  // text is what the second column is for.
   const enterText = () => {
     setReading('edit')
-    setComparedId(null)
     setStage({ pane: 'text', level: 'expanded' })
   }
 
@@ -326,26 +336,23 @@ export function VersionPanel({ workId }: Props) {
         } · ${open.data.created_at.slice(0, 10)}`}
         markdown={textMarkdown}
         body={open.data.body}
-        reading={comparing ? 'changes' : reading}
-        onReading={(mode) => {
-          setReading(mode)
-          // Leaving the diff drops the hand-picked other side as well, or the
-          // text would stay hidden behind it.
-          if (mode !== 'changes') setComparedId(null)
+        reading={reading}
+        onReading={setReading}
+        compare={{
+          against:
+            comparing && compared.data != null
+              ? { id: compared.data.id, body: compared.data.body, label: nameOf(againstId) }
+              : null,
+          candidates: summaries
+            .filter((version) => version.id !== openId)
+            .map((version) => ({
+              id: version.id,
+              label: nameOf(version.id),
+              previous: version.id === before?.id,
+            })),
+          onPick: setComparedId,
         }}
-        withChanges
-        changes={
-          comparing && compared.data != null ? (
-            <VersionDiff
-              before={compared.data.body}
-              after={open.data.body}
-              beforeLabel={nameOf(againstId)}
-              afterLabel={nameOf(openId)}
-            />
-          ) : (
-            <p className="text-sm text-dim">{t('versions.diffFirst')}</p>
-          )
-        }
+        repeats
         editing={editing}
         onEnter={enterText}
         onLevel={(next) => setStage(next === 'inline' ? null : { pane: 'text', level: next })}
@@ -383,9 +390,7 @@ export function VersionPanel({ workId }: Props) {
         markdown={comment.data != null && readsAsMarkdown(roles, comment.data.role)}
         body={comment.data?.body ?? null}
         reading={commentReading}
-        onReading={(mode) => {
-          if (mode !== 'changes') setCommentReading(mode)
-        }}
+        onReading={setCommentReading}
         editing={commentEditing}
         onEnter={() => {
           setCommentReading('edit')
@@ -450,34 +455,36 @@ export function VersionPanel({ workId }: Props) {
           text beside it. Below that it sits above, full width, because a
           comparison squeezed into 130px is two columns of hyphens. */}
       <div className="grid gap-4 xl:grid-cols-[15rem_minmax(0,1fr)]">
-        <VersionList
-          versions={summaries}
-          loading={versions.isPending}
-          openId={openId}
-          comparedId={comparedId}
-          onOpen={(id) => {
-            setSelectedId(id)
-            // Opening another version is reading it, whatever the last one
-            // was being done to.
-            setReading('view')
-            // A hand-picked other side belonged to the version it was picked
-            // against. Carrying it onto the next one turns stepping through a
-            // history into comparing everything with one fixed revision, which
-            // is not what the step asked for; `changes` falls back to each
-            // version's own predecessor.
-            setComparedId(null)
-          }}
-          onCompare={(id) => {
-            const dropping = comparedId === id
-            setComparedId(dropping ? null : id)
-            // Picking a side to compare against is asking for the diff; letting
-            // it go returns to whatever was being read before.
-            setReading(dropping ? 'view' : 'changes')
-          }}
-          onMakeCurrent={(id) => makeCurrent.mutate(id)}
-          onDelete={(id) => remove.mutate(id)}
-          onDeriveFrom={(id) => void deriveFrom(id)}
-        />
+        {/* Above the text, the list is held to three rows and scrolls: a
+            history of twenty revisions would otherwise push the text a screen
+            down. Beside the text it has the column's height. */}
+        <div className="max-h-[10.5rem] overflow-y-auto xl:max-h-none">
+          <VersionList
+            versions={summaries}
+            loading={versions.isPending}
+            openId={openId}
+            comparedId={againstId}
+            onOpen={(id) => {
+              setSelectedId(id)
+              // Opening another version is reading it, whatever the last one
+              // was being done to.
+              setReading('view')
+              // A comparison with the predecessor follows the step: each
+              // revision against its own. A comparison with a version picked
+              // by hand stays where it was pointed - an original kept beside
+              // a history being walked - unless the step lands on it.
+              if (againstId !== null && againstId === before?.id) {
+                setComparedId(predecessor(summaries, id)?.id ?? null)
+              } else if (againstId === id) {
+                setComparedId(null)
+              }
+            }}
+            onCompare={(id) => setComparedId(againstId === id ? null : id)}
+            onMakeCurrent={(id) => makeCurrent.mutate(id)}
+            onDelete={(id) => remove.mutate(id)}
+            onDeriveFrom={(id) => void deriveFrom(id)}
+          />
+        </div>
 
         <div className="flex min-w-0 flex-col gap-4">
           {open.isPending && openId !== null && <Skeleton className="h-32 w-full" />}
@@ -559,18 +566,27 @@ interface PaneProps {
   body: string | null
   reading: Reading
   onReading: (mode: Reading) => void
-  /** Whether the pane offers the comparison mode at all. */
-  withChanges?: boolean
-  changes?: ReactNode
+  /** The comparison: what stands beside the text, and what may. Absent on a
+   *  pane that does not compare — the commentary. */
+  compare?: {
+    against: { id: string; body: string; label: string } | null
+    candidates: { id: string; label: string; previous: boolean }[]
+    onPick: (id: string | null) => void
+  }
+  /** Whether repeated words are marked while editing. */
+  repeats?: boolean
   editing: ReturnType<typeof useBodyEditing>
   /** Clicking into the text: edit, on the whole content area. */
   onEnter: () => void
   onLevel: (level: Level) => void
 }
 
+/** How many tints a repeated word may be drawn in before they cycle. */
+const REPEAT_TINTS = 6
+
 /**
- * One body: a version's text, read, edited or compared — on the card, over
- * the content area, or over the whole window.
+ * One body: a version's text, read or edited, with another beside it when
+ * asked — on the card, over the content area, or over the whole window.
  *
  * Reading is the default. The text is a thing to look at until it is clicked,
  * and then it is a thing to type into, with the frame out of the way. The
@@ -584,8 +600,8 @@ function BodyPane({
   body,
   reading,
   onReading,
-  withChanges = false,
-  changes,
+  compare,
+  repeats = false,
   editing,
   onEnter,
   onLevel,
@@ -596,19 +612,54 @@ function BodyPane({
   const modes: { mode: Reading; icon: typeof Eye; label: string }[] = [
     { mode: 'view', icon: Eye, label: t('versions.view') },
     { mode: 'edit', icon: PenLine, label: t('versions.edit') },
-    ...(withChanges ? [{ mode: 'changes' as const, icon: Diff, label: t('versions.changes') }] : []),
   ]
+
+  // What is on the left right now: the text being typed, or the body as it
+  // is on disk. The comparison and the repeats are read off this, so both
+  // follow the keystrokes.
+  const text = reading === 'edit' ? editing.text : (body ?? '')
+  const against = compare?.against ?? null
+  const diff = useMemo(
+    () => (against === null ? null : diffLines(against.body, text)),
+    [against, text],
+  )
+  const moved = useMemo(() => (diff === null ? null : changedLines(diff)), [diff])
+  const counts = useMemo(() => (diff === null ? null : countChanges(diff)), [diff])
+  const found = useMemo(
+    () => (repeats && reading === 'edit' ? findRepeats(text) : null),
+    [repeats, reading, text],
+  )
+
+  const addedLines = useMemo(
+    () => [...(moved?.added ?? [])].map((line) => ({ line, className: 'bg-good-soft' })),
+    [moved],
+  )
+  const removedLines = useMemo(
+    () => [...(moved?.removed ?? [])].map((line) => ({ line, className: 'bg-bad-soft' })),
+    [moved],
+  )
+  const marks = useMemo(
+    () =>
+      (found?.marks ?? []).map((mark) => ({
+        start: mark.start,
+        end: mark.end,
+        className: `repeat-${mark.group % REPEAT_TINTS}`,
+      })),
+    [found],
+  )
+
+  // The metrics both layers of the editor share, and the read text with them:
+  // the marks are drawn on a mirror and have to land on the same letters.
+  const metrics = cn('px-3 py-2.5 text-sm leading-relaxed', !markdown && 'font-mono')
 
   const content =
     body === null ? (
       <Skeleton className="h-32 w-full" />
-    ) : reading === 'changes' ? (
-      <div className="px-3 py-2.5">{changes}</div>
     ) : reading === 'edit' ? (
-      <textarea
+      <MarkedTextarea
         autoFocus
         value={editing.text}
-        onChange={(event) => editing.setText(event.target.value)}
+        onChange={editing.setText}
         onBlur={() => void editing.flush()}
         onKeyDown={(event) => {
           // The key everyone presses anyway. The text is already saving
@@ -619,11 +670,9 @@ function BodyPane({
           }
         }}
         aria-label={t('versions.edit')}
-        className={cn(
-          'selectable block w-full resize-none bg-transparent px-3 py-2.5 text-sm leading-relaxed text-text outline-none',
-          !markdown && 'font-mono',
-          staged ? 'h-full min-h-0 flex-1' : 'min-h-[28rem]',
-        )}
+        marks={marks}
+        lineMarks={addedLines}
+        className={cn('selectable block w-full', metrics, staged ? 'min-h-full' : 'min-h-[28rem]')}
       />
     ) : (
       // Reading. The whole body is the way in: clicking it is what starting
@@ -637,16 +686,73 @@ function BodyPane({
           if (event.key === 'Enter') onEnter()
         }}
         className={cn(
-          'cursor-text px-3 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-accent',
-          staged ? 'min-h-full' : 'max-h-[28rem] overflow-auto',
+          'cursor-text outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          staged && 'min-h-full',
         )}
       >
         {markdown ? (
-          <Markdown body={body} />
+          <div className="px-3 py-2.5">
+            <Markdown body={body} />
+          </div>
         ) : (
-          <pre className="selectable whitespace-pre-wrap font-mono text-sm">{body}</pre>
+          <MarkedText text={body} lineMarks={addedLines} className={metrics} />
         )}
       </div>
+    )
+
+  // The ± control: one other version is compared with in one press; several
+  // are offered by name, the predecessor first — the question asked most
+  // often of a history should not cost a hunt through the list.
+  const candidates = compare?.candidates ?? []
+  const comparer =
+    compare === undefined || candidates.length === 0 ? null : against !== null ? (
+      <Button
+        variant="soft"
+        size="icon-sm"
+        aria-pressed
+        title={t('versions.stopComparing')}
+        aria-label={t('versions.stopComparing')}
+        onClick={() => compare.onPick(null)}
+      >
+        <Diff aria-hidden />
+      </Button>
+    ) : candidates.length === 1 ? (
+      <Button
+        variant="icon"
+        size="icon-sm"
+        title={t('versions.compareWith', { name: candidates[0]!.label })}
+        aria-label={t('versions.compareWith', { name: candidates[0]!.label })}
+        onClick={() => compare.onPick(candidates[0]!.id)}
+      >
+        <Diff aria-hidden />
+      </Button>
+    ) : (
+      <Menu>
+        <MenuTrigger
+          render={
+            <Button
+              variant="icon"
+              size="icon-sm"
+              title={t('versions.compareMenu')}
+              aria-label={t('versions.compareMenu')}
+            />
+          }
+        >
+          <Diff aria-hidden />
+        </MenuTrigger>
+        <MenuPopup align="end">
+          {[...candidates]
+            .sort((a, b) => Number(b.previous) - Number(a.previous))
+            .map((candidate) => (
+              <MenuItem key={candidate.id} onClick={() => compare.onPick(candidate.id)}>
+                <span className="truncate">{candidate.label}</span>
+                {candidate.previous && (
+                  <span className="ml-auto pl-3 text-[11px] text-faint">{t('versions.previous')}</span>
+                )}
+              </MenuItem>
+            ))}
+        </MenuPopup>
+      </Menu>
     )
 
   const frame = (
@@ -677,6 +783,7 @@ function BodyPane({
               <Icon aria-hidden />
             </Button>
           ))}
+          {comparer}
           <span aria-hidden className="mx-1 h-4 w-px bg-line" />
           <Button
             variant={level === 'expanded' ? 'soft' : 'icon'}
@@ -699,8 +806,59 @@ function BodyPane({
         </div>
       </header>
 
-      <div className={cn('flex min-h-0 flex-col', staged ? 'flex-1 overflow-auto' : '')}>
-        {content}
+      {/* The words this text leans on, while it is being written. Nothing is
+          drawn when there are none: a strip saying "no repeats" would be a
+          strip taking the room the text wants. */}
+      {found !== null && found.groups.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-line px-3 py-1.5 text-[11px] text-dim">
+          <span className="mr-1 font-medium">{t('versions.repeats')}</span>
+          {found.groups.map((group, index) => (
+            <span
+              key={group.stem}
+              className={cn('rounded-sm px-1.5 py-px', `repeat-${index % REPEAT_TINTS}`)}
+            >
+              {group.word} ×{group.count}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* One scroller for both columns, so the two texts move together. */}
+      <div
+        className={cn(
+          'grid min-h-0',
+          against === null ? 'grid-cols-1' : 'grid-cols-2',
+          staged ? 'flex-1 overflow-auto' : 'max-h-[32rem] overflow-auto',
+        )}
+      >
+        <div className="min-w-0">{content}</div>
+        {against !== null && compare !== undefined && (
+          <aside className="flex min-w-0 flex-col border-l border-line">
+            <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-bg px-3 py-1 text-[11px] text-dim">
+              <span className="truncate font-medium">{against.label}</span>
+              {counts !== null && (
+                <span className="ml-auto whitespace-nowrap text-faint">
+                  {counts.added === 0 && counts.removed === 0
+                    ? t('versions.diffSame')
+                    : [
+                        t('versions.diffAdded', { count: counts.added }),
+                        t('versions.diffRemoved', { count: counts.removed }),
+                      ].join(' · ')}
+                </span>
+              )}
+              <Button
+                variant="icon"
+                size="icon-sm"
+                title={t('versions.stopComparing')}
+                aria-label={t('versions.stopComparing')}
+                onClick={() => compare.onPick(null)}
+              >
+                <X aria-hidden />
+              </Button>
+            </header>
+            <MarkedText text={against.body} lineMarks={removedLines} className={cn(metrics, 'text-dim')} />
+          </aside>
+        )}
       </div>
     </article>
   )

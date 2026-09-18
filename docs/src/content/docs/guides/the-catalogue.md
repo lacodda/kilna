@@ -3,8 +3,9 @@ title: The catalogue
 description: The one list of everything you are making — sorting, filters that find unfinished work, and acting on several works at once.
 ---
 
-The catalogue is every work there is. Add one here, find one here, open one
-here. There is no second list.
+The catalogue is every work there is: find one here, open one here. There is
+no second list. Adding one is the **New** button in the title bar, which
+reaches from any screen.
 
 Each row carries the work's title, its status and kind, the tier and score it
 last earned, and when it was scored. Clicking a row opens it.

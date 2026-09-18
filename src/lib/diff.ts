@@ -82,3 +82,32 @@ export function countChanges(changes: Change[]): { added: number; removed: numbe
   }
   return { added, removed }
 }
+
+/**
+ * Which lines of each side moved, by line number, for marking the texts
+ * themselves rather than drawing a third view of them.
+ *
+ * The comparison beside the editor colours lines in place: on the text being
+ * written, the lines that are new; on the version it is compared with, the
+ * lines that are gone. Both texts stay whole and in their own order, so the
+ * answer is two sets of line indexes rather than one merged list.
+ */
+export function changedLines(changes: Change[]): { added: Set<number>; removed: Set<number> } {
+  const added = new Set<number>()
+  const removed = new Set<number>()
+  let before = 0
+  let after = 0
+  for (const change of changes) {
+    if (change.kind === 'same') {
+      before += 1
+      after += 1
+    } else if (change.kind === 'removed') {
+      removed.add(before)
+      before += 1
+    } else {
+      added.add(after)
+      after += 1
+    }
+  }
+  return { added, removed }
+}

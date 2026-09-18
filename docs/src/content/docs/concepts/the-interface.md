@@ -1,11 +1,15 @@
 ---
 title: The interface
-description: How kilna's window is laid out — the sidebar, the topbar, themes, URLs you can navigate by, and how the app tells you what it did.
+description: How kilna's window is laid out — the title bar, the sidebar, themes, URLs you can navigate by, and how the app tells you what it did.
 ---
 
 kilna's window is a frame around one working surface. The frame does not
-change as you move: a sidebar on the left, a slim topbar above, and the
-current screen filling the rest.
+change as you move: the title bar across the top, a sidebar on the left, and
+the current screen filling the rest.
+
+The window opens on a splash — the mark, the name, the version — for the
+moment it takes to open the workspace, and it comes back the size and place
+it was closed at: maximised if it was maximised, 1200×1200 if it was that.
 
 ## The sidebar
 
@@ -25,18 +29,30 @@ release that delivers them, so the map of what is coming lives in the app
 itself rather than in a changelog.
 
 The footer holds the theme switch, the language switch, the profile picker,
-and Settings.
+and Settings. Settings is sections under their own addresses — General, The
+work card, Profile, Data, Agents — and *The work card* is where you choose
+which tab a work opens on: Overview by default, Versions or Score if that is
+where you live.
 
-## The topbar
+## The title bar
 
-The topbar names the screen you are on, counts your works, holds the search
-box, and holds the **bell**.
+There is one bar rather than a system one over an application one, as in
+scheda. From left to right: the mark and the version, where you are (the
+screen, or *Catalogue › the work*), the **search box** in the middle, the
+count of works, the **New** button, the **bell**, and the window's own
+buttons. Everything that is not a control drags the window; a double-click
+maximises it.
+
+**New** adds a work: with one kind of work in the profile it asks for a title
+straight away, with several it lists the kinds first. The catalogue used to
+carry a title box for this at its top; the button reaches from any screen.
 
 **Search** takes `Ctrl+K` from anywhere and looks through titles, drafts,
 notes and assistant replies at once — see
 [Finding things](/kilna/guides/finding-things/). The bell is lit only by entries that need a look — never by the
 ordinary record of you adding a work or saving a version, because a bell lit
-by everything is a bell nobody reads. Clicking it opens
+by everything is a bell nobody reads. Pressing it opens the last few entries
+in place, the ones that need a look first, with *See all* leading to
 [History](/kilna/guides/the-history/).
 
 The whole shell answers to the keyboard: `G` then a letter jumps between

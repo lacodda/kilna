@@ -121,31 +121,52 @@ same: the tab opens on it, so a version is never only a toast.
 
 ## Comparing two versions
 
-**Changes** answers the usual question — *what moved since last time* —
-against the revision immediately before the open one. To compare against
-some other version, the **±** button on any row in the list puts that one on
-the left instead.
+The **±** button beside *Read* and *Edit* puts another version of the same
+role on the right of the text. With one other version to choose from it opens
+at once; with several it lists them by name, the revision immediately before
+the open one first — *what moved since last time* is the question asked most
+often of a history, and it should not cost a hunt through the list. The **±**
+on any row of the list does the same for that row.
 
-Either way they appear side by side: the older text on the left, the newer on
-the right, with lines that left marked in red and lines that arrived marked in
-green. A line at the top says how much moved.
+The comparison is a second column, not a third way of reading. On the left
+the open text stays as it was — read as its role reads, or edited — with the
+lines that are new marked green; on the right the other version stands whole,
+with the lines that are gone marked red. A line above the right column says
+how much moved. Because the left side is the live text, you can rewrite with
+the original in view, and the marks follow every keystroke.
 
+The two columns appear at any width, on the card and on the whole screen.
 The comparison is by line rather than by word, because a version here is
-prose — a verse, a scene, a script — and prose is revised by the line. Seeing
-*this line went, that one arrived* answers what changed between two drafts;
-a word-level diff of a rewritten verse is confetti.
+prose — a verse, a scene, a script — and prose is revised by the line; a
+word-level diff of a rewritten verse is confetti.
 
-Press **±** again to stop comparing, or open the version you were comparing
-against and it clears itself. **Read** or **Edit** leaves the comparison too.
+Press **±** again, or the cross on the right column, to stop comparing.
+Opening the version you were comparing with clears it too.
+
+## Repeated words
+
+While you edit, words the text uses more than once are tinted — the same tint
+for the same word wherever it appears — and a strip under the toolbar counts
+them: *лестница ×3*. Forms of a word count together: *лестница*, *лестницы*
+and *лестницей* are one word leaned on three times, *ladder* and *ladders*
+likewise. The matching is a light stemmer for Russian and English, not a
+dictionary, so an unusual word may occasionally be grouped with a neighbour
+it does not belong to; it is a prompt to look, not a verdict.
+
+Function words — *и*, *the*, *не* — are left out, as is anything inside
+square brackets: `[Verse 2]` names a section and repeats by design. Nothing is
+drawn when nothing repeats.
 
 ## Walking the history
 
 With the version list focused, the arrow keys step through it: **↓** to the
 next revision back, **↑** toward the newest, **Home** and **End** to either
 end. Reading through six revisions is six presses rather than six aimed
-clicks, and whichever way you got there, the reading mode stays as you left
-it — arrowing through a history in **Changes** shows each revision against the
-one before it in turn.
+clicks. A comparison with the previous revision follows the step — each
+revision against its own predecessor in turn — while a comparison with a
+version you picked by hand stays pointed at it, so an original can be kept
+beside a history being walked. Above the text the list shows three rows and
+scrolls; beside it, on a wide window, it has the column's height.
 
 ## Roles
 

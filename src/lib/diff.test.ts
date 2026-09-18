@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countChanges, diffLines } from '@/lib/diff'
+import { changedLines, countChanges, diffLines } from '@/lib/diff'
 
 /** `s:`/`a:`/`r:` prefixes, so a whole result reads on one line. */
 const kinds = (before: string, after: string) =>
@@ -55,5 +55,20 @@ describe('diffLines', () => {
     const changes = diffLines(huge, `${huge}\nand one more`)
     // Whole-text removal and addition: honest, and instant.
     expect(changes.map((c) => c.kind)).toEqual(['removed', 'added'])
+  })
+})
+
+describe('changedLines', () => {
+  it('numbers the moved lines on each side', () => {
+    const changes = diffLines('a\nb\nc', 'a\nx\nc\nd')
+    const lines = changedLines(changes)
+    expect([...lines.removed]).toEqual([1])
+    expect([...lines.added]).toEqual([1, 3])
+  })
+
+  it('marks nothing when nothing moved', () => {
+    const lines = changedLines(diffLines('a\nb', 'a\nb'))
+    expect(lines.added.size).toBe(0)
+    expect(lines.removed.size).toBe(0)
   })
 })

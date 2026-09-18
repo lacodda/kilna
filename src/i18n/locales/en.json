@@ -102,17 +102,19 @@
     "labelPlaceholder": "Name this version (optional)",
     "makeCurrentOnSave": "Make this the current version",
     "kept": "Draft kept",
-    "compare": "Compare with the open version",
+    "compare": "Put this one beside the open version",
     "stopComparing": "Stop comparing",
     "diffSame": "These two are identical.",
     "diffAdded_one": "{{count}} line in",
     "diffAdded_other": "{{count}} lines in",
     "diffRemoved_one": "{{count}} line out",
     "diffRemoved_other": "{{count}} lines out",
-    "changes": "Changes",
-    "diffFirst": "This is the first revision of this role — there is nothing before it to compare with.",
     "deriveFrom": "Start a new version from this one",
-    "restoreDraft": "Bring the draft back"
+    "restoreDraft": "Bring the draft back",
+    "compareWith": "Compare with {{name}}",
+    "compareMenu": "Compare with…",
+    "previous": "previous",
+    "repeats": "Repeats"
   },
   "nav": {
     "catalogue": "Catalogue",

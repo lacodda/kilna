@@ -103,7 +103,7 @@
     "labelPlaceholder": "Название версии (необязательно)",
     "makeCurrentOnSave": "Сделать текущей версией",
     "kept": "Черновик сохранён",
-    "compare": "Сравнить с открытой версией",
+    "compare": "Поставить рядом с открытой версией",
     "stopComparing": "Прекратить сравнение",
     "diffSame": "Эти две совпадают.",
     "diffAdded_one": "{{count}} строка добавлена",
@@ -114,10 +114,12 @@
     "diffRemoved_few": "{{count}} строки убрано",
     "diffRemoved_many": "{{count}} строк убрано",
     "diffRemoved_other": "{{count}} строки убрано",
-    "changes": "Изменения",
-    "diffFirst": "Это первая ревизия в этой роли — сравнивать не с чем.",
     "deriveFrom": "Новая версия на основе этой",
-    "restoreDraft": "Вернуть черновик"
+    "restoreDraft": "Вернуть черновик",
+    "compareWith": "Сравнить с {{name}}",
+    "compareMenu": "Сравнить с…",
+    "previous": "предыдущая",
+    "repeats": "Повторы"
   },
   "nav": {
     "catalogue": "Каталог",

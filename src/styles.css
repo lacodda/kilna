@@ -177,3 +177,18 @@ textarea,
 *::-webkit-scrollbar-button {
   display: none;
 }
+
+/*
+ * The tints a repeated word is drawn in while a text is being written.
+ *
+ * Six, cycling, each a wash of one of the theme's own colours so they follow
+ * the accent and the theme like everything else. Tints rather than one
+ * colour because the point is to pair each word with its twins across the
+ * page, and one highlight would say only "something repeats somewhere".
+ */
+.repeat-0 { background: color-mix(in oklab, var(--accent) 26%, transparent); }
+.repeat-1 { background: color-mix(in oklab, var(--warn) 30%, transparent); }
+.repeat-2 { background: color-mix(in oklab, var(--good) 28%, transparent); }
+.repeat-3 { background: color-mix(in oklab, var(--info) 28%, transparent); }
+.repeat-4 { background: color-mix(in oklab, var(--bad) 24%, transparent); }
+.repeat-5 { background: color-mix(in oklab, var(--accent-2) 30%, transparent); }
