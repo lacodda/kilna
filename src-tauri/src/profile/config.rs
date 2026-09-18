@@ -1936,13 +1936,13 @@ mod tests {
         }
     }
 
-    /// The shipped Studio profile, with `song`'s clip release given the
-    /// fields named here.
-    fn clip_fields(fields: Vec<ReleaseField>) -> ProfileConfig {
+    /// The shipped Studio profile, with `song`'s audio release — its one
+    /// door since v0.74 — given the fields named here.
+    fn audio_fields(fields: Vec<ReleaseField>) -> ProfileConfig {
         let mut config = studio();
         for kind in &mut config.work_kinds {
             for release_kind in &mut kind.release_kinds {
-                if release_kind.key == "clip" {
+                if release_kind.key == "audio" {
                     release_kind.fields = fields.clone();
                 }
             }
@@ -1953,25 +1953,43 @@ mod tests {
     #[test]
     fn the_shipped_profiles_say_what_a_release_goes_out_as() {
         let config = studio();
+        let door_of = |kind: &str, door: &str| {
+            config
+                .vocabulary(kind)
+                .release_kinds
+                .iter()
+                .find(|release_kind| release_kind.key == door)
+                .unwrap_or_else(|| panic!("the studio profile ships `{door}` for a {kind}"))
+                .clone()
+        };
+        let keys_of = |release_kind: &ReleaseKind| -> Vec<String> {
+            release_kind
+                .fields
+                .iter()
+                .map(|field| field.key.clone())
+                .collect()
+        };
 
-        let song = config.vocabulary("song");
-        let clip = song
-            .release_kinds
-            .iter()
-            .find(|kind| kind.key == "clip")
-            .expect("the studio profile ships a clip release");
-
-        let keys: Vec<&str> = clip.fields.iter().map(|field| field.key.as_str()).collect();
-        assert_eq!(keys, vec!["title", "description", "tags", "pinned"]);
-        assert!(
-            clip.fields[0].template().is_some(),
-            "the title is filled from the work rather than typed every time"
+        // A song's one door, and a video's: the video goes out with a
+        // comment pinned under it, an audio release does not.
+        let audio = door_of("song", "audio");
+        assert_eq!(keys_of(&audio), vec!["title", "description", "tags"]);
+        let youtube = door_of("video", "youtube");
+        assert_eq!(
+            keys_of(&youtube),
+            vec!["title", "description", "tags", "pinned"]
         );
+        for door in [&audio, &youtube] {
+            assert!(
+                door.fields[0].template().is_some(),
+                "the title is filled from the work rather than typed every time"
+            );
+        }
     }
 
     #[test]
     fn a_release_field_with_a_hole_in_it_is_refused_at_save() {
-        let config = clip_fields(vec![
+        let config = audio_fields(vec![
             ReleaseField::new("title", "Title", ReleaseFieldType::Line).from_template("{typo}"),
         ]);
 
@@ -1987,12 +2005,12 @@ mod tests {
 
     #[test]
     fn a_release_field_is_held_to_the_roles_its_own_kind_has() {
-        // `plot` is a role of the video kinds, not of a song — and the clip
+        // `plot` is a role of the video kinds, not of a song — and the audio
         // release belongs to the song. An action naming no kinds would be
         // judged against every kind and could pass on the strength of the
         // video's roles; a release field cannot, because it is read against
         // exactly one kind.
-        let config = clip_fields(vec![
+        let config = audio_fields(vec![
             ReleaseField::new("description", "Description", ReleaseFieldType::Text)
                 .from_template("{role:plot}"),
         ]);
@@ -2013,7 +2031,7 @@ mod tests {
         // `{scene}` is one row, filled from the scene an action was started
         // on. A release is about the whole work and is started from no row at
         // all, so the placeholder would render empty forever.
-        let config = clip_fields(vec![
+        let config = audio_fields(vec![
             ReleaseField::new("description", "Description", ReleaseFieldType::Text)
                 .from_template("{scene}"),
         ]);
@@ -2030,7 +2048,7 @@ mod tests {
 
     #[test]
     fn two_release_fields_cannot_share_a_key() {
-        let config = clip_fields(vec![
+        let config = audio_fields(vec![
             ReleaseField::new("title", "Title", ReleaseFieldType::Line),
             ReleaseField::new("title", "Headline", ReleaseFieldType::Line),
         ]);
@@ -2047,7 +2065,7 @@ mod tests {
 
     #[test]
     fn a_release_field_needs_a_label_and_a_limit_worth_having() {
-        let config = clip_fields(vec![ReleaseField {
+        let config = audio_fields(vec![ReleaseField {
             key: "title".into(),
             label: "  ".into(),
             field_type: ReleaseFieldType::Line,
@@ -2074,7 +2092,7 @@ mod tests {
 
     #[test]
     fn a_release_field_reading_a_role_its_kind_has_is_accepted() {
-        let config = clip_fields(vec![
+        let config = audio_fields(vec![
             ReleaseField::new("description", "Description", ReleaseFieldType::Text)
                 .from_template("{title}\n\n{role:lyrics}"),
         ]);

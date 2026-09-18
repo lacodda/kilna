@@ -21,7 +21,8 @@ kilna ships with four profiles, each a JSON document rather than code:
 
 - **Music** — songs and instrumentals with lyrics and style kept as separate
   version roles, judged on hook, lyrics, emotion, production, originality and
-  visual potential, shipped as clips, shorts or audio releases.
+  visual potential, shipped as audio releases — the clips and shorts cut to
+  them are works of their own, judged on the cut.
 - **Novel** — chapters, scenes and short stories with text, outline and
   working notes kept separately, judged on pull, prose, character, structure
   and tension, shipped to beta readers, as serial instalments, submissions or

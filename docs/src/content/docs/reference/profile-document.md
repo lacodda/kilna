@@ -78,8 +78,10 @@ A **work kind** carries the five lists described on this page — its `axes`,
 `tiers`, `version_roles`, `release_kinds` and `statuses` — beside its key
 and label, and, for a kind whose works are made in scenes, the two lists of
 [its storyboard](#shot_types-scene_blocks-and-cover_blocks); `release_kinds` therefore sit inside the work kind whose works go
-out that way, and a video's *YouTube* and a song's *clip* are different
-doors. `collection_kinds` stay on the profile.
+out that way, and a video's *YouTube* and a song's *audio release* are
+different doors: a door belongs to the work that goes through it, so a song
+lists only `audio`, and the clip cut to it is a `video` with doors of its
+own. `collection_kinds` stay on the profile.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
@@ -93,7 +95,7 @@ works one level deep, without nesting.
 A **release kind** carries two extra fields:
 
 ```jsonc
-{ "key": "clip", "label": "Video clip", "requires": ["lyrics", "style"], "icon": "film" }
+{ "key": "audio", "label": "Audio release", "requires": ["lyrics", "style"], "icon": "disc" }
 ```
 
 | Field | Type | Meaning |
@@ -102,12 +104,13 @@ A **release kind** carries two extra fields:
 | `icon` | string | Glyph the [calendar](/kilna/guides/planning-a-release/) draws this kind with, from the list below. |
 | `axis_weights` | object, optional | Axis weights that apply when a work is judged *for this kind* of release, keyed by axis key: `{ "hook": 4.0, "visual": 3.0 }`. An axis not named keeps the weight the axis itself declares. Absent means the axes' own weights — one tier for every kind. |
 
-A clip lives or dies on its hook and its visuals; the same song as an audio
-release is carried by its lyrics. `axis_weights` lets one score answer both
-questions: the tier a work earns *as a clip* can differ from the tier it earns
-*as an audio release*, from the same axis values. Every key must name an axis
-in `axes`, and every weight must be zero or above. The verdict per kind is
-computed by the same rule as the plain total (see
+A premiere lives or dies on its dynamics — the room is watching it live;
+the same video as an ordinary upload is carried by its fit to the track.
+`axis_weights` lets one score answer both questions: the tier a work earns
+*as a premiere* can differ from the tier it earns *as an upload*, from the
+same axis values. Every key must name an axis in `axes`, and every weight
+must be zero or above. The verdict per kind is computed by the same rule as
+the plain total (see
 [Scoring](/kilna/concepts/scoring/)) and shown on the score panel, under the
 total, once at least one kind names weights of its own — see
 [What each release makes of it](/kilna/guides/scoring-a-work/#what-each-release-makes-of-it).
@@ -144,13 +147,13 @@ goes out under, the text beneath it, the words it is found by:
 
 ```json
 {
-  "key": "clip",
-  "label": "Video clip",
-  "requires": ["lyrics", "style"],
+  "key": "youtube",
+  "label": "YouTube",
+  "requires": ["plot"],
   "icon": "film",
   "fields": [
     { "key": "title", "label": "Title", "type": "line", "template": "{title}", "limit": 205 },
-    { "key": "description", "label": "Description", "type": "text", "template": "{role:lyrics}" },
+    { "key": "description", "label": "Description", "type": "text", "template": "{role:plot}" },
     { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated." },
     { "key": "pinned", "label": "Pinned comment", "type": "text" }
   ]
@@ -174,10 +177,10 @@ left alone.
 
 A field's template is checked against **one** work kind — the kind that owns
 the release kind — which makes the check sharper than an action's:
-`{role:plot}` in a song's clip is refused at save even though the video kind
-has a plot. `{scene}` is refused outright: it is one row of a storyboard,
-filled from the row an action was started on, and a release is about the whole
-work. Use `{scenes}` for the board.
+`{role:plot}` in a song's audio release is refused at save even though the
+video kind has a plot. `{scene}` is refused outright: it is one row of a
+storyboard, filled from the row an action was started on, and a release is
+about the whole work. Use `{scenes}` for the board.
 
 ## `version_roles`
 

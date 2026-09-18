@@ -32,8 +32,12 @@ pub struct AppState {
 impl AppState {
     /// Open the workspace at `path`, migrate it, and make sure a profile is active.
     pub fn open(path: &Path) -> Result<Self> {
-        let conn = db::open(path)?;
+        let mut conn = db::open(path)?;
         profile::seed(&conn)?;
+        // A song's clip and short releases move onto works of their own, once
+        // (ADR 0030). After the seed on purpose: the carry-forward is what
+        // brings the kinds they move to into a workspace that predates them.
+        crate::doors::upgrade(&mut conn)?;
 
         // Old, already-read journal entries go at startup rather than on a
         // timer: there is no scheduler in this app, and an app that is left open

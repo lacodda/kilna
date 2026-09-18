@@ -5,7 +5,10 @@ description: A video from a song, a video from an article — how one work is li
 
 A video is made from a song. An article becomes a video, a novel an
 audiobook. kilna keeps the link: in the song you see its clips, in the clip
-you see the song, and either can start the other.
+you see the song, and either can start the other. The link is also how a
+song comes to have a clip at all — a clip is a Video work made from the
+song, shipping through its own door, not a release on the song (since
+v0.74; see [Planning a release](/kilna/guides/planning-a-release/)).
 
 ## Making a work from another
 

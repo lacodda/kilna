@@ -89,10 +89,11 @@ the [profile document](/kilna/reference/profile-document/#axis-kinds).
 
 A release kind may declare its own
 [`axis_weights`](/kilna/reference/profile-document/#work_kinds-release_kinds-collection_kinds)
-— a clip weighing the hook and the visuals more heavily, an audio release the
-lyrics. From the same axis values, `ProfileConfig::total_for(values, kind)`
-gives the total *as that kind of release*, by the formula above with the
-kind's weights substituted for the axes it names. A kind that reweights nothing
+— a premiere weighing the dynamics more heavily, an ordinary upload the fit
+to the track. From the same axis values,
+`ProfileConfig::total_for(values, kind)` gives the total *as that kind of
+release*, by the formula above with the kind's weights substituted for the
+axes it names. A kind that reweights nothing
 gives exactly the plain total, so a profile that never uses the field sees one
 tier everywhere, as before.
 

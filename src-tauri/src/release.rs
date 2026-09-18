@@ -906,7 +906,7 @@ mod tests {
             conn,
             NewRelease {
                 work_id: work.id,
-                kind: "clip".into(),
+                kind: "audio".into(),
                 title: Some(title.into()),
                 scheduled_at: None,
                 meta: None,
@@ -1480,7 +1480,7 @@ mod tests {
     fn the_calendar_reports_how_ready_each_release_is() {
         let (mut conn, profile_id) = workspace();
 
-        // Scored but missing both roles a clip requires.
+        // Scored but missing both roles an audio release requires.
         let bare = planned(&conn, &profile_id, "Bare", Some(6.0));
         schedule(&conn, &bare.id, "2026-09-01").unwrap();
 
@@ -1546,7 +1546,7 @@ mod tests {
             &conn,
             NewRelease {
                 work_id: "nope".into(),
-                kind: "clip".into(),
+                kind: "audio".into(),
                 title: None,
                 scheduled_at: None,
                 meta: None,
@@ -1623,7 +1623,7 @@ mod tests {
             &conn,
             NewRelease {
                 work_id: release.work_id.clone(),
-                kind: "clip".into(),
+                kind: "audio".into(),
                 title: None,
                 scheduled_at: None,
                 meta: None,

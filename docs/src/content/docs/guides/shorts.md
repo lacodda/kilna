@@ -5,7 +5,9 @@ description: Which stretches of a video a short is cut from, the prompt its cove
 
 A short is cut out of a finished video, or shot for itself. In kilna it is
 the same kind of work either way — the difference is whether it has a
-**donor**, and if it does, which parts of it.
+**donor**, and if it does, which parts of it. It is a work, not a door on
+the song: since v0.74 a song ships only as an audio release, and a short
+ships through its own door, on its own card, with its own date.
 
 ## Saying what it was cut from
 

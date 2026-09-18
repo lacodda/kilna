@@ -3,10 +3,29 @@ title: Planning a release
 description: Queue, slots and the auto-layout — how a release gets a date, how a month is read at a glance, and how one click paces the whole queue to your rhythm.
 ---
 
-A **release** is a plan to ship a specific work as some kind — a clip, a
-newsletter send, a feed release — on some date, or with no date yet at all.
-Creating a release doesn't schedule it; scheduling is a separate step, and
-it's the one where kilna pushes back.
+A **release** is a plan to ship a specific work as some kind — an audio
+release, a newsletter send, a feed release — on some date, or with no date
+yet at all. Creating a release doesn't schedule it; scheduling is a separate
+step, and it's the one where kilna pushes back.
+
+**A door belongs to the work that goes through it.** In Studio a song's door
+is the audio release, and that is its only one. A clip is a
+[Video work](/kilna/guides/made-from/) with the song as its donor, and it
+ships through YouTube; a [short](/kilna/guides/shorts/) is a Short work
+shipping through its own door. The song's card shows what was made from it
+on its Links tab; the calendar shows each of them once, on the work it is.
+
+:::note[This changed in v0.74]
+Until then a song had three doors — clip, short and audio — and a clip
+release on the song said "this goes out as a video" without being able to
+say which video. The first time a workspace opened on v0.74, every clip and
+short release of a song was moved onto a Video or Short work of its own,
+made from the song as its donor, with the song's title and overview fields.
+No date, link or text was lost: the release kept its slot, its pin, the day
+it went out, its link and everything written under it — only the work it
+hangs on and the door it goes through changed. History says how many moved.
+See [ADR 0030](https://github.com/lacodda/kilna/blob/main/docs/adr/0030-a-door-belongs-to-the-work-that-goes-through-it.md).
+:::
 
 ## The queue
 
@@ -73,8 +92,8 @@ the kind of release; the title gets the day's full width underneath. Once
 the profile has more than one kind of work, the top line also names the kind
 of the work — *Video*, *Song* — because two kinds of work may ship the same
 kind of release under the same glyph, and a video's YouTube release should
-not read as a song's clip. The dashboard's week says the same beside each
-release.
+not read as a song's audio release. The dashboard's week says the same beside
+each release.
 Already-released chips are dimmed: they are history sitting on a date, not a
 plan competing for one.
 
@@ -114,11 +133,12 @@ one question a calendar is read for: **can this actually go out?**
   spells the same list out.
 
 Which roles a release needs comes from the profile: each release kind lists
-the version roles it *requires* — a clip needs lyrics and a style prompt, a
-beta read needs the text. A role the kind does not require is neither shown
-nor counted: *not applicable* and *missing* are different answers, and only
-the second one blocks readiness. A kind that lists no requirements is judged
-on the score alone.
+the version roles it *requires* — an audio release needs lyrics and a style
+prompt, a video's YouTube release needs a plot, a beta read needs the text.
+A role the kind does not require is neither shown nor counted: *not
+applicable* and *missing* are different answers, and only the second one
+blocks readiness. A kind that lists no requirements is judged on the score
+alone.
 
 **The colour belongs to the deadline, not to the gap.** The same missing
 style prompt is a quiet grey note in the queue or a month out, amber inside a
@@ -237,9 +257,10 @@ it is a separate edit.
 
 A release carries the text it ships under — a title, a description, tags, a
 comment to pin beneath it. Which boxes appear is your profile's answer, not
-kilna's: a video clip is asked for four things, a beta read for two, and a
-kind that names no fields simply shows none. The list is the release kind's
-`fields` — see [the profile document](/kilna/reference/profile-document/).
+kilna's: a video's YouTube release is asked for four things, a beta read for
+two, and a kind that names no fields simply shows none. The list is the
+release kind's `fields` — see
+[the profile document](/kilna/reference/profile-document/).
 
 Open a release on the Releases tab of its work and the boxes are underneath
 it. They save as you leave each one, and each can be copied on its own, which
