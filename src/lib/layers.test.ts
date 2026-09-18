@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { DOWEL_SCALE, FLOOR_BANDS, POPUP_FLOORS, type Rung } from './layers'
+import { DOWEL_SCALE, FLOOR_BANDS, POPUP_FLOORS, STAGE_LAYER, type Rung } from './layers'
 
 const rungs = Object.keys(POPUP_FLOORS) as Rung[]
 
@@ -21,6 +21,27 @@ describe('the stacking floors a popup inside an overlay lands on', () => {
     for (const rung of rungs) {
       expect(POPUP_FLOORS[rung]).toBeLessThan(FLOOR_BANDS[rung].below)
     }
+  })
+
+  it('puts the full-screen stage over the page and under its own popups', () => {
+    // The defect this one exists for: the stage was a raw Tailwind `z-50`
+    // beside the ladder, and the compare menu - a `--z-menu`, a 30 - opened
+    // underneath it. The button lit up and nothing appeared.
+    //
+    // Both directions matter. The stage has to cover the page it is laid over,
+    // and it has to stay UNDER what is opened from inside it, or the same bug
+    // returns with the menu and the stage swapped.
+    expect(STAGE_LAYER).toBeGreaterThan(DOWEL_SCALE.menu)
+    expect(STAGE_LAYER).toBeGreaterThan(DOWEL_SCALE.floating)
+    expect(POPUP_FLOORS['stage-popup']).toBeGreaterThan(STAGE_LAYER)
+  })
+
+  it('gives every overlay a floor of its own, in the overlays own order', () => {
+    // A floor per overlay, and the floors in the same order as the overlays
+    // they belong to: a popup opened on the stage must not cover a dialog,
+    // which is above the stage and may be opened over it.
+    expect(POPUP_FLOORS['stage-popup']).toBeLessThan(POPUP_FLOORS['modal-popup'])
+    expect(POPUP_FLOORS['modal-popup']).toBeLessThan(POPUP_FLOORS['palette-popup'])
   })
 
   it('reads the same numbers dowel states in its stylesheet', () => {
