@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.74.0] - 2026-09-18
+
+### Documentation
+- Make the readme a shopfront
+- Cut the readme down to a shopfront
+- Record that a door belongs to the work that goes through it
+- Column order, dragged widths and the header funnels
+
+### Features
+- The window's own title bar, a splash and a remembered window
+- A version beside the text, and the words it repeats
+- A door belongs to the work that goes through it
+- Column widths, a drawn order and header funnels in the model
+- Drag column widths, reorder columns, filter from a heading
+
+### Refactoring
+- Take rendered markdown from dowel's prose stylesheet
+- Take the eight new components from dowel's registry
+
+### Testing
+- The selectable gate reads the marked text, not the diff it replaced
+
+### Breaking Changes
+- The Studio profile no longer offers `clip` and `short`
+as release kinds of a song; existing releases are moved on first open.
 ## [0.73.0] - 2026-09-17
 
 ### Bug Fixes
