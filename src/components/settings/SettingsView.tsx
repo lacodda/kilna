@@ -1,4 +1,5 @@
 import { Navigate, NavLink, useParams } from 'react-router'
+import { SectionHeading, SectionNav } from '@/components/ui/section-nav'
 import { useTranslation } from 'react-i18next'
 import {
   Bot,
@@ -13,7 +14,6 @@ import { CardSection } from '@/components/settings/CardSection'
 import { DataSection } from '@/components/settings/DataSection'
 import { GeneralSection } from '@/components/settings/GeneralSection'
 import { ProfileSection } from '@/components/settings/ProfileSection'
-import { cn } from '@/lib/utils'
 
 /**
  * The sections of Settings, in the order they are listed.
@@ -66,33 +66,24 @@ export function SettingsView() {
 
   return (
     <div className="grid gap-8 md:grid-cols-[11rem_minmax(0,1fr)]">
-      <nav aria-label={t('settings.title')} className="flex flex-col gap-0.5 md:sticky md:top-0">
-        <h2 className="px-2.5 pb-2 text-[10.5px] font-medium uppercase tracking-[0.09em] text-faint">
-          {t('settings.title')}
-        </h2>
-        {SECTIONS.map((entry) => {
+      <SectionNav
+        label={t('settings.title')}
+        className="md:sticky md:top-0"
+        activeId={section}
+        items={SECTIONS.map((entry) => {
           const Icon = ICONS[entry]
-          return (
-            <NavLink
-              key={entry}
-              to={`/settings/${entry}`}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-sm text-dim transition-colors hover:bg-soft hover:text-text [&_svg]:size-4 [&_svg]:shrink-0',
-                  isActive && 'bg-accent-soft text-text [&_svg]:text-accent',
-                )
-              }
-            >
-              <Icon aria-hidden />
-              {t(`settings.section.${entry}`)}
-            </NavLink>
-          )
+          return { id: entry, label: t(`settings.section.${entry}`), icon: <Icon /> }
         })}
-      </nav>
+        // A link, so the back button walks between sections and one can be
+        // opened by address.
+        render={(item) => <NavLink to={`/settings/${item.id}`} />}
+      />
 
-      <div className="flex min-w-0 flex-col gap-1">
-        <h2 className="text-base font-semibold">{t(`settings.section.${section}`)}</h2>
-        <p className="mb-4 text-sm text-dim">{t(`settings.hint.${section}`)}</p>
+      <div className="flex min-w-0 flex-col">
+        <SectionHeading
+          title={t(`settings.section.${section}`)}
+          description={t(`settings.hint.${section}`)}
+        />
         <Body section={section} />
       </div>
     </div>

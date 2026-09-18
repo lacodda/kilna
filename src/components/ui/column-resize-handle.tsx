@@ -2,16 +2,14 @@ import { useCallback, useRef, useState, type PointerEvent as ReactPointerEvent }
 import { cn } from 'dowel-ui'
 
 /*
- * ColumnResizeHandle.
+ * The strip on a header cell's right edge that a column is dragged wider or narrower by.
  *
- * The strip on the right edge of a header cell that a column is dragged
- * wider or narrower by, and the hook that keeps the widths it produces.
- *
- * Pointer events rather than HTML5 drag-and-drop. A desktop shell that takes
- * file drops for itself never lets a `dragstart` reach the page, so the
- * native API is a handle that does nothing there; pointer capture on the
- * handle also keeps the drag alive when the pointer runs ahead of the cell,
- * which at any speed above a crawl it does.
+ * The handle, and the hook that keeps the widths it produces. Pointer events
+ * rather than HTML5 drag-and-drop: a desktop shell that takes file drops for
+ * itself never lets a `dragstart` reach the page, so the native API is a
+ * handle that does nothing there; pointer capture on the handle also keeps
+ * the drag alive when the pointer runs ahead of the cell, which at any speed
+ * above a crawl it does.
  *
  * The starting width is measured from the cell rather than taken as a prop:
  * on pointerdown the handle reads its parent's box, and every move reports
@@ -133,10 +131,11 @@ export function ColumnResizeHandle({
 /** The widths of the columns the hook is asked about, by column id. */
 export type Widths<K extends string> = Partial<Record<K, number>>
 
+/** What the hook is given. */
 export interface ColumnWidthsOptions<K extends string> {
   /** What was dragged before - from storage, or nothing. A function is
    * called once, like `useState`'s. */
-  initial: Widths<K> | (() => Widths<K>)
+  initial: Widths<K> | (() => (Widths<K>))
   /** Told the hand-set widths whenever one settles: persist them here. */
   onChange?: (widths: Widths<K>) => void
   /** The width of a column that was not on screen when the others were
@@ -205,15 +204,12 @@ export function useColumnWidths<K extends string>({
     [commit],
   )
 
-  const measure = useCallback(
-    (cells: Iterable<[K, number]>) => {
-      if (Object.keys(held.current).length > 0) return
-      const measured: Widths<K> = {}
-      for (const [id, width] of cells) measured[id] = Math.round(width)
-      setNatural(measured)
-    },
-    [],
-  )
+  const measure = useCallback((cells: Iterable<[K, number]>) => {
+    if (Object.keys(held.current).length > 0) return
+    const measured: Widths<K> = {}
+    for (const [id, width] of cells) measured[id] = Math.round(width)
+    setNatural(measured)
+  }, [])
 
   return {
     sized,
@@ -226,17 +222,12 @@ export function useColumnWidths<K extends string>({
   }
 }
 
-/**
- * The widths of a header row's cells, read off the screen.
+/** The widths of a header row's cells, read off the screen.
  *
  * Each cell names its column in `data-column`; a cell without one - a
  * checkbox column, a row menu - is not a column the hook is asked about and
- * is skipped. Border-box widths, because that is what a `<col>` sets.
- */
-export function measureColumns<K extends string>(
-  row: HTMLElement,
-  attribute = 'data-column',
-): [K, number][] {
+ * is skipped. Border-box widths, because that is what a `<col>` sets. */
+export function measureColumns<K extends string>(row: HTMLElement, attribute = 'data-column'): [K, number][] {
   const measured: [K, number][] = []
   for (const cell of row.querySelectorAll<HTMLElement>(`[${attribute}]`)) {
     const id = cell.getAttribute(attribute)

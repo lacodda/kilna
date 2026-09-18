@@ -1,16 +1,14 @@
 import type { ReactNode } from 'react'
-import { Funnel } from 'lucide-react'
 import { cn } from 'dowel-ui'
-import { Popover, PopoverPopup, PopoverTitle, PopoverTrigger } from './popover'
 import { Button } from './button'
+import { Popover, PopoverPopup, PopoverTitle, PopoverTrigger } from './popover'
 
 /*
- * FilterPopover.
+ * A funnel in a column header that opens a small panel for narrowing by that column.
  *
- * A funnel in a column header that opens a small panel for narrowing by
- * that column - a text box, a handful of checkboxes - with one way to clear
- * it. The shell only: what goes in the panel is the caller's, since a stage
- * is ticked and a title is typed and the popover has no opinion.
+ * A text box, a handful of checkboxes - with one way to clear it. The shell
+ * only: what goes in the panel is the caller's, since a stage is ticked and
+ * a title is typed and the popover has no opinion.
  *
  * The funnel is drawn filled while the column's filter holds something, and
  * that is the whole of the state it shows. A column with a filter on it has
@@ -50,7 +48,7 @@ export function FilterPopover({
   onClear,
   children,
   className,
-  align = 'start',
+  align,
 }: FilterPopoverProps) {
   return (
     <Popover>
@@ -61,25 +59,29 @@ export function FilterPopover({
         className={cn(
           'inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-sm',
           'text-faint transition-colors hover:bg-soft hover:text-text',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
           'data-[active]:text-accent data-[popup-open]:text-text',
           className,
         )}
       >
-        <Funnel aria-hidden className={cn('size-3', active && 'fill-current')} />
+        <svg
+          viewBox="0 0 16 16"
+          className={cn('size-3', active && 'fill-current')}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M2 3h12l-4.5 5.5V13l-3-1.5V8.5z" />
+        </svg>
       </PopoverTrigger>
-      <PopoverPopup size="sm" align={align} arrow={false} className="p-3">
+      <PopoverPopup size="sm" align={align ?? 'start'} arrow={false} className="p-3">
         <div className="flex items-center gap-2">
           {/* Sentence case rather than the header's uppercase: the panel is
               read, the header is scanned. */}
           <PopoverTitle className="normal-case tracking-normal">{title}</PopoverTitle>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="ml-auto"
-            disabled={!active}
-            onClick={onClear}
-          >
+          <Button size="sm" variant="ghost" className="ml-auto" disabled={!active} onClick={onClear}>
             {clearLabel}
           </Button>
         </div>

@@ -59,9 +59,9 @@ import {
   measureColumns,
   useColumnWidths,
   type ColumnWidths,
-} from '@/components/ui/ColumnResizeHandle'
-import { FilterPopover } from '@/components/ui/FilterPopover'
-import { ReorderGrip, ReorderIndicator, useReorder } from '@/components/ui/ReorderableList'
+} from '@/components/ui/column-resize-handle'
+import { FilterPopover } from '@/components/ui/filter-popover'
+import { ReorderGrip, ReorderIndicator, useReorder } from '@/components/ui/reorderable-list'
 import { StagePicker } from '@/components/StagePicker'
 import { stagesOf } from '@/lib/stages'
 import { worksMatching } from '@/lib/api'

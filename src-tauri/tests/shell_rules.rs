@@ -98,8 +98,8 @@ fn selection_is_off_by_default_and_given_back_to_text() {
     for (file, what) in [
         ("src/components/ui/Markdown.tsx", "rendered prose"),
         (
-            "src/components/ui/MarkedText.tsx",
-            "the marked text - a version being read or compared",
+            "src/components/VersionPanel.tsx",
+            "a version being read, written or compared",
         ),
     ] {
         assert!(
@@ -139,6 +139,19 @@ fn nothing_shows_verbatim_text_without_making_it_selectable() {
             // The renderer defines the styling for prose; it carries the mark
             // itself and is not a place text is pasted in raw.
             if path.ends_with("Markdown.tsx") {
+                continue;
+            }
+
+            // A lowercase file in `ui/` is a copy from dowel's registry and is
+            // never edited here: it knows nothing of this application's
+            // `selectable` class. The place that grants selection is the
+            // product component that uses it, which the walk still reaches.
+            let registry_copy = path.parent().is_some_and(|dir| dir.ends_with("ui"))
+                && path
+                    .file_stem()
+                    .and_then(|stem| stem.to_str())
+                    .is_some_and(|stem| stem.chars().next().is_some_and(char::is_lowercase));
+            if registry_copy {
                 continue;
             }
 

@@ -6,20 +6,19 @@ import {
   type HTMLAttributes,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import { GripVertical } from 'lucide-react'
 import { cn } from 'dowel-ui'
 
 /*
- * ReorderableList.
+ * Drag a row of a vertical list up or down to put it somewhere else.
  *
- * Drag a row of a vertical list up or down to put it somewhere else - the
- * columns in a column picker, the stops of a dial, the roles of a profile.
- * A hook and a grip rather than a list component: the rows are already
- * something else's - a menu's items, a form's fields - and a component
- * wrapping them would have to reproduce whatever that something else does.
+ * The columns in a column picker, the stops of a dial, the roles of a
+ * profile. A hook and a grip rather than a list component: the rows are
+ * already something else's - a menu's items, a form's fields - and a
+ * component wrapping them would have to reproduce whatever that something
+ * else does.
  *
  * Pointer events, not HTML5 drag-and-drop, for the reason given at
- * `ColumnResizeHandle`: a desktop shell that takes file drops never lets a
+ * ColumnResizeHandle: a desktop shell that takes file drops never lets a
  * `dragstart` reach the page. The grip takes pointer capture on pointerdown,
  * so the rows underneath never see the drag and a menu's own highlighting
  * does not flicker down the list as the pointer crosses it.
@@ -61,7 +60,7 @@ export interface Reorder<K extends string> {
    * pixels, for drawing the line. */
   slotOffset: number | null
   /** Spread on the grip: the pointer path. */
-  gripProps: (id: K) => HTMLAttributes<HTMLElement>
+  gripProps: (id: K) => (HTMLAttributes<HTMLElement>)
   /** Spread on the row: the id and the keyboard path. The `ref` is a
    * callback that returns its cleanup, as React 19 allows; a host that merges
    * refs and drops the cleanup leaves a listener on a node that is gone,
@@ -102,9 +101,10 @@ export function useReorder<K extends string>({ order, onMove, disabled }: Reorde
     event.stopPropagation()
 
     listTop.current = list.getBoundingClientRect().top
+    // By attribute rather than by selector, so an id needs no escaping.
+    const rows = [...list.querySelectorAll<HTMLElement>('[data-reorder-id]')]
     boxes.current = order.map((rowId) => {
-      const row = list.querySelector<HTMLElement>(`[data-reorder-id="${CSS.escape(rowId)}"]`)
-      const box = row?.getBoundingClientRect()
+      const box = rows.find((row) => row.getAttribute('data-reorder-id') === rowId)?.getBoundingClientRect()
       return box ? { top: box.top, bottom: box.bottom } : { top: 0, bottom: 0 }
     })
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -170,17 +170,19 @@ export function useReorder<K extends string>({ order, onMove, disabled }: Reorde
   const listen = useCallback((row: HTMLElement | null) => {
     if (row === null) return
     const onKeyDown = (event: KeyboardEvent) => {
-      const { order: current, onMove: move, disabled: off } = latest.current
+      const { order: current, onMove: put, disabled: off } = latest.current
       if (off || !event.altKey) return
       const step = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0
       if (step === 0) return
       const id = row.getAttribute('data-reorder-id') as K | null
       if (id === null) return
+      const to = current.indexOf(id) + step
+      if (to < 0 || to >= current.length) return
       // Stopped here so the list's own arrow handling does not also walk the
       // focus off the row that was just moved.
       event.preventDefault()
       event.stopPropagation()
-      move(id, current.indexOf(id) + step)
+      put(id, to)
     }
     row.addEventListener('keydown', onKeyDown)
     return () => row.removeEventListener('keydown', onKeyDown)
@@ -211,6 +213,7 @@ export function ReorderGrip({ className, ...props }: HTMLAttributes<HTMLElement>
   return (
     <span
       aria-hidden
+      data-reorder-grip
       className={cn(
         'inline-flex shrink-0 cursor-grab touch-none select-none text-faint',
         'active:cursor-grabbing [&_svg]:size-3.5',
@@ -218,18 +221,27 @@ export function ReorderGrip({ className, ...props }: HTMLAttributes<HTMLElement>
       )}
       {...props}
     >
-      <GripVertical />
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+        <circle cx="6" cy="3.5" r="1.2" />
+        <circle cx="10" cy="3.5" r="1.2" />
+        <circle cx="6" cy="8" r="1.2" />
+        <circle cx="10" cy="8" r="1.2" />
+        <circle cx="6" cy="12.5" r="1.2" />
+        <circle cx="10" cy="12.5" r="1.2" />
+      </svg>
     </span>
   )
 }
 
 /** The line where a dragged row would land. Positioned by the caller from
- * `slotOffset`, inside the element `listRef` is on. */
+ * `slotOffset`, inside the element `listProps` is on - which has to be
+ * positioned itself. */
 export function ReorderIndicator({ offset, className }: { offset: number | null; className?: string }) {
   if (offset === null) return null
   return (
     <div
       aria-hidden
+      data-reorder-indicator
       className={cn('pointer-events-none absolute inset-x-1 h-0.5 -translate-y-px rounded-full bg-accent', className)}
       style={{ top: offset }}
     />

@@ -23,7 +23,7 @@ import { useBodyEditing } from '@/lib/useBodyEditing'
 import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { MarkedText, MarkedTextarea } from '@/components/ui/MarkedText'
+import { MarkedText, MarkedTextarea } from '@/components/ui/marked-text'
 import { Markdown } from '@/components/ui/Markdown'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 import { SaveState } from '@/components/ui/SaveState'
@@ -650,7 +650,9 @@ function BodyPane({
 
   // The metrics both layers of the editor share, and the read text with them:
   // the marks are drawn on a mirror and have to land on the same letters.
-  const metrics = cn('px-3 py-2.5 text-sm leading-relaxed', !markdown && 'font-mono')
+  // `selectable` with them: the registry copy grants nothing of its own, and a
+  // version is someone's writing, which has to be copyable wherever it shows.
+  const metrics = cn('selectable px-3 py-2.5 text-sm leading-relaxed', !markdown && 'font-mono')
 
   const content =
     body === null ? (
@@ -672,7 +674,7 @@ function BodyPane({
         aria-label={t('versions.edit')}
         marks={marks}
         lineMarks={addedLines}
-        className={cn('selectable block w-full', metrics, staged ? 'min-h-full' : 'min-h-[28rem]')}
+        className={cn('block w-full', metrics, staged ? 'min-h-full' : 'min-h-[28rem]')}
       />
     ) : (
       // Reading. The whole body is the way in: clicking it is what starting

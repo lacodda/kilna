@@ -1,12 +1,13 @@
 import {
   useCallback,
   useMemo,
+  type ChangeEvent,
   type CSSProperties,
   type ReactNode,
   type Ref,
   type TextareaHTMLAttributes,
 } from 'react'
-import { cn } from '@/lib/utils'
+import { cn } from 'dowel-ui'
 
 /*
  * Text with marks on it - read, or typed into.
@@ -25,13 +26,14 @@ import { cn } from '@/lib/utils'
  * it scrolls, and the marks scroll with the words. A trailing space on the
  * last line keeps a final newline from being a line the mirror forgot.
  *
- * Two kinds of mark: a span of characters (a repeated word) and a whole line
- * (a line that is new since the other version). Lines are drawn as blocks
- * rather than separated by newlines so a line mark can paint the full width;
- * a block per line wraps exactly as the textarea's line does, since it is
- * the same text in the same width with the same font.
+ * Two kinds of mark: a span of characters (a repeated word, a misspelling)
+ * and a whole line (a line that is new since the other version). Lines are
+ * drawn as blocks rather than separated by newlines so a line mark can paint
+ * the full width; a block per line wraps exactly as the textarea's line does,
+ * since it is the same text in the same width with the same font.
  */
 
+/** A span of characters, as offsets into the whole text. */
 export interface Mark {
   start: number
   end: number
@@ -39,13 +41,14 @@ export interface Mark {
   style?: CSSProperties
 }
 
+/** A whole line. */
 export interface LineMark {
   /** Zero-based line index. */
   line: number
   className?: string
 }
 
-interface LinesProps {
+export interface MarkedLinesProps {
   text: string
   marks?: readonly Mark[]
   lineMarks?: readonly LineMark[]
@@ -63,7 +66,13 @@ function runs(line: string, offset: number, marks: readonly Mark[]): ReactNode[]
     if (end <= at || start >= line.length) continue
     if (start > at) out.push(line.slice(at, start))
     out.push(
-      <mark key={offset + start} className={cn('rounded-sm bg-transparent text-inherit', mark.className)} style={mark.style}>
+      <mark
+        key={offset + start}
+        // `<mark>` for the semantics; the browser's yellow is dropped so the
+        // caller's class is the colour, in whichever tone the mark means.
+        className={cn('rounded-sm bg-transparent text-inherit', mark.className)}
+        style={mark.style}
+      >
         {line.slice(start, end)}
       </mark>,
     )
@@ -73,8 +82,9 @@ function runs(line: string, offset: number, marks: readonly Mark[]): ReactNode[]
   return out
 }
 
-/** The marked-up text, line by line. */
-export function MarkedLines({ text, marks = [], lineMarks = [], ghost = false }: LinesProps) {
+/** The marked-up text, line by line. The layer both the readable and the
+ * typeable form are made of. */
+export function MarkedLines({ text, marks = [], lineMarks = [], ghost = false }: MarkedLinesProps) {
   // Each line with where it starts in the text, so a mark given as an offset
   // into the whole can be cut to the line it falls on.
   const lines = useMemo(() => {
@@ -101,6 +111,7 @@ export function MarkedLines({ text, marks = [], lineMarks = [], ghost = false }:
         return (
           <div
             key={index}
+            data-line={index}
             className={cn(
               'min-h-[1lh] whitespace-pre-wrap [overflow-wrap:anywhere]',
               ghost && 'text-transparent',
@@ -118,14 +129,14 @@ export function MarkedLines({ text, marks = [], lineMarks = [], ghost = false }:
   )
 }
 
-export interface MarkedTextProps extends LinesProps {
+export interface MarkedTextProps extends MarkedLinesProps {
   className?: string
 }
 
 /** Marked text to read. */
 export function MarkedText({ className, ...lines }: MarkedTextProps) {
   return (
-    <div className={cn('selectable', className)}>
+    <div className={cn('select-text', className)}>
       <MarkedLines {...lines} />
     </div>
   )
@@ -135,6 +146,7 @@ export interface MarkedTextareaProps
   extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange' | 'className'> {
   ref?: Ref<HTMLTextAreaElement>
   value: string
+  /** The new value, not the event: the event is the textarea's business. */
   onChange: (value: string) => void
   marks?: readonly Mark[]
   lineMarks?: readonly LineMark[]
@@ -153,13 +165,13 @@ export function MarkedTextarea({
   ...props
 }: MarkedTextareaProps) {
   const change = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => onChange(event.target.value),
+    (event: ChangeEvent<HTMLTextAreaElement>) => onChange(event.target.value),
     [onChange],
   )
 
   return (
     <div className="relative">
-      <div aria-hidden className={cn('pointer-events-none', className)}>
+      <div aria-hidden data-mirror className={cn('pointer-events-none', className)}>
         <MarkedLines text={value} marks={marks} lineMarks={lineMarks} ghost />
       </div>
       <textarea
@@ -170,9 +182,14 @@ export function MarkedTextarea({
         className={cn(
           // The same metrics, and nothing that would draw: the letters, the
           // caret and the selection are what this layer is for.
-          'absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent text-text outline-none',
+          'absolute inset-0 h-full w-full resize-none overflow-hidden text-text outline-none',
           '[overflow-wrap:anywhere] whitespace-pre-wrap',
           className,
+          // After the caller's classes, on purpose. A background in the
+          // metrics is meant for the box and lands on both layers; on this
+          // one it would paint over every mark. The mirror keeps it, the
+          // field never does.
+          'bg-transparent',
         )}
         {...props}
       />

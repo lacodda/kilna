@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, ChevronDown, Plus, Search } from 'lucide-react'
+import { ChevronDown, Plus, Search } from 'lucide-react'
 import { getWork, listJournal, markJournalRead, unreadJournal, type JournalEntry } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { openWorkId } from '@/lib/route'
@@ -10,11 +10,12 @@ import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
-import { Popover, PopoverPopup, PopoverTrigger } from '@/components/ui/popover'
+import { NotificationBell } from '@/components/ui/notification-bell'
 import { CommandPalette } from '@/components/CommandPalette'
 import { sentence, when } from '@/components/JournalFeed'
 import { NewWorkDialog } from '@/components/shell/NewWorkDialog'
-import { WindowButtons, useTitleBarGestures } from '@/components/shell/window'
+import { Mark } from '@/components/shell/Mark'
+import { WindowButtons, useTitleBarGestures } from '@/components/ui/window-frame'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -92,20 +93,7 @@ function Brand() {
   const { t } = useTranslation()
   return (
     <div className="flex shrink-0 items-center gap-2 pr-3">
-      <svg className="size-[18px] shrink-0" viewBox="0 0 32 32" aria-hidden>
-        <path d="M16 2 28 9v14L16 30 4 23V9z" fill="var(--accent)" />
-        <text
-          x="16"
-          y="20.5"
-          fontFamily="Consolas, monospace"
-          fontSize="11"
-          fontWeight="700"
-          fill="var(--on-accent)"
-          textAnchor="middle"
-        >
-          ki
-        </text>
-      </svg>
+      <Mark className="size-[18px]" />
       <b className="text-[13px] font-semibold tracking-[0.02em]">{t('app.name')}</b>
       <small className="font-mono text-[10px] text-faint">{__APP_VERSION__}</small>
     </div>
@@ -165,68 +153,29 @@ function Unread() {
   })()
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        render={
-          <Button
-            variant="icon"
-            size="icon-sm"
-            className="relative"
-            title={t('journal.open')}
-            aria-label={t('journal.open')}
-          />
-        }
-      >
-        <Bell aria-hidden />
-        {count > 0 && (
-          <span
-            className={cn(
-              'absolute -right-0.5 -top-0.5 min-w-3.5 rounded-full bg-warn px-1',
-              'text-center font-mono text-[9px] leading-[14px] text-on-warn',
-            )}
-          >
-            {count > 9 ? '9+' : count}
-          </span>
-        )}
-      </PopoverTrigger>
-      <PopoverPopup align="end" arrow={false} className="w-96 p-0">
-        <header className="flex items-center gap-2 border-b border-line px-3 py-2">
-          <h3 className="text-sm font-semibold">{t('journal.recent')}</h3>
-          {count > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto"
-              disabled={markRead.isPending}
-              onClick={() => markRead.mutate()}
-            >
-              {t('journal.markRead')}
-            </Button>
-          )}
-        </header>
-        <ul className="max-h-80 overflow-y-auto px-3">
-          {entries.isSuccess && recent.length === 0 && (
-            <li className="py-3 text-sm text-dim">{t('journal.nothingRecent')}</li>
-          )}
+    <NotificationBell
+      count={count}
+      label={t('journal.open')}
+      title={t('journal.recent')}
+      open={open}
+      onOpenChange={setOpen}
+      markAllLabel={t('journal.markRead')}
+      onMarkAll={() => markRead.mutate()}
+      busy={markRead.isPending}
+      seeAllLabel={t('journal.seeAll')}
+      onSeeAll={() => navigate('/journal')}
+      emptyLabel={t('journal.nothingRecent')}
+    >
+      {/* Rows only once they have arrived: until then the bell shows its
+          empty line, which is truer than a list of nothing. */}
+      {entries.isSuccess && recent.length > 0 && (
+        <ul>
           {recent.map((entry) => (
             <RecentLine key={entry.id} entry={entry} />
           ))}
         </ul>
-        <footer className="border-t border-line p-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full"
-            onClick={() => {
-              setOpen(false)
-              navigate('/journal')
-            }}
-          >
-            {t('journal.seeAll')}
-          </Button>
-        </footer>
-      </PopoverPopup>
-    </Popover>
+      )}
+    </NotificationBell>
   )
 }
 
@@ -356,7 +305,14 @@ export function Titlebar({ works }: Props) {
         <NewWork onCreated={(workId) => navigate(`/works/${workId}`)} />
         <Unread />
         <span aria-hidden className="ml-1 h-4 w-px bg-line" />
-        <WindowButtons />
+        <WindowButtons
+          labels={{
+            minimize: t('shell.minimize'),
+            maximize: t('shell.maximize'),
+            restore: t('shell.restore'),
+            close: t('shell.close'),
+          }}
+        />
       </div>
 
       <CommandPalette open={searching} onOpenChange={setSearching} />
