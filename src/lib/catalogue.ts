@@ -122,8 +122,9 @@ function hasGap(row: ScoredWork, gap: Gap): boolean {
   }
 }
 
-/** True when anything is narrowing the list — what an empty result has to explain. */
-export function isNarrowed(filter: CatalogueFilter): boolean {
+/** True when anything is narrowing the list — what an empty result has to
+ * explain. The header funnels count too, when they are handed over. */
+export function isNarrowed(filter: CatalogueFilter, columns?: ColumnFilters): boolean {
   return (
     (filter.search !== undefined && filter.search.trim() !== '') ||
     filter.status !== undefined ||
@@ -131,8 +132,117 @@ export function isNarrowed(filter: CatalogueFilter): boolean {
     filter.tier !== undefined ||
     filter.tag !== undefined ||
     filter.gap !== undefined ||
-    filter.bookmarked === true
+    filter.bookmarked === true ||
+    // Left out when the stage filter arrived, so a catalogue narrowed to one
+    // stop showed no count and no "clear" — and an empty result blamed nothing.
+    filter.stage !== undefined ||
+    isNarrowedByColumns(columns)
   )
+}
+
+/**
+ * What the funnels in the column headers hold.
+ *
+ * A second filter beside `CatalogueFilter` rather than more fields on it: the
+ * query box and the dropdowns write that one as a single line, and a set of
+ * ticked stages has no place in the line. The two compose as AND, and both
+ * live for the session only, for the reason given at `loadFilter`.
+ */
+export interface ColumnFilters {
+  /** Part of the title, matched case-insensitively. */
+  title?: string
+  /** Stage stops, as their percentages: works standing at any of them. */
+  stages?: number[]
+  /** Tier keys. */
+  tiers?: string[]
+  /** Mark keys: works carrying any of them. */
+  marks?: string[]
+}
+
+/** The column filters, as the header funnels tell them apart. */
+export type FilterableColumn = keyof ColumnFilters
+
+/** Whether one funnel is holding anything. An empty list and an empty string
+ * both mean "no filter", so a person who unticks the last box is back to
+ * everything without having to find a clear button. */
+export function isColumnFiltered(filters: ColumnFilters, column: FilterableColumn): boolean {
+  const held = filters[column]
+  if (held === undefined) return false
+  return typeof held === 'string' ? held.trim() !== '' : held.length > 0
+}
+
+/** True when any header funnel is narrowing the list. */
+export function isNarrowedByColumns(filters: ColumnFilters = {}): boolean {
+  return FILTERABLE_COLUMNS.some((column) => isColumnFiltered(filters, column))
+}
+
+export const FILTERABLE_COLUMNS: FilterableColumn[] = ['title', 'stages', 'tiers', 'marks']
+
+/**
+ * Narrow by the header funnels. Applied after `narrow`, on what it left.
+ *
+ * Absence follows `narrow`: a work with no stage stands at no stop, so it
+ * matches none of the ticked ones; the same for a work with no tier. Marks
+ * match on any ticked key, not all — a person ticking two marks is asking
+ * "which works carry either", the way a status dropdown asks about one.
+ */
+export function narrowByColumns(rows: ScoredWork[], filters: ColumnFilters): ScoredWork[] {
+  const needle = filters.title?.trim().toLowerCase() ?? ''
+  const stages = isColumnFiltered(filters, 'stages') ? new Set(filters.stages) : undefined
+  const tiers = isColumnFiltered(filters, 'tiers') ? new Set(filters.tiers) : undefined
+  const marks = isColumnFiltered(filters, 'marks') ? new Set(filters.marks) : undefined
+
+  return rows.filter((row) => {
+    if (needle !== '' && !row.title.toLowerCase().includes(needle)) return false
+    if (stages !== undefined && (row.stage === null || !stages.has(row.stage))) return false
+    if (tiers !== undefined && (row.tier === null || !tiers.has(row.tier))) return false
+    if (marks !== undefined && !row.marks.some((key) => marks.has(key))) return false
+    return true
+  })
+}
+
+const COLUMN_FILTERS_KEY = 'kilna.catalogue.columnFilters'
+
+/** The column filters have the lifetime of the query filter, for the same
+ * reason: a funnel still narrowing the table tomorrow reads as lost data. */
+export function loadColumnFilters(store: SortStore = sessionStorage): ColumnFilters {
+  try {
+    const raw = store.getItem(COLUMN_FILTERS_KEY)
+    if (raw === null) return {}
+
+    const parsed: unknown = JSON.parse(raw)
+    return isColumnFilters(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+export function saveColumnFilters(
+  filters: ColumnFilters,
+  store: SortStore = sessionStorage,
+): void {
+  try {
+    store.setItem(COLUMN_FILTERS_KEY, JSON.stringify(filters))
+  } catch {
+    // Storage full or blocked: the funnels still narrow, they just forget.
+  }
+}
+
+/** Only the shape is checked, as with `isFilter`: a stage or a tier the
+ * profile no longer has narrows to nothing, which the count explains. */
+function isColumnFilters(value: unknown): value is ColumnFilters {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  const candidate = value as Record<string, unknown>
+
+  if (candidate.title !== undefined && typeof candidate.title !== 'string') return false
+  if (!isListOf(candidate.stages, 'number')) return false
+  if (!isListOf(candidate.tiers, 'string')) return false
+  return isListOf(candidate.marks, 'string')
+}
+
+function isListOf(value: unknown, type: 'string' | 'number'): boolean {
+  if (value === undefined) return true
+  return Array.isArray(value) && value.every((item) => typeof item === type)
 }
 
 /**
@@ -247,6 +357,10 @@ export function saveSort(sort: Sort, store: SortStore = localStorage): void {
 
 const COLUMNS: SortColumn[] = [
   'title',
+  // Missing from this list when the stage sort arrived, so a stage sort was
+  // remembered and then refused on the next open, quietly resetting to the
+  // score. The list is what `valueOf` switches on, and the two must agree.
+  'stage',
   'tier',
   'total',
   'scored',
@@ -429,8 +543,9 @@ export function loadColumns(store: SortStore = localStorage): ColumnId[] {
 /**
  * A stored list of column ids, made safe to draw.
  *
- * Unknown ids are dropped rather than rejected wholesale: a column removed in
- * a later build should not cost a person the rest of their layout. Everything
+ * The order is kept as stored: it is the order the table draws, and the one
+ * the person made. Unknown ids are dropped rather than rejected wholesale: a
+ * column removed in a later build should not cost the rest of the layout. Everything
  * hidden is indistinguishable from a corrupt value, and an empty table
  * teaches nobody anything, so that falls back to the default.
  */
@@ -513,17 +628,85 @@ export function saveColumns(columns: ColumnId[], store: SortStore = localStorage
 }
 
 /**
- * Turn a column on or off, keeping the table's own order.
+ * Turn a column on or off.
  *
- * The order is `ALL_COLUMNS`, not the order things were clicked: a person
- * toggling a column back on expects it where it was, not appended to the end.
+ * The stored order is the drawn order, since columns can be put in an order
+ * of one's own: a column turned back on goes to the end, where it is found
+ * without looking, and is dragged from there to where it belongs. Until v0.74
+ * the list was re-sorted into `ALL_COLUMNS` on every toggle, which would
+ * undo any order a person had made.
  */
 export function toggleColumn(current: ColumnId[], column: ColumnId): ColumnId[] {
   if (column === REQUIRED_COLUMN) return current
 
-  const shown = new Set(current)
-  if (!shown.delete(column)) shown.add(column)
-  return ALL_COLUMNS.filter((id) => shown.has(id))
+  return current.includes(column)
+    ? current.filter((id) => id !== column)
+    : [...current, column]
+}
+
+/**
+ * Put a column at a position, counted in the list it ends up in.
+ *
+ * `to` is clamped rather than refused: a keyboard nudging the first column
+ * further up means "leave it first", not "do nothing and beep". A column the
+ * list does not hold cannot be moved and the list comes back untouched.
+ */
+export function moveColumn(current: ColumnId[], column: ColumnId, to: number): ColumnId[] {
+  const from = current.indexOf(column)
+  if (from === -1) return current
+
+  const target = Math.max(0, Math.min(current.length - 1, to))
+  if (target === from) return current
+
+  const without = current.filter((id) => id !== column)
+  return [...without.slice(0, target), column, ...without.slice(target)]
+}
+
+/** The per-machine widths a person dragged, by column, in pixels. */
+export type ColumnWidths = Partial<Record<ColumnId, number>>
+
+const WIDTHS_KEY = 'kilna.catalogue.widths'
+
+/** Narrower than this and a column is a stripe with nothing readable in it. */
+export const MIN_COLUMN_WIDTH = 56
+
+/**
+ * The widths survive a restart and stay on this machine.
+ *
+ * They are not on the profile beside the columns, because a width is a fact
+ * about a screen: the pixels that fit a title on a laptop are not the pixels
+ * that fit it on a monitor, and following the profile to a second machine
+ * would carry the wrong answer there. The sort draws the same line.
+ */
+export function loadWidths(store: SortStore = localStorage): ColumnWidths {
+  try {
+    const raw = store.getItem(WIDTHS_KEY)
+    if (raw === null) return {}
+    return sanitizeWidths(JSON.parse(raw))
+  } catch {
+    return {}
+  }
+}
+
+export function saveWidths(widths: ColumnWidths, store: SortStore = localStorage): void {
+  try {
+    store.setItem(WIDTHS_KEY, JSON.stringify(widths))
+  } catch {
+    // Storage full or blocked: the table still draws, it just forgets.
+  }
+}
+
+/** Unknown columns and unusable numbers are dropped one by one, as with the
+ * column list: a column removed in a later build should not cost the rest. */
+function sanitizeWidths(parsed: unknown): ColumnWidths {
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {}
+  const widths: ColumnWidths = {}
+  for (const [id, value] of Object.entries(parsed)) {
+    if (!ALL_COLUMNS.includes(id as ColumnId)) continue
+    if (typeof value !== 'number' || !Number.isFinite(value)) continue
+    widths[id as ColumnId] = Math.max(MIN_COLUMN_WIDTH, Math.round(value))
+  }
+  return widths
 }
 
 /** How the rows are gathered into blocks. */

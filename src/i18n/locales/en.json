@@ -483,7 +483,13 @@
       "unscheduled_other": "{{count}} releases taken off the calendar"
     },
     "toNextTier": "{{gap}} more to reach {{tier}}",
-    "tierPinned": "Tier held by hand"
+    "tierPinned": "Tier held by hand",
+    "resizeColumn": "Resize the {{column}} column",
+    "resizeHint": "Drag to resize; double-click to reset",
+    "moveColumn": "Drag to move {{column}}",
+    "moveHint": "Drag the grip, or press Alt with an arrow key, to move the column",
+    "filterColumn": "Filter by {{column}}",
+    "filterTitlePlaceholder": "Part of the title"
   },
   "assistant": {
     "title": "Assistant",

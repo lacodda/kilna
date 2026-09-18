@@ -44,6 +44,25 @@ as the video stages land; the place for them is already there.
 A mark your profile no longer defines is not drawn, the same rule the card
 follows: renaming a mark never touches a work.
 
+**The columns go in the order you put them.** In the columns menu the shown
+columns come first, in the order the table draws them, each with a grip on
+its right; drag a row up or down to move that column left or right in the
+table, or, with a row focused, press **Alt + ↑** / **Alt + ↓**. A column you
+turn on joins at the end, where it is found without looking, and is dragged
+from there to where it belongs. The order is kept where the choice of columns
+is kept — on the profile, and per kind when you chose columns for a kind — so
+it follows the profile to a second machine the way the columns do.
+
+**Column widths are dragged.** Every heading ends in a thin handle; drag it
+to make the column wider or narrower, and double-click it to give the column
+its natural width back. A column narrowed past its contents clips them with
+an ellipsis rather than folding the row onto two lines — the full title is
+in the tooltip. The title takes whatever width the window has spare, unless
+you sized it by hand too. Widths are kept **per machine**, not on the
+profile: the pixels that fit a title on a laptop are not the pixels that fit
+it on a monitor, and a width that followed the profile would carry the wrong
+answer to the other screen.
+
 With enough columns on, or a narrow enough window, **the table scrolls
 sideways** rather than squeezing its cells: the bar sits at the bottom of the
 window, and the column headings stay put as you scroll down.
@@ -169,6 +188,33 @@ A few things about how it reads what you type:
   dropdown and the box says `tier:clip`; clear the box and the dropdown clears
   with it. The gap chips are the exception — they have their own row and are
   not written into the line.
+
+### Narrowing from a column
+
+Four headings carry a **funnel**, shown when the pointer is over the heading
+and staying on, filled, while that column is narrowing the list:
+
+| Column | The funnel asks for |
+| --- | --- |
+| Work | Part of the title, matched anywhere in it and in any case |
+| Stage | One or more of your profile's stops — works standing at any of them |
+| Tier | One or more tiers |
+| Marks | One or more marks — works carrying any of them |
+
+Ticking two stops means *either*, the way the status dropdown means one
+status; the funnels on different columns combine as *and*, with each other
+and with everything in the box. So `winter` in the box with *Polishing* and
+*Finished* ticked under Stage is "winter songs that are nearly done". A work
+nobody has staged stands at no stop and is left out once stops are ticked;
+the same for a work with no tier. **Clear** inside the panel empties that
+funnel; unticking the last box does the same.
+
+Column filters are not written into the query line: a set of ticked stops
+has no place in it. They have the query's lifetime — kept while kilna is
+open, gone when it closes — and the count above the table, and its
+**Clear**, take them into account together with the box. Opening a saved
+view puts every funnel down, since a view is the whole question; the funnels
+are not part of a view.
 
 ### Views: a slice worth keeping
 

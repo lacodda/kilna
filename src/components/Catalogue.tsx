@@ -28,22 +28,40 @@ import {
   withColumns,
   GAPS,
   groupRows,
+  isColumnFiltered,
   isNarrowed,
+  loadColumnFilters,
   loadFilter,
   loadSort,
+  loadWidths,
+  MIN_COLUMN_WIDTH,
+  moveColumn,
   narrow,
+  narrowByColumns,
   REQUIRED_COLUMN,
+  saveColumnFilters,
   saveFilter,
   saveSort,
+  saveWidths,
   sortRows,
   toggleColumn,
   toggleSort,
   type CatalogueFilter,
+  type ColumnFilters,
   type ColumnId,
+  type FilterableColumn,
   type GroupBy,
   type Sort,
   type SortColumn,
 } from '@/lib/catalogue'
+import {
+  ColumnResizeHandle,
+  measureColumns,
+  useColumnWidths,
+  type ColumnWidths,
+} from '@/components/ui/ColumnResizeHandle'
+import { FilterPopover } from '@/components/ui/FilterPopover'
+import { ReorderGrip, ReorderIndicator, useReorder } from '@/components/ui/ReorderableList'
 import { StagePicker } from '@/components/StagePicker'
 import { stagesOf } from '@/lib/stages'
 import { worksMatching } from '@/lib/api'
@@ -116,6 +134,14 @@ export function Catalogue({ onSelect }: Props) {
   const setFilter = (next: CatalogueFilter) => {
     setFilterState(next)
     saveFilter(next)
+  }
+  // The header funnels: the same lifetime as the query filter, and beside it
+  // rather than inside it, because the box writes the filter as one line and
+  // a set of ticked stages has no place in the line.
+  const [columnFilters, setColumnFiltersState] = useState<ColumnFilters>(loadColumnFilters)
+  const setColumnFilters = (next: ColumnFilters) => {
+    setColumnFiltersState(next)
+    saveColumnFilters(next)
   }
   const [sort, setSort] = useState<Sort>(loadSort)
   // Which columns are shown is a fact about the craft, kept on the profile
@@ -285,10 +311,14 @@ export function Catalogue({ onSelect }: Props) {
     saveSort(view.sort)
     setGroupBy(view.groupBy)
     setCollapsed(new Set())
+    // A view puts the catalogue back exactly as it was, and a funnel left
+    // over from before would make it a different question.
+    setColumnFilters({})
   }
 
   const clearFilters = () => {
     setFilter({})
+    setColumnFilters({})
     setQuery('')
     setUnknown([])
   }
@@ -451,7 +481,11 @@ export function Catalogue({ onSelect }: Props) {
               { value: 'tier', label: t('catalogue.groupTier') },
             ]}
           />
-          <ColumnPicker columns={columns} onChange={setColumns} />
+          <ColumnPicker
+            columns={columns}
+            onChange={setColumns}
+            onMove={(id, to) => setColumns(moveColumn(columns, id, to))}
+          />
         </div>
       </div>
 
@@ -460,6 +494,8 @@ export function Catalogue({ onSelect }: Props) {
         pending={rows.isPending}
         failed={rows.isError}
         filter={filter}
+        columnFilters={columnFilters}
+        onColumnFilters={setColumnFilters}
         sort={sort}
         columns={columns}
         groupBy={groupBy}
@@ -489,6 +525,8 @@ function Rows({
   pending,
   failed,
   filter,
+  columnFilters,
+  onColumnFilters,
   sort,
   columns,
   groupBy,
@@ -509,6 +547,8 @@ function Rows({
   pending: boolean
   failed: boolean
   filter: CatalogueFilter
+  columnFilters: ColumnFilters
+  onColumnFilters: (next: ColumnFilters) => void
   sort: Sort
   columns: ColumnId[]
   groupBy: GroupBy
@@ -555,6 +595,17 @@ function Rows({
   // below, because a hook that runs only sometimes is not a hook.
   const anchor = useRef<string | null>(null)
 
+  // The widths a person dragged, per machine. The header row is measured the
+  // moment the first drag begins, so the columns nobody touched keep the
+  // width they had when the layout goes fixed - see the hook for why it must.
+  const widths = useColumnWidths<ColumnId>({
+    initial: loadWidths,
+    onChange: saveWidths,
+    fallback: (id) => COLUMN_SPECS[id].naturalWidth,
+    minWidth: MIN_COLUMN_WIDTH,
+  })
+  const header = useRef<HTMLTableRowElement>(null)
+
   if (pending) return <SkeletonList rows={6} />
 
   if (failed || rows === undefined) {
@@ -571,9 +622,100 @@ function Rows({
     return <EmptyState title={t('empty.worksTitle')} body={t('empty.worksBody')} />
   }
 
-  const visible = sortRows(narrow(rows, filter, matching), sort)
-  const narrowed = isNarrowed(filter)
+  // The funnels narrow what the query left: the two compose as AND, and the
+  // count above the table reads both.
+  const visible = sortRows(narrowByColumns(narrow(rows, filter, matching), columnFilters), sort)
+  const narrowed = isNarrowed(filter, columnFilters)
   const blocks = groupRows(visible, groupBy)
+
+  // Under fixed layout the title is the one column left without a width, so
+  // it takes whatever the window has spare - unless it was sized by hand,
+  // in which case the table is exactly as wide as its columns. The minimum
+  // width keeps the title from being squeezed to nothing when the others
+  // add up to more than the window: the table scrolls instead.
+  const titleSized = widths.isHandSized('title')
+  const total =
+    SELECT_WIDTH + MENU_WIDTH + columns.reduce((sum, id) => sum + (widths.widthOf(id) ?? 0), 0)
+  const colWidth = (id: ColumnId): number | undefined => {
+    if (!widths.sized) return undefined
+    if (id === 'title' && !titleSized) return undefined
+    return widths.widthOf(id)
+  }
+
+  // What each header funnel holds and how it is drawn; null for a column
+  // that answers no narrowing question. The words are the profile's - the
+  // same lists the dropdowns and the query box read.
+  const filterFor = (id: ColumnId): ReactNode => {
+    const column = COLUMN_SPECS[id].filter
+    if (column === undefined) return null
+    const label = t(COLUMN_SPECS[id].label)
+    const shell = (body: ReactNode) => (
+      <FilterPopover
+        title={label}
+        label={t('catalogue.filterColumn', { column: label })}
+        active={isColumnFiltered(columnFilters, column)}
+        clearLabel={t('catalogue.clear')}
+        onClear={() => onColumnFilters({ ...columnFilters, [column]: undefined })}
+        // At rest the funnel is out of the way; it stays while its column is
+        // narrowing, or a table narrowed by a funnel would look like a
+        // smaller table.
+        className={cn(
+          'opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100',
+          'data-[active]:opacity-100 data-[popup-open]:opacity-100',
+        )}
+      >
+        {body}
+      </FilterPopover>
+    )
+
+    switch (column) {
+      case 'title':
+        return shell(
+          <Input
+            autoFocus
+            className="h-8 text-[12.5px]"
+            value={columnFilters.title ?? ''}
+            onChange={(event) =>
+              onColumnFilters({ ...columnFilters, title: event.target.value || undefined })
+            }
+            placeholder={t('catalogue.filterTitlePlaceholder')}
+            aria-label={label}
+          />,
+        )
+      case 'stages':
+        return shell(
+          <CheckList
+            options={stagesOf(profile.config).map((stop) => ({
+              value: stop.percent,
+              label: `${stop.label} · ${stop.percent}%`,
+            }))}
+            chosen={columnFilters.stages ?? []}
+            onChange={(stages) => onColumnFilters({ ...columnFilters, stages })}
+          />,
+        )
+      case 'tiers':
+        return shell(
+          <CheckList
+            options={allOf(profile.config, 'tiers').map((tier) => ({ value: tier.key, label: tier.label }))}
+            chosen={columnFilters.tiers ?? []}
+            onChange={(tiers) => onColumnFilters({ ...columnFilters, tiers })}
+          />,
+        )
+      case 'marks': {
+        // A profile that defines no marks has nothing to tick, and a funnel
+        // opening on an empty panel would be a control that does nothing.
+        const marks = profile.config.marks ?? []
+        if (marks.length === 0) return null
+        return shell(
+          <CheckList
+            options={marks.map((mark) => ({ value: mark.key, label: mark.label }))}
+            chosen={columnFilters.marks ?? []}
+            onChange={(next) => onColumnFilters({ ...columnFilters, marks: next })}
+          />,
+        )
+      }
+    }
+  }
 
   // The label a block carries. A status or tier the profile has since dropped
   // still names its block by its bare key rather than vanishing — the works are
@@ -724,11 +866,25 @@ function Rows({
           someone reading the middle. The header row is sticky for the same
           reason: a table you scroll is a table whose headings must stay. */}
       <div className="min-h-0 min-w-0 flex-1 overflow-auto">
-        <table className="w-full min-w-max text-sm">
+        <table
+          className={cn('text-sm', widths.sized ? 'table-fixed' : 'w-full min-w-max')}
+          style={widths.sized ? { width: titleSized ? total : '100%', minWidth: total } : undefined}
+        >
+        {/* The widths live on the columns, not the cells: one `<col>` per
+            drawn column, and only while something was sized by hand - until
+            then the browser lays the table out from its contents as it
+            always did, and nothing here is in its way. */}
+        <colgroup>
+          <col style={widths.sized ? { width: SELECT_WIDTH } : undefined} />
+          {columns.map((id) => (
+            <col key={id} style={colWidth(id) === undefined ? undefined : { width: colWidth(id) }} />
+          ))}
+          <col style={widths.sized ? { width: MENU_WIDTH } : undefined} />
+        </colgroup>
         {/* The headings stay while the rows move under them: a table long
             enough to need scrolling is one whose columns must remain named. */}
         <thead className="sticky top-0 z-10 bg-bg">
-          <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-dim">
+          <tr ref={header} className="border-b border-line text-left text-xs uppercase tracking-wide text-dim">
             {/* The tick column carries the same side padding as every other
                 cell: with none, the box sat flush against the star in the
                 next one and the two read as one control. */}
@@ -748,18 +904,21 @@ function Rows({
             </th>
             {columns.map((id) => {
               const spec = COLUMN_SPECS[id]
-              return spec.sort === null ? (
-                <th key={id} className={cn('px-3 py-2', spec.width)}>
-                  {t(spec.label)}
-                </th>
-              ) : (
+              return (
                 <Column
                   key={id}
-                  column={spec.sort}
+                  id={id}
+                  sortable={spec.sort}
                   sort={sort}
                   onReorder={onReorder}
                   label={t(spec.label)}
                   align={spec.align}
+                  width={spec.width}
+                  filter={filterFor(id)}
+                  widths={widths}
+                  onMeasure={() => {
+                    if (header.current) widths.measure(measureColumns<ColumnId>(header.current))
+                  }}
                 />
               )
             })}
@@ -904,62 +1063,162 @@ function Row({
   )
 }
 
-/** A column header that sorts, and says which way it is pointing. */
+/**
+ * A column header: sorts when the column can, says which way it is pointing,
+ * carries the funnel when the column has one, and ends in the handle its
+ * width is dragged by.
+ */
 function Column({
-  column,
+  id,
+  sortable,
   sort,
   onReorder,
   label,
   align = 'left',
+  width,
+  filter,
+  widths,
+  onMeasure,
 }: {
-  column: SortColumn
+  id: ColumnId
+  /** The sort it drives, or null for a column that answers no ordering question. */
+  sortable: SortColumn | null
   sort: Sort
   onReorder: (column: SortColumn) => void
   label: string
   align?: 'left' | 'right'
+  /** The class sizing it while the layout is still the browser's. */
+  width?: string
+  filter: ReactNode
+  widths: ColumnWidths<ColumnId>
+  /** Measure every header cell: called as a drag begins, before the first
+   * width is set and the layout goes fixed. */
+  onMeasure: () => void
 }) {
   const { t } = useTranslation()
-  const active = sort.column === column
+  const active = sortable !== null && sort.column === sortable
   const Arrow = sort.direction === 'asc' ? ArrowUp : ArrowDown
 
   return (
     // `aria-sort` goes on the cell rather than the button: it describes the
-    // column, and a button is not a column.
+    // column, and a button is not a column. `data-column` is what the
+    // measuring reads. `group` is for the funnel, which shows on hover of
+    // the whole cell rather than of its own few pixels.
     <th
-      aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+      data-column={id}
+      aria-sort={
+        sortable === null
+          ? undefined
+          : active
+            ? sort.direction === 'asc'
+              ? 'ascending'
+              : 'descending'
+            : 'none'
+      }
       // Padding on both sides, not just the one the text runs towards: a
       // right-aligned column followed by a left-aligned one used to put its
       // last letter against the next header's first, and "Total"/"Scored" read
-      // as one word.
-      className={cn('whitespace-nowrap px-3 py-2 font-medium')}
+      // as one word. Overflow is clipped once widths are the person's: a
+      // column dragged narrower than its heading shows the start of it.
+      className={cn('group relative overflow-hidden whitespace-nowrap px-3 py-2 font-medium', width)}
     >
-      <button
-        type="button"
-        onClick={() => onReorder(column)}
-        title={t('catalogue.sortBy', { column: label })}
-        className={cn(
-          'inline-flex cursor-pointer items-center gap-1 uppercase tracking-wide transition-colors hover:text-text',
-          align === 'right' && 'w-full justify-end',
-          active && 'text-text',
+      <span className={cn('flex items-center gap-1', align === 'right' && 'justify-end')}>
+        {sortable === null ? (
+          <span className="truncate">{label}</span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onReorder(sortable)}
+            title={t('catalogue.sortBy', { column: label })}
+            className={cn(
+              'inline-flex min-w-0 cursor-pointer items-center gap-1 uppercase tracking-wide transition-colors hover:text-text',
+              active && 'text-text',
+            )}
+          >
+            <span className="truncate">{label}</span>
+            {active && <Arrow aria-hidden className="size-3 shrink-0" />}
+          </button>
         )}
-      >
-        {label}
-        {active && <Arrow aria-hidden className="size-3" />}
-      </button>
+        {filter}
+      </span>
+      <ColumnResizeHandle
+        label={t('catalogue.resizeColumn', { column: label })}
+        hint={t('catalogue.resizeHint')}
+        minWidth={MIN_COLUMN_WIDTH}
+        onStart={onMeasure}
+        onResize={(px, done) => widths.resize(id, px, done)}
+        onReset={() => widths.reset(id)}
+      />
     </th>
+  )
+}
+
+/**
+ * A handful of boxes to tick, for a funnel over a column of keys.
+ *
+ * Native checkboxes, as the rows use: three to eight of them in a panel
+ * need no list navigation, and the same box in the panel and on the row
+ * reads as the same kind of control.
+ */
+function CheckList<T extends string | number>({
+  options,
+  chosen,
+  onChange,
+}: {
+  options: { value: T; label: string }[]
+  chosen: T[]
+  onChange: (next: T[]) => void
+}) {
+  return (
+    <>
+      {options.map((option) => {
+        const on = chosen.includes(option.value)
+        return (
+          <label
+            key={String(option.value)}
+            className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 hover:bg-soft"
+          >
+            <input
+              type="checkbox"
+              className="size-3.5 cursor-pointer accent-[var(--accent)]"
+              checked={on}
+              onChange={() =>
+                onChange(
+                  on
+                    ? chosen.filter((value) => value !== option.value)
+                    : [...chosen, option.value],
+                )
+              }
+            />
+            <span className="truncate">{option.label}</span>
+          </label>
+        )
+      })}
+    </>
   )
 }
 
 /** The key standing in for "no value", which a `Map` cannot hold as `null`. */
 const GROUPLESS = ' none'
 
-/** How one column is headed, sized and aligned. */
+/** The two cells that are not columns: the tick and the row menu. Sized once
+ * the layout is fixed, to what their classes give them before. */
+const SELECT_WIDTH = 36
+const MENU_WIDTH = 40
+
+/** How one column is headed, sized, aligned and narrowed. */
 interface ColumnSpec {
   label: string
   /** The sort it drives, or null for a column that answers no ordering question. */
   sort: SortColumn | null
+  /** The funnel it carries, or none. */
+  filter?: FilterableColumn
   align?: 'left' | 'right'
   width?: string
+  /** What the column is given under fixed layout when it was never measured
+   * - turned on after the first drag. Close to what the browser would give
+   * it, which is all it has to be: a drag corrects it. */
+  naturalWidth: number
 }
 
 /**
@@ -970,16 +1229,22 @@ interface ColumnSpec {
  * and cannot come apart.
  */
 const COLUMN_SPECS: Record<ColumnId, ColumnSpec> = {
-  id: { label: 'catalogue.column.id', sort: null, width: 'w-28' },
-  title: { label: 'catalogue.work', sort: 'title' },
-  stage: { label: 'catalogue.column.stage', sort: 'stage', width: 'w-14' },
-  marks: { label: 'catalogue.column.marks', sort: null },
-  versions: { label: 'catalogue.column.versions', sort: 'versions', align: 'right', width: 'w-16' },
-  tier: { label: 'catalogue.tier', sort: 'tier' },
-  total: { label: 'catalogue.total', sort: 'total', align: 'right' },
-  scored: { label: 'catalogue.scored', sort: 'scored' },
-  created: { label: 'catalogue.column.created', sort: 'created' },
-  updated: { label: 'catalogue.column.updated', sort: 'updated' },
+  id: { label: 'catalogue.column.id', sort: null, width: 'w-28', naturalWidth: 112 },
+  title: { label: 'catalogue.work', sort: 'title', filter: 'title', naturalWidth: 320 },
+  stage: { label: 'catalogue.column.stage', sort: 'stage', filter: 'stages', width: 'w-14', naturalWidth: 72 },
+  marks: { label: 'catalogue.column.marks', sort: null, filter: 'marks', naturalWidth: 160 },
+  versions: {
+    label: 'catalogue.column.versions',
+    sort: 'versions',
+    align: 'right',
+    width: 'w-16',
+    naturalWidth: 64,
+  },
+  tier: { label: 'catalogue.tier', sort: 'tier', filter: 'tiers', naturalWidth: 128 },
+  total: { label: 'catalogue.total', sort: 'total', align: 'right', naturalWidth: 80 },
+  scored: { label: 'catalogue.scored', sort: 'scored', naturalWidth: 128 },
+  created: { label: 'catalogue.column.created', sort: 'created', naturalWidth: 104 },
+  updated: { label: 'catalogue.column.updated', sort: 'updated', naturalWidth: 104 },
 }
 
 /** One cell, drawn from the column that asked for it. */
@@ -1002,16 +1267,17 @@ function Cell({
     case 'id':
       // Monospaced and dimmed: it is here to be copied and compared, not read
       // as part of the sentence a row makes.
-      return <td className="px-3 py-2 font-mono text-xs text-faint">{row.work_id.slice(0, 8)}</td>
+      return <td className="truncate px-3 py-2 font-mono text-xs text-faint">{row.work_id.slice(0, 8)}</td>
 
     case 'title': {
       const status = vocabulary.statuses.find((s) => s.key === row.status)
       return (
         // The title and what it is stay on one line. Squeezed, a two-word title
         // broke mid-phrase and the row grew to three lines; the table now
-        // scrolls sideways instead of folding.
-        <td className="whitespace-nowrap px-3 py-2">
-          <span className="inline-flex items-center gap-2">
+        // scrolls sideways instead of folding - and a column dragged narrow
+        // clips the title with an ellipsis rather than wrapping it.
+        <td className="overflow-hidden whitespace-nowrap px-3 py-2">
+          <span className="inline-flex max-w-full items-center gap-2">
             <RowStar row={row} />
             {/* The cover as a chip beside the title rather than a column of
                 its own: a column of pictures costs every row its height,
@@ -1021,15 +1287,17 @@ function Cell({
               className="size-5 shrink-0 rounded-[5px] border border-line/60"
               style={{ background: coverImageFor(row.work_id, covers.get(row.work_id)) }}
             />
-            <span className="font-medium">{row.title}</span>
+            <span className="min-w-0 truncate font-medium" title={row.title}>
+              {row.title}
+            </span>
             {/* Where it stands as a badge in the status's own colour, and what
                 it is in outline — read at a glance down the column, the way
                 the header reads them. */}
-            <Badge variant={badgeVariantOf(status?.colour)} className="px-2 text-[11px]">
+            <Badge variant={badgeVariantOf(status?.colour)} className="shrink-0 px-2 text-[11px]">
               {status?.label ?? row.status}
             </Badge>
             {!kindNarrowed && (
-              <Badge className="px-2 text-[11px]">
+              <Badge className="shrink-0 px-2 text-[11px]">
                 {labelOf(profile.config.work_kinds, row.kind)}
               </Badge>
             )}
@@ -1046,11 +1314,11 @@ function Cell({
       const defined = profile.config.marks ?? []
       const shown = row.marks.filter((key) => defined.some((mark) => mark.key === key))
       return (
-        <td className="whitespace-nowrap px-3 py-2">
+        <td className="overflow-hidden whitespace-nowrap px-3 py-2">
           {shown.length === 0 ? (
             <span className="text-faint">{'—'}</span>
           ) : (
-            <span className="inline-flex flex-wrap gap-1">
+            <span className="inline-flex gap-1">
               {shown.map((key) => {
                 const mark = defined.find((m) => m.key === key)
                 const Icon = markIconOf(mark ?? {})
@@ -1105,11 +1373,11 @@ function Cell({
           : nextTier(vocabulary.tiers, row.total)
 
       return (
-        <td className="px-3 py-2">
+        <td className="overflow-hidden whitespace-nowrap px-3 py-2">
           {row.tier === null ? (
             <span className="text-faint">{'—'}</span>
           ) : (
-            <span className="flex flex-wrap items-baseline gap-1.5">
+            <span className="flex items-baseline gap-1.5">
               <span className="rounded bg-accent-soft px-1.5 py-0.5 text-xs">
                 {labelOf(vocabulary.tiers, row.tier)}
               </span>
@@ -1150,7 +1418,7 @@ function Cell({
       return (
         // A date is one word. Left to wrap it broke into "2026-" over "07-31",
         // which reads as two dates rather than as one.
-        <td className="whitespace-nowrap px-3 py-2 text-xs text-dim">
+        <td className="overflow-hidden whitespace-nowrap px-3 py-2 text-xs text-dim">
           {row.scored_at?.slice(0, 10) ?? '—'}
           {row.stale && (
             <span
@@ -1165,12 +1433,12 @@ function Cell({
 
     case 'created':
       return (
-        <td className="whitespace-nowrap px-3 py-2 text-xs text-dim">{row.created_at.slice(0, 10)}</td>
+        <td className="truncate px-3 py-2 text-xs text-dim">{row.created_at.slice(0, 10)}</td>
       )
 
     case 'updated':
       return (
-        <td className="whitespace-nowrap px-3 py-2 text-xs text-dim">{row.updated_at.slice(0, 10)}</td>
+        <td className="truncate px-3 py-2 text-xs text-dim">{row.updated_at.slice(0, 10)}</td>
       )
   }
 }
@@ -1302,19 +1570,29 @@ function ViewBar({
 }
 
 /**
- * Which columns the table draws.
+ * Which columns the table draws, and in what order.
  *
  * A menu rather than a dialog: choosing columns is something a person does
  * while looking at the table, and a dialog would cover the thing being changed.
+ *
+ * The shown columns come first, in the order the table draws them, each with
+ * a grip; the hidden ones follow below a line. So the top of the menu is a
+ * picture of the header, and dragging a row up or down in it is dragging the
+ * column left or right - a menu is the one place the columns are already
+ * standing in a list.
  */
 function ColumnPicker({
   columns,
   onChange,
+  onMove,
 }: {
   columns: ColumnId[]
   onChange: (next: ColumnId[]) => void
+  onMove: (id: ColumnId, to: number) => void
 }) {
   const { t } = useTranslation()
+  const reorder = useReorder<ColumnId>({ order: columns, onMove })
+  const hidden = ALL_COLUMNS.filter((id) => !columns.includes(id))
 
   return (
     <Menu>
@@ -1327,25 +1605,59 @@ function ColumnPicker({
       </MenuTrigger>
 
       <MenuPopup align="end">
-        {ALL_COLUMNS.map((id) => (
-          <MenuCheckboxItem
-            key={id}
-            checked={columns.includes(id)}
-            // The title carries the row's identity and its link. Offered as
-            // permanently ticked rather than left out of the list, so its
-            // absence is a statement instead of an oversight.
-            disabled={id === REQUIRED_COLUMN}
-            // The menu stays open: turning columns on and off is a comparison,
-            // and closing after each would make a five-column change five trips.
-            closeOnClick={false}
-            onCheckedChange={() => onChange(toggleColumn(columns, id))}
-          >
-            <MenuCheckboxIndicator>
-              <Check className="size-3.5" aria-hidden />
-            </MenuCheckboxIndicator>
-            {t(COLUMN_SPECS[id].label)}
-          </MenuCheckboxItem>
-        ))}
+        <div {...reorder.listProps} className="relative">
+          {columns.map((id) => (
+            <MenuCheckboxItem
+              key={id}
+              checked
+              // The title carries the row's identity and its link. Offered as
+              // permanently ticked rather than left out of the list, so its
+              // absence is a statement instead of an oversight. It can still
+              // be dragged: pointer events are given back to it for the grip,
+              // which is the one thing a disabled item here may do.
+              disabled={id === REQUIRED_COLUMN}
+              // The menu stays open: turning columns on and off is a comparison,
+              // and closing after each would make a five-column change five trips.
+              closeOnClick={false}
+              onCheckedChange={() => onChange(toggleColumn(columns, id))}
+              title={t('catalogue.moveHint')}
+              className={cn(
+                'data-[disabled]:pointer-events-auto',
+                reorder.dragging === id && 'opacity-50',
+              )}
+              {...reorder.rowProps(id)}
+            >
+              <MenuCheckboxIndicator>
+                <Check className="size-3.5" aria-hidden />
+              </MenuCheckboxIndicator>
+              <span className="flex-1">{t(COLUMN_SPECS[id].label)}</span>
+              <ReorderGrip
+                {...reorder.gripProps(id)}
+                title={t('catalogue.moveColumn', { column: t(COLUMN_SPECS[id].label) })}
+              />
+            </MenuCheckboxItem>
+          ))}
+          <ReorderIndicator offset={reorder.slotOffset} />
+        </div>
+
+        {hidden.length > 0 && (
+          <>
+            <MenuSeparator />
+            {hidden.map((id) => (
+              <MenuCheckboxItem
+                key={id}
+                checked={false}
+                closeOnClick={false}
+                onCheckedChange={() => onChange(toggleColumn(columns, id))}
+              >
+                <MenuCheckboxIndicator>
+                  <Check className="size-3.5" aria-hidden />
+                </MenuCheckboxIndicator>
+                {t(COLUMN_SPECS[id].label)}
+              </MenuCheckboxItem>
+            ))}
+          </>
+        )}
       </MenuPopup>
     </Menu>
   )
