@@ -13,6 +13,14 @@ import {
   loadFilter,
   loadSort,
   narrow,
+  moveColumn,
+  loadWidths,
+  saveWidths,
+  MIN_COLUMN_WIDTH,
+  narrowByColumns,
+  isNarrowedByColumns,
+  loadColumnFilters,
+  saveColumnFilters,
   saveColumns,
   saveSort,
   sortRows,
@@ -188,6 +196,14 @@ describe('isNarrowed', () => {
     expect(isNarrowed({ kind: 'song' })).toBe(true)
     expect(isNarrowed({ tag: 'winter' })).toBe(true)
   })
+
+  // The stage filter was added to `narrow` without being added here, so a
+  // catalogue narrowed to one stop showed neither the count nor "clear", and
+  // an empty result blamed nothing. Zero is a stop too.
+  it('counts a stage filter as narrowing, even the zero stop', () => {
+    expect(isNarrowed({ stage: 80 })).toBe(true)
+    expect(isNarrowed({ stage: 0 })).toBe(true)
+  })
 })
 
 describe('gap filters', () => {
@@ -291,6 +307,16 @@ describe('the remembered sort', () => {
 
   it('comes back as it was left', () => {
     const chosen: Sort = { column: 'title', direction: 'asc' }
+    const kept = store()
+    saveSort(chosen, kept)
+    expect(loadSort(kept)).toEqual(chosen)
+  })
+
+  // The stage column sorts since the dial arrived but was left out of the
+  // list the reader checks against, so a stage sort was kept and then refused
+  // on the next open — a silent reset to the score, with nothing to say why.
+  it('remembers a sort by stage', () => {
+    const chosen: Sort = { column: 'stage', direction: 'desc' }
     const kept = store()
     saveSort(chosen, kept)
     expect(loadSort(kept)).toEqual(chosen)
@@ -519,10 +545,14 @@ describe('toggling a column', () => {
     expect(toggleColumn(without, 'total')).toContain('total')
   })
 
-  it('restores it to the table order, not to the end', () => {
-    const without = toggleColumn(DEFAULT_COLUMNS, 'tier')
-    const back = toggleColumn(without, 'tier')
-    expect(back).toEqual(DEFAULT_COLUMNS)
+  // The stored order is the drawn order since v0.74, so a toggle must not
+  // re-sort the list into the table's own order — that would undo a person's
+  // arrangement every time a column came or went.
+  it('puts a column turned back on at the end and keeps the rest in place', () => {
+    const arranged: ColumnId[] = ['title', 'total', 'stage', 'tier']
+    const without = toggleColumn(arranged, 'stage')
+    expect(without).toEqual(['title', 'total', 'tier'])
+    expect(toggleColumn(without, 'stage')).toEqual(['title', 'total', 'tier', 'stage'])
   })
 
   it('refuses to hide the title', () => {
@@ -534,6 +564,173 @@ describe('toggling a column', () => {
       ...DEFAULT_COLUMNS,
     ])
     expect(shown.every((id) => ALL_COLUMNS.includes(id))).toBe(true)
+  })
+})
+
+describe('moving a column', () => {
+  const arranged: ColumnId[] = ['title', 'stage', 'tier', 'total']
+
+  it('puts the column where it was asked to go, either way', () => {
+    expect(moveColumn(arranged, 'total', 1)).toEqual(['title', 'total', 'stage', 'tier'])
+    expect(moveColumn(arranged, 'stage', 3)).toEqual(['title', 'tier', 'total', 'stage'])
+  })
+
+  it('clamps a move past either end rather than refusing it', () => {
+    expect(moveColumn(arranged, 'stage', -1)).toEqual(['stage', 'title', 'tier', 'total'])
+    expect(moveColumn(arranged, 'stage', 99)).toEqual(['title', 'tier', 'total', 'stage'])
+  })
+
+  it('leaves the list alone for a column it does not hold, or a move to itself', () => {
+    expect(moveColumn(arranged, 'id', 0)).toBe(arranged)
+    expect(moveColumn(arranged, 'tier', 2)).toBe(arranged)
+  })
+
+  it('keeps a stored order as stored, dropping only what it cannot draw', () => {
+    expect(sanitizeColumns(['total', 'bpm', 'title', 'stage'])).toEqual(['total', 'title', 'stage'])
+  })
+})
+
+describe('the remembered widths', () => {
+  const store = (initial?: string): SortStore & { value: string | null } => ({
+    value: initial ?? null,
+    getItem() {
+      return this.value
+    },
+    setItem(_key, value) {
+      this.value = value
+    },
+  })
+
+  it('starts with nothing sized by hand', () => {
+    expect(loadWidths(store())).toEqual({})
+  })
+
+  it('comes back as it was left', () => {
+    const held = store()
+    saveWidths({ title: 320, tier: 96 }, held)
+    expect(loadWidths(held)).toEqual({ title: 320, tier: 96 })
+  })
+
+  it('drops a column this build no longer knows and a width that is not a number', () => {
+    const held = store(JSON.stringify({ title: 320, bpm: 80, tier: 'wide', total: null }))
+    expect(loadWidths(held)).toEqual({ title: 320 })
+  })
+
+  it('never brings back a width narrower than a column can be', () => {
+    const held = store(JSON.stringify({ tier: 4 }))
+    expect(loadWidths(held)).toEqual({ tier: MIN_COLUMN_WIDTH })
+  })
+
+  it('falls back rather than trusting whatever is in storage', () => {
+    expect(loadWidths(store('[1, 2]'))).toEqual({})
+    expect(loadWidths(store('not json'))).toEqual({})
+  })
+
+  it('does not throw when storage refuses to write', () => {
+    const refusing: SortStore = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error('quota exceeded')
+      },
+    }
+    expect(() => saveWidths({ title: 300 }, refusing)).not.toThrow()
+  })
+})
+
+describe('the header funnels', () => {
+  const rows = [
+    row({ work_id: 'a', title: 'Гавань огней', stage: 80, tier: 'clip', marks: ['hook'] }),
+    row({ work_id: 'b', title: 'Paper boats', stage: 20, tier: 'pic', marks: ['hook', 'bridge'] }),
+    row({ work_id: 'c', title: 'Winter shift', stage: null, tier: null, marks: [] }),
+  ]
+  const ids = (kept: ScoredWork[]) => kept.map((r) => r.work_id)
+
+  it('keeps everything when nothing is ticked or typed', () => {
+    expect(narrowByColumns(rows, {})).toHaveLength(3)
+    // Empty means "no filter", not "match nothing": unticking the last box
+    // must bring the table back.
+    expect(narrowByColumns(rows, { title: '  ', stages: [], tiers: [], marks: [] })).toHaveLength(3)
+  })
+
+  it('matches part of a title, regardless of case, in Russian too', () => {
+    expect(ids(narrowByColumns(rows, { title: 'ГАВАНЬ' }))).toEqual(['a'])
+    expect(ids(narrowByColumns(rows, { title: 'boat' }))).toEqual(['b'])
+  })
+
+  it('keeps the works standing at any of the ticked stops', () => {
+    expect(ids(narrowByColumns(rows, { stages: [20, 80] }))).toEqual(['a', 'b'])
+    expect(ids(narrowByColumns(rows, { stages: [40] }))).toEqual([])
+  })
+
+  // A work nobody has judged stands at no stop, as `narrow` reads it: it must
+  // not come along with whichever stops are ticked.
+  it('drops a work with no stage or no tier when those are filtered', () => {
+    expect(ids(narrowByColumns(rows, { stages: [20, 80] }))).not.toContain('c')
+    expect(ids(narrowByColumns(rows, { tiers: ['clip', 'pic'] }))).not.toContain('c')
+  })
+
+  it('keeps the works in any of the ticked tiers', () => {
+    expect(ids(narrowByColumns(rows, { tiers: ['pic'] }))).toEqual(['b'])
+  })
+
+  it('keeps the works carrying any of the ticked marks', () => {
+    expect(ids(narrowByColumns(rows, { marks: ['bridge'] }))).toEqual(['b'])
+    expect(ids(narrowByColumns(rows, { marks: ['hook'] }))).toEqual(['a', 'b'])
+    expect(ids(narrowByColumns(rows, { marks: ['chorus'] }))).toEqual([])
+  })
+
+  it('combines the funnels as AND', () => {
+    expect(ids(narrowByColumns(rows, { marks: ['hook'], stages: [20] }))).toEqual(['b'])
+  })
+
+  it('counts as narrowing only while a funnel holds something', () => {
+    expect(isNarrowedByColumns({})).toBe(false)
+    expect(isNarrowedByColumns({ title: ' ', stages: [], tiers: [], marks: [] })).toBe(false)
+    expect(isNarrowedByColumns({ marks: ['hook'] })).toBe(true)
+    expect(isNarrowedByColumns({ title: 'a' })).toBe(true)
+    // The count above the table reads both filters through one question.
+    expect(isNarrowed({}, { stages: [20] })).toBe(true)
+    expect(isNarrowed({}, {})).toBe(false)
+  })
+
+  describe('remembered for the session', () => {
+    const store = (initial?: string): SortStore & { value: string | null } => ({
+      value: initial ?? null,
+      getItem() {
+        return this.value
+      },
+      setItem(_key, value) {
+        this.value = value
+      },
+    })
+
+    it('starts holding nothing', () => {
+      expect(loadColumnFilters(store())).toEqual({})
+    })
+
+    it('comes back as it was left', () => {
+      const held = store()
+      saveColumnFilters({ title: 'boat', stages: [20], marks: ['hook'] }, held)
+      expect(loadColumnFilters(held)).toEqual({ title: 'boat', stages: [20], marks: ['hook'] })
+    })
+
+    it('refuses a value of the wrong shape', () => {
+      expect(loadColumnFilters(store(JSON.stringify({ stages: ['polish'] })))).toEqual({})
+      expect(loadColumnFilters(store(JSON.stringify({ title: 3 })))).toEqual({})
+      expect(loadColumnFilters(store(JSON.stringify({ marks: 'hook' })))).toEqual({})
+      expect(loadColumnFilters(store('[1]'))).toEqual({})
+      expect(loadColumnFilters(store('not json'))).toEqual({})
+    })
+
+    it('does not throw when storage refuses to write', () => {
+      const refusing: SortStore = {
+        getItem: () => null,
+        setItem: () => {
+          throw new Error('quota exceeded')
+        },
+      }
+      expect(() => saveColumnFilters({ title: 'a' }, refusing)).not.toThrow()
+    })
   })
 })
 
