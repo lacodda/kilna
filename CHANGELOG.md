@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.74.1] - 2026-09-18
+
+### Bug Fixes
+- Open the search, raise the popups, hold the table's edges
+- The stage funnel, the star, the card's top and the calendar's plus
+
+### Testing
+- The stage covers the page and stays under what it opens
 ## [0.74.0] - 2026-09-18
 
 ### Documentation
