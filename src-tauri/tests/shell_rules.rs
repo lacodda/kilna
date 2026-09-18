@@ -98,8 +98,8 @@ fn selection_is_off_by_default_and_given_back_to_text() {
     for (file, what) in [
         ("src/components/ui/Markdown.tsx", "rendered prose"),
         (
-            "src/components/versions/VersionDiff.tsx",
-            "the version diff",
+            "src/components/ui/MarkedText.tsx",
+            "the marked text - a version being read or compared",
         ),
     ] {
         assert!(
