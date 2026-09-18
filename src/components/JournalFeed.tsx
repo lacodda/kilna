@@ -23,7 +23,7 @@ export function sentence(entry: JournalEntry, t: TFunction): string {
 }
 
 /** Time of day for today's entries, date for older ones. */
-function when(timestamp: string, locale: string): string {
+export function when(timestamp: string, locale: string): string {
   const at = new Date(timestamp)
   if (Number.isNaN(at.getTime())) return timestamp
 

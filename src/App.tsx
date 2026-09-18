@@ -13,18 +13,19 @@ import { AssistantLauncher } from '@/components/assistant/AssistantDrawer'
 import { QueueBanner } from '@/components/assistant/QueueBanner'
 import { WaitingBanner } from '@/components/assistant/WaitingBanner'
 import { KeyboardSheet } from '@/components/shell/KeyboardSheet'
+import { ResizeEdges } from '@/components/shell/window'
 import { Sidebar } from '@/components/shell/Sidebar'
-import { Topbar } from '@/components/shell/Topbar'
+import { Splash } from '@/components/shell/Splash'
+import { Titlebar } from '@/components/shell/Titlebar'
 import { WorkCard } from '@/components/WorkCard'
 import { Catalogue } from '@/components/Catalogue'
 import { DashboardView } from '@/components/DashboardView'
 import { CalendarView } from '@/components/CalendarView'
-import { DataView } from '@/components/DataView'
+import { SettingsView } from '@/components/settings/SettingsView'
 import { JournalView } from '@/components/JournalView'
 import { TrashView } from '@/components/TrashView'
 import { Styleguide } from '@/components/Styleguide'
 import { Panel } from '@/components/ui/panel'
-import { Skeleton } from '@/components/ui/Skeleton'
 
 // An open work, filling the screen. The address carries which one and which
 // tab, so the back button walks between them.
@@ -58,21 +59,6 @@ function WorksScreen() {
   )
 }
 
-// The shell's own loading state: the frame is already drawn, so this only has
-// to stand in for the sidebar and topbar until the workspace answers.
-function ShellSkeleton() {
-  return (
-    <div className="grid h-full grid-cols-[216px_1fr] grid-rows-[52px_1fr] [grid-template-areas:'side_top'_'side_main']">
-        <div className="border-r border-line [grid-area:side]" />
-        <div className="border-b border-line [grid-area:top]" />
-        <div className="flex flex-col gap-3 p-6 [grid-area:main]">
-          <Skeleton className="h-9 w-64" />
-          <Skeleton className="h-40 w-full" />
-        </div>
-      </div>
-    )
-  }
-
   export default function App() {
     const { t } = useTranslation()
     const navigate = useNavigate()
@@ -103,7 +89,12 @@ function ShellSkeleton() {
       })
     }, [profileId, client])
 
-    if (isPending) return <ShellSkeleton />
+    if (isPending) return <Splash />
+
+    // The static splash from index.html is taken down by <Splash /> on the
+    // way through; when the workspace answers before that ever rendered, it
+    // is taken down here instead.
+    document.getElementById('splash')?.remove()
 
     if (error !== null) {
       return (
@@ -136,7 +127,10 @@ function ShellSkeleton() {
             the shell rather than sitting beside it because the waiting banner
             inside asks it to open a chat. */}
         <AssistantLauncher>
-          <div className="grid h-full grid-cols-[216px_1fr] grid-rows-[52px_1fr] [grid-template-areas:'side_top'_'side_main']">
+          {/* The title bar runs the width of the window, as a system one
+              would: the mark sits where the system prints the name, and the
+              window buttons sit at its right end. The rail starts under it. */}
+          <div className="grid h-full grid-cols-[216px_1fr] grid-rows-[40px_1fr] [grid-template-areas:'top_top'_'side_main']">
           {/* `min-h-0` for the same reason the main column has it: the rail
               is a grid item, and without it the nav measured its content
               rather than the track, so its border and footer stopped
@@ -148,8 +142,8 @@ function ShellSkeleton() {
               onProfileSwitched={() => navigate('/catalogue')}
             />
           </div>
-          <div className="[grid-area:top]">
-            <Topbar works={workspace.works} />
+          <div className="min-w-0 [grid-area:top]">
+            <Titlebar works={workspace.works} />
           </div>
 
           {/* `min-w-0` beside `min-h-0`, and for the same reason on the other
@@ -197,7 +191,7 @@ function ShellSkeleton() {
                   <Route
                     path="/dashboard"
                     element={
-                      <div className="p-6">
+                      <div className="px-6 pt-3 pb-6">
                         <DashboardView onSelect={openWork} />
                       </div>
                     }
@@ -211,7 +205,7 @@ function ShellSkeleton() {
                   <Route
                     path="/catalogue"
                     element={
-                      <div className="flex h-full min-h-0 flex-col p-6">
+                      <div className="flex h-full min-h-0 flex-col px-6 pt-3 pb-6">
                         <Catalogue onSelect={openWork} />
                       </div>
                     }
@@ -223,7 +217,7 @@ function ShellSkeleton() {
                   <Route
                     path="/calendar"
                     element={
-                      <div className="flex h-full min-h-0 flex-col p-6">
+                      <div className="flex h-full min-h-0 flex-col px-6 pt-3 pb-6">
                         <CalendarView onSelect={openWork} />
                       </div>
                     }
@@ -231,7 +225,7 @@ function ShellSkeleton() {
                   <Route
                     path="/journal"
                     element={
-                      <div className="p-6">
+                      <div className="px-6 pt-3 pb-6">
                         <JournalView />
                       </div>
                     }
@@ -239,16 +233,18 @@ function ShellSkeleton() {
                   <Route
                     path="/trash"
                     element={
-                      <div className="p-6">
+                      <div className="px-6 pt-3 pb-6">
                         <TrashView />
                       </div>
                     }
                   />
+                  {/* The section is part of the address, like a card's tab:
+                      the rail's Settings link lands on the first one. */}
                   <Route
-                    path="/settings"
+                    path="/settings/:section?"
                     element={
-                      <div className="p-6">
-                        <DataView />
+                      <div className="px-6 pt-3 pb-6">
+                        <SettingsView />
                       </div>
                     }
                   />
@@ -271,6 +267,7 @@ function ShellSkeleton() {
       </AssistantLauncher>
 
       <KeyboardSheet open={helpOpen} onOpenChange={setHelpOpen} />
+      <ResizeEdges />
     </ProfileContext>
   )
 }

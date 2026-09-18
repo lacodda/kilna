@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 export type Theme = 'system' | 'light' | 'dark'
 
 const STORAGE_KEY = 'kilna.theme'
-const THEMES: readonly Theme[] = ['system', 'light', 'dark']
+export const THEMES: readonly Theme[] = ['system', 'light', 'dark']
 
 function storedTheme(): Theme {
   const raw = localStorage.getItem(STORAGE_KEY)

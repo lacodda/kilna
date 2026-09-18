@@ -55,6 +55,18 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
         // Needed by the data screen to pick a directory or a file.
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        // Size, position and whether it was maximised come back on the next
+        // start. Visibility is left out on purpose: the window is created
+        // hidden and shown by the page once it has painted, and a restored
+        // "visible" would show it a moment early, white.
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::all()
+                        - tauri_plugin_window_state::StateFlags::VISIBLE,
+                )
+                .build(),
+        )
         .setup(move |app| {
             // Per-user application data, resolved by Tauri for the current
             // platform — unless the command line named a directory.
@@ -84,6 +96,21 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             }
 
             app.manage(state);
+
+            // The page shows the window as soon as it has painted. Should it
+            // never get that far - a broken bundle, a webview that failed to
+            // load - the window must still appear, or the app would be
+            // running with nothing to close. Three seconds is longer than any
+            // healthy start and shorter than a person's patience.
+            let handle = app.handle().clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(3));
+                if let Some(window) = handle.get_webview_window("main") {
+                    if !window.is_visible().unwrap_or(true) {
+                        let _ = window.show();
+                    }
+                }
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

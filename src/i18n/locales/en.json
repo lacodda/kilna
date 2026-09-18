@@ -38,7 +38,10 @@
     "status": "Status",
     "kind": "Kind",
     "anyStatus": "Any status",
-    "none": "No works match."
+    "none": "No works match.",
+    "newTitle": "New work",
+    "newOfKind": "New: {{kind}}",
+    "title": "Title"
   },
   "work": {
     "title": "Title",
@@ -1019,7 +1022,10 @@
     "release.unscheduledBatch_other": "{{count}} releases taken off the calendar.",
     "undo.done": "Took back {{action}}",
     "release.fieldsBatch_one": "Wrote what {{count}} release goes out as.",
-    "release.fieldsBatch_other": "Wrote what {{count}} releases go out as."
+    "release.fieldsBatch_other": "Wrote what {{count}} releases go out as.",
+    "recent": "Recent",
+    "seeAll": "See all",
+    "nothingRecent": "Nothing has happened yet."
   },
   "card": {
     "tab": {
@@ -1139,5 +1145,39 @@
     "saved": "Cover prompt saved",
     "copy": "Copy",
     "copied": "Copied"
+  },
+  "shell": {
+    "new": "New",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "close": "Close"
+  },
+  "splash": {
+    "opening": "Opening the workspace…",
+    "tip": "Ctrl+K finds anything: a title, a line, a note."
+  },
+  "settings": {
+    "title": "Settings",
+    "section": {
+      "general": "General",
+      "card": "The work card",
+      "profile": "Profile",
+      "data": "Data",
+      "agents": "Agents"
+    },
+    "hint": {
+      "general": "How the window looks and speaks.",
+      "card": "What a card opens on and what it draws.",
+      "profile": "The words of your craft: kinds, statuses, axes, tiers, actions.",
+      "data": "Out, in and aside: export, backup, import.",
+      "agents": "Agents outside the window, over MCP."
+    },
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "language": "Language",
+    "defaultTab": "Where a card opens",
+    "defaultTabHint": "The tab a work opens on from the catalogue, the calendar or a search hit. A link that names a tab still opens that tab.",
+    "defaultTabLabel": "Open on"
   }
 }

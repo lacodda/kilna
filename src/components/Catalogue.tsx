@@ -15,7 +15,6 @@ import {
 } from 'lucide-react'
 import {
   catalogue as fetchCatalogue,
-  createWork,
   deleteWorks,
   setWorksStatus,
   unscheduleWorks,
@@ -162,7 +161,6 @@ export function Catalogue({ onSelect }: Props) {
   // catalogue folded into blocks tomorrow reads as something being wrong.
   const [groupBy, setGroupBy] = useState<GroupBy>('none')
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
-  const [title, setTitle] = useState('')
 
   const rows = useQuery({
     queryKey: keys.catalogue,
@@ -171,33 +169,6 @@ export function Catalogue({ onSelect }: Props) {
   const kindCounts = new Map<string, number>()
   for (const row of rows.data ?? []) kindCounts.set(row.kind, (kindCounts.get(row.kind) ?? 0) + 1)
 
-  const add = useMutation({
-    mutationFn: createWork,
-    onSuccess: (work) => {
-      setTitle('')
-      void client.invalidateQueries({ queryKey: keys.works })
-      void client.invalidateQueries({ queryKey: keys.catalogue })
-      void client.invalidateQueries({ queryKey: keys.workspace })
-      void client.invalidateQueries({ queryKey: keys.journal })
-      say.ok(t('toast.workCreated'))
-      // Straight into the new work: adding one is the start of writing it, not
-      // an entry in a list to admire.
-      onSelect(work.id)
-    },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
-  })
-
-  const submit = () => {
-    const trimmed = title.trim()
-    if (trimmed === '') return
-
-    // The kind the catalogue is narrowed to, else the profile's first: with
-    // the Video chip on, "Add" makes a video, which is what the chip says.
-    const kind = filter.kind ?? profile.config.work_kinds[0]?.key
-    if (kind === undefined) return
-
-    add.mutate({ kind, title: trimmed })
-  }
 
   // Deliberately not remembered across a restart, unlike the sort: a selection
   // is about the click you are about to make, and finding rows still ticked
@@ -324,25 +295,6 @@ export function Catalogue({ onSelect }: Props) {
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-4">
-      <form
-        className="flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault()
-          submit()
-        }}
-      >
-        <Input
-          className="max-w-96"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder={t('works.newPlaceholder')}
-          aria-label={t('works.newPlaceholder')}
-        />
-        <Button type="submit" variant="primary" disabled={title.trim() === '' || add.isPending}>
-          {t('works.add')}
-        </Button>
-      </form>
-
       {/* The kind of work as a row of chips, not one more dropdown: it is the
           mode the catalogue is in — songs, videos — and a mode is read at a
           glance and switched in one click. Hidden while the profile has one

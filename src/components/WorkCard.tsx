@@ -18,7 +18,8 @@ import { LinksTab } from '@/components/card/LinksTab'
 import { OverviewTab } from '@/components/card/OverviewTab'
 import { CutsTab } from '@/components/card/CutsTab'
 import { ScenesTab } from '@/components/card/ScenesTab'
-import { DEFAULT_TAB, isTab, type Tab } from '@/components/card/tabs'
+import { isTab, type Tab } from '@/components/card/tabs'
+import { storedCardView } from '@/lib/cardView'
 import { VersionPanel } from '@/components/VersionPanel'
 import { ScorePanel } from '@/components/ScorePanel'
 import { ReleasePanel } from '@/components/ReleasePanel'
@@ -121,10 +122,11 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
     return <p className="text-sm text-dim">{t('error.notFound')}</p>
   }
 
-  // A URL naming a tab that does not exist is corrected rather than shown empty,
-  // and `replace` keeps the bad address out of the history.
+  // A URL naming no tab opens on the one this machine prefers; one naming a
+  // tab that does not exist is corrected rather than shown empty. `replace`
+  // keeps the bad address out of the history either way.
   if (!isTab(tab)) {
-    return <Navigate to={`/works/${workId}/${DEFAULT_TAB}`} replace />
+    return <Navigate to={`/works/${workId}/${storedCardView().defaultTab}`} replace />
   }
 
   const current = work.data

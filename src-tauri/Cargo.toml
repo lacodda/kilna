@@ -37,6 +37,9 @@ time = { version = "=0.3.45", features = ["formatting", "macros"] }
 uuid = { version = "1", features = ["v4"] }
 tauri-plugin-dialog = "2.7.3"
 tauri-plugin-opener = "2.5.5"
+# The window comes back the size and place it was closed at: a maximised
+# window opens maximised, a 1200x1200 one opens at 1200x1200.
+tauri-plugin-window-state = "2"
 # A pasted picture arrives as bytes and needs a file to be copied from; the
 # window is not given filesystem permissions for one temporary write.
 tempfile = "3"

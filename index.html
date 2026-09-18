@@ -4,8 +4,126 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>kilna</title>
+    <!--
+      The first thing the window shows, before a line of the application has
+      run: the mark, the name, the promise and the version, on the window's own
+      background. It is here and not in React because React is what is still
+      loading. The page removes it the moment the shell has something to draw.
+
+      Inline styles rather than a stylesheet: the stylesheet arrives with the
+      bundle, which is the thing being waited for. The colours are the theme's
+      dark and light backgrounds written out, since the theme file is in that
+      same bundle; a stored explicit theme is applied by the page a moment
+      later and the splash follows it through the classes on <html>.
+    -->
+    <style>
+      html {
+        background: #141216;
+        color: #e8e3ec;
+      }
+      @media (prefers-color-scheme: light) {
+        html {
+          background: #f7f5f9;
+          color: #221c27;
+        }
+      }
+      html.dark {
+        background: #141216;
+        color: #e8e3ec;
+      }
+      html.light {
+        background: #f7f5f9;
+        color: #221c27;
+      }
+      #splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-family:
+          'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      #splash .mark {
+        width: 56px;
+        height: 56px;
+        margin-bottom: 6px;
+      }
+      #splash .name {
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        line-height: 1;
+      }
+      #splash .tagline {
+        font-size: 13px;
+        opacity: 0.62;
+      }
+      #splash .version {
+        margin-top: 6px;
+        font-family: Consolas, 'Cascadia Mono', ui-monospace, monospace;
+        font-size: 11px;
+        opacity: 0.45;
+      }
+      #splash .bar {
+        position: relative;
+        width: 160px;
+        height: 2px;
+        margin-top: 18px;
+        border-radius: 999px;
+        background: rgba(128, 128, 128, 0.18);
+        overflow: hidden;
+      }
+      #splash .bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -40%;
+        width: 40%;
+        height: 100%;
+        border-radius: 999px;
+        background: #D9569E;
+        animation: splash-sweep 1.1s ease-in-out infinite;
+      }
+      @keyframes splash-sweep {
+        to {
+          left: 100%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #splash .bar::after {
+          animation: none;
+          left: 0;
+          width: 100%;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash" aria-hidden="true">
+      <svg class="mark" viewBox="0 0 32 32">
+        <path d="M16 2 28 9v14L16 30 4 23V9z" fill="#D9569E" />
+        <text
+          x="16"
+          y="20.5"
+          font-family="Consolas, monospace"
+          font-size="11"
+          font-weight="700"
+          fill="#fff"
+          text-anchor="middle"
+        >
+          ki
+        </text>
+      </svg>
+      <div class="name">kilna</div>
+      <div class="tagline">From raw idea to shipped work.</div>
+      <div class="version">v__APP_VERSION__</div>
+      <div class="bar"></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,10 +1,17 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions granted to the main window.",
+  "description": "Permissions granted to the main window. The window permissions are here because kilna draws its own title bar, as scheda does: dragging, resizing and the window buttons are the page's to implement, and the page shows the window once it has painted so that nothing white is ever seen.",
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-is-maximized",
+    "core:window:allow-start-dragging",
+    "core:window:allow-start-resize-dragging",
+    "core:window:allow-show",
     "dialog:allow-open",
     "dialog:allow-save",
     "opener:allow-open-url"

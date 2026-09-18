@@ -67,8 +67,9 @@ interface Props {
   onProfileSwitched: () => void
 }
 
-// The left rail of the app frame: brand, screens, the roadmap's next doors,
-// and the footer with settings, theme and profile.
+// The left rail of the app frame: screens, the roadmap's next doors, and the
+// footer with settings, theme and profile. The brand moved up into the title
+// bar in v0.74, where a system title bar would have printed the name.
 export function Sidebar({ profileId, onProfileSwitched }: Props) {
   const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
@@ -78,26 +79,7 @@ export function Sidebar({ profileId, onProfileSwitched }: Props) {
   return (
     // `h-full` so the rail runs the height of the window: the footer sits at
     // the bottom because the nav reaches it, not because the content does.
-    <nav className="flex h-full flex-col gap-0.5 overflow-y-auto border-r border-line px-2.5 pt-3.5 pb-3">
-      <div className="flex items-center gap-2.5 px-2 pb-3.5">
-        <svg className="size-[26px] shrink-0" viewBox="0 0 32 32" aria-hidden>
-          <path d="M16 2 28 9v14L16 30 4 23V9z" fill="var(--accent)" />
-          <text
-            x="16"
-            y="20.5"
-            fontFamily="Consolas, monospace"
-            fontSize="11"
-            fontWeight="700"
-            fill="#fff"
-            textAnchor="middle"
-          >
-            ki
-          </text>
-        </svg>
-        <b className="text-[15px] font-semibold tracking-[0.02em]">{t('app.name')}</b>
-        <small className="ml-auto font-mono text-[10px] text-faint">{__APP_VERSION__}</small>
-      </div>
-
+    <nav className="flex h-full flex-col gap-0.5 overflow-y-auto border-r border-line px-2.5 pt-2.5 pb-3">
       <ScreenLink to="/dashboard" icon={LayoutDashboard} label={t('nav.dashboard')} />
       {/* No separate Works entry: the catalogue is the list of works, and a
           second door to the same things only made you choose between them. */}

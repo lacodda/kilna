@@ -34,3 +34,14 @@ export const DEFAULT_TAB: Tab = 'overview'
 export function isTab(value: string | undefined): value is Tab {
   return value !== undefined && (TABS as readonly string[]).includes(value)
 }
+
+/**
+ * The tabs a person may make the card open on.
+ *
+ * Every tab but the two a kind may not have: a default of Scenes on a song
+ * would open on nothing. The choice is a machine setting (`cardView`), because
+ * where a card opens is a habit of the person, not a fact of the craft.
+ */
+export const DEFAULT_TAB_CHOICES: readonly Tab[] = TABS.filter(
+  (tab) => tab !== 'scenes' && tab !== 'cuts',
+)

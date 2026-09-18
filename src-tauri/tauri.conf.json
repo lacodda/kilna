@@ -17,7 +17,12 @@
         "height": 800,
         "minWidth": 900,
         "minHeight": 600,
-        "dragDropEnabled": true
+        "dragDropEnabled": true,
+        "decorations": false,
+        "shadow": true,
+        "visible": false,
+        "backgroundColor": "#141216",
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,ElasticOverscroll"
       }
     ],
     "security": {

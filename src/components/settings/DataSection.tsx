@@ -6,25 +6,19 @@ import {
   backupWorkspace,
   exportMarkdown,
   importLegacy,
-  mcpRegistration,
   suggestedBackupName,
   workspacePath,
 } from '@/lib/api'
 import { say } from '@/lib/toast'
-import { useCardView } from '@/lib/cardView'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { ProfileEditor } from '@/components/ProfileEditor'
-import { StatusDrift } from '@/components/StatusDrift'
 
 // Getting data out and in. The export is the "you are not locked in" promise
 // made checkable; the backup is the whole workspace in one file.
-export function DataView() {
+export function DataSection() {
   const { t } = useTranslation()
   const client = useQueryClient()
   const [busy, setBusy] = useState(false)
-  const { view, setCardView } = useCardView()
 
   // The path never changes while the app runs, so it is asked for once.
   const path = useQuery({
@@ -92,30 +86,6 @@ export function DataView() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <ProfileEditor />
-
-      <hr className="border-line" />
-
-      <StatusDrift />
-
-      <hr className="border-line" />
-
-      {/* What the card draws, as this machine likes it. A switch and not a
-          checkbox: there is no Save button on this screen, and the card two
-          routes away changes the moment it moves. */}
-      <section className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold">{t('data.cardView')}</h3>
-        <p className="text-sm text-dim">{t('data.cardViewHint')}</p>
-        <Switch
-          checked={view.metaStrip}
-          onCheckedChange={(on) => setCardView({ metaStrip: on })}
-        >
-          {t('data.showMetaStrip')}
-        </Switch>
-      </section>
-
-      <hr className="border-line" />
-
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">{t('data.export')}</h3>
         <p className="text-sm text-dim">{t('data.exportHint')}</p>
@@ -161,48 +131,8 @@ export function DataView() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold">{t('data.mcp')}</h3>
-        <p className="text-sm text-dim">{t('data.mcpHint')}</p>
-        <McpRegistration />
-        <p className="text-xs text-dim">{t('data.mcpAfter')}</p>
-      </section>
-
       {busy && <p className="text-sm text-dim">{t('data.working')}</p>}
     </div>
   )
 }
 
-/**
- * The command that registers this build with Claude Code, ready to copy.
- *
- * Shown rather than run: kilna does not know which shell, which agent or
- * whether the person wants it at all. The path is this executable's own,
- * so it is right for the build in front of them and wrong for none.
- */
-function McpRegistration() {
-  const { t } = useTranslation()
-  const command = useQuery({ queryKey: ['mcpRegistration'], queryFn: mcpRegistration })
-  const [copied, setCopied] = useState(false)
-
-  if (command.data === undefined) return null
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <code className="selectable min-w-0 flex-1 overflow-x-auto rounded-md border border-line bg-soft px-2.5 py-1.5 font-mono text-xs whitespace-nowrap">
-        {command.data}
-      </code>
-      <Button
-        size="sm"
-        onClick={() => {
-          void navigator.clipboard.writeText(command.data).then(() => {
-            setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
-          })
-        }}
-      >
-        {copied ? t('data.mcpCopied') : t('data.mcpCopy')}
-      </Button>
-    </div>
-  )
-}
