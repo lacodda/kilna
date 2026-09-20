@@ -405,18 +405,13 @@ pub fn compose_for_style(
 
     let mut prompt = String::new();
     prompt.push_str(&format!(
-        "The style brick is “{}”, of the type {}.
-
-",
+        "The style brick is “{}”, of the type {}.\n\n",
         brick.name,
         kind.map_or(brick.type_key.clone(), |k| k.label.as_str().to_owned())
     ));
     if let Some(hint) = kind.and_then(|k| k.hint.as_ref()) {
         prompt.push_str(&format!(
-            "What to describe for this type:
-{}
-
-",
+            "What to describe for this type:\n{}\n\n",
             hint.as_str()
         ));
     }
@@ -426,12 +421,7 @@ pub fn compose_for_style(
         .map(str::trim)
         .filter(|s| !s.is_empty())
     {
-        prompt.push_str(&format!(
-            "The author's steer:
-{steer}
-
-"
-        ));
+        prompt.push_str(&format!("The author's steer:\n{steer}\n\n"));
     }
     if let Some(existing) = brick
         .description
@@ -440,10 +430,7 @@ pub fn compose_for_style(
         .filter(|s| !s.is_empty())
     {
         prompt.push_str(&format!(
-            "What it says today, which you are rewriting:
-{existing}
-
-"
+            "What it says today, which you are rewriting:\n{existing}\n\n"
         ));
     }
     prompt.push_str(&template.template);
@@ -456,19 +443,18 @@ pub fn compose_for_style(
         .map(|asset| PathBuf::from(&asset.path))
         .filter(|path| path.is_file())
         .collect();
-    if !attachments.is_empty() {
+    // Said by the composer rather than by the template, because only the
+    // composer knows whether there are any. A template that claims pictures
+    // are attached when none are sends the model looking for them, and what
+    // comes back is a description of nothing.
+    if attachments.is_empty() {
         prompt.push_str(
-            "
-
-The references:
-",
+            "\n\nThere are no reference pictures. Write from the name and what is said above, and say in one line that you had nothing to look at.",
         );
+    } else {
+        prompt.push_str("\n\nThe reference pictures:\n");
         for path in &attachments {
-            prompt.push_str(&format!(
-                "{}
-",
-                path.display()
-            ));
+            prompt.push_str(&format!("{}\n", path.display()));
         }
     }
 
@@ -539,6 +525,84 @@ mod tests {
         profile::seed(&conn).unwrap();
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         (conn, profile_id)
+    }
+
+    /// The type's own instruction reaches the model, the author's steer is
+    /// kept apart and labelled, and neither is left to be guessed at.
+    #[test]
+    fn describing_a_brick_carries_the_types_question_and_the_authors_steer() {
+        let (conn, profile_id) = workspace();
+        let brick = crate::style_brick::create(
+            &conn,
+            &profile_id,
+            crate::style_brick::NewStyleBrick {
+                type_key: "image-style".into(),
+                name: "Cold north".into(),
+                description: None,
+                hint: Some("only the ground floor".into()),
+            },
+        )
+        .unwrap();
+
+        let (composed, _) = compose_for_style(&conn, &brick.id, "describe-style").unwrap();
+
+        assert!(
+            composed.prompt.contains("Cold north"),
+            "{}",
+            composed.prompt
+        );
+        assert!(
+            composed.prompt.contains("Image style"),
+            "the type is named: {}",
+            composed.prompt
+        );
+        assert!(
+            composed.prompt.contains("Not what is in the picture"),
+            "the type's own hint is what makes the answer worth having: {}",
+            composed.prompt
+        );
+        assert!(
+            composed.prompt.contains("only the ground floor"),
+            "the author's steer reaches the model when describing: {}",
+            composed.prompt
+        );
+        assert!(
+            composed.method.is_some(),
+            "the action ships a method and it is briefed"
+        );
+    }
+
+    /// A prompt that claims pictures are attached when none are sends the
+    /// model looking for them, and what comes back is a description of
+    /// nothing. The composer knows, so the composer says.
+    #[test]
+    fn describing_a_brick_with_no_references_says_so_rather_than_claiming_some() {
+        let (conn, profile_id) = workspace();
+        let brick = crate::style_brick::create(
+            &conn,
+            &profile_id,
+            crate::style_brick::NewStyleBrick {
+                type_key: "character".into(),
+                name: "The keeper".into(),
+                description: None,
+                hint: None,
+            },
+        )
+        .unwrap();
+
+        let (composed, _) = compose_for_style(&conn, &brick.id, "describe-style").unwrap();
+
+        assert!(
+            composed.prompt.contains("no reference pictures"),
+            "{}",
+            composed.prompt
+        );
+        assert!(
+            !composed.prompt.contains("The reference pictures:"),
+            "nothing is listed that is not there: {}",
+            composed.prompt
+        );
+        assert!(composed.attachments.is_empty());
     }
 
     fn work_with_body(conn: &mut Connection, profile_id: &str, title: &str, body: &str) -> String {

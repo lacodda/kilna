@@ -186,8 +186,10 @@ export function StyleBrickDialog({
       onOpenChange={onOpenChange}
       title={id === undefined ? t('styles.new') : t('styles.edit')}
       className="max-w-2xl"
+      /* Cancel is the dialog's own, always first in the row — only what is
+         particular to this one goes here. */
       footer={
-        <div className="flex w-full items-center gap-2">
+        <>
           {id !== undefined && (
             <Button
               variant="ghost"
@@ -199,9 +201,6 @@ export function StyleBrickDialog({
               {t('work.delete')}
             </Button>
           )}
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="ml-auto">
-            {t('dialog.cancel')}
-          </Button>
           <Button
             variant="primary"
             onClick={() => save.mutate()}
@@ -209,7 +208,7 @@ export function StyleBrickDialog({
           >
             {t('dialog.save')}
           </Button>
-        </div>
+        </>
       }
     >
       <div className="flex flex-col gap-4">

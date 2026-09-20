@@ -46,6 +46,8 @@ function screenKey(pathname: string): string {
       return 'nav.trash'
     case 'settings':
       return 'nav.data'
+    case 'styles':
+      return 'nav.styles'
     case 'styleguide':
       return 'nav.styleguide'
     // Includes `/works/:id`: an open work belongs to the catalogue, which is
