@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.75.1] - 2026-09-20
+
+### Features
+- Pick the parts before the prompt is built
+
 ## [0.75.0] - 2026-09-20
 
 ### Features
