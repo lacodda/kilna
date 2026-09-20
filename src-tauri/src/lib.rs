@@ -31,6 +31,7 @@ pub mod scene_note;
 pub mod score;
 pub mod search;
 pub mod state;
+pub mod style_brick;
 pub mod time;
 pub mod tombstone;
 pub mod trash;
@@ -143,6 +144,13 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::delete_note,
             commands::list_tags,
             commands::work_tags,
+            commands::list_style_bricks,
+            commands::style_brick_counts,
+            commands::get_style_brick,
+            commands::style_brick_references,
+            commands::create_style_brick,
+            commands::update_style_brick,
+            commands::delete_style_brick,
             commands::dismissed_findings,
             commands::dismiss_finding,
             commands::restore_finding,

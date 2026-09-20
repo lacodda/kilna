@@ -46,6 +46,8 @@ pub struct Asset {
     pub label: Option<String>,
     /// The name the file arrived under — what the world outside calls it.
     pub original_name: Option<String>,
+    /// The style brick it is a reference for, when it is one (ADR 0031).
+    pub style_brick_id: Option<String>,
     pub created_at: String,
 }
 
@@ -56,6 +58,9 @@ pub struct NewAsset {
     pub work_id: Option<String>,
     #[serde(default)]
     pub release_id: Option<String>,
+    /// The style brick this is a reference for.
+    #[serde(default)]
+    pub style_brick_id: Option<String>,
     /// `attachment` when omitted.
     #[serde(default)]
     pub kind: Option<String>,
@@ -67,7 +72,7 @@ pub struct NewAsset {
 const ATTACHMENT: &str = "attachment";
 
 const SELECT: &str = "SELECT id, profile_id, work_id, release_id, kind, path, label, \
-     original_name, created_at FROM asset";
+     original_name, style_brick_id, created_at FROM asset";
 
 /// Copy a file into the workspace and record it.
 pub fn attach(
@@ -149,8 +154,8 @@ pub fn attach_minted(
         .filter(|label| !label.is_empty());
 
     let written = conn.execute(
-        "INSERT INTO asset (id, profile_id, work_id, release_id, kind, path, label, original_name, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        "INSERT INTO asset (id, profile_id, work_id, release_id, kind, path, label, original_name, style_brick_id, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         params![
             minted.id(),
             profile_id,
@@ -160,6 +165,7 @@ pub fn attach_minted(
             stored.to_string_lossy(),
             label,
             original_name,
+            new.style_brick_id,
             minted.at()
         ],
     );
@@ -197,6 +203,18 @@ pub fn for_work(conn: &Connection, work_id: &str) -> Result<Vec<Asset>> {
     ))?;
     let rows = statement
         .query_map(params![work_id], read)?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(rows)
+}
+
+/// The references of a style brick, oldest first — the pictures its
+/// description was written from, and the ones handed to a generator with it.
+pub fn for_style_brick(conn: &Connection, style_brick_id: &str) -> Result<Vec<Asset>> {
+    let mut statement = conn.prepare(&format!(
+        "{SELECT} WHERE style_brick_id = ?1 ORDER BY created_at, rowid"
+    ))?;
+    let rows = statement
+        .query_map(params![style_brick_id], read)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(rows)
 }
@@ -294,7 +312,8 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Asset> {
         path: row.get(5)?,
         label: row.get(6)?,
         original_name: row.get(7)?,
-        created_at: row.get(8)?,
+        style_brick_id: row.get(8)?,
+        created_at: row.get(9)?,
     })
 }
 

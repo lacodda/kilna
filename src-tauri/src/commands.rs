@@ -32,6 +32,7 @@ use crate::scene_note::{self, SceneNote};
 use crate::score::{self, NewScore, Score, ScoredWork};
 use crate::search::{self, Hit};
 use crate::state::AppState;
+use crate::style_brick;
 use crate::time;
 use crate::trash::{self, Deletion};
 use crate::undo;
@@ -900,6 +901,99 @@ pub fn update_note(state: State<'_, AppState>, id: String, patch: NotePatch) -> 
 #[tauri::command]
 pub fn delete_note(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Note, &id)
+}
+
+/// The workspace's style dictionary, in the profile's order of types.
+#[tauri::command]
+pub fn list_style_bricks(
+    state: State<'_, AppState>,
+    filter: Option<style_brick::StyleBrickFilter>,
+) -> Result<Vec<style_brick::StyleBrick>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    style_brick::list(&conn, &profile_id, &filter.unwrap_or_default())
+}
+
+/// How many bricks stand under each type, for the counts beside the filter.
+#[tauri::command]
+pub fn style_brick_counts(state: State<'_, AppState>) -> Result<Vec<(String, i64)>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    style_brick::counts(&conn, &profile_id)
+}
+
+/// One brick with its references — what the editing screen opens.
+#[tauri::command]
+pub fn get_style_brick(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Option<style_brick::StyleBrick>> {
+    let conn = state.conn();
+    style_brick::get(&conn, &id)
+}
+
+/// The pictures a brick was described from.
+#[tauri::command]
+pub fn style_brick_references(state: State<'_, AppState>, id: String) -> Result<Vec<asset::Asset>> {
+    let conn = state.conn();
+    asset::for_style_brick(&conn, &id)
+}
+
+#[tauri::command]
+pub fn create_style_brick(
+    state: State<'_, AppState>,
+    brick: style_brick::NewStyleBrick,
+) -> Result<style_brick::StyleBrick> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("style.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("brick", serde_json::to_value(&brick)?)
+        .minted(&minted);
+
+    recording(&mut conn, logged, |tx| {
+        style_brick::create_minted(tx, &profile_id, brick, minted)
+    })
+}
+
+#[tauri::command]
+pub fn update_style_brick(
+    state: State<'_, AppState>,
+    id: String,
+    patch: style_brick::StyleBrickPatch,
+) -> Result<style_brick::StyleBrick> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let before = style_brick::get(&conn, &id)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("style.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| {
+        style_brick::update_at(tx, &id, patch, &at)
+    })
+}
+
+#[tauri::command]
+pub fn delete_style_brick(state: State<'_, AppState>, id: String) -> Result<()> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let logged = operation::Intent::new("style.delete")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone());
+
+    recording(&mut conn, logged, |tx| style_brick::delete(tx, &id))
 }
 
 #[tauri::command]
@@ -3257,16 +3351,24 @@ pub struct TaskAbout {
     pub block: Option<String>,
     #[serde(default)]
     pub attachments: Option<Vec<String>>,
+    /// The style bricks picked for this run, in the order they were picked.
+    #[serde(default)]
+    pub style_brick_ids: Option<Vec<String>>,
 }
 
 impl TaskAbout {
     /// The borrowed form the task module reads.
-    fn as_about<'a>(&'a self, attachments: &'a [String]) -> assistant::task::About<'a> {
+    fn as_about<'a>(
+        &'a self,
+        attachments: &'a [String],
+        style_brick_ids: &'a [String],
+    ) -> assistant::task::About<'a> {
         assistant::task::About {
             version_id: self.version_id.as_deref(),
             scene_id: self.scene_id.as_deref(),
             block: self.block.as_deref(),
             attachments,
+            style_brick_ids,
         }
     }
 }
@@ -3299,12 +3401,13 @@ pub fn start_task(
 ) -> Result<StartedTask> {
     let about = about.unwrap_or_default();
     let attachments = about.attachments.clone().unwrap_or_default();
+    let styles = about.style_brick_ids.clone().unwrap_or_default();
     spawn_task(
         &app,
         state.inner(),
         &work_id,
         &action,
-        about.as_about(&attachments),
+        about.as_about(&attachments, &styles),
     )
 }
 
@@ -3320,8 +3423,14 @@ pub fn preview_task(
 ) -> Result<assistant::task::Composed> {
     let about = about.unwrap_or_default();
     let attachments = about.attachments.clone().unwrap_or_default();
+    let styles = about.style_brick_ids.clone().unwrap_or_default();
     let conn = state.conn();
-    assistant::task::compose(&conn, &work_id, &action, about.as_about(&attachments))
+    assistant::task::compose(
+        &conn,
+        &work_id,
+        &action,
+        about.as_about(&attachments, &styles),
+    )
 }
 
 /// Start one task and put a thread on it.

@@ -416,6 +416,39 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         &kind.key
     });
 
+    // The types a style brick can be, new in 0.75. Keyed like every other
+    // vocabulary: a type the owner renamed or added stays theirs, a newly
+    // shipped one is appended. Without this line the dictionary would reach no
+    // workspace that already exists, which is every real one (ADR 0031).
+    changed |= add_new_keys(
+        &mut config.style_types,
+        &shipped.config.style_types,
+        |style| &style.key,
+    );
+
+    // A type's hint and glyph arrive the way a mark's icon does: only where
+    // the stored copy names none. The hint is what the assistant is told to
+    // describe, so a shipped one filling a gap is a gain; one the owner wrote
+    // is theirs and is not touched.
+    for style in &mut config.style_types {
+        let Some(shipped_style) = shipped
+            .config
+            .style_types
+            .iter()
+            .find(|s| s.key == style.key)
+        else {
+            continue;
+        };
+        if style.hint.is_none() && shipped_style.hint.is_some() {
+            style.hint = shipped_style.hint.clone();
+            changed = true;
+        }
+        if style.icon.is_none() && shipped_style.icon.is_some() {
+            style.icon = shipped_style.icon.clone();
+            changed = true;
+        }
+    }
+
     // A mark's glyph arrives the way a role's body does: a mark the
     // workspace still shares by key gains the shipped icon when its stored
     // copy names none. The three built-in marks reached every workspace

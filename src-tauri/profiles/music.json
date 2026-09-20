@@ -1048,6 +1048,116 @@
         }
       }
     ],
+    "style_types": [
+      {
+        "key": "image-style",
+        "label": {
+          "en": "Image style",
+          "ru": "Стиль изображения"
+        },
+        "hint": {
+          "en": "Describe the render technique and the look: medium (photograph, illustration, 3D), film stock and grain, palette, light, processing, the moves that recur. Not what is in the picture — only how it looks.",
+          "ru": "Опиши технику рендера и вид: медиум (фото, иллюстрация, 3D), плёнка и зерно, палитра, свет, обработка, повторяющиеся приёмы. Не что на картинке — только как это выглядит."
+        },
+        "icon": "palette"
+      },
+      {
+        "key": "character",
+        "label": {
+          "en": "Character",
+          "ru": "Персонаж"
+        },
+        "hint": {
+          "en": "Describe the person as such: age, build, face, hair, distinguishing marks. No clothing, no surroundings — those are a look and a place.",
+          "ru": "Опиши человека как такового: возраст, телосложение, лицо, волосы, приметы. Без одежды и окружения — это образ и место."
+        },
+        "icon": "user"
+      },
+      {
+        "key": "look",
+        "label": {
+          "en": "Look",
+          "ru": "Образ"
+        },
+        "hint": {
+          "en": "Describe the dress: clothing, hair, make-up, accessories, colours and fabrics. How the person is turned out, not who they are.",
+          "ru": "Опиши облачение: одежда, причёска, макияж, аксессуары, цвета и фактуры. Как человек одет, а не кто он."
+        },
+        "icon": "shirt"
+      },
+      {
+        "key": "environment",
+        "label": {
+          "en": "Environment",
+          "ru": "Окружение"
+        },
+        "hint": {
+          "en": "Describe the place and the background: where it is, time of day, weather, what stands around, the air of the space.",
+          "ru": "Опиши место и фон: где это, время суток, погода, что стоит вокруг, воздух пространства."
+        },
+        "icon": "tree"
+      },
+      {
+        "key": "typography",
+        "label": {
+          "en": "Typography",
+          "ru": "Типографика"
+        },
+        "hint": {
+          "en": "Describe the lettering: the character of the typeface, weight, the size accents, colour, effects, how the text sits in the frame.",
+          "ru": "Опиши шрифт: характер гарнитуры, начертание, акценты кегля, цвет, эффекты, как текст ложится в кадр."
+        },
+        "icon": "type"
+      },
+      {
+        "key": "angle",
+        "label": {
+          "en": "Camera angle",
+          "ru": "Ракурс"
+        },
+        "hint": {
+          "en": "Describe the viewpoint: camera height, tilt, focal length and its distortion, how close the shot is.",
+          "ru": "Опиши точку съёмки: высота камеры, наклон, фокусное и его дисторсия, крупность плана."
+        },
+        "icon": "camera"
+      },
+      {
+        "key": "pose",
+        "label": {
+          "en": "Pose",
+          "ru": "Поза"
+        },
+        "hint": {
+          "en": "Describe the pose and the gesture: how the body, hands and head are held, motion or stillness, where the gaze goes.",
+          "ru": "Опиши позу и жест: как держатся тело, руки и голова, движение или покой, куда направлен взгляд."
+        },
+        "icon": "move"
+      },
+      {
+        "key": "layering",
+        "label": {
+          "en": "Layers",
+          "ru": "Слои"
+        },
+        "hint": {
+          "en": "Describe what sits on top of what: lettering over the figure, the figure in front of the text, an object across both.",
+          "ru": "Опиши, что поверх чего: надпись над фигурой, фигура перед текстом, предмет поперёк обоих."
+        },
+        "icon": "layers"
+      },
+      {
+        "key": "composition",
+        "label": {
+          "en": "Frame composition",
+          "ru": "Компоновка кадра"
+        },
+        "hint": {
+          "en": "Describe the arrangement: where things stand in the frame, the balance, the empty space, the grid it follows.",
+          "ru": "Опиши расположение: где что стоит в кадре, баланс, пустое место, сетка, которой это следует."
+        },
+        "icon": "grid"
+      }
+    ],
     "collection_kinds": [
       {
         "key": "album",
@@ -1741,6 +1851,42 @@
           "short"
         ],
         "scope": "scene"
+      },
+      {
+        "key": "compose-style",
+        "label": {
+          "en": "Build a prompt from styles",
+          "ru": "Собрать промпт из стилей"
+        },
+        "description": {
+          "en": "The picked bricks written up as one prompt, not glued together.",
+          "ru": "Выбранные кирпичики, сведённые в один промпт, а не склейка."
+        },
+        "icon": "palette",
+        "template": "A {kind} called \"{title}\".\n\nThe parts to build from, each under what it contributes:\n\n{styles}\n\nWrite the prompt.",
+        "method": "# Prompt builder\n\n## Role\n\nYou are writing one image prompt out of parts the person picked from their own dictionary. Each part arrives under the word for what it contributes: an image style is the render, a character is who, an environment is where, typography is the lettering, an angle is the viewpoint, layers say what sits over what, composition says where things stand in the frame.\n\n## How to build it\n\n- Write **one prompt**, in prose a generator reads — not a list, and not the parts pasted one after another. Where two parts speak about the same thing, resolve it; where one is silent, leave it silent rather than inventing.\n- Respect what each type is for. Never let an environment describe the person, or an image style say what is in the picture. That separation is the whole reason the parts are typed.\n- Keep the order the parts were given as the order of importance: the first is the spine of the picture, the last is a detail.\n- Use the person's own words where they are concrete — a named colour, a named lens, a named fabric. Replace only what is vague.\n- A part marked *(not described yet)* carries only a name. Say in one line at the end that it went in as a name alone, and do not invent its content.\n- Say nothing about what the picture must not contain unless a part does.\n\n## Output\n\nThe prompt itself, as one paragraph or two, and nothing before it. Then, if anything needed resolving or was missing, one short line beginning \"Note:\" — never more than two sentences.\n",
+        "kinds": [
+          "video",
+          "short"
+        ]
+      },
+      {
+        "key": "describe-style",
+        "label": {
+          "en": "Describe a style from references",
+          "ru": "Описать стиль по референсам"
+        },
+        "description": {
+          "en": "Reference pictures read into a description the brick can carry.",
+          "ru": "Картинки-референсы, прочитанные в описание для кирпичика."
+        },
+        "icon": "eye",
+        "template": "The reference pictures are attached.\n\nWrite the description for this style brick.",
+        "method": "# Style reader\n\n## Role\n\nYou are looking at reference pictures and writing the description a style brick will carry. That description goes into future prompts word for word, so it is written to be *used*, not to be admired.\n\n## What to write\n\n- Stay strictly inside what the brick's type asks for. The type's instruction is given with the task; it decides which question these pictures answer. The same photograph is a render recipe under one type and a person under another — describing both is the mistake this dictionary exists to prevent.\n- Describe only what recurs across the references. A detail in one picture and not the others is that picture's, not the style's.\n- Be concrete and countable: named colours, named materials, the quality of the light, the lens, the grain. No adjectives that could mean anything — \"beautiful\", \"striking\", \"moody\" say nothing to a generator.\n- Follow the author's steer when one is given; it narrows what to look at, it is not itself part of the description.\n- Six to twelve lines. Long enough to reproduce the look, short enough to sit inside a prompt beside five other parts.\n\n## Output\n\nThe description alone. No preamble, no heading, no list of the files, nothing after it.\n",
+        "kinds": [
+          "video",
+          "short"
+        ]
       }
     ]
   }

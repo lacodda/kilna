@@ -80,6 +80,11 @@ pub const UNDO_PREFIX: &str = "undo.";
 /// Said out loud, and tested, rather than left to whatever the match below
 /// happens to cover: a person pressing undo deserves to know the answer before
 /// they press, and the offer is only shown for kinds named here.
+///
+/// Creating a style brick is deliberately absent: undoing a creation discards
+/// into the trash, and a brick is not one of the things the trash holds.
+/// Retiring one is what its dropped status is for, and that is an update,
+/// which is taken back.
 pub fn reversible(kind: &str) -> bool {
     matches!(
         kind,
@@ -89,6 +94,7 @@ pub fn reversible(kind: &str) -> bool {
             | "work.pinTier"
             | "note.create"
             | "note.update"
+            | "style.update"
             | "version.create"
             | "version.edit"
             | "collection.create"
@@ -177,6 +183,13 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
             let patch: crate::note::NotePatch = from_params(params, "before")?;
             edit(conn, logged, &at, |tx| {
                 crate::note::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        "style.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::style_brick::StyleBrickPatch = from_params(params, "before")?;
+            edit(conn, logged, &at, |tx| {
+                crate::style_brick::update_at(tx, &id, patch, &at).map(|_| ())
             })?;
         }
         "scene.update" => {

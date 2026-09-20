@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use super::proposal::BoardChange;
 use crate::error::{Error, Result};
 use crate::link;
-use crate::profile::config::{Label, WorkKind};
+use crate::profile::config::{Label, ProfileConfig, WorkKind};
 use crate::scene::{self, Scene};
 use crate::work::{self, version};
 
@@ -172,7 +172,7 @@ pub fn placeholders(template: &str) -> Vec<String> {
 pub fn is_known_placeholder(name: &str) -> bool {
     matches!(
         name,
-        "title" | "kind" | "status" | "body" | "scenes" | "scene" | "donor"
+        "title" | "kind" | "status" | "body" | "scenes" | "scene" | "donor" | "styles"
     ) || name.strip_prefix("role:").is_some_and(|r| !r.is_empty())
         || name.strip_prefix("donor:").is_some_and(|r| !r.is_empty())
 }
@@ -200,6 +200,11 @@ pub struct Context<'a> {
     pub version_id: Option<&'a str>,
     /// The scene the action is about, for `{scene}`.
     pub scene_id: Option<&'a str>,
+    /// The style bricks the person picked, in the order they picked them, for
+    /// `{styles}`. Chosen at the moment the action is started rather than
+    /// stored on the work: which parts a picture is built from is the
+    /// question being asked, and it is a different answer every time.
+    pub style_brick_ids: &'a [String],
 }
 
 /// Build the prompt for `template` in the context of `work_id`.
@@ -272,6 +277,26 @@ pub fn for_work(
             None => String::new(),
         };
         values.push(("scene", rendered));
+    }
+
+    // The bricks the person picked, each with the word of the craft that says
+    // what it contributes. Read in the order they were picked: a person who
+    // names the character first and the place second has said something about
+    // which matters more, and re-sorting it would throw that away.
+    if wants("styles") {
+        let mut bricks = Vec::with_capacity(context.style_brick_ids.len());
+        for id in context.style_brick_ids {
+            let brick =
+                crate::style_brick::get(conn, id)?.ok_or_else(|| Error::not_found("style", id))?;
+            if brick.profile_id != work.profile_id {
+                return Err(Error::Other(format!(
+                    "style “{}” is not of this workspace",
+                    brick.name
+                )));
+            }
+            bricks.push(brick);
+        }
+        values.push(("styles", brick_sheet(&bricks, &config)));
     }
 
     let mut rendered = render(template, &values);
@@ -414,6 +439,36 @@ pub fn scene_sheet(scene: &Scene, kind: &WorkKind) -> String {
     out.trim_end().to_owned()
 }
 
+/// The picked bricks, each under the craft's word for what it contributes.
+///
+/// The type's label leads the line because that is the whole of what makes a
+/// dictionary of parts different from a heap of paragraphs: an assistant told
+/// «Environment: a flooded car park at dusk» knows the sentence is the place
+/// and not the person, and can therefore write one prompt rather than glue
+/// three together. A brick with no description is still listed, by name: a
+/// silent gap would read as "there is no character", and the person picked it
+/// on purpose.
+///
+/// The type's `hint` is deliberately absent. It says what to write *about* a
+/// brick, which is a question already answered by the time one is being used;
+/// carrying it here would ask the generator to take notes.
+pub fn brick_sheet(bricks: &[crate::style_brick::StyleBrick], config: &ProfileConfig) -> String {
+    let mut out = String::new();
+    for brick in bricks {
+        let label = config
+            .style_type(&brick.type_key)
+            .map_or(brick.type_key.clone(), |kind| {
+                kind.label.as_str().to_owned()
+            });
+        out.push_str(&format!("{} — {}", label, brick.name));
+        match brick.description.as_deref().map(str::trim) {
+            Some(text) if !text.is_empty() => out.push_str(&format!("\n{text}\n\n")),
+            _ => out.push_str("\n(not described yet)\n\n"),
+        }
+    }
+    out.trim_end().to_owned()
+}
+
 fn shot_label(kind: &WorkKind, key: &str) -> String {
     kind.shot_types
         .iter()
@@ -465,6 +520,186 @@ mod tests {
             rendered, "Check {typo}",
             "a visible placeholder is easier to diagnose than a silent gap"
         );
+    }
+
+    /// The point of a typed dictionary: the assistant is told what each part
+    /// contributes, so it can write one prompt instead of gluing three.
+    #[test]
+    fn picked_styles_reach_the_prompt_under_the_word_for_what_they_are() {
+        let (conn, profile_id) = workspace();
+        let work = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "video".into(),
+                title: "Harbour lights".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+
+        let place = crate::style_brick::create(
+            &conn,
+            &profile_id,
+            crate::style_brick::NewStyleBrick {
+                type_key: "environment".into(),
+                name: "Flooded car park".into(),
+                description: Some("Standing water to the ankles, sodium light.".into()),
+                hint: Some("only the ground floor".into()),
+            },
+        )
+        .unwrap();
+        let who = crate::style_brick::create(
+            &conn,
+            &profile_id,
+            crate::style_brick::NewStyleBrick {
+                type_key: "character".into(),
+                name: "The keeper".into(),
+                description: Some("Sixty, weathered, a long grey coat.".into()),
+                hint: None,
+            },
+        )
+        .unwrap();
+
+        let picked = [place.id.clone(), who.id.clone()];
+        let prompt = for_work(
+            &conn,
+            &work.id,
+            "Parts:
+
+{styles}",
+            Context {
+                style_brick_ids: &picked,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        assert!(
+            prompt.contains("Environment — Flooded car park"),
+            "the type's label leads the part: {prompt}"
+        );
+        assert!(
+            prompt.contains("Standing water to the ankles, sodium light."),
+            "the description goes in verbatim: {prompt}"
+        );
+        assert!(
+            prompt.contains("Character — The keeper"),
+            "every picked part is there: {prompt}"
+        );
+        assert!(
+            !prompt.contains("only the ground floor"),
+            "the author's steer is about writing the description, not about the picture —              carrying it would ask the generator to take notes: {prompt}"
+        );
+        assert!(
+            prompt.find("Flooded car park").unwrap() < prompt.find("The keeper").unwrap(),
+            "the order picked is the order of importance, and is kept: {prompt}"
+        );
+    }
+
+    /// A part with nothing written is still named. A silent gap would read as
+    /// "there is no character", and the person picked it on purpose.
+    #[test]
+    fn a_style_with_no_description_is_listed_as_undescribed_rather_than_dropped() {
+        let (conn, profile_id) = workspace();
+        let work = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "video".into(),
+                title: "Harbour lights".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+        let bare = crate::style_brick::create(
+            &conn,
+            &profile_id,
+            crate::style_brick::NewStyleBrick {
+                type_key: "character".into(),
+                name: "The keeper".into(),
+                description: None,
+                hint: None,
+            },
+        )
+        .unwrap();
+
+        let picked = [bare.id.clone()];
+        let prompt = for_work(
+            &conn,
+            &work.id,
+            "{styles}",
+            Context {
+                style_brick_ids: &picked,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        assert!(prompt.contains("Character — The keeper"), "{prompt}");
+        assert!(prompt.contains("not described yet"), "{prompt}");
+    }
+
+    /// Reading the dictionary costs a query per brick, so a template that
+    /// never asks for it must not pay — the same rule the board follows.
+    #[test]
+    fn a_template_that_never_asks_for_styles_does_not_refuse_a_missing_one() {
+        let (conn, profile_id) = workspace();
+        let work = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "video".into(),
+                title: "Harbour lights".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+
+        let nonsense = ["no such brick".to_owned()];
+        let prompt = for_work(
+            &conn,
+            &work.id,
+            "About {title}.",
+            Context {
+                style_brick_ids: &nonsense,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        assert_eq!(prompt, "About Harbour lights.");
+    }
+
+    /// A picked brick that is not there is a refusal, not a hole: the person
+    /// chose it, and a prompt quietly missing a part is worse than none.
+    #[test]
+    fn a_style_that_is_not_there_is_refused() {
+        let (conn, profile_id) = workspace();
+        let work = work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "video".into(),
+                title: "Harbour lights".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+
+        let nonsense = ["no such brick".to_owned()];
+        let error = for_work(
+            &conn,
+            &work.id,
+            "{styles}",
+            Context {
+                style_brick_ids: &nonsense,
+                ..Default::default()
+            },
+        )
+        .unwrap_err();
+
+        assert!(error.to_string().contains("no such brick"), "{error}");
     }
 
     #[test]
@@ -691,6 +926,7 @@ mod tests {
             Context {
                 version_id: None,
                 scene_id: Some(&first.id),
+                ..Default::default()
             },
         )
         .unwrap();
@@ -716,6 +952,7 @@ mod tests {
             Context {
                 version_id: None,
                 scene_id: Some(&first.id),
+                ..Default::default()
             },
         )
         .unwrap_err();
@@ -850,6 +1087,7 @@ mod version_tests {
             Context {
                 version_id: Some(&first),
                 scene_id: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -875,6 +1113,7 @@ mod version_tests {
             Context {
                 version_id: Some(&first),
                 scene_id: None,
+                ..Default::default()
             },
         )
         .unwrap_err();

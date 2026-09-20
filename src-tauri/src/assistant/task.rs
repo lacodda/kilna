@@ -129,6 +129,11 @@ pub struct About<'a> {
     /// method should look at. Listed in the prompt by path, and the run is
     /// given leave to read their folders.
     pub attachments: &'a [String],
+    /// The style bricks the person picked for this run, in order, read by a
+    /// template's `{styles}`. Picked at the moment the action is started, not
+    /// kept on the work: which parts a picture is built from is the question
+    /// being asked (ADR 0031).
+    pub style_brick_ids: &'a [String],
 }
 
 /// Compose `action` of the active profile against `work_id`: the prompt as
@@ -231,6 +236,7 @@ pub fn compose(
         Context {
             version_id: about.version_id,
             scene_id: scene.as_ref().map(|s| s.id.as_str()),
+            style_brick_ids: about.style_brick_ids,
         },
     )?;
 

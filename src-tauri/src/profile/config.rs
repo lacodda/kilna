@@ -71,6 +71,17 @@ pub struct ProfileConfig {
     /// note keeps taking any kind a person writes.
     #[serde(default)]
     pub note_kinds: Vec<Kind>,
+    /// The types a style brick can be — an image style, a character, an
+    /// environment, a camera angle. The workspace's one dictionary of the
+    /// parts a picture prompt is built from (ADR 0031).
+    ///
+    /// On the profile rather than on a kind of work, because a brick is not
+    /// judged or shipped: the same character stands in the videos and in the
+    /// shorts. A craft that names none has no style dictionary, and the screen
+    /// that keeps one does not appear. Added in v0.75 — a document without it
+    /// is the same document.
+    #[serde(default)]
+    pub style_types: Vec<StyleType>,
 }
 
 /// A profile document as it is written, in either format.
@@ -105,6 +116,8 @@ pub struct RawProfileConfig {
     pub catalogue_columns_by_kind: Option<BTreeMap<String, Vec<String>>>,
     #[serde(default)]
     pub note_kinds: Vec<Kind>,
+    #[serde(default)]
+    pub style_types: Vec<StyleType>,
     // Format 1: the vocabulary, flat on the profile.
     #[serde(default)]
     pub release_kinds: Vec<ReleaseKind>,
@@ -151,6 +164,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             catalogue_columns: raw.catalogue_columns,
             catalogue_columns_by_kind: raw.catalogue_columns_by_kind,
             note_kinds: raw.note_kinds,
+            style_types: raw.style_types,
         }
     }
 }
@@ -751,6 +765,46 @@ impl SceneBlock {
     }
 }
 
+/// One type of style brick: an image style, a character, an environment.
+///
+/// The type is what tells the assistant which question a brick answers. Given
+/// the same photograph, `image-style` asks for the render technique and
+/// `character` asks for the person — so the `hint` is not decoration, it is
+/// the difference between one rich dictionary and several flat ones. It reaches
+/// the assistant when a brick is described; it never reaches a generator, being
+/// an instruction about the description rather than part of it.
+///
+/// The same shape as [`SceneBlock`], with a glyph: both are a word of the craft
+/// that carries a line saying what goes under it. It lives on the profile
+/// rather than on a kind of work because a brick is not judged, shipped or
+/// storyboarded — one character serves the videos, the shorts and the covers.
+/// See ADR 0031.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StyleType {
+    pub key: String,
+    pub label: Label,
+    /// What to describe for a brick of this type. Absent means the craft has
+    /// nothing particular to say, and the assistant is told only the label.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hint: Option<Label>,
+    /// Name of the glyph the type is drawn with, from the fixed set the window
+    /// knows. Carried, never read here — which picture goes with a word is a
+    /// question for the screen, as it is for [`Mark`] and [`ReleaseKind`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+impl StyleType {
+    pub fn new(key: &str, label: &str) -> Self {
+        Self {
+            key: key.to_owned(),
+            label: Label::from(label),
+            hint: None,
+            icon: None,
+        }
+    }
+}
+
 /// A kind of release, and what a release of it cannot ship without.
 ///
 /// `requires` names version roles: a clip needs lyrics and a style prompt, a
@@ -1255,6 +1309,13 @@ impl ProfileConfig {
         self.kind(kind).unwrap_or(&NO_KIND)
     }
 
+    /// The type a style brick is of, by key. Absent when the craft does not
+    /// name it — a brick written under a type later dropped from the document
+    /// still reads, and shows its key (ADR 0031).
+    pub fn style_type(&self, key: &str) -> Option<&StyleType> {
+        self.style_types.iter().find(|kind| kind.key == key)
+    }
+
     /// The stops of the dial: the craft's own, or the line's when it names none.
     ///
     /// Answered here rather than at each caller, so a screen and an exporter
@@ -1368,6 +1429,11 @@ impl ProfileConfig {
             "meta field",
             self.work_meta_fields.iter().map(|f| f.key.clone()),
         );
+        unique(
+            &mut problems,
+            "style type",
+            self.style_types.iter().map(|t| t.key.clone()),
+        );
         if self.work_kinds.is_empty() {
             problems.push("the profile names no work kinds".into());
         }
@@ -1469,6 +1535,11 @@ impl ProfileConfig {
                             if missing.len() == 1 { "has" } else { "have" }
                         ));
                     }
+                }
+                if name == "styles" && self.style_types.is_empty() {
+                    problems.push(format!(
+                        "{place} reads `{{styles}}`, but the profile names no style types"
+                    ));
                 }
                 if name == "scenes" || name == "scene" {
                     let missing = lacking(&has_board);
