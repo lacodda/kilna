@@ -329,7 +329,15 @@
       "refusedTitle": "Waiting on the work",
       "refusedRow": "{{title}} — {{label}}: {{reason}}",
       "failed": "Could not write the releases."
-    }
+    },
+    "fillDay": "What goes out on {{date}}",
+    "noDoor": "“{{title}}” has no release kind to go out through.",
+    "queueSearch": "Find in the queue…",
+    "queueKind": "Kind of work",
+    "queueAnyKind": "Any kind",
+    "queueStage": "Stage reached",
+    "queueAnyStage": "Any stage",
+    "queueNoMatch": "Nothing in the queue matches."
   },
   "releases": {
     "title": "Releases",
@@ -1207,5 +1215,12 @@
     "defaultTab": "Where a card opens",
     "defaultTabHint": "The tab a work opens on from the catalogue, the calendar or a search hit. A link that names a tab still opens that tab.",
     "defaultTabLabel": "Open on"
+  },
+  "pick": {
+    "placeholder": "Find a work by name…",
+    "empty": "Type a name, or pick from the list.",
+    "anyKind": "Any kind",
+    "group_one": "{{count}} work",
+    "group_other": "{{count}} works"
   }
 }

@@ -8,6 +8,8 @@ import {
   calendar as fetchCalendar,
   markReleased,
   planLayout,
+  createRelease,
+  type NewRelease,
   releaseQueue,
   scheduleRelease,
   setSlotPin,
@@ -17,8 +19,10 @@ import {
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { allOf, labelOf, useProfile } from '@/lib/useProfile'
+import { allOf, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/AppSelect'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Dialog, PromptDialog } from '@/components/ui/AppDialog'
 import { SkeletonList, SkeletonMonth } from '@/components/ui/Skeleton'
@@ -26,11 +30,13 @@ import { KindFilterBar } from '@/components/calendar/KindFilterBar'
 import { MonthGrid } from '@/components/calendar/MonthGrid'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { NewWorkDialog } from '@/components/shell/NewWorkDialog'
+import { PickWorkDialog } from '@/components/shell/PickWorkDialog'
 import { ReleaseEditor } from '@/components/calendar/ReleaseEditor'
 import { filterByKind, filterGhosts, type KindFilter } from '@/lib/calendarFilter'
 import { loadLayout, otherLayout, saveLayout, type CalendarLayout } from '@/lib/calendarLayout'
 import { ghostsOf } from '@/lib/layout'
 import { monthOf, today, type Month } from '@/lib/month'
+import { stagesOf } from '@/lib/stages'
 import { batchable } from '@/lib/releaseFields'
 import { cn } from '@/lib/utils'
 
@@ -63,10 +69,20 @@ export function CalendarView({ onSelect }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   // The release waiting for a link, or null when the dialog is closed.
   const [releasing, setReleasing] = useState<string | null>(null)
-  // The kind the new-work dialog opens on, from a day's `+` or its right-click
-  // menu, or null when it is closed. A month is where the next thing to make
-  // is decided, and until now a work could only be added from the title bar.
+  // The kind the new-work dialog opens on, or null when it is closed.
   const [adding, setAdding] = useState<string | null>(null)
+  // The day a work is being chosen for, from its `+` or its right-click menu,
+  // or null when the picker is closed. Filling a day means reaching for a work
+  // that already exists far more often than it means inventing one, so the
+  // plus asks WHICH rather than offering to make a new one - and the day it
+  // was pressed on is what the chosen work is then booked for.
+  const [fillingDay, setFillingDay] = useState<string | null>(null)
+  // What the queue itself is narrowed to. Separate from `kind` above, which is
+  // a view of the MONTH: the owner asked to see "what is closest to going out"
+  // among four hundred works, and that question is asked of the queue.
+  const [queueQuery, setQueueQuery] = useState('')
+  const [queueKind, setQueueKind] = useState<string | null>(null)
+  const [queueStage, setQueueStage] = useState<number | null>(null)
   // The auto-layout plan being previewed, or null. Applying books exactly
   // this array; any other calendar change makes it a picture of the past, so
   // `settle` clears it.
@@ -78,6 +94,17 @@ export function CalendarView({ onSelect }: Props) {
 
   const slots = useQuery({ queryKey: keys.calendar, queryFn: fetchCalendar })
   const queued = useQuery({ queryKey: keys.releaseQueue, queryFn: releaseQueue })
+
+  // The queue, as the filters leave it. `work_stage` is a percentage and the
+  // filter is a stop, so the comparison is "has reached this stop" rather than
+  // equality - picking "Polishing" should show what is polishing AND what is
+  // past it, which is what "closest to going out" means.
+  const shownQueue = (queued.data ?? []).filter(
+    (entry) =>
+      (queueKind === null || entry.work_kind === queueKind) &&
+      (queueStage === null || (entry.work_stage ?? -1) >= queueStage) &&
+      entry.work_title.toLowerCase().includes(queueQuery.trim().toLowerCase()),
+  )
 
   // Both sides of this screen move together: taking a slot removes something
   // from the queue, returning one puts it back. The journal goes with them —
@@ -99,6 +126,19 @@ export function CalendarView({ onSelect }: Props) {
     mutationFn: ({ id, date }: { id: string; date: string }) => scheduleRelease(id, date),
     onSuccess: () => {
       setPicked(null)
+      settle()
+      say.ok(t('toast.releaseScheduled'))
+    },
+    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
+  })
+
+  // A work chosen for a day, booked in one step: the release is made already
+  // holding its date, rather than being made and then dragged out of the
+  // queue onto the day it was asked for a moment ago.
+  const fillDay = useMutation({
+    mutationFn: (release: NewRelease) => createRelease(release),
+    onSuccess: () => {
+      setFillingDay(null)
       settle()
       say.ok(t('toast.releaseScheduled'))
     },
@@ -228,7 +268,12 @@ export function CalendarView({ onSelect }: Props) {
     <div
       className={cn(
         'grid h-full min-h-0 gap-6',
-        width === 'queue' && 'xl:grid-cols-[20rem_1fr]',
+        // Two columns only from `xl`. Below that the queue drops UNDER the
+        // month and the two together are taller than the window, so this box
+        // scrolls as one; at `xl` it stops, and each column scrolls inside
+        // itself instead — which is the arrangement the note above describes.
+        'overflow-y-auto',
+        width === 'queue' ? 'xl:grid-cols-[20rem_1fr] xl:overflow-hidden' : 'overflow-hidden',
       )}
     >
       {/* Hidden entirely in the full-width layout rather than collapsed: a
@@ -244,27 +289,67 @@ export function CalendarView({ onSelect }: Props) {
         <h3 className="shrink-0 text-sm font-semibold">{t('calendar.queue')}</h3>
         <p className="shrink-0 text-xs text-dim">{t('calendar.queueHint')}</p>
 
+        {/* Finding one of a few hundred, and seeing what is nearly ready.
+            The queue is ordered by score, which answers "which is best" - not
+            "which is closest to going out", which is what someone filling a
+            week is actually asking. */}
+        <div className="flex shrink-0 flex-col gap-2">
+          <Input
+            value={queueQuery}
+            onChange={(event) => setQueueQuery(event.target.value)}
+            placeholder={t('calendar.queueSearch')}
+            aria-label={t('calendar.queueSearch')}
+            className="h-8 text-xs"
+          />
+          <div className="flex gap-1.5">
+            <Select
+              value={queueKind ?? ''}
+              onChange={(value) => setQueueKind(value === '' ? null : value)}
+              placeholder={t('calendar.queueAnyKind')}
+              aria-label={t('calendar.queueKind')}
+              className="min-w-0 flex-1"
+              options={profile.config.work_kinds.map((entry) => ({
+                value: entry.key,
+                label: sayLabel(entry.label),
+              }))}
+            />
+            <Select
+              value={queueStage === null ? '' : String(queueStage)}
+              onChange={(value) => setQueueStage(value === '' ? null : Number(value))}
+              placeholder={t('calendar.queueAnyStage')}
+              aria-label={t('calendar.queueStage')}
+              className="min-w-0 flex-1"
+              options={stagesOf(profile.config).map((stop) => ({
+                value: String(stop.percent),
+                label: sayLabel(stop.label),
+              }))}
+            />
+          </div>
+        </div>
+
         {queued.isPending ? (
           <SkeletonList rows={4} />
         ) : queued.isError ? (
           <p role="alert" className="text-sm text-bad">
             {t('toast.loadFailed')}
           </p>
-        ) : queued.data.length === 0 ? (
-          <p className="py-6 text-sm text-dim">{t('calendar.queueEmpty')}</p>
+        ) : shownQueue.length === 0 ? (
+          <p className="py-6 text-sm text-dim">
+            {queued.data.length === 0 ? t('calendar.queueEmpty') : t('calendar.queueNoMatch')}
+          </p>
         ) : (
           // The scroller is the list and not the column: the heading, the
           // layout button and the claim form are how the queue is ACTED on,
           // and a scroller that swallowed them would hide the button at the
           // bottom of two hundred rows.
           <ul className="-mr-1 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
-            {queued.data.map((entry) => (
+            {shownQueue.map((entry) => (
               <li key={entry.id}>
                 <button
                   type="button"
                   onClick={() => setPicked(entry.id === picked ? null : entry.id)}
                   className={cn(
-                    'flex w-full cursor-pointer items-center gap-2 rounded-[9px] px-3 py-2 text-left text-sm transition-colors',
+                    'flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors',
                     entry.id === picked ? 'bg-accent-soft text-accent-2' : 'hover:bg-soft',
                   )}
                 >
@@ -340,7 +425,7 @@ export function CalendarView({ onSelect }: Props) {
                 previewed array — the backend refuses it whole if the calendar
                 moved in between. */}
             {layout !== null && (
-              <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-accent bg-accent-soft px-3 py-2 text-sm">
+              <div className="flex flex-wrap items-center gap-3 rounded-md border border-accent bg-accent-soft px-3 py-2 text-sm">
                 <span className="flex-1">
                   {t('calendar.layoutPreview', {
                     count: layout.length,
@@ -430,11 +515,7 @@ export function CalendarView({ onSelect }: Props) {
               onOpenRelease={setEditingId}
               onMove={(id, date) => move.mutate({ id, date })}
               onUnschedule={(id) => unschedule.mutate(id)}
-              // The day is not carried into the dialog yet: a work is made
-              // here, and its release is booked from the queue as before. The
-              // day it was asked for is the obvious next step, and is written
-              // down as a wish rather than guessed at here.
-              onAddOn={() => setAdding(profile.config.work_kinds[0]?.key ?? null)}
+              onAddOn={(date) => setFillingDay(date)}
             />
 
             {slots.data.length === 0 && layout === null && (
@@ -453,6 +534,28 @@ export function CalendarView({ onSelect }: Props) {
         kind={adding}
         onClose={() => setAdding(null)}
         onCreated={onSelect}
+      />
+
+      {/* The day's plus: which work goes out here. Booking it is one call —
+          a release of the work's own first door, dated to the day that was
+          pressed. A work whose kind has no door cannot go out at all, and
+          says so rather than booking nothing. */}
+      <PickWorkDialog
+        open={fillingDay !== null}
+        onOpenChange={(open) => {
+          if (!open) setFillingDay(null)
+        }}
+        title={t('calendar.fillDay', { date: fillingDay ?? '' })}
+        onPick={(work) => {
+          const day = fillingDay
+          if (day === null) return
+          const door = vocabularyOf(profile.config, work.kind).release_kinds[0]
+          if (door === undefined) {
+            say.warn(t('calendar.noDoor', { title: work.title }))
+            return
+          }
+          fillDay.mutate({ work_id: work.work_id, kind: door.key, scheduled_at: day })
+        }}
       />
 
       <ReleaseEditor
