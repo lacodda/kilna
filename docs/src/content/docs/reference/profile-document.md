@@ -657,6 +657,60 @@ without it is the same document, and a workspace that already has the video
 kinds gains it at the next start, where its stored copy names none; a list
 you narrowed yourself is left alone, the way `scene_blocks` is.
 
+## `style_types`
+
+An optional list on the **profile**, not on a work kind: the types a
+[style](/kilna/guides/styles/) can be. A style is a part a picture prompt is
+built from, and the same character stands in the videos and in the shorts —
+so the dictionary belongs to the workspace, not to one kind of work. A
+profile that names none has no style dictionary, and the rail draws no
+**Styles** entry. Added in v0.75 — a document without it is the same
+document.
+
+```jsonc
+{
+  "style_types": [
+    {
+      "key": "image-style",
+      "label": { "en": "Image style", "ru": "Стиль изображения" },
+      "hint": {
+        "en": "Describe the render technique and the look: medium, film stock and grain, palette, light, processing. Not what is in the picture — only how it looks.",
+        "ru": "Опиши технику рендера и вид: медиум, плёнка и зерно, палитра, свет, обработка. Не что на картинке — только как это выглядит."
+      },
+      "icon": "palette"
+    },
+    {
+      "key": "character",
+      "label": { "en": "Character", "ru": "Персонаж" },
+      "hint": { "en": "Describe the person as such: age, build, face, hair, distinguishing marks. No clothing, no surroundings.", "ru": "Опиши человека как такового: возраст, телосложение, лицо, волосы, приметы. Без одежды и окружения." },
+      "icon": "user"
+    }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `key` | string | Stored on the style as its type. A style can only take a key this list names — the dictionary is grouped and narrowed by it. A style written under a key later dropped from the document still reads, and shows the key. |
+| `label` | string or map | What the chips, the groups and the picker show. Renamable, and bilingual like every other word of the craft. |
+| `hint` | string or map, optional | **What to describe for a style of this type.** Reaches the assistant when it describes one, and never reaches a generator. |
+| `icon` | string, optional | A glyph from the closed set: `palette`, `user`, `shirt`, `tree`, `type`, `camera`, `move`, `layers`, `grid`. A name outside it draws the generic shape. |
+
+The `hint` is what makes one dictionary richer than several flat ones.
+Given the same photograph, `image-style` asks for the render technique and
+`character` asks for the person, because the type says which question is
+being answered. A type with no hint tells the assistant only its label.
+
+The order of the list is the order the dictionary reads in — the groups on
+the screen, and the chips above them — rather than the alphabet.
+
+A workspace that already exists gains the shipped types at the next start;
+one you renamed or added stays yours, matched by key, and a hint or a glyph
+is filled in only where your stored copy names none.
+
+Studio ships nine: `image-style`, `character`, `look`, `environment`,
+`typography`, `angle`, `pose`, `layering` and `composition`.
+
 ## `prompts`
 
 Assistant actions scoped to this profile — see
@@ -757,6 +811,14 @@ proposes.
   shot, description. The blocks stay out. An empty board says so.
 - `{scene}` — the scene a scene action was started on, whole: its fields and
   every block it holds. Only in an action with `"scope": "scene"`.
+- `{styles}` — the [styles](/kilna/guides/styles/) picked for this run, each
+  under the label of its type and followed by its description, in the order
+  they were picked. It is how a prompt is built out of parts rather than
+  glued: the assistant is told which sentence is the place and which is the
+  person. A style with nothing written yet goes in by name, marked as not
+  described. The author's steer never does — it is an instruction about
+  writing the description, not part of one. A template that reads `{styles}`
+  in a profile naming no style types is refused on save.
 - `{donor}` — the first work this one was [made from](/kilna/guides/made-from/),
   as *“Harbour lights” (song)*; `{donor:lyrics}`, `{donor:style}`, … — the
   latest revision of that role on the donor. A work made from nothing refuses

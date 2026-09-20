@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.75.0] - 2026-09-20
+
+### Features
+- One dictionary of the parts a prompt is built from
+- A screen for the dictionary, and links that resolve
+
+### Bug Fixes
+- Say whether there are references, and stop doubling cancel
+
 ## [0.74.4] - 2026-09-20
 
 ### Bug Fixes
