@@ -115,7 +115,9 @@
     "compareMenu": "Compare with…",
     "previous": "previous",
     "repeats": "Repeats",
-    "scored": "Scored {{score}}"
+    "scored": "Scored {{score}}",
+    "copyBody": "Copy the text",
+    "bodyCopied": "The text is on the clipboard."
   },
   "nav": {
     "catalogue": "Catalogue",
@@ -412,7 +414,8 @@
     "blindOn": "Score blind",
     "blindOnHint": "Hide the past verdict and the assistant's until you have given yours",
     "blindHidden": "The past verdict is hidden while you judge.",
-    "blindReveal": "Show it"
+    "blindReveal": "Show it",
+    "written": "What was written"
   },
   "catalogue": {
     "work": "Work",
@@ -614,7 +617,21 @@
     "pendingCount_other": "{{count}} proposals waiting",
     "applyAll": "Apply all",
     "appliedAll_one": "{{count}} proposal applied.",
-    "appliedAll_other": "{{count}} proposals applied."
+    "appliedAll_other": "{{count}} proposals applied.",
+    "waitingOnYou_one": "{{count}} waiting on you",
+    "waitingOnYou_other": "{{count}} waiting on you",
+    "openToApply": "Open it to apply",
+    "dismiss": "Turn it down",
+    "dismissFailed": "turn the proposal down",
+    "proposed": {
+      "version": "A version was proposed",
+      "score": "A score was proposed",
+      "note": "A note was proposed",
+      "scenes": "A storyboard was proposed",
+      "work": "A work was proposed",
+      "package": "A set of changes was proposed",
+      "other": "Something was proposed"
+    }
   },
   "links": {
     "sources": "Made from",

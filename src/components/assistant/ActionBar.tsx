@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Eye, Sparkles } from 'lucide-react'
+import { Eye } from 'lucide-react'
 import { activeTasks, startTask, type PromptTemplate, type RunEmission } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { movesTaskList, taskKey } from '@/lib/tasks'
 import { say as sayLabel, useProfile, useWorkKind } from '@/lib/useProfile'
+import { actionIconOf } from '@/lib/actionIcon'
 import { Button } from '@/components/ui/button'
 import { TaskPreviewDialog } from '@/components/assistant/TaskPreviewDialog'
 
@@ -123,6 +124,9 @@ export function ActionBar({
   // read, and this goes back to null whether the start succeeded or failed.
   const pending = start.isPending ? start.variables : null
 
+  /** The action's own words, or nothing when the profile gave it none. */
+  const describe = (action: PromptTemplate) => sayLabel(action.description)
+
   const buttons = (
     <div className="flex flex-wrap gap-1.5">
       {actions.map((action) => {
@@ -135,6 +139,7 @@ export function ActionBar({
         // still in flight is covered by `pending` rather than by a
         // second piece of state that would have to be cleared by hand.
         const working = busy.has(taskKey(action.key, workId, sceneId, block)) || pending === action.key
+        const Icon = actionIconOf(action)
 
         return (
           <span key={action.key} className="inline-flex items-stretch">
@@ -146,20 +151,25 @@ export function ActionBar({
             <Button
               size="sm"
               className="rounded-r-none"
-              title={compact ? sayLabel(action.label) : sayLabel(action.description)}
+              // The long description is what the tooltip is for, at every
+              // width. A row of five actions spelled out in full is five
+              // sentences where the eye wants five marks - so the face of the
+              // button is a glyph and a short name, and what the action
+              // actually does is one hover away.
+              title={
+                describe(action) === ''
+                  ? sayLabel(action.label)
+                  : `${sayLabel(action.label)} — ${describe(action)}`
+              }
               aria-label={compact ? sayLabel(action.label) : undefined}
               disabled={working}
               onClick={() => {
                 start.mutate(action.key)
               }}
             >
-              {compact ? (
-                <Sparkles aria-hidden className="size-3.5" />
-              ) : working ? (
-                t('assistant.actionWorking', { label: sayLabel(action.label) })
-              ) : (
-                sayLabel(action.label)
-              )}
+              <Icon aria-hidden className="size-3.5" />
+              {!compact &&
+                (working ? t('assistant.actionWorking', { label: sayLabel(action.label) }) : sayLabel(action.label))}
             </Button>
             <Button
               size="sm"

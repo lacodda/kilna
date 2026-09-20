@@ -1589,7 +1589,8 @@ mod tests {
 
         let kept = config_for(&conn, &id).unwrap().stages;
         assert!(
-            kept.iter().all(|stage| stage.label.as_str().ends_with("(mine)")),
+            kept.iter()
+                .all(|stage| stage.label.as_str().ends_with("(mine)")),
             "renamed stops stay renamed: {:?}",
             kept.iter().map(|s| &s.label).collect::<Vec<_>>()
         );

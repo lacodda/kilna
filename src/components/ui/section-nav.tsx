@@ -92,9 +92,16 @@ function SectionNavRow({
       children: (
         <>
           {item.icon ? <span aria-hidden className="contents">{item.icon}</span> : null}
-          {item.label}
+          {/* One line, cut with an ellipsis rather than wrapped. A column of
+              fixed width whose rows are one or two lines deep depending on
+              how long a word is reads as a ragged list, and the row's height
+              stops meaning anything - which is what "Card of the work" did
+              to the settings column in Russian. The full text is on the
+              element, so a cut label can still be read by hovering. */}
+          <span className="min-w-0 flex-1 truncate">{item.label}</span>
         </>
       ),
+      title: typeof item.label === 'string' ? item.label : undefined,
     },
   })
 }

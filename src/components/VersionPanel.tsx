@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Diff, Eye, Maximize2, Minimize2, PenLine, Plus, Scan, X } from 'lucide-react'
+import { Copy, Diff, Eye, Maximize2, Minimize2, PenLine, Plus, Scan, X } from 'lucide-react'
 import {
   createVersion,
   deleteVersion,
@@ -810,6 +810,29 @@ function BodyPane({
             </Button>
           ))}
           {comparer}
+          {/* The body, on the clipboard. A style prompt exists to be pasted
+              into something else, and the way to get one out was to click
+              into the text, select it all and copy - on a body that opens in
+              reading mode, where a click starts an edit. */}
+          <Button
+            variant="icon"
+            size="icon-sm"
+            title={t('versions.copyBody')}
+            aria-label={t('versions.copyBody')}
+            disabled={body === null || body === ''}
+            onClick={() => {
+              if (body === null) return
+              // The tick only once the clipboard confirms, the rule from
+              // v0.28: saying a copy succeeded when it did not is worse than
+              // saying nothing.
+              navigator.clipboard.writeText(body).then(
+                () => say.ok(t('versions.bodyCopied')),
+                (cause: unknown) => say.failedTo(t('versions.copyBody'), cause),
+              )
+            }}
+          >
+            <Copy aria-hidden />
+          </Button>
           <span aria-hidden className="mx-1 h-4 w-px bg-line" />
           <Button
             variant={level === 'expanded' ? 'soft' : 'icon'}

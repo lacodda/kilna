@@ -2,8 +2,17 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileText, Plus, Search } from 'lucide-react'
-import { getWork, listJournal, markJournalRead, unreadJournal, type JournalEntry } from '@/lib/api'
+import { Check, FileText, Plus, Search, X } from 'lucide-react'
+import {
+  dismissProposal,
+  getWork,
+  listJournal,
+  markJournalRead,
+  pendingProposals,
+  unreadJournal,
+  type JournalEntry,
+  type PendingProposal,
+} from '@/lib/api'
 import { keys } from '@/lib/query'
 import { openWorkId } from '@/lib/route'
 import { say } from '@/lib/toast'
@@ -141,6 +150,23 @@ function Unread() {
     onError: (cause) => say.failedTo(t('toast.loadFailed'), cause),
   })
 
+  // Proposals that arrived over MCP and have been neither applied nor turned
+  // down. Always fetched, not only while the panel is open: this is what the
+  // badge counts, and a count that only appeared once you looked would be no
+  // notification at all.
+  const proposals = useQuery({
+    queryKey: keys.pendingProposals,
+    queryFn: pendingProposals,
+    refetchInterval: 30_000,
+  })
+  const waiting = proposals.data ?? []
+
+  const dismiss = useMutation({
+    mutationFn: dismissProposal,
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.pendingProposals }),
+    onError: (cause) => say.failedTo(t('assistant.dismissFailed'), cause),
+  })
+
   // What needs a look comes first, then the newest of the rest, and the two
   // together fill the short list - so an unread warning from last week is not
   // pushed out by six edits made this morning.
@@ -153,18 +179,55 @@ function Unread() {
 
   return (
     <NotificationBell
-      count={count}
+      // A proposal is counted too: the work is done and waiting on an answer,
+      // which is a stronger claim on attention than an unread line about
+      // something that already happened.
+      count={count + waiting.length}
       label={t('journal.open')}
       title={t('journal.recent')}
       open={open}
       onOpenChange={setOpen}
-      markAllLabel={t('journal.markRead')}
+      // "Mark all seen" clears read marks on the journal and nothing else.
+      // It is deliberately NOT offered while only proposals are waiting: a
+      // proposal is answered by applying it or refusing it, and one button
+      // that made a screenful of them disappear unanswered is the click
+      // nobody means to make. Hidden rather than disabled, because a button
+      // that does not act on what is on screen should not be on screen.
+      markAllLabel={count > 0 ? t('journal.markRead') : undefined}
       onMarkAll={() => markRead.mutate()}
       busy={markRead.isPending}
       seeAllLabel={t('journal.seeAll')}
       onSeeAll={() => navigate('/journal')}
       emptyLabel={t('journal.nothingRecent')}
     >
+      {/* What is waiting on an answer, above what has already happened: these
+          are the only lines in the panel that ask for something. */}
+      {waiting.length > 0 && (
+        <section className="border-b border-line py-2">
+          <h4 className="pb-1 text-[11px] font-semibold uppercase tracking-wide text-dim">
+            {t('assistant.waitingOnYou', { count: waiting.length })}
+          </h4>
+          <ul>
+            {waiting.map((proposal) => (
+              <ProposalLine
+                key={proposal.message_id}
+                proposal={proposal}
+                busy={dismiss.isPending}
+                onOpen={() => {
+                  setOpen(false)
+                  navigate(
+                    proposal.work_id === null
+                      ? '/assistant'
+                      : `/works/${proposal.work_id}/assistant`,
+                  )
+                }}
+                onDismiss={() => dismiss.mutate(proposal.message_id)}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Rows only once they have arrived: until then the bell shows its
           empty line, which is truer than a list of nothing. */}
       {entries.isSuccess && recent.length > 0 && (
@@ -175,6 +238,74 @@ function Unread() {
         </ul>
       )}
     </NotificationBell>
+  )
+}
+
+/**
+ * One proposal waiting for an answer.
+ *
+ * The line opens the chat it arrived in rather than applying anything from
+ * here: applying is a decision made while looking at what is proposed, and a
+ * bell is not where a version gets written. Turning one down does happen
+ * here, because refusing needs nothing read that the line does not say.
+ */
+function ProposalLine({
+  proposal,
+  busy,
+  onOpen,
+  onDismiss,
+}: {
+  proposal: PendingProposal
+  busy: boolean
+  onOpen: () => void
+  onDismiss: () => void
+}) {
+  const { t, i18n } = useTranslation()
+  const what = t(`assistant.proposed.${proposal.kind}`, {
+    defaultValue: t('assistant.proposed.other'),
+  })
+
+  return (
+    <li className="flex items-center gap-1.5 py-1">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="min-w-0 flex-1 rounded-sm px-1 py-1 text-left hover:bg-soft"
+      >
+        <span className="flex items-baseline gap-2">
+          <span className="min-w-0 flex-1 truncate text-[13px] text-text">{what}</span>
+          <time
+            dateTime={proposal.created_at}
+            className="shrink-0 text-[11px] tabular-nums text-faint"
+          >
+            {when(proposal.created_at, i18n.language)}
+          </time>
+        </span>
+        {proposal.chat_title !== null && (
+          <span className="block truncate text-[11.5px] text-dim">{proposal.chat_title}</span>
+        )}
+      </button>
+      <Button
+        variant="icon"
+        size="icon-sm"
+        onClick={onOpen}
+        disabled={busy}
+        title={t('assistant.openToApply')}
+        aria-label={t('assistant.openToApply')}
+      >
+        <Check aria-hidden className="size-4" />
+      </Button>
+      <Button
+        variant="icon"
+        size="icon-sm"
+        onClick={onDismiss}
+        disabled={busy}
+        title={t('assistant.dismiss')}
+        aria-label={t('assistant.dismiss')}
+      >
+        <X aria-hidden className="size-3.5" />
+      </Button>
+    </li>
   )
 }
 

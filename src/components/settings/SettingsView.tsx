@@ -68,7 +68,12 @@ export function SettingsView() {
     <div className="grid gap-8 md:grid-cols-[11rem_minmax(0,1fr)]">
       <SectionNav
         label={t('settings.title')}
-        className="md:sticky md:top-0"
+        // `self-start`, or the column stretches to the height of the grid
+        // row beside it and there is nothing left for `sticky` to move
+        // within: a stretched item is already as tall as its track, so it
+        // pins at the top and stays there, which looks exactly like a nav
+        // that scrolls away with the page.
+        className="md:sticky md:top-0 md:self-start"
         activeId={section}
         items={SECTIONS.map((entry) => {
           const Icon = ICONS[entry]

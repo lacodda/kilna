@@ -14,7 +14,7 @@
 //! Nothing here is reached by an agent. `kilna --mcp` writes the proposal;
 //! the window calls this when a person clicks. See ADR 0018.
 
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
@@ -85,6 +85,126 @@ pub fn is_pending(message: &Message) -> bool {
     message.role == ASSISTANT
         && message.meta.get("proposal").is_some_and(Value::is_object)
         && !message.meta.contains_key("applied")
+        // A proposal turned down is answered, and "apply everything pending"
+        // must not bring back what someone just refused.
+        && !message.meta.contains_key(DISMISSED)
+}
+
+/// A proposal nobody has answered yet, with enough about it to be listed
+/// away from the chat it arrived in.
+///
+/// The chat is where a proposal is read and applied; this is how it is
+/// *noticed*. A proposal that came in over MCP while the window was on
+/// another screen used to wait in a chat nobody had a reason to open — the
+/// assistant had done the work and said so to an empty room.
+#[derive(Debug, Clone, Serialize)]
+pub struct Pending {
+    pub message_id: String,
+    pub chat_id: String,
+    /// What the chat is called, for a line that has to say where to go.
+    pub chat_title: Option<String>,
+    /// The work the chat is about, when it is about one.
+    pub work_id: Option<String>,
+    /// `version`, `score`, `note`, `scenes`, `work`, `package` — what kind of
+    /// thing is being proposed, so the line can say so without reading it.
+    pub kind: String,
+    pub created_at: String,
+}
+
+/// Every proposal of a profile that has been neither applied nor dismissed,
+/// oldest first.
+///
+/// Oldest first for the reason the waiting questions are: the one that has
+/// been sitting longest is the one holding something up.
+pub fn pending(conn: &Connection, profile_id: &str) -> Result<Vec<Pending>> {
+    let mut statement = conn.prepare(
+        "SELECT m.id, m.chat_id, c.title, c.work_id, m.meta, m.created_at
+           FROM chat_message m
+           JOIN chat c ON c.id = m.chat_id
+          WHERE c.profile_id = ?1 AND m.role = ?2
+          ORDER BY m.created_at, m.rowid",
+    )?;
+
+    let rows = statement.query_map(params![profile_id, ASSISTANT], |row| {
+        let raw: String = row.get(4)?;
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, Option<String>>(2)?,
+            row.get::<_, Option<String>>(3)?,
+            raw,
+            row.get::<_, String>(5)?,
+        ))
+    })?;
+
+    let mut out = Vec::new();
+    for row in rows {
+        let (message_id, chat_id, chat_title, work_id, raw, created_at) = row?;
+        let meta: Map<String, Value> = serde_json::from_str(&raw).unwrap_or_default();
+
+        // The same three conditions as `is_pending`, plus the dismissal: read
+        // here from the stored row rather than from a `Message`, because the
+        // whole point is not to load every transcript of every chat.
+        let Some(proposal) = meta.get("proposal").and_then(Value::as_object) else {
+            continue;
+        };
+        if meta.contains_key("applied") || meta.contains_key(DISMISSED) {
+            continue;
+        }
+
+        out.push(Pending {
+            message_id,
+            chat_id,
+            chat_title,
+            work_id,
+            kind: proposal
+                .get("kind")
+                .and_then(Value::as_str)
+                .unwrap_or("proposal")
+                .to_owned(),
+            created_at,
+        });
+    }
+    Ok(out)
+}
+
+/// The mark that says a proposal was turned down.
+///
+/// Stored beside `applied` rather than as a second table, and for the same
+/// reason `applied` is: what happened to a proposal is a fact about that
+/// message, and a row elsewhere pointing at it would be a second place to
+/// look and a second place to forget.
+pub const DISMISSED: &str = "dismissed";
+
+/// Turn a proposal down: it stops waiting, and nothing is written.
+///
+/// Kept rather than deleted. The answer is still worth reading after it has
+/// been refused — a rejected revision often has one line in it — and a
+/// transcript with holes in it is not a transcript.
+pub fn dismiss(conn: &Connection, message_id: &str) -> Result<()> {
+    let raw: Option<String> = conn
+        .query_row(
+            "SELECT meta FROM chat_message WHERE id = ?1",
+            params![message_id],
+            |row| row.get(0),
+        )
+        .optional()?;
+    let raw = raw.ok_or_else(|| Error::not_found("message", message_id))?;
+
+    let mut meta: Map<String, Value> = serde_json::from_str(&raw).unwrap_or_default();
+    if meta.contains_key("applied") {
+        return Err(Error::Other(
+            "this proposal was already applied; dismissing it would say otherwise".to_owned(),
+        ));
+    }
+    // Twice is not a failure: two windows can show the same bell.
+    meta.insert(DISMISSED.to_owned(), Value::String(time::now()));
+
+    conn.execute(
+        "UPDATE chat_message SET meta = ?2 WHERE id = ?1",
+        params![message_id, serde_json::to_string(&meta)?],
+    )?;
+    Ok(())
 }
 
 /// Apply the proposal a message carries, and mark the message.
@@ -1799,6 +1919,134 @@ mod tests {
         );
         let body = version::get(&conn, &current[0].id).unwrap().unwrap().body;
         assert_eq!(body, "one line");
+    }
+
+    #[test]
+    fn what_is_pending_is_listed_across_every_chat_oldest_first() {
+        // The bell's question: what has the assistant done that nobody has
+        // answered? A proposal used to wait in a chat there was no reason to
+        // open, which is the whole defect.
+        let (mut conn, profile_id, work_id) = workspace();
+        let first = chat_on(&conn, &profile_id, Some(&work_id));
+        let second = chat_on(&conn, &profile_id, None);
+
+        let older = propose(
+            &conn,
+            &first,
+            "a version",
+            Proposal::Version {
+                role: "lyrics".into(),
+                label: None,
+            },
+        );
+        let newer = propose(&conn, &second, "a note", Proposal::Note { title: None });
+
+        let listed = pending(&conn, &profile_id).unwrap();
+        let ids: Vec<&str> = listed.iter().map(|p| p.message_id.as_str()).collect();
+        assert_eq!(ids, vec![older.as_str(), newer.as_str()], "oldest first");
+        assert_eq!(listed[0].work_id.as_deref(), Some(work_id.as_str()));
+        assert_eq!(listed[0].kind, "version");
+        assert_eq!(listed[1].work_id, None, "a chat about nothing has no work");
+        assert_eq!(listed[1].kind, "note");
+
+        apply(&mut conn, &profile_id, &older, Overrides::default()).unwrap();
+
+        let after = pending(&conn, &profile_id).unwrap();
+        assert_eq!(
+            after
+                .iter()
+                .map(|p| p.message_id.as_str())
+                .collect::<Vec<_>>(),
+            vec![newer.as_str()],
+            "an applied proposal has been answered and stops waiting"
+        );
+    }
+
+    #[test]
+    fn a_dismissed_proposal_stops_waiting_without_writing_anything() {
+        let (conn, profile_id, work_id) = workspace();
+        let chat = chat_on(&conn, &profile_id, Some(&work_id));
+        let message = propose(
+            &conn,
+            &chat,
+            "a version",
+            Proposal::Version {
+                role: "lyrics".into(),
+                label: None,
+            },
+        );
+
+        let before = version::list(&conn, &work_id).unwrap().len();
+        dismiss(&conn, &message).unwrap();
+
+        assert!(
+            pending(&conn, &profile_id).unwrap().is_empty(),
+            "refusing is answering"
+        );
+        assert_eq!(
+            version::list(&conn, &work_id).unwrap().len(),
+            before,
+            "and nothing was written"
+        );
+
+        // The answer itself is kept: a refused revision often has one good
+        // line in it, and a transcript with holes is not a transcript.
+        let stored = assistant::message(&conn, &message).unwrap().unwrap();
+        assert_eq!(stored.body, "a version");
+        assert!(stored.meta.contains_key(DISMISSED));
+        assert!(!stored.meta.contains_key("applied"));
+    }
+
+    #[test]
+    fn apply_pending_leaves_a_dismissed_proposal_alone() {
+        // The two have to agree, or "apply everything pending" would bring
+        // back exactly what someone had just refused.
+        let (mut conn, profile_id, work_id) = workspace();
+        let chat = chat_on(&conn, &profile_id, Some(&work_id));
+        let refused = propose(
+            &conn,
+            &chat,
+            "no thanks",
+            Proposal::Version {
+                role: "lyrics".into(),
+                label: None,
+            },
+        );
+        let wanted = propose(
+            &conn,
+            &chat,
+            "this one",
+            Proposal::Version {
+                role: "lyrics".into(),
+                label: None,
+            },
+        );
+
+        dismiss(&conn, &refused).unwrap();
+        let outcomes = apply_pending(&mut conn, &profile_id, &chat).unwrap();
+
+        assert_eq!(outcomes.len(), 1, "only the one still waiting");
+        assert_eq!(outcomes[0].message_id, wanted);
+    }
+
+    #[test]
+    fn an_applied_proposal_cannot_then_be_dismissed() {
+        // Marking it refused after it was written would have the message say
+        // the opposite of what the rows say.
+        let (mut conn, profile_id, work_id) = workspace();
+        let chat = chat_on(&conn, &profile_id, Some(&work_id));
+        let message = propose(
+            &conn,
+            &chat,
+            "a version",
+            Proposal::Version {
+                role: "lyrics".into(),
+                label: None,
+            },
+        );
+        apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+
+        assert!(dismiss(&conn, &message).is_err());
     }
 
     #[test]

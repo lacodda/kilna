@@ -1026,33 +1026,46 @@ function SceneRow({
         <td className="px-2 py-1.5">
           <ReadinessMark readiness={readiness} blocks={vocabulary.scene_blocks.length} />
         </td>
-        <td className="px-2 py-1.5">
+        {/* `whitespace-nowrap`, so the row's controls keep their own line
+            rather than wrapping into a column one glyph wide - which is what
+            a cell with no width of its own does once the board is narrow. */}
+        <td className="whitespace-nowrap px-2 py-1.5 align-middle">
           <span className="flex items-center justify-end gap-1">
             {saving && <span className="text-xs text-faint">{t('save.saving')}</span>}
             {/* The profile's scene actions — the prompts for this scene —
                 start on this row and come back as a revision of it. */}
             <ActionBar workId={workId} sceneId={scene.id} compact />
+
+            {/* Adding a scene and deleting one are the row's own acts, not
+                the assistant's, so they stand apart from the actions above
+                with a rule between them. They were the last two things in a
+                queue of compact buttons and read as more of the same - and
+                the delete sat one pixel from a button that starts work.
+
+                `size="icon-md"` rather than `icon-sm`: these two were the
+                smallest targets on the busiest row of the app. */}
+            <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-line" />
             {/* A scene between two others, which until now meant adding one
                 at the end and typing its way back up the board. The new row
                 lands directly after this one and the rest shift down. */}
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="icon-md"
               title={t('scenes.insertAfter')}
               aria-label={t('scenes.insertAfter')}
               disabled={moving}
               onClick={onInsertAfter}
             >
-              <ListPlus aria-hidden className="size-3.5" />
+              <ListPlus aria-hidden className="size-4" />
             </Button>
             <Button
               variant="danger"
-              size="icon-sm"
+              size="icon-md"
               title={t('scenes.delete')}
               aria-label={t('scenes.delete')}
               onClick={onDelete}
             >
-              <Trash2 aria-hidden className="size-3.5" />
+              <Trash2 aria-hidden className="size-4" />
             </Button>
           </span>
         </td>

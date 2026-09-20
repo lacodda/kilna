@@ -2034,6 +2034,7 @@ mod tests {
             label: "X".into(),
             template: template.into(),
             description: None,
+            icon: None,
             produces: None,
             method: None,
             kinds: Vec::new(),

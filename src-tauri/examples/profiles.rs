@@ -59,7 +59,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // One work per profile, in that profile's own vocabulary.
         let kind = config.work_kinds[0].key.clone();
-        let title = format!("Sample {}", config.work_kinds[0].label.as_str().to_lowercase());
+        let title = format!(
+            "Sample {}",
+            config.work_kinds[0].label.as_str().to_lowercase()
+        );
         let already = work::list(
             &conn,
             &entry.id,

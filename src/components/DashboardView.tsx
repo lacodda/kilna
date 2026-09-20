@@ -185,7 +185,11 @@ function DecisionRow({
       // missing draft opens the versions. Being told what is wrong and left on
       // the same screen is half an answer.
       onClick={() => onSelect(release.work_id, release.readiness.scored ? undefined : 'score')}
-      className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors first:rounded-t-2xl last:rounded-b-2xl hover:bg-soft"
+      // The panel around these is `rounded-lg`, so a row rounding to `2xl`
+      // bulged past the corner it was meant to follow - a hover that went
+      // round at the top and square at the bottom, on a single-row section
+      // round on all four. The row follows the panel it sits in.
+      className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-soft"
     >
       <span
         aria-hidden
@@ -230,7 +234,11 @@ function WeekRow({
     <button
       type="button"
       onClick={() => onSelect(release.work_id)}
-      className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors first:rounded-t-2xl last:rounded-b-2xl hover:bg-soft"
+      // The panel around these is `rounded-lg`, so a row rounding to `2xl`
+      // bulged past the corner it was meant to follow - a hover that went
+      // round at the top and square at the bottom, on a single-row section
+      // round on all four. The row follows the panel it sits in.
+      className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-soft"
     >
       <span className="w-20 shrink-0 font-mono text-[11.5px] text-faint">
         {when(t, daysLeft)}

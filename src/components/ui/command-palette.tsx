@@ -177,12 +177,29 @@ export interface CommandPaletteInputProps extends Base.Input.Props {
  * and the field its combobox. */
 export function CommandPaletteInput({ hint, className, ...props }: CommandPaletteInputProps) {
   return (
-    <div className="flex items-center gap-2 border-b border-line px-3">
+    // The row carries the focus, not the box inside it.
+    //
+    // The line's focus ring is a 2px accent outline at a 2px offset, set once
+    // for everything (`styles.css`). On a borderless input sitting inside a
+    // bordered panel it drew a second rectangle a few pixels in from the
+    // first - a stray frame around the search box that belongs to no part of
+    // the panel, which is exactly how the owner read it.
+    //
+    // The input keeps the focus for the keyboard and for a screen reader; the
+    // row is what says so, by tinting the rule it already has. Nothing is
+    // taken away: the signal moves from a floating rectangle onto the edge of
+    // the thing that is actually active.
+    <div
+      className={cn(
+        'flex items-center gap-2 border-b border-line px-3 transition-colors',
+        'focus-within:border-accent',
+      )}
+    >
       <MagnifierIcon />
       <Base.Input
         className={cn(
           'h-11 w-full bg-transparent text-sm text-text placeholder:text-faint',
-          'focus-visible:outline-none',
+          'outline-none focus-visible:outline-none',
           className,
         )}
         {...props}

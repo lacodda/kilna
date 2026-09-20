@@ -20,6 +20,11 @@ pub struct PromptTemplate {
     pub template: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<Label>,
+    /// Name of the glyph the button is drawn with, from the fixed set the
+    /// window knows. Carried, never read here: which picture goes with an
+    /// action is a question for the screen.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     /// What the action asks the assistant to produce, beyond prose.
     ///
     /// Absent means an ordinary action: the answer is text and the reader
@@ -596,6 +601,7 @@ mod tests {
             label: "K".into(),
             template: String::new(),
             description: None,
+            icon: None,
             produces: Some(produces.into()),
             method: None,
             kinds: Vec::new(),
@@ -882,6 +888,7 @@ mod version_tests {
             label: "K".into(),
             template: String::new(),
             description: None,
+            icon: None,
             produces: produces.map(str::to_owned),
             method: None,
             kinds: Vec::new(),

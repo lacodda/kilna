@@ -120,7 +120,9 @@
     "compareMenu": "Сравнить с…",
     "previous": "предыдущая",
     "repeats": "Повторы",
-    "scored": "Оценка {{score}}"
+    "scored": "Оценка {{score}}",
+    "copyBody": "Скопировать текст",
+    "bodyCopied": "Текст в буфере обмена."
   },
   "nav": {
     "catalogue": "Каталог",
@@ -442,7 +444,8 @@
     "blindOn": "Оценивать вслепую",
     "blindOnHint": "Скрыть прошлый вердикт и мнение ассистента, пока не вынесен свой",
     "blindHidden": "Прошлый вердикт скрыт, пока вы судите.",
-    "blindReveal": "Показать"
+    "blindReveal": "Показать",
+    "written": "Что написано"
   },
   "catalogue": {
     "work": "Произведение",
@@ -671,7 +674,23 @@
     "appliedAll_one": "Применено {{count}} предложение.",
     "appliedAll_few": "Применено {{count}} предложения.",
     "appliedAll_many": "Применено {{count}} предложений.",
-    "appliedAll_other": "Применено {{count}} предложения."
+    "appliedAll_other": "Применено {{count}} предложения.",
+    "waitingOnYou_one": "{{count}} ждёт ответа",
+    "waitingOnYou_few": "{{count}} ждут ответа",
+    "waitingOnYou_many": "{{count}} ждут ответа",
+    "waitingOnYou_other": "{{count}} ждут ответа",
+    "openToApply": "Открыть и применить",
+    "dismiss": "Отклонить",
+    "dismissFailed": "отклонить предложение",
+    "proposed": {
+      "version": "Предложена версия",
+      "score": "Предложена оценка",
+      "note": "Предложена заметка",
+      "scenes": "Предложена раскадровка",
+      "work": "Предложено произведение",
+      "package": "Предложен набор изменений",
+      "other": "Что-то предложено"
+    }
   },
   "links": {
     "sources": "Сделано из",

@@ -513,10 +513,24 @@ is not the same as a work judged to be a bare idea at 0 — that one draws a dot
 `Backspace` on the dial, or clicking the stop it already stands on, takes a work
 back to unset.
 
-Stages are optional: a profile that names none uses the line's six — *Idea*,
-*Rough draft*, *Half there*, *Nearly there*, *Polishing*, *Finished*, at 0, 20,
-40, 60, 80 and 100. A dial with nothing to snap to is not a dial, so this is one
-of the few places the app answers for a craft that said nothing.
+Stages are optional: a profile that names none uses the line's seven — *Idea*,
+*Rough draft*, *Half there*, *Nearly there*, *Polishing*, *Finished*, *Final*,
+at 0, 17, 33, 50, 67, 83 and 100. A dial with nothing to snap to is not a dial,
+so this is one of the few places the app answers for a craft that said nothing.
+
+*Final* is the last stop rather than *Finished* because those are two different
+claims: a work can be finished for a month before it goes out, and until v0.74.2
+nothing on a row told them apart. It is set by hand like every other stop — the
+stage stays a judgement, and whether a release actually shipped is what the
+status already derives.
+
+**Upgrading a profile renumbers its stops.** A stop that keeps a key the shipped
+profile still has takes that profile's `percent`, while its *label* stays
+whatever you renamed it to. This is the one field of a vocabulary entry that
+cannot be left alone: a stage is not a word but a word at a position, and a
+stored profile that gained *Final* at 100 while keeping *Finished* at 100 would
+hold two stops on one number. A stop you added yourself is not in the shipped
+list and is never touched.
 
 ## `rhythm`
 
@@ -645,6 +659,7 @@ specifically.
   "key": "critique",
   "label": "Critique the lyrics",
   "description": "Weak lines, tired images, anything that does not sing.",
+  "icon": "spell-check",
   "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nBe specific and be hard on it: which lines are weak, which images are worn out, what would you cut? Do not rewrite it — say what is wrong."
 }
 ```
@@ -653,12 +668,22 @@ specifically.
 | --- | --- | --- |
 | `key` | string | Identifies the prompt. Also what kilna recognises a running action by, so an action started from a card cannot be started twice at once. |
 | `label` | string | Button text, in the AI panel and on a work's Overview tab. |
-| `description` | string, optional | Shown as a hint under the label. |
+| `description` | string, optional | What the action does, in a sentence. Shown when the button is hovered, so the button itself can stay short. |
+| `icon` | string, optional | The glyph on the button, from the list below. A name kilna does not know draws the generic spark. |
 | `template` | string | The message sent to Claude, with placeholders filled per work. Keep it short: the method carries the how. |
 | `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
 | `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`. Anything else loads as prose and is refused when the profile is saved. |
 | `kinds` | list of strings, optional | The work kinds the action is offered on. Absent or empty is every kind. An action that reads `{role:lyrics}` is for the kinds that have lyrics — Studio's song actions say `["song"]` — because a button for it on a video would send a prompt with a hole in it. |
 | `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. Absent is the work. |
+
+**Keep the label to a word or two.** The button carries a glyph and that label;
+what the action does belongs in `description`, which is the tooltip. A row of
+five actions spelled out in full — *Critique the lyrics*, *Suggest a revision*,
+*Draft a style prompt* — is five sentences where the eye wants five marks, and
+buttons like that are neither read nor remembered.
+
+The names `icon` accepts: `sparkles`, `wand`, `pen`, `spell-check`, `scroll`,
+`tags`, `gauge`, `music`, `film`, `clapperboard`, `image`, `list`, `lightbulb`.
 
 The same prompt is offered in three places: in the panel it fills the composer
 for you to read and send, typing `/` reaches the same list from the keyboard,

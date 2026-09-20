@@ -235,6 +235,10 @@ export interface PromptTemplate {
   label: Label
   template: string
   description?: Label
+  /** Name of the glyph the button is drawn with, from the fixed set in
+      `lib/actionIcon`. Absent, or a name this build does not know, draws the
+      generic spark. */
+  icon?: string | null
   /** What the action asks for beyond prose: `score`, or `version:<role>` —
       the whole answer kept as a version in that role. Absent means prose;
       a value this build does not know reads as prose too. */
@@ -1490,6 +1494,24 @@ export const deleteChat = (id: string) => invoke<void>('delete_chat', { id })
 /** Apply what a message proposes — any kind — and mark the message. */
 export const applyProposal = (messageId: string, overrides?: ProposalOverrides) =>
   invoke<Applied>('apply_proposal', { messageId, overrides: overrides ?? null })
+/** A proposal nobody has answered yet, listed away from the chat it came in. */
+export interface PendingProposal {
+  message_id: string
+  chat_id: string
+  chat_title: string | null
+  work_id: string | null
+  /** `version`, `score`, `note`, `scenes`, `work` or `package`. */
+  kind: string
+  created_at: string
+}
+
+/** Every proposal waiting for an answer, across every chat, oldest first. */
+export const pendingProposals = () => invoke<PendingProposal[]>('pending_proposals')
+
+/** Turn a proposal down: it stops waiting, and nothing is written. */
+export const dismissProposal = (messageId: string) =>
+  invoke<void>('dismiss_proposal', { messageId })
+
 /** Apply every proposal in a chat nobody has applied yet, oldest first. */
 export const applyPendingProposals = (chatId: string) =>
   invoke<Applied[]>('apply_pending_proposals', { chatId })

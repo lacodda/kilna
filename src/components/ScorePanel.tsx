@@ -81,6 +81,18 @@ export function ScorePanel({ workId }: Props) {
   })
 
   const historyData = history.data ?? []
+
+  // The roles that comment rather than stand as the work: a review, a
+  // critique. Read from the profile, the same rule the versions tab and the
+  // catalogue's count draw by.
+  const commenting = new Set(
+    version_roles.filter((role) => role.comments_on !== undefined).map((role) => role.key),
+  )
+  // Newest first, as the history above is.
+  const verdicts = (versions.data ?? [])
+    .filter((version) => commenting.has(version.role))
+    .slice()
+    .sort((left, right) => right.created_at.localeCompare(left.created_at))
   // The marks of the latest score, restricted to axes the profile still has:
   // a snapshot taken before an axis was removed keeps that mark, but the
   // scale for it is gone.
@@ -552,6 +564,40 @@ export function ScorePanel({ workId }: Props) {
             )
           })}
         </ul>
+      )}
+
+      {/* What was written about this work, beside what it was marked.
+          A critique is a version in a commenting role, so it lived under
+          Versions behind its own lane - and asking the assistant to judge
+          something put the verdict in the chat, which is where the owner
+          kept finding it. A score is a number with a reason, and the reason
+          was on another screen. These are the same rows the versions tab
+          holds; this is the second place they can be reached from, not a
+          second copy. */}
+      {verdicts.length > 0 && (
+        <section className="flex flex-col gap-2 border-t border-line pt-3">
+          <h4 className="text-sm font-semibold">{t('score.written')}</h4>
+          <ul className="flex flex-col gap-1">
+            {verdicts.map((verdict) => (
+              <li key={verdict.id}>
+                <Link
+                  to={`/works/${workId}/versions?version=${verdict.id}`}
+                  className="flex items-baseline gap-2 rounded-md px-2 py-1.5 no-underline transition-colors hover:bg-soft"
+                >
+                  <span className="shrink-0 text-xs text-dim">
+                    {labelOf(version_roles, verdict.role)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-text">
+                    {verdict.label ?? t('versions.revision', { number: verdict.revision })}
+                  </span>
+                  <span className="shrink-0 text-xs text-faint">
+                    {verdict.created_at.slice(0, 10)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </section>
   )

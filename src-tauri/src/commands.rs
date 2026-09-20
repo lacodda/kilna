@@ -3152,6 +3152,25 @@ pub fn apply_pending_proposals(
     assistant::apply::apply_pending(&mut conn, &profile_id, &chat_id)
 }
 
+/// Every proposal waiting for an answer, across every chat of the profile.
+///
+/// What the bell reads. A proposal is answered by applying it or by turning
+/// it down, and until then it is work the assistant has done that nobody has
+/// looked at — which is exactly what a notification is for.
+#[tauri::command]
+pub fn pending_proposals(state: State<'_, AppState>) -> Result<Vec<assistant::apply::Pending>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    assistant::apply::pending(&conn, &profile_id)
+}
+
+/// Turn a proposal down. The answer stays in the chat; it stops waiting.
+#[tauri::command]
+pub fn dismiss_proposal(state: State<'_, AppState>, message_id: String) -> Result<()> {
+    let conn = state.conn();
+    assistant::apply::dismiss(&conn, &message_id)
+}
+
 #[tauri::command]
 pub fn delete_chat(state: State<'_, AppState>, id: String) -> Result<()> {
     let conn = state.conn();

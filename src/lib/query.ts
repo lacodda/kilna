@@ -34,6 +34,8 @@ export const keys = {
   sceneFramesFor: (workId: string) => ['sceneFrames', workId] as const,
   version: (id: string) => ['version', id] as const,
 
+  /** Proposals waiting for an answer, as the bell reads them. */
+  pendingProposals: ['proposals', 'pending'] as const,
   scores: ['scores'] as const,
   scoreHistory: (workId: string) => ['scores', 'history', workId] as const,
   latestScore: (workId: string) => ['scores', 'latest', workId] as const,
