@@ -100,9 +100,11 @@ pub fn attach_minted(
     new: NewAsset,
     minted: Minted,
 ) -> Result<Asset> {
-    if new.work_id.is_none() && new.release_id.is_none() {
+    // A file belongs to something. Left hanging on nothing it is a byte in a
+    // directory with no screen that shows it and no deletion that takes it.
+    if new.work_id.is_none() && new.release_id.is_none() && new.style_brick_id.is_none() {
         return Err(Error::Other(
-            "a file is attached to a work or to a release".into(),
+            "a file is attached to a work, to a release or to a style".into(),
         ));
     }
     if let Some(work_id) = new.work_id.as_deref() {
@@ -111,6 +113,15 @@ pub fn attach_minted(
         if work.profile_id != profile_id {
             return Err(Error::Other(
                 "a file is attached to a work of the same profile".into(),
+            ));
+        }
+    }
+    if let Some(brick_id) = new.style_brick_id.as_deref() {
+        let brick = crate::style_brick::get(conn, brick_id)?
+            .ok_or_else(|| Error::not_found("style", brick_id))?;
+        if brick.profile_id != profile_id {
+            return Err(Error::Other(
+                "a file is attached to a style of the same profile".into(),
             ));
         }
     }
@@ -178,6 +189,37 @@ pub fn attach_minted(
     }
 
     get(conn, minted.id())?.ok_or_else(|| Error::not_found("asset", minted.id()))
+}
+
+/// Take a picture straight from the clipboard.
+///
+/// The same arrival as [`attach`], with the bytes written to a holding file
+/// first so there is one path into the workspace rather than two: a pasted
+/// reference is copied in, named by its id and remembered under the name it
+/// came with, exactly as a chosen file is (ADR 0027).
+pub fn attach_bytes(
+    conn: &Connection,
+    profile_id: &str,
+    media_dir: &Path,
+    bytes: &[u8],
+    name: &str,
+    new: NewAsset,
+) -> Result<Asset> {
+    let safe = Path::new(name)
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .filter(|name| !name.is_empty())
+        .unwrap_or_else(|| "pasted.png".to_owned());
+
+    let holding = tempfile::Builder::new()
+        .prefix("kilna-paste-")
+        .tempdir()
+        .map_err(|cause| Error::Other(format!("could not hold the pasted picture: {cause}")))?;
+    let source = holding.path().join(&safe);
+    std::fs::write(&source, bytes)
+        .map_err(|cause| Error::Other(format!("could not write the pasted picture: {cause}")))?;
+
+    attach(conn, profile_id, media_dir, &source, new)
 }
 
 /// The name a file takes inside `media/`: the asset's id, and the extension
@@ -351,6 +393,81 @@ mod tests {
         path
     }
 
+    /// A reference belongs to a style brick and to nothing else: a brick is
+    /// not a work, and the guard that insists a file hangs on something has to
+    /// count it.
+    #[test]
+    fn a_reference_hangs_on_a_style_with_no_work_and_goes_when_the_style_goes() {
+        let (conn, profile_id, media) = workspace();
+        let outside = tempfile::tempdir().unwrap();
+        let source = a_file(outside.path(), "north-01.png");
+
+        let brick = crate::style_brick::create(
+            &conn,
+            &profile_id,
+            crate::style_brick::NewStyleBrick {
+                type_key: "image-style".into(),
+                name: "Cold north".into(),
+                description: None,
+                hint: None,
+            },
+        )
+        .unwrap();
+
+        let reference = attach(
+            &conn,
+            &profile_id,
+            media.path(),
+            &source,
+            NewAsset {
+                style_brick_id: Some(brick.id.clone()),
+                ..NewAsset::default()
+            },
+        )
+        .unwrap();
+
+        assert_eq!(reference.work_id, None);
+        assert_eq!(reference.style_brick_id.as_deref(), Some(brick.id.as_str()));
+        assert_eq!(
+            for_style_brick(&conn, &brick.id).unwrap().len(),
+            1,
+            "the brick's screen reads its references from this end"
+        );
+        assert_eq!(
+            crate::style_brick::get(&conn, &brick.id)
+                .unwrap()
+                .unwrap()
+                .reference_count,
+            1,
+            "the count travels with the row, for a list drawn with covers"
+        );
+
+        crate::style_brick::delete(&conn, &brick.id).unwrap();
+        assert!(
+            get(&conn, &reference.id).unwrap().is_none(),
+            "a reference to a style that is gone is a broken picture, not a record"
+        );
+    }
+
+    /// Hanging on nothing at all is still refused. The style brick widened the
+    /// guard; it did not remove it.
+    #[test]
+    fn a_file_attached_to_nothing_is_still_refused() {
+        let (conn, profile_id, media) = workspace();
+        let outside = tempfile::tempdir().unwrap();
+        let source = a_file(outside.path(), "stray.png");
+
+        let refused = attach(
+            &conn,
+            &profile_id,
+            media.path(),
+            &source,
+            NewAsset::default(),
+        );
+
+        assert!(refused.is_err());
+    }
+
     /// The file is copied in under the asset's id, and the name it arrived
     /// under is kept: that is what a person recognises it by.
     #[test]
@@ -475,7 +592,7 @@ mod tests {
         )
         .unwrap_err()
         .to_string();
-        assert!(orphan.contains("work or to a release"), "{orphan}");
+        assert!(orphan.contains("attached to a work"), "{orphan}");
 
         assert_eq!(
             std::fs::read_dir(media.path()).unwrap().count(),

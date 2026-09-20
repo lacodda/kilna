@@ -1,11 +1,13 @@
 import {
   Clapperboard,
+  Eye,
   Film,
   Gauge,
   Image,
   Lightbulb,
   ListOrdered,
   Music,
+  Palette,
   PenLine,
   ScrollText,
   Sparkles,
@@ -46,6 +48,8 @@ export const ACTION_ICONS: Record<string, LucideIcon> = {
   image: Image,
   list: ListOrdered,
   lightbulb: Lightbulb,
+  palette: Palette,
+  eye: Eye,
 }
 
 /** The names, for the reference and for a picker. */

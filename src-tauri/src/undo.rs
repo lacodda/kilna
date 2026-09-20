@@ -105,6 +105,8 @@ pub fn reversible(kind: &str) -> bool {
             | "entity.discard"
             | "link.create"
             | "link.delete"
+            | "style.create"
+            | "style.describe"
             | "scene.create"
             | "scene.update"
             | "scene.time"
@@ -185,7 +187,10 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
                 crate::note::update_at(tx, &id, patch, &at).map(|_| ())
             })?;
         }
-        "style.update" => {
+        // The written description goes back to what stood there, blank
+        // included: the brick was a draft before it was described, and the
+        // `before` carries both the text and the status it had.
+        "style.update" | "style.describe" => {
             let id = required(params, "id")?;
             let patch: crate::style_brick::StyleBrickPatch = from_params(params, "before")?;
             edit(conn, logged, &at, |tx| {
@@ -397,6 +402,14 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
         "link.create" => {
             let id = crate::minted::Minted::from_params(params)?.id().to_owned();
             edit(conn, logged, &at, |tx| crate::link::delete(tx, &id))?;
+        }
+        // Undone by deleting the row outright rather than through the trash,
+        // the way a link is: a brick made a moment ago and taken back has
+        // nothing worth keeping, and the trash does not hold bricks. Its
+        // references go with it — that is what the schema's cascade is for.
+        "style.create" => {
+            let id = crate::minted::Minted::from_params(params)?.id().to_owned();
+            edit(conn, logged, &at, |tx| crate::style_brick::delete(tx, &id))?;
         }
 
         "link.delete" => {

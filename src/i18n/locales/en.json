@@ -130,7 +130,8 @@
     "notes": "Notes",
     "trash": "Trash",
     "soon": "Coming in v{{version}}",
-    "journal": "History"
+    "journal": "History",
+    "styles": "Styles"
   },
   "themeName": {
     "system": "System theme",
@@ -639,7 +640,13 @@
       "work": "A work was proposed",
       "package": "A set of changes was proposed",
       "other": "Something was proposed"
-    }
+    },
+    "keepAsNote": "Keep as a note",
+    "keepAsNoteTitle": "Keep as a note",
+    "keepAsNoteBody": "The answer is kept word for word. Say what kind it is and what to call it.",
+    "noteKind": "Kind of note",
+    "noteTitlePlaceholder": "A name for it",
+    "noteKeepFailed": "keep the note"
   },
   "links": {
     "sources": "Made from",
@@ -825,6 +832,39 @@
     "delete": "Delete this note",
     "placeholder": "A thought about this work",
     "tagsPlaceholder": "Tags, comma separated"
+  },
+  "styles": {
+    "title": "Styles",
+    "new": "New style",
+    "edit": "Edit style",
+    "type": "Type",
+    "allTypes": "All",
+    "name": "Name",
+    "search": "Search the dictionary",
+    "description": "Description",
+    "descriptionHint": "What goes into a prompt, word for word.",
+    "hint": "Steer",
+    "hintHint": "What to look at when this is described — never part of a prompt.",
+    "describe": "Describe from the references",
+    "referenceList": "References",
+    "referenceHint": "Drop pictures in, or paste one with Ctrl+V.",
+    "addReference": "Add pictures",
+    "removeReference": "Remove the reference",
+    "pictures": "Pictures",
+    "references": "{{count}} reference",
+    "references_other": "{{count}} references",
+    "notDescribed": "Not described yet",
+    "statusLabel": "Where it stands",
+    "status": {
+      "draft": "Draft",
+      "ready": "Ready",
+      "dropped": "Retired"
+    },
+    "empty": "No styles yet",
+    "emptyBody": "A style is a part a picture prompt is built from — a look, a character, a place. Make one, drop the pictures in, and let the assistant describe it.",
+    "noMatches": "Nothing matches that",
+    "noDictionary": "This craft has no style dictionary",
+    "noDictionaryBody": "A profile names the types a style can be. Add some in Settings, and this screen fills up."
   },
   "editor": {
     "axes": "Scoring axes",
@@ -1124,6 +1164,8 @@
     "note.create": "adding a note",
     "note.update": "an edit to a note",
     "style.update": "an edit to a style",
+    "style.create": "adding a style",
+    "style.describe": "a style described from its references",
     "version.create": "adding a version",
     "version.edit": "an edit to a version",
     "collection.create": "adding a collection",

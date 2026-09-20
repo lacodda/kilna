@@ -367,6 +367,151 @@ pub fn prepare(
     })
 }
 
+/// What a task about a style brick is, as a key: this action, on this brick.
+pub fn style_key(action: &str, brick_id: &str) -> String {
+    format!("{action}:style:{brick_id}")
+}
+
+/// Compose `action` against a style brick rather than a work.
+///
+/// A brick is not a work and never will be — it belongs to the workspace, and
+/// there is no title, no body and no board to read. So this is its own
+/// composer rather than `compose` with the work made optional: the two have
+/// almost nothing in common but the action, and threading an absent work
+/// through a hundred lines of `for_work` would make both harder to read for
+/// the sake of sharing the four that overlap.
+///
+/// The prompt carries the type's own `hint` — what to describe for a brick of
+/// this type — and the author's steer, kept separate and labelled as such.
+/// Those two are the whole reason the answer is worth having: without them the
+/// model is looking at pictures and guessing which question it is answering.
+pub fn compose_for_style(
+    conn: &Connection,
+    brick_id: &str,
+    action: &str,
+) -> Result<(Composed, String)> {
+    let profile =
+        profile::active(conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
+    let template = profile
+        .config
+        .prompts
+        .iter()
+        .find(|prompt| prompt.key == action)
+        .ok_or_else(|| Error::Other(format!("the profile has no action `{action}`")))?;
+
+    let brick = crate::style_brick::get(conn, brick_id)?
+        .ok_or_else(|| Error::not_found("style", brick_id))?;
+    let kind = profile.config.style_type(&brick.type_key);
+
+    let mut prompt = String::new();
+    prompt.push_str(&format!(
+        "The style brick is “{}”, of the type {}.
+
+",
+        brick.name,
+        kind.map_or(brick.type_key.clone(), |k| k.label.as_str().to_owned())
+    ));
+    if let Some(hint) = kind.and_then(|k| k.hint.as_ref()) {
+        prompt.push_str(&format!(
+            "What to describe for this type:
+{}
+
+",
+            hint.as_str()
+        ));
+    }
+    if let Some(steer) = brick
+        .hint
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        prompt.push_str(&format!(
+            "The author's steer:
+{steer}
+
+"
+        ));
+    }
+    if let Some(existing) = brick
+        .description
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        prompt.push_str(&format!(
+            "What it says today, which you are rewriting:
+{existing}
+
+"
+        ));
+    }
+    prompt.push_str(&template.template);
+
+    // The references travel as the attachments an ordinary task's files do:
+    // one way for a run to be given something to look at.
+    let references = crate::asset::for_style_brick(conn, brick_id)?;
+    let attachments: Vec<PathBuf> = references
+        .iter()
+        .map(|asset| PathBuf::from(&asset.path))
+        .filter(|path| path.is_file())
+        .collect();
+    if !attachments.is_empty() {
+        prompt.push_str(
+            "
+
+The references:
+",
+        );
+        for path in &attachments {
+            prompt.push_str(&format!(
+                "{}
+",
+                path.display()
+            ));
+        }
+    }
+
+    let prompt = super::waiting::instruct(&prompt);
+
+    Ok((
+        Composed {
+            prompt,
+            method: template.method().map(str::to_owned),
+            key: style_key(action, brick_id),
+            title: format!("{} · {}", template.label.as_str(), brick.name),
+            attachments,
+        },
+        profile.id,
+    ))
+}
+
+/// [`compose_for_style`] with the chat it will be answered in.
+pub fn prepare_for_style(conn: &Connection, brick_id: &str, action: &str) -> Result<Prepared> {
+    let (composed, profile_id) = compose_for_style(conn, brick_id, action)?;
+
+    // A chat on no work: a brick belongs to the workspace, so the answer does
+    // not hang on anybody's card.
+    let chat = super::create(
+        conn,
+        &profile_id,
+        super::NewChat {
+            work_id: None,
+            title: Some(composed.title.clone()),
+            action: Some(action.to_owned()),
+            version_id: None,
+        },
+    )?;
+
+    Ok(Prepared {
+        chat_id: chat.id,
+        prompt: composed.prompt,
+        key: composed.key,
+        title: composed.title,
+        attachments: composed.attachments,
+    })
+}
+
 /// The action of the active profile a task key names, when the profile
 /// still has it.
 pub fn action_of_key(conn: &Connection, task_key: &str) -> Option<PromptTemplate> {

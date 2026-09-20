@@ -78,6 +78,43 @@ pub struct Outcome {
     /// Releases planned by the package.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub releases: Vec<String>,
+    /// The style brick an answer was written onto, when it was one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub style_brick: Option<String>,
+}
+
+/// Keep an answer as a style brick's description.
+///
+/// The manual counterpart of applying a proposal, and the same shape: the
+/// brick is written, and the message is stamped `applied` so the button
+/// becomes a tick rather than staying available forever. It is a command of
+/// its own rather than a `produces` value because a brick is not a work —
+/// there is no card the answer belongs to, and the whole proposal machinery
+/// hangs on one.
+pub fn describe_style(
+    conn: &Connection,
+    message_id: &str,
+    brick_id: &str,
+) -> Result<crate::style_brick::StyleBrick> {
+    let message = assistant::message(conn, message_id)?
+        .ok_or_else(|| Error::not_found("message", message_id))?;
+    if message.meta.contains_key("applied") {
+        return Err(Error::Other("this proposal is already applied".into()));
+    }
+
+    let written = crate::style_brick::describe(conn, brick_id, message.body.trim())?;
+
+    let outcome = Outcome {
+        message_id: message_id.to_owned(),
+        at: crate::time::now(),
+        style_brick: Some(brick_id.to_owned()),
+        ..Outcome::default()
+    };
+    let mut meta = message.meta;
+    meta.insert("applied".into(), serde_json::to_value(&outcome)?);
+    assistant::set_meta(conn, message_id, &meta)?;
+
+    Ok(written)
 }
 
 /// Whether a message carries a proposal nobody has applied yet.

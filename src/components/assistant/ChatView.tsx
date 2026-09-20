@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Markdown } from '@/components/ui/Markdown'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { InsertVersionDialog } from '@/components/assistant/InsertVersionDialog'
+import { KeepAsNoteDialog } from '@/components/assistant/KeepAsNoteDialog'
 import { ProposedNote } from '@/components/assistant/ProposedNote'
 import { ProposedScenes } from '@/components/assistant/ProposedScenes'
 import { ProposedScore } from '@/components/assistant/ProposedScore'
@@ -61,6 +62,8 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
     label?: string
     messageId?: string
   } | null>(null)
+  /** The answer being kept as a note, or null. */
+  const [keeping, setKeeping] = useState<string | null>(null)
   // Which entry of the slash palette the arrow keys are on. Reset whenever the
   // query changes, so the highlight never points past a shortened list.
   const [highlighted, setHighlighted] = useState(0)
@@ -281,6 +284,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
                   ? undefined
                   : (body, role, label, messageId) => setInserting({ body, role, label, messageId })
               }
+              onKeepAsNote={(body) => setKeeping(body)}
               onStop={(id) => {
                 stop.mutate(id)
               }}
@@ -396,6 +400,19 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
         </div>
       </form>
 
+      {/* A note does not need a work: a chat about nothing still produces
+          answers worth keeping, and they become the workspace's notes. */}
+      {keeping !== null && (
+        <KeepAsNoteDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setKeeping(null)
+          }}
+          body={keeping}
+          workId={workId}
+        />
+      )}
+
       {/* Mounted per opening, so the role and label start fresh each time. */}
       {workId !== undefined && inserting !== null && (
         <InsertVersionDialog
@@ -419,6 +436,7 @@ function ExchangeItem({
   workId,
   onCopy,
   onInsert,
+  onKeepAsNote,
   onStop,
   stopping,
 }: {
@@ -428,6 +446,8 @@ function ExchangeItem({
   onCopy: (body: string) => void
   /** Absent when the chat is about nothing — there is no work to version. */
   onInsert?: (body: string, role?: string, label?: string, messageId?: string) => void
+  /** Keep the answer as a note. Always offered: a note needs no work. */
+  onKeepAsNote: (body: string) => void
   onStop: (runId: string) => void
   stopping: boolean
 }) {
@@ -449,6 +469,15 @@ function ExchangeItem({
   const insertable =
     onInsert !== undefined &&
     settled &&
+    proposal?.kind !== 'version' &&
+    proposal?.kind !== 'work' &&
+    proposal?.kind !== 'scenes'
+  // Keeping needs no work, so it is offered wherever inserting would be minus
+  // that condition — and not on an answer that already proposed a note, which
+  // has its own button and would otherwise be kept twice.
+  const keepable =
+    settled &&
+    proposal?.kind !== 'note' &&
     proposal?.kind !== 'version' &&
     proposal?.kind !== 'work' &&
     proposal?.kind !== 'scenes'
@@ -502,10 +531,27 @@ function ExchangeItem({
                 {t('assistant.insert')}
               </Button>
             )}
+            {/* Beside inserting, and on the same condition: an answer still
+                growing is not worth keeping yet, and a proposal with its own
+                buttons below is kept by those. */}
+            {keepable && (
+              <Button
+                size="sm"
+                variant="icon"
+                className={insertable ? 'h-6 px-1.5 text-[11px]' : 'ml-auto h-6 px-1.5 text-[11px]'}
+                onClick={() => {
+                  onKeepAsNote(body)
+                }}
+              >
+                {t('assistant.keepAsNote')}
+              </Button>
+            )}
             <Button
               size="sm"
               variant="icon"
-              className={insertable ? 'h-6 px-1.5 text-[11px]' : 'ml-auto h-6 px-1.5 text-[11px]'}
+              className={
+                insertable || keepable ? 'h-6 px-1.5 text-[11px]' : 'ml-auto h-6 px-1.5 text-[11px]'
+              }
               onClick={() => {
                 onCopy(body)
               }}

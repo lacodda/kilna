@@ -525,6 +525,11 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
         // module doc comment above for what their params are missing. Both
         // fall through to the `unknown` arm below rather than being played
         // with a guessed value.
+        //
+        // "style.describe" and "style.attachReference" fall through for a
+        // different reason: the first reads the text out of a chat message and
+        // the second carries no bytes, so neither can be played into a
+        // workspace rebuilt from the log alone. Reported rather than guessed.
         "work.discardBatch" => {
             // The entry ids are paired with the work ids by position, and every
             // entry of one gesture shares its moment — see the command.

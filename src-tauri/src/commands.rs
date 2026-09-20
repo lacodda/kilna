@@ -903,6 +903,71 @@ pub fn delete_note(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Note, &id)
 }
 
+/// What a `[[work:id]]` or `[[version:id]]` link points at.
+///
+/// One row per link that resolves: the title to draw, and for a version the
+/// work whose card it opens. A link to something deleted is simply absent, and
+/// the window draws it as the text it was — a dead link is worse than prose.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolvedLink {
+    pub id: String,
+    /// `work` or `version`, echoed so the window can match the row to the link
+    /// without assuming an order.
+    pub target: String,
+    pub title: String,
+    /// The work whose card opens. The work's own id for a work.
+    pub work_id: String,
+}
+
+/// Resolve the links in a body, in one round trip.
+///
+/// One call for the whole body rather than one per link: a note with twenty
+/// references would otherwise be twenty queries drawn one frame apart, which
+/// is the shape that made the predecessor's screens flicker.
+#[tauri::command]
+pub fn resolve_links(
+    state: State<'_, AppState>,
+    works: Vec<String>,
+    versions: Vec<String>,
+) -> Result<Vec<ResolvedLink>> {
+    let conn = state.conn();
+    let mut out = Vec::with_capacity(works.len() + versions.len());
+
+    for id in works {
+        let Some(work) = work::get(&conn, &id)? else {
+            continue;
+        };
+        out.push(ResolvedLink {
+            id,
+            target: "work".into(),
+            title: work.title,
+            work_id: work.id,
+        });
+    }
+
+    for id in versions {
+        let Some(found) = version::get(&conn, &id)? else {
+            continue;
+        };
+        // The label when it has one, else the role and revision: "lyrics 3"
+        // says more in a sentence than a uuid ever will.
+        let title = found
+            .label
+            .clone()
+            .filter(|label| !label.trim().is_empty())
+            .unwrap_or_else(|| format!("{} {}", found.role, found.revision));
+        out.push(ResolvedLink {
+            id,
+            target: "version".into(),
+            title,
+            work_id: found.work_id,
+        });
+    }
+
+    Ok(out)
+}
+
 /// The workspace's style dictionary, in the profile's order of types.
 #[tauri::command]
 pub fn list_style_bricks(
@@ -980,6 +1045,149 @@ pub fn update_style_brick(
 
     recording(&mut conn, logged, |tx| {
         style_brick::update_at(tx, &id, patch, &at)
+    })
+}
+
+/// A reference picture pasted straight onto a brick.
+///
+/// The bytes are not written into the log, for the reason a pasted frame's are
+/// not: an operation carrying a picture would make the log the size of the
+/// pictures. It is recorded as the arrival it is, and not replayed.
+#[tauri::command]
+pub fn paste_style_reference(
+    state: State<'_, AppState>,
+    id: String,
+    bytes: Vec<u8>,
+    name: String,
+) -> Result<asset::Asset> {
+    let media = state.media_dir()?;
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let logged = operation::Intent::new("style.attachReference")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("styleBrickId", id.clone())
+        .param("source", format!("<pasted: {name}>"));
+
+    recording(&mut conn, logged, |tx| {
+        asset::attach_bytes(
+            tx,
+            &profile_id,
+            &media,
+            &bytes,
+            &name,
+            asset::NewAsset {
+                style_brick_id: Some(id.clone()),
+                ..asset::NewAsset::default()
+            },
+        )
+    })
+}
+
+/// Keep an answer as a brick's description, and let it out of draft.
+#[tauri::command]
+pub fn describe_style_brick(
+    state: State<'_, AppState>,
+    message_id: String,
+    id: String,
+) -> Result<style_brick::StyleBrick> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let before = style_brick::get(&conn, &id)?;
+
+    // What stood there, so the write can be taken back. A description read out
+    // of a chat message cannot be replayed into a rebuilt workspace, but it
+    // can certainly be undone in this one — and an undo that could only blank
+    // the text would be worse than none.
+    let at = time::now();
+    let logged = operation::Intent::new("style.describe")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("messageId", message_id.clone())
+        .param("id", id.clone())
+        .param(
+            "before",
+            serde_json::to_value(style_brick::StyleBrickPatch {
+                description: Some(before.as_ref().and_then(|one| one.description.clone())),
+                status: before.as_ref().map(|one| one.status.clone()),
+                ..Default::default()
+            })?,
+        )
+        .param("at", at);
+
+    recording(&mut conn, logged, |tx| {
+        assistant::apply::describe_style(tx, &message_id, &id)
+    })
+}
+
+/// What describing a brick would send, without sending it.
+#[tauri::command]
+pub fn preview_style_task(
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+) -> Result<assistant::task::Composed> {
+    let conn = state.conn();
+    assistant::task::compose_for_style(&conn, &id, &action).map(|(composed, _)| composed)
+}
+
+/// Describe a brick from its references: the same machinery a work's action
+/// uses, aimed at the dictionary instead of a card.
+#[tauri::command]
+pub fn start_style_task(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+) -> Result<StartedTask> {
+    let state = state.inner();
+    let runs = Arc::clone(state.runs());
+    let workdir = state.assistant_dir();
+
+    // Checked before the chat is opened, for the reason `spawn_task` checks
+    // first: a refused duplicate must not leave an empty chat behind for every
+    // impatient second click.
+    let key = assistant::task::style_key(&action, &id);
+    if runs.task_running(&key) {
+        return Err(Error::Assistant(
+            "This is already running. Wait for it to finish.".into(),
+        ));
+    }
+
+    let (prepared, run, stream) = {
+        let conn = state.conn();
+        let prepared = assistant::task::prepare_for_style(&conn, &id, &action)?;
+        let (run, stream) = assistant_run::start_as(
+            &conn,
+            &runs,
+            &prepared.chat_id,
+            &prepared.prompt,
+            workdir.as_deref(),
+            Some(prepared.key.clone()),
+            &prepared.attachments,
+        )?;
+        (prepared, run, stream)
+    };
+
+    let sink: Arc<dyn Sink> = Arc::new(WindowSink(app.clone()));
+    let started = run.clone();
+    let handle = app.clone();
+
+    std::thread::spawn(move || {
+        {
+            let inner = handle.clone();
+            let open = move || inner.state::<AppState>().inner().open_alongside();
+            assistant_run::pump(&runs, &sink, &started, &stream, open);
+        }
+        drain_queue(&handle);
+    });
+
+    Ok(StartedTask {
+        chat_id: prepared.chat_id,
+        run_id: run.id,
+        task_key: prepared.key,
+        title: prepared.title,
     })
 }
 

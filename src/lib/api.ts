@@ -311,6 +311,19 @@ export interface SceneBlock extends Kind {
   hint?: string | null
 }
 
+/**
+ * One type of style brick: an image style, a character, an environment.
+ *
+ * The `hint` says what to describe when a brick is of this type — the
+ * difference between one rich dictionary and several flat ones. It reaches the
+ * assistant when a brick is described and never a generator. See ADR 0031.
+ */
+export interface StyleType extends Kind {
+  hint?: string | null
+  /** A glyph from the fixed set the window knows. */
+  icon?: string | null
+}
+
 export interface WorkKind extends Kind {
   axes?: Axis[]
   tiers?: Tier[]
@@ -362,6 +375,10 @@ export interface ProfileConfig {
       points at notes of these kinds. Absent in a profile written before
       them; a note still takes any kind a person writes. */
   note_kinds?: Kind[]
+  /** The types a style brick can be. On the profile rather than on a kind:
+      the same character stands in the videos and in the shorts. Absent means
+      the craft has no style dictionary and the screen does not appear. */
+  style_types?: StyleType[]
 }
 
 export interface Profile {
@@ -956,6 +973,8 @@ export interface Asset {
   label: string | null
   /** The name the file arrived under — what the world outside calls it. */
   original_name: string | null
+  /** The style brick it is a reference for, when it is one. */
+  style_brick_id: string | null
   created_at: string
 }
 
@@ -963,6 +982,8 @@ export interface Asset {
 export interface NewAsset {
   work_id?: string
   release_id?: string
+  /** The style brick this is a reference for. */
+  style_brick_id?: string
   /** `cover`, or nothing for a plain attachment. */
   kind?: string
   label?: string
@@ -1095,6 +1116,87 @@ export const createNote = (note: NewNote) => invoke<Note>('create_note', { note 
 export const updateNote = (id: string, patch: NotePatch) => invoke<Note>('update_note', { id, patch })
 export const deleteNote = (id: string) => invoke<string>('delete_note', { id })
 export const listTags = () => invoke<[string, number][]>('list_tags')
+
+/** What a `[[work:id]]` or `[[version:id]]` link points at. A link to
+    something deleted is simply absent from the answer. */
+export interface ResolvedLink {
+  id: string
+  target: 'work' | 'version'
+  title: string
+  /** The work whose card opens. The work's own id for a work. */
+  workId: string
+}
+
+export const resolveLinks = (works: string[], versions: string[]) =>
+  invoke<ResolvedLink[]>('resolve_links', { works, versions })
+
+/**
+ * A brick of the workspace's style dictionary: a part a picture prompt is
+ * built from, under a type the profile names. See ADR 0031.
+ */
+export interface StyleBrick {
+  id: string
+  profile_id: string
+  /** A key of the profile's `style_types`. */
+  type_key: string
+  name: string
+  /** The text that goes into a prompt verbatim; null while it is a draft. */
+  description: string | null
+  /** The author's steer for whoever describes it — never part of a prompt. */
+  hint: string | null
+  status: StyleBrickStatus
+  created_at: string
+  updated_at: string
+  reference_count: number
+}
+
+/** Draft until it carries a description, ready once it does, dropped when
+ * retired. Only ready bricks are offered for building a prompt. */
+export type StyleBrickStatus = 'draft' | 'ready' | 'dropped'
+
+export interface NewStyleBrick {
+  type_key: string
+  name: string
+  description?: string | null
+  hint?: string | null
+}
+
+export interface StyleBrickPatch {
+  type_key?: string
+  name?: string
+  description?: string | null
+  hint?: string | null
+  status?: StyleBrickStatus
+}
+
+export interface StyleBrickFilter {
+  type_key?: string | null
+  ready_only?: boolean
+  query?: string | null
+}
+
+export const listStyleBricks = (filter?: StyleBrickFilter) =>
+  invoke<StyleBrick[]>('list_style_bricks', { filter })
+export const styleBrickCounts = () => invoke<[string, number][]>('style_brick_counts')
+export const getStyleBrick = (id: string) => invoke<StyleBrick | null>('get_style_brick', { id })
+export const styleBrickReferences = (id: string) =>
+  invoke<Asset[]>('style_brick_references', { id })
+export const createStyleBrick = (brick: NewStyleBrick) =>
+  invoke<StyleBrick>('create_style_brick', { brick })
+export const updateStyleBrick = (id: string, patch: StyleBrickPatch) =>
+  invoke<StyleBrick>('update_style_brick', { id, patch })
+export const deleteStyleBrick = (id: string) => invoke<void>('delete_style_brick', { id })
+/** A reference pasted straight onto a brick, the way a frame is. */
+export const pasteStyleReference = (id: string, bytes: number[], name: string) =>
+  invoke<Asset>('paste_style_reference', { id, bytes, name })
+/** Describe a brick from its references — the dictionary's own AI action. */
+export const startStyleTask = (id: string, action: string) =>
+  invoke<StartedTask>('start_style_task', { id, action })
+export const previewStyleTask = (id: string, action: string) =>
+  invoke<ComposedTask>('preview_style_task', { id, action })
+/** Keep an answer as a brick's description, and let it out of draft. */
+export const describeStyleBrick = (messageId: string, id: string) =>
+  invoke<StyleBrick>('describe_style_brick', { messageId, id })
 
 /** Tags in use on works, most used first — what the tag box offers. */
 export const workTags = () => invoke<[string, number][]>('work_tags')

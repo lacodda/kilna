@@ -443,7 +443,15 @@ fn an_irreversible_operation_is_not_offered() {
 fn every_operation_is_undoable_or_says_why_not() {
     // The reason is not read by the code — it is read by whoever runs into this
     // test after adding a kind, which is exactly when it needs to exist.
-    const NOT_UNDOABLE: [(&str, &str); 24] = [
+    const NOT_UNDOABLE: [(&str, &str); 26] = [
+        (
+            "style.attachReference",
+            "it carries a file into the workspace, as `asset.attach` does, and              taking it back is detaching the asset, which removes the bytes too",
+        ),
+        (
+            "style.delete",
+            "a style is retired by going `dropped`, which keeps it and is one              click to take back; deleting one is the deliberate way past that,              and its references go with it as the schema says they must",
+        ),
         (
             "status.resync",
             "recomputes many works from the facts at once; the statuses it \
@@ -1176,5 +1184,71 @@ fn undoing_a_chosen_frame_puts_the_previous_one_back() {
     assert_eq!(
         chosen[0].id, frames[0].id,
         "and it is the frame that was chosen before, not none"
+    );
+}
+
+/// Describing a style is taken back to what stood there — blank included.
+///
+/// The interesting half is the status. A brick is a draft until it carries a
+/// description; describing it makes it ready. An undo that put the old text
+/// back and left the brick `ready` would leave a draft masquerading as a
+/// finished part, and the constructor would offer it. So both travel in the
+/// `before`, and both come back.
+#[test]
+fn undoing_a_description_puts_back_the_draft_it_was() {
+    use kilna_lib::style_brick::{self, DRAFT, NewStyleBrick, READY, StyleBrickPatch};
+
+    let (mut conn, profile_id, _work_id) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+
+    let brick = style_brick::create(
+        &conn,
+        &profile_id,
+        NewStyleBrick {
+            type_key: "image-style".into(),
+            name: "Cold north".into(),
+            description: None,
+            hint: None,
+        },
+    )
+    .unwrap();
+    assert_eq!(brick.status, DRAFT);
+
+    // Exactly what the command records, including the `before` it carries.
+    let at = kilna_lib::time::now();
+    let logged = operation::Intent::new("style.describe")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("id", brick.id.clone())
+        .param(
+            "before",
+            serde_json::to_value(StyleBrickPatch {
+                description: Some(brick.description.clone()),
+                status: Some(brick.status.clone()),
+                ..Default::default()
+            })
+            .unwrap(),
+        )
+        .param("at", at.clone());
+
+    let transaction = conn.transaction().unwrap();
+    style_brick::describe(&transaction, &brick.id, "Grainy monochrome film.").unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let described = style_brick::get(&conn, &brick.id).unwrap().unwrap();
+    assert_eq!(described.status, READY);
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("describing a style can be undone");
+    assert_eq!(offer.action, "undo.style.describe");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+
+    let back = style_brick::get(&conn, &brick.id).unwrap().unwrap();
+    assert_eq!(back.description, None, "the text did not come back");
+    assert_eq!(
+        back.status, DRAFT,
+        "a brick whose description was undone is a draft again, not a ready one with no text"
     );
 }

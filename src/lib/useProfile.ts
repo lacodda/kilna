@@ -11,6 +11,7 @@ import {
   type ReleaseKind,
   type SceneBlock,
   type Status,
+  type StyleType,
   type Tier,
   type VersionRole,
 } from '@/lib/api'
@@ -106,6 +107,17 @@ export function vocabularyOf(config: ProfileConfig, kind: string | undefined): V
     scene_blocks: found.scene_blocks ?? [],
     cover_blocks: found.cover_blocks ?? [],
   }
+}
+
+/**
+ * The types a style brick can be. On the profile rather than on a kind: the
+ * same character stands in the videos and in the shorts (ADR 0031).
+ *
+ * Empty means the craft has no style dictionary, and the screen that keeps one
+ * does not appear — the same rule a kind with no `shot_types` follows.
+ */
+export function styleTypesOf(config: ProfileConfig): StyleType[] {
+  return config.style_types ?? []
 }
 
 /**

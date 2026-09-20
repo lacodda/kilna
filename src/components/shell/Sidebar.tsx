@@ -12,12 +12,14 @@ import {
   Moon,
   Palette,
   Settings,
+  Shapes,
   Sun,
   Trash2,
   type LucideIcon,
 } from 'lucide-react'
 import { nextTheme, useTheme, type Theme } from '@/lib/theme'
 import { nextLanguage, useLanguage } from '@/lib/language'
+import { styleTypesOf, useProfile } from '@/lib/useProfile'
 import { ProfileSwitcher } from '@/components/ProfileSwitcher'
 import { cn } from '@/lib/utils'
 
@@ -72,6 +74,8 @@ interface Props {
 // bar in v0.74, where a system title bar would have printed the name.
 export function Sidebar({ profileId, onProfileSwitched }: Props) {
   const { t } = useTranslation()
+  const { config } = useProfile()
+  const hasStyles = styleTypesOf(config).length > 0
   const { theme, setTheme } = useTheme()
   const { language, setLanguage } = useLanguage()
   const ThemeIcon = THEME_ICONS[theme]
@@ -91,6 +95,9 @@ export function Sidebar({ profileId, onProfileSwitched }: Props) {
       </div>
       <SoonLink icon={Disc} label={t('nav.collections')} version="0.58" />
       <SoonLink icon={FileText} label={t('nav.notes')} version="0.59" />
+      {/* Only where the craft has one: a profile that names no style types
+          has no dictionary, and a door to an empty room is worse than none. */}
+      {hasStyles && <ScreenLink to="/styles" icon={Shapes} label={t('nav.styles')} />}
       <ScreenLink to="/journal" icon={History} label={t('nav.journal')} />
       <ScreenLink to="/trash" icon={Trash2} label={t('nav.trash')} />
 

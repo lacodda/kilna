@@ -24,6 +24,7 @@ import { DashboardView } from '@/components/DashboardView'
 import { CalendarView } from '@/components/CalendarView'
 import { SettingsView } from '@/components/settings/SettingsView'
 import { JournalView } from '@/components/JournalView'
+import { StylesView } from '@/components/StylesView'
 import { TrashView } from '@/components/TrashView'
 import { Styleguide } from '@/components/Styleguide'
 import { Panel } from '@/components/ui/panel'
@@ -246,6 +247,14 @@ function WorksScreen() {
                     element={
                       <Screen scroll="held">
                         <CalendarView onSelect={openWork} />
+                      </Screen>
+                    }
+                  />
+                  <Route
+                    path="/styles"
+                    element={
+                      <Screen>
+                        <StylesView />
                       </Screen>
                     }
                   />

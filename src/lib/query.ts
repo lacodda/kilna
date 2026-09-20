@@ -57,6 +57,17 @@ export const keys = {
   covers: ['covers'] as const,
   assetsFor: (workId: string) => ['assets', workId] as const,
   notes: ['notes'] as const,
+  /** What the links in one body point at, keyed by the ids they name: two
+      bodies naming the same works share the answer. */
+  resolvedLinks: (ids: string) => ['links', 'resolved', ids] as const,
+  // One coarse prefix over the style dictionary: a brick changes the
+  // dictionary screen, the counts beside its types and the picker the
+  // constructor opens, and none of the three is worth invalidating alone.
+  styles: ['styles'] as const,
+  styleBricks: ['styles', 'list'] as const,
+  styleCounts: ['styles', 'counts'] as const,
+  styleBrick: (id: string) => ['styles', 'item', id] as const,
+  styleReferences: (id: string) => ['styles', 'references', id] as const,
   tags: ['tags'] as const,
   workTags: ['workTags'] as const,
   deletions: ['deletions'] as const,
