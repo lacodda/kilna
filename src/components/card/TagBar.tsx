@@ -183,7 +183,7 @@ export function TagBar({ work }: { work: Work }) {
                   key={tag}
                   value={tag}
                   onClick={() => addTag(tag)}
-                  className="rounded-[7px] px-2 py-1 text-[11px]"
+                  className="rounded-md px-2 py-1 text-[11px]"
                 >
                   {tag}
                 </ComboboxItem>

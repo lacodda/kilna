@@ -228,7 +228,7 @@ function ReleaseFieldBox({ field, onSave, onCopy }: BoxProps) {
           disabled={draft.trim() === ''}
           title={t('releases.meta.copy')}
           aria-label={t('releases.meta.copy')}
-          className="ml-auto text-faint hover:text-fg disabled:opacity-40"
+          className="ml-auto text-faint hover:text-text disabled:opacity-40"
         >
           <Copy aria-hidden className="size-3.5" />
         </button>

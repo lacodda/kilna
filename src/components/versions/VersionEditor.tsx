@@ -94,7 +94,7 @@ export function VersionEditor({
       </div>
 
       {preview && markdown ? (
-        <div className="min-h-[9rem] overflow-auto rounded-[9px] border border-line px-3 py-2">
+        <div className="min-h-[9rem] overflow-auto rounded-md border border-line px-3 py-2">
           {draft.trim() === '' ? (
             <p className="text-sm text-faint">{t('versions.previewEmpty')}</p>
           ) : (

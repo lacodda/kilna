@@ -228,7 +228,7 @@ export function ReleasePanel({ workId, workTitle }: Props) {
                   onClick={() => setShowing(open ? null : entry.id)}
                   aria-expanded={open}
                   aria-label={t('releases.meta.title')}
-                  className="-my-1 -ml-1 shrink-0 rounded p-1 text-faint hover:text-fg"
+                  className="-my-1 -ml-1 shrink-0 rounded p-1 text-faint hover:text-text"
                 >
                   <ChevronRight
                     aria-hidden
@@ -261,7 +261,7 @@ export function ReleasePanel({ workId, workTitle }: Props) {
                     type="button"
                     onClick={() => void openExternal(url)}
                     title={url}
-                    className="flex min-w-0 items-center gap-1 text-xs text-dim underline hover:text-fg"
+                    className="flex min-w-0 items-center gap-1 text-xs text-dim underline hover:text-text"
                   >
                     <ExternalLink aria-hidden className="size-3 shrink-0" />
                     <span className="truncate">{shortLink(url)}</span>

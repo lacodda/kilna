@@ -70,7 +70,7 @@ export function FrameViewer({ viewing, onClose, onStep, canStep }: Props) {
             onClick={onClose}
             aria-label={t('scenes.closeFrame')}
             title={t('scenes.closeFrame')}
-            className="rounded p-1 text-dim hover:text-fg"
+            className="rounded p-1 text-dim hover:text-text"
           >
             <X className="size-4" aria-hidden />
           </button>
@@ -83,7 +83,7 @@ export function FrameViewer({ viewing, onClose, onStep, canStep }: Props) {
             disabled={!canStep(-1)}
             aria-label={t('scenes.previousScene')}
             title={t('scenes.previousScene')}
-            className="rounded p-2 text-dim enabled:hover:text-fg disabled:opacity-30"
+            className="rounded p-2 text-dim enabled:hover:text-text disabled:opacity-30"
           >
             <ChevronLeft className="size-6" aria-hidden />
           </button>
@@ -101,7 +101,7 @@ export function FrameViewer({ viewing, onClose, onStep, canStep }: Props) {
             disabled={!canStep(1)}
             aria-label={t('scenes.nextScene')}
             title={t('scenes.nextScene')}
-            className="rounded p-2 text-dim enabled:hover:text-fg disabled:opacity-30"
+            className="rounded p-2 text-dim enabled:hover:text-text disabled:opacity-30"
           >
             <ChevronRight className="size-6" aria-hidden />
           </button>

@@ -133,7 +133,7 @@ export function VersionList({
               tabIndex={isOpen ? 0 : -1}
               onClick={() => onOpen(version.id)}
               className={cn(
-                'min-w-0 flex-1 rounded-[9px] px-2 py-1.5 text-left text-sm transition-colors',
+                'min-w-0 flex-1 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
                 isOpen && 'bg-accent-soft text-accent-2',
                 !isOpen && isCompared && 'bg-soft',
                 !isOpen && !isCompared && 'hover:bg-soft',

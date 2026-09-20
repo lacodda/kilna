@@ -238,34 +238,41 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
                 )}
               </button>
 
-              <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 bg-surface/80 p-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-                <button
-                  type="button"
+              {/* Buttons, not bare elements with a quarter of a line of
+                  padding: these were ~14px targets on a strip that appears
+                  under the pointer, which is a hard thing to hit and the
+                  reason the owner called them cramped. `icon-sm` is the
+                  line's smallest real control. */}
+              <div className="absolute inset-x-0 bottom-0 flex justify-between gap-0.5 bg-surface/80 px-1 py-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                <Button
+                  variant="icon"
+                  size="icon-sm"
                   onClick={() => choose.mutate(frame.id)}
                   title={frame.is_selected ? word('chosenFrame') : word('chooseFrame')}
                   aria-label={frame.is_selected ? word('chosenFrame') : word('chooseFrame')}
-                  className={cn('rounded p-0.5', frame.is_selected ? 'text-good' : 'text-dim')}
+                  className={cn(frame.is_selected && 'text-good')}
                 >
-                  <Check className="size-3.5" aria-hidden />
-                </button>
-                <button
-                  type="button"
+                  <Check aria-hidden />
+                </Button>
+                <Button
+                  variant="icon"
+                  size="icon-sm"
                   onClick={() => onOpen(frame)}
                   title={word('openFrame')}
                   aria-label={word('openFrame')}
-                  className="rounded p-0.5 text-dim"
                 >
-                  <Maximize2 className="size-3.5" aria-hidden />
-                </button>
-                <button
-                  type="button"
+                  <Maximize2 aria-hidden />
+                </Button>
+                <Button
+                  variant="icon"
+                  size="icon-sm"
                   onClick={() => remove.mutate(frame.id)}
                   title={word('removeFrame')}
                   aria-label={word('removeFrame')}
-                  className="rounded p-0.5 text-dim hover:text-bad"
+                  className="hover:text-bad"
                 >
-                  <Trash2 className="size-3.5" aria-hidden />
-                </button>
+                  <Trash2 aria-hidden />
+                </Button>
               </div>
             </li>
           ))}

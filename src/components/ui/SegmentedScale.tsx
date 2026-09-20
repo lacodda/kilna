@@ -95,7 +95,7 @@ export function SegmentedScale({
       onKeyDown={onKeyDown}
       onMouseLeave={() => onPreview?.(undefined)}
       className={cn(
-        'flex gap-[3px] rounded-[7px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+        'flex gap-[3px] rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         className,
       )}
     >
@@ -121,7 +121,7 @@ export function SegmentedScale({
             onMouseEnter={() => onPreview?.(mark)}
             title={crosses ? threshold.label : undefined}
             className={cn(
-              'relative h-[22px] flex-1 cursor-pointer rounded-[5px] transition-colors',
+              'relative h-[22px] flex-1 cursor-pointer rounded-sm transition-colors',
               filled ? 'bg-accent hover:bg-accent-2' : 'bg-soft hover:bg-line-2',
               // An outline around the mark itself rather than a rule beside it.
               // A line on the leading edge reads as the end of the scale when

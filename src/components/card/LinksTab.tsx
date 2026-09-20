@@ -320,7 +320,7 @@ function SourcePicker({
                 type="button"
                 disabled={link.isPending}
                 onClick={() => link.mutate(candidate.id)}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-[10px] px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-soft"
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-soft"
               >
                 <span className="min-w-0 flex-1 truncate">{candidate.title}</span>
                 <span className="text-xs text-faint">

@@ -52,7 +52,7 @@ export function DatePicker({
       <PopoverTrigger
         aria-label={ariaLabel}
         className={cn(
-          'flex h-9 w-full cursor-pointer items-center gap-2 rounded-[9px] border border-line px-2.5 text-sm transition-colors hover:border-line-2',
+          'flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-line px-2.5 text-sm transition-colors hover:border-line-2',
           'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent',
           className,
         )}

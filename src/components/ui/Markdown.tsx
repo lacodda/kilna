@@ -48,7 +48,7 @@ export function Markdown({
       button.type = 'button'
       button.textContent = copyLabel
       button.className = cn(
-        'absolute right-1.5 top-1.5 cursor-pointer rounded-[7px] border border-line bg-raise px-1.5 py-0.5 text-[11px] text-dim',
+        'absolute right-1.5 top-1.5 cursor-pointer rounded-md border border-line bg-raise px-1.5 py-0.5 text-[11px] text-dim',
         'opacity-0 transition-opacity hover:text-text focus-visible:opacity-100 group-hover:opacity-100',
       )
       button.addEventListener('click', () => {

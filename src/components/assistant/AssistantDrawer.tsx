@@ -335,7 +335,7 @@ function Drawer({
                   key={chat.id}
                   actions={actions}
                   render={
-                    <li className="flex items-center gap-1 rounded-[10px] data-[popup-open]:bg-soft" />
+                    <li className="flex items-center gap-1 rounded-md data-[popup-open]:bg-soft" />
                   }
                 >
                   <button
@@ -343,7 +343,7 @@ function Drawer({
                     onClick={() => {
                       setSelected(chat.id)
                     }}
-                    className="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-[10px] px-2.5 py-2 text-left transition-colors hover:bg-soft"
+                    className="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-soft"
                   >
                     <span className="flex items-center gap-1.5 text-sm">
                       {runningChats.has(chat.id) && (

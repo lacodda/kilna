@@ -160,7 +160,7 @@ export function MonthGrid({
             onPointerEnter={() => setOver('bin')}
             onPointerLeave={() => setOver((current) => (current === 'bin' ? null : current))}
             className={cn(
-              'ml-auto flex items-center gap-1.5 rounded-[10px] border border-dashed px-3 py-1 text-xs transition-colors',
+              'ml-auto flex items-center gap-1.5 rounded-md border border-dashed px-3 py-1 text-xs transition-colors',
               over === 'bin'
                 ? 'border-bad bg-bad-soft text-bad'
                 : 'border-line-2 text-dim',
@@ -264,7 +264,7 @@ export function MonthGrid({
                     onAddOn(day.date)
                   }}
                   className={cn(
-                    'inline-flex size-4 cursor-pointer items-center justify-center rounded-[5px]',
+                    'inline-flex size-4 cursor-pointer items-center justify-center rounded-sm',
                     'text-faint opacity-0 transition-opacity hover:bg-soft hover:text-text',
                     'group-hover:opacity-100 focus-visible:opacity-100',
                   )}
@@ -305,7 +305,7 @@ export function MonthGrid({
                       event.stopPropagation()
                       setExpanded(day.date)
                     }}
-                    className="cursor-pointer rounded-[7px] px-1 py-0.5 text-left text-[10px] text-dim transition-colors hover:bg-soft hover:text-text"
+                    className="cursor-pointer rounded-md px-1 py-0.5 text-left text-[10px] text-dim transition-colors hover:bg-soft hover:text-text"
                   >
                     {t('calendar.moreOnDay', { count: releases.length - VISIBLE_CHIPS })}
                   </button>
@@ -317,7 +317,7 @@ export function MonthGrid({
                       event.stopPropagation()
                       setExpanded(null)
                     }}
-                    className="cursor-pointer rounded-[7px] px-1 py-0.5 text-left text-[10px] text-dim transition-colors hover:bg-soft hover:text-text"
+                    className="cursor-pointer rounded-md px-1 py-0.5 text-left text-[10px] text-dim transition-colors hover:bg-soft hover:text-text"
                   >
                     {t('calendar.showFewer')}
                   </button>
@@ -331,7 +331,7 @@ export function MonthGrid({
                   <div
                     key={ghost.releaseId}
                     title={`${ghost.title} · ${labelOf(releaseKinds, ghost.kind)}`}
-                    className="flex flex-wrap items-center gap-x-1.5 rounded-[7px] border border-dashed px-1.5 py-1 text-[11px]"
+                    className="flex flex-wrap items-center gap-x-1.5 rounded-md border border-dashed px-1.5 py-1 text-[11px]"
                     style={{ borderColor: accentFor(ghost.workId) }}
                   >
                     {/* Same two rows as a booked chip, for the same reason: on
@@ -349,7 +349,7 @@ export function MonthGrid({
                 {verdict !== null && (
                   <p
                     className={cn(
-                      'rounded-[6px] px-1 py-0.5 text-[10px] leading-tight',
+                      'rounded-sm px-1 py-0.5 text-[10px] leading-tight',
                       verdict.verdict === 'displaces'
                         ? 'bg-warn-soft text-warn'
                         : 'bg-bad-soft text-bad',

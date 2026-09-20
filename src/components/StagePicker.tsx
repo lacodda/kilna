@@ -117,7 +117,7 @@ export function StagePicker({
                 break
             }
           }}
-          className="flex items-center gap-1 rounded-[7px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="flex items-center gap-1 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           {stops.map((stop, at) => {
             const reached = index >= at
@@ -131,7 +131,7 @@ export function StagePicker({
                 title={`${say(stop.label)} · ${stop.percent}%`}
                 aria-label={say(stop.label)}
                 onClick={() => set(percent === stop.percent ? null : stop.percent)}
-                className="group flex cursor-pointer flex-col items-center gap-1 rounded-[5px] px-1 py-0.5 transition-colors hover:bg-soft"
+                className="group flex cursor-pointer flex-col items-center gap-1 rounded-sm px-1 py-0.5 transition-colors hover:bg-soft"
               >
                 <StageDial percent={stop.percent} stage={stop} size={16} />
                 {/* The number, not the word: six words in a row would be a
@@ -153,7 +153,7 @@ export function StagePicker({
               type="button"
               tabIndex={-1}
               onClick={() => set(null)}
-              className="ml-1 cursor-pointer self-stretch rounded-[5px] px-1.5 text-[10px] text-faint transition-colors hover:bg-soft hover:text-text"
+              className="ml-1 cursor-pointer self-stretch rounded-sm px-1.5 text-[10px] text-faint transition-colors hover:bg-soft hover:text-text"
             >
               {t('stage.clear')}
             </button>

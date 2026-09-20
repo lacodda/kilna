@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
  * right answer when we do not — it promises nothing about what arrives.
  */
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-[9px] bg-soft', className)} aria-hidden />
+  return <div className={cn('animate-pulse rounded-md bg-soft', className)} aria-hidden />
 }
 
 /** Rows for a list of titles with a subtitle underneath — the works list shape. */

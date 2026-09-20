@@ -114,7 +114,7 @@ function Line({ complaint, onGo }: { complaint: Complaint; onGo: (sceneId: strin
     <li>
       <button
         type="button"
-        className="flex w-full items-start gap-2 rounded-inner px-1 py-0.5 text-left text-sm text-dim hover:bg-soft hover:text-fg"
+        className="flex w-full items-start gap-2 rounded-inner px-1 py-0.5 text-left text-sm text-dim hover:bg-soft hover:text-text"
         onClick={() => onGo(target)}
       >
         <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0 text-warn" />

@@ -126,7 +126,7 @@ export function FilesTab({ work }: Props) {
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 rounded-[12px] transition-colors',
+        'flex flex-col gap-4 rounded-lg transition-colors',
         over && 'outline-2 outline-dashed outline-offset-4 outline-accent',
       )}
     >
@@ -213,7 +213,7 @@ function FileCard({
     <li className="flex flex-col gap-1.5">
       <div
         className={cn(
-          'relative flex h-32 items-center justify-center overflow-hidden rounded-[10px] border bg-soft/40',
+          'relative flex h-32 items-center justify-center overflow-hidden rounded-md border bg-soft/40',
           isCover ? 'border-accent' : 'border-line',
         )}
       >

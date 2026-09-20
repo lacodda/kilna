@@ -28,7 +28,7 @@ const THEME_ICONS: Record<Theme, LucideIcon> = {
 }
 
 const NAV_CLASS =
-  'flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-left text-sm text-dim transition-colors hover:bg-soft hover:text-text [&_svg]:size-4 [&_svg]:shrink-0'
+  'flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-sm text-dim transition-colors hover:bg-soft hover:text-text [&_svg]:size-4 [&_svg]:shrink-0'
 
 function ScreenLink({ to, icon: Icon, label }: { to: string; icon: LucideIcon; label: string }) {
   return (

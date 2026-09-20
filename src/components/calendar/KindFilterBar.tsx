@@ -80,7 +80,7 @@ function Chip({ active, onClick, icon, label, count }: ChipProps) {
       // pressed tells a screen reader nothing about what the grid is showing.
       aria-pressed={active}
       className={cn(
-        'flex cursor-pointer items-center gap-1.5 rounded-[9px] px-2.5 py-1 text-xs transition-colors',
+        'flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors',
         active ? 'bg-accent-soft text-accent-2' : 'text-dim hover:bg-soft',
       )}
     >

@@ -327,7 +327,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
                     setHighlighted(index)
                   }}
                   className={cn(
-                    'flex w-full cursor-pointer flex-col gap-0.5 rounded-[10px] px-2.5 py-1.5 text-left',
+                    'flex w-full cursor-pointer flex-col gap-0.5 rounded-md px-2.5 py-1.5 text-left',
                     action.key === chosen?.key ? 'bg-soft text-text' : 'text-dim',
                   )}
                 >

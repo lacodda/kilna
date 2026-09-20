@@ -63,7 +63,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
     <div
       onPointerDown={released || asGhost ? undefined : onGrab}
       className={cn(
-        'flex flex-col gap-0.5 rounded-[7px] px-1 py-1 text-[11px]',
+        'flex flex-col gap-0.5 rounded-md px-1 py-1 text-[11px]',
         !asGhost && 'transition-opacity',
         released && 'opacity-60',
         // The chip left behind while its copy travels: dimmed, so the day it
