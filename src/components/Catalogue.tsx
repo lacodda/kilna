@@ -855,7 +855,7 @@ function Rows({
           table stays exactly where it was, so the next click is on the row you
           were already looking at. */}
       {chosen.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-line bg-raise px-3 py-2 text-sm">
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-line bg-raise px-3 py-2 text-sm">
           <span className="font-medium">{t('catalogue.chosen', { count: chosen.length })}</span>
           <BulkActions workIds={chosen} onStarted={() => onSelectionChange(new Set())} />
 
@@ -922,9 +922,18 @@ function Rows({
           someone reading the middle. The header row is sticky for the same
           reason: a table you scroll is a table whose headings must stay. */}
       <div className="min-h-0 min-w-0 flex-1 overflow-auto">
+        {/* `min-width`, never `width`, once columns have been sized by hand.
+            A table given an explicit width WIDER than the box it scrolls in
+            takes that width as its own edge — and `sticky right-0` holds a
+            cell against the edge of the TABLE, which in that case sits off
+            screen. The row menu then travelled with the rows, which is the
+            one thing holding it was for. `min-w-max` says the same thing
+            without ever declaring an edge past the viewport: the table is as
+            wide as its columns need and no wider, and the held cell stops at
+            the right edge of the scrolling box, where the eye is. */}
         <table
-          className={cn('text-sm', widths.sized ? 'table-fixed' : 'w-full min-w-max')}
-          style={widths.sized ? { width: titleSized ? total : '100%', minWidth: total } : undefined}
+          className={cn('text-sm w-full min-w-max', widths.sized && 'table-fixed')}
+          style={widths.sized ? { minWidth: total } : undefined}
         >
         {/* The widths live on the columns, not the cells: one `<col>` per
             drawn column, and only while something was sized by hand - until
@@ -1427,7 +1436,7 @@ function Cell({
                 and what the catalogue is read down is titles. */}
             <span
               aria-hidden
-              className="size-5 shrink-0 rounded-[5px] border border-line/60"
+              className="size-5 shrink-0 rounded-sm border border-line/60"
               style={{ background: coverImageFor(row.work_id, covers.get(row.work_id)) }}
             />
             <span className="min-w-0 truncate font-medium" title={row.title}>

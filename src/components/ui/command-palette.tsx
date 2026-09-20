@@ -177,29 +177,20 @@ export interface CommandPaletteInputProps extends Base.Input.Props {
  * and the field its combobox. */
 export function CommandPaletteInput({ hint, className, ...props }: CommandPaletteInputProps) {
   return (
-    // The row carries the focus, not the box inside it.
+    // No focus treatment on this row at all, which is dowel's own shape.
     //
-    // The line's focus ring is a 2px accent outline at a 2px offset, set once
-    // for everything (`styles.css`). On a borderless input sitting inside a
-    // bordered panel it drew a second rectangle a few pixels in from the
-    // first - a stray frame around the search box that belongs to no part of
-    // the panel, which is exactly how the owner read it.
-    //
-    // The input keeps the focus for the keyboard and for a screen reader; the
-    // row is what says so, by tinting the rule it already has. Nothing is
-    // taken away: the signal moves from a floating rectangle onto the edge of
-    // the thing that is actually active.
-    <div
-      className={cn(
-        'flex items-center gap-2 border-b border-line px-3 transition-colors',
-        'focus-within:border-accent',
-      )}
-    >
+    // kilna had tinted the rule accent on `focus-within`, to stand in for a
+    // focus ring the input suppresses. But the palette opens WITH the field
+    // focused — it is the only thing in it — so the tint was on from the
+    // first frame and read as a permanent pink frame around the search box,
+    // which is what the owner saw and dowel's own page does not have. The
+    // field is obviously the field; it does not need to announce itself.
+    <div className="flex items-center gap-2 border-b border-line px-3">
       <MagnifierIcon />
       <Base.Input
         className={cn(
           'h-11 w-full bg-transparent text-sm text-text placeholder:text-faint',
-          'outline-none focus-visible:outline-none',
+          'focus-visible:outline-none',
           className,
         )}
         {...props}

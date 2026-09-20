@@ -35,9 +35,9 @@ import { usePopupContainer } from './layer'
 export const selectTriggerVariants = cva([fieldClasses, 'flex items-center justify-between gap-2'], {
   variants: {
     size: {
-      sm: 'h-8 text-xs',
-      md: 'h-9',
-      lg: 'h-10 text-base',
+      sm: 'h-control-sm text-xs',
+      md: 'h-control',
+      lg: 'h-control-lg text-base',
     },
   },
   defaultVariants: { size: 'md' },
@@ -73,7 +73,11 @@ export const selectItemVariants = cva([
   // Base UI marks the item under the pointer or the keyboard the same way,
   // so one rule covers both and they cannot disagree.
   'data-[highlighted]:bg-soft data-[highlighted]:text-text',
-  'data-[selected]:text-text',
+  // What is already chosen has to be visible in the list, and colour alone
+  // will not do it: `text-text` on an item that is already `text-text` says
+  // nothing. The tick below is the state; this is the emphasis that goes with
+  // it, so the row reads as chosen at a glance and not only under the eye.
+  'data-[selected]:font-medium data-[selected]:text-accent',
   'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
   '[&_svg]:size-3.5 [&_svg]:shrink-0',
 ])
@@ -89,8 +93,15 @@ export const Select = Base.Root
  * the value, not a node - passing a node pins the trigger to that node
  * forever and the selection never appears, so the placeholder goes in
  * `placeholder`. And what it shows is the raw value, `plum` rather than
- * `Plum`, unless the root is given an `items` map to look the label up in. */
-export const SelectValue = Base.Value
+ * `Plum`, unless the root is given an `items` map to look the label up in.
+ *
+ * It truncates, and that matters most for `multiple`: nine chosen fruits are
+ * one long string, and without this the trigger either grows into a paragraph
+ * or spills its text past its own border. One line, an ellipsis, and the full
+ * set is still in the list where the ticks are. */
+export function SelectValue({ className, ...props }: Base.Value.Props) {
+  return <Base.Value className={cn('min-w-0 flex-1 truncate text-left', className)} {...props} />
+}
 
 /** The chevron, or whatever the product puts there. Marked decorative by Base
  * UI, since the button is already named by its value. */
