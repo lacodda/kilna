@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { assistantStatus, startTasks } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { useProfile } from '@/lib/useProfile'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -74,13 +74,13 @@ export function BulkActions({ workIds, onStarted }: Props) {
         <Button
           key={action.key}
           size="sm"
-          title={action.description}
+          title={sayLabel(action.description)}
           disabled={start.isPending}
           onClick={() => {
             start.mutate(action.key)
           }}
         >
-          {action.label}
+          {sayLabel(action.label)}
         </Button>
       ))}
     </div>

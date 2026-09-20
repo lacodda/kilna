@@ -16,7 +16,7 @@ import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { markIconOf } from '@/lib/markIcon'
-import { useProfile } from '@/lib/useProfile'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 
 /**
@@ -113,7 +113,7 @@ export function TagBar({ work }: { work: Work }) {
             )}
           >
             <Icon aria-hidden className="size-3" />
-            {mark.label}
+            {sayLabel(mark.label)}
           </button>
         )
       })}

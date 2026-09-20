@@ -217,7 +217,7 @@ fn check_cover(kind: &WorkKind, cover: &Blocks) -> Result<()> {
                 .collect();
             return Err(Error::Other(format!(
                 "`{key}` is not a part of a {}'s cover; the profile names {}",
-                kind.label.to_lowercase(),
+                kind.label.as_str().to_lowercase(),
                 if named.is_empty() {
                     "none".to_owned()
                 } else {

@@ -7,7 +7,7 @@ import { deleteScore, getWork, listVersions, scoreHistory, scoreWork } from '@/l
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
-import { labelOf, useVocabulary } from '@/lib/useProfile'
+import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { markReaching, rubricFor, tierFor, toNextTier, total as computeTotal } from '@/lib/scoring'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -238,7 +238,7 @@ export function ScorePanel({ workId }: Props) {
             >
               <span className="min-w-0">
                 <b className="block truncate text-[13px] font-semibold">
-                  {axis.label}{' '}
+                  {sayLabel(axis.label)}{' '}
                   <span className="font-mono text-[10.5px] font-normal text-faint">
                     ×{axis.weight}
                   </span>
@@ -259,7 +259,7 @@ export function ScorePanel({ workId }: Props) {
                 <SegmentedScale
                   scale={axis.scale}
                   value={values[axis.key]}
-                  label={axis.label}
+                  label={sayLabel(axis.label)}
                   threshold={
                     // Only drawn where it is true: the mark on THIS axis from
                     // which the total would cross into the tier ahead. No such
@@ -270,7 +270,10 @@ export function ScorePanel({ workId }: Props) {
                           const mark = markReaching(axes, values, axis, ahead.tier.min)
                           return mark === undefined
                             ? undefined
-                            : { mark, label: t('score.crossesHere', { tier: ahead.tier.label }) }
+                            : {
+                                mark,
+                                label: t('score.crossesHere', { tier: sayLabel(ahead.tier.label) }),
+                              }
                         })()
                   }
                   onPreview={(mark) =>
@@ -300,13 +303,16 @@ export function ScorePanel({ workId }: Props) {
                     say. Appearing on hover pushed the axes below out from under
                     the pointer, the hover ended, the line went, the axes came
                     back under the pointer — a strobe. */}
-                <span className="block h-4 truncate text-[11px] leading-4 text-dim" title={rubricLine(axis)?.label}>
+                <span
+                  className="block h-4 truncate text-[11px] leading-4 text-dim"
+                  title={sayLabel(rubricLine(axis)?.label)}
+                >
                   {(() => {
                     const entry = rubricLine(axis)
                     if (entry === undefined) return '\u00a0'
                     return (
                       <>
-                        <b className="font-mono font-semibold">{entry.at}</b> — {entry.label}
+                        <b className="font-mono font-semibold">{entry.at}</b> — {sayLabel(entry.label)}
                       </>
                     )
                   })()}
@@ -352,7 +358,7 @@ export function ScorePanel({ workId }: Props) {
             </span>
 
             {previewTier !== undefined && filled > 0 && (
-              <Badge variant="accent">{previewTier.label}</Badge>
+              <Badge variant="accent">{sayLabel(previewTier.label)}</Badge>
             )}
 
             {trend.length > 1 && !hiding && <Sparkline values={trend} />}

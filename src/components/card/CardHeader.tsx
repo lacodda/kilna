@@ -11,7 +11,7 @@ import { keys } from '@/lib/query'
 import { announceEdited } from '@/lib/edited'
 import { badgeVariantOf } from '@/lib/markIcon'
 import { say } from '@/lib/toast'
-import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { useStar } from '@/lib/useStar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -114,7 +114,9 @@ export function CardHeader({ work, releases, links = 0, scenes, cuts }: Props) {
             <Title work={work} />
 
             <Badge>{labelOf(profile.config.work_kinds, work.kind)}</Badge>
-            <Badge variant={badgeVariantOf(status?.colour)}>{status?.label ?? work.status}</Badge>
+            <Badge variant={badgeVariantOf(status?.colour)}>
+              {status === undefined ? work.status : sayLabel(status.label)}
+            </Badge>
 
             {latest !== null && (
               <Badge variant="soft">
@@ -358,7 +360,7 @@ function MetaStrip({ work }: { work: Work }) {
           // and edited on the Overview tab.
           <span key={field.key} className="min-w-0 max-w-56" title={text}>
             <label className="block text-[10px] uppercase tracking-[0.08em] text-faint">
-              {field.label}
+              {sayLabel(field.label)}
             </label>
             <b className="block truncate font-mono text-[12.5px] font-medium">{text}</b>
           </span>

@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import type { Applied, WorkProposal } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { useApplyProposal } from '@/lib/useApplyProposal'
-import { useProfile, vocabularyOf } from '@/lib/useProfile'
+import { say, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { AppliedMark } from '@/components/assistant/AppliedMark'
 
@@ -31,7 +31,8 @@ export function ProposedWork({ workId, messageId, proposal, applied }: Props) {
   const fresh = workId === undefined
   const kind = proposal.work_kind ?? ''
   const vocabulary = vocabularyOf(profile.config, kind)
-  const kindLabel = profile.config.work_kinds.find((k) => k.key === kind)?.label ?? kind
+  const kindLabelRaw = profile.config.work_kinds.find((k) => k.key === kind)?.label
+  const kindLabel = kindLabelRaw === undefined ? kind : say(kindLabelRaw)
 
   const apply = useApplyProposal({
     messageId,

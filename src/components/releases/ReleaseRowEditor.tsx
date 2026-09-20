@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ReleasePatch, ScheduledRelease } from '@/lib/api'
 import { isWebLink } from '@/lib/link'
-import { useVocabulary } from '@/lib/useProfile'
+import { say, useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Dialog } from '@/components/ui/AppDialog'
@@ -71,7 +71,7 @@ export function ReleaseRowEditor({ release, onOpenChange, onSave }: Props) {
             className="w-full"
             value={draft.kind}
             onChange={(kind) => setDraft((current) => ({ ...current, kind }))}
-            options={releaseKinds.map((k) => ({ value: k.key, label: k.label }))}
+            options={releaseKinds.map((k) => ({ value: k.key, label: say(k.label) }))}
           />
         </Field>
 

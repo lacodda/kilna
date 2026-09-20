@@ -7,7 +7,7 @@ import { activeTasks, startTask, type PromptTemplate, type RunEmission } from '@
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { movesTaskList, taskKey } from '@/lib/tasks'
-import { useProfile, useWorkKind } from '@/lib/useProfile'
+import { say as sayLabel, useProfile, useWorkKind } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { TaskPreviewDialog } from '@/components/assistant/TaskPreviewDialog'
 
@@ -146,8 +146,8 @@ export function ActionBar({
             <Button
               size="sm"
               className="rounded-r-none"
-              title={compact ? action.label : action.description}
-              aria-label={compact ? action.label : undefined}
+              title={compact ? sayLabel(action.label) : sayLabel(action.description)}
+              aria-label={compact ? sayLabel(action.label) : undefined}
               disabled={working}
               onClick={() => {
                 start.mutate(action.key)
@@ -156,16 +156,16 @@ export function ActionBar({
               {compact ? (
                 <Sparkles aria-hidden className="size-3.5" />
               ) : working ? (
-                t('assistant.actionWorking', { label: action.label })
+                t('assistant.actionWorking', { label: sayLabel(action.label) })
               ) : (
-                action.label
+                sayLabel(action.label)
               )}
             </Button>
             <Button
               size="sm"
               className="rounded-l-none border-l-0 px-1.5"
-              title={t('assistant.previewTask', { label: action.label })}
-              aria-label={t('assistant.previewTask', { label: action.label })}
+              title={t('assistant.previewTask', { label: sayLabel(action.label) })}
+              aria-label={t('assistant.previewTask', { label: sayLabel(action.label) })}
               disabled={working}
               onClick={() => {
                 setPreviewing(action)

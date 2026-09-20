@@ -3,19 +3,35 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 // These mirror the Rust structs in src-tauri/src. Nothing enforces that they
 // agree — see ADR 0003 — so a change on one side means a change here.
 
+/**
+ * A word of the craft's vocabulary, in the languages the profile carries it in.
+ *
+ * A profile's words are the author's data, not the interface's strings: they
+ * are edited in Settings, they outlive an upgrade, and a shipped profile has
+ * no business guessing which of them someone renamed. But a shipped profile
+ * IS written by us, and writing it in English only meant a Russian window
+ * read "Scored · Song" — the interface translated around a hole.
+ *
+ * So a label is either one string, as every profile written before this said
+ * it, or a small map from locale to string. `labelOf` is the single place
+ * that resolves one, which is why this could be done without touching the
+ * hundred call sites that ask a vocabulary what it is called.
+ */
+export type Label = string | Record<string, string>
+
 /** The shape of an answer along an axis: a number, yes/no, or one of a list. */
 export type AxisKind = 'scale' | 'flag' | 'choice'
 
 /** One answer a `choice` axis offers, worth `value` on the axis's scale. */
 export interface AxisOption {
   key: string
-  label: string
+  label: Label
   value: number
 }
 
 export interface Axis {
   key: string
-  label: string
+  label: Label
   weight: number
   scale: number
   description?: string
@@ -30,18 +46,18 @@ export interface Axis {
 /** What one mark on an axis means. `at` is on the axis's scale, not the total. */
 export interface AxisMark {
   at: number
-  label: string
+  label: Label
 }
 
 export interface Tier {
   key: string
-  label: string
+  label: Label
   min: number
 }
 
 export interface Kind {
   key: string
-  label: string
+  label: Label
 }
 
 // What a status means to the automation, in descending finality. `manual` is
@@ -60,7 +76,7 @@ export interface Status extends Kind {
 /** A flag the author raises by hand, beside the status the app derives. */
 export interface Mark {
   key: string
-  label: string
+  label: Label
   colour?: MarkColour
   /** A glyph beside the word, by name — see `lib/markIcon` for the list. */
   icon?: string
@@ -78,7 +94,7 @@ export interface VersionRole extends Kind {
 
 export interface MetaField {
   key: string
-  label: string
+  label: Label
   type: 'text' | 'multiline' | 'number' | 'date' | 'boolean'
 }
 
@@ -216,9 +232,9 @@ export interface ProposalOverrides {
 
 export interface PromptTemplate {
   key: string
-  label: string
+  label: Label
   template: string
-  description?: string
+  description?: Label
   /** What the action asks for beyond prose: `score`, or `version:<role>` —
       the whole answer kept as a version in that role. Absent means prose;
       a value this build does not know reads as prose too. */
@@ -305,7 +321,7 @@ export interface WorkKind extends Kind {
 /** One stop on the way from an idea to a finished work. */
 export interface Stage {
   key: string
-  label: string
+  label: Label
   /** Where this stop sits, 0..=100 — what the dial draws. */
   percent: number
   colour?: string

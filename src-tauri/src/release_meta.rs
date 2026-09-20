@@ -21,7 +21,7 @@ use serde_json::{Map, Value};
 
 use crate::assistant::prompt;
 use crate::error::{Error, Result};
-use crate::profile::config::{ReleaseField, ReleaseFieldType};
+use crate::profile::config::{Label, ReleaseField, ReleaseFieldType};
 use crate::release;
 use crate::work;
 
@@ -30,7 +30,7 @@ use crate::work;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Field {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     #[serde(rename = "type")]
     pub field_type: ReleaseFieldType,
     /// What is stored on the release now. Empty is empty -- a field never
@@ -38,7 +38,7 @@ pub struct Field {
     /// telling them apart would only let one of them hide.
     pub value: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub hint: Option<String>,
+    pub hint: Option<Label>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
     /// Whether the profile can fill this field on its own.
@@ -127,7 +127,7 @@ pub struct Generated {
 #[derive(Debug, Clone, Serialize)]
 pub struct Refusal {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     pub reason: String,
 }
 

@@ -62,7 +62,7 @@ import {
 } from '@/lib/scenes'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
-import { useProfile, vocabularyOf, type Vocabulary } from '@/lib/useProfile'
+import { say as sayLabel, useProfile, vocabularyOf, type Vocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -470,7 +470,7 @@ export function ScenesTab({ work }: Props) {
                     : 'border-line text-dim hover:border-line-2 hover:text-text',
                 )}
               >
-                {entry.label}
+                {sayLabel(entry.label)}
                 <span className="ml-1.5 text-[10.5px] text-faint tabular-nums">{entry.count}</span>
               </button>
             )
@@ -539,7 +539,7 @@ export function ScenesTab({ work }: Props) {
                   title={t('scenes.frameHint')}
                 >
                   <Rows3 aria-hidden className="size-3.5" />
-                  {role.label}
+                  {sayLabel(role.label)}
                 </Button>
               ))}
             </div>
@@ -975,7 +975,7 @@ function SceneRow({
               onChange={(value) => onPatch({ shot_type: value === '' ? null : value })}
               options={vocabulary.shot_types.map((shot) => ({
                 value: shot.key,
-                label: shot.label,
+                label: sayLabel(shot.label),
               }))}
             />
           </td>
@@ -1234,7 +1234,7 @@ function BlockBox({
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1">
         <span className="flex-1 text-2xs font-semibold uppercase tracking-caption text-faint">
-          {block.label}
+          {sayLabel(block.label)}
         </span>
         <Button
           variant="icon"
@@ -1260,7 +1260,7 @@ function BlockBox({
         rows={3}
         defaultValue={text}
         readOnly={onSave === undefined}
-        aria-label={block.label}
+        aria-label={sayLabel(block.label)}
         onBlur={(event) => onSave?.(event.target.value)}
       />
       {block.hint !== undefined && block.hint !== null && (

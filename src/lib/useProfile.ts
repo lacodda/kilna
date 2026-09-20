@@ -1,9 +1,11 @@
 import { createContext, useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import i18n from '@/i18n'
 import {
   getWork,
   type Axis,
   type Kind,
+  type Label,
   type Profile,
   type ProfileConfig,
   type ReleaseKind,
@@ -26,10 +28,36 @@ export function useProfile(): Profile {
   return profile
 }
 
+/**
+ * One word of the craft's vocabulary, in the language the window is in.
+ *
+ * A shipped profile carries its words in both languages (`{ en, ru }`); a word
+ * the author typed is one string and stays exactly as typed, in whatever
+ * language they typed it. So this reads: the interface language if the word
+ * has it, else English as the language every shipped profile is written in,
+ * else whatever the map does hold — a profile carrying only Russian should
+ * show Russian rather than nothing.
+ *
+ * Deliberately NOT a fallback chain onto the key: a key is a machine's name
+ * for the word, and `version_roles.lyrics` on screen is worse than the English
+ * the author would at least recognise.
+ */
+export function say(label: Label | undefined, language?: string): string {
+  if (label === undefined) return ''
+  if (typeof label === 'string') return label
+
+  const wanted = language ?? i18n.resolvedLanguage ?? 'en'
+  const found = label[wanted] ?? label[wanted.split('-')[0] ?? wanted] ?? label.en
+  if (found !== undefined) return found
+
+  return Object.values(label)[0] ?? ''
+}
+
 // Label for a key from one of the profile's vocabularies, falling back to the
 // raw key so an unknown value is visible rather than blank.
-export function labelOf(kinds: { key: string; label: string }[], key: string): string {
-  return kinds.find((kind) => kind.key === key)?.label ?? key
+export function labelOf(kinds: { key: string; label: Label }[], key: string): string {
+  const found = kinds.find((kind) => kind.key === key)
+  return found === undefined ? key : say(found.label)
 }
 
 /** The vocabulary of one kind of work, every list present (empty when the
@@ -98,9 +126,9 @@ export function hasScenes(config: ProfileConfig, kind: string | undefined): bool
  */
 export function allOf<K extends keyof Vocabulary>(config: ProfileConfig, list: K): Vocabulary[K] {
   const seen = new Set<string>()
-  const out: { key: string; label: string }[] = []
+  const out: { key: string; label: Label }[] = []
   for (const kind of config.work_kinds) {
-    for (const entry of (kind[list] ?? []) as { key: string; label: string }[]) {
+    for (const entry of (kind[list] ?? []) as { key: string; label: Label }[]) {
       if (seen.has(entry.key)) continue
       seen.add(entry.key)
       out.push(entry)

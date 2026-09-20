@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import type { Applied, ScoreProposal } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { useApplyProposal } from '@/lib/useApplyProposal'
-import { useVocabulary } from '@/lib/useProfile'
+import { say, useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { AppliedMark } from '@/components/assistant/AppliedMark'
 
@@ -56,7 +56,7 @@ export function ProposedScore({ workId, messageId, proposal, applied }: Props) {
       <dl className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
         {named.map((axis) => (
           <div key={axis.key} className="flex items-baseline gap-1.5">
-            <dt className="text-xs text-dim">{axis.label}</dt>
+            <dt className="text-xs text-dim">{say(axis.label)}</dt>
             <dd className="text-sm tabular-nums">
               {axis.value}
               {axis.scale !== undefined && (

@@ -21,6 +21,7 @@ use crate::minted::Minted;
 use crate::note::{self, NewNote, Note, NoteFilter, NotePatch};
 use crate::operation;
 use crate::plugin::{self, manifest::Plugin, manifest::Target};
+use crate::profile::config::Label;
 use crate::profile::{self, Profile, Workspace};
 use crate::release::{self, NewRelease, Release, ReleasePatch, ScheduledRelease, Scheduling};
 use crate::release_meta;
@@ -1361,7 +1362,7 @@ pub struct GeneratedBatch {
 pub struct BatchRefusal {
     pub release_id: String,
     pub work_title: String,
-    pub label: String,
+    pub label: Label,
     pub reason: String,
 }
 
@@ -3550,7 +3551,10 @@ pub fn start_tasks(
             &conn,
             &profile_id,
             Record::new("assistant.batchStarted")
-                .param("action", label)
+                // The word as it was, not the label: a journal line is a record
+                // of a past event, and it reads the same tomorrow whichever
+                // language the window is in then.
+                .param("action", label.as_str())
                 .param("count", i64::try_from(started + queued).unwrap_or(i64::MAX)),
         );
     }

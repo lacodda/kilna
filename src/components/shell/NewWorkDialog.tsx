@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createWork } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { useProfile } from '@/lib/useProfile'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Dialog, DialogActions, DialogClose, DialogPopup, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/Field'
@@ -111,7 +111,7 @@ function Form({
           <Select
             value={chosen}
             onChange={setChosen}
-            options={kinds.map((entry) => ({ value: entry.key, label: entry.label }))}
+            options={kinds.map((entry) => ({ value: entry.key, label: sayLabel(entry.label) }))}
           />
         </Field>
       )}

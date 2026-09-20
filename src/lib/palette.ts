@@ -1,4 +1,5 @@
 import type { PromptTemplate } from '@/lib/api'
+import { say } from '@/lib/useProfile'
 
 /**
  * Choosing a profile action by typing rather than by aiming.
@@ -70,7 +71,7 @@ export function matching(query: string, actions: PromptTemplate[]): PromptTempla
  * so the action whose name begins the way you typed comes first.
  */
 function rank(action: PromptTemplate, needle: string): number | null {
-  const label = action.label.toLowerCase()
+  const label = say(action.label).toLowerCase()
   const key = action.key.toLowerCase()
 
   if (label.startsWith(needle) || key.startsWith(needle)) return 0

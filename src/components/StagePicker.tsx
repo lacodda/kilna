@@ -4,7 +4,7 @@ import { Popover, PopoverPopup, PopoverTrigger } from '@/components/ui/popover'
 import { usePopupContainer } from '@/components/ui/layer'
 import { StageDial } from '@/components/StageDial'
 import { stageAt, stagesOf } from '@/lib/stages'
-import { useProfile } from '@/lib/useProfile'
+import { say, useProfile } from '@/lib/useProfile'
 import { useStage } from '@/lib/useStage'
 import { cn } from '@/lib/utils'
 
@@ -64,9 +64,9 @@ export function StagePicker({
         aria-label={
           current === undefined
             ? t('stage.unset')
-            : t('stage.atPercent', { percent: percent ?? 0, stage: current.label })
+            : t('stage.atPercent', { percent: percent ?? 0, stage: say(current.label) })
         }
-        title={current === undefined ? t('stage.set') : current.label}
+        title={current === undefined ? t('stage.set') : say(current.label)}
         disabled={stage.isPending}
         className={cn(
           'cursor-pointer rounded-md transition-colors hover:bg-soft',
@@ -85,7 +85,7 @@ export function StagePicker({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={percent ?? undefined}
-          aria-valuetext={current?.label ?? t('stage.unset')}
+          aria-valuetext={current === undefined ? t('stage.unset') : say(current.label)}
           onKeyDown={(event) => {
             switch (event.key) {
               case 'ArrowRight':
@@ -128,8 +128,8 @@ export function StagePicker({
                 // The row owns the keyboard; the stops are pointer targets, or
                 // tabbing past the dial would take six presses.
                 tabIndex={-1}
-                title={`${stop.label} · ${stop.percent}%`}
-                aria-label={stop.label}
+                title={`${say(stop.label)} · ${stop.percent}%`}
+                aria-label={say(stop.label)}
                 onClick={() => set(percent === stop.percent ? null : stop.percent)}
                 className="group flex cursor-pointer flex-col items-center gap-1 rounded-[5px] px-1 py-0.5 transition-colors hover:bg-soft"
               >

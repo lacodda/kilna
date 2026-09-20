@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { resyncStatuses, statusDrift, type StatusChange } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { allOf, useProfile } from '@/lib/useProfile'
+import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
@@ -23,8 +23,10 @@ export function StatusDrift() {
   // two different things that must not read the same on screen.
   const [found, setFound] = useState<StatusChange[] | null>(null)
 
-  const label = (key: string) =>
-    allOf(profile.config, 'statuses').find((status) => status.key === key)?.label ?? key
+  const label = (key: string) => {
+    const found = allOf(profile.config, 'statuses').find((status) => status.key === key)?.label
+    return found === undefined ? key : sayLabel(found)
+  }
 
   const check = useMutation({
     mutationFn: statusDrift,

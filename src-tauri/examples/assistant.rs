@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &profile_id,
         NewChat {
             work_id: Some(target.id.clone()),
-            title: Some(template.label.clone()),
+            title: Some(template.label.as_str().to_owned()),
             ..Default::default()
         },
     )?;

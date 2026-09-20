@@ -16,7 +16,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use crate::profile::config::{ProfileConfig, WorkKind};
+use crate::profile::config::{Label, ProfileConfig, WorkKind};
 
 /// What an answer proposed, if anything.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -251,7 +251,12 @@ pub fn scoring_instruction(config: &ProfileConfig, kind: &str) -> String {
             "- `{}` — {} (0 to {}, weight {})",
             axis.key, axis.label, axis.scale, axis.weight
         ));
-        if let Some(description) = axis.description.as_deref().filter(|d| !d.trim().is_empty()) {
+        if let Some(description) = axis
+            .description
+            .as_ref()
+            .map(Label::as_str)
+            .filter(|d| !d.trim().is_empty())
+        {
             guide.push_str(&format!(": {}", description.trim()));
         }
         guide.push('\n');
@@ -350,7 +355,12 @@ pub fn scenes_instruction(
             String::from("\nPrompt blocks, by key — each is the text a generator is given:\n");
         for block in &kind.scene_blocks {
             listed.push_str(&format!("- `{}` — {}", block.key, block.label));
-            if let Some(hint) = block.hint.as_deref().filter(|hint| !hint.trim().is_empty()) {
+            if let Some(hint) = block
+                .hint
+                .as_ref()
+                .map(Label::as_str)
+                .filter(|hint| !hint.trim().is_empty())
+            {
                 listed.push_str(&format!(": {}", hint.trim()));
             }
             listed.push('\n');

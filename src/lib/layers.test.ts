@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 import { DOWEL_SCALE, FLOOR_BANDS, POPUP_FLOORS, STAGE_LAYER, type Rung } from './layers'
 
 const rungs = Object.keys(POPUP_FLOORS) as Rung[]
@@ -42,6 +43,37 @@ describe('the stacking floors a popup inside an overlay lands on', () => {
     // which is above the stage and may be opened over it.
     expect(POPUP_FLOORS['stage-popup']).toBeLessThan(POPUP_FLOORS['modal-popup'])
     expect(POPUP_FLOORS['modal-popup']).toBeLessThan(POPUP_FLOORS['palette-popup'])
+  })
+
+  it('has every portalling primitive ask for the raised host', () => {
+    // The numbers above were all correct while the bug was live, which is why
+    // this reads the source instead.
+    //
+    // `LayerProvider` raises a floor and offers a host; a popup only lands on
+    // it if it passes that host to its `Portal`. `MenuPopup` did not, so the
+    // compare-versions menu opened at 30 under a stage at 50 and the button
+    // read as dead - and five more primitives were one call site away from
+    // the same thing. Which z-index variable a primitive happens to read is
+    // not something its caller can know, so the asking belongs here, and a
+    // new primitive that portals must not be able to forget it.
+    //
+    // fileURLToPath, not URL.pathname: on Windows the latter yields `/C:/...`.
+    const dir = fileURLToPath(new URL('../components/ui/', import.meta.url))
+    const offenders: string[] = []
+
+    for (const file of readdirSync(dir).filter((name) => name.endsWith('.tsx'))) {
+      const source = readFileSync(new URL(file, new URL('../components/ui/', import.meta.url)), 'utf8')
+      if (!source.includes('.Portal')) continue
+      // A dialog, a drawer, a toast and the palette ARE the overlay: they open
+      // the floor rather than stand on one, so they portal to the body on
+      // purpose. Everything else opens INSIDE something and must ask.
+      if (/^(dialog|drawer|toast|command-palette)\.tsx$/.test(file)) continue
+      if (!source.includes('usePopupContainer')) offenders.push(file)
+    }
+
+    expect(offenders, 'these portal to the body and will draw under a dialog or the stage').toEqual(
+      [],
+    )
   })
 
   it('reads the same numbers dowel states in its stylesheet', () => {

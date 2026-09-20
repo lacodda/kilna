@@ -1,6 +1,7 @@
 import { Menu as Base } from '@base-ui/react/menu'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'dowel-ui'
+import { usePopupContainer } from './layer'
 
 /*
  * Menu.
@@ -87,9 +88,10 @@ export interface MenuPopupProps
   align?: Base.Positioner.Props['align']
   /** Distance from the trigger, in pixels. */
   sideOffset?: Base.Positioner.Props['sideOffset']
-  /** Where to portal to. Defaults to the document body, which keeps the menu
-   * from being clipped by a row with `overflow: hidden` - which is where most
-   * hand-written ones go to die. */
+  /** Where to portal to. Defaults to the raised host of the overlay this menu
+   * is inside, and to the document body when there is none - either way not
+   * the row, which keeps the menu from being clipped by an `overflow: hidden`
+   * ancestor, where most hand-written ones go to die. */
   container?: Base.Portal.Props['container']
 }
 
@@ -104,8 +106,20 @@ export function MenuPopup({
   children,
   ...props
 }: MenuPopupProps) {
+  // Where the panel goes when this menu is inside a dialog or a full-screen
+  // stage. Asked for here rather than at each call site, because which
+  // z-index variable a primitive happens to read is not something the caller
+  // can be expected to know: `LayerProvider` raises the floor and offers a
+  // host, and every popup that portals has to take it or it draws under the
+  // overlay that opened it. That is what the "compare versions" menu did on
+  // the expanded and full-screen stage - the list opened, at z-index 30,
+  // beneath a stage at 50, so the button read as dead. `AppSelect` asks the
+  // same way. On an ordinary page the hook gives `undefined`, which is the
+  // body, so nothing moves anywhere else.
+  const host = usePopupContainer()
+
   return (
-    <Base.Portal container={container}>
+    <Base.Portal container={container ?? host}>
       <Base.Positioner
         side={side}
         align={align}

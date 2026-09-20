@@ -16,7 +16,7 @@ import {
 } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { allOf, useProfile } from '@/lib/useProfile'
+import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Select } from '@/components/ui/AppSelect'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/Field'
@@ -205,7 +205,7 @@ function ReleaseFieldsEditor({
           <div key={kind.key} className="flex flex-col gap-2 rounded-xl border border-line p-3">
             <div className="flex items-center gap-2">
               <code className="font-mono text-xs text-dim">{kind.key}</code>
-              <span className="text-sm font-medium">{kind.label}</span>
+              <span className="text-sm font-medium">{sayLabel(kind.label)}</span>
             </div>
 
             <ul className="flex flex-col gap-3">
@@ -215,7 +215,7 @@ function ReleaseFieldsEditor({
                     <code className="shrink-0 font-mono text-xs text-dim">{field.key}</code>
                     <Input
                       className="flex-1"
-                      value={field.label}
+                      value={sayLabel(field.label)}
                       aria-label={t('editor.fieldLabel')}
                       onChange={(event) => set(kindIndex, fieldIndex, { label: event.target.value })}
                     />
@@ -308,7 +308,7 @@ function KindVocabulary({
 
   return (
     <section className="flex flex-col gap-4 border-t border-line pt-4">
-      <h3 className="text-sm font-semibold">{kind.label}</h3>
+      <h3 className="text-sm font-semibold">{sayLabel(kind.label)}</h3>
 
       <section className="flex flex-col gap-2">
         <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
@@ -321,7 +321,7 @@ function KindVocabulary({
               <code className="w-28 shrink-0 font-mono text-xs text-dim">{axis.key}</code>
               <Input
                 className="flex-1"
-                value={axis.label}
+                value={sayLabel(axis.label)}
                 onChange={(event) => setAxis(index, { label: event.target.value })}
                 aria-label={`${axis.key} label`}
               />
@@ -358,7 +358,7 @@ function KindVocabulary({
               <code className="w-28 shrink-0 font-mono text-xs text-dim">{tier.key}</code>
               <Input
                 className="flex-1"
-                value={tier.label}
+                value={sayLabel(tier.label)}
                 onChange={(event) => setTier(index, { label: event.target.value })}
                 aria-label={`${tier.key} label`}
               />
@@ -481,7 +481,7 @@ function ActionsEditor({
               <code className="shrink-0 font-mono text-xs text-dim">{action.key}</code>
               <Input
                 className="flex-1"
-                value={action.label}
+                value={sayLabel(action.label)}
                 onChange={(event) => set(index, { label: event.target.value })}
                 aria-label={t('editor.actionLabel')}
               />
@@ -509,7 +509,7 @@ function ActionsEditor({
               </Button>
             </div>
             <Input
-              value={action.description ?? ''}
+              value={sayLabel(action.description)}
               placeholder={t('editor.actionDescription')}
               aria-label={t('editor.actionDescription')}
               onChange={(event) =>
@@ -535,7 +535,7 @@ function ActionsEditor({
                           : 'cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-[11.5px] text-dim hover:border-line-2 hover:text-text'
                       }
                     >
-                      {kind.label}
+                      {sayLabel(kind.label)}
                     </button>
                   )
                 })}
@@ -623,7 +623,7 @@ function Vocabulary<T extends Kind>({ label, entries, onChange }: VocabularyProp
           <li key={entry.key} className="flex items-center gap-1">
             <Input
               className="w-40"
-              value={entry.label}
+              value={sayLabel(entry.label)}
               onChange={(event) =>
                 onChange(
                   entries.map((e, i) => (i === index ? { ...e, label: event.target.value } : e)),

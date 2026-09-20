@@ -19,7 +19,7 @@ import { today } from '@/lib/month'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { announceEdited } from '@/lib/edited'
-import { labelOf, useVocabulary } from '@/lib/useProfile'
+import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { KindGlyph } from '@/lib/releaseIcon'
 import { openExternal, shortLink } from '@/lib/link'
 import { cn } from '@/lib/utils'
@@ -290,7 +290,7 @@ export function ReleasePanel({ workId, workTitle }: Props) {
           aria-label={t('releases.kind')}
           value={kind}
           onChange={setKind}
-          options={kinds.map((k) => ({ value: k.key, label: k.label }))}
+          options={kinds.map((k) => ({ value: k.key, label: sayLabel(k.label) }))}
         />
         <Button onClick={() => add.mutate()} disabled={kind === '' || add.isPending}>
           {t('releases.add')}

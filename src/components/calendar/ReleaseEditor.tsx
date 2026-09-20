@@ -6,7 +6,7 @@ import { announceEdited } from '@/lib/edited'
 import { missing } from '@/lib/readiness'
 import { openExternal } from '@/lib/link'
 import { say } from '@/lib/toast'
-import { allOf, labelOf, useProfile } from '@/lib/useProfile'
+import { allOf, labelOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Dialog } from '@/components/ui/AppDialog'
@@ -102,7 +102,7 @@ export function ReleaseEditor({
             className="w-full"
             value={draft.kind}
             onChange={(kind) => setDraft((current) => ({ ...current, kind }))}
-            options={releaseKinds.map((k) => ({ value: k.key, label: k.label }))}
+            options={releaseKinds.map((k) => ({ value: k.key, label: sayLabel(k.label) }))}
           />
         </Field>
 

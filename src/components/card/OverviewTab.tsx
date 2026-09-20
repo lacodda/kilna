@@ -12,7 +12,7 @@ import {
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { useProfile, vocabularyOf } from '@/lib/useProfile'
+import { say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/input'
@@ -136,7 +136,7 @@ export function OverviewTab({ work }: Props) {
               className="w-full"
               value={work.status}
               onChange={(status) => patch.mutate({ status })}
-              options={vocabulary.statuses.map((s) => ({ value: s.key, label: s.label }))}
+              options={vocabulary.statuses.map((s) => ({ value: s.key, label: sayLabel(s.label) }))}
             />
           </Field>
 
@@ -161,7 +161,7 @@ export function OverviewTab({ work }: Props) {
             className="w-full"
             value={work.kind}
             onChange={(kind) => patch.mutate({ kind })}
-            options={profile.config.work_kinds.map((k) => ({ value: k.key, label: k.label }))}
+            options={profile.config.work_kinds.map((k) => ({ value: k.key, label: sayLabel(k.label) }))}
           />
         </Field>
 
@@ -218,7 +218,7 @@ function MetaInput({
 
   if (field.type === 'boolean') {
     return (
-      <Field label={field.label}>
+      <Field label={sayLabel(field.label)}>
         <input
           type="checkbox"
           className="size-4 accent-[var(--accent)]"
@@ -231,7 +231,7 @@ function MetaInput({
 
   if (field.type === 'multiline') {
     return (
-      <Field label={field.label}>
+      <Field label={sayLabel(field.label)}>
         <Textarea
           rows={5}
           defaultValue={typeof value === 'string' ? value : ''}
@@ -247,11 +247,11 @@ function MetaInput({
     return (
       <div className="flex flex-col gap-1">
         <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
-          {field.label}
+          {sayLabel(field.label)}
         </span>
         <DatePicker
           className="w-full"
-          aria-label={field.label}
+          aria-label={sayLabel(field.label)}
           placeholder={t('work.noDate')}
           value={typeof value === 'string' ? value : ''}
           onChange={(next) => onChange(next)}
@@ -261,7 +261,7 @@ function MetaInput({
   }
 
   return (
-    <Field label={field.label}>
+    <Field label={sayLabel(field.label)}>
       <Input
         className="w-full"
         type={field.type === 'number' ? 'number' : 'text'}

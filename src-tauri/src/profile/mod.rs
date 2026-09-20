@@ -766,7 +766,7 @@ pub fn workspace(conn: &Connection) -> Result<Workspace> {
 mod tests {
     use super::*;
     use crate::db;
-    use crate::profile::config::Derive;
+    use crate::profile::config::{Derive, Label};
 
     #[test]
     fn every_builtin_profile_parses() {
@@ -1461,7 +1461,7 @@ mod tests {
             .unwrap();
         let mut config = config_for(&conn, &id).unwrap();
         for stage in &mut config.stages {
-            stage.label = format!("{} (mine)", stage.label);
+            stage.label = Label::from(format!("{} (mine)", stage.label));
         }
         conn.execute(
             "UPDATE profile SET config = ?2 WHERE id = ?1",
@@ -1473,7 +1473,7 @@ mod tests {
 
         let kept = config_for(&conn, &id).unwrap().stages;
         assert!(
-            kept.iter().all(|stage| stage.label.ends_with("(mine)")),
+            kept.iter().all(|stage| stage.label.as_str().ends_with("(mine)")),
             "renamed stops stay renamed: {:?}",
             kept.iter().map(|s| &s.label).collect::<Vec<_>>()
         );

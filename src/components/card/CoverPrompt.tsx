@@ -5,7 +5,7 @@ import { Copy } from 'lucide-react'
 import { updateWork, type SceneBlock, type Work } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { useProfile, vocabularyOf } from '@/lib/useProfile'
+import { say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Panel, SectionLabel } from '@/components/ui/panel'
 import { Textarea } from '@/components/ui/textarea'
@@ -95,7 +95,7 @@ function Block({
   return (
     <section className="flex flex-col gap-1.5">
       <SectionLabel className="justify-between">
-        <span>{block.label}</span>
+        <span>{sayLabel(block.label)}</span>
         <Button
           variant="ghost"
           size="icon-sm"

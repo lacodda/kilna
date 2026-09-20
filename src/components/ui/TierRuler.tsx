@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { Tier } from '@/lib/api'
+import { say } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -81,7 +82,7 @@ export function TierRuler({ tiers, score, className }: Props) {
       <div className="flex justify-between text-[10px] text-faint">
         {ordered.map((tier) => (
           <span key={tier.key} className={cn(score >= tier.min && 'font-semibold text-dim')}>
-            {tier.label}
+            {say(tier.label)}
           </span>
         ))}
       </div>

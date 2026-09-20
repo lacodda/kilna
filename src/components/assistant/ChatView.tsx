@@ -18,7 +18,7 @@ import { reading } from '@/lib/palette'
 import { formatDuration, withEvent } from '@/lib/runs'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { useProfile } from '@/lib/useProfile'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -237,13 +237,13 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
             <Button
               key={prompt.key}
               size="sm"
-              title={prompt.description}
+              title={sayLabel(prompt.description)}
               disabled={sending}
               onClick={() => {
                 runTemplate.mutate(prompt.template)
               }}
             >
-              {prompt.label}
+              {sayLabel(prompt.label)}
             </Button>
           ))}
         </div>
@@ -331,9 +331,11 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
                     action.key === chosen?.key ? 'bg-soft text-text' : 'text-dim',
                   )}
                 >
-                  <span className="text-sm">{action.label}</span>
+                  <span className="text-sm">{sayLabel(action.label)}</span>
                   {action.description !== undefined && (
-                    <span className="truncate text-xs text-faint">{action.description}</span>
+                    <span className="truncate text-xs text-faint">
+                      {sayLabel(action.description)}
+                    </span>
                   )}
                 </button>
               </li>

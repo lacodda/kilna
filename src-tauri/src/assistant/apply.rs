@@ -1032,7 +1032,7 @@ pub fn render_board(
             .shot_types
             .iter()
             .find(|s| s.key == key)
-            .map_or(key.to_owned(), |s| s.label.clone())
+            .map_or(key.to_owned(), |s| s.label.as_str().to_owned())
     };
     let number = |index: usize, scene: &PackagedScene| match scene.position {
         Some(position) => position.to_string(),

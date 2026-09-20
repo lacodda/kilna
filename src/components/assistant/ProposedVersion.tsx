@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import type { Applied, VersionProposal } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { useApplyProposal } from '@/lib/useApplyProposal'
-import { useVocabulary } from '@/lib/useProfile'
+import { say, useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { AppliedMark } from '@/components/assistant/AppliedMark'
 
@@ -28,7 +28,8 @@ interface Props {
 export function ProposedVersion({ workId, messageId, proposal, applied, onChoose }: Props) {
   const { t } = useTranslation()
   const roles = useVocabulary(workId).version_roles
-  const role = roles.find((r) => r.key === proposal.role)?.label ?? proposal.role
+  const roleLabel = roles.find((r) => r.key === proposal.role)?.label
+  const role = roleLabel === undefined ? proposal.role : say(roleLabel)
 
   const apply = useApplyProposal({
     messageId,

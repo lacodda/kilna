@@ -83,7 +83,7 @@ import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
 import { announceDeleted } from '@/lib/trash'
 import { say } from '@/lib/toast'
-import { allOf, labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { allOf, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { nextTier } from '@/lib/scoring'
 import { Pin } from 'lucide-react'
 import type { Tab } from '@/components/card/tabs'
@@ -261,10 +261,16 @@ export function Catalogue({ onSelect }: Props) {
   // The profile's own words, which the query box resolves values against so
   // `tier:Picture` works as well as `tier:pic`.
   const vocabulary: Vocabulary = {
-    statuses: allOf(profile.config, 'statuses'),
-    kinds: profile.config.work_kinds,
-    tiers: allOf(profile.config, 'tiers'),
-    stages: stagesOf(profile.config),
+    statuses: allOf(profile.config, 'statuses').map((entry) => ({
+      ...entry,
+      label: sayLabel(entry.label),
+    })),
+    kinds: profile.config.work_kinds.map((entry) => ({ ...entry, label: sayLabel(entry.label) })),
+    tiers: allOf(profile.config, 'tiers').map((entry) => ({
+      ...entry,
+      label: sayLabel(entry.label),
+    })),
+    stages: stagesOf(profile.config).map((entry) => ({ ...entry, label: sayLabel(entry.label) })),
   }
 
   // What the box shows. Held apart from the filter rather than derived from it,
@@ -358,7 +364,7 @@ export function Catalogue({ onSelect }: Props) {
                     : 'border-line text-dim hover:border-line-2 hover:text-text',
                 )}
               >
-                {entry.label}
+                {sayLabel(entry.label)}
                 <span className="ml-1.5 text-[10.5px] text-faint tabular-nums">{entry.count}</span>
               </button>
             )
@@ -381,7 +387,10 @@ export function Catalogue({ onSelect }: Props) {
           value={filter.status ?? ''}
           onChange={(value) => setFromControl({ status: value || undefined })}
           placeholder={t('works.anyStatus')}
-          options={allOf(profile.config, 'statuses').map((s) => ({ value: s.key, label: s.label }))}
+          options={allOf(profile.config, 'statuses').map((s) => ({
+            value: s.key,
+            label: sayLabel(s.label),
+          }))}
         />
         <Select
           className="w-44"
@@ -389,7 +398,10 @@ export function Catalogue({ onSelect }: Props) {
           value={filter.tier ?? ''}
           onChange={(value) => setFromControl({ tier: value || undefined })}
           placeholder={t('catalogue.anyTier')}
-          options={allOf(profile.config, 'tiers').map((tier) => ({ value: tier.key, label: tier.label }))}
+          options={allOf(profile.config, 'tiers').map((tier) => ({
+            value: tier.key,
+            label: sayLabel(tier.label),
+          }))}
         />
         {/* The works marked to come back to. Not a token in the box - a star is
             raised and lowered with a click, and is asked for the same way.
@@ -725,7 +737,10 @@ function Rows({
       case 'tiers':
         return shell(
           <CheckList
-            options={allOf(profile.config, 'tiers').map((tier) => ({ value: tier.key, label: tier.label }))}
+            options={allOf(profile.config, 'tiers').map((tier) => ({
+              value: tier.key,
+              label: sayLabel(tier.label),
+            }))}
             chosen={columnFilters.tiers ?? []}
             onChange={(tiers) => onColumnFilters({ ...columnFilters, tiers })}
           />,
@@ -737,7 +752,7 @@ function Rows({
         if (marks.length === 0) return null
         return shell(
           <CheckList
-            options={marks.map((mark) => ({ value: mark.key, label: mark.label }))}
+            options={marks.map((mark) => ({ value: mark.key, label: sayLabel(mark.label) }))}
             chosen={columnFilters.marks ?? []}
             onChange={(next) => onColumnFilters({ ...columnFilters, marks: next })}
           />,
@@ -832,7 +847,10 @@ function Rows({
               dropdown among flat buttons read as the loudest thing here, and
               deleting must not be the easiest click to make by accident. */}
           <BulkMenu
-            statuses={allOf(profile.config, 'statuses')}
+            statuses={allOf(profile.config, 'statuses').map((status) => ({
+              key: status.key,
+              label: sayLabel(status.label),
+            }))}
             busy={busy || deleting}
             onSetStatus={(status) => onSetStatus(chosen, status)}
             onUnschedule={() => onUnschedule(chosen)}
@@ -1400,7 +1418,7 @@ function Cell({
                 it is in outline — read at a glance down the column, the way
                 the header reads them. */}
             <Badge variant={badgeVariantOf(status?.colour)} className="shrink-0 px-2 text-[11px]">
-              {status?.label ?? row.status}
+              {status === undefined ? row.status : sayLabel(status.label)}
             </Badge>
             {!kindNarrowed && (
               <Badge className="shrink-0 px-2 text-[11px]">
@@ -1433,10 +1451,10 @@ function Cell({
                     key={key}
                     variant={badgeVariantOf(mark?.colour ?? 'plain')}
                     className="gap-1 px-2 text-[11px]"
-                    title={mark?.label ?? key}
+                    title={mark === undefined ? key : sayLabel(mark.label)}
                   >
                     <Icon aria-hidden className="size-3" />
-                    {mark?.label ?? key}
+                    {mark === undefined ? key : sayLabel(mark.label)}
                   </Badge>
                 )
               })}

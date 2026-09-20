@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use super::proposal::BoardChange;
 use crate::error::{Error, Result};
 use crate::link;
-use crate::profile::config::WorkKind;
+use crate::profile::config::{Label, WorkKind};
 use crate::scene::{self, Scene};
 use crate::work::{self, version};
 
@@ -16,10 +16,10 @@ use crate::work::{self, version};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PromptTemplate {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     pub template: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: Option<Label>,
     /// What the action asks the assistant to produce, beyond prose.
     ///
     /// Absent means an ordinary action: the answer is text and the reader
@@ -413,7 +413,7 @@ fn shot_label(kind: &WorkKind, key: &str) -> String {
     kind.shot_types
         .iter()
         .find(|s| s.key == key)
-        .map_or(key.to_owned(), |s| s.label.clone())
+        .map_or(key.to_owned(), |s| s.label.as_str().to_owned())
 }
 
 fn span(starts_at: Option<f64>, ends_at: Option<f64>) -> String {

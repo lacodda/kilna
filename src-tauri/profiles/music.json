@@ -6,118 +6,202 @@
     "work_kinds": [
       {
         "key": "song",
-        "label": "Song"
+        "label": {
+          "en": "Song",
+          "ru": "Песня"
+        }
       },
       {
         "key": "instrumental",
-        "label": "Instrumental"
+        "label": {
+          "en": "Instrumental",
+          "ru": "Инструментал"
+        }
       },
       {
         "key": "video",
-        "label": "Video",
+        "label": {
+          "en": "Video",
+          "ru": "Видео"
+        },
         "axes": [
           {
             "key": "dynamics",
-            "label": "Dynamics",
+            "label": {
+              "en": "Dynamics",
+              "ru": "Динамика"
+            },
             "weight": 1.5,
             "scale": 10.0,
-            "description": "Does the cut carry momentum, or does it sit on one shot?",
+            "description": {
+              "en": "Does the cut carry momentum, or does it sit on one shot?",
+              "ru": "Тянет ли монтаж вперёд — или сидит на одном кадре?"
+            },
             "rubric": [
               {
                 "at": 2,
-                "label": "one shot held while the song happens"
+                "label": {
+                  "en": "one shot held while the song happens",
+                  "ru": "один кадр держится, пока идёт песня"
+                }
               },
               {
                 "at": 5,
-                "label": "moves when the song moves, and nowhere else"
+                "label": {
+                  "en": "moves when the song moves, and nowhere else",
+                  "ru": "движется там, где движется песня, и больше нигде"
+                }
               },
               {
                 "at": 8,
-                "label": "you feel the drop before you hear it"
+                "label": {
+                  "en": "you feel the drop before you hear it",
+                  "ru": "дроп чувствуешь раньше, чем слышишь"
+                }
               }
             ]
           },
           {
             "key": "editing",
-            "label": "Editing",
+            "label": {
+              "en": "Editing",
+              "ru": "Монтаж"
+            },
             "weight": 1.0,
             "scale": 10.0,
-            "description": "Cuts on the beat, shots that answer each other.",
+            "description": {
+              "en": "Cuts on the beat, shots that answer each other.",
+              "ru": "Склейки в долю, кадры отвечают друг другу."
+            },
             "rubric": [
               {
                 "at": 2,
-                "label": "cuts land between the beats"
+                "label": {
+                  "en": "cuts land between the beats",
+                  "ru": "склейки падают между долями"
+                }
               },
               {
                 "at": 5,
-                "label": "clean cuts, no surprises"
+                "label": {
+                  "en": "clean cuts, no surprises",
+                  "ru": "чисто склеено, без неожиданностей"
+                }
               },
               {
                 "at": 8,
-                "label": "two shots argue and a third settles it"
+                "label": {
+                  "en": "two shots argue and a third settles it",
+                  "ru": "два кадра спорят, а третий решает спор"
+                }
               }
             ]
           },
           {
             "key": "fit",
-            "label": "Fit to the track",
+            "label": {
+              "en": "Fit to the track",
+              "ru": "Соответствие треку"
+            },
             "weight": 1.5,
             "scale": 10.0,
-            "description": "Does the picture serve the song, or run beside it?",
+            "description": {
+              "en": "Does the picture serve the song, or run beside it?",
+              "ru": "Картинка служит песне — или идёт рядом с ней?"
+            },
             "rubric": [
               {
                 "at": 2,
-                "label": "a slideshow that happens to have music"
+                "label": {
+                  "en": "a slideshow that happens to have music",
+                  "ru": "слайд-шоу, под которым случайно играет музыка"
+                }
               },
               {
                 "at": 5,
-                "label": "illustrates the words line by line"
+                "label": {
+                  "en": "illustrates the words line by line",
+                  "ru": "иллюстрирует слова строка за строкой"
+                }
               },
               {
                 "at": 8,
-                "label": "shows what the song does not say"
+                "label": {
+                  "en": "shows what the song does not say",
+                  "ru": "показывает то, о чём песня молчит"
+                }
               }
             ]
           },
           {
             "key": "picture",
-            "label": "Picture",
+            "label": {
+              "en": "Picture",
+              "ru": "Картинка"
+            },
             "weight": 1.0,
             "scale": 10.0,
-            "description": "Composition, light and colour, frame by frame.",
+            "description": {
+              "en": "Composition, light and colour, frame by frame.",
+              "ru": "Композиция, свет и цвет, кадр за кадром."
+            },
             "rubric": [
               {
                 "at": 2,
-                "label": "you would not pause on any frame"
+                "label": {
+                  "en": "you would not pause on any frame",
+                  "ru": "ни на одном кадре не захочется остановиться"
+                }
               },
               {
                 "at": 5,
-                "label": "every frame is fine and none is a still"
+                "label": {
+                  "en": "every frame is fine and none is a still",
+                  "ru": "каждый кадр нормальный, и ни один не фотография"
+                }
               },
               {
                 "at": 8,
-                "label": "there is a frame you would print"
+                "label": {
+                  "en": "there is a frame you would print",
+                  "ru": "есть кадр, который захочется напечатать"
+                }
               }
             ]
           },
           {
             "key": "story",
-            "label": "Story",
+            "label": {
+              "en": "Story",
+              "ru": "История"
+            },
             "weight": 1.0,
             "scale": 10.0,
-            "description": "Is there an arc, or a mood held for three minutes?",
+            "description": {
+              "en": "Is there an arc, or a mood held for three minutes?",
+              "ru": "Есть ли дуга — или настроение, растянутое на три минуты?"
+            },
             "rubric": [
               {
                 "at": 2,
-                "label": "a mood, held"
+                "label": {
+                  "en": "a mood, held",
+                  "ru": "настроение, и оно держится"
+                }
               },
               {
                 "at": 5,
-                "label": "a situation with a change at the end"
+                "label": {
+                  "en": "a situation with a change at the end",
+                  "ru": "ситуация, и в конце что-то меняется"
+                }
               },
               {
                 "at": 8,
-                "label": "you could tell someone what happened"
+                "label": {
+                  "en": "you could tell someone what happened",
+                  "ru": "можно пересказать, что произошло"
+                }
               }
             ]
           }
@@ -125,41 +209,62 @@
         "tiers": [
           {
             "key": "shelve",
-            "label": "Shelve",
+            "label": {
+              "en": "Shelve",
+              "ru": "На полку"
+            },
             "min": 0.0
           },
           {
             "key": "rework",
-            "label": "Rework",
+            "label": {
+              "en": "Rework",
+              "ru": "Переделать"
+            },
             "min": 50.0
           },
           {
             "key": "post",
-            "label": "Post",
+            "label": {
+              "en": "Post",
+              "ru": "Выложить"
+            },
             "min": 70.0
           },
           {
             "key": "lead",
-            "label": "Lead with it",
+            "label": {
+              "en": "Lead with it",
+              "ru": "Ставить первым"
+            },
             "min": 85.0
           }
         ],
         "version_roles": [
           {
             "key": "plot",
-            "label": "Plot",
+            "label": {
+              "en": "Plot",
+              "ru": "Сюжет"
+            },
             "body": "markdown"
           },
           {
             "key": "context",
-            "label": "Context",
+            "label": {
+              "en": "Context",
+              "ru": "Контекст"
+            },
             "body": "markdown"
           }
         ],
         "release_kinds": [
           {
             "key": "youtube",
-            "label": "YouTube",
+            "label": {
+              "en": "YouTube",
+              "ru": "YouTube"
+            },
             "requires": [
               "plot"
             ],
@@ -167,37 +272,64 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "type": "line",
                 "template": "{title}",
-                "hint": "What the video is listed under.",
+                "hint": {
+                  "en": "What the video is listed under.",
+                  "ru": "Под каким названием видео стоит в списке."
+                },
                 "limit": 205
               },
               {
                 "key": "description",
-                "label": "Description",
+                "label": {
+                  "en": "Description",
+                  "ru": "Описание"
+                },
                 "type": "text",
                 "template": "{role:plot}",
-                "hint": "The text under the video.",
+                "hint": {
+                  "en": "The text under the video.",
+                  "ru": "Текст под видео."
+                },
                 "limit": 5000
               },
               {
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags",
-                "hint": "Comma separated."
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                }
               },
               {
                 "key": "pinned",
-                "label": "Pinned comment",
+                "label": {
+                  "en": "Pinned comment",
+                  "ru": "Закреплённый комментарий"
+                },
                 "type": "text",
-                "hint": "The comment left under it, pinned to the top."
+                "hint": {
+                  "en": "The comment left under it, pinned to the top.",
+                  "ru": "Комментарий под видео, закреплённый сверху."
+                }
               }
             ]
           },
           {
             "key": "premiere",
-            "label": "Premiere",
+            "label": {
+              "en": "Premiere",
+              "ru": "Премьера"
+            },
             "requires": [
               "plot"
             ],
@@ -205,14 +337,20 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "type": "line",
                 "template": "{title}",
                 "limit": 205
               },
               {
                 "key": "description",
-                "label": "Description",
+                "label": {
+                  "en": "Description",
+                  "ru": "Описание"
+                },
                 "type": "text",
                 "template": "{role:plot}",
                 "limit": 5000
@@ -223,30 +361,45 @@
         "statuses": [
           {
             "key": "draft",
-            "label": "Draft",
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            },
             "derive": "draft"
           },
           {
             "key": "scored",
-            "label": "Scored",
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            },
             "derive": "scored",
             "colour": "accent"
           },
           {
             "key": "scheduled",
-            "label": "Scheduled",
+            "label": {
+              "en": "Scheduled",
+              "ru": "Запланировано"
+            },
             "derive": "scheduled",
             "colour": "warn"
           },
           {
             "key": "released",
-            "label": "Released",
+            "label": {
+              "en": "Released",
+              "ru": "Вышло"
+            },
             "derive": "released",
             "colour": "good"
           },
           {
             "key": "shelved",
-            "label": "Shelved",
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            },
             "derive": "manual",
             "colour": "plain"
           }
@@ -254,170 +407,302 @@
         "shot_types": [
           {
             "key": "wide",
-            "label": "Wide"
+            "label": {
+              "en": "Wide",
+              "ru": "Общий"
+            }
           },
           {
             "key": "medium",
-            "label": "Medium"
+            "label": {
+              "en": "Medium",
+              "ru": "Средний"
+            }
           },
           {
             "key": "close",
-            "label": "Close-up"
+            "label": {
+              "en": "Close-up",
+              "ru": "Крупный"
+            }
           },
           {
             "key": "detail",
-            "label": "Detail"
+            "label": {
+              "en": "Detail",
+              "ru": "Деталь"
+            }
           },
           {
             "key": "insert",
-            "label": "Insert"
+            "label": {
+              "en": "Insert",
+              "ru": "Перебивка"
+            }
           },
           {
             "key": "title",
-            "label": "Title card"
+            "label": {
+              "en": "Title card",
+              "ru": "Титр"
+            }
           }
         ],
         "scene_blocks": [
           {
             "key": "still",
-            "label": "Still frame",
-            "hint": "The frame as a picture: subject, light, lens, mood."
+            "label": {
+              "en": "Still frame",
+              "ru": "Стоп-кадр"
+            },
+            "hint": {
+              "en": "The frame as a picture: subject, light, lens, mood.",
+              "ru": "Кадр как картинка: объект, свет, объектив, настроение."
+            }
           },
           {
             "key": "motion",
-            "label": "Animation",
-            "hint": "What moves, and how the camera moves, from that frame."
+            "label": {
+              "en": "Animation",
+              "ru": "Анимация"
+            },
+            "hint": {
+              "en": "What moves, and how the camera moves, from that frame.",
+              "ru": "Что движется и как движется камера от этого кадра."
+            }
           },
           {
             "key": "negative",
-            "label": "Negative",
-            "hint": "What must not appear."
+            "label": {
+              "en": "Negative",
+              "ru": "Негатив"
+            },
+            "hint": {
+              "en": "What must not appear.",
+              "ru": "Чего быть не должно."
+            }
           }
         ],
         "cover_blocks": [
           {
             "key": "picture",
-            "label": "Picture",
-            "hint": "What the thumbnail shows: subject, framing, light, mood."
+            "label": {
+              "en": "Picture",
+              "ru": "Картинка"
+            },
+            "hint": {
+              "en": "What the thumbnail shows: subject, framing, light, mood.",
+              "ru": "Что показывает превью: объект, кадрирование, свет, настроение."
+            }
           },
           {
             "key": "negative",
-            "label": "Negative",
-            "hint": "What must not appear on it."
+            "label": {
+              "en": "Negative",
+              "ru": "Негатив"
+            },
+            "hint": {
+              "en": "What must not appear on it.",
+              "ru": "Чего на ней быть не должно."
+            }
           },
           {
             "key": "typography",
-            "label": "Typography",
-            "hint": "The words on the cover, and how they sit: size, weight, place."
+            "label": {
+              "en": "Typography",
+              "ru": "Типографика"
+            },
+            "hint": {
+              "en": "The words on the cover, and how they sit: size, weight, place.",
+              "ru": "Слова на обложке и как они лежат: размер, насыщенность, место."
+            }
           }
         ]
       },
       {
         "key": "short",
-        "label": "Short",
+        "label": {
+          "en": "Short",
+          "ru": "Шортс"
+        },
         "axes": [
           {
             "key": "dynamics",
-            "label": "Dynamics",
+            "label": {
+              "en": "Dynamics",
+              "ru": "Динамика"
+            },
             "weight": 1.5,
             "scale": 10.0,
-            "description": "Does the cut carry momentum, or does it sit on one shot?",
+            "description": {
+              "en": "Does the cut carry momentum, or does it sit on one shot?",
+              "ru": "Тянет ли монтаж вперёд — или сидит на одном кадре?"
+            },
             "rubric": [
               {
                 "at": 2,
-                "label": "one shot held while the song happens"
+                "label": {
+                  "en": "one shot held while the song happens",
+                  "ru": "один кадр держится, пока идёт песня"
+                }
               },
               {
                 "at": 5,
-                "label": "moves when the song moves, and nowhere else"
+                "label": {
+                  "en": "moves when the song moves, and nowhere else",
+                  "ru": "движется там, где движется песня, и больше нигде"
+                }
               },
               {
                 "at": 8,
-                "label": "you feel the drop before you hear it"
+                "label": {
+                  "en": "you feel the drop before you hear it",
+                  "ru": "дроп чувствуешь раньше, чем слышишь"
+                }
               }
             ]
           },
           {
             "key": "editing",
-            "label": "Editing",
+            "label": {
+              "en": "Editing",
+              "ru": "Монтаж"
+            },
             "weight": 1.0,
             "scale": 10.0,
-            "description": "Cuts on the beat, shots that answer each other.",
+            "description": {
+              "en": "Cuts on the beat, shots that answer each other.",
+              "ru": "Склейки в долю, кадры отвечают друг другу."
+            },
             "rubric": [
               {
                 "at": 2,
-                "label": "cuts land between the beats"
+                "label": {
+                  "en": "cuts land between the beats",
+                  "ru": "склейки падают между долями"
+                }
               },
               {
                 "at": 5,
-                "label": "clean cuts, no surprises"
+                "label": {
+                  "en": "clean cuts, no surprises",
+                  "ru": "чисто склеено, без неожиданностей"
+                }
               },
               {
                 "at": 8,
-                "label": "two shots argue and a third settles it"
+                "label": {
+                  "en": "two shots argue and a third settles it",
+                  "ru": "два кадра спорят, а третий решает спор"
+                }
               }
             ]
           },
           {
             "key": "fit",
-            "label": "Fit to the track",
+            "label": {
+              "en": "Fit to the track",
+              "ru": "Соответствие треку"
+            },
             "weight": 1.5,
             "scale": 10.0,
-            "description": "Does the picture serve the song, or run beside it?",
+            "description": {
+              "en": "Does the picture serve the song, or run beside it?",
+              "ru": "Картинка служит песне — или идёт рядом с ней?"
+            },
             "rubric": [
               {
                 "at": 2,
-                "label": "a slideshow that happens to have music"
+                "label": {
+                  "en": "a slideshow that happens to have music",
+                  "ru": "слайд-шоу, под которым случайно играет музыка"
+                }
               },
               {
                 "at": 5,
-                "label": "illustrates the words line by line"
+                "label": {
+                  "en": "illustrates the words line by line",
+                  "ru": "иллюстрирует слова строка за строкой"
+                }
               },
               {
                 "at": 8,
-                "label": "shows what the song does not say"
+                "label": {
+                  "en": "shows what the song does not say",
+                  "ru": "показывает то, о чём песня молчит"
+                }
               }
             ]
           },
           {
             "key": "picture",
-            "label": "Picture",
+            "label": {
+              "en": "Picture",
+              "ru": "Картинка"
+            },
             "weight": 1.0,
             "scale": 10.0,
-            "description": "Composition, light and colour, frame by frame.",
+            "description": {
+              "en": "Composition, light and colour, frame by frame.",
+              "ru": "Композиция, свет и цвет, кадр за кадром."
+            },
             "rubric": [
               {
                 "at": 2,
-                "label": "you would not pause on any frame"
+                "label": {
+                  "en": "you would not pause on any frame",
+                  "ru": "ни на одном кадре не захочется остановиться"
+                }
               },
               {
                 "at": 5,
-                "label": "every frame is fine and none is a still"
+                "label": {
+                  "en": "every frame is fine and none is a still",
+                  "ru": "каждый кадр нормальный, и ни один не фотография"
+                }
               },
               {
                 "at": 8,
-                "label": "there is a frame you would print"
+                "label": {
+                  "en": "there is a frame you would print",
+                  "ru": "есть кадр, который захочется напечатать"
+                }
               }
             ]
           },
           {
             "key": "story",
-            "label": "Story",
+            "label": {
+              "en": "Story",
+              "ru": "История"
+            },
             "weight": 1.0,
             "scale": 10.0,
-            "description": "Is there an arc, or a mood held for three minutes?",
+            "description": {
+              "en": "Is there an arc, or a mood held for three minutes?",
+              "ru": "Есть ли дуга — или настроение, растянутое на три минуты?"
+            },
             "rubric": [
               {
                 "at": 2,
-                "label": "a mood, held"
+                "label": {
+                  "en": "a mood, held",
+                  "ru": "настроение, и оно держится"
+                }
               },
               {
                 "at": 5,
-                "label": "a situation with a change at the end"
+                "label": {
+                  "en": "a situation with a change at the end",
+                  "ru": "ситуация, и в конце что-то меняется"
+                }
               },
               {
                 "at": 8,
-                "label": "you could tell someone what happened"
+                "label": {
+                  "en": "you could tell someone what happened",
+                  "ru": "можно пересказать, что произошло"
+                }
               }
             ]
           }
@@ -425,41 +710,62 @@
         "tiers": [
           {
             "key": "shelve",
-            "label": "Shelve",
+            "label": {
+              "en": "Shelve",
+              "ru": "На полку"
+            },
             "min": 0.0
           },
           {
             "key": "rework",
-            "label": "Rework",
+            "label": {
+              "en": "Rework",
+              "ru": "Переделать"
+            },
             "min": 50.0
           },
           {
             "key": "post",
-            "label": "Post",
+            "label": {
+              "en": "Post",
+              "ru": "Выложить"
+            },
             "min": 70.0
           },
           {
             "key": "lead",
-            "label": "Lead with it",
+            "label": {
+              "en": "Lead with it",
+              "ru": "Ставить первым"
+            },
             "min": 85.0
           }
         ],
         "version_roles": [
           {
             "key": "plot",
-            "label": "Plot",
+            "label": {
+              "en": "Plot",
+              "ru": "Сюжет"
+            },
             "body": "markdown"
           },
           {
             "key": "context",
-            "label": "Context",
+            "label": {
+              "en": "Context",
+              "ru": "Контекст"
+            },
             "body": "markdown"
           }
         ],
         "release_kinds": [
           {
             "key": "short",
-            "label": "Short",
+            "label": {
+              "en": "Short",
+              "ru": "Шортс"
+            },
             "requires": [
               "plot"
             ],
@@ -467,23 +773,38 @@
             "fields": [
               {
                 "key": "title",
-                "label": "Title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
                 "type": "line",
                 "template": "{title}",
-                "hint": "Short enough to read on a phone.",
+                "hint": {
+                  "en": "Short enough to read on a phone.",
+                  "ru": "Достаточно короткий, чтобы прочесть с телефона."
+                },
                 "limit": 100
               },
               {
                 "key": "description",
-                "label": "Description",
+                "label": {
+                  "en": "Description",
+                  "ru": "Описание"
+                },
                 "type": "text",
                 "limit": 5000
               },
               {
                 "key": "tags",
-                "label": "Tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
                 "type": "tags",
-                "hint": "Comma separated."
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                }
               }
             ]
           }
@@ -491,30 +812,45 @@
         "statuses": [
           {
             "key": "draft",
-            "label": "Draft",
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            },
             "derive": "draft"
           },
           {
             "key": "scored",
-            "label": "Scored",
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            },
             "derive": "scored",
             "colour": "accent"
           },
           {
             "key": "scheduled",
-            "label": "Scheduled",
+            "label": {
+              "en": "Scheduled",
+              "ru": "Запланировано"
+            },
             "derive": "scheduled",
             "colour": "warn"
           },
           {
             "key": "released",
-            "label": "Released",
+            "label": {
+              "en": "Released",
+              "ru": "Вышло"
+            },
             "derive": "released",
             "colour": "good"
           },
           {
             "key": "shelved",
-            "label": "Shelved",
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            },
             "derive": "manual",
             "colour": "plain"
           }
@@ -522,61 +858,115 @@
         "shot_types": [
           {
             "key": "wide",
-            "label": "Wide"
+            "label": {
+              "en": "Wide",
+              "ru": "Общий"
+            }
           },
           {
             "key": "medium",
-            "label": "Medium"
+            "label": {
+              "en": "Medium",
+              "ru": "Средний"
+            }
           },
           {
             "key": "close",
-            "label": "Close-up"
+            "label": {
+              "en": "Close-up",
+              "ru": "Крупный"
+            }
           },
           {
             "key": "detail",
-            "label": "Detail"
+            "label": {
+              "en": "Detail",
+              "ru": "Деталь"
+            }
           },
           {
             "key": "insert",
-            "label": "Insert"
+            "label": {
+              "en": "Insert",
+              "ru": "Перебивка"
+            }
           },
           {
             "key": "title",
-            "label": "Title card"
+            "label": {
+              "en": "Title card",
+              "ru": "Титр"
+            }
           }
         ],
         "scene_blocks": [
           {
             "key": "still",
-            "label": "Still frame",
-            "hint": "The frame as a picture: subject, light, lens, mood."
+            "label": {
+              "en": "Still frame",
+              "ru": "Стоп-кадр"
+            },
+            "hint": {
+              "en": "The frame as a picture: subject, light, lens, mood.",
+              "ru": "Кадр как картинка: объект, свет, объектив, настроение."
+            }
           },
           {
             "key": "motion",
-            "label": "Animation",
-            "hint": "What moves, and how the camera moves, from that frame."
+            "label": {
+              "en": "Animation",
+              "ru": "Анимация"
+            },
+            "hint": {
+              "en": "What moves, and how the camera moves, from that frame.",
+              "ru": "Что движется и как движется камера от этого кадра."
+            }
           },
           {
             "key": "negative",
-            "label": "Negative",
-            "hint": "What must not appear."
+            "label": {
+              "en": "Negative",
+              "ru": "Негатив"
+            },
+            "hint": {
+              "en": "What must not appear.",
+              "ru": "Чего быть не должно."
+            }
           }
         ],
         "cover_blocks": [
           {
             "key": "picture",
-            "label": "Picture",
-            "hint": "What the thumbnail shows: subject, framing, light, mood."
+            "label": {
+              "en": "Picture",
+              "ru": "Картинка"
+            },
+            "hint": {
+              "en": "What the thumbnail shows: subject, framing, light, mood.",
+              "ru": "Что показывает превью: объект, кадрирование, свет, настроение."
+            }
           },
           {
             "key": "negative",
-            "label": "Negative",
-            "hint": "What must not appear on it."
+            "label": {
+              "en": "Negative",
+              "ru": "Негатив"
+            },
+            "hint": {
+              "en": "What must not appear on it.",
+              "ru": "Чего на ней быть не должно."
+            }
           },
           {
             "key": "typography",
-            "label": "Typography",
-            "hint": "The words on the cover, and how they sit: size, weight, place."
+            "label": {
+              "en": "Typography",
+              "ru": "Типографика"
+            },
+            "hint": {
+              "en": "The words on the cover, and how they sit: size, weight, place.",
+              "ru": "Слова на обложке и как они лежат: размер, насыщенность, место."
+            }
           }
         ]
       }
@@ -584,7 +974,10 @@
     "release_kinds": [
       {
         "key": "audio",
-        "label": "Audio release",
+        "label": {
+          "en": "Audio release",
+          "ru": "Аудио-релиз"
+        },
         "requires": [
           "lyrics",
           "style"
@@ -593,66 +986,123 @@
         "fields": [
           {
             "key": "title",
-            "label": "Title",
+            "label": {
+              "en": "Title",
+              "ru": "Заголовок"
+            },
             "type": "line",
             "template": "{title}",
             "limit": 205
           },
           {
             "key": "description",
-            "label": "Description",
+            "label": {
+              "en": "Description",
+              "ru": "Описание"
+            },
             "type": "text",
             "template": "{role:lyrics}"
           },
           {
             "key": "tags",
-            "label": "Tags",
+            "label": {
+              "en": "Tags",
+              "ru": "Теги"
+            },
             "type": "tags",
-            "hint": "Comma separated."
+            "hint": {
+              "en": "Comma separated.",
+              "ru": "Через запятую."
+            }
           }
         ]
       }
     ],
     "note_kinds": [
-    { "key": "character", "label": "Character" },
-    { "key": "location", "label": "Location" },
-    { "key": "lore", "label": "Lore" },
-    { "key": "note", "label": "Note" }
+      {
+        "key": "character",
+        "label": {
+          "en": "Character",
+          "ru": "Персонаж"
+        }
+      },
+      {
+        "key": "location",
+        "label": {
+          "en": "Location",
+          "ru": "Локация"
+        }
+      },
+      {
+        "key": "lore",
+        "label": {
+          "en": "Lore",
+          "ru": "Лор"
+        }
+      },
+      {
+        "key": "note",
+        "label": {
+          "en": "Note",
+          "ru": "Заметка"
+        }
+      }
     ],
     "collection_kinds": [
       {
         "key": "album",
-        "label": "Album"
+        "label": {
+          "en": "Album",
+          "ru": "Альбом"
+        }
       },
       {
         "key": "single",
-        "label": "Single"
+        "label": {
+          "en": "Single",
+          "ru": "Сингл"
+        }
       },
       {
         "key": "cycle",
-        "label": "Cycle"
+        "label": {
+          "en": "Cycle",
+          "ru": "Цикл"
+        }
       }
     ],
     "version_roles": [
       {
         "key": "lyrics",
-        "label": "Lyrics",
+        "label": {
+          "en": "Lyrics",
+          "ru": "Текст"
+        },
         "body": "plain"
       },
       {
         "key": "style",
-        "label": "Style prompt",
+        "label": {
+          "en": "Style prompt",
+          "ru": "Промпт стиля"
+        },
         "body": "plain"
       },
       {
         "key": "review",
-        "label": "Review",
+        "label": {
+          "en": "Review",
+          "ru": "Разбор"
+        },
         "comments_on": "lyrics",
         "body": "markdown"
       },
       {
         "key": "critique",
-        "label": "Critique",
+        "label": {
+          "en": "Critique",
+          "ru": "Критика"
+        },
         "comments_on": "lyrics",
         "body": "markdown"
       }
@@ -660,30 +1110,45 @@
     "statuses": [
       {
         "key": "draft",
-        "label": "Draft",
+        "label": {
+          "en": "Draft",
+          "ru": "Черновик"
+        },
         "derive": "draft"
       },
       {
         "key": "scored",
-        "label": "Scored",
+        "label": {
+          "en": "Scored",
+          "ru": "Оценено"
+        },
         "derive": "scored",
         "colour": "accent"
       },
       {
         "key": "scheduled",
-        "label": "Scheduled",
+        "label": {
+          "en": "Scheduled",
+          "ru": "Запланировано"
+        },
         "derive": "scheduled",
         "colour": "warn"
       },
       {
         "key": "released",
-        "label": "Released",
+        "label": {
+          "en": "Released",
+          "ru": "Вышло"
+        },
         "derive": "released",
         "colour": "good"
       },
       {
         "key": "shelved",
-        "label": "Shelved",
+        "label": {
+          "en": "Shelved",
+          "ru": "На полке"
+        },
         "derive": "manual",
         "colour": "plain"
       }
@@ -691,127 +1156,217 @@
     "axes": [
       {
         "key": "hook",
-        "label": "Hook",
+        "label": {
+          "en": "Hook",
+          "ru": "Припев"
+        },
         "weight": 2.0,
         "scale": 10.0,
-        "description": "Does the chorus stay with you after one listen?",
+        "description": {
+          "en": "Does the chorus stay with you after one listen?",
+          "ru": "Остаётся ли припев в голове после одного прослушивания?"
+        },
         "rubric": [
           {
             "at": 2,
-            "label": "you could not hum it back straight after"
+            "label": {
+              "en": "you could not hum it back straight after",
+              "ru": "сразу после не напоёшь"
+            }
           },
           {
             "at": 5,
-            "label": "the chorus lands, but you have heard it land before"
+            "label": {
+              "en": "the chorus lands, but you have heard it land before",
+              "ru": "припев ложится, но так он уже ложился"
+            }
           },
           {
             "at": 8,
-            "label": "you catch yourself singing it hours later"
+            "label": {
+              "en": "you catch yourself singing it hours later",
+              "ru": "ловишь себя на том, что напеваешь спустя часы"
+            }
           }
         ]
       },
       {
         "key": "lyrics",
-        "label": "Lyrics",
+        "label": {
+          "en": "Lyrics",
+          "ru": "Текст"
+        },
         "weight": 1.5,
         "scale": 10.0,
-        "description": "Imagery, rhyme and whether a line earns its place.",
+        "description": {
+          "en": "Imagery, rhyme and whether a line earns its place.",
+          "ru": "Образность, рифма и заслуживает ли строка своего места."
+        },
         "rubric": [
           {
             "at": 2,
-            "label": "the lines fill the bar and say nothing"
+            "label": {
+              "en": "the lines fill the bar and say nothing",
+              "ru": "строки заполняют такт и ничего не говорят"
+            }
           },
           {
             "at": 5,
-            "label": "clear and true, with no line you would quote"
+            "label": {
+              "en": "clear and true, with no line you would quote",
+              "ru": "честно и ясно, но цитировать нечего"
+            }
           },
           {
             "at": 8,
-            "label": "at least one line you would quote to someone"
+            "label": {
+              "en": "at least one line you would quote to someone",
+              "ru": "есть хотя бы строка, которую кому-то процитируешь"
+            }
           }
         ]
       },
       {
         "key": "emotion",
-        "label": "Emotion",
+        "label": {
+          "en": "Emotion",
+          "ru": "Эмоция"
+        },
         "weight": 1.5,
         "scale": 10.0,
-        "description": "Does it move a listener who knows nothing about it?",
+        "description": {
+          "en": "Does it move a listener who knows nothing about it?",
+          "ru": "Трогает ли слушателя, который ничего об этом не знает?"
+        },
         "rubric": [
           {
             "at": 2,
-            "label": "it describes a feeling instead of causing one"
+            "label": {
+              "en": "it describes a feeling instead of causing one",
+              "ru": "описывает чувство вместо того, чтобы вызвать его"
+            }
           },
           {
             "at": 5,
-            "label": "it moves you because you know what it is about"
+            "label": {
+              "en": "it moves you because you know what it is about",
+              "ru": "трогает, потому что знаешь, о чём это"
+            }
           },
           {
             "at": 8,
-            "label": "it moves a stranger who knows none of that"
+            "label": {
+              "en": "it moves a stranger who knows none of that",
+              "ru": "трогает постороннего, который ничего этого не знает"
+            }
           }
         ]
       },
       {
         "key": "production",
-        "label": "Production",
+        "label": {
+          "en": "Production",
+          "ru": "Продакшн"
+        },
         "weight": 1.0,
         "scale": 10.0,
-        "description": "Arrangement, mix and how finished it sounds.",
+        "description": {
+          "en": "Arrangement, mix and how finished it sounds.",
+          "ru": "Аранжировка, сведение и насколько законченно звучит."
+        },
         "rubric": [
           {
             "at": 2,
-            "label": "a demo, and it sounds like one"
+            "label": {
+              "en": "a demo, and it sounds like one",
+              "ru": "демо, и звучит как демо"
+            }
           },
           {
             "at": 5,
-            "label": "clean, and nothing about it is interesting"
+            "label": {
+              "en": "clean, and nothing about it is interesting",
+              "ru": "чисто, и ничего интересного"
+            }
           },
           {
             "at": 8,
-            "label": "the arrangement is part of what the song means"
+            "label": {
+              "en": "the arrangement is part of what the song means",
+              "ru": "аранжировка — часть смысла песни"
+            }
           }
         ]
       },
       {
         "key": "originality",
-        "label": "Originality",
+        "label": {
+          "en": "Originality",
+          "ru": "Оригинальность"
+        },
         "weight": 1.0,
         "scale": 10.0,
-        "description": "Distance from the obvious version of this idea.",
+        "description": {
+          "en": "Distance from the obvious version of this idea.",
+          "ru": "Насколько далеко от очевидной версии этой идеи."
+        },
         "rubric": [
           {
             "at": 2,
-            "label": "the first version anyone would write of this idea"
+            "label": {
+              "en": "the first version anyone would write of this idea",
+              "ru": "первая версия, которую написал бы кто угодно"
+            }
           },
           {
             "at": 5,
-            "label": "a familiar shape done properly"
+            "label": {
+              "en": "a familiar shape done properly",
+              "ru": "знакомая форма, сделанная как следует"
+            }
           },
           {
             "at": 8,
-            "label": "you cannot name the song it is like"
+            "label": {
+              "en": "you cannot name the song it is like",
+              "ru": "не назовёшь песню, на которую это похоже"
+            }
           }
         ]
       },
       {
         "key": "visual",
-        "label": "Visual potential",
+        "label": {
+          "en": "Visual potential",
+          "ru": "Визуальный потенциал"
+        },
         "weight": 1.0,
         "scale": 10.0,
-        "description": "Is there a clip in it, or only a cover?",
+        "description": {
+          "en": "Is there a clip in it, or only a cover?",
+          "ru": "Есть ли здесь клип — или только обложка?"
+        },
         "rubric": [
           {
             "at": 2,
-            "label": "a cover, at most"
+            "label": {
+              "en": "a cover, at most",
+              "ru": "обложка, не больше"
+            }
           },
           {
             "at": 5,
-            "label": "a picture track: one idea held for the length of it"
+            "label": {
+              "en": "a picture track: one idea held for the length of it",
+              "ru": "трек с картинкой: одна идея на всю длину"
+            }
           },
           {
             "at": 8,
-            "label": "you can already see the cut"
+            "label": {
+              "en": "you can already see the cut",
+              "ru": "монтаж уже видно"
+            }
           }
         ]
       }
@@ -819,103 +1374,160 @@
     "tiers": [
       {
         "key": "hold",
-        "label": "Hold",
+        "label": {
+          "en": "Hold",
+          "ru": "Придержать"
+        },
         "min": 0.0
       },
       {
         "key": "audio",
-        "label": "Audio release",
+        "label": {
+          "en": "Audio release",
+          "ru": "Аудио-релиз"
+        },
         "min": 55.0
       },
       {
         "key": "picture",
-        "label": "Picture track",
+        "label": {
+          "en": "Picture track",
+          "ru": "Трек с картинкой"
+        },
         "min": 68.0
       },
       {
         "key": "clip",
-        "label": "Clip",
+        "label": {
+          "en": "Clip",
+          "ru": "Клип"
+        },
         "min": 78.0
       }
     ],
     "work_meta_fields": [
       {
         "key": "bpm",
-        "label": "BPM",
+        "label": {
+          "en": "BPM",
+          "ru": "BPM"
+        },
         "type": "number"
       },
       {
         "key": "key",
-        "label": "Key",
+        "label": {
+          "en": "Key",
+          "ru": "Тональность"
+        },
         "type": "text"
       },
       {
         "key": "duration",
-        "label": "Duration",
+        "label": {
+          "en": "Duration",
+          "ru": "Длительность"
+        },
         "type": "number"
       },
       {
         "key": "language",
-        "label": "Language",
+        "label": {
+          "en": "Language",
+          "ru": "Язык"
+        },
         "type": "text"
       },
       {
         "key": "tagline",
-        "label": "Tagline",
+        "label": {
+          "en": "Tagline",
+          "ru": "Слоган"
+        },
         "type": "text"
       },
       {
         "key": "direction",
-        "label": "Direction",
+        "label": {
+          "en": "Direction",
+          "ru": "Направление"
+        },
         "type": "text"
       },
       {
         "key": "mood",
-        "label": "Mood",
+        "label": {
+          "en": "Mood",
+          "ru": "Настроение"
+        },
         "type": "text"
       },
       {
         "key": "tempo",
-        "label": "Tempo",
+        "label": {
+          "en": "Tempo",
+          "ru": "Темп"
+        },
         "type": "text"
       },
       {
         "key": "vocal",
-        "label": "Vocal",
+        "label": {
+          "en": "Vocal",
+          "ru": "Вокал"
+        },
         "type": "text"
       },
       {
         "key": "perspective",
-        "label": "Perspective",
+        "label": {
+          "en": "Perspective",
+          "ru": "Перспектива"
+        },
         "type": "text"
       },
       {
         "key": "instruments",
-        "label": "Instruments",
+        "label": {
+          "en": "Instruments",
+          "ru": "Инструменты"
+        },
         "type": "text"
       },
       {
         "key": "premise",
-        "label": "Premise",
+        "label": {
+          "en": "Premise",
+          "ru": "Завязка"
+        },
         "type": "multiline"
       }
     ],
     "marks": [
       {
         "key": "working",
-        "label": "Working on it",
+        "label": {
+          "en": "Working on it",
+          "ru": "В работе"
+        },
         "colour": "warn",
         "icon": "wrench"
       },
       {
         "key": "unsure",
-        "label": "Not sure",
+        "label": {
+          "en": "Not sure",
+          "ru": "Под вопросом"
+        },
         "colour": "accent",
         "icon": "circle-help"
       },
       {
         "key": "favourite",
-        "label": "The good one",
+        "label": {
+          "en": "The good one",
+          "ru": "То самое"
+        },
         "colour": "good",
         "icon": "thumbs-up"
       }
@@ -923,37 +1535,55 @@
     "stages": [
       {
         "key": "idea",
-        "label": "Idea",
+        "label": {
+          "en": "Idea",
+          "ru": "Идея"
+        },
         "percent": 0,
         "colour": "plain"
       },
       {
         "key": "sketch",
-        "label": "Rough take",
+        "label": {
+          "en": "Rough take",
+          "ru": "Черновой набросок"
+        },
         "percent": 20,
         "colour": "plain"
       },
       {
         "key": "half",
-        "label": "Half there",
+        "label": {
+          "en": "Half there",
+          "ru": "Наполовину"
+        },
         "percent": 40,
         "colour": "warn"
       },
       {
         "key": "nearly",
-        "label": "Full draft",
+        "label": {
+          "en": "Full draft",
+          "ru": "Полный черновик"
+        },
         "percent": 60,
         "colour": "warn"
       },
       {
         "key": "polish",
-        "label": "Polishing",
+        "label": {
+          "en": "Polishing",
+          "ru": "Шлифовка"
+        },
         "percent": 80,
         "colour": "accent"
       },
       {
         "key": "done",
-        "label": "Finished",
+        "label": {
+          "en": "Finished",
+          "ru": "Готово"
+        },
         "percent": 100,
         "colour": "good"
       }
@@ -965,8 +1595,14 @@
     "prompts": [
       {
         "key": "critique",
-        "label": "Critique the lyrics",
-        "description": "Weak lines, tired images, anything that does not sing — kept as a critique beside the text.",
+        "label": {
+          "en": "Critique the lyrics",
+          "ru": "Критика текста"
+        },
+        "description": {
+          "en": "Weak lines, tired images, anything that does not sing — kept as a critique beside the text.",
+          "ru": "Слабые строки, затёртые образы, всё, что не поётся, — останется критикой рядом с текстом."
+        },
         "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nBe specific and be hard on it: which lines are weak, which images are worn out, what would you cut? Do not rewrite it — say what is wrong.",
         "method": "# Lyrics critic\n\n## Role\n\nYou are a strict, fair editor of song lyrics. Your job is to find everything that can be made better and say it in a way the writer can act on: the line, what is wrong with it, and how to fix it — two or three alternatives where a fix is a rewrite. Not praise, not general impressions.\n\n## The craft's DNA\n\nEdit this section for your own project: who sings, from whose point of view, what mood the songs keep even when they are light, which genres you work in, what an image has to do to belong here. A critique judges against this, not against \"songs in general\".\n\n- Images must be seen or felt: a listener should be able to picture them.\n- Emotion arrives through detail, never through a declaration of the emotion.\n- Keep one perspective through the song unless the shift is the point.\n\n## Blocks\n\nGo through every block, in this order.\n\n### A. Rhymes\nCheck every rhyming pair. Flag lines that do not rhyme where the pattern says they should (unless plainly a device); verb-verb rhymes; the worn pairs everyone reaches for; rhymes that only hold if you squint; the same rhyme reused in another section. For each: the line, the problem, two or three alternatives.\n\n### B. Images and metaphors\nFlag worn metaphors and empty abstractions with nothing concrete under them. Ask of every image whether it works for the song's idea and whether it can be seen or felt. Look for images that contradict each other across sections.\n\nFour quick tests:\n- **Body test.** Is there at least one detail per verse that could only be remembered with the body — smell, temperature, light, sound, texture? A text built from concepts alone was written from the head.\n- **Added value.** For every borrowing, quotation or homage: say in one sentence what was added to what was taken. If it cannot be said, it is a copy — cut or transform it.\n- **Strip test** (songs about loss and time). Remove every word that names a feeling. Do the things left on the page still tell the story? If it collapses, it stood on declarations.\n- **Our-world test** (narrative and exotic settings). Is there one detail in the foreign world that marks it as ours? A setting without one is a backdrop.\n\n### C. Structure and logic\nIs there an arc from the first line to the last? Does the chorus land as the verse's culmination? Does the bridge bring a new angle or repeat? Any gaps in meaning between sections? Does the ending follow?\n\n### D. Rhythm and singability\nDo lines within a section keep to a similar length? Any line plainly overloaded with syllables, or too short beside its neighbours? Consonant clusters that are hard to sing?\n\n### E. Fit with the craft's DNA\nGenre and mood as declared; perspective held; no unmotivated jumps of register; the DNA above, point by point.\n\n## Output\n\n```\n## CRITIQUE: [title]\n\n### MUST FIX\n[line] → [what is wrong] → [how to fix / 2–3 alternatives]\n\n### SHOULD FIX\n[line] → [what is wrong] → [how to fix / 2–3 alternatives]\n\n### KEEP\n[what works and why — briefly]\n\n### VERDICT\nScore: [1–10]\nMain problem: [one phrase]\nRecommendation: [REWORK / ACCEPT / REWRITE]\n```\n\n## Never write\n\"Overall not bad\", \"Good text, but…\", \"Could be slightly improved\", \"In my opinion\", \"A decent attempt\". Only specifics: line → problem → fix.\n\n## Approval\nWrite `## APPROVED` only when blocks A and B have no must-fix items, the structure holds (C), the rhythm sings (D), the DNA is met (E) and the score is 8 or above. At 7, write \"Almost there — remaining:\" followed by the concrete edits.\n",
         "produces": "version:critique",
@@ -976,8 +1612,14 @@
       },
       {
         "key": "polish",
-        "label": "Suggest a revision",
-        "description": "A rewrite to react to, not to accept.",
+        "label": {
+          "en": "Suggest a revision",
+          "ru": "Правка текста"
+        },
+        "description": {
+          "en": "A rewrite to react to, not to accept.",
+          "ru": "Переписанный вариант, чтобы оттолкнуться, а не чтобы принять."
+        },
         "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nSuggest one revision that keeps the voice but fixes what is weakest. Show the changed lines only, with a sentence on why each changed.",
         "kinds": [
           "song"
@@ -985,8 +1627,14 @@
       },
       {
         "key": "style",
-        "label": "Draft a style prompt",
-        "description": "A production description from the text.",
+        "label": {
+          "en": "Draft a style prompt",
+          "ru": "Промпт стиля"
+        },
+        "description": {
+          "en": "A production description from the text.",
+          "ru": "Описание продакшна, выведенное из текста."
+        },
         "template": "These are the lyrics of \"{title}\":\n\n{role:lyrics}\n\nWrite a short production description — genre, instruments, tempo feel, vocal treatment — that would suit them. One paragraph, concrete, no adjectives that mean nothing.",
         "kinds": [
           "song"
@@ -994,8 +1642,14 @@
       },
       {
         "key": "titles",
-        "label": "Alternative titles",
-        "description": "Other ways to name it.",
+        "label": {
+          "en": "Alternative titles",
+          "ru": "Другие названия"
+        },
+        "description": {
+          "en": "Other ways to name it.",
+          "ru": "Как это можно назвать иначе."
+        },
         "template": "A song currently called \"{title}\" with these lyrics:\n\n{role:lyrics}\n\nSuggest six alternative titles. Take them from the text itself where you can. No explanations.",
         "kinds": [
           "song"
@@ -1003,16 +1657,28 @@
       },
       {
         "key": "score",
-        "label": "Score the song",
-        "description": "Rate it along the profile axes, with a reason.",
+        "label": {
+          "en": "Score the song",
+          "ru": "Оценка песни"
+        },
+        "description": {
+          "en": "Rate it along the profile axes, with a reason.",
+          "ru": "Оценить по осям профиля, с обоснованием."
+        },
         "template": "Here is “{title}”, a {kind}.\n\n{body}\n\nJudge it as finished work, along the axes below. Be honest rather than kind: a score that flatters is worth nothing.",
         "method": "# Judge of finished work\n\n## Role\n\nYou are judging release potential — how the finished piece stands against the profile's axes — not helping to improve it. Score each axis on its own scale as the profile describes it; the marks of a rubric, where given, are the anchors: find the nearest one below the work and place it there. Do not average impressions across axes, and do not let a strong axis lift a weak one.\n\n## How to judge\n\n1. Read the whole piece once as a listener or reader would, without a pen.\n2. Read it again per axis, in the profile's order, and write one line of evidence for each axis before the number — a quote or a concrete observation, not an adjective.\n3. Be honest rather than kind: a flattering score is worth nothing to the author, and a 10 is reserved for work with nothing left to fix on that axis.\n4. Where the profile names tiers, say which tier the total lands in and what, if anything, would move it up one.\n\n## Output\n\nYour reasoning first: the evidence per axis, one line each, then the tier and what would move it. Then the fenced json block exactly as instructed, and nothing after it.\n",
         "produces": "score"
       },
       {
         "key": "plot",
-        "label": "Plot from the source",
-        "description": "The video’s story, beat by beat against the source — kept as the plot.",
+        "label": {
+          "en": "Plot from the source",
+          "ru": "Сюжет по источнику"
+        },
+        "description": {
+          "en": "The video’s story, beat by beat against the source — kept as the plot.",
+          "ru": "История видео, доля за долей против источника, — останется сюжетом."
+        },
         "template": "A {kind} called \"{title}\", made from {donor}.\n\nThe source text:\n\n{donor:lyrics}\n\nWrite the plot of the video: what it tells, beat by beat, against the sections of the source.",
         "method": "# Director writing the plot\n\n## Role\n\nYou are the director of a music video, writing the plot before anyone draws a frame. The plot is the video's story as a document: what the viewer sees and understands, beat by beat, against the sections of the source. It is not a storyboard — no camera, no shot numbers — and not an essay about the song. A storyboard artist must be able to break it into scenes without asking you anything.\n\n## Read first\n\nThe source text, section by section: what each section says, what it does emotionally, where it turns. Then decide what the video *does with* the text — illustrates it, contradicts it, tells a second story beside it, or stays abstract. Say which in one sentence at the top; everything below must obey it.\n\n## The document\n\n1. **Logline.** One sentence: who, where, what changes.\n2. **Emotional map.** The curve from the first second to the last, in five to seven points: what the viewer feels and when it shifts. Tie each point to a section of the source.\n3. **Beats by section.** For every section of the source (intro, verse 1, chorus, …), one to three beats: what is on screen, what the viewer learns, what carries over into the next section. A beat is an event or an image, not a mood. Name the recurring objects, places and figures the same way every time — the context document will be written from these names.\n4. **Rules.** What holds the video together: the colour logic, a recurring device, what never appears. Three to six lines.\n5. **The ending.** What the last image is and why it is the last.\n\n## Never write\n\nCamera directions, shot sizes, prompts for a generator, timecodes, \"we see\". A plot that reads like a shot list has skipped its own job. No explanations of the song's lyrics — the beats show what the video makes of them.\n",
         "produces": "version:plot",
@@ -1023,8 +1689,14 @@
       },
       {
         "key": "storyboard",
-        "label": "Storyboard from the plot",
-        "description": "The plot broken into scenes for the board — a proposal to replace it.",
+        "label": {
+          "en": "Storyboard from the plot",
+          "ru": "Раскадровка по сюжету"
+        },
+        "description": {
+          "en": "The plot broken into scenes for the board — a proposal to replace it.",
+          "ru": "Сюжет, разбитый на сцены для доски, — предложение заменить её."
+        },
         "template": "A {kind} called \"{title}\".\n\nThe plot:\n\n{role:plot}\n\nWhat every scene shares:\n\n{role:context}\n\nThe board as it stands:\n\n{scenes}\n\nBreak the plot into scenes for the board.",
         "method": "# Storyboard artist\n\n## Role\n\nYou are breaking a plot into scenes for the board. Each scene is one row: which section it plays against, the kind of shot, and a description a prompt writer can turn into a frame without reading the plot again. You are not writing the prompts — the blocks are left out here and written per scene later.\n\n## How to break it\n\n- One scene per beat of the plot, and one more where a beat needs a reaction or a reveal to land. A section with three beats is three to five scenes.\n- Vary the kind of shot on purpose: wide to place, medium to act, close or detail to feel. Two scenes of the same kind in a row need a reason; four in a row is a mistake.\n- The description says what is *seen*: the subject, what it does, where it is, the light. Name recurring things exactly as the plot names them, every time. No feelings, no \"we see\", no camera moves.\n- Keep the order of the plot. A scene may cut back to something earlier only if the plot's rules allow it.\n- Seconds: leave them out unless the plot gives durations. Timing is done on the board.\n- Read the board as it stands. If it is not empty, you are replacing it: keep a scene's number where your scene is the same scene, so what pointed at it still does.\n\n## Output\n\nA short paragraph on how you cut it — the shape, where the reveals fall — then the json block exactly as instructed, and nothing after it. Every scene carries `section`, `shot_type` and `description`; no `blocks`.\n",
         "produces": "scenes",
@@ -1035,8 +1707,14 @@
       },
       {
         "key": "prompts",
-        "label": "Prompts for the scene",
-        "description": "The still, the animation and the negative for this scene — a revision of it.",
+        "label": {
+          "en": "Prompts for the scene",
+          "ru": "Промпты сцены"
+        },
+        "description": {
+          "en": "The still, the animation and the negative for this scene — a revision of it.",
+          "ru": "Стоп-кадр, анимация и негатив этой сцены — её новая редакция."
+        },
         "template": "A {kind} called \"{title}\".\n\nWhat every scene shares:\n\n{role:context}\n\nThe board, for continuity:\n\n{scenes}\n\nThe scene:\n\n{scene}\n\nWrite the prompt blocks for this scene.",
         "method": "# Prompt writer for a scene\n\n## Role\n\nYou are writing the prompt blocks for one scene of the board, for an image or video generator. The still frame is the picture, the animation is what moves from it, the negative is what must not appear. The person will paste each block into the generator as it is, so every block is complete on its own — nothing refers to \"the scene above\".\n\n## Read first\n\nThe context: how every recurring subject, place and style is described. Use those descriptions verbatim — a hero described three different ways is three different heroes. The board, for continuity: what the neighbouring scenes show, so the light, the palette and the props hold across the cut. Then the scene itself: its kind of shot decides the framing.\n\n## The blocks\n\n**Still frame.** In this order: the subject and what it is doing; the framing implied by the kind of shot; the place and time of day; the light and the palette from the context; the visual style from the context; texture and mood in a few concrete words. One paragraph, no list, no sentence about feelings. No text, letters or logos in the frame unless the description asks for them.\n\n**Animation.** What moves and how, from that frame: the subject's action, then the camera's move if any, then the pace. Short — a generator follows two or three instructions, not ten.\n\n**Negative.** The context's standing list first, then what this scene must not show: the wrong number of hands, the prop from the next scene, a modern object in a period place. Comma-separated.\n\n## Output\n\nOne line on the choice you made — what the frame is built around — then the json block exactly as instructed: this scene only, with its number, and `blocks` only. Do not change the description, the section or the seconds unless they are wrong.\n",
         "produces": "scenes:revise",

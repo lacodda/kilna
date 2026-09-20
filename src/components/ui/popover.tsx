@@ -1,6 +1,7 @@
 import { Popover as Base } from '@base-ui/react/popover'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'dowel-ui'
+import { usePopupContainer } from './layer'
 
 /*
  * Popover.
@@ -98,8 +99,13 @@ export function PopoverPopup({
   children,
   ...props
 }: PopoverPopupProps) {
+  // The raised host of the overlay this sits inside, if any - see the note in
+  // `menu.tsx`. Without it the panel portals to the body on the page's own
+  // floor and draws UNDER the dialog or stage that opened it.
+  const host = usePopupContainer()
+
   return (
-    <Base.Portal container={container}>
+    <Base.Portal container={container ?? host}>
       <Base.Positioner
         side={side}
         align={align}

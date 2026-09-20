@@ -21,7 +21,7 @@ import { findRepeats } from '@/lib/repeats'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { useBodyEditing } from '@/lib/useBodyEditing'
-import { labelOf, useVocabulary } from '@/lib/useProfile'
+import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { LayerProvider } from '@/components/ui/layer'
@@ -435,7 +435,7 @@ export function VersionPanel({ workId }: Props) {
               // Commentary is not a lane: it belongs beside what it comments
               // on, and offering it here would show it stripped of that.
               .filter((r) => r.comments_on === undefined)
-              .map((r) => ({ value: r.key, label: r.label }))}
+              .map((r) => ({ value: r.key, label: sayLabel(r.label) }))}
           />
         )}
         <Button

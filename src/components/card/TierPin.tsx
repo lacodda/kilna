@@ -5,7 +5,7 @@ import { Pin } from 'lucide-react'
 import { type Work, pinTier, unpinTier } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/AppDialog'
 import { Input } from '@/components/ui/input'
@@ -138,8 +138,8 @@ export function TierPin({ work, scored }: Props) {
                 value: entry.key,
                 label:
                   entry.key === scored
-                    ? `${entry.label} · ${t('score.pinTierScored')}`
-                    : entry.label,
+                    ? `${sayLabel(entry.label)} · ${t('score.pinTierScored')}`
+                    : sayLabel(entry.label),
               }))}
             />
           </label>

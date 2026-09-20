@@ -1,6 +1,7 @@
 import { ContextMenu as Base } from '@base-ui/react/context-menu'
 import { menuItemVariants, menuPopupVariants } from './menu'
 import { cn } from 'dowel-ui'
+import { usePopupContainer } from './layer'
 
 /*
  * ContextMenu.
@@ -56,8 +57,13 @@ export function ContextMenuPopup({
   children,
   ...props
 }: ContextMenuPopupProps) {
+  // The raised host of the overlay this sits inside, if any - see the note in
+  // `menu.tsx`. Without it the panel portals to the body on the page's own
+  // floor and draws UNDER the dialog or stage that opened it.
+  const host = usePopupContainer()
+
   return (
-    <Base.Portal container={container}>
+    <Base.Portal container={container ?? host}>
       <Base.Positioner className="[z-index:var(--z-menu)]">
         <Base.Popup className={cn(menuPopupVariants({ size }), className)} {...props}>
           {children}

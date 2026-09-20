@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router'
 import { applyProposal, createVersion } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
-import { useVocabulary } from '@/lib/useProfile'
+import { say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/AppDialog'
 import { Input } from '@/components/ui/input'
@@ -121,7 +121,7 @@ export function InsertVersionDialog({
         <Select
           value={role}
           onChange={setRole}
-          options={roles.map((kind) => ({ value: kind.key, label: kind.label }))}
+          options={roles.map((kind) => ({ value: kind.key, label: sayLabel(kind.label) }))}
           aria-label={t('assistant.insertRole')}
         />
         <Input

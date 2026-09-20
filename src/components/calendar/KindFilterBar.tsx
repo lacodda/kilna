@@ -3,7 +3,7 @@ import { CalendarRange } from 'lucide-react'
 import type { ScheduledRelease } from '@/lib/api'
 import { countByKind, type KindFilter } from '@/lib/calendarFilter'
 import { KindGlyph } from '@/lib/releaseIcon'
-import { allOf, useProfile } from '@/lib/useProfile'
+import { allOf, say, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -54,7 +54,7 @@ export function KindFilterBar({ slots, value, onChange }: Props) {
           // control for going back to all of them.
           onClick={() => onChange(value === kind.key ? null : kind.key)}
           icon={kind.icon}
-          label={kind.label}
+          label={say(kind.label)}
           count={counts.get(kind.key) ?? 0}
         />
       ))}

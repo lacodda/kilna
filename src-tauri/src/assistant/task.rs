@@ -216,7 +216,7 @@ pub fn compose(
             {
                 return Err(Error::Other(format!(
                     "`{key}` is not a prompt block of a {}; the profile names {}",
-                    vocabulary_for_block.label.to_lowercase(),
+                    vocabulary_for_block.label.as_str().to_lowercase(),
                     named_blocks(&vocabulary_for_block.scene_blocks)
                 )));
             }
@@ -247,7 +247,7 @@ pub fn compose(
                 .version_roles
                 .iter()
                 .find(|r| r.key == role)
-                .map(|r| r.label.clone())
+                .map(|r| r.label.as_str().to_owned())
                 .unwrap_or(role);
             prompt.push_str(&super::proposal::version_instruction(&label));
         }
@@ -471,7 +471,7 @@ mod tests {
             .unwrap()
             .unwrap();
         let title = chat.title.expect("a task chat is named on creation");
-        assert!(title.contains(&action.label), "{title}");
+        assert!(title.contains(action.label.as_str()), "{title}");
         assert!(title.contains("Harbour lights"), "{title}");
     }
 

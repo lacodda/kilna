@@ -334,7 +334,7 @@ fn check_shot_type(kind: &WorkKind, shot_type: Option<&str>) -> Result<()> {
     }
     Err(Error::Other(format!(
         "`{shot_type}` is not a kind of shot for a {}; the profile names {}",
-        kind.label.to_lowercase(),
+        kind.label.as_str().to_lowercase(),
         name_keys(kind.shot_types.iter().map(|shot| shot.key.as_str()))
     )))
 }
@@ -345,7 +345,7 @@ fn check_blocks(kind: &WorkKind, blocks: &Blocks) -> Result<()> {
         if !kind.scene_blocks.iter().any(|block| block.key == *key) {
             return Err(Error::Other(format!(
                 "`{key}` is not a prompt block for a {}; the profile names {}",
-                kind.label.to_lowercase(),
+                kind.label.as_str().to_lowercase(),
                 name_keys(kind.scene_blocks.iter().map(|block| block.key.as_str()))
             )));
         }

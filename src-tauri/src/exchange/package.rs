@@ -180,7 +180,7 @@ fn metadata(
         .all_release_kinds()
         .iter()
         .find(|kind| kind.key == release.kind)
-        .map_or(release.kind.clone(), |kind| kind.label.clone());
+        .map_or(release.kind.clone(), |kind| kind.label.as_str().to_owned());
 
     let when = release
         .released_at

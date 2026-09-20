@@ -166,7 +166,7 @@ impl From<RawProfileConfig> for ProfileConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkKind {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     /// What a work of this kind is judged on.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub axes: Vec<Axis>,
@@ -206,7 +206,7 @@ impl WorkKind {
     pub fn new(key: &str, label: &str) -> Self {
         Self {
             key: key.to_owned(),
-            label: label.to_owned(),
+            label: Label::from(label),
             axes: Vec::new(),
             tiers: Vec::new(),
             version_roles: Vec::new(),
@@ -470,7 +470,7 @@ impl WorkKind {
                     number + 1,
                     field.key
                 );
-                if field.label.trim().is_empty() {
+                if field.label.is_blank() {
                     problems.push(format!("{at} has no label"));
                 }
                 if field.limit == Some(0) {
@@ -615,18 +615,116 @@ pub struct Rhythm {
     pub default_time: Option<String>,
 }
 
+/// A word of the craft's vocabulary, in the languages the profile carries it in.
+///
+/// A profile's words are the author's data, not the interface's strings: they
+/// are edited in Settings and they survive an upgrade untouched. But a
+/// *shipped* profile is written by us, and writing it in English only meant a
+/// Russian window read "Scored · Song" — the interface translated around a
+/// hole in its own vocabulary.
+///
+/// So a label is either one string, as every profile written before this said
+/// it, or a map from locale to string. Both shapes parse and both round-trip:
+/// a word the author retyped comes back as the plain string they typed, and is
+/// never silently promoted to a map on their behalf.
+///
+/// Rust resolves to English and only English. The window picks the language —
+/// it is the only side that knows which one is showing — while this side uses
+/// labels for prompts and exports, where English is what we want anyway: a
+/// system prompt is written against a model's English, not the author's
+/// window, and translating one changes what the model does.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum Label {
+    /// One word, in whatever language it was typed in.
+    One(String),
+    /// The word per locale, as a shipped profile carries it.
+    PerLocale(BTreeMap<String, String>),
+}
+
+/// The locale a shipped profile is authored in, and what Rust reads a label as.
+pub const SOURCE_LOCALE: &str = "en";
+
+impl Label {
+    /// The word in the source language: what a prompt and an export say.
+    ///
+    /// A map that somehow lacks English falls back to any word it does hold
+    /// rather than to emptiness — a label is a name, and a nameless entry in
+    /// a prompt is worse than one named in the wrong language.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::One(word) => word,
+            Self::PerLocale(words) => words
+                .get(SOURCE_LOCALE)
+                .or_else(|| words.values().next())
+                .map_or("", String::as_str),
+        }
+    }
+
+    /// Whether the label says nothing at all — what validation rejects.
+    pub fn is_blank(&self) -> bool {
+        match self {
+            Self::One(word) => word.trim().is_empty(),
+            Self::PerLocale(words) => {
+                words.is_empty() || words.values().all(|word| word.trim().is_empty())
+            }
+        }
+    }
+}
+
+/// Comparison against a plain string, so a test and a lookup can both ask
+/// "is this the word?" without unwrapping the shape first. Compares the
+/// source-language word, which is the one Rust works in.
+impl PartialEq<str> for Label {
+    fn eq(&self, other: &str) -> bool {
+        self.as_str() == other
+    }
+}
+
+impl PartialEq<&str> for Label {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
+
+impl PartialEq<String> for Label {
+    fn eq(&self, other: &String) -> bool {
+        self.as_str() == other.as_str()
+    }
+}
+
+impl std::fmt::Display for Label {
+    /// Through `f.pad`, so `{:<12}` lines a column up rather than being
+    /// silently ignored the way `write_str` would.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.pad(self.as_str())
+    }
+}
+
+impl From<&str> for Label {
+    fn from(word: &str) -> Self {
+        Self::One(word.to_owned())
+    }
+}
+
+impl From<String> for Label {
+    fn from(word: String) -> Self {
+        Self::One(word)
+    }
+}
+
 /// A vocabulary entry: a stable key with a label the user may rename.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Kind {
     pub key: String,
-    pub label: String,
+    pub label: Label,
 }
 
 impl Kind {
     pub fn new(key: &str, label: &str) -> Self {
         Self {
             key: key.to_owned(),
-            label: label.to_owned(),
+            label: Label::from(label),
         }
     }
 }
@@ -638,16 +736,16 @@ impl Kind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SceneBlock {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hint: Option<String>,
+    pub hint: Option<Label>,
 }
 
 impl SceneBlock {
     pub fn new(key: &str, label: &str) -> Self {
         Self {
             key: key.to_owned(),
-            label: label.to_owned(),
+            label: Label::from(label),
             hint: None,
         }
     }
@@ -663,7 +761,7 @@ impl SceneBlock {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReleaseKind {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     #[serde(default)]
     pub requires: Vec<String>,
     /// The glyph the calendar draws this kind with, named from a fixed set the
@@ -710,7 +808,7 @@ pub struct ReleaseKind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReleaseField {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     /// The shape of the box. Absent is a line: the state a field written
     /// before the type existed reads as.
     #[serde(default, rename = "type")]
@@ -723,7 +821,7 @@ pub struct ReleaseField {
     /// A line under the box saying what goes in it — the platform's limit,
     /// the house style. The same role `hint` plays on a scene block.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hint: Option<String>,
+    pub hint: Option<Label>,
     /// How many characters the place this is going will accept. Absent means
     /// nobody is counting. Shown as a count beside the box rather than
     /// enforced: kilna is not the authority on what YouTube accepts this
@@ -750,7 +848,7 @@ impl ReleaseField {
     pub fn new(key: &str, label: &str, field_type: ReleaseFieldType) -> Self {
         Self {
             key: key.to_owned(),
-            label: label.to_owned(),
+            label: Label::from(label),
             field_type,
             template: None,
             hint: None,
@@ -777,7 +875,7 @@ impl ReleaseKind {
     pub fn new(key: &str, label: &str, requires: &[&str]) -> Self {
         Self {
             key: key.to_owned(),
-            label: label.to_owned(),
+            label: Label::from(label),
             requires: requires.iter().map(|role| (*role).to_owned()).collect(),
             icon: None,
             axis_weights: BTreeMap::new(),
@@ -801,7 +899,7 @@ impl ReleaseKind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Status {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     /// What this status means to the automation. Absent is the same as
     /// `Manual`: a profile written before this field existed keeps its statuses
     /// under the owner's hand rather than having meaning guessed for it.
@@ -817,7 +915,7 @@ impl Status {
     pub fn new(key: &str, label: &str, derive: Derive) -> Self {
         Self {
             key: key.to_owned(),
-            label: label.to_owned(),
+            label: Label::from(label),
             derive,
             colour: None,
         }
@@ -850,7 +948,7 @@ pub enum Derive {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Axis {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     /// Relative importance when the axes are combined into a total.
     pub weight: f64,
     /// Highest value the axis accepts; scores are normalised against it. For
@@ -858,7 +956,7 @@ pub struct Axis {
     /// options are read against.
     pub scale: f64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: Option<Label>,
     /// What kind of answer the axis takes. Absent is a scale — the state of
     /// every axis written before the field existed.
     #[serde(default)]
@@ -903,7 +1001,7 @@ pub enum AxisKind {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AxisMark {
     pub at: f64,
-    pub label: String,
+    pub label: Label,
 }
 
 /// One answer a `choice` axis offers.
@@ -911,7 +1009,7 @@ pub struct AxisMark {
 pub struct AxisOption {
     /// Stored in the score snapshot; never renamed once scores hold it.
     pub key: String,
-    pub label: String,
+    pub label: Label,
     /// What the answer is worth, on the axis's scale.
     pub value: f64,
 }
@@ -940,7 +1038,7 @@ impl Axis {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tier {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     pub min: f64,
 }
 
@@ -966,7 +1064,7 @@ pub struct KindVerdict {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionRole {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     /// The role this one discusses, if any. A key no role defines is ignored,
     /// which keeps a half-edited profile from breaking the card.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -989,7 +1087,7 @@ impl VersionRole {
     pub fn new(key: &str, label: &str) -> Self {
         Self {
             key: key.to_owned(),
-            label: label.to_owned(),
+            label: Label::from(label),
             comments_on: None,
             body: None,
         }
@@ -1015,7 +1113,7 @@ impl VersionRole {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Stage {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     /// Where this stop sits, 0..=100.
     pub percent: i64,
     /// One of the palette's own roles, so a stage reads correctly in both
@@ -1042,7 +1140,7 @@ pub fn default_stages() -> Vec<Stage> {
     .into_iter()
     .map(|(key, label, percent, colour)| Stage {
         key: key.to_owned(),
-        label: label.to_owned(),
+        label: Label::from(label),
         percent,
         colour,
     })
@@ -1064,7 +1162,7 @@ pub fn default_stages() -> Vec<Stage> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Mark {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     /// One of the palette's own roles, so a mark reads correctly in both
     /// themes. A free-form colour would be a colour nobody guaranteed contrast
     /// for.
@@ -1095,7 +1193,7 @@ pub enum MarkColour {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetaField {
     pub key: String,
-    pub label: String,
+    pub label: Label,
     #[serde(rename = "type")]
     pub field_type: MetaFieldType,
 }

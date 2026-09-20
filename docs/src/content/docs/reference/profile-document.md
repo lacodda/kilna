@@ -86,7 +86,32 @@ own. `collection_kinds` stay on the profile.
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `key` | string | Stable value stored on the row. Never shown directly. |
-| `label` | string | What the screen displays. Renamable at any time. |
+| `label` | string or object | What the screen displays. Renamable at any time. See [Labels in more than one language](#labels-in-more-than-one-language). |
+
+### Labels in more than one language
+
+A label is either a plain string or a map from locale to string:
+
+```jsonc
+{ "key": "scored", "label": "Scored" }
+{ "key": "scored", "label": { "en": "Scored", "ru": "Оценено" } }
+```
+
+Both shapes are read wherever a label is read — `label`, `description` and
+`hint`, at every depth of the document, including an axis's `rubric` marks and
+a release kind's `fields`. The window shows the entry for the language it is
+in; it falls back to `en`, and then to whatever the map does hold, so a profile
+carrying only one language still shows a word rather than a blank.
+
+The profiles that ship with kilna carry English and Russian, because a window
+set to Russian reading *Scored · Song* was the interface translated around a
+hole in its own vocabulary. A label **you** write stays exactly as you write
+it: a plain string is never rewritten into a map on your behalf, and renaming
+a word in Settings replaces it with the one word you typed.
+
+`template` and `method` are deliberately **not** translated. They are
+instructions to a model rather than words on a screen, and translating one
+changes what the assistant does rather than what the window says.
 
 Studio's `work_kinds` are `song`, `instrumental`, `video` and `short`; its
 `collection_kinds` are `album`, `single` and `cycle` — a **collection** groups
