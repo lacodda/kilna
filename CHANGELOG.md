@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.74.3] - 2026-09-20
+
+### Bug Fixes
+- Give every screen the window's bottom edge
+- Hold the row menu to the window, and take dowel's palette back
+- One scale for the corners, and colours that exist
+
+### Features
+- Let a role say whether it is a draft of the work
+- Fill a day by choosing a work, and sift the queue
+- One button for the actions, and a journal that opens the work
+
 ## [0.74.2] - 2026-09-20
 
 ### Bug Fixes
