@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.74.4] - 2026-09-20
+
+### Bug Fixes
+- Check colour tokens where the theme is installed
+
 ## [0.74.3] - 2026-09-20
 
 ### Bug Fixes
