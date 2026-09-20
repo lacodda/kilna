@@ -407,6 +407,7 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
         &stage.key
     });
     changed |= regrade_stages(&mut config.stages, &shipped.config.stages);
+    changed |= reword_untouched_tiers(&mut config, &shipped.config);
 
     // The kinds a note can take, new in 0.65: a workspace that predates them
     // gains the craft's words, and a kind the owner added or renamed stays
@@ -555,6 +556,60 @@ fn regrade_stages(stored: &mut [config::Stage], shipped: &[config::Stage]) -> bo
         if stop.percent != current.percent {
             stop.percent = current.percent;
             changed = true;
+        }
+    }
+    changed
+}
+
+/// Move a tier onto the word the shipped profile now gives it — but only
+/// where the stored one still reads exactly as it shipped before.
+///
+/// Studio's song tiers were *Hold / Audio release / Picture track / Clip*:
+/// they named what would be MADE from the song rather than what the song
+/// was, and once the clips moved out into works of their own (v0.74) a song
+/// was being judged "Clip". The keys are unchanged, so every score already
+/// recorded keeps the tier it was given; only the word moves.
+///
+/// The condition is the one an action's template is held to: a wording the
+/// owner has changed is theirs and stays, and a wording still identical to
+/// what we shipped is ours to correct. Matched against the *previous*
+/// shipped words rather than "is it different from the new one", because
+/// the second would rewrite a rename that happens to differ.
+fn reword_untouched_tiers(stored: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    // What Studio shipped before v0.74.2, by key. A tier whose stored word is
+    // not one of these was renamed by hand and is left alone.
+    const AS_SHIPPED: [(&str, &str); 4] = [
+        ("hold", "Hold"),
+        ("audio", "Audio release"),
+        ("picture", "Picture track"),
+        ("clip", "Clip"),
+    ];
+
+    let word_for = |key: &str| {
+        shipped
+            .work_kinds
+            .iter()
+            .flat_map(|kind| kind.tiers.iter())
+            .find(|tier| tier.key == key)
+            .map(|tier| tier.label.clone())
+    };
+
+    let mut changed = false;
+    for tiers in stored.work_kinds.iter_mut().map(|kind| &mut kind.tiers) {
+        for tier in tiers.iter_mut() {
+            let Some((_, before)) = AS_SHIPPED.iter().find(|(key, _)| *key == tier.key) else {
+                continue;
+            };
+            if tier.label != *before {
+                continue;
+            }
+            let Some(now) = word_for(&tier.key) else {
+                continue;
+            };
+            if tier.label != now {
+                tier.label = now;
+                changed = true;
+            }
         }
     }
     changed
@@ -1478,6 +1533,79 @@ mod tests {
             Some(100),
             "and the scale still ends where a finished work stands"
         );
+    }
+
+    #[test]
+    fn a_tier_still_worded_as_it_shipped_takes_the_new_wording() {
+        // Studio's song tiers named what would be MADE from the song -
+        // "Picture track", "Clip" - and once clips became works of their own
+        // a song was being judged "Clip". The keys do not move, so a score
+        // already recorded keeps its tier; only the word does.
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let id = active(&conn).unwrap().unwrap().id;
+
+        let mut config = config_for(&conn, &id).unwrap();
+        for kind in &mut config.work_kinds {
+            for tier in &mut kind.tiers {
+                if tier.key == "clip" {
+                    tier.label = Label::from("Clip");
+                }
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![&id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let after = config_for(&conn, &id).unwrap();
+        let clip = after
+            .work_kinds
+            .iter()
+            .flat_map(|kind| kind.tiers.iter())
+            .find(|tier| tier.key == "clip")
+            .expect("the tier keeps its key");
+        assert_eq!(
+            clip.label, "Strong",
+            "the word we shipped is ours to correct"
+        );
+    }
+
+    #[test]
+    fn a_tier_the_owner_reworded_keeps_their_word() {
+        // The other half, and the one that matters more: correcting our own
+        // wording must never reach across and rewrite theirs.
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let id = active(&conn).unwrap().unwrap().id;
+
+        let mut config = config_for(&conn, &id).unwrap();
+        for kind in &mut config.work_kinds {
+            for tier in &mut kind.tiers {
+                if tier.key == "clip" {
+                    tier.label = Label::from("Worth a video");
+                }
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![&id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let after = config_for(&conn, &id).unwrap();
+        let clip = after
+            .work_kinds
+            .iter()
+            .flat_map(|kind| kind.tiers.iter())
+            .find(|tier| tier.key == "clip")
+            .expect("the tier keeps its key");
+        assert_eq!(clip.label, "Worth a video", "their word, untouched");
     }
 
     #[test]

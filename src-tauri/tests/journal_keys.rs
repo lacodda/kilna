@@ -234,7 +234,9 @@ fn params_written() -> BTreeMap<String, BTreeSet<String>> {
             let after = &window[at + ".param(".len()..];
             // The name is the first string literal after the bracket, on this
             // line or the next: a long value pushes it onto its own line.
-            let Some(open) = after.find('"') else { continue };
+            let Some(open) = after.find('"') else {
+                continue;
+            };
             // ...but only if nothing but whitespace stands between, or a
             // `.param(some_variable)` would swallow the next literal it finds.
             if !after[..open].trim().is_empty() {
@@ -293,7 +295,9 @@ fn every_hole_in_a_sentence_is_filled_by_what_records_it() {
     for (key, passed) in &written {
         for hole in placeholders_of(key, &locale) {
             if !passed.contains(&hole) {
-                holes.push(format!("journal.{key} says {{{{{hole}}}}}, which nothing passes"));
+                holes.push(format!(
+                    "journal.{key} says {{{{{hole}}}}}, which nothing passes"
+                ));
             }
         }
     }

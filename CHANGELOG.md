@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.74.2] - 2026-09-20
+
+### Bug Fixes
+- The dead compare button, the version count, and the stage dial
+- Proposals in the bell, actions with glyphs, and the crowded rows
+
+### Features
+- Carry the craft's words in both languages
+
+### Testing
+- Hold every sentence's holes to what fills them
 ## [0.74.1] - 2026-09-18
 
 ### Bug Fixes

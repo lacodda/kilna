@@ -28,6 +28,8 @@ UPDATE work SET stage = 50 WHERE stage = 60;
 UPDATE work SET stage = 33 WHERE stage = 40;
 UPDATE work SET stage = 17 WHERE stage = 20;
 
--- A profile the owner has already edited keeps its own stops: `seed` leaves an
--- existing row alone, and renaming a stage there is their word, not ours. This
--- moves the works, which is the part that would otherwise start lying.
+-- The stops themselves live in the profile document, not in a table, so they
+-- are not moved here: `regrade_stages` does it at open, putting a stop that
+-- kept a shipped key on the number the shipped list now gives it while
+-- leaving any word the owner renamed alone. This file moves the WORKS, which
+-- is the part a migration can reach and the part that would otherwise lie.

@@ -349,12 +349,12 @@ build on the model package; the profile document accepts them now.
 Score bands, evaluated highest-`min`-first:
 
 ```jsonc
-{ "key": "clip", "label": "Clip", "min": 78.0 }
+{ "key": "clip", "label": "Strong", "min": 78.0 }
 ```
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `key` | string | Stored on a score snapshot as its computed tier. |
+| `key` | string | Stored on a score snapshot as its computed tier. Never rename one: the snapshots under it would be orphaned, which is why Studio's song tiers were reworded in v0.74.2 and kept their keys. |
 | `label` | string | Display name. |
 | `min` | number | Minimum total (0–100) required to reach this tier. |
 

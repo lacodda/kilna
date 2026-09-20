@@ -49,7 +49,7 @@ Under the total, a ruler lays the tiers out to scale with the card standing
 somewhere along it, and a line says how far the next tier is and where it is
 cheapest to get there:
 
-> **9.3 to Picture track** · cheapest on Hook (weight 2): 4 more marks
+> **9.3 to Release it** · cheapest on Hook (weight 2): 4 more marks
 
 Cheapest means *in marks*, not in weight. A heavy axis usually moves the total
 furthest per mark, but not when it is already near its ceiling, and not when

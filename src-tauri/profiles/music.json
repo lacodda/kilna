@@ -1383,24 +1383,24 @@
       {
         "key": "audio",
         "label": {
-          "en": "Audio release",
-          "ru": "Аудио-релиз"
+          "en": "Work on it",
+          "ru": "Доработать"
         },
         "min": 55.0
       },
       {
         "key": "picture",
         "label": {
-          "en": "Picture track",
-          "ru": "Трек с картинкой"
+          "en": "Release it",
+          "ru": "Выпускать"
         },
         "min": 68.0
       },
       {
         "key": "clip",
         "label": {
-          "en": "Clip",
-          "ru": "Клип"
+          "en": "Strong",
+          "ru": "Сильная"
         },
         "min": 78.0
       }
