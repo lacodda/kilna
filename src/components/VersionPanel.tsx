@@ -398,7 +398,7 @@ export function VersionPanel({ workId }: Props) {
                 type="button"
                 onClick={() => setOpenCommentId(entry.id)}
                 className={cn(
-                  'cursor-pointer rounded-[7px] px-2 py-0.5 transition-colors',
+                  'cursor-pointer rounded-md px-2 py-0.5 transition-colors',
                   entry.id === commentId ? 'bg-soft text-text' : 'hover:text-text',
                 )}
               >
@@ -532,6 +532,7 @@ export function VersionPanel({ workId }: Props) {
           {open.data != null && reading !== 'edit' && (
             <ActionBar
               workId={workId}
+              menu
               versionId={open.data.id}
               hint={t('versions.actionsOn', {
                 name:

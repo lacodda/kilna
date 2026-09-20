@@ -1,12 +1,14 @@
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router'
 import { journalForWork, type JournalEntry } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SkeletonList } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
+import type { Tab } from '@/components/card/tabs'
 
 /** A `{{name}}` i18next left standing because the entry carried no such value,
  *  together with the quotes around it. */
@@ -58,9 +60,51 @@ export function when(timestamp: string, locale: string): string {
     : at.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
 }
 
+/**
+ * Which tab of a work answers for a line of the journal.
+ *
+ * The action names it: a score was added on the scoring tab, a scene on the
+ * board, a release in the calendar's own tab. Reading the prefix rather than
+ * listing every action keeps a new `score.something` pointing at the right
+ * place without anyone remembering to come back here; an action whose prefix
+ * is not one of these opens the work where it opens by default.
+ */
+const TAB_FOR_ACTION: Record<string, Tab> = {
+  score: 'score',
+  version: 'versions',
+  scene: 'scenes',
+  cut: 'scenes',
+  release: 'releases',
+  link: 'links',
+  asset: 'files',
+  note: 'notes',
+  proposal: 'assistant',
+  assistant: 'assistant',
+  tier: 'score',
+}
+
+/** Where a line points, or null when it is not about one work. */
+function destinationOf(entry: JournalEntry): string | null {
+  if (entry.entity !== 'work' || entry.entity_id === null) return null
+  const tab = TAB_FOR_ACTION[entry.action.split('.')[0] ?? '']
+  return tab === undefined ? `/works/${entry.entity_id}` : `/works/${entry.entity_id}/${tab}`
+}
+
 function Line({ entry }: { entry: JournalEntry }) {
   const { t, i18n } = useTranslation()
   const needsALook = entry.level === 'warn' && entry.read_at === null
+  const to = destinationOf(entry)
+
+  const body = (
+    <>
+      {sentence(entry, t)}
+      {entry.occurrences > 1 && (
+        <Badge variant="soft" className="ml-2">
+          {t('journal.repeated', { count: entry.occurrences })}
+        </Badge>
+      )}
+    </>
+  )
 
   return (
     <li className="flex items-baseline gap-3 border-b border-line py-2 last:border-b-0">
@@ -72,14 +116,26 @@ function Line({ entry }: { entry: JournalEntry }) {
           needsALook ? 'bg-warn' : 'bg-line-2',
         )}
       />
-      <p className={cn('min-w-0 flex-1 text-sm', entry.level === 'warn' && 'text-text')}>
-        {sentence(entry, t)}
-        {entry.occurrences > 1 && (
-          <Badge variant="soft" className="ml-2">
-            {t('journal.repeated', { count: entry.occurrences })}
-          </Badge>
-        )}
-      </p>
+      {/* A line about a work opens that work, on the tab the line is about:
+          reading "scored 78" and then hunting the catalogue for the song it
+          was about is the walk the owner asked to be rid of. A line about
+          nothing in particular stays plain text rather than becoming a link
+          that goes nowhere. */}
+      {to === null ? (
+        <p className={cn('min-w-0 flex-1 text-sm', entry.level === 'warn' && 'text-text')}>
+          {body}
+        </p>
+      ) : (
+        <Link
+          to={to}
+          className={cn(
+            'min-w-0 flex-1 text-sm text-text no-underline hover:underline',
+            entry.level === 'warn' && 'text-text',
+          )}
+        >
+          {body}
+        </Link>
+      )}
       <time
         dateTime={entry.created_at}
         title={entry.created_at}

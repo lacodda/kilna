@@ -176,8 +176,10 @@ function TabBody({
           <OverviewTab work={work} />
           {/* Profile actions and plugin commands are the same gesture from the
               user's side — do this to this work — so they sit together, below
-              the fields both of them read. */}
-          <ActionBar workId={workId} />
+              the fields both of them read. One button that opens them: eight
+              actions spelled out across the overview was a wall of buttons
+              under a screen that is meant to be read. */}
+          <ActionBar workId={workId} menu />
           <PluginBar target="work" id={workId} />
         </div>
       )

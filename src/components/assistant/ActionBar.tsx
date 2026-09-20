@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Eye } from 'lucide-react'
+import { ChevronDown, Eye, Sparkles } from 'lucide-react'
 import { activeTasks, startTask, type PromptTemplate, type RunEmission } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
@@ -10,6 +10,7 @@ import { movesTaskList, taskKey } from '@/lib/tasks'
 import { say as sayLabel, useProfile, useWorkKind } from '@/lib/useProfile'
 import { actionIconOf } from '@/lib/actionIcon'
 import { Button } from '@/components/ui/button'
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 import { TaskPreviewDialog } from '@/components/assistant/TaskPreviewDialog'
 
 interface Props {
@@ -29,6 +30,11 @@ interface Props {
   hint?: string
   /** Buttons only, no heading: for a row of the board. */
   compact?: boolean
+  /** One button that opens the list, rather than a row of them. Where the
+      actions sit beside other controls — the card's header, a version — a row
+      of five is five buttons competing with everything around them for the
+      eye, and the owner asked for one that opens. */
+  menu?: boolean
 }
 
 /** The actions of the profile that belong here: for this kind, at this scope. */
@@ -72,6 +78,7 @@ export function ActionBar({
   block,
   hint,
   compact = false,
+  menu = false,
 }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
@@ -189,9 +196,63 @@ export function ActionBar({
     </div>
   )
 
+  // The same actions, behind one button. Each row carries its glyph and its
+  // short name, and the long description is the title the way it is on a
+  // button — one place decides what an action is called and what it says.
+  const menuOfActions = (
+    <Menu>
+      <MenuTrigger
+        render={
+          <Button
+            variant="soft"
+            size="sm"
+            aria-label={t('assistant.actions')}
+            // What the actions would act on — "on Revision 10". The full bar
+            // says this in a line under its heading; with only a button there
+            // is nowhere to put a line, and losing it would leave a menu that
+            // does not say which version it is about.
+            title={hint}
+          />
+        }
+      >
+        <Sparkles aria-hidden className="size-3.5" />
+        {t('assistant.actions')}
+        <ChevronDown aria-hidden className="size-3.5 opacity-60" />
+      </MenuTrigger>
+
+      <MenuPopup align="end">
+        {actions.map((action) => {
+          const Icon = actionIconOf(action)
+          const working = busy.has(taskKey(action.key, workId, sceneId, block)) || pending === action.key
+          return (
+            <MenuItem
+              key={action.key}
+              disabled={working}
+              title={
+                describe(action) === ''
+                  ? sayLabel(action.label)
+                  : `${sayLabel(action.label)} — ${describe(action)}`
+              }
+              onClick={() => {
+                start.mutate(action.key)
+              }}
+            >
+              <Icon aria-hidden className="size-3.5" />
+              {working
+                ? t('assistant.actionWorking', { label: sayLabel(action.label) })
+                : sayLabel(action.label)}
+            </MenuItem>
+          )
+        })}
+      </MenuPopup>
+    </Menu>
+  )
+
   return (
     <>
-      {compact ? (
+      {menu ? (
+        menuOfActions
+      ) : compact ? (
         buttons
       ) : (
         <section className="flex flex-col gap-2">
