@@ -7,6 +7,7 @@ All notable changes to this project are documented in this file.
 ### Bug Fixes
 - The dead compare button, the version count, and the stage dial
 - Proposals in the bell, actions with glyphs, and the crowded rows
+- Judge a song as a song, not as the video it might become
 
 ### Features
 - Carry the craft's words in both languages
