@@ -9,7 +9,7 @@
 //! `tools/check-locales.mjs` cannot see this: it compares locales against each
 //! other, and a key missing from *both* is consistent.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 fn repo_root() -> PathBuf {
@@ -163,6 +163,144 @@ fn no_sentence_is_written_for_an_action_nobody_records() {
     assert!(
         stale.is_empty(),
         "these sentences describe actions nothing records any more: {stale:?}"
+    );
+}
+
+/// Every `Record::new("key")` in the source, with the names it is given.
+///
+/// Two shapes have to be read, because the code uses both:
+///
+/// - the chained one, `Record::new("x").param("a", …).param("b", …)`, ending
+///   at the statement's `;`;
+/// - the built-up one, where the record is put in a variable and added to
+///   over several statements — `let mut record = Record::new("x"); … record =
+///   record.param("a", …);` — which is what every branching case does.
+///
+/// For the second, the scan continues to the end of the enclosing block
+/// rather than to the first semicolon. That over-reads: a `.param` on some
+/// *other* record later in the same function is counted as belonging to this
+/// one. Deliberate, and in the safe direction — this gate exists to catch a
+/// hole nothing fills, and over-reading can only ever hide a hole, never
+/// invent one. A gate that cried wolf on thirty correct sentences would be
+/// turned off within a week.
+///
+/// `.param(` is also written across two lines when the value is long, so the
+/// name is looked for after the bracket rather than tight against it.
+fn params_written() -> BTreeMap<String, BTreeSet<String>> {
+    let source = [
+        "src-tauri/src/commands.rs",
+        "src-tauri/src/mcp.rs",
+        "src-tauri/src/assistant/apply.rs",
+        "src-tauri/src/doors.rs",
+    ]
+    .iter()
+    .map(|file| {
+        std::fs::read_to_string(repo_root().join(file))
+            .unwrap_or_else(|err| panic!("{file} is readable: {err}"))
+    })
+    .collect::<Vec<_>>()
+    .join("\n");
+
+    let mut found: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    for (index, _) in source.match_indices("Record::new(\"") {
+        let start = index + "Record::new(\"".len();
+        let Some(end) = source[start..].find('"') else {
+            continue;
+        };
+        let key = source[start..start + end].to_owned();
+
+        let rest = &source[start + end..];
+        // A record handed straight to `record(…)` ends at the `;`. One put in
+        // a variable is added to afterwards, so the window runs to the end of
+        // the block — see the note above on why reading too much is the safe
+        // direction here.
+        // Is this record being put in a variable? Either the `let` is on this
+        // line, or the `Record::new` is an arm of a `match` that a `let` a few
+        // lines up is binding. Looking back a short way covers both without
+        // parsing Rust.
+        let before = &source[..index];
+        let assigned = before
+            .rsplit('\n')
+            .take(12)
+            .any(|line| line.contains("let ") && !line.trim_start().starts_with("//"));
+        let window = if assigned {
+            &rest[..rest.find("\n}").unwrap_or(rest.len())]
+        } else {
+            &rest[..rest.find(';').unwrap_or(rest.len())]
+        };
+
+        let names = found.entry(key).or_default();
+        for (at, _) in window.match_indices(".param(") {
+            let after = &window[at + ".param(".len()..];
+            // The name is the first string literal after the bracket, on this
+            // line or the next: a long value pushes it onto its own line.
+            let Some(open) = after.find('"') else { continue };
+            // ...but only if nothing but whitespace stands between, or a
+            // `.param(some_variable)` would swallow the next literal it finds.
+            if !after[..open].trim().is_empty() {
+                continue;
+            }
+            let from = open + 1;
+            let Some(to) = after[from..].find('"') else {
+                continue;
+            };
+            names.insert(after[from..from + to].to_owned());
+        }
+    }
+    found
+}
+
+/// The `{{name}}` holes in a sentence, across all its plural forms.
+fn placeholders_of(key: &str, locale: &serde_json::Value) -> BTreeSet<String> {
+    let journal = locale["journal"]
+        .as_object()
+        .expect("the locale has a journal section");
+
+    let mut holes = BTreeSet::new();
+    for (name, value) in journal {
+        if base_key(name) != key {
+            continue;
+        }
+        let Some(text) = value.as_str() else { continue };
+        let mut rest = text;
+        while let Some(open) = rest.find("{{") {
+            let after = &rest[open + 2..];
+            let Some(close) = after.find("}}") else { break };
+            holes.insert(after[..close].trim().to_owned());
+            rest = &after[close + 2..];
+        }
+    }
+    holes
+}
+
+#[test]
+fn every_hole_in_a_sentence_is_filled_by_what_records_it() {
+    // The defect this exists for: the owner read «{{title}}» удалено in his
+    // own history. i18next leaves a hole it has no value for exactly as
+    // written, so a sentence that interpolates `{{title}}` and a `Record`
+    // that never passes `title` produce a line with braces in it — and the
+    // rows are already written by the time anyone sees one.
+    //
+    // `count` is left out: it is i18next's own, the number that picks the
+    // plural form, and it is passed as a param like any other where a
+    // sentence counts something.
+    let written = params_written();
+    let source = std::fs::read_to_string(repo_root().join("src/i18n/locales/en.json"))
+        .expect("en.json is readable");
+    let locale: serde_json::Value = serde_json::from_str(&source).expect("en.json is valid JSON");
+
+    let mut holes = Vec::new();
+    for (key, passed) in &written {
+        for hole in placeholders_of(key, &locale) {
+            if !passed.contains(&hole) {
+                holes.push(format!("journal.{key} says {{{{{hole}}}}}, which nothing passes"));
+            }
+        }
+    }
+
+    assert!(
+        holes.is_empty(),
+        "these sentences have holes no `Record` fills, and print the braces: {holes:#?}"
     );
 }
 
