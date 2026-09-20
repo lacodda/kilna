@@ -18,6 +18,7 @@ import {
   saveWidths,
   MIN_COLUMN_WIDTH,
   narrowByColumns,
+  NO_STAGE,
   isNarrowedByColumns,
   loadColumnFilters,
   saveColumnFilters,
@@ -667,6 +668,25 @@ describe('the header funnels', () => {
   it('drops a work with no stage or no tier when those are filtered', () => {
     expect(ids(narrowByColumns(rows, { stages: [20, 80] }))).not.toContain('c')
     expect(ids(narrowByColumns(rows, { tiers: ['clip', 'pic'] }))).not.toContain('c')
+  })
+
+  it('finds the works that stand at no stop at all', () => {
+    // The entry the owner went looking for and could not find: the funnel
+    // could say "standing here" and had no way to say "never said".
+    expect(ids(narrowByColumns(rows, { stages: [NO_STAGE] }))).toEqual(['c'])
+  })
+
+  it('reads a ticked stop and the no-stage tick together as either', () => {
+    expect(ids(narrowByColumns(rows, { stages: [NO_STAGE, 80] }))).toEqual(['a', 'c'])
+  })
+
+  it('tells a stage of zero from no stage, in the funnel as well', () => {
+    // 0 is a real stop a work can stand at — the first one — and the sentinel
+    // must not swallow it. This is the reason NO_STAGE is negative.
+    const beginning = [row({ work_id: 'idea', stage: 0 }), row({ work_id: 'unsaid', stage: null })]
+
+    expect(ids(narrowByColumns(beginning, { stages: [0] }))).toEqual(['idea'])
+    expect(ids(narrowByColumns(beginning, { stages: [NO_STAGE] }))).toEqual(['unsaid'])
   })
 
   it('keeps the works in any of the ticked tiers', () => {

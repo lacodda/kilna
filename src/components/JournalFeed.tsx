@@ -8,6 +8,10 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { SkeletonList } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 
+/** A `{{name}}` i18next left standing because the entry carried no such value,
+ *  together with the quotes around it. */
+const UNFILLED = /\s*[«"']?\{\{\s*[\w.]+\s*\}\}[»"']?\s*/g
+
 /**
  * The sentence for an entry, built now rather than stored.
  *
@@ -15,11 +19,27 @@ import { cn } from '@/lib/utils'
  * English reads in Russian the moment the language changes. A key with no
  * translation prints as itself instead of vanishing: a line of history nobody
  * worded is still a line of history.
+ *
+ * A value the entry does not carry is cut out rather than shown. i18next leaves
+ * an unmatched `{{title}}` exactly as written, and the owner read
+ * «{{title}}» удалено in his own history: the line still says that a work was
+ * deleted, and the braces only say that whoever wrote the line lost the name.
+ * Rows already written cannot get the value back, so the reading side is the
+ * only place this can be fixed at all.
+ *
+ * The quotes go with the hole: «» left standing empty reads as a work whose
+ * name is blank, rather than one whose name was never kept.
  */
 export function sentence(entry: JournalEntry, t: TFunction): string {
   const key = `journal.${entry.action}`
   const said = t(key, entry.params)
-  return said === key ? entry.action : said
+  if (said === key) return entry.action
+
+  // Replace and compare, rather than `test` and then replace: a global regex
+  // carries `lastIndex` between calls, so testing first would skip every
+  // other line it was asked about.
+  const filled = said.replace(UNFILLED, ' ')
+  return filled === said ? said : filled.replace(/\s+/g, ' ').trim()
 }
 
 /** Time of day for today's entries, date for older ones. */

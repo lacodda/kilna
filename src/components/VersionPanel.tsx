@@ -9,6 +9,7 @@ import {
   deleteVersion,
   getVersion,
   listVersions,
+  scoreHistory,
   setCurrentVersion,
   type VersionRole,
 } from '@/lib/api'
@@ -116,6 +117,26 @@ export function VersionPanel({ workId }: Props) {
     queryKey: keys.versions(workId),
     queryFn: () => listVersions(workId),
   })
+
+  // Every score this work has, so the list can put a mark beside the draft it
+  // was given to. One request for the whole history rather than one per row,
+  // and the Score tab has usually asked for it already — the same key, so the
+  // two share an answer instead of fetching it twice.
+  const scored = useQuery({
+    queryKey: keys.scoreHistory(workId),
+    queryFn: () => scoreHistory(workId),
+  })
+
+  // Version id to the score that speaks for it. Newest first is what the
+  // history comes back as, so the first one seen per version is the one that
+  // stands — a draft judged twice shows the later verdict, which is the same
+  // rule the card reads by. Rounded, because a row has space for a number and
+  // not for a decimal: the Score tab is where the working is.
+  const scores: Record<string, number> = {}
+  for (const score of scored.data ?? []) {
+    if (score.version_id === null || score.version_id in scores) continue
+    scores[score.version_id] = Math.round(score.total)
+  }
 
   // The asked-for version also decides which lane is open: a link to a draft
   // that lands on the style tab has not opened it.
@@ -464,6 +485,7 @@ export function VersionPanel({ workId }: Props) {
           <VersionList
             versions={summaries}
             loading={versions.isPending}
+            scores={scores}
             openId={openId}
             comparedId={againstId}
             onOpen={(id) => {

@@ -1,15 +1,18 @@
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CopyPlus, Star, X } from 'lucide-react'
 import type { VersionSummary } from '@/lib/api'
 import { neighbour } from '@/lib/history'
 import { Button } from '@/components/ui/button'
+import { RowMenu } from '@/components/ui/RowMenu'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 
 interface Props {
   versions: VersionSummary[]
   loading: boolean
+  /** The score a version was given, by version id, for the ones that were
+   * judged. A version scored twice shows the score that speaks for it. */
+  scores?: Record<string, number>
   openId: string | null
   /** Which version the open one is being compared against, if any. */
   comparedId: string | null
@@ -34,6 +37,7 @@ interface Props {
 export function VersionList({
   versions,
   loading,
+  scores,
   openId,
   comparedId,
   onOpen,
@@ -115,6 +119,7 @@ export function VersionList({
       {versions.map((version) => {
         const isOpen = version.id === openId
         const isCompared = version.id === comparedId
+        const score = scores?.[version.id]
 
         return (
           <li key={version.id} className="group flex items-center gap-1">
@@ -145,13 +150,35 @@ export function VersionList({
                   </span>
                 )}
               </span>
-              <span className="block text-xs text-dim">
-                {t('versions.length', { count: version.length })} · {version.created_at.slice(0, 10)}
+              <span className="flex items-center gap-1.5 text-xs text-dim">
+                <span className="min-w-0 truncate">
+                  {t('versions.length', { count: version.length })} ·{' '}
+                  {version.created_at.slice(0, 10)}
+                </span>
+                {/* The score of the version that was judged, beside the version
+                    it judged. Reading the list was the one place the two could
+                    not be seen together: the history said which drafts exist
+                    and the Score tab said how they did, and matching one to the
+                    other meant remembering a revision number across a tab. */}
+                {score !== undefined && (
+                  <span
+                    className="ml-auto shrink-0 rounded bg-soft px-1 font-mono text-[10.5px] font-semibold text-text tabular-nums"
+                    title={t('versions.scored', { score })}
+                  >
+                    {score}
+                  </span>
+                )}
               </span>
             </button>
 
             {/* Only shown for versions other than the open one: comparing a
-                draft with itself is not a thing anyone means to do. */}
+                draft with itself is not a thing anyone means to do.
+
+                Kept out of the menu below, unlike the other three. Comparing is
+                how the list is READ - a glance between two drafts, often several
+                in a row - while the others change what the history holds, and a
+                row that carried all four of them left no width for the name of
+                the version. */}
             {!isOpen && (
               <Button
                 variant={isCompared ? 'soft' : 'icon'}
@@ -166,40 +193,38 @@ export function VersionList({
               </Button>
             )}
 
-            {/* Versions never change once saved — revising means starting the
-                next revision from this one, so the act needs a button of its
-                own. See `Решения` on why there is no edit. */}
-            <Button
-              variant="icon"
-              size="icon-sm"
-              onClick={() => onDeriveFrom(version.id)}
-              title={t('versions.deriveFrom')}
-              aria-label={t('versions.deriveFrom')}
-            >
-              <CopyPlus aria-hidden className="size-4" />
-            </Button>
-
-            {!version.is_current && (
-              <Button
-                variant="icon"
-                size="icon-sm"
-                onClick={() => onMakeCurrent(version.id)}
-                title={t('versions.makeCurrent')}
-                aria-label={t('versions.makeCurrent')}
-              >
-                <Star aria-hidden className="size-4" />
-              </Button>
-            )}
-
-            <Button
-              variant="danger"
-              size="icon-sm"
-              onClick={() => onDelete(version.id)}
-              title={t('versions.delete')}
-              aria-label={t('versions.delete')}
-            >
-              <X aria-hidden className="size-3.5" />
-            </Button>
+            {/* The three that change the history, behind one button. Four
+                controls per row pushed every label into an ellipsis at the
+                width the list is given - and "make current" and "delete" sat
+                one pixel apart, which is not where a delete belongs. */}
+            <RowMenu
+              label={version.label ?? t('versions.revision', { number: version.revision })}
+              actions={[
+                {
+                  // Versions never change once saved — revising means starting
+                  // the next revision from this one. See `Решения` on why there
+                  // is no edit.
+                  key: 'derive',
+                  label: t('versions.deriveFrom'),
+                  onSelect: () => onDeriveFrom(version.id),
+                },
+                ...(version.is_current
+                  ? []
+                  : [
+                      {
+                        key: 'current',
+                        label: t('versions.makeCurrent'),
+                        onSelect: () => onMakeCurrent(version.id),
+                      },
+                    ]),
+                {
+                  key: 'delete',
+                  label: t('versions.delete'),
+                  danger: true,
+                  onSelect: () => onDelete(version.id),
+                },
+              ]}
+            />
           </li>
         )
       })}

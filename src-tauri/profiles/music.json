@@ -1548,7 +1548,7 @@
           "en": "Rough take",
           "ru": "Черновой набросок"
         },
-        "percent": 20,
+        "percent": 17,
         "colour": "plain"
       },
       {
@@ -1557,7 +1557,7 @@
           "en": "Half there",
           "ru": "Наполовину"
         },
-        "percent": 40,
+        "percent": 33,
         "colour": "warn"
       },
       {
@@ -1566,7 +1566,7 @@
           "en": "Full draft",
           "ru": "Полный черновик"
         },
-        "percent": 60,
+        "percent": 50,
         "colour": "warn"
       },
       {
@@ -1575,14 +1575,23 @@
           "en": "Polishing",
           "ru": "Шлифовка"
         },
-        "percent": 80,
-        "colour": "accent"
+        "percent": 67,
+        "colour": "warn"
       },
       {
         "key": "done",
         "label": {
           "en": "Finished",
           "ru": "Готово"
+        },
+        "percent": 83,
+        "colour": "accent"
+      },
+      {
+        "key": "final",
+        "label": {
+          "en": "Final",
+          "ru": "Финал"
         },
         "percent": 100,
         "colour": "good"

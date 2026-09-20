@@ -1125,17 +1125,24 @@ pub struct Stage {
 /// The stops a craft gets when it names none of its own.
 ///
 /// A dial with nothing to snap to is not a dial, so this is not an empty list:
-/// six stops are enough to say something useful and few enough to click through
-/// without reading. A profile that means something else says so and this is
-/// never consulted.
+/// seven stops are enough to say something useful and few enough to click
+/// through without reading. A profile that means something else says so and
+/// this is never consulted.
+///
+/// The last stop is "Final" rather than "Finished", because those are two
+/// different claims: a work can be finished and still unreleased, and the
+/// owner wanted to see at a glance which ones were out. Both are set by hand,
+/// like every other stop - the stage stays a judgement, and the fact of a
+/// release is what the status already carries.
 pub fn default_stages() -> Vec<Stage> {
     [
         ("idea", "Idea", 0, MarkColour::Plain),
-        ("raw", "Rough draft", 20, MarkColour::Plain),
-        ("half", "Half there", 40, MarkColour::Warn),
-        ("nearly", "Nearly there", 60, MarkColour::Warn),
-        ("polish", "Polishing", 80, MarkColour::Accent),
-        ("done", "Finished", 100, MarkColour::Good),
+        ("raw", "Rough draft", 17, MarkColour::Plain),
+        ("half", "Half there", 33, MarkColour::Warn),
+        ("nearly", "Nearly there", 50, MarkColour::Warn),
+        ("polish", "Polishing", 67, MarkColour::Warn),
+        ("done", "Finished", 83, MarkColour::Accent),
+        ("final", "Final", 100, MarkColour::Good),
     ]
     .into_iter()
     .map(|(key, label, percent, colour)| Stage {

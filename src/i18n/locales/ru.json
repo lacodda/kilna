@@ -119,7 +119,8 @@
     "compareWith": "Сравнить с {{name}}",
     "compareMenu": "Сравнить с…",
     "previous": "предыдущая",
-    "repeats": "Повторы"
+    "repeats": "Повторы",
+    "scored": "Оценка {{score}}"
   },
   "nav": {
     "catalogue": "Каталог",

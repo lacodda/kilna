@@ -148,10 +148,24 @@ export function isNarrowed(filter: CatalogueFilter, columns?: ColumnFilters): bo
  * ticked stages has no place in the line. The two compose as AND, and both
  * live for the session only, for the reason given at `loadFilter`.
  */
+/**
+ * The ticked entry standing for "no stage at all".
+ *
+ * A stage is stored as the percentage of its stop, so the funnel could say
+ * "standing at this stop" and had no way to say "standing nowhere" — and the
+ * works that had never been given a stage were exactly the ones the owner
+ * wanted to find. Negative, because every real stop is 0..=100, and a
+ * sentinel that cannot collide with a value is the only kind worth having.
+ * `narrow` already tells a stage of 0 from no stage; this lets the funnel do
+ * the same.
+ */
+export const NO_STAGE = -1
+
 export interface ColumnFilters {
   /** Part of the title, matched case-insensitively. */
   title?: string
-  /** Stage stops, as their percentages: works standing at any of them. */
+  /** Stage stops, as their percentages: works standing at any of them, plus
+   * {@link NO_STAGE} for works standing at none. */
   stages?: number[]
   /** Tier keys. */
   tiers?: string[]
@@ -181,10 +195,12 @@ export const FILTERABLE_COLUMNS: FilterableColumn[] = ['title', 'stages', 'tiers
 /**
  * Narrow by the header funnels. Applied after `narrow`, on what it left.
  *
- * Absence follows `narrow`: a work with no stage stands at no stop, so it
- * matches none of the ticked ones; the same for a work with no tier. Marks
- * match on any ticked key, not all — a person ticking two marks is asking
- * "which works carry either", the way a status dropdown asks about one.
+ * A work with no stage matches only {@link NO_STAGE}, the funnel's own entry
+ * for standing nowhere; a work with no tier still matches none of the ticked
+ * tiers, since a tier is earned rather than set and "not yet" is what the
+ * empty cell already says. Marks match on any ticked key, not all — a person
+ * ticking two marks is asking "which works carry either", the way a status
+ * dropdown asks about one.
  */
 export function narrowByColumns(rows: ScoredWork[], filters: ColumnFilters): ScoredWork[] {
   const needle = filters.title?.trim().toLowerCase() ?? ''
@@ -194,7 +210,13 @@ export function narrowByColumns(rows: ScoredWork[], filters: ColumnFilters): Sco
 
   return rows.filter((row) => {
     if (needle !== '' && !row.title.toLowerCase().includes(needle)) return false
-    if (stages !== undefined && (row.stage === null || !stages.has(row.stage))) return false
+    if (stages !== undefined) {
+      // A work with no stage matches only the "no stage" tick, and a work
+      // with one matches only its own stop. Ticking both asks for either,
+      // the way two ticked marks do.
+      const matched = row.stage === null ? stages.has(NO_STAGE) : stages.has(row.stage)
+      if (!matched) return false
+    }
     if (tiers !== undefined && (row.tier === null || !tiers.has(row.tier))) return false
     if (marks !== undefined && !row.marks.some((key) => marks.has(key))) return false
     return true

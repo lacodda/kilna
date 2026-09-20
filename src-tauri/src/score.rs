@@ -88,8 +88,12 @@ pub struct ScoredWork {
     /// Keys into the profile's `marks`, drawn only while the profile still
     /// defines them.
     pub marks: Vec<String>,
-    /// How many versions the work holds, across every role. The count a person
-    /// reads as "how much work went in here".
+    /// How many versions the work holds — its bodies, across every role that
+    /// stands as the work itself. Roles that comment on another (a review, a
+    /// critique) are left out: they are written about the work rather than as
+    /// a draft of it, and counting them told a song with four texts that it
+    /// had eleven versions. The count a person reads as "how many times this
+    /// was written".
     pub version_count: i64,
     /// Set when the person marked this one to come back to — the star on the
     /// row, and what the catalogue's star filter reads.
@@ -263,6 +267,38 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
 /// version, or one whose current version was never judged, falls back to its
 /// strongest score: the best it has been shown to be.
 pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>> {
+    // Roles that comment on another role rather than standing as the work:
+    // a review and a critique are written ABOUT the lyrics, not as a draft of
+    // them. Counting them made a song with four texts read "11 versions",
+    // which is the number of things written near the work rather than the
+    // number of times the work itself was written.
+    //
+    // Read from the profile, the same rule the versions tab draws by
+    // (`comments_on === undefined` is a body). A role the profile no longer
+    // names counts as a body: the safe direction, since the alternative is to
+    // hide drafts that are really there.
+    let commenting: Vec<String> = profile::config_for(conn, profile_id)?
+        .all_version_roles()
+        .into_iter()
+        .filter(|role| role.comments_on.is_some())
+        .map(|role| role.key)
+        .collect();
+
+    let excluded = if commenting.is_empty() {
+        String::new()
+    } else {
+        // Quoted here rather than bound, because the list is as long as the
+        // profile says and a prepared statement wants a fixed shape. The keys
+        // are the profile's own identifiers, and a quote inside one is
+        // doubled the way SQL expects.
+        let names = commenting
+            .iter()
+            .map(|key| format!("'{}'", key.replace('\'', "''")))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!(" AND v.role NOT IN ({names})")
+    };
+
     let mut statement = conn.prepare(&format!(
         "SELECT w.id, w.title, w.kind, w.status, s.total,
                 coalesce(w.tier_pinned, s.tier) AS tier, s.scored_at,
@@ -274,7 +310,7 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
                     AND r.scheduled_at IS NOT NULL) AS scheduled,
                 w.updated_at, w.created_at, w.collection_id, w.tags, w.marks,
                 (SELECT count(*) FROM work_version v
-                  WHERE v.work_id = w.id) AS version_count,
+                  WHERE v.work_id = w.id{excluded}) AS version_count,
                 w.tier_pinned IS NOT NULL AS tier_pinned,
                 w.bookmarked_at, w.stage
          FROM work w
@@ -282,6 +318,7 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
          WHERE w.profile_id = ?1
          ORDER BY s.total IS NULL, s.total DESC, w.title",
         speaking = speaking_score_for("w.id"),
+        excluded = excluded,
     ))?;
 
     let rows = statement.query_map(params![profile_id], |row| {
@@ -796,6 +833,83 @@ mod tests {
             (reloaded.total - score.total).abs() < 1e-9,
             "the total is not recomputed"
         );
+    }
+
+    #[test]
+    fn the_version_count_leaves_out_what_only_comments_on_the_work() {
+        // The owner read "11 versions" on a song he had written four texts
+        // for: the count was every row of `work_version`, and a critique and
+        // a style prompt are rows too. A critique is written ABOUT the lyrics
+        // and is not a draft of the song, so it is not a time the song was
+        // written; a style prompt stands on its own and is.
+        let (mut conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id, "Subject");
+
+        let mut write = |role: &str, body: &str| {
+            version::create(
+                &mut conn,
+                &work_id,
+                NewVersion {
+                    role: role.into(),
+                    body: body.into(),
+                    label: None,
+                    meta: None,
+                    make_current: false,
+                    parent_version_id: None,
+                },
+            )
+            .unwrap();
+        };
+
+        write("lyrics", "a first pass");
+        write("lyrics", "a second pass");
+        write("style", "post-punk, cold");
+        // Both of these comment on the lyrics; neither is a draft of anything.
+        write("critique", "the second verse does not land");
+        write("review", "closer, but the chorus repeats");
+
+        let row = catalogue_row(&conn, &profile_id, &work_id);
+
+        assert_eq!(
+            row.version_count, 3,
+            "two texts and a style prompt were written; the critique and the \
+             review were written about them"
+        );
+    }
+
+    #[test]
+    fn the_version_count_keeps_a_role_the_profile_forgot() {
+        // The other direction, and the one that must not silently hide work:
+        // a role no longer named by the profile cannot be shown to be
+        // commentary, so it counts. A draft that stopped being counted because
+        // its role was renamed would read as work that never happened.
+        let (mut conn, profile_id) = workspace();
+        let work_id = a_work(&conn, &profile_id, "Subject");
+
+        version::create(
+            &mut conn,
+            &work_id,
+            NewVersion {
+                role: "lyrics".into(),
+                body: "a first pass".into(),
+                label: None,
+                meta: None,
+                make_current: false,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
+
+        conn.execute(
+            "INSERT INTO work_version (id, work_id, role, revision, body, created_at)
+             VALUES ('v-orphan', ?1, 'a-role-since-renamed', 1, 'still a draft', '2026-01-01')",
+            params![&work_id],
+        )
+        .unwrap();
+
+        let row = catalogue_row(&conn, &profile_id, &work_id);
+
+        assert_eq!(row.version_count, 2, "an unknown role counts as a body");
     }
 
     #[test]

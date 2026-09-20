@@ -38,6 +38,7 @@ import {
   moveColumn,
   narrow,
   narrowByColumns,
+  NO_STAGE,
   REQUIRED_COLUMN,
   saveColumnFilters,
   saveFilter,
@@ -719,17 +720,35 @@ function Rows({
         )
       case 'stages':
         return shell(
-          // The dial the rows are drawn with, and the fraction it stands for.
-          // The stop's NAME is what goes: the column shows a ring, so a funnel
-          // listing "Rough take", "Half there", "Full draft" asked the eye to
-          // match six words against six pictures it had just read. The dial
-          // beside the percentage is the same thing the row shows.
+          // The dial the rows are drawn with, the stop's name, and the
+          // fraction it stands for.
+          //
+          // The name was left out when this was written, on the argument that
+          // a funnel of six words beside a column of six rings asks the eye to
+          // match one against the other. What it actually produced was a
+          // funnel of bare percentages — a scale nobody had been told the
+          // meaning of, since "60%" is not what the card, the picker or the
+          // row call that stop. The dial carries the matching; the word says
+          // which stop it is; the percentage stays for the person who thinks
+          // in the number.
+          //
+          // "No stage" leads, because it is the answer to a different question
+          // from the six below it — not how far along, but never said — and it
+          // is the entry the owner went looking for and could not find.
           <CheckList
-            options={stagesOf(profile.config).map((stop) => ({
-              value: stop.percent,
-              label: `${stop.percent}%`,
-              icon: <StageDial percent={stop.percent} stage={stop} size={16} className="shrink-0" />,
-            }))}
+            options={[
+              { value: NO_STAGE, label: t('stage.unset') },
+              ...stagesOf(profile.config).map((stop) => ({
+                value: stop.percent,
+                label: t('stage.atPercent', {
+                  stage: sayLabel(stop.label),
+                  percent: stop.percent,
+                }),
+                icon: (
+                  <StageDial percent={stop.percent} stage={stop} size={16} className="shrink-0" />
+                ),
+              })),
+            ]}
             chosen={columnFilters.stages ?? []}
             onChange={(stages) => onColumnFilters({ ...columnFilters, stages })}
           />,

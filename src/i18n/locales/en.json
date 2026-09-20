@@ -114,7 +114,8 @@
     "compareWith": "Compare with {{name}}",
     "compareMenu": "Compare with…",
     "previous": "previous",
-    "repeats": "Repeats"
+    "repeats": "Repeats",
+    "scored": "Scored {{score}}"
   },
   "nav": {
     "catalogue": "Catalogue",

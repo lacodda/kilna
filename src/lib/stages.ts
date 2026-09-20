@@ -10,11 +10,12 @@ import type { ProfileConfig, Stage } from '@/lib/api'
  */
 export const DEFAULT_STAGES: Stage[] = [
   { key: 'idea', label: 'Idea', percent: 0, colour: 'plain' },
-  { key: 'raw', label: 'Rough draft', percent: 20, colour: 'plain' },
-  { key: 'half', label: 'Half there', percent: 40, colour: 'warn' },
-  { key: 'nearly', label: 'Nearly there', percent: 60, colour: 'warn' },
-  { key: 'polish', label: 'Polishing', percent: 80, colour: 'accent' },
-  { key: 'done', label: 'Finished', percent: 100, colour: 'good' },
+  { key: 'raw', label: 'Rough draft', percent: 17, colour: 'plain' },
+  { key: 'half', label: 'Half there', percent: 33, colour: 'warn' },
+  { key: 'nearly', label: 'Nearly there', percent: 50, colour: 'warn' },
+  { key: 'polish', label: 'Polishing', percent: 67, colour: 'warn' },
+  { key: 'done', label: 'Finished', percent: 83, colour: 'accent' },
+  { key: 'final', label: 'Final', percent: 100, colour: 'good' },
 ]
 
 /** The stops this profile works by, in order. */
