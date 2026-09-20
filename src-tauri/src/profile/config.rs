@@ -1078,6 +1078,21 @@ pub struct VersionRole {
     /// headings rather than a screen.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body: Option<String>,
+    /// Whether a body in this role is a time the WORK was written, and so
+    /// belongs in the count the catalogue shows.
+    ///
+    /// A critique answers this by commenting on another role, and always did.
+    /// A style prompt does not: it stands on its own, is written about the
+    /// song rather than being a draft of it, and counting it made a song with
+    /// four texts read six. The craft says which of its roles are the work
+    /// itself, because the code cannot tell a lyric sheet from a production
+    /// note by looking at it — the same reason `body` exists (ADR 0001).
+    ///
+    /// Absent reads as "yes, unless it comments on something", which is what
+    /// every role meant before the field existed: a profile that never sets
+    /// it counts exactly what it counted before.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub counts_as_version: Option<bool>,
 }
 
 /// The two ways a body is read. See [`VersionRole::body`].
@@ -1090,12 +1105,22 @@ impl VersionRole {
             label: Label::from(label),
             comments_on: None,
             body: None,
+            counts_as_version: None,
         }
     }
 
     /// Whether bodies in this role are drawn as markdown.
     pub fn reads_as_markdown(&self) -> bool {
         self.body.as_deref() == Some("markdown")
+    }
+
+    /// Whether a body in this role counts as a time the work was written.
+    ///
+    /// The profile's explicit answer wins; without one, anything that
+    /// comments on another role is not a draft and everything else is.
+    pub fn counts_as_a_version(&self) -> bool {
+        self.counts_as_version
+            .unwrap_or_else(|| self.comments_on.is_none())
     }
 }
 
@@ -1526,6 +1551,42 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    /// Which roles are a time the work itself was written.
+    ///
+    /// Three answers, and the third is the one that was wrong: a style prompt
+    /// comments on nothing, so the old rule counted it, and a song written
+    /// twice read as having many versions. The profile now says outright.
+    #[test]
+    fn a_role_says_whether_it_is_a_draft_of_the_work() {
+        let draft = VersionRole::new("lyrics", "Lyrics");
+        assert!(
+            draft.counts_as_a_version(),
+            "a plain body is a time the work was written"
+        );
+
+        let mut critique = VersionRole::new("critique", "Critique");
+        critique.comments_on = Some("lyrics".into());
+        assert!(
+            !critique.counts_as_a_version(),
+            "something written ABOUT another role is not a draft of the work"
+        );
+
+        let mut style = VersionRole::new("style", "Style prompt");
+        style.counts_as_version = Some(false);
+        assert!(
+            !style.counts_as_a_version(),
+            "the profile's explicit `false` wins over commenting on nothing"
+        );
+
+        let mut counted = VersionRole::new("counted", "Counted");
+        counted.comments_on = Some("lyrics".into());
+        counted.counts_as_version = Some(true);
+        assert!(
+            counted.counts_as_a_version(),
+            "the profile's explicit `true` wins over commenting on something"
+        );
+    }
+
     fn config() -> ProfileConfig {
         serde_json::from_value(json!({
             "work_kinds": [{ "key": "song", "label": "Song" }],
@@ -1834,6 +1895,7 @@ mod tests {
             label: "Review".into(),
             comments_on: Some("prose".into()),
             body: None,
+            counts_as_version: None,
         });
         config.rhythm = Some(Rhythm {
             every_days: 0,

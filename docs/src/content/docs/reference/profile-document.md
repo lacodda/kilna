@@ -429,6 +429,7 @@ The independent bodies a work carries:
 | `label` | string | What the lane is called. |
 | `comments_on` | string, optional | The role this one discusses. |
 | `body` | `plain` or `markdown`, optional | How a body in this role is read. Defaults to `plain`. |
+| `counts_as_version` | boolean, optional | Whether a body in this role is a time the work was written. Defaults to "yes, unless it comments on something". |
 
 `body` says how the text is *shown*, never how it is stored: a `plain` role is
 a monospace column exactly as typed — lyrics, a style prompt — and a `markdown`
@@ -447,6 +448,15 @@ revision 2 says nothing about revision 5, so it is not shown there.
 Music ships `review` (a read against the axes) and `critique` (line-by-line),
 both commenting on `lyrics`. A profile that names no commentary role keeps the
 Versions tab exactly as it was.
+
+`counts_as_version` answers a different question: how many times the *work*
+has been written, which is the number the catalogue's Versions column shows.
+Commentary is excluded by definition — a critique is not a draft of the song —
+but so is anything else the craft says is written *about* the work rather than
+being it. Music sets `counts_as_version: false` on `style`: a style prompt
+stands on its own and comments on nothing, so the count read a song written
+twice as having six versions. The role keeps its own lane, its own revisions
+and its own history; it simply is not counted as the song.
 
 ## `marks`
 

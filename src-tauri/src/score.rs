@@ -267,20 +267,20 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
 /// version, or one whose current version was never judged, falls back to its
 /// strongest score: the best it has been shown to be.
 pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>> {
-    // Roles that comment on another role rather than standing as the work:
-    // a review and a critique are written ABOUT the lyrics, not as a draft of
-    // them. Counting them made a song with four texts read "11 versions",
-    // which is the number of things written near the work rather than the
-    // number of times the work itself was written.
+    // Roles that are not a time the work itself was written: a critique is
+    // written ABOUT the lyrics, and a style prompt is written about the song
+    // rather than being a draft of it. Counting them made a song with four
+    // texts read "11 versions", which is the number of things written near
+    // the work rather than the number of times the work was written.
     //
-    // Read from the profile, the same rule the versions tab draws by
-    // (`comments_on === undefined` is a body). A role the profile no longer
+    // The profile answers, through `counts_as_version` — see the field for
+    // why the craft has to be the one to say. A role the profile no longer
     // names counts as a body: the safe direction, since the alternative is to
     // hide drafts that are really there.
     let commenting: Vec<String> = profile::config_for(conn, profile_id)?
         .all_version_roles()
         .into_iter()
-        .filter(|role| role.comments_on.is_some())
+        .filter(|role| !role.counts_as_a_version())
         .map(|role| role.key)
         .collect();
 
@@ -863,6 +863,10 @@ mod tests {
 
         write("lyrics", "a first pass");
         write("lyrics", "a second pass");
+        // Written about the song rather than being a draft of it: the profile
+        // says so with `counts_as_version: false`. The owner read "many
+        // versions" on songs he had written twice, and the style prompts were
+        // most of the difference.
         write("style", "post-punk, cold");
         // Both of these comment on the lyrics; neither is a draft of anything.
         write("critique", "the second verse does not land");
@@ -871,9 +875,9 @@ mod tests {
         let row = catalogue_row(&conn, &profile_id, &work_id);
 
         assert_eq!(
-            row.version_count, 3,
-            "two texts and a style prompt were written; the critique and the \
-             review were written about them"
+            row.version_count, 2,
+            "the song was written twice; the style prompt, the critique and \
+             the review were all written about it"
         );
     }
 

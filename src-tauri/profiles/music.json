@@ -1086,7 +1086,8 @@
           "en": "Style prompt",
           "ru": "Промпт стиля"
         },
-        "body": "plain"
+        "body": "plain",
+        "counts_as_version": false
       },
       {
         "key": "review",

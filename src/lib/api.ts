@@ -90,6 +90,11 @@ export interface VersionRole extends Kind {
   /** How a body in this role reads. Absent, or anything but `markdown`, is
       plain: a monospace column, exactly as typed. */
   body?: 'plain' | 'markdown' | (string & {})
+  /** Whether a body in this role is a time the WORK was written, and so
+      belongs in the count the catalogue shows. A style prompt is written
+      about the song rather than being a draft of it. Absent means "yes,
+      unless it comments on something". */
+  counts_as_version?: boolean
 }
 
 export interface MetaField {
