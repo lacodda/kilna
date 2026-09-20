@@ -65,15 +65,21 @@ export function SettingsView() {
   }
 
   return (
-    <div className="grid gap-8 md:grid-cols-[11rem_minmax(0,1fr)]">
+    // The nav does not move at all, and `sticky` could not give that: sticky
+    // travels with the page until it reaches its offset, so a long section on
+    // the right dragged the whole list up as far as the word "Настройки"
+    // before pinning — which reads as a menu that scrolls, because for those
+    // first pixels it does. Only the section scrolls instead, and the nav is
+    // simply a column of the window's height beside it.
+    // Below `md` the two columns stack, and the nav is a row above the
+    // section rather than a thing standing beside it: there the whole screen
+    // scrolls as one, which is why the scrolling is on the section only from
+    // `md` up. Without `overflow-y-auto` here the narrow layout would be
+    // clipped with no way to reach its bottom.
+    <div className="grid min-h-0 flex-1 gap-8 overflow-y-auto md:grid-cols-[11rem_minmax(0,1fr)] md:overflow-hidden">
       <SectionNav
+        className="md:self-start"
         label={t('settings.title')}
-        // `self-start`, or the column stretches to the height of the grid
-        // row beside it and there is nothing left for `sticky` to move
-        // within: a stretched item is already as tall as its track, so it
-        // pins at the top and stays there, which looks exactly like a nav
-        // that scrolls away with the page.
-        className="md:sticky md:top-0 md:self-start"
         activeId={section}
         items={SECTIONS.map((entry) => {
           const Icon = ICONS[entry]
@@ -84,7 +90,9 @@ export function SettingsView() {
         render={(item) => <NavLink to={`/settings/${item.id}`} />}
       />
 
-      <div className="flex min-w-0 flex-col">
+      {/* `pr-1` so a focus ring on the last control is not clipped by the
+          scroller's own edge. */}
+      <div className="flex min-w-0 flex-col md:min-h-0 md:overflow-y-auto md:pr-1">
         <SectionHeading
           title={t(`settings.section.${section}`)}
           description={t(`settings.hint.${section}`)}

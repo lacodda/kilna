@@ -42,39 +42,120 @@ fn the_document_is_sealed() {
     );
 }
 
-/// The one box that scrolls must scroll on one axis.
+/// The screen area itself does not scroll: it hands its height to a `<Screen>`.
 ///
-/// `overflow-y-auto` on its own leaves the horizontal axis at `auto` as well --
-/// the CSS spec forces it -- so the content area was silently scrollable
-/// sideways and slid under the sidebar. The tab strip hit the same trap at
-/// v0.35; this is the second time, hence a test.
+/// The window has a bottom edge and the content must stop at it. When this box
+/// scrolled, a long screen ran past the edge the way a web page does — no end
+/// in sight, and a wide table's sideways bar parked under two hundred rows.
 #[test]
-fn the_content_scroller_is_clipped_sideways_and_reserves_its_gutter() {
+fn the_screen_area_clips_and_hands_its_height_down() {
     let app = read("src/App.tsx");
-    let scroller = app
+    let area = app
         .split("key={screen}")
         .nth(1)
-        .expect("the keyed content scroller is gone from App.tsx");
-    let class_attr = scroller
+        .expect("the keyed content area is gone from App.tsx");
+    let class_attr = area
         .split("className=")
         .nth(1)
-        .expect("the scroller has no className")
+        .expect("the content area has no className")
         .split('>')
         .next()
         .expect("unterminated element");
 
     assert!(
-        class_attr.contains("overflow-y-auto"),
-        "the content area no longer scrolls vertically"
+        class_attr.contains("overflow-hidden"),
+        "the screen area scrolls again; the window must not, a `<Screen>` scrolls inside it"
     );
     assert!(
-        class_attr.contains("overflow-x-hidden"),
-        "the content scroller lost `overflow-x-hidden`; `overflow-y-auto` alone leaves the horizontal axis scrollable"
+        class_attr.contains("min-h-0") && class_attr.contains("flex-1"),
+        "the screen area stopped handing its height down; every screen will grow past the window"
+    );
+}
+
+/// Every screen scrolls within the window rather than past it.
+#[test]
+fn a_flowing_screen_scrolls_itself_and_reserves_its_gutter() {
+    let app = read("src/App.tsx");
+    let screen = app
+        .split("function Screen(")
+        .nth(1)
+        .expect("the Screen wrapper is gone from App.tsx");
+    let body = screen.split("\n}").next().expect("unterminated Screen");
+
+    assert!(
+        body.contains("overflow-y-auto"),
+        "a flowing screen no longer scrolls; its content will be cut off at the window's edge"
     );
     assert!(
-        class_attr.contains("scrollbar-gutter:stable"),
-        "the content scroller lost its stable gutter; every navigation will shift sideways as the scrollbar appears"
+        body.contains("overflow-x-hidden"),
+        "a flowing screen lost `overflow-x-hidden`; `overflow-y-auto` alone leaves the sideways axis scrollable"
     );
+    assert!(
+        body.contains("scrollbar-gutter:stable"),
+        "a flowing screen lost its stable gutter; every navigation will shift sideways as the scrollbar appears"
+    );
+    assert!(
+        body.contains("overflow-hidden"),
+        "a held screen no longer clips; it is the one that lays out against the window's height"
+    );
+}
+
+/// Radii come from the scale, not from a number someone picked.
+///
+/// Four different roundings on one gesture — a row under the pointer — is what
+/// the owner read as "strange corners": the rail at 10px, a nav at 9, a stage
+/// stop at 5, a calendar chip at 7, none of them a step of the scale. The
+/// exceptions below are smaller than the smallest step on purpose: a 2-line
+/// badge inside a calendar tile, where `sm` would swallow the tile's own
+/// corner.
+#[test]
+fn roundings_come_from_the_scale() {
+    const ALLOWED: [&str; 2] = ["rounded-[4px]", "rounded-[3px]"];
+
+    let mut stray: Vec<String> = Vec::new();
+    for entry in walk(&repo_root().join("src")) {
+        let text = std::fs::read_to_string(&entry).expect("a source file is readable");
+        for (number, line) in text.lines().enumerate() {
+            let Some(at) = line.find("rounded-[") else {
+                continue;
+            };
+            let rest = &line[at..];
+            let Some(end) = rest.find(']') else { continue };
+            let token = &rest[..=end];
+            if !token.ends_with("px]") || ALLOWED.contains(&token) {
+                continue;
+            }
+            stray.push(format!(
+                "{}:{}: {token}",
+                entry.strip_prefix(repo_root()).unwrap_or(&entry).display(),
+                number + 1
+            ));
+        }
+    }
+
+    assert!(
+        stray.is_empty(),
+        "these roundings are hand-picked pixels rather than steps of the scale \
+         (xs 4 / sm 6 / md 9 / lg 12 / xl 16 - use `rounded-sm`, `rounded-md`, ...):\n  {}",
+        stray.join("\n  ")
+    );
+}
+
+/// Every `.tsx` under a directory.
+fn walk(dir: &Path) -> Vec<PathBuf> {
+    let mut found = Vec::new();
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return found;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            found.extend(walk(&path));
+        } else if path.extension().is_some_and(|e| e == "tsx") {
+            found.push(path);
+        }
+    }
+    found
 }
 
 /// Selection is off by default and handed back to text.
@@ -233,5 +314,145 @@ fn no_wrapper_adds_relative_to_an_overlay() {
         offenders.is_empty(),
         "these add `relative` to an overlay, which drops its `fixed` when the classes merge: {}",
         offenders.join(", ")
+    );
+}
+
+/// Colour classes name a token the theme actually defines.
+///
+/// `hover:text-fg` was in seven places and did nothing at all: the token is
+/// `--color-text`, so `text-fg` compiled to no rule and the hover was silently
+/// dead everywhere it was written. Tailwind does not complain about a class it
+/// has no value for, and neither does the type checker — so the theme itself
+/// is the list, read at test time rather than copied here where it would rot.
+#[test]
+fn colour_classes_name_tokens_the_theme_defines() {
+    let theme = std::fs::read_to_string(repo_root().join("node_modules/dowel-ui/dist/theme.css"))
+        .expect("dowel-ui's theme is installed");
+
+    let mut known: Vec<String> = Vec::new();
+    for (at, _) in theme.match_indices("--color-") {
+        let rest = &theme[at + "--color-".len()..];
+        let name: String = rest
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || *c == '-')
+            .collect();
+        if !name.is_empty() {
+            known.push(name);
+        }
+    }
+    // The same prefixes carry things that are not colours at all -- `text-sm`
+    // is a size, `border-b` a side, `text-left` an alignment -- and Tailwind
+    // reads each from its own scale. They are collected from the theme the
+    // same way rather than listed, so a new size does not fail this test.
+    for family in ["--text-", "--font-weight-", "--leading-", "--tracking-"] {
+        for (at, _) in theme.match_indices(family) {
+            let rest = &theme[at + family.len()..];
+            let name: String = rest
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() || *c == '-')
+                .collect();
+            // `--text-sm--line-height` defines the same `sm`.
+            if let Some(base) = name.split("--").next() {
+                if !base.is_empty() {
+                    known.push(base.to_owned());
+                }
+            }
+        }
+    }
+
+    // Tailwind's own keywords under these prefixes: sides and corners for
+    // `border-`, alignment and wrapping for `text-`, the plain colour words.
+    const ALSO_FINE: [&str; 26] = [
+        "white",
+        "black",
+        "transparent",
+        "current",
+        "inherit",
+        "none",
+        "t",
+        "r",
+        "b",
+        "l",
+        "x",
+        "y",
+        "s",
+        "e",
+        "solid",
+        "dashed",
+        "dotted",
+        "double",
+        "hidden",
+        "left",
+        "right",
+        "center",
+        "justify",
+        "start",
+        "end",
+        "nowrap",
+    ];
+
+    let prefixes = ["text-", "bg-", "border-", "fill-", "stroke-"];
+    let mut stray: Vec<String> = Vec::new();
+    for entry in walk(&repo_root().join("src")) {
+        let text = std::fs::read_to_string(&entry).expect("a source file is readable");
+        let mut in_block_comment = false;
+        for (number, line) in text.lines().enumerate() {
+            // Prose talks about CSS: a comment explaining `stroke-dasharray`
+            // is not a class anyone wrote. Only code is read.
+            let trimmed = line.trim_start();
+            if in_block_comment {
+                if line.contains("*/") {
+                    in_block_comment = false;
+                }
+                continue;
+            }
+            if trimmed.starts_with("//") || trimmed.starts_with('*') {
+                continue;
+            }
+            if trimmed.starts_with("/*") && !line.contains("*/") {
+                in_block_comment = true;
+                continue;
+            }
+
+            for word in line.split(['"', '\'', '`', ' ', '{', '}', '(', ')']) {
+                // Only the colour part: `hover:text-fg` is checked as `text-fg`.
+                let class = word.rsplit(':').next().unwrap_or(word);
+                let Some(prefix) = prefixes.iter().find(|p| class.starts_with(**p)) else {
+                    continue;
+                };
+                let token = &class[prefix.len()..];
+                // A size, a number, an arbitrary value or an opacity suffix is
+                // not a colour: `text-sm`, `bg-black/35`, `border-[3px]`.
+                if token.is_empty()
+                    || token.contains('/')
+                    || token.contains('[')
+                    || token.chars().next().is_some_and(|c| c.is_ascii_digit())
+                    // A width on one side: `border-r-0`, `border-x-2`. The
+                    // last segment being a number is what makes it a measure
+                    // rather than a colour.
+                    || token
+                        .rsplit('-')
+                        .next()
+                        .is_some_and(|last| last.parse::<u32>().is_ok())
+                {
+                    continue;
+                }
+                if known.iter().any(|k| k == token) || ALSO_FINE.contains(&token) {
+                    continue;
+                }
+                stray.push(format!(
+                    "{}:{}: {class}",
+                    entry.strip_prefix(repo_root()).unwrap_or(&entry).display(),
+                    number + 1
+                ));
+            }
+        }
+    }
+
+    assert!(
+        stray.is_empty(),
+        "these classes name a colour token the theme does not define, so they \
+         draw nothing at all:\n  {}",
+        stray.join("\n  ")
     );
 }

@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
+import { cn } from 'dowel-ui'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getWorkspace, warnUnreadyReleases } from '@/lib/api'
 import { humanError } from '@/lib/errors'
@@ -27,6 +28,40 @@ import { TrashView } from '@/components/TrashView'
 import { Styleguide } from '@/components/Styleguide'
 import { Panel } from '@/components/ui/panel'
 
+/**
+ * A screen, inside the window rather than running past it.
+ *
+ * Every screen is handed the height the window has left and no more. One that
+ * is longer than that scrolls within itself — `flow`, the common case — so the
+ * bottom edge of the content is always on screen and a long page announces
+ * itself with a bar instead of hiding its end. One that lays its own boxes out
+ * against that height — the catalogue's table, the calendar's two columns —
+ * takes `held` and scrolls further in, where the sideways bar can sit at the
+ * bottom of the window rather than under two hundred rows.
+ *
+ * The window itself never scrolls, on either axis. A desktop window has a
+ * bottom edge; content that runs past it the way a web page does hides the
+ * fact that there is more.
+ *
+ * `scrollbar-gutter: stable` keeps the bar's 10px reserved whether or not this
+ * screen needs one: without it every navigation was a small sideways jump,
+ * because a skeleton is short and what replaces it is not.
+ */
+function Screen({ scroll = 'flow', children }: { scroll?: 'flow' | 'held'; children: ReactNode }) {
+  return (
+    <div
+      className={cn(
+        'min-h-0 flex-1 px-6 pt-3 pb-6',
+        scroll === 'flow'
+          ? 'overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]'
+          : 'flex flex-col overflow-hidden',
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
 // An open work, filling the screen. The address carries which one and which
 // tab, so the back button walks between them.
 //
@@ -39,15 +74,15 @@ function WorksScreen() {
   if (workId === undefined) return <Navigate to="/catalogue" replace />
 
   return (
-    // No scrolling of its own: the screen area outside already scrolls, and a
-    // second scroller here drew a second scrollbar over the card's tab strip -
-    // the one the pilot saw. It also gave `sticky top-0` in the header the
-    // wrong box to stick to.
+    // The card is the scroller now that the window is not: its sticky header
+    // needs a box that scrolls to stick to, and there is exactly one here, so
+    // the second scrollbar over the tab strip that the pilot saw cannot come
+    // back.
     //
-    // No padding at the top either: the header sticks to the top of the
-    // scrolling area, and 24px above it is 24px the scrolled text shows
-    // through. The card's own cover provides the space instead.
-    <main className="px-6 pb-6">
+    // No padding at the top: the header sticks to the top of the scrolling
+    // area, and 24px above it is 24px the scrolled text shows through. The
+    // card's own cover provides the space instead.
+    <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-6 pb-6 [scrollbar-gutter:stable]">
       <WorkCard
         key={workId}
         workId={workId}
@@ -168,19 +203,11 @@ function WorksScreen() {
                 navigation, but not when moving between works inside the same
                 screen.
 
-                `overflow-y-auto` alone leaves the horizontal axis at `auto`
-                too, so this box was quietly scrollable sideways and a trackpad
-                swipe slid the content under the sidebar — the same trap the tab
-                strip hit at v0.35. The axis is clipped explicitly.
-
-                `scrollbar-gutter: stable` keeps the scrollbar’s 10px reserved
-                whether or not a screen is long enough to need one. Without it
-                every navigation was a small sideways jump: the skeleton is
-                short, and the content replacing it is not. */}
-            <div
-              key={screen}
-              className="screen-in min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]"
-            >
+                This box does not scroll: it hands its height down, and each
+                `<Screen>` decides where the scrolling happens inside it. The
+                window having no scrollbar of its own is the point — see
+                `Screen`. */}
+            <div key={screen} className="screen-in flex min-h-0 flex-1 flex-col overflow-hidden">
               {/* Resetting on the screen name means a crash does not outlive the
                   route that caused it. */}
               <ErrorBoundary resetKey={screen}>
@@ -191,9 +218,9 @@ function WorksScreen() {
                   <Route
                     path="/dashboard"
                     element={
-                      <div className="px-6 pt-3 pb-6">
+                      <Screen>
                         <DashboardView onSelect={openWork} />
-                      </div>
+                      </Screen>
                     }
                   />
                   {/* The open tab is part of the address, so the back button walks
@@ -205,9 +232,9 @@ function WorksScreen() {
                   <Route
                     path="/catalogue"
                     element={
-                      <div className="flex h-full min-h-0 flex-col px-6 pt-3 pb-6">
+                      <Screen scroll="held">
                         <Catalogue onSelect={openWork} />
-                      </div>
+                      </Screen>
                     }
                   />
                   {/* Like the catalogue: the screen holds the window's
@@ -217,25 +244,25 @@ function WorksScreen() {
                   <Route
                     path="/calendar"
                     element={
-                      <div className="flex h-full min-h-0 flex-col px-6 pt-3 pb-6">
+                      <Screen scroll="held">
                         <CalendarView onSelect={openWork} />
-                      </div>
+                      </Screen>
                     }
                   />
                   <Route
                     path="/journal"
                     element={
-                      <div className="px-6 pt-3 pb-6">
+                      <Screen>
                         <JournalView />
-                      </div>
+                      </Screen>
                     }
                   />
                   <Route
                     path="/trash"
                     element={
-                      <div className="px-6 pt-3 pb-6">
+                      <Screen>
                         <TrashView />
-                      </div>
+                      </Screen>
                     }
                   />
                   {/* The section is part of the address, like a card's tab:
@@ -243,18 +270,18 @@ function WorksScreen() {
                   <Route
                     path="/settings/:section?"
                     element={
-                      <div className="px-6 pt-3 pb-6">
+                      <Screen scroll="held">
                         <SettingsView />
-                      </div>
+                      </Screen>
                     }
                   />
                   {import.meta.env.DEV && (
                     <Route
                       path="/styleguide"
                       element={
-                        <div className="p-6">
+                        <Screen>
                           <Styleguide />
-                        </div>
+                        </Screen>
                       }
                     />
                   )}
