@@ -9,8 +9,9 @@
     "dev": "vite",
     "build": "pnpm locales && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "eslint . && tsc --noEmit && pnpm locales && pnpm test",
+    "lint": "eslint . && tsc --noEmit && pnpm locales && pnpm tokens && pnpm test",
     "locales": "node tools/check-locales.mjs",
+    "tokens": "node tools/check-tokens.mjs",
     "tauri": "tauri",
     "test": "vitest run"
   },
