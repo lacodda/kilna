@@ -198,6 +198,16 @@ pub fn compose(
         // A work action started with a scene in hand is about the work: the
         // scene is not read, and the key does not name it.
         (Scope::Work, _) => None,
+        // A style action is not about a work at all — it is composed by
+        // `compose_for_style` against a brick of the dictionary. Reaching
+        // here means a caller aimed one at a card, which is a mistake worth
+        // naming rather than a prompt worth sending.
+        (Scope::Style, _) => {
+            return Err(Error::Other(format!(
+                "“{}” is about a style, not a work: start it from the dictionary",
+                template.label
+            )));
+        }
     };
 
     // One block of that scene, when the action is aimed at one. Refused
@@ -603,6 +613,29 @@ mod tests {
             composed.prompt
         );
         assert!(composed.attachments.is_empty());
+    }
+
+    /// A style action is about a brick of the dictionary. Aimed at a card it
+    /// is refused by name rather than sending a prompt about the wrong thing
+    /// — and `actionsFor` in the window keeps it off the bar for the same
+    /// reason, so this is the second lock on one door.
+    #[test]
+    fn a_style_action_aimed_at_a_work_is_refused() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
+
+        let refused = compose(&conn, &work_id, "describe-style", About::default())
+            .unwrap_err()
+            .to_string();
+
+        assert!(
+            refused.contains("about a style"),
+            "the refusal says what it is about: {refused}"
+        );
+        assert!(
+            refused.contains("dictionary"),
+            "and where to start it: {refused}"
+        );
     }
 
     fn work_with_body(conn: &mut Connection, profile_id: &str, title: &str, body: &str) -> String {

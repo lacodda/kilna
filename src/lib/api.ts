@@ -254,7 +254,8 @@ export interface PromptTemplate {
   method?: string
   /** The kinds of work the action is for; absent or empty means every kind. */
   kinds?: string[]
-  /** `scene` for an action started from a row of the board; otherwise the work. */
+  /** `scene` for an action started from a row of the board, `style` for one
+      about a brick of the style dictionary; otherwise the work. */
   scope?: string
 }
 
@@ -1661,6 +1662,9 @@ export interface TaskAbout {
       the still. A key of the kind's `scene_blocks`. */
   block?: string
   attachments?: string[]
+  /** The styles picked for this run, in the order picked, read by a
+      template's `{styles}`. See ADR 0031. */
+  styleBrickIds?: string[]
 }
 
 /** Start an action on a work — on one of its versions when `versionId` is

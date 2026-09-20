@@ -1467,7 +1467,9 @@ impl ProfileConfig {
     /// as a hole in a prompt — the predecessor let an edited template lose
     /// its text placeholder and sent critiques of nothing for a month.
     fn validate_prompts(&self, problems: &mut Vec<String>) {
-        use crate::assistant::prompt::{Produces, SCENE_SCOPE, Scope, is_known_placeholder};
+        use crate::assistant::prompt::{
+            Produces, SCENE_SCOPE, STYLE_SCOPE, Scope, is_known_placeholder,
+        };
 
         unique(
             problems,
@@ -1488,9 +1490,9 @@ impl ProfileConfig {
                 }
             }
             if let Some(scope) = prompt.scope.as_deref().map(str::trim) {
-                if scope != SCENE_SCOPE && scope != "work" {
+                if scope != SCENE_SCOPE && scope != STYLE_SCOPE && scope != "work" {
                     problems.push(format!(
-                        "{place}: `scope` is `work` or `scene`, not `{scope}`"
+                        "{place}: `scope` is `work`, `scene` or `style`, not `{scope}`"
                     ));
                 }
             }

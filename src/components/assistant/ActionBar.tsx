@@ -12,6 +12,7 @@ import { actionIconOf } from '@/lib/actionIcon'
 import { Button } from '@/components/ui/button'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 import { TaskPreviewDialog } from '@/components/assistant/TaskPreviewDialog'
+import { StylePickerDialog } from '@/components/styles/StylePickerDialog'
 
 interface Props {
   workId: string
@@ -37,6 +38,12 @@ interface Props {
   menu?: boolean
 }
 
+/** Whether the action's message reads the style dictionary, and so cannot be
+    started until someone has said which parts to build from. */
+function readsStyles(action: PromptTemplate): boolean {
+  return action.template.includes('{styles}')
+}
+
 /** The actions of the profile that belong here: for this kind, at this scope. */
 export function actionsFor(
   actions: PromptTemplate[],
@@ -47,6 +54,10 @@ export function actionsFor(
   return actions.filter(
     (action) =>
       (action.kinds === undefined || action.kinds.length === 0 || action.kinds.includes(kind)) &&
+      // A style action is about a brick of the dictionary, not about a work
+      // or a scene, so it belongs to neither bar. Named rather than left to
+      // the `scene ? scene : work` fallback, which offered it on every card.
+      action.scope !== 'style' &&
       (action.scope === 'scene' ? 'scene' : 'work') === scope,
   )
 }
@@ -85,6 +96,8 @@ export function ActionBar({
   const kind = useWorkKind(workId)
   const client = useQueryClient()
   const [previewing, setPreviewing] = useState<PromptTemplate | null>(null)
+  /** The action waiting on a pick of styles, when one reads `{styles}`. */
+  const [picking, setPicking] = useState<PromptTemplate | null>(null)
 
   // Which actions are already going. Asked of the backend rather than kept
   // here: a run started before this card was opened still owns its button, and
@@ -111,7 +124,8 @@ export function ActionBar({
   }, [client])
 
   const start = useMutation({
-    mutationFn: (action: string) => startTask(workId, action, { versionId, sceneId, block }),
+    mutationFn: ({ action, styleBrickIds }: { action: string; styleBrickIds?: string[] }) =>
+      startTask(workId, action, { versionId, sceneId, block, styleBrickIds }),
     onSuccess: (started) => {
       void client.invalidateQueries({ queryKey: keys.activeTasks })
       void client.invalidateQueries({ queryKey: keys.allChats })
@@ -129,7 +143,7 @@ export function ActionBar({
   // The action whose start has not come back yet. Held only for that moment:
   // once the backend answers, the list of running tasks is what the buttons
   // read, and this goes back to null whether the start succeeded or failed.
-  const pending = start.isPending ? start.variables : null
+  const pending = start.isPending ? start.variables.action : null
 
   /** The action's own words, or nothing when the profile gave it none. */
   const describe = (action: PromptTemplate) => sayLabel(action.description)
@@ -171,7 +185,14 @@ export function ActionBar({
               aria-label={compact ? sayLabel(action.label) : undefined}
               disabled={working}
               onClick={() => {
-                start.mutate(action.key)
+                // An action whose message reads the dictionary cannot start
+                // without one: the parts are the question being asked, and a
+                // prompt built from none would be a prompt with a hole in it.
+                if (readsStyles(action)) {
+                  setPicking(action)
+                  return
+                }
+                start.mutate({ action: action.key })
               }}
             >
               <Icon aria-hidden className="size-3.5" />
@@ -234,7 +255,11 @@ export function ActionBar({
                   : `${sayLabel(action.label)} — ${describe(action)}`
               }
               onClick={() => {
-                start.mutate(action.key)
+                if (readsStyles(action)) {
+                  setPicking(action)
+                  return
+                }
+                start.mutate({ action: action.key })
               }}
             >
               <Icon aria-hidden className="size-3.5" />
@@ -260,6 +285,19 @@ export function ActionBar({
           {hint !== undefined && <p className="text-xs text-dim">{hint}</p>}
           {buttons}
         </section>
+      )}
+      {picking !== null && (
+        <StylePickerDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setPicking(null)
+          }}
+          actionLabel={sayLabel(picking.label)}
+          onStart={(styleBrickIds) => {
+            start.mutate({ action: picking.key, styleBrickIds })
+            setPicking(null)
+          }}
+        />
       )}
       {previewing !== null && (
         <TaskPreviewDialog

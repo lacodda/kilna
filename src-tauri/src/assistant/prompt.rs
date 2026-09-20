@@ -75,10 +75,17 @@ pub enum Scope {
     Work,
     /// One scene of the work's storyboard.
     Scene,
+    /// One brick of the workspace's style dictionary. Not about a work at
+    /// all — so an action of this scope is offered on the dictionary and
+    /// nowhere else (ADR 0031).
+    Style,
 }
 
 /// The value of `scope` that names a scene action.
 pub const SCENE_SCOPE: &str = "scene";
+
+/// The value of `scope` that names an action about a style brick.
+pub const STYLE_SCOPE: &str = "style";
 
 impl PromptTemplate {
     /// `produces` as the application understands it. An unknown value reads
@@ -126,6 +133,7 @@ impl PromptTemplate {
     pub fn scope(&self) -> Scope {
         match self.scope.as_deref().map(str::trim) {
             Some(SCENE_SCOPE) => Scope::Scene,
+            Some(STYLE_SCOPE) => Scope::Style,
             _ => Scope::Work,
         }
     }

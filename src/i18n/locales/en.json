@@ -864,7 +864,15 @@
     "emptyBody": "A style is a part a picture prompt is built from — a look, a character, a place. Make one, drop the pictures in, and let the assistant describe it.",
     "noMatches": "Nothing matches that",
     "noDictionary": "This craft has no style dictionary",
-    "noDictionaryBody": "A profile names the types a style can be. Add some in Settings, and this screen fills up."
+    "noDictionaryBody": "A profile names the types a style can be. Add some in Settings, and this screen fills up.",
+    "pickBody": "Pick the parts, in the order they matter. The first is the spine of the picture, the last is a detail.",
+    "buildFrom": "Build from one part",
+    "buildFrom_other": "Build from {{count}} parts",
+    "moveUp": "Move up",
+    "unpick": "Take it out",
+    "allPicked": "Every style is picked",
+    "noneReady": "No styles are ready",
+    "noneReadyBody": "A style is offered here once it carries a description. Write one, or let the assistant describe it from its references."
   },
   "editor": {
     "axes": "Scoring axes",

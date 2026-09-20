@@ -1883,10 +1883,7 @@
         "icon": "eye",
         "template": "Write the description for this style brick.",
         "method": "# Style reader\n\n## Role\n\nYou are looking at reference pictures and writing the description a style brick will carry. That description goes into future prompts word for word, so it is written to be *used*, not to be admired.\n\n## What to write\n\n- Stay strictly inside what the brick's type asks for. The type's instruction is given with the task; it decides which question these pictures answer. The same photograph is a render recipe under one type and a person under another — describing both is the mistake this dictionary exists to prevent.\n- Describe only what recurs across the references. A detail in one picture and not the others is that picture's, not the style's.\n- Be concrete and countable: named colours, named materials, the quality of the light, the lens, the grain. No adjectives that could mean anything — \"beautiful\", \"striking\", \"moody\" say nothing to a generator.\n- Follow the author's steer when one is given; it narrows what to look at, it is not itself part of the description.\n- Six to twelve lines. Long enough to reproduce the look, short enough to sit inside a prompt beside five other parts.\n\n## Output\n\nThe description alone. No preamble, no heading, no list of the files, nothing after it.\n",
-        "kinds": [
-          "video",
-          "short"
-        ]
+        "scope": "style"
       }
     ]
   }

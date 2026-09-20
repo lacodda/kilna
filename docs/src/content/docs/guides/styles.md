@@ -79,8 +79,11 @@ nothing to look at.
 
 ## Building a prompt
 
-On a video or a short, **Build a prompt from styles** takes the styles you
-picked and writes one prompt out of them.
+On a video or a short, **Build a prompt from styles** — in the card's AI
+actions — opens the picker: search the dictionary, click the parts you want,
+and press build. Only **ready** styles are offered.
+
+The action takes the styles you picked and writes one prompt out of them.
 
 Each part reaches the assistant under the word for what it contributes:
 
