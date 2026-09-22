@@ -380,6 +380,12 @@
   },
   "score": {
     "title": "Score",
+    "history": "Scores · {{count}}",
+    "new": "New score",
+    "newTitle": "A new score",
+    "ofRevision": "Score of {{name}}",
+    "ofCurrent": "Score of the work",
+    "none": "Not judged yet.",
     "total": "Total",
     "save": "Record score",
     "delete": "Delete this score",
@@ -1038,7 +1044,8 @@
       "release": "Release",
       "note": "Note",
       "collection": "Collection",
-      "scene": "Scene"
+      "scene": "Scene",
+      "cut": "Cut"
     }
   },
   "journal": {
@@ -1235,6 +1242,8 @@
   },
   "shell": {
     "new": "New",
+    "collapseMenu": "Collapse the menu",
+    "expandMenu": "Expand the menu",
     "minimize": "Minimize",
     "maximize": "Maximize",
     "restore": "Restore",

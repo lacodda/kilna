@@ -23,10 +23,9 @@ import {
 } from '@/lib/api'
 import { chatLabel } from '@/lib/chat'
 import { keys } from '@/lib/query'
-import { AssistantContext, type Assistant } from '@/lib/useAssistant'
+import { AssistantContext, useAssistant, type Assistant } from '@/lib/useAssistant'
 import { announcement, movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Dialog, PromptDialog } from '@/components/ui/AppDialog'
 import {
@@ -40,8 +39,9 @@ import { RowContextMenu, RowMenu, type RowAction } from '@/components/ui/RowMenu
 import { ChatView } from '@/components/assistant/ChatView'
 
 /**
- * The assistant from anywhere: a floating button with a badge for runs in
- * flight, opening a drawer with every chat of the profile.
+ * The assistant from anywhere: a drawer with every chat of the profile, opened
+ * by the button in the title bar (`AssistantButton`), which carries a badge
+ * for runs in flight.
  *
  * The card's panel shows one work's chats; this is the other half of the
  * promise that a run belongs to its chat — wherever you are, what is running
@@ -113,36 +113,14 @@ export function AssistantLauncher({ children }: { children?: React.ReactNode }) 
       open: (chatId?: string) => {
         setOpen({ chatId: chatId ?? null })
       },
+      running,
     }),
-    [],
+    [running],
   )
 
   return (
     <AssistantContext value={assistant}>
       {children}
-
-      <button
-        type="button"
-        aria-label={running > 0 ? t('assistant.openBusy') : t('assistant.open')}
-        title={running > 0 ? t('assistant.openBusy') : t('assistant.open')}
-        onClick={() => {
-          setOpen({ chatId: null })
-        }}
-        className={cn(
-          'fixed bottom-5 right-5 z-40 flex size-11 cursor-pointer items-center justify-center rounded-full',
-          'border border-line bg-raise text-dim shadow-raise transition-colors hover:text-text',
-        )}
-      >
-        <MessageSquare aria-hidden className="size-5" />
-        {running > 0 && (
-          <span
-            aria-hidden
-            className="absolute -right-0.5 -top-0.5 flex size-4.5 animate-pulse items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-on-accent"
-          >
-            {running}
-          </span>
-        )}
-      </button>
 
       {open !== null && (
         <Drawer
@@ -421,5 +399,43 @@ function Drawer({
       />
       </DrawerPopup>
     </DrawerRoot>
+  )
+}
+
+/**
+ * The button that opens the drawer, in the title bar beside the bell.
+ *
+ * It floated over the bottom right corner of the window until v0.75.2. Once
+ * every screen reached the bottom edge instead of scrolling past it, that
+ * corner was where the footers are - the score's Record button sat under it.
+ * The title bar is the one strip that is the same on every screen, and a
+ * control that belongs to no screen belongs there.
+ */
+export function AssistantButton() {
+  const { t } = useTranslation()
+  const { open, running } = useAssistant()
+  const label = running > 0 ? t('assistant.openBusy') : t('assistant.open')
+
+  return (
+    <Button
+      variant="icon"
+      size="icon-sm"
+      className="relative"
+      aria-label={label}
+      title={label}
+      onClick={() => {
+        open()
+      }}
+    >
+      <MessageSquare aria-hidden />
+      {running > 0 && (
+        <span
+          aria-hidden
+          className="absolute -right-0.5 -top-0.5 flex size-3.5 animate-pulse items-center justify-center rounded-full bg-accent text-[9px] font-semibold text-on-accent"
+        >
+          {running}
+        </span>
+      )}
+    </Button>
   )
 }

@@ -4,8 +4,8 @@ description: How the AI panel works in kilna — it runs through your own Claude
 ---
 
 kilna has a panel on a work's card that talks to an assistant about that work,
-and a floating button in the corner of every screen that opens the same
-conversations from anywhere. It does not carry a model of its own: it runs the
+and a button in the title bar that opens the same conversations from any
+screen. It does not carry a model of its own: it runs the
 **Claude Code** CLI you have installed, under your own subscription and your
 own session. If you have not installed it, the panel says so and everything
 else in kilna carries on working.
@@ -243,8 +243,8 @@ your data; this button is you doing it.
 
 ## From anywhere
 
-The floating button in the bottom corner carries a badge while runs are in
-flight, and opens a drawer with every chat of the profile — the ones about
+The assistant's button in the title bar, beside the bell, carries a badge
+while runs are in flight, and opens a drawer with every chat of the profile — the ones about
 works and the ones about nothing in particular. **New chat** there starts a
 conversation that belongs to no work; a chat about a work links back to its
 card. Ask something, close the drawer, keep working: the badge says when the

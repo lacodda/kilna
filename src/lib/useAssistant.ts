@@ -13,10 +13,12 @@ import { createContext, useContext } from 'react'
 export interface Assistant {
   /** Open the drawer, on `chatId` when one is named. */
   open: (chatId?: string) => void
+  /** How many runs are in flight, for the badge on the button that opens it. */
+  running: number
 }
 
 export const AssistantContext = createContext<Assistant | null>(null)
 
 export function useAssistant(): Assistant {
-  return useContext(AssistantContext) ?? { open: () => undefined }
+  return useContext(AssistantContext) ?? { open: () => undefined, running: 0 }
 }

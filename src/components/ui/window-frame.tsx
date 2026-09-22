@@ -104,7 +104,7 @@ export function WindowButtons({ labels, className }: WindowButtonsProps) {
           title={labels[name]}
           onClick={() => void act()}
           className={cn(
-            'flex h-full w-[46px] cursor-default items-center justify-center text-dim transition-colors',
+            'flex h-full w-window-button cursor-default items-center justify-center text-dim transition-colors',
             'hover:bg-soft hover:text-text',
             // The close button is the one that must not be mistaken for its
             // neighbours: it goes red under the pointer, as on every desktop.
@@ -188,8 +188,13 @@ const RESIZE_HANDLES: readonly ResizeDirection[] = [
   'SouthWest',
 ]
 
-const EDGE = 5
-const CORNER = 10
+/* The width of a strip and of a corner, as the theme states them. Read off
+ * the tokens rather than written here: a window's chrome is shared with the
+ * products that draw the rest of their own frame, and two numbers for one
+ * edge is how the title bar ended up 40px in one product and 2.4rem in the
+ * next. */
+const EDGE = 'var(--spacing-resize-edge)'
+const CORNER = 'var(--spacing-resize-corner)'
 
 /** Where each strip sits and which cursor it shows. Inline styles rather than
  * classes: eight positions of a few pixels each are geometry, not design. */

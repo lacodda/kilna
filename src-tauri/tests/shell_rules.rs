@@ -73,30 +73,72 @@ fn the_screen_area_clips_and_hands_its_height_down() {
 }
 
 /// Every screen scrolls within the window rather than past it.
+///
+/// The `Screen` is dowel's since v0.75.2 (`ui/app-shell.tsx`, a registry
+/// copy): the rule is checked where the classes are, and the app is checked
+/// for routing its screens through that copy rather than a wrapper of its own.
 #[test]
 fn a_flowing_screen_scrolls_itself_and_reserves_its_gutter() {
     let app = read("src/App.tsx");
-    let screen = app
-        .split("function Screen(")
-        .nth(1)
-        .expect("the Screen wrapper is gone from App.tsx");
-    let body = screen.split("\n}").next().expect("unterminated Screen");
+    assert!(
+        app.contains("from '@/components/ui/app-shell'") && app.contains("<Screen"),
+        "App.tsx no longer draws its screens through the shell's `Screen`"
+    );
+
+    let shell = read("src/components/ui/app-shell.tsx");
+    let variant = |name: &str| -> String {
+        shell
+            .split(&format!("{name}: '"))
+            .nth(1)
+            .and_then(|rest| rest.split('\'').next())
+            .unwrap_or_else(|| panic!("the `{name}` scroll variant is gone from app-shell.tsx"))
+            .to_owned()
+    };
+    let flow = variant("flow");
+    let held = variant("held");
 
     assert!(
-        body.contains("overflow-y-auto"),
+        flow.contains("overflow-y-auto"),
         "a flowing screen no longer scrolls; its content will be cut off at the window's edge"
     );
     assert!(
-        body.contains("overflow-x-hidden"),
+        flow.contains("overflow-x-hidden"),
         "a flowing screen lost `overflow-x-hidden`; `overflow-y-auto` alone leaves the sideways axis scrollable"
     );
     assert!(
-        body.contains("scrollbar-gutter:stable"),
+        flow.contains("scrollbar-gutter:stable"),
         "a flowing screen lost its stable gutter; every navigation will shift sideways as the scrollbar appears"
     );
     assert!(
-        body.contains("overflow-hidden"),
+        held.contains("overflow-hidden"),
         "a held screen no longer clips; it is the one that lays out against the window's height"
+    );
+}
+
+/// The open work is a held screen whose header stands still.
+///
+/// The card used to be one page that scrolled, with a sticky header over it;
+/// since v0.75.2 the header stands and the open tab scrolls inside the rest.
+/// Either half coming back undoes that: a flowing card screen scrolls the
+/// header away again, and a `sticky` header is the sign someone wrote the
+/// old shape back in.
+#[test]
+fn the_work_card_holds_its_height_and_its_header_stands() {
+    let app = read("src/App.tsx");
+    let works = app
+        .split("function WorksScreen(")
+        .nth(1)
+        .expect("the works screen is gone from App.tsx");
+    let works = works.split("\n}").next().expect("unterminated WorksScreen");
+    assert!(
+        works.contains("<Screen scroll=\"held\">"),
+        "the open work is no longer a held screen; the whole card will scroll, header and all"
+    );
+
+    let header = read("src/components/card/CardHeader.tsx");
+    assert!(
+        !header.contains("sticky"),
+        "the card header is sticky again; it stands still, and the tab under it scrolls"
     );
 }
 

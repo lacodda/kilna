@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, FileText, Plus, Search, X } from 'lucide-react'
+import { Check, FileText, PanelLeftClose, PanelLeftOpen, Plus, Search, X } from 'lucide-react'
 import {
   dismissProposal,
   getWork,
@@ -20,6 +20,7 @@ import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { CommandPalette } from '@/components/CommandPalette'
+import { AssistantButton } from '@/components/assistant/AssistantDrawer'
 import { sentence, when } from '@/components/JournalFeed'
 import { NewWorkDialog } from '@/components/shell/NewWorkDialog'
 import { Mark } from '@/components/shell/Mark'
@@ -28,6 +29,10 @@ import { cn } from '@/lib/utils'
 
 interface Props {
   works: number
+  /** Whether the main menu is folded to icons: the handle says which way it
+   *  will go. */
+  compact: boolean
+  onToggleRail: () => void
 }
 
 // Maps the first path segment to the nav key that names the screen.
@@ -98,15 +103,46 @@ function Breadcrumbs() {
   )
 }
 
-/** The mark and the name, where a system title bar would print them. */
+/** The mark and the name, where a system title bar would print them.
+ *
+ * On a narrow window the name and the version go and the mark stays: the
+ * trail beside it is what says where you are, and it needs the room more. */
 function Brand() {
   const { t } = useTranslation()
   return (
-    <div className="flex shrink-0 items-center gap-2 pr-3">
+    <div className="flex shrink-0 items-center gap-2 pr-3 max-[900px]:pr-1">
       <Mark className="size-[18px]" />
-      <b className="text-[13px] font-semibold tracking-[0.02em]">{t('app.name')}</b>
-      <small className="font-mono text-[10px] text-faint">{__APP_VERSION__}</small>
+      <b className="text-[13px] font-semibold tracking-[0.02em] max-[900px]:hidden">
+        {t('app.name')}
+      </b>
+      <small className="font-mono text-[10px] text-faint max-[900px]:hidden">
+        {__APP_VERSION__}
+      </small>
     </div>
+  )
+}
+
+/**
+ * The handle that folds the main menu to icons and back.
+ *
+ * In the title bar rather than at the foot of the menu: it sits above the
+ * rail it changes, where the menu button of every desktop application is,
+ * and it stays in the same place whichever width the rail has. */
+function RailHandle({ compact, onToggle }: { compact: boolean; onToggle: () => void }) {
+  const { t } = useTranslation()
+  const label = t(compact ? 'shell.expandMenu' : 'shell.collapseMenu')
+  const Icon = compact ? PanelLeftOpen : PanelLeftClose
+  return (
+    <Button
+      variant="icon"
+      size="icon-sm"
+      title={label}
+      aria-label={label}
+      aria-expanded={!compact}
+      onClick={onToggle}
+    >
+      <Icon aria-hidden />
+    </Button>
   )
 }
 
@@ -379,12 +415,12 @@ function NewWork({ onCreated }: { onCreated: (workId: string) => void }) {
  * The window's title bar, and the application's.
  *
  * There is one bar rather than a system one over an application one: the
- * mark, the trail, the search in the middle, the count, the New button and
- * the bell, then the window's own buttons - the strip scheda draws, with this
+ * menu handle, the mark, the trail, the search in the middle, the count, the
+ * New button, the assistant and the bell, then the window's own buttons - the strip scheda draws, with this
  * application's things in it. Everything not a control is a handle to drag
  * the window by.
  */
-export function Titlebar({ works }: Props) {
+export function Titlebar({ works, compact, onToggleRail }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searching, setSearching] = useState(false)
@@ -408,7 +444,8 @@ export function Titlebar({ works }: Props) {
       className="grid h-full grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)_minmax(0,1fr)] items-center border-b border-line bg-bg"
       {...gestures}
     >
-      <div className="flex min-w-0 items-center gap-2 pl-3">
+      <div className="flex min-w-0 items-center gap-2 pl-2">
+        <RailHandle compact={compact} onToggle={onToggleRail} />
         <Brand />
         <Breadcrumbs />
       </div>
@@ -426,10 +463,11 @@ export function Titlebar({ works }: Props) {
       </button>
 
       <div className="flex h-full min-w-0 items-center justify-end gap-2">
-        <p className="hidden text-xs whitespace-nowrap text-faint lg:block">
+        <p className="text-xs whitespace-nowrap text-faint max-[900px]:hidden">
           {t('status.works')} {works}
         </p>
         <NewWork onCreated={(workId) => navigate(`/works/${workId}`)} />
+        <AssistantButton />
         <Unread />
         <span aria-hidden className="ml-1 h-4 w-px bg-line" />
         <WindowButtons

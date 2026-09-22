@@ -4,9 +4,8 @@
  * The theme is dowel's - the token vocabulary of the lacodda line, in dark and
  * light, with the accent worked out from one colour. kilna used to carry its
  * own copy of it; the copy is gone, and what is left in this file is what
- * belongs to this application rather than to the line: the window, the
- * scrollbars WebView2 would otherwise draw in Windows chrome, and the screen
- * transition.
+ * belongs to this application rather than to the line: the window and the
+ * screen transition. The scrollbars are the line's, from the theme.
  *
  * The accent file states the product's colour. Everything follows from it -
  * the hover shade, the soft fill, the focus ring, the trace of magenta in the
@@ -134,47 +133,6 @@ textarea,
 
 .screen-in {
   animation: screen-in 160ms ease-out;
-}
-
-/* Scrollbars.
- *
- * WebView2 draws the full-width Windows scrollbar by default, complete with
- * step arrows — on a tab strip that only occasionally overflows, that reads as
- * a control someone put there on purpose. These are the app's own: thin, in the
- * palette, and drawn only where something actually scrolls. */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-2) transparent;
-}
-
-*::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background: var(--line-2);
-  background-clip: content-box;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--dim);
-  background-clip: content-box;
-}
-
-/* The corner where two bars meet, and the stepper arrows Windows adds. */
-*::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-button {
-  display: none;
 }
 
 /*

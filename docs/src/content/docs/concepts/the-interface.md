@@ -7,6 +7,13 @@ kilna's window is a frame around one working surface. The frame does not
 change as you move: the title bar across the top, a sidebar on the left, and
 the current screen filling the rest.
 
+**The window itself never scrolls.** Each screen is handed the height that is
+left and stops at the bottom edge; what is longer than that scrolls inside its
+own box — the catalogue's table, the calendar's queue, the text of a version —
+and the frame around it stays put. A desktop window has a bottom edge, and a
+page that runs past it the way a web page does hides the fact that there is
+more.
+
 The window opens on a splash — the mark, the name, the version — for the
 moment it takes to open the workspace, and it comes back the size and place
 it was closed at: maximised if it was maximised, 1200×1200 if it was that.
@@ -23,13 +30,20 @@ There is one list of works, not two. Until v0.21 a Works screen carried a
 second list beside the open card; it said the same things as the catalogue
 and made you choose which to look in.
 
-Some entries are doors that are not built yet — Dashboard, Collections,
-Notes. They sit in the sidebar with a small version chip naming the
+Some entries are doors that are not built yet — Collections and Notes. They
+sit in the sidebar with a small version chip naming the
 release that delivers them, so the map of what is coming lives in the app
 itself rather than in a changelog.
 
 The footer holds the theme switch, the language switch, the profile picker,
-and Settings. Settings is sections under their own addresses — General, The
+and Settings.
+
+**The sidebar folds to icons.** The handle at the left end of the title bar
+switches it between the full menu (216px) and a column of icons (52px): the
+words, the version chips and the profile picker go, the *Library* caption
+becomes a thin rule, and each icon names its screen on hover. The choice is
+kept on this machine rather than in the profile — how much room the menu takes
+is a habit of the person at this screen, not a fact of the craft. Settings is sections under their own addresses — General, The
 work card, Profile, Data, Agents — and *The work card* is where you choose
 which tab a work opens on: Overview by default, Versions or Score if that is
 where you live.
@@ -37,10 +51,13 @@ where you live.
 ## The title bar
 
 There is one bar rather than a system one over an application one, as in
-scheda. From left to right: the mark and the version, where you are (the
-screen, or *Catalogue › the work*), the **search box** in the middle, the
-count of works, the **New** button, the **bell**, and the window's own
-buttons. Everything that is not a control drags the window; a double-click
+scheda. From left to right: the menu handle, the mark and the version, where
+you are (the screen, or *Catalogue › the work*), the **search box** in the
+middle, the count of works, the **New** button, the **assistant**, the
+**bell**, and the window's own buttons. The screens do not repeat their own
+name under it: the trail already says where you are. On a narrow window the
+name and version beside the mark and the count of works step aside and the
+trail shortens; the window's buttons never leave. Everything that is not a control drags the window; a double-click
 maximises it.
 
 **New** adds a work: with one kind of work in the profile it asks for a title
@@ -103,7 +120,9 @@ can point at a tab directly.
 
 ## A work's card
 
-Opening a work gives you a card with a cover, a bar and seven tabs.
+Opening a work gives you a card with a cover, a header and its tabs —
+Overview, Versions, Scenes, Cut, Score, Releases, Files, Links, Notes,
+Assistant, History; Scenes and Cut only where the work has them.
 
 **The cover** is a gradient derived from the work's id. It is not decoration
 you chose; it is there so one card is distinguishable from another before you
@@ -111,9 +130,10 @@ have read a word, and it stays the same for as long as the work exists. Real
 covers replace it later. The way back to the catalogue sits on it — the one
 part of the card carrying nothing else.
 
-**The bar sticks.** The cover scrolls away, but the work's name, its status,
-its tier and score, the profile's own fields, and the tabs stay at the top —
-a long version otherwise leaves you reading with no idea whose words they are.
+**The header stands still.** The cover, the work's name, its status, its tier
+and score, the profile's own fields and the tabs stay where they are, and the
+open tab takes the rest of the window and scrolls inside itself — a long
+version otherwise leaves you reading with no idea whose words they are.
 The name comes first and the craft's numbers under it: BPM and key are
 reference you consult, not what you identify the card by. The fields there are
 read-only, and long ones are cut short with the whole value a hover away — you
@@ -149,8 +169,9 @@ a vocabulary converges instead of scattering into near-misses. Neither moves
 the work: the status above is worked out from what happened, and these are
 what only you know.
 
-**The menu at the end of the row** copies a link to the card and makes a
-work of another kind from this one — a video from a song.
+**The menu at the end of the row** copies a link to the card, makes a work
+of another kind from this one — a video from a song — and deletes the work,
+which goes to the [trash](/kilna/guides/the-trash/) with an undo.
 
 **A review sits beside what it reviews.** If your profile has a role that
 comments on another — Music ships two, a read against the axes and a critique

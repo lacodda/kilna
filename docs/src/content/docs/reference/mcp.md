@@ -70,9 +70,9 @@ write by hand, so undo takes each back on its own.
 
 Each proposal leaves a line in the [history](/kilna/guides/the-history/) —
 *Claude Code proposed a version for "Harbour lights"*, *Claude Code
-proposed a new work, "Winter road"* — so the bell in the corner counts it,
-and the chat it went into is one click away from any screen through the
-assistant's floating button.
+proposed a new work, "Winter road"* — so the bell in the title bar counts
+it, and the chat it went into is one click away from any screen through the
+assistant's button beside it.
 
 This is the rule the assistant panel has followed since v0.28, applied to an
 assistant outside the window: it proposes, you apply. See
@@ -113,7 +113,7 @@ A new song, whole:
                    after you; one click creates it with everything in it."
 ```
 
-In kilna: the assistant's floating button opens the chat *Claude Code*
+In kilna: the assistant's button in the title bar opens the chat *Claude Code*
 with the whole package rendered — the lyrics in a monospace block, the
 style prompt, the premise, the marks — and **Create the work** under it.
 One click, and the song is on the catalogue with its lyrics current, its
