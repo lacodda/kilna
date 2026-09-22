@@ -1357,6 +1357,7 @@ export type DeletedEntity =
   | 'note'
   | 'collection'
   | 'scene'
+  | 'cut'
 
 export interface Deletion {
   id: string

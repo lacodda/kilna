@@ -37,9 +37,27 @@ const REFRESHED = [
   keys.deletions,
 ] as const
 
-/** The word for what an entry used to be. */
+/**
+ * The word for what an entry used to be, one key per kind.
+ *
+ * A table rather than a key built from the kind: a kind added in the backend
+ * showed as `trash.entity.cut` for as long as nobody noticed, because a key
+ * spelled out at run time is invisible both to the compiler and to the locale
+ * check. Written out, a new kind is a type error here until it has a word.
+ */
+const ENTITY_KEYS: Record<DeletedEntity, string> = {
+  work: 'trash.entity.work',
+  version: 'trash.entity.version',
+  score: 'trash.entity.score',
+  release: 'trash.entity.release',
+  note: 'trash.entity.note',
+  collection: 'trash.entity.collection',
+  scene: 'trash.entity.scene',
+  cut: 'trash.entity.cut',
+}
+
 function entityLabel(entity: DeletedEntity, t: (key: string) => string): string {
-  return t(`trash.entity.${entity}`)
+  return t(ENTITY_KEYS[entity])
 }
 
 function Row({
@@ -170,7 +188,6 @@ export function TrashView() {
   return (
     <div className="flex flex-col gap-3">
       <header className="flex items-center gap-3">
-        <h2 className="text-sm font-semibold">{t('trash.title')}</h2>
         <p className="text-xs text-dim">{t('trash.hint')}</p>
         <Button
           variant="danger"

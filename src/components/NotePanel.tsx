@@ -68,8 +68,6 @@ export function NotePanel({ workId }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold">{t('notes.title')}</h3>
-
       {notes.isPending && <Skeleton className="h-16 w-full" />}
 
       {notes.isError && (

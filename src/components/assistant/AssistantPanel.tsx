@@ -127,7 +127,6 @@ export function AssistantPanel({ workId }: Props) {
   if (status.data != null && !status.data.available) {
     return (
       <section className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold">{t('assistant.title')}</h3>
         <p className="rounded-xl border border-dashed border-line p-4 text-sm text-dim">
           {status.data.reason ?? t('assistant.unavailable')}
         </p>
@@ -140,7 +139,6 @@ export function AssistantPanel({ workId }: Props) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
-        <h3 className="text-sm font-semibold">{t('assistant.title')}</h3>
         {status.data?.version != null && (
           <span className="text-xs text-dim">{status.data.version}</span>
         )}

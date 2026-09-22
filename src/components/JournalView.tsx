@@ -49,7 +49,6 @@ export function JournalView() {
   return (
     <div className="flex flex-col gap-3">
       <header className="flex items-center gap-3">
-        <h2 className="text-sm font-semibold">{t('journal.title')}</h2>
         <p className="text-xs text-dim">{t('journal.hint')}</p>
 
         <div className="ml-auto flex items-center gap-1.5">

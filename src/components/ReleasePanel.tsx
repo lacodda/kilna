@@ -186,8 +186,6 @@ export function ReleasePanel({ workId, workTitle }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold">{t('releases.title')}</h3>
-
       {releases.isError && (
         <p role="alert" className="text-sm text-bad">
           {t('toast.loadFailed')}

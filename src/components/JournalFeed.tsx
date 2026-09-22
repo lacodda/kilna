@@ -184,8 +184,6 @@ export function WorkHistory({ workId }: { workId: string }) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold">{t('journal.title')}</h3>
-
       {entries.isPending && <SkeletonList rows={3} />}
 
       {entries.isError && (
