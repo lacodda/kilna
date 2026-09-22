@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.75.3] - 2026-09-22
+
+### Bug Fixes
+- Raise the minimum Rust to 1.87
+
 ## [0.75.2] - 2026-09-22
 
 ### Bug Fixes
