@@ -6,7 +6,7 @@ authors = ["Kirill Lakhtachev <lahtachev@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/lacodda/kilna"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.87"
 # Presentation rasters are for the README and the release page, not for anyone
 # building from the crate. icon.ico stays: build.rs needs it on Windows.
 exclude = [

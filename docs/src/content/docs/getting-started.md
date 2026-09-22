@@ -12,7 +12,7 @@ and macOS will warn you about an unidentified developer.
 
 ## Build from source
 
-You need Rust (1.85 or newer), Node 22+ and pnpm.
+You need Rust (1.87 or newer), Node 22+ and pnpm.
 
 ```sh
 git clone https://github.com/lacodda/kilna.git

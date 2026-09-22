@@ -2,7 +2,7 @@
 
 ## Development
 
-Requires Rust (1.85 or newer), Node 22+ and pnpm.
+Requires Rust (1.87 or newer), Node 22+ and pnpm.
 
 ```sh
 pnpm install
