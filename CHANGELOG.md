@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.75.2] - 2026-09-22
+
+### Bug Fixes
+- Name each screen once, and give every trashed kind a word
+
+### Features
+- Stand on dowel's frame, and fold the menu to icons
+- A header that stands, and two columns for versions and scores
+
 ## [0.75.1] - 2026-09-20
 
 ### Features
