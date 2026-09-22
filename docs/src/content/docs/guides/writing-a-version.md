@@ -165,8 +165,13 @@ end. Reading through six revisions is six presses rather than six aimed
 clicks. A comparison with the previous revision follows the step — each
 revision against its own predecessor in turn — while a comparison with a
 version you picked by hand stays pointed at it, so an original can be kept
-beside a history being walked. Above the text the list shows three rows and
-scrolls; beside it, on a wide window, it has the column's height.
+beside a history being walked.
+
+The tab is two columns, each scrolling on its own: the list of revisions on
+the left, the open one on the right. Scrolling back through twenty revisions
+does not move the text you are reading, and reading to the end of a long text
+does not take the list away. **New version** sits at the foot of the list,
+where the next row will appear.
 
 ## Roles
 
@@ -174,4 +179,6 @@ A work's versions are grouped by **role**, and the roles come from your
 [profile](/kilna/concepts/profiles/): a song has `lyrics` and `style`, a chapter
 has `text`, `outline` and `notes`. Roles advance independently — lyrics v4 has
 nothing to do with style v2 — so the tab shows one role at a time rather than
-interleaving them.
+interleaving them. The roles are chips at the top of the list, each with how
+many versions it holds; a role written *about* another — a review, a critique —
+is not among them, because it opens beside the revision it discusses.

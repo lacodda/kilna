@@ -31,17 +31,25 @@ interface Props {
   scenes?: number
   /** Undefined for a work that was not cut out of anything: no Cut tab. */
   cuts?: number
+  /** Deleting the work, from the header's menu. */
+  onDelete: () => void
 }
 
 /**
- * The top of a work's card: what this is, at a glance, wherever you have
- * scrolled to.
+ * The top of a work's card: what this is, at a glance, and the way between
+ * its tabs.
+ *
+ * It stands still (the owner's call, 20.09). Until v0.75.2 the cover scrolled
+ * away and the rest stuck to the top of a card that scrolled as one page;
+ * now nothing here moves, and the open tab under it takes the rest of the
+ * window and scrolls inside itself. The cover is a band rather than a banner
+ * for the same reason: every pixel it takes, it takes from every tab.
  *
  * The cover is a gradient derived from the work's id (see `lib/cover`) until
  * real covers arrive; it is what makes one card distinguishable from another
  * before a single word is read.
  */
-export function CardHeader({ work, releases, links = 0, scenes, cuts }: Props) {
+export function CardHeader({ work, releases, links = 0, scenes, cuts, onDelete }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const vocabulary = vocabularyOf(profile.config, work.kind)
@@ -64,84 +72,60 @@ export function CardHeader({ work, releases, links = 0, scenes, cuts }: Props) {
   const latest = score.data ?? null
   const status = vocabulary.statuses.find((s) => s.key === work.status)
 
-  // Two siblings rather than one header, because a sticky element can never
-  // leave its own parent's box: wrapped together, the bar would unstick the
-  // moment the (short) header scrolled past, which is exactly when it is needed.
-  // As siblings of the tab body, both are bounded by the whole scrolling column.
   return (
-    <>
-      {/* The cover. It scrolls away: it is what tells one card from another at a
-          glance, not something to navigate by. The way back sits on it because
-          that is the one place on the card that carries nothing else — and on a
-          narrow window the list beside it is gone, leaving the browser's back
-          button as the only way out. */}
-      {/* The gap above the card belongs to the COVER, not to the screen.
-
-          The screen wrapper deliberately has no top padding: the header below
-          is sticky, and padding there is a strip the scrolled text shows
-          through above it. But with nothing at all the cover met the title bar
-          flush, which is what the pilot photographed. A margin here is on the
-          part that scrolls AWAY, so it opens the card at rest and leaves
-          nothing behind for the text to appear in. */}
-      <div className="mt-4 rounded-t-[18px] border border-b-0 border-line">
-        <div
-          className="relative h-[118px] rounded-t-[17px]"
-          style={{ background: coverImageFor(work.id, cover) }}
+    <header className="shrink-0 overflow-hidden rounded-t-xl border border-b-0 border-line bg-raise">
+      {/* The cover: what tells one card from another at a glance, before a
+          word is read. The way back sits on it because that is the one place
+          on the card that carries nothing else. */}
+      <div className="relative h-16" style={{ background: coverImageFor(work.id, cover) }}>
+        <Link
+          to="/catalogue"
+          className="absolute left-3 top-2.5 inline-flex items-center gap-1.5 rounded-md bg-black/35 px-2.5 py-1 text-xs text-white/90 backdrop-blur-sm transition-colors hover:bg-black/50 hover:text-white/100"
         >
-          <Link
-            to="/catalogue"
-            className="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-md bg-black/35 px-2.5 py-1 text-[13px] text-white/90 backdrop-blur-sm transition-colors hover:bg-black/50 hover:text-white/100"
-          >
-            <ArrowLeft aria-hidden className="size-3.5" />
-            {t('nav.catalogue')}
-          </Link>
-        </div>
+          <ArrowLeft aria-hidden className="size-3.5" />
+          {t('nav.catalogue')}
+        </Link>
       </div>
 
-      {/* What stays: whose card this is, where it stands, and the way between
-          tabs. A long version otherwise leaves you reading with no idea whose
-          words they are. `top-0` is relative to the scrolling screen area. */}
-      <header className="sticky -top-px z-20 overflow-hidden rounded-b-[18px] border border-t-0 border-line bg-raise">
-        {/* Name first, then what it is, then the craft's own numbers — the
-            order of the mockup, and the order someone reads in: the title says
-            whose card this is, the badges where it stands, and BPM/Key are
-            reference you consult rather than identify by. They sat above the
-            title until v0.20, which read as though the numbers were the
-            heading. Read-only here; they are edited on the Overview tab, and a
-            header that can be typed into shifts under the cursor as it saves. */}
-        <div className="px-[18px] pt-3 pb-2.5">
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-            <Title work={work} />
+      {/* Name first, then what it is, then the craft's own numbers — the
+          order of the mockup, and the order someone reads in: the title says
+          whose card this is, the badges where it stands, and BPM/Key are
+          reference you consult rather than identify by. They sat above the
+          title until v0.20, which read as though the numbers were the
+          heading. Read-only here; they are edited on the Overview tab, and a
+          header that can be typed into shifts under the cursor as it saves. */}
+      <div className="px-4 pt-2.5 pb-2">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+          <Title work={work} />
 
-            <Badge>{labelOf(profile.config.work_kinds, work.kind)}</Badge>
-            <Badge variant={badgeVariantOf(status?.colour)}>
-              {status === undefined ? work.status : sayLabel(status.label)}
+          <Badge>{labelOf(profile.config.work_kinds, work.kind)}</Badge>
+          <Badge variant={badgeVariantOf(status?.colour)}>
+            {status === undefined ? work.status : sayLabel(status.label)}
+          </Badge>
+
+          {latest !== null && (
+            <Badge variant="soft">
+              {latest.tier !== null && `${labelOf(vocabulary.tiers, latest.tier)} · `}
+              <span className="font-mono tabular-nums">{Math.round(latest.total * 10) / 10}</span>
             </Badge>
+          )}
 
-            {latest !== null && (
-              <Badge variant="soft">
-                {latest.tier !== null && `${labelOf(vocabulary.tiers, latest.tier)} · `}
-                <span className="font-mono tabular-nums">{Math.round(latest.total * 10) / 10}</span>
-              </Badge>
-            )}
+          {collection !== undefined && <Badge>{collection.title}</Badge>}
 
-            {collection !== undefined && <Badge>{collection.title}</Badge>}
-
-            {/* Pushed to the end of the row: the actions are what you reach
-                for, not what tells you whose card this is. */}
-            <span className="ml-auto">
-              <HeaderActions work={work} />
-            </span>
-          </div>
-
-          <TagBar work={work} />
-
-          <MetaStrip work={work} />
+          {/* Pushed to the end of the row: the actions are what you reach
+              for, not what tells you whose card this is. */}
+          <span className="ml-auto">
+            <HeaderActions work={work} onDelete={onDelete} />
+          </span>
         </div>
 
-        <TabBar workId={work.id} releases={releases} links={links} scenes={scenes} cuts={cuts} />
-      </header>
-    </>
+        <TagBar work={work} />
+
+        <MetaStrip work={work} />
+      </div>
+
+      <TabBar workId={work.id} releases={releases} links={links} scenes={scenes} cuts={cuts} />
+    </header>
   )
 }
 
@@ -149,8 +133,8 @@ export function CardHeader({ work, releases, links = 0, scenes, cuts }: Props) {
  * The name, and the three things done to it: rename in place, copy it, copy
  * the id — with the star beside them.
  *
- * Renaming turns the heading into a box of the same height, so the sticky
- * header does not move under the cursor: Enter saves, Escape cancels, and
+ * Renaming turns the heading into a box of the same height, so the header
+ * does not move under the cursor: Enter saves, Escape cancels, and
  * leaving the box saves what was typed — the same bargain as every field on
  * the Scenes tab. The dialog it replaces was one click and one dialog more
  * than a name deserves. The id is copied by clicking it: it is here to be
@@ -197,7 +181,7 @@ function Title({ work }: { work: Work }) {
   return (
     <span className="inline-flex min-w-0 items-center gap-1">
       {draft === null ? (
-        <h2 className="truncate text-[21px] font-[650] tracking-[-0.01em]">{work.title}</h2>
+        <h1 className="truncate text-[19px] font-[650] tracking-[-0.01em]">{work.title}</h1>
       ) : (
         <Input
           autoFocus
@@ -266,9 +250,14 @@ function Title({ work }: { work: Work }) {
 
 /**
  * What you can do to the work from its header, beyond the name's own row:
- * copy a link to the card, make another kind of work from this one.
+ * copy a link to the card, make another kind of work from this one, delete it.
+ *
+ * Delete lived in a footer under the open tab, which was the bottom of a card
+ * that scrolled as one page. The card no longer scrolls, and a button at the
+ * foot of whichever tab is open is a button that is somewhere else on every
+ * tab. The deletion is undoable from its toast, as it always was.
  */
-function HeaderActions({ work }: { work: Work }) {
+function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void }) {
   const { t } = useTranslation()
   const profile = useProfile()
   const client = useQueryClient()
@@ -317,6 +306,7 @@ function HeaderActions({ work }: { work: Work }) {
             label: t('links.makeFromThis', { kind: kind.label }),
             onSelect: () => derive.mutate(kind.key),
           })),
+        { key: 'delete', label: t('work.delete'), onSelect: onDelete, danger: true },
       ]}
     />
   )

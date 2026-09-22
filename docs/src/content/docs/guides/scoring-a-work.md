@@ -21,9 +21,17 @@ unjudged. The scale is also a keyboard control: Tab moves between axes, the
 arrow keys move a mark at a time, Home and End jump to either end, and
 Backspace clears the axis. Judging six axes never needs the mouse.
 
-A work that has been scored before opens with the recorded marks already on
-the scales — the verdict that stands, on the scales rather than only in the
-history underneath. **Save** stays off until you move a mark, so you cannot
+The tab has the same shape as Versions: the scores given so far on the left,
+newest first, each with the draft it judged, its date and tier, and what it
+did to the one before (`+5`); the open one on the right, its axes scrolling
+above a footer that holds the total, the tier, the trail of the last few
+totals (`78 → 86 → 91`) and **Record score**. Clicking a score in the list
+opens its marks; **New score** at the foot of the list starts from empty
+scales.
+
+A work that has been scored before opens with the newest recorded marks
+already on the scales — the verdict that stands, on the scales rather than
+only in the list. **Save** stays off until you move a mark, so you cannot
 record the same verdict twice by accident; move one and the scales are yours
 again. After a save the scales settle on the score you just gave.
 

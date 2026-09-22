@@ -30,7 +30,6 @@ import { MarkedText, MarkedTextarea } from '@/components/ui/marked-text'
 import { Markdown } from '@/components/ui/Markdown'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 import { SaveState } from '@/components/ui/SaveState'
-import { Select } from '@/components/ui/AppSelect'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { VersionEditor } from '@/components/versions/VersionEditor'
 import { ActionBar } from '@/components/assistant/ActionBar'
@@ -376,6 +375,7 @@ export function VersionPanel({ workId }: Props) {
           onPick: setComparedId,
         }}
         repeats
+        fill={level === 'inline' && fill}
         editing={editing}
         onEnter={enterText}
         onLevel={(next) => setStage(next === 'inline' ? null : { pane: 'text', level: next })}
@@ -414,6 +414,7 @@ export function VersionPanel({ workId }: Props) {
         body={comment.data?.body ?? null}
         reading={commentReading}
         onReading={setCommentReading}
+        fill={level === 'inline' && fill}
         editing={commentEditing}
         onEnter={() => {
           setCommentReading('edit')
@@ -434,54 +435,69 @@ export function VersionPanel({ workId }: Props) {
         ? document.body
         : (document.getElementById('main-area') ?? document.body)
 
-  return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <h3 className="text-sm font-semibold">{t('versions.title')}</h3>
-        {roles.length > 1 && (
-          <Select
-            className="w-40"
-            aria-label={t('versions.role')}
-            value={shownRole}
-            onChange={(next) => {
-              setRole(next)
-              // Picking a lane by hand ends the link's claim on the panel.
-              if (asked !== null) setParams({}, { replace: true })
-              // The selection and the comparison belonged to the role being left.
-              setSelectedId(null)
-              setComparedId(null)
-              setReading('view')
-            }}
-            options={roles
-              // Commentary is not a lane: it belongs beside what it comments
-              // on, and offering it here would show it stripped of that.
-              .filter((r) => r.comments_on === undefined)
-              .map((r) => ({ value: r.key, label: sayLabel(r.label) }))}
-          />
-        )}
-        <Button
-          className="ml-auto"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setDerivedFrom(null)
-            setComposing(true)
-          }}
-          title={t('versions.newHint')}
-        >
-          <Plus aria-hidden className="size-3.5" />
-          {t('versions.new')}
-        </Button>
-      </div>
+  // The lanes a person picks between. Commentary is not a lane: it belongs
+  // beside what it comments on, and offering it here would show it stripped
+  // of that.
+  const lanes = roles.filter((r) => r.comments_on === undefined)
+  const counts: Record<string, number> = {}
+  for (const version of versions.data ?? []) {
+    counts[version.role] = (counts[version.role] ?? 0) + 1
+  }
+  const pickLane = (next: string) => {
+    setRole(next)
+    // Picking a lane by hand ends the link's claim on the panel.
+    if (asked !== null) setParams({}, { replace: true })
+    // The selection and the comparison belonged to the role being left.
+    setSelectedId(null)
+    setComparedId(null)
+    setReading('view')
+  }
 
-      {/* The list only takes a column of its own once there is room for the
-          text beside it. Below that it sits above, full width, because a
-          comparison squeezed into 130px is two columns of hyphens. */}
-      <div className="grid gap-4 xl:grid-cols-[15rem_minmax(0,1fr)]">
-        {/* Above the text, the list is held to three rows and scrolls: a
-            history of twenty revisions would otherwise push the text a screen
-            down. Beside the text it has the column's height. */}
-        <div className="max-h-[10.5rem] overflow-y-auto xl:max-h-none">
+  // With the form open the right column is a page - the text above, the draft
+  // below - and scrolls as one. Without it the text is the whole column and
+  // scrolls inside its own frame, so the actions under it never move.
+  const fill = !showForm
+
+  return (
+    // Two columns, each with its own scroll: the list of revisions on the
+    // left, the open one on the right. Scrolling a history of twenty does not
+    // move the text being read, and reading to the end of a long text does
+    // not take the list away. The list is 262px at every window width, as in
+    // the mockup: a list stacked above the text on a narrow window was a
+    // second layout for the same tab.
+    <section className="grid min-h-0 flex-1 grid-cols-[262px_minmax(0,1fr)] gap-3">
+      <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-raise">
+        {/* The lanes as chips, with how many each holds. A craft ships four
+            of them (text, style, review, critique) and a two-way switch does
+            not stretch to four; with one lane there is nothing to pick, and
+            the caption says what the list is. */}
+        <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-line p-2">
+          {lanes.length > 1 ? (
+            lanes.map((lane) => (
+              <button
+                key={lane.key}
+                type="button"
+                aria-pressed={lane.key === shownRole}
+                onClick={() => pickLane(lane.key)}
+                className={cn(
+                  'inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-0.5 text-xs transition-colors',
+                  lane.key === shownRole
+                    ? 'bg-accent-soft font-semibold text-accent-2'
+                    : 'text-dim hover:bg-soft hover:text-text',
+                )}
+              >
+                {sayLabel(lane.label)}
+                <span className="font-mono text-[10px] opacity-75">{counts[lane.key] ?? 0}</span>
+              </button>
+            ))
+          ) : (
+            <span className="px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
+              {t('versions.title')} · {summaries.length}
+            </span>
+          )}
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
           <VersionList
             versions={summaries}
             loading={versions.isPending}
@@ -510,26 +526,58 @@ export function VersionPanel({ workId }: Props) {
           />
         </div>
 
-        <div className="flex min-w-0 flex-col gap-4">
-          {open.isPending && openId !== null && <Skeleton className="h-32 w-full" />}
+        {/* At the foot of the list it adds to, where the next row will
+            appear. */}
+        <div className="shrink-0 border-t border-line p-1.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-center"
+            onClick={() => {
+              setDerivedFrom(null)
+              setComposing(true)
+            }}
+            title={t('versions.newHint')}
+          >
+            <Plus aria-hidden className="size-3.5" />
+            {t('versions.new')}
+          </Button>
+        </div>
+      </div>
 
-          {/* The text and what was written about it, side by side. Reading a
-              review away from the lines it discusses is reading half of it —
-              which is exactly what the predecessor's two panels got right. The
-              split only happens when there is a review of this very revision
-              and room for both; below that the review sits underneath. */}
-          {open.data != null && (
-            <div className={cn('grid min-w-0 gap-4', comments.length > 0 && '2xl:grid-cols-2')}>
-              {stage?.pane === 'text' ? <StagePlaceholder /> : textPane('inline')}
-              {comments.length > 0 &&
-                (stage?.pane === 'comment' ? <StagePlaceholder /> : commentPane('inline'))}
-            </div>
-          )}
+      <div
+        className={cn(
+          'flex min-h-0 min-w-0 flex-col gap-3',
+          !fill && 'overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]',
+        )}
+      >
+        {open.isPending && openId !== null && <Skeleton className="h-32 w-full shrink-0" />}
 
-          {/* The profile's actions, on this very revision: a critique or a
-              score started here reads the text above and comes back bound to
-              it — the same buttons the overview has, with the version named. */}
-          {open.data != null && reading !== 'edit' && (
+        {/* The text and what was written about it, side by side. Reading a
+            review away from the lines it discusses is reading half of it —
+            which is exactly what the predecessor's two panels got right. The
+            split only happens when there is a review of this very revision
+            and room for both; below that the review sits underneath, and the
+            two share the column's height. */}
+        {open.data != null && (
+          <div
+            className={cn(
+              'grid min-w-0 gap-3',
+              fill && 'min-h-0 flex-1 auto-rows-[minmax(0,1fr)]',
+              comments.length > 0 && '2xl:grid-cols-2',
+            )}
+          >
+            {stage?.pane === 'text' ? <StagePlaceholder /> : textPane('inline')}
+            {comments.length > 0 &&
+              (stage?.pane === 'comment' ? <StagePlaceholder /> : commentPane('inline'))}
+          </div>
+        )}
+
+        {/* The profile's actions, on this very revision: a critique or a
+            score started here reads the text above and comes back bound to
+            it — the same buttons the overview has, with the version named. */}
+        {open.data != null && reading !== 'edit' && (
+          <div className="shrink-0">
             <ActionBar
               workId={workId}
               menu
@@ -539,33 +587,33 @@ export function VersionPanel({ workId }: Props) {
                   open.data.label ?? t('versions.revision', { number: open.data.revision }),
               })}
             />
-          )}
+          </div>
+        )}
 
-          {showForm && (
-            <VersionEditor
-              draft={draft}
-              onDraftChange={setDraft}
-              label={label}
-              onLabelChange={setLabel}
-              makeCurrent={makeCurrentOnSave}
-              onMakeCurrentChange={setMakeCurrentOnSave}
-              onSave={() => {
-                if (draft.trim() !== '') save.mutate()
-              }}
-              onCancel={
-                composing && summaries.length > 0
-                  ? () => {
-                      setComposing(false)
-                      setDerivedFrom(null)
-                    }
-                  : undefined
-              }
-              saving={save.isPending}
-              kept={draft.trim() !== ''}
-              markdown={formMarkdown}
-            />
-          )}
-        </div>
+        {showForm && (
+          <VersionEditor
+            draft={draft}
+            onDraftChange={setDraft}
+            label={label}
+            onLabelChange={setLabel}
+            makeCurrent={makeCurrentOnSave}
+            onMakeCurrentChange={setMakeCurrentOnSave}
+            onSave={() => {
+              if (draft.trim() !== '') save.mutate()
+            }}
+            onCancel={
+              composing && summaries.length > 0
+                ? () => {
+                    setComposing(false)
+                    setDerivedFrom(null)
+                  }
+                : undefined
+            }
+            saving={save.isPending}
+            kept={draft.trim() !== ''}
+            markdown={formMarkdown}
+          />
+        )}
       </div>
 
       {staged !== null && stageHost !== null && createPortal(staged, stageHost)}
@@ -600,6 +648,9 @@ interface PaneProps {
   }
   /** Whether repeated words are marked while editing. */
   repeats?: boolean
+  /** On the card, taking the whole height it is given and scrolling inside,
+   *  rather than capping itself at a reading height. */
+  fill?: boolean
   editing: ReturnType<typeof useBodyEditing>
   /** Clicking into the text: edit, on the whole content area. */
   onEnter: () => void
@@ -627,12 +678,16 @@ function BodyPane({
   onReading,
   compare,
   repeats = false,
+  fill = false,
   editing,
   onEnter,
   onLevel,
 }: PaneProps) {
   const { t } = useTranslation()
   const staged = level !== 'inline'
+  // Whether the frame is as tall as the box around it: always on stage, and on
+  // the card whenever the column is the text's alone.
+  const tall = staged || fill
 
   const modes: { mode: Reading; icon: typeof Eye; label: string }[] = [
     { mode: 'view', icon: Eye, label: t('versions.view') },
@@ -699,7 +754,7 @@ function BodyPane({
         aria-label={t('versions.edit')}
         marks={marks}
         lineMarks={addedLines}
-        className={cn('block w-full', metrics, staged ? 'min-h-full' : 'min-h-[28rem]')}
+        className={cn('block w-full', metrics, tall ? 'min-h-full' : 'min-h-[28rem]')}
       />
     ) : (
       // Reading. The whole body is the way in: clicking it is what starting
@@ -714,7 +769,7 @@ function BodyPane({
         }}
         className={cn(
           'cursor-text outline-none focus-visible:ring-2 focus-visible:ring-accent',
-          staged && 'min-h-full',
+          tall && 'min-h-full',
         )}
       >
         {markdown ? (
@@ -786,7 +841,7 @@ function BodyPane({
     <article
       className={cn(
         'flex min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-bg',
-        staged && 'h-full',
+        tall && 'h-full min-h-0',
       )}
     >
       <header className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 text-xs text-dim">
@@ -878,7 +933,7 @@ function BodyPane({
         className={cn(
           'grid min-h-0',
           against === null ? 'grid-cols-1' : 'grid-cols-2',
-          staged ? 'flex-1 overflow-auto' : 'max-h-[32rem] overflow-auto',
+          tall ? 'flex-1 overflow-auto' : 'max-h-[32rem] overflow-auto',
         )}
       >
         <div className="min-w-0">{content}</div>

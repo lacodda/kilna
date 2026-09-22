@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Trash2 } from 'lucide-react'
 import { deleteWork, getWork, listCuts, listLinks, listScenes, releasesForWork } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { noteDeleted, noteOpened } from '@/lib/recent'
@@ -10,7 +9,7 @@ import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { canBeCut } from '@/lib/cuts'
 import { hasScenes, useProfile } from '@/lib/useProfile'
-import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { CardHeader } from '@/components/card/CardHeader'
 import { FilesTab } from '@/components/card/FilesTab'
@@ -131,31 +130,43 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
 
   const current = work.data
 
-  // No gap on this column: the header's two halves have to meet, or the card is
-  // cut in two by a stripe of background. The body gets its own margin instead.
+  // The header stands and the open tab takes the rest. A tab in `HELD` lays
+  // its own columns out against that height and scrolls inside them; every
+  // other tab is a page that scrolls within the box. Either way the card
+  // itself never scrolls - which is what let the header stop being sticky.
+  const held = HELD.has(tab)
+
   return (
-    <div className="flex flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <CardHeader
         work={current}
         releases={releases.data?.length ?? 0}
         links={(links.data?.sources.length ?? 0) + (links.data?.derived.length ?? 0)}
         scenes={storyboard ? (scenes.data?.length ?? 0) : undefined}
         cuts={spliced ? (cuts.data?.length ?? 0) : undefined}
+        onDelete={() => remove.mutate()}
       />
 
-      <div className="mt-4">
+      <div
+        className={cn(
+          'flex min-h-0 flex-1 flex-col rounded-b-xl border border-line',
+          held
+            ? 'overflow-hidden p-3'
+            : 'overflow-x-hidden overflow-y-auto p-4 [scrollbar-gutter:stable]',
+        )}
+      >
         <TabBody tab={tab} workId={workId} work={current} />
       </div>
-
-      <footer className="mt-6 flex justify-end border-t border-line pt-4">
-        <Button variant="danger" disabled={remove.isPending} onClick={() => remove.mutate()}>
-          <Trash2 aria-hidden className="size-4" />
-          {t('work.delete')}
-        </Button>
-      </footer>
     </div>
   )
 }
+
+/**
+ * The tabs that are two columns, each scrolling on its own: a list on the
+ * left, what is picked from it on the right. Scrolling twenty revisions must
+ * not move the text being read, and the other way round.
+ */
+const HELD: ReadonlySet<Tab> = new Set<Tab>(['versions', 'score'])
 
 /** The one tab that is open. Everything else is not mounted at all. */
 function TabBody({
