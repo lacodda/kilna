@@ -25,6 +25,7 @@ const SCREEN_NAME: Readonly<Record<string, string>> = Object.freeze({
   '/catalogue': 'nav.catalogue',
   '/calendar': 'nav.calendar',
   '/journal': 'nav.journal',
+  '/notes': 'nav.notes',
   '/trash': 'nav.trash',
   '/settings': 'nav.data',
 })

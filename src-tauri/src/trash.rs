@@ -292,7 +292,7 @@ pub fn discard_minted(
 /// — can call it once per entity without nesting a transaction inside another,
 /// which rusqlite does not allow from a bare `&mut Connection`. The caller
 /// owns the transaction, the commit, and (when there is one) the operation.
-fn discard_in_tx(
+pub(crate) fn discard_in_tx(
     tx: &Transaction<'_>,
     entity: Entity,
     id: &str,
@@ -417,6 +417,18 @@ pub fn restore(
         crate::operation::record(&tx, logged)?;
     }
 
+    restore_in(&tx, deletion_id)?;
+    tx.commit()?;
+
+    Ok(())
+}
+
+/// The body of [`restore`], inside a transaction a caller already holds.
+///
+/// Split out for the reason [`discard_in_tx`] is: a gesture that brings one
+/// thing back while it throws another away — taking back a note promoted to a
+/// work — is one change, and must not commit halfway.
+pub(crate) fn restore_in(tx: &Transaction<'_>, deletion_id: &str) -> Result<()> {
     let (entity, entity_id, snapshot): (String, String, String) = tx
         .query_row(
             "SELECT entity, entity_id, snapshot FROM deletion WHERE id = ?1",
@@ -432,7 +444,7 @@ pub fn restore(
     // Refuse rather than resurrect an orphan: if the work a version belongs to
     // is itself in the trash, the version has nowhere to go, and inserting it
     // would fail on a foreign key half-way through anyway.
-    if let Some(missing) = missing_parent(&tx, entity, &snapshot)? {
+    if let Some(missing) = missing_parent(tx, entity, &snapshot)? {
         return Err(Error::NotRestorable(missing));
     }
 
@@ -454,10 +466,10 @@ pub fn restore(
             // still gone has nothing to point at, and inserting it would fail
             // on the foreign key; it stays out, as the cascade left it, and
             // comes back with the other work if that one is restored.
-            if capture.table == "work_link" && !link_has_both_sides(&tx, row)? {
+            if capture.table == "work_link" && !link_has_both_sides(tx, row)? {
                 continue;
             }
-            insert_row(&tx, capture.table, row)?;
+            insert_row(tx, capture.table, row)?;
         }
     }
 
@@ -477,7 +489,6 @@ pub fn restore(
     }
 
     tx.execute("DELETE FROM deletion WHERE id = ?1", params![deletion_id])?;
-    tx.commit()?;
 
     Ok(())
 }

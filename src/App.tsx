@@ -25,6 +25,7 @@ import { CalendarView } from '@/components/CalendarView'
 import { SettingsView } from '@/components/settings/SettingsView'
 import { JournalView } from '@/components/JournalView'
 import { StylesView } from '@/components/StylesView'
+import { NotesView } from '@/components/notes/NotesView'
 import { TrashView } from '@/components/TrashView'
 import { Styleguide } from '@/components/Styleguide'
 import { Panel } from '@/components/ui/panel'
@@ -214,6 +215,18 @@ function WorksScreen() {
                       element={
                         <Screen scroll="held">
                           <CalendarView onSelect={openWork} />
+                        </Screen>
+                      }
+                    />
+                    {/* Held like the catalogue: the list and the open note
+                        each scroll inside their own column, and the note's
+                        tags stay on the window's bottom edge. The open note
+                        is in the address, so back walks between notes. */}
+                    <Route
+                      path="/notes/:noteId?"
+                      element={
+                        <Screen scroll="held">
+                          <NotesView />
                         </Screen>
                       }
                     />

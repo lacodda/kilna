@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { X } from 'lucide-react'
-import { createNote, deleteNote, listNotes } from '@/lib/api'
+import { ArrowUpRight, X } from 'lucide-react'
+import { createNote, deleteNote, listNotes, updateNote } from '@/lib/api'
+import { toggleTask } from '@/lib/checklist'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
@@ -22,6 +24,7 @@ interface Props {
 
 export function NotePanel({ workId }: Props) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const client = useQueryClient()
   const [body, setBody] = useState('')
   const [tags, setTags] = useState('')
@@ -51,6 +54,14 @@ export function NotePanel({ workId }: Props) {
       setTags('')
       settle()
     },
+    onError: (cause) => say.failedTo(t('toast.noteSaveFailed'), cause),
+  })
+
+  // A box ticked here is the same edit as one ticked on the notes screen: the
+  // body is rewritten and the box follows it.
+  const tick = useMutation({
+    mutationFn: ({ id, next }: { id: string; next: string }) => updateNote(id, { body: next }),
+    onSuccess: settle,
     onError: (cause) => say.failedTo(t('toast.noteSaveFailed'), cause),
   })
 
@@ -88,7 +99,13 @@ export function NotePanel({ workId }: Props) {
                     or a list of phrases lands, and pipes and asterisks are not
                     what its author wrote it to be read as. Line breaks inside a
                     paragraph are kept, as everywhere markdown is rendered here. */}
-                <Markdown body={note.body} className="text-sm" />
+                <Markdown
+                  body={note.body}
+                  className="text-sm"
+                  onToggleTask={(index) =>
+                    tick.mutate({ id: note.id, next: toggleTask(note.body, index) })
+                  }
+                />
                 {note.tags.length > 0 && (
                   <p className="mt-1 flex flex-wrap gap-1">
                     {note.tags.map((tag) => (
@@ -99,6 +116,17 @@ export function NotePanel({ workId }: Props) {
                   </p>
                 )}
               </div>
+              {/* Edited on the notes screen, where a note has room: the
+                  card is the view from one work, not a second editor. */}
+              <Button
+                variant="icon"
+                size="icon-sm"
+                title={t('notes.openInNotes')}
+                aria-label={t('notes.openInNotes')}
+                onClick={() => void navigate(`/notes/${note.id}`)}
+              >
+                <ArrowUpRight aria-hidden className="size-3.5" />
+              </Button>
               <Button
                 variant="danger"
                 size="icon-sm"

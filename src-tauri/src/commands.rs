@@ -903,6 +903,50 @@ pub fn delete_note(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Note, &id)
 }
 
+/// Turn a note into a work, its body the work's first version.
+///
+/// One operation for the three rows it touches — the work, its version, the
+/// note moved to the trash — so an undo takes the whole gesture back rather
+/// than restoring the note beside a work that still holds its text.
+#[tauri::command]
+pub fn promote_note(
+    state: State<'_, AppState>,
+    id: String,
+    promotion: note::Promotion,
+) -> Result<note::Promoted> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let ids = note::PromotionIds::fresh();
+    let logged = operation::Intent::new("note.promote")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("promotion", serde_json::to_value(&promotion)?)
+        .param("workId", ids.work.id().to_owned())
+        .param("versionId", ids.version.id().to_owned())
+        .param("entryId", ids.deletion.id().to_owned())
+        .param("title", promotion.title.trim().to_owned())
+        .param("at", ids.work.at().to_owned());
+
+    let promoted = recording(&mut conn, logged, |tx| {
+        note::promote_in(tx, &profile_id, &id, promotion, &ids)
+    })?;
+
+    journal::record(
+        &conn,
+        &profile_id,
+        Record::new("note.promoted")
+            .param(
+                "title",
+                journal::work_title(&conn, &promoted.work_id).unwrap_or_default(),
+            )
+            .about("work", promoted.work_id.clone()),
+    );
+
+    Ok(promoted)
+}
+
 /// What a `[[work:id]]` or `[[version:id]]` link points at.
 ///
 /// One row per link that resolves: the title to draw, and for a version the

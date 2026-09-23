@@ -1252,3 +1252,62 @@ fn undoing_a_description_puts_back_the_draft_it_was() {
         "a brick whose description was undone is a draft again, not a ready one with no text"
     );
 }
+
+/// Promoting a note is taken back as the gesture it was: the work goes, the
+/// note returns. Restoring only the note would leave its text in two places.
+#[test]
+fn a_promotion_is_taken_back_whole() {
+    use kilna_lib::note::{self, NewNote, Promotion, PromotionIds};
+
+    let (mut conn, profile_id, _) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let idea = note::create(
+        &conn,
+        &profile_id,
+        NewNote {
+            body: "a comma in the rock".into(),
+            kind: None,
+            title: None,
+            work_id: None,
+            tags: vec![],
+        },
+    )
+    .unwrap();
+
+    // Exactly what the command records.
+    let ids = PromotionIds::fresh();
+    let promotion = Promotion {
+        kind: "song".into(),
+        title: "Graphite".into(),
+    };
+    let logged = operation::Intent::new("note.promote")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("id", idea.id.clone())
+        .param("promotion", serde_json::to_value(&promotion).unwrap())
+        .param("workId", ids.work.id().to_owned())
+        .param("versionId", ids.version.id().to_owned())
+        .param("entryId", ids.deletion.id().to_owned())
+        .param("title", "Graphite")
+        .param("at", ids.work.at().to_owned());
+    let transaction = conn.transaction().unwrap();
+    let promoted = note::promote_in(&transaction, &profile_id, &idea.id, promotion, &ids).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("a promotion can be undone");
+    assert_eq!(offer.action, "undo.note.promote");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+
+    assert!(
+        work::get(&conn, &promoted.work_id).unwrap().is_none(),
+        "the work the promotion made is still there"
+    );
+    assert_eq!(
+        note::get(&conn, &idea.id).unwrap().unwrap().body,
+        "a comma in the rock",
+        "the note did not come back"
+    );
+}

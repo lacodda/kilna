@@ -205,6 +205,21 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
             note::update_at(conn, &id, patch, &at)?;
         }
 
+        "note.promote" => {
+            let profile_id = workspace_profile(conn, params)?;
+            let id = required(params, "id")?;
+            let promotion = from_params(params, "promotion")?;
+            let at = required(params, "at")?;
+            let ids = note::PromotionIds {
+                work: Minted::of(required(params, "workId")?, at.clone()),
+                version: Minted::of(required(params, "versionId")?, at.clone()),
+                deletion: Minted::of(required(params, "entryId")?, at),
+            };
+            let tx = conn.transaction()?;
+            note::promote_in(&tx, &profile_id, &id, promotion, &ids)?;
+            tx.commit()?;
+        }
+
         "style.create" => {
             let profile_id = workspace_profile(conn, params)?;
             let new = from_params(params, "brick")?;

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { search, type Hit, type HitKind } from '@/lib/api'
 import { coverImageFor } from '@/lib/cover'
+import { hrefOfHit } from '@/lib/hits'
 import { useCovers } from '@/lib/useCovers'
 import { useDebounced } from '@/lib/useDebounced'
 import { keys } from '@/lib/query'
@@ -27,14 +28,6 @@ interface Props {
   onOpenChange: (open: boolean) => void
 }
 
-/** Which tab a hit should open the work on. */
-const TAB_FOR: Record<HitKind, string> = {
-  work: 'overview',
-  version: 'versions',
-  note: 'notes',
-  message: 'assistant',
-}
-
 /** The order the groups appear in, coarsest first. */
 const GROUPS: HitKind[] = ['work', 'version', 'note', 'message']
 
@@ -49,8 +42,8 @@ interface Group {
  *
  * The palette is for recognising something you already know exists — a song
  * whose title you half remember, a line you wrote last month. So it shows a few
- * hits per kind rather than everything, and every hit opens the work it belongs
- * to on the tab where that hit lives.
+ * hits per kind rather than everything, and every hit opens where it lives —
+ * see `hrefOfHit`.
  */
 export function CommandPalette({ open, onOpenChange }: Props) {
   // Mounted only while open, so every visit starts from an empty box: the
@@ -99,6 +92,7 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
           kind: 'work',
           items: recent.map((entry, at) => ({
             kind: 'work' as const,
+            entity_id: entry.id,
             work_id: entry.id,
             work_title: entry.title,
             title: entry.title,
@@ -119,7 +113,7 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
   }, [hits.data, recent, settled])
 
   const openHit = (hit: Hit) => {
-    navigate(`/works/${hit.work_id}/${TAB_FOR[hit.kind]}`)
+    navigate(hrefOfHit(hit))
     onOpenChange(false)
   }
 
@@ -152,7 +146,7 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
       // A hit is an object, and two fetches never return the same one twice;
       // without this the highlight would compare by reference and never match.
       isItemEqualToValue={(a: Hit, b: Hit) =>
-        a.kind === b.kind && a.work_id === b.work_id && a.rank === b.rank
+        a.kind === b.kind && a.entity_id === b.entity_id && a.rank === b.rank
       }
     >
       <CommandPalettePopup aria-label={t('search.title')}>
@@ -184,7 +178,7 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
                     the component from `value` and `isItemEqualToValue`. */}
                 {group.items.map((hit) => (
                   <CommandPaletteItem
-                    key={`${hit.kind}-${hit.work_id}-${hit.rank}`}
+                    key={`${hit.kind}-${hit.entity_id}-${hit.rank}`}
                     value={hit}
                     className={cn(
                       commandPaletteItemVariants(),
@@ -196,7 +190,12 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
                         <span
                           aria-hidden
                           className="size-6 shrink-0 rounded-md"
-                          style={{ background: coverImageFor(hit.work_id, covers.get(hit.work_id)) }}
+                          style={{
+                            background: coverImageFor(
+                              hit.work_id ?? hit.entity_id,
+                              hit.work_id === null ? undefined : covers.get(hit.work_id),
+                            ),
+                          }}
                         />
                       }
                       hint={hit.detail}
@@ -204,7 +203,7 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
                       <b className="block truncate text-[13px] font-medium">{hit.title}</b>
                       {/* Which work it came from matters most for a hit that
                           is a line of text rather than a title. */}
-                      {hit.kind !== 'work' && (
+                      {hit.kind !== 'work' && hit.work_title !== '' && (
                         <span className="block truncate text-[11px] text-faint">
                           {hit.work_title}
                         </span>

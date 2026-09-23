@@ -1118,6 +1118,23 @@ export const updateNote = (id: string, patch: NotePatch) => invoke<Note>('update
 export const deleteNote = (id: string) => invoke<string>('delete_note', { id })
 export const listTags = () => invoke<[string, number][]>('list_tags')
 
+/** What a note becomes when it grows up: a work of this kind, by this name. */
+export interface Promotion {
+  kind: string
+  title: string
+}
+
+export interface Promoted {
+  work_id: string
+  version_id: string
+  deletion_id: string
+}
+
+/** Turn a note into a work whose first version is the note's body. The note
+ *  goes to the trash; undo takes the whole gesture back. */
+export const promoteNote = (id: string, promotion: Promotion) =>
+  invoke<Promoted>('promote_note', { id, promotion })
+
 /** What a `[[work:id]]` or `[[version:id]]` link points at. A link to
     something deleted is simply absent from the answer. */
 export interface ResolvedLink {
@@ -1398,7 +1415,11 @@ export type HitKind = 'work' | 'version' | 'note' | 'message'
 
 export interface Hit {
   kind: HitKind
-  work_id: string
+  /** The row that matched. A note opens on the notes screen by it. */
+  entity_id: string
+  /** The work it belongs to; null only for a note on nothing in particular. */
+  work_id: string | null
+  /** The work's title, empty without one. */
   work_title: string
   /** The hit's own line: a title, or the text it was found in. */
   title: string

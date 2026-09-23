@@ -58,9 +58,14 @@ impl Kind {
 #[derive(Debug, Clone, Serialize)]
 pub struct Hit {
     pub kind: Kind,
-    /// The work to open. Every hit belongs to one — a note or a chat without a
+    /// The row that matched: a work, a version, a note, a message. A note
+    /// opens on the notes screen by it, which is why it travels.
+    pub entity_id: String,
+    /// The work it belongs to. Absent only for a note on nothing in
+    /// particular, which has a screen of its own to open on; a chat without a
     /// work is skipped rather than offered with nowhere to go.
-    pub work_id: String,
+    pub work_id: Option<String>,
+    /// The work's title, or empty with no work.
     pub work_title: String,
     /// What to show as the hit's own line: a title, or the matching text.
     pub title: String,
@@ -204,10 +209,14 @@ fn of_kind(conn: &Connection, profile_id: &str, expression: &str, kind: Kind) ->
 
     let mut hits = Vec::with_capacity(rows.len());
     for (index, (entity_id, work_id, snippet)) in rows.into_iter().enumerate() {
-        // A hit with nowhere to open is worse than no hit: the row is skipped
-        // rather than offered. Only notes and chats can be work-less.
-        let Some(work_id) = work_id else { continue };
-        let Some(described) = describe(conn, kind, &entity_id, &work_id, &snippet)? else {
+        // A hit with nowhere to open is worse than no hit: a chat on nothing is
+        // skipped rather than offered. A note on nothing opens on the notes
+        // screen, so it stays.
+        if work_id.is_none() && kind != Kind::Note {
+            continue;
+        }
+        let Some(described) = describe(conn, kind, &entity_id, work_id.as_deref(), &snippet)?
+        else {
             continue;
         };
         hits.push(Hit {
@@ -227,9 +236,11 @@ fn describe(
     conn: &Connection,
     kind: Kind,
     entity_id: &str,
-    work_id: &str,
+    work_id: Option<&str>,
     snippet: &str,
 ) -> Result<Option<Hit>> {
+    let entity = entity_id.to_owned();
+    let work = work_id.map(str::to_owned);
     let found = match kind {
         Kind::Work => conn
             .query_row(
@@ -245,7 +256,8 @@ fn describe(
             )
             .map(|(title, kind_key, status)| Hit {
                 kind: Kind::Work,
-                work_id: work_id.to_owned(),
+                entity_id: entity.clone(),
+                work_id: work.clone(),
                 work_title: title.clone(),
                 // A work's own line is its title, not the snippet: the point of
                 // finding a work is recognising it.
@@ -270,7 +282,8 @@ fn describe(
             )
             .map(|(work_title, role, revision, label)| Hit {
                 kind: Kind::Version,
-                work_id: work_id.to_owned(),
+                entity_id: entity.clone(),
+                work_id: work.clone(),
                 work_title,
                 // The line it was found in, not the version's name: the name is
                 // in the detail, and what was searched for is the text.
@@ -283,8 +296,8 @@ fn describe(
             }),
         Kind::Note => conn
             .query_row(
-                "SELECT w.title, n.title, n.kind
-                   FROM note n JOIN work w ON w.id = n.work_id
+                "SELECT coalesce(w.title, ''), n.title, n.kind
+                   FROM note n LEFT JOIN work w ON w.id = n.work_id
                   WHERE n.id = ?1",
                 params![entity_id],
                 |row| {
@@ -297,7 +310,8 @@ fn describe(
             )
             .map(|(work_title, title, note_kind)| Hit {
                 kind: Kind::Note,
-                work_id: work_id.to_owned(),
+                entity_id: entity.clone(),
+                work_id: work.clone(),
                 work_title,
                 title: title.unwrap_or_else(|| one_line(snippet)),
                 detail: note_kind,
@@ -315,7 +329,8 @@ fn describe(
             )
             .map(|(work_title, role)| Hit {
                 kind: Kind::Message,
-                work_id: work_id.to_owned(),
+                entity_id: entity.clone(),
+                work_id: work.clone(),
                 work_title,
                 title: one_line(snippet),
                 detail: role,
@@ -483,7 +498,8 @@ mod tests {
         for query in ["surrealism", "winter"] {
             let hits = find(&conn, &profile_id, query).unwrap();
             assert!(
-                hits.iter().any(|hit| hit.work_id == work),
+                hits.iter()
+                    .any(|hit| hit.work_id.as_deref() == Some(work.as_str())),
                 "`{query}` should have found the work"
             );
         }
@@ -512,7 +528,7 @@ mod tests {
         let version = hits.iter().find(|hit| hit.kind == Kind::Version).unwrap();
 
         assert!(version.title.contains("cranes"), "got: {}", version.title);
-        assert_eq!(version.work_id, work);
+        assert_eq!(version.work_id.as_deref(), Some(work.as_str()));
         // One line of interface, whatever the body's line breaks were.
         assert!(!version.title.contains('\n'));
     }
@@ -588,7 +604,33 @@ mod tests {
         let hits = find(&conn, &profile_id, "explains").unwrap();
         let note = hits.iter().find(|hit| hit.kind == Kind::Note).unwrap();
 
-        assert_eq!(note.work_id, work);
+        assert_eq!(note.work_id.as_deref(), Some(work.as_str()));
+    }
+
+    #[test]
+    fn a_note_on_nothing_is_found_and_names_itself() {
+        let (conn, profile_id) = workspace();
+        let loose = note::create(
+            &conn,
+            &profile_id,
+            NewNote {
+                body: "graphite marks the layer".into(),
+                kind: None,
+                title: None,
+                work_id: None,
+                tags: vec![],
+            },
+        )
+        .unwrap();
+
+        let hits = find(&conn, &profile_id, "graphite").unwrap();
+        let note = hits
+            .iter()
+            .find(|hit| hit.kind == Kind::Note)
+            .expect("a note on no work has the notes screen to open on");
+
+        assert_eq!(note.work_id, None);
+        assert_eq!(note.entity_id, loose.id);
     }
 
     #[test]
@@ -617,7 +659,7 @@ mod tests {
         let hits = find(&conn, &profile_id, "rhymes").unwrap();
         let message = hits.iter().find(|hit| hit.kind == Kind::Message).unwrap();
 
-        assert_eq!(message.work_id, work);
+        assert_eq!(message.work_id.as_deref(), Some(work.as_str()));
         assert_eq!(message.work_title, "Harbour lights");
     }
 

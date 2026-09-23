@@ -25,6 +25,7 @@ export function Markdown({
   className,
   copyLabel,
   plainLinks = false,
+  onToggleTask,
 }: {
   body: string
   className?: string
@@ -34,6 +35,12 @@ export function Markdown({
       being typed into, where a link turning into a title mid-sentence would
       move the text under the caret. */
   plainLinks?: boolean
+  /** Makes `- [ ]` boxes live: a click hands back which box, counted in
+      order, and the caller rewrites the body (see `lib/checklist`). Without
+      it the boxes are drawn and cannot be ticked, which is right for text
+      that is not the reader's to change — an assistant's answer, a version
+      under a score. */
+  onToggleTask?: (index: number) => void
 }) {
   const container = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
@@ -122,6 +129,31 @@ export function Markdown({
     }
   }, [html, copyLabel])
 
+  // The boxes are markdown's, so they are found after render, the way the
+  // copy buttons are. The click is prevented rather than let through: the box
+  // shows what the body says, and it changes when the body does - a box that
+  // ticked itself ahead of a write that then failed would be lying.
+  useEffect(() => {
+    const root = container.current
+    if (root === null || onToggleTask === undefined) return
+
+    const boxes = [...root.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
+    const cleanups = boxes.map((box, index) => {
+      box.disabled = false
+      box.classList.add('cursor-pointer')
+      const onClick = (event: MouseEvent) => {
+        event.preventDefault()
+        onToggleTask(index)
+      }
+      box.addEventListener('click', onClick)
+      return () => box.removeEventListener('click', onClick)
+    })
+
+    return () => {
+      for (const cleanup of cleanups) cleanup()
+    }
+  }, [html, onToggleTask])
+
   // An internal link is the router's, not the browser's: letting the anchor
   // navigate would reload the whole window and lose every open panel. The
   // listener sits on the container because the anchors are markdown's, and
@@ -166,6 +198,11 @@ export function Markdown({
         // stylesheet does this too; kept because `selectable` is this app's
         // own word for it and other screens are checked against it.
         'selectable',
+        // A task item draws its box instead of a bullet, and a done one reads
+        // as done. Only a descendant selector reaches markdown's own tags.
+        '[&_li:has(>input[type=checkbox])]:list-none [&_li:has(>input[type=checkbox])]:-ml-5',
+        '[&_li:has(>input:checked)]:text-faint [&_li:has(>input:checked)]:line-through',
+        '[&_li>input[type=checkbox]]:mr-1.5 [&_li>input[type=checkbox]]:accent-accent',
         className,
       )}
       dangerouslySetInnerHTML={{ __html: html }}

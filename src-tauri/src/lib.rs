@@ -142,6 +142,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::create_note,
             commands::update_note,
             commands::delete_note,
+            commands::promote_note,
             commands::list_tags,
             commands::work_tags,
             commands::resolve_links,

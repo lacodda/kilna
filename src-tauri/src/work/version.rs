@@ -100,6 +100,24 @@ pub fn create_minted(
         crate::operation::record(&tx, logged)?;
     }
 
+    let id = create_in(&tx, work_id, new, &minted)?;
+
+    tx.commit()?;
+
+    get(conn, &id)?.ok_or_else(|| Error::Other("the version vanished after insert".into()))
+}
+
+/// The body of [`create_minted`], inside a transaction a caller already holds.
+///
+/// Split out so a gesture that makes a version among other rows — a note
+/// promoted to a work — lands as one change under one operation, rather than
+/// as a version committed before the rest failed. Returns the new id.
+pub(crate) fn create_in(
+    tx: &Connection,
+    work_id: &str,
+    new: NewVersion,
+    minted: &Minted,
+) -> Result<String> {
     let exists: bool = tx
         .query_row("SELECT 1 FROM work WHERE id = ?1", params![work_id], |_| {
             Ok(true)
@@ -169,9 +187,7 @@ pub fn create_minted(
         )?;
     }
 
-    tx.commit()?;
-
-    get(conn, &id)?.ok_or_else(|| Error::Other("the version vanished after insert".into()))
+    Ok(id)
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Version>> {

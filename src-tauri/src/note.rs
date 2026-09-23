@@ -250,6 +250,130 @@ pub fn tags(conn: &Connection, profile_id: &str) -> Result<Vec<(String, i64)>> {
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
+/// What promoting a note asks for: the kind of work it becomes, and the title
+/// it goes by.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Promotion {
+    pub kind: String,
+    pub title: String,
+}
+
+/// What a promotion made: the work, its first version, and the trash entry
+/// the note went to.
+#[derive(Debug, Clone, Serialize)]
+pub struct Promoted {
+    pub work_id: String,
+    pub version_id: String,
+    pub deletion_id: String,
+}
+
+/// The ids one promotion mints, sharing the moment of the gesture.
+#[derive(Debug, Clone)]
+pub struct PromotionIds {
+    pub work: Minted,
+    pub version: Minted,
+    pub deletion: Minted,
+}
+
+impl PromotionIds {
+    pub fn fresh() -> Self {
+        let at = now();
+        let mint = || Minted::of(uuid::Uuid::new_v4().to_string(), at.clone());
+        Self {
+            work: mint(),
+            version: mint(),
+            deletion: mint(),
+        }
+    }
+}
+
+/// Turn a note into a work whose first version is the note's body.
+///
+/// An idea that grew up is not an idea beside the work any more: keeping the
+/// note would leave the same text in two places, one of them edited and the
+/// other not (ADR 0001). So the body moves - into the first version of the
+/// kind's first role that is the work itself - and the note goes to the
+/// trash, where it can be restored like any other deletion.
+///
+/// Its tags stay behind with it. A note's vocabulary and a work's are
+/// different vocabularies (see `work_tags`), and carrying "reference" onto a
+/// song would be the app guessing at a connection nobody made.
+///
+/// One transaction for all three rows, held by the caller: a work made while
+/// the note failed to move would be the duplicate this exists to prevent.
+pub fn promote_in(
+    tx: &rusqlite::Transaction<'_>,
+    profile_id: &str,
+    note_id: &str,
+    promotion: Promotion,
+    ids: &PromotionIds,
+) -> Result<Promoted> {
+    let found = get(tx, note_id)?.ok_or_else(|| unknown_note(note_id))?;
+    if found.profile_id != profile_id {
+        return Err(unknown_note(note_id));
+    }
+    let title = promotion.title.trim();
+    if title.is_empty() {
+        return Err(Error::Other("a work needs a title".into()));
+    }
+
+    let config = crate::profile::config_for(tx, profile_id)?;
+    if !config
+        .work_kinds
+        .iter()
+        .any(|kind| kind.key == promotion.kind)
+    {
+        return Err(Error::Other(format!(
+            "`{}` is not a kind of work in this profile",
+            promotion.kind
+        )));
+    }
+    let role = config
+        .vocabulary(&promotion.kind)
+        .version_roles
+        .iter()
+        .find(|role| role.counts_as_a_version())
+        .map(|role| role.key.clone())
+        .ok_or_else(|| {
+            Error::Other(format!(
+                "a {} has no role a body can be kept in",
+                promotion.kind
+            ))
+        })?;
+
+    let work = crate::work::create_minted(
+        tx,
+        profile_id,
+        crate::work::NewWork {
+            kind: promotion.kind,
+            title: title.to_owned(),
+            ..crate::work::NewWork::default()
+        },
+        ids.work.clone(),
+    )?;
+    let version_id = crate::work::version::create_in(
+        tx,
+        &work.id,
+        crate::work::version::NewVersion {
+            role,
+            body: found.body,
+            label: None,
+            meta: None,
+            make_current: true,
+            parent_version_id: None,
+        },
+        &ids.version,
+    )?;
+    let deletion_id =
+        crate::trash::discard_in_tx(tx, crate::trash::Entity::Note, note_id, &ids.deletion)?;
+
+    Ok(Promoted {
+        work_id: work.id,
+        version_id,
+        deletion_id,
+    })
+}
+
 fn unknown_note(id: &str) -> Error {
     Error::not_found("note", id)
 }
@@ -462,6 +586,90 @@ mod tests {
 
         assert_eq!(tags[0], ("idea".to_owned(), 2));
         assert_eq!(tags[1], ("winter".to_owned(), 1));
+    }
+
+    fn promote(
+        conn: &mut Connection,
+        profile_id: &str,
+        id: &str,
+        kind: &str,
+        title: &str,
+    ) -> Result<Promoted> {
+        let tx = conn.transaction().unwrap();
+        let promoted = promote_in(
+            &tx,
+            profile_id,
+            id,
+            Promotion {
+                kind: kind.into(),
+                title: title.into(),
+            },
+            &PromotionIds::fresh(),
+        )?;
+        tx.commit().unwrap();
+        Ok(promoted)
+    }
+
+    #[test]
+    fn a_promoted_note_becomes_the_first_version_of_a_work() {
+        let (mut conn, profile_id) = workspace();
+        let idea = create(
+            &conn,
+            &profile_id,
+            note("a comma in the rock", &["geology"]),
+        )
+        .unwrap();
+
+        let promoted = promote(&mut conn, &profile_id, &idea.id, "song", "  Graphite  ").unwrap();
+
+        let made = work::get(&conn, &promoted.work_id).unwrap().unwrap();
+        assert_eq!(made.title, "Graphite", "the title is trimmed");
+        assert_eq!(made.kind, "song");
+        assert_eq!(
+            made.current_version_id.as_deref(),
+            Some(promoted.version_id.as_str())
+        );
+        let body = crate::work::version::get(&conn, &promoted.version_id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(body.body, "a comma in the rock");
+        assert!(
+            made.tags.is_empty(),
+            "a note's tags are a different vocabulary from a work's"
+        );
+    }
+
+    #[test]
+    fn a_promoted_note_leaves_for_the_trash_and_can_come_back() {
+        let (mut conn, profile_id) = workspace();
+        let idea = create(&conn, &profile_id, note("one text, one place", &[])).unwrap();
+
+        let promoted = promote(&mut conn, &profile_id, &idea.id, "song", "Place").unwrap();
+
+        assert!(
+            get(&conn, &idea.id).unwrap().is_none(),
+            "the body lives in the version now, not twice"
+        );
+        crate::trash::restore(&mut conn, &promoted.deletion_id, None).unwrap();
+        assert_eq!(
+            get(&conn, &idea.id).unwrap().unwrap().body,
+            "one text, one place"
+        );
+    }
+
+    #[test]
+    fn a_promotion_to_nothing_changes_nothing() {
+        let (mut conn, profile_id) = workspace();
+        let idea = create(&conn, &profile_id, note("still here", &[])).unwrap();
+
+        assert!(promote(&mut conn, &profile_id, &idea.id, "limerick", "Title").is_err());
+        assert!(promote(&mut conn, &profile_id, &idea.id, "song", "   ").is_err());
+
+        assert!(get(&conn, &idea.id).unwrap().is_some());
+        let works: i64 = conn
+            .query_row("SELECT count(*) FROM work", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(works, 0, "a refused promotion made a work anyway");
     }
 
     #[test]

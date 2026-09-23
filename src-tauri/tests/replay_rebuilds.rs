@@ -307,3 +307,73 @@ fn a_derived_status_survives_the_rebuild() {
         "the rebuilt workspace is not the same workspace"
     );
 }
+
+/// A note promoted to a work rebuilds as the work, its version and the note
+/// gone — three rows from one operation, under the ids the first run minted.
+#[test]
+fn a_promoted_note_rebuilds_as_its_work() {
+    use kilna_lib::note::{self, NewNote, Promotion, PromotionIds};
+
+    let mut source = workspace();
+    let profile_id = profile::active(&source).unwrap().unwrap().id;
+    let key = profile::key_for_id(&source, &profile_id).unwrap().unwrap();
+
+    let new = NewNote {
+        body: "a comma in the rock".into(),
+        kind: None,
+        title: None,
+        work_id: None,
+        tags: vec!["geology".into()],
+    };
+    let minted = Minted::fresh();
+    let note_id = minted.id().to_owned();
+    let logged = operation::Intent::new("note.create")
+        .in_profile(&profile_id)
+        .param("profile", key.clone())
+        .param("note", serde_json::to_value(&new).unwrap())
+        .minted(&minted);
+    let transaction = source.transaction().unwrap();
+    note::create_minted(&transaction, &profile_id, new, minted).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let ids = PromotionIds::fresh();
+    let promotion = Promotion {
+        kind: "song".into(),
+        title: "Graphite".into(),
+    };
+    let logged = operation::Intent::new("note.promote")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("id", note_id.clone())
+        .param("promotion", serde_json::to_value(&promotion).unwrap())
+        .param("workId", ids.work.id().to_owned())
+        .param("versionId", ids.version.id().to_owned())
+        .param("entryId", ids.deletion.id().to_owned())
+        .param("title", "Graphite")
+        .param("at", ids.work.at().to_owned());
+    let transaction = source.transaction().unwrap();
+    note::promote_in(&transaction, &profile_id, &note_id, promotion, &ids).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let mut rebuilt = workspace();
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+    assert_eq!(report.applied, 2);
+    assert!(report.unknown.is_empty(), "unknown: {:?}", report.unknown);
+
+    // The tombstone's moment is the trigger's clock, not the log's, so it is
+    // left out here; every row the person's work lives in is compared.
+    let mut want = contents(&source);
+    let mut got = contents(&rebuilt);
+    want.remove("tombstone");
+    got.remove("tombstone");
+    assert_eq!(got, want, "the rebuilt workspace is not the same workspace");
+    let versions = got["work_version"].as_array().unwrap();
+    assert_eq!(
+        versions.len(),
+        1,
+        "the promotion made no version on rebuild"
+    );
+    assert!(got["note"].as_array().unwrap().is_empty());
+}

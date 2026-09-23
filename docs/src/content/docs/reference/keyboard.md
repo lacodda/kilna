@@ -18,6 +18,7 @@ the translation would have to be relearned per language.
 | `G` `C` | Catalogue |
 | `G` `K` | Calendar |
 | `G` `J` | History |
+| `G` `N` | Notes |
 | `G` `T` | Trash |
 | `G` `S` | Settings |
 
@@ -29,7 +30,7 @@ or the key goes nowhere, the chord is dropped and nothing happens — a forgotte
 
 | Keys | What it does |
 | --- | --- |
-| `Ctrl+K` / `⌘K` | Find anything: works, drafts, notes, assistant replies |
+| `Ctrl+K` / `⌘K` | Find anything: works, drafts, notes, assistant replies. A note opens on the Notes screen |
 | `Alt+←` | Back |
 | `Alt+→` | Forward |
 

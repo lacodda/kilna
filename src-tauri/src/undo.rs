@@ -94,6 +94,7 @@ pub fn reversible(kind: &str) -> bool {
             | "work.pinTier"
             | "note.create"
             | "note.update"
+            | "note.promote"
             | "style.update"
             | "version.create"
             | "version.edit"
@@ -386,6 +387,20 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
                 crate::minted::Minted::of(uuid::Uuid::new_v4().to_string(), at.clone()),
                 Some(logged.param("at", at.clone())),
             )?;
+        }
+
+        // A promotion is taken back whole: the work it made goes to the trash
+        // and the note comes back out of it, in one change. Restoring the note
+        // alone would leave its text twice — the duplicate promoting exists to
+        // prevent.
+        "note.promote" => {
+            let work_id = required(params, "workId")?;
+            let entry_id = required(params, "entryId")?;
+            let minted = crate::minted::Minted::of(uuid::Uuid::new_v4().to_string(), at.clone());
+            edit(conn, logged, &at, |tx| {
+                crate::trash::discard_in_tx(tx, crate::trash::Entity::Work, &work_id, &minted)?;
+                crate::trash::restore_in(tx, &entry_id)
+            })?;
         }
 
         // Undoing a deletion is the restore the trash already knows how to do.

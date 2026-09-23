@@ -53,6 +53,7 @@ export const DESTINATIONS: Readonly<Record<string, string>> = Object.freeze({
   c: '/catalogue',
   k: '/calendar',
   j: '/journal',
+  n: '/notes',
   t: '/trash',
   s: '/settings',
 })

@@ -837,7 +837,45 @@
     "add": "Add",
     "delete": "Delete this note",
     "placeholder": "A thought about this work",
-    "tagsPlaceholder": "Tags, comma separated"
+    "tagsPlaceholder": "Tags, comma separated",
+    "kind": "Kind of note",
+    "allKinds": "All",
+    "search": "Search the notes",
+    "tag": "Tag",
+    "anyTag": "Any tag",
+    "new": "Note",
+    "none": "No notes yet.",
+    "noMatches": "Nothing matches.",
+    "untitled": "Empty note",
+    "pick": "Pick a note on the left",
+    "empty": "No notes yet",
+    "emptyBody": "Ideas, lore, references — anything worth keeping that is not a work yet.",
+    "gone": "This note is not here",
+    "goneBody": "It was deleted or became a work. The trash still has it.",
+    "titlePlaceholder": "Untitled",
+    "titleLabel": "Title",
+    "bodyPlaceholder": "Write here. Markdown works: lists, links, - [ ] checkboxes.",
+    "bodyLabel": "The note",
+    "edit": "Edit",
+    "done": "Done",
+    "attach": "Attach to a work",
+    "attachTitle": "Which work is this note about?",
+    "detach": "Let go of the work",
+    "addTag": "+ tag",
+    "removeTag": "Remove the tag {{tag}}",
+    "filterByTag": "Show every note tagged {{tag}}",
+    "promote": "Make it a work",
+    "promoteHint": "The note becomes a work: its text is the first version",
+    "promoteTitle": "Make this note a work",
+    "promoteBody": "The text becomes the work's first {{role}}, and the note goes to the trash so the words live in one place. Undo takes it all back.",
+    "promoteNoRole": "This kind of work has no role a text can be kept in.",
+    "promoteKind": "Kind of work",
+    "promoteTitlePlaceholder": "What the work is called",
+    "promoted": "“{{title}}” is a work now",
+    "promoteFailed": "Could not make a work of the note.",
+    "openInNotes": "Open in Notes",
+    "tagPlaceholder": "A tag",
+    "tagNew": "Enter adds it as a new tag"
   },
   "styles": {
     "title": "Styles",
@@ -1116,7 +1154,8 @@
     "recent": "Recent",
     "seeAll": "See all",
     "nothingRecent": "Nothing has happened yet.",
-    "upgrade.doorsMoved": "{{count}} releases moved onto works of their own: a clip is a video, a short is a short."
+    "upgrade.doorsMoved": "{{count}} releases moved onto works of their own: a clip is a video, a short is a short.",
+    "note.promoted": "A note became “{{title}}”."
   },
   "card": {
     "tab": {
@@ -1204,7 +1243,8 @@
     "scene.reorderFrames": "reordering a scene's material",
     "cut.create": "taking a stretch",
     "cut.update": "moving a stretch",
-    "cut.reorder": "reordering the splice"
+    "cut.reorder": "reordering the splice",
+    "note.promote": "a note made into a work"
   },
   "stage": {
     "label": "Stage",

@@ -156,7 +156,7 @@ export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
         </div>
       )}
       <SoonLink icon={Disc} label={t('nav.collections')} version="0.80" compact={compact} />
-      <SoonLink icon={FileText} label={t('nav.notes')} version="0.76" compact={compact} />
+      <ScreenLink to="/notes" icon={FileText} label={t('nav.notes')} compact={compact} />
       {/* Only where the craft has one: a profile that names no style types
           has no dictionary, and a door to an empty room is worse than none. */}
       {hasStyles && (
