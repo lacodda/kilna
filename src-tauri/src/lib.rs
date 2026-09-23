@@ -4,6 +4,7 @@ pub mod clock;
 pub mod clone;
 pub mod collection;
 pub mod commands;
+pub mod comment;
 pub mod cut;
 pub mod db;
 pub mod device;
@@ -143,6 +144,16 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::update_note,
             commands::delete_note,
             commands::promote_note,
+            commands::list_comments,
+            commands::comment_channels,
+            commands::count_work_comments,
+            commands::create_comment,
+            commands::update_comment,
+            commands::delete_comment,
+            commands::preview_comment_task,
+            commands::start_comment_task,
+            commands::start_screenshot_task,
+            commands::pending_comment_proposals,
             commands::list_tags,
             commands::work_tags,
             commands::resolve_links,

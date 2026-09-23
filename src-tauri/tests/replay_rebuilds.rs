@@ -25,7 +25,7 @@ use kilna_lib::{db, operation, profile, release, replay, work};
 
 /// Tables a rebuilt workspace has to match on. Everything the person's work
 /// lives in; nothing about this machine or this conversation.
-const COMPARED: [&str; 10] = [
+const COMPARED: [&str; 11] = [
     "work",
     "work_version",
     "work_score",
@@ -35,6 +35,7 @@ const COMPARED: [&str; 10] = [
     "work_link",
     "scene",
     "focus_note",
+    "comment",
     "tombstone",
 ];
 
@@ -376,4 +377,58 @@ fn a_promoted_note_rebuilds_as_its_work() {
         "the promotion made no version on rebuild"
     );
     assert!(got["note"].as_array().unwrap().is_empty());
+}
+
+/// A comment kept and then answered rebuilds as the same row: the creation and
+/// the edit each replay under the id and the moment the first run recorded.
+#[test]
+fn a_comment_and_its_reply_rebuild() {
+    use kilna_lib::comment::{self, CommentPatch, NewComment};
+
+    let mut source = workspace();
+    let profile_id = profile::active(&source).unwrap().unwrap().id;
+    let key = profile::key_for_id(&source, &profile_id).unwrap().unwrap();
+
+    let new = NewComment {
+        channel: "main".into(),
+        body: "loved the bridge".into(),
+        author: Some("anna".into()),
+        commented_on: Some("2026-09-01".into()),
+        ..NewComment::default()
+    };
+    let minted = Minted::fresh();
+    let id = minted.id().to_owned();
+    let logged = operation::Intent::new("comment.create")
+        .in_profile(&profile_id)
+        .param("profile", key.clone())
+        .param("comment", serde_json::to_value(&new).unwrap())
+        .minted(&minted);
+    let transaction = source.transaction().unwrap();
+    comment::create_minted(&transaction, &profile_id, new, minted).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let patch = CommentPatch {
+        reply: Some(Some("thank you!".into())),
+        state: Some(comment::POSTED.into()),
+        ..CommentPatch::default()
+    };
+    let at = kilna_lib::time::now();
+    let logged = operation::Intent::new("comment.update")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch).unwrap())
+        .param("at", at.clone());
+    let transaction = source.transaction().unwrap();
+    comment::update_at(&transaction, &id, patch, &at).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let mut rebuilt = workspace();
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+    assert_eq!(report.applied, 2);
+    assert!(report.unknown.is_empty(), "unknown: {:?}", report.unknown);
+    assert_eq!(contents(&rebuilt), contents(&source));
+    assert_eq!(contents(&rebuilt)["comment"].as_array().unwrap().len(), 1);
 }

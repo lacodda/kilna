@@ -26,6 +26,7 @@ import { SettingsView } from '@/components/settings/SettingsView'
 import { JournalView } from '@/components/JournalView'
 import { StylesView } from '@/components/StylesView'
 import { NotesView } from '@/components/notes/NotesView'
+import { CommentsView } from '@/components/comments/CommentsView'
 import { TrashView } from '@/components/TrashView'
 import { Styleguide } from '@/components/Styleguide'
 import { Panel } from '@/components/ui/panel'
@@ -227,6 +228,16 @@ function WorksScreen() {
                       element={
                         <Screen scroll="held">
                           <NotesView />
+                        </Screen>
+                      }
+                    />
+                    {/* The inbox of the audience's comments, held the same
+                        way: the list and the open comment scroll apart. */}
+                    <Route
+                      path="/comments/:commentId?"
+                      element={
+                        <Screen scroll="held">
+                          <CommentsView />
                         </Screen>
                       }
                     />

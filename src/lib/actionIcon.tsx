@@ -6,6 +6,7 @@ import {
   Image,
   Lightbulb,
   ListOrdered,
+  MessageSquareReply,
   Music,
   Palette,
   PenLine,
@@ -50,6 +51,7 @@ export const ACTION_ICONS: Record<string, LucideIcon> = {
   lightbulb: Lightbulb,
   palette: Palette,
   eye: Eye,
+  reply: MessageSquareReply,
 }
 
 /** The names, for the reference and for a picker. */

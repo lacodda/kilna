@@ -95,6 +95,8 @@ pub fn reversible(kind: &str) -> bool {
             | "note.create"
             | "note.update"
             | "note.promote"
+            | "comment.create"
+            | "comment.update"
             | "style.update"
             | "version.create"
             | "version.edit"
@@ -186,6 +188,13 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
             let patch: crate::note::NotePatch = from_params(params, "before")?;
             edit(conn, logged, &at, |tx| {
                 crate::note::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        "comment.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::comment::CommentPatch = from_params(params, "before")?;
+            edit(conn, logged, &at, |tx| {
+                crate::comment::update_at(tx, &id, patch, &at).map(|_| ())
             })?;
         }
         // The written description goes back to what stood there, blank
@@ -378,7 +387,7 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
         // outright. Someone can change their mind twice, and a row destroyed by
         // an undo would be gone in a way nothing else in kilna is.
         "work.create" | "work.clone" | "note.create" | "collection.create" | "release.create"
-        | "version.create" | "scene.create" | "cut.create" => {
+        | "version.create" | "scene.create" | "cut.create" | "comment.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -506,6 +515,7 @@ fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
         "version.create" => crate::trash::Entity::Version,
         "scene.create" => crate::trash::Entity::Scene,
         "cut.create" => crate::trash::Entity::Cut,
+        "comment.create" => crate::trash::Entity::Comment,
         other => return Err(Error::Other(format!("`{other}` creates nothing"))),
     };
     Ok((entity, required(&entry.params, "id")?))

@@ -30,7 +30,7 @@ or the key goes nowhere, the chord is dropped and nothing happens — a forgotte
 
 | Keys | What it does |
 | --- | --- |
-| `Ctrl+K` / `⌘K` | Find anything: works, drafts, notes, assistant replies. A note opens on the Notes screen |
+| `Ctrl+K` / `⌘K` | Find anything: works, drafts, notes, comments, assistant replies. A note opens on the Notes screen, a comment on the Comments screen |
 | `Alt+←` | Back |
 | `Alt+→` | Forward |
 

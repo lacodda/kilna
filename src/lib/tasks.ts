@@ -48,3 +48,27 @@ export function movesTaskList(emission: RunEmission): boolean {
   const { kind } = emission.event
   return kind === 'started' || kind === 'finished' || kind === 'failed' || kind === 'stopped'
 }
+
+/** The key of a task about one comment — the backend's `comment_key`. */
+export function commentTaskKey(action: string, commentId: string): string {
+  return `${action}:comment:${commentId}`
+}
+
+/** Whether a task key is a screenshot being read by this action — the
+ *  backend's `screenshot_key`, whose channel and picture follow the prefix. */
+export function isScreenshotTask(key: string, action: string): boolean {
+  return key.startsWith(`${action}:channel:`)
+}
+
+/** The channel a screenshot task is reading for, out of its key. */
+export function channelOfTask(key: string): string | undefined {
+  const parts = key.split(':')
+  if (parts.length < 4 || parts[1] !== 'channel') return undefined
+  // The channel is everything between the marker and the picture's id; its
+  // own colons were escaped when the key was built.
+  return parts
+    .slice(2, -1)
+    .join(':')
+    .replaceAll('%3A', ':')
+    .replaceAll('%25', '%')
+}

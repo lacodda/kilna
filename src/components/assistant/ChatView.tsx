@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -13,6 +14,7 @@ import {
   type Run,
   type RunEmission,
 } from '@/lib/api'
+import { actionsOfScope } from '@/lib/actions'
 import { conversation, pending, type Exchange } from '@/lib/chat'
 import { reading } from '@/lib/palette'
 import { formatDuration, withEvent } from '@/lib/runs'
@@ -52,6 +54,7 @@ interface Props {
  */
 export function ChatView({ chatId, workId, onChatCreated }: Props) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const profile = useProfile()
   const client = useQueryClient()
 
@@ -173,7 +176,10 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
   // The palette is open when the draft is nothing but a slash command. Derived
   // rather than kept in state: the draft is the only truth, and a second copy
   // would be one more thing to get out of step with it.
-  const palette = workId === undefined ? null : reading(draft, profile.config.prompts)
+  // A work chat offers the work's actions: a scene's, a style's or a
+  // comment's template filled into it would ask about something it is not.
+  const workActions = actionsOfScope(profile.config.prompts, 'work')
+  const palette = workId === undefined ? null : reading(draft, workActions)
   const chosen = palette?.matches[Math.min(highlighted, palette.matches.length - 1)] ?? null
 
   const items = conversation(transcript.data?.messages ?? [], runs.data ?? [])
@@ -234,9 +240,9 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
     <div className="flex flex-col gap-3">
       {working && <span className="text-xs text-dim">{t('assistant.thinking')}</span>}
 
-      {workId !== undefined && profile.config.prompts.length > 0 && (
+      {workId !== undefined && workActions.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {profile.config.prompts.map((prompt) => (
+          {workActions.map((prompt) => (
             <Button
               key={prompt.key}
               size="sm"
@@ -285,6 +291,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
                   : (body, role, label, messageId) => setInserting({ body, role, label, messageId })
               }
               onKeepAsNote={(body) => setKeeping(body)}
+              onOpenComments={() => void navigate('/comments')}
               onStop={(id) => {
                 stop.mutate(id)
               }}
@@ -437,6 +444,7 @@ function ExchangeItem({
   onCopy,
   onInsert,
   onKeepAsNote,
+  onOpenComments,
   onStop,
   stopping,
 }: {
@@ -448,6 +456,8 @@ function ExchangeItem({
   onInsert?: (body: string, role?: string, label?: string, messageId?: string) => void
   /** Keep the answer as a note. Always offered: a note needs no work. */
   onKeepAsNote: (body: string) => void
+  /** Go where a comment or a reply is kept. */
+  onOpenComments: () => void
   onStop: (runId: string) => void
   stopping: boolean
 }) {
@@ -466,9 +476,13 @@ function ExchangeItem({
   const settled = item.run?.working !== true
   // A proposed version, package or storyboard has its own buttons below; the
   // toolbar's *insert* on it would keep a rendering of a package as a lyric.
+  // A comment or a reply is kept on the comments screen, where its fields
+  // can be corrected first; neither is a version or a note of anything.
+  const aboutComment = proposal?.kind === 'comment' || proposal?.kind === 'reply'
   const insertable =
     onInsert !== undefined &&
     settled &&
+    !aboutComment &&
     proposal?.kind !== 'version' &&
     proposal?.kind !== 'work' &&
     proposal?.kind !== 'scenes'
@@ -477,6 +491,7 @@ function ExchangeItem({
   // has its own button and would otherwise be kept twice.
   const keepable =
     settled &&
+    !aboutComment &&
     proposal?.kind !== 'note' &&
     proposal?.kind !== 'version' &&
     proposal?.kind !== 'work' &&
@@ -580,6 +595,16 @@ function ExchangeItem({
           proposal={proposal}
           applied={applied}
         />
+      )}
+      {aboutComment && settled && (
+        <p className="mx-3 flex items-center gap-2 text-xs text-dim">
+          {applied !== null ? t('assistant.commentKept') : t('assistant.commentToKeep')}
+          {applied === null && (
+            <Button size="sm" variant="icon" className="h-6 px-1.5 text-[11px]" onClick={onOpenComments}>
+              {t('assistant.openComments')}
+            </Button>
+          )}
+        </p>
       )}
       {item.answer !== null && proposal?.kind === 'note' && settled && (
         <ProposedNote messageId={item.answer.id} proposal={proposal} applied={applied} />

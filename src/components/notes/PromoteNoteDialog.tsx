@@ -59,7 +59,15 @@ export function PromoteNoteDialog({ open, onOpenChange, note, onPromoted }: Prop
       announceEdited({
         client,
         message: t('notes.promoted', { title: title.trim() }),
-        refresh: [keys.notes, keys.tags, keys.works, keys.catalogue, keys.deletions, keys.journal],
+        refresh: [
+          keys.notes,
+          keys.tags,
+          keys.works,
+          keys.workspace,
+          keys.catalogue,
+          keys.deletions,
+          keys.journal,
+        ],
       })
       onOpenChange(false)
       onPromoted(promoted.work_id)

@@ -1468,7 +1468,7 @@ impl ProfileConfig {
     /// its text placeholder and sent critiques of nothing for a month.
     fn validate_prompts(&self, problems: &mut Vec<String>) {
         use crate::assistant::prompt::{
-            Produces, SCENE_SCOPE, STYLE_SCOPE, Scope, is_known_placeholder,
+            COMMENT_SCOPE, Produces, SCENE_SCOPE, STYLE_SCOPE, Scope, is_known_placeholder,
         };
 
         unique(
@@ -1490,15 +1490,19 @@ impl ProfileConfig {
                 }
             }
             if let Some(scope) = prompt.scope.as_deref().map(str::trim) {
-                if scope != SCENE_SCOPE && scope != STYLE_SCOPE && scope != "work" {
+                if scope != SCENE_SCOPE
+                    && scope != STYLE_SCOPE
+                    && scope != COMMENT_SCOPE
+                    && scope != "work"
+                {
                     problems.push(format!(
-                        "{place}: `scope` is `work`, `scene` or `style`, not `{scope}`"
+                        "{place}: `scope` is `work`, `scene`, `style` or `comment`, not `{scope}`"
                     ));
                 }
             }
             if !prompt.produces_is_known() {
                 problems.push(format!(
-                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add` or `scenes:revise`, not `{}`",
+                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment` or `reply`, not `{}`",
                     prompt.produces.as_deref().unwrap_or_default().trim()
                 ));
             }
@@ -1597,7 +1601,23 @@ impl ProfileConfig {
                         ));
                     }
                 }
-                Produces::Score | Produces::Prose => {}
+                Produces::Comment | Produces::Reply if prompt.scope() != Scope::Comment => {
+                    problems.push(format!(
+                        "{place} produces `{}`, which only an action about a comment can: give it `\"scope\": \"comment\"`",
+                        prompt.produces.as_deref().unwrap_or_default().trim()
+                    ));
+                }
+                Produces::Score | Produces::Prose | Produces::Comment | Produces::Reply => {}
+            }
+            // An action about a comment either reads one off a screenshot or
+            // drafts its reply; an answer of any other shape has nowhere to
+            // go, and a button whose answer cannot be kept is a dead end.
+            if prompt.scope() == Scope::Comment
+                && !matches!(prompt.produces(), Produces::Comment | Produces::Reply)
+            {
+                problems.push(format!(
+                    "{place} is about a comment and must produce `comment` or `reply`"
+                ));
             }
         }
     }
@@ -2394,6 +2414,40 @@ mod tests {
             "{:?}",
             config.validate()
         );
+    }
+
+    #[test]
+    fn a_comment_action_is_about_a_comment_and_nothing_else_produces_one() {
+        let mut config = studio();
+        let mut stray = action("Write the reply.");
+        stray.produces = Some("reply".into());
+        config.prompts = vec![stray];
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("only an action about a comment can")),
+            "{:?}",
+            config.validate()
+        );
+
+        let mut chatty = action("Say something about it.");
+        chatty.scope = Some("comment".into());
+        config.prompts = vec![chatty];
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("must produce `comment` or `reply`")),
+            "{:?}",
+            config.validate()
+        );
+
+        let mut reader = action("Read it.");
+        reader.scope = Some("comment".into());
+        reader.produces = Some("comment".into());
+        config.prompts = vec![reader];
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
     }
 
     #[test]

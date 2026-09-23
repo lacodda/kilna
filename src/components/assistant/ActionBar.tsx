@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { listen } from '@tauri-apps/api/event'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, Eye, Sparkles } from 'lucide-react'
+import { actionsOfScope } from '@/lib/actions'
 import { activeTasks, startTask, type PromptTemplate, type RunEmission } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
@@ -51,14 +52,12 @@ export function actionsFor(
   scope: 'work' | 'scene',
 ): PromptTemplate[] {
   if (kind === undefined) return []
-  return actions.filter(
+  // By scope first: an action about a style brick or a comment belongs to
+  // neither bar. Asked through `actionsOfScope`, not a `scene ? scene : work`
+  // fallback here — that fallback offered the style action on every card.
+  return actionsOfScope(actions, scope).filter(
     (action) =>
-      (action.kinds === undefined || action.kinds.length === 0 || action.kinds.includes(kind)) &&
-      // A style action is about a brick of the dictionary, not about a work
-      // or a scene, so it belongs to neither bar. Named rather than left to
-      // the `scene ? scene : work` fallback, which offered it on every card.
-      action.scope !== 'style' &&
-      (action.scope === 'scene' ? 'scene' : 'work') === scope,
+      action.kinds === undefined || action.kinds.length === 0 || action.kinds.includes(kind),
   )
 }
 

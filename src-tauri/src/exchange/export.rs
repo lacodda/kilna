@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use rusqlite::Connection;
 use serde::Serialize;
 
+use crate::comment::{self, CommentFilter};
 use crate::error::Result;
 use crate::note::{self, NoteFilter};
 use crate::profile;
@@ -42,6 +43,20 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
 
     let works = work::list(conn, &profile.id, &WorkFilter::default())?;
     let mut files = 0;
+
+    // Every comment of the profile in every state, read once and handed out
+    // by work below: a listing leaves the archived ones out unless asked.
+    let mut comments = Vec::new();
+    for state in comment::STATES {
+        comments.extend(comment::list(
+            conn,
+            &profile.id,
+            &CommentFilter {
+                state: Some(state.to_owned()),
+                ..CommentFilter::default()
+            },
+        )?);
+    }
 
     for work in &works {
         let mut page = String::new();
@@ -235,6 +250,20 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             }
         }
 
+        // What the audience said, archived included: an export is the whole
+        // record, and "needs no reply" is a fact about a comment, not a reason
+        // to lose it.
+        let said: Vec<_> = comments
+            .iter()
+            .filter(|comment| comment.work_id.as_deref() == Some(work.id.as_str()))
+            .collect();
+        if !said.is_empty() {
+            page.push_str("\n## Comments\n\n");
+            for comment in said {
+                push_comment(&mut page, comment);
+            }
+        }
+
         let path = works_dir.join(format!("{}.md", slug(&work.title, &work.id)));
         std::fs::write(&path, page)?;
         files += 1;
@@ -261,6 +290,17 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         files += 1;
     }
 
+    // Comments about no work in particular, which would otherwise be lost.
+    let loose: Vec<_> = comments.iter().filter(|c| c.work_id.is_none()).collect();
+    if !loose.is_empty() {
+        let mut page = String::from("# Comments\n\n");
+        for comment in loose {
+            push_comment(&mut page, comment);
+        }
+        std::fs::write(directory.join("comments.md"), page)?;
+        files += 1;
+    }
+
     // The profile itself, so the vocabulary the export speaks in is legible.
     std::fs::write(
         directory.join("profile.json"),
@@ -273,6 +313,27 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         works: works.len(),
         files,
     })
+}
+
+/// One comment as a list item: who, where, when, where it stands, the words
+/// quoted, and the reply under them.
+fn push_comment(page: &mut String, comment: &comment::Comment) {
+    page.push_str(&format!(
+        "- **{}** on {}",
+        comment.author.as_deref().unwrap_or("someone"),
+        comment.channel
+    ));
+    if let Some(day) = &comment.commented_on {
+        page.push_str(&format!(", {day}"));
+    }
+    page.push_str(&format!(" — {}\n", comment.state));
+    for line in comment.body.lines() {
+        page.push_str(&format!("  > {line}\n"));
+    }
+    if let Some(reply) = comment.reply.as_deref().filter(|r| !r.trim().is_empty()) {
+        page.push_str(&format!("\n  Reply: {}\n", reply.replace('\n', "\n  ")));
+    }
+    page.push('\n');
 }
 
 /// A file name from a title: readable, unique, and safe on every platform.
@@ -443,6 +504,73 @@ mod tests {
         assert!(page.contains("## Scores"));
         assert!(page.contains("a thought"));
         assert!(page.contains("idea"));
+    }
+
+    #[test]
+    fn comments_go_out_with_their_work_and_the_loose_ones_on_their_own() {
+        let (conn, profile_id) = workspace();
+        let work = crate::work::create(
+            &conn,
+            &profile_id,
+            crate::work::NewWork {
+                kind: "song".into(),
+                title: "Harbour lights".into(),
+                ..crate::work::NewWork::default()
+            },
+        )
+        .unwrap();
+        let about = comment::create_minted(
+            &conn,
+            &profile_id,
+            comment::NewComment {
+                channel: "main".into(),
+                body: "loved the bridge".into(),
+                author: Some("anna".into()),
+                reply: Some("thank you!".into()),
+                work_id: Some(work.id.clone()),
+                ..Default::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+        comment::update_at(
+            &conn,
+            &about.id,
+            comment::CommentPatch {
+                state: Some(comment::ARCHIVED.into()),
+                ..Default::default()
+            },
+            "2026-09-22T00:00:00Z",
+        )
+        .unwrap();
+        comment::create_minted(
+            &conn,
+            &profile_id,
+            comment::NewComment {
+                channel: "main".into(),
+                body: "love the channel".into(),
+                ..Default::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+        let dir = tempfile::tempdir().unwrap();
+
+        to_markdown(&conn, dir.path()).unwrap();
+
+        let page = std::fs::read_dir(dir.path().join("works"))
+            .unwrap()
+            .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())
+            .find(|page| page.contains("Harbour lights"))
+            .unwrap();
+        assert!(page.contains("## Comments"));
+        assert!(
+            page.contains("> loved the bridge"),
+            "an archived comment is still exported"
+        );
+        assert!(page.contains("Reply: thank you!"));
+        let loose = std::fs::read_to_string(dir.path().join("comments.md")).unwrap();
+        assert!(loose.contains("love the channel"));
     }
 
     #[test]

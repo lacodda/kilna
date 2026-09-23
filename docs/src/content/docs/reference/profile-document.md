@@ -736,9 +736,9 @@ specifically.
 | `icon` | string, optional | The glyph on the button, from the list below. A name kilna does not know draws the generic spark. |
 | `template` | string | The message sent to Claude, with placeholders filled per work. Keep it short: the method carries the how. |
 | `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
-| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`. Anything else loads as prose and is refused when the profile is saved. |
+| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment. Anything else loads as prose and is refused when the profile is saved. |
 | `kinds` | list of strings, optional | The work kinds the action is offered on. Absent or empty is every kind. An action that reads `{role:lyrics}` is for the kinds that have lyrics — Studio's song actions say `["song"]` — because a button for it on a video would send a prompt with a hole in it. |
-| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. Absent is the work. |
+| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. Absent is the work. |
 
 **Keep the label to a word or two.** The button carries a glyph and that label;
 what the action does belongs in `description`, which is the tooltip. A row of
@@ -747,7 +747,8 @@ five actions spelled out in full — *Critique the lyrics*, *Suggest a revision*
 buttons like that are neither read nor remembered.
 
 The names `icon` accepts: `sparkles`, `wand`, `pen`, `spell-check`, `scroll`,
-`tags`, `gauge`, `music`, `film`, `clapperboard`, `image`, `list`, `lightbulb`.
+`tags`, `gauge`, `music`, `film`, `clapperboard`, `image`, `list`, `lightbulb`,
+`palette`, `eye`, `reply`.
 
 The same prompt is offered in three places: in the panel it fills the composer
 for you to read and send, typing `/` reaches the same list from the keyboard,
@@ -788,6 +789,18 @@ only in the fields it gives — the shape a scene action needs. A block in the
 wrong words — a kind of shot the profile does not have, a revision that
 numbers another scene — is not silently nothing: the chat says why there is
 no button. See [Scenes](/kilna/guides/scenes/#actions-on-the-board).
+
+An action with `"scope": "comment"` and `"produces": "comment"` reads a pasted
+screenshot. kilna attaches the picture, says which channel it was pasted under
+and what day it is, and asks for a json block with the author, the text word for
+word, the day it was written and the title it was written under. The channel is
+never taken from the answer: the picture cannot say which channel it is. One with
+`"produces": "reply"` drafts the answer to a comment: kilna gives the comment,
+the work it is under with the opening of its text, and the replies already
+posted on the same channel as the voice to write in; the whole answer is the
+reply. Both come back as proposals kept on the comments screen, with every field
+open to correction first. Every shipped profile carries `read-comment` and
+`reply-to-comment`; see [Comments](/kilna/guides/comments/).
 
 Every shipped profile carries a `score` action. Anything else declaring
 `produces` gets the same treatment; an unrecognised value is ignored when the

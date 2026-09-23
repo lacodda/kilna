@@ -25,6 +25,7 @@ import { ReleasePanel } from '@/components/ReleasePanel'
 import { ActionBar } from '@/components/assistant/ActionBar'
 import { AssistantPanel } from '@/components/assistant/AssistantPanel'
 import { NotePanel } from '@/components/NotePanel'
+import { CommentsPanel } from '@/components/comments/CommentsPanel'
 import { WorkHistory } from '@/components/JournalFeed'
 import { PluginBar } from '@/components/PluginBar'
 
@@ -166,7 +167,7 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
  * left, what is picked from it on the right. Scrolling twenty revisions must
  * not move the text being read, and the other way round.
  */
-const HELD: ReadonlySet<Tab> = new Set<Tab>(['versions', 'score'])
+const HELD: ReadonlySet<Tab> = new Set<Tab>(['versions', 'score', 'comments'])
 
 /** The one tab that is open. Everything else is not mounted at all. */
 function TabBody({
@@ -210,6 +211,8 @@ function TabBody({
       return <LinksTab work={work} />
     case 'notes':
       return <NotePanel workId={workId} />
+    case 'comments':
+      return <CommentsPanel workId={workId} />
     // The mockup has no assistant tab — it puts the panel in a drawer with a
     // floating button, which is v0.28. Until then it lives here rather than
     // being unreachable.

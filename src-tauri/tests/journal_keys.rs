@@ -87,16 +87,9 @@ fn keys_written() -> BTreeSet<String> {
         found.insert(source[start..start + end].to_owned());
     }
 
-    for entity in [
-        kilna_lib::trash::Entity::Work,
-        kilna_lib::trash::Entity::Version,
-        kilna_lib::trash::Entity::Score,
-        kilna_lib::trash::Entity::Release,
-        kilna_lib::trash::Entity::Note,
-        kilna_lib::trash::Entity::Collection,
-        kilna_lib::trash::Entity::Scene,
-        kilna_lib::trash::Entity::Cut,
-    ] {
+    // Every entity the trash holds, from the trash itself: a list kept here
+    // by hand is the one a new entity is forgotten from.
+    for entity in kilna_lib::trash::Entity::ALL {
         found.insert(format!("{}.deleted", entity.as_str()));
     }
 

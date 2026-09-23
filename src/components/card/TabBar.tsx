@@ -1,4 +1,7 @@
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
+import { countWorkComments } from '@/lib/api'
+import { keys } from '@/lib/query'
 import { NavLink } from 'react-router'
 import { TABS, type Tab } from '@/components/card/tabs'
 import { cn } from '@/lib/utils'
@@ -26,6 +29,12 @@ interface Props {
  */
 export function TabBar({ workId, releases = 0, links = 0, scenes, cuts }: Props) {
   const { t } = useTranslation()
+  // The comments' counter is the bar's own: what the audience said is about
+  // the work whichever tab is open, and what still waits is worth a mark.
+  const comments = useQuery({
+    queryKey: keys.commentCount(workId),
+    queryFn: () => countWorkComments(workId),
+  })
 
   return (
     // Seven tabs measured 572px inside a 570px strip — two pixels over, enough
@@ -68,6 +77,19 @@ export function TabBar({ workId, releases = 0, links = 0, scenes, cuts }: Props)
           {tab === 'scenes' && scenes !== undefined && scenes > 0 && (
             <span className="rounded-full border border-line px-1.5 text-[11px] text-faint">
               {scenes}
+            </span>
+          )}
+          {tab === 'comments' && comments.data !== undefined && comments.data.total > 0 && (
+            <span
+              title={t('comments.waitingCount', { count: comments.data.waiting })}
+              className={cn(
+                'rounded-full border px-1.5 text-[11px]',
+                comments.data.waiting > 0
+                  ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
+                  : 'border-line text-faint',
+              )}
+            >
+              {comments.data.waiting > 0 ? comments.data.waiting : comments.data.total}
             </span>
           )}
           {tab === 'cuts' && cuts !== undefined && cuts > 0 && (

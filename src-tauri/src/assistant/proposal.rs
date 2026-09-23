@@ -106,6 +106,28 @@ pub enum Proposal {
         #[serde(default)]
         change: BoardChange,
     },
+    /// A comment read off a screenshot, waiting to be kept. The channel and
+    /// the work come from where the screenshot was pasted, not from the
+    /// answer: the picture cannot say which channel it is, and a model asked
+    /// to repeat a word back is a model that can repeat it wrong.
+    Comment {
+        channel: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        work_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        author: Option<String>,
+        body: String,
+        /// The day it was written, when the picture showed one.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        commented_on: Option<String>,
+        /// What the picture says it was written under — a video's title —
+        /// when no work was given: a hint for choosing one, never a key.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        about: Option<String>,
+    },
+    /// A reply to one comment; the text is the message body, the way a
+    /// version's is.
+    Reply { comment_id: String },
 }
 
 /// What a scenes proposal does to the board already on the work.
@@ -318,6 +340,66 @@ pub fn version_instruction(role_label: &str) -> String {
         "\n\nYour whole reply is kept as the {role_label}, word for word: write only it — no \
          preamble, no closing question, no fences around the whole."
     )
+}
+
+/// What an action that reads a comment off a screenshot appends to its prompt.
+///
+/// `today` is given because a screenshot says "3 weeks ago", and turning that
+/// into a day needs to know which day it is now.
+pub fn comment_instruction(today: &str) -> String {
+    format!(
+        "\n\nToday is {today}. End your reply with a fenced json block, exactly this shape and \
+         nothing else inside it:\n\n```json\n{{\n  \"author\": \"<the name shown, or null>\",\n  \
+         \"text\": \"<the comment, word for word, in its own language>\",\n  \
+         \"day\": \"<YYYY-MM-DD it was written, or null>\",\n  \
+         \"about\": \"<the title of what it was written under, if the picture shows it, or null>\"\n}}\n```\n\n\
+         Copy the text exactly: do not translate it, correct it or shorten it. A relative time \
+         (\"3 weeks ago\") becomes the day it means; leave `day` null when the picture shows none. \
+         If the picture holds several comments, take the one that is not a reply."
+    )
+}
+
+/// What an action that drafts a reply appends to its prompt.
+///
+/// The whole answer is what gets kept, as with a version: a preamble would be
+/// posted under someone's comment.
+pub fn reply_instruction() -> &'static str {
+    "\n\nYour whole reply is kept as the answer to the comment, word for word: write only it — \
+     no preamble, no options to choose from, no quotation marks around it."
+}
+
+/// Find a comment in an answer to a screenshot.
+///
+/// `channel` and `work_id` are where the screenshot was pasted. An answer
+/// with no block, or with a block that holds no text, is refused with the
+/// reason rather than proposing an empty comment: a comment is its words.
+pub fn read_comment(
+    body: &str,
+    channel: &str,
+    work_id: Option<String>,
+) -> std::result::Result<Proposal, String> {
+    let block = fenced_json(body).ok_or("the answer holds no comment block")?;
+    let raw: Map<String, Value> = serde_json::from_str(&block)
+        .map_err(|err| format!("the comment block is not JSON: {err}"))?;
+    let text = |key: &str| {
+        raw.get(key)
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty() && *value != "null")
+            .map(str::to_owned)
+    };
+    let body = text("text").ok_or("the comment block holds no text")?;
+    // A day that is not one is dropped rather than refusing the comment: the
+    // words are what matter, and the day is a field the person can fill in.
+    let commented_on = text("day").filter(|day| crate::comment::is_day(day));
+    Ok(Proposal::Comment {
+        channel: channel.to_owned(),
+        work_id,
+        author: text("author"),
+        body,
+        commented_on,
+        about: text("about"),
+    })
 }
 
 /// What an action that produces scenes appends to its prompt.
@@ -843,6 +925,61 @@ mod tests {
 
     fn block(inner: &str) -> String {
         format!("Here is what I think.\n\n```json\n{inner}\n```")
+    }
+
+    /// The instructions are prose a model reads: a run of spaces in the middle
+    /// of a sentence is a line continuation that went wrong in the source —
+    /// the class of damage a patch script did here once, which compiles and
+    /// reads as garbage.
+    #[test]
+    fn the_comment_instructions_read_as_sentences() {
+        for text in [
+            comment_instruction("2026-09-22"),
+            reply_instruction().to_owned(),
+        ] {
+            assert!(!text.contains("   "), "a hole in the prose: {text:?}");
+            assert!(
+                text.starts_with("\n\n"),
+                "set apart from the prompt above it"
+            );
+        }
+        assert!(comment_instruction("2026-09-22").contains("```json\n{\n  \"author\""));
+    }
+
+    #[test]
+    fn a_comment_is_read_out_of_its_block() {
+        let answer = block(
+            r#"{"author": "anna", "text": "  loved the bridge  ", "day": "2026-02-30", "about": "Harbour lights"}"#,
+        );
+
+        let Ok(Proposal::Comment {
+            channel,
+            body,
+            author,
+            commented_on,
+            about,
+            work_id,
+        }) = read_comment(&answer, "main", Some("w1".into()))
+        else {
+            panic!("a comment should have been read");
+        };
+
+        assert_eq!(channel, "main");
+        assert_eq!(work_id.as_deref(), Some("w1"));
+        assert_eq!(body, "loved the bridge");
+        assert_eq!(author.as_deref(), Some("anna"));
+        assert_eq!(
+            commented_on, None,
+            "the 30th of February is dropped, not kept"
+        );
+        assert_eq!(about.as_deref(), Some("Harbour lights"));
+    }
+
+    #[test]
+    fn a_comment_with_no_words_is_refused_with_the_reason() {
+        assert!(read_comment("no block at all", "main", None).is_err());
+        assert!(read_comment(&block(r#"{"author": "anna", "text": "  "}"#), "main", None).is_err());
+        assert!(read_comment(&block(r#"{"text": null}"#), "main", None).is_err());
     }
 
     fn score_of(

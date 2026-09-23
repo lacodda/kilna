@@ -57,6 +57,12 @@ export const keys = {
   covers: ['covers'] as const,
   assetsFor: (workId: string) => ['assets', workId] as const,
   notes: ['notes'] as const,
+  // One prefix over the inbox, the channels, a work's counter and what waits
+  // to be kept: keeping a comment changes all four at once.
+  comments: ['comments'] as const,
+  commentChannels: ['comments', 'channels'] as const,
+  commentCount: (workId: string) => ['comments', 'count', workId] as const,
+  commentProposals: ['comments', 'proposals'] as const,
   /** What the links in one body point at, keyed by the ids they name: two
       bodies naming the same works share the answer. */
   resolvedLinks: (ids: string) => ['links', 'resolved', ids] as const,

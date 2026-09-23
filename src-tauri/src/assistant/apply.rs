@@ -46,6 +46,14 @@ pub struct Overrides {
     pub label: Option<String>,
     #[serde(default)]
     pub make_current: Option<bool>,
+    /// A comment read off a screenshot, as the person corrected it before
+    /// keeping: the words fixed, the work chosen, the channel moved. Kept
+    /// instead of what was read.
+    #[serde(default)]
+    pub comment: Option<crate::comment::NewComment>,
+    /// A drafted reply, as the person edited it before keeping.
+    #[serde(default)]
+    pub reply: Option<String>,
 }
 
 /// What applying made. Returned to the caller and stamped on the message as
@@ -81,6 +89,9 @@ pub struct Outcome {
     /// The style brick an answer was written onto, when it was one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub style_brick: Option<String>,
+    /// The comment kept from a screenshot, or whose reply was written.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
 }
 
 /// Keep an answer as a style brick's description.
@@ -199,6 +210,66 @@ pub fn pending(conn: &Connection, profile_id: &str) -> Result<Vec<Pending>> {
                 .and_then(Value::as_str)
                 .unwrap_or("proposal")
                 .to_owned(),
+            created_at,
+        });
+    }
+    Ok(out)
+}
+
+/// A comment or a reply waiting to be kept, with what it says: the comments
+/// screen shows each where it belongs — a reply under its comment, a
+/// comment read off a screenshot at the top of the inbox.
+#[derive(Debug, Clone, Serialize)]
+pub struct CommentProposal {
+    pub message_id: String,
+    pub chat_id: String,
+    /// The answer: the reply itself, or the text the comment was read from.
+    pub body: String,
+    pub proposal: Proposal,
+    pub created_at: String,
+}
+
+/// Every comment and reply proposal of a profile nobody has answered, oldest
+/// first — [`pending`] narrowed to the two kinds, with their contents.
+pub fn pending_comments(conn: &Connection, profile_id: &str) -> Result<Vec<CommentProposal>> {
+    let mut statement = conn.prepare(
+        "SELECT m.id, m.chat_id, m.body, m.meta, m.created_at
+           FROM chat_message m
+           JOIN chat c ON c.id = m.chat_id
+          WHERE c.profile_id = ?1 AND m.role = ?2
+            AND json_extract(m.meta, '$.proposal.kind') IN ('comment', 'reply')
+          ORDER BY m.created_at, m.rowid",
+    )?;
+    let rows = statement
+        .query_map(params![profile_id, ASSISTANT], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+
+    let mut out = Vec::new();
+    for (message_id, chat_id, body, raw, created_at) in rows {
+        let meta: Map<String, Value> = serde_json::from_str(&raw).unwrap_or_default();
+        if meta.contains_key("applied") || meta.contains_key(DISMISSED) {
+            continue;
+        }
+        let Some(proposal) = meta
+            .get("proposal")
+            .cloned()
+            .and_then(|value| serde_json::from_value::<Proposal>(value).ok())
+        else {
+            continue;
+        };
+        out.push(CommentProposal {
+            message_id,
+            chat_id,
+            body,
+            proposal,
             created_at,
         });
     }
@@ -577,6 +648,32 @@ pub fn apply(
                 }
             }
         }
+
+        Proposal::Comment {
+            channel,
+            work_id,
+            author,
+            body,
+            commented_on,
+            ..
+        } => {
+            let new = overrides.comment.unwrap_or(crate::comment::NewComment {
+                channel,
+                body,
+                work_id,
+                author,
+                reply: None,
+                commented_on,
+            });
+            outcome.work_id = new.work_id.clone();
+            outcome.comment = Some(write_comment(conn, profile_id, new)?);
+        }
+
+        Proposal::Reply { comment_id } => {
+            let text = overrides.reply.unwrap_or_else(|| message.body.clone());
+            write_reply(conn, profile_id, &comment_id, text.trim())?;
+            outcome.comment = Some(comment_id);
+        }
     }
 
     // The status follows the facts, as after any hand-made version or score.
@@ -821,6 +918,52 @@ fn write_release(
         crate::release::create_minted(tx, new, minted)
     })?;
     Ok(created.id)
+}
+
+/// Keep a comment, the way the comments screen keeps one typed in.
+fn write_comment(
+    conn: &mut Connection,
+    profile_id: &str,
+    new: crate::comment::NewComment,
+) -> Result<String> {
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("comment.create")
+        .in_profile(profile_id)
+        .param("profile", profile_key(conn, profile_id)?)
+        .param("comment", serde_json::to_value(&new)?)
+        .minted(&minted);
+    let created = recording(conn, logged, |tx| {
+        crate::comment::create_minted(tx, profile_id, new, minted)
+    })?;
+    Ok(created.id)
+}
+
+/// Write a comment's reply, the way the reply box writes one: an edit with
+/// what stood there before, so it can be taken back.
+fn write_reply(
+    conn: &mut Connection,
+    profile_id: &str,
+    comment_id: &str,
+    text: &str,
+) -> Result<()> {
+    let before = crate::comment::get(conn, comment_id)?
+        .ok_or_else(|| Error::not_found("comment", comment_id))?;
+    let patch = crate::comment::CommentPatch {
+        reply: Some(Some(text.to_owned())),
+        ..crate::comment::CommentPatch::default()
+    };
+    let at = time::now();
+    let logged = operation::Intent::new("comment.update")
+        .in_profile(profile_id)
+        .param("profile", profile_key(conn, profile_id)?)
+        .param("id", comment_id.to_owned())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(Some(&before), &patch)?)
+        .param("at", at.clone());
+    recording(conn, logged, |tx| {
+        crate::comment::update_at(tx, comment_id, patch, &at)
+    })?;
+    Ok(())
 }
 
 fn write_note(
@@ -1702,6 +1845,152 @@ mod tests {
     }
 
     #[test]
+    fn a_comment_read_off_a_screenshot_is_kept_through_the_log() {
+        let (mut conn, profile_id, work_id) = workspace();
+        let chat = chat_on(&conn, &profile_id, Some(&work_id));
+        let message = propose(
+            &conn,
+            &chat,
+            "One comment.",
+            Proposal::Comment {
+                channel: "main".into(),
+                work_id: Some(work_id.clone()),
+                author: Some("anna".into()),
+                body: "loved the bridge".into(),
+                commented_on: Some("2026-09-01".into()),
+                about: None,
+            },
+        );
+
+        let waiting = pending_comments(&conn, &profile_id).unwrap();
+        assert_eq!(waiting.len(), 1, "the screen offers it before it is kept");
+
+        let outcome = apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+
+        let kept = crate::comment::get(&conn, outcome.comment.as_deref().unwrap())
+            .unwrap()
+            .unwrap();
+        assert_eq!(kept.body, "loved the bridge");
+        assert_eq!(kept.channel, "main");
+        assert_eq!(kept.work_id.as_deref(), Some(work_id.as_str()));
+        assert_eq!(kept.commented_on.as_deref(), Some("2026-09-01"));
+        assert!(operation_kinds(&conn).contains(&"comment.create".to_owned()));
+        assert!(
+            pending_comments(&conn, &profile_id).unwrap().is_empty(),
+            "a kept comment stops waiting"
+        );
+    }
+
+    #[test]
+    fn a_corrected_comment_is_kept_as_corrected() {
+        let (mut conn, profile_id, _) = workspace();
+        let chat = chat_on(&conn, &profile_id, None);
+        let message = propose(
+            &conn,
+            &chat,
+            "One comment.",
+            Proposal::Comment {
+                channel: "main".into(),
+                work_id: None,
+                author: None,
+                body: "lovd the brige".into(),
+                commented_on: None,
+                about: None,
+            },
+        );
+
+        let outcome = apply(
+            &mut conn,
+            &profile_id,
+            &message,
+            Overrides {
+                comment: Some(crate::comment::NewComment {
+                    channel: "second".into(),
+                    body: "loved the bridge".into(),
+                    ..Default::default()
+                }),
+                ..Overrides::default()
+            },
+        )
+        .unwrap();
+
+        let kept = crate::comment::get(&conn, outcome.comment.as_deref().unwrap())
+            .unwrap()
+            .unwrap();
+        assert_eq!(kept.body, "loved the bridge");
+        assert_eq!(kept.channel, "second");
+    }
+
+    #[test]
+    fn a_drafted_reply_is_written_onto_its_comment_and_can_be_edited_first() {
+        let (mut conn, profile_id, _) = workspace();
+        let comment = crate::comment::create_minted(
+            &conn,
+            &profile_id,
+            crate::comment::NewComment {
+                channel: "main".into(),
+                body: "what is the bridge about?".into(),
+                ..Default::default()
+            },
+            Minted::fresh(),
+        )
+        .unwrap();
+        let chat = chat_on(&conn, &profile_id, None);
+        let first = propose(
+            &conn,
+            &chat,
+            "It is about the last light.",
+            Proposal::Reply {
+                comment_id: comment.id.clone(),
+            },
+        );
+        let second = propose(
+            &conn,
+            &chat,
+            "Another take.",
+            Proposal::Reply {
+                comment_id: comment.id.clone(),
+            },
+        );
+
+        apply(&mut conn, &profile_id, &first, Overrides::default()).unwrap();
+        let written = crate::comment::get(&conn, &comment.id).unwrap().unwrap();
+        assert_eq!(
+            written.reply.as_deref(),
+            Some("It is about the last light.")
+        );
+        assert_eq!(
+            written.state,
+            crate::comment::OPEN,
+            "posting is the person's, by hand"
+        );
+
+        apply(
+            &mut conn,
+            &profile_id,
+            &second,
+            Overrides {
+                reply: Some("  It is about the last light, and a boat.  ".into()),
+                ..Overrides::default()
+            },
+        )
+        .unwrap();
+        let edited = crate::comment::get(&conn, &comment.id).unwrap().unwrap();
+        assert_eq!(
+            edited.reply.as_deref(),
+            Some("It is about the last light, and a boat.")
+        );
+
+        let log = operation::all(&conn).unwrap();
+        let last = log.last().unwrap();
+        assert_eq!(last.kind, "comment.update");
+        assert_eq!(
+            last.params["before"]["reply"], "It is about the last light.",
+            "the reply that stood before is recorded, so it can be taken back"
+        );
+    }
+
+    #[test]
     fn the_dialogs_choices_override_the_proposal() {
         let (mut conn, profile_id, work_id) = workspace();
         let chat = chat_on(&conn, &profile_id, Some(&work_id));
@@ -1723,6 +2012,7 @@ mod tests {
                 role: Some("style".into()),
                 label: Some("from the chat".into()),
                 make_current: Some(true),
+                ..Overrides::default()
             },
         )
         .unwrap();

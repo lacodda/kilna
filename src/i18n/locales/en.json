@@ -131,7 +131,8 @@
     "trash": "Trash",
     "soon": "Coming in v{{version}}",
     "journal": "History",
-    "styles": "Styles"
+    "styles": "Styles",
+    "comments": "Comments"
   },
   "themeName": {
     "system": "System theme",
@@ -645,14 +646,19 @@
       "scenes": "A storyboard was proposed",
       "work": "A work was proposed",
       "package": "A set of changes was proposed",
-      "other": "Something was proposed"
+      "other": "Something was proposed",
+      "comment": "A comment was read off a screenshot",
+      "reply": "A reply was drafted"
     },
     "keepAsNote": "Keep as a note",
     "keepAsNoteTitle": "Keep as a note",
     "keepAsNoteBody": "The answer is kept word for word. Say what kind it is and what to call it.",
     "noteKind": "Kind of note",
     "noteTitlePlaceholder": "A name for it",
-    "noteKeepFailed": "keep the note"
+    "noteKeepFailed": "keep the note",
+    "commentKept": "Kept on the comments.",
+    "commentToKeep": "Kept from the comments, where it can be corrected first.",
+    "openComments": "Open the comments"
   },
   "links": {
     "sources": "Made from",
@@ -861,7 +867,7 @@
     "attach": "Attach to a work",
     "attachTitle": "Which work is this note about?",
     "detach": "Let go of the work",
-    "addTag": "+ tag",
+    "addTag": "tag",
     "removeTag": "Remove the tag {{tag}}",
     "filterByTag": "Show every note tagged {{tag}}",
     "promote": "Make it a work",
@@ -975,7 +981,11 @@
       "tags": "tags"
     },
     "fieldHintLabel": "Hint under the box",
-    "fieldTemplateLabel": "Filled from the work"
+    "fieldTemplateLabel": "Filled from the work",
+    "producesComment": "A comment read off a screenshot",
+    "producesReply": "A reply to the comment",
+    "scopeStyle": "About a style",
+    "scopeComment": "About a comment"
   },
   "plugins": {
     "title": "Plugins"
@@ -1083,7 +1093,8 @@
       "note": "Note",
       "collection": "Collection",
       "scene": "Scene",
-      "cut": "Cut"
+      "cut": "Cut",
+      "comment": "Comment"
     }
   },
   "journal": {
@@ -1155,7 +1166,8 @@
     "seeAll": "See all",
     "nothingRecent": "Nothing has happened yet.",
     "upgrade.doorsMoved": "{{count}} releases moved onto works of their own: a clip is a video, a short is a short.",
-    "note.promoted": "A note became “{{title}}”."
+    "note.promoted": "A note became “{{title}}”.",
+    "comment.deleted": "Comment “{{label}}” deleted."
   },
   "card": {
     "tab": {
@@ -1169,7 +1181,8 @@
       "links": "Links",
       "notes": "Notes",
       "assistant": "Assistant",
-      "history": "History"
+      "history": "History",
+      "comments": "Comments"
     }
   },
   "search": {
@@ -1187,7 +1200,8 @@
       "version": "Drafts",
       "note": "Notes",
       "message": "Assistant",
-      "recent": "Recent"
+      "recent": "Recent",
+      "comment": "Comments"
     }
   },
   "keys": {
@@ -1244,7 +1258,9 @@
     "cut.create": "taking a stretch",
     "cut.update": "moving a stretch",
     "cut.reorder": "reordering the splice",
-    "note.promote": "a note made into a work"
+    "note.promote": "a note made into a work",
+    "comment.create": "keeping a comment",
+    "comment.update": "an edit to a comment"
   },
   "stage": {
     "label": "Stage",
@@ -1322,5 +1338,83 @@
     "anyKind": "Any kind",
     "group_one": "{{count}} work",
     "group_other": "{{count}} works"
+  },
+  "comments": {
+    "channel": "Channel",
+    "channelPlaceholder": "Where it was written — a channel, a site",
+    "allChannels": "All",
+    "state": "Where it stands",
+    "states": {
+      "open": "Open",
+      "posted": "Answered",
+      "archived": "Archived"
+    },
+    "standing": {
+      "waiting": "Waiting",
+      "drafted": "Reply drafted",
+      "posted": "Answered",
+      "archived": "Archived"
+    },
+    "search": "Search the comments",
+    "pasteShort": "Ctrl+V a screenshot",
+    "pasteHint": "Paste a screenshot of a comment anywhere here and it is read in the background",
+    "new": "Comment",
+    "none": "No comments here yet.",
+    "noMatches": "Nothing matches.",
+    "pick": "Pick a comment on the left",
+    "empty": "No comments yet",
+    "emptyBody": "Paste a screenshot of a comment with Ctrl+V, or type one in. Replies are drafted here and posted by you.",
+    "someone": "Someone",
+    "author": "Author",
+    "authorPlaceholder": "Who wrote it",
+    "day": "Written on",
+    "dayPlaceholder": "Day written",
+    "body": "The comment",
+    "bodyPlaceholder": "What they wrote, word for word",
+    "editBody": "Click to correct the text",
+    "reply": "Reply",
+    "replyPlaceholder": "Your answer. Posting it is yours: copy it and paste it where the comment is.",
+    "draft": "Draft a reply",
+    "drafting": "Drafting a reply in the channel's voice…",
+    "draftingShort": "Drafting…",
+    "draftReady": "A drafted reply is ready",
+    "useDraft": "Use this",
+    "discard": "Discard",
+    "copy": "Copy",
+    "copied": "Reply copied",
+    "copyFailed": "Could not copy the reply.",
+    "markPosted": "Mark as answered",
+    "postedHint": "Say the reply went out where the comment is — kilna never posts it",
+    "archive": "Archive",
+    "archiveHint": "Needs no reply",
+    "reopen": "Reopen",
+    "unarchive": "Take out of the archive",
+    "moveChannel": "Move to another channel",
+    "move": "Move",
+    "attach": "Attach to a work",
+    "detach": "Let go of the work",
+    "delete": "Delete this comment",
+    "deleted": "Comment deleted.",
+    "saveFailed": "Could not save the comment.",
+    "keep": "Keep",
+    "newTitle": "Add a comment",
+    "newBody": "Typed in by hand. A screenshot is quicker: paste it with Ctrl+V anywhere on the comments.",
+    "aboutNothing": "About no work in particular",
+    "aboutWork": "About “{{title}}”",
+    "aboutUnmatched": "Under “{{title}}” — no work goes by that name",
+    "pickWork": "Choose a work",
+    "pickWorkTitle": "Which work is the comment about?",
+    "noWork": "None",
+    "screenshotTitle": "Read a comment from a screenshot",
+    "screenshotBody": "Say which channel it came from. It is read in the background — paste the next one straight away — and comes back to be checked and kept. The picture is not kept.",
+    "screenshotAlt": "The pasted screenshot",
+    "noReader": "The profile has no action that reads a comment from a screenshot. Add one in Settings, or type the comment in.",
+    "read": "Read it",
+    "reading": "Reading the comment…",
+    "readingOn": "Reading a screenshot from {{channel}}…",
+    "readFailed": "Could not read the screenshot.",
+    "readOff": "Read from a screenshot — check it and keep it",
+    "waitingCount_one": "{{count}} waits for a reply",
+    "waitingCount_other": "{{count}} wait for a reply"
   }
 }

@@ -66,6 +66,12 @@ pub enum Produces {
     /// Scenes for the storyboard, in a block the application reads, doing
     /// this to the board that is there.
     Scenes(BoardChange),
+    /// A comment read off a screenshot, in a block the application reads:
+    /// who wrote it, what they wrote, when.
+    Comment,
+    /// The whole answer, kept as the reply to the comment the action was
+    /// started on.
+    Reply,
 }
 
 /// What an action is about.
@@ -79,6 +85,9 @@ pub enum Scope {
     /// all — so an action of this scope is offered on the dictionary and
     /// nowhere else (ADR 0031).
     Style,
+    /// A comment from the audience, or a screenshot of one: offered on the
+    /// comments and nowhere else (ADR 0032).
+    Comment,
 }
 
 /// The value of `scope` that names a scene action.
@@ -86,6 +95,9 @@ pub const SCENE_SCOPE: &str = "scene";
 
 /// The value of `scope` that names an action about a style brick.
 pub const STYLE_SCOPE: &str = "style";
+
+/// The value of `scope` that names an action about a comment.
+pub const COMMENT_SCOPE: &str = "comment";
 
 impl PromptTemplate {
     /// `produces` as the application understands it. An unknown value reads
@@ -96,6 +108,8 @@ impl PromptTemplate {
         match self.produces.as_deref().map(str::trim) {
             Some("score") => Produces::Score,
             Some("scenes") => Produces::Scenes(BoardChange::Replace),
+            Some("comment") => Produces::Comment,
+            Some("reply") => Produces::Reply,
             Some(value) => {
                 if let Some(role) = value.strip_prefix("version:") {
                     return if role.trim().is_empty() {
@@ -134,6 +148,7 @@ impl PromptTemplate {
         match self.scope.as_deref().map(str::trim) {
             Some(SCENE_SCOPE) => Scope::Scene,
             Some(STYLE_SCOPE) => Scope::Style,
+            Some(COMMENT_SCOPE) => Scope::Comment,
             _ => Scope::Work,
         }
     }

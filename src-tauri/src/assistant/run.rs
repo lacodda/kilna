@@ -410,6 +410,9 @@ pub fn pump<S, F>(
 {
     let mut events: Vec<Event> = Vec::new();
     let mut outcome: Option<(RunState, Option<String>)> = None;
+    // Whether the run was already taken off the registry, and whether it had
+    // been cancelled when it was.
+    let mut released: Option<bool> = None;
 
     loop {
         let next = source
@@ -472,6 +475,14 @@ pub fn pump<S, F>(
             _ => {}
         }
 
+        // Off the registry before the end is announced: a window that hears
+        // "finished" asks which tasks are still going, and a task still listed
+        // then kept its button spinning after its answer had landed — seen on
+        // the comments screen, and true of every task button.
+        if matches!(event, Event::Finished { .. } | Event::Failed { .. }) && released.is_none() {
+            released = Some(runs.remove(&run.id));
+        }
+
         sink.emit(&Emission {
             run_id: run.id.clone(),
             chat_id: run.chat_id.clone(),
@@ -485,7 +496,10 @@ pub fn pump<S, F>(
         .unwrap_or_else(std::sync::PoisonError::into_inner)
         .finish();
 
-    let cancelled = runs.remove(&run.id);
+    let cancelled = match released {
+        Some(cancelled) => cancelled,
+        None => runs.remove(&run.id),
+    };
 
     // A run whose output stopped ended one of three ways: it reported a result,
     // someone cancelled it, or the CLI died without saying anything. A result
@@ -598,6 +612,28 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
                 None => Read::Nothing,
             }
         }
+        // The channel is read out of the key, where the paste put it; the
+        // work is the chat's, which is where the paste was made.
+        super::prompt::Produces::Comment => {
+            let Some(channel) = super::task::channel_of_key(task_key) else {
+                return Read::Nothing;
+            };
+            let work_id = super::get(conn, &run.chat_id)
+                .ok()
+                .flatten()
+                .and_then(|chat| chat.work_id);
+            match super::proposal::read_comment(body, &channel, work_id) {
+                Ok(proposal) => value(proposal),
+                Err(why) => Read::Refused(why),
+            }
+        }
+        // The whole answer is the reply; the proposal says whose.
+        super::prompt::Produces::Reply => match super::task::comment_of_key(task_key) {
+            Some(comment_id) => value(super::proposal::Proposal::Reply {
+                comment_id: comment_id.to_owned(),
+            }),
+            None => Read::Nothing,
+        },
         super::prompt::Produces::Scenes(change) => {
             let Some(work) = work_of_chat(conn, &run.chat_id) else {
                 return Read::Nothing;
@@ -1673,6 +1709,209 @@ The second verse is the weak one."
         let proposal = answer.meta.get("proposal").expect("a version is proposed");
         assert_eq!(proposal["kind"], "version");
         assert_eq!(proposal["role"], "critique");
+        drop(dir);
+    }
+
+    /// A window that hears "finished" asks which tasks are still going; the
+    /// finished one must not be among them by then, or its button keeps
+    /// spinning over the answer it already has.
+    #[test]
+    fn a_task_is_off_the_list_by_the_time_its_end_is_heard() {
+        struct Asker {
+            runs: Arc<Runs>,
+            key: String,
+            heard: Mutex<Vec<bool>>,
+        }
+        impl Sink for Asker {
+            fn emit(&self, emission: &Emission) {
+                if matches!(emission.event, Event::Finished { .. }) {
+                    self.heard
+                        .lock()
+                        .unwrap()
+                        .push(self.runs.task_running(&self.key));
+                }
+            }
+        }
+
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some("critique:w1".into());
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let asker = Arc::new(Asker {
+            runs: Arc::clone(&runs),
+            key: "critique:w1".into(),
+            heard: Mutex::new(Vec::new()),
+        });
+        let sink: Arc<dyn Sink> = asker.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: "done".into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        assert_eq!(*asker.heard.lock().unwrap(), vec![false]);
+        drop(dir);
+    }
+
+    /// A screenshot's answer is read into a comment on the channel its key
+    /// names and the work its chat is on — never a channel the answer names.
+    #[test]
+    fn a_screenshot_task_proposes_a_comment_on_the_pasted_channel() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = super::super::create(
+            &conn,
+            &profile_id,
+            NewChat {
+                action: Some("read-comment".into()),
+                ..NewChat::default()
+            },
+        )
+        .unwrap()
+        .id;
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some(crate::assistant::task::screenshot_key(
+            "read-comment",
+            "second: live",
+            "shot-1",
+        ));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: "One comment, from anna.\n\n```json\n{\"author\": \"anna\", \"text\": \"loved the bridge\", \"day\": \"2026-09-01\", \"channel\": \"somewhere else\"}\n```".into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap();
+        let proposal = answer.meta.get("proposal").expect("a comment is proposed");
+        assert_eq!(proposal["kind"], "comment");
+        assert_eq!(
+            proposal["channel"], "second: live",
+            "the channel is the paste's, not the answer's"
+        );
+        assert_eq!(proposal["body"], "loved the bridge");
+        assert_eq!(proposal["author"], "anna");
+        assert_eq!(
+            proposal["commentedOn"]
+                .as_str()
+                .or(proposal["commented_on"].as_str()),
+            Some("2026-09-01")
+        );
+        drop(dir);
+    }
+
+    /// A screenshot whose answer holds no comment says so on the message,
+    /// rather than proposing nothing in silence.
+    #[test]
+    fn an_unreadable_screenshot_is_refused_aloud() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some(crate::assistant::task::screenshot_key(
+            "read-comment",
+            "main",
+            "shot-2",
+        ));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: "The picture is too blurry to read.".into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap();
+        assert!(answer.meta.get("proposal").is_none());
+        assert!(
+            answer.meta.contains_key("proposal_refused"),
+            "meta: {:?}",
+            answer.meta
+        );
+        drop(dir);
+    }
+
+    /// A reply task's answer is proposed as the reply to the comment its key
+    /// names.
+    #[test]
+    fn a_reply_task_proposes_a_reply_to_its_comment() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some(crate::assistant::task::comment_key(
+            "reply-to-comment",
+            "c-42",
+        ));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: "Thank you — the bridge was the last thing written.".into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap();
+        let proposal = answer.meta.get("proposal").expect("a reply is proposed");
+        assert_eq!(proposal["kind"], "reply");
+        assert_eq!(
+            proposal["commentId"]
+                .as_str()
+                .or(proposal["comment_id"].as_str()),
+            Some("c-42")
+        );
         drop(dir);
     }
 

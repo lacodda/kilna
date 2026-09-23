@@ -15,6 +15,7 @@ export const TABS = [
   'files',
   'links',
   'notes',
+  'comments',
   'assistant',
   'history',
 ] as const

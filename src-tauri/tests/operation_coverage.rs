@@ -164,7 +164,7 @@ fn records_an_operation(body: &str) -> bool {
 /// Each entry is a promise that replaying the log without it still produces the
 /// right database, and each says why. Anything not on this list that writes has
 /// to be logged.
-const NOT_IN_THE_LOG: [(&str, &str); 17] = [
+const NOT_IN_THE_LOG: [(&str, &str); 19] = [
     (
         "undo_last",
         "records its operation one level down, inside `undo::undo`'s own \
@@ -208,6 +208,16 @@ const NOT_IN_THE_LOG: [(&str, &str); 17] = [
          `a_package_in_a_chat_on_nothing_creates_the_whole_work_through_the_log` there",
     ),
     ("apply_pending_proposals", "as above, once per proposal"),
+    (
+        "start_comment_task",
+        "opens a chat and starts a run, which are this device's conversation; the \
+         reply it drafts is written only when the person keeps it, through `apply_proposal`",
+    ),
+    (
+        "start_screenshot_task",
+        "as above: the comment read off the picture is kept through `apply_proposal`, \
+         and the picture itself goes to a temporary folder, not the workspace",
+    ),
 ];
 
 #[test]
@@ -264,7 +274,10 @@ fn the_shared_deletion_helper_records_an_operation() {
         .find("fn discard_and_record(")
         .expect("the deletion helper is still called that");
     let end = source[at..]
-        .find("\r\n#[tauri::command]")
+        // The source is checked out with LF endings; a search for CRLF found
+        // nothing and let this scan run to the end of the file, where any
+        // later command's record satisfied it.
+        .find("\n#[tauri::command]")
         .map_or(source.len(), |offset| at + offset);
 
     assert!(

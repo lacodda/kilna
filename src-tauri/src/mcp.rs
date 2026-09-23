@@ -1074,6 +1074,14 @@ fn deliver(
     body: &str,
     note: Option<&str>,
 ) -> Result<assistant::Message> {
+    // Comments are read and answered inside the window, from where a
+    // screenshot was pasted or a comment was opened; no tool proposes them,
+    // and the sentence below has no line for one.
+    if matches!(proposal, Proposal::Comment { .. } | Proposal::Reply { .. }) {
+        return Err(Error::Other(
+            "an agent outside the window does not propose comments or replies".into(),
+        ));
+    }
     let client = session
         .client
         .clone()
@@ -1117,6 +1125,12 @@ fn deliver(
         // the title it would have is the one thing the sentence can name.
         (Proposal::Work { title, .. }, None) => {
             Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
+        }
+        // Refused at the top of this function.
+        (Proposal::Comment { .. } | Proposal::Reply { .. }, _) => {
+            return Err(Error::Other(
+                "comments are not proposed from outside".into(),
+            ));
         }
     };
     let mut record = record.param("client", client);

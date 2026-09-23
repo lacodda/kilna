@@ -13,6 +13,7 @@ import {
   type JournalEntry,
   type PendingProposal,
 } from '@/lib/api'
+import { screenKey } from '@/lib/screens'
 import { keys } from '@/lib/query'
 import { openWorkId } from '@/lib/route'
 import { say } from '@/lib/toast'
@@ -33,33 +34,6 @@ interface Props {
    *  will go. */
   compact: boolean
   onToggleRail: () => void
-}
-
-// Maps the first path segment to the nav key that names the screen.
-function screenKey(pathname: string): string {
-  const segment = pathname.split('/')[1]
-  switch (segment) {
-    case 'dashboard':
-      return 'nav.dashboard'
-    case 'catalogue':
-      return 'nav.catalogue'
-    case 'calendar':
-      return 'nav.calendar'
-    case 'journal':
-      return 'nav.journal'
-    case 'trash':
-      return 'nav.trash'
-    case 'settings':
-      return 'nav.data'
-    case 'styles':
-      return 'nav.styles'
-    case 'styleguide':
-      return 'nav.styleguide'
-    // Includes `/works/:id`: an open work belongs to the catalogue, which is
-    // where its trail and its back link lead.
-    default:
-      return 'nav.catalogue'
-  }
 }
 
 /**
@@ -253,10 +227,14 @@ function Unread() {
                 busy={dismiss.isPending}
                 onOpen={() => {
                   setOpen(false)
+                  // A comment or a reply is kept where comments are read,
+                  // with the fields open to correction first.
                   navigate(
-                    proposal.work_id === null
-                      ? '/assistant'
-                      : `/works/${proposal.work_id}/assistant`,
+                    proposal.kind === 'comment' || proposal.kind === 'reply'
+                      ? '/comments'
+                      : proposal.work_id === null
+                        ? '/assistant'
+                        : `/works/${proposal.work_id}/assistant`,
                   )
                 }}
                 onDismiss={() => dismiss.mutate(proposal.message_id)}

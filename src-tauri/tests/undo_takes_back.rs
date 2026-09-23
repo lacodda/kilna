@@ -1311,3 +1311,60 @@ fn a_promotion_is_taken_back_whole() {
         "the note did not come back"
     );
 }
+
+/// A reply written onto a comment is taken back to what stood there.
+#[test]
+fn a_reply_is_taken_back() {
+    use kilna_lib::comment::{self, CommentPatch, NewComment};
+
+    let (mut conn, profile_id, _) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let kept = comment::create_minted(
+        &conn,
+        &profile_id,
+        NewComment {
+            channel: "main".into(),
+            body: "what is the bridge about?".into(),
+            reply: Some("first thought".into()),
+            ..NewComment::default()
+        },
+        Minted::fresh(),
+    )
+    .unwrap();
+
+    let patch = CommentPatch {
+        reply: Some(Some("a better answer".into())),
+        ..CommentPatch::default()
+    };
+    let before = serde_json::to_value(&kept).unwrap();
+    let patch_json = serde_json::to_value(&patch).unwrap();
+    let inverse =
+        kilna_lib::reversal::invert(before.as_object().unwrap(), patch_json.as_object().unwrap());
+    let at = kilna_lib::time::now();
+    let logged = operation::Intent::new("comment.update")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("id", kept.id.clone())
+        .param("patch", patch_json)
+        .param("before", serde_json::Value::Object(inverse))
+        .param("at", at.clone());
+    let transaction = conn.transaction().unwrap();
+    comment::update_at(&transaction, &kept.id, patch, &at).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("an edit to a comment can be undone");
+    assert_eq!(offer.action, "undo.comment.update");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+
+    assert_eq!(
+        comment::get(&conn, &kept.id)
+            .unwrap()
+            .unwrap()
+            .reply
+            .as_deref(),
+        Some("first thought")
+    );
+}

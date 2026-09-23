@@ -14,6 +14,7 @@ import {
   type ReleaseKind,
   type ReleaseField,
 } from '@/lib/api'
+import { scopeOf } from '@/lib/actions'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
@@ -453,8 +454,15 @@ function ActionsEditor({
     { value: 'scenes', label: t('editor.producesScenes') },
     { value: 'scenes:add', label: t('editor.producesScenesAdd') },
     { value: 'scenes:revise', label: t('editor.producesScenesRevise') },
+    { value: 'comment', label: t('editor.producesComment') },
+    { value: 'reply', label: t('editor.producesReply') },
   ]
-  const scopeOptions = [{ value: 'scene', label: t('editor.scopeScene') }]
+  // Every scope the backend reads; a work is the absence of one.
+  const scopeOptions = [
+    { value: 'scene', label: t('editor.scopeScene') },
+    { value: 'style', label: t('editor.scopeStyle') },
+    { value: 'comment', label: t('editor.scopeComment') },
+  ]
 
   // The kinds an action is for, as chips: none on means every kind.
   const toggleKind = (index: number, key: string) => {
@@ -548,7 +556,7 @@ function ActionsEditor({
                 className="w-44"
                 aria-label={t('editor.actionScope')}
                 placeholder={t('editor.scopeWork')}
-                value={action.scope === 'scene' ? 'scene' : ''}
+                value={scopeOf(action) === 'work' ? '' : scopeOf(action)}
                 onChange={(value) => set(index, { scope: value === '' ? undefined : value })}
                 options={scopeOptions}
               />

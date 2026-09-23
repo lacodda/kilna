@@ -1,9 +1,9 @@
 //! Finding anything, from one box.
 //!
-//! Four kinds of thing are searched — works, version bodies, notes and chat
-//! messages — and each answers a different question: *where is that song*,
-//! *where did I write that line*, *what did I note about it*, *what did the
-//! assistant say*.
+//! Five kinds of thing are searched — works, version bodies, notes, chat
+//! messages and the audience's comments — and each answers a different
+//! question: *where is that song*, *where did I write that line*, *what did I
+//! note about it*, *what did the assistant say*, *who asked about the bridge*.
 //!
 //! ## Why FTS5, and why it replaced a loop in Rust
 //!
@@ -40,6 +40,7 @@ pub enum Kind {
     Version,
     Note,
     Message,
+    Comment,
 }
 
 impl Kind {
@@ -50,6 +51,7 @@ impl Kind {
             Kind::Version => "version",
             Kind::Note => "note",
             Kind::Message => "message",
+            Kind::Comment => "comment",
         }
     }
 }
@@ -133,7 +135,13 @@ pub fn find(conn: &Connection, profile_id: &str, query: &str) -> Result<Vec<Hit>
     };
 
     let mut hits = Vec::new();
-    for kind in [Kind::Work, Kind::Version, Kind::Note, Kind::Message] {
+    for kind in [
+        Kind::Work,
+        Kind::Version,
+        Kind::Note,
+        Kind::Message,
+        Kind::Comment,
+    ] {
         hits.extend(of_kind(conn, profile_id, &expression, kind)?);
     }
     Ok(hits)
@@ -210,9 +218,9 @@ fn of_kind(conn: &Connection, profile_id: &str, expression: &str, kind: Kind) ->
     let mut hits = Vec::with_capacity(rows.len());
     for (index, (entity_id, work_id, snippet)) in rows.into_iter().enumerate() {
         // A hit with nowhere to open is worse than no hit: a chat on nothing is
-        // skipped rather than offered. A note on nothing opens on the notes
-        // screen, so it stays.
-        if work_id.is_none() && kind != Kind::Note {
+        // skipped rather than offered. A note or a comment on nothing opens on
+        // its own screen, so it stays.
+        if work_id.is_none() && !matches!(kind, Kind::Note | Kind::Comment) {
             continue;
         }
         let Some(described) = describe(conn, kind, &entity_id, work_id.as_deref(), &snippet)?
@@ -334,6 +342,33 @@ fn describe(
                 work_title,
                 title: one_line(snippet),
                 detail: role,
+                rank: 0,
+            }),
+        // Named by who said it and where: the words are the snippet already.
+        Kind::Comment => conn
+            .query_row(
+                "SELECT coalesce(w.title, ''), c.channel, c.author
+                   FROM comment c LEFT JOIN work w ON w.id = c.work_id
+                  WHERE c.id = ?1",
+                params![entity_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                    ))
+                },
+            )
+            .map(|(work_title, channel, author)| Hit {
+                kind: Kind::Comment,
+                entity_id: entity.clone(),
+                work_id: work.clone(),
+                work_title,
+                title: one_line(snippet),
+                detail: match author {
+                    Some(author) => format!("{channel} · {author}"),
+                    None => channel,
+                },
                 rank: 0,
             }),
     };
@@ -631,6 +666,33 @@ mod tests {
 
         assert_eq!(note.work_id, None);
         assert_eq!(note.entity_id, loose.id);
+    }
+
+    #[test]
+    fn a_comment_is_found_by_its_words_and_by_who_wrote_it() {
+        let (conn, profile_id) = workspace();
+        let kept = crate::comment::create_minted(
+            &conn,
+            &profile_id,
+            crate::comment::NewComment {
+                channel: "main".into(),
+                body: "the bridge gave me chills".into(),
+                author: Some("harbourwatcher".into()),
+                ..Default::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+
+        for query in ["chills", "harbourwatcher"] {
+            let hits = find(&conn, &profile_id, query).unwrap();
+            let hit = hits
+                .iter()
+                .find(|hit| hit.kind == Kind::Comment)
+                .unwrap_or_else(|| panic!("`{query}` should find the comment"));
+            assert_eq!(hit.entity_id, kept.id);
+            assert_eq!(hit.detail, "main · harbourwatcher");
+        }
     }
 
     #[test]

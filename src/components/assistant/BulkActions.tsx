@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { actionsOfScope } from '@/lib/actions'
 import { assistantStatus, startTasks } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
@@ -64,7 +65,9 @@ export function BulkActions({ workIds, onStarted }: Props) {
     },
   })
 
-  const actions = profile.config.prompts
+  // Work actions only: several works at once is several work tasks, and an
+  // action about a scene, a style or a comment has none of those to be about.
+  const actions = actionsOfScope(profile.config.prompts, 'work')
   if (actions.length === 0 || status.data?.available !== true) return null
 
   return (

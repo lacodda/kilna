@@ -7,6 +7,7 @@ use crate::asset;
 use crate::assistant::run::{self as assistant_run, Emission, Run, Sink};
 use crate::assistant::{self, Chat, Message, NewChat, Transcript, cli, prompt};
 use crate::collection::{self, Collection, CollectionPatch, NewCollection};
+use crate::comment::{self, Comment, CommentFilter, CommentPatch, NewComment};
 use crate::cut;
 use crate::error::{Error, Result};
 use crate::exchange::backup;
@@ -947,6 +948,84 @@ pub fn promote_note(
     Ok(promoted)
 }
 
+#[tauri::command]
+pub fn list_comments(
+    state: State<'_, AppState>,
+    filter: Option<CommentFilter>,
+) -> Result<Vec<Comment>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    comment::list(&conn, &profile_id, &filter.unwrap_or_default())
+}
+
+/// Every channel comments came through, with how many still wait on each.
+#[tauri::command]
+pub fn comment_channels(state: State<'_, AppState>) -> Result<Vec<(String, i64)>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    comment::channels(&conn, &profile_id)
+}
+
+/// How many comments a work has, and how many of them wait: its tab's counter.
+#[derive(serde::Serialize)]
+pub struct CommentCount {
+    pub total: i64,
+    pub waiting: i64,
+}
+
+#[tauri::command]
+pub fn count_work_comments(state: State<'_, AppState>, work_id: String) -> Result<CommentCount> {
+    let conn = state.conn();
+    let (total, waiting) = comment::count_for_work(&conn, &work_id)?;
+    Ok(CommentCount { total, waiting })
+}
+
+#[tauri::command]
+pub fn create_comment(state: State<'_, AppState>, comment: NewComment) -> Result<Comment> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+
+    let minted = Minted::fresh();
+    let logged = operation::Intent::new("comment.create")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("comment", serde_json::to_value(&comment)?)
+        .minted(&minted);
+
+    recording(&mut conn, logged, |tx| {
+        comment::create_minted(tx, &profile_id, comment, minted)
+    })
+}
+
+#[tauri::command]
+pub fn update_comment(
+    state: State<'_, AppState>,
+    id: String,
+    patch: CommentPatch,
+) -> Result<Comment> {
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    let before = comment::get(&conn, &id)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("comment.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| {
+        comment::update_at(tx, &id, patch, &at)
+    })
+}
+
+#[tauri::command]
+pub fn delete_comment(state: State<'_, AppState>, id: String) -> Result<String> {
+    discard_and_record(&state, trash::Entity::Comment, &id)
+}
+
 /// What a `[[work:id]]` or `[[version:id]]` link points at.
 ///
 /// One row per link that resolves: the title to draw, and for a version the
@@ -1199,24 +1278,41 @@ pub fn start_style_task(
         ));
     }
 
-    let (prepared, run, stream) = {
+    let prepared = {
         let conn = state.conn();
-        let prepared = assistant::task::prepare_for_style(&conn, &id, &action)?;
-        let (run, stream) = assistant_run::start_as(
+        assistant::task::prepare_for_style(&conn, &id, &action)?
+    };
+    launch(&app, &runs, workdir.as_deref(), prepared)
+}
+
+/// Start a prepared task and put a thread on it: the run is recorded, the
+/// CLI spawned, and the call returns while it answers. What the style, the
+/// comment and the screenshot tasks share; a work's task has its own path
+/// because the queue starts it too.
+fn launch(
+    app: &AppHandle,
+    runs: &Arc<assistant_run::Runs>,
+    workdir: Option<&std::path::Path>,
+    prepared: assistant::task::Prepared,
+) -> Result<StartedTask> {
+    let (run, stream) = {
+        let state = app.state::<AppState>();
+        let conn = state.conn();
+        assistant_run::start_as(
             &conn,
-            &runs,
+            runs,
             &prepared.chat_id,
             &prepared.prompt,
-            workdir.as_deref(),
+            workdir,
             Some(prepared.key.clone()),
             &prepared.attachments,
-        )?;
-        (prepared, run, stream)
+        )?
     };
 
     let sink: Arc<dyn Sink> = Arc::new(WindowSink(app.clone()));
     let started = run.clone();
     let handle = app.clone();
+    let runs = Arc::clone(runs);
 
     std::thread::spawn(move || {
         {
@@ -1233,6 +1329,140 @@ pub fn start_style_task(
         task_key: prepared.key,
         title: prepared.title,
     })
+}
+
+/// What drafting a reply to a comment would send, without sending it.
+#[tauri::command]
+pub fn preview_comment_task(
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+) -> Result<assistant::task::Composed> {
+    let conn = state.conn();
+    assistant::task::compose_for_comment(&conn, &id, &action).map(|(composed, _)| composed)
+}
+
+/// Draft a reply to a comment in the background, in the voice of its channel.
+/// The answer arrives as a proposal the comment shows; nothing is written
+/// until the person keeps it.
+#[tauri::command]
+pub fn start_comment_task(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+) -> Result<StartedTask> {
+    let state = state.inner();
+    let runs = Arc::clone(state.runs());
+    let workdir = state.assistant_dir();
+
+    // Checked before the chat is opened, for the reason `spawn_task` checks.
+    let key = assistant::task::comment_key(&action, &id);
+    if runs.task_running(&key) {
+        return Err(Error::Assistant(
+            "This is already running. Wait for it to finish.".into(),
+        ));
+    }
+
+    let prepared = {
+        let conn = state.conn();
+        assistant::task::prepare_for_comment(&conn, &id, &action)?
+    };
+    launch(&app, &runs, workdir.as_deref(), prepared)
+}
+
+/// How long a pasted screenshot is kept in the temporary folder. Long
+/// enough for its run to finish and be retried; after that the comment, if
+/// one was kept, is its text, and the picture is not what anyone needs.
+const SCREENSHOT_LIFETIME: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+
+/// Read a pasted screenshot of a comment in the background.
+///
+/// The picture goes to a temporary folder outside the workspace — it is a
+/// way in, not something to keep (migration 0027) — and is read by the
+/// profile's action into a proposal the comments screen offers to keep. The
+/// channel and the work are where it was pasted.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub fn start_screenshot_task(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    bytes: Vec<u8>,
+    name: String,
+    channel: String,
+    work_id: Option<String>,
+    action: String,
+    today: String,
+) -> Result<StartedTask> {
+    if bytes.is_empty() {
+        return Err(Error::Other("the clipboard held no picture".into()));
+    }
+    let state = state.inner();
+    let runs = Arc::clone(state.runs());
+    let workdir = state.assistant_dir();
+
+    let folder = std::env::temp_dir().join("kilna-comment-screenshots");
+    std::fs::create_dir_all(&folder).map_err(|cause| {
+        Error::Other(format!(
+            "could not prepare a place for the screenshot: {cause}"
+        ))
+    })?;
+    sweep_screenshots(&folder);
+    let extension = std::path::Path::new(&name)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .filter(|ext| ext.chars().all(|c| c.is_ascii_alphanumeric()) && ext.len() <= 5)
+        .unwrap_or("png")
+        .to_ascii_lowercase();
+    let path = folder.join(format!("{}.{extension}", uuid::Uuid::new_v4()));
+    std::fs::write(&path, &bytes)
+        .map_err(|cause| Error::Other(format!("could not keep the screenshot: {cause}")))?;
+
+    let prepared = {
+        let conn = state.conn();
+        assistant::task::prepare_for_screenshot(
+            &conn,
+            &action,
+            &assistant::task::Screenshot {
+                path: &path,
+                channel: &channel,
+                work_id: work_id.as_deref(),
+                today: &today,
+            },
+        )?
+    };
+    launch(&app, &runs, workdir.as_deref(), prepared)
+}
+
+/// Remove screenshots older than their lifetime. Best effort: a file that
+/// cannot be removed now will be tried again at the next paste.
+fn sweep_screenshots(folder: &std::path::Path) {
+    let Ok(entries) = std::fs::read_dir(folder) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let stale = entry
+            .metadata()
+            .and_then(|meta| meta.modified())
+            .ok()
+            .and_then(|at| at.elapsed().ok())
+            .is_some_and(|age| age > SCREENSHOT_LIFETIME);
+        if stale {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
+}
+
+/// Every comment read off a screenshot and every drafted reply that waits
+/// for the person, with what each says: what the comments screen offers to
+/// keep.
+#[tauri::command]
+pub fn pending_comment_proposals(
+    state: State<'_, AppState>,
+) -> Result<Vec<assistant::apply::CommentProposal>> {
+    let conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    assistant::apply::pending_comments(&conn, &profile_id)
 }
 
 #[tauri::command]

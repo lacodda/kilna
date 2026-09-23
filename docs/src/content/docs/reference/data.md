@@ -84,14 +84,16 @@ Each work's page includes:
 - Every release tied to the work: kind, date (scheduled or released), time of
   day and zone when set, and the link if one was recorded.
 - Notes attached to the work, with their tags.
+- Comments on the work, archived ones included: who wrote them, where and
+  when, where each stands, the words quoted, and the reply under them.
 
 The `format` line is for a reader written against these pages: it says which
 shape the page takes, and moves when a field changes meaning or a section
 changes shape — not when a field is added. Pages written by v0.50 and later
 say `format: 2`; earlier exports carried no line, which reads as format 1.
 
-Notes not attached to any work are written to a separate `notes.md` rather
-than lost. File names are derived from each work's title with unsafe
+Notes not attached to any work are written to a separate `notes.md`, and
+comments about no work to `comments.md`, rather than lost. File names are derived from each work's title with unsafe
 characters replaced and a short id suffix appended, so two works sharing a
 title never overwrite one another — and non-ASCII titles are kept as-is,
 since a title in Cyrillic or any other script should stay readable in the

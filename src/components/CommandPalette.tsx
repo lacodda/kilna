@@ -29,7 +29,7 @@ interface Props {
 }
 
 /** The order the groups appear in, coarsest first. */
-const GROUPS: HitKind[] = ['work', 'version', 'note', 'message']
+const GROUPS: HitKind[] = ['work', 'version', 'note', 'comment', 'message']
 
 /** One group of hits, in the shape Base UI reads a grouped list in. */
 interface Group {

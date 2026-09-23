@@ -206,7 +206,33 @@ export interface PackagedRelease {
   unknown_fields?: string[]
 }
 
-export type Proposal = ScoreProposal | VersionProposal | NoteProposal | WorkProposal | ScenesProposal
+/** A comment read off a screenshot, waiting to be kept. The channel and the
+ *  work are where the screenshot was pasted, never the answer's guess. */
+export interface CommentProposal {
+  kind: 'comment'
+  channel: string
+  work_id?: string
+  author?: string
+  body: string
+  commented_on?: string
+  /** What the picture says it was written under, when no work was given. */
+  about?: string
+}
+
+/** A reply to one comment; the text is the message body. */
+export interface ReplyProposal {
+  kind: 'reply'
+  comment_id: string
+}
+
+export type Proposal =
+  | ScoreProposal
+  | VersionProposal
+  | NoteProposal
+  | WorkProposal
+  | ScenesProposal
+  | CommentProposal
+  | ReplyProposal
 
 /** What applying a proposal made — stamped on the message as `meta.applied`. */
 export interface Applied {
@@ -226,6 +252,8 @@ export interface Applied {
   removed_scenes?: string[]
   /** Releases planned by the package. */
   releases?: string[]
+  /** The comment kept from a screenshot, or whose reply was written. */
+  comment?: string
 }
 
 /** What a person may change about a proposed version on the way in. */
@@ -233,6 +261,10 @@ export interface ProposalOverrides {
   role?: string
   label?: string
   make_current?: boolean
+  /** A comment read off a screenshot, as corrected before keeping. */
+  comment?: NewComment
+  /** A drafted reply, as edited before keeping. */
+  reply?: string
 }
 
 export interface PromptTemplate {
@@ -1118,6 +1150,102 @@ export const updateNote = (id: string, patch: NotePatch) => invoke<Note>('update
 export const deleteNote = (id: string) => invoke<string>('delete_note', { id })
 export const listTags = () => invoke<[string, number][]>('list_tags')
 
+/** Where a comment stands. A drafted reply is read off `reply`, not stored. */
+export type CommentState = 'open' | 'posted' | 'archived'
+
+/** What the audience said, and the reply to it. */
+export interface Comment {
+  id: string
+  profile_id: string
+  /** Where it was written, as the person names it. */
+  channel: string
+  work_id: string | null
+  author: string | null
+  body: string
+  reply: string | null
+  state: CommentState
+  /** The day the viewer wrote it, `YYYY-MM-DD`. */
+  commented_on: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface NewComment {
+  channel: string
+  body: string
+  work_id?: string | null
+  author?: string | null
+  reply?: string | null
+  commented_on?: string | null
+}
+
+export interface CommentPatch {
+  channel?: string
+  work_id?: string | null
+  author?: string | null
+  body?: string
+  reply?: string | null
+  state?: CommentState
+  commented_on?: string | null
+}
+
+export interface CommentFilter {
+  work_id?: string
+  channel?: string
+  /** One state; absent is every state but archived. */
+  state?: CommentState
+  search?: string
+}
+
+export const listComments = (filter?: CommentFilter) =>
+  invoke<Comment[]>('list_comments', { filter: filter ?? null })
+/** Every channel comments came through, with how many wait on each. */
+export const commentChannels = () => invoke<[string, number][]>('comment_channels')
+/** A work's comments, and how many of them wait: its tab's counter. */
+export const countWorkComments = (workId: string) =>
+  invoke<{ total: number; waiting: number }>('count_work_comments', { workId })
+export const createComment = (comment: NewComment) => invoke<Comment>('create_comment', { comment })
+export const updateComment = (id: string, patch: CommentPatch) =>
+  invoke<Comment>('update_comment', { id, patch })
+/** Returns the trash entry, for the undo. */
+export const deleteComment = (id: string) => invoke<string>('delete_comment', { id })
+
+/** A comment read off a screenshot, or a drafted reply, waiting to be kept. */
+export interface PendingCommentProposal {
+  message_id: string
+  chat_id: string
+  /** The answer: the reply itself, or what the comment was read from. */
+  body: string
+  proposal: CommentProposal | ReplyProposal
+  created_at: string
+}
+
+export const pendingCommentProposals = () =>
+  invoke<PendingCommentProposal[]>('pending_comment_proposals')
+export const previewCommentTask = (id: string, action: string) =>
+  invoke<ComposedTask>('preview_comment_task', { id, action })
+/** Draft a reply in the background, in the voice of the comment's channel. */
+export const startCommentTask = (id: string, action: string) =>
+  invoke<StartedTask>('start_comment_task', { id, action })
+/** Read a pasted screenshot of a comment in the background. `today` is the
+ *  person's own date, for turning "3 weeks ago" into a day. */
+export const startScreenshotTask = (args: {
+  bytes: Uint8Array
+  name: string
+  channel: string
+  workId: string | null
+  action: string
+  today: string
+}) =>
+  invoke<StartedTask>('start_screenshot_task', {
+    bytes: Array.from(args.bytes),
+    name: args.name,
+    channel: args.channel,
+    workId: args.workId,
+    action: args.action,
+    today: args.today,
+  })
+
 /** What a note becomes when it grows up: a work of this kind, by this name. */
 export interface Promotion {
   kind: string
@@ -1411,7 +1539,7 @@ export interface JournalEntry {
 }
 
 /** What a search hit points at. Mirrors the backend's `search::Kind`. */
-export type HitKind = 'work' | 'version' | 'note' | 'message'
+export type HitKind = 'work' | 'version' | 'note' | 'message' | 'comment'
 
 export interface Hit {
   kind: HitKind

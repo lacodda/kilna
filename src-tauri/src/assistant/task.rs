@@ -208,6 +208,13 @@ pub fn compose(
                 template.label
             )));
         }
+        // Composed by `compose_for_comment` or `compose_for_screenshot`.
+        (Scope::Comment, _) => {
+            return Err(Error::Other(format!(
+                "“{}” is about a comment, not a work: start it from the comments",
+                template.label
+            )));
+        }
     };
 
     // One block of that scene, when the action is aimed at one. Refused
@@ -282,6 +289,14 @@ pub fn compose(
             ));
         }
         Produces::Prose => {}
+        // Only an action about a comment produces these, and it was refused
+        // above; a profile that pairs them with a work does not validate.
+        Produces::Comment | Produces::Reply => {
+            return Err(Error::Other(format!(
+                "“{}” answers about a comment: start it from the comments",
+                template.label
+            )));
+        }
     }
 
     // Reference files: named in the prompt so the run knows they are there
@@ -508,6 +523,316 @@ pub fn prepare_for_style(conn: &Connection, brick_id: &str, action: &str) -> Res
     })
 }
 
+/// The key of a task about one comment: this action, on this comment. A
+/// second click on the same comment is the same task; another comment's is
+/// not.
+pub fn comment_key(action: &str, comment_id: &str) -> String {
+    format!("{action}:comment:{comment_id}")
+}
+
+/// The comment a task key names, when it names one.
+pub fn comment_of_key(key: &str) -> Option<&str> {
+    let mut parts = key.splitn(3, ':');
+    parts.next()?;
+    (parts.next()? == "comment").then(|| parts.next()).flatten()
+}
+
+/// The key of reading one screenshot: this action, on this channel, this
+/// picture. The channel travels in the key because the answer is read back
+/// against it — the picture cannot say which channel it is from — the way a
+/// scene action's key carries its scene. A `:` or `%` in the channel's name
+/// is escaped so the key still splits where it should.
+pub fn screenshot_key(action: &str, channel: &str, shot: &str) -> String {
+    let escaped = channel.replace('%', "%25").replace(':', "%3A");
+    format!("{action}:channel:{escaped}:{shot}")
+}
+
+/// The channel a screenshot task's key names, when it names one.
+pub fn channel_of_key(key: &str) -> Option<String> {
+    let parts: Vec<&str> = key.splitn(4, ':').collect();
+    let [_, "channel", escaped, _] = parts.as_slice() else {
+        return None;
+    };
+    Some(escaped.replace("%3A", ":").replace("%25", "%"))
+}
+
+/// How many replies already posted on a channel are shown as its voice.
+/// Enough to hear a manner in; few enough that the comment itself is not
+/// buried under them.
+const VOICE_SAMPLES: usize = 8;
+
+/// How much of a work's text travels with a reply draft. A reply is about
+/// the work, not a critique of it: the opening is enough to know what the
+/// commenter heard, and a whole chapter would drown the comment.
+const WORK_EXCERPT: usize = 3000;
+
+/// The active profile's action by key, held to be about a comment and to
+/// produce what the caller is about to compose.
+fn comment_action<'a>(
+    profile: &'a crate::profile::Profile,
+    action: &str,
+    produces: Produces,
+) -> Result<&'a PromptTemplate> {
+    let template = profile
+        .config
+        .prompts
+        .iter()
+        .find(|prompt| prompt.key == action)
+        .ok_or_else(|| Error::not_found("prompt", action))?;
+    if template.scope() != Scope::Comment {
+        return Err(Error::Other(format!(
+            "“{}” is not an action about a comment",
+            template.label
+        )));
+    }
+    if template.produces() != produces {
+        return Err(Error::Other(match produces {
+            Produces::Reply => {
+                format!("“{}” reads a screenshot: start it from one", template.label)
+            }
+            _ => format!(
+                "“{}” drafts a reply: start it from a comment",
+                template.label
+            ),
+        }));
+    }
+    Ok(template)
+}
+
+/// Compose `action` against a comment: a reply, in the voice of its channel.
+///
+/// The voice is the replies already posted on the same channel, given as
+/// examples — the channel is only a word, so there is no setting to keep a
+/// voice in, and what was said there describes how the channel speaks better
+/// than a setting would. The action's method says the rest (ADR 0021).
+pub fn compose_for_comment(
+    conn: &Connection,
+    comment_id: &str,
+    action: &str,
+) -> Result<(Composed, String)> {
+    let profile =
+        profile::active(conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
+    let template = comment_action(&profile, action, Produces::Reply)?;
+    let comment = crate::comment::get(conn, comment_id)?
+        .ok_or_else(|| Error::not_found("comment", comment_id))?;
+
+    let mut prompt = format!("A comment on the channel “{}”", comment.channel);
+    if let Some(author) = &comment.author {
+        prompt.push_str(&format!(", from {author}"));
+    }
+    if let Some(day) = &comment.commented_on {
+        prompt.push_str(&format!(", written on {day}"));
+    }
+    prompt.push_str(":\n\n");
+    for line in comment.body.lines() {
+        prompt.push_str(&format!("> {line}\n"));
+    }
+
+    let under = match comment.work_id.as_deref() {
+        Some(id) => work::get(conn, id)?,
+        None => None,
+    };
+    if let Some(work) = under {
+        let kind = profile
+            .config
+            .kind(&work.kind)
+            .map_or(work.kind.clone(), |kind| kind.label.as_str().to_lowercase());
+        prompt.push_str(&format!(
+            "\nIt was written under “{}”, a {kind}.",
+            work.title
+        ));
+        let current = match work.current_version_id.as_deref() {
+            Some(id) => version::get(conn, id)?,
+            None => None,
+        };
+        if let Some(current) = current {
+            let body = current.body.trim();
+            if !body.is_empty() {
+                let excerpt: String = body.chars().take(WORK_EXCERPT).collect();
+                let cut = if excerpt.len() < body.len() {
+                    "\n[…]"
+                } else {
+                    ""
+                };
+                prompt.push_str(&format!("\n\nIts text:\n\n{excerpt}{cut}\n"));
+            }
+        }
+    }
+
+    let voice = crate::comment::posted_on(
+        conn,
+        &profile.id,
+        &comment.channel,
+        &comment.id,
+        VOICE_SAMPLES,
+    )?;
+    if voice.is_empty() {
+        prompt.push_str(
+            "\nNothing has been posted on this channel yet, so there is no voice to match: \
+             write plainly and warmly, as the author would.\n",
+        );
+    } else {
+        prompt.push_str(
+            "\nReplies already posted on this channel, newest first — this is how the channel speaks:\n\n",
+        );
+        for (index, (said, answered)) in voice.iter().enumerate() {
+            prompt.push_str(&format!(
+                "{}. Comment: {}\n   Reply: {}\n",
+                index + 1,
+                one_line(said),
+                one_line(answered)
+            ));
+        }
+    }
+    if let Some(draft) = comment.reply.as_deref().filter(|d| !d.trim().is_empty()) {
+        prompt.push_str(&format!(
+            "\nThe reply drafted so far, which you are rewriting:\n\n{draft}\n"
+        ));
+    }
+
+    prompt.push('\n');
+    prompt.push_str(&template.template);
+    prompt.push_str(super::proposal::reply_instruction());
+    let prompt = super::waiting::instruct(&prompt);
+
+    let who = comment
+        .author
+        .clone()
+        .unwrap_or_else(|| comment.body.chars().take(32).collect());
+    Ok((
+        Composed {
+            prompt,
+            method: template.method().map(str::to_owned),
+            key: comment_key(action, comment_id),
+            title: format!("{} · {who}", template.label.as_str()),
+            attachments: Vec::new(),
+        },
+        profile.id,
+    ))
+}
+
+/// [`compose_for_comment`] with the chat it will be answered in: on the
+/// comment's work, when it has one, so the answer is where the work is.
+pub fn prepare_for_comment(conn: &Connection, comment_id: &str, action: &str) -> Result<Prepared> {
+    let (composed, profile_id) = compose_for_comment(conn, comment_id, action)?;
+    let work_id = crate::comment::get(conn, comment_id)?.and_then(|comment| comment.work_id);
+    prepared(conn, &profile_id, composed, work_id, action)
+}
+
+/// What reading a screenshot is about: the picture, and where it was pasted.
+pub struct Screenshot<'a> {
+    pub path: &'a Path,
+    pub channel: &'a str,
+    pub work_id: Option<&'a str>,
+    /// Today in the person's own calendar, for turning "3 weeks ago" into a
+    /// day. The backend knows only UTC, which after sunset is tomorrow.
+    pub today: &'a str,
+}
+
+/// Compose `action` against a screenshot of a comment.
+///
+/// The picture travels as an attachment, the way a style's references do.
+/// The channel is said in the prompt for context, and carried in the key for
+/// the answer to be read back against — never taken from the answer.
+pub fn compose_for_screenshot(
+    conn: &Connection,
+    action: &str,
+    shot: &Screenshot<'_>,
+) -> Result<(Composed, String)> {
+    let profile =
+        profile::active(conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
+    let template = comment_action(&profile, action, Produces::Comment)?;
+    let channel = shot.channel.trim();
+    if channel.is_empty() {
+        return Err(Error::Other(
+            "say which channel the comment came from".into(),
+        ));
+    }
+    if !shot.path.is_file() {
+        return Err(Error::Other(format!(
+            "no screenshot at {}",
+            shot.path.display()
+        )));
+    }
+    let under = match shot.work_id {
+        Some(id) => Some(work::get(conn, id)?.ok_or_else(|| Error::not_found("work", id))?),
+        None => None,
+    };
+
+    let mut prompt = format!("A screenshot of a comment from the channel “{channel}”");
+    if let Some(work) = &under {
+        prompt.push_str(&format!(", written under “{}”", work.title));
+    }
+    prompt.push_str(".\n\n");
+    prompt.push_str(&template.template);
+    prompt.push_str(&super::proposal::comment_instruction(shot.today));
+    prompt.push_str(&format!("\n\nThe screenshot:\n{}\n", shot.path.display()));
+    let prompt = super::waiting::instruct(&prompt);
+
+    let stem = shot.path.file_stem().map_or_else(
+        || uuid::Uuid::new_v4().to_string(),
+        |stem| stem.to_string_lossy().into_owned(),
+    );
+    Ok((
+        Composed {
+            prompt,
+            method: template.method().map(str::to_owned),
+            key: screenshot_key(action, channel, &stem),
+            title: format!("{} · {channel}", template.label.as_str()),
+            attachments: vec![shot.path.to_path_buf()],
+        },
+        profile.id,
+    ))
+}
+
+/// [`compose_for_screenshot`] with the chat it will be answered in.
+pub fn prepare_for_screenshot(
+    conn: &Connection,
+    action: &str,
+    shot: &Screenshot<'_>,
+) -> Result<Prepared> {
+    let (composed, profile_id) = compose_for_screenshot(conn, action, shot)?;
+    prepared(
+        conn,
+        &profile_id,
+        composed,
+        shot.work_id.map(str::to_owned),
+        action,
+    )
+}
+
+/// A composed task with a new chat of its own.
+fn prepared(
+    conn: &Connection,
+    profile_id: &str,
+    composed: Composed,
+    work_id: Option<String>,
+    action: &str,
+) -> Result<Prepared> {
+    let chat = super::create(
+        conn,
+        profile_id,
+        super::NewChat {
+            work_id,
+            title: Some(composed.title.clone()),
+            action: Some(action.to_owned()),
+            version_id: None,
+        },
+    )?;
+    Ok(Prepared {
+        chat_id: chat.id,
+        prompt: composed.prompt,
+        key: composed.key,
+        title: composed.title,
+        attachments: composed.attachments,
+    })
+}
+
+/// A text on one line, for a list of examples.
+fn one_line(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 /// The action of the active profile a task key names, when the profile
 /// still has it.
 pub fn action_of_key(conn: &Connection, task_key: &str) -> Option<PromptTemplate> {
@@ -535,6 +860,212 @@ mod tests {
         profile::seed(&conn).unwrap();
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         (conn, profile_id)
+    }
+
+    #[test]
+    fn a_channel_survives_the_key_with_its_colons_and_percents() {
+        let key = screenshot_key("read-comment", "live: 100% raw", "shot");
+        assert_eq!(channel_of_key(&key).as_deref(), Some("live: 100% raw"));
+        assert_eq!(action_of_key_str(&key), "read-comment");
+        assert_eq!(channel_of_key("critique:work-1"), None);
+    }
+
+    #[test]
+    fn a_comment_key_names_its_comment_and_nothing_else_does() {
+        assert_eq!(
+            comment_of_key(&comment_key("reply-to-comment", "c1")),
+            Some("c1")
+        );
+        assert_eq!(comment_of_key("critique:work-1"), None);
+        assert_eq!(comment_of_key("critique:work-1:scene-2"), None);
+    }
+
+    fn action_of_key_str(key: &str) -> &str {
+        key.split(':').next().unwrap_or_default()
+    }
+
+    fn post(conn: &Connection, profile_id: &str, channel: &str, body: &str, reply: &str) {
+        let kept = crate::comment::create_minted(
+            conn,
+            profile_id,
+            crate::comment::NewComment {
+                channel: channel.into(),
+                body: body.into(),
+                ..Default::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+        crate::comment::update_at(
+            conn,
+            &kept.id,
+            crate::comment::CommentPatch {
+                reply: Some(Some(reply.into())),
+                state: Some(crate::comment::POSTED.into()),
+                ..Default::default()
+            },
+            "2026-09-20T00:00:00Z",
+        )
+        .unwrap();
+    }
+
+    /// The reply is drafted against the comment, the work it is under, and
+    /// the replies already posted on that channel — and no other channel's.
+    #[test]
+    fn a_reply_is_composed_in_the_voice_of_its_own_channel() {
+        let (mut conn, profile_id) = workspace();
+        let work_id = crate::work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "song".into(),
+                title: "Harbour lights".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap()
+        .id;
+        version::create(
+            &mut conn,
+            &work_id,
+            NewVersion {
+                role: "lyrics".into(),
+                body: "the lights go down over the water".into(),
+                label: None,
+                meta: None,
+                make_current: true,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
+        post(
+            &conn,
+            &profile_id,
+            "main",
+            "great song",
+            "thank you, friend!",
+        );
+        post(
+            &conn,
+            &profile_id,
+            "second",
+            "nice",
+            "OFFICIAL REPLY FROM THE TEAM",
+        );
+        let comment = crate::comment::create_minted(
+            &conn,
+            &profile_id,
+            crate::comment::NewComment {
+                channel: "main".into(),
+                body: "what is the bridge about?".into(),
+                author: Some("anna".into()),
+                work_id: Some(work_id),
+                ..Default::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+
+        let (composed, _) = compose_for_comment(&conn, &comment.id, "reply-to-comment").unwrap();
+
+        assert!(composed.prompt.contains("> what is the bridge about?"));
+        assert!(composed.prompt.contains("from anna"));
+        assert!(composed.prompt.contains("“Harbour lights”"));
+        assert!(
+            composed
+                .prompt
+                .contains("the lights go down over the water")
+        );
+        assert!(
+            composed.prompt.contains("thank you, friend!"),
+            "the channel's own replies are its voice"
+        );
+        assert!(
+            !composed.prompt.contains("OFFICIAL REPLY"),
+            "another channel's replies are another voice"
+        );
+        assert_eq!(composed.key, comment_key("reply-to-comment", &comment.id));
+        assert!(
+            composed.method.is_some(),
+            "the action's method travels with it"
+        );
+    }
+
+    #[test]
+    fn a_comment_action_is_started_only_from_what_it_is_for() {
+        let (conn, profile_id) = workspace();
+        let comment = crate::comment::create_minted(
+            &conn,
+            &profile_id,
+            crate::comment::NewComment {
+                channel: "main".into(),
+                body: "hello".into(),
+                ..Default::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+        let work_id = crate::work::create(
+            &conn,
+            &profile_id,
+            NewWork {
+                kind: "song".into(),
+                title: "Any".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap()
+        .id;
+
+        assert!(
+            compose_for_comment(&conn, &comment.id, "read-comment").is_err(),
+            "the reader reads screenshots, it does not draft replies"
+        );
+        assert!(compose_for_comment(&conn, &comment.id, "critique").is_err());
+        assert!(
+            compose(&conn, &work_id, "reply-to-comment", About::default()).is_err(),
+            "an action about a comment is not a button on a work"
+        );
+    }
+
+    #[test]
+    fn a_screenshot_is_composed_as_an_attachment_on_its_channel() {
+        let (conn, _) = workspace();
+        let dir = tempfile::tempdir().unwrap();
+        let shot = dir.path().join("shot-7.png");
+        std::fs::write(&shot, b"not really a png").unwrap();
+
+        let (composed, _) = compose_for_screenshot(
+            &conn,
+            "read-comment",
+            &Screenshot {
+                path: &shot,
+                channel: " main ",
+                work_id: None,
+                today: "2026-09-22",
+            },
+        )
+        .unwrap();
+
+        assert_eq!(composed.attachments, vec![shot.clone()]);
+        assert!(composed.prompt.contains(&shot.display().to_string()));
+        assert!(composed.prompt.contains("Today is 2026-09-22"));
+        assert_eq!(channel_of_key(&composed.key).as_deref(), Some("main"));
+
+        let nowhere = compose_for_screenshot(
+            &conn,
+            "read-comment",
+            &Screenshot {
+                path: &shot,
+                channel: "  ",
+                work_id: None,
+                today: "2026-09-22",
+            },
+        );
+        assert!(
+            nowhere.is_err(),
+            "a comment is filed under a channel, so one must be said"
+        );
     }
 
     /// The type's own instruction reaches the model, the author's steer is

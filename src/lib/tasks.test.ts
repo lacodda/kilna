@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { RunEmission } from '@/lib/api'
-import { announcement, movesTaskList, taskKey } from '@/lib/tasks'
+import {
+  announcement,
+  channelOfTask,
+  commentTaskKey,
+  isScreenshotTask,
+  movesTaskList,
+  taskKey,
+} from '@/lib/tasks'
 
 const emission = (over: Partial<RunEmission> = {}): RunEmission => ({
   run_id: 'r1',
@@ -84,5 +91,24 @@ describe('movesTaskList', () => {
     expect(
       movesTaskList(emission({ event: { kind: 'tool', name: 'Read', detail: 'x' } })),
     ).toBe(false)
+  })
+})
+
+describe('comment task keys', () => {
+  it('names a reply task by its comment, the way the backend does', () => {
+    expect(commentTaskKey('reply-to-comment', 'c1')).toBe('reply-to-comment:comment:c1')
+  })
+
+  it('tells a screenshot being read from any other task of the action', () => {
+    expect(isScreenshotTask('read-comment:channel:main:shot', 'read-comment')).toBe(true)
+    expect(isScreenshotTask('read-comment:comment:c1', 'read-comment')).toBe(false)
+    expect(isScreenshotTask('critique:channel:x', 'read-comment')).toBe(false)
+  })
+})
+
+describe('channelOfTask', () => {
+  it('reads the channel back out of a screenshot key, escapes undone', () => {
+    expect(channelOfTask('read-comment:channel:live%3A 100%25:shot')).toBe('live: 100%')
+    expect(channelOfTask('critique:work-1')).toBeUndefined()
   })
 })

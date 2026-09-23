@@ -31,9 +31,24 @@ pub enum Entity {
     Collection,
     Scene,
     Cut,
+    Comment,
 }
 
 impl Entity {
+    /// Every kind of thing the trash holds. What a gate iterates rather than
+    /// a list of its own that someone has to remember to extend.
+    pub const ALL: [Entity; 9] = [
+        Entity::Work,
+        Entity::Version,
+        Entity::Score,
+        Entity::Release,
+        Entity::Note,
+        Entity::Collection,
+        Entity::Scene,
+        Entity::Cut,
+        Entity::Comment,
+    ];
+
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Work => "work",
@@ -44,6 +59,7 @@ impl Entity {
             Self::Collection => "collection",
             Self::Scene => "scene",
             Self::Cut => "cut",
+            Self::Comment => "comment",
         }
     }
 
@@ -59,6 +75,7 @@ impl Entity {
             "collection" => Ok(Self::Collection),
             "scene" => Ok(Self::Scene),
             "cut" => Ok(Self::Cut),
+            "comment" => Ok(Self::Comment),
             other => Err(Error::Other(format!("unknown trash entity `{other}`"))),
         }
     }
@@ -74,6 +91,7 @@ impl Entity {
             Self::Collection => "collection",
             Self::Scene => "scene",
             Self::Cut => "cut",
+            Self::Comment => "comment",
         }
     }
 }
@@ -163,6 +181,12 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "cut",
                 key: "source_id",
             },
+            // What the audience said about it. The schema's cascade takes the
+            // comments down with the work; captured so they come back with it.
+            Capture {
+                table: "comment",
+                key: "work_id",
+            },
         ],
         Entity::Version => &[Capture {
             table: "work_version",
@@ -208,6 +232,11 @@ fn cascade(entity: Entity) -> &'static [Capture] {
         // A stretch of a splice is one row and hangs nothing off itself.
         Entity::Cut => &[Capture {
             table: "cut",
+            key: "id",
+        }],
+        // A comment is one row and hangs nothing off itself.
+        Entity::Comment => &[Capture {
+            table: "comment",
             key: "id",
         }],
         // Works are not deleted with a collection — they are only let go of. The
@@ -554,12 +583,13 @@ pub fn purge(
     if Entity::parse(&entity)? == Entity::Work {
         tx.execute(
             "DELETE FROM deletion
-             WHERE entity IN ('version', 'score', 'release', 'note')
+             WHERE entity IN ('version', 'score', 'release', 'note', 'comment')
                AND json_extract(snapshot, '$.' || (
                    CASE entity
                        WHEN 'version' THEN 'work_version'
                        WHEN 'score' THEN 'work_score'
                        WHEN 'release' THEN 'release'
+                       WHEN 'comment' THEN 'comment'
                        ELSE 'note'
                    END
                ) || '[0].work_id') = ?1",
@@ -661,9 +691,12 @@ fn missing_parent(
         // These stand on their own; the profile they need is checked by the
         // insert itself.
         Entity::Work | Entity::Collection => return Ok(None),
-        Entity::Version | Entity::Score | Entity::Release | Entity::Note | Entity::Scene => {
-            &["work_id"]
-        }
+        Entity::Version
+        | Entity::Score
+        | Entity::Release
+        | Entity::Note
+        | Entity::Scene
+        | Entity::Comment => &["work_id"],
         // A stretch of a splice names two works and needs both: without the
         // short it belongs to nothing, and without the video it is seconds of
         // nowhere. Either being gone is the same refusal.
@@ -679,7 +712,7 @@ fn missing_parent(
     };
 
     for parent in parents {
-        // A note need not belong to a work at all.
+        // A note or a comment need not belong to a work at all.
         let Some(Value::String(work_id)) = row.get(*parent) else {
             continue;
         };
@@ -752,6 +785,16 @@ fn describe(
                 describe_row,
             )
             .optional()?,
+        // Named by what was said and who said it: "Loved the bridge — @anna".
+        Entity::Comment => conn
+            .query_row(
+                "SELECT substr(c.body, 1, 80) || coalesce(' — ' || nullif(c.author, ''), ''),
+                        w.title, c.profile_id
+                 FROM comment c LEFT JOIN work w ON w.id = c.work_id WHERE c.id = ?1",
+                params![id],
+                describe_row,
+            )
+            .optional()?,
         Entity::Collection => conn
             .query_row(
                 "SELECT title, NULL, profile_id FROM collection WHERE id = ?1",
@@ -810,6 +853,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Collection => "collection",
         Entity::Scene => "scene",
         Entity::Cut => "cut",
+        Entity::Comment => "comment",
     }
 }
 
