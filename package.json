@@ -24,7 +24,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.15",
-    "dowel-ui": "^0.30.0",
+    "dowel-ui": "^0.31.0",
     "i18next": "^26.4.2",
     "lucide-react": "^1.47.0",
     "marked": "^18.0.14",
