@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.76.0] - 2026-09-23
+
+### Features
+- A screen for every note, with checklists and a way to grow into a work
+- An inbox for the audience, read from screenshots and answered in the channel's voice
+
 ## [0.75.3] - 2026-09-22
 
 ### Bug Fixes
