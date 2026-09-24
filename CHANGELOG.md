@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.76.1] - 2026-09-24
+
+### Bug Fixes
+- Send every deletion to the trash and every write to the log
+
 ## [0.76.0] - 2026-09-23
 
 ### Features
