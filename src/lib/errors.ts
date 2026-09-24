@@ -18,6 +18,9 @@ const SPOKEN = new Set([
   'notRestorable',
   'layoutStale',
   'assistant',
+  'alreadyRunning',
+  'busy',
+  'frozen',
 ])
 
 function isAppError(cause: unknown): cause is AppError {

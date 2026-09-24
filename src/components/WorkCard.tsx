@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -9,6 +9,7 @@ import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { canBeCut } from '@/lib/cuts'
 import { hasScenes, useProfile } from '@/lib/useProfile'
+import { BlindJudgingContext } from '@/lib/blindJudging'
 import { cn } from '@/lib/utils'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { CardHeader } from '@/components/card/CardHeader'
@@ -17,7 +18,7 @@ import { LinksTab } from '@/components/card/LinksTab'
 import { OverviewTab } from '@/components/card/OverviewTab'
 import { CutsTab } from '@/components/card/CutsTab'
 import { ScenesTab } from '@/components/card/ScenesTab'
-import { isTab, type Tab } from '@/components/card/tabs'
+import { DEFAULT_TAB, isTab, type Tab } from '@/components/card/tabs'
 import { storedCardView } from '@/lib/cardView'
 import { VersionPanel } from '@/components/VersionPanel'
 import { ScorePanel } from '@/components/ScorePanel'
@@ -50,6 +51,11 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   const client = useQueryClient()
   const profile = useProfile()
   const work = useQuery({ queryKey: keys.work(workId), queryFn: () => getWork(workId) })
+  // Judging blind belongs to the card, not the Score tab: the header above the
+  // tab shows the last verdict too (see `lib/blindJudging`). The card is keyed
+  // by the work, so a new work starts with it off.
+  const [blind, setBlind] = useState(false)
+  const [revealed, setRevealed] = useState(false)
 
   // Noted once the title is known, since the list shows names rather than ids.
   // Keyed on both, so a rename while the card is open updates the entry rather
@@ -131,6 +137,16 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
 
   const current = work.data
 
+  // A tab this work does not have - a storyboard on a song, a splice on a work
+  // cut from nothing - goes to the default one, by the same rule the tab bar
+  // hides it. It used to draw an empty tab with nothing lit in the bar.
+  const unavailable =
+    (tab === 'scenes' && !storyboard) ||
+    (tab === 'cuts' && cuts.isSuccess && links.isSuccess && !spliced)
+  if (unavailable) {
+    return <Navigate to={`/works/${workId}/${DEFAULT_TAB}`} replace />
+  }
+
   // The header stands and the open tab takes the rest. A tab in `HELD` lays
   // its own columns out against that height and scrolls inside them; every
   // other tab is a page that scrolls within the box. Either way the card
@@ -138,6 +154,7 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   const held = HELD.has(tab)
 
   return (
+    <BlindJudgingContext value={{ blind, revealed, setBlind, setRevealed }}>
     <div className="flex min-h-0 flex-1 flex-col">
       <CardHeader
         work={current}
@@ -159,6 +176,7 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
         <TabBody tab={tab} workId={workId} work={current} />
       </div>
     </div>
+    </BlindJudgingContext>
   )
 }
 
@@ -213,9 +231,8 @@ function TabBody({
       return <NotePanel workId={workId} />
     case 'comments':
       return <CommentsPanel workId={workId} />
-    // The mockup has no assistant tab — it puts the panel in a drawer with a
-    // floating button, which is v0.28. Until then it lives here rather than
-    // being unreachable.
+    // The work's own conversation. The drawer from the window's bar holds every
+    // chat; this tab holds this work's, as the mockup draws it (#p-asst).
     case 'assistant':
       return <AssistantPanel workId={workId} />
     case 'history':

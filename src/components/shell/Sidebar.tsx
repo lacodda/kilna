@@ -156,7 +156,7 @@ export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
           {t('nav.library')}
         </div>
       )}
-      <SoonLink icon={Disc} label={t('nav.collections')} version="0.80" compact={compact} />
+      <SoonLink icon={Disc} label={t('nav.collections')} version="0.87" compact={compact} />
       <ScreenLink to="/notes" icon={FileText} label={t('nav.notes')} compact={compact} />
       <ScreenLink to="/comments" icon={MessagesSquare} label={t('nav.comments')} compact={compact} />
       {/* Only where the craft has one: a profile that names no style types

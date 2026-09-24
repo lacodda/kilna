@@ -32,12 +32,14 @@ pub enum Entity {
     Scene,
     Cut,
     Comment,
+    /// A brick of the style dictionary, with the pictures it was described from.
+    Style,
 }
 
 impl Entity {
     /// Every kind of thing the trash holds. What a gate iterates rather than
     /// a list of its own that someone has to remember to extend.
-    pub const ALL: [Entity; 9] = [
+    pub const ALL: [Entity; 10] = [
         Entity::Work,
         Entity::Version,
         Entity::Score,
@@ -47,6 +49,7 @@ impl Entity {
         Entity::Scene,
         Entity::Cut,
         Entity::Comment,
+        Entity::Style,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -60,6 +63,7 @@ impl Entity {
             Self::Scene => "scene",
             Self::Cut => "cut",
             Self::Comment => "comment",
+            Self::Style => "style",
         }
     }
 
@@ -76,6 +80,7 @@ impl Entity {
             "scene" => Ok(Self::Scene),
             "cut" => Ok(Self::Cut),
             "comment" => Ok(Self::Comment),
+            "style" => Ok(Self::Style),
             other => Err(Error::Other(format!("unknown trash entity `{other}`"))),
         }
     }
@@ -92,6 +97,7 @@ impl Entity {
             Self::Scene => "scene",
             Self::Cut => "cut",
             Self::Comment => "comment",
+            Self::Style => "style_brick",
         }
     }
 }
@@ -239,6 +245,20 @@ fn cascade(entity: Entity) -> &'static [Capture] {
             table: "comment",
             key: "id",
         }],
+        // A brick and the pictures it was described from. The pictures are
+        // what the brick is recognised by, so they come back with it; their
+        // files stay on disk while the entry is in the trash and go when it
+        // is purged (`forget_files`).
+        Entity::Style => &[
+            Capture {
+                table: "style_brick",
+                key: "id",
+            },
+            Capture {
+                table: "asset",
+                key: "style_brick_id",
+            },
+        ],
         // Works are not deleted with a collection — they are only let go of. The
         // membership they lose is captured separately, under `members`.
         Entity::Collection => &[Capture {
@@ -578,35 +598,104 @@ pub fn purge(
         .optional()?
         .ok_or_else(|| Error::not_found("deletion", deletion_id))?;
 
+    // The files of everything this purge forgets, read while the entries that
+    // name them are still there.
+    let mut files = snapshot_files(&tx, "deletion.id = ?1", deletion_id)?;
     tx.execute("DELETE FROM deletion WHERE id = ?1", params![deletion_id])?;
 
     if Entity::parse(&entity)? == Entity::Work {
+        files.extend(snapshot_files(&tx, CHILDREN_OF_WORK, &entity_id)?);
         tx.execute(
-            "DELETE FROM deletion
-             WHERE entity IN ('version', 'score', 'release', 'note', 'comment')
-               AND json_extract(snapshot, '$.' || (
-                   CASE entity
-                       WHEN 'version' THEN 'work_version'
-                       WHEN 'score' THEN 'work_score'
-                       WHEN 'release' THEN 'release'
-                       WHEN 'comment' THEN 'comment'
-                       ELSE 'note'
-                   END
-               ) || '[0].work_id') = ?1",
+            &format!("DELETE FROM deletion WHERE {CHILDREN_OF_WORK}"),
             params![entity_id],
         )?;
     }
 
     tx.commit()?;
+    forget_files(conn, &files)?;
     Ok(())
 }
 
+/// The entries that hang off a purged work: they could only ever be restored
+/// into it, so they go with it. Qualified by table, because it is also read
+/// beside `json_each`, whose own columns include an `id`.
+const CHILDREN_OF_WORK: &str =
+    "deletion.entity IN ('version', 'score', 'release', 'note', 'comment')
+     AND json_extract(deletion.snapshot, '$.' || (
+         CASE deletion.entity
+             WHEN 'version' THEN 'work_version'
+             WHEN 'score' THEN 'work_score'
+             WHEN 'release' THEN 'release'
+             WHEN 'comment' THEN 'comment'
+             ELSE 'note'
+         END
+     ) || '[0].work_id') = ?1";
+
 /// Empty the trash for a profile. Returns how many entries went.
 pub fn empty(conn: &Connection, profile_id: &str) -> Result<usize> {
-    Ok(conn.execute(
+    let files = snapshot_files(conn, "deletion.profile_id = ?1", profile_id)?;
+    let gone = conn.execute(
         "DELETE FROM deletion WHERE profile_id = ?1",
         params![profile_id],
-    )?)
+    )?;
+    forget_files(conn, &files)?;
+    Ok(gone)
+}
+
+/// The files the asset rows in some entries' snapshots point at.
+///
+/// A trashed work, release or style keeps its asset rows in the snapshot and
+/// its files on disk, so that a restore puts back a picture rather than a
+/// broken link. Those files are what purging has to account for.
+fn snapshot_files(conn: &Connection, condition: &str, value: &str) -> Result<Vec<String>> {
+    // `condition` comes from this file, never from input.
+    let mut statement = conn.prepare(&format!(
+        "SELECT json_extract(a.value, '$.path')
+         FROM deletion, json_each(deletion.snapshot, '$.asset') AS a
+         WHERE {condition}"
+    ))?;
+    let paths = statement
+        .query_map(params![value], |row| row.get::<_, Option<String>>(0))?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(paths.into_iter().flatten().collect())
+}
+
+/// Remove the files a purge let go of, unless something still names them.
+///
+/// Before this, purging only forgot the snapshot: the pictures of a purged
+/// work, release or style stayed in `media/` with nothing pointing at them,
+/// for good. A path is kept while a live asset row or another entry of the
+/// trash still names it - a cloned video shares its files with the original,
+/// and two entries can hold the same picture.
+///
+/// Runs after the commit: a file removed for a purge that then rolled back
+/// could not be put back.
+fn forget_files(conn: &Connection, paths: &[String]) -> Result<()> {
+    let mut seen = std::collections::BTreeSet::new();
+    for path in paths {
+        if !seen.insert(path.as_str()) {
+            continue;
+        }
+        let named: i64 = conn.query_row(
+            "SELECT (SELECT COUNT(*) FROM asset WHERE path = ?1)
+                  + (SELECT COUNT(*) FROM deletion, json_each(deletion.snapshot, '$.asset') AS a
+                     WHERE json_extract(a.value, '$.path') = ?1)",
+            params![path],
+            |row| row.get(0),
+        )?;
+        if named > 0 {
+            continue;
+        }
+        match std::fs::remove_file(path) {
+            Ok(()) => {}
+            // Already gone is what was wanted.
+            Err(cause) if cause.kind() == std::io::ErrorKind::NotFound => {}
+            // Said, not raised: the entry is gone either way, and a file left
+            // behind is not a reason to tell a person the purge failed.
+            Err(cause) => eprintln!("trash: could not remove {path}: {cause}"),
+        }
+    }
+    Ok(())
 }
 
 /// Everything in a profile's trash, newest first.
@@ -690,7 +779,7 @@ fn missing_parent(
     let parents: &[&str] = match entity {
         // These stand on their own; the profile they need is checked by the
         // insert itself.
-        Entity::Work | Entity::Collection => return Ok(None),
+        Entity::Work | Entity::Collection | Entity::Style => return Ok(None),
         Entity::Version
         | Entity::Score
         | Entity::Release
@@ -802,6 +891,15 @@ fn describe(
                 describe_row,
             )
             .optional()?,
+        // Named as the dictionary shows it: by its name, which is unique
+        // within its type.
+        Entity::Style => conn
+            .query_row(
+                "SELECT name, NULL, profile_id FROM style_brick WHERE id = ?1",
+                params![id],
+                describe_row,
+            )
+            .optional()?,
         // Named by its number and the part it plays against: "Scene 4 · chorus".
         Entity::Scene => conn
             .query_row(
@@ -854,6 +952,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Scene => "scene",
         Entity::Cut => "cut",
         Entity::Comment => "comment",
+        Entity::Style => "style",
     }
 }
 
@@ -1366,5 +1465,132 @@ mod tests {
         restore(&mut conn, &entry, None).unwrap();
         let back = note::get(&conn, &note.id).unwrap().unwrap();
         assert_eq!(back.tags, vec!["idea".to_owned()], "the tags came back too");
+    }
+
+    /// A style brick with one reference picture, the picture copied into a
+    /// media directory the test owns.
+    fn a_style_with_a_reference(
+        conn: &Connection,
+        profile_id: &str,
+        media: &std::path::Path,
+    ) -> (crate::style_brick::StyleBrick, crate::asset::Asset) {
+        let brick = crate::style_brick::create(
+            conn,
+            profile_id,
+            crate::style_brick::NewStyleBrick {
+                type_key: "image-style".into(),
+                name: "Cold north".into(),
+                description: Some("Grainy monochrome film.".into()),
+                hint: None,
+            },
+        )
+        .unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        let source = outside.path().join("north-01.png");
+        std::fs::write(&source, b"not really a picture").unwrap();
+        let reference = crate::asset::attach(
+            conn,
+            profile_id,
+            media,
+            &source,
+            crate::asset::NewAsset {
+                style_brick_id: Some(brick.id.clone()),
+                ..crate::asset::NewAsset::default()
+            },
+        )
+        .unwrap();
+        (brick, reference)
+    }
+
+    /// Deleting a style used to be a plain DELETE: no entry, no undo, and the
+    /// pictures gone with it. It is a trash entity now, and comes back whole.
+    #[test]
+    fn a_style_goes_to_the_trash_with_its_references_and_comes_back_whole() {
+        let (mut conn, profile_id) = workspace();
+        let media = tempfile::tempdir().unwrap();
+        let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
+
+        let entry = discard(&mut conn, Entity::Style, &brick.id).unwrap();
+        assert!(crate::style_brick::get(&conn, &brick.id).unwrap().is_none());
+        assert!(crate::asset::get(&conn, &reference.id).unwrap().is_none());
+        assert!(
+            std::path::Path::new(&reference.path).exists(),
+            "the picture stays on disk while its entry can still be restored"
+        );
+
+        let listed = list(&conn, &profile_id).unwrap();
+        assert_eq!(listed[0].entity, Entity::Style);
+        assert_eq!(listed[0].label, "Cold north");
+        assert!(listed[0].restorable);
+
+        restore(&mut conn, &entry, None).unwrap();
+        let back = crate::style_brick::get(&conn, &brick.id).unwrap().unwrap();
+        assert_eq!(back.description.as_deref(), Some("Grainy monochrome film."));
+        assert_eq!(back.reference_count, 1, "the picture came back with it");
+
+        // The tombstone the delete wrote is marked restored (migration 0028):
+        // without it a restored brick still reads as deleted to anything that
+        // trusts the tombstones.
+        let restored: Option<String> = conn
+            .query_row(
+                "SELECT restored_at FROM tombstone WHERE entity = 'style_brick' AND entity_id = ?1",
+                params![brick.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(restored.is_some(), "the tombstone knows the brick is back");
+    }
+
+    #[test]
+    fn purging_a_style_removes_the_pictures_nothing_else_names() {
+        let (mut conn, profile_id) = workspace();
+        let media = tempfile::tempdir().unwrap();
+        let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
+
+        let entry = discard(&mut conn, Entity::Style, &brick.id).unwrap();
+        purge(&mut conn, &entry, None).unwrap();
+
+        assert!(
+            !std::path::Path::new(&reference.path).exists(),
+            "a purged style's picture used to stay in media/ for good, named by nothing"
+        );
+    }
+
+    #[test]
+    fn emptying_the_trash_removes_the_pictures_it_held() {
+        let (mut conn, profile_id) = workspace();
+        let media = tempfile::tempdir().unwrap();
+        let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
+
+        discard(&mut conn, Entity::Style, &brick.id).unwrap();
+        empty(&conn, &profile_id).unwrap();
+
+        assert!(!std::path::Path::new(&reference.path).exists());
+    }
+
+    /// A cloned video hangs its own rows on the same files, so a path can be
+    /// named by more than one row. Purging one of them must not take the file
+    /// from under the other.
+    #[test]
+    fn a_purged_picture_that_a_live_row_still_names_stays() {
+        let (mut conn, profile_id) = workspace();
+        let media = tempfile::tempdir().unwrap();
+        let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
+
+        let work = work::create(&conn, &profile_id, song("Harbour lights")).unwrap();
+        conn.execute(
+            "INSERT INTO asset (id, profile_id, work_id, kind, path, created_at)
+             VALUES ('shared', ?1, ?2, 'attachment', ?3, '2026-09-24T00:00:00Z')",
+            params![profile_id, work.id, reference.path],
+        )
+        .unwrap();
+
+        let entry = discard(&mut conn, Entity::Style, &brick.id).unwrap();
+        purge(&mut conn, &entry, None).unwrap();
+
+        assert!(
+            std::path::Path::new(&reference.path).exists(),
+            "the work still shows this picture"
+        );
     }
 }

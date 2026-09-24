@@ -17,12 +17,26 @@ use crate::error::{Error, Result};
 /// pointed at nothing (decision of 2026-09-15), and the paths are inside the
 /// workspace, so nothing outside it is copied.
 pub fn write(conn: &Connection, destination: &Path, media: Option<&Path>) -> Result<PathBuf> {
+    let written = write_database(conn, destination)?;
+    copy_media(destination, media)?;
+    Ok(written)
+}
+
+/// The database half of [`write`]: the part that needs the connection.
+///
+/// Split so a caller holding the connection behind a lock can let go of it
+/// before the files are copied - a folder of clips takes far longer than the
+/// database, and nothing about copying it needs the database.
+pub fn write_database(conn: &Connection, destination: &Path) -> Result<PathBuf> {
     if let Some(parent) = destination.parent() {
         std::fs::create_dir_all(parent)?;
     }
-
     conn.backup("main", destination, None)?;
+    Ok(destination.to_path_buf())
+}
 
+/// The files half of [`write`]: the workspace's `media/` beside the database.
+pub fn copy_media(destination: &Path, media: Option<&Path>) -> Result<()> {
     if let Some(media) = media.filter(|dir| dir.is_dir()) {
         let into = media_beside(destination);
         // A second backup to the same name replaces the first, files and
@@ -32,8 +46,7 @@ pub fn write(conn: &Connection, destination: &Path, media: Option<&Path>) -> Res
         }
         copy_dir(media, &into)?;
     }
-
-    Ok(destination.to_path_buf())
+    Ok(())
 }
 
 /// Where a backup keeps the files that belong to it.

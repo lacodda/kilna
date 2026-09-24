@@ -73,7 +73,8 @@ const TAB_FOR_ACTION: Record<string, Tab> = {
   score: 'score',
   version: 'versions',
   scene: 'scenes',
-  cut: 'scenes',
+  // Its own tab since v0.73; the line used to open the storyboard.
+  cut: 'cuts',
   release: 'releases',
   link: 'links',
   asset: 'files',

@@ -120,6 +120,10 @@ function WorksScreen() {
     const openWork = (workId: string, tab?: string) =>
       navigate(tab === undefined ? `/works/${workId}` : `/works/${workId}/${tab}`)
     const screen = location.pathname.split('/')[1] ?? ''
+    // Where a crash is reset: the screen, and for a work the work itself - a
+    // card that fell over stayed fallen when another work was opened, because
+    // every work is the same screen.
+    const place = location.pathname.split('/').slice(0, 3).join('/')
 
     return (
       <ProfileContext value={workspace.profile}>
@@ -178,9 +182,9 @@ function WorksScreen() {
                   window having no scrollbar of its own is the point — see
                   `Screen`. */}
               <div key={screen} className="screen-in flex min-h-0 flex-1 flex-col overflow-hidden">
-                {/* Resetting on the screen name means a crash does not outlive the
-                    route that caused it. */}
-                <ErrorBoundary resetKey={screen}>
+                {/* Resetting on the place means a crash does not outlive the
+                    route, or the work, that caused it. */}
+                <ErrorBoundary resetKey={place}>
                   <Routes>
                     {/* The dashboard is where the app opens: the first question
                         is what needs deciding, not what exists. */}

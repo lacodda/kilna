@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router'
 import { ArrowLeft, Copy, Pencil, Star } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { deriveWork, latestScore, listCollections, updateWork, type Work } from '@/lib/api'
+import { useBlindJudging } from '@/lib/blindJudging'
 import { useCardView } from '@/lib/cardView'
 import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
@@ -52,6 +53,7 @@ interface Props {
 export function CardHeader({ work, releases, links = 0, scenes, cuts, onDelete }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
+  const { hiding } = useBlindJudging()
   const vocabulary = vocabularyOf(profile.config, work.kind)
   const cover = useCovers().get(work.id)
 
@@ -103,7 +105,9 @@ export function CardHeader({ work, releases, links = 0, scenes, cuts, onDelete }
             {status === undefined ? work.status : sayLabel(status.label)}
           </Badge>
 
-          {latest !== null && (
+          {/* Held back while this card is judged blind: it is the verdict the
+              mode exists to hide, one line above the scales. */}
+          {latest !== null && !hiding && (
             <Badge variant="soft">
               {latest.tier !== null && `${labelOf(vocabulary.tiers, latest.tier)} · `}
               <span className="font-mono tabular-nums">{Math.round(latest.total * 10) / 10}</span>
@@ -174,7 +178,7 @@ function Title({ work }: { work: Work }) {
   const copy = (value: string) => {
     navigator.clipboard.writeText(value).then(
       () => say.ok(t('work.copied')),
-      (cause: unknown) => say.failedTo(t('work.copied'), cause),
+      (cause: unknown) => say.failedTo(t('work.copyFailed'), cause),
     )
   }
 
@@ -283,7 +287,7 @@ function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void })
   const copy = (value: string) => {
     navigator.clipboard.writeText(value).then(
       () => say.ok(t('work.copied')),
-      (cause: unknown) => say.failedTo(t('work.copied'), cause),
+      (cause: unknown) => say.failedTo(t('work.copyFailed'), cause),
     )
   }
 

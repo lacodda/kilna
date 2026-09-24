@@ -64,10 +64,11 @@ describe('the stacking floors a popup inside an overlay lands on', () => {
     for (const file of readdirSync(dir).filter((name) => name.endsWith('.tsx'))) {
       const source = readFileSync(new URL(file, new URL('../components/ui/', import.meta.url)), 'utf8')
       if (!source.includes('.Portal')) continue
-      // A dialog, a drawer, a toast and the palette ARE the overlay: they open
-      // the floor rather than stand on one, so they portal to the body on
-      // purpose. Everything else opens INSIDE something and must ask.
-      if (/^(dialog|drawer|toast|command-palette)\.tsx$/.test(file)) continue
+      // A dialog, a confirm, a drawer, a toast and the palette ARE the
+      // overlay: they open the floor rather than stand on one, so they portal
+      // to the body on purpose. Everything else opens INSIDE something and
+      // must ask.
+      if (/^(dialog|confirm-dialog|drawer|toast|command-palette)\.tsx$/.test(file)) continue
       if (!source.includes('usePopupContainer')) offenders.push(file)
     }
 

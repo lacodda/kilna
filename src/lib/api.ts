@@ -34,7 +34,7 @@ export interface Axis {
   label: Label
   weight: number
   scale: number
-  description?: string
+  description?: Label
   /** Absent in a profile written before kinds existed: a scale. */
   kind?: AxisKind
   /** Only a `choice` axis has any. */
@@ -321,7 +321,7 @@ export interface ReleaseField extends Kind {
       typed by hand. */
   template?: string | null
   /** A line under the box saying what goes in it. */
-  hint?: string | null
+  hint?: Label | null
   /** How many characters the place this is going will accept. Counted beside
       the box, never enforced — kilna is not the authority on what a platform
       accepts this month. */
@@ -341,7 +341,7 @@ export interface Rhythm {
 /** One prompt block a scene carries: a still frame, an animation, a negative. */
 export interface SceneBlock extends Kind {
   /** A line under the box saying what goes in it. */
-  hint?: string | null
+  hint?: Label | null
 }
 
 /**
@@ -352,7 +352,7 @@ export interface SceneBlock extends Kind {
  * assistant when a brick is described and never a generator. See ADR 0031.
  */
 export interface StyleType extends Kind {
-  hint?: string | null
+  hint?: Label | null
   /** A glyph from the fixed set the window knows. */
   icon?: string | null
 }
@@ -836,8 +836,11 @@ export interface Scheduling {
 }
 
 // The dry run of a claim: the same verdict `schedule_release` would act on,
-// shown before the drop instead of announced after it.
-export type SlotVerdict = 'empty' | 'displaces' | 'held' | 'pinned'
+// shown before the drop instead of announced after it. Mirrors
+// `release::Verdict`; the backend's `window_unions` test holds the two
+// together - this said `displaces` and `held` for three weeks after the
+// backend stopped sending them.
+export type SlotVerdict = 'empty' | 'taken' | 'pinned'
 
 export interface SlotPreview {
   verdict: SlotVerdict
@@ -1331,7 +1334,8 @@ export const createStyleBrick = (brick: NewStyleBrick) =>
   invoke<StyleBrick>('create_style_brick', { brick })
 export const updateStyleBrick = (id: string, patch: StyleBrickPatch) =>
   invoke<StyleBrick>('update_style_brick', { id, patch })
-export const deleteStyleBrick = (id: string) => invoke<void>('delete_style_brick', { id })
+// Returns the trash entry, which is what the undo on the toast restores.
+export const deleteStyleBrick = (id: string) => invoke<string>('delete_style_brick', { id })
 /** A reference pasted straight onto a brick, the way a frame is. */
 export const pasteStyleReference = (id: string, bytes: number[], name: string) =>
   invoke<Asset>('paste_style_reference', { id, bytes, name })
@@ -1429,10 +1433,10 @@ export const applyLayout = (placements: Placement[]) =>
     and whether the profile could write it. */
 export interface ReleaseFieldValue {
   key: string
-  label: string
+  label: Label
   type: ReleaseFieldType
   value: string
-  hint?: string | null
+  hint?: Label | null
   limit?: number | null
   /** Whether the profile can fill this field on its own. */
   has_template: boolean
@@ -1441,7 +1445,7 @@ export interface ReleaseFieldValue {
 /** A field the profile could not fill, in the renderer's own words. */
 export interface ReleaseFieldRefusal {
   key: string
-  label: string
+  label: Label
   reason: string
 }
 
@@ -1467,7 +1471,7 @@ export const generateReleaseFields = (id: string) =>
 export interface BatchFieldRefusal {
   releaseId: string
   workTitle: string
-  label: string
+  label: Label
   reason: string
 }
 
@@ -1493,7 +1497,10 @@ export const deleteCollection = (id: string) => invoke<string>('delete_collectio
 export const setCollectionContents = (id: string, workIds: string[]) =>
   invoke<void>('set_collection_contents', { id, workIds })
 
-/** What a trashed entry was. Mirrors the backend's `trash::Entity`. */
+/** What a trashed entry was. Mirrors the backend's `trash::Entity`; the
+    backend's `the_window_knows_every_kind_the_trash_holds` test holds the
+    two lists together, because a kind added on one side only once showed up
+    in the trash with no word for it. */
 export type DeletedEntity =
   | 'work'
   | 'version'
@@ -1503,6 +1510,8 @@ export type DeletedEntity =
   | 'collection'
   | 'scene'
   | 'cut'
+  | 'comment'
+  | 'style'
 
 export interface Deletion {
   id: string

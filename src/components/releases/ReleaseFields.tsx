@@ -12,10 +12,10 @@ import {
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { fillable, over, written } from '@/lib/releaseFields'
-import { labelOf, useVocabulary } from '@/lib/useProfile'
+import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Dialog } from '@/components/ui/AppDialog'
+import { ConfirmAction } from '@/components/ui/ConfirmAction'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { SaveState, useSaveStatus } from '@/components/ui/SaveState'
@@ -83,8 +83,12 @@ export function ReleaseFields({ release }: Props) {
 
   const status = useSaveStatus(save.isPending, save.isError)
 
-  const copy = (field: ReleaseFieldValue) => {
-    navigator.clipboard.writeText(field.value).then(
+  // The text handed over is what is in the box, not what is stored: pressing
+  // Copy is what takes the focus from a field being written, and its save has
+  // not landed by then - copying the stored value put the text from before the
+  // edit on the clipboard, under a toast that said it was copied.
+  const copy = (field: ReleaseFieldValue, text: string) => {
+    navigator.clipboard.writeText(text).then(
       () => say.ok(t('releases.meta.copied', { label: field.label })),
       (cause: unknown) => say.failedTo(t('releases.meta.copyFailed'), cause),
     )
@@ -136,7 +140,7 @@ export function ReleaseFields({ release }: Props) {
         <ReleaseFieldBox
           key={field.key}
           field={field}
-          onCopy={() => copy(field)}
+          onCopy={(text) => copy(field, text)}
           onSave={(value) => {
             if (value === field.value) return
             save.mutate({ [field.key]: value })
@@ -144,28 +148,20 @@ export function ReleaseFields({ release }: Props) {
         />
       ))}
 
-      <Dialog
+      {/* Writing over fields someone wrote is asked through the alert: a
+          stray click beside an ordinary dialog dismissed it, and the dialog
+          added a second Cancel under its own two buttons. */}
+      <ConfirmAction
         open={confirming}
         onOpenChange={setConfirming}
         title={t('releases.meta.confirmTitle')}
-      >
-        <p className="text-sm text-dim">{t('releases.meta.confirmBody')}</p>
-        <div className="mt-3 flex justify-end gap-2">
-          <Button type="button" onClick={() => setConfirming(false)}>
-            {t('dialog.cancel')}
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={() => {
-              setConfirming(false)
-              generate.mutate()
-            }}
-          >
-            {t('releases.meta.confirmAction')}
-          </Button>
-        </div>
-      </Dialog>
+        description={t('releases.meta.confirmBody')}
+        actionLabel={t('releases.meta.confirmAction')}
+        onConfirm={() => {
+          setConfirming(false)
+          generate.mutate()
+        }}
+      />
     </section>
   )
 }
@@ -173,7 +169,8 @@ export function ReleaseFields({ release }: Props) {
 interface BoxProps {
   field: ReleaseFieldValue
   onSave: (value: string) => void
-  onCopy: () => void
+  /** Copy what the box holds right now. */
+  onCopy: (text: string) => void
 }
 
 /**
@@ -212,7 +209,7 @@ function ReleaseFieldBox({ field, onSave, onCopy }: BoxProps) {
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
         <span className="text-2xs font-semibold uppercase tracking-caption text-faint">
-          {field.label}
+          {sayLabel(field.label)}
         </span>
         {counter !== null && (
           // A count, never a refusal: kilna is not the authority on what a
@@ -224,7 +221,7 @@ function ReleaseFieldBox({ field, onSave, onCopy }: BoxProps) {
         )}
         <button
           type="button"
-          onClick={onCopy}
+          onClick={() => onCopy(draft)}
           disabled={draft.trim() === ''}
           title={t('releases.meta.copy')}
           aria-label={t('releases.meta.copy')}
@@ -235,13 +232,13 @@ function ReleaseFieldBox({ field, onSave, onCopy }: BoxProps) {
       </div>
 
       {field.type === 'line' || field.type === 'tags' ? (
-        <Input {...shared} placeholder={field.hint ?? undefined} />
+        <Input {...shared} placeholder={sayLabel(field.hint) || undefined} />
       ) : (
         <Textarea {...shared} autoResize maxRows={12} rows={3} />
       )}
 
       {field.hint != null && field.type === 'text' && (
-        <span className="text-xs text-faint">{field.hint}</span>
+        <span className="text-xs text-faint">{sayLabel(field.hint)}</span>
       )}
     </div>
   )

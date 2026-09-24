@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
-import { previewSchedule, type ScheduledRelease } from '@/lib/api'
+import { previewSchedule, type ScheduledRelease, type SlotVerdict } from '@/lib/api'
 import type { Ghost } from '@/lib/layout'
 import { byDate, monthGrid, sameMonth, shiftMonth, today, type Month } from '@/lib/month'
 import { accentFor } from '@/lib/cover'
@@ -350,9 +350,7 @@ export function MonthGrid({
                   <p
                     className={cn(
                       'rounded-sm px-1 py-0.5 text-[10px] leading-tight',
-                      verdict.verdict === 'displaces'
-                        ? 'bg-warn-soft text-warn'
-                        : 'bg-bad-soft text-bad',
+                      VERDICT_TONE[verdict.verdict],
                     )}
                   >
                     {t(`calendar.preview.${verdict.verdict}`, {
@@ -397,4 +395,20 @@ export function MonthGrid({
         )}
     </div>
   )
+}
+
+/**
+ * How a day's verdict reads while something is dragged over it.
+ *
+ * Neither is a refusal - a day holds as many releases as are put on it - so
+ * neither is red. Something already there is information; a date settled by
+ * hand is worth a warmer look before adding beside it. Written as a record
+ * over the verdicts, so a verdict the backend adds is a type error here until
+ * it has a tone.
+ */
+const VERDICT_TONE: Record<SlotVerdict, string> = {
+  // Never drawn: an empty day says nothing while something is dragged over it.
+  empty: '',
+  taken: 'bg-soft text-dim',
+  pinned: 'bg-warn-soft text-warn',
 }

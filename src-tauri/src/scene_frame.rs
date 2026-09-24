@@ -39,6 +39,39 @@ pub const VIDEO: &str = "video";
 /// the picture is decided first, and the animation comes from it.
 pub const KINDS: [&str; 2] = [FRAME, VIDEO];
 
+/// The endings a still arrives as - what a generator hands back, and what the
+/// window's picker offers for the stills.
+pub const PICTURES: [&str; 6] = ["png", "jpg", "jpeg", "webp", "gif", "avif"];
+
+/// The endings a clip arrives as.
+pub const CLIPS: [&str; 4] = ["mp4", "webm", "mov", "m4v"];
+
+/// Refuse a file that is not the material its strip holds.
+///
+/// Without this a picture dropped on the clips strip was stored as a video and
+/// drawn as a broken player for good; the window routes a drop to the strip
+/// under the pointer now, but a strip is only ever asked, and the answer is
+/// kept here, where every way in - the picker, a drop, a paste - passes.
+fn check_material(kind: &str, source: &Path) -> Result<()> {
+    let ending = source
+        .extension()
+        .and_then(|ending| ending.to_str())
+        .map(str::to_ascii_lowercase)
+        .unwrap_or_default();
+    let (allowed, what): (&[&str], &str) = if kind == VIDEO {
+        (&CLIPS, "clip")
+    } else {
+        (&PICTURES, "picture")
+    };
+    if allowed.contains(&ending.as_str()) {
+        return Ok(());
+    }
+    Err(Error::Other(format!(
+        "this strip takes a {what} ({}), and .{ending} is not one",
+        allowed.join(", ")
+    )))
+}
+
 /// Refuse a kind the board has no column for, rather than writing a row
 /// nothing will ever read back.
 fn check_kind(kind: &str) -> Result<()> {
@@ -100,6 +133,7 @@ pub fn attach_minted(
     minted: Minted,
 ) -> Result<SceneFrame> {
     check_kind(kind)?;
+    check_material(kind, source)?;
     let scene =
         crate::scene::get(conn, scene_id)?.ok_or_else(|| Error::not_found("scene", scene_id))?;
 
@@ -447,6 +481,31 @@ mod tests {
         let path = dir.join(name);
         std::fs::write(&path, b"not really a png").unwrap();
         path
+    }
+
+    /// A picture on the clips strip, or a clip on the stills strip, is refused
+    /// before anything is copied - it used to be stored and drawn as a broken
+    /// player or a broken picture for good.
+    #[test]
+    fn a_strip_takes_only_its_own_material() {
+        let (conn, profile_id, media) = workspace();
+        let (_, scene_id) = a_scene(&conn, &profile_id);
+        let source = tempfile::tempdir().unwrap();
+
+        let picture = a_picture(source.path(), "still.PNG");
+        let clip = a_picture(source.path(), "take.mp4");
+        assert!(attach(&conn, media.path(), &scene_id, VIDEO, &picture).is_err());
+        assert!(attach(&conn, media.path(), &scene_id, FRAME, &clip).is_err());
+        assert_eq!(
+            std::fs::read_dir(media.path()).unwrap().count(),
+            0,
+            "nothing is copied in for a refusal"
+        );
+
+        // The ending is read without regard to case: a camera writes .PNG.
+        attach(&conn, media.path(), &scene_id, FRAME, &picture).unwrap();
+        attach(&conn, media.path(), &scene_id, VIDEO, &clip).unwrap();
+        assert_eq!(for_scene(&conn, &scene_id).unwrap().len(), 2);
     }
 
     /// Four pictures for one prompt: all four are kept, in the order they

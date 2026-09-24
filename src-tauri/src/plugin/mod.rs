@@ -143,6 +143,68 @@ pub struct Outcome {
     pub error: Option<String>,
 }
 
+/// How long a plugin may take before it is stopped.
+///
+/// A plugin that never answered used to hold the command - and, before it ran
+/// off the main thread, the whole window - for as long as it liked. Two
+/// minutes is generous for what plugins do today (a word count, a lookup, a
+/// rename); a plugin that uploads or renders will need its own allowance in
+/// its manifest when one exists.
+pub const PLUGIN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+
+/// Wait for a child to finish, reading its output as it goes, and stop it if
+/// it runs past `limit`.
+///
+/// The output is read on threads of its own: a child that writes more than a
+/// pipe holds blocks until someone reads, and waiting for it to exit first
+/// would wait for ever.
+fn wait_within(
+    mut child: std::process::Child,
+    limit: std::time::Duration,
+) -> Result<std::process::Output> {
+    use std::io::Read;
+
+    let mut stdout = child.stdout.take();
+    let mut stderr = child.stderr.take();
+    let read_out = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        if let Some(pipe) = stdout.as_mut() {
+            let _ = pipe.read_to_end(&mut bytes);
+        }
+        bytes
+    });
+    let read_err = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        if let Some(pipe) = stderr.as_mut() {
+            let _ = pipe.read_to_end(&mut bytes);
+        }
+        bytes
+    });
+
+    let started = std::time::Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if started.elapsed() >= limit => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(Error::Other(format!(
+                    "the plugin did not answer within {} seconds and was stopped",
+                    limit.as_secs()
+                )));
+            }
+            Ok(None) => std::thread::sleep(std::time::Duration::from_millis(20)),
+            Err(error) => return Err(Error::Other(format!("the plugin did not finish: {error}"))),
+        }
+    };
+
+    Ok(std::process::Output {
+        status,
+        stdout: read_out.join().unwrap_or_default(),
+        stderr: read_err.join().unwrap_or_default(),
+    })
+}
+
 /// Run one command of one plugin.
 ///
 /// The invocation goes in over stdin as JSON and the outcome comes back over
@@ -175,9 +237,7 @@ pub fn invoke(path: &Path, invocation: &Invocation<'_>) -> Result<Outcome> {
         }
     }
 
-    let output = child
-        .wait_with_output()
-        .map_err(|error| Error::Other(format!("the plugin did not finish: {error}")))?;
+    let output = wait_within(child, PLUGIN_TIMEOUT)?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -285,6 +345,76 @@ pub fn convention() -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A child that runs for a while and says nothing.
+    fn a_sleeper() -> std::process::Child {
+        #[cfg(windows)]
+        let mut command = {
+            let mut command = std::process::Command::new("cmd");
+            command.args(["/C", "ping -n 6 127.0.0.1 >NUL"]);
+            command
+        };
+        #[cfg(not(windows))]
+        let mut command = {
+            let mut command = std::process::Command::new("sleep");
+            command.arg("5");
+            command
+        };
+        command
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap()
+    }
+
+    /// A plugin that never answers is stopped, and says so, instead of
+    /// holding the command for as long as it likes.
+    #[test]
+    fn a_plugin_that_does_not_answer_is_stopped() {
+        let started = std::time::Instant::now();
+        let refused = wait_within(a_sleeper(), std::time::Duration::from_millis(300));
+
+        let message = refused.expect_err("the wait gives up").to_string();
+        assert!(message.contains("was stopped"), "{message}");
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(3),
+            "stopped at the limit, not when the child finished on its own"
+        );
+    }
+
+    /// Output larger than a pipe holds is read while the child runs, so the
+    /// child is never left blocked on a full pipe with nobody reading.
+    #[test]
+    fn a_plugin_that_says_a_lot_is_read_to_the_end() {
+        #[cfg(windows)]
+        let mut command = {
+            let mut command = std::process::Command::new("cmd");
+            command.args([
+                "/C",
+                "for /L %i in (1,1,8000) do @echo 0123456789012345678901234567890123456789",
+            ]);
+            command
+        };
+        #[cfg(not(windows))]
+        let mut command = {
+            let mut command = std::process::Command::new("sh");
+            command.args(["-c", "head -c 300000 /dev/zero"]);
+            command
+        };
+        let child = command
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+
+        let output = wait_within(child, std::time::Duration::from_secs(30)).unwrap();
+        assert!(output.status.success());
+        assert!(
+            output.stdout.len() > 200_000,
+            "read {} bytes",
+            output.stdout.len()
+        );
+    }
 
     #[test]
     fn search_starts_with_the_workspace_plugins_directory() {

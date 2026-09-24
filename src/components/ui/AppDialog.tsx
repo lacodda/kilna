@@ -41,6 +41,13 @@ interface DialogProps {
   children?: ReactNode
   /** The action row. Cancel is provided; this is the affirmative side. */
   footer?: ReactNode
+  /**
+   * An action that is not an answer to the dialog - deleting the thing it
+   * edits. Drawn at the start of the row, away from Cancel and the affirmative
+   * button: between them, one slip of the pointer on the way to Save was a
+   * deletion (the style dialog, 24.09).
+   */
+  aside?: ReactNode
   className?: string
 }
 
@@ -51,6 +58,7 @@ export function Dialog({
   description,
   children,
   footer,
+  aside,
   className,
 }: DialogProps) {
   const { t } = useTranslation()
@@ -84,6 +92,7 @@ export function Dialog({
         {children !== undefined && <div className="mt-4">{children}</div>}
 
         <DialogActions>
+          {aside !== undefined && <div className="mr-auto flex gap-2">{aside}</div>}
           <DialogClose render={<Button />}>{t('dialog.cancel')}</DialogClose>
           {footer}
         </DialogActions>

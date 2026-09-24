@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -10,6 +9,7 @@ import {
   type WorkPatch,
 } from '@/lib/api'
 import { announceEdited } from '@/lib/edited'
+import { useFieldDraft } from '@/lib/fieldDraft'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
@@ -38,18 +38,6 @@ export function OverviewTab({ work }: Props) {
   const vocabulary = vocabularyOf(profile.config, work.kind)
   const client = useQueryClient()
 
-  // The field is edited locally but owned by the query: whenever the stored
-  // title changes underneath it — a fresh load, a plugin rewriting it — the
-  // draft is dropped. Adjusting during render rather than in an effect avoids
-  // the frame where the input still shows the previous work's title.
-  const [title, setTitle] = useState(work.title)
-  const [syncedTo, setSyncedTo] = useState(work.title)
-
-  if (syncedTo !== work.title) {
-    setSyncedTo(work.title)
-    setTitle(work.title)
-  }
-
   const patch = useMutation({
     mutationFn: (changes: WorkPatch) => updateWork(work.id, changes),
     // Optimistic: the header above should not lag behind the field just left.
@@ -64,9 +52,9 @@ export function OverviewTab({ work }: Props) {
     },
     onError: (cause, _changes, context) => {
       // Put back what was there; the toast explains why it moved.
+      // The title box follows the stored title back on its own.
       if (context?.previous !== undefined) {
         client.setQueryData(keys.work(work.id), context.previous)
-        setTitle(context.previous?.title ?? '')
       }
       say.failedTo(t('toast.workSaveFailed'), cause)
     },
@@ -81,6 +69,15 @@ export function OverviewTab({ work }: Props) {
   })
 
   const saveStatus = useSaveStatus(patch.isPending, patch.isError)
+
+  // The same rules as every other field here (`fieldDraft`): written when it
+  // changed, Escape puts it back. A title cannot be emptied, so an empty box
+  // goes back to the stored title rather than stay showing one never saved.
+  const title = useFieldDraft(work.title, (text) => {
+    const next = text.trim()
+    if (next === '' || next === work.title) return false
+    patch.mutate({ title: next })
+  })
 
   // Whose status this is. Picking one from the list pins it — the automation
   // then steps over this work entirely — and the only way back is to say so.
@@ -115,21 +112,13 @@ export function OverviewTab({ work }: Props) {
           annotated. */}
       <Panel className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] items-start gap-4 p-4">
         <Field label={t('work.title')}>
-          <Input
-            className="w-full"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            onBlur={() => {
-              if (title.trim() !== '' && title !== work.title) patch.mutate({ title: title.trim() })
-            }}
-          />
+          <Input className="w-full" {...title} />
         </Field>
 
         {/* The notice sits under the select rather than beside it: sharing the
             row left "Released" showing as "Relea…", and the status is what is
-            being read here. It is also outside the `Field` — that renders a
-            `<label>`, and a button inside one is a button whose clicks the
-            control it labels would answer too. */}
+            being read here. It stays outside the `Field`, so the field holds
+            the one control its caption names. */}
         <div className="flex flex-col">
           <Field label={t('work.status')} hint={pinned ? undefined : statusHint}>
             <Select
@@ -232,42 +221,33 @@ function MetaInput({
   if (field.type === 'multiline') {
     return (
       <Field label={sayLabel(field.label)}>
-        <Textarea
-          rows={5}
-          defaultValue={typeof value === 'string' ? value : ''}
-          onBlur={(event) => onChange(event.target.value)}
-        />
+        <MetaText multiline rows={5} value={value} onCommit={(text) => onChange(text)} />
       </Field>
     )
   }
 
   if (field.type === 'date') {
-    // Not a `<label>` wrapper: clicking the caption would reach the popover
-    // trigger as well and toggle it twice.
+    // In a `Field` like the rest since it stopped wrapping its content in a
+    // `<label>`: the caption is tied to the trigger by id, so a click on it
+    // opens the month once instead of reaching the trigger twice.
     return (
-      <div className="flex flex-col gap-1">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
-          {sayLabel(field.label)}
-        </span>
+      <Field label={sayLabel(field.label)}>
         <DatePicker
           className="w-full"
-          aria-label={sayLabel(field.label)}
           placeholder={t('work.noDate')}
           value={typeof value === 'string' ? value : ''}
           onChange={(next) => onChange(next)}
         />
-      </div>
+      </Field>
     )
   }
 
   return (
     <Field label={sayLabel(field.label)}>
-      <Input
-        className="w-full"
-        type={field.type === 'number' ? 'number' : 'text'}
-        defaultValue={String(value ?? '')}
-        onBlur={(event) => {
-          const raw = event.target.value
+      <MetaText
+        number={field.type === 'number'}
+        value={value}
+        onCommit={(raw) => {
           if (raw === '') return onChange('')
           if (field.type !== 'number') return onChange(raw)
           // Numbers are stored as numbers so scoring and sorting can use them;
@@ -278,5 +258,50 @@ function MetaInput({
         }}
       />
     </Field>
+  )
+}
+
+/**
+ * A profile field's box, bound to the stored value by the rules in
+ * `lib/fieldDraft`: it follows the stored value while nobody is typing,
+ * writes only when what was typed differs, and Escape puts it back.
+ *
+ * These were uncontrolled boxes that wrote on every blur, which is how a
+ * value a plugin had just written was put back to the old one by the next
+ * pass of the Tab key, and how tabbing through twelve fields left twelve
+ * operations and twelve toasts behind.
+ */
+function MetaText({
+  value,
+  onCommit,
+  multiline = false,
+  number = false,
+  rows,
+  id,
+  'aria-describedby': describedBy,
+}: {
+  value: Meta[string]
+  onCommit: (text: string) => void
+  multiline?: boolean
+  number?: boolean
+  rows?: number
+  /** Set by the `Field` around it, so its caption names this box. */
+  id?: string
+  'aria-describedby'?: string
+}) {
+  const stored = value === undefined || value === null || value === false ? '' : String(value)
+  const draft = useFieldDraft(stored, onCommit, { multiline })
+
+  if (multiline) {
+    return <Textarea id={id} aria-describedby={describedBy} rows={rows} {...draft} />
+  }
+  return (
+    <Input
+      id={id}
+      aria-describedby={describedBy}
+      className="w-full"
+      type={number ? 'number' : 'text'}
+      {...draft}
+    />
   )
 }

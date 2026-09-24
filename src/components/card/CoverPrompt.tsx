@@ -116,7 +116,7 @@ function Block({
         value={shown}
         rows={3}
         disabled={disabled}
-        placeholder={block.hint ?? undefined}
+        placeholder={sayLabel(block.hint) || undefined}
         onChange={(event) => setText(event.target.value)}
         onBlur={() => {
           if (text !== null && text !== value) onCommit(text)

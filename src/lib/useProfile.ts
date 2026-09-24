@@ -16,6 +16,7 @@ import {
   type VersionRole,
 } from '@/lib/api'
 import { keys } from '@/lib/query'
+import { resolveLabel } from '@/lib/label'
 
 // The active profile is the vocabulary every screen speaks in, so it is read
 // once and shared rather than fetched per component.
@@ -43,15 +44,8 @@ export function useProfile(): Profile {
  * for the word, and `version_roles.lyrics` on screen is worse than the English
  * the author would at least recognise.
  */
-export function say(label: Label | undefined, language?: string): string {
-  if (label === undefined) return ''
-  if (typeof label === 'string') return label
-
-  const wanted = language ?? i18n.resolvedLanguage ?? 'en'
-  const found = label[wanted] ?? label[wanted.split('-')[0] ?? wanted] ?? label.en
-  if (found !== undefined) return found
-
-  return Object.values(label)[0] ?? ''
+export function say(label: Label | null | undefined, language?: string): string {
+  return resolveLabel(label, language ?? i18n.resolvedLanguage ?? 'en')
 }
 
 // Label for a key from one of the profile's vocabularies, falling back to the

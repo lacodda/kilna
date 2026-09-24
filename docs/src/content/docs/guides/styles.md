@@ -25,9 +25,9 @@ A style has four things:
   *Ranger*.
 - **A description** — the text that goes into a prompt **word for word**.
   This is the whole of what a style contributes.
-- **References** — the pictures it was written from. Drop them in, or paste
-  one with `Ctrl+V`. They are copied into the workspace like every other
-  file, so a style survives you tidying your downloads.
+- **References** — the pictures it was written from. Add them with **Add
+  pictures**, or paste one with `Ctrl+V`. They are copied into the workspace
+  like every other file, so a style survives you tidying your downloads.
 
 There is a fifth field, the **steer**, and it is the odd one: it says what
 to look at when the style is *described* — "only the jacket", "ignore the
@@ -64,10 +64,12 @@ into ready in the same move. Describing a retired style does not revive it.
 
 ## Describing from references
 
-Drop the pictures in, pick the type, and press **Describe from the
+Add the pictures, pick the type, and press **Describe from the
 references**. The assistant is given the type's own question, your steer,
 the pictures and whatever the style says today, and it writes the
-description that style will carry.
+description that style will carry. Whatever you changed in the dialog is
+saved first, so the description is written from the style as you left it —
+the steer you typed a moment ago included.
 
 The answer arrives in its own chat, the way every AI action's does. Nothing
 is written until you keep it — the assistant never touches the workspace
@@ -76,6 +78,17 @@ itself.
 With no references at all, the prompt says so rather than pretending: it
 asks for a description from the name and says plainly that there was
 nothing to look at.
+
+## Deleting a style
+
+**Delete** moves a style to the [Trash](/kilna/guides/the-trash/) together
+with its reference pictures, like every other deletion: the message offers
+*Undo*, and the Trash restores the style with its pictures for as long as you
+want. The button stands apart at the start of the dialog's row, away from
+*Cancel* and *Save*.
+
+To put a style away without deleting it, set it to **retired** instead: it
+keeps its description and pictures and stops being offered.
 
 ## Building a prompt
 

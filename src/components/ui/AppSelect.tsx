@@ -43,7 +43,10 @@ interface Props {
   /** Entry shown when nothing is chosen; picking it yields an empty string. */
   placeholder?: string
   className?: string
+  /** Put on the trigger, so a `Field` caption can name it by `htmlFor`. */
+  id?: string
   'aria-label'?: string
+  'aria-describedby'?: string
 }
 
 /** Base UI items may not carry an empty value, so the placeholder entry is
@@ -56,7 +59,9 @@ export function Select({
   options,
   placeholder,
   className,
+  id,
   'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedBy,
 }: Props) {
   // Where the list goes when this select is inside a dialog or a full-screen
   // stage. Without it the popup portals to the body at the page's own `--z-menu`
@@ -78,7 +83,12 @@ export function Select({
       value={value === '' ? EMPTY : value}
       onValueChange={(next: unknown) => onChange(next === EMPTY ? '' : String(next))}
     >
-      <SelectTrigger aria-label={ariaLabel} className={className}>
+      <SelectTrigger
+        id={id}
+        aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
+        className={className}
+      >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
 

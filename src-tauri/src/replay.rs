@@ -239,16 +239,18 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
             crate::style_brick::create_minted(conn, &profile_id, new, minted(params)?)?;
         }
 
+        "profile.update" => {
+            let id = required(params, "id")?;
+            let config: crate::profile::config::ProfileConfig = from_params(params, "config")?;
+            let at = required(params, "at")?;
+            crate::profile::update_config_at(conn, &id, &config, &at)?;
+        }
+
         "style.update" => {
             let id = required(params, "id")?;
             let patch = from_params(params, "patch")?;
             let at = required(params, "at")?;
             crate::style_brick::update_at(conn, &id, patch, &at)?;
-        }
-
-        "style.delete" => {
-            let id = required(params, "id")?;
-            crate::style_brick::delete(conn, &id)?;
         }
 
         "version.edit" => {

@@ -60,6 +60,7 @@ import {
   VIDEO,
   type Readiness,
 } from '@/lib/scenes'
+import { useFieldDraft } from '@/lib/fieldDraft'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { say as sayLabel, useProfile, vocabularyOf, type Vocabulary } from '@/lib/useProfile'
@@ -407,10 +408,13 @@ export function ScenesTab({ work }: Props) {
           (aboutByScene.get(scene.id) ?? []).some((link) => link.note_id === withNote),
         )
 
-  // The viewer walks the scenes that have something to show, in board order.
+  // The viewer walks the scenes that have a still to show, in board order.
   // Built from what is on screen, so a filtered board walks only what it shows
-  // — the arrows never lead somewhere the person cannot see they are.
-  const withFrames = shown.filter((scene) => (framesForScene.get(scene.id) ?? []).length > 0)
+  // — the arrows never lead somewhere the person cannot see they are. Stills
+  // only: the arrows compare pictures, and a scene with only a clip used to
+  // open its clip as a picture.
+  const stillsOf = (sceneId: string) => ofKind(framesForScene.get(sceneId) ?? [], FRAME)
+  const withFrames = shown.filter((scene) => stillsOf(scene.id).length > 0)
   const viewingAt = viewing
     ? withFrames.findIndex((scene) => scene.id === viewing.sceneId)
     : -1
@@ -420,7 +424,7 @@ export function ScenesTab({ work }: Props) {
     if (!canStep(direction)) return
     const next = withFrames[viewingAt + direction]
     if (!next) return
-    const frames = framesForScene.get(next.id) ?? []
+    const frames = stillsOf(next.id)
     // The chosen frame is what the scene *is*; without one, its first.
     const frame = chosenFrame(frames) ?? frames[0]
     if (frame) setViewing({ sceneId: next.id, number: next.position, frame })
@@ -604,11 +608,14 @@ export function ScenesTab({ work }: Props) {
             </thead>
             <tbody>
               {shown.map((scene) => (
-                // Keyed on the moment it last changed as well as its id, so a
-                // change from elsewhere — an undo, another view — redraws the
-                // fields with what is stored rather than what was typed here.
+                // Keyed on the scene alone. It used to carry `updated_at` too,
+                // so a change from elsewhere redrew the fields - and so did the
+                // row's own save: every edit remounted it, and the focus a Tab
+                // had just moved to the next field fell to the page with
+                // whatever was being typed there. The fields follow the stored
+                // value themselves now (`useFieldDraft`).
                 <SceneRow
-                  key={`${scene.id}:${scene.updated_at}`}
+                  key={scene.id}
                   scene={scene}
                   workId={work.id}
                   vocabulary={vocabulary}
@@ -825,34 +832,49 @@ function SceneRow({
   moving: boolean
 }) {
   const { t } = useTranslation()
-  const [starts, setStarts] = useState(formatSeconds(scene.starts_at))
-  const [ends, setEnds] = useState(formatSeconds(scene.ends_at))
-  const [number, setNumber] = useState(String(scene.position))
 
-  const moveTo = (text: string) => {
+  // Every field of the row is a draft over what is stored: it follows the
+  // scene while nobody types in it, writes only a change, and goes back to
+  // what is stored when a value is refused - a field showing an order or a
+  // time that was not applied would be a second truth about the scene.
+  const number = useFieldDraft(String(scene.position), (text) => {
     const wanted = Number(text.trim())
     if (text.trim() === '' || !Number.isInteger(wanted) || wanted < 1 || wanted > total) {
       say.warn(t('scenes.badNumber', { text, total }))
-      // Back to the number the scene actually holds, for the same reason the
-      // timecode field goes back: a field showing an order that was not
-      // applied would be a second truth about where the scene stands.
-      setNumber(String(scene.position))
-      return
+      return false
     }
-    if (wanted !== scene.position) onMoveTo(wanted)
-  }
+    if (wanted === scene.position) return false
+    onMoveTo(wanted)
+  })
 
-  const saveTime = (field: 'starts_at' | 'ends_at', text: string, stored: number | null) => {
+  const timecode = (field: 'starts_at' | 'ends_at', stored: number | null) => (text: string) => {
     const parsed = parseTimecode(text)
     if (!parsed.ok) {
       say.warn(t('scenes.badTime', { text }))
-      // Back to what is stored: a field left showing a value that was not
-      // saved would be a second truth.
-      ;(field === 'starts_at' ? setStarts : setEnds)(formatSeconds(stored))
-      return
+      return false
     }
-    if (parsed.seconds !== stored) onPatch({ [field]: parsed.seconds })
+    // The same moment typed another way ("0:5") is not a change, and the
+    // box goes back to the stored spelling of it.
+    if (parsed.seconds === stored) return false
+    onPatch({ [field]: parsed.seconds })
   }
+  const starts = useFieldDraft(formatSeconds(scene.starts_at), timecode('starts_at', scene.starts_at))
+  const ends = useFieldDraft(formatSeconds(scene.ends_at), timecode('ends_at', scene.ends_at))
+
+  const section = useFieldDraft(scene.section ?? '', (text) => {
+    const trimmed = text.trim()
+    if (trimmed === (scene.section ?? '')) return false
+    onPatch({ section: trimmed === '' ? null : trimmed })
+  })
+
+  const description = useFieldDraft(
+    scene.description,
+    (text) => {
+      if (text === scene.description) return false
+      onPatch({ description: text })
+    },
+    { multiline: true },
+  )
 
   const saveBlock = (key: string, text: string) => {
     const blocks: Record<string, string> = { ...scene.blocks }
@@ -909,59 +931,41 @@ function SceneRow({
                 The board closes up behind the move: the rest are renumbered
                 1..N, never nudged, so a board with holes or twins comes out
                 of it straight (decision of 2026-09-16). */}
+            {/* Escape puts back what is stored rather than what was typed:
+                the field is a command, and a command is cancelled, not
+                half-entered. */}
             <Input
               className="w-11 text-right font-semibold tabular-nums"
-              value={number}
               inputMode="numeric"
               aria-label={t('scenes.moveTo')}
               title={t('scenes.moveToHint')}
               disabled={moving}
-              onChange={(event) => setNumber(event.target.value)}
-              onBlur={(event) => moveTo(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') event.currentTarget.blur()
-                // Escape puts back what is stored rather than what was
-                // typed: the field is a command, and a command is cancelled,
-                // not half-entered.
-                if (event.key === 'Escape') {
-                  setNumber(String(scene.position))
-                  event.currentTarget.blur()
-                }
-              }}
+              {...number}
             />
           </span>
         </td>
         <td className="px-2 py-1.5">
           <Input
             className="w-36"
-            defaultValue={scene.section ?? ''}
             placeholder={t('scenes.sectionPlaceholder')}
             aria-label={t('scenes.section')}
-            onBlur={(event) => {
-              const section = event.target.value.trim()
-              if (section !== (scene.section ?? ''))
-                onPatch({ section: section === '' ? null : section })
-            }}
+            {...section}
           />
         </td>
         <td className="px-2 py-1.5">
           <span className="flex items-center gap-1 text-xs text-dim">
             <Input
               className="w-20 text-center font-mono text-xs tabular-nums"
-              value={starts}
               placeholder="0:00"
               aria-label={t('scenes.startsAt')}
-              onChange={(event) => setStarts(event.target.value)}
-              onBlur={(event) => saveTime('starts_at', event.target.value, scene.starts_at)}
+              {...starts}
             />
             <span aria-hidden>–</span>
             <Input
               className="w-20 text-center font-mono text-xs tabular-nums"
-              value={ends}
               placeholder="0:00"
               aria-label={t('scenes.endsAt')}
-              onChange={(event) => setEnds(event.target.value)}
-              onBlur={(event) => saveTime('ends_at', event.target.value, scene.ends_at)}
+              {...ends}
             />
           </span>
         </td>
@@ -1081,6 +1085,7 @@ function SceneRow({
                 holds the panel where the eye is while the table scrolls
                 under it. */}
             <div
+              data-scene-detail={scene.id}
               className="sticky left-0 flex flex-col gap-3"
               style={paneWidth === null ? undefined : { width: paneWidth - 16 }}
             >
@@ -1088,13 +1093,9 @@ function SceneRow({
                 autoResize
                 maxRows={8}
                 rows={2}
-                defaultValue={scene.description}
                 placeholder={t('scenes.descriptionPlaceholder')}
                 aria-label={t('scenes.description')}
-                onBlur={(event) => {
-                  if (event.target.value !== scene.description)
-                    onPatch({ description: event.target.value })
-                }}
+                {...description}
               />
 
               {cast.length > 0 && (
@@ -1235,11 +1236,16 @@ function BlockBox({
   onSave?: (text: string) => void
 }) {
   const { t } = useTranslation()
+  const draft = useFieldDraft(text, (typed) => onSave?.(typed), { multiline: true })
 
+  // What is in the box, not what was last stored: a press on Copy is the
+  // first thing to take the focus from a block being written, and copying the
+  // stored text handed the generator the prompt from before the edit - under
+  // a toast that said it was copied.
   const copy = () => {
-    navigator.clipboard.writeText(text).then(
+    navigator.clipboard.writeText(draft.value).then(
       () => say.ok(t('scenes.copied', { block: block.label })),
-      (cause: unknown) => say.failedTo(t('scenes.copied', { block: block.label }), cause),
+      (cause: unknown) => say.failedTo(t('scenes.copyFailed', { block: block.label }), cause),
     )
   }
 
@@ -1254,7 +1260,7 @@ function BlockBox({
           size="icon-sm"
           title={t('scenes.copy', { block: block.label })}
           aria-label={t('scenes.copy', { block: block.label })}
-          disabled={text === ''}
+          disabled={draft.value === ''}
           onClick={copy}
         >
           <Copy aria-hidden className="size-3.5" />
@@ -1271,13 +1277,12 @@ function BlockBox({
         autoResize
         maxRows={12}
         rows={3}
-        defaultValue={text}
         readOnly={onSave === undefined}
         aria-label={sayLabel(block.label)}
-        onBlur={(event) => onSave?.(event.target.value)}
+        {...draft}
       />
       {block.hint !== undefined && block.hint !== null && (
-        <span className="text-xs text-faint">{block.hint}</span>
+        <span className="text-xs text-faint">{sayLabel(block.hint)}</span>
       )}
     </div>
   )

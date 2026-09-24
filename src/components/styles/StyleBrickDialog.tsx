@@ -17,8 +17,10 @@ import {
   type StyleBrickStatus,
   type StyleType,
 } from '@/lib/api'
+import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
+import { announceDeleted } from '@/lib/trash'
 import { say as sayLabel } from '@/lib/useProfile'
 import { useAssistant } from '@/lib/useAssistant'
 import { styleIconOf } from '@/lib/styleIcon'
@@ -67,6 +69,25 @@ export function StyleBrickDialog({
 
   const id = brick?.id
 
+  // The form as the backend would write it, and whether it differs from the
+  // brick as stored. Describing reads the stored brick, so an edit not yet
+  // saved has to be saved first - or the steer typed a moment ago is ignored
+  // and the name, type and status typed with it are thrown away when the
+  // dialog closes.
+  const written = {
+    type_key: typeKey,
+    name: name.trim(),
+    description: description.trim() === '' ? null : description.trim(),
+    hint: hint.trim() === '' ? null : hint.trim(),
+  }
+  const dirty =
+    brick !== undefined &&
+    (written.type_key !== brick.type_key ||
+      written.name !== brick.name ||
+      written.description !== brick.description ||
+      written.hint !== brick.hint ||
+      status !== brick.status)
+
   const references = useQuery({
     queryKey: keys.styleReferences(id ?? ''),
     queryFn: () => styleBrickReferences(id ?? ''),
@@ -80,33 +101,32 @@ export function StyleBrickDialog({
 
   const save = useMutation({
     mutationFn: async () => {
-      if (id === undefined) {
-        return createStyleBrick({
-          type_key: typeKey,
-          name: name.trim(),
-          description: description.trim() === '' ? null : description.trim(),
-          hint: hint.trim() === '' ? null : hint.trim(),
-        })
-      }
-      return updateStyleBrick(id, {
-        type_key: typeKey,
-        name: name.trim(),
-        description: description.trim() === '' ? null : description.trim(),
-        hint: hint.trim() === '' ? null : hint.trim(),
-        status,
-      })
+      if (id === undefined) return createStyleBrick(written)
+      return updateStyleBrick(id, { ...written, status })
     },
     onSuccess: () => {
       settle()
+      // Said, with the way back: both a new brick and an edit are operations
+      // undo can take back, and a save that closes the dialog in silence left
+      // the person to guess whether it happened.
+      announceEdited({ client, message: t('styles.saved'), refresh: [keys.styles] })
       onOpenChange(false)
     },
     onError: (cause: unknown) => say.failed(cause),
   })
 
+  // Into the trash with its references, the road every other deletion takes;
+  // the toast offers the way back.
   const remove = useMutation({
     mutationFn: () => deleteStyleBrick(id ?? ''),
-    onSuccess: () => {
+    onSuccess: (deletionId) => {
       settle()
+      announceDeleted({
+        client,
+        deletionId,
+        message: t('styles.deleted', { name: brick?.name ?? '' }),
+        refresh: [keys.styles],
+      })
       onOpenChange(false)
     },
     onError: (cause: unknown) => say.failed(cause),
@@ -136,7 +156,13 @@ export function StyleBrickDialog({
   })
 
   const describe = useMutation({
-    mutationFn: () => startStyleTask(id ?? '', DESCRIBE),
+    mutationFn: async () => {
+      if (dirty && id !== undefined) {
+        await updateStyleBrick(id, { ...written, status })
+        settle()
+      }
+      return startStyleTask(id ?? '', DESCRIBE)
+    },
     onSuccess: (started) => {
       // The answer lands in its own chat; the panel opens on it so the person
       // watches it arrive rather than wondering where it went.
@@ -186,29 +212,26 @@ export function StyleBrickDialog({
       onOpenChange={onOpenChange}
       title={id === undefined ? t('styles.new') : t('styles.edit')}
       className="max-w-2xl"
+      /* Deleting is not an answer to the dialog, so it stands apart at the
+         start of the row rather than between Cancel and Save. */
+      aside={
+        id === undefined ? undefined : (
+          <Button variant="danger" onClick={() => remove.mutate()} disabled={remove.isPending}>
+            <Trash2 aria-hidden className="size-4" />
+            {t('work.delete')}
+          </Button>
+        )
+      }
       /* Cancel is the dialog's own, always first in the row — only what is
          particular to this one goes here. */
       footer={
-        <>
-          {id !== undefined && (
-            <Button
-              variant="ghost"
-              onClick={() => remove.mutate()}
-              disabled={remove.isPending}
-              className="text-bad"
-            >
-              <Trash2 aria-hidden />
-              {t('work.delete')}
-            </Button>
-          )}
-          <Button
-            variant="primary"
-            onClick={() => save.mutate()}
-            disabled={save.isPending || name.trim() === '' || typeKey === ''}
-          >
-            {t('dialog.save')}
-          </Button>
-        </>
+        <Button
+          variant="primary"
+          onClick={() => save.mutate()}
+          disabled={save.isPending || name.trim() === '' || typeKey === ''}
+        >
+          {t('dialog.save')}
+        </Button>
       }
     >
       <div className="flex flex-col gap-4">
@@ -287,7 +310,7 @@ export function StyleBrickDialog({
             disabled={describe.isPending || references.data?.length === 0}
             className="self-start"
           >
-            <Sparkles aria-hidden />
+            <Sparkles aria-hidden className="size-4" />
             {t('styles.describe')}
           </Button>
         )}

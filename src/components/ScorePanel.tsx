@@ -19,6 +19,7 @@ import { Sparkline } from '@/components/ui/Sparkline'
 import { TierRuler } from '@/components/ui/TierRuler'
 import { TierPin } from '@/components/card/TierPin'
 import { KindVerdicts } from '@/components/card/KindVerdicts'
+import { useBlindJudging } from '@/lib/blindJudging'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -55,9 +56,7 @@ export function ScorePanel({ workId }: Props) {
   // up to - a mirror of the verdict being given, not a hint about the last
   // one. Per-session rather than stored: it is a way of working through one
   // batch, not a setting about the workspace.
-  const [blind, setBlind] = useState(false)
-  const [revealed, setRevealed] = useState(false)
-  const hiding = blind && !revealed
+  const { blind, setBlind, setRevealed, hiding } = useBlindJudging()
   // Empty means "whatever the work currently points at", which is what the
   // backend already does when no version is named.
   const [versionId, setVersionId] = useState('')
@@ -230,7 +229,7 @@ export function ScorePanel({ workId }: Props) {
             <button
               type="button"
               onClick={() => {
-                setBlind((on) => !on)
+                setBlind(!blind)
                 setRevealed(false)
               }}
               title={t('score.blindOnHint')}
@@ -448,9 +447,9 @@ export function ScorePanel({ workId }: Props) {
                       it made a six-axis card taller than the screen, and scoring
                       is a judgement you make by looking at all the axes at once.
                       One line, with the whole of it on hover. */}
-                  {axis.description !== undefined && axis.description !== '' && (
-                    <span className="block truncate text-[11px] text-faint" title={axis.description}>
-                      {axis.description}
+                  {sayLabel(axis.description) !== '' && (
+                    <span className="block truncate text-[11px] text-faint" title={sayLabel(axis.description)}>
+                      {sayLabel(axis.description)}
                     </span>
                   )}
                 </span>
@@ -597,13 +596,13 @@ export function ScorePanel({ workId }: Props) {
                 verdict it overrides, and shown even with nothing filled in:
                 a pin is about the work, not about the form being typed. */}
             {work.data != null && (
-              <TierPin work={work.data} scored={historyData[0]?.tier ?? null} />
+              <TierPin work={work.data} scored={hiding ? null : (historyData[0]?.tier ?? null)} />
             )}
 
             {/* What the recorded score means to each channel. Reads the latest
                 score rather than the form above: a verdict per kind is about
                 what stands, not about what is being typed. */}
-            <KindVerdicts workId={workId} />
+            {!hiding && <KindVerdicts workId={workId} />}
 
             {/* Both of these have been in the API since v0.3.0 and never sent.
                 A score belongs to the draft it judged — usually the current one,

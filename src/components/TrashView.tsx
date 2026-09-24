@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RotateCcw, X } from 'lucide-react'
+import { RotateCcw, Trash2 } from 'lucide-react'
 import {
   emptyTrash,
   listDeletions,
@@ -14,28 +14,11 @@ import { clearDraftsFor } from '@/lib/drafts'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
-import { Dialog } from '@/components/ui/AppDialog'
+import { ConfirmAction } from '@/components/ui/ConfirmAction'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SkeletonList } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 
-// Restoring anything can put back a work, a version, a score, a release or a
-// membership, so the whole set is refreshed rather than guessed at per entity —
-// the trash is not a hot path, and a stale screen after an undo is worse than a
-// query that did not need running.
-const REFRESHED = [
-  keys.works,
-  keys.workspace,
-  keys.catalogue,
-  keys.calendar,
-  keys.releases,
-  keys.releaseQueue,
-  keys.scores,
-  keys.notes,
-  keys.tags,
-  keys.collections,
-  keys.deletions,
-] as const
 
 /**
  * The word for what an entry used to be, one key per kind.
@@ -54,6 +37,8 @@ const ENTITY_KEYS: Record<DeletedEntity, string> = {
   collection: 'trash.entity.collection',
   scene: 'trash.entity.scene',
   cut: 'trash.entity.cut',
+  comment: 'trash.entity.comment',
+  style: 'trash.entity.style',
 }
 
 function entityLabel(entity: DeletedEntity, t: (key: string) => string): string {
@@ -99,16 +84,17 @@ function Row({
           >
             <RotateCcw aria-hidden />
           </Button>
+          {/* A bin rather than a cross: a cross reads as "close" or "take off
+              this list", and this one deletes for good. */}
           <Button
-            variant="icon"
+            variant="danger"
             size="icon-sm"
             disabled={busy}
-            className="hover:text-bad"
             title={t('trash.purge')}
             aria-label={t('trash.purge')}
             onClick={onPurge}
           >
-            <X aria-hidden />
+            <Trash2 aria-hidden />
           </Button>
         </div>
       </td>
@@ -126,11 +112,21 @@ export function TrashView() {
   const { t } = useTranslation()
   const client = useQueryClient()
   const [confirmingEmpty, setConfirmingEmpty] = useState(false)
+  // The entry waiting on "delete for good?". Kept as the entry rather than an
+  // id so the question can name it.
+  const [purging, setPurging] = useState<Deletion | null>(null)
 
   const entries = useQuery({ queryKey: keys.deletions, queryFn: listDeletions })
 
+  // Restoring can put back anything - a work with its versions, scenes, cuts,
+  // pictures and comments, a style with its references, a membership - so
+  // every query is refreshed rather than a list of them kept here. The list
+  // this replaced had already missed scenes, cuts, comments and versions: a
+  // restored scene stayed invisible on its card for up to half a minute. The
+  // trash is not a hot path; a stale screen after a restore costs more than
+  // queries that did not need running.
   const settle = () => {
-    for (const key of REFRESHED) void client.invalidateQueries({ queryKey: key })
+    void client.invalidateQueries()
   }
 
   const restore = useMutation({
@@ -144,12 +140,14 @@ export function TrashView() {
 
   // Purging and emptying are the only irreversible actions in the app, so they
   // are the only ones that still ask — there is no trash behind the trash.
+  // Both ask through ConfirmAction: an alert a stray click cannot dismiss.
   const purge = useMutation({
     mutationFn: (entry: Deletion) => purgeDeletion(entry.id),
     onSuccess: (_result, entry) => {
       // Unsaved drafts are keyed by the work they belong to. Once the work is
       // gone for good nothing can ever reach them again, so they go with it.
       if (entry.entity === 'work') clearDraftsFor(entry.entity_id)
+      setPurging(null)
       void client.invalidateQueries({ queryKey: keys.deletions })
     },
     onError: (cause) => say.failedTo(t('trash.purgeFailed'), cause),
@@ -216,22 +214,34 @@ export function TrashView() {
               entry={entry}
               busy={busy}
               onRestore={() => restore.mutate(entry.id)}
-              onPurge={() => purge.mutate(entry)}
+              onPurge={() => setPurging(entry)}
             />
           ))}
         </tbody>
       </table>
 
-      <Dialog
+      <ConfirmAction
+        open={purging !== null}
+        onOpenChange={(open) => {
+          if (!open) setPurging(null)
+        }}
+        title={t('trash.purgeTitle', { label: purging?.label ?? '' })}
+        description={t('trash.purgeBody')}
+        actionLabel={t('trash.purge')}
+        pending={purge.isPending}
+        onConfirm={() => {
+          if (purging !== null) purge.mutate(purging)
+        }}
+      />
+
+      <ConfirmAction
         open={confirmingEmpty}
         onOpenChange={setConfirmingEmpty}
         title={t('trash.emptyTitle')}
         description={t('trash.emptyBody', { count: entries.data.length })}
-        footer={
-          <Button variant="primary" disabled={empty.isPending} onClick={() => empty.mutate()}>
-            {t('trash.empty')}
-          </Button>
-        }
+        actionLabel={t('trash.empty')}
+        pending={empty.isPending}
+        onConfirm={() => empty.mutate()}
       />
     </div>
   )

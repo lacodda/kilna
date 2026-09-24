@@ -300,16 +300,12 @@ pub fn start_as(
     // already running is more useful than telling them the machine is busy.
     if let Some(key) = &task {
         if runs.task_running(key) {
-            return Err(Error::Assistant(
-                "This is already running. Wait for it to finish.".into(),
-            ));
+            return Err(Error::AlreadyRunning);
         }
     }
 
     if !runs.has_slot() {
-        return Err(Error::Assistant(format!(
-            "{PARALLEL_LIMIT} runs are already going. Wait for one to finish, or cancel it."
-        )));
+        return Err(Error::Busy(PARALLEL_LIMIT));
     }
 
     let id = uuid::Uuid::new_v4().to_string();
@@ -1361,9 +1357,12 @@ mod tests {
             panic!("the limit must refuse a fourth run");
         };
 
+        // Its own kind rather than `Assistant`: the window answers that one
+        // with "check that Claude Code is installed", which is the wrong
+        // diagnosis for a machine that is merely busy.
         assert!(
-            matches!(refused, Error::Assistant(_)),
-            "the panel needs a sentence, not a database error"
+            matches!(refused, Error::Busy(_)),
+            "the panel needs its own sentence for a busy machine, got {refused:?}"
         );
         // Nothing was written: no message, no row, no process.
         let asked: i64 = conn
@@ -1978,7 +1977,10 @@ The second verse is the weak one."
             panic!("the same task must not run twice at once");
         };
 
-        assert!(matches!(refused, Error::Assistant(_)));
+        assert!(
+            matches!(refused, Error::AlreadyRunning),
+            "a second click is told to wait, not sent to check the install: {refused:?}"
+        );
         // Refused before anything was written: a duplicate must not leave a
         // question in the transcript that no run will ever answer.
         let asked: i64 = conn

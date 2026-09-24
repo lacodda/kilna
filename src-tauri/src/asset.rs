@@ -442,7 +442,10 @@ mod tests {
             "the count travels with the row, for a list drawn with covers"
         );
 
-        crate::style_brick::delete(&conn, &brick.id).unwrap();
+        // The schema's cascade, which is what the trash leans on when it
+        // takes a brick away: the reference row goes with the brick.
+        conn.execute("DELETE FROM style_brick WHERE id = ?1", params![brick.id])
+            .unwrap();
         assert!(
             get(&conn, &reference.id).unwrap().is_none(),
             "a reference to a style that is gone is a broken picture, not a record"

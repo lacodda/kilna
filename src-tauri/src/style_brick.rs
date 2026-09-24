@@ -335,13 +335,6 @@ pub fn describe(conn: &Connection, id: &str, description: &str) -> Result<StyleB
     )
 }
 
-pub fn delete(conn: &Connection, id: &str) -> Result<()> {
-    if conn.execute("DELETE FROM style_brick WHERE id = ?1", params![id])? == 0 {
-        return Err(unknown(id));
-    }
-    Ok(())
-}
-
 /// A brick is of a type the profile names.
 ///
 /// Checked here rather than in the schema, for the reason `scene_note` checks
@@ -662,10 +655,11 @@ mod tests {
 
     #[test]
     fn deleting_a_brick_leaves_a_tombstone_under_its_name() {
-        let (conn, profile_id) = workspace();
+        let (mut conn, profile_id) = workspace();
         let one = create(&conn, &profile_id, brick("character", "Ranger")).unwrap();
 
-        delete(&conn, &one.id).unwrap();
+        // The road every deletion takes since v0.76.1: into the trash.
+        crate::trash::discard(&mut conn, crate::trash::Entity::Style, &one.id).unwrap();
 
         let label: String = conn
             .query_row(

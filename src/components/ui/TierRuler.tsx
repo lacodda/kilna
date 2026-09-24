@@ -57,7 +57,7 @@ export function TierRuler({ tiers, score, className }: Props) {
           return (
             <span
               key={tier.key}
-              title={`${tier.label} · ${tier.min}+`}
+              title={`${say(tier.label)} · ${tier.min}+`}
               style={{ left: `${tier.min}%`, width: `${width}%` }}
               className={cn(
                 'absolute top-0 h-full',

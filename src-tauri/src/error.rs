@@ -40,6 +40,18 @@ pub enum Error {
     #[error("{0}")]
     Assistant(String),
 
+    /// The same task was asked for while it is still running. Its own kind:
+    /// it used to travel as `Assistant`, and the window then answered a
+    /// second click with "check that Claude Code is installed" - a wrong
+    /// diagnosis for a refusal that only means "wait".
+    #[error("this is already running; wait for it to finish")]
+    AlreadyRunning,
+
+    /// Every slot for a run is taken. Not the CLI's fault either, and it
+    /// passes by itself.
+    #[error("{0} runs are already going; wait for one to finish, or stop one")]
+    Busy(usize),
+
     /// The row is a snapshot something else points at, so it cannot change
     /// in place — a scored version, whose score read exactly this text. Its
     /// own kind because the remedy is specific: start the next revision.
@@ -65,6 +77,8 @@ impl Error {
             Self::NotRestorable(_) => "notRestorable",
             Self::LayoutStale(_) => "layoutStale",
             Self::Assistant(_) => "assistant",
+            Self::AlreadyRunning => "alreadyRunning",
+            Self::Busy(_) => "busy",
             Self::Frozen(_) => "frozen",
             Self::Other(_) => "other",
         }

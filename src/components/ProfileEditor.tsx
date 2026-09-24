@@ -242,7 +242,7 @@ function ReleaseFieldsEditor({
                   </div>
                   <Field label={t('editor.fieldHintLabel')}>
                     <Input
-                      value={field.hint ?? ''}
+                      value={sayLabel(field.hint)}
                       placeholder={t('editor.fieldHint')}
                       aria-label={t('editor.fieldHintLabel')}
                       onChange={(event) =>

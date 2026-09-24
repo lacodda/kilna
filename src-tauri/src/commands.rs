@@ -64,14 +64,32 @@ pub fn activate_profile(state: State<'_, AppState>, id: String) -> Result<()> {
 /// Existing works keep their status and kind even when the vocabulary that
 /// named them is edited away — an old value stays visible rather than being
 /// rewritten, because the alternative is silently changing what a work is.
+///
+/// Logged as `profile.update` with the whole document before and after: the
+/// vocabulary is part of the workspace a replay rebuilds - statuses, axes and
+/// kinds are read through it - and it used to be written past the log, so a
+/// rebuilt workspace came back with the profile as it was first seeded.
 #[tauri::command]
 pub fn update_profile_config(
     state: State<'_, AppState>,
     id: String,
     config: profile::config::ProfileConfig,
 ) -> Result<Profile> {
-    let conn = state.conn();
-    profile::update_config(&conn, &id, &config)
+    let mut conn = state.conn();
+    let before = profile::config_for(&conn, &id)?;
+
+    let at = time::now();
+    let logged = operation::Intent::new("profile.update")
+        .in_profile(&id)
+        .param("profile", profile_key(&conn, &id)?)
+        .param("id", id.clone())
+        .param("config", serde_json::to_value(&config)?)
+        .param("before", serde_json::to_value(&before)?)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| {
+        profile::update_config_at(tx, &id, &config, &at)
+    })
 }
 
 /// Do something to the workspace and record the operation that asked for it, in
@@ -761,8 +779,33 @@ pub fn set_current_version(
     work_id: String,
     version_id: String,
 ) -> Result<()> {
-    let conn = state.conn();
-    version::set_current(&conn, &work_id, &version_id)
+    let mut conn = state.conn();
+    let profile_id = active_profile_id(&conn)?;
+    // Refused before anything is written or logged: another work's text is
+    // not this work's version.
+    version::check_belongs(&conn, &work_id, &version_id)?;
+    let before = work::get(&conn, &work_id)?;
+
+    // A work.update of the one field, like any other edit of a work. Written
+    // past the log until v0.76.1: Ctrl+Z after "make current" took back the
+    // edit before it, and a replay rebuilt the old current version.
+    let patch = WorkPatch {
+        current_version_id: Some(Some(version_id)),
+        ..WorkPatch::default()
+    };
+    let at = time::now();
+    let logged = operation::Intent::new("work.update")
+        .in_profile(&profile_id)
+        .param("profile", profile_key(&conn, &profile_id)?)
+        .param("id", work_id.clone())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(before.as_ref(), &patch)?)
+        .param("at", at.clone());
+
+    recording(&mut conn, logged, |tx| {
+        work::update_at(tx, &work_id, patch, &at)
+    })?;
+    Ok(())
 }
 
 /// Move something to the trash and write one line about it.
@@ -847,7 +890,9 @@ fn work_behind(
 ) -> Option<String> {
     match entity {
         trash::Entity::Work => Some(entity_id.to_owned()),
-        trash::Entity::Collection => None,
+        // Neither hangs off a work: a collection holds works, and a style is
+        // the workspace's own dictionary.
+        trash::Entity::Collection | trash::Entity::Style => None,
         _ => trash::snapshot_work_id(conn, entity, entity_id),
     }
 }
@@ -1176,7 +1221,7 @@ pub fn update_style_brick(
 /// The bytes are not written into the log, for the reason a pasted frame's are
 /// not: an operation carrying a picture would make the log the size of the
 /// pictures. It is recorded as the arrival it is, and not replayed.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn paste_style_reference(
     state: State<'_, AppState>,
     id: String,
@@ -1273,9 +1318,7 @@ pub fn start_style_task(
     // impatient second click.
     let key = assistant::task::style_key(&action, &id);
     if runs.task_running(&key) {
-        return Err(Error::Assistant(
-            "This is already running. Wait for it to finish.".into(),
-        ));
+        return Err(Error::AlreadyRunning);
     }
 
     let prepared = {
@@ -1359,9 +1402,7 @@ pub fn start_comment_task(
     // Checked before the chat is opened, for the reason `spawn_task` checks.
     let key = assistant::task::comment_key(&action, &id);
     if runs.task_running(&key) {
-        return Err(Error::Assistant(
-            "This is already running. Wait for it to finish.".into(),
-        ));
+        return Err(Error::AlreadyRunning);
     }
 
     let prepared = {
@@ -1465,17 +1506,17 @@ pub fn pending_comment_proposals(
     assistant::apply::pending_comments(&conn, &profile_id)
 }
 
+/// Move a brick to the trash, with the pictures it was described from.
+///
+/// It used to be a plain DELETE under its own `style.delete` operation: no
+/// entry to restore, nothing for undo to take back, and the pictures went with
+/// it - the one deletion in the app that could not be walked back, sitting in
+/// a dialog one button away from Save. The trash is the one road every other
+/// deletion takes, so this takes it too, under the one `entity.discard`
+/// operation every trash entity shares.
 #[tauri::command]
-pub fn delete_style_brick(state: State<'_, AppState>, id: String) -> Result<()> {
-    let mut conn = state.conn();
-    let profile_id = active_profile_id(&conn)?;
-
-    let logged = operation::Intent::new("style.delete")
-        .in_profile(&profile_id)
-        .param("profile", profile_key(&conn, &profile_id)?)
-        .param("id", id.clone());
-
-    recording(&mut conn, logged, |tx| style_brick::delete(tx, &id))
+pub fn delete_style_brick(state: State<'_, AppState>, id: String) -> Result<String> {
+    discard_and_record(&state, trash::Entity::Style, &id)
 }
 
 #[tauri::command]
@@ -2973,7 +3014,7 @@ pub fn cut_shot_list(state: State<'_, AppState>, work_id: String) -> Result<Vec<
 /// The path comes from the file picker, so it is a place on this machine;
 /// the bytes are copied into the workspace's own `media/` directory and the
 /// row holds where they landed.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn attach_asset(
     state: State<'_, AppState>,
     source: String,
@@ -3076,7 +3117,7 @@ pub fn list_scene_frames(
 /// The path comes from the picker, from a drop, or from a pasted image the
 /// window wrote to a temporary file; by the time it gets here it is a place
 /// on this machine, and the bytes are copied into the workspace's `media/`.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn attach_scene_frame(
     state: State<'_, AppState>,
     scene_id: String,
@@ -3114,7 +3155,7 @@ pub fn attach_scene_frame(
 /// The window sends the bytes rather than writing a file itself, so the
 /// application needs no filesystem permissions for a picture on its way into
 /// a directory this process already owns.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn paste_scene_frame(
     state: State<'_, AppState>,
     scene_id: String,
@@ -3453,7 +3494,7 @@ pub fn clone_work(
 /// The path is the one the save dialog returned, so the person chose it; this
 /// refuses only to write a directory, which the dialog cannot return but a
 /// caller could pass.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn write_text_file(path: String, text: String) -> Result<String> {
     let target = std::path::Path::new(&path);
     if target.is_dir() {
@@ -3467,7 +3508,7 @@ pub fn write_text_file(path: String, text: String) -> Result<String> {
 }
 
 /// Write the active profile out as markdown.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn export_markdown(state: State<'_, AppState>, directory: String) -> Result<ExportReport> {
     let conn = state.conn();
     export::to_markdown(&conn, std::path::Path::new(&directory))
@@ -3478,7 +3519,7 @@ pub fn export_markdown(state: State<'_, AppState>, directory: String) -> Result<
 ///
 /// Reads only — nothing about the work changes, so there is no operation to
 /// record. What it writes is outside the workspace entirely.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn export_package(
     state: State<'_, AppState>,
     work_id: String,
@@ -3498,13 +3539,23 @@ pub fn can_export_package(state: State<'_, AppState>, work_id: String) -> Result
 }
 
 /// Copy the workspace somewhere safe — the database and the files with it.
-#[tauri::command]
+#[tauri::command(async)]
+///
+/// Off the main thread, like every command below whose work is files: a
+/// synchronous command runs on the thread that draws the window, and a backup
+/// copying a folder of clips froze it for as long as the copy took. The
+/// database is held only while SQLite copies it; the pictures are copied with
+/// the lock let go, so the rest of the app keeps working meanwhile.
 pub fn backup_workspace(state: State<'_, AppState>, destination: String) -> Result<String> {
     // Asked for before the connection is taken, because preparing it may
     // create the directory and that is not work to do under the lock.
     let media = state.media_dir().ok();
-    let conn = state.conn();
-    let written = backup::write(&conn, std::path::Path::new(&destination), media.as_deref())?;
+    let destination = std::path::Path::new(&destination);
+    let written = {
+        let conn = state.conn();
+        backup::write_database(&conn, destination)?
+    };
+    backup::copy_media(destination, media.as_deref())?;
     Ok(written.display().to_string())
 }
 
@@ -3521,7 +3572,7 @@ pub fn workspace_path(state: State<'_, AppState>) -> String {
 }
 
 /// Bring in a slice of a predecessor workspace. Existing titles are skipped.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn import_legacy(state: State<'_, AppState>, source: String) -> Result<ImportReport> {
     let mut conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
@@ -3544,7 +3595,7 @@ pub fn list_plugins(state: State<'_, AppState>) -> Vec<Plugin> {
 ///
 /// A plugin can add and overwrite its own keys but cannot clear the rest —
 /// losing unrelated metadata to a third-party integration is not recoverable.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn run_plugin(
     state: State<'_, AppState>,
     executable: String,
@@ -3610,34 +3661,51 @@ pub fn run_plugin(
     )?;
 
     if !outcome.meta.is_empty() {
-        let conn = state.conn();
-        let existing = subject
-            .get("meta")
-            .and_then(serde_json::Value::as_object)
-            .cloned()
-            .unwrap_or_default();
-        let merged = plugin::merge_meta(&existing, &outcome.meta);
+        let mut conn = state.conn();
+        let profile_id = active_profile_id(&conn)?;
+        let at = time::now();
 
+        // Merged into the fields as they are NOW, read after the plugin
+        // returned rather than taken from what it was sent: a field edited
+        // while it ran would otherwise be put back to what it was when it
+        // started. And written as the ordinary edit it is - through the log,
+        // with what it replaced - so undo takes back what the plugin wrote.
+        // It used to write past the log, and Ctrl+Z after a plugin took back
+        // the person's previous edit instead.
         match target {
             Target::Release => {
-                release::update(
-                    &conn,
-                    &id,
-                    ReleasePatch {
-                        meta: Some(merged),
-                        ..Default::default()
-                    },
-                )?;
+                let before = release::get(&conn, &id)?
+                    .ok_or_else(|| Error::not_found("release", id.clone()))?;
+                let patch = ReleasePatch {
+                    meta: Some(plugin::merge_meta(&before.meta, &outcome.meta)),
+                    ..ReleasePatch::default()
+                };
+                let logged = operation::Intent::new("release.update")
+                    .in_profile(&profile_id)
+                    .param("profile", profile_key(&conn, &profile_id)?)
+                    .param("id", id.clone())
+                    .param("patch", serde_json::to_value(&patch)?)
+                    .param("before", was(Some(&before), &patch)?)
+                    .param("at", at.clone());
+                recording(&mut conn, logged, |tx| {
+                    release::update_at(tx, &id, patch, &at)
+                })?;
             }
             Target::Work => {
-                work::update(
-                    &conn,
-                    &id,
-                    WorkPatch {
-                        meta: Some(merged),
-                        ..Default::default()
-                    },
-                )?;
+                let before =
+                    work::get(&conn, &id)?.ok_or_else(|| Error::not_found("work", id.clone()))?;
+                let patch = WorkPatch {
+                    meta: Some(plugin::merge_meta(&before.meta, &outcome.meta)),
+                    ..WorkPatch::default()
+                };
+                let logged = operation::Intent::new("work.update")
+                    .in_profile(&profile_id)
+                    .param("profile", profile_key(&conn, &profile_id)?)
+                    .param("id", id.clone())
+                    .param("patch", serde_json::to_value(&patch)?)
+                    .param("before", was(Some(&before), &patch)?)
+                    .param("at", at.clone());
+                recording(&mut conn, logged, |tx| work::update_at(tx, &id, patch, &at))?;
             }
         }
     }
@@ -3938,9 +4006,7 @@ fn spawn_task(
         None => assistant::task::key(action, work_id),
     };
     if runs.task_running(&key) {
-        return Err(crate::error::Error::Assistant(
-            "This is already running. Wait for it to finish.".into(),
-        ));
+        return Err(crate::error::Error::AlreadyRunning);
     }
 
     let (prepared, run, stream) = {

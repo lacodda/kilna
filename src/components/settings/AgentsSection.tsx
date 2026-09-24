@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { mcpRegistration } from '@/lib/api'
+import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 
 /** Agents outside the window: the MCP door, and how to register it. */
@@ -41,10 +42,15 @@ function McpRegistration() {
       <Button
         size="sm"
         onClick={() => {
-          void navigator.clipboard.writeText(command.data).then(() => {
-            setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
-          })
+          // The tick only once the clipboard said yes; a refusal is said
+          // rather than swallowed, or the person pastes whatever was there.
+          navigator.clipboard.writeText(command.data).then(
+            () => {
+              setCopied(true)
+              setTimeout(() => setCopied(false), 2000)
+            },
+            (cause: unknown) => say.failedTo(t('work.copyFailed'), cause),
+          )
         }}
       >
         {copied ? t('data.mcpCopied') : t('data.mcpCopy')}

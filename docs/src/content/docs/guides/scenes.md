@@ -131,9 +131,14 @@ scene: open its row and they sit in a strip under the prompt blocks.
 A picture gets there three ways, whichever is nearest:
 
 - **Add a picture** opens the file picker.
-- **Drag a file onto the window** while the scene's row is open.
+- **Drag a file onto the strip** of the scene it is for. A drop goes to the
+  strip under the pointer and nowhere else, so with several rows open a
+  picture lands in one scene, not in each of them.
 - **Ctrl+V** pastes a picture straight from the generator's own tab — no
-  saving to disk first.
+  saving to disk first. A paste has no pointer, so it goes to the open scene
+  you are working in: the one holding the focus, or the only one open. With
+  several open and none of them focused, kilna asks you to click into one
+  first rather than guess.
 
 The file is copied into the workspace the same way any other is (see
 [Files and covers](/kilna/guides/files-and-covers/)), so a frame travels with
@@ -161,9 +166,14 @@ board stays on disk until the last board using it lets go.
 ## Video
 
 Under the pictures is a second strip, for the clips animated from them. It
-works the way the frames do — the picker or a file dragged onto the window,
+works the way the frames do — the picker or a file dragged onto the strip,
 several takes side by side, a tick on the one the montage uses — with two
 differences.
+
+Each strip takes only its own material: a picture dropped on the clips strip,
+or a clip on the stills, is refused before anything is copied. The endings
+are the ones the pickers offer — `png`, `jpg`, `jpeg`, `webp`, `gif`,
+`avif` for stills and `mp4`, `webm`, `mov`, `m4v` for clips.
 
 `Ctrl+V` is not there: a clip is downloaded and then dragged, not copied out
 of a browser tab the way a picture is.

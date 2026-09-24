@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { fileSrc, type SceneFrame } from '@/lib/api'
+import type { SceneFrame } from '@/lib/api'
 import { Dialog, DialogBackdrop, DialogPopup } from '@/components/ui/dialog'
+import { MediaPreview } from '@/components/ui/MediaPreview'
 
 /** One step of the viewer: a scene, and the frame of it being shown. */
 export interface Viewing {
@@ -88,11 +89,14 @@ export function FrameViewer({ viewing, onClose, onStep, canStep }: Props) {
             <ChevronLeft className="size-6" aria-hidden />
           </button>
 
-          {/* Contained: a frame is looked at whole here, whatever its shape. */}
-          <img
-            src={fileSrc(viewing.frame.path)}
+          {/* Contained: a frame is looked at whole here, whatever its shape.
+              A clip opened from the clips strip plays rather than showing as
+              a broken picture. */}
+          <MediaPreview
+            controls
+            path={viewing.frame.path}
             alt={viewing.frame.original_name ?? ''}
-            className="min-h-0 flex-1 object-contain"
+            className="min-h-0 min-w-0 max-h-full flex-1 object-contain"
           />
 
           <button

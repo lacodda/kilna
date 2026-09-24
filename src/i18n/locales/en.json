@@ -69,7 +69,8 @@
     "copyLink": "Copy a link to this card",
     "rename": "Rename",
     "renameHint": "Enter saves, Escape cancels",
-    "copied": "Copied"
+    "copied": "Copied",
+    "copyFailed": "Could not copy that."
   },
   "versions": {
     "title": "Versions",
@@ -745,6 +746,8 @@
     "descriptionPlaceholder": "What happens in this scene",
     "copy": "Copy the {{block}} block",
     "copied": "{{block}} copied",
+    "copyFailed": "Could not copy {{block}}.",
+    "pasteWhere": "Several scenes are open - click into the one the picture is for, then paste again.",
     "unlistedBlock": "A block the profile no longer names — kept, not edited here.",
     "video": {
       "frames": "Video",
@@ -887,6 +890,8 @@
     "title": "Styles",
     "new": "New style",
     "edit": "Edit style",
+    "saved": "Style saved.",
+    "deleted": "“{{name}}” moved to the trash.",
     "type": "Type",
     "allTypes": "All",
     "name": "Name",
@@ -897,7 +902,7 @@
     "hintHint": "What to look at when this is described — never part of a prompt.",
     "describe": "Describe from the references",
     "referenceList": "References",
-    "referenceHint": "Drop pictures in, or paste one with Ctrl+V.",
+    "referenceHint": "Add pictures, or paste one with Ctrl+V.",
     "addReference": "Add pictures",
     "removeReference": "Remove the reference",
     "pictures": "Pictures",
@@ -998,7 +1003,10 @@
     "assistant": "The assistant could not be reached. Check that Claude Code is installed and on your PATH.",
     "unknown": "Something went wrong.",
     "notRestorable": "The work this belonged to is in the trash too. Restore that first.",
-    "layoutStale": "The calendar changed since this preview was drawn. Lay the queue out again."
+    "layoutStale": "The calendar changed since this preview was drawn. Lay the queue out again.",
+    "alreadyRunning": "That is already running. Wait for it to finish.",
+    "busy": "Several runs are already going. Wait for one to finish, or stop one.",
+    "frozen": "That version was scored, so it stays as it was. Start the next revision instead."
   },
   "save": {
     "saving": "Saving…",
@@ -1077,6 +1085,8 @@
     "restored": "Restored.",
     "restoreFailed": "Could not restore that.",
     "purge": "Delete for good",
+    "purgeTitle": "Delete “{{label}}” for good?",
+    "purgeBody": "It leaves the trash and cannot be restored.",
     "purgeFailed": "Could not delete that.",
     "empty": "Empty the trash",
     "emptyTitle": "Empty the trash?",
@@ -1094,7 +1104,8 @@
       "collection": "Collection",
       "scene": "Scene",
       "cut": "Cut",
-      "comment": "Comment"
+      "comment": "Comment",
+      "style": "Style"
     }
   },
   "journal": {
@@ -1167,7 +1178,8 @@
     "nothingRecent": "Nothing has happened yet.",
     "upgrade.doorsMoved": "{{count}} releases moved onto works of their own: a clip is a video, a short is a short.",
     "note.promoted": "A note became “{{title}}”.",
-    "comment.deleted": "Comment “{{label}}” deleted."
+    "comment.deleted": "Comment “{{label}}” deleted.",
+    "style.deleted": "Style “{{label}}” deleted."
   },
   "card": {
     "tab": {
@@ -1232,6 +1244,7 @@
     "note.create": "adding a note",
     "note.update": "an edit to a note",
     "style.update": "an edit to a style",
+    "profile.update": "an edit to the profile",
     "style.create": "adding a style",
     "style.describe": "a style described from its references",
     "version.create": "adding a version",

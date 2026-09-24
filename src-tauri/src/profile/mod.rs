@@ -794,6 +794,17 @@ pub fn activate(conn: &mut Connection, id: &str) -> Result<()> {
 /// readable, and works keep whatever status and kind they already had even if
 /// the vocabulary that named them was edited away.
 pub fn update_config(conn: &Connection, id: &str, config: &ProfileConfig) -> Result<Profile> {
+    update_config_at(conn, id, config, &now())
+}
+
+/// [`update_config`] with the moment decided by the caller - the operations
+/// log records it, so a replay writes the same `updated_at` (ADR 0014).
+pub fn update_config_at(
+    conn: &Connection,
+    id: &str,
+    config: &ProfileConfig,
+    at: &str,
+) -> Result<Profile> {
     // Refused whole, with every problem named: a document edited by hand is
     // fixed by reading the list, not by guessing which line the app minded.
     let problems = config.validate();
@@ -806,7 +817,7 @@ pub fn update_config(conn: &Connection, id: &str, config: &ProfileConfig) -> Res
 
     let changed = conn.execute(
         "UPDATE profile SET config = ?2, updated_at = ?3 WHERE id = ?1",
-        params![id, serde_json::to_string(config)?, now()],
+        params![id, serde_json::to_string(config)?, at],
     )?;
 
     if changed == 0 {

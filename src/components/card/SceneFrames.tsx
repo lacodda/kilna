@@ -13,17 +13,14 @@ import {
   selectSceneFrame,
   type SceneFrame,
 } from '@/lib/api'
+import i18n from '@/i18n'
+import { CLIPS, PICTURES } from '@/lib/media'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { VIDEO } from '@/lib/scenes'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
-/** The picture formats a generator gives back, and the picker offers. */
-export const PICTURES = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif']
-
-/** The clip formats an animator gives back. */
-export const VIDEOS = ['mp4', 'webm', 'mov', 'm4v']
 
 interface Props {
   workId: string
@@ -48,10 +45,12 @@ interface Props {
  * the bytes with no permission and no round trip through the disk, which is why
  * the plan calls it the cheapest path.
  *
- * The drop and paste listeners live only while this scene's frames are on
- * screen. Both events belong to the window, not to this element, and a picture
- * dropped while another scene was open must not land in this one — the lesson
- * the Files tab wrote down in v0.67.
+ * Both events belong to the window, not to this element, and every open
+ * scene has two strips listening - so each strip decides for itself whether an
+ * event is its own, or one picture became a copy in every open scene and both
+ * of its strips. A drop is the strip's when it lands on it: the event carries
+ * the pointer's position. A paste has no position, so it is the scene the
+ * person is working in - the one holding the focus, or the only one open.
  */
 export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: Props) {
   const { t } = useTranslation()
@@ -77,7 +76,7 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
       refresh()
       say.ok(word('frameAdded', { number }))
     },
-    onError: (error: unknown) => say.failed(String(error)),
+    onError: (error: unknown) => say.failed(error),
   })
 
   const paste = useMutation({
@@ -87,49 +86,55 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
       refresh()
       say.ok(word('framePasted', { number }))
     },
-    onError: (error: unknown) => say.failed(String(error)),
+    onError: (error: unknown) => say.failed(error),
   })
 
   const choose = useMutation({
     mutationFn: (id: string) => selectSceneFrame(id),
     onSuccess: refresh,
-    onError: (error: unknown) => say.failed(String(error)),
+    onError: (error: unknown) => say.failed(error),
   })
 
   const unchoose = useMutation({
     mutationFn: () => clearSceneFrame(sceneId, kind),
     onSuccess: refresh,
-    onError: (error: unknown) => say.failed(String(error)),
+    onError: (error: unknown) => say.failed(error),
   })
 
   const remove = useMutation({
     mutationFn: (id: string) => detachSceneFrame(id),
     onSuccess: refresh,
-    onError: (error: unknown) => say.failed(String(error)),
+    onError: (error: unknown) => say.failed(error),
   })
 
   const pick = async () => {
     const chosen = await open({
       multiple: false,
-      filters: [{ name: word('frames'), extensions: isVideo ? VIDEOS : PICTURES }],
+      filters: [{ name: word('frames'), extensions: isVideo ? CLIPS : PICTURES }],
     })
     if (typeof chosen === 'string') attach.mutate(chosen)
   }
 
   // Dropping a file on the window. The event carries paths, so the file is
-  // already on disk and goes the same way as the picker's.
+  // already on disk and goes the same way as the picker's - to this strip only
+  // when the pointer is over it.
   useEffect(() => {
     let stop: (() => void) | undefined
     let alive = true
     void getCurrentWebview()
       .onDragDropEvent((event) => {
         const payload = event.payload
-        if (payload.type === 'over') {
-          setOver(true)
+        if (payload.type === 'leave') {
+          setOver(false)
+          return
+        }
+        const here = under(region.current, payload.position)
+        if (payload.type === 'over' || payload.type === 'enter') {
+          setOver(here)
           return
         }
         setOver(false)
-        if (payload.type === 'drop') {
+        if (payload.type === 'drop' && here) {
           for (const source of payload.paths) attach.mutate(source)
         }
       })
@@ -158,6 +163,7 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
     const onPaste = async (event: ClipboardEvent) => {
       const items = event.clipboardData?.files
       if (!items || items.length === 0) return
+      if (!pastesHere(region.current)) return
       const file = items[0]
       if (!file || !file.type.startsWith('image/')) {
         say.failed(t('scenes.frameNotAnImage'))
@@ -170,7 +176,7 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
         const bytes = new Uint8Array(await file.arrayBuffer())
         paste.mutate({ bytes, name })
       } catch (error) {
-        say.failed(String(error))
+        say.failed(error)
       }
     }
     window.addEventListener('paste', onPaste)
@@ -181,6 +187,7 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
   return (
     <div
       ref={region}
+      data-scene-strip={kind}
       className={cn(
         'rounded-md border border-dashed p-2 transition-colors',
         over ? 'border-accent bg-accent/5' : 'border-line',
@@ -280,4 +287,36 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
       )}
     </div>
   )
+}
+
+/**
+ * Whether a point the window reported - in physical pixels, from the drag
+ * event - falls on an element. A strip that is not mounted is under nothing.
+ */
+function under(element: HTMLElement | null, position: { x: number; y: number }): boolean {
+  if (element === null) return false
+  const scale = window.devicePixelRatio || 1
+  const x = position.x / scale
+  const y = position.y / scale
+  const box = element.getBoundingClientRect()
+  return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom
+}
+
+/**
+ * Whether a paste belongs to the scene this strip is in.
+ *
+ * A paste carries no position, so it goes to the open scene the person is
+ * working in: the one whose open row holds the focus, or - when the focus is
+ * in none of them - the only one open. With several open and the focus in
+ * none, nothing is guessed: the first of them says where to click, once.
+ */
+function pastesHere(strip: HTMLElement | null): boolean {
+  const own = strip?.closest('[data-scene-detail]')
+  if (own === null || own === undefined) return false
+  const open = Array.from(document.querySelectorAll('[data-scene-detail]'))
+  const focused = open.find((detail) => detail.contains(document.activeElement))
+  if (focused !== undefined) return focused === own
+  if (open.length === 1) return true
+  if (open[0] === own) say.warn(i18n.t('scenes.pasteWhere'))
+  return false
 }

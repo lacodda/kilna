@@ -31,34 +31,138 @@ struct Command {
     body: String,
 }
 
+/// The source with every comment and every string and character literal
+/// blanked to spaces, so that what is left is code: a brace inside a
+/// `format!` does not open a block, and a word in a comment does not count as
+/// a call. Lengths are kept, so an offset means the same place in both.
+fn code_only(source: &str) -> String {
+    let bytes = source.as_bytes();
+    let mut out = bytes.to_vec();
+    let mut i = 0;
+    let blank = |out: &mut Vec<u8>, from: usize, to: usize| {
+        for byte in &mut out[from..to] {
+            if *byte != b'\n' {
+                *byte = b' ';
+            }
+        }
+    };
+    while i < bytes.len() {
+        match bytes[i] {
+            b'/' if bytes.get(i + 1) == Some(&b'/') => {
+                let end = source[i..].find('\n').map_or(bytes.len(), |at| i + at);
+                blank(&mut out, i, end);
+                i = end;
+            }
+            b'/' if bytes.get(i + 1) == Some(&b'*') => {
+                let end = source[i + 2..]
+                    .find("*/")
+                    .map_or(bytes.len(), |at| i + 2 + at + 2);
+                blank(&mut out, i, end);
+                i = end;
+            }
+            // A raw string: r"..." or r#"..."# with any number of hashes.
+            b'r' if matches!(bytes.get(i + 1), Some(b'"') | Some(b'#'))
+                && (i == 0 || !(bytes[i - 1].is_ascii_alphanumeric() || bytes[i - 1] == b'_')) =>
+            {
+                let hashes = bytes[i + 1..]
+                    .iter()
+                    .take_while(|byte| **byte == b'#')
+                    .count();
+                if bytes.get(i + 1 + hashes) != Some(&b'"') {
+                    i += 1;
+                    continue;
+                }
+                let close = format!("\"{}", "#".repeat(hashes));
+                let start = i + 2 + hashes;
+                let end = source[start..]
+                    .find(&close)
+                    .map_or(bytes.len(), |at| start + at + close.len());
+                blank(&mut out, i, end);
+                i = end;
+            }
+            b'"' => {
+                let mut end = i + 1;
+                while end < bytes.len() && bytes[end] != b'"' {
+                    end += if bytes[end] == b'\\' { 2 } else { 1 };
+                }
+                blank(&mut out, i, (end + 1).min(bytes.len()));
+                i = end + 1;
+            }
+            // A character literal ('{', '\n', '\''); a lifetime has no
+            // closing quote within the next few bytes and is left alone.
+            b'\'' => {
+                let end = if bytes.get(i + 1) == Some(&b'\\') {
+                    source[i + 2..].find('\'').map(|at| i + 2 + at)
+                } else if bytes.get(i + 2) == Some(&b'\'') {
+                    Some(i + 2)
+                } else {
+                    None
+                };
+                match end {
+                    Some(end) if end - i <= 10 => {
+                        blank(&mut out, i, end + 1);
+                        i = end + 1;
+                    }
+                    _ => i += 1,
+                }
+            }
+            _ => i += 1,
+        }
+    }
+    String::from_utf8(out).expect("blanking keeps the text valid")
+}
+
 /// Every command in `commands.rs`, with the text of its body.
 ///
-/// The body runs from the function's opening brace to the start of the next
-/// command (or the end of the file), which is coarse and deliberately so:
-/// anything finer would be parsing Rust, and the question here — does this
-/// command mention the log at all — does not need it.
+/// The body is the function's own block, from its opening brace to the brace
+/// that closes it, read in code with comments and literals blanked. It used to
+/// run to the next `#[tauri::command]`, which took in whatever helpers sat
+/// between: `update_profile_config` was followed by the `recording` helper and
+/// `set_current_version` by `discard_and_record`, so both "recorded an
+/// operation" while writing past the log - and a doc comment mentioning a
+/// write counted as one.
 fn commands() -> Vec<Command> {
     let source = commands_source();
-    let marker = "#[tauri::command]";
+    let code = code_only(&source);
+    // Both spellings: `#[tauri::command]` and `#[tauri::command(async)]`,
+    // which runs a command off the main thread.
+    let marker = "#[tauri::command";
 
-    let starts: Vec<usize> = source.match_indices(marker).map(|(at, _)| at).collect();
     let mut found = Vec::new();
-
-    for (index, start) in starts.iter().enumerate() {
-        let end = starts.get(index + 1).copied().unwrap_or(source.len());
-        let block = &source[*start..end];
-
-        let Some(at) = block.find("pub fn ") else {
+    for (start, _) in code.match_indices(marker) {
+        let Some(at) = code[start..].find("pub fn ").map(|at| start + at) else {
             continue;
         };
-        let after = &block[at + "pub fn ".len()..];
-        let Some(open) = after.find('(') else {
+        let name_start = at + "pub fn ".len();
+        let Some(open_paren) = code[name_start..].find('(').map(|at| name_start + at) else {
             continue;
         };
+        let name = code[name_start..open_paren].trim().to_owned();
+
+        // The first brace after the signature opens the body; count to the
+        // one that closes it.
+        let Some(open) = code[open_paren..].find('{').map(|at| open_paren + at) else {
+            continue;
+        };
+        let mut depth = 0usize;
+        let mut close = code.len();
+        for (offset, byte) in code[open..].bytes().enumerate() {
+            match byte {
+                b'{' => depth += 1,
+                b'}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        close = open + offset + 1;
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
 
         found.push(Command {
-            name: after[..open].trim().to_owned(),
-            body: block.to_owned(),
+            name,
+            body: code[open..close].to_owned(),
         });
     }
 
@@ -67,6 +171,43 @@ fn commands() -> Vec<Command> {
         "no `#[tauri::command]` functions found — this test has stopped testing anything"
     );
     found
+}
+
+/// Every command the application registers, from `generate_handler!`.
+fn registered() -> BTreeSet<String> {
+    let source = std::fs::read_to_string(repo_root().join("src-tauri/src/lib.rs"))
+        .expect("lib.rs is readable");
+    let start = source
+        .find("generate_handler![")
+        .expect("lib.rs registers its commands with generate_handler!")
+        + "generate_handler![".len();
+    let end = source[start..]
+        .find(']')
+        .map_or(source.len(), |at| start + at);
+    source[start..end]
+        .split(',')
+        .filter_map(|entry| entry.trim().strip_prefix("commands::"))
+        .map(|name| name.trim().to_owned())
+        .filter(|name| !name.is_empty())
+        .collect()
+}
+
+/// The scanner's own watchdog: it has to find exactly the commands the
+/// application registers. A scan that finds fewer passes everything it missed
+/// without a word - the way a source scanner goes blind.
+#[test]
+fn the_scan_finds_every_registered_command() {
+    let scanned: BTreeSet<String> = commands().into_iter().map(|command| command.name).collect();
+    let registered = registered();
+    assert!(
+        registered.len() >= 150,
+        "read only {} registered commands",
+        registered.len()
+    );
+    assert_eq!(
+        scanned, registered,
+        "the commands scanned in commands.rs and those registered in lib.rs disagree"
+    );
 }
 
 /// Commands that change the workspace and so must record an operation.
@@ -171,9 +312,11 @@ const NOT_IN_THE_LOG: [(&str, &str); 19] = [
          transaction — held by `the_undo_path_records_an_operation` below",
     ),
     (
-        "run_plugin",
-        "spawns an external process and writes no rows of its own; what a plugin \
-         hands back is applied by the command that accepts it",
+        "import_legacy",
+        "reads a predecessor's database once into this one, many rows at a time; \
+         the log starts after it, the way it starts after the seed - a replay \
+         rebuilds on top of an import rather than repeating it from a file that \
+         may no longer exist",
     ),
     (
         "mark_journal_read",
@@ -277,7 +420,7 @@ fn the_shared_deletion_helper_records_an_operation() {
         // The source is checked out with LF endings; a search for CRLF found
         // nothing and let this scan run to the end of the file, where any
         // later command's record satisfied it.
-        .find("\n#[tauri::command]")
+        .find("\n#[tauri::command")
         .map_or(source.len(), |offset| at + offset);
 
     assert!(

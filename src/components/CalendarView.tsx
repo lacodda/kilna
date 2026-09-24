@@ -24,7 +24,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/AppSelect'
 import { DatePicker } from '@/components/ui/DatePicker'
-import { Dialog, PromptDialog } from '@/components/ui/AppDialog'
+import { ConfirmAction } from '@/components/ui/ConfirmAction'
+import { MarkReleasedDialog } from '@/components/releases/MarkReleasedDialog'
 import { SkeletonList, SkeletonMonth } from '@/components/ui/Skeleton'
 import { KindFilterBar } from '@/components/calendar/KindFilterBar'
 import { MonthGrid } from '@/components/calendar/MonthGrid'
@@ -45,7 +46,8 @@ interface Props {
 }
 
 // The queue feeds the calendar: strongest first on the left, dated slots on the
-// right. Claiming a taken slot is the one place the app pushes back.
+// right. A day holds as many releases as are put on it; dropping onto a taken
+// day says who is there, and does not push back.
 export function CalendarView({ onSelect }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
@@ -146,7 +148,8 @@ export function CalendarView({ onSelect }: Props) {
   })
 
   const release = useMutation({
-    mutationFn: ({ id, url }: { id: string; url?: string }) => markReleased(id, url),
+    mutationFn: ({ id, url, at }: { id: string; url: string | null; at: string | null }) =>
+      markReleased(id, url, at),
     onSuccess: () => {
       settle()
       say.ok(t('toast.releaseReleased'))
@@ -570,51 +573,35 @@ export function CalendarView({ onSelect }: Props) {
         onTogglePin={(id, pinned) => pin.mutate({ id, pinned })}
       />
 
-      {/* Was `window.prompt()`: blocking, unstyled, and untranslatable. */}
-      <PromptDialog
-        open={releasing !== null}
+      {/* The same dialog the Releases tab marks with. The calendar had its
+          own prompt that asked only for the link, so the day a release went
+          out was always the moment of the click - and a mark made the day
+          after was quietly wrong (decision 02.09: the person names the day). */}
+      <MarkReleasedDialog
+        release={
+          releasing === null ? null : ((slots.data ?? []).find((one) => one.id === releasing) ?? null)
+        }
+        today={today()}
         onOpenChange={(open) => {
           if (!open) setReleasing(null)
         }}
-        title={t('calendar.markReleased')}
-        label={t('calendar.urlPrompt')}
-        placeholder={t('calendar.urlPrompt')}
-        confirmLabel={t('calendar.markReleased')}
-        // The link is optional: something can go out without one.
-        allowEmpty
-        onSubmit={(url) => {
-          if (releasing !== null) release.mutate({ id: releasing, url: url === '' ? undefined : url })
-          setReleasing(null)
-        }}
+        onConfirm={(id, url, at) => release.mutate({ id, url, at })}
       />
 
       {/* Always asked, unlike the single release's button: this replaces the
           wording of a whole month at once, and that is a great deal to walk
           back one release at a time. */}
-      <Dialog
+      <ConfirmAction
         open={fillingFields}
         onOpenChange={setFillingFields}
         title={t('calendar.fields.title')}
-      >
-        <p className="text-sm text-dim">
-          {t('calendar.fields.body', { count: monthly.length })}
-        </p>
-        <div className="mt-3 flex justify-end gap-2">
-          <Button type="button" onClick={() => setFillingFields(false)}>
-            {t('dialog.cancel')}
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={() => {
-              setFillingFields(false)
-              fillFields.mutate(monthly)
-            }}
-          >
-            {t('calendar.fields.confirm')}
-          </Button>
-        </div>
-      </Dialog>
+        description={t('calendar.fields.body', { count: monthly.length })}
+        actionLabel={t('calendar.fields.confirm')}
+        onConfirm={() => {
+          setFillingFields(false)
+          fillFields.mutate(monthly)
+        }}
+      />
     </div>
   )
 }

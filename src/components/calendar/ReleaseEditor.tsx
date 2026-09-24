@@ -6,7 +6,7 @@ import { announceEdited } from '@/lib/edited'
 import { missing } from '@/lib/readiness'
 import { openExternal } from '@/lib/link'
 import { say } from '@/lib/toast'
-import { allOf, labelOf, say as sayLabel, useProfile } from '@/lib/useProfile'
+import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Dialog } from '@/components/ui/AppDialog'
@@ -47,8 +47,13 @@ export function ReleaseEditor({
 }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const releaseKinds = allOf(profile.config, 'release_kinds')
-  const versionRoles = allOf(profile.config, 'version_roles')
+  // The work's own vocabulary, not the union of every kind's: a song offered
+  // the kinds a video ships as, and a release could be set to one its work
+  // can never be (`allOf` is for what judges no single work). The Releases
+  // tab already read the work's own.
+  const vocabulary = vocabularyOf(profile.config, release?.work_kind)
+  const releaseKinds = vocabulary.release_kinds
+  const versionRoles = vocabulary.version_roles
 
   // Keyed by the release, so opening a different one starts from its values
   // rather than the last one's.
@@ -89,8 +94,16 @@ export function ReleaseEditor({
       open={release !== null}
       onOpenChange={onOpenChange}
       title={release?.work_title ?? ''}
+      // One row of answers: the dialog's Cancel and this. The form drew its
+      // own Cancel and Save, and the dialog added a second Cancel under them.
+      footer={
+        <Button type="submit" form={FORM} variant="primary" disabled={save.isPending}>
+          {t('dialog.save')}
+        </Button>
+      }
     >
       <form
+        id={FORM}
         className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault()
@@ -218,18 +231,12 @@ export function ReleaseEditor({
           </p>
         )}
 
-        <div className="mt-1 flex justify-end gap-2">
-          <Button type="button" onClick={() => onOpenChange(false)}>
-            {t('dialog.cancel')}
-          </Button>
-          <Button type="submit" variant="primary" disabled={save.isPending}>
-            {t('dialog.save')}
-          </Button>
-        </div>
       </form>
     </Dialog>
   )
 }
+
+const FORM = 'release-editor'
 
 function toDraft(release: ScheduledRelease | null) {
   return {

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { previewTask, startTask, type PromptTemplate } from '@/lib/api'
+import { humanError } from '@/lib/errors'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/AppDialog'
@@ -98,7 +99,8 @@ export function TaskPreviewDialog({
     setAttachments(unique)
   }
 
-  const problem = preview.error === null ? null : String(preview.error)
+  // A backend refusal is an object; String() of it read "[object Object]".
+  const problem = preview.error === null ? null : humanError(preview.error)
 
   return (
     <Dialog

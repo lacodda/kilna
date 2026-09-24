@@ -443,14 +443,10 @@ fn an_irreversible_operation_is_not_offered() {
 fn every_operation_is_undoable_or_says_why_not() {
     // The reason is not read by the code — it is read by whoever runs into this
     // test after adding a kind, which is exactly when it needs to exist.
-    const NOT_UNDOABLE: [(&str, &str); 26] = [
+    const NOT_UNDOABLE: [(&str, &str); 25] = [
         (
             "style.attachReference",
             "it carries a file into the workspace, as `asset.attach` does, and              taking it back is detaching the asset, which removes the bytes too",
-        ),
-        (
-            "style.delete",
-            "a style is retired by going `dropped`, which keeps it and is one              click to take back; deleting one is the deliberate way past that,              and its references go with it as the schema says they must",
         ),
         (
             "status.resync",
@@ -621,6 +617,102 @@ fn a_body_edit_is_taken_back() {
     let back = version::get(&conn, &version.id).unwrap().unwrap();
     assert_eq!(back.body, "as written", "the text did not come back");
     assert_eq!(back.revision, version.revision);
+}
+
+/// Choosing the current version is an edit of the work, and Ctrl+Z takes back
+/// that choice. It used to be written past the log, so the undo offered after
+/// it was the edit before it.
+#[test]
+fn choosing_the_current_version_is_what_undo_takes_back() {
+    let (mut conn, profile_id, work_id) = workspace();
+    let first = version::create(
+        &mut conn,
+        &work_id,
+        serde_json::from_value(serde_json::json!({ "role": "lyrics", "body": "first" })).unwrap(),
+    )
+    .unwrap();
+    let second = version::create(
+        &mut conn,
+        &work_id,
+        serde_json::from_value(serde_json::json!({ "role": "lyrics", "body": "second" })).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        work::get(&conn, &work_id)
+            .unwrap()
+            .unwrap()
+            .current_version_id
+            .as_deref(),
+        Some(second.id.as_str())
+    );
+
+    // What `set_current_version` records since v0.76.1.
+    edit(
+        &mut conn,
+        &profile_id,
+        &work_id,
+        WorkPatch {
+            current_version_id: Some(Some(first.id.clone())),
+            ..WorkPatch::default()
+        },
+    );
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("the choice can be undone");
+    assert_eq!(offer.action, "undo.work.update");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    assert_eq!(
+        work::get(&conn, &work_id)
+            .unwrap()
+            .unwrap()
+            .current_version_id
+            .as_deref(),
+        Some(second.id.as_str()),
+        "the version current before the choice is current again"
+    );
+}
+
+/// A profile is saved as one document and taken back as one.
+#[test]
+fn a_profile_edit_is_taken_back_whole() {
+    let (mut conn, profile_id, _) = workspace();
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let before = profile::config_for(&conn, &profile_id).unwrap();
+
+    let mut edited = before.clone();
+    let as_seeded = serde_json::to_value(&edited).unwrap();
+    edited.work_kinds.retain(|kind| kind.key != "instrumental");
+    assert_ne!(
+        serde_json::to_value(&edited).unwrap(),
+        as_seeded,
+        "the edit changes something"
+    );
+
+    let at = kilna_lib::time::now();
+    let logged = operation::Intent::new("profile.update")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("id", profile_id.clone())
+        .param("config", serde_json::to_value(&edited).unwrap())
+        .param("before", serde_json::to_value(&before).unwrap())
+        .param("at", at.clone());
+    let transaction = conn.transaction().unwrap();
+    profile::update_config_at(&transaction, &profile_id, &edited, &at).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("the profile edit can be undone");
+    assert_eq!(offer.action, "undo.profile.update");
+    undo::undo(&mut conn, &offer.operation_id).unwrap();
+
+    assert_eq!(
+        serde_json::to_value(profile::config_for(&conn, &profile_id).unwrap()).unwrap(),
+        serde_json::to_value(&before).unwrap(),
+        "the document came back as it was"
+    );
 }
 
 /// Undoing the version an editing session minted throws it away — into the

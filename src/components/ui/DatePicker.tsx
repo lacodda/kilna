@@ -12,7 +12,10 @@ interface Props {
   onChange: (value: string) => void
   placeholder?: string
   className?: string
+  /** Put on the trigger, so a `Field` caption can name it by `htmlFor`. */
+  id?: string
   'aria-label'?: string
+  'aria-describedby'?: string
 }
 
 /*
@@ -39,7 +42,9 @@ export function DatePicker({
   onChange,
   placeholder,
   className,
+  id,
   'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedBy,
 }: Props) {
   const { t, i18n } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -50,7 +55,9 @@ export function DatePicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
+        id={id}
         aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
         className={cn(
           'flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-line px-2.5 text-sm transition-colors hover:border-line-2',
           'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent',

@@ -96,6 +96,16 @@ cleared. A plugin can only ever affect the keys it names — losing unrelated
 metadata to a third-party integration is not a recoverable mistake, so kilna
 doesn't allow it structurally.
 
+The merge is made into the fields as they are when the plugin answers, not as
+they were when it was called, so a field edited while it ran is kept. And it
+is recorded like any other edit: `Ctrl+Z` takes back what the plugin wrote.
+
+## How long a plugin may take
+
+A plugin has **two minutes** to answer. One that runs past that is stopped,
+and kilna says so; its output is discarded. kilna keeps working while a
+plugin runs.
+
 ## What a plugin should not assume
 
 - **No persistent process.** A plugin is spawned per call and expected to

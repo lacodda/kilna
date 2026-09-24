@@ -81,10 +81,9 @@ pub const UNDO_PREFIX: &str = "undo.";
 /// happens to cover: a person pressing undo deserves to know the answer before
 /// they press, and the offer is only shown for kinds named here.
 ///
-/// Creating a style brick is deliberately absent: undoing a creation discards
-/// into the trash, and a brick is not one of the things the trash holds.
-/// Retiring one is what its dropped status is for, and that is an update,
-/// which is taken back.
+/// Creating a style brick is taken back like every other creation - into the
+/// trash - since v0.76.1, when the trash learned to hold bricks. Before that it
+/// was the one creation undone by deleting the row outright.
 pub fn reversible(kind: &str) -> bool {
     matches!(
         kind,
@@ -98,6 +97,7 @@ pub fn reversible(kind: &str) -> bool {
             | "comment.create"
             | "comment.update"
             | "style.update"
+            | "profile.update"
             | "version.create"
             | "version.edit"
             | "collection.create"
@@ -205,6 +205,15 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
             let patch: crate::style_brick::StyleBrickPatch = from_params(params, "before")?;
             edit(conn, logged, &at, |tx| {
                 crate::style_brick::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // The whole document goes back to what it said: a profile edit is
+        // saved as one document, so it is taken back as one.
+        "profile.update" => {
+            let id = required(params, "id")?;
+            let before: crate::profile::config::ProfileConfig = from_params(params, "before")?;
+            edit(conn, logged, &at, |tx| {
+                crate::profile::update_config_at(tx, &id, &before, &at).map(|_| ())
             })?;
         }
         "scene.update" => {
@@ -387,7 +396,7 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
         // outright. Someone can change their mind twice, and a row destroyed by
         // an undo would be gone in a way nothing else in kilna is.
         "work.create" | "work.clone" | "note.create" | "collection.create" | "release.create"
-        | "version.create" | "scene.create" | "cut.create" | "comment.create" => {
+        | "version.create" | "scene.create" | "cut.create" | "comment.create" | "style.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -427,15 +436,6 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
             let id = crate::minted::Minted::from_params(params)?.id().to_owned();
             edit(conn, logged, &at, |tx| crate::link::delete(tx, &id))?;
         }
-        // Undone by deleting the row outright rather than through the trash,
-        // the way a link is: a brick made a moment ago and taken back has
-        // nothing worth keeping, and the trash does not hold bricks. Its
-        // references go with it — that is what the schema's cascade is for.
-        "style.create" => {
-            let id = crate::minted::Minted::from_params(params)?.id().to_owned();
-            edit(conn, logged, &at, |tx| crate::style_brick::delete(tx, &id))?;
-        }
-
         "link.delete" => {
             let id = required(params, "id")?;
             let before = params
@@ -516,6 +516,7 @@ fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
         "scene.create" => crate::trash::Entity::Scene,
         "cut.create" => crate::trash::Entity::Cut,
         "comment.create" => crate::trash::Entity::Comment,
+        "style.create" => crate::trash::Entity::Style,
         other => return Err(Error::Other(format!("`{other}` creates nothing"))),
     };
     Ok((entity, required(&entry.params, "id")?))

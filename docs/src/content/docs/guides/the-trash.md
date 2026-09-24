@@ -4,8 +4,9 @@ description: How deleting works in kilna — the undo in the message, the Trash 
 ---
 
 Nothing in kilna is lost by pressing a button. Deleting a work, a version, a
-score, a release, a note, a scene or a collection moves it to the **Trash**, where it
-waits until you decide otherwise.
+score, a release, a note, a scene, a stretch of a short, a comment, a style or
+a collection moves it to the **Trash**, where it waits until you decide
+otherwise.
 
 That is why kilna never asks *are you sure*. A confirmation dialog charges a
 click every time to protect against the rare mistake; an undo charges a click
@@ -32,6 +33,8 @@ current — so links and references still resolve. A round trip through the
 trash is not an edit: timestamps are what they were, not what they would be
 if the rows had been recreated.
 
+A **style** comes back with its reference pictures.
+
 Deleting a **collection** does not delete the works in it. They lose their
 membership and stay where they are; restoring the collection puts them back
 into it. Works you moved to another collection in the meantime keep the
@@ -52,9 +55,13 @@ places still guarded by a question:
 
 - **Delete for good** removes one entry from the trash permanently. Doing this
   to a work also clears the entries that only made sense underneath it — a
-  version whose work will never return could never be restored either.
+  version whose work will never return could never be restored either. The
+  question names the entry.
 - **Empty the trash** clears every entry for the active profile at once. The
   dialog says how many entries that is before you commit.
+
+Both questions are answered with a button, not by clicking beside them: a
+stray click leaves the question open rather than deciding it either way.
 
 Neither is done for you: kilna has no retention policy that quietly discards
 old entries. The trash grows until you empty it, and that is the intended
@@ -63,7 +70,10 @@ trust with the ones you have not looked at yet.
 
 ### What stays after the final action
 
-Emptying the trash removes the thing itself. What remains is a bare trace —
+Emptying the trash removes the thing itself, and the files it held — a
+purged work's covers and frames, a purged style's pictures — leave the
+workspace's `media/` folder with it, unless something still in the
+workspace uses the same file. What remains is a bare trace —
 which row it was, when it went, and whether it came back since — with none of
 its contents. kilna keeps that trace so that *deleted here* can be told apart
 from *never here*: an [import](/kilna/reference/data/#import-from-a-predecessor)

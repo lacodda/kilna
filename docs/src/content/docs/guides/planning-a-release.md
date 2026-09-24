@@ -240,9 +240,9 @@ action it performs — nothing is published, uploaded, or posted from here.
 Marking a release without a link a second time keeps whatever link was
 already recorded rather than clearing it.
 
-**The day is yours to name.** Marking from the work's Releases tab asks for
-the day it went out, which starts from the day it was planned for and can be
-changed. Marks are often made after the fact — days later, or while entering
+**The day is yours to name.** Marking — from the calendar or from the
+work's Releases tab, the same dialog either way — asks for the day it went
+out, which starts from the day it was planned for and can be changed. Marks are often made after the fact — days later, or while entering
 something that shipped long ago — and a mark that could only ever say "now"
 made every late one quietly wrong.
 

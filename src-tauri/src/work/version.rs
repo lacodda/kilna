@@ -248,7 +248,14 @@ pub fn latest(conn: &Connection, work_id: &str, role: &str) -> Result<Option<Ver
 }
 
 /// Point a work at one of its versions.
-pub fn set_current(conn: &Connection, work_id: &str, version_id: &str) -> Result<()> {
+/// Refuse a version that is not one of the work's own.
+///
+/// What is left of `set_current`: choosing the current version is a
+/// `work.update` of `current_version_id` since v0.76.1, so it is in the
+/// operations log and undo takes back that choice rather than whatever came
+/// before it. The patch itself does not check whose version it names, so the
+/// command asks here first.
+pub fn check_belongs(conn: &Connection, work_id: &str, version_id: &str) -> Result<()> {
     let belongs: bool = conn
         .query_row(
             "SELECT 1 FROM work_version WHERE id = ?1 AND work_id = ?2",
@@ -263,11 +270,6 @@ pub fn set_current(conn: &Connection, work_id: &str, version_id: &str) -> Result
             "version `{version_id}` does not belong to work `{work_id}`"
         )));
     }
-
-    conn.execute(
-        "UPDATE work SET current_version_id = ?2, updated_at = ?3 WHERE id = ?1",
-        params![work_id, version_id, now()],
-    )?;
     Ok(())
 }
 
@@ -728,13 +730,13 @@ with no markers at all
     }
 
     #[test]
-    fn set_current_refuses_a_version_from_another_work() {
+    fn a_version_from_another_work_is_not_this_works_own() {
         let (mut conn, profile_id) = workspace();
         let first = a_work(&conn, &profile_id);
         let second = a_work(&conn, &profile_id);
         let stranger = create(&mut conn, &second, draft("lyrics", "theirs")).unwrap();
 
-        let result = set_current(&conn, &first, &stranger.id);
+        let result = check_belongs(&conn, &first, &stranger.id);
 
         assert!(result.is_err());
     }

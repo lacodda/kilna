@@ -7,7 +7,6 @@ import { Image as ImageIcon, Paperclip, Star, Trash2 } from 'lucide-react'
 import {
   attachAsset,
   detachAsset,
-  fileSrc,
   listWorkAssets,
   type Asset,
   type Work,
@@ -15,8 +14,10 @@ import {
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { groupMaterials } from '@/lib/materials'
+import { PICTURES } from '@/lib/media'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { MediaPreview } from '@/components/ui/MediaPreview'
 import { CoverPrompt } from '@/components/card/CoverPrompt'
 import { Skeleton } from '@/components/ui/Skeleton'
 
@@ -28,7 +29,6 @@ interface Props {
 const COVER = 'cover'
 
 /** What the picker offers: the pictures a webview can show. */
-const PICTURES = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif']
 
 /**
  * The files attached to a work: covers and references.
@@ -217,8 +217,10 @@ function FileCard({
           isCover ? 'border-accent' : 'border-line',
         )}
       >
-        <img
-          src={fileSrc(asset.path)}
+        {/* A scene's clips are files of the work too, and drew as broken
+            pictures here until each file was shown as what it is. */}
+        <MediaPreview
+          path={asset.path}
           alt={asset.original_name ?? asset.label ?? ''}
           className="max-h-full max-w-full object-contain"
         />

@@ -183,7 +183,18 @@ fn roundings_come_from_the_scale() {
     );
 }
 
-/// Every `.tsx` under a directory.
+/// Whether a `.tsx` is a test beside a component rather than a component.
+///
+/// A test renders fixtures - a bare `<pre>`, an odd class - to put a
+/// component through its cases. The rules here are about what the window
+/// shows, and a fixture is never shown.
+fn is_test(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.ends_with(".test.tsx"))
+}
+
+/// Every `.tsx` under a directory, tests left out.
 fn walk(dir: &Path) -> Vec<PathBuf> {
     let mut found = Vec::new();
     let Ok(entries) = std::fs::read_dir(dir) else {
@@ -193,7 +204,7 @@ fn walk(dir: &Path) -> Vec<PathBuf> {
         let path = entry.path();
         if path.is_dir() {
             found.extend(walk(&path));
-        } else if path.extension().is_some_and(|e| e == "tsx") {
+        } else if path.extension().is_some_and(|e| e == "tsx") && !is_test(&path) {
             found.push(path);
         }
     }
@@ -255,7 +266,7 @@ fn nothing_shows_verbatim_text_without_making_it_selectable() {
                 walk(&path, offenders);
                 continue;
             }
-            if path.extension().is_none_or(|ext| ext != "tsx") {
+            if path.extension().is_none_or(|ext| ext != "tsx") || is_test(&path) {
                 continue;
             }
 

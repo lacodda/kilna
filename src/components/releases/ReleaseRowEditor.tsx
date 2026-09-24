@@ -50,8 +50,15 @@ export function ReleaseRowEditor({ release, onOpenChange, onSave }: Props) {
       open={release !== null}
       onOpenChange={onOpenChange}
       title={release?.work_title ?? ''}
+      // One row of answers: the dialog's Cancel and this.
+      footer={
+        <Button type="submit" form={FORM} variant="primary">
+          {t('dialog.save')}
+        </Button>
+      }
     >
       <form
+        id={FORM}
         className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault()
@@ -93,18 +100,12 @@ export function ReleaseRowEditor({ release, onOpenChange, onSave }: Props) {
           />
         </Field>
 
-        <div className="mt-1 flex justify-end gap-2">
-          <Button type="button" onClick={() => onOpenChange(false)}>
-            {t('dialog.cancel')}
-          </Button>
-          <Button type="submit" variant="primary">
-            {t('dialog.save')}
-          </Button>
-        </div>
       </form>
     </Dialog>
   )
 }
+
+const FORM = 'release-row-editor'
 
 function toDraft(release: ScheduledRelease | null) {
   return {

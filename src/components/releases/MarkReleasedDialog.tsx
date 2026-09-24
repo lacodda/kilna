@@ -8,6 +8,8 @@ import { Dialog } from '@/components/ui/AppDialog'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/input'
 
+const FORM = 'mark-released'
+
 interface Props {
   release: ScheduledRelease | null
   /** Today, so the default day comes from one clock rather than each dialog's. */
@@ -45,8 +47,16 @@ export function MarkReleasedDialog({ release, today, onOpenChange, onConfirm }: 
       onOpenChange={onOpenChange}
       title={t('calendar.markReleased')}
       description={release?.work_title}
+      // The dialog's own row holds Cancel; the form's submit sits beside it
+      // rather than in a second row of its own under a second Cancel.
+      footer={
+        <Button type="submit" form={FORM} variant="primary">
+          {t('calendar.markReleased')}
+        </Button>
+      }
     >
       <form
+        id={FORM}
         className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault()
@@ -81,14 +91,6 @@ export function MarkReleasedDialog({ release, today, onOpenChange, onConfirm }: 
           />
         </Field>
 
-        <div className="mt-1 flex justify-end gap-2">
-          <Button type="button" onClick={() => onOpenChange(false)}>
-            {t('dialog.cancel')}
-          </Button>
-          <Button type="submit" variant="primary">
-            {t('calendar.markReleased')}
-          </Button>
-        </div>
       </form>
     </Dialog>
   )
