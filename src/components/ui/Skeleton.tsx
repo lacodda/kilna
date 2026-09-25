@@ -30,9 +30,9 @@ export function SkeletonCard({ className }: { className?: string }) {
   return (
     <div className={cn('flex flex-col gap-6', className)} aria-hidden>
       <div className="flex flex-wrap items-end gap-3">
-        <Skeleton className="h-9 w-64" />
-        <Skeleton className="h-9 w-44" />
-        <Skeleton className="h-9 w-44" />
+        <Skeleton className="h-control w-64" />
+        <Skeleton className="h-control w-44" />
+        <Skeleton className="h-control w-44" />
       </div>
       <Skeleton className="h-32 w-full" />
       <Skeleton className="h-24 w-full" />

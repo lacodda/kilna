@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { GripVertical, X } from 'lucide-react'
+import { ArrowUp, X } from 'lucide-react'
 import { fileSrc, listStyleBricks, styleBrickReferences, type StyleBrick } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say as sayLabel, styleTypesOf, useProfile } from '@/lib/useProfile'
@@ -79,7 +79,7 @@ export function StylePickerDialog({
       onOpenChange={onOpenChange}
       title={actionLabel}
       description={t('styles.pickBody')}
-      className="max-w-2xl"
+      size="lg"
       footer={
         <Button
           variant="primary"
@@ -115,23 +115,21 @@ export function StylePickerDialog({
                       more machinery than the job needs. */}
                   <span className="flex shrink-0 items-center">
                     <Button
-                      size="sm"
+                      size="icon-sm"
                       variant="icon"
-                      className="h-6 px-1"
                       aria-label={t('styles.moveUp')}
                       disabled={index === 0}
                       onClick={() => move(index, index - 1)}
                     >
-                      <GripVertical aria-hidden className="size-3.5 rotate-90" />
+                      <ArrowUp aria-hidden />
                     </Button>
                     <Button
-                      size="sm"
+                      size="icon-sm"
                       variant="icon"
-                      className="h-6 px-1"
                       aria-label={t('styles.unpick')}
                       onClick={() => setPicked(picked.filter((id) => id !== one.id))}
                     >
-                      <X aria-hidden className="size-3.5" />
+                      <X aria-hidden />
                     </Button>
                   </span>
                 </li>

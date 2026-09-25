@@ -108,7 +108,7 @@ export function TaskPreviewDialog({
       onOpenChange={onOpenChange}
       title={t('assistant.previewTitle', { label: action.label })}
       description={t('assistant.previewHint')}
-      className="max-w-3xl"
+      size="xl"
       footer={
         <Button
           variant="primary"

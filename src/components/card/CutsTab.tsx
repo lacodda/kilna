@@ -165,7 +165,7 @@ export function CutsTab({ work }: Props) {
                 disabled={add.isPending}
                 onClick={() => add.mutate(link.source_id)}
               >
-                <Plus aria-hidden className="size-4" />
+                <Plus aria-hidden />
                 {t('cuts.takeFrom', { title: link.source_title })}
               </Button>
             ))}
@@ -330,7 +330,7 @@ function Span({
         if (event.key === 'Enter') event.currentTarget.blur()
         if (event.key === 'Escape') setText(null)
       }}
-      className="h-7 w-20 text-center font-mono text-xs"
+      className="h-control-sm w-20 text-center font-mono text-xs"
     />
   )
 }
@@ -373,7 +373,7 @@ function Label({
         if (event.key === 'Enter') event.currentTarget.blur()
         if (event.key === 'Escape') setText(null)
       }}
-      className="h-7 min-w-0 flex-1 border-transparent bg-transparent text-xs hover:border-line focus:border-line"
+      className="h-control-sm min-w-0 flex-1 border-transparent bg-transparent text-xs hover:border-line focus:border-line"
     />
   )
 }
@@ -423,7 +423,7 @@ function ShotList({ workId, title }: { workId: string; title: string }) {
           }
         }}
       >
-        <Scissors aria-hidden className="size-4" />
+        <Scissors aria-hidden />
         {t('cuts.save')}
       </Button>
     </Panel>

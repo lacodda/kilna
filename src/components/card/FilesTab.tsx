@@ -137,7 +137,7 @@ export function FilesTab({ work }: Props) {
 
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick(COVER)}>
-          <ImageIcon aria-hidden className="size-3.5" />
+          <ImageIcon aria-hidden />
           {cover === undefined ? t('files.setCover') : t('files.changeCover')}
         </Button>
         <Button
@@ -146,7 +146,7 @@ export function FilesTab({ work }: Props) {
           disabled={busy || attach.isPending}
           onClick={() => void pick()}
         >
-          <Paperclip aria-hidden className="size-3.5" />
+          <Paperclip aria-hidden />
           {t('files.attach')}
         </Button>
         <span className="text-xs text-dim">

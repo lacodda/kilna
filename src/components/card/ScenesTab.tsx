@@ -542,7 +542,7 @@ export function ScenesTab({ work }: Props) {
                   onClick={() => frame.mutate(role.key)}
                   title={t('scenes.frameHint')}
                 >
-                  <Rows3 aria-hidden className="size-3.5" />
+                  <Rows3 aria-hidden />
                   {sayLabel(role.label)}
                 </Button>
               ))}
@@ -646,7 +646,7 @@ export function ScenesTab({ work }: Props) {
 
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="soft" size="sm" disabled={add.isPending} onClick={() => add.mutate()}>
-          <Plus aria-hidden className="size-3.5" />
+          <Plus aria-hidden />
           {t('scenes.add')}
         </Button>
         {all.length > 0 && (
@@ -657,7 +657,7 @@ export function ScenesTab({ work }: Props) {
             onClick={() => time.mutate()}
             title={t('scenes.timeHint')}
           >
-            <Clock aria-hidden className="size-3.5" />
+            <Clock aria-hidden />
             {t('scenes.time')}
           </Button>
         )}
@@ -668,11 +668,11 @@ export function ScenesTab({ work }: Props) {
         {all.length > 0 && (
           <>
             <Button variant="soft" size="sm" onClick={copyMontage}>
-              <ListVideo aria-hidden className="size-3.5" />
+              <ListVideo aria-hidden />
               {t('scenes.montage.copy')}
             </Button>
             <Button variant="soft" size="sm" onClick={() => void saveMontage()}>
-              <Save aria-hidden className="size-3.5" />
+              <Save aria-hidden />
               {t('scenes.montage.save')}
             </Button>
             {/* The montage list is what one program needs; this is what a
@@ -684,7 +684,7 @@ export function ScenesTab({ work }: Props) {
               title={t('scenes.package.hint')}
               onClick={() => void savePackage()}
             >
-              <FolderDown aria-hidden className="size-3.5" />
+              <FolderDown aria-hidden />
               {t('scenes.package.action')}
             </Button>
             {/* Not a version of the video: a second work from the same donor,
@@ -697,7 +697,7 @@ export function ScenesTab({ work }: Props) {
               title={t('scenes.clone.hint')}
               onClick={() => setCloning(true)}
             >
-              <CopyPlus aria-hidden className="size-3.5" />
+              <CopyPlus aria-hidden />
               {t('scenes.clone.action')}
             </Button>
           </>

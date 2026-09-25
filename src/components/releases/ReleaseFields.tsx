@@ -130,7 +130,7 @@ export function ReleaseFields({ release }: Props) {
             disabled={generate.isPending}
             className={cn(!anything && 'ml-auto')}
           >
-            <Sparkles aria-hidden className="size-3.5" />
+            <Sparkles aria-hidden />
             {anything ? t('releases.meta.regenerate') : t('releases.meta.generate')}
           </Button>
         )}

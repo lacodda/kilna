@@ -194,7 +194,7 @@ export function ActionBar({
                 start.mutate({ action: action.key })
               }}
             >
-              <Icon aria-hidden className="size-3.5" />
+              <Icon aria-hidden />
               {!compact &&
                 (working ? t('assistant.actionWorking', { label: sayLabel(action.label) }) : sayLabel(action.label))}
             </Button>
@@ -208,7 +208,7 @@ export function ActionBar({
                 setPreviewing(action)
               }}
             >
-              <Eye aria-hidden className="size-3.5" />
+              <Eye aria-hidden />
             </Button>
           </span>
         )

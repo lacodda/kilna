@@ -77,9 +77,8 @@ export function ProposedScenes({ workId, messageId, proposal, applied }: Props) 
           <>
             <AppliedMark applied={applied} label={t(words.mark)} />
             <Button
-              size="sm"
-              variant="icon"
-              className="h-6 px-1.5 text-[11px]"
+              size="xs"
+              variant="ghost"
               onClick={() => {
                 void navigate(`/works/${workId}/scenes`)
               }}

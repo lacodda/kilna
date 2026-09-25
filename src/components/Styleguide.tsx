@@ -80,13 +80,13 @@ export function Styleguide() {
         <SectionLabel>{t('styleguide.buttons')}</SectionLabel>
         <Panel className="flex flex-wrap items-center gap-3 p-4">
           <Button variant="primary">
-            <Plus aria-hidden className="size-4" />
+            <Plus aria-hidden />
             {t('styleguide.primary')}
           </Button>
           <Button variant="ghost">{t('styleguide.ghost')}</Button>
           <Button variant="soft">{t('styleguide.soft')}</Button>
           <Button variant="danger">
-            <Trash2 aria-hidden className="size-4" />
+            <Trash2 aria-hidden />
             {t('styleguide.danger')}
           </Button>
           <Button variant="icon" size="icon-md" title={t('styleguide.iconButton')}>

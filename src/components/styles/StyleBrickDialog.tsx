@@ -211,13 +211,16 @@ export function StyleBrickDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={id === undefined ? t('styles.new') : t('styles.edit')}
-      className="max-w-2xl"
+      size="xl"
+      /* Picking a type is a change a stray click would throw away as surely
+         as a name typed; the dialog notices typing on its own. */
+      dirty={dirty || (brick === undefined && typeKey !== (types[0]?.key ?? ''))}
       /* Deleting is not an answer to the dialog, so it stands apart at the
          start of the row rather than between Cancel and Save. */
       aside={
         id === undefined ? undefined : (
           <Button variant="danger" onClick={() => remove.mutate()} disabled={remove.isPending}>
-            <Trash2 aria-hidden className="size-4" />
+            <Trash2 aria-hidden />
             {t('work.delete')}
           </Button>
         )
@@ -310,7 +313,7 @@ export function StyleBrickDialog({
             disabled={describe.isPending || references.data?.length === 0}
             className="self-start"
           >
-            <Sparkles aria-hidden className="size-4" />
+            <Sparkles aria-hidden />
             {t('styles.describe')}
           </Button>
         )}

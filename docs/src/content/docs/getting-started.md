@@ -72,12 +72,25 @@ behaving strangely on someone's laptop.
 `button.tsx`, `dialog.tsx`, `toast.tsx` - is a copy from the registry: it is
 never edited, so it stays byte-identical to upstream and can be updated by
 re-running `shadcn add`. A PascalCase name - `AppDialog.tsx`, `RowMenu.tsx`,
-`DatePicker.tsx` - is this application's own.
+`DatePicker.tsx` - is this application's own. `pnpm registry` (part of
+`pnpm lint`) holds every lowercase file to its twin in the installed
+`dowel-ui`: a copy edited in place, one left behind by an upgrade, or a file of
+kilna's own given a lowercase name all fail it. `pnpm exec dowel diff <name>`
+shows the lines; a fix belongs in dowel, and comes back with the next copy.
 
 `AppDialog` and `AppSelect` are the shapes kilna actually uses, written over
 dowel's parts: a heading, a sentence and Cancel beside one affirmative button;
 a flat list of options with an optional "any" entry. dowel says what a dialog
-*is*; these say what this application's dialogs *look like*.
+*is*; these say what this application's dialogs *look like* - how wide
+(`size`), where a deletion goes (`aside`, at the start of the row), which field
+has the cursor when it opens, and that a dialog typed into is not closed by a
+stray click (`dirty` for changes a text field does not see).
+
+**The window is compact.** `<html data-density="compact">` puts every control
+of dowel on the compact rows: 32px for a field and a button, 28px for the
+small size. A control of kilna's own takes its height from the same rows -
+`h-control`, `h-control-sm` - rather than from a number, so the density
+reaches it too.
 
 To check the backend on its own, without the UI:
 

@@ -394,7 +394,7 @@ export function ScorePanel({ workId }: Props) {
               setForm(null)
             }}
           >
-            <Plus aria-hidden className="size-3.5" />
+            <Plus aria-hidden />
             {t('score.new')}
           </Button>
         </div>

@@ -141,7 +141,7 @@ export function ScreenshotDialog({ file, onClose, channels, channel, workId }: P
                 {t('comments.pickWork')}
               </Button>
               {work !== null && (
-                <Button size="sm" variant="icon" onClick={() => setWork(null)}>
+                <Button size="sm" onClick={() => setWork(null)}>
                   {t('comments.noWork')}
                 </Button>
               )}

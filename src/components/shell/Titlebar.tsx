@@ -431,7 +431,7 @@ export function Titlebar({ works, compact, onToggleRail }: Props) {
       <button
         type="button"
         onClick={() => setSearching(true)}
-        className="flex h-7 min-w-0 cursor-pointer items-center gap-2 rounded-md border border-line bg-raise px-2.5 text-xs text-faint transition-colors hover:border-line-2 hover:text-dim"
+        className="flex h-control-sm min-w-0 cursor-pointer items-center gap-2 rounded-md border border-line bg-raise px-2.5 text-xs text-faint transition-colors hover:border-line-2 hover:text-dim"
       >
         <Search aria-hidden className="size-3.5 shrink-0" />
         <span className="truncate">{t('search.placeholder')}</span>

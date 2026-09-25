@@ -1,11 +1,21 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { X } from 'lucide-react'
 import { createWork } from '@/lib/api'
 import { keys } from '@/lib/query'
+import { useTypedSinceOpen } from '@/lib/dialogGuard'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
-import { Dialog, DialogActions, DialogClose, DialogPopup, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogClose,
+  DialogHeader,
+  DialogPopup,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/input'
@@ -30,14 +40,19 @@ interface Props {
  * changed here, because "Video" pressed by mistake should not mean cancelling.
  */
 export function NewWorkDialog({ kind, onClose, onCreated }: Props) {
+  // A title typed is a title a stray click beside the dialog would lose, as
+  // in every other dialog of the app.
+  const { typed, onInput } = useTypedSinceOpen(kind)
+
   return (
     <Dialog
       open={kind !== null}
       onOpenChange={(open) => {
         if (!open) onClose()
       }}
+      disablePointerDismissal={typed}
     >
-      <DialogPopup>
+      <DialogPopup onInput={onInput}>
         {/* Keyed by the kind it opened on, so each opening starts from a blank
             title and the kind that was picked: the last title typed here
             belongs to the work it made, not to the next one. */}
@@ -89,32 +104,46 @@ function Form({
 
   return (
     <form
-      className="flex flex-col gap-3"
+      // The form is the popup's column: the header and the actions stay put
+      // and only the fields between them scroll, as in every other dialog.
+      className="flex min-h-0 flex-1 flex-col"
       onSubmit={(event) => {
         event.preventDefault()
         submit()
       }}
     >
-      <DialogTitle>
-        {kinds.length > 1 ? t('works.newOfKind', { kind: kindLabel }) : t('works.newTitle')}
-      </DialogTitle>
-      <Field label={t('works.title')}>
-        <Input
-          autoFocus
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder={t('works.newPlaceholder')}
-        />
-      </Field>
-      {kinds.length > 1 && (
-        <Field label={t('works.kind')}>
-          <Select
-            value={chosen}
-            onChange={setChosen}
-            options={kinds.map((entry) => ({ value: entry.key, label: sayLabel(entry.label) }))}
+      <DialogHeader
+        action={
+          <DialogClose
+            render={<Button variant="icon" size="icon-sm" aria-label={t('dialog.close')} />}
+          >
+            <X aria-hidden />
+          </DialogClose>
+        }
+      >
+        <DialogTitle>
+          {kinds.length > 1 ? t('works.newOfKind', { kind: kindLabel }) : t('works.newTitle')}
+        </DialogTitle>
+      </DialogHeader>
+      <DialogBody className="flex flex-col gap-3">
+        <Field label={t('works.title')}>
+          <Input
+            autoFocus
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder={t('works.newPlaceholder')}
           />
         </Field>
-      )}
+        {kinds.length > 1 && (
+          <Field label={t('works.kind')}>
+            <Select
+              value={chosen}
+              onChange={setChosen}
+              options={kinds.map((entry) => ({ value: entry.key, label: sayLabel(entry.label) }))}
+            />
+          </Field>
+        )}
+      </DialogBody>
       <DialogActions>
         <DialogClose render={<Button />}>{t('dialog.cancel')}</DialogClose>
         <Button variant="primary" type="submit" disabled={title.trim() === '' || add.isPending}>

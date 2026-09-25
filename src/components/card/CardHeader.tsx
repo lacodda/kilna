@@ -198,7 +198,7 @@ function Title({ work }: { work: Work }) {
             if (event.key === 'Enter') commit()
             if (event.key === 'Escape') setDraft(null)
           }}
-          className="h-8 w-80 max-w-full text-[17px] font-[650] tracking-[-0.01em]"
+          className="w-80 max-w-full text-[17px] font-[650] tracking-[-0.01em]"
         />
       )}
       {draft === null && (

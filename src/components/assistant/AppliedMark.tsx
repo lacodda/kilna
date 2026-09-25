@@ -31,9 +31,8 @@ export function AppliedMark({ applied, label }: Props) {
       {label}
       {applied.created_work === true && applied.work_id !== undefined && (
         <Button
-          size="sm"
-          variant="icon"
-          className="h-6 px-1.5 text-[11px]"
+          size="xs"
+          variant="ghost"
           onClick={() => {
             void navigate(`/works/${applied.work_id ?? ''}`)
           }}

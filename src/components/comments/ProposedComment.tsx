@@ -104,14 +104,14 @@ export function ProposedComment({ pending, channels, onKept }: Props) {
           onChange={(event) => setAuthor(event.target.value)}
           placeholder={t('comments.authorPlaceholder')}
           aria-label={t('comments.author')}
-          className="h-8 text-xs"
+          className="text-xs"
         />
         <DatePicker
           value={day}
           onChange={setDay}
           placeholder={t('comments.dayPlaceholder')}
           aria-label={t('comments.day')}
-          className="h-8 w-32 shrink-0 text-xs"
+          className="w-32 shrink-0 text-xs"
         />
       </div>
       <ChannelField value={channel} onChange={setChannel} known={channels} />
@@ -123,12 +123,12 @@ export function ProposedComment({ pending, channels, onKept }: Props) {
               : t('comments.aboutUnmatched', { title: read.about })
             : t('comments.aboutWork', { title: title ?? '…' })}
         </span>
-        <Button size="sm" className="h-6 px-2 text-[11px]" onClick={() => setPicking(true)}>
+        <Button size="xs" onClick={() => setPicking(true)}>
           {t('comments.pickWork')}
         </Button>
       </div>
       <div className="flex justify-end gap-1.5">
-        <Button size="sm" variant="icon" disabled={drop.isPending} onClick={() => drop.mutate()}>
+        <Button size="sm" disabled={drop.isPending} onClick={() => drop.mutate()}>
           <X aria-hidden />
           {t('comments.discard')}
         </Button>

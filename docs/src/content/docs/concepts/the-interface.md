@@ -220,6 +220,14 @@ right — a work added, a slot claimed, something deleted. They disappear on
 their own. A message never asks you a question; anything that needs an
 answer is a dialog you can cancel.
 
+**Dialogs.** A dialog opens with the cursor in its first field, so you can
+start typing without reaching for the mouse. However much it holds, its
+buttons stay at the bottom edge and only the part in between scrolls. Once
+you have typed into it, a click beside it no longer closes it and throws the
+text away; *Esc* and **Cancel** still do, because those you mean. An action
+that is not an answer to the dialog — deleting the thing it edits — stands
+apart at the left of the buttons, away from **Save**.
+
 The same event is also written to [History](/kilna/guides/the-history/), from
 the same wording: the message is what you are told now, the entry is what you
 can find later.

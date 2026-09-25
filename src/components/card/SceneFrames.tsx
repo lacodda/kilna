@@ -196,7 +196,7 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
       <div className="mb-2 flex items-center gap-2">
         <span className="text-xs font-medium text-dim">{word('frames')}</span>
         <Button size="sm" variant="ghost" onClick={() => void pick()} disabled={attach.isPending}>
-          <ImagePlus className="size-3.5" aria-hidden />
+          <ImagePlus aria-hidden />
           {word('addFrame')}
         </Button>
         {frames.some((frame) => frame.is_selected) && (

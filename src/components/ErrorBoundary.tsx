@@ -38,7 +38,7 @@ function Fallback({ error, onRetry }: { error: Error; onRetry: () => void }) {
         </details>
 
         <Button variant="primary" onClick={onRetry}>
-          <RotateCcw aria-hidden className="size-4" />
+          <RotateCcw aria-hidden />
           {t('crash.retry')}
         </Button>
       </Panel>

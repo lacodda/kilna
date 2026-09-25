@@ -603,7 +603,7 @@ function ActionsEditor({
             setNewKey('')
           }}
         >
-          <Plus aria-hidden className="size-3.5" />
+          <Plus aria-hidden />
           {t('editor.addAction')}
         </Button>
         {key !== '' && keyTaken && (

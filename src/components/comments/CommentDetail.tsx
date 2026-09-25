@@ -181,7 +181,7 @@ export function CommentDetail({ comment, channels, drafts, drafting, onWork = fa
           }}
           placeholder={t('comments.authorPlaceholder')}
           aria-label={t('comments.author')}
-          className="h-8 min-w-32 flex-1 border-transparent bg-transparent px-1.5 text-[13px] font-semibold hover:border-line focus:border-line"
+          className="min-w-32 flex-1 border-transparent bg-transparent px-1.5 text-[13px] font-semibold hover:border-line focus:border-line"
         />
         <SaveState status={saved} />
         <button
@@ -197,7 +197,7 @@ export function CommentDetail({ comment, channels, drafts, drafting, onWork = fa
           onChange={(next) => patch.mutate({ commented_on: next === '' ? null : next })}
           placeholder={t('comments.dayPlaceholder')}
           aria-label={t('comments.day')}
-          className="h-8 w-32"
+          className="w-32"
         />
         <Button
           size="icon-sm"
@@ -215,7 +215,7 @@ export function CommentDetail({ comment, channels, drafts, drafting, onWork = fa
         <div className="flex shrink-0 flex-col gap-2 border-b border-line bg-soft px-3 py-2">
           <ChannelField value={channel} onChange={setChannel} known={channels} autoFocus />
           <div className="flex justify-end gap-1.5">
-            <Button size="sm" variant="icon" onClick={() => setMoving(false)}>
+            <Button size="sm" onClick={() => setMoving(false)}>
               {t('dialog.cancel')}
             </Button>
             <Button
@@ -341,7 +341,6 @@ export function CommentDetail({ comment, channels, drafts, drafting, onWork = fa
               <div className="flex justify-end gap-1.5">
                 <Button
                   size="sm"
-                  variant="icon"
                   disabled={dropDraft.isPending}
                   onClick={() => dropDraft.mutate(pending.message_id)}
                 >
@@ -381,7 +380,6 @@ export function CommentDetail({ comment, channels, drafts, drafting, onWork = fa
               <>
                 <Button
                   size="sm"
-                  variant="icon"
                   onClick={() => patch.mutate({ state: 'archived' })}
                   title={t('comments.archiveHint')}
                 >
@@ -409,13 +407,13 @@ export function CommentDetail({ comment, channels, drafts, drafting, onWork = fa
               </>
             )}
             {comment.state === 'posted' && (
-              <Button size="sm" variant="icon" onClick={() => patch.mutate({ state: 'open' })}>
+              <Button size="sm" onClick={() => patch.mutate({ state: 'open' })}>
                 <RotateCcw aria-hidden />
                 {t('comments.reopen')}
               </Button>
             )}
             {comment.state === 'archived' && (
-              <Button size="sm" variant="icon" onClick={() => patch.mutate({ state: 'open' })}>
+              <Button size="sm" onClick={() => patch.mutate({ state: 'open' })}>
                 <ArchiveRestore aria-hidden />
                 {t('comments.unarchive')}
               </Button>

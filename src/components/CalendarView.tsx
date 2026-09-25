@@ -302,7 +302,7 @@ export function CalendarView({ onSelect }: Props) {
             onChange={(event) => setQueueQuery(event.target.value)}
             placeholder={t('calendar.queueSearch')}
             aria-label={t('calendar.queueSearch')}
-            className="h-8 text-xs"
+            className="text-xs"
           />
           <div className="flex gap-1.5">
             <Select

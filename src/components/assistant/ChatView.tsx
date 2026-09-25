@@ -536,9 +536,9 @@ function ExchangeItem({
             {/* An answer still growing is not worth keeping yet. */}
             {insertable && (
               <Button
-                size="sm"
-                variant="icon"
-                className="ml-auto h-6 px-1.5 text-[11px]"
+                size="xs"
+                variant="ghost"
+                className="ml-auto"
                 onClick={() => {
                   onInsert(body)
                 }}
@@ -551,9 +551,9 @@ function ExchangeItem({
                 buttons below is kept by those. */}
             {keepable && (
               <Button
-                size="sm"
-                variant="icon"
-                className={insertable ? 'h-6 px-1.5 text-[11px]' : 'ml-auto h-6 px-1.5 text-[11px]'}
+                size="xs"
+                variant="ghost"
+                className={insertable ? undefined : 'ml-auto'}
                 onClick={() => {
                   onKeepAsNote(body)
                 }}
@@ -562,11 +562,9 @@ function ExchangeItem({
               </Button>
             )}
             <Button
-              size="sm"
-              variant="icon"
-              className={
-                insertable || keepable ? 'h-6 px-1.5 text-[11px]' : 'ml-auto h-6 px-1.5 text-[11px]'
-              }
+              size="xs"
+              variant="ghost"
+              className={insertable || keepable ? undefined : 'ml-auto'}
               onClick={() => {
                 onCopy(body)
               }}
@@ -600,7 +598,7 @@ function ExchangeItem({
         <p className="mx-3 flex items-center gap-2 text-xs text-dim">
           {applied !== null ? t('assistant.commentKept') : t('assistant.commentToKeep')}
           {applied === null && (
-            <Button size="sm" variant="icon" className="h-6 px-1.5 text-[11px]" onClick={onOpenComments}>
+            <Button size="xs" variant="ghost" onClick={onOpenComments}>
               {t('assistant.openComments')}
             </Button>
           )}

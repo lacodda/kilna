@@ -128,7 +128,7 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
           }}
           placeholder={t('notes.titlePlaceholder')}
           aria-label={t('notes.titleLabel')}
-          className="h-8 min-w-40 flex-1 border-transparent bg-transparent px-1.5 text-[13px] font-semibold hover:border-line focus:border-line"
+          className="min-w-40 flex-1 border-transparent bg-transparent px-1.5 text-[13px] font-semibold hover:border-line focus:border-line"
         />
         <SaveState status={status} />
         {kindOptions.length > 1 && (
@@ -139,7 +139,7 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
             }}
             options={kindOptions}
             aria-label={t('notes.kind')}
-            className="h-8 w-36"
+            className="w-36"
           />
         )}
         <Button
@@ -200,16 +200,16 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
           </>
         )}
         <Button
-          size="sm"
-          variant="icon"
-          className="ml-auto h-6 px-1.5 text-[11px]"
+          size="xs"
+          variant="ghost"
+          className="ml-auto"
           aria-pressed={editing}
           onClick={() => {
             if (editing) void body.flush()
             setEditing(!editing)
           }}
         >
-          <Pencil aria-hidden className="size-3" />
+          <Pencil aria-hidden />
           {editing ? t('notes.done') : t('notes.edit')}
         </Button>
       </div>

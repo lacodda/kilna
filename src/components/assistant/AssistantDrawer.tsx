@@ -27,7 +27,8 @@ import { AssistantContext, useAssistant, type Assistant } from '@/lib/useAssista
 import { announcement, movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
-import { Dialog, PromptDialog } from '@/components/ui/AppDialog'
+import { PromptDialog } from '@/components/ui/AppDialog'
+import { ConfirmAction } from '@/components/ui/ConfirmAction'
 import {
   Drawer as DrawerRoot,
   DrawerClose,
@@ -216,9 +217,9 @@ function Drawer({
         if (!next) onClose()
       }}
     >
-      {/* The popup's own padding and scroll are turned off: this drawer is a
-          fixed header over a scrolling body, not one column of prose. */}
-      <DrawerPopup className="w-[min(28rem,100vw)] overflow-hidden bg-bg p-0">
+      {/* A fixed header over a scrolling body, the drawer's own anatomy - the
+          header here carries the back arrow and the work link as well. */}
+      <DrawerPopup className="w-[min(28rem,100vw)] bg-bg">
       <div className="flex items-center gap-2 border-b border-line px-4 py-3">
         {current !== undefined && (
           <Button
@@ -377,25 +378,22 @@ function Drawer({
         }}
       />
 
-      <Dialog
+      {/* A chat is deleted for good - it does not go to the trash - so this is
+          a question that cannot be taken back, asked the way the app asks
+          those: no dismissal by a stray click, the verb in the danger tone. */}
+      <ConfirmAction
         open={confirmingDelete !== null}
         onOpenChange={(next) => {
           if (!next) setConfirmingDelete(null)
         }}
         title={t('assistant.deleteTitle')}
         description={t('assistant.deleteBody')}
-        footer={
-          <Button
-            variant="danger"
-            disabled={remove.isPending}
-            onClick={() => {
-              if (confirmingDelete !== null) remove.mutate(confirmingDelete)
-              setConfirmingDelete(null)
-            }}
-          >
-            {t('assistant.delete')}
-          </Button>
-        }
+        actionLabel={t('assistant.delete')}
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (confirmingDelete !== null) remove.mutate(confirmingDelete)
+          setConfirmingDelete(null)
+        }}
       />
       </DrawerPopup>
     </DrawerRoot>

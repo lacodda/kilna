@@ -409,17 +409,18 @@ export function Catalogue({ onSelect }: Props) {
 
             Built like the two selects beside it rather than like the kind chips
             above: it stands in the row of CONTROLS, and as a small round chip
-            among two `h-9` fields it read as something left over from the row
-            above. Same height, same border, same radius; what stays its own is
-            the warn colour it takes when it is on, because that is the state
-            and a select has no equivalent. */}
+            among two fields it read as something left over from the row above.
+            Same control row (`h-control`, so density moves it with them), same
+            border, same radius; what stays its own is the warn colour it takes
+            when it is on, because that is the state and a select has no
+            equivalent. */}
         <button
           type="button"
           aria-pressed={filter.bookmarked === true}
           title={t('catalogue.starredHint')}
           onClick={() => setFromControl({ bookmarked: filter.bookmarked === true ? undefined : true })}
           className={cn(
-            'inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-sm transition-colors',
+            'inline-flex h-control cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-sm transition-colors',
             'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent',
             filter.bookmarked === true
               ? 'border-warn/40 bg-warn-soft font-medium text-warn'
@@ -709,7 +710,7 @@ function Rows({
         return shell(
           <Input
             autoFocus
-            className="h-8 text-[12.5px]"
+            className="text-[12.5px]"
             value={columnFilters.title ?? ''}
             onChange={(event) =>
               onColumnFilters({ ...columnFilters, title: event.target.value || undefined })
@@ -1690,7 +1691,7 @@ function ViewBar({
         >
           <Input
             autoFocus
-            className="h-7 w-44 text-[12.5px]"
+            className="h-control-sm w-44 text-[12.5px]"
             value={name}
             onChange={(event) => setName(event.target.value)}
             onKeyDown={(event) => {
@@ -1713,7 +1714,7 @@ function ViewBar({
           disabled={!isNarrowed(shape.filter) && shape.groupBy === 'none'}
           title={t('catalogue.viewSaveHint')}
         >
-          {active ? <Bookmark className="size-3.5" aria-hidden /> : <BookmarkPlus className="size-3.5" aria-hidden />}
+          {active ? <Bookmark aria-hidden /> : <BookmarkPlus aria-hidden />}
           {t('catalogue.viewSaveCurrent')}
         </Button>
       )}
@@ -1844,7 +1845,7 @@ function BulkMenu({
         render={<Button variant="ghost" size="sm" disabled={busy} />}
       >
         {t('catalogue.bulk.actions')}
-        <ChevronDown className="ml-1 size-3.5" aria-hidden />
+        <ChevronDown className="ml-1" aria-hidden />
       </MenuTrigger>
 
       <MenuPopup align="start">

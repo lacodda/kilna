@@ -17,7 +17,8 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Dialog, PromptDialog } from '@/components/ui/AppDialog'
+import { PromptDialog } from '@/components/ui/AppDialog'
+import { ConfirmAction } from '@/components/ui/ConfirmAction'
 import { RowMenu } from '@/components/ui/RowMenu'
 import { ChatView } from '@/components/assistant/ChatView'
 
@@ -243,23 +244,19 @@ export function AssistantPanel({ workId }: Props) {
         }}
       />
 
-      <Dialog
+      {/* Deleted for good, not to the trash: asked as a question that cannot
+          be taken back. */}
+      <ConfirmAction
         open={confirmingDelete}
         onOpenChange={setConfirmingDelete}
         title={t('assistant.deleteTitle')}
         description={t('assistant.deleteBody')}
-        footer={
-          <Button
-            variant="danger"
-            disabled={remove.isPending}
-            onClick={() => {
-              if (chatId !== null) remove.mutate(chatId)
-              setConfirmingDelete(false)
-            }}
-          >
-            {t('assistant.delete')}
-          </Button>
-        }
+        actionLabel={t('assistant.delete')}
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (chatId !== null) remove.mutate(chatId)
+          setConfirmingDelete(false)
+        }}
       />
     </section>
   )

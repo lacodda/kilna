@@ -1,16 +1,19 @@
-import { type FormEvent, type ReactNode, useState } from 'react'
+import { type FormEvent, type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog as Base,
   DialogActions,
+  DialogBody,
   DialogClose,
   DialogDescription,
+  DialogHeader,
   DialogPopup,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { firstFocus, useTypedSinceOpen } from '@/lib/dialogGuard'
 
 /*
  * Casing here is the convention, not a style: a lowercase file in
@@ -22,16 +25,38 @@ import { Input } from '@/components/ui/input'
 /*
  * kilna's own shape of a dialog.
  *
- * dowel exposes the parts - popup, title, description, actions - because a
- * design system cannot know what a product wants inside one. This app does
- * know: every dialog it opens is a heading, a sentence, some content, and a
- * Cancel beside one affirmative button. So the shape lives here, over dowel's
- * parts, rather than being spelled out at each of the six call sites.
+ * dowel exposes the parts - header, body, actions - because a design system
+ * cannot know what a product wants inside one. This app does know: every
+ * dialog it opens is a heading, a sentence, some content, and a Cancel beside
+ * one affirmative button. So the shape lives here, over dowel's parts, rather
+ * than being spelled out at each call site.
  *
  * The Cancel and the close cross are the two words this file owns. They are
  * translated here rather than passed in, because they are the same words every
  * time and asking each caller for them would guarantee they eventually differ.
+ *
+ * Four behaviours are the reason this file exists rather than the parts at
+ * each call site, and each was a bug before it was a rule:
+ *
+ * - **Only the body scrolls.** The header and the actions stay whole; the
+ *   style editor at a 1280x720 window used to put Save 137px below the edge.
+ * - **The width is a size, not a class.** `className="max-w-2xl"` on a popup
+ *   whose width is `w-[min(28rem,…)]` changed nothing, and three dialogs that
+ *   meant to be wide came out 448px with their chips in three rows.
+ * - **Focus lands on the first field**, not on the close cross that happens to
+ *   be the first thing in the popup. A dialog with no field focuses Cancel -
+ *   the answer that costs nothing if Enter is pressed by reflex.
+ * - **Typing makes the dialog stay.** A click beside a dialog that has been
+ *   typed into does not close it; `Escape` and Cancel still do, because those
+ *   are asked for. What is typed is noticed by the `input` event, which every
+ *   text field, textarea and checkbox fires, so no caller has to remember to
+ *   report it; a form whose state lives in custom controls says so through
+ *   `dirty`.
  */
+
+/** The widths a dialog comes in: `md` for a question and a field or two, `lg`
+ * for a form, `xl` for an editor whose choices should fit on one line. */
+export type DialogSize = 'sm' | 'md' | 'lg' | 'xl' | 'full'
 
 interface DialogProps {
   open: boolean
@@ -48,7 +73,12 @@ interface DialogProps {
    * deletion (the style dialog, 24.09).
    */
   aside?: ReactNode
-  className?: string
+  /** How wide. `md` unless the content says otherwise. */
+  size?: DialogSize
+  /** The form has changes that live outside a text field - a chip picked, a
+   * file attached - so a stray click must not close it. Typing is noticed
+   * without this. */
+  dirty?: boolean
 }
 
 export function Dialog({
@@ -59,41 +89,48 @@ export function Dialog({
   children,
   footer,
   aside,
-  className,
+  size = 'md',
+  dirty = false,
 }: DialogProps) {
   const { t } = useTranslation()
+  const body = useRef<HTMLDivElement>(null)
+  const cancel = useRef<HTMLButtonElement>(null)
+  const { typed, onInput } = useTypedSinceOpen(open)
 
   return (
-    <Base open={open} onOpenChange={onOpenChange}>
-      {/* No `relative` here, however much the absolutely positioned close
-          button below looks like it needs one: the popup is already `fixed`,
-          which positions its descendants just as well. Adding it cost the
-          dialog its `fixed` outright — `tailwind-merge` reads the two as the
-          same property and keeps the last — so `top: 50%` started measuring
-          against the document and the dialog hung off the bottom of a tall
-          screen. Measured, not guessed. */}
-      <DialogPopup className={className}>
-        <DialogTitle>{title}</DialogTitle>
-        {description !== undefined && <DialogDescription>{description}</DialogDescription>}
-
-        <DialogClose
-          render={
-            <Button
-              variant="icon"
-              size="icon-sm"
-              aria-label={t('dialog.close')}
-              className="absolute right-3 top-3"
-            />
+    <Base open={open} onOpenChange={onOpenChange} disablePointerDismissal={dirty || typed}>
+      <DialogPopup
+        size={size}
+        initialFocus={() => firstFocus(body.current) ?? cancel.current ?? true}
+        onInput={onInput}
+      >
+        <DialogHeader
+          action={
+            <DialogClose
+              render={<Button variant="icon" size="icon-sm" aria-label={t('dialog.close')} />}
+            >
+              <X aria-hidden />
+            </DialogClose>
           }
         >
-          <X aria-hidden />
-        </DialogClose>
+          <DialogTitle>{title}</DialogTitle>
+          {description !== undefined && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
 
-        {children !== undefined && <div className="mt-4">{children}</div>}
+        {/* The ref sits on a box that draws nothing: the body is dowel's part
+            and takes no ref, and what is looked for is only inside it. */}
+        {children !== undefined && (
+          <DialogBody>
+            <div ref={body} className="contents">
+              {children}
+            </div>
+          </DialogBody>
+        )}
 
-        <DialogActions>
-          {aside !== undefined && <div className="mr-auto flex gap-2">{aside}</div>}
-          <DialogClose render={<Button />}>{t('dialog.cancel')}</DialogClose>
+        <DialogActions start={aside}>
+          <DialogClose ref={cancel} render={<Button />}>
+            {t('dialog.cancel')}
+          </DialogClose>
           {footer}
         </DialogActions>
       </DialogPopup>
@@ -169,7 +206,6 @@ export function PromptDialog({
     >
       <form id="prompt-dialog" onSubmit={submit}>
         <Input
-          autoFocus
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder={placeholder}
