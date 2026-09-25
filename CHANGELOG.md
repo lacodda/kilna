@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.76.2] - 2026-09-25
+
+### Features
+- Pin a dialog's actions and make the window compact
+
 ## [0.76.1] - 2026-09-24
 
 ### Bug Fixes
