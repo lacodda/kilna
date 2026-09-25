@@ -10,7 +10,6 @@ import {
   ComboboxList,
   ComboboxPopup,
 } from '@/components/ui/combobox'
-import { usePopupContainer } from '@/components/ui/layer'
 import { updateWork, workTags, type Mark, type Work } from '@/lib/api'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
@@ -38,8 +37,6 @@ export function TagBar({ work }: { work: Work }) {
   const [adding, setAdding] = useState(false)
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
-  const container = usePopupContainer()
-
   const patch = useMutation({
     mutationFn: (changes: { tags?: string[]; marks?: string[] }) =>
       updateWork(work.id, changes),
@@ -176,7 +173,7 @@ export function TagBar({ work }: { work: Work }) {
             className="h-auto w-40 rounded-full border-accent px-2 py-0.5 text-[11px]"
           />
 
-          <ComboboxPopup container={container} className="w-48 p-1">
+          <ComboboxPopup className="w-48 p-1">
             <ComboboxList>
               {(tag: string) => (
                 <ComboboxItem

@@ -1,8 +1,8 @@
 import { Select as Base } from '@base-ui/react/select'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'dowel-ui'
-import { fieldClasses } from './input'
 import { usePopupContainer } from './layer'
+import { fieldClasses } from './input'
 
 /*
  * Select.
@@ -79,7 +79,7 @@ export const selectItemVariants = cva([
   // it, so the row reads as chosen at a glance and not only under the eye.
   'data-[selected]:font-medium data-[selected]:text-accent',
   'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-  '[&_svg]:size-3.5 [&_svg]:shrink-0',
+  '[&_svg:not([class*=size-])]:size-3.5 [&_svg]:shrink-0',
 ])
 
 /** The root. `multiple` turns `value` into an array; otherwise controlled with
@@ -134,8 +134,11 @@ export interface SelectPopupProps
   align?: Base.Positioner.Props['align']
   /** Distance from the trigger, in pixels. */
   sideOffset?: Base.Positioner.Props['sideOffset']
-  /** Where to portal to. Defaults to the document body, which keeps the list
-   * from being clipped by a form with `overflow: hidden`. */
+  /** Where to portal to. Defaults to the raised host of the overlay this is
+   * opened inside (`layer.tsx`), and to the document body when there is none -
+   * either way not the element it was opened from, whose `overflow` would clip
+   * it. Pass an element to put it somewhere else, such as a container being
+   * screenshotted. */
   container?: Base.Portal.Props['container']
 }
 
@@ -155,9 +158,9 @@ export function SelectPopup({
   children,
   ...props
 }: SelectPopupProps) {
-  // The raised host of the overlay this sits inside, if any - see the note in
-  // `menu.tsx`. Without it the panel portals to the body on the page's own
-  // floor and draws UNDER the dialog or stage that opened it.
+  // Inside an overlay, the overlay's raised host rather than the body - or
+  // this popup draws under the dialog, drawer or popover that opened it. See
+  // `layer.tsx`. Outside every overlay the hook gives `undefined`: the body.
   const host = usePopupContainer()
 
   return (
@@ -177,9 +180,39 @@ export function SelectPopup({
   )
 }
 
-/** An option. */
-export function SelectItem({ className, ...props }: Base.Item.Props) {
-  return <Base.Item className={cn(selectItemVariants(), className)} {...props} />
+/** An option, with the tick that says it is the chosen one.
+ *
+ * The indicator is built in rather than left to the caller. The item already
+ * reserves the room for it (`pr-7`), and a dropdown that does not show what is
+ * currently selected is the commonest complaint about a styled select: it
+ * opens, and the reader has to remember what they picked last time. Passing
+ * `indicator={false}` turns it off for a list where the choice is obvious
+ * some other way. */
+export function SelectItem({
+  indicator = true,
+  className,
+  children,
+  ...props
+}: Base.Item.Props & { indicator?: boolean }) {
+  return (
+    <Base.Item className={cn(selectItemVariants(), className)} {...props}>
+      {children}
+      {indicator && (
+        <Base.ItemIndicator className="absolute right-2 flex text-accent">
+          <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
+            <path
+              d="M3.5 8.5l3 3 6-6.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </Base.ItemIndicator>
+      )}
+    </Base.Item>
+  )
 }
 
 /** The caption above a group. */

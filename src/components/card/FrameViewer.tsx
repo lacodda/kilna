@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { SceneFrame } from '@/lib/api'
-import { Dialog, DialogBackdrop, DialogPopup } from '@/components/ui/dialog'
+import { Dialog, DialogPopup } from '@/components/ui/dialog'
 import { MediaPreview } from '@/components/ui/MediaPreview'
 
 /** One step of the viewer: a scene, and the frame of it being shown. */
@@ -56,11 +56,9 @@ export function FrameViewer({ viewing, onClose, onStep, canStep }: Props) {
 
   return (
     <Dialog open onOpenChange={(next) => !next && onClose()}>
-      <DialogBackdrop />
-      <DialogPopup
-        className="flex h-[92vh] w-[92vw] max-w-none flex-col gap-2 p-3"
-        aria-label={t('scenes.openFrame')}
-      >
+      {/* The popup draws its own scrim; a second one under it doubled the
+          dim. The window's size, less the margin that says it is a dialog. */}
+      <DialogPopup size="full" className="gap-2 p-3" aria-label={t('scenes.openFrame')}>
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-medium">
             {t('scenes.frameOfScene', { number: viewing.number })}

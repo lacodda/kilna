@@ -16,7 +16,6 @@ import {
 import { changedLines, countChanges, diffLines } from '@/lib/diff'
 import { clearDraft, readDraft, writeDraft } from '@/lib/drafts'
 import { predecessor } from '@/lib/history'
-import { STAGE_LAYER } from '@/lib/layers'
 import { keys } from '@/lib/query'
 import { findRepeats } from '@/lib/repeats'
 import { say } from '@/lib/toast'
@@ -539,7 +538,7 @@ export function VersionPanel({ workId }: Props) {
             }}
             title={t('versions.newHint')}
           >
-            <Plus aria-hidden className="size-3.5" />
+            <Plus aria-hidden />
             {t('versions.new')}
           </Button>
         </div>
@@ -976,16 +975,16 @@ function BodyPane({
    * rather than to take a place in the scale. Menus are `--z-menu`, a 30, so
    * the ± control opened its list of versions UNDERNEATH the stage covering
    * the window: the button highlighted, nothing appeared, and it read as
-   * broken. `LayerProvider` hands anything opened in here a floor above the
-   * stage, the same way a dialog does for the popups inside it. */
+   * broken. The stage stands on the overlay rung, and `LayerProvider` hands
+   * anything opened in here a floor above it, the same way a dialog does for
+   * the popups inside it. */
   return (
-    <LayerProvider rung="stage-popup">
+    <LayerProvider above="overlay">
       <div
         className={cn(
-          'flex flex-col gap-2 bg-bg p-6',
+          'flex flex-col gap-2 bg-bg p-6 [z-index:var(--z-overlay)]',
           level === 'focus' ? 'fixed inset-0' : 'absolute inset-0',
         )}
-        style={{ zIndex: STAGE_LAYER }}
       >
         <p className="text-xs text-faint">{t('versions.stageHint')}</p>
         <div className="flex min-h-0 flex-1 flex-col">{frame}</div>

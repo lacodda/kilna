@@ -5,8 +5,10 @@ import { DESTINATIONS } from '@/lib/keys'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogDescription,
+  DialogHeader,
   DialogPopup,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -70,47 +72,46 @@ export function KeyboardSheet({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPopup size="lg">
-        <DialogTitle>{t('keys.title')}</DialogTitle>
-        <DialogDescription>{t('keys.description')}</DialogDescription>
-
-        <DialogClose
-          render={
-            <Button
-              variant="icon"
-              size="icon-sm"
-              aria-label={t('dialog.close')}
-              className="absolute right-3 top-3"
-            />
+        <DialogHeader
+          action={
+            <DialogClose
+              render={<Button variant="icon" size="icon-sm" aria-label={t('dialog.close')} />}
+            >
+              <X aria-hidden />
+            </DialogClose>
           }
         >
-          <X aria-hidden />
-        </DialogClose>
+          <DialogTitle>{t('keys.title')}</DialogTitle>
+          <DialogDescription>{t('keys.description')}</DialogDescription>
+        </DialogHeader>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Group title={t('keys.group.going')}>
-            {Object.entries(DESTINATIONS).map(([key, where]) => (
-              <Row key={key} keys={['G', key.toUpperCase()]}>
-                {t(SCREEN_NAME[where] ?? where)}
-              </Row>
-            ))}
-          </Group>
-
-          <div className="grid gap-4">
-            <Group title={t('keys.group.moving')}>
-              <Row keys={['Mod', 'K']}>{t('keys.action.search')}</Row>
-              <Row keys={['Alt', 'ArrowLeft']}>{t('keys.action.back')}</Row>
-              <Row keys={['Alt', 'ArrowRight']}>{t('keys.action.forward')}</Row>
+        <DialogBody>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Group title={t('keys.group.going')}>
+              {Object.entries(DESTINATIONS).map(([key, where]) => (
+                <Row key={key} keys={['G', key.toUpperCase()]}>
+                  {t(SCREEN_NAME[where] ?? where)}
+                </Row>
+              ))}
             </Group>
 
-            <Group title={t('keys.group.everywhere')}>
-              <Row keys={['Mod', 'Z']}>{t('keys.action.undo')}</Row>
-              <Row keys={['?']}>{t('keys.action.help')}</Row>
-              <Row keys={['Escape']}>{t('keys.action.close')}</Row>
-            </Group>
+            <div className="grid gap-4">
+              <Group title={t('keys.group.moving')}>
+                <Row keys={['Mod', 'K']}>{t('keys.action.search')}</Row>
+                <Row keys={['Alt', 'ArrowLeft']}>{t('keys.action.back')}</Row>
+                <Row keys={['Alt', 'ArrowRight']}>{t('keys.action.forward')}</Row>
+              </Group>
+
+              <Group title={t('keys.group.everywhere')}>
+                <Row keys={['Mod', 'Z']}>{t('keys.action.undo')}</Row>
+                <Row keys={['?']}>{t('keys.action.help')}</Row>
+                <Row keys={['Escape']}>{t('keys.action.close')}</Row>
+              </Group>
+            </div>
           </div>
-        </div>
 
-        <p className="mt-4 text-xs text-faint">{t('keys.typing')}</p>
+          <p className="mt-4 text-xs text-faint">{t('keys.typing')}</p>
+        </DialogBody>
       </DialogPopup>
     </Dialog>
   )

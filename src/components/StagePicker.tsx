@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Popover, PopoverPopup, PopoverTrigger } from '@/components/ui/popover'
-import { usePopupContainer } from '@/components/ui/layer'
 import { StageDial } from '@/components/StageDial'
 import { stageAt, stagesOf } from '@/lib/stages'
 import { say, useProfile } from '@/lib/useProfile'
@@ -35,7 +34,6 @@ export function StagePicker({
 }) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const container = usePopupContainer()
   const [open, setOpen] = useState(false)
   const stage = useStage(workId)
 
@@ -77,7 +75,7 @@ export function StagePicker({
         <StageDial percent={percent} stage={current} size={compact ? 14 : 16} />
       </PopoverTrigger>
 
-      <PopoverPopup container={container} arrow={false} className="w-auto p-2">
+      <PopoverPopup arrow={false} className="w-auto p-2">
         <div
           role="slider"
           tabIndex={0}

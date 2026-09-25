@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { Combobox as Base } from '@base-ui/react/combobox'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'dowel-ui'
 import { comboboxItemVariants } from './combobox'
 import { Kbd } from './kbd'
+import { LayerProvider } from './layer'
 
 /*
  * CommandPalette.
@@ -120,8 +121,10 @@ export function CommandPalettePopup({
   children,
   ...props
 }: CommandPalettePopupProps) {
+  const portal = useRef<HTMLDivElement>(null)
+
   return (
-    <Base.Portal container={container}>
+    <Base.Portal ref={portal} container={container}>
       <Base.Backdrop
         className={cn(
           'fixed inset-0 bg-black/55 backdrop-blur-[2px]',
@@ -161,7 +164,9 @@ export function CommandPalettePopup({
           className={cn(commandPalettePopupVariants({ size }), className)}
           {...props}
         >
-          {children}
+          {/* A tooltip or a menu opened from a result rides above the palette,
+            * which stands above every modal. See `layer.tsx`. */}
+          <LayerProvider above="palette" mount={portal}>{children}</LayerProvider>
         </Base.Popup>
       </Base.Positioner>
     </Base.Portal>
@@ -177,14 +182,6 @@ export interface CommandPaletteInputProps extends Base.Input.Props {
  * and the field its combobox. */
 export function CommandPaletteInput({ hint, className, ...props }: CommandPaletteInputProps) {
   return (
-    // No focus treatment on this row at all, which is dowel's own shape.
-    //
-    // kilna had tinted the rule accent on `focus-within`, to stand in for a
-    // focus ring the input suppresses. But the palette opens WITH the field
-    // focused — it is the only thing in it — so the tint was on from the
-    // first frame and read as a permanent pink frame around the search box,
-    // which is what the owner saw and dowel's own page does not have. The
-    // field is obviously the field; it does not need to announce itself.
     <div className="flex items-center gap-2 border-b border-line px-3">
       <MagnifierIcon />
       <Base.Input

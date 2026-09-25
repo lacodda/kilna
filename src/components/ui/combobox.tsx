@@ -1,9 +1,10 @@
+import type { Ref } from 'react'
 import { Combobox as Base } from '@base-ui/react/combobox'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'dowel-ui'
+import { usePopupContainer } from './layer'
 import { fieldClasses } from './input'
 import { selectItemVariants, selectPopupVariants } from './select'
-import { usePopupContainer } from './layer'
 
 /*
  * Combobox.
@@ -37,15 +38,33 @@ import { usePopupContainer } from './layer'
  * component here rather than a `{items.length === 0 && …}` in the product.
  */
 
-export const comboboxInputVariants = cva([fieldClasses], {
+/* Two bases, chosen by `bare`, rather than one base and an override.
+ *
+ * Inside `ComboboxChips` the container is the field, so the input has no
+ * border, no background and no focus ring of its own - a bordered box inside a
+ * bordered box reads as two controls, and two focus rings appear as one thick
+ * one. The obvious way to write that is `fieldClasses` plus a few `-none`
+ * classes, and it does not work: `tailwind-merge` does not treat
+ * `focus-visible:outline-none` as conflicting with
+ * `focus-visible:outline-2 … outline-accent`, so both survive and the later
+ * one in the stylesheet wins. The same trap took `w-full` versus `w-auto`
+ * earlier in this file.
+ *
+ * So the variant picks which set applies instead of trying to subtract from
+ * one - nothing is left to a merge that has no opinion. */
+export const comboboxInputVariants = cva('', {
   variants: {
     size: {
-      sm: 'h-8 text-xs',
-      md: 'h-9',
-      lg: 'h-10 text-base',
+      sm: 'h-control-sm text-xs',
+      md: 'h-control',
+      lg: 'h-control-lg text-base',
+    },
+    bare: {
+      true: 'h-7 w-auto min-w-24 flex-1 bg-transparent px-1 text-sm text-text placeholder:text-faint outline-none',
+      false: fieldClasses,
     },
   },
-  defaultVariants: { size: 'md' },
+  defaultVariants: { size: 'md', bare: false },
 })
 
 /** The list, and a row in it, are Select's - imported rather than copied.
@@ -76,6 +95,15 @@ export const ComboboxIcon = Base.Icon
 /** A labelled group of rows. */
 export const ComboboxGroup = Base.Group
 
+/** The rows of one group, as a render function over that group's items.
+ *
+ * A `List` is the listbox and there is one per combobox, so a grouped list is
+ * a `List` over the groups with a `Collection` inside each - not a `List`
+ * inside a `List`. Mapping by hand instead works, but the component then has
+ * to be told how to match an item to a value, which is a second place for that
+ * knowledge to live. */
+export const ComboboxCollection = Base.Collection
+
 /** The tick, drawn only on a chosen row. */
 export const ComboboxItemIndicator = Base.ItemIndicator
 
@@ -84,8 +112,35 @@ export const ComboboxItemIndicator = Base.ItemIndicator
 export const ComboboxStatus = Base.Status
 
 /** The container the chips sit in. Its children are plain nodes, not a render
- * function - the chosen values are mapped by `ComboboxValue` inside it. */
-export const ComboboxChips = Base.Chips
+ * function - the chosen values are mapped by `ComboboxValue` inside it.
+ *
+ * It wears the field's clothes and lays the chips out in a row that wraps,
+ * which is the whole difference between a control and a list: unstyled, the
+ * chips stack one per line and the box grows into a column of pills with the
+ * input stranded underneath. The input sits on the same line as the last
+ * chip and takes the rest of the width, so a half-filled field still looks
+ * like a field. */
+export function ComboboxChips({
+  ref,
+  className,
+  ...props
+}: Base.Chips.Props & { ref?: Ref<HTMLDivElement> }) {
+  return (
+    <Base.Chips
+      // Taken out of `...props` and passed on deliberately: a product needs a
+      // handle on this box to anchor the list to it, because the input inside
+      // is only as wide as what has been typed.
+      ref={ref}
+      className={cn(
+        fieldClasses,
+        'flex min-h-9 flex-wrap items-center gap-1 py-1',
+        'focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-accent',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
 
 /** The current value, as a render function of it. This is what turns a
  * `multiple` value into one chip per entry. */
@@ -97,9 +152,17 @@ export interface ComboboxInputProps
   extends Omit<Base.Input.Props, 'size'>,
     VariantProps<typeof comboboxInputVariants> {}
 
-/** Where the query is typed. A real `<input role="combobox">`. */
-export function ComboboxInput({ size, className, ...props }: ComboboxInputProps) {
-  return <Base.Input className={cn(comboboxInputVariants({ size }), className)} {...props} />
+/** Where the query is typed. A real `<input role="combobox">`.
+ *
+ * Inside `ComboboxChips` it drops its own border and background: the
+ * container is the field there, and a bordered input inside a bordered box
+ * reads as two controls. */
+export function ComboboxInput({ size, bare, className, ...props }: ComboboxInputProps) {
+  // `bare` is pulled out and handed to `cva`. Left in `...props` it would be
+  // spread onto the `<input>` as an unknown attribute and change nothing -
+  // which is exactly what it did: the variant existed, the prop was passed,
+  // and the class list came out without a trace of either.
+  return <Base.Input className={cn(comboboxInputVariants({ size, bare }), className)} {...props} />
 }
 
 const iconButtonClasses = cn(
@@ -122,24 +185,39 @@ export interface ComboboxPopupProps
   align?: Base.Positioner.Props['align']
   /** Distance from the input, in pixels. */
   sideOffset?: Base.Positioner.Props['sideOffset']
-  /** Where to portal to. Defaults to the document body. */
+  /**
+   * What to line the list up with. Defaults to the input that owns it.
+   *
+   * Pass the `ComboboxChips` box when there is one: with chips, the input is
+   * only as wide as what has been typed - an empty one measured 214px inside
+   * a 288px field - so a list anchored to it hangs short of the box a reader
+   * sees. Base UI publishes the anchor's width as `--anchor-width`, which is
+   * how the mismatch is visible from outside.
+   */
+  anchor?: Base.Positioner.Props['anchor']
+  /** Where to portal to. Defaults to the raised host of the overlay this is
+   * opened inside (`layer.tsx`), and to the document body when there is none -
+   * either way not the element it was opened from, whose `overflow` would clip
+   * it. Pass an element to put it somewhere else, such as a container being
+   * screenshotted. */
   container?: Base.Portal.Props['container']
 }
 
-/** The list. Portalled and positioned against the input. */
+/** The list. Portalled and positioned against the input, or the given anchor. */
 export function ComboboxPopup({
   size,
   side,
   align,
   sideOffset = 4,
+  anchor,
   container,
   className,
   children,
   ...props
 }: ComboboxPopupProps) {
-  // The raised host of the overlay this sits inside, if any - see the note in
-  // `menu.tsx`. Without it the panel portals to the body on the page's own
-  // floor and draws UNDER the dialog or stage that opened it.
+  // Inside an overlay, the overlay's raised host rather than the body - or
+  // this popup draws under the dialog, drawer or popover that opened it. See
+  // `layer.tsx`. Outside every overlay the hook gives `undefined`: the body.
   const host = usePopupContainer()
 
   return (
@@ -148,6 +226,7 @@ export function ComboboxPopup({
         side={side}
         align={align}
         sideOffset={sideOffset}
+        anchor={anchor}
         className="[z-index:var(--z-menu)]"
       >
         <Base.Popup className={cn(comboboxPopupVariants({ size }), className)} {...props}>

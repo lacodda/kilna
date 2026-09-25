@@ -74,10 +74,11 @@ export interface PreviewCardPopupProps
   sideOffset?: Base.Positioner.Props['sideOffset']
   /** Whether to draw the arrow pointing back at the link. */
   arrow?: boolean
-  /** Where to portal to. Defaults to the document body, which is what keeps
-   * the popup from being clipped by an ancestor. Pass an element to put it
-   * somewhere else - inside an overlay that is already open, or into a
-   * container being screenshotted. */
+  /** Where to portal to. Defaults to the raised host of the overlay this is
+   * opened inside (`layer.tsx`), and to the document body when there is none -
+   * either way not the element it was opened from, whose `overflow` would clip
+   * it. Pass an element to put it somewhere else, such as a container being
+   * screenshotted. */
   container?: Base.Portal.Props['container']
 }
 
@@ -94,9 +95,9 @@ export function PreviewCardPopup({
   children,
   ...props
 }: PreviewCardPopupProps) {
-  // The raised host of the overlay this sits inside, if any - see the note in
-  // `menu.tsx`. Without it the panel portals to the body on the page's own
-  // floor and draws UNDER the dialog or stage that opened it.
+  // Inside an overlay, the overlay's raised host rather than the body - or
+  // this popup draws under the dialog, drawer or popover that opened it. See
+  // `layer.tsx`. Outside every overlay the hook gives `undefined`: the body.
   const host = usePopupContainer()
 
   return (

@@ -85,23 +85,22 @@ function SectionNavRow({
       onClick: () => onSelect?.(item.id),
       className: cn(
         'flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-sm text-dim no-underline transition-colors',
-        'hover:bg-soft hover:text-text [&_svg]:size-4 [&_svg]:shrink-0',
+        'hover:bg-soft hover:text-text [&_svg:not([class*=size-])]:size-4 [&_svg]:shrink-0',
         'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
         active && 'bg-accent-soft text-text [&_svg]:text-accent',
       ),
       children: (
         <>
           {item.icon ? <span aria-hidden className="contents">{item.icon}</span> : null}
-          {/* One line, cut with an ellipsis rather than wrapped. A column of
-              fixed width whose rows are one or two lines deep depending on
-              how long a word is reads as a ragged list, and the row's height
-              stops meaning anything - which is what "Card of the work" did
-              to the settings column in Russian. The full text is on the
-              element, so a cut label can still be read by hovering. */}
+          {/* One line, truncated, like a NavRail entry. A section column is a
+              fixed width, and a label that wraps makes one row taller than
+              every other - which in a two-language product happens to one
+              section and not the rest, so the column reads as ragged and the
+              line height stops meaning anything. `min-w-0` because a flex
+              child will not shrink below its content without it. */}
           <span className="min-w-0 flex-1 truncate">{item.label}</span>
         </>
       ),
-      title: typeof item.label === 'string' ? item.label : undefined,
     },
   })
 }

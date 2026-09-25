@@ -77,7 +77,7 @@ export function Splash({
       {...props}
     >
       <style>{`@keyframes ${SWEEP} { to { left: 100%; } }`}</style>
-      {mark ? <div className="mb-1.5 size-14 [&>svg]:size-full">{mark}</div> : null}
+      {mark ? <div className="mb-1.5 size-14 [&>svg:not([class*=size-])]:size-full">{mark}</div> : null}
       <div className="text-[26px] leading-none font-semibold tracking-[0.02em]">{name}</div>
       {tagline ? <div className="text-sm text-dim">{tagline}</div> : null}
       {version ? <div className="mt-1.5 font-mono text-2xs text-faint">{version}</div> : null}

@@ -18,6 +18,26 @@ import { cn } from 'dowel-ui'
  * Every colour and every size is a token. There are no `dark:` utilities and
  * no raw values - the theme swaps underneath, so the same class list is
  * correct in both themes and in every product's accent.
+ *
+ * **Height is a control row, not a number.** `md` and `sm` stand on
+ * `h-control` and `h-control-sm`, the rows every field of the set stands on,
+ * so a button beside an input of the same size is the same height - and
+ * `data-density` on a container reaches the button along with the field. They
+ * used to say `h-9` and `h-7` literally, and a compact form came out with 32px
+ * fields beside 36px buttons. `xs` is below the rows on purpose: it is for a
+ * button inside something - a chat line, a chip, a table cell - and it grows
+ * its hit area to the pointer floor rather than its box.
+ *
+ * **Every size says how big an icon is.** A text button used to size nothing,
+ * so a lucide icon inside one drew at its own 24px - taller than the text,
+ * across the whole line, and fixed at each call site by a `size-4` that the
+ * next call site forgot. Each size now sizes an svg inside it, and only one
+ * that has no size of its own: `[&_svg:not([class*=size-])]`. The guard is
+ * not a nicety. The unguarded form the icon sizes used to have is a
+ * descendant selector, one class and one element, and it outranks the single
+ * class `size-5` written on the icon - so an explicit size at a call site was
+ * silently overruled, and a `+` meant to be 10px drew at 14. The value is
+ * unquoted (`size-` is an identifier) so the class sits in a plain string.
  */
 export const buttonVariants = cva(
   [
@@ -38,10 +58,12 @@ export const buttonVariants = cva(
         icon: 'rounded-md text-dim hover:bg-soft hover:text-text',
       },
       size: {
-        sm: 'h-7 px-2.5 text-xs',
-        md: 'h-9 px-3.5 text-sm',
-        'icon-sm': 'size-7 [&_svg]:size-3.5',
-        'icon-md': 'size-8 [&_svg]:size-4',
+        xs: 'target-min h-6 gap-1 px-2 text-xs [&_svg:not([class*=size-])]:size-3',
+        sm: 'h-control-sm px-2.5 text-xs [&_svg:not([class*=size-])]:size-3.5',
+        md: 'h-control px-3.5 text-sm [&_svg:not([class*=size-])]:size-4',
+        'icon-xs': 'target-min size-5 [&_svg:not([class*=size-])]:size-3',
+        'icon-sm': 'size-7 [&_svg:not([class*=size-])]:size-3.5',
+        'icon-md': 'size-8 [&_svg:not([class*=size-])]:size-4',
       },
     },
     defaultVariants: { variant: 'ghost', size: 'md' },

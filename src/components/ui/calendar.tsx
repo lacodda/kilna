@@ -1,5 +1,5 @@
 import { useMemo, useState, type KeyboardEvent } from 'react'
-import { cn } from 'dowel-ui'
+import { cn, useLocale } from 'dowel-ui'
 import {
   addDays,
   addMonths,
@@ -36,7 +36,7 @@ export interface CalendarProps {
   max?: IsoDate
   /** For a range: the other end, so the days between can be shaded. */
   rangeEnd?: IsoDate
-  /** Formats the names. Left alone it is the reader's own. */
+  /** Formats the names. The application's language by default - see `useLocale`. */
   locale?: string
   /** What the grid is called, for a screen reader. */
   'aria-label'?: string
@@ -70,19 +70,20 @@ export function Calendar({
    * five dates on the way to the sixth. */
   const [focused, setFocused] = useState<IsoDate>(() => value ?? today())
 
-  const weeks = useMemo(() => monthGrid(shown, locale), [shown, locale])
-  const start = firstDayOfWeek(locale)
-  const names = useMemo(() => weekdayNames(locale, start), [locale, start])
+  const language = useLocale(locale)
+  const weeks = useMemo(() => monthGrid(shown, language), [shown, language])
+  const start = firstDayOfWeek(language)
+  const names = useMemo(() => weekdayNames(language, start), [language, start])
   const heading = useMemo(
-    () => new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(
+    () => new Intl.DateTimeFormat(language, { month: 'long', year: 'numeric' }).format(
       new Date(parts(shown).year, parts(shown).month - 1, 1),
     ),
-    [shown, locale],
+    [shown, language],
   )
-  const dayNumber = useMemo(() => new Intl.DateTimeFormat(locale, { day: 'numeric' }), [locale])
+  const dayNumber = useMemo(() => new Intl.DateTimeFormat(language, { day: 'numeric' }), [language])
   const fullDate = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: 'long' }),
-    [locale],
+    () => new Intl.DateTimeFormat(language, { dateStyle: 'long' }),
+    [language],
   )
 
   const outOfBounds = (date: IsoDate) =>

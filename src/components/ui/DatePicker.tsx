@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { Popover, PopoverPopup, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
-import { usePopupContainer } from '@/components/ui/layer'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -34,8 +33,9 @@ interface Props {
  * Until v0.69 the popover was Radix - the only Radix left in the window, every
  * other overlay being Base UI on dowel's tokens. It put `z-index: 50` inline
  * on a wrapper this app never rendered, which is why the month drew under the
- * dialog that opened it no matter what class the content carried. `layer.tsx`
- * is the other half of that fix.
+ * dialog that opened it no matter what class the content carried. dowel's
+ * `layer.tsx` is the other half of that fix: the popover asks for the raised
+ * host of whatever overlay it is opened in, so nothing here has to.
  */
 export function DatePicker({
   value,
@@ -46,12 +46,10 @@ export function DatePicker({
   'aria-label': ariaLabel,
   'aria-describedby': ariaDescribedBy,
 }: Props) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   // Empty means no date, and the month has no opinion about an empty string.
   const selected = value === '' ? undefined : value
-  const container = usePopupContainer()
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
@@ -59,7 +57,7 @@ export function DatePicker({
         aria-label={ariaLabel}
         aria-describedby={ariaDescribedBy}
         className={cn(
-          'flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-line px-2.5 text-sm transition-colors hover:border-line-2',
+          'flex h-control w-full cursor-pointer items-center gap-2 rounded-md border border-line px-2.5 text-sm transition-colors hover:border-line-2',
           'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent',
           className,
         )}
@@ -72,16 +70,9 @@ export function DatePicker({
         )}
       </PopoverTrigger>
 
-      <PopoverPopup container={container} arrow={false} className="w-auto p-3">
+      <PopoverPopup arrow={false} className="w-auto p-3">
         <Calendar
           value={selected}
-          // The interface's language, not the machine's. Left to itself the
-          // month reads `navigator.language`, and a Russian interface on an
-          // en-US machine drew its weeks from Sunday while the big month grid
-          // beside it - which takes `i18n.language` - drew them from Monday.
-          // Two calendars on one screen disagreeing about which day a week
-          // starts on is the kind of thing that is read as a bug in the data.
-          locale={i18n.language}
           aria-label={ariaLabel ?? placeholder}
           previousMonthLabel={t('calendar.previousMonth')}
           nextMonthLabel={t('calendar.nextMonth')}

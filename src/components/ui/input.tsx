@@ -31,5 +31,5 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function Input({ className, ref, ...props }: InputProps) {
-  return <input ref={ref} className={cn(fieldClasses, 'h-9', className)} {...props} />
+  return <input ref={ref} className={cn(fieldClasses, 'h-control', className)} {...props} />
 }

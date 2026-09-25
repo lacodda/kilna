@@ -1,5 +1,4 @@
 import { Check } from 'lucide-react'
-import { usePopupContainer } from '@/components/ui/layer'
 import {
   Select as Base,
   SelectItem,
@@ -63,13 +62,6 @@ export function Select({
   'aria-label': ariaLabel,
   'aria-describedby': ariaDescribedBy,
 }: Props) {
-  // Where the list goes when this select is inside a dialog or a full-screen
-  // stage. Without it the popup portals to the body at the page's own `--z-menu`
-  // and draws UNDER the overlay that opened it - what the "New: Song" dialog
-  // did to its own kind picker. The hook gives `undefined` on an ordinary page,
-  // which is the body, so nothing changes anywhere else.
-  const container = usePopupContainer()
-
   const entries =
     placeholder === undefined ? options : [{ value: EMPTY, label: placeholder }, ...options]
 
@@ -92,7 +84,7 @@ export function Select({
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
 
-      <SelectPopup container={container}>
+      <SelectPopup>
         {entries.map((option) => (
           <SelectItem key={option.value} value={option.value}>
             <SelectItemText>{option.label}</SelectItemText>

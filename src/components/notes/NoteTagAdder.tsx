@@ -9,7 +9,6 @@ import {
   ComboboxList,
   ComboboxPopup,
 } from '@/components/ui/combobox'
-import { usePopupContainer } from '@/components/ui/layer'
 
 interface Props {
   /** The tags the note already carries, never offered again. */
@@ -32,8 +31,6 @@ export function NoteTagAdder({ have, known, onAdd }: Props) {
   const [adding, setAdding] = useState(false)
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
-  const container = usePopupContainer()
-
   const add = (tag: string) => {
     const value = tag.trim().replace(/,+$/, '').trim()
     setDraft('')
@@ -92,7 +89,7 @@ export function NoteTagAdder({ have, known, onAdd }: Props) {
         }}
         className="h-auto w-36 rounded-full border-accent px-2.5 py-0.5 text-[11.5px]"
       />
-      <ComboboxPopup container={container} className="w-48 p-1">
+      <ComboboxPopup className="w-48 p-1">
         <ComboboxList>
           {(tag: string) => (
             <ComboboxItem

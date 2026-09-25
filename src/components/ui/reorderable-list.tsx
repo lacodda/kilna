@@ -216,7 +216,7 @@ export function ReorderGrip({ className, ...props }: HTMLAttributes<HTMLElement>
       data-reorder-grip
       className={cn(
         'inline-flex shrink-0 cursor-grab touch-none select-none text-faint',
-        'active:cursor-grabbing [&_svg]:size-3.5',
+        'active:cursor-grabbing [&_svg:not([class*=size-])]:size-3.5',
         className,
       )}
       {...props}

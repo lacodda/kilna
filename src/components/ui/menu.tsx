@@ -53,7 +53,7 @@ export const menuItemVariants = cva(
     // so one rule covers both and they cannot disagree.
     'data-[highlighted]:bg-soft data-[highlighted]:text-text',
     'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-    '[&_svg]:size-3.5 [&_svg]:shrink-0',
+    '[&_svg:not([class*=size-])]:size-3.5 [&_svg]:shrink-0',
   ],
   {
     variants: {
@@ -88,10 +88,11 @@ export interface MenuPopupProps
   align?: Base.Positioner.Props['align']
   /** Distance from the trigger, in pixels. */
   sideOffset?: Base.Positioner.Props['sideOffset']
-  /** Where to portal to. Defaults to the raised host of the overlay this menu
-   * is inside, and to the document body when there is none - either way not
-   * the row, which keeps the menu from being clipped by an `overflow: hidden`
-   * ancestor, where most hand-written ones go to die. */
+  /** Where to portal to. Defaults to the raised host of the overlay this is
+   * opened inside (`layer.tsx`), and to the document body when there is none -
+   * either way not the element it was opened from, whose `overflow` would clip
+   * it. Pass an element to put it somewhere else, such as a container being
+   * screenshotted. */
   container?: Base.Portal.Props['container']
 }
 
@@ -106,16 +107,9 @@ export function MenuPopup({
   children,
   ...props
 }: MenuPopupProps) {
-  // Where the panel goes when this menu is inside a dialog or a full-screen
-  // stage. Asked for here rather than at each call site, because which
-  // z-index variable a primitive happens to read is not something the caller
-  // can be expected to know: `LayerProvider` raises the floor and offers a
-  // host, and every popup that portals has to take it or it draws under the
-  // overlay that opened it. That is what the "compare versions" menu did on
-  // the expanded and full-screen stage - the list opened, at z-index 30,
-  // beneath a stage at 50, so the button read as dead. `AppSelect` asks the
-  // same way. On an ordinary page the hook gives `undefined`, which is the
-  // body, so nothing moves anywhere else.
+  // Inside an overlay, the overlay's raised host rather than the body - or
+  // this popup draws under the dialog, drawer or popover that opened it. See
+  // `layer.tsx`. Outside every overlay the hook gives `undefined`: the body.
   const host = usePopupContainer()
 
   return (
@@ -157,7 +151,7 @@ export interface MenuCheckboxItemProps
  * Typed from `CheckboxItem` rather than `Item`: it was declared with the plain
  * item's props while rendering a checkbox, so `checked` and `onCheckedChange` -
  * the two things it exists for - were rejected by the compiler. Nothing had
- * called it until the catalogue's column picker did. */
+ * called it until kilna's column picker did. */
 export function MenuCheckboxItem({ tone, className, ...props }: MenuCheckboxItemProps) {
   return <Base.CheckboxItem className={cn(menuItemVariants({ tone }), className)} {...props} />
 }

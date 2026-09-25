@@ -5,6 +5,7 @@ import {
   ConfirmDialogActions,
   ConfirmDialogClose,
   ConfirmDialogDescription,
+  ConfirmDialogHeader,
   ConfirmDialogPopup,
   ConfirmDialogTitle,
 } from '@/components/ui/confirm-dialog'
@@ -50,8 +51,10 @@ export function ConfirmAction({
   return (
     <ConfirmDialog open={open} onOpenChange={onOpenChange}>
       <ConfirmDialogPopup>
-        <ConfirmDialogTitle>{title}</ConfirmDialogTitle>
-        <ConfirmDialogDescription>{description}</ConfirmDialogDescription>
+        <ConfirmDialogHeader>
+          <ConfirmDialogTitle>{title}</ConfirmDialogTitle>
+          <ConfirmDialogDescription>{description}</ConfirmDialogDescription>
+        </ConfirmDialogHeader>
         <ConfirmDialogActions>
           <ConfirmDialogClose render={<Button />}>{t('dialog.cancel')}</ConfirmDialogClose>
           <Button variant="danger" disabled={pending} onClick={onConfirm}>
