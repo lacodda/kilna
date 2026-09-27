@@ -9,7 +9,7 @@ import { byDate, monthGrid, sameMonth, shiftMonth, today, type Month } from '@/l
 import { accentFor } from '@/lib/cover'
 import { releaseIcon } from '@/lib/releaseIcon'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
-import { RowContextMenu } from '@/components/ui/RowMenu'
+import { RowContextMenu } from '@/components/RowMenu'
 import { Button } from '@/components/ui/button'
 import { SlotChip } from '@/components/calendar/SlotChip'
 import { useChipDrag } from '@/lib/useChipDrag'

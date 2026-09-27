@@ -19,10 +19,10 @@ import { StageDial } from '@/components/StageDial'
 import { stageAt } from '@/lib/stages'
 import { ReadyMarks } from '@/components/calendar/ReadyMarks'
 import { Badge } from '@/components/ui/badge'
-import { EmptyState } from '@/components/ui/EmptyState'
+import { EmptyState } from '@/components/EmptyState'
 import { FocusBoard } from '@/components/FocusBoard'
 import { Panel, SectionLabel } from '@/components/ui/panel'
-import { SkeletonList } from '@/components/ui/Skeleton'
+import { SkeletonList } from '@/components/Skeleton'
 
 interface Props {
   onSelect: (workId: string, tab?: string) => void

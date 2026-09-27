@@ -93,9 +93,9 @@ import { Badge } from '@/components/ui/badge'
 import { badgeVariantOf, markIconOf } from '@/lib/markIcon'
 import { useStar } from '@/lib/useStar'
 import { Button } from '@/components/ui/button'
-import { EmptyState } from '@/components/ui/EmptyState'
+import { EmptyState } from '@/components/EmptyState'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/AppSelect'
+import { Select } from '@/components/AppSelect'
 import {
   Menu,
   MenuCheckboxIndicator,
@@ -107,8 +107,8 @@ import {
   MenuSubTrigger,
   MenuTrigger,
 } from '@/components/ui/menu'
-import { RowContextMenu, RowMenu, type RowAction } from '@/components/ui/RowMenu'
-import { SkeletonList } from '@/components/ui/Skeleton'
+import { RowContextMenu, RowMenu, type RowAction } from '@/components/RowMenu'
+import { SkeletonList } from '@/components/Skeleton'
 import { cn } from '@/lib/utils'
 
 interface Props {

@@ -17,9 +17,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Field } from '@/components/ui/Field'
+import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/AppSelect'
+import { Select } from '@/components/AppSelect'
 
 interface Props {
   /** The kind the dialog opens on; `null` keeps it closed. */

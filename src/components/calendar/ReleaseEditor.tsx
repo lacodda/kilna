@@ -8,11 +8,11 @@ import { openExternal } from '@/lib/link'
 import { say } from '@/lib/toast'
 import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
-import { DatePicker } from '@/components/ui/DatePicker'
-import { Dialog } from '@/components/ui/AppDialog'
-import { Field } from '@/components/ui/Field'
+import { DatePicker } from '@/components/DatePicker'
+import { Dialog } from '@/components/AppDialog'
+import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/AppSelect'
+import { Select } from '@/components/AppSelect'
 
 interface Props {
   release: ScheduledRelease | null

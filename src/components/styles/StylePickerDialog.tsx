@@ -8,9 +8,9 @@ import { say as sayLabel, styleTypesOf, useProfile } from '@/lib/useProfile'
 import { styleIconOf } from '@/lib/styleIcon'
 import { useDebounced } from '@/lib/useDebounced'
 import { Button } from '@/components/ui/button'
-import { Dialog } from '@/components/ui/AppDialog'
+import { Dialog } from '@/components/AppDialog'
 import { Input } from '@/components/ui/input'
-import { EmptyState } from '@/components/ui/EmptyState'
+import { EmptyState } from '@/components/EmptyState'
 import { cn } from '@/lib/utils'
 
 /**

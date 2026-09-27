@@ -17,9 +17,9 @@ import { groupMaterials } from '@/lib/materials'
 import { PICTURES } from '@/lib/media'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { MediaPreview } from '@/components/ui/MediaPreview'
+import { MediaPreview } from '@/components/MediaPreview'
 import { CoverPrompt } from '@/components/card/CoverPrompt'
-import { Skeleton } from '@/components/ui/Skeleton'
+import { Skeleton } from '@/components/Skeleton'
 
 interface Props {
   work: Work

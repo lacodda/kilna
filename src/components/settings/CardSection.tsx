@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { useCardView } from '@/lib/cardView'
 import { DEFAULT_TAB_CHOICES } from '@/components/card/tabs'
-import { Field } from '@/components/ui/Field'
-import { Select } from '@/components/ui/AppSelect'
+import { Field } from '@/components/Field'
+import { Select } from '@/components/AppSelect'
 import { Switch } from '@/components/ui/switch'
 
 /**

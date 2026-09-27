@@ -28,9 +28,9 @@ import { MarkReleasedDialog } from '@/components/releases/MarkReleasedDialog'
 import { ReleaseFields } from '@/components/releases/ReleaseFields'
 import { ReleaseRowEditor } from '@/components/releases/ReleaseRowEditor'
 import { Button } from '@/components/ui/button'
-import { RowContextMenu, RowMenu, type RowAction } from '@/components/ui/RowMenu'
-import { Select } from '@/components/ui/AppSelect'
-import { Skeleton } from '@/components/ui/Skeleton'
+import { RowContextMenu, RowMenu, type RowAction } from '@/components/RowMenu'
+import { Select } from '@/components/AppSelect'
+import { Skeleton } from '@/components/Skeleton'
 
 interface Props {
   workId: string

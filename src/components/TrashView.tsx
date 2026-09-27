@@ -14,9 +14,9 @@ import { clearDraftsFor } from '@/lib/drafts'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
-import { ConfirmAction } from '@/components/ui/ConfirmAction'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { SkeletonList } from '@/components/ui/Skeleton'
+import { ConfirmAction } from '@/components/ConfirmAction'
+import { EmptyState } from '@/components/EmptyState'
+import { SkeletonList } from '@/components/Skeleton'
 import { cn } from '@/lib/utils'
 
 

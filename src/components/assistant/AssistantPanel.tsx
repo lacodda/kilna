@@ -17,9 +17,9 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { PromptDialog } from '@/components/ui/AppDialog'
-import { ConfirmAction } from '@/components/ui/ConfirmAction'
-import { RowMenu } from '@/components/ui/RowMenu'
+import { PromptDialog } from '@/components/AppDialog'
+import { ConfirmAction } from '@/components/ConfirmAction'
+import { RowMenu } from '@/components/RowMenu'
 import { ChatView } from '@/components/assistant/ChatView'
 
 interface Props {

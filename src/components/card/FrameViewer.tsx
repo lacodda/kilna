@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { SceneFrame } from '@/lib/api'
 import { Dialog, DialogPopup } from '@/components/ui/dialog'
-import { MediaPreview } from '@/components/ui/MediaPreview'
+import { MediaPreview } from '@/components/MediaPreview'
 
 /** One step of the viewer: a scene, and the frame of it being shown. */
 export interface Viewing {

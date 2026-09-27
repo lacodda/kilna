@@ -13,13 +13,13 @@ import { useFieldDraft } from '@/lib/fieldDraft'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
-import { DatePicker } from '@/components/ui/DatePicker'
-import { Field } from '@/components/ui/Field'
+import { DatePicker } from '@/components/DatePicker'
+import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Panel } from '@/components/ui/panel'
-import { SaveState, useSaveStatus } from '@/components/ui/SaveState'
-import { Select } from '@/components/ui/AppSelect'
+import { SaveState, useSaveStatus } from '@/components/SaveState'
+import { Select } from '@/components/AppSelect'
 
 interface Props {
   work: Work

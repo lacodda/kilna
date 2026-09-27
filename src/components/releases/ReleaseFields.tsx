@@ -15,10 +15,10 @@ import { fillable, over, written } from '@/lib/releaseFields'
 import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { ConfirmAction } from '@/components/ui/ConfirmAction'
+import { ConfirmAction } from '@/components/ConfirmAction'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/Skeleton'
-import { SaveState, useSaveStatus } from '@/components/ui/SaveState'
+import { Skeleton } from '@/components/Skeleton'
+import { SaveState, useSaveStatus } from '@/components/SaveState'
 import { Textarea } from '@/components/ui/textarea'
 
 interface Props {

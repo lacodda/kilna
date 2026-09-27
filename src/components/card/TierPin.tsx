@@ -7,9 +7,9 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
-import { Dialog } from '@/components/ui/AppDialog'
+import { Dialog } from '@/components/AppDialog'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/AppSelect'
+import { Select } from '@/components/AppSelect'
 
 interface Props {
   work: Work

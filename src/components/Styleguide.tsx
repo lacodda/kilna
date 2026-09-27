@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { Pencil, Plus, Star, Trash2, Undo2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { DatePicker } from '@/components/ui/DatePicker'
-import { Field } from '@/components/ui/Field'
+import { DatePicker } from '@/components/DatePicker'
+import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Panel, SectionLabel } from '@/components/ui/panel'
-import { Select } from '@/components/ui/AppSelect'
+import { Select } from '@/components/AppSelect'
 
 const TOKENS = [
   'bg',

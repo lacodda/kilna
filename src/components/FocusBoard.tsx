@@ -26,7 +26,7 @@ import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SectionLabel } from '@/components/ui/panel'
-import { Skeleton } from '@/components/ui/Skeleton'
+import { Skeleton } from '@/components/Skeleton'
 
 interface Props {
   works: readonly ScoredWork[]

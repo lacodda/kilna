@@ -6,8 +6,8 @@ import { previewTask, startTask, type PromptTemplate } from '@/lib/api'
 import { humanError } from '@/lib/errors'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
-import { Dialog } from '@/components/ui/AppDialog'
-import { Field } from '@/components/ui/Field'
+import { Dialog } from '@/components/AppDialog'
+import { Field } from '@/components/Field'
 import { Textarea } from '@/components/ui/textarea'
 
 interface Props {

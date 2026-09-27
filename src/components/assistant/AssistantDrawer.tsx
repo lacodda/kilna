@@ -27,16 +27,16 @@ import { AssistantContext, useAssistant, type Assistant } from '@/lib/useAssista
 import { announcement, movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
-import { PromptDialog } from '@/components/ui/AppDialog'
-import { ConfirmAction } from '@/components/ui/ConfirmAction'
+import { PromptDialog } from '@/components/AppDialog'
+import { ConfirmAction } from '@/components/ConfirmAction'
 import {
   Drawer as DrawerRoot,
   DrawerClose,
   DrawerPopup,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { RowContextMenu, RowMenu, type RowAction } from '@/components/ui/RowMenu'
+import { EmptyState } from '@/components/EmptyState'
+import { RowContextMenu, RowMenu, type RowAction } from '@/components/RowMenu'
 import { ChatView } from '@/components/assistant/ChatView'
 
 /**

@@ -5,7 +5,7 @@ import { listJournal, markJournalRead } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
-import { SkeletonList } from '@/components/ui/Skeleton'
+import { SkeletonList } from '@/components/Skeleton'
 import { JournalLines } from '@/components/JournalFeed'
 import { cn } from '@/lib/utils'
 

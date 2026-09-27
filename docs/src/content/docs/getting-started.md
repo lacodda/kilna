@@ -68,15 +68,16 @@ deleted. They read the source rather than the rendering, because what they
 guard are single declarations whose absence only shows up as a gesture
 behaving strangely on someone's laptop.
 
-**Casing in `components/ui/` says where a file came from.** A lowercase name -
-`button.tsx`, `dialog.tsx`, `toast.tsx` - is a copy from the registry: it is
-never edited, so it stays byte-identical to upstream and can be updated by
-re-running `shadcn add`. A PascalCase name - `AppDialog.tsx`, `RowMenu.tsx`,
-`DatePicker.tsx` - is this application's own. `pnpm registry` (part of
-`pnpm lint`) holds every lowercase file to its twin in the installed
-`dowel-ui`: a copy edited in place, one left behind by an upgrade, or a file of
-kilna's own given a lowercase name all fail it. `pnpm exec dowel diff <name>`
-shows the lines; a fix belongs in dowel, and comes back with the next copy.
+**`components/ui/` holds the registry and nothing else.** Every file there -
+`button.tsx`, `dialog.tsx`, `toast.tsx` - is a copy from dowel's registry: it
+is never edited, so it stays byte-identical to upstream and can be updated by
+re-running `shadcn add`. The application's own shared components -
+`AppDialog.tsx`, `RowMenu.tsx`, `DatePicker.tsx` - live one level up, in
+`components/`. `pnpm registry` (part of `pnpm lint`) holds every file in
+`components/ui/` to its twin in the installed `dowel-ui`: a copy edited in
+place, one left behind by an upgrade, or a file of kilna's own put there all
+fail it. `pnpm exec dowel diff <name>` shows the lines; a fix belongs in dowel,
+and comes back with the next copy.
 
 `AppDialog` and `AppSelect` are the shapes kilna actually uses, written over
 dowel's parts: a heading, a sentence and Cancel beside one affirmative button;

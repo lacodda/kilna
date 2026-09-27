@@ -13,9 +13,9 @@ import { useDebounced } from '@/lib/useDebounced'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/AppSelect'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { SkeletonList } from '@/components/ui/Skeleton'
+import { Select } from '@/components/AppSelect'
+import { EmptyState } from '@/components/EmptyState'
+import { SkeletonList } from '@/components/Skeleton'
 import { NoteDetail } from '@/components/notes/NoteDetail'
 
 /**

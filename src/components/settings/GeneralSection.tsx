@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { LANGUAGES, useLanguage } from '@/lib/language'
 import { THEMES, useTheme } from '@/lib/theme'
-import { Field } from '@/components/ui/Field'
-import { Select } from '@/components/ui/AppSelect'
+import { Field } from '@/components/Field'
+import { Select } from '@/components/AppSelect'
 
 /**
  * Appearance: the theme and the language.

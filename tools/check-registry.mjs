@@ -1,10 +1,13 @@
-// Holds every registry copy in `src/components/ui/` to the registry it came from.
+// Holds every file in `src/components/ui/` to the registry it came from.
 //
-// A lowercase file there is a copy of a dowel component and is never edited;
-// a PascalCase one is this app's own. The convention was only a convention:
-// by 24.09 twelve copies had drifted - seven patched for a popup layer of
-// kilna's own, one with a hand-set height, the rest simply left behind an
-// upgrade - and `dowel diff` said so to anyone who ran it, which nobody did.
+// The folder holds copies of dowel components and nothing else; the app's own
+// shared components live one level up, in `src/components/`. Until v0.77 the
+// two sat side by side and casing told them apart - lowercase a copy,
+// PascalCase kilna's own - which a formatter, an editor or a new file could not
+// see. Neither could people: by 24.09 twelve copies had drifted - seven
+// patched for a popup layer of kilna's own, one with a hand-set height, the
+// rest simply left behind an upgrade - and `dowel diff` said so to anyone who
+// ran it, which nobody did.
 // A copy that differs is either a fix dowel should have, or a copy of an older
 // dowel than the one installed; neither should be found by accident.
 //
@@ -44,9 +47,7 @@ const strays = []
 let copies = 0
 
 for (const name of readdirSync(UI).sort()) {
-  if (!/\.tsx?$/.test(name) || /\.test\.tsx?$/.test(name)) continue
-  // PascalCase is kilna's own.
-  if (!/^[a-z]/.test(name)) continue
+  if (!/\.tsx?$/.test(name)) continue
   if (EXCEPTIONS.has(name)) continue
   const theirs = upstream.get(name)
   if (theirs === undefined) {
@@ -66,7 +67,7 @@ if (drifted.length > 0 || strays.length > 0) {
   }
   for (const name of strays) {
     console.error(
-      `${name}: a lowercase file with no registry twin - a copy dowel no longer ships, or kilna's own file named like a copy (PascalCase)`,
+      `${name}: no registry twin - a copy dowel no longer ships, or a file of kilna's own, which belongs in src/components/`,
     )
   }
   process.exit(1)

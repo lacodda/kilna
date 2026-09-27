@@ -4,7 +4,7 @@ import { Eye, PenLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Markdown } from '@/components/ui/Markdown'
+import { Markdown } from '@/components/Markdown'
 import { cn } from '@/lib/utils'
 
 interface Props {

@@ -10,7 +10,7 @@ import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
-import { Dialog } from '@/components/ui/AppDialog'
+import { Dialog } from '@/components/AppDialog'
 import { PickWorkDialog } from '@/components/shell/PickWorkDialog'
 import { ChannelField } from '@/components/comments/ChannelField'
 

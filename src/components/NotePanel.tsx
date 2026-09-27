@@ -10,9 +10,9 @@ import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Markdown } from '@/components/ui/Markdown'
+import { Markdown } from '@/components/Markdown'
 import { Textarea } from '@/components/ui/textarea'
-import { Skeleton } from '@/components/ui/Skeleton'
+import { Skeleton } from '@/components/Skeleton'
 
 // What a note changes when it appears or goes. A new tag on a note changes the
 // tag list the rest of the app reads, so both are refreshed either way.
