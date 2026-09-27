@@ -10,20 +10,11 @@
 //! `journal_keys.rs` gives: a command no test happens to call contributes
 //! nothing, and that is exactly the command most likely to have been forgotten.
 
+mod common;
+
 use std::collections::BTreeSet;
-use std::path::{Path, PathBuf};
 
-fn repo_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("src-tauri always has a parent")
-        .to_path_buf()
-}
-
-fn commands_source() -> String {
-    std::fs::read_to_string(repo_root().join("src-tauri/src/commands.rs"))
-        .expect("commands.rs is readable")
-}
+use common::{Source, backend, matching_brace, the_function};
 
 /// One `#[tauri::command]` function, as the scan sees it.
 struct Command {
@@ -31,88 +22,11 @@ struct Command {
     body: String,
 }
 
-/// The source with every comment and every string and character literal
-/// blanked to spaces, so that what is left is code: a brace inside a
-/// `format!` does not open a block, and a word in a comment does not count as
-/// a call. Lengths are kept, so an offset means the same place in both.
-fn code_only(source: &str) -> String {
-    let bytes = source.as_bytes();
-    let mut out = bytes.to_vec();
-    let mut i = 0;
-    let blank = |out: &mut Vec<u8>, from: usize, to: usize| {
-        for byte in &mut out[from..to] {
-            if *byte != b'\n' {
-                *byte = b' ';
-            }
-        }
-    };
-    while i < bytes.len() {
-        match bytes[i] {
-            b'/' if bytes.get(i + 1) == Some(&b'/') => {
-                let end = source[i..].find('\n').map_or(bytes.len(), |at| i + at);
-                blank(&mut out, i, end);
-                i = end;
-            }
-            b'/' if bytes.get(i + 1) == Some(&b'*') => {
-                let end = source[i + 2..]
-                    .find("*/")
-                    .map_or(bytes.len(), |at| i + 2 + at + 2);
-                blank(&mut out, i, end);
-                i = end;
-            }
-            // A raw string: r"..." or r#"..."# with any number of hashes.
-            b'r' if matches!(bytes.get(i + 1), Some(b'"') | Some(b'#'))
-                && (i == 0 || !(bytes[i - 1].is_ascii_alphanumeric() || bytes[i - 1] == b'_')) =>
-            {
-                let hashes = bytes[i + 1..]
-                    .iter()
-                    .take_while(|byte| **byte == b'#')
-                    .count();
-                if bytes.get(i + 1 + hashes) != Some(&b'"') {
-                    i += 1;
-                    continue;
-                }
-                let close = format!("\"{}", "#".repeat(hashes));
-                let start = i + 2 + hashes;
-                let end = source[start..]
-                    .find(&close)
-                    .map_or(bytes.len(), |at| start + at + close.len());
-                blank(&mut out, i, end);
-                i = end;
-            }
-            b'"' => {
-                let mut end = i + 1;
-                while end < bytes.len() && bytes[end] != b'"' {
-                    end += if bytes[end] == b'\\' { 2 } else { 1 };
-                }
-                blank(&mut out, i, (end + 1).min(bytes.len()));
-                i = end + 1;
-            }
-            // A character literal ('{', '\n', '\''); a lifetime has no
-            // closing quote within the next few bytes and is left alone.
-            b'\'' => {
-                let end = if bytes.get(i + 1) == Some(&b'\\') {
-                    source[i + 2..].find('\'').map(|at| i + 2 + at)
-                } else if bytes.get(i + 2) == Some(&b'\'') {
-                    Some(i + 2)
-                } else {
-                    None
-                };
-                match end {
-                    Some(end) if end - i <= 10 => {
-                        blank(&mut out, i, end + 1);
-                        i = end + 1;
-                    }
-                    _ => i += 1,
-                }
-            }
-            _ => i += 1,
-        }
-    }
-    String::from_utf8(out).expect("blanking keeps the text valid")
-}
-
-/// Every command in `commands.rs`, with the text of its body.
+/// Every command in the backend, with the text of its body.
+///
+/// Found by the attribute, in whichever file it stands: the commands were one
+/// file for a long time, and a gate that opened that file by name would read
+/// nothing - and pass - the day they were split by domain.
 ///
 /// The body is the function's own block, from its opening brace to the brace
 /// that closes it, read in code with comments and literals blanked. It used to
@@ -121,49 +35,34 @@ fn code_only(source: &str) -> String {
 /// `set_current_version` by `discard_and_record`, so both "recorded an
 /// operation" while writing past the log - and a doc comment mentioning a
 /// write counted as one.
-fn commands() -> Vec<Command> {
-    let source = commands_source();
-    let code = code_only(&source);
+fn commands_in(sources: &[Source]) -> Vec<Command> {
     // Both spellings: `#[tauri::command]` and `#[tauri::command(async)]`,
     // which runs a command off the main thread.
     let marker = "#[tauri::command";
 
     let mut found = Vec::new();
-    for (start, _) in code.match_indices(marker) {
-        let Some(at) = code[start..].find("pub fn ").map(|at| start + at) else {
-            continue;
-        };
-        let name_start = at + "pub fn ".len();
-        let Some(open_paren) = code[name_start..].find('(').map(|at| name_start + at) else {
-            continue;
-        };
-        let name = code[name_start..open_paren].trim().to_owned();
+    for file in sources {
+        let code = &file.code;
+        for (start, _) in code.match_indices(marker) {
+            let Some(at) = code[start..].find("pub fn ").map(|at| start + at) else {
+                continue;
+            };
+            let name_start = at + "pub fn ".len();
+            let Some(open_paren) = code[name_start..].find('(').map(|at| name_start + at) else {
+                continue;
+            };
+            let name = code[name_start..open_paren].trim().to_owned();
 
-        // The first brace after the signature opens the body; count to the
-        // one that closes it.
-        let Some(open) = code[open_paren..].find('{').map(|at| open_paren + at) else {
-            continue;
-        };
-        let mut depth = 0usize;
-        let mut close = code.len();
-        for (offset, byte) in code[open..].bytes().enumerate() {
-            match byte {
-                b'{' => depth += 1,
-                b'}' => {
-                    depth -= 1;
-                    if depth == 0 {
-                        close = open + offset + 1;
-                        break;
-                    }
-                }
-                _ => {}
-            }
+            // The first brace after the signature opens the body.
+            let Some(open) = code[open_paren..].find('{').map(|at| open_paren + at) else {
+                continue;
+            };
+            let close = matching_brace(code, open);
+            found.push(Command {
+                name,
+                body: code[open..close].to_owned(),
+            });
         }
-
-        found.push(Command {
-            name,
-            body: code[open..close].to_owned(),
-        });
     }
 
     assert!(
@@ -173,21 +72,38 @@ fn commands() -> Vec<Command> {
     found
 }
 
+fn commands() -> Vec<Command> {
+    commands_in(&backend())
+}
+
 /// Every command the application registers, from `generate_handler!`.
+///
+/// The one invocation in the backend, wherever it is; each entry by its last
+/// segment, so `commands::works::create_work` names `create_work`.
 fn registered() -> BTreeSet<String> {
-    let source = std::fs::read_to_string(repo_root().join("src-tauri/src/lib.rs"))
-        .expect("lib.rs is readable");
-    let start = source
-        .find("generate_handler![")
-        .expect("lib.rs registers its commands with generate_handler!")
-        + "generate_handler![".len();
-    let end = source[start..]
+    let sources = backend();
+    let places: Vec<(&Source, usize)> = sources
+        .iter()
+        .flat_map(|file| {
+            file.code
+                .match_indices("generate_handler![")
+                .map(move |(at, _)| (file, at))
+        })
+        .collect();
+    assert_eq!(
+        places.len(),
+        1,
+        "expected the commands to be registered in exactly one `generate_handler!`, found {}",
+        places.len()
+    );
+    let (file, at) = places[0];
+    let start = at + "generate_handler![".len();
+    let end = file.code[start..]
         .find(']')
-        .map_or(source.len(), |at| start + at);
-    source[start..end]
+        .map_or(file.code.len(), |offset| start + offset);
+    file.code[start..end]
         .split(',')
-        .filter_map(|entry| entry.trim().strip_prefix("commands::"))
-        .map(|name| name.trim().to_owned())
+        .filter_map(|entry| entry.trim().rsplit("::").next().map(str::to_owned))
         .filter(|name| !name.is_empty())
         .collect()
 }
@@ -206,7 +122,7 @@ fn the_scan_finds_every_registered_command() {
     );
     assert_eq!(
         scanned, registered,
-        "the commands scanned in commands.rs and those registered in lib.rs disagree"
+        "the commands found by their attribute and those registered in `generate_handler!` disagree"
     );
 }
 
@@ -309,7 +225,8 @@ const NOT_IN_THE_LOG: [(&str, &str); 19] = [
     (
         "undo_last",
         "records its operation one level down, inside `undo::undo`'s own \
-         transaction — held by `the_undo_path_records_an_operation` below",
+         transaction — held by `take_back` in `undo_takes_back.rs`, which every \
+         undo there goes through",
     ),
     (
         "import_legacy",
@@ -342,7 +259,8 @@ const NOT_IN_THE_LOG: [(&str, &str); 19] = [
     ("delete_chat", "as above"),
     (
         "dismiss_proposal",
-        "marks one chat message as turned down and writes nothing else; a chat is          this device's conversation, as the runs above are",
+        "marks one chat message as turned down and writes nothing else; a chat is \
+         this device's conversation, as the runs above are",
     ),
     (
         "apply_proposal",
@@ -404,47 +322,33 @@ fn nothing_is_exempted_that_is_not_a_command() {
     );
 }
 
-/// The shared deletion helper records for all six entities it serves.
+/// The shared deletion helper records for every entity it serves.
 ///
 /// `every_mutating_command_records_an_operation` passes over the commands that
 /// call it, because the write happens one level down. If the helper stopped
 /// recording, every deletion in the application would fall out of the log at
 /// once and nothing above would notice.
+///
+/// Two links, both read in code: the helper builds the operation and hands it
+/// to the trash, and the trash writes what it is handed inside its own
+/// transaction. Until v0.77 this read the helper's text, and was satisfied by
+/// a comment in it that mentioned `operation::record` - the call itself has
+/// never been in the helper.
 #[test]
 fn the_shared_deletion_helper_records_an_operation() {
-    let source = commands_source();
-    let at = source
-        .find("fn discard_and_record(")
-        .expect("the deletion helper is still called that");
-    let end = source[at..]
-        // The source is checked out with LF endings; a search for CRLF found
-        // nothing and let this scan run to the end of the file, where any
-        // later command's record satisfied it.
-        .find("\n#[tauri::command")
-        .map_or(source.len(), |offset| at + offset);
-
+    let sources = backend();
+    let helper = the_function(&sources, "discard_and_record");
     assert!(
-        source[at..end].contains("operation::record"),
-        "`discard_and_record` records no operation, so every deletion in the application \
-         is missing from the log"
+        helper.code.contains("operation::Intent::new(") && helper.code.contains("discard_minted("),
+        "`discard_and_record` no longer builds an operation and hands it to the trash, so \
+         every deletion in the application is missing from the log"
     );
-}
 
-/// Taking something back is recorded like anything else that changes rows.
-///
-/// `every_mutating_command_records_an_operation` passes over `undo_last`,
-/// because the write happens inside `undo::undo`. If that stopped recording,
-/// every undo in the application would fall out of the log at once and the
-/// command above would look innocent.
-#[test]
-fn the_undo_path_records_an_operation() {
-    let source = std::fs::read_to_string(repo_root().join("src-tauri/src/undo.rs"))
-        .expect("undo.rs is readable");
-
+    let trash = the_function(&sources, "discard_minted");
     assert!(
-        source.contains("operation::record"),
-        "`undo::undo` records no operation, so undoing something would leave the log \
-         claiming the change is still in force"
+        trash.code.contains("operation::record("),
+        "`trash::discard_minted` no longer records the operation it is handed, so every \
+         deletion in the application is missing from the log"
     );
 }
 

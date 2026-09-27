@@ -113,7 +113,8 @@ fn a_real_video_frames_from_its_donor() {
             kilna_lib::scene::frame_from_text(&mut conn, &work_id, "lyrics", &minted, None)
                 .unwrap();
         println!(
-            "framed a real video into {} scenes (the person built {by_hand} by hand);              every one named and left to be described: {}",
+            "framed a real video into {} scenes (the person built {by_hand} by hand); \
+             every one named and left to be described: {}",
             scenes.len(),
             scenes
                 .iter()

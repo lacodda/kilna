@@ -260,10 +260,12 @@ fn the_calendar_claims_dates_through_the_contest() {
 
     assert!(
         body.contains("scheduleRelease"),
-        "dragging a release must claim its date through `scheduleRelease`, so a          held day is contested rather than shared"
+        "dragging a release must claim its date through `scheduleRelease`, so a \
+         held day is contested rather than shared"
     );
     assert!(
         !body.contains("updateRelease"),
-        "dragging a release must not write the date through `updateRelease`,          which does not look at who holds the day"
+        "dragging a release must not write the date through `updateRelease`, \
+         which does not look at who holds the day"
     );
 }

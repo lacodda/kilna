@@ -15,6 +15,8 @@
 //! does know one of those keys will act on it. So the shape of what was
 //! recorded is asserted directly, in `the_recorded_before_names_only_the_edit`.
 
+mod common;
+
 use rusqlite::Connection;
 
 use kilna_lib::minted::Minted;
@@ -48,6 +50,36 @@ fn workspace() -> (Connection, String, String) {
     transaction.commit().unwrap();
 
     (conn, profile_id, work_id)
+}
+
+/// Take back the operation on offer, and hold the undo to the log.
+///
+/// Every undo here goes through this, so every kind these tests take back is
+/// also checked to have left its own line in the operations log - the undo is
+/// a change like any other, and a log without it replays to a database that
+/// still holds what was taken back. Until v0.77 that was a check that
+/// `undo.rs` mentioned `operation::record` somewhere in its text.
+fn take_back(conn: &mut Connection, offer: &undo::Undoable) {
+    let taken = operation::by_id(conn, &offer.operation_id)
+        .unwrap()
+        .expect("the offer names an operation in the log");
+    let before = operation::count(conn).unwrap();
+
+    undo::undo(conn, &offer.operation_id).unwrap();
+
+    assert_eq!(
+        operation::count(conn).unwrap(),
+        before + 1,
+        "taking back `{}` left no line of its own in the operations log",
+        taken.kind
+    );
+    let written = operation::latest(conn, 1).unwrap().remove(0);
+    assert_eq!(written.kind, format!("{}{}", undo::UNDO_PREFIX, taken.kind));
+    assert_eq!(
+        written.params.get("operation").and_then(|id| id.as_str()),
+        Some(taken.id.as_str()),
+        "the undo's line does not say which operation it took back"
+    );
 }
 
 /// Edit a work the way the command does: patch, `before`, one moment.
@@ -94,7 +126,7 @@ fn an_edit_is_taken_back() {
 
     let offer = undo::last(&conn).unwrap().expect("the edit can be undone");
     assert_eq!(offer.action, "undo.work.update");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     assert_eq!(
         work::get(&conn, &work_id).unwrap().unwrap().title,
@@ -132,7 +164,7 @@ fn undoing_one_field_leaves_another_alone() {
 
     // Take back the status change; the rename must survive.
     let offer = undo::last(&conn).unwrap().unwrap();
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     let after = work::get(&conn, &work_id).unwrap().unwrap();
     assert_eq!(after.status, "draft", "the status did not come back");
@@ -161,7 +193,7 @@ fn an_undo_cannot_itself_be_undone() {
         },
     );
     let offer = undo::last(&conn).unwrap().unwrap();
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     assert!(
         undo::last(&conn).unwrap().is_none(),
@@ -259,7 +291,7 @@ fn undoing_a_creation_sends_it_to_the_trash() {
         .unwrap()
         .expect("a creation can be undone");
     assert_eq!(offer.action, "undo.work.create");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     assert!(
         work::get(&conn, &work_id).unwrap().is_none(),
@@ -303,7 +335,7 @@ fn undoing_a_deletion_brings_the_row_back() {
     let offer = undo::last(&conn)
         .unwrap()
         .expect("a deletion can be undone");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     let back = work::get(&conn, &work_id).unwrap();
     assert!(back.is_some(), "the work did not come back");
@@ -354,7 +386,7 @@ fn a_link_is_taken_back_both_ways() {
         .unwrap()
         .expect("a link made can be undone");
     assert_eq!(offer.action, "undo.link.create");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
     assert!(
         kilna_lib::link::get(&conn, &link_id).unwrap().is_none(),
         "the link is still there"
@@ -398,7 +430,7 @@ fn a_link_is_taken_back_both_ways() {
         .unwrap()
         .expect("a link removed can be undone");
     assert_eq!(offer.action, "undo.link.delete");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     let back = kilna_lib::link::get(&conn, &link_id)
         .unwrap()
@@ -446,7 +478,8 @@ fn every_operation_is_undoable_or_says_why_not() {
     const NOT_UNDOABLE: [(&str, &str); 25] = [
         (
             "style.attachReference",
-            "it carries a file into the workspace, as `asset.attach` does, and              taking it back is detaching the asset, which removes the bytes too",
+            "it carries a file into the workspace, as `asset.attach` does, and \
+             taking it back is detaching the asset, which removes the bytes too",
         ),
         (
             "status.resync",
@@ -516,37 +549,37 @@ fn every_operation_is_undoable_or_says_why_not() {
         ),
         (
             "asset.attach",
-            "the copy it made would have to be unmade, and the row is the only              thing the log holds — taking it back is `detach_asset`, which              removes the bytes as well",
+            "the copy it made would have to be unmade, and the row is the only \
+             thing the log holds — taking it back is `detach_asset`, which \
+             removes the bytes as well",
         ),
         (
             "asset.detach",
-            "the bytes are gone with the row; a row put back beside a file that              no longer exists is the broken picture the deletion avoided",
+            "the bytes are gone with the row; a row put back beside a file that \
+             no longer exists is the broken picture the deletion avoided",
         ),
         (
             "scene.attachFrame",
-            "it carries a file into the workspace, as `asset.attach` does, and              taking it back is `detach_scene_frame`, which removes the bytes too",
+            "it carries a file into the workspace, as `asset.attach` does, and \
+             taking it back is `detach_scene_frame`, which removes the bytes too",
         ),
         (
             "scene.detachFrame",
-            "the picture is gone with the row; putting the row back beside a              file that no longer exists is the broken frame the deletion avoided",
+            "the picture is gone with the row; putting the row back beside a \
+             file that no longer exists is the broken frame the deletion avoided",
         ),
     ];
 
     // Kinds handled by the trash rather than by an operation of their own.
     const HANDLED_ELSEWHERE: [&str; 2] = ["trash.purge", "trash.empty"];
 
-    let source = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/commands.rs"),
-    )
-    .expect("commands.rs is readable");
-
+    // Every operation the backend writes, wherever it is written: the
+    // window's commands, what a person applied from the assistant, what an
+    // agent proposed. Read from the whole backend rather than one file, so a
+    // command moved to a file of its own is still read.
+    let sources = common::backend();
     let mut kinds: Vec<String> = Vec::new();
-    for (at, _) in source.match_indices("Intent::new(\"") {
-        let start = at + "Intent::new(\"".len();
-        let Some(end) = source[start..].find('"') else {
-            continue;
-        };
-        let kind = source[start..start + end].to_owned();
+    for (_, kind) in common::literal_arguments(&sources, "Intent::new") {
         if !kinds.contains(&kind) {
             kinds.push(kind);
         }
@@ -612,7 +645,7 @@ fn a_body_edit_is_taken_back() {
 
     let offer = undo::last(&conn).unwrap().expect("the edit can be undone");
     assert_eq!(offer.action, "undo.version.edit");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     let back = version::get(&conn, &version.id).unwrap().unwrap();
     assert_eq!(back.body, "as written", "the text did not come back");
@@ -661,7 +694,7 @@ fn choosing_the_current_version_is_what_undo_takes_back() {
         .unwrap()
         .expect("the choice can be undone");
     assert_eq!(offer.action, "undo.work.update");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
     assert_eq!(
         work::get(&conn, &work_id)
             .unwrap()
@@ -706,7 +739,7 @@ fn a_profile_edit_is_taken_back_whole() {
         .unwrap()
         .expect("the profile edit can be undone");
     assert_eq!(offer.action, "undo.profile.update");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     assert_eq!(
         serde_json::to_value(profile::config_for(&conn, &profile_id).unwrap()).unwrap(),
@@ -739,7 +772,7 @@ fn a_created_version_is_taken_back_into_the_trash() {
         .unwrap()
         .expect("the creation can be undone");
     assert_eq!(offer.action, "undo.version.create");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     assert!(
         version::get(&conn, &version_id).unwrap().is_none(),
@@ -849,7 +882,7 @@ fn a_scene_is_taken_back_both_ways() {
         .unwrap()
         .expect("an edit to a scene can be undone");
     assert_eq!(offer.action, "undo.scene.update");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
     let back = kilna_lib::scene::get(&conn, &scene_id).unwrap().unwrap();
     assert!(back.section.is_none(), "the section is back to none");
     assert!(
@@ -896,7 +929,7 @@ fn a_scene_is_taken_back_both_ways() {
         .unwrap()
         .expect("a scene added can be undone");
     assert_eq!(offer.action, "undo.scene.create");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
     assert!(
         kilna_lib::scene::get(&conn, &scene_id).unwrap().is_none(),
         "the scene is still on the board"
@@ -994,7 +1027,7 @@ fn a_timed_board_is_taken_back_whole() {
         .unwrap()
         .expect("a timed board can be undone");
     assert_eq!(offer.action, "undo.scene.time");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     let back = kilna_lib::scene::for_work(&conn, &video_id).unwrap();
     assert!(
@@ -1102,7 +1135,7 @@ fn a_renumbered_board_goes_back_to_the_order_it_stood_in() {
         .unwrap()
         .expect("a renumbered board can be undone");
     assert_eq!(offer.action, "undo.scene.renumber");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     assert_eq!(
         numbers(&conn),
@@ -1176,7 +1209,7 @@ fn a_framed_board_is_taken_back_whole() {
         .unwrap()
         .expect("a framed board can be undone");
     assert_eq!(offer.action, "undo.scene.frame");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     assert_eq!(
         kilna_lib::scene::count(&conn, &video_id).unwrap(),
@@ -1265,7 +1298,7 @@ fn undoing_a_chosen_frame_puts_the_previous_one_back() {
         .unwrap()
         .expect("choosing a frame can be undone");
     assert_eq!(offer.action, "undo.scene.selectFrame");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     let chosen: Vec<_> = kilna_lib::scene_frame::for_scene(&conn, &scene_id)
         .unwrap()
@@ -1335,7 +1368,7 @@ fn undoing_a_description_puts_back_the_draft_it_was() {
         .unwrap()
         .expect("describing a style can be undone");
     assert_eq!(offer.action, "undo.style.describe");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     let back = style_brick::get(&conn, &brick.id).unwrap().unwrap();
     assert_eq!(back.description, None, "the text did not come back");
@@ -1391,7 +1424,7 @@ fn a_promotion_is_taken_back_whole() {
         .unwrap()
         .expect("a promotion can be undone");
     assert_eq!(offer.action, "undo.note.promote");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     assert!(
         work::get(&conn, &promoted.work_id).unwrap().is_none(),
@@ -1449,7 +1482,7 @@ fn a_reply_is_taken_back() {
         .unwrap()
         .expect("an edit to a comment can be undone");
     assert_eq!(offer.action, "undo.comment.update");
-    undo::undo(&mut conn, &offer.operation_id).unwrap();
+    take_back(&mut conn, &offer);
 
     assert_eq!(
         comment::get(&conn, &kept.id)

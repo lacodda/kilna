@@ -9,14 +9,37 @@
 //! `tools/check-locales.mjs` cannot see this: it compares locales against each
 //! other, and a key missing from *both* is consistent.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
+mod common;
 
-fn repo_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("src-tauri always has a parent")
-        .to_path_buf()
+use std::collections::{BTreeMap, BTreeSet};
+
+use common::{Source, backend, repo_root, the_function, without_comments};
+
+/// Every `Record::new(` in the backend's code - not in a comment or a string
+/// that mentions it - as the file and the offset just past the bracket.
+fn record_calls(sources: &[Source]) -> Vec<(&Source, usize)> {
+    let mut found = Vec::new();
+    for file in sources {
+        for (at, _) in file.code.match_indices("Record::new(") {
+            // `Record::new(` inside `JournalRecord::new(` is someone else's.
+            let before = file.code[..at].chars().next_back();
+            if before.is_some_and(|c| c.is_alphanumeric() || c == '_') {
+                continue;
+            }
+            found.push((file, at + "Record::new(".len()));
+        }
+    }
+    // The scanner's watchdog: the journal is written from the window's
+    // commands, from what an agent proposed, from what a person applied and
+    // from the upgrade at open - four places at the least.
+    let files: BTreeSet<&str> = found.iter().map(|(file, _)| file.path.as_str()).collect();
+    assert!(
+        files.len() >= 4 && found.len() >= 40,
+        "found {} `Record::new` calls in {} files ({files:?}) - the scan has stopped seeing the journal",
+        found.len(),
+        files.len()
+    );
+    found
 }
 
 /// Every action key the command layer can write.
@@ -30,61 +53,47 @@ fn repo_root() -> PathBuf {
 /// entities instead. That is deliberate: a key assembled in one place cannot be
 /// worded six different ways, and this scanner does not have to guess.
 fn keys_written() -> BTreeSet<String> {
-    // Every file that writes the journal. `commands.rs` is the window's side;
-    // `mcp.rs` records what an agent outside it proposed; `assistant/apply.rs`
-    // records what a person applied of it; `doors.rs` records what the
-    // upgrade at open moved.
-    let source = [
-        "src-tauri/src/commands.rs",
-        "src-tauri/src/mcp.rs",
-        "src-tauri/src/assistant/apply.rs",
-        "src-tauri/src/doors.rs",
-    ]
-    .iter()
-    .map(|file| {
-        std::fs::read_to_string(repo_root().join(file))
-            .unwrap_or_else(|err| panic!("{file} is readable: {err}"))
-    })
-    .collect::<Vec<_>>()
-    .join(
-        "
-",
-    );
+    let sources = backend();
+    let calls = record_calls(&sources);
 
     // A key computed in the argument — `Record::new(if x { "a" } else { "b" })`
     // — is invisible to the scan below, and an unseen key reaches the screen
     // raw. Rather than parse Rust, the rule is that the argument must open with
     // a string literal; anything else fails here with instructions.
-    let computed: Vec<&str> = source
-        .match_indices("Record::new(")
-        .filter(|(index, _)| {
-            let argument = &source[index + "Record::new(".len()..];
+    let computed: Vec<String> = calls
+        .iter()
+        .filter(|(file, at)| {
+            let argument = &file.text[*at..];
             // `format!("{}.deleted", …)` is the one computed form this gate
-            // knows about: the seven trash entities are enumerated below, so its
+            // knows about: the trash entities are enumerated below, so its
             // keys are covered.
             !argument.starts_with('"') && !argument.starts_with(r#"format!("{}.deleted""#)
         })
-        .map(|(index, _)| {
-            let line_start = source[..index].rfind('\n').map_or(0, |at| at + 1);
-            let line_end = source[index..]
+        .map(|(file, at)| {
+            let line_start = file.text[..*at].rfind('\n').map_or(0, |i| i + 1);
+            let line_end = file.text[*at..]
                 .find('\n')
-                .map_or(source.len(), |at| index + at);
-            source[line_start..line_end].trim()
+                .map_or(file.text.len(), |i| at + i);
+            format!("{}: {}", file.path, file.text[line_start..line_end].trim())
         })
         .collect();
 
     assert!(
         computed.is_empty(),
-        "these journal keys are computed rather than written out, so this gate          cannot see them — name each key literally: {computed:?}"
+        "these journal keys are computed rather than written out, so this gate \
+         cannot see them — name each key literally: {computed:?}"
     );
 
     let mut found = BTreeSet::new();
-    for (index, _) in source.match_indices("Record::new(\"") {
-        let start = index + "Record::new(\"".len();
-        let Some(end) = source[start..].find('"') else {
+    for (file, at) in &calls {
+        let argument = &file.text[*at..];
+        let Some(literal) = argument.strip_prefix('"') else {
             continue;
         };
-        found.insert(source[start..start + end].to_owned());
+        let Some(end) = literal.find('"') else {
+            continue;
+        };
+        found.insert(literal[..end].to_owned());
     }
 
     // Every entity the trash holds, from the trash itself: a list kept here
@@ -180,29 +189,20 @@ fn no_sentence_is_written_for_an_action_nobody_records() {
 /// `.param(` is also written across two lines when the value is long, so the
 /// name is looked for after the bracket rather than tight against it.
 fn params_written() -> BTreeMap<String, BTreeSet<String>> {
-    let source = [
-        "src-tauri/src/commands.rs",
-        "src-tauri/src/mcp.rs",
-        "src-tauri/src/assistant/apply.rs",
-        "src-tauri/src/doors.rs",
-    ]
-    .iter()
-    .map(|file| {
-        std::fs::read_to_string(repo_root().join(file))
-            .unwrap_or_else(|err| panic!("{file} is readable: {err}"))
-    })
-    .collect::<Vec<_>>()
-    .join("\n");
-
+    let sources = backend();
     let mut found: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
-    for (index, _) in source.match_indices("Record::new(\"") {
-        let start = index + "Record::new(\"".len();
-        let Some(end) = source[start..].find('"') else {
+    for (file, at) in record_calls(&sources) {
+        let source = &file.text;
+        let Some(literal) = source[at..].strip_prefix('"') else {
             continue;
         };
-        let key = source[start..start + end].to_owned();
+        let Some(end) = literal.find('"') else {
+            continue;
+        };
+        let key = literal[..end].to_owned();
+        let index = at - "Record::new(".len();
 
-        let rest = &source[start + end..];
+        let rest = &source[at + 1 + end..];
         // A record handed straight to `record(…)` ends at the `;`. One put in
         // a variable is added to afterwards, so the window runs to the end of
         // the block — see the note above on why reading too much is the safe
@@ -308,28 +308,22 @@ fn every_hole_in_a_sentence_is_filled_by_what_records_it() {
 /// happens to undo would otherwise contribute nothing, and that is the one most
 /// likely to be missing its sentence.
 fn kinds_reversible() -> BTreeSet<String> {
-    let source = std::fs::read_to_string(repo_root().join("src-tauri/src/undo.rs"))
-        .expect("undo.rs is readable");
-    let start = source
-        .find("pub fn reversible(")
-        .expect("undo.rs states which kinds are reversible");
-    // The arm itself, not the function: `reversible` ends with `)\n}`, and
-    // reading past it swallows the next function's prose as a "kind".
-    let body = &source[start..];
-    let end = body.find("\n    )").expect("the match arm ends");
-    let arm = &body[..end];
+    let sources = backend();
+    // The function's own block, prose inside it blanked: only the strings the
+    // code holds are read, so a comment between the arms cannot pass for a kind.
+    let body = without_comments(the_function(&sources, "reversible").text);
 
     let mut found = BTreeSet::new();
-    for (index, _) in arm.match_indices('"') {
-        let after = &arm[index + 1..];
-        let Some(close) = after.find('"') else {
-            continue;
-        };
+    let mut rest = body.as_str();
+    while let Some(open) = rest.find('"') {
+        let after = &rest[open + 1..];
+        let Some(close) = after.find('"') else { break };
         let kind = &after[..close];
-        // The arm holds only dotted kind names; anything else is prose.
+        // The arm holds only dotted kind names.
         if kind.contains('.') {
             found.insert(kind.to_owned());
         }
+        rest = &after[close + 1..];
     }
     found
 }
