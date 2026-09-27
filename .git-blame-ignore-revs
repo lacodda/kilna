@@ -1,0 +1,6 @@
+# Commits that changed layout, not meaning. `git blame` looks past them with
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# and GitHub reads this file on its own.
+
+# style: format the frontend with prettier and keep line endings LF
+efd6398e8d070f91a73a34a508c546e5abb78524
