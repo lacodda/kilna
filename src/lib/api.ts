@@ -225,6 +225,12 @@ export interface ReplyProposal {
   comment_id: string
 }
 
+/** A style brick's description; the text is the message body. */
+export interface DescriptionProposal {
+  kind: 'description'
+  style_id: string
+}
+
 export type Proposal =
   | ScoreProposal
   | VersionProposal
@@ -233,6 +239,7 @@ export type Proposal =
   | ScenesProposal
   | CommentProposal
   | ReplyProposal
+  | DescriptionProposal
 
 /** What applying a proposal made — stamped on the message as `meta.applied`. */
 export interface Applied {
@@ -254,6 +261,8 @@ export interface Applied {
   releases?: string[]
   /** The comment kept from a screenshot, or whose reply was written. */
   comment?: string
+  /** The style brick whose description was written. */
+  style_brick?: string
 }
 
 /** What a person may change about a proposed version on the way in. */
@@ -1324,9 +1333,6 @@ export const pasteStyleReference = (id: string, bytes: number[], name: string) =
 /** Describe a brick from its references — the dictionary's own AI action. */
 export const startStyleTask = (id: string, action: string) =>
   invoke<StartedTask>('start_style_task', { id, action })
-/** Keep an answer as a brick's description, and let it out of draft. */
-export const describeStyleBrick = (messageId: string, id: string) =>
-  invoke<StyleBrick>('describe_style_brick', { messageId, id })
 
 /** Tags in use on works, most used first — what the tag box offers. */
 export const workTags = () => invoke<[string, number][]>('work_tags')

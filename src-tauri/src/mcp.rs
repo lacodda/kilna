@@ -1097,9 +1097,13 @@ fn deliver(
     // Comments are read and answered inside the window, from where a
     // screenshot was pasted or a comment was opened; no tool proposes them,
     // and the sentence below has no line for one.
-    if matches!(proposal, Proposal::Comment { .. } | Proposal::Reply { .. }) {
+    if matches!(
+        proposal,
+        Proposal::Comment { .. } | Proposal::Reply { .. } | Proposal::Description { .. }
+    ) {
         return Err(Error::Other(
-            "an agent outside the window does not propose comments or replies".into(),
+            "an agent outside the window does not propose comments, replies or style descriptions"
+                .into(),
         ));
     }
     let client = session
@@ -1147,9 +1151,9 @@ fn deliver(
             Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
         }
         // Refused at the top of this function.
-        (Proposal::Comment { .. } | Proposal::Reply { .. }, _) => {
+        (Proposal::Comment { .. } | Proposal::Reply { .. } | Proposal::Description { .. }, _) => {
             return Err(Error::Other(
-                "comments are not proposed from outside".into(),
+                "comments and style descriptions are not proposed from outside".into(),
             ));
         }
     };

@@ -71,6 +71,21 @@ const proposalOf = (message: Message): Proposal | null => {
       return Array.isArray((proposal as Partial<{ scenes: unknown }>).scenes)
         ? (proposal as Proposal)
         : null
+    // Until v0.77 these three fell to the default: a drafted reply or a
+    // comment read off a screenshot said nothing under its answer, and a
+    // style's description had no button at all.
+    case 'comment':
+      return typeof (proposal as Partial<{ body: unknown }>).body === 'string'
+        ? (proposal as Proposal)
+        : null
+    case 'reply':
+      return typeof (proposal as Partial<{ comment_id: unknown }>).comment_id === 'string'
+        ? (proposal as Proposal)
+        : null
+    case 'description':
+      return typeof (proposal as Partial<{ style_id: unknown }>).style_id === 'string'
+        ? (proposal as Proposal)
+        : null
     default:
       return null
   }

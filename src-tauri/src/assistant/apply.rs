@@ -94,40 +94,6 @@ pub struct Outcome {
     pub comment: Option<String>,
 }
 
-/// Keep an answer as a style brick's description.
-///
-/// The manual counterpart of applying a proposal, and the same shape: the
-/// brick is written, and the message is stamped `applied` so the button
-/// becomes a tick rather than staying available forever. It is a command of
-/// its own rather than a `produces` value because a brick is not a work —
-/// there is no card the answer belongs to, and the whole proposal machinery
-/// hangs on one.
-pub fn describe_style(
-    conn: &Connection,
-    message_id: &str,
-    brick_id: &str,
-) -> Result<crate::style_brick::StyleBrick> {
-    let message = assistant::message(conn, message_id)?
-        .ok_or_else(|| Error::not_found("message", message_id))?;
-    if message.meta.contains_key("applied") {
-        return Err(Error::Other("this proposal is already applied".into()));
-    }
-
-    let written = crate::style_brick::describe(conn, brick_id, message.body.trim())?;
-
-    let outcome = Outcome {
-        message_id: message_id.to_owned(),
-        at: crate::time::now(),
-        style_brick: Some(brick_id.to_owned()),
-        ..Outcome::default()
-    };
-    let mut meta = message.meta;
-    meta.insert("applied".into(), serde_json::to_value(&outcome)?);
-    assistant::set_meta(conn, message_id, &meta)?;
-
-    Ok(written)
-}
-
 /// Whether a message carries a proposal nobody has applied yet.
 pub fn is_pending(message: &Message) -> bool {
     message.role == ASSISTANT
@@ -674,6 +640,11 @@ pub fn apply(
             write_reply(conn, profile_id, &comment_id, text.trim())?;
             outcome.comment = Some(comment_id);
         }
+
+        Proposal::Description { style_id } => {
+            write_description(conn, profile_id, &style_id, message.body.trim())?;
+            outcome.style_brick = Some(style_id);
+        }
     }
 
     // The status follows the facts, as after any hand-made version or score.
@@ -962,6 +933,38 @@ fn write_reply(
         .param("at", at.clone());
     recording(conn, logged, |tx| {
         crate::comment::update_at(tx, comment_id, patch, &at)
+    })?;
+    Ok(())
+}
+
+/// A brick's description, written as the edit a person would make: the same
+/// `style.update` the dictionary records, so it is taken back by undo and
+/// played back by a rebuild like any other - the text travels in the patch.
+/// A kept description lets the brick out of draft, unless it was dropped.
+fn write_description(
+    conn: &mut Connection,
+    profile_id: &str,
+    style_id: &str,
+    text: &str,
+) -> Result<()> {
+    let before = crate::style_brick::get(conn, style_id)?
+        .ok_or_else(|| Error::not_found("style", style_id))?;
+    let patch = crate::style_brick::StyleBrickPatch {
+        description: Some(Some(text.to_owned())),
+        status: (before.status != crate::style_brick::DROPPED)
+            .then(|| crate::style_brick::READY.to_owned()),
+        ..crate::style_brick::StyleBrickPatch::default()
+    };
+    let at = time::now();
+    let logged = operation::Intent::new("style.update")
+        .in_profile(profile_id)
+        .param("profile", profile_key(conn, profile_id)?)
+        .param("id", style_id.to_owned())
+        .param("patch", serde_json::to_value(&patch)?)
+        .param("before", was(Some(&before), &patch)?)
+        .param("at", at.clone());
+    recording(conn, logged, |tx| {
+        crate::style_brick::update_at(tx, style_id, patch, &at)
     })?;
     Ok(())
 }
@@ -1988,6 +1991,100 @@ mod tests {
             last.params["before"]["reply"], "It is about the last light.",
             "the reply that stood before is recorded, so it can be taken back"
         );
+    }
+
+    #[test]
+    fn a_description_is_written_onto_its_brick_as_an_edit_undo_takes_back() {
+        let (mut conn, profile_id, _) = workspace();
+        let brick = crate::style_brick::create(
+            &conn,
+            &profile_id,
+            crate::style_brick::NewStyleBrick {
+                type_key: "look".into(),
+                name: "Dusk over water".into(),
+                description: None,
+                hint: None,
+            },
+        )
+        .unwrap();
+        assert_eq!(brick.status, "draft");
+        let chat = chat_on(&conn, &profile_id, None);
+        let message = propose(
+            &conn,
+            &chat,
+            "  Low sun, long reflections, teal against amber.  ",
+            Proposal::Description {
+                style_id: brick.id.clone(),
+            },
+        );
+
+        let outcome = apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+        assert_eq!(outcome.style_brick.as_deref(), Some(brick.id.as_str()));
+
+        let written = crate::style_brick::get(&conn, &brick.id).unwrap().unwrap();
+        assert_eq!(
+            written.description.as_deref(),
+            Some("Low sun, long reflections, teal against amber.")
+        );
+        assert_eq!(
+            written.status, "ready",
+            "a kept description lets it out of draft"
+        );
+
+        // Recorded as the edit a person makes in the dictionary, so a rebuild
+        // plays it back and undo takes it back.
+        let last = operation::all(&conn).unwrap().pop().unwrap();
+        assert_eq!(last.kind, "style.update");
+        let offer = crate::undo::last(&conn).unwrap().expect("it can be undone");
+        crate::undo::undo(&mut conn, &offer.operation_id).unwrap();
+        let back = crate::style_brick::get(&conn, &brick.id).unwrap().unwrap();
+        assert_eq!(back.description, None);
+        assert_eq!(back.status, "draft");
+
+        // And the proposal is spent: the button becomes a mark.
+        assert!(apply(&mut conn, &profile_id, &message, Overrides::default()).is_err());
+    }
+
+    #[test]
+    fn a_description_kept_for_a_dropped_brick_leaves_it_dropped() {
+        let (mut conn, profile_id, _) = workspace();
+        let brick = crate::style_brick::create(
+            &conn,
+            &profile_id,
+            crate::style_brick::NewStyleBrick {
+                type_key: "look".into(),
+                name: "Neon rain".into(),
+                description: None,
+                hint: None,
+            },
+        )
+        .unwrap();
+        crate::style_brick::update(
+            &conn,
+            &brick.id,
+            crate::style_brick::StyleBrickPatch {
+                status: Some("dropped".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let chat = chat_on(&conn, &profile_id, None);
+        let message = propose(
+            &conn,
+            &chat,
+            "Wet asphalt under pink light.",
+            Proposal::Description {
+                style_id: brick.id.clone(),
+            },
+        );
+
+        apply(&mut conn, &profile_id, &message, Overrides::default()).unwrap();
+        let written = crate::style_brick::get(&conn, &brick.id).unwrap().unwrap();
+        assert_eq!(
+            written.description.as_deref(),
+            Some("Wet asphalt under pink light.")
+        );
+        assert_eq!(written.status, "dropped");
     }
 
     #[test]

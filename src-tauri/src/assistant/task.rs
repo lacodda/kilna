@@ -297,6 +297,13 @@ pub fn compose(
                 template.label
             )));
         }
+        // The same for an action about a style brick.
+        Produces::Description => {
+            return Err(Error::Other(format!(
+                "“{}” answers about a style: start it from the dictionary",
+                template.label
+            )));
+        }
     }
 
     // Reference files: named in the prompt so the run knows they are there
@@ -395,6 +402,13 @@ pub fn prepare(
 /// What a task about a style brick is, as a key: this action, on this brick.
 pub fn style_key(action: &str, brick_id: &str) -> String {
     format!("{action}:style:{brick_id}")
+}
+
+/// The brick a style task's key names - the other half of [`style_key`].
+pub fn style_of_key(key: &str) -> Option<&str> {
+    let mut parts = key.splitn(3, ':');
+    parts.next()?;
+    (parts.next()? == "style").then(|| parts.next()).flatten()
 }
 
 /// Compose `action` against a style brick rather than a work.
@@ -989,6 +1003,14 @@ mod tests {
             composed.method.is_some(),
             "the action's method travels with it"
         );
+    }
+
+    #[test]
+    fn a_style_key_names_its_brick_and_nothing_else_does() {
+        let key = style_key("describe-style", "b-7");
+        assert_eq!(style_of_key(&key), Some("b-7"));
+        assert_eq!(style_of_key("describe-style:comment:c-1"), None);
+        assert_eq!(style_of_key("polish:w-1"), None);
     }
 
     #[test]

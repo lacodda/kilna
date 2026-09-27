@@ -181,6 +181,13 @@ offers the whole answer as a version in that role, with the same *Insert as
 version* button an agent's proposal gets. Studio's critique does, so a
 critique is kept beside the text it read rather than lost in a chat.
 
+An action about a style — `"scope": "style"`, started from the
+[dictionary](/kilna/guides/styles/) — produces a **description**:
+`"produces": "description"` keeps the whole answer as the description of the
+style it was started on. It is the only thing such an action may produce, the
+way an action about a comment reads one or drafts its reply: an answer with
+nowhere to go would be a button that ends in a copy and paste.
+
 If the answer judged an axis your profile does not have, or skipped one it does,
 the panel says so rather than quietly dropping it. A proposal that only half
 fits is still worth applying — but not without knowing.

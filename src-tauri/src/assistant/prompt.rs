@@ -72,6 +72,9 @@ pub enum Produces {
     /// The whole answer, kept as the reply to the comment the action was
     /// started on.
     Reply,
+    /// The whole answer, kept as the description of the style brick the
+    /// action was started on.
+    Description,
 }
 
 /// What an action is about.
@@ -110,6 +113,7 @@ impl PromptTemplate {
             Some("scenes") => Produces::Scenes(BoardChange::Replace),
             Some("comment") => Produces::Comment,
             Some("reply") => Produces::Reply,
+            Some("description") => Produces::Description,
             Some(value) => {
                 if let Some(role) = value.strip_prefix("version:") {
                     return if role.trim().is_empty() {

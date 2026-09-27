@@ -28,6 +28,7 @@ import { Markdown } from '@/components/Markdown'
 import { Skeleton } from '@/components/Skeleton'
 import { InsertVersionDialog } from '@/components/assistant/InsertVersionDialog'
 import { KeepAsNoteDialog } from '@/components/assistant/KeepAsNoteDialog'
+import { ProposedDescription } from '@/components/assistant/ProposedDescription'
 import { ProposedNote } from '@/components/assistant/ProposedNote'
 import { ProposedScenes } from '@/components/assistant/ProposedScenes'
 import { ProposedScore } from '@/components/assistant/ProposedScore'
@@ -476,10 +477,14 @@ function ExchangeItem({
   // A comment or a reply is kept on the comments screen, where its fields
   // can be corrected first; neither is a version or a note of anything.
   const aboutComment = proposal?.kind === 'comment' || proposal?.kind === 'reply'
+  // A description is kept onto its brick by its own button below; inserting
+  // it as a lyric or keeping it as a note would be a second copy of it.
+  const describes = proposal?.kind === 'description'
   const insertable =
     onInsert !== undefined &&
     settled &&
     !aboutComment &&
+    !describes &&
     proposal?.kind !== 'version' &&
     proposal?.kind !== 'work' &&
     proposal?.kind !== 'scenes'
@@ -489,6 +494,7 @@ function ExchangeItem({
   const keepable =
     settled &&
     !aboutComment &&
+    !describes &&
     proposal?.kind !== 'note' &&
     proposal?.kind !== 'version' &&
     proposal?.kind !== 'work' &&
@@ -605,6 +611,9 @@ function ExchangeItem({
       )}
       {item.answer !== null && proposal?.kind === 'note' && settled && (
         <ProposedNote messageId={item.answer.id} proposal={proposal} applied={applied} />
+      )}
+      {item.answer !== null && describes && settled && (
+        <ProposedDescription messageId={item.answer.id} applied={applied} />
       )}
       {workId !== undefined &&
         item.answer !== null &&

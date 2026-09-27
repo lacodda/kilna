@@ -17,6 +17,7 @@ import { screenKey } from '@/lib/screens'
 import { keys } from '@/lib/query'
 import { openWorkId } from '@/lib/route'
 import { say } from '@/lib/toast'
+import { useAssistant } from '@/lib/useAssistant'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { NotificationBell } from '@/components/ui/notification-bell'
@@ -134,6 +135,7 @@ const RECENT = 6
 function Unread() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const assistant = useAssistant()
   const client = useQueryClient()
   const [open, setOpen] = useState(false)
 
@@ -228,14 +230,18 @@ function Unread() {
                 onOpen={() => {
                   setOpen(false)
                   // A comment or a reply is kept where comments are read,
-                  // with the fields open to correction first.
-                  navigate(
-                    proposal.kind === 'comment' || proposal.kind === 'reply'
-                      ? '/comments'
-                      : proposal.work_id === null
-                        ? '/assistant'
-                        : `/works/${proposal.work_id}/assistant`,
-                  )
+                  // with the fields open to correction first; a proposal on
+                  // a work, on the card's assistant tab. One in a chat about
+                  // nothing - a note, a style's description - has no screen
+                  // of its own, so the chat itself opens in the drawer. It
+                  // used to go to `/assistant`, a route that never existed.
+                  if (proposal.kind === 'comment' || proposal.kind === 'reply') {
+                    navigate('/comments')
+                  } else if (proposal.work_id !== null) {
+                    navigate(`/works/${proposal.work_id}/assistant`)
+                  } else {
+                    assistant.open(proposal.chat_id)
+                  }
                 }}
                 onDismiss={() => dismiss.mutate(proposal.message_id)}
               />

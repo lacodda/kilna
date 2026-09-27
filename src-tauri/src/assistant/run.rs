@@ -630,6 +630,14 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
             }),
             None => Read::Nothing,
         },
+        // The whole answer is the description; the proposal says of which
+        // brick, read out of the key the dictionary started the task with.
+        super::prompt::Produces::Description => match super::task::style_of_key(task_key) {
+            Some(style_id) => value(super::proposal::Proposal::Description {
+                style_id: style_id.to_owned(),
+            }),
+            None => Read::Nothing,
+        },
         super::prompt::Produces::Scenes(change) => {
             let Some(work) = work_of_chat(conn, &run.chat_id) else {
                 return Read::Nothing;
@@ -1910,6 +1918,52 @@ The second verse is the weak one."
                 .as_str()
                 .or(proposal["comment_id"].as_str()),
             Some("c-42")
+        );
+        drop(dir);
+    }
+
+    /// A style task's answer is proposed as the description of the brick its
+    /// key names - kept later with one button, like a reply.
+    #[test]
+    fn a_style_task_proposes_its_answer_as_the_bricks_description() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some(crate::assistant::task::style_key("describe-style", "b-7"));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: "Low sun, long reflections, teal against amber.".into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap();
+        let proposal = answer
+            .meta
+            .get("proposal")
+            .expect("a description is proposed");
+        assert_eq!(proposal["kind"], "description");
+        assert_eq!(
+            proposal["styleId"]
+                .as_str()
+                .or(proposal["style_id"].as_str()),
+            Some("b-7")
         );
         drop(dir);
     }

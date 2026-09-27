@@ -128,6 +128,8 @@ pub enum Proposal {
     /// A reply to one comment; the text is the message body, the way a
     /// version's is.
     Reply { comment_id: String },
+    /// A style brick's description; the text is the message body.
+    Description { style_id: String },
 }
 
 /// What a scenes proposal does to the board already on the work.

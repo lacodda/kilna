@@ -649,7 +649,8 @@
       "package": "A set of changes was proposed",
       "other": "Something was proposed",
       "comment": "A comment was read off a screenshot",
-      "reply": "A reply was drafted"
+      "reply": "A reply was drafted",
+      "description": "A style description was written"
     },
     "keepAsNote": "Keep as a note",
     "keepAsNoteTitle": "Keep as a note",
@@ -659,7 +660,11 @@
     "noteKeepFailed": "keep the note",
     "commentKept": "Kept on the comments.",
     "commentToKeep": "Kept from the comments, where it can be corrected first.",
-    "openComments": "Open the comments"
+    "openComments": "Open the comments",
+    "proposedDescription": "A description for the style",
+    "keepDescription": "Keep as its description",
+    "descriptionKept": "Kept",
+    "descriptionAdded": "Description kept."
   },
   "links": {
     "sources": "Made from",

@@ -163,7 +163,6 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::create_style_brick,
             commands::update_style_brick,
             commands::paste_style_reference,
-            commands::describe_style_brick,
             commands::preview_style_task,
             commands::start_style_task,
             commands::delete_style_brick,

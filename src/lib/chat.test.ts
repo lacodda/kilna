@@ -195,6 +195,35 @@ describe('a proposal on an answer', () => {
     expect(items[0]?.answer?.source).toBeNull()
   })
 
+  it('reads what answers about a comment or a style propose, and only whole', () => {
+    // Until v0.77 these three kinds read as nothing, so a drafted reply said
+    // nothing under its answer and a style's description had no button.
+    const items = conversation(
+      [
+        message('assistant', 'Thank you!', 't1', {
+          proposal: { kind: 'reply', comment_id: 'c-1' },
+        }),
+        message('assistant', 'read', 't2', {
+          proposal: { kind: 'comment', channel: 'main', body: 'loved it' },
+        }),
+        message('assistant', 'Low sun, teal and amber.', 't3', {
+          proposal: { kind: 'description', style_id: 'b-7' },
+        }),
+        message('assistant', 'broken', 't4', { proposal: { kind: 'description' } }),
+        message('assistant', 'broken', 't5', { proposal: { kind: 'reply' } }),
+      ],
+      [],
+    )
+
+    expect(items.map((item) => item.answer?.proposal?.kind ?? null)).toEqual([
+      'reply',
+      'comment',
+      'description',
+      null,
+      null,
+    ])
+  })
+
   it('is absent on an ordinary answer', () => {
     const items = conversation(
       [message('user', 'ask', 't1'), message('assistant', 'prose', 't2')],

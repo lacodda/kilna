@@ -16,7 +16,8 @@ interface Options {
 }
 
 /** How many operations applying wrote: the work, each version, the score, each note, the
- * fields, each scene written and each scene a replaced board sent to the trash. */
+ * fields, each scene written, each scene a replaced board sent to the trash, and a
+ * style's description. */
 export function writesOf(applied: Applied): number {
   return (
     (applied.created_work === true ? 1 : 0) +
@@ -25,7 +26,8 @@ export function writesOf(applied: Applied): number {
     (applied.notes?.length ?? 0) +
     (applied.created_work !== true && (applied.fields?.length ?? 0) > 0 ? 1 : 0) +
     (applied.scenes?.length ?? 0) +
-    (applied.removed_scenes?.length ?? 0)
+    (applied.removed_scenes?.length ?? 0) +
+    (applied.style_brick !== undefined ? 1 : 0)
   )
 }
 

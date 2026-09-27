@@ -71,9 +71,12 @@ description that style will carry. Whatever you changed in the dialog is
 saved first, so the description is written from the style as you left it —
 the steer you typed a moment ago included.
 
-The answer arrives in its own chat, the way every AI action's does. Nothing
-is written until you keep it — the assistant never touches the workspace
-itself.
+The answer arrives in its own chat, the way every AI action's does, with
+**Keep as its description** under it; the bell says it is waiting, and its
+line opens that chat. Nothing is written until you keep it — the assistant
+never touches the workspace itself. Kept, the answer becomes the style's
+description word for word, lets a draft out into ready, and is an edit like
+one made by hand: **Ctrl+Z** takes it back.
 
 With no references at all, the prompt says so rather than pretending: it
 asks for a description from the name and says plainly that there was

@@ -1607,7 +1607,24 @@ impl ProfileConfig {
                         prompt.produces.as_deref().unwrap_or_default().trim()
                     ));
                 }
-                Produces::Score | Produces::Prose | Produces::Comment | Produces::Reply => {}
+                Produces::Description if prompt.scope() != Scope::Style => {
+                    problems.push(format!(
+                        "{place} produces `description`, which only an action about a style can: give it `\"scope\": \"style\"`"
+                    ));
+                }
+                Produces::Score
+                | Produces::Prose
+                | Produces::Comment
+                | Produces::Reply
+                | Produces::Description => {}
+            }
+            // An action about a style brick describes it; an answer of any
+            // other shape has nowhere to go - the rule an action about a
+            // comment follows below.
+            if prompt.scope() == Scope::Style && prompt.produces() != Produces::Description {
+                problems.push(format!(
+                    "{place} is about a style and must produce `description`"
+                ));
             }
             // An action about a comment either reads one off a screenshot or
             // drafts its reply; an answer of any other shape has nowhere to
@@ -2411,6 +2428,44 @@ mod tests {
                 .validate()
                 .iter()
                 .any(|p| p.contains("reads `{scenes}`, but `song` has no storyboard")),
+            "{:?}",
+            config.validate()
+        );
+    }
+
+    #[test]
+    fn a_style_action_describes_its_brick_and_nothing_else_produces_a_description() {
+        let mut config = studio();
+        let mut stray = action("Describe it.");
+        stray.produces = Some("description".into());
+        config.prompts = vec![stray];
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("only an action about a style can")),
+            "{:?}",
+            config.validate()
+        );
+
+        let mut chatty = action("Say something about it.");
+        chatty.scope = Some("style".into());
+        config.prompts = vec![chatty];
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("is about a style and must produce `description`")),
+            "{:?}",
+            config.validate()
+        );
+
+        let mut kept = action("Describe it.");
+        kept.scope = Some("style".into());
+        kept.produces = Some("description".into());
+        config.prompts = vec![kept];
+        assert!(
+            !config.validate().iter().any(|p| p.contains("style")),
             "{:?}",
             config.validate()
         );

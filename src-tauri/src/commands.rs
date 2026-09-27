@@ -1243,42 +1243,6 @@ pub fn paste_style_reference(
     })
 }
 
-/// Keep an answer as a brick's description, and let it out of draft.
-#[tauri::command]
-pub fn describe_style_brick(
-    state: State<'_, AppState>,
-    message_id: String,
-    id: String,
-) -> Result<style_brick::StyleBrick> {
-    let mut conn = state.conn();
-    let profile_id = active_profile_id(&conn)?;
-    let before = style_brick::get(&conn, &id)?;
-
-    // What stood there, so the write can be taken back. A description read out
-    // of a chat message cannot be replayed into a rebuilt workspace, but it
-    // can certainly be undone in this one — and an undo that could only blank
-    // the text would be worse than none.
-    let at = time::now();
-    let logged = operation::Intent::new("style.describe")
-        .in_profile(&profile_id)
-        .param("profile", profile_key(&conn, &profile_id)?)
-        .param("messageId", message_id.clone())
-        .param("id", id.clone())
-        .param(
-            "before",
-            serde_json::to_value(style_brick::StyleBrickPatch {
-                description: Some(before.as_ref().and_then(|one| one.description.clone())),
-                status: before.as_ref().map(|one| one.status.clone()),
-                ..Default::default()
-            })?,
-        )
-        .param("at", at);
-
-    recording(&mut conn, logged, |tx| {
-        assistant::apply::describe_style(tx, &message_id, &id)
-    })
-}
-
 /// What describing a brick would send, without sending it.
 #[tauri::command]
 pub fn preview_style_task(
