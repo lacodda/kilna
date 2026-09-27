@@ -8,7 +8,6 @@ import {
   columnsFor,
   columnsForKind,
   withColumns,
-  loadColumns,
   sanitizeColumns,
   loadFilter,
   loadSort,
@@ -22,7 +21,6 @@ import {
   isNarrowedByColumns,
   loadColumnFilters,
   saveColumnFilters,
-  saveColumns,
   saveSort,
   sortRows,
   toggleColumn,
@@ -431,52 +429,24 @@ describe('toggleSort', () => {
 })
 
 describe('the shown columns', () => {
-  const store = (initial?: string): SortStore & { value: string | null } => ({
-    value: initial ?? null,
-    getItem() {
-      return this.value
-    },
-    setItem(_key, value) {
-      this.value = value
-    },
+  it('opens on the default set, without the identifier, when the profile names none', () => {
+    expect(columnsFor(null)).toEqual(DEFAULT_COLUMNS)
+    expect(columnsFor(undefined)).toEqual(DEFAULT_COLUMNS)
+    expect(columnsFor(undefined)).not.toContain('id')
   })
 
-  it('starts on the default set, without the identifier', () => {
-    expect(loadColumns(store())).toEqual(DEFAULT_COLUMNS)
-    expect(loadColumns(store())).not.toContain('id')
-  })
-
-  it('comes back exactly as it was saved', () => {
+  it('opens on the profile columns exactly as they are kept', () => {
     // Reading does not reorder: the table order is imposed by `toggleColumn`,
     // where a person's click needs a predictable place to land.
-    const held = store()
-    saveColumns(['title', 'id', 'total'], held)
-    expect(loadColumns(held)).toEqual(['title', 'id', 'total'])
+    expect(columnsFor(['title', 'id', 'total'])).toEqual(['title', 'id', 'total'])
   })
 
   it('drops a column this build no longer knows, keeping the rest', () => {
-    const held = store(JSON.stringify(['title', 'bpm', 'total']))
-    expect(loadColumns(held)).toEqual(['title', 'total'])
+    expect(columnsFor(['title', 'bpm', 'total'])).toEqual(['title', 'total'])
   })
 
-  it('puts the title back when a stored set left it out', () => {
-    const held = store(JSON.stringify(['total', 'tier']))
-    expect(loadColumns(held)).toContain('title')
-  })
-
-  it('opens on the profile columns when the profile has any', () => {
-    const held = store(JSON.stringify(['title', 'id']))
-    const opened = columnsFor(['title', 'total', 'bpm'], held)
-    expect(opened).toEqual({ columns: ['title', 'total'], fromMachine: false })
-  })
-
-  it('opens on what the machine remembered until the profile has columns', () => {
-    const held = store(JSON.stringify(['title', 'id']))
-    expect(columnsFor(null, held)).toEqual({ columns: ['title', 'id'], fromMachine: true })
-    expect(columnsFor(undefined, store())).toEqual({
-      columns: DEFAULT_COLUMNS,
-      fromMachine: true,
-    })
+  it('puts the title back when a kept set left it out', () => {
+    expect(columnsFor(['total', 'tier'])).toContain('title')
   })
 
   it('reads a kind down its own columns and every other kind down the shared list', () => {
@@ -484,18 +454,9 @@ describe('the shown columns', () => {
       catalogue_columns: ['title', 'total'],
       catalogue_columns_by_kind: { video: ['title', 'versions', 'bpm'] },
     }
-    expect(columnsForKind(home, 'video', store())).toEqual({
-      columns: ['title', 'versions'],
-      fromMachine: false,
-    })
-    expect(columnsForKind(home, 'song', store())).toEqual({
-      columns: ['title', 'total'],
-      fromMachine: false,
-    })
-    expect(columnsForKind(home, undefined, store())).toEqual({
-      columns: ['title', 'total'],
-      fromMachine: false,
-    })
+    expect(columnsForKind(home, 'video')).toEqual(['title', 'versions'])
+    expect(columnsForKind(home, 'song')).toEqual(['title', 'total'])
+    expect(columnsForKind(home, undefined)).toEqual(['title', 'total'])
   })
 
   it('writes a kind its own columns without touching the others', () => {
@@ -519,26 +480,8 @@ describe('the shown columns', () => {
     expect(sanitizeColumns('title')).toEqual(DEFAULT_COLUMNS)
   })
 
-  it('falls back to the default when nothing stored is recognisable', () => {
-    const held = store(JSON.stringify(['bpm', 'mood']))
-    expect(loadColumns(held)).toEqual(DEFAULT_COLUMNS)
-  })
-
-  it('falls back when the stored value is not a list at all', () => {
-    // The same shape that got past the filter guard in v0.46: an array is
-    // `typeof 'object'`, and an object is not an array.
-    expect(loadColumns(store('{"title":true}'))).toEqual(DEFAULT_COLUMNS)
-    expect(loadColumns(store('not json'))).toEqual(DEFAULT_COLUMNS)
-  })
-
-  it('survives storage that refuses to be written', () => {
-    const refusing: SortStore = {
-      getItem: () => null,
-      setItem: () => {
-        throw new Error('quota exceeded')
-      },
-    }
-    expect(() => saveColumns(DEFAULT_COLUMNS, refusing)).not.toThrow()
+  it('falls back to the default when nothing kept is recognisable', () => {
+    expect(columnsFor(['bpm', 'mood'])).toEqual(DEFAULT_COLUMNS)
   })
 })
 

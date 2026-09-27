@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -23,7 +23,6 @@ import {
 } from '@/lib/api'
 import {
   ALL_COLUMNS,
-  columnsFor,
   columnsForKind,
   withColumns,
   GAPS,
@@ -147,10 +146,7 @@ export function Catalogue({ onSelect }: Props) {
   }
   const [sort, setSort] = useState<Sort>(loadSort)
   // Which columns are shown is a fact about the craft, kept on the profile
-  // since v0.50: a novel and a record are read down different columns. A
-  // workspace from before the field opens on what this machine remembered,
-  // and that list is written to the profile once so the move is invisible.
-  const [opened] = useState(() => columnsFor(profile.config.catalogue_columns))
+  // since v0.50: a novel and a record are read down different columns.
   // The kind the table is narrowed to reads down its own columns, so the
   // list is derived from the filter rather than held once. What this screen
   // just chose is kept beside the profile's copy, by kind key ('' for no
@@ -158,7 +154,7 @@ export function Catalogue({ onSelect }: Props) {
   // and the profile coming back with the new one.
   const [chosen, setChosen] = useState<Record<string, ColumnId[]>>({})
   const kindKey = filter.kind ?? ''
-  const columns = chosen[kindKey] ?? columnsForKind(profile.config, filter.kind).columns
+  const columns = chosen[kindKey] ?? columnsForKind(profile.config, filter.kind)
 
   const keepColumns = useMutation({
     mutationFn: ({ kind, next }: { kind: string | undefined; next: ColumnId[] }) =>
@@ -177,12 +173,6 @@ export function Catalogue({ onSelect }: Props) {
     setChosen((current) => ({ ...current, [kindKey]: next }))
     keepColumns.mutate({ kind: filter.kind, next })
   }
-
-  useEffect(() => {
-    if (opened.fromMachine) keepColumns.mutate({ kind: undefined, next: opened.columns })
-    // Once, on the first open of a profile that has no columns yet.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // Grouping is deliberately of the moment, like the filter and unlike the
   // sort: it is a way of interrogating the list today, and finding the

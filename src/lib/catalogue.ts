@@ -529,28 +529,6 @@ export const DEFAULT_COLUMNS: ColumnId[] = [
 /** The title carries the row's identity and its link; it cannot be turned off. */
 export const REQUIRED_COLUMN: ColumnId = 'title'
 
-const COLUMNS_KEY = 'kilna.catalogue.columns'
-
-/**
- * Which columns are shown survives a restart, like the sort and unlike the
- * filter: it is how a person prefers to read the table, not what they are doing
- * this minute.
- *
- * Kept in the browser rather than on the profile. The plan asked for the latter,
- * but a field on the profile means a migration, and the release this belongs to
- * gathers every schema change into one — see the Model package. Moving it there
- * later is a read of this key and a write of the new field.
- */
-export function loadColumns(store: SortStore = localStorage): ColumnId[] {
-  try {
-    const raw = store.getItem(COLUMNS_KEY)
-    if (raw === null) return DEFAULT_COLUMNS
-    return sanitizeColumns(JSON.parse(raw))
-  } catch {
-    return DEFAULT_COLUMNS
-  }
-}
-
 /**
  * A stored list of column ids, made safe to draw.
  *
@@ -568,25 +546,17 @@ export function sanitizeColumns(parsed: unknown): ColumnId[] {
 }
 
 /**
- * The columns the catalogue opens with: the profile's, and until the profile
- * has any, whatever this machine remembered.
+ * The columns the catalogue opens with: the profile's, or the default when
+ * the profile names none.
  *
- * The profile is the home of the list since v0.50 — a novel and a record are
+ * The profile is the home of the list since v0.50 - a novel and a record are
  * read down different columns, so the choice belongs to the craft, not to the
- * browser. The browser's copy is what every workspace holds from before, and
- * it is read exactly once: the first time a profile without columns is
- * opened, so the move costs nobody their layout. `fromMachine` says that is
- * what happened, so the caller can write the list to the profile and be done
- * with the key.
+ * machine. Until v0.77 a profile without columns was first given whatever
+ * this machine had remembered from before; every workspace had made that
+ * move, so the machine's copy is gone.
  */
-export function columnsFor(
-  profileColumns: string[] | null | undefined,
-  store: SortStore = localStorage,
-): { columns: ColumnId[]; fromMachine: boolean } {
-  if (Array.isArray(profileColumns)) {
-    return { columns: sanitizeColumns(profileColumns), fromMachine: false }
-  }
-  return { columns: loadColumns(store), fromMachine: true }
+export function columnsFor(profileColumns: string[] | null | undefined): ColumnId[] {
+  return sanitizeColumns(profileColumns)
 }
 
 /** The slice of a profile the column choice reads and writes. */
@@ -604,14 +574,9 @@ export interface ColumnHome {
  * its own reads down the shared list rather than the default, so narrowing
  * never costs a person the layout they already chose.
  */
-export function columnsForKind(
-  home: ColumnHome,
-  kind: string | undefined,
-  store: SortStore = localStorage,
-): { columns: ColumnId[]; fromMachine: boolean } {
+export function columnsForKind(home: ColumnHome, kind: string | undefined): ColumnId[] {
   const own = kind === undefined ? undefined : home.catalogue_columns_by_kind?.[kind]
-  if (Array.isArray(own)) return { columns: sanitizeColumns(own), fromMachine: false }
-  return columnsFor(home.catalogue_columns, store)
+  return Array.isArray(own) ? sanitizeColumns(own) : columnsFor(home.catalogue_columns)
 }
 
 /**
@@ -627,14 +592,6 @@ export function withColumns(
   if (kind === undefined) return { catalogue_columns: next }
   return {
     catalogue_columns_by_kind: { ...(home.catalogue_columns_by_kind ?? {}), [kind]: next },
-  }
-}
-
-export function saveColumns(columns: ColumnId[], store: SortStore = localStorage): void {
-  try {
-    store.setItem(COLUMNS_KEY, JSON.stringify(columns))
-  } catch {
-    // Storage full or blocked: the table still draws, it just forgets.
   }
 }
 
