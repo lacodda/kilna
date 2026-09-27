@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Check, ScanText, X } from 'lucide-react'
 import { applyProposal, dismissProposal } from '@/lib/api/assistant'
 import type { CommentProposal, PendingCommentProposal } from '@/lib/api/types'
-import { catalogue } from '@/lib/api/works'
 import { workByTitle } from '@/lib/comments'
-import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/DatePicker'
 import { Input } from '@/components/ui/input'
@@ -32,10 +32,9 @@ interface Props {
  */
 export function ProposedComment({ pending, channels, onKept }: Props) {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const read = pending.proposal
 
-  const works = useQuery({ queryKey: keys.catalogue, queryFn: catalogue })
+  const works = useQuery(queries.catalogue())
   const suggested =
     read.work_id ??
     workByTitle(
@@ -53,13 +52,7 @@ export function ProposedComment({ pending, channels, onKept }: Props) {
   const chosen = work === undefined ? (suggested ?? null) : work
   const title = (works.data ?? []).find((w) => w.work_id === chosen)?.title
 
-  const settle = () => {
-    for (const key of [keys.comments, keys.pendingProposals, keys.transcripts]) {
-      void client.invalidateQueries({ queryKey: key })
-    }
-  }
-
-  const keep = useMutation({
+  const keep = useAppMutation({
     mutationFn: () =>
       applyProposal(pending.message_id, {
         comment: {
@@ -70,17 +63,17 @@ export function ProposedComment({ pending, channels, onKept }: Props) {
           work_id: chosen,
         },
       }),
+    failure: 'comments.saveFailed',
+    refresh: refresh.keptComment,
     onSuccess: (applied) => {
-      settle()
       if (applied.comment !== undefined) onKept(applied.comment)
     },
-    onError: (cause) => say.failedTo(t('comments.saveFailed'), cause),
   })
 
-  const drop = useMutation({
+  const drop = useAppMutation({
     mutationFn: () => dismissProposal(pending.message_id),
-    onSuccess: settle,
-    onError: (cause) => say.failedTo(t('assistant.dismissFailed'), cause),
+    failure: 'assistant.dismissFailed',
+    refresh: refresh.keptComment,
   })
 
   return (

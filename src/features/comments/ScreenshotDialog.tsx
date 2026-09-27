@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { ScanText } from 'lucide-react'
 import { startScreenshotTask } from '@/lib/api/comments'
-import { getWork } from '@/lib/api/works'
 import { commentAction } from '@/lib/actions'
 import { recallChannel, rememberChannel } from '@/lib/comments'
 import { today } from '@/lib/month'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -38,7 +39,6 @@ interface Props {
  */
 export function ScreenshotDialog({ file, onClose, channels, channel, workId }: Props) {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const { config } = useProfile()
   const reader = commentAction(config.prompts, 'comment')
 
@@ -64,12 +64,11 @@ export function ScreenshotDialog({ file, onClose, channels, channel, workId }: P
   )
 
   const chosen = useQuery({
-    queryKey: keys.work(work ?? ''),
-    queryFn: () => getWork(work!),
+    ...queries.work(work ?? ''),
     enabled: work !== null,
   })
 
-  const read = useMutation({
+  const read = useAppMutation({
     mutationFn: async () => {
       if (file === null || reader === undefined) throw new Error('nothing to read')
       const bytes = new Uint8Array(await file.arrayBuffer())
@@ -82,14 +81,13 @@ export function ScreenshotDialog({ file, onClose, channels, channel, workId }: P
         today: today(),
       })
     },
+    failure: 'comments.readFailed',
+    refresh: [keys.activeTasks, keys.allChats],
     onSuccess: () => {
       rememberChannel(where)
-      void client.invalidateQueries({ queryKey: keys.activeTasks })
-      void client.invalidateQueries({ queryKey: keys.allChats })
       say.info(t('comments.reading'))
       onClose()
     },
-    onError: (cause) => say.failedTo(t('comments.readFailed'), cause),
   })
 
   return (

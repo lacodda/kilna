@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { updateRelease } from '@/lib/api/releases'
 import type { ScheduledRelease } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
 import { missing } from '@/lib/readiness'
 import { openExternal } from '@/lib/link'
-import { say } from '@/lib/toast'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/DatePicker'
@@ -68,7 +68,7 @@ export function ReleaseEditor({
 
   const client = useQueryClient()
 
-  const save = useMutation({
+  const save = useAppMutation({
     mutationFn: () => {
       if (release === null) throw new Error('nothing to save')
       return updateRelease(release.id, {
@@ -79,6 +79,7 @@ export function ReleaseEditor({
         url: draft.url === '' ? null : draft.url,
       })
     },
+    failure: 'toast.releaseSaveFailed',
     onSuccess: () => {
       // The parent settles the queries — it has state of its own to clear and
       // a readiness check to run first — so nothing is passed to `refresh`
@@ -87,7 +88,6 @@ export function ReleaseEditor({
       onOpenChange(false)
       announceEdited({ client, message: t('toast.releaseSaved'), refresh: [] })
     },
-    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
 
   return (

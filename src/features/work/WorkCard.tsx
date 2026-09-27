@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { listCuts } from '@/lib/api/cuts'
-import { listLinks } from '@/lib/api/links'
-import { releasesForWork } from '@/lib/api/releases'
-import { listScenes } from '@/lib/api/scenes'
-import { deleteWork, getWork } from '@/lib/api/works'
-import { keys } from '@/lib/query/keys'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { deleteWork } from '@/lib/api/works'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { noteDeleted, noteOpened } from '@/lib/recent'
-import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { canBeCut } from '@/lib/cuts'
 import { hasScenes, useProfile } from '@/lib/useProfile'
@@ -41,7 +38,7 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
   const profile = useProfile()
-  const work = useQuery({ queryKey: keys.work(workId), queryFn: () => getWork(workId) })
+  const work = useQuery(queries.work(workId))
   // Judging blind belongs to the card, not the Score tab: the header above the
   // tab shows the last verdict too (see `lib/blindJudging`). The card is keyed
   // by the work, so a new work starts with it off.
@@ -57,33 +54,24 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   }, [workId, title])
 
   // Only for the count on the tab; the tab itself fetches what it draws.
-  const releases = useQuery({
-    queryKey: keys.releasesForWork(workId),
-    queryFn: () => releasesForWork(workId),
-  })
+  const releases = useQuery(queries.releasesForWork(workId))
   // For the count on the tab: "Links (2)" is how a song shows it has clips
   // without anyone opening the tab.
-  const links = useQuery({
-    queryKey: keys.linksFor(workId),
-    queryFn: () => listLinks(workId),
-  })
+  const links = useQuery(queries.links(workId))
   // The storyboard is a fact of the kind: a song has none, and asking for
   // its scenes would be a query for a tab that is not drawn.
   const storyboard = hasScenes(profile.config, work.data?.kind)
-  const scenes = useQuery({
-    queryKey: keys.scenesFor(workId),
-    queryFn: () => listScenes(workId),
-    enabled: storyboard,
-  })
+  const scenes = useQuery({ ...queries.scenes(workId), enabled: storyboard })
 
   // The splice, for the tab and its count. Always asked: unlike a storyboard,
   // whether a work was cut out of another is a fact about the work rather than
   // about its kind, and the only way to know is to look.
-  const cuts = useQuery({ queryKey: keys.cutsFor(workId), queryFn: () => listCuts(workId) })
+  const cuts = useQuery(queries.cuts(workId))
   const spliced = canBeCut(cuts.data ?? [], links.data?.sources.length ?? 0)
 
-  const remove = useMutation({
+  const remove = useAppMutation({
     mutationFn: () => deleteWork(workId),
+    failure: 'toast.workDeleteFailed',
     onSuccess: (deletionId) => {
       // Out of the recent list too, so it cannot be offered after it is gone.
       // An undo re-opens the card, which puts it back.
@@ -92,13 +80,12 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
         client,
         deletionId,
         message: t('toast.workDeleted', { title: work.data?.title ?? '' }),
-        refresh: [keys.works, keys.workspace, keys.catalogue, keys.calendar],
+        refresh: refresh.works,
         // The card was closed on the way out; an undo brings it back open.
         onUndone: () => onUndone(workId),
       })
       onDeleted()
     },
-    onError: (cause) => say.failedTo(t('toast.workDeleteFailed'), cause),
   })
 
   if (work.isPending) return <SkeletonCard />

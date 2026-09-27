@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { listStyleBricks, styleBrickCounts } from '@/lib/api/styles'
 import type { StyleBrick, StyleType } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { useProfile, styleTypesOf, say } from '@/lib/useProfile'
 import { styleIconOf } from '@/lib/styleIcon'
 import { useDebounced } from '@/lib/useDebounced'
@@ -35,11 +35,8 @@ export function StylesView() {
   const query = useDebounced(text, 200)
   const [editing, setEditing] = useState<StyleBrick | 'new' | null>(null)
 
-  const bricks = useQuery({
-    queryKey: [...keys.styleBricks, typeKey ?? null, query],
-    queryFn: () => listStyleBricks({ type_key: typeKey ?? null, query: query || null }),
-  })
-  const counts = useQuery({ queryKey: keys.styleCounts, queryFn: styleBrickCounts })
+  const bricks = useQuery(queries.styleBricksMatching(typeKey ?? null, query))
+  const counts = useQuery(queries.styleCounts())
 
   const countOf = useMemo(() => new Map(counts.data ?? []), [counts.data])
   const total = useMemo(() => (counts.data ?? []).reduce((sum, [, n]) => sum + n, 0), [counts.data])

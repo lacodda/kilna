@@ -1,16 +1,13 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, CalendarDays } from 'lucide-react'
-import { dismissedFindings } from '@/lib/api/focus'
-import { calendar as fetchCalendar } from '@/lib/api/releases'
 import type { ScoredWork } from '@/lib/api/types'
-import { catalogue } from '@/lib/api/works'
 import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
 import { isQuiet, summarise, type Decision } from '@/lib/dashboard'
 import { findings, visible } from '@/lib/findings'
 import { today } from '@/lib/month'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { missing } from '@/lib/readiness'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { StageDial } from '@/components/StageDial'
@@ -42,12 +39,12 @@ export function DashboardView({ onSelect }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
 
-  const works = useQuery({ queryKey: keys.catalogue, queryFn: catalogue })
-  const slots = useQuery({ queryKey: keys.calendar, queryFn: fetchCalendar })
+  const works = useQuery(queries.catalogue())
+  const slots = useQuery(queries.calendar())
   // Read here as well as in the board: the quiet state below has to know
   // whether anything is standing, and a finding the person has already
   // answered must not keep the screen from saying it is quiet.
-  const dismissals = useQuery({ queryKey: keys.dismissals, queryFn: dismissedFindings })
+  const dismissals = useQuery(queries.dismissals())
 
   if (works.isPending || slots.isPending) return <SkeletonList rows={6} />
 

@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { StatusChange } from '@/lib/api/types'
 import { resyncStatuses, statusDrift } from '@/lib/api/works'
-import { keys } from '@/lib/query/keys'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -19,7 +19,6 @@ import { Badge } from '@/components/ui/badge'
 export function StatusDrift() {
   const { t } = useTranslation()
   const profile = useProfile()
-  const client = useQueryClient()
   // `null` is "not looked yet", an empty array is "looked, nothing to do" —
   // two different things that must not read the same on screen.
   const [found, setFound] = useState<StatusChange[] | null>(null)
@@ -29,22 +28,20 @@ export function StatusDrift() {
     return found === undefined ? key : sayLabel(found)
   }
 
-  const check = useMutation({
+  const check = useAppMutation({
     mutationFn: statusDrift,
     onSuccess: setFound,
-    onError: (cause) => say.failedTo(t('toast.statusDriftFailed'), cause),
+    failure: 'toast.statusDriftFailed',
   })
 
-  const apply = useMutation({
+  const apply = useAppMutation({
     mutationFn: resyncStatuses,
+    refresh: refresh.work,
     onSuccess: (changes) => {
       setFound([])
-      void client.invalidateQueries({ queryKey: keys.works })
-      void client.invalidateQueries({ queryKey: keys.catalogue })
-      void client.invalidateQueries({ queryKey: keys.journal })
       say.ok(t('data.statusResynced', { count: changes.length }))
     },
-    onError: (cause) => say.failedTo(t('toast.statusResyncFailed'), cause),
+    failure: 'toast.statusResyncFailed',
   })
 
   return (

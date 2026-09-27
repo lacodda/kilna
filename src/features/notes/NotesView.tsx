@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { ListChecks, Plus } from 'lucide-react'
-import { createNote, listNotes, listTags } from '@/lib/api/notes'
+import { createNote } from '@/lib/api/notes'
 import type { Note } from '@/lib/api/types'
 import { progressOf } from '@/lib/checklist'
 import { titleOf } from '@/lib/notes'
-import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { useDebounced } from '@/lib/useDebounced'
 import { cn } from '@/lib/utils'
@@ -35,7 +36,6 @@ import { NoteDetail } from '@/features/notes/NoteDetail'
 export function NotesView() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const client = useQueryClient()
   const { config } = useProfile()
   const { noteId } = useParams()
   const kinds = config.note_kinds ?? []
@@ -53,19 +53,13 @@ export function NotesView() {
     tag: tag === '' ? undefined : tag,
     search: query === '' ? undefined : query,
   }
-  const notes = useQuery({
-    queryKey: [...keys.notes, 'all', filter],
-    queryFn: () => listNotes(filter),
-  })
+  const notes = useQuery(queries.notesMatching(filter))
   // Every tag in use, most used first: the filter's choices, and what the
   // tag field of the open note completes from.
-  const tags = useQuery({ queryKey: keys.tags, queryFn: listTags })
+  const tags = useQuery(queries.tags())
   // Counts per kind come from the unfiltered list, so a chip says how many
   // there are of that kind, not how many survived the other filters.
-  const everything = useQuery({
-    queryKey: [...keys.notes, 'all', {}],
-    queryFn: () => listNotes({}),
-  })
+  const everything = useQuery(queries.notesMatching({}))
   const counts = useMemo(() => {
     const map = new Map<string, number>()
     for (const note of everything.data ?? []) map.set(note.kind, (map.get(note.kind) ?? 0) + 1)
@@ -76,7 +70,7 @@ export function NotesView() {
     void navigate(id === null ? '/notes' : `/notes/${id}`)
   }
 
-  const add = useMutation({
+  const add = useAppMutation({
     mutationFn: () =>
       createNote({
         body: '',
@@ -85,14 +79,12 @@ export function NotesView() {
         kind: kind ?? kinds[0]?.key ?? null,
         tags: tag === '' ? [] : [tag],
       }),
+    failure: 'toast.noteSaveFailed',
+    refresh: refresh.note,
     onSuccess: (created) => {
-      for (const key of [keys.notes, keys.tags, keys.journal]) {
-        void client.invalidateQueries({ queryKey: key })
-      }
       setFresh(created.id)
       open(created.id)
     },
-    onError: (cause) => say.failedTo(t('toast.noteSaveFailed'), cause),
   })
 
   const rows = notes.data ?? []

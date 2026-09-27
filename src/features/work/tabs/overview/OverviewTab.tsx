@@ -5,6 +5,8 @@ import { unpinStatus, updateWork } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
 import { useFieldDraft } from '@/lib/fieldDraft'
 import { keys } from '@/lib/query/keys'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { DatePicker } from '@/components/DatePicker'
@@ -78,15 +80,13 @@ export function OverviewTab({ work }: Props) {
   const pinned = work.status_pinned_at != null
   const statusHint = pinned ? t('work.statusPinned') : t('work.statusDerived')
 
-  const unpin = useMutation({
+  const unpin = useAppMutation({
     mutationFn: () => unpinStatus(work.id),
+    failure: 'toast.workSaveFailed',
+    refresh: refresh.work,
     onSuccess: (updated) => {
       client.setQueryData(keys.work(work.id), updated)
-      void client.invalidateQueries({ queryKey: keys.works })
-      void client.invalidateQueries({ queryKey: keys.catalogue })
-      void client.invalidateQueries({ queryKey: keys.journal })
     },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })
 
   const setMeta = (key: string, value: Meta[string]) => {

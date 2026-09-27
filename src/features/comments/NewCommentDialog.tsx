@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { createComment } from '@/lib/api/comments'
-import { getWork } from '@/lib/api/works'
 import { recallChannel, rememberChannel } from '@/lib/comments'
-import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/DatePicker'
 import { Dialog } from '@/components/AppDialog'
@@ -35,7 +35,6 @@ export function NewCommentDialog({
   onCreated,
 }: Props) {
   const { t } = useTranslation()
-  const client = useQueryClient()
 
   const [where, setWhere] = useState('')
   const [author, setAuthor] = useState('')
@@ -58,12 +57,11 @@ export function NewCommentDialog({
   }
 
   const chosen = useQuery({
-    queryKey: keys.work(work ?? ''),
-    queryFn: () => getWork(work!),
+    ...queries.work(work ?? ''),
     enabled: work !== null,
   })
 
-  const create = useMutation({
+  const create = useAppMutation({
     mutationFn: () =>
       createComment({
         channel: where.trim(),
@@ -72,13 +70,13 @@ export function NewCommentDialog({
         commented_on: day === '' ? null : day,
         work_id: work,
       }),
+    failure: 'comments.saveFailed',
+    refresh: refresh.comment,
     onSuccess: (created) => {
       rememberChannel(where)
-      void client.invalidateQueries({ queryKey: keys.comments })
       onOpenChange(false)
       onCreated(created.id)
     },
-    onError: (cause) => say.failedTo(t('comments.saveFailed'), cause),
   })
 
   const ready = where.trim() !== '' && body.trim() !== ''

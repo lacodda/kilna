@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { open as openFile } from '@tauri-apps/plugin-dialog'
 import { Sparkles, Trash2, X } from 'lucide-react'
 import { attachAsset, detachAsset, fileSrc } from '@/lib/api/assets'
@@ -9,13 +9,14 @@ import {
   deleteStyleBrick,
   pasteStyleReference,
   startStyleTask,
-  styleBrickReferences,
   updateStyleBrick,
 } from '@/lib/api/styles'
 import type { StyleBrick, StyleBrickStatus, StyleType } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
 import { say as sayLabel } from '@/lib/useProfile'
 import { useAssistant } from '@/lib/useAssistant'
@@ -84,74 +85,71 @@ export function StyleBrickDialog({
       written.hint !== brick.hint ||
       status !== brick.status)
 
-  const references = useQuery({
-    queryKey: keys.styleReferences(id ?? ''),
-    queryFn: () => styleBrickReferences(id ?? ''),
-    enabled: id !== undefined,
-  })
+  const references = useQuery({ ...queries.styleReferences(id ?? ''), enabled: id !== undefined })
 
+  // Only `describe` still calls this directly: it invalidates ahead of a save
+  // folded into its own mutation, before the task it starts even lands.
   const settle = () => {
     void client.invalidateQueries({ queryKey: keys.styles })
     onSettled()
   }
 
-  const save = useMutation({
+  const save = useAppMutation({
     mutationFn: async () => {
       if (id === undefined) return createStyleBrick(written)
       return updateStyleBrick(id, { ...written, status })
     },
+    refresh: refresh.style,
     onSuccess: () => {
-      settle()
+      onSettled()
       // Said, with the way back: both a new brick and an edit are operations
       // undo can take back, and a save that closes the dialog in silence left
       // the person to guess whether it happened.
-      announceEdited({ client, message: t('styles.saved'), refresh: [keys.styles] })
+      announceEdited({ client, message: t('styles.saved'), refresh: refresh.style })
       onOpenChange(false)
     },
-    onError: (cause: unknown) => say.failed(cause),
   })
 
   // Into the trash with its references, the road every other deletion takes;
   // the toast offers the way back.
-  const remove = useMutation({
+  const remove = useAppMutation({
     mutationFn: () => deleteStyleBrick(id ?? ''),
     onSuccess: (deletionId) => {
-      settle()
+      onSettled()
       announceDeleted({
         client,
         deletionId,
         message: t('styles.deleted', { name: brick?.name ?? '' }),
-        refresh: [keys.styles],
+        refresh: refresh.style,
       })
       onOpenChange(false)
     },
-    onError: (cause: unknown) => say.failed(cause),
   })
 
-  const attach = useMutation({
+  const attach = useAppMutation({
     mutationFn: async (paths: string[]) => {
       for (const path of paths) {
         await attachAsset(path, { style_brick_id: id })
       }
     },
-    onSuccess: settle,
-    onError: (cause: unknown) => say.failed(cause),
+    refresh: refresh.style,
+    onSuccess: onSettled,
   })
 
-  const paste = useMutation({
+  const paste = useAppMutation({
     mutationFn: ({ bytes, fileName }: { bytes: number[]; fileName: string }) =>
       pasteStyleReference(id ?? '', bytes, fileName),
-    onSuccess: settle,
-    onError: (cause: unknown) => say.failed(cause),
+    refresh: refresh.style,
+    onSuccess: onSettled,
   })
 
-  const detach = useMutation({
+  const detach = useAppMutation({
     mutationFn: (assetId: string) => detachAsset(assetId),
-    onSuccess: settle,
-    onError: (cause: unknown) => say.failed(cause),
+    refresh: refresh.style,
+    onSuccess: onSettled,
   })
 
-  const describe = useMutation({
+  const describe = useAppMutation({
     mutationFn: async () => {
       if (dirty && id !== undefined) {
         await updateStyleBrick(id, { ...written, status })
@@ -165,7 +163,6 @@ export function StyleBrickDialog({
       assistant.open(started.chatId)
       onOpenChange(false)
     },
-    onError: (cause: unknown) => say.failed(cause),
   })
 
   // A reference pasted straight from a generator's tab, the way a frame is.

@@ -1,15 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronsLeft, ChevronsRight } from 'lucide-react'
 import {
   applyLayout,
   generateReleaseFieldsBatch,
-  calendar as fetchCalendar,
   markReleased,
   planLayout,
   createRelease,
-  releaseQueue,
   scheduleRelease,
   setSlotPin,
   unscheduleRelease,
@@ -17,6 +15,8 @@ import {
 } from '@/lib/api/releases'
 import type { NewRelease, Placement } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { allOf, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -93,8 +93,8 @@ export function CalendarView({ onSelect }: Props) {
   // deal to undo one release at a time.
   const [fillingFields, setFillingFields] = useState(false)
 
-  const slots = useQuery({ queryKey: keys.calendar, queryFn: fetchCalendar })
-  const queued = useQuery({ queryKey: keys.releaseQueue, queryFn: releaseQueue })
+  const slots = useQuery(queries.calendar())
+  const queued = useQuery(queries.releaseQueue())
 
   // The queue, as the filters leave it. `work_stage` is a percentage and the
   // filter is a stop, so the comparison is "has reached this stop" rather than
@@ -108,106 +108,116 @@ export function CalendarView({ onSelect }: Props) {
   )
 
   // Both sides of this screen move together: taking a slot removes something
-  // from the queue, returning one puts it back. The journal goes with them —
-  // displacing a release writes the one warning that lights the bell, and a
-  // change that put something unready inside the coming week warns right away
-  // rather than at the next startup. The sweep runs before the journal is
-  // refetched so the feed the refetch brings back already holds the warning.
+  // from the queue, returning one puts it back - what every one of these
+  // mutations disturbs.
+  const REFRESHED = [keys.calendar, keys.releaseQueue, keys.releases] as const
+
+  // What settling still does beyond the plain refresh above: clear the
+  // preview, and warn about the week ahead before the journal is read again.
+  // Displacing a release writes the one warning that lights the bell, and a
+  // change that put something unready inside the coming week warns right
+  // away rather than at the next startup - but only once the sweep itself has
+  // written it, which is later than the hook's own immediate refresh of the
+  // journal. So the feed is asked again once the sweep is done, and holds the
+  // warning that arrived too late for the first read.
   const settle = () => {
     setLayout(null)
-    void client.invalidateQueries({ queryKey: keys.calendar })
-    void client.invalidateQueries({ queryKey: keys.releaseQueue })
-    void client.invalidateQueries({ queryKey: keys.releases })
     void warnUnreadyReleases(today()).finally(() => {
       void client.invalidateQueries({ queryKey: keys.journal })
     })
   }
 
-  const claim = useMutation({
+  const claim = useAppMutation({
     mutationFn: ({ id, date }: { id: string; date: string }) => scheduleRelease(id, date),
+    failure: 'toast.releaseSaveFailed',
+    refresh: REFRESHED,
     onSuccess: () => {
       setPicked(null)
       settle()
       say.ok(t('toast.releaseScheduled'))
     },
-    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
 
   // A work chosen for a day, booked in one step: the release is made already
   // holding its date, rather than being made and then dragged out of the
   // queue onto the day it was asked for a moment ago.
-  const fillDay = useMutation({
+  const fillDay = useAppMutation({
     mutationFn: (release: NewRelease) => createRelease(release),
+    failure: 'toast.releaseSaveFailed',
+    refresh: REFRESHED,
     onSuccess: () => {
       setFillingDay(null)
       settle()
       say.ok(t('toast.releaseScheduled'))
     },
-    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
 
-  const release = useMutation({
+  const release = useAppMutation({
     mutationFn: ({ id, url, at }: { id: string; url: string | null; at: string | null }) =>
       markReleased(id, url, at),
+    failure: 'toast.releaseSaveFailed',
+    refresh: REFRESHED,
     onSuccess: () => {
       settle()
       say.ok(t('toast.releaseReleased'))
     },
-    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
 
   // The same call the queue uses. Until v0.44 dragging went through a contest
   // and a weaker release could be evicted by the drop; now a day holds what is
   // put on it, so moving a chip is the plainest thing on the screen — a date
   // is written, and nothing else happens.
-  const move = useMutation({
+  const move = useAppMutation({
     mutationFn: ({ id, date }: { id: string; date: string }) => scheduleRelease(id, date),
+    failure: 'toast.releaseSaveFailed',
+    refresh: REFRESHED,
     onSuccess: () => {
       settle()
       say.ok(t('toast.releaseMoved'))
     },
-    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
 
-  const pin = useMutation({
+  const pin = useAppMutation({
     mutationFn: ({ id, pinned }: { id: string; pinned: boolean }) => setSlotPin(id, pinned),
+    failure: 'toast.releaseSaveFailed',
+    refresh: REFRESHED,
     onSuccess: (release) => {
       settle()
       say.ok(release.slot_pinned_at === null ? t('toast.slotUnpinned') : t('toast.slotPinned'))
     },
-    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
 
-  const unschedule = useMutation({
+  const unschedule = useAppMutation({
     mutationFn: unscheduleRelease,
+    failure: 'toast.releaseSaveFailed',
+    refresh: REFRESHED,
     onSuccess: () => {
       settle()
       say.ok(t('toast.releaseUnscheduled'))
     },
-    onError: (cause) => say.failedTo(t('toast.releaseSaveFailed'), cause),
   })
 
   // The plan moves nothing; it is a picture to approve. Jumping to its first
   // month is what makes the ghosts visible at all when the queue lands beyond
   // the month on screen.
-  const preview = useMutation({
+  const preview = useAppMutation({
     mutationFn: () => planLayout(today()),
+    failure: 'toast.layoutFailed',
     onSuccess: (placements) => {
       setLayout(placements)
       const first = placements[0]
       if (first !== undefined) setMonth(monthOf(first.date))
     },
-    onError: (cause) => say.failedTo(t('toast.layoutFailed'), cause),
   })
 
   // What the month's releases go out as, written in one pass. The point is a
   // week of the calendar: someone who planned six videos writes their
   // metadata together or not at all.
-  const fillFields = useMutation({
+  const fillFields = useAppMutation({
     mutationFn: (ids: string[]) => generateReleaseFieldsBatch(ids),
+    failure: 'calendar.fields.failed',
+    refresh: [keys.releases],
     onSuccess: (outcome) => {
-      void client.invalidateQueries({ queryKey: keys.releases })
-      void client.invalidateQueries({ queryKey: keys.journal })
       if (outcome.filled > 0) {
         say.ok(t('calendar.fields.done', { count: outcome.filled }))
       } else {
@@ -226,18 +236,20 @@ export function CalendarView({ onSelect }: Props) {
         )
       }
     },
-    onError: (cause) => say.failedTo(t('calendar.fields.failed'), cause),
   })
 
-  const book = useMutation({
+  const book = useAppMutation({
     mutationFn: (placements: Placement[]) => applyLayout(placements),
+    refresh: REFRESHED,
     onSuccess: () => {
       settle()
       say.ok(t('toast.layoutApplied'))
     },
     // A stale plan is refused whole; the refetch shows what the calendar
-    // actually holds now, and the person previews again from that.
+    // actually holds now, and the person previews again from that. `refresh`
+    // only runs on success, so the same areas are invalidated by hand here.
     onError: (cause) => {
+      for (const key of REFRESHED) void client.invalidateQueries({ queryKey: key })
       settle()
       say.failedTo(t('toast.layoutFailed'), cause)
     },

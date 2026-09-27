@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { listen } from '@tauri-apps/api/event'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Eye, Sparkles } from 'lucide-react'
 import { actionsOfScope } from '@/lib/actions'
-import { activeTasks, startTask } from '@/lib/api/assistant'
-import type { PromptTemplate, RunEmission } from '@/lib/api/types'
+import { startTask } from '@/lib/api/assistant'
+import type { PromptTemplate } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
-import { movesTaskList, taskKey } from '@/lib/tasks'
+import { taskKey } from '@/lib/tasks'
 import { say as sayLabel, useProfile, useWorkKind } from '@/lib/useProfile'
 import { actionIconOf } from '@/lib/actionIcon'
 import { Button } from '@/components/ui/button'
@@ -94,45 +95,22 @@ export function ActionBar({
   const { t } = useTranslation()
   const profile = useProfile()
   const kind = useWorkKind(workId)
-  const client = useQueryClient()
   const [previewing, setPreviewing] = useState<PromptTemplate | null>(null)
   /** The action waiting on a pick of styles, when one reads `{styles}`. */
   const [picking, setPicking] = useState<PromptTemplate | null>(null)
 
   // Which actions are already going. Asked of the backend rather than kept
   // here: a run started before this card was opened still owns its button, and
-  // a component's own state cannot know that.
-  const running = useQuery({
-    queryKey: keys.activeTasks,
-    queryFn: activeTasks,
-    staleTime: 0,
-  })
+  // a component's own state cannot know that. A task that ends without anyone
+  // watching this bar gives its button back through the run events' bridge.
+  const running = useQuery({ ...queries.activeTasks(), staleTime: 0 })
 
-  // A task ends without anyone watching this bar, and its button has to come
-  // back by itself. Only run boundaries move the list.
-  useEffect(() => {
-    const subscription = listen<RunEmission>('assistant:run', ({ payload }) => {
-      if (movesTaskList(payload)) {
-        void client.invalidateQueries({ queryKey: keys.activeTasks })
-      }
-    })
-    return () => {
-      void subscription.then((unlisten) => {
-        unlisten()
-      })
-    }
-  }, [client])
-
-  const start = useMutation({
+  const start = useAppMutation({
     mutationFn: ({ action, styleBrickIds }: { action: string; styleBrickIds?: string[] }) =>
       startTask(workId, action, { versionId, sceneId, block, styleBrickIds }),
+    refresh: [keys.activeTasks, keys.allChats],
     onSuccess: (started) => {
-      void client.invalidateQueries({ queryKey: keys.activeTasks })
-      void client.invalidateQueries({ queryKey: keys.allChats })
       say.info(t('assistant.taskStarted', { title: started.title }))
-    },
-    onError: (cause) => {
-      say.failed(cause)
     },
   })
 
@@ -316,8 +294,6 @@ export function ActionBar({
           block={block}
           onStarted={() => {
             setPreviewing(null)
-            void client.invalidateQueries({ queryKey: keys.activeTasks })
-            void client.invalidateQueries({ queryKey: keys.allChats })
           }}
         />
       )}

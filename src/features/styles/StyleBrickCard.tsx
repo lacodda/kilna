@@ -2,9 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ImageOff } from 'lucide-react'
 import { fileSrc } from '@/lib/api/assets'
-import { styleBrickReferences } from '@/lib/api/styles'
 import type { StyleBrick } from '@/lib/api/types'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { cn } from '@/lib/utils'
 
 /**
@@ -21,8 +20,7 @@ export function StyleBrickCard({ brick, onOpen }: { brick: StyleBrick; onOpen: (
   // Only for a brick that has one: a query per empty card would be a query per
   // card on a fresh dictionary.
   const references = useQuery({
-    queryKey: keys.styleReferences(brick.id),
-    queryFn: () => styleBrickReferences(brick.id),
+    ...queries.styleReferences(brick.id),
     enabled: brick.reference_count > 0,
   })
   const cover = references.data?.[0]

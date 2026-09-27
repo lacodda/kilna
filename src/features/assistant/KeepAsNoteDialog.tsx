@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createNote } from '@/lib/api/notes'
-import { keys } from '@/lib/query/keys'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -33,14 +33,13 @@ interface Props {
  */
 export function KeepAsNoteDialog({ open, onOpenChange, body, workId }: Props) {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const { config } = useProfile()
 
   const kinds = config.note_kinds ?? []
   const [kind, setKind] = useState(kinds[0]?.key ?? '')
   const [title, setTitle] = useState('')
 
-  const keep = useMutation({
+  const keep = useAppMutation({
     mutationFn: () =>
       createNote({
         body,
@@ -48,15 +47,11 @@ export function KeepAsNoteDialog({ open, onOpenChange, body, workId }: Props) {
         kind: kind === '' ? null : kind,
         title: title.trim() === '' ? null : title.trim(),
       }),
+    failure: 'assistant.noteKeepFailed',
+    refresh: refresh.note,
     onSuccess: () => {
-      for (const key of [keys.notes, keys.tags, keys.journal]) {
-        void client.invalidateQueries({ queryKey: key })
-      }
       say.ok(t('assistant.noteKept'))
       onOpenChange(false)
-    },
-    onError: (cause) => {
-      say.failedTo(t('assistant.noteKeepFailed'), cause)
     },
   })
 

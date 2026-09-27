@@ -2,9 +2,8 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import type { ScoredWork } from '@/lib/api/types'
-import { catalogue } from '@/lib/api/works'
 import { coverImageFor } from '@/lib/cover'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { useCovers } from '@/lib/useCovers'
 import { cn } from '@/lib/utils'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
@@ -58,7 +57,7 @@ function Contents({ onOpenChange, onPick, title }: Omit<Props, 'open'>) {
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState<string | null>(null)
 
-  const rows = useQuery({ queryKey: keys.catalogue, queryFn: catalogue })
+  const rows = useQuery(queries.catalogue())
 
   // Filtering here rather than in SQL: the catalogue is one query the app
   // already holds, and four hundred titles filter faster than a round trip.

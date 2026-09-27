@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, X } from 'lucide-react'
 import {
   Combobox,
@@ -11,10 +11,11 @@ import {
   ComboboxPopup,
 } from '@/components/ui/combobox'
 import type { Mark, Work } from '@/lib/api/types'
-import { updateWork, workTags } from '@/lib/api/works'
+import { updateWork } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { markIconOf } from '@/lib/markIcon'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
@@ -38,8 +39,9 @@ export function TagBar({ work }: { work: Work }) {
   const [adding, setAdding] = useState(false)
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
-  const patch = useMutation({
+  const patch = useAppMutation({
     mutationFn: (changes: { tags?: string[]; marks?: string[] }) => updateWork(work.id, changes),
+    failure: 'toast.workSaveFailed',
     onSuccess: (updated) => {
       client.setQueryData(keys.work(work.id), updated)
       announceEdited({
@@ -48,17 +50,11 @@ export function TagBar({ work }: { work: Work }) {
         refresh: [keys.workTags, keys.catalogue],
       })
     },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })
 
   // What the workspace already says, so the second winter song is tagged from
   // the list rather than retyped into a near-miss.
-  const known = useQuery({
-    queryKey: keys.workTags,
-    queryFn: workTags,
-    staleTime: 30_000,
-    enabled: adding,
-  })
+  const known = useQuery({ ...queries.workTags(), staleTime: 30_000, enabled: adding })
 
   const marks: Mark[] = profile.config.marks ?? []
   const raised = new Set(work.marks)

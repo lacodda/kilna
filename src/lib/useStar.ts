@@ -1,9 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { updateWork } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 
 /**
  * The star: "come back to this one".
@@ -18,16 +19,16 @@ export function useStar(workId: string) {
   const { t } = useTranslation()
   const client = useQueryClient()
 
-  return useMutation({
+  return useAppMutation({
     mutationFn: (on: boolean) => updateWork(workId, { bookmarked: on }),
+    failure: 'toast.workSaveFailed',
     onSuccess: (updated, on) => {
       client.setQueryData(keys.work(workId), updated)
       announceEdited({
         client,
         message: t(on ? 'toast.starred' : 'toast.unstarred'),
-        refresh: [keys.works, keys.catalogue, keys.journal],
+        refresh: refresh.work,
       })
     },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })
 }

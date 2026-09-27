@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
-import { resolveLinks } from '@/lib/api/links'
 import type { ResolvedLink } from '@/lib/api/types'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { hrefOf, replaceWikiLinks, wikiLinks } from '@/lib/wikilink'
 import { cn } from '@/lib/utils'
 
@@ -59,8 +58,7 @@ export function Markdown({
   }, [links])
 
   const resolved = useQuery({
-    queryKey: keys.resolvedLinks(`${named.works.join(',')}|${named.versions.join(',')}`),
-    queryFn: () => resolveLinks(named.works, named.versions),
+    ...queries.resolvedLinks(named.works, named.versions),
     enabled: links.length > 0,
   })
 

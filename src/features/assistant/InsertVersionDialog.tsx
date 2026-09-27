@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { applyProposal } from '@/lib/api/assistant'
 import { createVersion } from '@/lib/api/versions'
 import { keys } from '@/lib/query/keys'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -45,7 +46,6 @@ export function InsertVersionDialog({
   messageId,
 }: Props) {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const navigate = useNavigate()
 
   const roles = useVocabulary(workId).version_roles
@@ -57,7 +57,7 @@ export function InsertVersionDialog({
   const [label, setLabel] = useState(proposedLabel ?? '')
   const [makeCurrent, setMakeCurrent] = useState(false)
 
-  const insert = useMutation({
+  const insert = useAppMutation({
     mutationFn: async (): Promise<string> => {
       const trimmed = label.trim() === '' ? null : label.trim()
       // A proposal is applied as a proposal — the same write, and the
@@ -78,25 +78,16 @@ export function InsertVersionDialog({
       })
       return version.id
     },
+    // The same set a hand-written version disturbs, and the message it was
+    // kept from.
+    refresh: [...refresh.version(workId), keys.transcripts],
+    failure: 'toast.versionSaveFailed',
     onSuccess: (versionId) => {
-      // The same set a hand-written version disturbs.
-      for (const key of [
-        keys.journal,
-        keys.versions(workId),
-        keys.work(workId),
-        keys.works,
-        keys.transcripts,
-      ]) {
-        void client.invalidateQueries({ queryKey: key })
-      }
       say.ok(t('assistant.inserted'))
       onOpenChange(false)
       // The new version shows itself rather than leaving a toast to vouch for
       // it: the Versions tab opens on the very draft that was just kept.
       void navigate(`/works/${workId}/versions?version=${versionId}`)
-    },
-    onError: (cause) => {
-      say.failedTo(t('toast.versionSaveFailed'), cause)
     },
   })
 

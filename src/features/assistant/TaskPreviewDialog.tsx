@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
-import { previewTask, startTask } from '@/lib/api/assistant'
+import { startTask } from '@/lib/api/assistant'
 import type { PromptTemplate } from '@/lib/api/types'
 import { humanError } from '@/lib/errors'
+import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/AppDialog'
@@ -58,22 +61,13 @@ export function TaskPreviewDialog({
   const [attachments, setAttachments] = useState<string[]>([])
 
   const preview = useQuery({
-    queryKey: [
-      'task-preview',
-      workId,
-      action.key,
-      versionId ?? '',
-      sceneId ?? '',
-      block ?? '',
-      attachments,
-    ],
-    queryFn: () => previewTask(workId, action.key, { versionId, sceneId, block, attachments }),
+    ...queries.taskPreview(workId, action.key, { versionId, sceneId, block, attachments }),
     enabled: isOpen,
     staleTime: 0,
     retry: false,
   })
 
-  const start = useMutation({
+  const start = useAppMutation({
     mutationFn: () =>
       startTask(workId, action.key, {
         versionId,
@@ -81,12 +75,10 @@ export function TaskPreviewDialog({
         block,
         attachments: pathsOf(attachmentsText),
       }),
+    refresh: [keys.activeTasks, keys.allChats],
     onSuccess: (started) => {
       say.info(t('assistant.taskStarted', { title: started.title }))
       onStarted()
-    },
-    onError: (cause) => {
-      say.failed(cause)
     },
   })
 

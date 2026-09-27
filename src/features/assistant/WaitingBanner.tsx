@@ -1,14 +1,12 @@
-import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { listen } from '@tauri-apps/api/event'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { MessageCircleQuestion, X } from 'lucide-react'
-import { clearWaiting, waitingChats } from '@/lib/api/assistant'
-import type { ChatSummary, RunEmission } from '@/lib/api/types'
+import { clearWaiting } from '@/lib/api/assistant'
+import type { ChatSummary } from '@/lib/api/types'
 import { chatLabel } from '@/lib/chat'
 import { keys } from '@/lib/query/keys'
-import { movesTaskList } from '@/lib/tasks'
-import { say } from '@/lib/toast'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { useAssistant } from '@/lib/useAssistant'
 import { Button } from '@/components/ui/button'
 
@@ -25,40 +23,15 @@ import { Button } from '@/components/ui/button'
  */
 export function WaitingBanner() {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const assistant = useAssistant()
 
-  const waiting = useQuery({
-    queryKey: keys.waitingChats,
-    queryFn: waitingChats,
-    staleTime: 0,
-  })
+  // A task can start waiting while this banner is on screen; the run events'
+  // bridge refreshes the list on every run's start and end.
+  const waiting = useQuery({ ...queries.waitingChats(), staleTime: 0 })
 
-  // A task can start waiting while this banner is on screen, so run boundaries
-  // refresh it. Nothing else does: an answer arriving block by block cannot
-  // change whether a question is pending.
-  useEffect(() => {
-    const subscription = listen<RunEmission>('assistant:run', ({ payload }) => {
-      if (movesTaskList(payload)) {
-        void client.invalidateQueries({ queryKey: keys.waitingChats })
-      }
-    })
-    return () => {
-      void subscription.then((unlisten) => {
-        unlisten()
-      })
-    }
-  }, [client])
-
-  const dismiss = useMutation({
+  const dismiss = useAppMutation({
     mutationFn: (chatId: string) => clearWaiting(chatId),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.waitingChats })
-      void client.invalidateQueries({ queryKey: keys.allChats })
-    },
-    onError: (cause) => {
-      say.failed(cause)
-    },
+    refresh: [keys.waitingChats, keys.allChats],
   })
 
   const chats = waiting.data ?? []

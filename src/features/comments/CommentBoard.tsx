@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ClipboardPaste, LoaderCircle, Plus } from 'lucide-react'
-import { commentChannels, listComments, pendingCommentProposals } from '@/lib/api/comments'
 import type {
   Comment,
   CommentProposal,
@@ -12,6 +11,7 @@ import type {
 import { commentAction } from '@/lib/actions'
 import { standingOf, type Standing } from '@/lib/comments'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { channelOfTask, commentTaskKey, isScreenshotTask } from '@/lib/tasks'
 import { useDebounced } from '@/lib/useDebounced'
 import { useProfile } from '@/lib/useProfile'
@@ -66,15 +66,9 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
     state,
     search: query === '' ? undefined : query,
   }
-  const comments = useQuery({
-    queryKey: [...keys.comments, 'list', filter],
-    queryFn: () => listComments(filter),
-  })
-  const channels = useQuery({ queryKey: keys.commentChannels, queryFn: commentChannels })
-  const proposals = useQuery({
-    queryKey: keys.commentProposals,
-    queryFn: pendingCommentProposals,
-  })
+  const comments = useQuery(queries.commentsMatching(filter))
+  const channels = useQuery(queries.commentChannels())
+  const proposals = useQuery(queries.commentProposals())
 
   // An answer arriving is the moment a reading or a draft becomes something
   // to keep: the list of what waits is asked again then, and not on a timer.

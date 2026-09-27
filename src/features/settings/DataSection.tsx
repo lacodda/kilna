@@ -2,13 +2,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { open, save } from '@tauri-apps/plugin-dialog'
-import {
-  backupWorkspace,
-  exportMarkdown,
-  importLegacy,
-  suggestedBackupName,
-  workspacePath,
-} from '@/lib/api/data'
+import { backupWorkspace, exportMarkdown, importLegacy, suggestedBackupName } from '@/lib/api/data'
+import { queries } from '@/lib/query/queries'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/Skeleton'
@@ -21,11 +16,7 @@ export function DataSection() {
   const [busy, setBusy] = useState(false)
 
   // The path never changes while the app runs, so it is asked for once.
-  const path = useQuery({
-    queryKey: ['workspacePath'],
-    queryFn: workspacePath,
-    staleTime: Infinity,
-  })
+  const path = useQuery({ ...queries.workspacePath(), staleTime: Infinity })
 
   // Each of these opens an OS file dialog first, so they are not mutations in
   // the query sense — there is nothing to retry and no variables to carry.

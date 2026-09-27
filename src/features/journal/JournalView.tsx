@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { listJournal, markJournalRead } from '@/lib/api/journal'
-import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
+import { useQuery } from '@tanstack/react-query'
+import { markJournalRead } from '@/lib/api/journal'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { Button } from '@/components/ui/button'
 import { SkeletonList } from '@/components/Skeleton'
 import { JournalLines } from '@/features/journal/JournalFeed'
@@ -18,15 +18,13 @@ import { cn } from '@/lib/utils'
  */
 export function JournalView() {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const [unreadOnly, setUnreadOnly] = useState(false)
 
-  const entries = useQuery({ queryKey: keys.journalFeed, queryFn: listJournal })
+  const entries = useQuery(queries.journalFeed())
 
-  const markRead = useMutation({
+  const markRead = useAppMutation({
     mutationFn: markJournalRead,
-    onSuccess: () => void client.invalidateQueries({ queryKey: keys.journal }),
-    onError: (cause) => say.failedTo(t('toast.loadFailed'), cause),
+    failure: 'toast.loadFailed',
   })
 
   if (entries.isPending) return <SkeletonList rows={6} />

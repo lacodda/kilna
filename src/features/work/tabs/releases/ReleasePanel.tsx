@@ -1,18 +1,19 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronRight, ExternalLink } from 'lucide-react'
 import {
   createRelease,
   deleteRelease,
   markReleased,
-  releasesForWork,
   unmarkReleased,
   unscheduleRelease,
   updateRelease,
 } from '@/lib/api/releases'
 import type { ReleasePatch, ScheduledRelease } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { daysBetween } from '@/lib/readiness'
 import { today } from '@/lib/month'
 import { say } from '@/lib/toast'
@@ -57,40 +58,23 @@ export function ReleasePanel({ workId, workTitle }: Props) {
   // question being asked is always about one release.
   const [showing, setShowing] = useState<string | null>(null)
 
-  const releases = useQuery({
-    queryKey: keys.releasesForWork(workId),
-    queryFn: () => releasesForWork(workId),
-  })
+  const releases = useQuery(queries.releasesForWork(workId))
 
-  // What a release touches, whether it is added, removed or brought back - the
-  // calendar, the queue, and the line the journal keeps about it.
-  const refreshed = [
-    keys.journal,
-    keys.releasesForWork(workId),
-    keys.releases,
-    keys.calendar,
-    keys.releaseQueue,
-  ]
+  // What a release touches, whether it is added, removed or brought back -
+  // the calendar, the queue, and the work's own list; the hook adds the
+  // journal itself.
+  const refreshed = [keys.releasesForWork(workId), keys.releases, keys.calendar, keys.releaseQueue]
 
-  const settle = () => {
-    for (const key of refreshed) void client.invalidateQueries({ queryKey: key })
-  }
-
-  const failed = (cause: unknown) => say.failedTo(t('toast.releaseSaveFailed'), cause)
-
-  const done = (message: string) => () => {
-    settle()
-    say.ok(message)
-  }
-
-  const add = useMutation({
+  const add = useAppMutation({
     mutationFn: () => createRelease({ work_id: workId, kind, title: workTitle }),
-    onSuccess: done(t('toast.releaseCreated')),
-    onError: failed,
+    failure: 'toast.releaseSaveFailed',
+    refresh: refreshed,
+    onSuccess: () => say.ok(t('toast.releaseCreated')),
   })
 
-  const remove = useMutation({
+  const remove = useAppMutation({
     mutationFn: deleteRelease,
+    failure: 'toast.releaseSaveFailed',
     onSuccess: (deletionId) =>
       announceDeleted({
         client,
@@ -98,11 +82,11 @@ export function ReleasePanel({ workId, workTitle }: Props) {
         message: t('toast.releaseDeleted'),
         refresh: refreshed,
       }),
-    onError: failed,
   })
 
-  const save = useMutation({
+  const save = useAppMutation({
     mutationFn: ({ id, patch }: { id: string; patch: ReleasePatch }) => updateRelease(id, patch),
+    failure: 'toast.releaseSaveFailed',
     onSuccess: () => {
       announceEdited({
         client,
@@ -110,26 +94,28 @@ export function ReleasePanel({ workId, workTitle }: Props) {
         refresh: refreshed,
       })
     },
-    onError: failed,
   })
 
-  const release = useMutation({
+  const release = useAppMutation({
     mutationFn: ({ id, url, at }: { id: string; url: string | null; at: string | null }) =>
       markReleased(id, url, at),
-    onSuccess: done(t('toast.releaseReleased')),
-    onError: failed,
+    failure: 'toast.releaseSaveFailed',
+    refresh: refreshed,
+    onSuccess: () => say.ok(t('toast.releaseReleased')),
   })
 
-  const unrelease = useMutation({
+  const unrelease = useAppMutation({
     mutationFn: unmarkReleased,
-    onSuccess: done(t('toast.releaseUnreleased')),
-    onError: failed,
+    failure: 'toast.releaseSaveFailed',
+    refresh: refreshed,
+    onSuccess: () => say.ok(t('toast.releaseUnreleased')),
   })
 
-  const unschedule = useMutation({
+  const unschedule = useAppMutation({
     mutationFn: unscheduleRelease,
-    onSuccess: done(t('toast.releaseUnscheduled')),
-    onError: failed,
+    failure: 'toast.releaseSaveFailed',
+    refresh: refreshed,
+    onSuccess: () => say.ok(t('toast.releaseUnscheduled')),
   })
 
   const copyLink = (url: string) => {

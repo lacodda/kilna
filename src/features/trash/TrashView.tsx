@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { RotateCcw, Trash2 } from 'lucide-react'
-import { emptyTrash, listDeletions, purgeDeletion, restoreDeletion } from '@/lib/api/trash'
+import { emptyTrash, purgeDeletion, restoreDeletion } from '@/lib/api/trash'
 import type { DeletedEntity, Deletion } from '@/lib/api/types'
 import { clearDraftsFor } from '@/lib/drafts'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { ConfirmAction } from '@/components/ConfirmAction'
@@ -109,55 +111,51 @@ export function TrashView() {
   // id so the question can name it.
   const [purging, setPurging] = useState<Deletion | null>(null)
 
-  const entries = useQuery({ queryKey: keys.deletions, queryFn: listDeletions })
+  const entries = useQuery(queries.deletions())
 
-  // Restoring can put back anything - a work with its versions, scenes, cuts,
-  // pictures and comments, a style with its references, a membership - so
-  // every query is refreshed rather than a list of them kept here. The list
-  // this replaced had already missed scenes, cuts, comments and versions: a
-  // restored scene stayed invisible on its card for up to half a minute. The
-  // trash is not a hot path; a stale screen after a restore costs more than
-  // queries that did not need running.
-  const settle = () => {
-    void client.invalidateQueries()
-  }
-
-  const restore = useMutation({
+  const restore = useAppMutation({
     mutationFn: restoreDeletion,
+    failure: 'trash.restoreFailed',
     onSuccess: () => {
-      settle()
+      // Restoring can put back anything - a work with its versions, scenes,
+      // cuts, pictures and comments, a style with its references, a
+      // membership - so every query is refreshed rather than a list of them
+      // kept here. The list this replaced had already missed scenes, cuts,
+      // comments and versions: a restored scene stayed invisible on its card
+      // for up to half a minute. The trash is not a hot path; a stale screen
+      // after a restore costs more than queries that did not need running.
+      void client.invalidateQueries()
       say.ok(t('trash.restored'))
     },
-    onError: (cause) => say.failedTo(t('trash.restoreFailed'), cause),
   })
 
   // Purging and emptying are the only irreversible actions in the app, so they
   // are the only ones that still ask — there is no trash behind the trash.
   // Both ask through ConfirmAction: an alert a stray click cannot dismiss.
-  const purge = useMutation({
+  const purge = useAppMutation({
     mutationFn: (entry: Deletion) => purgeDeletion(entry.id),
+    failure: 'trash.purgeFailed',
+    refresh: [keys.deletions],
     onSuccess: (_result, entry) => {
       // Unsaved drafts are keyed by the work they belong to. Once the work is
       // gone for good nothing can ever reach them again, so they go with it.
       if (entry.entity === 'work') clearDraftsFor(entry.entity_id)
       setPurging(null)
-      void client.invalidateQueries({ queryKey: keys.deletions })
     },
-    onError: (cause) => say.failedTo(t('trash.purgeFailed'), cause),
   })
 
-  const empty = useMutation({
+  const empty = useAppMutation({
     mutationFn: emptyTrash,
+    failure: 'trash.emptyFailed',
+    refresh: [keys.deletions],
     onSuccess: (count) => {
       // Same reasoning as purge, for everything at once.
       for (const entry of entries.data ?? []) {
         if (entry.entity === 'work') clearDraftsFor(entry.entity_id)
       }
       setConfirmingEmpty(false)
-      void client.invalidateQueries({ queryKey: keys.deletions })
       say.ok(t('trash.emptied', { count }))
     },
-    onError: (cause) => say.failedTo(t('trash.emptyFailed'), cause),
   })
 
   if (entries.isPending) return <SkeletonList rows={5} />

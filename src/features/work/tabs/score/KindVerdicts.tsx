@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { kindVerdicts } from '@/lib/api/scores'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 
@@ -27,10 +26,7 @@ export function KindVerdicts({ workId }: Props) {
   // is a reading of one work, and its kind says which kinds and which tiers.
   const { release_kinds: releaseKinds, tiers } = useVocabulary(workId)
 
-  const verdicts = useQuery({
-    queryKey: keys.kindVerdicts(workId),
-    queryFn: () => kindVerdicts(workId),
-  })
+  const verdicts = useQuery(queries.kindVerdicts(workId))
 
   const rows = verdicts.data ?? []
   if (rows.length === 0) return null

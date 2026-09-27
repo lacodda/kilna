@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { Check, ImagePlus, Maximize2, Trash2 } from 'lucide-react'
@@ -16,6 +15,7 @@ import type { SceneFrame } from '@/lib/api/types'
 import i18n from '@/i18n'
 import { CLIPS, PICTURES } from '@/lib/media'
 import { keys } from '@/lib/query/keys'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { VIDEO } from '@/lib/scenes'
 import { cn } from '@/lib/utils'
@@ -60,50 +60,38 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
   const isVideo = kind === VIDEO
   const word = (key: string, values?: Record<string, unknown>) =>
     t(isVideo ? `scenes.video.${key}` : `scenes.${key}`, values ?? {})
-  const client = useQueryClient()
   const [over, setOver] = useState(false)
   const region = useRef<HTMLDivElement>(null)
 
-  const refresh = () => {
-    void client.invalidateQueries({ queryKey: keys.sceneFramesFor(workId) })
-    void client.invalidateQueries({ queryKey: keys.journal })
-  }
+  // What every gesture on this strip changes: its own frames.
+  const REFRESHED = [keys.sceneFramesFor(workId)] as const
 
-  const attach = useMutation({
+  const attach = useAppMutation({
     mutationFn: (source: string) => attachSceneFrame(sceneId, kind, source),
-    onSuccess: () => {
-      refresh()
-      say.ok(word('frameAdded', { number }))
-    },
-    onError: (error: unknown) => say.failed(error),
+    refresh: REFRESHED,
+    onSuccess: () => say.ok(word('frameAdded', { number })),
   })
 
-  const paste = useMutation({
+  const paste = useAppMutation({
     mutationFn: ({ bytes, name }: { bytes: Uint8Array; name: string }) =>
       pasteSceneFrame(sceneId, kind, bytes, name),
-    onSuccess: () => {
-      refresh()
-      say.ok(word('framePasted', { number }))
-    },
-    onError: (error: unknown) => say.failed(error),
+    refresh: REFRESHED,
+    onSuccess: () => say.ok(word('framePasted', { number })),
   })
 
-  const choose = useMutation({
+  const choose = useAppMutation({
     mutationFn: (id: string) => selectSceneFrame(id),
-    onSuccess: refresh,
-    onError: (error: unknown) => say.failed(error),
+    refresh: REFRESHED,
   })
 
-  const unchoose = useMutation({
+  const unchoose = useAppMutation({
     mutationFn: () => clearSceneFrame(sceneId, kind),
-    onSuccess: refresh,
-    onError: (error: unknown) => say.failed(error),
+    refresh: REFRESHED,
   })
 
-  const remove = useMutation({
+  const remove = useAppMutation({
     mutationFn: (id: string) => detachSceneFrame(id),
-    onSuccess: refresh,
-    onError: (error: unknown) => say.failed(error),
+    refresh: REFRESHED,
   })
 
   const pick = async () => {

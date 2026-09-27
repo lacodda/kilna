@@ -2,9 +2,8 @@ import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
-import { journalForWork } from '@/lib/api/journal'
 import type { JournalEntry } from '@/lib/api/types'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/EmptyState'
 import { SkeletonList } from '@/components/Skeleton'
@@ -179,10 +178,7 @@ export function JournalLines({ entries, emptyTitle, emptyBody }: Props) {
  */
 export function WorkHistory({ workId }: { workId: string }) {
   const { t } = useTranslation()
-  const entries = useQuery({
-    queryKey: keys.journalForWork(workId),
-    queryFn: () => journalForWork(workId),
-  })
+  const entries = useQuery(queries.journalForWork(workId))
 
   return (
     <section className="flex flex-col gap-3">

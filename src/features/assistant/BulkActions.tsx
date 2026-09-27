@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { actionsOfScope } from '@/lib/actions'
-import { assistantStatus, startTasks } from '@/lib/api/assistant'
+import { startTasks } from '@/lib/api/assistant'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -29,23 +31,14 @@ interface Props {
 export function BulkActions({ workIds, onStarted }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const client = useQueryClient()
   // Without the CLI there is nothing to ask. Asked here rather than assumed
   // from the panel: the catalogue can be used with the panel never opened.
-  const status = useQuery({
-    queryKey: keys.assistantStatus,
-    queryFn: assistantStatus,
-    staleTime: 60_000,
-  })
+  const status = useQuery({ ...queries.assistantStatus(), staleTime: 60_000 })
 
-  const start = useMutation({
+  const start = useAppMutation({
     mutationFn: (action: string) => startTasks(workIds, action),
+    refresh: [keys.activeTasks, keys.taskQueue, keys.allChats],
     onSuccess: (batch) => {
-      void client.invalidateQueries({ queryKey: keys.activeTasks })
-      void client.invalidateQueries({ queryKey: keys.taskQueue })
-      void client.invalidateQueries({ queryKey: keys.allChats })
-      void client.invalidateQueries({ queryKey: keys.journal })
-
       // Every work was already going or could not start: saying "0 started"
       // and clearing the ticks would look like it worked.
       if (batch.started + batch.queued === 0) {
@@ -59,9 +52,6 @@ export function BulkActions({ workIds, onStarted }: Props) {
           : t('assistant.batchStarted', { count: batch.started }),
       )
       onStarted()
-    },
-    onError: (cause) => {
-      say.failed(cause)
     },
   })
 

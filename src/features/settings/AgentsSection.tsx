@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { mcpRegistration } from '@/lib/api/workspace'
+import { queries } from '@/lib/query/queries'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 
@@ -29,7 +29,7 @@ export function AgentsSection() {
  */
 function McpRegistration() {
   const { t } = useTranslation()
-  const command = useQuery({ queryKey: ['mcpRegistration'], queryFn: mcpRegistration })
+  const command = useQuery(queries.mcpRegistration())
   const [copied, setCopied] = useState(false)
 
   if (command.data === undefined) return null

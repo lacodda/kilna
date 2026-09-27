@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, X } from 'lucide-react'
 import type {
   Axis,
@@ -16,7 +15,7 @@ import type {
 import { updateProfileConfig } from '@/lib/api/workspace'
 import { scopeOf } from '@/lib/actions'
 import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Select } from '@/components/AppSelect'
 import { Button } from '@/components/ui/button'
@@ -31,22 +30,17 @@ import { Textarea } from '@/components/ui/textarea'
 export function ProfileEditor() {
   const { t } = useTranslation()
   const profile = useProfile()
-  const client = useQueryClient()
   const [config, setConfig] = useState<ProfileConfig>(profile.config)
 
   const patch = (changes: Partial<ProfileConfig>) => {
     setConfig((current) => ({ ...current, ...changes }))
   }
 
-  const save = useMutation({
+  const save = useAppMutation({
     mutationFn: () => updateProfileConfig(profile.id, config),
-    onSuccess: () => {
-      // The vocabulary is on every screen: labels, statuses, kinds, axes.
-      void client.invalidateQueries({ queryKey: keys.workspace })
-      void client.invalidateQueries({ queryKey: keys.profiles })
-      void client.invalidateQueries({ queryKey: keys.catalogue })
-    },
-    onError: (cause) => say.failedTo(t('toast.profileSaveFailed'), cause),
+    // The vocabulary is on every screen: labels, statuses, kinds, axes.
+    refresh: [keys.workspace, keys.profiles, keys.catalogue],
+    failure: 'toast.profileSaveFailed',
   })
 
   const saveStatus = useSaveStatus(save.isPending, save.isError)

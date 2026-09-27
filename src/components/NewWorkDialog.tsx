@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { createWork } from '@/lib/api/works'
 import { keys } from '@/lib/query/keys'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { useTypedSinceOpen } from '@/lib/dialogGuard'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
@@ -72,25 +72,21 @@ function Form({
   onCreated: (workId: string) => void
 }) {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const profile = useProfile()
   const [title, setTitle] = useState('')
   const [chosen, setChosen] = useState(kind)
 
-  const add = useMutation({
+  const add = useAppMutation({
     mutationFn: createWork,
+    refresh: [keys.works, keys.catalogue, keys.workspace],
+    failure: 'toast.workSaveFailed',
     onSuccess: (work) => {
-      void client.invalidateQueries({ queryKey: keys.works })
-      void client.invalidateQueries({ queryKey: keys.catalogue })
-      void client.invalidateQueries({ queryKey: keys.workspace })
-      void client.invalidateQueries({ queryKey: keys.journal })
       say.ok(t('toast.workCreated'))
       onClose()
       // Straight into the new work: adding one is the start of writing it, not
       // an entry in a list to admire.
       onCreated(work.id)
     },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })
 
   const submit = () => {

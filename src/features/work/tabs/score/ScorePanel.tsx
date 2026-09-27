@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Eye, EyeOff, Plus, X } from 'lucide-react'
-import { deleteScore, scoreHistory, scoreWork } from '@/lib/api/scores'
-import { listVersions } from '@/lib/api/versions'
-import { getWork } from '@/lib/api/works'
-import { keys } from '@/lib/query/keys'
+import { deleteScore, scoreWork } from '@/lib/api/scores'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
@@ -67,22 +67,13 @@ export function ScorePanel({ workId }: Props) {
   // newest, which is the verdict that stands.
   const [picked, setPicked] = useState<string | null>(null)
 
-  const history = useQuery({
-    queryKey: keys.scoreHistory(workId),
-    queryFn: () => scoreHistory(workId),
-  })
+  const history = useQuery(queries.scoreHistory(workId))
 
-  const versions = useQuery({
-    queryKey: keys.versions(workId),
-    queryFn: () => listVersions(workId),
-  })
+  const versions = useQuery(queries.versions(workId))
 
   // The pin lives on the work, not on the score: it is one person holding one
   // work at a tier, which is why 0013 put it in a column there.
-  const work = useQuery({
-    queryKey: keys.work(workId),
-    queryFn: () => getWork(workId),
-  })
+  const work = useQuery(queries.work(workId))
 
   const historyData = history.data ?? []
   const shown =
@@ -123,22 +114,7 @@ export function ScorePanel({ workId }: Props) {
   // panel exists to give once the number stops being interesting on its own.
   const ahead = filled === 0 ? undefined : toNextTier(axes, values, tiers, preview)
 
-  // A score moves the catalogue and the work's own summary, either way — and
-  // leaves a line in the journal, which the card shows underneath.
-  const refreshed = [
-    keys.journal,
-    keys.scoreHistory(workId),
-    keys.latestScore(workId),
-    keys.kindVerdicts(workId),
-    keys.catalogue,
-    keys.works,
-  ]
-
-  const settle = () => {
-    for (const key of refreshed) void client.invalidateQueries({ queryKey: key })
-  }
-
-  const save = useMutation({
+  const save = useAppMutation({
     mutationFn: () =>
       scoreWork(workId, {
         axes: values,
@@ -146,6 +122,8 @@ export function ScorePanel({ workId }: Props) {
         note: note.trim() === '' ? null : note.trim(),
         rater: rater.trim() === '' ? null : rater.trim(),
       }),
+    failure: 'toast.scoreSaveFailed',
+    refresh: refresh.score(workId),
     onSuccess: () => {
       // Back to mirroring: the score just saved is now the recorded one.
       setForm(null)
@@ -158,24 +136,22 @@ export function ScorePanel({ workId }: Props) {
       // The verdict is in, so what was held back is the payoff rather than a
       // temptation: comparing is the whole point of having judged blind.
       setRevealed(true)
-      settle()
       say.ok(t('toast.scoreSaved'))
     },
-    onError: (cause) => say.failedTo(t('toast.scoreSaveFailed'), cause),
   })
 
-  const remove = useMutation({
+  const remove = useAppMutation({
     mutationFn: deleteScore,
+    failure: 'toast.scoreSaveFailed',
     onSuccess: (deletionId, scoreId) => {
       if (picked === scoreId) setPicked(null)
       announceDeleted({
         client,
         deletionId,
         message: t('toast.scoreDeleted'),
-        refresh: refreshed,
+        refresh: refresh.score(workId),
       })
     },
-    onError: (cause) => say.failedTo(t('toast.scoreSaveFailed'), cause),
   })
 
   // Oldest first for the lines and the trail; the list stays newest first.

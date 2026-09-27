@@ -1,10 +1,12 @@
 import { type FormEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { Pin } from 'lucide-react'
 import type { Work } from '@/lib/api/types'
 import { pinTier, unpinTier } from '@/lib/api/works'
 import { keys } from '@/lib/query/keys'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -42,30 +44,25 @@ export function TierPin({ work, scored }: Props) {
 
   const pinned = work.tier_pinned !== null && work.tier_pinned !== undefined
 
-  const settle = (updated: Work) => {
-    client.setQueryData(keys.work(work.id), updated)
-    for (const key of [keys.works, keys.catalogue, keys.journal]) {
-      void client.invalidateQueries({ queryKey: key })
-    }
-  }
-
-  const pin = useMutation({
+  const pin = useAppMutation({
     mutationFn: () => pinTier(work.id, tier, reason.trim()),
+    failure: 'toast.tierPinFailed',
+    refresh: refresh.work,
     onSuccess: (updated) => {
-      settle(updated)
+      client.setQueryData(keys.work(work.id), updated)
       setOpen(false)
       say.ok(t('toast.tierPinned'))
     },
-    onError: (cause) => say.failedTo(t('toast.tierPinFailed'), cause),
   })
 
-  const release = useMutation({
+  const release = useAppMutation({
     mutationFn: () => unpinTier(work.id),
+    failure: 'toast.tierPinFailed',
+    refresh: refresh.work,
     onSuccess: (updated) => {
-      settle(updated)
+      client.setQueryData(keys.work(work.id), updated)
       say.ok(t('toast.tierUnpinned'))
     },
-    onError: (cause) => say.failedTo(t('toast.tierPinFailed'), cause),
   })
 
   const submit = (event: FormEvent) => {

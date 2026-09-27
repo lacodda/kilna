@@ -14,8 +14,7 @@ import type {
   Tier,
   VersionRole,
 } from '@/lib/api/types'
-import { getWork } from '@/lib/api/works'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { resolveLabel } from '@/lib/label'
 
 // The active profile is the vocabulary every screen speaks in, so it is read
@@ -145,11 +144,7 @@ export function allOf<K extends keyof Vocabulary>(config: ProfileConfig, list: K
 
 /** The kind of a work, once it is known; `undefined` while loading. */
 export function useWorkKind(workId: string | undefined): string | undefined {
-  const work = useQuery({
-    queryKey: keys.work(workId ?? ''),
-    queryFn: () => getWork(workId!),
-    enabled: workId !== undefined,
-  })
+  const work = useQuery({ ...queries.work(workId ?? ''), enabled: workId !== undefined })
   return work.data?.kind
 }
 

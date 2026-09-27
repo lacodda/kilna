@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { countWorkComments } from '@/lib/api/comments'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { NavLink } from 'react-router'
 import type { Tab } from '@/features/work/tabs'
 import { cn } from '@/lib/utils'
@@ -26,10 +25,7 @@ export function TabBar({ workId, tabs, counts = {} }: Props) {
   const { t } = useTranslation()
   // The comments' counter is the bar's own: what the audience said is about
   // the work whichever tab is open, and what still waits is worth a mark.
-  const comments = useQuery({
-    queryKey: keys.commentCount(workId),
-    queryFn: () => countWorkComments(workId),
-  })
+  const comments = useQuery(queries.commentCount(workId))
 
   return (
     // Seven tabs measured 572px inside a 570px strip — two pixels over, enough

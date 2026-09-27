@@ -3,11 +3,11 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { warnUnreadyReleases } from '@/lib/api/releases'
-import { getWorkspace } from '@/lib/api/workspace'
 import { humanError } from '@/lib/errors'
 import { say } from '@/lib/toast'
 import { today } from '@/lib/month'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { useKeys } from '@/app/useKeys'
 import { RAIL_WIDTH, useRail } from '@/lib/rail'
 import { ProfileContext } from '@/lib/useProfile'
@@ -36,11 +36,7 @@ export default function App() {
   const { rail, toggle: toggleRail } = useRail()
 
   const client = useQueryClient()
-  const {
-    data: workspace,
-    error,
-    isPending,
-  } = useQuery({ queryKey: keys.workspace, queryFn: getWorkspace })
+  const { data: workspace, error, isPending } = useQuery(queries.workspace())
 
   // The startup sweep: warn about every release due inside the week that is
   // not ready. There is no scheduler in this app, so "at startup, per profile"

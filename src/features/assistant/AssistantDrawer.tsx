@@ -1,36 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { listen } from '@tauri-apps/api/event'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  ArrowLeft,
-  ArrowUpRight,
-  MessageCircleQuestion,
-  MessageSquare,
-  Plus,
-  X,
-} from 'lucide-react'
-import {
-  activeRuns,
-  assistantStatus,
-  createChat,
-  deleteChat,
-  listChatSummaries,
-  renameChat,
-} from '@/lib/api/assistant'
-import type { ChatSummary, RunEmission } from '@/lib/api/types'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, ArrowUpRight, MessageSquare, Plus, X } from 'lucide-react'
+import type { ChatSummary } from '@/lib/api/types'
 import { chatLabel } from '@/lib/chat'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useRunEvent } from '@/lib/runEvents'
 import { AssistantContext, useAssistant, type Assistant } from '@/lib/useAssistant'
 import { announcement, movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
-import { PromptDialog } from '@/components/AppDialog'
-import { ConfirmAction } from '@/components/ConfirmAction'
 import { Drawer as DrawerRoot, DrawerClose, DrawerPopup, DrawerTitle } from '@/components/ui/drawer'
 import { EmptyState } from '@/components/EmptyState'
 import { RowContextMenu, RowMenu, type RowAction } from '@/components/RowMenu'
+import { ChatMarks, useChatQuestions, useChats } from '@/features/assistant/chats'
 import { ChatView } from '@/features/assistant/ChatView'
 
 /**
@@ -51,53 +36,40 @@ export function AssistantLauncher({ children }: { children?: React.ReactNode }) 
   // click away from wherever the person happened to be.
   const [open, setOpen] = useState<{ chatId: string | null } | null>(null)
 
-  const active = useQuery({
-    queryKey: keys.activeRuns,
-    queryFn: activeRuns,
-    staleTime: 0,
-  })
+  // Kept current by the run events' bridge on every run's start and end.
+  const active = useQuery({ ...queries.activeRuns(), staleTime: 0 })
 
   // The launcher is always mounted, so this is the one listener that keeps the
   // badge honest wherever the run was started from — and the one place that can
   // announce a finished task from any screen. Only run boundaries matter; not
   // every block of an answer.
-  useEffect(() => {
-    const subscription = listen<RunEmission>('assistant:run', ({ payload }) => {
-      if (!movesTaskList(payload)) return
+  useRunEvent((payload) => {
+    if (!movesTaskList(payload)) return
 
-      void client.invalidateQueries({ queryKey: keys.activeRuns })
-      void client.invalidateQueries({ queryKey: keys.activeTasks })
+    const ending = announcement(payload)
+    if (ending === null) return
 
-      const ending = announcement(payload)
-      if (ending === null) return
+    // The chat's name, if a list has already been loaded. Worth no fetch of
+    // its own: the toast is useful without it.
+    const named = client
+      .getQueriesData<ChatSummary[]>({ queryKey: keys.allChats })
+      .flatMap(([, chats]) => chats ?? [])
+      .find((chat) => chat.id === payload.chat_id)
+    const what = named === undefined ? null : chatLabel(named, t('assistant.untitled'))
 
-      // The chat's name, if a list has already been loaded. Worth no fetch of
-      // its own: the toast is useful without it.
-      const named = client
-        .getQueriesData<ChatSummary[]>({ queryKey: keys.allChats })
-        .flatMap(([, chats]) => chats ?? [])
-        .find((chat) => chat.id === payload.chat_id)
-      const what = named === undefined ? null : chatLabel(named, t('assistant.untitled'))
+    const message =
+      ending === 'done'
+        ? what === null
+          ? t('assistant.taskDone')
+          : t('assistant.taskDoneNamed', { title: what })
+        : what === null
+          ? t('assistant.taskEnded')
+          : t('assistant.taskEndedNamed', { title: what })
 
-      const message =
-        ending === 'done'
-          ? what === null
-            ? t('assistant.taskDone')
-            : t('assistant.taskDoneNamed', { title: what })
-          : what === null
-            ? t('assistant.taskEnded')
-            : t('assistant.taskEndedNamed', { title: what })
-
-      say.withAction(message, t('assistant.taskOpen'), () => {
-        setOpen({ chatId: payload.chat_id })
-      })
+    say.withAction(message, t('assistant.taskOpen'), () => {
+      setOpen({ chatId: payload.chat_id })
     })
-    return () => {
-      void subscription.then((unlisten) => {
-        unlisten()
-      })
-    }
-  }, [client, t])
+  })
 
   const running = active.data?.length ?? 0
 
@@ -139,69 +111,18 @@ function Drawer({
   onClose: () => void
 }) {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const navigate = useNavigate()
 
   const [selected, setSelected] = useState<string | null>(initialChat)
-  const [renaming, setRenaming] = useState<string | null>(null)
-  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
-
-  const status = useQuery({
-    queryKey: keys.assistantStatus,
-    queryFn: assistantStatus,
-    staleTime: 60_000,
-  })
-
-  const summaries = useQuery({
-    queryKey: keys.chats(),
-    queryFn: () => listChatSummaries(),
-    // Same reason as the panel: a chat opened from outside the window.
-    refetchInterval: 30_000,
-  })
-
-  const active = useQuery({
-    queryKey: keys.activeRuns,
-    queryFn: activeRuns,
-    staleTime: 0,
-  })
-
-  const chats = summaries.data ?? []
-  const current = chats.find((chat) => chat.id === selected)
-  const runningChats = new Set(active.data ?? [])
-
-  const create = useMutation({
-    mutationFn: () => createChat({}),
-    onSuccess: (chat) => {
-      void client.invalidateQueries({ queryKey: keys.allChats })
-      setSelected(chat.id)
-    },
-    onError: (cause) => {
-      say.failed(cause)
-    },
-  })
-
-  const rename = useMutation({
-    mutationFn: ({ id, title }: { id: string; title: string | null }) => renameChat(id, title),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.allChats })
-    },
-    onError: (cause) => {
-      say.failed(cause)
-    },
-  })
-
-  const remove = useMutation({
-    mutationFn: (id: string) => deleteChat(id),
-    onSuccess: (_, id) => {
-      void client.invalidateQueries({ queryKey: keys.allChats })
+  const shared = useChats(undefined, {
+    onCreated: (chat) => setSelected(chat.id),
+    onRemoved: (id) => {
       if (selected === id) setSelected(null)
     },
-    onError: (cause) => {
-      say.failed(cause)
-    },
   })
-
-  const renamed = renaming === null ? undefined : chats.find((chat) => chat.id === renaming)
+  const { ask, dialogs } = useChatQuestions(shared)
+  const chats = shared.chats
+  const current = chats.find((chat) => chat.id === selected)
 
   return (
     <DrawerRoot
@@ -265,25 +186,25 @@ function Drawer({
 
         {current === undefined ? (
           <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
-            {status.data != null && !status.data.available && (
+            {shared.status != null && !shared.status.available && (
               <p className="rounded-xl border border-dashed border-line p-3 text-sm text-dim">
-                {status.data.reason ?? t('assistant.unavailable')}
+                {shared.status.reason ?? t('assistant.unavailable')}
               </p>
             )}
 
             <Button
               size="sm"
               className="self-start"
-              disabled={create.isPending}
+              disabled={shared.create.isPending}
               onClick={() => {
-                create.mutate()
+                shared.create.mutate()
               }}
             >
               <Plus aria-hidden className="size-3.5" />
               {t('assistant.newChat')}
             </Button>
 
-            {chats.length === 0 && !summaries.isPending && (
+            {chats.length === 0 && !shared.pending && (
               <EmptyState title={t('assistant.noChatsTitle')} body={t('assistant.noChats')} />
             )}
 
@@ -295,7 +216,7 @@ function Drawer({
                     key: 'rename',
                     label: t('assistant.rename'),
                     onSelect: () => {
-                      setRenaming(chat.id)
+                      ask.rename(chat)
                     },
                   },
                   {
@@ -303,7 +224,7 @@ function Drawer({
                     label: t('assistant.delete'),
                     danger: true,
                     onSelect: () => {
-                      setConfirmingDelete(chat.id)
+                      ask.remove(chat.id)
                     },
                   },
                 ]
@@ -324,18 +245,7 @@ function Drawer({
                       className="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-soft"
                     >
                       <span className="flex items-center gap-1.5 text-sm">
-                        {runningChats.has(chat.id) && (
-                          <span
-                            aria-hidden
-                            className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent"
-                          />
-                        )}
-                        {chat.waiting_since !== undefined && (
-                          <MessageCircleQuestion
-                            aria-label={t('assistant.waitingMark')}
-                            className="size-3.5 shrink-0 text-accent-2"
-                          />
-                        )}
+                        <ChatMarks chat={chat} running={shared.running.has(chat.id)} />
                         <span className="truncate">{chatLabel(chat, t('assistant.untitled'))}</span>
                       </span>
                       <span className="flex items-center gap-2 text-xs text-faint">
@@ -357,37 +267,7 @@ function Drawer({
           </div>
         )}
 
-        <PromptDialog
-          open={renaming !== null}
-          onOpenChange={(next) => {
-            if (!next) setRenaming(null)
-          }}
-          title={t('assistant.renameTitle')}
-          label={t('assistant.renameLabel')}
-          initialValue={renamed?.title ?? ''}
-          confirmLabel={t('dialog.save')}
-          onSubmit={(value) => {
-            if (renaming !== null) rename.mutate({ id: renaming, title: value })
-          }}
-        />
-
-        {/* A chat is deleted for good - it does not go to the trash - so this is
-          a question that cannot be taken back, asked the way the app asks
-          those: no dismissal by a stray click, the verb in the danger tone. */}
-        <ConfirmAction
-          open={confirmingDelete !== null}
-          onOpenChange={(next) => {
-            if (!next) setConfirmingDelete(null)
-          }}
-          title={t('assistant.deleteTitle')}
-          description={t('assistant.deleteBody')}
-          actionLabel={t('assistant.delete')}
-          pending={remove.isPending}
-          onConfirm={() => {
-            if (confirmingDelete !== null) remove.mutate(confirmingDelete)
-            setConfirmingDelete(null)
-          }}
-        />
+        {dialogs}
       </DrawerPopup>
     </DrawerRoot>
   )

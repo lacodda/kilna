@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Copy, Sparkles } from 'lucide-react'
-import { generateReleaseFields, releaseFields, setReleaseFields } from '@/lib/api/releases'
+import { generateReleaseFields, setReleaseFields } from '@/lib/api/releases'
 import type { ReleaseFieldValue, ScheduledRelease } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { fillable, over, written } from '@/lib/releaseFields'
 import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
@@ -37,31 +39,27 @@ interface Props {
  */
 export function ReleaseFields({ release }: Props) {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const kinds = useVocabulary(release.work_id).release_kinds
 
   const [confirming, setConfirming] = useState(false)
 
-  const fields = useQuery({
-    queryKey: keys.releaseFields(release.id),
-    queryFn: () => releaseFields(release.id),
-  })
+  const fields = useQuery(queries.releaseFields(release.id))
 
-  const refresh = () => {
-    void client.invalidateQueries({ queryKey: keys.releaseFields(release.id) })
-    void client.invalidateQueries({ queryKey: keys.releasesForWork(release.work_id) })
-  }
+  // What a field written or generated changes: the boxes here, and the
+  // release's own list where they are read as a whole.
+  const refreshed = [keys.releaseFields(release.id), keys.releasesForWork(release.work_id)]
 
-  const save = useMutation({
+  const save = useAppMutation({
     mutationFn: (values: Record<string, string>) => setReleaseFields(release.id, values),
-    onSuccess: refresh,
-    onError: (cause: unknown) => say.failedTo(t('releases.meta.saveFailed'), cause),
+    failure: 'releases.meta.saveFailed',
+    refresh: refreshed,
   })
 
-  const generate = useMutation({
+  const generate = useAppMutation({
     mutationFn: () => generateReleaseFields(release.id),
+    failure: 'releases.meta.generateFailed',
+    refresh: refreshed,
     onSuccess: (generated) => {
-      refresh()
       if (Object.keys(generated.values).length === 0 && generated.refused.length === 0) {
         say.ok(t('releases.meta.generatedNothing'))
       } else if (Object.keys(generated.values).length > 0) {
@@ -73,7 +71,6 @@ export function ReleaseFields({ release }: Props) {
         say.warn(t('releases.meta.refused', { label: refusal.label, reason: refusal.reason }))
       }
     },
-    onError: (cause: unknown) => say.failedTo(t('releases.meta.generateFailed'), cause),
   })
 
   const status = useSaveStatus(save.isPending, save.isError)

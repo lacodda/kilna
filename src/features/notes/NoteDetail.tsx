@@ -1,14 +1,15 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowUpRight, Link2, Pencil, Sprout, Trash2, X } from 'lucide-react'
 import { deleteNote, updateNote } from '@/lib/api/notes'
 import type { Note, NotePatch } from '@/lib/api/types'
-import { getWork } from '@/lib/api/works'
 import { toggleTask } from '@/lib/checklist'
 import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -21,10 +22,6 @@ import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { NoteTagAdder } from '@/features/notes/NoteTagAdder'
 import { PromoteNoteDialog } from '@/features/notes/PromoteNoteDialog'
 import { useNoteBody } from '@/features/notes/useNoteBody'
-
-// What a note changes when it is edited: the lists that show it, the tags the
-// rest of the app completes from, and the history line the edit writes.
-const REFRESHED = [keys.notes, keys.tags, keys.journal] as const
 
 interface Props {
   note: Note
@@ -58,40 +55,42 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
   const [promoting, setPromoting] = useState(false)
   const [attaching, setAttaching] = useState(false)
 
+  // What a note changes when it is edited: the lists that show it, the tags the
+  // rest of the app completes from, and the history line the edit writes.
   const settle = useCallback(() => {
-    for (const key of REFRESHED) void client.invalidateQueries({ queryKey: key })
+    for (const key of [...refresh.note, keys.journal])
+      void client.invalidateQueries({ queryKey: key })
   }, [client])
 
-  const patch = useMutation({
+  const patch = useAppMutation({
     mutationFn: (change: NotePatch) => updateNote(note.id, change),
-    onSuccess: settle,
-    onError: (cause) => say.failedTo(t('toast.noteSaveFailed'), cause),
+    failure: 'toast.noteSaveFailed',
+    refresh: refresh.note,
   })
 
   const body = useNoteBody(note, settle, t('toast.noteSaveFailed'))
 
-  const remove = useMutation({
+  const remove = useAppMutation({
     mutationFn: async () => {
       // Whatever is still pending goes in first, so the trash holds the note
       // as it was last seen and a restore brings back the last word.
       await body.flush()
       return deleteNote(note.id)
     },
+    failure: 'toast.noteSaveFailed',
     onSuccess: (deletionId) => {
       announceDeleted({
         client,
         deletionId,
         message: t('toast.noteDeleted'),
-        refresh: REFRESHED,
+        refresh: refresh.note,
       })
       onGone()
     },
-    onError: (cause) => say.failedTo(t('toast.noteSaveFailed'), cause),
   })
 
   const work = useQuery({
-    queryKey: keys.work(note.work_id ?? ''),
-    queryFn: () => getWork(note.work_id!),
+    ...queries.work(note.work_id ?? ''),
     enabled: note.work_id !== null,
   })
 

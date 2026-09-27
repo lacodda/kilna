@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { listPlugins, runPlugin } from '@/lib/api/plugins'
-import { keys } from '@/lib/query/keys'
+import { useQuery } from '@tanstack/react-query'
+import { runPlugin } from '@/lib/api/plugins'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 
@@ -15,24 +17,19 @@ interface Props {
 // worse than no toolbar.
 export function PluginBar({ target, id }: Props) {
   const { t } = useTranslation()
-  const client = useQueryClient()
 
-  const plugins = useQuery({ queryKey: keys.plugins, queryFn: listPlugins })
+  const plugins = useQuery(queries.plugins())
 
-  const run = useMutation({
+  const run = useAppMutation({
     mutationFn: ({ executable, command }: { executable: string; command: string }) =>
       runPlugin(executable, command, target, id),
+    // A plugin may rewrite the work it was handed, so nothing local is trusted
+    // afterwards.
+    refresh: refresh.version(id),
     onSuccess: (said) => {
-      // A plugin may rewrite the work it was handed, so nothing local is trusted
-      // afterwards.
-      void client.invalidateQueries({ queryKey: keys.work(id) })
-      void client.invalidateQueries({ queryKey: keys.works })
-      void client.invalidateQueries({ queryKey: keys.versions(id) })
-
       // Plugins report in their own words; an empty answer means "done".
       if (said !== null && said.trim() !== '') say.info(said)
     },
-    onError: (cause) => say.failed(cause),
   })
 
   const installed = plugins.data ?? []

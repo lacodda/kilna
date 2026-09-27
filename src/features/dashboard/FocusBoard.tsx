@@ -1,14 +1,12 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { GripVertical, Pin, PinOff, Plus, Sparkles, Undo2, X } from 'lucide-react'
 import { startTask } from '@/lib/api/assistant'
 import {
   createFocusNote,
   deleteFocusNote,
   dismissFinding,
-  dismissedFindings,
-  listFocusNotes,
   reorderFocusNotes,
   restoreFinding,
   updateFocusNote,
@@ -17,6 +15,9 @@ import type { Dismissal, FocusNote, ScheduledRelease, ScoredWork } from '@/lib/a
 import { dismissalKey, findings, visible, type Finding } from '@/lib/findings'
 import { today } from '@/lib/month'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { labelOf, useProfile } from '@/lib/useProfile'
@@ -54,37 +55,28 @@ interface Props {
 export function FocusBoard({ works, calendar, skip = [], onSelect }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const client = useQueryClient()
 
-  const dismissals = useQuery({ queryKey: keys.dismissals, queryFn: dismissedFindings })
-  const notes = useQuery({ queryKey: keys.focusNotes, queryFn: listFocusNotes })
+  const dismissals = useQuery(queries.dismissals())
+  const notes = useQuery(queries.focusNotes())
 
-  const refresh = () => {
-    void client.invalidateQueries({ queryKey: keys.focus })
-  }
-
-  const start = useMutation({
+  const start = useAppMutation({
     mutationFn: ({ workId, action }: { workId: string; action: string }) =>
       startTask(workId, action),
+    refresh: [keys.activeTasks, keys.allChats],
     onSuccess: (started) => {
-      void client.invalidateQueries({ queryKey: keys.activeTasks })
-      void client.invalidateQueries({ queryKey: keys.allChats })
       say.info(t('assistant.taskStarted', { title: started.title }))
     },
-    onError: say.failed,
   })
 
-  const hide = useMutation({
+  const hide = useAppMutation({
     mutationFn: (finding: Finding) => dismissFinding(dismissalKey(finding)),
-    onSuccess: refresh,
-    onError: say.failed,
+    refresh: refresh.focus,
   })
 
-  const unhide = useMutation({
+  const unhide = useAppMutation({
     mutationFn: (row: Dismissal) =>
       restoreFinding({ kind: row.kind, work_id: row.work_id, complaint: row.complaint }),
-    onSuccess: refresh,
-    onError: say.failed,
+    refresh: refresh.focus,
   })
 
   const hidden = new Set(skip)
@@ -185,31 +177,23 @@ function NoteList({
   onSelect: (workId: string, tab?: string) => void
 }) {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const [dragging, setDragging] = useState<string | null>(null)
   const [over, setOver] = useState<string | null>(null)
 
-  const refresh = () => {
-    void client.invalidateQueries({ queryKey: keys.focusNotes })
-  }
-
-  const pin = useMutation({
+  const pin = useAppMutation({
     mutationFn: ({ id, pinned }: { id: string; pinned: boolean }) =>
       updateFocusNote(id, { pinned }),
-    onSuccess: refresh,
-    onError: say.failed,
+    refresh: [keys.focusNotes],
   })
 
-  const rub = useMutation({
+  const rub = useAppMutation({
     mutationFn: deleteFocusNote,
-    onSuccess: refresh,
-    onError: say.failed,
+    refresh: [keys.focusNotes],
   })
 
-  const move = useMutation({
+  const move = useAppMutation({
     mutationFn: reorderFocusNotes,
-    onSuccess: refresh,
-    onError: say.failed,
+    refresh: [keys.focusNotes],
   })
 
   if (notes.length === 0) return null
@@ -311,18 +295,16 @@ function NoteList({
 /** One field, opened by a link rather than sitting on the screen unused. */
 function AddNote() {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const [body, setBody] = useState('')
   const [open, setOpen] = useState(false)
 
-  const add = useMutation({
+  const add = useAppMutation({
     mutationFn: (line: string) => createFocusNote({ body: line }),
+    refresh: [keys.focusNotes],
     onSuccess: () => {
       setBody('')
       setOpen(false)
-      void client.invalidateQueries({ queryKey: keys.focusNotes })
     },
-    onError: say.failed,
   })
 
   const submit = () => {

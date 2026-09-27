@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import {
@@ -18,16 +18,12 @@ import {
 } from 'lucide-react'
 import { fileSrc } from '@/lib/api/assets'
 import { exportPackage, writeTextFile } from '@/lib/api/data'
-import { listLinks } from '@/lib/api/links'
-import { listNotes } from '@/lib/api/notes'
 import {
   attachSceneNote,
   createScene,
   deleteScene,
   detachSceneNote,
   frameScenes,
-  listSceneFrames,
-  listSceneNotes,
   listScenes,
   renumberScenes,
   timeScenes,
@@ -42,10 +38,12 @@ import type {
   ScenePatch,
   Work,
 } from '@/lib/api/types'
-import { getVersion, listVersions } from '@/lib/api/versions'
 import { cloneWork } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { montageFileName, montageList } from '@/lib/montage'
 import { checkStoryboard } from '@/lib/storyboard'
 import { formatSeconds, parseTimecode } from '@/lib/timecode'
@@ -84,11 +82,6 @@ interface Props {
 
 /** The role that holds what every scene has in common: hero, palette, lens. */
 const CONTEXT_ROLE = 'context'
-
-/** The queries a scene changes: the board, and the feed. */
-/** The queries a scene changes: the board (its rows and what they are
-    about, which share the prefix), and the feed. */
-const REFRESHED = [keys.scenes, keys.journal] as const
 
 /**
  * The storyboard: one row per scene, owned by the work.
@@ -149,56 +142,37 @@ export function ScenesTab({ work }: Props) {
       return next
     })
 
-  const scenes = useQuery({
-    queryKey: keys.scenesFor(work.id),
-    queryFn: () => listScenes(work.id),
-  })
+  const scenes = useQuery(queries.scenes(work.id))
 
-  const refresh = () => {
-    for (const key of REFRESHED) void client.invalidateQueries({ queryKey: key })
-  }
-
-  const add = useMutation({
+  const add = useAppMutation({
     mutationFn: () => createScene({ work_id: work.id }),
-    onSuccess: (created) => {
-      refresh()
-      say.ok(t('scenes.added', { number: created.position }))
-    },
-    onError: (cause) => say.failedTo(t('toast.sceneSaveFailed'), cause),
+    failure: 'toast.sceneSaveFailed',
+    refresh: refresh.scene,
+    onSuccess: (created) => say.ok(t('scenes.added', { number: created.position })),
   })
 
-  const patch = useMutation({
+  const patch = useAppMutation({
     mutationFn: ({ id, changes }: { id: string; changes: ScenePatch }) => updateScene(id, changes),
     onSuccess: () => {
-      announceEdited({ client, message: t('toast.sceneEdited'), refresh: REFRESHED })
+      announceEdited({ client, message: t('toast.sceneEdited'), refresh: refresh.scene })
     },
     onError: (cause) => {
       // The field keeps what was typed; the board is re-read so it shows
       // what is actually stored.
-      refresh()
+      for (const key of refresh.scene) void client.invalidateQueries({ queryKey: key })
       say.failedTo(t('toast.sceneSaveFailed'), cause)
     },
   })
 
   // Who and where: what each scene is about, and every note it could name.
   // Read for the whole board in one go rather than per row.
-  const about = useQuery({
-    queryKey: [...keys.scenes, 'notes', work.id],
-    queryFn: () => listSceneNotes(work.id),
-  })
+  const about = useQuery(queries.sceneNotes(work.id))
   // The pictures of the whole board, in one read for the same reason.
-  const frames = useQuery({
-    queryKey: keys.sceneFramesFor(work.id),
-    queryFn: () => listSceneFrames(work.id),
-  })
+  const frames = useQuery(queries.sceneFrames(work.id))
   const framesForScene = framesByScene(frames.data ?? [])
 
   const noteKinds = profile.config.note_kinds ?? []
-  const castable = useQuery({
-    queryKey: [...keys.notes, 'castable'],
-    queryFn: () => listNotes(),
-    enabled: noteKinds.length > 0,
-  })
+  const castable = useQuery({ ...queries.notesCastable(), enabled: noteKinds.length > 0 })
   const cast = (castable.data ?? []).filter((note) =>
     noteKinds.some((kind) => kind.key === note.kind),
   )
@@ -212,76 +186,68 @@ export function ScenesTab({ work }: Props) {
     else held.push(link)
   }
 
-  const attach = useMutation({
+  const attach = useAppMutation({
     mutationFn: ({ sceneId, noteId }: { sceneId: string; noteId: string }) =>
       attachSceneNote(sceneId, noteId),
-    onSuccess: () => refresh(),
-    onError: (cause) => say.failedTo(t('toast.sceneSaveFailed'), cause),
+    failure: 'toast.sceneSaveFailed',
+    refresh: refresh.scene,
   })
-  const detach = useMutation({
+  const detach = useAppMutation({
     mutationFn: ({ sceneId, noteId }: { sceneId: string; noteId: string }) =>
       detachSceneNote(sceneId, noteId),
-    onSuccess: () => refresh(),
-    onError: (cause) => say.failedTo(t('toast.sceneSaveFailed'), cause),
+    failure: 'toast.sceneSaveFailed',
+    refresh: refresh.scene,
   })
 
   // What the board could be framed from: the first work this one is made
   // from. Nothing to frame without it, and the empty board says so.
-  const links = useQuery({
-    queryKey: [...keys.links, work.id],
-    queryFn: () => listLinks(work.id),
-  })
+  const links = useQuery(queries.links(work.id))
   const donor = links.data?.sources[0]
   const donorRoles =
     donor === undefined ? [] : vocabularyOf(profile.config, donor.source_kind).version_roles
 
-  const frame = useMutation({
+  const frame = useAppMutation({
     mutationFn: (role: string) => frameScenes(work.id, role),
-    onSuccess: (framed) => {
-      refresh()
-      say.ok(t('scenes.framed', { count: framed.length }))
-    },
-    onError: (cause) => say.failedTo(t('toast.sceneFrameFailed'), cause),
+    failure: 'toast.sceneFrameFailed',
+    refresh: refresh.scene,
+    onSuccess: (framed) => say.ok(t('scenes.framed', { count: framed.length })),
   })
 
-  const clone = useMutation({
+  const clone = useAppMutation({
     mutationFn: (title: string) => cloneWork(work.id, title),
+    failure: 'scenes.clone.action',
+    // A work made, not a scene changed: the board's own areas are untouched,
+    // and only the list every work appears in gains a row.
+    refresh: [keys.works],
     onSuccess: (made) => {
       setCloning(false)
-      void client.invalidateQueries({ queryKey: keys.works })
-      void client.invalidateQueries({ queryKey: keys.journal })
       say.ok(t('scenes.clone.done', { title: made.work.title, count: made.scenes }))
       // Straight into the copy: the whole point is to start changing it, and
       // leaving the person on the original is a click they did not ask for.
       void navigate(`/works/${made.work.id}/scenes`)
     },
-    onError: (cause: unknown) => say.failedTo(t('scenes.clone.action'), cause),
   })
 
   // The board's first timing: the work's length divided between the scenes,
   // dragged by hand from there. Refused when the work has no length, and the
   // refusal says where to give it one.
-  const time = useMutation({
+  const time = useAppMutation({
     mutationFn: () => timeScenes(work.id),
-    onSuccess: (timed) => {
-      refresh()
-      say.ok(t('scenes.timed', { count: timed.length }))
-    },
-    onError: (cause) => say.failedTo(t('toast.sceneTimeFailed'), cause),
+    failure: 'toast.sceneTimeFailed',
+    refresh: refresh.scene,
+    onSuccess: (timed) => say.ok(t('scenes.timed', { count: timed.length })),
   })
 
   // The board's order, set from a list. Both gestures the row offers end up
   // here: the number typed on a scene, and the scene added after another.
-  const renumber = useMutation({
+  const renumber = useAppMutation({
     mutationFn: (ids: string[]) => renumberScenes(work.id, ids),
-    onSuccess: () => {
-      refresh()
-      say.ok(t('scenes.renumbered'))
-    },
+    refresh: refresh.scene,
+    onSuccess: () => say.ok(t('scenes.renumbered')),
     onError: (cause) => {
       // The board is re-read so the numbers on screen are the stored ones:
       // a refused renumbering left them exactly as they were.
-      refresh()
+      for (const key of refresh.scene) void client.invalidateQueries({ queryKey: key })
       say.failedTo(t('scenes.renumberFailed'), cause)
     },
   })
@@ -292,7 +258,7 @@ export function ScenesTab({ work }: Props) {
   // because the scene has no id until it exists, and the order is a list of
   // ids; the person sees one gesture because the second step follows the
   // first without asking.
-  const insert = useMutation({
+  const insert = useAppMutation({
     mutationFn: async (after: Scene) => {
       // The board as the backend has it, not as the screen filtered it: the
       // order names every scene, and a list built from a narrowed view would
@@ -302,27 +268,26 @@ export function ScenesTab({ work }: Props) {
       const order = orderMoving([...board, created], created.id, after.position + 1)
       return renumberScenes(work.id, order)
     },
-    onSuccess: (board, after) => {
-      refresh()
+    refresh: refresh.scene,
+    onSuccess: (_, after) => {
       say.ok(t('scenes.added', { number: after.position + 1 }))
-      return board
     },
     onError: (cause) => {
-      refresh()
+      for (const key of refresh.scene) void client.invalidateQueries({ queryKey: key })
       say.failedTo(t('toast.sceneSaveFailed'), cause)
     },
   })
 
-  const remove = useMutation({
+  const remove = useAppMutation({
     mutationFn: (scene: Scene) => deleteScene(scene.id),
+    failure: 'toast.sceneSaveFailed',
     onSuccess: (deletionId, scene) =>
       announceDeleted({
         client,
         deletionId,
         message: t('toast.sceneDeleted', { number: scene.position }),
-        refresh: REFRESHED,
+        refresh: refresh.scene,
       }),
-    onError: (cause) => say.failedTo(t('toast.sceneSaveFailed'), cause),
   })
 
   // A kind that names no kinds of shot and no blocks has no storyboard: the
@@ -736,18 +701,11 @@ function ContextPanel({ workId }: { workId: string }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
-  const versions = useQuery({
-    queryKey: keys.versions(workId),
-    queryFn: () => listVersions(workId),
-  })
+  const versions = useQuery(queries.versions(workId))
   const current = (versions.data ?? []).find(
     (version) => version.role === CONTEXT_ROLE && version.is_current,
   )
-  const body = useQuery({
-    queryKey: keys.version(current?.id ?? ''),
-    queryFn: () => getVersion(current!.id),
-    enabled: current !== undefined,
-  })
+  const body = useQuery({ ...queries.version(current?.id ?? ''), enabled: current !== undefined })
 
   return (
     <Panel className="flex flex-col gap-2 p-4">

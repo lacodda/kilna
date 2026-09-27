@@ -2,10 +2,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
 import { ArrowLeft, Copy, Pencil, Star } from 'lucide-react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { listCollections } from '@/lib/api/collections'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { deriveWork } from '@/lib/api/links'
-import { latestScore } from '@/lib/api/scores'
 import type { Work } from '@/lib/api/types'
 import { updateWork } from '@/lib/api/works'
 import { useBlindJudging } from '@/lib/blindJudging'
@@ -13,6 +11,8 @@ import { useCardView } from '@/features/work/cardView'
 import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceEdited } from '@/lib/edited'
 import { badgeVariantOf } from '@/lib/markIcon'
 import { say } from '@/lib/toast'
@@ -59,13 +59,9 @@ export function CardHeader({ work, tabs, counts, onDelete }: Props) {
 
   // The tier and total belong here rather than only on the Score tab: they are
   // the verdict, and the verdict is what someone opens a card to check.
-  const score = useQuery({
-    queryKey: keys.latestScore(work.id),
-    queryFn: () => latestScore(work.id),
-  })
+  const score = useQuery(queries.latestScore(work.id))
   const collections = useQuery({
-    queryKey: keys.collections,
-    queryFn: listCollections,
+    ...queries.collections(),
     // Only fetched when the work is actually in one.
     enabled: work.collection_id !== null,
   })
@@ -151,8 +147,9 @@ function Title({ work }: { work: Work }) {
   const star = useStar(work.id)
   const starred = work.bookmarked_at !== null
 
-  const rename = useMutation({
+  const rename = useAppMutation({
     mutationFn: (next: string) => updateWork(work.id, { title: next }),
+    failure: 'toast.workSaveFailed',
     onSuccess: (updated) => {
       client.setQueryData(keys.work(work.id), updated)
       announceEdited({
@@ -161,7 +158,6 @@ function Title({ work }: { work: Work }) {
         refresh: [keys.works, keys.catalogue, keys.journal],
       })
     },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })
 
   const commit = () => {
@@ -264,22 +260,19 @@ function Title({ work }: { work: Work }) {
 function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void }) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const client = useQueryClient()
   const navigate = useNavigate()
 
   // A work of another kind made from this one — a video from a song. One
   // entry per other kind of the profile, so the menu says what can be made
   // rather than opening a dialog to ask.
-  const derive = useMutation({
+  const derive = useAppMutation({
     mutationFn: (kind: string) => deriveWork(work.id, kind),
+    failure: 'toast.workSaveFailed',
+    refresh: [keys.works, keys.catalogue, keys.links],
     onSuccess: (created) => {
-      for (const key of [keys.works, keys.catalogue, keys.links, keys.journal]) {
-        void client.invalidateQueries({ queryKey: key })
-      }
       say.ok(t('links.made', { title: created.title }))
       void navigate(`/works/${created.id}/links`)
     },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })
 
   // The tick only after the clipboard confirms — the rule from v0.28: telling

@@ -1,12 +1,10 @@
-import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { listen } from '@tauri-apps/api/event'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Layers } from 'lucide-react'
-import { clearTaskQueue, taskQueue } from '@/lib/api/assistant'
-import type { RunEmission, TaskQueue } from '@/lib/api/types'
+import { clearTaskQueue } from '@/lib/api/assistant'
 import { keys } from '@/lib/query/keys'
-import { movesTaskList } from '@/lib/tasks'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 
@@ -25,44 +23,15 @@ import { Button } from '@/components/ui/button'
  */
 export function QueueBanner() {
   const { t } = useTranslation()
-  const client = useQueryClient()
+  // Kept current by the run events' bridge: a run ending frees a slot, and
+  // the backend says so directly when a batch is started or cleared.
+  const queue = useQuery({ ...queries.taskQueue(), staleTime: 0 })
 
-  const queue = useQuery({
-    queryKey: keys.taskQueue,
-    queryFn: taskQueue,
-    staleTime: 0,
-  })
-
-  // Two sources, because the queue moves for two reasons: a run ending frees a
-  // slot, and the backend says so directly when a batch is started or cleared.
-  useEffect(() => {
-    const runs = listen<RunEmission>('assistant:run', ({ payload }) => {
-      if (movesTaskList(payload)) {
-        void client.invalidateQueries({ queryKey: keys.taskQueue })
-      }
-    })
-    const queued = listen<TaskQueue>('assistant:queue', ({ payload }) => {
-      client.setQueryData(keys.taskQueue, payload)
-    })
-    return () => {
-      void runs.then((unlisten) => {
-        unlisten()
-      })
-      void queued.then((unlisten) => {
-        unlisten()
-      })
-    }
-  }, [client])
-
-  const drop = useMutation({
+  const drop = useAppMutation({
     mutationFn: clearTaskQueue,
+    refresh: [keys.taskQueue, keys.activeTasks],
     onSuccess: (dropped) => {
-      void client.invalidateQueries({ queryKey: keys.taskQueue })
-      void client.invalidateQueries({ queryKey: keys.activeTasks })
       say.info(t('assistant.queueDropped', { count: dropped }))
-    },
-    onError: (cause) => {
-      say.failed(cause)
     },
   })
 

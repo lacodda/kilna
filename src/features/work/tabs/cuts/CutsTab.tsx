@@ -1,15 +1,16 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { save } from '@tauri-apps/plugin-dialog'
 import { Film, Plus, Scissors, Trash2 } from 'lucide-react'
-import { createCut, cutShotList, deleteCut, listCuts, reorderCuts, updateCut } from '@/lib/api/cuts'
+import { createCut, deleteCut, reorderCuts, updateCut } from '@/lib/api/cuts'
 import { writeTextFile } from '@/lib/api/data'
-import { listLinks } from '@/lib/api/links'
 import type { Cut, Work } from '@/lib/api/types'
 import { bandsOf, blockerOf, lengthOf, orderMoving, totalLength, tracksOf } from '@/lib/cuts'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { formatSeconds, parseTimecode } from '@/lib/timecode'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
@@ -44,15 +45,10 @@ export function CutsTab({ work }: Props) {
   const client = useQueryClient()
   const navigate = useNavigate()
 
-  const cuts = useQuery({ queryKey: keys.cutsFor(work.id), queryFn: () => listCuts(work.id) })
-  const links = useQuery({ queryKey: keys.linksFor(work.id), queryFn: () => listLinks(work.id) })
+  const cuts = useQuery(queries.cuts(work.id))
+  const links = useQuery(queries.links(work.id))
 
-  const refresh = () => {
-    void client.invalidateQueries({ queryKey: keys.cuts })
-    void client.invalidateQueries({ queryKey: keys.journal })
-  }
-
-  const add = useMutation({
+  const add = useAppMutation({
     mutationFn: (sourceId: string) => {
       // A new stretch starts where the last one of that donor ended, so
       // taking three in a row is three clicks rather than three sums. The
@@ -66,40 +62,35 @@ export function CutsTab({ work }: Props) {
         ends_at: from + DEFAULT_LENGTH,
       })
     },
-    onSuccess: refresh,
-    onError: (cause) => say.failed(cause),
+    refresh: refresh.cut,
   })
 
-  const edit = useMutation({
+  const edit = useAppMutation({
     mutationFn: ({ id, starts_at, ends_at }: { id: string; starts_at: number; ends_at: number }) =>
       updateCut(id, { starts_at, ends_at }),
-    onSuccess: refresh,
-    onError: (cause) => say.failed(cause),
+    refresh: refresh.cut,
   })
 
-  const rename = useMutation({
+  const rename = useAppMutation({
     mutationFn: ({ id, label }: { id: string; label: string | null }) => updateCut(id, { label }),
-    onSuccess: refresh,
-    onError: (cause) => say.failed(cause),
+    refresh: refresh.cut,
   })
 
-  const remove = useMutation({
+  const remove = useAppMutation({
     mutationFn: (id: string) => deleteCut(id),
     onSuccess: (deletionId) => {
       announceDeleted({
         client,
         deletionId,
         message: t('cuts.removed'),
-        refresh: [keys.cuts, keys.journal],
+        refresh: refresh.cut,
       })
     },
-    onError: (cause) => say.failed(cause),
   })
 
-  const reorder = useMutation({
+  const reorder = useAppMutation({
     mutationFn: (ids: string[]) => reorderCuts(work.id, ids),
-    onSuccess: refresh,
-    onError: (cause) => say.failed(cause),
+    refresh: refresh.cut,
   })
 
   if (cuts.isPending || links.isPending) return <Skeleton className="h-40 w-full" />
@@ -380,7 +371,7 @@ function Label({
  */
 function ShotList({ workId, title }: { workId: string; title: string }) {
   const { t } = useTranslation()
-  const shots = useQuery({ queryKey: keys.shotsFor(workId), queryFn: () => cutShotList(workId) })
+  const shots = useQuery(queries.shots(workId))
   const saving = useRef(false)
 
   if (shots.data === undefined) return null

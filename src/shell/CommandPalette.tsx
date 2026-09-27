@@ -2,13 +2,12 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { search } from '@/lib/api/search'
 import type { Hit, HitKind } from '@/lib/api/types'
 import { coverImageFor } from '@/lib/cover'
 import { hrefOfHit } from '@/lib/hits'
 import { useCovers } from '@/lib/useCovers'
 import { useDebounced } from '@/lib/useDebounced'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { loadRecent } from '@/lib/recent'
 import { cn } from '@/lib/utils'
 import { ComboboxGroupLabel } from '@/components/ui/combobox'
@@ -63,11 +62,7 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
   // not by much once a workspace has a few hundred bodies in it.
   const settled = useDebounced(query, 140)
 
-  const hits = useQuery({
-    queryKey: keys.search(settled),
-    queryFn: () => search(settled),
-    enabled: settled.trim() !== '',
-  })
+  const hits = useQuery({ ...queries.search(settled), enabled: settled.trim() !== '' })
 
   // Hits arrive grouped by kind already; this fixes the order they are shown
   // in, which is also the order the arrow keys walk. The walking itself is the

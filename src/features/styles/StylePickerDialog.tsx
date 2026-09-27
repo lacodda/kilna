@@ -3,9 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowUp, X } from 'lucide-react'
 import { fileSrc } from '@/lib/api/assets'
-import { listStyleBricks, styleBrickReferences } from '@/lib/api/styles'
 import type { StyleBrick } from '@/lib/api/types'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { say as sayLabel, styleTypesOf, useProfile } from '@/lib/useProfile'
 import { styleIconOf } from '@/lib/styleIcon'
 import { useDebounced } from '@/lib/useDebounced'
@@ -49,10 +48,7 @@ export function StylePickerDialog({
 
   // Only what can go into a prompt: a draft is unfinished by definition, and a
   // picker quietly full of things nobody has touched is how a dictionary rots.
-  const bricks = useQuery({
-    queryKey: [...keys.styleBricks, 'ready', query],
-    queryFn: () => listStyleBricks({ ready_only: true, query: query || null }),
-  })
+  const bricks = useQuery(queries.readyStyleBricks(query))
 
   const byId = useMemo(
     () => new Map((bricks.data ?? []).map((one) => [one.id, one])),
@@ -196,8 +192,7 @@ export function StylePickerDialog({
 /** The first reference, small: a style is recognised by what it looks like. */
 function Cover({ brick }: { brick: StyleBrick }) {
   const references = useQuery({
-    queryKey: keys.styleReferences(brick.id),
-    queryFn: () => styleBrickReferences(brick.id),
+    ...queries.styleReferences(brick.id),
     enabled: brick.reference_count > 0,
   })
   const cover = references.data?.[0]

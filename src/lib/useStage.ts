@@ -1,9 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { updateWork } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 
 /**
  * The dial: "how far along is this".
@@ -21,18 +22,18 @@ export function useStage(workId: string) {
   const { t } = useTranslation()
   const client = useQueryClient()
 
-  return useMutation({
+  return useAppMutation({
     // `null` is not "leave it": it takes the work back to unjudged, which is a
     // state of its own and the only way out of having answered.
     mutationFn: (percent: number | null) => updateWork(workId, { stage: percent }),
+    failure: 'toast.workSaveFailed',
     onSuccess: (updated, percent) => {
       client.setQueryData(keys.work(workId), updated)
       announceEdited({
         client,
         message: percent === null ? t('toast.stageCleared') : t('toast.stageSet'),
-        refresh: [keys.works, keys.catalogue, keys.journal],
+        refresh: refresh.work,
       })
     },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })
 }

@@ -3,6 +3,7 @@ import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { LocaleProvider } from 'dowel-ui'
 import { Toaster } from '@/app/Toaster'
 import { useLanguage } from '@/lib/language'
+import { RunEventsBridge } from '@/lib/runEvents'
 
 /*
  * The interface's language, handed to every dowel component that formats a
@@ -30,11 +31,14 @@ function AppLocale({ children }: { children: ReactNode }) {
 export function Providers({ client, children }: { client: QueryClient; children: ReactNode }) {
   return (
     <QueryClientProvider client={client}>
-      <AppLocale>
-        {/* Wraps the app rather than sitting beside it: a toast raised from
-            anywhere inside has to reach the same provider. */}
-        <Toaster>{children}</Toaster>
-      </AppLocale>
+      {/* The assistant's runs are heard once, here, for every screen. */}
+      <RunEventsBridge>
+        <AppLocale>
+          {/* Wraps the app rather than sitting beside it: a toast raised from
+              anywhere inside has to reach the same provider. */}
+          <Toaster>{children}</Toaster>
+        </AppLocale>
+      </RunEventsBridge>
     </QueryClientProvider>
   )
 }

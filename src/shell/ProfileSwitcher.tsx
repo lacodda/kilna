@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { activateProfile, listProfiles } from '@/lib/api/workspace'
-import { keys } from '@/lib/query/keys'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { activateProfile } from '@/lib/api/workspace'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { Select } from '@/components/AppSelect'
 
@@ -16,20 +17,20 @@ export function ProfileSwitcher({ activeId, onSwitched }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
 
-  const profiles = useQuery({ queryKey: keys.profiles, queryFn: listProfiles })
+  const profiles = useQuery(queries.profiles())
 
-  const activate = useMutation({
+  const activate = useAppMutation({
     mutationFn: activateProfile,
     onSuccess: (_result, id) => {
       // Every screen is scoped to the active profile, so nothing cached
-      // survives the switch.
+      // survives the switch. No named set covers "everything", so this stays
+      // a direct invalidation rather than a `refresh:` list.
       void client.invalidateQueries()
 
       const name = profiles.data?.find((profile) => profile.id === id)?.name
       if (name !== undefined) say.ok(t('toast.profileSwitched', { name }))
       onSwitched()
     },
-    onError: (cause) => say.failed(cause),
   })
 
   if (profiles.data === undefined || profiles.data.length < 2) return null

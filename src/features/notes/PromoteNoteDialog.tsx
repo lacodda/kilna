@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { Sprout } from 'lucide-react'
 import { promoteNote } from '@/lib/api/notes'
 import type { Note } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
 import { titleOf } from '@/lib/notes'
 import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/AppDialog'
@@ -54,8 +54,9 @@ export function PromoteNoteDialog({ open, onOpenChange, note, onPromoted }: Prop
     (one) => one.counts_as_version ?? one.comments_on == null,
   )
 
-  const promote = useMutation({
+  const promote = useAppMutation({
     mutationFn: () => promoteNote(note.id, { kind, title: title.trim() }),
+    failure: 'notes.promoteFailed',
     onSuccess: (promoted) => {
       announceEdited({
         client,
@@ -73,7 +74,6 @@ export function PromoteNoteDialog({ open, onOpenChange, note, onPromoted }: Prop
       onOpenChange(false)
       onPromoted(promoted.work_id)
     },
-    onError: (cause) => say.failedTo(t('notes.promoteFailed'), cause),
   })
 
   const ready = kind !== '' && title.trim() !== '' && role !== undefined

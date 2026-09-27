@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { X } from 'lucide-react'
-import { createLink, deleteLink, deriveWork, listLinks } from '@/lib/api/links'
+import { createLink, deleteLink, deriveWork } from '@/lib/api/links'
 import type { Link, Work } from '@/lib/api/types'
-import { listWorks } from '@/lib/api/works'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
@@ -18,9 +20,6 @@ import { Skeleton } from '@/components/Skeleton'
 interface Props {
   work: Work
 }
-
-/** The queries a link changes: both cards, and the feed. */
-const REFRESHED = [keys.links, keys.journal] as const
 
 /**
  * What this work was made from, and what was made from it.
@@ -37,38 +36,25 @@ const REFRESHED = [keys.links, keys.journal] as const
 export function LinksTab({ work }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const client = useQueryClient()
   const navigate = useNavigate()
 
-  const links = useQuery({
-    queryKey: keys.linksFor(work.id),
-    queryFn: () => listLinks(work.id),
-  })
+  const links = useQuery(queries.links(work.id))
 
-  const refresh = () => {
-    for (const key of REFRESHED) void client.invalidateQueries({ queryKey: key })
-  }
-
-  const remove = useMutation({
+  const remove = useAppMutation({
     mutationFn: (id: string) => deleteLink(id),
-    onSuccess: () => {
-      refresh()
-      say.ok(t('links.removed'))
-    },
-    onError: (cause) => say.failed(cause),
+    refresh: refresh.link,
+    onSuccess: () => say.ok(t('links.removed')),
   })
 
-  const derive = useMutation({
+  const derive = useAppMutation({
     mutationFn: (kind: string) => deriveWork(work.id, kind),
+    failure: 'toast.workSaveFailed',
+    refresh: [keys.links, keys.works, keys.catalogue],
     onSuccess: (created) => {
-      refresh()
-      void client.invalidateQueries({ queryKey: keys.works })
-      void client.invalidateQueries({ queryKey: keys.catalogue })
       say.ok(t('links.made', { title: created.title }))
       // Straight into the new work: making one is the start of working on it.
       void navigate(`/works/${created.id}/links`)
     },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })
 
   // The other kinds of the profile: a song becomes a video, not another song.
@@ -107,7 +93,6 @@ export function LinksTab({ work }: Props) {
         <SourcePicker
           work={work}
           taken={new Set(links.data?.sources.map((link) => link.source_id) ?? [])}
-          onLinked={refresh}
         />
       </Panel>
 
@@ -255,33 +240,20 @@ function SourceRow({
  * here, a work made from one gains a second. The whole catalogue is already
  * in hand; the matches are its titles, a few at a time.
  */
-function SourcePicker({
-  work,
-  taken,
-  onLinked,
-}: {
-  work: Work
-  taken: ReadonlySet<string>
-  onLinked: () => void
-}) {
+function SourcePicker({ work, taken }: { work: Work; taken: ReadonlySet<string> }) {
   const { t } = useTranslation()
   const profile = useProfile()
   const [query, setQuery] = useState('')
 
-  const works = useQuery({
-    queryKey: keys.works,
-    queryFn: () => listWorks(),
-    enabled: query.trim() !== '',
-  })
+  const works = useQuery({ ...queries.works(), enabled: query.trim() !== '' })
 
-  const link = useMutation({
+  const link = useAppMutation({
     mutationFn: (sourceId: string) => createLink({ work_id: work.id, source_id: sourceId }),
+    refresh: refresh.link,
     onSuccess: (created) => {
       setQuery('')
-      onLinked()
       say.ok(t('links.linked', { title: created.source_title }))
     },
-    onError: (cause) => say.failed(cause),
   })
 
   const needle = query.trim().toLowerCase()

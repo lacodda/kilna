@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Archive,
   ArchiveRestore,
@@ -18,10 +18,12 @@ import {
 import { applyProposal, dismissProposal } from '@/lib/api/assistant'
 import { deleteComment, startCommentTask, updateComment } from '@/lib/api/comments'
 import type { Comment, CommentPatch, PendingCommentProposal } from '@/lib/api/types'
-import { getWork } from '@/lib/api/works'
 import { commentAction } from '@/lib/actions'
 import { standingOf } from '@/lib/comments'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { useProfile } from '@/lib/useProfile'
@@ -34,10 +36,6 @@ import { SaveState, useSaveStatus } from '@/components/SaveState'
 import { Textarea } from '@/components/ui/textarea'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { ChannelField } from '@/features/comments/ChannelField'
-
-// What a comment changes when it is edited: the inbox, the channels' counts,
-// a work's counter, and what waits to be kept.
-const REFRESHED = [keys.comments] as const
 
 interface Props {
   comment: Comment
@@ -89,27 +87,28 @@ export function CommentDetail({
     setLastSaved(comment.reply ?? '')
   }
 
-  const settle = () => {
-    for (const key of REFRESHED) void client.invalidateQueries({ queryKey: key })
-  }
-
-  const patch = useMutation({
+  const patch = useAppMutation({
     mutationFn: (change: CommentPatch) => updateComment(comment.id, change),
-    onSuccess: settle,
-    onError: (cause) => say.failedTo(t('comments.saveFailed'), cause),
+    failure: 'comments.saveFailed',
+    refresh: refresh.comment,
   })
   const saved = useSaveStatus(patch.isPending, patch.isError)
 
-  const remove = useMutation({
+  const remove = useAppMutation({
     mutationFn: () => deleteComment(comment.id),
+    failure: 'comments.saveFailed',
     onSuccess: (deletionId) => {
-      announceDeleted({ client, deletionId, message: t('comments.deleted'), refresh: REFRESHED })
+      announceDeleted({
+        client,
+        deletionId,
+        message: t('comments.deleted'),
+        refresh: refresh.comment,
+      })
       onGone()
     },
-    onError: (cause) => say.failedTo(t('comments.saveFailed'), cause),
   })
 
-  const draft = useMutation({
+  const draft = useAppMutation({
     mutationFn: async () => {
       // What is typed goes in first: the draft is written against it.
       if (reply !== (comment.reply ?? '')) {
@@ -117,36 +116,25 @@ export function CommentDetail({
       }
       return startCommentTask(comment.id, replier!.key)
     },
+    refresh: [keys.activeTasks, keys.allChats],
     onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.activeTasks })
-      void client.invalidateQueries({ queryKey: keys.allChats })
       say.info(t('comments.drafting'))
     },
-    onError: (cause) => say.failed(cause),
   })
 
-  const keepDraft = useMutation({
+  const keepDraft = useAppMutation({
     mutationFn: (messageId: string) => applyProposal(messageId),
-    onSuccess: () => {
-      for (const key of [keys.comments, keys.pendingProposals, keys.transcripts]) {
-        void client.invalidateQueries({ queryKey: key })
-      }
-    },
-    onError: (cause) => say.failedTo(t('comments.saveFailed'), cause),
+    failure: 'comments.saveFailed',
+    refresh: refresh.keptComment,
   })
-  const dropDraft = useMutation({
+  const dropDraft = useAppMutation({
     mutationFn: (messageId: string) => dismissProposal(messageId),
-    onSuccess: () => {
-      for (const key of [keys.comments, keys.pendingProposals]) {
-        void client.invalidateQueries({ queryKey: key })
-      }
-    },
-    onError: (cause) => say.failedTo(t('assistant.dismissFailed'), cause),
+    failure: 'assistant.dismissFailed',
+    refresh: [keys.comments, keys.pendingProposals],
   })
 
   const work = useQuery({
-    queryKey: keys.work(comment.work_id ?? ''),
-    queryFn: () => getWork(comment.work_id!),
+    ...queries.work(comment.work_id ?? ''),
     enabled: comment.work_id !== null && !onWork,
   })
 

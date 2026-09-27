@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { Image as ImageIcon, Paperclip, Star, Trash2 } from 'lucide-react'
-import { attachAsset, detachAsset, listWorkAssets } from '@/lib/api/assets'
+import { attachAsset, detachAsset } from '@/lib/api/assets'
 import type { Asset, Work } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { groupMaterials } from '@/lib/materials'
 import { PICTURES } from '@/lib/media'
@@ -36,37 +38,23 @@ const COVER = 'cover'
  */
 export function FilesTab({ work }: Props) {
   const { t } = useTranslation()
-  const client = useQueryClient()
   const [busy, setBusy] = useState(false)
 
-  const files = useQuery({
-    queryKey: keys.assetsFor(work.id),
-    queryFn: () => listWorkAssets(work.id),
-  })
+  const files = useQuery(queries.assets(work.id))
 
-  const refresh = () => {
-    void client.invalidateQueries({ queryKey: keys.assetsFor(work.id) })
-    void client.invalidateQueries({ queryKey: keys.covers })
-    void client.invalidateQueries({ queryKey: keys.journal })
-  }
-
-  const attach = useMutation({
+  const attach = useAppMutation({
     mutationFn: ({ source, kind }: { source: string; kind?: string }) =>
       attachAsset(source, { work_id: work.id, kind }),
-    onSuccess: (asset) => {
-      refresh()
-      say.ok(t('files.attached', { name: asset.original_name ?? '' }))
-    },
-    onError: (cause) => say.failedTo(t('files.attachFailed'), cause),
+    failure: 'files.attachFailed',
+    refresh: [keys.assetsFor(work.id), keys.covers],
+    onSuccess: (asset) => say.ok(t('files.attached', { name: asset.original_name ?? '' })),
   })
 
-  const detach = useMutation({
+  const detach = useAppMutation({
     mutationFn: (asset: Asset) => detachAsset(asset.id),
-    onSuccess: () => {
-      refresh()
-      say.ok(t('files.detached'))
-    },
-    onError: (cause) => say.failedTo(t('files.detachFailed'), cause),
+    failure: 'files.detachFailed',
+    refresh: [keys.assetsFor(work.id), keys.covers],
+    onSuccess: () => say.ok(t('files.detached')),
   })
 
   /** Ask for a file and attach it — the other way in is dropping one on the

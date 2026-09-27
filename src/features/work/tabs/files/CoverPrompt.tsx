@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Copy } from 'lucide-react'
 import type { SceneBlock, Work } from '@/lib/api/types'
 import { updateWork } from '@/lib/api/works'
 import { keys } from '@/lib/query/keys'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -34,17 +34,12 @@ interface Props {
 export function CoverPrompt({ work }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const client = useQueryClient()
   const blocks = vocabularyOf(profile.config, work.kind).cover_blocks
 
-  const save = useMutation({
+  const save = useAppMutation({
     mutationFn: (cover: Record<string, string>) => updateWork(work.id, { cover }),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.work(work.id) })
-      void client.invalidateQueries({ queryKey: keys.journal })
-      say.ok(t('cover.saved'))
-    },
-    onError: (cause) => say.failed(cause),
+    refresh: [keys.work(work.id)],
+    onSuccess: () => say.ok(t('cover.saved')),
   })
 
   if (blocks.length === 0) return null

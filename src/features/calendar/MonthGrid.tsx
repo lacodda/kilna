@@ -3,11 +3,11 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
-import { previewSchedule } from '@/lib/api/releases'
 import type { ScheduledRelease, SlotVerdict } from '@/lib/api/types'
 import type { Ghost } from '@/lib/layout'
 import { byDate, monthGrid, sameMonth, shiftMonth, today, type Month } from '@/lib/month'
 import { accentFor } from '@/lib/cover'
+import { queries } from '@/lib/query/queries'
 import { releaseIcon } from '@/lib/releaseIcon'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { RowContextMenu } from '@/components/RowMenu'
@@ -114,8 +114,7 @@ export function MonthGrid({
   // says what is there and the drop happens either way.
   const moving = dragging?.id ?? claimingId
   const preview = useQuery({
-    queryKey: ['slotPreview', moving, over],
-    queryFn: () => previewSchedule(moving as string, over as string),
+    ...queries.slotPreview(moving as string, over as string),
     enabled: moving !== null && over !== null && over !== 'bin',
     staleTime: 5_000,
   })

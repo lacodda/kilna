@@ -1,8 +1,9 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { applyProposal } from '@/lib/api/assistant'
 import type { Applied, ProposalOverrides } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query/keys'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 
 interface Options {
@@ -44,11 +45,11 @@ export function writesOf(applied: Applied): number {
 export function useApplyProposal({ messageId, message, refresh, onApplied }: Options) {
   const client = useQueryClient()
 
-  return useMutation({
+  const disturbed = [...refresh, keys.transcripts]
+  return useAppMutation({
     mutationFn: (overrides?: ProposalOverrides) => applyProposal(messageId, overrides),
+    refresh: disturbed,
     onSuccess: (applied) => {
-      const disturbed = [...refresh, keys.transcripts, keys.journal]
-      for (const key of disturbed) void client.invalidateQueries({ queryKey: key })
       // The undo offer takes back the last operation, and only that. A single
       // version, score or note is one operation; a package is several, and
       // an offer that would remove the last note and leave the work behind

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { fileSrc, listCovers } from '@/lib/api/assets'
-import { keys } from '@/lib/query/keys'
+import { fileSrc } from '@/lib/api/assets'
+import { queries } from '@/lib/query/queries'
 
 /**
  * The cover of every work that has one, as a URL the window may fetch.
@@ -11,10 +11,7 @@ import { keys } from '@/lib/query/keys'
  * cover is simply absent from the map, and the gradient stands in.
  */
 export function useCovers(): Map<string, string> {
-  const covers = useQuery({
-    queryKey: keys.covers,
-    queryFn: listCovers,
-  })
+  const covers = useQuery(queries.covers())
 
   const found = new Map<string, string>()
   for (const [workId, path] of covers.data ?? []) found.set(workId, fileSrc(path))

@@ -2,21 +2,16 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Diff, Eye, Maximize2, Minimize2, PenLine, Plus, Scan, X } from 'lucide-react'
-import { scoreHistory } from '@/lib/api/scores'
 import type { VersionRole } from '@/lib/api/types'
-import {
-  createVersion,
-  deleteVersion,
-  getVersion,
-  listVersions,
-  setCurrentVersion,
-} from '@/lib/api/versions'
+import { createVersion, deleteVersion, setCurrentVersion } from '@/lib/api/versions'
 import { changedLines, countChanges, diffLines } from '@/lib/diff'
 import { clearDraft, readDraft, writeDraft } from '@/lib/drafts'
 import { predecessor } from '@/lib/history'
-import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { findRepeats } from '@/lib/repeats'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
@@ -111,19 +106,13 @@ export function VersionPanel({ workId }: Props) {
   // version as its parent.
   const [derivedFrom, setDerivedFrom] = useState<string | null>(null)
 
-  const versions = useQuery({
-    queryKey: keys.versions(workId),
-    queryFn: () => listVersions(workId),
-  })
+  const versions = useQuery(queries.versions(workId))
 
   // Every score this work has, so the list can put a mark beside the draft it
   // was given to. One request for the whole history rather than one per row,
   // and the Score tab has usually asked for it already — the same key, so the
   // two share an answer instead of fetching it twice.
-  const scored = useQuery({
-    queryKey: keys.scoreHistory(workId),
-    queryFn: () => scoreHistory(workId),
-  })
+  const scored = useQuery(queries.scoreHistory(workId))
 
   // Version id to the score that speaks for it. Newest first is what the
   // history comes back as, so the first one seen per version is the one that
@@ -155,8 +144,7 @@ export function VersionPanel({ workId }: Props) {
   // version, and the box came back with the caret at the top — the second
   // keystroke of a revision landed at the start of the text.
   const open = useQuery({
-    queryKey: keys.version(openId ?? ''),
-    queryFn: () => getVersion(openId!),
+    ...queries.version(openId ?? ''),
     enabled: openId !== null,
     placeholderData: keepPreviousData,
   })
@@ -187,8 +175,7 @@ export function VersionPanel({ workId }: Props) {
       : (comments[0]?.id ?? null)
 
   const comment = useQuery({
-    queryKey: keys.version(commentId ?? ''),
-    queryFn: () => getVersion(commentId!),
+    ...queries.version(commentId ?? ''),
     enabled: commentId !== null,
     placeholderData: keepPreviousData,
   })
@@ -203,19 +190,7 @@ export function VersionPanel({ workId }: Props) {
       ? comparedId
       : null
 
-  const compared = useQuery({
-    queryKey: keys.version(againstId ?? ''),
-    queryFn: () => getVersion(againstId!),
-    enabled: againstId !== null,
-  })
-
-  // A version changes the list, the work's current pointer, the summary the
-  // works list shows, and the history kept underneath the card.
-  const refreshed = [keys.journal, keys.versions(workId), keys.work(workId), keys.works]
-
-  const settle = () => {
-    for (const key of refreshed) void client.invalidateQueries({ queryKey: key })
-  }
+  const compared = useQuery({ ...queries.version(againstId ?? ''), enabled: againstId !== null })
 
   // The text on screen, saving itself. Two of them: the open version, and the
   // commentary beside it, which is a version of another role with its own
@@ -238,7 +213,7 @@ export function VersionPanel({ workId }: Props) {
     failure: t('toast.versionSaveFailed'),
   })
 
-  const save = useMutation({
+  const save = useAppMutation({
     mutationFn: () =>
       createVersion(workId, {
         role,
@@ -247,6 +222,8 @@ export function VersionPanel({ workId }: Props) {
         make_current: makeCurrentOnSave,
         parent_version_id: derivedFrom,
       }),
+    failure: 'toast.versionSaveFailed',
+    refresh: refresh.version(workId),
     onSuccess: (version) => {
       // The draft became a version; there is nothing left to keep.
       setDrafts((all) => ({ ...all, [role]: '' }))
@@ -257,19 +234,18 @@ export function VersionPanel({ workId }: Props) {
       // The new version shows itself: opened, in the list, read.
       setSelectedId(version.id)
       setReading('view')
-      settle()
     },
-    onError: (cause) => say.failedTo(t('toast.versionSaveFailed'), cause),
   })
 
-  const makeCurrent = useMutation({
+  const makeCurrent = useAppMutation({
     mutationFn: (versionId: string) => setCurrentVersion(workId, versionId),
-    onSuccess: settle,
-    onError: (cause) => say.failedTo(t('toast.versionSaveFailed'), cause),
+    failure: 'toast.versionSaveFailed',
+    refresh: refresh.version(workId),
   })
 
-  const remove = useMutation({
+  const remove = useAppMutation({
     mutationFn: deleteVersion,
+    failure: 'toast.versionSaveFailed',
     onSuccess: (deletionId, versionId) => {
       if (selectedId === versionId) setSelectedId(null)
       if (comparedId === versionId) setComparedId(null)
@@ -277,12 +253,11 @@ export function VersionPanel({ workId }: Props) {
         client,
         deletionId,
         message: t('toast.versionDeleted'),
-        refresh: refreshed,
+        refresh: refresh.version(workId),
         // Reopen what was being read when it was thrown away.
         onUndone: () => setSelectedId(versionId),
       })
     },
-    onError: (cause) => say.failedTo(t('toast.versionSaveFailed'), cause),
   })
 
   const nameOf = (id: string | null): string => {
@@ -299,10 +274,7 @@ export function VersionPanel({ workId }: Props) {
   // wants a name. A draft already in the form is displaced rather than guarded
   // by a confirmation, with one click to take it back.
   const deriveFrom = async (id: string) => {
-    const source = await client.fetchQuery({
-      queryKey: keys.version(id),
-      queryFn: () => getVersion(id),
-    })
+    const source = await client.fetchQuery(queries.version(id))
     if (source == null) return
 
     const displaced = drafts[source.role] ?? readDraft(workId, source.role)

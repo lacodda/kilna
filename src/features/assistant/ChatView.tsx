@@ -1,23 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { listen } from '@tauri-apps/api/event'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   applyPendingProposals,
   cancelRun,
   createChat,
-  getTranscript,
-  listRuns,
   renderPrompt,
   startRun,
 } from '@/lib/api/assistant'
-import type { Run, RunEmission } from '@/lib/api/types'
+import type { Run } from '@/lib/api/types'
 import { actionsOfScope } from '@/lib/actions'
 import { conversation, pending, type Exchange } from '@/lib/chat'
 import { reading } from '@/lib/palette'
-import { formatDuration, withEvent } from '@/lib/runs'
+import { formatDuration } from '@/lib/runs'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
@@ -74,8 +73,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
   const composer = useRef<HTMLTextAreaElement>(null)
 
   const transcript = useQuery({
-    queryKey: keys.transcript(chatId ?? ''),
-    queryFn: () => getTranscript(chatId!),
+    ...queries.transcript(chatId ?? ''),
     enabled: chatId !== null,
     // A proposal from outside the window — `kilna --mcp` — lands in this
     // chat without an event; while the chat is open it appears within a
@@ -83,46 +81,16 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
     refetchInterval: 10_000,
   })
 
+  // The run events' bridge lands every event on its run here, so a run reads
+  // the same whether its events arrived live or were replayed from storage;
+  // the fetch is for coming back to a chat that was running elsewhere.
   const runs = useQuery({
-    queryKey: keys.runs(chatId ?? ''),
-    queryFn: () => listRuns(chatId!),
+    ...queries.runs(chatId ?? ''),
     enabled: chatId !== null,
-    // Events keep this fresh while the panel is open; the fetch is for coming
-    // back to a chat that was running while the panel was elsewhere.
     staleTime: 0,
   })
 
-  // Events land straight in the cache, so a run reads the same whether its
-  // events arrived live or were replayed from storage.
-  useEffect(() => {
-    if (chatId === null) return
-
-    const subscription = listen<RunEmission>('assistant:run', ({ payload }) => {
-      if (payload.chat_id !== chatId) return
-
-      client.setQueryData<Run[]>(keys.runs(chatId), (previous) => {
-        if (previous === undefined) return previous
-        return previous.map((run) =>
-          run.id === payload.run_id ? withEvent(run, payload.event) : run,
-        )
-      })
-
-      // A finished run wrote an answer; the settled message replaces the
-      // overlay's live body, and the chat list's caption and price moved.
-      if (payload.event.kind === 'finished' || payload.event.kind === 'failed') {
-        void client.invalidateQueries({ queryKey: keys.transcript(chatId) })
-        void client.invalidateQueries({ queryKey: keys.allChats })
-      }
-    })
-
-    return () => {
-      void subscription.then((unlisten) => {
-        unlisten()
-      })
-    }
-  }, [chatId, client])
-
-  const ask = useMutation({
+  const ask = useAppMutation({
     mutationFn: async (prompt: string) => {
       let id = chatId
       // The first message is what brings the chat into being: a chat is a
@@ -135,29 +103,26 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
     },
     // The run comes back the moment the CLI is spawned; putting it in the
     // cache is what makes the question appear at once.
+    // The transcript is the chat the run landed in, which may be the one it
+    // just brought into being - hence refreshed by hand, from the run.
+    refresh: [keys.allChats],
     onSuccess: (run) => {
       setDraft('')
       client.setQueryData<Run[]>(keys.runs(run.chat_id), (previous) => [...(previous ?? []), run])
       void client.invalidateQueries({ queryKey: keys.transcript(run.chat_id) })
-      void client.invalidateQueries({ queryKey: keys.allChats })
       if (run.chat_id !== chatId) onChatCreated?.(run.chat_id)
-    },
-    onError: (cause) => {
-      say.failed(cause)
     },
   })
 
-  const stop = useMutation({
+  const stop = useAppMutation({
     mutationFn: (id: string) => cancelRun(id),
-    onError: (cause) => {
-      say.failed(cause)
-    },
   })
 
   // A profile action renders its template into the composer rather than
   // firing: what is about to be sent — and paid for — is read and edited
   // first. Enter still does the sending.
   const runTemplate = useMutation({
+    // Not a write: it only fills the composer, so nothing is refreshed.
     mutationFn: (template: string) => renderPrompt(workId!, template),
     onSuccess: (prompt) => {
       setDraft(prompt)

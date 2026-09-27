@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Check, FileText, PanelLeftClose, PanelLeftOpen, Plus, Search, X } from 'lucide-react'
-import { dismissProposal, pendingProposals } from '@/lib/api/assistant'
-import { listJournal, markJournalRead, unreadJournal } from '@/lib/api/journal'
+import { dismissProposal } from '@/lib/api/assistant'
+import { markJournalRead } from '@/lib/api/journal'
 import type { JournalEntry, PendingProposal } from '@/lib/api/types'
-import { getWork } from '@/lib/api/works'
 import { screenAt } from '@/app/screens'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { openWorkId } from '@/lib/route'
-import { say } from '@/lib/toast'
 import { useAssistant } from '@/lib/useAssistant'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
@@ -46,11 +46,7 @@ function Breadcrumbs() {
   // an empty params object.
   const workId = openWorkId(location.pathname)
 
-  const work = useQuery({
-    queryKey: keys.work(workId ?? ''),
-    queryFn: () => getWork(workId ?? ''),
-    enabled: workId !== undefined,
-  })
+  const work = useQuery({ ...queries.work(workId ?? ''), enabled: workId !== undefined })
 
   const screen = t(screenAt(location.pathname).nav)
   if (workId === undefined) {
@@ -130,49 +126,39 @@ function Unread() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const assistant = useAssistant()
-  const client = useQueryClient()
   const [open, setOpen] = useState(false)
 
   const unread = useQuery({
-    queryKey: keys.journalUnread,
-    queryFn: unreadJournal,
     // The bell sits outside the routes and never remounts, so without this it
     // would only ever change when a mutation in this window invalidated it —
     // and an entry written by a background task, a plugin or a second window
     // would leave it reading zero for as long as the app stayed open.
+    ...queries.journalUnread(),
     refetchInterval: 60_000,
   })
   const count = unread.data ?? 0
 
   // Fetched only while the panel is open: the feed is one page of up to two
   // hundred entries, and the bell is pressed far less often than it is seen.
-  const entries = useQuery({
-    queryKey: keys.journalFeed,
-    queryFn: listJournal,
-    enabled: open,
-  })
+  const entries = useQuery({ ...queries.journalFeed(), enabled: open })
 
-  const markRead = useMutation({
+  // The journal is always refreshed by the hook; nothing else to refresh here.
+  const markRead = useAppMutation({
     mutationFn: markJournalRead,
-    onSuccess: () => void client.invalidateQueries({ queryKey: keys.journal }),
-    onError: (cause) => say.failedTo(t('toast.loadFailed'), cause),
+    failure: 'toast.loadFailed',
   })
 
   // Proposals that arrived over MCP and have been neither applied nor turned
   // down. Always fetched, not only while the panel is open: this is what the
   // badge counts, and a count that only appeared once you looked would be no
   // notification at all.
-  const proposals = useQuery({
-    queryKey: keys.pendingProposals,
-    queryFn: pendingProposals,
-    refetchInterval: 30_000,
-  })
+  const proposals = useQuery({ ...queries.pendingProposals(), refetchInterval: 30_000 })
   const waiting = proposals.data ?? []
 
-  const dismiss = useMutation({
+  const dismiss = useAppMutation({
     mutationFn: dismissProposal,
-    onSuccess: () => void client.invalidateQueries({ queryKey: keys.pendingProposals }),
-    onError: (cause) => say.failedTo(t('assistant.dismissFailed'), cause),
+    refresh: [keys.pendingProposals],
+    failure: 'assistant.dismissFailed',
   })
 
   // What needs a look comes first, then the newest of the rest, and the two

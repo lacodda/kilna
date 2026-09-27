@@ -1,25 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { listen } from '@tauri-apps/api/event'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { MessageCircleQuestion, Plus } from 'lucide-react'
-import {
-  activeRuns,
-  assistantStatus,
-  createChat,
-  deleteChat,
-  listChatSummaries,
-  renameChat,
-} from '@/lib/api/assistant'
-import type { RunEmission } from '@/lib/api/types'
+import { Plus } from 'lucide-react'
 import { chatLabel } from '@/lib/chat'
-import { keys } from '@/lib/query/keys'
-import { say } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { PromptDialog } from '@/components/AppDialog'
-import { ConfirmAction } from '@/components/ConfirmAction'
 import { RowMenu } from '@/components/RowMenu'
+import { ChatMarks, useChatQuestions, useChats } from '@/features/assistant/chats'
 import { ChatView } from '@/features/assistant/ChatView'
 
 interface Props {
@@ -38,110 +24,36 @@ interface Props {
  */
 export function AssistantPanel({ workId }: Props) {
   const { t } = useTranslation()
-  const client = useQueryClient()
-
-  const status = useQuery({
-    queryKey: keys.assistantStatus,
-    queryFn: assistantStatus,
-    // Installing the CLI mid-session is rare; asking once a minute is plenty.
-    staleTime: 60_000,
-  })
-
-  const summaries = useQuery({
-    queryKey: keys.chats(workId),
-    queryFn: () => listChatSummaries(workId),
-    // A chat an agent opened from outside the window (`kilna --mcp`) shows
-    // up while the panel is open, not on the next visit.
-    refetchInterval: 30_000,
-  })
-
-  const active = useQuery({
-    queryKey: keys.activeRuns,
-    queryFn: activeRuns,
-    staleTime: 0,
-  })
-
-  // Which chats are running changes on run boundaries, not on every block of
-  // an answer — only those events are worth a refetch.
-  useEffect(() => {
-    const subscription = listen<RunEmission>('assistant:run', ({ payload }) => {
-      if (
-        payload.event.kind === 'started' ||
-        payload.event.kind === 'finished' ||
-        payload.event.kind === 'failed' ||
-        payload.event.kind === 'stopped'
-      ) {
-        void client.invalidateQueries({ queryKey: keys.activeRuns })
-      }
-    })
-    return () => {
-      void subscription.then((unlisten) => {
-        unlisten()
-      })
-    }
-  }, [client])
-
   const [selected, setSelected] = useState<string | null>(null)
-  const [renaming, setRenaming] = useState(false)
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const chats = useChats(workId, {
+    onCreated: (chat) => setSelected(chat.id),
+    onRemoved: () => setSelected(null),
+  })
+  const { ask, dialogs } = useChatQuestions(chats)
 
-  const chats = summaries.data ?? []
+  const list = chats.chats
   // The explicit choice, as long as it still exists; the latest chat otherwise.
   const chatId =
-    selected !== null && chats.some((chat) => chat.id === selected)
+    selected !== null && list.some((chat) => chat.id === selected)
       ? selected
-      : (chats[0]?.id ?? null)
-  const current = chats.find((chat) => chat.id === chatId)
+      : (list[0]?.id ?? null)
+  const current = list.find((chat) => chat.id === chatId)
 
-  const create = useMutation({
-    mutationFn: () => createChat({ work_id: workId }),
-    onSuccess: (chat) => {
-      void client.invalidateQueries({ queryKey: keys.allChats })
-      setSelected(chat.id)
-    },
-    onError: (cause) => {
-      say.failed(cause)
-    },
-  })
-
-  const rename = useMutation({
-    mutationFn: ({ id, title }: { id: string; title: string | null }) => renameChat(id, title),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.allChats })
-    },
-    onError: (cause) => {
-      say.failed(cause)
-    },
-  })
-
-  const remove = useMutation({
-    mutationFn: (id: string) => deleteChat(id),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.allChats })
-      setSelected(null)
-    },
-    onError: (cause) => {
-      say.failed(cause)
-    },
-  })
-
-  if (status.data != null && !status.data.available) {
+  if (chats.status != null && !chats.status.available) {
     return (
       <section className="flex flex-col gap-2">
         <p className="rounded-xl border border-dashed border-line p-4 text-sm text-dim">
-          {status.data.reason ?? t('assistant.unavailable')}
+          {chats.status.reason ?? t('assistant.unavailable')}
         </p>
       </section>
     )
   }
 
-  const runningChats = new Set(active.data ?? [])
-
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
-        {status.data?.version != null && (
-          <span className="text-xs text-dim">{status.data.version}</span>
+        {chats.status?.version != null && (
+          <span className="text-xs text-dim">{chats.status.version}</span>
         )}
         {current !== undefined && current.cost_usd > 0 && (
           <span className="ml-auto text-xs text-faint">
@@ -150,13 +62,13 @@ export function AssistantPanel({ workId }: Props) {
         )}
       </div>
 
-      {chats.length > 0 && (
+      {list.length > 0 && (
         <div
           className="flex flex-wrap items-center gap-1.5"
           role="tablist"
           aria-label={t('assistant.chats')}
         >
-          {chats.map((chat) => (
+          {list.map((chat) => (
             <button
               key={chat.id}
               type="button"
@@ -172,20 +84,7 @@ export function AssistantPanel({ workId }: Props) {
                   : 'border-line text-dim hover:border-line-2 hover:text-text',
               )}
             >
-              {runningChats.has(chat.id) && (
-                <span
-                  aria-hidden
-                  className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent"
-                />
-              )}
-              {/* A question waiting in a chat you are not looking at is the
-                  thing this mark exists for; a run in flight already pulses. */}
-              {chat.waiting_since !== undefined && (
-                <MessageCircleQuestion
-                  aria-label={t('assistant.waitingMark')}
-                  className="size-3.5 shrink-0 text-accent-2"
-                />
-              )}
+              <ChatMarks chat={chat} running={chats.running.has(chat.id)} />
               <span className="truncate">{chatLabel(chat, t('assistant.untitled'))}</span>
             </button>
           ))}
@@ -195,9 +94,9 @@ export function AssistantPanel({ workId }: Props) {
             size="icon-sm"
             title={t('assistant.newChat')}
             aria-label={t('assistant.newChat')}
-            disabled={create.isPending}
+            disabled={chats.create.isPending}
             onClick={() => {
-              create.mutate()
+              chats.create.mutate()
             }}
           >
             <Plus aria-hidden />
@@ -211,7 +110,7 @@ export function AssistantPanel({ workId }: Props) {
                   key: 'rename',
                   label: t('assistant.rename'),
                   onSelect: () => {
-                    setRenaming(true)
+                    ask.rename(current)
                   },
                 },
                 {
@@ -219,7 +118,7 @@ export function AssistantPanel({ workId }: Props) {
                   label: t('assistant.delete'),
                   danger: true,
                   onSelect: () => {
-                    setConfirmingDelete(true)
+                    ask.remove(current.id)
                   },
                 },
               ]}
@@ -239,32 +138,7 @@ export function AssistantPanel({ workId }: Props) {
         }}
       />
 
-      <PromptDialog
-        open={renaming}
-        onOpenChange={setRenaming}
-        title={t('assistant.renameTitle')}
-        label={t('assistant.renameLabel')}
-        initialValue={current?.title ?? ''}
-        confirmLabel={t('dialog.save')}
-        onSubmit={(value) => {
-          if (chatId !== null) rename.mutate({ id: chatId, title: value })
-        }}
-      />
-
-      {/* Deleted for good, not to the trash: asked as a question that cannot
-          be taken back. */}
-      <ConfirmAction
-        open={confirmingDelete}
-        onOpenChange={setConfirmingDelete}
-        title={t('assistant.deleteTitle')}
-        description={t('assistant.deleteBody')}
-        actionLabel={t('assistant.delete')}
-        pending={remove.isPending}
-        onConfirm={() => {
-          if (chatId !== null) remove.mutate(chatId)
-          setConfirmingDelete(false)
-        }}
-      />
+      {dialogs}
     </section>
   )
 }

@@ -1,6 +1,6 @@
 import { type ReactNode, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowDown,
   ArrowUp,
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { unscheduleWorks } from '@/lib/api/releases'
 import type { ScoredWork } from '@/lib/api/types'
-import { catalogue as fetchCatalogue, deleteWorks, setWorksStatus } from '@/lib/api/works'
+import { deleteWorks, setWorksStatus } from '@/lib/api/works'
 import { updateProfileConfig } from '@/lib/api/workspace'
 import {
   ALL_COLUMNS,
@@ -61,7 +61,6 @@ import { ReorderGrip, ReorderIndicator, useReorder } from '@/components/ui/reord
 import { StageDial } from '@/components/StageDial'
 import { StagePicker } from '@/components/StagePicker'
 import { stagesOf } from '@/lib/stages'
-import { worksMatching } from '@/lib/api/search'
 import { formatQuery, parseQuery, type Vocabulary } from '@/lib/searchQuery'
 import {
   addView,
@@ -75,6 +74,9 @@ import {
 } from '@/lib/views'
 import { useDebounced } from '@/lib/useDebounced'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
 import { announceDeleted } from '@/lib/trash'
@@ -152,17 +154,14 @@ export function Catalogue({ onSelect }: Props) {
   const kindKey = filter.kind ?? ''
   const columns = chosen[kindKey] ?? columnsForKind(profile.config, filter.kind)
 
-  const keepColumns = useMutation({
+  const keepColumns = useAppMutation({
     mutationFn: ({ kind, next }: { kind: string | undefined; next: ColumnId[] }) =>
       updateProfileConfig(profile.id, {
         ...profile.config,
         ...withColumns(profile.config, kind, next),
       }),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.workspace })
-      void client.invalidateQueries({ queryKey: keys.profiles })
-    },
-    onError: (cause) => say.failedTo(t('toast.profileSaveFailed'), cause),
+    failure: 'toast.profileSaveFailed',
+    refresh: refresh.profile,
   })
 
   const setColumns = (next: ColumnId[]) => {
@@ -176,10 +175,7 @@ export function Catalogue({ onSelect }: Props) {
   const [groupBy, setGroupBy] = useState<GroupBy>('none')
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
 
-  const rows = useQuery({
-    queryKey: keys.catalogue,
-    queryFn: fetchCatalogue,
-  })
+  const rows = useQuery(queries.catalogue())
   const kindCounts = new Map<string, number>()
   for (const row of rows.data ?? []) kindCounts.set(row.kind, (kindCounts.get(row.kind) ?? 0) + 1)
 
@@ -188,10 +184,11 @@ export function Catalogue({ onSelect }: Props) {
   // tomorrow is a way to act on the wrong ones.
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
 
-  const remove = useMutation({
+  const remove = useAppMutation({
     // One call, not one per work: a loop here left the journal with a line
     // apiece and could stop halfway with nothing to say where.
     mutationFn: (workIds: readonly string[]) => deleteWorks([...workIds]),
+    failure: 'toast.workSaveFailed',
     onSuccess: (deletionIds) => {
       setSelected(new Set())
       announceDeleted({
@@ -201,38 +198,30 @@ export function Catalogue({ onSelect }: Props) {
         refresh: [keys.works, keys.catalogue, keys.workspace],
       })
     },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })
 
   // The catalogue reloads either way, so both of these report a count rather
   // than patching rows: what a person wants told is how many it reached, and
   // "skipped" is why the number can be smaller than what they ticked.
-  const refreshAfterBulk = () => {
-    setSelected(new Set())
-    void client.invalidateQueries({ queryKey: keys.works })
-    void client.invalidateQueries({ queryKey: keys.catalogue })
-    void client.invalidateQueries({ queryKey: keys.workspace })
-    void client.invalidateQueries({ queryKey: keys.journal })
-  }
-
-  const restatus = useMutation({
+  const restatus = useAppMutation({
     mutationFn: ({ workIds, status }: { workIds: readonly string[]; status: string }) =>
       setWorksStatus([...workIds], status),
+    failure: 'toast.workSaveFailed',
+    refresh: [keys.works, keys.catalogue, keys.workspace],
     onSuccess: (outcome) => {
-      refreshAfterBulk()
+      setSelected(new Set())
       say.ok(t('catalogue.bulk.statusSet', { count: outcome.changed }))
     },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })
 
-  const unschedule = useMutation({
+  const unschedule = useAppMutation({
     mutationFn: (workIds: readonly string[]) => unscheduleWorks([...workIds]),
+    failure: 'toast.workSaveFailed',
+    refresh: refresh.works,
     onSuccess: (outcome) => {
-      refreshAfterBulk()
-      void client.invalidateQueries({ queryKey: keys.calendar })
+      setSelected(new Set())
       say.ok(t('catalogue.bulk.unscheduled', { count: outcome.changed }))
     },
-    onError: (cause) => say.failedTo(t('toast.workSaveFailed'), cause),
   })
 
   const reorder = (column: SortColumn) => {
@@ -589,8 +578,7 @@ function Rows({
   const text = filter.search?.trim() ?? ''
   const settled = useDebounced(text, 160)
   const matches = useQuery({
-    queryKey: keys.worksMatching(settled),
-    queryFn: () => worksMatching(settled),
+    ...queries.worksMatching(settled),
     enabled: settled !== '',
     // The corpus does not change while a word is being typed, and every
     // keystroke that ends in the same query should cost nothing.
