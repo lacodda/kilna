@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { LocaleProvider } from 'dowel-ui'
-import { Toaster } from '@/components/Toaster'
+import { Toaster } from '@/app/Toaster'
 import { useLanguage } from '@/lib/language'
 
 /*

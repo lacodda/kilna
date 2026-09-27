@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { actionsFor } from '@/components/assistant/ActionBar'
+import { actionsFor } from '@/features/assistant/ActionBar'
 import type { PromptTemplate } from '@/lib/api'
 
 function action(over: Partial<PromptTemplate>): PromptTemplate {

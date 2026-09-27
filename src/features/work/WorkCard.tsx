@@ -1,0 +1,238 @@
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Navigate } from 'react-router'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { deleteWork, getWork, listCuts, listLinks, listScenes, releasesForWork } from '@/lib/api'
+import { keys } from '@/lib/query'
+import { noteDeleted, noteOpened } from '@/lib/recent'
+import { say } from '@/lib/toast'
+import { announceDeleted } from '@/lib/trash'
+import { canBeCut } from '@/lib/cuts'
+import { hasScenes, useProfile } from '@/lib/useProfile'
+import { BlindJudgingContext } from '@/lib/blindJudging'
+import { cn } from '@/lib/utils'
+import { SkeletonCard } from '@/components/Skeleton'
+import { CardHeader } from '@/features/work/CardHeader'
+import { FilesTab } from '@/features/work/tabs/files/FilesTab'
+import { LinksTab } from '@/features/work/tabs/links/LinksTab'
+import { OverviewTab } from '@/features/work/tabs/overview/OverviewTab'
+import { CutsTab } from '@/features/work/tabs/cuts/CutsTab'
+import { ScenesTab } from '@/features/work/tabs/scenes/ScenesTab'
+import { DEFAULT_TAB, isTab, type Tab } from '@/features/work/tabs'
+import { storedCardView } from '@/features/work/cardView'
+import { VersionPanel } from '@/features/work/tabs/versions/VersionPanel'
+import { ScorePanel } from '@/features/work/tabs/score/ScorePanel'
+import { ReleasePanel } from '@/features/work/tabs/releases/ReleasePanel'
+import { ActionBar } from '@/features/assistant/ActionBar'
+import { AssistantPanel } from '@/features/work/tabs/assistant/AssistantPanel'
+import { NotePanel } from '@/features/work/tabs/notes/NotePanel'
+import { CommentsPanel } from '@/features/work/tabs/comments/CommentsPanel'
+import { WorkHistory } from '@/features/journal/JournalFeed'
+import { PluginBar } from '@/features/work/PluginBar'
+
+interface Props {
+  workId: string
+  /** Which tab the URL asked for; anything unknown falls back. */
+  tab: string | undefined
+  onDeleted: () => void
+  /** Reopen a work that was deleted and then brought back. */
+  onUndone: (workId: string) => void
+}
+
+/**
+ * A work, opened.
+ *
+ * The card is a frame — a header, a tab bar and one body — rather than the seven
+ * stacked panels it used to be. Each tab is a component of its own with its own
+ * queries, so opening a card no longer loads everything a work has ever had.
+ */
+export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
+  const { t } = useTranslation()
+  const client = useQueryClient()
+  const profile = useProfile()
+  const work = useQuery({ queryKey: keys.work(workId), queryFn: () => getWork(workId) })
+  // Judging blind belongs to the card, not the Score tab: the header above the
+  // tab shows the last verdict too (see `lib/blindJudging`). The card is keyed
+  // by the work, so a new work starts with it off.
+  const [blind, setBlind] = useState(false)
+  const [revealed, setRevealed] = useState(false)
+
+  // Noted once the title is known, since the list shows names rather than ids.
+  // Keyed on both, so a rename while the card is open updates the entry rather
+  // than leaving the old name to be offered tomorrow.
+  const title = work.data?.title
+  useEffect(() => {
+    if (title !== undefined) noteOpened({ id: workId, title })
+  }, [workId, title])
+
+  // Only for the count on the tab; the tab itself fetches what it draws.
+  const releases = useQuery({
+    queryKey: keys.releasesForWork(workId),
+    queryFn: () => releasesForWork(workId),
+  })
+  // For the count on the tab: "Links (2)" is how a song shows it has clips
+  // without anyone opening the tab.
+  const links = useQuery({
+    queryKey: keys.linksFor(workId),
+    queryFn: () => listLinks(workId),
+  })
+  // The storyboard is a fact of the kind: a song has none, and asking for
+  // its scenes would be a query for a tab that is not drawn.
+  const storyboard = hasScenes(profile.config, work.data?.kind)
+  const scenes = useQuery({
+    queryKey: keys.scenesFor(workId),
+    queryFn: () => listScenes(workId),
+    enabled: storyboard,
+  })
+
+  // The splice, for the tab and its count. Always asked: unlike a storyboard,
+  // whether a work was cut out of another is a fact about the work rather than
+  // about its kind, and the only way to know is to look.
+  const cuts = useQuery({ queryKey: keys.cutsFor(workId), queryFn: () => listCuts(workId) })
+  const spliced = canBeCut(cuts.data ?? [], links.data?.sources.length ?? 0)
+
+  const remove = useMutation({
+    mutationFn: () => deleteWork(workId),
+    onSuccess: (deletionId) => {
+      // Out of the recent list too, so it cannot be offered after it is gone.
+      // An undo re-opens the card, which puts it back.
+      noteDeleted(workId)
+      announceDeleted({
+        client,
+        deletionId,
+        message: t('toast.workDeleted', { title: work.data?.title ?? '' }),
+        refresh: [keys.works, keys.workspace, keys.catalogue, keys.calendar],
+        // The card was closed on the way out; an undo brings it back open.
+        onUndone: () => onUndone(workId),
+      })
+      onDeleted()
+    },
+    onError: (cause) => say.failedTo(t('toast.workDeleteFailed'), cause),
+  })
+
+  if (work.isPending) return <SkeletonCard />
+
+  if (work.isError) {
+    return (
+      <p role="alert" className="text-sm text-bad">
+        {t('toast.loadFailed')}
+      </p>
+    )
+  }
+
+  // The row is gone — deleted in another view while this one held its id.
+  if (work.data === null) {
+    return <p className="text-sm text-dim">{t('error.notFound')}</p>
+  }
+
+  // A URL naming no tab opens on the one this machine prefers; one naming a
+  // tab that does not exist is corrected rather than shown empty. `replace`
+  // keeps the bad address out of the history either way.
+  if (!isTab(tab)) {
+    return <Navigate to={`/works/${workId}/${storedCardView().defaultTab}`} replace />
+  }
+
+  const current = work.data
+
+  // A tab this work does not have - a storyboard on a song, a splice on a work
+  // cut from nothing - goes to the default one, by the same rule the tab bar
+  // hides it. It used to draw an empty tab with nothing lit in the bar.
+  const unavailable =
+    (tab === 'scenes' && !storyboard) ||
+    (tab === 'cuts' && cuts.isSuccess && links.isSuccess && !spliced)
+  if (unavailable) {
+    return <Navigate to={`/works/${workId}/${DEFAULT_TAB}`} replace />
+  }
+
+  // The header stands and the open tab takes the rest. A tab in `HELD` lays
+  // its own columns out against that height and scrolls inside them; every
+  // other tab is a page that scrolls within the box. Either way the card
+  // itself never scrolls - which is what let the header stop being sticky.
+  const held = HELD.has(tab)
+
+  return (
+    <BlindJudgingContext value={{ blind, revealed, setBlind, setRevealed }}>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <CardHeader
+          work={current}
+          releases={releases.data?.length ?? 0}
+          links={(links.data?.sources.length ?? 0) + (links.data?.derived.length ?? 0)}
+          scenes={storyboard ? (scenes.data?.length ?? 0) : undefined}
+          cuts={spliced ? (cuts.data?.length ?? 0) : undefined}
+          onDelete={() => remove.mutate()}
+        />
+
+        <div
+          className={cn(
+            'flex min-h-0 flex-1 flex-col rounded-b-xl border border-line',
+            held
+              ? 'overflow-hidden p-3'
+              : 'overflow-x-hidden overflow-y-auto p-4 [scrollbar-gutter:stable]',
+          )}
+        >
+          <TabBody tab={tab} workId={workId} work={current} />
+        </div>
+      </div>
+    </BlindJudgingContext>
+  )
+}
+
+/**
+ * The tabs that are two columns, each scrolling on its own: a list on the
+ * left, what is picked from it on the right. Scrolling twenty revisions must
+ * not move the text being read, and the other way round.
+ */
+const HELD: ReadonlySet<Tab> = new Set<Tab>(['versions', 'score', 'comments'])
+
+/** The one tab that is open. Everything else is not mounted at all. */
+function TabBody({
+  tab,
+  workId,
+  work,
+}: {
+  tab: Tab
+  workId: string
+  work: Parameters<typeof CardHeader>[0]['work']
+}) {
+  switch (tab) {
+    // Plugins write into the work's own `meta` and may rewrite its versions, so
+    // they belong beside the fields they change rather than beside its releases.
+    case 'overview':
+      return (
+        <div className="flex flex-col gap-4">
+          <OverviewTab work={work} />
+          {/* Profile actions and plugin commands are the same gesture from the
+              user's side — do this to this work — so they sit together, below
+              the fields both of them read. One button that opens them: eight
+              actions spelled out across the overview was a wall of buttons
+              under a screen that is meant to be read. */}
+          <ActionBar workId={workId} menu />
+          <PluginBar target="work" id={workId} />
+        </div>
+      )
+    case 'versions':
+      return <VersionPanel workId={workId} />
+    case 'scenes':
+      return <ScenesTab work={work} />
+    case 'cuts':
+      return <CutsTab work={work} />
+    case 'score':
+      return <ScorePanel workId={workId} />
+    case 'releases':
+      return <ReleasePanel workId={workId} workTitle={work.title} />
+    case 'files':
+      return <FilesTab work={work} />
+    case 'links':
+      return <LinksTab work={work} />
+    case 'notes':
+      return <NotePanel workId={workId} />
+    case 'comments':
+      return <CommentsPanel workId={workId} />
+    // The work's own conversation. The drawer from the window's bar holds every
+    // chat; this tab holds this work's, as the mockup draws it (#p-asst).
+    case 'assistant':
+      return <AssistantPanel workId={workId} />
+    case 'history':
+      return <WorkHistory workId={workId} />
+  }
+}

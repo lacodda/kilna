@@ -19,7 +19,7 @@ export default tseslint.config(
   // are a palette this app owns, and the mark in the rail is drawn in the
   // brand's own colours. Neither follows the theme, and neither should.
   {
-    files: ['src/lib/cover.ts', 'src/components/shell/Sidebar.tsx'],
+    files: ['src/lib/cover.ts', 'src/shell/Sidebar.tsx'],
     rules: { 'dowel/no-raw-color': 'off' },
   },
   // Where a component is the subject rather than the render: the release-kind

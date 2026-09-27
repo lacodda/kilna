@@ -1,7 +1,7 @@
 import { MemoryRouter } from 'react-router'
 import { render, renderHook, waitFor } from '@testing-library/react'
 import type { QueryClient } from '@tanstack/react-query'
-import App from '@/App'
+import App from '@/app/App'
 import { Providers } from '@/app/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { createQueryClient } from '@/lib/query'

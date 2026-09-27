@@ -1,4 +1,4 @@
-import type { Tab } from '@/components/card/tabs'
+import type { Tab } from '@/features/work/tabs'
 import { IDS } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
 
