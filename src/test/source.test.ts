@@ -55,6 +55,9 @@ interface Component {
  * this app's classes; the product component that uses one is still read.
  */
 function components(): Component[] {
+  // Where the copies live is what `components.json` tells `shadcn add`.
+  const { aliases } = JSON.parse(read('components.json')) as { aliases: { ui: string } }
+  const registry = `${aliases.ui.replace(/^@\//, 'src/')}/`
   const found: Component[] = []
   const walk = (dir: string) => {
     for (const name of readdirSync(dir)) {
@@ -62,7 +65,7 @@ function components(): Component[] {
       if (statSync(path).isDirectory()) walk(path)
       else if (name.endsWith('.tsx') && !name.endsWith('.test.tsx')) {
         const relativePath = relative(ROOT, path).replace(/\\/g, '/')
-        if (relativePath.startsWith('src/components/ui/')) continue
+        if (relativePath.startsWith(registry)) continue
         found.push({ path: relativePath, text: readFileSync(path, 'utf8') })
       }
     }

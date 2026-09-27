@@ -20,7 +20,10 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
-const UI = join(ROOT, 'src/components/ui')
+// Where `shadcn add` puts a copy is what `components.json` says, so that is
+// where the copies are looked for - one statement of the place, not two.
+const { aliases } = JSON.parse(readFileSync(join(ROOT, 'components.json'), 'utf8'))
+const UI = join(ROOT, aliases.ui.replace(/^@\//, 'src/'))
 const REGISTRY = join(ROOT, 'node_modules/dowel-ui/dist/registry.json')
 
 /** Copies allowed to differ, each with the reason. Empty is the goal; an entry
