@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import { chatLabel } from '@/lib/chat'
+import { formatCost } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { RowMenu } from '@/components/RowMenu'
@@ -57,7 +58,7 @@ export function AssistantPanel({ workId }: Props) {
         )}
         {current !== undefined && current.cost_usd > 0 && (
           <span className="ml-auto text-xs text-faint">
-            {t('assistant.spent', { amount: `$${current.cost_usd.toFixed(2)}` })}
+            {t('assistant.spent', { amount: formatCost(current.cost_usd) })}
           </span>
         )}
       </div>

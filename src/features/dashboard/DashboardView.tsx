@@ -12,6 +12,7 @@ import { missing } from '@/lib/readiness'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { StageDial } from '@/components/StageDial'
 import { stageAt } from '@/lib/stages'
+import { formatNumber } from '@/lib/format'
 import { ReadyMarks } from '@/components/ReadyMarks'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/EmptyState'
@@ -291,7 +292,7 @@ function CoverCard({
         <span className="block truncate text-[12.5px] font-semibold">{work.title}</span>
         <span className="block font-mono text-[11px] text-faint">
           {work.tier === null ? '' : `${labelOf(allOf(profile.config, 'tiers'), work.tier)} · `}
-          {work.total?.toFixed(1) ?? ''}
+          {work.total === null ? '' : formatNumber(work.total)}
         </span>
       </span>
     </button>

@@ -29,7 +29,7 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.song, 'overview', 'BPM'],
   [IDS.song, 'versions', 'Second pass'],
   [IDS.song, 'score', 'Does the chorus stay with you after one listen?'],
-  [IDS.song, 'releases', '2026-09-22'],
+  [IDS.song, 'releases', 'Sep 22'],
   [IDS.song, 'files', 'Paper Lanterns'],
   [IDS.song, 'links', 'Paper Lanterns (clip)'],
   [IDS.song, 'notes', 'Paper Lanterns'],

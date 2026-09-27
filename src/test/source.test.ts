@@ -132,6 +132,31 @@ describe('every component', () => {
     expect(offenders).toEqual([])
   })
 
+  it('says numbers, dates and durations through `lib/format` only', () => {
+    // A Russian window read "7.5" where it writes "7,5", and a table showed
+    // "2026-09-15" beside a feed that said "Sep 15": each screen formatted
+    // for itself, and most in no language at all. `lib/format` asks `Intl`
+    // in the interface's language; a component that formats on its own is
+    // where that stops being true.
+    //
+    // `toFixed` is allowed where the number is geometry rather than prose - a
+    // path drawn in an SVG - and nowhere else.
+    const geometry = new Set(['src/features/work/tabs/score/Sparkline.tsx'])
+    const rules: [RegExp, string][] = [
+      [/\.toLocale(Date|Time)?String\(/, 'toLocale…String'],
+      [/new Intl\./, 'new Intl'],
+      [/\.slice\(0,\s*10\)/, 'a timestamp cut to its date'],
+    ]
+    const offenders = components().flatMap(({ path, text }) =>
+      text.split('\n').flatMap((line, index) => {
+        const found = rules.filter(([rule]) => rule.test(line)).map(([, name]) => name)
+        if (/\.toFixed\(/.test(line) && !geometry.has(path)) found.push('toFixed')
+        return found.map((name) => `${path}:${index + 1}: ${name}`)
+      }),
+    )
+    expect(offenders).toEqual([])
+  })
+
   it('never adds `relative` to an overlay that is already positioned', () => {
     // `cn` merges classes with tailwind-merge, which keeps the last class of
     // a group - and `position` is one group. A wrapper adding `relative` to a

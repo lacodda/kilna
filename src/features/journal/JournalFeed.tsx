@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/EmptyState'
 import { SkeletonList } from '@/components/Skeleton'
 import { cn } from '@/lib/utils'
+import { formatMoment } from '@/lib/format'
 import type { Tab } from '@/features/work/tabs'
 
 /** A `{{name}}` i18next left standing because the entry carried no such value,
@@ -44,22 +45,6 @@ export function sentence(entry: JournalEntry, t: TFunction): string {
   return filled === said ? said : filled.replace(/\s+/g, ' ').trim()
 }
 
-/** Time of day for today's entries, date for older ones. */
-export function when(timestamp: string, locale: string): string {
-  const at = new Date(timestamp)
-  if (Number.isNaN(at.getTime())) return timestamp
-
-  const today = new Date()
-  const sameDay =
-    at.getFullYear() === today.getFullYear() &&
-    at.getMonth() === today.getMonth() &&
-    at.getDate() === today.getDate()
-
-  return sameDay
-    ? at.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-    : at.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
-}
-
 /**
  * Which tab of a work answers for a line of the journal.
  *
@@ -92,7 +77,7 @@ function destinationOf(entry: JournalEntry): string | null {
 }
 
 function Line({ entry }: { entry: JournalEntry }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const needsALook = entry.level === 'warn' && entry.read_at === null
   const to = destinationOf(entry)
 
@@ -142,7 +127,7 @@ function Line({ entry }: { entry: JournalEntry }) {
         title={entry.created_at}
         className="shrink-0 text-xs tabular-nums text-faint"
       >
-        {when(entry.created_at, i18n.language)}
+        {formatMoment(entry.created_at)}
       </time>
     </li>
   )

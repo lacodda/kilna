@@ -17,6 +17,7 @@ import { useDebounced } from '@/lib/useDebounced'
 import { useProfile } from '@/lib/useProfile'
 import { useRunningTasks } from '@/lib/useRunningTasks'
 import { cn } from '@/lib/utils'
+import { formatDay } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/EmptyState'
 import { Input } from '@/components/ui/input'
@@ -316,15 +317,9 @@ function CommentRow({
   drafted: boolean
   onOpen: () => void
 }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const standing = standingOf(comment)
-  const day =
-    comment.commented_on === null
-      ? null
-      : new Date(`${comment.commented_on}T12:00:00`).toLocaleDateString(i18n.language, {
-          day: 'numeric',
-          month: 'short',
-        })
+  const day = comment.commented_on === null ? null : formatDay(comment.commented_on)
 
   return (
     <button

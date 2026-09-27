@@ -14,6 +14,7 @@ import { ConfirmAction } from '@/components/ConfirmAction'
 import { EmptyState } from '@/components/EmptyState'
 import { SkeletonList } from '@/components/Skeleton'
 import { cn } from '@/lib/utils'
+import { formatDay } from '@/lib/format'
 
 /**
  * The word for what an entry used to be, one key per kind.
@@ -64,7 +65,7 @@ function Row({
           {entityLabel(entry.entity, t)}
         </span>
       </td>
-      <td className="py-2 pr-3 text-xs text-dim">{entry.deleted_at.slice(0, 10)}</td>
+      <td className="py-2 pr-3 text-xs text-dim">{formatDay(entry.deleted_at)}</td>
       <td className="py-2">
         <div className="flex justify-end gap-1">
           <Button

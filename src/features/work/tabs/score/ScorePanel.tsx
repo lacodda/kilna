@@ -23,6 +23,7 @@ import { TierPin } from '@/features/work/tabs/score/TierPin'
 import { KindVerdicts } from '@/features/work/tabs/score/KindVerdicts'
 import { useBlindJudging } from '@/lib/blindJudging'
 import { cn } from '@/lib/utils'
+import { formatDay, formatDelta, formatNumber } from '@/lib/format'
 
 interface Props {
   workId: string
@@ -188,7 +189,7 @@ export function ScorePanel({ workId }: Props) {
           shown.revision !== null
             ? t('score.ofRevision', { name: `v${shown.revision}` })
             : t('score.ofCurrent')
-        } · ${shown.scored_at.slice(0, 10)}`
+        } · ${formatDay(shown.scored_at)}`
 
   // The last few totals, oldest first: `78 → 86 → 91`. Five, because the
   // trail is read at a glance, and the line under each axis carries the rest.
@@ -288,7 +289,7 @@ export function ScorePanel({ workId }: Props) {
                             : t('score.ofCurrent')}
                         </b>
                         <span className="block truncate font-mono text-[11px] text-faint">
-                          {score.scored_at.slice(0, 10)}
+                          {formatDay(score.scored_at)}
                           {score.tier !== null && ` · ${labelOf(tiers, score.tier)}`}
                           {/* Who judged, when it was not you: null has meant
                               the author since v0.50, so your own rows stay
@@ -307,12 +308,10 @@ export function ScorePanel({ workId }: Props) {
                               : 'text-bad',
                         )}
                       >
-                        {delta === undefined || Math.abs(delta) < 0.05
-                          ? '—'
-                          : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`}
+                        {delta === undefined || Math.abs(delta) < 0.05 ? '—' : formatDelta(delta)}
                       </span>
                       <span className="w-9 shrink-0 text-right font-mono text-[15px] font-semibold tabular-nums">
-                        {score.total.toFixed(1)}
+                        {formatNumber(score.total)}
                       </span>
                     </button>
                     {/* Over the row's right edge, on hover: deleting is rare,
@@ -524,8 +523,8 @@ export function ScorePanel({ workId }: Props) {
                         className="h-4 w-[52px]"
                         label={t('score.axisTrend', {
                           axis: axis.label,
-                          from: line[0]!.toFixed(0),
-                          to: line.at(-1)!.toFixed(0),
+                          from: formatNumber(line[0]!, 0),
+                          to: formatNumber(line.at(-1)!, 0),
                         })}
                       />
                     )
@@ -555,7 +554,7 @@ export function ScorePanel({ workId }: Props) {
                     <>
                       <b className="font-semibold text-text">
                         {t('score.toNextTier', {
-                          gap: ahead.gap.toFixed(1),
+                          gap: formatNumber(ahead.gap),
                           tier: ahead.tier.label,
                         })}
                       </b>
@@ -642,7 +641,7 @@ export function ScorePanel({ workId }: Props) {
             this never does. */}
         <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-line px-4 py-2.5">
           <span className="font-mono text-[22px] font-semibold tabular-nums">
-            {filled === 0 ? '—' : preview.toFixed(1)}
+            {filled === 0 ? '—' : formatNumber(preview)}
           </span>
 
           {previewTier !== undefined && filled > 0 && (
@@ -653,8 +652,8 @@ export function ScorePanel({ workId }: Props) {
             <span
               className="font-mono text-[11.5px] text-faint tabular-nums"
               title={t('score.trend', {
-                from: trail[0]!.total.toFixed(0),
-                to: trail.at(-1)!.total.toFixed(0),
+                from: formatNumber(trail[0]!.total, 0),
+                to: formatNumber(trail.at(-1)!.total, 0),
               })}
             >
               {trail.map((score, index) => {
@@ -668,7 +667,7 @@ export function ScorePanel({ workId }: Props) {
                     )}
                   >
                     {index > 0 && ' → '}
-                    {score.total.toFixed(1)}
+                    {formatNumber(score.total)}
                   </span>
                 )
               })}

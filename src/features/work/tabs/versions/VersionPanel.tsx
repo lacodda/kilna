@@ -18,6 +18,7 @@ import { announceDeleted } from '@/lib/trash'
 import { useBodyEditing } from '@/lib/useBodyEditing'
 import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
+import { formatDay } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { LayerProvider } from '@/components/ui/layer'
 import { MarkedText, MarkedTextarea } from '@/components/ui/marked-text'
@@ -326,7 +327,7 @@ export function VersionPanel({ workId }: Props) {
         level={level}
         title={`${labelOf(roles, open.data.role)} · ${
           open.data.label ?? t('versions.revision', { number: open.data.revision })
-        } · ${open.data.created_at.slice(0, 10)}`}
+        } · ${formatDay(open.data.created_at)}`}
         markdown={textMarkdown}
         body={open.data.body}
         reading={reading}

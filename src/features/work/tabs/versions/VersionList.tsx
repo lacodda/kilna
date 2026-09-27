@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { RowMenu } from '@/components/RowMenu'
 import { Skeleton } from '@/components/Skeleton'
 import { cn } from '@/lib/utils'
+import { formatDay } from '@/lib/format'
 
 interface Props {
   versions: VersionSummary[]
@@ -153,7 +154,7 @@ export function VersionList({
               <span className="flex items-center gap-1.5 text-xs text-dim">
                 <span className="min-w-0 truncate">
                   {t('versions.length', { count: version.length })} ·{' '}
-                  {version.created_at.slice(0, 10)}
+                  {formatDay(version.created_at)}
                 </span>
                 {/* The score of the version that was judged, beside the version
                     it judged. Reading the list was the one place the two could

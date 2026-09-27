@@ -23,6 +23,7 @@ import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { KindGlyph } from '@/lib/releaseIcon'
 import { openExternal, shortLink } from '@/lib/link'
 import { cn } from '@/lib/utils'
+import { formatDay } from '@/lib/format'
 import { ReadyMarks } from '@/components/ReadyMarks'
 import { MarkReleasedDialog } from '@/components/MarkReleasedDialog'
 import { ReleaseFields } from '@/features/work/tabs/releases/ReleaseFields'
@@ -234,9 +235,11 @@ export function ReleasePanel({ workId, workTitle }: Props) {
                   <span className={cn('text-xs', released ? 'text-good' : 'text-dim')}>
                     {released
                       ? t('releases.releasedOn', {
-                          date: (entry.released_at ?? '').slice(0, 10),
+                          date: entry.released_at === null ? '' : formatDay(entry.released_at),
                         })
-                      : (entry.scheduled_at ?? t('releases.unscheduled'))}
+                      : entry.scheduled_at === null
+                        ? t('releases.unscheduled')
+                        : formatDay(entry.scheduled_at)}
                   </span>
 
                   {url !== null && (

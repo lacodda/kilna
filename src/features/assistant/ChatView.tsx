@@ -13,7 +13,7 @@ import type { Run } from '@/lib/api/types'
 import { actionsOfScope } from '@/lib/actions'
 import { conversation, pending, type Exchange } from '@/lib/chat'
 import { reading } from '@/lib/palette'
-import { formatDuration } from '@/lib/runs'
+import { formatCost, formatDuration } from '@/lib/format'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -500,7 +500,7 @@ function ExchangeItem({
           )}
           <Markdown body={body} copyLabel={t('assistant.copy')} />
           <div className="mt-1.5 flex items-center gap-1.5">
-            {cost != null && <span className="text-xs text-dim">${cost.toFixed(3)}</span>}
+            {cost != null && <span className="text-xs text-dim">{formatCost(cost, 3)}</span>}
             {took !== null && <span className="text-xs text-faint">{took}</span>}
             {/* An answer still growing is not worth keeping yet. */}
             {insertable && (

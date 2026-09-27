@@ -39,6 +39,7 @@ import { monthOf, today, type Month } from '@/lib/month'
 import { stagesOf } from '@/lib/stages'
 import { batchable } from '@/lib/releaseFields'
 import { cn } from '@/lib/utils'
+import { formatNumber } from '@/lib/format'
 
 interface Props {
   onSelect: (workId: string) => void
@@ -373,7 +374,7 @@ export function CalendarView({ onSelect }: Props) {
                     // since v0.44 it decides nothing about who may have a day.
                     title={entry.total === null ? t('calendar.unscored') : undefined}
                   >
-                    {entry.total?.toFixed(0) ?? '—'}
+                    {entry.total === null ? '—' : formatNumber(entry.total, 0)}
                   </span>
                 </button>
               </li>

@@ -107,6 +107,7 @@ import {
 import { RowContextMenu, RowMenu, type RowAction } from '@/components/RowMenu'
 import { SkeletonList } from '@/components/Skeleton'
 import { cn } from '@/lib/utils'
+import { formatDay, formatDelta, formatNumber } from '@/lib/format'
 
 interface Props {
   /** Opens a work, optionally straight onto one of its tabs. */
@@ -1535,11 +1536,11 @@ function Cell({
                 <span
                   className="text-[11px] text-faint tabular-nums"
                   title={t('catalogue.toNextTier', {
-                    gap: (ahead.min - row.total).toFixed(1),
+                    gap: formatNumber(ahead.min - row.total),
                     tier: ahead.label,
                   })}
                 >
-                  {`+${(ahead.min - row.total).toFixed(1)}`}
+                  {formatDelta(ahead.min - row.total)}
                 </span>
               )}
             </span>
@@ -1551,16 +1552,16 @@ function Cell({
     case 'total':
       return (
         <td className={cn('px-3 py-2 text-right tabular-nums', row.total === null && 'text-faint')}>
-          {row.total?.toFixed(1) ?? '—'}
+          {row.total === null ? '—' : formatNumber(row.total)}
         </td>
       )
 
     case 'scored':
       return (
-        // A date is one word. Left to wrap it broke into "2026-" over "07-31",
-        // which reads as two dates rather than as one.
+        // A date is one word. Left to wrap it broke in two, which reads as two
+        // dates rather than as one.
         <td className="overflow-hidden whitespace-nowrap px-3 py-2 text-xs text-dim">
-          {row.scored_at?.slice(0, 10) ?? '—'}
+          {row.scored_at === null ? '—' : formatDay(row.scored_at)}
           {row.stale && (
             <span
               className="ml-2 whitespace-nowrap rounded bg-warn-soft px-1.5 py-0.5 text-warn"
@@ -1573,10 +1574,10 @@ function Cell({
       )
 
     case 'created':
-      return <td className="truncate px-3 py-2 text-xs text-dim">{row.created_at.slice(0, 10)}</td>
+      return <td className="truncate px-3 py-2 text-xs text-dim">{formatDay(row.created_at)}</td>
 
     case 'updated':
-      return <td className="truncate px-3 py-2 text-xs text-dim">{row.updated_at.slice(0, 10)}</td>
+      return <td className="truncate px-3 py-2 text-xs text-dim">{formatDay(row.updated_at)}</td>
   }
 }
 

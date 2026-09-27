@@ -12,6 +12,7 @@ import { stageAt } from '@/lib/stages'
 import { ReadyMarks } from '@/components/ReadyMarks'
 import { PreviewCard, PreviewCardPopup, PreviewCardTrigger } from '@/components/ui/preview-card'
 import { cn } from '@/lib/utils'
+import { formatNumber } from '@/lib/format'
 
 interface Props {
   slot: ScheduledRelease
@@ -187,7 +188,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
           <div className="flex justify-between gap-3">
             <dt className="text-faint">{t('calendar.previewScore')}</dt>
             <dd className="font-mono tabular-nums">
-              {slot.total === null ? t('calendar.previewUnscored') : slot.total.toFixed(1)}
+              {slot.total === null ? t('calendar.previewUnscored') : formatNumber(slot.total)}
             </dd>
           </div>
           {slot.tier !== null && (

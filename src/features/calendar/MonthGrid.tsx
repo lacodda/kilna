@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { SlotChip } from '@/features/calendar/SlotChip'
 import { useChipDrag } from '@/lib/useChipDrag'
 import { cn } from '@/lib/utils'
+import { formatMonth } from '@/lib/format'
 
 interface Props {
   month: Month
@@ -61,7 +62,7 @@ export function MonthGrid({
   onUnschedule,
   onAddOn,
 }: Props) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const profile = useProfile()
   const releaseKinds = allOf(profile.config, 'release_kinds')
 
@@ -123,10 +124,7 @@ export function MonthGrid({
       ? preview.data
       : null
 
-  const title = new Date(month.year, month.month - 1, 1).toLocaleDateString(i18n.language, {
-    month: 'long',
-    year: 'numeric',
-  })
+  const title = formatMonth(month.year, month.month)
 
   return (
     <div className="flex flex-col gap-3">

@@ -13,6 +13,7 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { useDebounced } from '@/lib/useDebounced'
 import { cn } from '@/lib/utils'
+import { formatDay } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/AppSelect'
@@ -237,13 +238,10 @@ function NoteRow({
   active: boolean
   onOpen: () => void
 }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const title = titleOf(note)
   const progress = progressOf(note.body)
-  const day = new Date(note.updated_at).toLocaleDateString(i18n.language, {
-    day: 'numeric',
-    month: 'short',
-  })
+  const day = formatDay(note.updated_at)
 
   return (
     <button

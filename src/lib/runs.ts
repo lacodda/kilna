@@ -106,20 +106,3 @@ export function inOrder(runs: Run[]): Run[] {
     return left.id < right.id ? -1 : 1
   })
 }
-
-/**
- * How long a run took, as a person reads it: `4s`, `1m 12s`, `2h 05m`.
- *
- * Rounded to the second, because a run is answered by a model over a network
- * and the milliseconds are noise; under a second it says `<1s` rather than
- * `0s`, which would read as "instant" for something that did happen.
- */
-export function formatDuration(ms: number | null): string | null {
-  if (ms === null || !Number.isFinite(ms) || ms < 0) return null
-  const seconds = Math.round(ms / 1000)
-  if (seconds < 1) return '<1s'
-  if (seconds < 60) return `${seconds}s`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ${String(seconds % 60).padStart(2, '0')}s`
-  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
-}

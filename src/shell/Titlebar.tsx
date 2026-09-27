@@ -7,6 +7,7 @@ import { dismissProposal } from '@/lib/api/assistant'
 import { markJournalRead } from '@/lib/api/journal'
 import type { JournalEntry, PendingProposal } from '@/lib/api/types'
 import { screenAt } from '@/app/screens'
+import { formatMoment } from '@/lib/format'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -17,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { CommandPalette } from '@/shell/CommandPalette'
 import { AssistantButton } from '@/features/assistant/AssistantDrawer'
-import { sentence, when } from '@/features/journal/JournalFeed'
+import { sentence } from '@/features/journal/JournalFeed'
 import { NewWorkDialog } from '@/components/NewWorkDialog'
 import { Mark } from '@/shell/Mark'
 import { WindowButtons, useTitleBarGestures } from '@/components/ui/window-frame'
@@ -262,7 +263,7 @@ function ProposalLine({
   onOpen: () => void
   onDismiss: () => void
 }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const what = t(`assistant.proposed.${proposal.kind}`, {
     defaultValue: t('assistant.proposed.other'),
   })
@@ -280,7 +281,7 @@ function ProposalLine({
             dateTime={proposal.created_at}
             className="shrink-0 text-[11px] tabular-nums text-faint"
           >
-            {when(proposal.created_at, i18n.language)}
+            {formatMoment(proposal.created_at)}
           </time>
         </span>
         {proposal.chat_title !== null && (
@@ -312,7 +313,7 @@ function ProposalLine({
 }
 
 function RecentLine({ entry }: { entry: JournalEntry }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const needsALook = entry.level === 'warn' && entry.read_at === null
   return (
     <li className="flex items-baseline gap-2.5 border-b border-line py-2 last:border-b-0">
@@ -327,7 +328,7 @@ function RecentLine({ entry }: { entry: JournalEntry }) {
         {sentence(entry, t)}
       </p>
       <time dateTime={entry.created_at} className="shrink-0 text-[11px] tabular-nums text-faint">
-        {when(entry.created_at, i18n.language)}
+        {formatMoment(entry.created_at)}
       </time>
     </li>
   )

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import type { Tier } from '@/lib/api/types'
 import { say } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
+import { formatNumber } from '@/lib/format'
 
 interface Props {
   tiers: Tier[]
@@ -40,7 +41,7 @@ export function TierRuler({ tiers, score, className }: Props) {
     <div className={cn('flex flex-col gap-1', className)}>
       <div
         role="img"
-        aria-label={t('score.rulerLabel', { score: score.toFixed(1) })}
+        aria-label={t('score.rulerLabel', { score: formatNumber(score) })}
         className="relative h-1.5 w-full overflow-hidden rounded-full bg-soft"
       >
         {ordered.map((tier, index) => {

@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ArrowUpRight, MessageSquare, Plus, X } from 'lucide-react'
 import type { ChatSummary } from '@/lib/api/types'
 import { chatLabel } from '@/lib/chat'
+import { formatCost } from '@/lib/format'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useRunEvent } from '@/lib/runEvents'
@@ -252,7 +253,7 @@ function Drawer({
                         {chat.work_title != null && (
                           <span className="truncate">{chat.work_title}</span>
                         )}
-                        {chat.cost_usd > 0 && <span>${chat.cost_usd.toFixed(2)}</span>}
+                        {chat.cost_usd > 0 && <span>{formatCost(chat.cost_usd)}</span>}
                       </span>
                     </button>
                     <RowMenu label={t('assistant.chatMenu')} actions={actions} />
