@@ -384,6 +384,11 @@ mod tests {
 
     /// Output larger than a pipe holds is read while the child runs, so the
     /// child is never left blocked on a full pipe with nobody reading.
+    ///
+    /// Larger than any pipe's buffer (64 KiB on Linux, less on Windows) is
+    /// all it takes. It used to print 8,000 lines through `cmd`, which alone
+    /// takes a moment and under the whole suite's load overran the 30 seconds
+    /// `wait_within` allows - failing a test about deadlock for being slow.
     #[test]
     fn a_plugin_that_says_a_lot_is_read_to_the_end() {
         #[cfg(windows)]
@@ -391,7 +396,7 @@ mod tests {
             let mut command = std::process::Command::new("cmd");
             command.args([
                 "/C",
-                "for /L %i in (1,1,8000) do @echo 0123456789012345678901234567890123456789",
+                "for /L %i in (1,1,3000) do @echo 0123456789012345678901234567890123456789",
             ]);
             command
         };
@@ -410,7 +415,7 @@ mod tests {
         let output = wait_within(child, std::time::Duration::from_secs(30)).unwrap();
         assert!(output.status.success());
         assert!(
-            output.stdout.len() > 200_000,
+            output.stdout.len() > 100_000,
             "read {} bytes",
             output.stdout.len()
         );
