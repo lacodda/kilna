@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { kindVerdicts } from '@/lib/api/scores'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 

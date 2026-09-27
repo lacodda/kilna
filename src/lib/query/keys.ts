@@ -1,5 +1,3 @@
-import { QueryClient } from '@tanstack/react-query'
-
 /**
  * Query keys in one place.
  *
@@ -21,6 +19,8 @@ export const keys = {
   linksFor: (workId: string) => ['links', workId] as const,
   scenes: ['scenes'] as const,
   scenesFor: (workId: string) => ['scenes', workId] as const,
+  /** The notes a board's scenes point at, per work. */
+  sceneNotesFor: (workId: string) => ['scenes', 'notes', workId] as const,
   // One prefix over every splice: a stretch changes the short's track and the
   // donor's card at the same time, the way a link changes two cards.
   cuts: ['cuts'] as const,
@@ -50,6 +50,8 @@ export const keys = {
   releaseFields: (releaseId: string) => ['releases', 'fields', releaseId] as const,
   calendar: ['calendar'] as const,
   releaseQueue: ['releaseQueue'] as const,
+  /** What a day holds for a release being carried over it. */
+  slotPreview: (releaseId: string, day: string) => ['slotPreview', releaseId, day] as const,
 
   collections: ['collections'] as const,
   // One key for every work's cover: attaching one changes the catalogue,
@@ -57,12 +59,20 @@ export const keys = {
   covers: ['covers'] as const,
   assetsFor: (workId: string) => ['assets', workId] as const,
   notes: ['notes'] as const,
+  /** A work's own notes, as its Notes tab lists them. */
+  notesFor: (workId: string) => ['notes', workId] as const,
+  /** The notes screen's list, under the filter it is read through. */
+  notesMatching: (filter: object) => ['notes', 'all', filter] as const,
+  /** Every note a scene may point at: the cast, the places, the lore. */
+  notesCastable: ['notes', 'castable'] as const,
   // One prefix over the inbox, the channels, a work's counter and what waits
   // to be kept: keeping a comment changes all four at once.
   comments: ['comments'] as const,
   commentChannels: ['comments', 'channels'] as const,
   commentCount: (workId: string) => ['comments', 'count', workId] as const,
   commentProposals: ['comments', 'proposals'] as const,
+  /** The inbox, under the filter it is read through. */
+  commentsMatching: (filter: object) => ['comments', 'list', filter] as const,
   /** What the links in one body point at, keyed by the ids they name: two
       bodies naming the same works share the answer. */
   resolvedLinks: (ids: string) => ['links', 'resolved', ids] as const,
@@ -73,6 +83,11 @@ export const keys = {
   styleBricks: ['styles', 'list'] as const,
   styleCounts: ['styles', 'counts'] as const,
   styleBrick: (id: string) => ['styles', 'item', id] as const,
+  /** The dictionary's list, narrowed to a type and a search. */
+  styleBricksMatching: (typeKey: string | null, query: string) =>
+    ['styles', 'list', typeKey, query] as const,
+  /** The ready bricks a prompt may be built from, under a search. */
+  readyStyleBricks: (query: string) => ['styles', 'list', 'ready', query] as const,
   styleReferences: (id: string) => ['styles', 'references', id] as const,
   tags: ['tags'] as const,
   workTags: ['workTags'] as const,
@@ -111,29 +126,10 @@ export const keys = {
   focusNotes: ['focus', 'notes'] as const,
 
   plugins: ['plugins'] as const,
+
+  // Facts about this machine's install, asked once per screen that shows them.
+  workspacePath: ['workspacePath'] as const,
+  mcpRegistration: ['mcpRegistration'] as const,
+  /** What a task would send, composed against what the person has picked. */
+  taskPreview: (parts: readonly unknown[]) => ['task-preview', ...parts] as const,
 } as const
-
-/**
- * A client with the app's defaults. A factory rather than only the one
- * instance, so each test starts from an empty cache instead of inheriting the
- * answers of the test before it.
- */
-export function createQueryClient(): QueryClient {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        // Local SQLite behind an IPC call: refetching is cheap, but not free
-        // enough to do on every window focus while someone is typing.
-        staleTime: 30_000,
-        refetchOnWindowFocus: false,
-        // A missing row will not become present by asking again, and a broken
-        // query should surface now rather than after three silent retries.
-        retry: false,
-      },
-      mutations: { retry: false },
-    },
-  })
-}
-
-/** The window's one client. */
-export const queryClient = createQueryClient()

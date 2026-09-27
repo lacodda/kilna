@@ -74,7 +74,7 @@ import {
   type ViewShape,
 } from '@/lib/views'
 import { useDebounced } from '@/lib/useDebounced'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
 import { announceDeleted } from '@/lib/trash'

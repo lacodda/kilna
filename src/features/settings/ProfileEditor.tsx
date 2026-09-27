@@ -15,7 +15,7 @@ import type {
 } from '@/lib/api/types'
 import { updateProfileConfig } from '@/lib/api/workspace'
 import { scopeOf } from '@/lib/actions'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { say } from '@/lib/toast'
 import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Select } from '@/components/AppSelect'

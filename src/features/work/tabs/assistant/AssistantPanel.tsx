@@ -13,7 +13,7 @@ import {
 } from '@/lib/api/assistant'
 import type { RunEmission } from '@/lib/api/types'
 import { chatLabel } from '@/lib/chat'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { say } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'

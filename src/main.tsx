@@ -7,7 +7,7 @@ import { Providers } from '@/app/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { initTheme } from '@/lib/theme'
 import { initLanguage } from '@/lib/language'
-import { queryClient } from '@/lib/query'
+import { queryClient } from '@/lib/query/client'
 import '@/i18n'
 import '@/styles.css'
 

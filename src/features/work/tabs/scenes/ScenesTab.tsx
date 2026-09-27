@@ -45,7 +45,7 @@ import type {
 import { getVersion, listVersions } from '@/lib/api/versions'
 import { cloneWork } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { montageFileName, montageList } from '@/lib/montage'
 import { checkStoryboard } from '@/lib/storyboard'
 import { formatSeconds, parseTimecode } from '@/lib/timecode'

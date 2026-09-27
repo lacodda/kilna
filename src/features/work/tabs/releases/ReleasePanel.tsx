@@ -12,7 +12,7 @@ import {
   updateRelease,
 } from '@/lib/api/releases'
 import type { ReleasePatch, ScheduledRelease } from '@/lib/api/types'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { daysBetween } from '@/lib/readiness'
 import { today } from '@/lib/month'
 import { say } from '@/lib/toast'

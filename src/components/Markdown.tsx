@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import { resolveLinks } from '@/lib/api/links'
 import type { ResolvedLink } from '@/lib/api/types'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { hrefOf, replaceWikiLinks, wikiLinks } from '@/lib/wikilink'
 import { cn } from '@/lib/utils'
 

@@ -4,7 +4,7 @@ import { ImageOff } from 'lucide-react'
 import { fileSrc } from '@/lib/api/assets'
 import { styleBrickReferences } from '@/lib/api/styles'
 import type { StyleBrick } from '@/lib/api/types'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { cn } from '@/lib/utils'
 
 /**

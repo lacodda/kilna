@@ -1,22 +1,19 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowUpRight, X } from 'lucide-react'
-import { createNote, deleteNote, listNotes, updateNote } from '@/lib/api/notes'
+import { createNote, deleteNote, updateNote } from '@/lib/api/notes'
 import { toggleTask } from '@/lib/checklist'
-import { keys } from '@/lib/query'
-import { say } from '@/lib/toast'
+import { queries } from '@/lib/query/queries'
+import { refresh } from '@/lib/query/refresh'
+import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Markdown } from '@/components/Markdown'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/Skeleton'
-
-// What a note changes when it appears or goes. A new tag on a note changes the
-// tag list the rest of the app reads, so both are refreshed either way.
-const REFRESHED = [keys.notes, keys.tags] as const
 
 interface Props {
   workId: string
@@ -29,16 +26,9 @@ export function NotePanel({ workId }: Props) {
   const [body, setBody] = useState('')
   const [tags, setTags] = useState('')
 
-  const notes = useQuery({
-    queryKey: [...keys.notes, workId],
-    queryFn: () => listNotes({ work_id: workId }),
-  })
+  const notes = useQuery(queries.notesFor(workId))
 
-  const settle = () => {
-    for (const key of REFRESHED) void client.invalidateQueries({ queryKey: key })
-  }
-
-  const add = useMutation({
+  const add = useAppMutation({
     mutationFn: () =>
       createNote({
         body: body.trim(),
@@ -49,32 +39,34 @@ export function NotePanel({ workId }: Props) {
           .map((tag) => tag.trim())
           .filter((tag) => tag !== ''),
       }),
+    failure: 'toast.noteSaveFailed',
+    refresh: refresh.note,
     onSuccess: () => {
       setBody('')
       setTags('')
-      settle()
     },
-    onError: (cause) => say.failedTo(t('toast.noteSaveFailed'), cause),
   })
 
   // A box ticked here is the same edit as one ticked on the notes screen: the
   // body is rewritten and the box follows it.
-  const tick = useMutation({
+  const tick = useAppMutation({
     mutationFn: ({ id, next }: { id: string; next: string }) => updateNote(id, { body: next }),
-    onSuccess: settle,
-    onError: (cause) => say.failedTo(t('toast.noteSaveFailed'), cause),
+    failure: 'toast.noteSaveFailed',
+    refresh: refresh.note,
   })
 
-  const remove = useMutation({
+  // A deletion is refreshed by its announcement, which refreshes the same
+  // areas again when it is taken back.
+  const remove = useAppMutation({
     mutationFn: deleteNote,
+    failure: 'toast.noteSaveFailed',
     onSuccess: (deletionId) =>
       announceDeleted({
         client,
         deletionId,
         message: t('toast.noteDeleted'),
-        refresh: REFRESHED,
+        refresh: refresh.note,
       }),
-    onError: (cause) => say.failedTo(t('toast.noteSaveFailed'), cause),
   })
 
   return (

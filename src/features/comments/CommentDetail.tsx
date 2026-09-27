@@ -21,7 +21,7 @@ import type { Comment, CommentPatch, PendingCommentProposal } from '@/lib/api/ty
 import { getWork } from '@/lib/api/works'
 import { commentAction } from '@/lib/actions'
 import { standingOf } from '@/lib/comments'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { useProfile } from '@/lib/useProfile'

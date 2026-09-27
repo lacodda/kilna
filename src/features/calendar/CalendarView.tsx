@@ -16,7 +16,7 @@ import {
   warnUnreadyReleases,
 } from '@/lib/api/releases'
 import type { NewRelease, Placement } from '@/lib/api/types'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { say } from '@/lib/toast'
 import { allOf, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'

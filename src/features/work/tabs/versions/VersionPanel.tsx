@@ -16,7 +16,7 @@ import {
 import { changedLines, countChanges, diffLines } from '@/lib/diff'
 import { clearDraft, readDraft, writeDraft } from '@/lib/drafts'
 import { predecessor } from '@/lib/history'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { findRepeats } from '@/lib/repeats'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'

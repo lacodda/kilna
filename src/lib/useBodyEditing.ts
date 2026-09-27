@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { Version } from '@/lib/api/types'
 import { createVersion, updateVersionBody } from '@/lib/api/versions'
 import { begun, continues, touched, type Session } from '@/lib/editing'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { say } from '@/lib/toast'
 
 /** How long after the last keystroke the text is written. */

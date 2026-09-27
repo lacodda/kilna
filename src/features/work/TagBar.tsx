@@ -13,7 +13,7 @@ import {
 import type { Mark, Work } from '@/lib/api/types'
 import { updateWork, workTags } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { say } from '@/lib/toast'
 import { markIconOf } from '@/lib/markIcon'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'

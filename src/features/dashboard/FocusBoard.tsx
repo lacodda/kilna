@@ -16,7 +16,7 @@ import {
 import type { Dismissal, FocusNote, ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import { dismissalKey, findings, visible, type Finding } from '@/lib/findings'
 import { today } from '@/lib/month'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { say } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { labelOf, useProfile } from '@/lib/useProfile'

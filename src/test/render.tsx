@@ -4,7 +4,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import App from '@/app/App'
 import { Providers } from '@/app/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { createQueryClient } from '@/lib/query'
+import { createQueryClient } from '@/lib/query/client'
 
 /**
  * The whole window at `path`: the same providers and boundary as `main.tsx`,

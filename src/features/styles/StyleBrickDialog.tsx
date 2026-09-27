@@ -14,7 +14,7 @@ import {
 } from '@/lib/api/styles'
 import type { StyleBrick, StyleBrickStatus, StyleType } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { say as sayLabel } from '@/lib/useProfile'

@@ -3,7 +3,7 @@ import { listen } from '@tauri-apps/api/event'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { activeTasks } from '@/lib/api/assistant'
 import type { RunEmission } from '@/lib/api/types'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { movesTaskList } from '@/lib/tasks'
 
 /**

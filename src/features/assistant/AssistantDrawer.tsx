@@ -21,7 +21,7 @@ import {
 } from '@/lib/api/assistant'
 import type { ChatSummary, RunEmission } from '@/lib/api/types'
 import { chatLabel } from '@/lib/chat'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { AssistantContext, useAssistant, type Assistant } from '@/lib/useAssistant'
 import { announcement, movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'

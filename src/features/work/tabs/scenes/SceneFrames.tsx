@@ -15,7 +15,7 @@ import {
 import type { SceneFrame } from '@/lib/api/types'
 import i18n from '@/i18n'
 import { CLIPS, PICTURES } from '@/lib/media'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { say } from '@/lib/toast'
 import { VIDEO } from '@/lib/scenes'
 import { cn } from '@/lib/utils'

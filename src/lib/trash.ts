@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import i18n from '@/i18n'
 import { restoreDeletion } from '@/lib/api/trash'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { say } from '@/lib/toast'
 
 /**

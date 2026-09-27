@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { countWorkComments } from '@/lib/api/comments'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { NavLink } from 'react-router'
 import type { Tab } from '@/features/work/tabs'
 import { cn } from '@/lib/utils'

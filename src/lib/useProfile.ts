@@ -15,7 +15,7 @@ import type {
   VersionRole,
 } from '@/lib/api/types'
 import { getWork } from '@/lib/api/works'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { resolveLabel } from '@/lib/label'
 
 // The active profile is the vocabulary every screen speaks in, so it is read

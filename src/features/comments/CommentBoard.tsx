@@ -11,7 +11,7 @@ import type {
 } from '@/lib/api/types'
 import { commentAction } from '@/lib/actions'
 import { standingOf, type Standing } from '@/lib/comments'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 import { channelOfTask, commentTaskKey, isScreenshotTask } from '@/lib/tasks'
 import { useDebounced } from '@/lib/useDebounced'
 import { useProfile } from '@/lib/useProfile'

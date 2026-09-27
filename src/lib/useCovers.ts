@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { fileSrc, listCovers } from '@/lib/api/assets'
-import { keys } from '@/lib/query'
+import { keys } from '@/lib/query/keys'
 
 /**
  * The cover of every work that has one, as a URL the window may fetch.
