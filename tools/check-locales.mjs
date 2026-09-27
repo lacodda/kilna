@@ -137,11 +137,38 @@ for (const [key, file] of used) {
   if (!known) problems.push(`${SOURCE}: used in ${file} but missing  ${key}`)
 }
 
+// And the other way: every message in the source locale is asked for by
+// something. A message nobody asks for is a rename or a removal that only
+// landed in the code - by v0.77 twenty-six of them, each translated, kept in
+// step between the locales and shown to no one.
+//
+// A key counts as asked for when the code holds it whole as a string - in a
+// `t()` call, a ternary, a table of labels kept as data - or when the code
+// builds keys under its prefix at runtime (`t(\`card.tab.${tab}\`)`), in which
+// case every key under that prefix may be the one built. The journal's action
+// sentences and the undo sentences are named by the backend, which holds them
+// to what it records (`src-tauri/tests/journal_keys.rs`).
+const code = sources(SOURCE_DIR)
+  .filter((file) => !/\.test\.tsx?$/.test(file) && !/[\\/]test[\\/]/.test(file))
+  .map((file) => readFileSync(file, 'utf8'))
+  .join('\n')
+const whole = new Set([...code.matchAll(/['"`]([A-Za-z]\w*(?:\.\w+)+)['"`]/g)].map((m) => m[1]))
+const built = [...new Set([...code.matchAll(/`([A-Za-z][\w.]*[._])\$\{/g)].map((m) => m[1]))]
+// The scan's watchdog: the app asks for well over a thousand messages whole.
+if (whole.size < 1000) problems.push(`${SOURCE}: read only ${whole.size} keys from the code`)
+const namedByBackend = (key) => /^journal\.\w+\.\w+/.test(key) || key.startsWith('undo.')
+for (const key of sourceStems) {
+  if (namedByBackend(key) || whole.has(key)) continue
+  if (built.some((prefix) => key.startsWith(prefix))) continue
+  problems.push(`${SOURCE}: asked for by nothing  ${key}`)
+}
+
 if (problems.length > 0) {
   console.error(`✗ ${String(problems.length)} locale problem(s):\n`)
   for (const problem of problems.sort()) console.error(`  ${problem}`)
   console.error('\nEnglish is the source. Add the missing message rather than')
-  console.error('letting it fall back — a screen half in English is a bug.')
+  console.error('letting it fall back — a screen half in English is a bug —')
+  console.error('and take a message nothing asks for out of every locale.')
   process.exit(1)
 }
 

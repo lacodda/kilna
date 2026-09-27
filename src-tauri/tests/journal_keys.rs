@@ -357,4 +357,17 @@ fn every_kind_undo_offers_to_take_back_has_a_sentence() {
         missing.is_empty(),
         "undo offers to take these back but has no sentence for them in en.json: {missing:?}"
     );
+
+    // And the other way: the frontend's locale check leaves `undo.*` to this
+    // test, so a sentence for a kind undo no longer offers is caught here.
+    // Only dotted names are kinds; the section's own labels are not.
+    let stale: Vec<&String> = translated
+        .iter()
+        .filter(|key| key.contains('.'))
+        .filter(|key| !reversible.contains(*key))
+        .collect();
+    assert!(
+        stale.is_empty(),
+        "en.json has undo sentences for kinds undo does not offer: {stale:?}"
+    );
 }

@@ -5,23 +5,16 @@
   },
   "status": {
     "profile": "Active profile",
-    "database": "Database",
-    "schema": "Schema version",
     "works": "Works",
-    "loading": "Loading…",
     "noProfile": "This workspace has no active profile.",
     "failed": "Could not read the workspace: {{message}}"
   },
   "empty": {
-    "title": "Nothing selected",
-    "body": "Pick a work on the left, or add one.",
     "worksTitle": "No works yet",
     "worksBody": "A work is one song, chapter or episode — whatever your profile calls it.",
     "worksFiltered": "Nothing matches those filters",
     "worksFilteredBody": "Clear the search or the filters to see everything again.",
     "clearFilters": "Clear filters",
-    "catalogueTitle": "Nothing scored yet",
-    "catalogueBody": "Score a work and it appears here, ranked.",
     "trashTitle": "The trash is empty",
     "trashBody": "Anything you delete waits here until you empty it.",
     "journalTitle": "Nothing has happened yet",
@@ -38,7 +31,6 @@
     "status": "Status",
     "kind": "Kind",
     "anyStatus": "Any status",
-    "none": "No works match.",
     "newTitle": "New work",
     "newOfKind": "New: {{kind}}",
     "title": "Title"
@@ -65,7 +57,6 @@
     "star": "Star it: come back to this one",
     "unstar": "Take the star off",
     "copyIdHint": "Click to copy the id",
-    "copyId": "Copy the id",
     "copyLink": "Copy a link to this card",
     "rename": "Rename",
     "renameHint": "Enter saves, Escape cancels",
@@ -74,7 +65,6 @@
   },
   "versions": {
     "title": "Versions",
-    "role": "Role",
     "revision": "Revision {{number}}",
     "actionsOn": "On {{name}} — what comes back is about this revision.",
     "current": "current",
@@ -298,7 +288,6 @@
       "sat": "Sat",
       "sun": "Sun"
     },
-    "title": "Calendar",
     "queue": "Queue",
     "queueHint": "Strongest first. Pick one, then give it a date.",
     "queueEmpty": "Nothing waiting. Add a release from a work.",
@@ -327,9 +316,6 @@
       "done_one": "{{count}} release written.",
       "done_other": "{{count}} releases written.",
       "doneNone": "Nothing written: none of these releases has a field filled from its work.",
-      "skipped_one": "{{count}} left alone.",
-      "skipped_other": "{{count}} left alone.",
-      "refusedTitle": "Waiting on the work",
       "refusedRow": "{{title}} — {{label}}: {{reason}}",
       "failed": "Could not write the releases."
     },
@@ -343,7 +329,6 @@
     "queueNoMatch": "Nothing in the queue matches."
   },
   "releases": {
-    "title": "Releases",
     "kind": "Kind",
     "add": "Plan a release",
     "delete": "Delete this release",
@@ -351,7 +336,6 @@
     "releasedOn": "released {{date}}",
     "edit": "Edit this release",
     "actions": "Release actions",
-    "openLink": "Open the link",
     "copyLink": "Copy the link",
     "unmarkReleased": "It did not go out",
     "wentOutOn": "Went out on",
@@ -370,7 +354,6 @@
       "copy": "Copy",
       "copied": "{{label}} is on the clipboard.",
       "copyFailed": "Could not copy that.",
-      "saved": "Saved.",
       "saveFailed": "Could not save what the release goes out as.",
       "overLimit": "{{count}} over",
       "ofLimit": "{{used}} of {{limit}}",
@@ -381,14 +364,12 @@
     }
   },
   "score": {
-    "title": "Score",
     "history": "Scores · {{count}}",
     "new": "New score",
     "newTitle": "A new score",
     "ofRevision": "Score of {{name}}",
     "ofCurrent": "Score of the work",
     "none": "Not judged yet.",
-    "total": "Total",
     "save": "Record score",
     "delete": "Delete this score",
     "mirroring": "These are the marks of the recorded score. Move one to judge again.",
@@ -410,7 +391,6 @@
     "crossesHere": "From here: {{tier}}",
     "rulerLabel": "Tiers, with this card at {{score}}",
     "axisTrend": "{{axis}}: {{from}} to {{to}}",
-    "noAxisTrend": "Judged once - no trend yet",
     "pinTier": "Hold at a tier",
     "pinTierTitle": "Hold this work at a tier",
     "pinTierWhy": "The score keeps being recorded; the tier stops following it until you let it go.",
@@ -427,7 +407,6 @@
     "byKindSame": "This kind weighs the axes the way the profile does",
     "rater": "Who judged",
     "raterHint": "Leave empty when it is you",
-    "raterYou": "you",
     "blindOn": "Score blind",
     "blindOnHint": "Hide the past verdict and the assistant's until you have given yours",
     "blindHidden": "The past verdict is hidden while you judge.",
@@ -578,7 +557,6 @@
     "waitingMark": "Waiting on you",
     "paletteLabel": "Profile actions",
     "paletteEmpty": "No action by that name",
-    "paletteHint": "Type / for actions",
     "scoreTitle": "Proposed score",
     "scoreApply": "Apply as a score",
     "scoreApplied": "Scored.",
@@ -847,7 +825,6 @@
     }
   },
   "notes": {
-    "title": "Notes",
     "add": "Add",
     "delete": "Delete this note",
     "placeholder": "A thought about this work",
@@ -892,7 +869,6 @@
     "tagNew": "Enter adds it as a new tag"
   },
   "styles": {
-    "title": "Styles",
     "new": "New style",
     "edit": "Edit style",
     "saved": "Style saved.",
@@ -952,7 +928,6 @@
     "prompts": "Assistant actions",
     "removeAxis": "Remove this axis",
     "save": "Save profile",
-    "saved": "Saved.",
     "keysHint": "Existing works keep the status and kind they already had, even if you edit the wording here.",
     "promptsHint": "Each action is a short message with placeholders, a method the assistant is briefed with, and what the answer becomes. Keys are fixed once made.",
     "actionLabel": "Button text",
@@ -1020,7 +995,6 @@
   "dialog": {
     "cancel": "Cancel",
     "close": "Close",
-    "confirm": "Confirm",
     "save": "Save"
   },
   "crash": {
@@ -1081,7 +1055,6 @@
     "stageCleared": "Stage cleared"
   },
   "trash": {
-    "title": "Trash",
     "hint": "Nothing leaves for good until you say so.",
     "what": "What",
     "kind": "Kind",
