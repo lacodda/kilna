@@ -2,12 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import {
-  listStyleBricks,
-  styleBrickCounts,
-  type StyleBrick,
-  type StyleType,
-} from '@/lib/api'
+import { listStyleBricks, styleBrickCounts, type StyleBrick, type StyleType } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { useProfile, styleTypesOf, say } from '@/lib/useProfile'
 import { styleIconOf } from '@/lib/styleIcon'
@@ -45,14 +40,8 @@ export function StylesView() {
   })
   const counts = useQuery({ queryKey: keys.styleCounts, queryFn: styleBrickCounts })
 
-  const countOf = useMemo(
-    () => new Map(counts.data ?? []),
-    [counts.data],
-  )
-  const total = useMemo(
-    () => (counts.data ?? []).reduce((sum, [, n]) => sum + n, 0),
-    [counts.data],
-  )
+  const countOf = useMemo(() => new Map(counts.data ?? []), [counts.data])
+  const total = useMemo(() => (counts.data ?? []).reduce((sum, [, n]) => sum + n, 0), [counts.data])
 
   const settle = () => {
     void client.invalidateQueries({ queryKey: keys.styles })
@@ -79,12 +68,7 @@ export function StylesView() {
   }, [bricks.data, types])
 
   if (types.length === 0) {
-    return (
-      <EmptyState
-        title={t('styles.noDictionary')}
-        body={t('styles.noDictionaryBody')}
-      />
-    )
+    return <EmptyState title={t('styles.noDictionary')} body={t('styles.noDictionaryBody')} />
   }
 
   return (
@@ -166,11 +150,7 @@ export function StylesView() {
             </h2>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {group.rows.map((brick) => (
-                <StyleBrickCard
-                  key={brick.id}
-                  brick={brick}
-                  onOpen={() => setEditing(brick)}
-                />
+                <StyleBrickCard key={brick.id} brick={brick} onOpen={() => setEditing(brick)} />
               ))}
             </div>
           </section>

@@ -21,7 +21,11 @@ describe('a field draft', () => {
   })
 
   it('writes what was typed when the field is left', () => {
-    const { commits } = run('120', [{ type: 'focus' }, { type: 'type', text: '124' }, { type: 'leave' }])
+    const { commits } = run('120', [
+      { type: 'focus' },
+      { type: 'type', text: '124' },
+      { type: 'leave' },
+    ])
     expect(commits).toEqual(['124'])
   })
 
@@ -38,7 +42,11 @@ describe('a field draft', () => {
   it('follows the stored value while nobody is in the field', () => {
     // A plugin wrote 128; the box has to show it, or the next blur writes the
     // old value back over it.
-    const { state, commits } = run('120', [{ type: 'stored', value: '128' }, { type: 'focus' }, { type: 'leave' }])
+    const { state, commits } = run('120', [
+      { type: 'stored', value: '128' },
+      { type: 'focus' },
+      { type: 'leave' },
+    ])
     expect(state.draft).toBe('128')
     expect(commits).toEqual([])
   })

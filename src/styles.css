@@ -143,9 +143,21 @@ textarea,
  * colour because the point is to pair each word with its twins across the
  * page, and one highlight would say only "something repeats somewhere".
  */
-.repeat-0 { background: color-mix(in oklab, var(--accent) 26%, transparent); }
-.repeat-1 { background: color-mix(in oklab, var(--warn) 30%, transparent); }
-.repeat-2 { background: color-mix(in oklab, var(--good) 28%, transparent); }
-.repeat-3 { background: color-mix(in oklab, var(--info) 28%, transparent); }
-.repeat-4 { background: color-mix(in oklab, var(--bad) 24%, transparent); }
-.repeat-5 { background: color-mix(in oklab, var(--accent-2) 30%, transparent); }
+.repeat-0 {
+  background: color-mix(in oklab, var(--accent) 26%, transparent);
+}
+.repeat-1 {
+  background: color-mix(in oklab, var(--warn) 30%, transparent);
+}
+.repeat-2 {
+  background: color-mix(in oklab, var(--good) 28%, transparent);
+}
+.repeat-3 {
+  background: color-mix(in oklab, var(--info) 28%, transparent);
+}
+.repeat-4 {
+  background: color-mix(in oklab, var(--bad) 24%, transparent);
+}
+.repeat-5 {
+  background: color-mix(in oklab, var(--accent-2) 30%, transparent);
+}

@@ -113,8 +113,7 @@ export function DataSection() {
             <Skeleton className="h-3 w-72" />
           ) : (
             <>
-              {t('data.workspaceAt')}{' '}
-              <code className="selectable font-mono">{path.data}</code>
+              {t('data.workspaceAt')} <code className="selectable font-mono">{path.data}</code>
             </>
           )}
         </p>
@@ -135,4 +134,3 @@ export function DataSection() {
     </div>
   )
 }
-

@@ -63,9 +63,7 @@ describe('announcement', () => {
       ),
     ).toBeNull()
     expect(
-      announcement(
-        emission({ task: 'critique:w1', event: { kind: 'started', session_id: 's' } }),
-      ),
+      announcement(emission({ task: 'critique:w1', event: { kind: 'started', session_id: 's' } })),
     ).toBeNull()
   })
 
@@ -88,9 +86,9 @@ describe('movesTaskList', () => {
 
   it('ignores the blocks of an answer in between', () => {
     expect(movesTaskList(emission({ event: { kind: 'text', body: 'a line' } }))).toBe(false)
-    expect(
-      movesTaskList(emission({ event: { kind: 'tool', name: 'Read', detail: 'x' } })),
-    ).toBe(false)
+    expect(movesTaskList(emission({ event: { kind: 'tool', name: 'Read', detail: 'x' } }))).toBe(
+      false,
+    )
   })
 })
 

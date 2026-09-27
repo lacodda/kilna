@@ -35,8 +35,6 @@ function utcMidnight(date: string): number {
  * when nothing speaks for the work. Empty exactly when the release is ready.
  */
 export function missing(readiness: Readiness): string[] {
-  const roles = readiness.roles
-    .filter((mark) => mark.present === false)
-    .map((mark) => mark.role)
+  const roles = readiness.roles.filter((mark) => mark.present === false).map((mark) => mark.role)
   return readiness.scored ? roles : [...roles, 'score']
 }

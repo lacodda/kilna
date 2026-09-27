@@ -135,7 +135,9 @@ export function LinksTab({ work }: Props) {
                     onClick={() => void navigate(`/works/${entry.work_id}`)}
                     className="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-line px-3 py-2 text-left transition-colors hover:bg-soft"
                   >
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{entry.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                      {entry.title}
+                    </span>
                     <span className="text-xs text-dim">
                       {labelOf(profile.config.work_kinds, entry.kind)}
                       {' · '}

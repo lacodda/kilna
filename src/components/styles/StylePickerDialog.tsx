@@ -62,7 +62,9 @@ export function StylePickerDialog({
   )
 
   const available = (bricks.data ?? []).filter((one) => !picked.includes(one.id))
-  const chosen = picked.map((id) => byId.get(id)).filter((one): one is StyleBrick => one !== undefined)
+  const chosen = picked
+    .map((id) => byId.get(id))
+    .filter((one): one is StyleBrick => one !== undefined)
 
   const move = (from: number, to: number) => {
     if (to < 0 || to >= picked.length) return
@@ -107,7 +109,9 @@ export function StylePickerDialog({
                   </span>
                   <Icon aria-hidden className="size-4 shrink-0 text-dim" />
                   <span className="min-w-0 flex-1 truncate text-sm">
-                    <span className="text-faint">{labelOfType.get(one.type_key) ?? one.type_key} · </span>
+                    <span className="text-faint">
+                      {labelOfType.get(one.type_key) ?? one.type_key} ·{' '}
+                    </span>
                     {one.name}
                   </span>
                   {/* Buttons rather than a drag handle: two or three parts is

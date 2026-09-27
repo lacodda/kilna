@@ -133,8 +133,7 @@ for (const file of sources(SOURCE_DIR)) {
 
 for (const [key, file] of used) {
   // A plural message is stored under its forms, never under the bare key.
-  const known =
-    source.has(key) || source.has(`${key}_other`) || source.has(`${key}_one`)
+  const known = source.has(key) || source.has(`${key}_other`) || source.has(`${key}_one`)
   if (!known) problems.push(`${SOURCE}: used in ${file} but missing  ${key}`)
 }
 

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { Cut, Shot } from '@/lib/api'
-import { bandsOf, blockerOf, canBeCut, lengthOf, orderMoving, totalLength, tracksOf } from '@/lib/cuts'
+import {
+  bandsOf,
+  blockerOf,
+  canBeCut,
+  lengthOf,
+  orderMoving,
+  totalLength,
+  tracksOf,
+} from '@/lib/cuts'
 
 function cut(over: Partial<Cut> & Pick<Cut, 'starts_at' | 'ends_at'>): Cut {
   return {
@@ -33,7 +41,10 @@ function shot(over: Partial<Shot> = {}): Shot {
 
 describe('lengths', () => {
   it('adds every stretch up, because that is how long the short runs', () => {
-    const splice = [cut({ starts_at: 10, ends_at: 22 }), cut({ id: 'c2', starts_at: 90, ends_at: 98 })]
+    const splice = [
+      cut({ starts_at: 10, ends_at: 22 }),
+      cut({ id: 'c2', starts_at: 90, ends_at: 98 }),
+    ]
     expect(lengthOf(splice[0]!)).toBe(12)
     expect(totalLength(splice)).toBe(20)
   })

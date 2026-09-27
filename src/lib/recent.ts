@@ -79,9 +79,7 @@ function isRecent(value: unknown): value is Recent {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   const candidate = value as Record<string, unknown>
   return (
-    typeof candidate.id === 'string' &&
-    candidate.id !== '' &&
-    typeof candidate.title === 'string'
+    typeof candidate.id === 'string' && candidate.id !== '' && typeof candidate.title === 'string'
   )
 }
 

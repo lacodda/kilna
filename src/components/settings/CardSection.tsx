@@ -27,7 +27,10 @@ export function CardSection() {
             className="max-w-xs"
             value={view.defaultTab}
             onChange={(next) => setCardView({ defaultTab: next as typeof view.defaultTab })}
-            options={DEFAULT_TAB_CHOICES.map((tab) => ({ value: tab, label: t(`card.tab.${tab}`) }))}
+            options={DEFAULT_TAB_CHOICES.map((tab) => ({
+              value: tab,
+              label: t(`card.tab.${tab}`),
+            }))}
           />
         </Field>
       </section>

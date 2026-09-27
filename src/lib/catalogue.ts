@@ -21,15 +21,7 @@ export interface CatalogueFilter {
 
 /** A column the table can be ordered by. */
 export type SortColumn =
-  | 'title'
-  | 'stage'
-  | 'tier'
-  | 'total'
-  | 'scored'
-  | 'status'
-  | 'versions'
-  | 'created'
-  | 'updated'
+  'title' | 'stage' | 'tier' | 'total' | 'scored' | 'status' | 'versions' | 'created' | 'updated'
 export type SortDirection = 'asc' | 'desc'
 
 export interface Sort {
@@ -239,10 +231,7 @@ export function loadColumnFilters(store: SortStore = sessionStorage): ColumnFilt
   }
 }
 
-export function saveColumnFilters(
-  filters: ColumnFilters,
-  store: SortStore = sessionStorage,
-): void {
+export function saveColumnFilters(filters: ColumnFilters, store: SortStore = sessionStorage): void {
   try {
     store.setItem(COLUMN_FILTERS_KEY, JSON.stringify(filters))
   } catch {
@@ -661,9 +650,7 @@ export function saveColumns(columns: ColumnId[], store: SortStore = localStorage
 export function toggleColumn(current: ColumnId[], column: ColumnId): ColumnId[] {
   if (column === REQUIRED_COLUMN) return current
 
-  return current.includes(column)
-    ? current.filter((id) => id !== column)
-    : [...current, column]
+  return current.includes(column) ? current.filter((id) => id !== column) : [...current, column]
 }
 
 /**

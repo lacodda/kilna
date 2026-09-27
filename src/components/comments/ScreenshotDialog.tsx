@@ -99,9 +99,7 @@ export function ScreenshotDialog({ file, onClose, channels, channel, workId }: P
           if (!open) onClose()
         }}
         title={t('comments.screenshotTitle')}
-        description={
-          reader === undefined ? t('comments.noReader') : t('comments.screenshotBody')
-        }
+        description={reader === undefined ? t('comments.noReader') : t('comments.screenshotBody')}
         footer={
           <Button
             type="submit"

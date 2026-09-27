@@ -42,12 +42,25 @@ describe('diffLines', () => {
     ['a', ''],
     ['a\nb\nc', 'a\nc'],
     ['a\nc', 'a\nb\nc'],
-    ['The cranes go still.\nThe water keeps the noise.', 'The cranes go still.\nThe harbour keeps it.\nAnd stops.'],
+    [
+      'The cranes go still.\nThe water keeps the noise.',
+      'The cranes go still.\nThe harbour keeps it.\nAnd stops.',
+    ],
     ['same\nsame\nsame', 'same\nsame\nsame'],
   ])('rebuilds both sides of %j → %j', (before, after) => {
     const changes = diffLines(before, after)
-    expect(changes.filter((c) => c.kind !== 'added').map((c) => c.text).join('\n')).toBe(before)
-    expect(changes.filter((c) => c.kind !== 'removed').map((c) => c.text).join('\n')).toBe(after)
+    expect(
+      changes
+        .filter((c) => c.kind !== 'added')
+        .map((c) => c.text)
+        .join('\n'),
+    ).toBe(before)
+    expect(
+      changes
+        .filter((c) => c.kind !== 'removed')
+        .map((c) => c.text)
+        .join('\n'),
+    ).toBe(after)
   })
 
   it('refuses to compare two very long texts rather than freezing on them', () => {

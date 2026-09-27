@@ -7,7 +7,9 @@ describe('titleOf', () => {
   })
 
   it('falls back to the first line that says something, undressed', () => {
-    expect(titleOf({ title: null, body: '\n## A layer of graphite\nmore' })).toBe('A layer of graphite')
+    expect(titleOf({ title: null, body: '\n## A layer of graphite\nmore' })).toBe(
+      'A layer of graphite',
+    )
     expect(titleOf({ title: '', body: '- [ ] check the layer' })).toBe('check the layer')
     expect(titleOf({ title: null, body: '> quoted thought' })).toBe('quoted thought')
   })

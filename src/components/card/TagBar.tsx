@@ -38,8 +38,7 @@ export function TagBar({ work }: { work: Work }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const patch = useMutation({
-    mutationFn: (changes: { tags?: string[]; marks?: string[] }) =>
-      updateWork(work.id, changes),
+    mutationFn: (changes: { tags?: string[]; marks?: string[] }) => updateWork(work.id, changes),
     onSuccess: (updated) => {
       client.setQueryData(keys.work(work.id), updated)
       announceEdited({
@@ -186,9 +185,7 @@ export function TagBar({ work }: { work: Work }) {
                 </ComboboxItem>
               )}
             </ComboboxList>
-            <ComboboxEmpty className="px-2 py-1 text-[11px]">
-              {t('work.tagNoMatch')}
-            </ComboboxEmpty>
+            <ComboboxEmpty className="px-2 py-1 text-[11px]">{t('work.tagNoMatch')}</ComboboxEmpty>
           </ComboboxPopup>
         </Combobox>
       ) : (

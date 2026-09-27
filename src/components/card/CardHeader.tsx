@@ -343,9 +343,7 @@ function MetaStrip({ work }: { work: Work }) {
       {filled.map((field) => {
         const value = work.meta[field.key]
         const text =
-          field.type === 'boolean'
-            ? i18n.t(value === true ? 'work.yes' : 'work.no')
-            : String(value)
+          field.type === 'boolean' ? i18n.t(value === true ? 'work.yes' : 'work.no') : String(value)
         return (
           // Each field is capped in width and truncated. A craft writes what it
           // likes into these — a mood can be a sentence, a vocal note a whole

@@ -24,9 +24,7 @@ describe('total', () => {
     // one high axis against two, as a first draft of this test did, measures
     // the combined weight instead and says nothing about weighting.
     const two = [axis('heavy', 3), axis('light', 1)]
-    expect(total(two, { heavy: 10, light: 2 })).toBeGreaterThan(
-      total(two, { heavy: 2, light: 10 }),
-    )
+    expect(total(two, { heavy: 10, light: 2 })).toBeGreaterThan(total(two, { heavy: 2, light: 10 }))
   })
 
   // The rule the docs promise: an axis you did not judge is skipped, not
@@ -152,8 +150,14 @@ describe('toNextTier', () => {
     // The claim is checkable: apply it and the total reaches the tier, and one
     // mark fewer does not. This is the test that a rounded-off or off-by-one
     // answer fails.
-    const raised = total(AXES, { ...values, [axis.key]: values[axis.key as keyof typeof values]! + marks })
-    const short = total(AXES, { ...values, [axis.key]: values[axis.key as keyof typeof values]! + marks - 1 })
+    const raised = total(AXES, {
+      ...values,
+      [axis.key]: values[axis.key as keyof typeof values]! + marks,
+    })
+    const short = total(AXES, {
+      ...values,
+      [axis.key]: values[axis.key as keyof typeof values]! + marks - 1,
+    })
 
     expect(raised).toBeGreaterThanOrEqual(to.tier.min)
     expect(short).toBeLessThan(to.tier.min)
@@ -204,7 +208,9 @@ describe('markReaching', () => {
   it('draws no notch on a weightless axis, which cannot move the total', () => {
     const dead = axis('dead', 0)
     const withDead = [...AXES, dead]
-    expect(markReaching(withDead, { hook: 4, lyrics: 4, emotion: 4, dead: 1 }, dead, 50)).toBeUndefined()
+    expect(
+      markReaching(withDead, { hook: 4, lyrics: 4, emotion: 4, dead: 1 }, dead, 50),
+    ).toBeUndefined()
   })
 })
 

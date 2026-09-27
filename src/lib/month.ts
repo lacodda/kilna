@@ -92,7 +92,10 @@ export function today(now: Date = new Date()): string {
 }
 
 /** Group things carrying a date by that date. */
-export function byDate<T>(items: readonly T[], dateOf: (item: T) => string | null): Map<string, T[]> {
+export function byDate<T>(
+  items: readonly T[],
+  dateOf: (item: T) => string | null,
+): Map<string, T[]> {
   const grouped = new Map<string, T[]>()
 
   for (const item of items) {

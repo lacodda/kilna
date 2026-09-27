@@ -90,7 +90,9 @@ const banner = await sharp(BANNER, { density: 384 })
 await sharp({
   create: { width: 1280, height: 640, channels: 4, background: '#1B2126' },
 })
-  .composite([{ input: await sharp(banner).resize({ width: 880 }).png().toBuffer(), gravity: 'centre' }])
+  .composite([
+    { input: await sharp(banner).resize({ width: 880 }).png().toBuffer(), gravity: 'centre' },
+  ])
   .png()
   .toFile(path.join(ASSETS, 'social-preview.png'))
 console.log('wrote social-preview.png')

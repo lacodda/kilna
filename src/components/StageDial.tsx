@@ -53,14 +53,7 @@ export function StageDial({
       }
       className={cn('shrink-0', className)}
     >
-      <circle
-        cx="8"
-        cy="8"
-        r={radius}
-        fill="none"
-        strokeWidth="2.5"
-        className="stroke-line-2"
-      />
+      <circle cx="8" cy="8" r={radius} fill="none" strokeWidth="2.5" className="stroke-line-2" />
       {!unjudged && filled > 0 && (
         <circle
           cx="8"
@@ -79,7 +72,9 @@ export function StageDial({
       {/* A judgement of zero is still a judgement. Without this dot it would
           draw exactly like "nobody has said", and the author would have no way
           to tell that they had answered. */}
-      {!unjudged && filled === 0 && <circle cx="8" cy="8" r="1.5" className={cn('fill-current', tone)} />}
+      {!unjudged && filled === 0 && (
+        <circle cx="8" cy="8" r="1.5" className={cn('fill-current', tone)} />
+      )}
     </svg>
   )
 }

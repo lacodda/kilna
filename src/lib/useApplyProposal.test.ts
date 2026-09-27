@@ -22,6 +22,8 @@ describe('writesOf', () => {
       }),
     ).toBe(5)
     expect(writesOf({ message_id: 'm', at: 't', work_id: 'w', fields: ['tagline'] })).toBe(1)
-    expect(writesOf({ message_id: 'm', at: 't', work_id: 'w', fields: ['tagline'], notes: ['n'] })).toBe(2)
+    expect(
+      writesOf({ message_id: 'm', at: 't', work_id: 'w', fields: ['tagline'], notes: ['n'] }),
+    ).toBe(2)
   })
 })

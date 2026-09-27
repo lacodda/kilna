@@ -151,7 +151,11 @@ export function AssistantPanel({ workId }: Props) {
       </div>
 
       {chats.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label={t('assistant.chats')}>
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          role="tablist"
+          aria-label={t('assistant.chats')}
+        >
           {chats.map((chat) => (
             <button
               key={chat.id}
@@ -169,7 +173,10 @@ export function AssistantPanel({ workId }: Props) {
               )}
             >
               {runningChats.has(chat.id) && (
-                <span aria-hidden className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent" />
+                <span
+                  aria-hidden
+                  className="size-1.5 shrink-0 animate-pulse rounded-full bg-accent"
+                />
               )}
               {/* A question waiting in a chat you are not looking at is the
                   thing this mark exists for; a run in flight already pulses. */}

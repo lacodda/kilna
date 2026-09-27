@@ -141,7 +141,12 @@ export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
         compact ? 'px-1.5' : 'px-2.5',
       )}
     >
-      <ScreenLink to="/dashboard" icon={LayoutDashboard} label={t('nav.dashboard')} compact={compact} />
+      <ScreenLink
+        to="/dashboard"
+        icon={LayoutDashboard}
+        label={t('nav.dashboard')}
+        compact={compact}
+      />
       {/* No separate Works entry: the catalogue is the list of works, and a
           second door to the same things only made you choose between them. */}
       <ScreenLink to="/catalogue" icon={List} label={t('nav.catalogue')} compact={compact} />
@@ -158,7 +163,12 @@ export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
       )}
       <SoonLink icon={Disc} label={t('nav.collections')} version="0.87" compact={compact} />
       <ScreenLink to="/notes" icon={FileText} label={t('nav.notes')} compact={compact} />
-      <ScreenLink to="/comments" icon={MessagesSquare} label={t('nav.comments')} compact={compact} />
+      <ScreenLink
+        to="/comments"
+        icon={MessagesSquare}
+        label={t('nav.comments')}
+        compact={compact}
+      />
       {/* Only where the craft has one: a profile that names no style types
           has no dictionary, and a door to an empty room is worse than none. */}
       {hasStyles && (

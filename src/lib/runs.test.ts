@@ -70,9 +70,7 @@ describe('view', () => {
   })
 
   it('shows the failure a run reported', () => {
-    const drawn = view(
-      run([{ kind: 'failed', message: 'Not logged in' }], { state: 'failed' }),
-    )
+    const drawn = view(run([{ kind: 'failed', message: 'Not logged in' }], { state: 'failed' }))
 
     expect(drawn.failure).toBe('Not logged in')
     expect(drawn.working).toBe(false)

@@ -68,7 +68,10 @@ describe('narrow', () => {
   // so a work found by a word in its body can only arrive as an id from the
   // index — and it has to be kept even though the title says nothing.
   it('keeps a work the index matched on text the row does not carry', () => {
-    const rows = [row({ work_id: 'kitchen', title: 'Кухня' }), row({ work_id: 'bay', title: 'Гавань' })]
+    const rows = [
+      row({ work_id: 'kitchen', title: 'Кухня' }),
+      row({ work_id: 'bay', title: 'Гавань' }),
+    ]
 
     const kept = narrow(rows, { search: 'холодильник' }, ['kitchen'])
 
@@ -561,9 +564,10 @@ describe('toggling a column', () => {
   })
 
   it('never invents a column the table cannot draw', () => {
-    const shown = ALL_COLUMNS.reduce<ColumnId[]>((held, id) => toggleColumn(held, id), [
-      ...DEFAULT_COLUMNS,
-    ])
+    const shown = ALL_COLUMNS.reduce<ColumnId[]>(
+      (held, id) => toggleColumn(held, id),
+      [...DEFAULT_COLUMNS],
+    )
     expect(shown.every((id) => ALL_COLUMNS.includes(id))).toBe(true)
   })
 })

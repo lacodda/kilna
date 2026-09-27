@@ -11,12 +11,7 @@ import type { RunEmission } from '@/lib/api'
  * segment, so two blocks of the same scene run side by side and the same block
  * twice does not.
  */
-export function taskKey(
-  action: string,
-  workId: string,
-  sceneId?: string,
-  block?: string,
-): string {
+export function taskKey(action: string, workId: string, sceneId?: string, block?: string): string {
   if (sceneId === undefined) return `${action}:${workId}`
   if (block === undefined) return `${action}:${workId}:${sceneId}`
   return `${action}:${workId}:${sceneId}:${block}`
@@ -66,9 +61,5 @@ export function channelOfTask(key: string): string | undefined {
   if (parts.length < 4 || parts[1] !== 'channel') return undefined
   // The channel is everything between the marker and the picture's id; its
   // own colons were escaped when the key was built.
-  return parts
-    .slice(2, -1)
-    .join(':')
-    .replaceAll('%3A', ':')
-    .replaceAll('%25', '%')
+  return parts.slice(2, -1).join(':').replaceAll('%3A', ':').replaceAll('%25', '%')
 }

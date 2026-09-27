@@ -82,7 +82,13 @@ export function releaseIcon(icon: string | null | undefined): LucideIcon {
  * a rule that has to be silenced at every call site is a rule that will be
  * silenced somewhere it mattered.
  */
-export function KindGlyph({ icon, className }: { icon: string | null | undefined; className?: string }) {
+export function KindGlyph({
+  icon,
+  className,
+}: {
+  icon: string | null | undefined
+  className?: string
+}) {
   const Glyph = releaseIcon(icon)
   return <Glyph aria-hidden className={className} />
 }

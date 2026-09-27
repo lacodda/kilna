@@ -43,10 +43,7 @@ export function countByKind(slots: readonly ScheduledRelease[]): Map<string, num
  * narrowed -- booking still books every placement, because the filter is a view
  * of the month and not an instruction about what to schedule.
  */
-export function filterGhosts(
-  ghosts: Map<string, Ghost[]>,
-  kind: KindFilter,
-): Map<string, Ghost[]> {
+export function filterGhosts(ghosts: Map<string, Ghost[]>, kind: KindFilter): Map<string, Ghost[]> {
   if (kind === null) return ghosts
 
   const kept = new Map<string, Ghost[]>()

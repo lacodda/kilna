@@ -18,12 +18,7 @@ const scene = (position: number, startsAt: number | null, endsAt: number | null)
   updated_at: '',
 })
 
-const material = (
-  id: string,
-  sceneId: string,
-  kind: string,
-  isSelected: boolean,
-): SceneFrame => ({
+const material = (id: string, sceneId: string, kind: string, isSelected: boolean): SceneFrame => ({
   id,
   scene_id: sceneId,
   asset_id: `a-${id}`,

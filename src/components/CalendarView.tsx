@@ -250,8 +250,7 @@ export function CalendarView({ onSelect }: Props) {
     (slots.data ?? []).filter(
       (entry) =>
         entry.scheduled_at !== null &&
-        entry.scheduled_at.slice(0, 7) ===
-          `${month.year}-${String(month.month).padStart(2, '0')}`,
+        entry.scheduled_at.slice(0, 7) === `${month.year}-${String(month.month).padStart(2, '0')}`,
     ),
   )
 
@@ -283,12 +282,7 @@ export function CalendarView({ onSelect }: Props) {
           narrow strip of it would still take the width the month is being
           given. Claiming a slot from the queue goes with it — that is what
           the layout is for, and the toggle is one click away. */}
-      <section
-        className={cn(
-          'flex min-h-0 flex-col gap-3',
-          width === 'full' && 'hidden',
-        )}
-      >
+      <section className={cn('flex min-h-0 flex-col gap-3', width === 'full' && 'hidden')}>
         <h3 className="shrink-0 text-sm font-semibold">{t('calendar.queue')}</h3>
         <p className="shrink-0 text-xs text-dim">{t('calendar.queueHint')}</p>
 
@@ -488,11 +482,7 @@ export function CalendarView({ onSelect }: Props) {
                   saveLayout(next)
                 }}
               >
-                {width === 'queue' ? (
-                  <ChevronsLeft aria-hidden />
-                ) : (
-                  <ChevronsRight aria-hidden />
-                )}
+                {width === 'queue' ? <ChevronsLeft aria-hidden /> : <ChevronsRight aria-hidden />}
               </Button>
             </div>
 
@@ -533,11 +523,7 @@ export function CalendarView({ onSelect }: Props) {
           and opened again. An invalidated query keeps serving what it has while
           it refetches, so the row does not vanish out from under the dialog —
           checked by pinning with the dialog open. */}
-      <NewWorkDialog
-        kind={adding}
-        onClose={() => setAdding(null)}
-        onCreated={onSelect}
-      />
+      <NewWorkDialog kind={adding} onClose={() => setAdding(null)} onCreated={onSelect} />
 
       {/* The day's plus: which work goes out here. Booking it is one call —
           a release of the work's own first door, dated to the day that was
@@ -579,7 +565,9 @@ export function CalendarView({ onSelect }: Props) {
           after was quietly wrong (decision 02.09: the person names the day). */}
       <MarkReleasedDialog
         release={
-          releasing === null ? null : ((slots.data ?? []).find((one) => one.id === releasing) ?? null)
+          releasing === null
+            ? null
+            : ((slots.data ?? []).find((one) => one.id === releasing) ?? null)
         }
         today={today()}
         onOpenChange={(open) => {

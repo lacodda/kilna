@@ -95,7 +95,9 @@ export function ProposedWork({ workId, messageId, proposal, applied }: Props) {
         </p>
       )}
       {unknownAxes.length > 0 && (
-        <p className="text-xs text-warn">{t('assistant.scoreUnknown', { axes: unknownAxes.join(', ') })}</p>
+        <p className="text-xs text-warn">
+          {t('assistant.scoreUnknown', { axes: unknownAxes.join(', ') })}
+        </p>
       )}
       <div className="flex justify-end">
         {applied !== null ? (

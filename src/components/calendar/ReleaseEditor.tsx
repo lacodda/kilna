@@ -168,18 +168,16 @@ export function ReleaseEditor({
         {release !== null &&
           release.status !== 'released' &&
           missing(release.readiness).length > 0 && (
-          <p className="text-sm text-warn">
-            {t('calendar.notReadyHint', {
-              list: missing(release.readiness)
-                .map((gap) =>
-                  gap === 'score'
-                    ? t('calendar.missingScore')
-                    : labelOf(versionRoles, gap),
-                )
-                .join(', '),
-            })}
-          </p>
-        )}
+            <p className="text-sm text-warn">
+              {t('calendar.notReadyHint', {
+                list: missing(release.readiness)
+                  .map((gap) =>
+                    gap === 'score' ? t('calendar.missingScore') : labelOf(versionRoles, gap),
+                  )
+                  .join(', '),
+              })}
+            </p>
+          )}
 
         {/* What can be done to the release itself, rather than to this form.
             They close the dialog because each one leaves it describing
@@ -230,7 +228,6 @@ export function ReleaseEditor({
             </button>
           </p>
         )}
-
       </form>
     </Dialog>
   )

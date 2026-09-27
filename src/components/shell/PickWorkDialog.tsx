@@ -64,7 +64,9 @@ function Contents({ onOpenChange, onPick, title }: Omit<Props, 'open'>) {
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return (rows.data ?? [])
-      .filter((row) => (kind === null || row.kind === kind) && row.title.toLowerCase().includes(needle))
+      .filter(
+        (row) => (kind === null || row.kind === kind) && row.title.toLowerCase().includes(needle),
+      )
       .slice(0, 200)
   }, [rows.data, query, kind])
 

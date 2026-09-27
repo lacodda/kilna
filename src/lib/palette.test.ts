@@ -82,11 +82,7 @@ describe('matching', () => {
   it('keeps the profile order among equally good matches', () => {
     const found = matching('the', ACTIONS)
 
-    expect(labels(found)).toEqual([
-      'Critique the lyrics',
-      'Describe the style',
-      'Score the work',
-    ])
+    expect(labels(found)).toEqual(['Critique the lyrics', 'Describe the style', 'Score the work'])
   })
 
   it('returns nothing when nothing matches', () => {

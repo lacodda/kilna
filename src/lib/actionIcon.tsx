@@ -58,7 +58,8 @@ export const ACTION_ICONS: Record<string, LucideIcon> = {
 export const ACTION_ICON_NAMES = Object.keys(ACTION_ICONS)
 
 export function actionIconOf(action: Pick<PromptTemplate, 'icon'>): LucideIcon {
-  return (action.icon !== undefined && action.icon !== null
-    ? ACTION_ICONS[action.icon]
-    : undefined) ?? Sparkles
+  return (
+    (action.icon !== undefined && action.icon !== null ? ACTION_ICONS[action.icon] : undefined) ??
+    Sparkles
+  )
 }

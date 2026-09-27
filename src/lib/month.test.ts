@@ -73,7 +73,12 @@ describe('monthGrid', () => {
   it('pads the tail with the days that follow, in order', () => {
     const grid = monthGrid({ year: 2026, month: 9 })
     const tail = grid.filter((day) => !day.inMonth && day.date > '2026-09-01')
-    expect(tail.map((day) => day.date)).toEqual(['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'])
+    expect(tail.map((day) => day.date)).toEqual([
+      '2026-10-01',
+      '2026-10-02',
+      '2026-10-03',
+      '2026-10-04',
+    ])
   })
 })
 
@@ -106,7 +111,10 @@ describe('byDate', () => {
   })
 
   it('drops what has no date rather than gathering it under one', () => {
-    const items = [{ id: 'a', on: null }, { id: 'b', on: '2026-09-01' }]
+    const items = [
+      { id: 'a', on: null },
+      { id: 'b', on: '2026-09-01' },
+    ]
     const grouped = byDate(items, (item) => item.on)
     expect(grouped.size).toBe(1)
     expect([...grouped.values()].flat().map((item) => item.id)).toEqual(['b'])

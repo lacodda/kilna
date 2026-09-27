@@ -19,7 +19,6 @@ import { EmptyState } from '@/components/EmptyState'
 import { SkeletonList } from '@/components/Skeleton'
 import { cn } from '@/lib/utils'
 
-
 /**
  * The word for what an entry used to be, one key per kind.
  *

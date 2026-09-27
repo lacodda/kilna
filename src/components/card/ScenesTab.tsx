@@ -337,21 +337,16 @@ export function ScenesTab({ work }: Props) {
   // the rows, the blocks the kind names, the pictures, the work's length —
   // rather than asked for: a second read would be a second opinion about the
   // same board, able to disagree with the rows beside it.
-  const board = checkStoryboard(
-    all,
-    vocabulary.scene_blocks,
-    framesForScene,
-    durationOf(work),
-  )
+  const board = checkStoryboard(all, vocabulary.scene_blocks, framesForScene, durationOf(work))
   const counts = new Map<string, number>()
   for (const scene of all) {
-    if (scene.shot_type !== null) counts.set(scene.shot_type, (counts.get(scene.shot_type) ?? 0) + 1)
+    if (scene.shot_type !== null)
+      counts.set(scene.shot_type, (counts.get(scene.shot_type) ?? 0) + 1)
   }
   // The list is rendered from the WHOLE board, never from the filtered view:
   // a cut is the video end to end, and handing an editor the four scenes that
   // happened to match a filter would be a list that silently omits the rest.
-  const montage = () =>
-    montageList(all, framesForScene, { missing: t('scenes.montage.missing') })
+  const montage = () => montageList(all, framesForScene, { missing: t('scenes.montage.missing') })
 
   const copyMontage = () => {
     navigator.clipboard.writeText(montage()).then(
@@ -415,9 +410,7 @@ export function ScenesTab({ work }: Props) {
   // open its clip as a picture.
   const stillsOf = (sceneId: string) => ofKind(framesForScene.get(sceneId) ?? [], FRAME)
   const withFrames = shown.filter((scene) => stillsOf(scene.id).length > 0)
-  const viewingAt = viewing
-    ? withFrames.findIndex((scene) => scene.id === viewing.sceneId)
-    : -1
+  const viewingAt = viewing ? withFrames.findIndex((scene) => scene.id === viewing.sceneId) : -1
   const canStep = (direction: -1 | 1) =>
     viewingAt >= 0 && viewingAt + direction >= 0 && viewingAt + direction < withFrames.length
   const step = (direction: -1 | 1) => {
@@ -451,7 +444,11 @@ export function ScenesTab({ work }: Props) {
           a kind: "show me every detail" is one click, and the chip that is
           on turns off. Hidden while the kind names no kinds of shot. */}
       {vocabulary.shot_types.length > 0 && (
-        <div role="group" aria-label={t('scenes.shotType')} className="flex flex-wrap items-center gap-2">
+        <div
+          role="group"
+          aria-label={t('scenes.shotType')}
+          className="flex flex-wrap items-center gap-2"
+        >
           {[
             { key: undefined, label: t('scenes.allShots'), count: all.length },
             ...vocabulary.shot_types.map((shot) => ({
@@ -488,10 +485,15 @@ export function ScenesTab({ work }: Props) {
           workspace would be a list nobody reads. */}
       {(() => {
         const named = new Map<string, SceneNote>()
-        for (const link of about.data ?? []) if (!named.has(link.note_id)) named.set(link.note_id, link)
+        for (const link of about.data ?? [])
+          if (!named.has(link.note_id)) named.set(link.note_id, link)
         if (named.size === 0) return null
         return (
-          <div role="group" aria-label={t('scenes.about')} className="flex flex-wrap items-center gap-2">
+          <div
+            role="group"
+            aria-label={t('scenes.about')}
+            className="flex flex-wrap items-center gap-2"
+          >
             {[...named.values()].map((link) => {
               const active = withNote === link.note_id
               return (
@@ -858,7 +860,10 @@ function SceneRow({
     if (parsed.seconds === stored) return false
     onPatch({ [field]: parsed.seconds })
   }
-  const starts = useFieldDraft(formatSeconds(scene.starts_at), timecode('starts_at', scene.starts_at))
+  const starts = useFieldDraft(
+    formatSeconds(scene.starts_at),
+    timecode('starts_at', scene.starts_at),
+  )
   const ends = useFieldDraft(formatSeconds(scene.ends_at), timecode('ends_at', scene.ends_at))
 
   const section = useFieldDraft(scene.section ?? '', (text) => {
@@ -912,11 +917,7 @@ function SceneRow({
                 aria-label={t('scenes.openFrame')}
                 className="overflow-hidden rounded border border-good"
               >
-                <img
-                  src={fileSrc(chosen.path)}
-                  alt=""
-                  className="size-7 object-contain"
-                />
+                <img src={fileSrc(chosen.path)} alt="" className="size-7 object-contain" />
               </button>
             )}
             {/* The number is where the board is reordered from, because the

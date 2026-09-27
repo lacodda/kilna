@@ -4,13 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { Image as ImageIcon, Paperclip, Star, Trash2 } from 'lucide-react'
-import {
-  attachAsset,
-  detachAsset,
-  listWorkAssets,
-  type Asset,
-  type Work,
-} from '@/lib/api'
+import { attachAsset, detachAsset, listWorkAssets, type Asset, type Work } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { groupMaterials } from '@/lib/materials'
@@ -149,9 +143,7 @@ export function FilesTab({ work }: Props) {
           <Paperclip aria-hidden />
           {t('files.attach')}
         </Button>
-        <span className="text-xs text-dim">
-          {over ? t('files.dropHere') : t('files.copiedIn')}
-        </span>
+        <span className="text-xs text-dim">{over ? t('files.dropHere') : t('files.copiedIn')}</span>
       </div>
 
       {files.isPending && <Skeleton className="h-32 w-full" />}
@@ -232,7 +224,10 @@ function FileCard({
         )}
       </div>
       <div className="flex items-start gap-1">
-        <span className="min-w-0 flex-1 truncate text-xs text-dim" title={asset.original_name ?? ''}>
+        <span
+          className="min-w-0 flex-1 truncate text-xs text-dim"
+          title={asset.original_name ?? ''}
+        >
           {asset.original_name ?? asset.label ?? asset.id}
         </span>
         <Button

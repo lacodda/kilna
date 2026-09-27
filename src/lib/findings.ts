@@ -137,9 +137,7 @@ export function findings(
 
   // Stable across renders and across runs: the same workspace produces the
   // same order, which is what lets v0.34 tell a new finding from a moved one.
-  return found.sort(
-    (a, b) => a.kind.localeCompare(b.kind) || a.title.localeCompare(b.title),
-  )
+  return found.sort((a, b) => a.kind.localeCompare(b.kind) || a.title.localeCompare(b.title))
 }
 
 /**
@@ -174,19 +172,21 @@ function weakScheduled(
   )
   if (!waiting) return []
 
-  return calendar
-    .filter((entry) => entry.released_at === null && entry.scheduled_at !== null)
-    // A date that has passed cannot be given to anyone else.
-    .filter((entry) => daysBetween(today, entry.scheduled_at as string) >= 0)
-    .filter((entry) => entry.tier === weakest.key)
-    // A date settled by hand is a decision, not an oversight.
-    .filter((entry) => entry.slot_pinned_at === null)
-    .map((entry) => ({
-      kind: 'weak-scheduled' as const,
-      workId: entry.work_id,
-      title: entry.work_title,
-      complaint: `weak-scheduled:${entry.scheduled_at ?? ''}`,
-    }))
+  return (
+    calendar
+      .filter((entry) => entry.released_at === null && entry.scheduled_at !== null)
+      // A date that has passed cannot be given to anyone else.
+      .filter((entry) => daysBetween(today, entry.scheduled_at as string) >= 0)
+      .filter((entry) => entry.tier === weakest.key)
+      // A date settled by hand is a decision, not an oversight.
+      .filter((entry) => entry.slot_pinned_at === null)
+      .map((entry) => ({
+        kind: 'weak-scheduled' as const,
+        workId: entry.work_id,
+        title: entry.work_title,
+        complaint: `weak-scheduled:${entry.scheduled_at ?? ''}`,
+      }))
+  )
 }
 
 /**
@@ -199,9 +199,7 @@ function weakScheduled(
  * hiding would mean nothing.
  */
 export function visible(found: readonly Finding[], dismissed: readonly Dismissal[]): Finding[] {
-  const answered = new Set(
-    dismissed.map((row) => keyOf(row.kind, row.work_id, row.complaint)),
-  )
+  const answered = new Set(dismissed.map((row) => keyOf(row.kind, row.work_id, row.complaint)))
   return found.filter(
     (finding) => !answered.has(keyOf(finding.kind, finding.workId, finding.complaint)),
   )

@@ -3,13 +3,7 @@ import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowUpRight, Link2, Pencil, Sprout, Trash2, X } from 'lucide-react'
-import {
-  deleteNote,
-  getWork,
-  updateNote,
-  type Note,
-  type NotePatch,
-} from '@/lib/api'
+import { deleteNote, getWork, updateNote, type Note, type NotePatch } from '@/lib/api'
 import { toggleTask } from '@/lib/checklist'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'

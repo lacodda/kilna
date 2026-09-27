@@ -42,8 +42,9 @@ export function toggleTask(body: string, index: number): string {
   const task = tasksOf(body)[index]
   if (task === undefined) return body
   const lines = body.split('\n')
-  lines[task.line] = (lines[task.line] ?? '').replace(TASK, (_, open: string, mark: string, close: string) =>
-    `${open}${mark === ' ' ? 'x' : ' '}${close}`,
+  lines[task.line] = (lines[task.line] ?? '').replace(
+    TASK,
+    (_, open: string, mark: string, close: string) => `${open}${mark === ' ' ? 'x' : ' '}${close}`,
   )
   return lines.join('\n')
 }

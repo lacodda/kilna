@@ -59,9 +59,9 @@ describe('missing', () => {
 
   it('adds the score last when nothing speaks for the work', () => {
     expect(missing(judged({ scored: false }))).toEqual(['score'])
-    expect(
-      missing(judged({ roles: [{ role: 'lyrics', present: false }], scored: false })),
-    ).toEqual(['lyrics', 'score'])
+    expect(missing(judged({ roles: [{ role: 'lyrics', present: false }], scored: false }))).toEqual(
+      ['lyrics', 'score'],
+    )
   })
 
   it('is empty exactly when there is nothing to chase', () => {

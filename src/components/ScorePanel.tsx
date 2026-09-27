@@ -84,7 +84,9 @@ export function ScorePanel({ workId }: Props) {
 
   const historyData = history.data ?? []
   const shown =
-    picked === NEW ? undefined : (historyData.find((score) => score.id === picked) ?? historyData[0])
+    picked === NEW
+      ? undefined
+      : (historyData.find((score) => score.id === picked) ?? historyData[0])
 
   // The roles that comment rather than stand as the work: a review, a
   // critique. Read from the profile, the same rule the versions tab and the
@@ -425,7 +427,10 @@ export function ScorePanel({ workId }: Props) {
             {axes.length === 0 && (
               <p className="text-sm text-dim">
                 {t('score.noAxes')}{' '}
-                <Link to="/settings" className="underline decoration-dotted underline-offset-2 hover:text-text">
+                <Link
+                  to="/settings"
+                  className="underline decoration-dotted underline-offset-2 hover:text-text"
+                >
                   {t('score.noAxesLink')}
                 </Link>
               </p>
@@ -448,7 +453,10 @@ export function ScorePanel({ workId }: Props) {
                       is a judgement you make by looking at all the axes at once.
                       One line, with the whole of it on hover. */}
                   {sayLabel(axis.description) !== '' && (
-                    <span className="block truncate text-[11px] text-faint" title={sayLabel(axis.description)}>
+                    <span
+                      className="block truncate text-[11px] text-faint"
+                      title={sayLabel(axis.description)}
+                    >
                       {sayLabel(axis.description)}
                     </span>
                   )}
@@ -471,7 +479,9 @@ export function ScorePanel({ workId }: Props) {
                               ? undefined
                               : {
                                   mark,
-                                  label: t('score.crossesHere', { tier: sayLabel(ahead.tier.label) }),
+                                  label: t('score.crossesHere', {
+                                    tier: sayLabel(ahead.tier.label),
+                                  }),
                                 }
                           })()
                     }
@@ -511,7 +521,8 @@ export function ScorePanel({ workId }: Props) {
                       if (entry === undefined) return '\u00a0'
                       return (
                         <>
-                          <b className="font-mono font-semibold">{entry.at}</b> — {sayLabel(entry.label)}
+                          <b className="font-mono font-semibold">{entry.at}</b> —{' '}
+                          {sayLabel(entry.label)}
                         </>
                       )
                     })()}
@@ -551,9 +562,7 @@ export function ScorePanel({ workId }: Props) {
           </div>
 
           <div className="flex flex-col gap-3 border-t border-line pt-4">
-            {!touched && filled > 0 && (
-              <p className="text-xs text-faint">{t('score.mirroring')}</p>
-            )}
+            {!touched && filled > 0 && <p className="text-xs text-faint">{t('score.mirroring')}</p>}
 
             {filled > 0 && (
               <div className="flex flex-col gap-1.5">
@@ -589,7 +598,9 @@ export function ScorePanel({ workId }: Props) {
             )}
 
             {filled > 0 && filled < axes.length && (
-              <p className="text-xs text-dim">{t('score.partial', { filled, count: axes.length })}</p>
+              <p className="text-xs text-dim">
+                {t('score.partial', { filled, count: axes.length })}
+              </p>
             )}
 
             {/* Held by hand, or free to follow the score. Placed under the

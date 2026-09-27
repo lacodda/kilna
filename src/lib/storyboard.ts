@@ -153,9 +153,7 @@ export function checkStoryboard(
       // because they send the person to two different places.
       const drawn = ofKind(material, FRAME).length
       complaints.push(
-        drawn === 0
-          ? { kind: 'noFrame', scene }
-          : { kind: 'undecidedFrame', scene, count: drawn },
+        drawn === 0 ? { kind: 'noFrame', scene } : { kind: 'undecidedFrame', scene, count: drawn },
       )
     } else if (!filmed) {
       const cut = ofKind(material, VIDEO).length

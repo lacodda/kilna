@@ -227,7 +227,10 @@ function Track({
               key={band.cut.id}
               title={`${formatSeconds(band.cut.starts_at)}–${formatSeconds(band.cut.ends_at)}`}
               className="absolute inset-y-0 rounded-inner bg-accent/70"
-              style={{ left: `${band.left * 100}%`, width: `${Math.max(band.width, 0.004) * 100}%` }}
+              style={{
+                left: `${band.left * 100}%`,
+                width: `${Math.max(band.width, 0.004) * 100}%`,
+              }}
             />
           ))}
         </div>
@@ -264,9 +267,7 @@ function Track({
               onCommit={(seconds) => onEdit(cut.id, cut.starts_at, seconds)}
               disabled={busy}
             />
-            <span className="w-12 shrink-0 text-xs text-faint">
-              {formatSeconds(lengthOf(cut))}
-            </span>
+            <span className="w-12 shrink-0 text-xs text-faint">{formatSeconds(lengthOf(cut))}</span>
             {/* The name is stored, so it is shown and typeable: a column the
                 schema keeps and no screen draws is how a field dies. */}
             <Label

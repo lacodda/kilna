@@ -92,14 +92,16 @@ export function ReleaseRowEditor({ release, onOpenChange, onSave }: Props) {
           />
         </Field>
 
-        <Field label={t('calendar.urlPrompt')} hint={linkLooksWrong ? t('releases.linkLooksWrong') : undefined}>
+        <Field
+          label={t('calendar.urlPrompt')}
+          hint={linkLooksWrong ? t('releases.linkLooksWrong') : undefined}
+        >
           <Input
             value={draft.url}
             onChange={(event) => setDraft((current) => ({ ...current, url: event.target.value }))}
             placeholder="https://"
           />
         </Field>
-
       </form>
     </Dialog>
   )

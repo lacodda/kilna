@@ -126,9 +126,17 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
         {/* The channels as chips, with what waits on each: the question of an
             inbox is where the unanswered ones are. */}
         {known.length > 0 && (
-          <div role="group" aria-label={t('comments.channel')} className="flex flex-wrap items-center gap-1.5">
+          <div
+            role="group"
+            aria-label={t('comments.channel')}
+            className="flex flex-wrap items-center gap-1.5"
+          >
             {[
-              { name: undefined as string | undefined, label: t('comments.allChannels'), waiting: undefined },
+              {
+                name: undefined as string | undefined,
+                label: t('comments.allChannels'),
+                waiting: undefined,
+              },
               ...(channels.data ?? []).map(([name, waiting]) => ({ name, label: name, waiting })),
             ].map((entry) => {
               const active = channel === entry.name
@@ -147,14 +155,20 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
                 >
                   {entry.label}
                   {entry.waiting !== undefined && entry.waiting > 0 && (
-                    <span className="text-[10.5px] text-accent-2 tabular-nums">{entry.waiting}</span>
+                    <span className="text-[10.5px] text-accent-2 tabular-nums">
+                      {entry.waiting}
+                    </span>
                   )}
                 </button>
               )
             })}
           </div>
         )}
-        <div role="group" aria-label={t('comments.state')} className="flex rounded-md bg-soft p-0.5">
+        <div
+          role="group"
+          aria-label={t('comments.state')}
+          className="flex rounded-md bg-soft p-0.5"
+        >
           {STATES.map((one) => (
             <button
               key={one}
@@ -336,7 +350,9 @@ function CommentRow({
           title={t(`comments.standing.${standing}`)}
           className={cn('size-1.5 shrink-0 rounded-full', STANDING_DOT[standing])}
         />
-        <b className="truncate font-semibold text-text">{comment.author ?? t('comments.someone')}</b>
+        <b className="truncate font-semibold text-text">
+          {comment.author ?? t('comments.someone')}
+        </b>
         <span className="truncate">· {comment.channel}</span>
         {day !== null && <span className="ml-auto shrink-0 tabular-nums">{day}</span>}
       </span>

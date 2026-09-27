@@ -48,9 +48,7 @@ export function clearDraft(workId: string, role: string): void {
  */
 export function clearDraftsFor(workId: string): void {
   try {
-    const doomed = Object.keys(localStorage).filter((key) =>
-      key.startsWith(`${PREFIX}.${workId}.`),
-    )
+    const doomed = Object.keys(localStorage).filter((key) => key.startsWith(`${PREFIX}.${workId}.`))
     for (const key of doomed) localStorage.removeItem(key)
   } catch {
     // Same reasoning as above.

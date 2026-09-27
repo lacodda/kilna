@@ -3,7 +3,9 @@ import { findRepeats } from '@/lib/repeats'
 
 describe('findRepeats', () => {
   it('counts a word across its forms', () => {
-    const { groups, marks } = findRepeats('Лестница вела вверх.\nПо лестнице шёл дождь.\nЛестницей к небу.')
+    const { groups, marks } = findRepeats(
+      'Лестница вела вверх.\nПо лестнице шёл дождь.\nЛестницей к небу.',
+    )
     expect(groups).toHaveLength(1)
     expect(groups[0]).toMatchObject({ word: 'Лестница', count: 3 })
     expect(marks.map((mark) => mark.group)).toEqual([0, 0, 0])

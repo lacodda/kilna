@@ -41,7 +41,11 @@ export function ProposedComment({ pending, channels, onKept }: Props) {
 
   const works = useQuery({ queryKey: keys.catalogue, queryFn: catalogue })
   const suggested =
-    read.work_id ?? workByTitle(read.about, (works.data ?? []).map((w) => ({ id: w.work_id, title: w.title })))
+    read.work_id ??
+    workByTitle(
+      read.about,
+      (works.data ?? []).map((w) => ({ id: w.work_id, title: w.title })),
+    )
 
   const [channel, setChannel] = useState(read.channel)
   const [author, setAuthor] = useState(read.author ?? '')

@@ -133,24 +133,14 @@ describe('findings', () => {
   })
 
   it('notices a draft nobody has touched for a month', () => {
-    const found = findings(
-      [work({ updated_at: daysAgo(STALE_DRAFT_DAYS + 1) })],
-      [],
-      CONFIG,
-      TODAY,
-    )
+    const found = findings([work({ updated_at: daysAgo(STALE_DRAFT_DAYS + 1) })], [], CONFIG, TODAY)
 
     expect(kinds(found)).toContain('stale-draft')
     expect(found.find((f) => f.kind === 'stale-draft')?.action).toBe('polish')
   })
 
   it('leaves a draft alone while it is still being worked on', () => {
-    const found = findings(
-      [work({ updated_at: daysAgo(STALE_DRAFT_DAYS - 1) })],
-      [],
-      CONFIG,
-      TODAY,
-    )
+    const found = findings([work({ updated_at: daysAgo(STALE_DRAFT_DAYS - 1) })], [], CONFIG, TODAY)
 
     expect(kinds(found)).not.toContain('stale-draft')
   })
@@ -189,12 +179,7 @@ describe('findings', () => {
     })
 
     it('says nothing about a release that already went out', () => {
-      const found = findings(
-        [stronger],
-        [release({ released_at: '2026-08-20' })],
-        CONFIG,
-        TODAY,
-      )
+      const found = findings([stronger], [release({ released_at: '2026-08-20' })], CONFIG, TODAY)
 
       expect(kinds(found)).not.toContain('weak-scheduled')
     })
@@ -239,7 +224,12 @@ describe('findings', () => {
     /** And does not change every morning, or hiding one would never hold. */
     it('holds steady while a stalled draft keeps sitting there', () => {
       const day = findings([work({ updated_at: daysAgo(STALE_DRAFT_DAYS + 1) })], [], CONFIG, TODAY)
-      const next = findings([work({ updated_at: daysAgo(STALE_DRAFT_DAYS + 2) })], [], CONFIG, TODAY)
+      const next = findings(
+        [work({ updated_at: daysAgo(STALE_DRAFT_DAYS + 2) })],
+        [],
+        CONFIG,
+        TODAY,
+      )
 
       const complaint = (list: ReturnType<typeof findings>) =>
         list.find((f) => f.kind === 'stale-draft')?.complaint
@@ -378,9 +368,7 @@ describe('the dismissal key', () => {
     }
     const second: Finding = { ...first, kind: 'stale-draft' }
 
-    const answered: Dismissal[] = [
-      { ...dismissalKey(first), dismissed_at: '2026-08-28T09:00:00Z' },
-    ]
+    const answered: Dismissal[] = [{ ...dismissalKey(first), dismissed_at: '2026-08-28T09:00:00Z' }]
 
     expect(kinds(visible([first, second], answered))).toEqual(['stale-draft'])
   })

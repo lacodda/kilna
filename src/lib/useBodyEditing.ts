@@ -160,8 +160,6 @@ export function useBodyEditing({ workId, role, open, onMinted, failure }: Option
 
 function isFrozen(cause: unknown): boolean {
   return (
-    typeof cause === 'object' &&
-    cause !== null &&
-    (cause as { kind?: unknown }).kind === 'frozen'
+    typeof cause === 'object' && cause !== null && (cause as { kind?: unknown }).kind === 'frozen'
   )
 }

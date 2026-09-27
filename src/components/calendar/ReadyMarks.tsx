@@ -42,10 +42,7 @@ export function ReadyMarks({ readiness, released, daysLeft, className }: Props) 
 
   if (readiness.ready) {
     return (
-      <span
-        className={cn('inline-flex shrink-0 text-good', className)}
-        title={t('calendar.ready')}
-      >
+      <span className={cn('inline-flex shrink-0 text-good', className)} title={t('calendar.ready')}>
         <Check aria-hidden className="size-3" />
       </span>
     )
@@ -53,12 +50,18 @@ export function ReadyMarks({ readiness, released, daysLeft, className }: Props) 
 
   const gaps = missing(readiness)
   const names = gaps.map((gap) =>
-    gap === 'score' ? t('calendar.missingScore') : labelOf(allOf(profile.config, 'version_roles'), gap),
+    gap === 'score'
+      ? t('calendar.missingScore')
+      : labelOf(allOf(profile.config, 'version_roles'), gap),
   )
 
   return (
     <span
-      className={cn('inline-flex shrink-0 items-center gap-0.5', TONE[urgency(daysLeft)], className)}
+      className={cn(
+        'inline-flex shrink-0 items-center gap-0.5',
+        TONE[urgency(daysLeft)],
+        className,
+      )}
       title={t('calendar.notReadyHint', { list: names.join(', ') })}
     >
       {gaps.map((gap) =>

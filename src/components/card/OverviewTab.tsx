@@ -150,7 +150,10 @@ export function OverviewTab({ work }: Props) {
             className="w-full"
             value={work.kind}
             onChange={(kind) => patch.mutate({ kind })}
-            options={profile.config.work_kinds.map((k) => ({ value: k.key, label: sayLabel(k.label) }))}
+            options={profile.config.work_kinds.map((k) => ({
+              value: k.key,
+              label: sayLabel(k.label),
+            }))}
           />
         </Field>
 

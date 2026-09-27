@@ -140,21 +140,13 @@ describe('a scene that holds clips as well as stills', () => {
   })
 
   it('tells the chosen still from the chosen clip', () => {
-    const material = [
-      frame('f1', 's1'),
-      frame('f2', 's1', true),
-      frame('v1', 's1', true, VIDEO),
-    ]
+    const material = [frame('f1', 's1'), frame('f2', 's1', true), frame('v1', 's1', true, VIDEO)]
     expect(chosenFrame(material)?.id).toBe('f2')
     expect(chosenVideo(material)?.id).toBe('v1')
   })
 
   it('splits material by kind, keeping the order of each list', () => {
-    const material = [
-      frame('f1', 's1'),
-      frame('v1', 's1', false, VIDEO),
-      frame('f2', 's1'),
-    ]
+    const material = [frame('f1', 's1'), frame('v1', 's1', false, VIDEO), frame('f2', 's1')]
     expect(ofKind(material, FRAME).map((one) => one.id)).toEqual(['f1', 'f2'])
     expect(ofKind(material, VIDEO).map((one) => one.id)).toEqual(['v1'])
   })
@@ -203,8 +195,7 @@ describe('the order that moves a scene', () => {
 })
 
 describe("a work's length", () => {
-  const work = (duration: unknown): Work =>
-    ({ meta: { duration } as unknown as Meta }) as Work
+  const work = (duration: unknown): Work => ({ meta: { duration } as unknown as Meta }) as Work
 
   it('reads a number of seconds', () => {
     expect(durationOf(work(225))).toBe(225)

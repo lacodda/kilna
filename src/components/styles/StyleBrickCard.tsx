@@ -13,13 +13,7 @@ import { cn } from '@/lib/utils'
  * like long before it is recognised by its name — that is what makes a picture
  * dictionary readable at forty entries.
  */
-export function StyleBrickCard({
-  brick,
-  onOpen,
-}: {
-  brick: StyleBrick
-  onOpen: () => void
-}) {
+export function StyleBrickCard({ brick, onOpen }: { brick: StyleBrick; onOpen: () => void }) {
   const { t } = useTranslation()
 
   // Only for a brick that has one: a query per empty card would be a query per

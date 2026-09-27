@@ -205,77 +205,77 @@ export function ReleasePanel({ workId, workTitle }: Props) {
 
             return (
               <li key={entry.id} className="flex flex-col gap-1">
-              <RowContextMenu
-                actions={actionsFor(entry)}
-                render={
-                  <div
-                    className={cn(
-                      'flex items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm',
-                      // What went out is history sitting in the list, not a plan
-                      // competing for attention - the same dimming the chip uses.
-                      released && 'opacity-70',
-                      // Lit while its own menu is open, so it is clear which
-                      // release the actions belong to.
-                      'data-[popup-open]:bg-soft',
-                    )}
-                  />
-                }
-              >
-                <button
-                  type="button"
-                  onClick={() => setShowing(open ? null : entry.id)}
-                  aria-expanded={open}
-                  aria-label={t('releases.meta.title')}
-                  className="-my-1 -ml-1 shrink-0 rounded p-1 text-faint hover:text-text"
-                >
-                  <ChevronRight
-                    aria-hidden
-                    className={cn('size-3.5 transition-transform', open && 'rotate-90')}
-                  />
-                </button>
-                <KindGlyph icon={kindEntry?.icon} className="size-3.5 shrink-0 text-dim" />
-                <span className="font-medium">{labelOf(kinds, entry.kind)}</span>
-
-                <ReadyMarks
-                  readiness={entry.readiness}
-                  released={released}
-                  daysLeft={
-                    released || entry.scheduled_at === null
-                      ? null
-                      : daysBetween(now, entry.scheduled_at)
+                <RowContextMenu
+                  actions={actionsFor(entry)}
+                  render={
+                    <div
+                      className={cn(
+                        'flex items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm',
+                        // What went out is history sitting in the list, not a plan
+                        // competing for attention - the same dimming the chip uses.
+                        released && 'opacity-70',
+                        // Lit while its own menu is open, so it is clear which
+                        // release the actions belong to.
+                        'data-[popup-open]:bg-soft',
+                      )}
+                    />
                   }
-                />
-
-                <span className={cn('text-xs', released ? 'text-good' : 'text-dim')}>
-                  {released
-                    ? t('releases.releasedOn', {
-                        date: (entry.released_at ?? '').slice(0, 10),
-                      })
-                    : (entry.scheduled_at ?? t('releases.unscheduled'))}
-                </span>
-
-                {url !== null && (
+                >
                   <button
                     type="button"
-                    onClick={() => void openExternal(url)}
-                    title={url}
-                    className="flex min-w-0 items-center gap-1 text-xs text-dim underline hover:text-text"
+                    onClick={() => setShowing(open ? null : entry.id)}
+                    aria-expanded={open}
+                    aria-label={t('releases.meta.title')}
+                    className="-my-1 -ml-1 shrink-0 rounded p-1 text-faint hover:text-text"
                   >
-                    <ExternalLink aria-hidden className="size-3 shrink-0" />
-                    <span className="truncate">{shortLink(url)}</span>
+                    <ChevronRight
+                      aria-hidden
+                      className={cn('size-3.5 transition-transform', open && 'rotate-90')}
+                    />
                   </button>
+                  <KindGlyph icon={kindEntry?.icon} className="size-3.5 shrink-0 text-dim" />
+                  <span className="font-medium">{labelOf(kinds, entry.kind)}</span>
+
+                  <ReadyMarks
+                    readiness={entry.readiness}
+                    released={released}
+                    daysLeft={
+                      released || entry.scheduled_at === null
+                        ? null
+                        : daysBetween(now, entry.scheduled_at)
+                    }
+                  />
+
+                  <span className={cn('text-xs', released ? 'text-good' : 'text-dim')}>
+                    {released
+                      ? t('releases.releasedOn', {
+                          date: (entry.released_at ?? '').slice(0, 10),
+                        })
+                      : (entry.scheduled_at ?? t('releases.unscheduled'))}
+                  </span>
+
+                  {url !== null && (
+                    <button
+                      type="button"
+                      onClick={() => void openExternal(url)}
+                      title={url}
+                      className="flex min-w-0 items-center gap-1 text-xs text-dim underline hover:text-text"
+                    >
+                      <ExternalLink aria-hidden className="size-3 shrink-0" />
+                      <span className="truncate">{shortLink(url)}</span>
+                    </button>
+                  )}
+
+                  <span className="ml-auto">
+                    <RowMenu actions={actionsFor(entry)} label={t('releases.actions')} />
+                  </span>
+                </RowContextMenu>
+
+                {open && (
+                  <div className="pl-6">
+                    <ReleaseFields release={entry} />
+                  </div>
                 )}
-
-                <span className="ml-auto">
-                  <RowMenu actions={actionsFor(entry)} label={t('releases.actions')} />
-                </span>
-              </RowContextMenu>
-
-              {open && (
-                <div className="pl-6">
-                  <ReleaseFields release={entry} />
-                </div>
-              )}
               </li>
             )
           })}

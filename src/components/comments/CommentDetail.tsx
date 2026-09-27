@@ -66,7 +66,14 @@ interface Props {
  * "Copy" puts the reply on the clipboard to paste where the comment is, and
  * "Mark as posted" is the person saying it went.
  */
-export function CommentDetail({ comment, channels, drafts, drafting, onWork = false, onGone }: Props) {
+export function CommentDetail({
+  comment,
+  channels,
+  drafts,
+  drafting,
+  onWork = false,
+  onGone,
+}: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const client = useQueryClient()
@@ -431,4 +438,3 @@ export function CommentDetail({ comment, channels, drafts, drafting, onWork = fa
     </section>
   )
 }
-

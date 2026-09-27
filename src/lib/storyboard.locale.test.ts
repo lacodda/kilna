@@ -49,7 +49,9 @@ function at(locale: unknown, path: string): unknown {
     .split('.')
     .reduce<unknown>(
       (held, key) =>
-        held !== null && typeof held === 'object' ? (held as Record<string, unknown>)[key] : undefined,
+        held !== null && typeof held === 'object'
+          ? (held as Record<string, unknown>)[key]
+          : undefined,
       locale,
     )
 }

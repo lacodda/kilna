@@ -898,7 +898,8 @@ export const undoLast = (operation: string) => invoke<Undoable>('undo_last', { o
 export const listWorks = (filter?: WorkFilter) => invoke<Work[]>('list_works', { filter })
 export const getWork = (id: string) => invoke<Work | null>('get_work', { id })
 export const createWork = (work: NewWork) => invoke<Work>('create_work', { work })
-export const updateWork = (id: string, patch: WorkPatch) => invoke<Work>('update_work', { id, patch })
+export const updateWork = (id: string, patch: WorkPatch) =>
+  invoke<Work>('update_work', { id, patch })
 export const deleteWork = (id: string) => invoke<string>('delete_work', { id })
 export const deleteWorks = (ids: string[]) => invoke<string[]>('delete_works', { ids })
 export const listLinks = (workId: string) => invoke<Links>('list_links', { workId })
@@ -1027,8 +1028,7 @@ export interface NewAsset {
 
 export const attachAsset = (source: string, asset: NewAsset) =>
   invoke<Asset>('attach_asset', { source, asset })
-export const listWorkAssets = (workId: string) =>
-  invoke<Asset[]>('list_work_assets', { workId })
+export const listWorkAssets = (workId: string) => invoke<Asset[]>('list_work_assets', { workId })
 export const listReleaseAssets = (releaseId: string) =>
   invoke<Asset[]>('list_release_assets', { releaseId })
 /** The cover of every work that has one, as [work id, path] pairs. */
@@ -1087,10 +1087,8 @@ export const attachSceneFrame = (sceneId: string, kind: string, source: string) 
 /** A pasted picture: the clipboard gives bytes, so the bytes are what travels. */
 export const pasteSceneFrame = (sceneId: string, kind: string, bytes: Uint8Array, name: string) =>
   invoke<SceneFrame>('paste_scene_frame', { sceneId, kind, bytes: Array.from(bytes), name })
-export const detachSceneFrame = (id: string) =>
-  invoke<void>('detach_scene_frame', { id })
-export const selectSceneFrame = (id: string) =>
-  invoke<SceneFrame>('select_scene_frame', { id })
+export const detachSceneFrame = (id: string) => invoke<void>('detach_scene_frame', { id })
+export const selectSceneFrame = (id: string) => invoke<SceneFrame>('select_scene_frame', { id })
 /** Take back the verdict on one kind: unchoosing a clip says nothing about
  * the still it was animated from. */
 export const clearSceneFrame = (sceneId: string, kind: string) =>
@@ -1133,7 +1131,8 @@ export const pinTier = (id: string, tier: string, reason: string) =>
 /** Let the score speak for the work's tier again. */
 export const unpinTier = (id: string) => invoke<Work>('unpin_tier', { id })
 
-export const listVersions = (workId: string) => invoke<VersionSummary[]>('list_versions', { workId })
+export const listVersions = (workId: string) =>
+  invoke<VersionSummary[]>('list_versions', { workId })
 /** The command that registers this build with Claude Code as an MCP server. */
 export const mcpRegistration = () => invoke<string>('mcp_registration')
 export const getVersion = (id: string) => invoke<Version | null>('get_version', { id })
@@ -1149,7 +1148,8 @@ export const deleteVersion = (id: string) => invoke<string>('delete_version', { 
 
 export const listNotes = (filter?: NoteFilter) => invoke<Note[]>('list_notes', { filter })
 export const createNote = (note: NewNote) => invoke<Note>('create_note', { note })
-export const updateNote = (id: string, patch: NotePatch) => invoke<Note>('update_note', { id, patch })
+export const updateNote = (id: string, patch: NotePatch) =>
+  invoke<Note>('update_note', { id, patch })
 export const deleteNote = (id: string) => invoke<string>('delete_note', { id })
 export const listTags = () => invoke<[string, number][]>('list_tags')
 
@@ -1377,8 +1377,7 @@ export interface KindVerdict {
 }
 
 /** The same score, read down every channel the craft ships to. */
-export const kindVerdicts = (workId: string) =>
-  invoke<KindVerdict[]>('kind_verdicts', { workId })
+export const kindVerdicts = (workId: string) => invoke<KindVerdict[]>('kind_verdicts', { workId })
 export const deleteScore = (id: string) => invoke<string>('delete_score', { id })
 export const catalogue = () => invoke<ScoredWork[]>('catalogue')
 
@@ -1455,8 +1454,7 @@ export interface GeneratedFields {
   refused: ReleaseFieldRefusal[]
 }
 
-export const releaseFields = (id: string) =>
-  invoke<ReleaseFieldValue[]>('release_fields', { id })
+export const releaseFields = (id: string) => invoke<ReleaseFieldValue[]>('release_fields', { id })
 // Keys the profile does not declare are refused: the map is open on purpose,
 // but a typed key no field names could only come from a bug.
 export const setReleaseFields = (id: string, values: Record<string, string>) =>
@@ -1571,8 +1569,7 @@ export const search = (query: string) => invoke<Hit[]>('search', { query })
  *
  * What the catalogue's box asks, as against the palette's: the rows are
  * already on the screen, so only the narrowing comes back. */
-export const worksMatching = (query: string) =>
-  invoke<string[]>('works_matching', { query })
+export const worksMatching = (query: string) => invoke<string[]>('works_matching', { query })
 
 export const listJournal = () => invoke<JournalEntry[]>('list_journal')
 export const journalForWork = (workId: string) =>

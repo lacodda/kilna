@@ -60,7 +60,13 @@ describe('replaceWikiLinks', () => {
   })
 
   it('escapes a body with no links at all', () => {
-    expect(replaceWikiLinks('plain', () => '!', (between) => `[${between}]`)).toBe('[plain]')
+    expect(
+      replaceWikiLinks(
+        'plain',
+        () => '!',
+        (between) => `[${between}]`,
+      ),
+    ).toBe('[plain]')
   })
 
   it('handles two links with nothing between them', () => {

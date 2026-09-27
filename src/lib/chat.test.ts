@@ -34,7 +34,11 @@ describe('conversation', () => {
         message('user', 'shorten the verse', 't1', { run_id: 'r1' }),
         message('assistant', 'done, here it is', 't2', { run_id: 'r1', cost_usd: 0.12 }),
       ],
-      [run('r1', 'shorten the verse', 't1', { events: [{ kind: 'tool', name: 'Read', detail: 'x' }] })],
+      [
+        run('r1', 'shorten the verse', 't1', {
+          events: [{ kind: 'tool', name: 'Read', detail: 'x' }],
+        }),
+      ],
     )
 
     expect(items).toHaveLength(1)
@@ -176,7 +180,9 @@ describe('a proposal on an answer', () => {
   it('reads a proposed note, and nothing from a kind it does not know', () => {
     const items = conversation(
       [
-        message('assistant', 'try a key change', 't1', { proposal: { kind: 'note', title: 'Bridge' } }),
+        message('assistant', 'try a key change', 't1', {
+          proposal: { kind: 'note', title: 'Bridge' },
+        }),
         message('assistant', 'whatever', 't2', { proposal: { kind: 'tier', tier: 'gold' } }),
         message('assistant', 'no role', 't3', { proposal: { kind: 'version' } }),
       ],

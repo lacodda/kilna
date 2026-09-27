@@ -161,9 +161,7 @@ export function MonthGrid({
             onPointerLeave={() => setOver((current) => (current === 'bin' ? null : current))}
             className={cn(
               'ml-auto flex items-center gap-1.5 rounded-md border border-dashed px-3 py-1 text-xs transition-colors',
-              over === 'bin'
-                ? 'border-bad bg-bad-soft text-bad'
-                : 'border-line-2 text-dim',
+              over === 'bin' ? 'border-bad bg-bad-soft text-bad' : 'border-line-2 text-dim',
             )}
           >
             <Trash2 aria-hidden className="size-3.5" />
@@ -173,16 +171,16 @@ export function MonthGrid({
 
         {dragging === null &&
           !sameMonth(month, { year: Number(now.slice(0, 4)), month: Number(now.slice(5, 7)) }) && (
-          <Button
-            size="sm"
-            className="ml-2"
-            onClick={() =>
-              onMonthChange({ year: Number(now.slice(0, 4)), month: Number(now.slice(5, 7)) })
-            }
-          >
-            {t('calendar.thisMonth')}
-          </Button>
-        )}
+            <Button
+              size="sm"
+              className="ml-2"
+              onClick={() =>
+                onMonthChange({ year: Number(now.slice(0, 4)), month: Number(now.slice(5, 7)) })
+              }
+            >
+              {t('calendar.thisMonth')}
+            </Button>
+          )}
       </div>
 
       <div
@@ -214,38 +212,38 @@ export function MonthGrid({
                 },
               ]}
               render={
-            <div
-              // The date this cell stands for, read back from the element the
-              // pointer was released over. A day of a neighbouring month is
-              // dimmed but no longer inert: dragging reaches it, and the month
-              // turns under the pointer anyway.
-              data-day={day.date}
-              className={cn(
-                'group relative min-h-24 bg-bg p-1.5 transition-colors',
-                !day.inMonth && 'opacity-40',
-                // Today is where the eye starts. The number alone carried it
-                // until now, and on a grid of forty-two cells a coloured digit
-                // is not where the eye starts.
-                isToday && 'inset-ring inset-ring-accent',
-                claiming && day.inMonth && 'cursor-pointer hover:bg-soft',
-                // Somewhere to land. No red: nothing is refused any more, and
-                // a day that already holds something says so in words below.
-                over === day.date && 'bg-accent-soft',
-              )}
-              onClick={claiming && day.inMonth ? () => onPickDay(day.date) : undefined}
-              // One set of handlers for both gestures: the queue's
-              // click-to-book and a chip in the air. The carried ghost is
-              // `pointer-events: none`, so the day underneath keeps receiving
-              // the pointer and lights up as it is crossed.
-              onPointerEnter={
-                claiming || dragging !== null ? () => setOver(day.date) : undefined
-              }
-              onPointerLeave={
-                claiming || dragging !== null
-                  ? () => setOver((current) => (current === day.date ? null : current))
-                  : undefined
-              }
-            />
+                <div
+                  // The date this cell stands for, read back from the element the
+                  // pointer was released over. A day of a neighbouring month is
+                  // dimmed but no longer inert: dragging reaches it, and the month
+                  // turns under the pointer anyway.
+                  data-day={day.date}
+                  className={cn(
+                    'group relative min-h-24 bg-bg p-1.5 transition-colors',
+                    !day.inMonth && 'opacity-40',
+                    // Today is where the eye starts. The number alone carried it
+                    // until now, and on a grid of forty-two cells a coloured digit
+                    // is not where the eye starts.
+                    isToday && 'inset-ring inset-ring-accent',
+                    claiming && day.inMonth && 'cursor-pointer hover:bg-soft',
+                    // Somewhere to land. No red: nothing is refused any more, and
+                    // a day that already holds something says so in words below.
+                    over === day.date && 'bg-accent-soft',
+                  )}
+                  onClick={claiming && day.inMonth ? () => onPickDay(day.date) : undefined}
+                  // One set of handlers for both gestures: the queue's
+                  // click-to-book and a chip in the air. The carried ghost is
+                  // `pointer-events: none`, so the day underneath keeps receiving
+                  // the pointer and lights up as it is crossed.
+                  onPointerEnter={
+                    claiming || dragging !== null ? () => setOver(day.date) : undefined
+                  }
+                  onPointerLeave={
+                    claiming || dragging !== null
+                      ? () => setOver((current) => (current === day.date ? null : current))
+                      : undefined
+                  }
+                />
               }
             >
               <div className="mb-1 flex items-center justify-between gap-1">

@@ -22,14 +22,20 @@ export function total(axes: Axis[], values: Record<string, number>): number {
 export function tierFor(tiers: Tier[], score: number): Tier | undefined {
   return tiers
     .filter((tier) => score >= tier.min)
-    .reduce<Tier | undefined>((best, tier) => (best === undefined || tier.min > best.min ? tier : best), undefined)
+    .reduce<Tier | undefined>(
+      (best, tier) => (best === undefined || tier.min > best.min ? tier : best),
+      undefined,
+    )
 }
 
 /** The tier above `score`, or `undefined` when it is already in the top one. */
 export function nextTier(tiers: Tier[], score: number): Tier | undefined {
   return tiers
     .filter((tier) => tier.min > score)
-    .reduce<Tier | undefined>((best, tier) => (best === undefined || tier.min < best.min ? tier : best), undefined)
+    .reduce<Tier | undefined>(
+      (best, tier) => (best === undefined || tier.min < best.min ? tier : best),
+      undefined,
+    )
 }
 
 /**
@@ -129,5 +135,8 @@ export function markReaching(
 export function rubricFor(axis: Axis, mark: number): AxisMark | undefined {
   return (axis.rubric ?? [])
     .filter((entry) => entry.at <= mark)
-    .reduce<AxisMark | undefined>((best, entry) => (best === undefined || entry.at > best.at ? entry : best), undefined)
+    .reduce<AxisMark | undefined>(
+      (best, entry) => (best === undefined || entry.at > best.at ? entry : best),
+      undefined,
+    )
 }

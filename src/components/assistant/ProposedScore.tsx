@@ -67,9 +67,7 @@ export function ProposedScore({ workId, messageId, proposal, applied }: Props) {
         ))}
       </dl>
 
-      {proposal.note !== undefined && (
-        <p className="mt-1.5 text-xs text-dim">{proposal.note}</p>
-      )}
+      {proposal.note !== undefined && <p className="mt-1.5 text-xs text-dim">{proposal.note}</p>}
 
       {/* A proposal that only half fits is still worth applying — but never
           without saying so. */}

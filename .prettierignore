@@ -1,0 +1,12 @@
+# Copies of dowel's registry, held byte for byte to it by `pnpm registry`.
+src/components/ui/
+
+# Other toolchains and generated files.
+src-tauri/
+docs/
+dist/
+CHANGELOG.md
+pnpm-lock.yaml
+
+# Prose is written, not formatted.
+*.md

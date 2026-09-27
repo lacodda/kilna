@@ -197,7 +197,6 @@ export function Catalogue({ onSelect }: Props) {
   const kindCounts = new Map<string, number>()
   for (const row of rows.data ?? []) kindCounts.set(row.kind, (kindCounts.get(row.kind) ?? 0) + 1)
 
-
   // Deliberately not remembered across a restart, unlike the sort: a selection
   // is about the click you are about to make, and finding rows still ticked
   // tomorrow is a way to act on the wrong ones.
@@ -256,8 +255,7 @@ export function Catalogue({ onSelect }: Props) {
     saveSort(next)
   }
 
-  const set = (change: Partial<CatalogueFilter>) =>
-    setFilter({ ...filter, ...change })
+  const set = (change: Partial<CatalogueFilter>) => setFilter({ ...filter, ...change })
 
   // The profile's own words, which the query box resolves values against so
   // `tier:Picture` works as well as `tier:pic`.
@@ -340,7 +338,11 @@ export function Catalogue({ onSelect }: Props) {
           The counts are of the whole catalogue, so a kind reads as empty
           rather than as absent. */}
       {profile.config.work_kinds.length > 1 && (
-        <div role="group" aria-label={t('works.kind')} className="flex flex-wrap items-center gap-2">
+        <div
+          role="group"
+          aria-label={t('works.kind')}
+          className="flex flex-wrap items-center gap-2"
+        >
           {[
             { key: undefined, label: t('catalogue.kindAll'), count: rows.data?.length ?? 0 },
             ...profile.config.work_kinds.map((kind) => ({
@@ -418,7 +420,9 @@ export function Catalogue({ onSelect }: Props) {
           type="button"
           aria-pressed={filter.bookmarked === true}
           title={t('catalogue.starredHint')}
-          onClick={() => setFromControl({ bookmarked: filter.bookmarked === true ? undefined : true })}
+          onClick={() =>
+            setFromControl({ bookmarked: filter.bookmarked === true ? undefined : true })
+          }
           className={cn(
             'inline-flex h-control cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-sm transition-colors',
             'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent',
@@ -610,9 +614,7 @@ function Rows({
   // one is worse than none: it would narrow to the hits for `холод` while the
   // box reads `холодильник`. Titles keep narrowing in the meantime.
   const matching =
-    settled === '' || settled !== text || matches.data === undefined
-      ? undefined
-      : matches.data
+    settled === '' || settled !== text || matches.data === undefined ? undefined : matches.data
 
   // Where the last plain tick landed, so a shift-click has something to reach
   // back to. A ref rather than state: it changes what the *next* click means
@@ -936,63 +938,69 @@ function Rows({
           className={cn('text-sm w-full min-w-max', widths.sized && 'table-fixed')}
           style={widths.sized ? { minWidth: total } : undefined}
         >
-        {/* The widths live on the columns, not the cells: one `<col>` per
+          {/* The widths live on the columns, not the cells: one `<col>` per
             drawn column, and only while something was sized by hand - until
             then the browser lays the table out from its contents as it
             always did, and nothing here is in its way. */}
-        <colgroup>
-          <col style={widths.sized ? { width: SELECT_WIDTH } : undefined} />
-          {columns.map((id) => (
-            <col key={id} style={colWidth(id) === undefined ? undefined : { width: colWidth(id) }} />
-          ))}
-          <col style={widths.sized ? { width: MENU_WIDTH } : undefined} />
-        </colgroup>
-        {/* The headings stay while the rows move under them: a table long
+          <colgroup>
+            <col style={widths.sized ? { width: SELECT_WIDTH } : undefined} />
+            {columns.map((id) => (
+              <col
+                key={id}
+                style={colWidth(id) === undefined ? undefined : { width: colWidth(id) }}
+              />
+            ))}
+            <col style={widths.sized ? { width: MENU_WIDTH } : undefined} />
+          </colgroup>
+          {/* The headings stay while the rows move under them: a table long
             enough to need scrolling is one whose columns must remain named. */}
-        <thead className="sticky top-0 z-10 bg-bg">
-          <tr ref={header} className="border-b border-line text-left text-xs uppercase tracking-wide text-dim">
-            {/* The tick column carries the same side padding as every other
+          <thead className="sticky top-0 z-10 bg-bg">
+            <tr
+              ref={header}
+              className="border-b border-line text-left text-xs uppercase tracking-wide text-dim"
+            >
+              {/* The tick column carries the same side padding as every other
                 cell: with none, the box sat flush against the star in the
                 next one and the two read as one control. */}
-            <th className={cn('w-9 py-2 pl-3 pr-2', STUCK_LEFT_TICK, 'z-[2]')}>
-              <input
-                type="checkbox"
-                className="size-3.5 cursor-pointer accent-[var(--accent)]"
-                checked={allChosen}
-                // Some but not all: the box shows neither state, because it is
-                // neither, and clicking it takes the rest.
-                ref={(box) => {
-                  if (box) box.indeterminate = chosen.length > 0 && !allChosen
-                }}
-                onChange={toggleAll}
-                aria-label={t('catalogue.selectAll')}
-              />
-            </th>
-            {columns.map((id) => {
-              const spec = COLUMN_SPECS[id]
-              return (
-                <Column
-                  key={id}
-                  id={id}
-                  sortable={spec.sort}
-                  sort={sort}
-                  onReorder={onReorder}
-                  label={t(spec.label)}
-                  align={spec.align}
-                  width={spec.width}
-                  filter={filterFor(id)}
-                  widths={widths}
-                  onMeasure={() => {
-                    if (header.current) widths.measure(measureColumns<ColumnId>(header.current))
+              <th className={cn('w-9 py-2 pl-3 pr-2', STUCK_LEFT_TICK, 'z-[2]')}>
+                <input
+                  type="checkbox"
+                  className="size-3.5 cursor-pointer accent-[var(--accent)]"
+                  checked={allChosen}
+                  // Some but not all: the box shows neither state, because it is
+                  // neither, and clicking it takes the rest.
+                  ref={(box) => {
+                    if (box) box.indeterminate = chosen.length > 0 && !allChosen
                   }}
-                  stuck={id === 'title' && titleStuck}
+                  onChange={toggleAll}
+                  aria-label={t('catalogue.selectAll')}
                 />
-              )
-            })}
-            <th className={cn('w-10 py-2', STUCK_RIGHT_MENU, 'z-[2]')} />
-          </tr>
-        </thead>
-        {/* Nothing matched, and the headings stay above the gap.
+              </th>
+              {columns.map((id) => {
+                const spec = COLUMN_SPECS[id]
+                return (
+                  <Column
+                    key={id}
+                    id={id}
+                    sortable={spec.sort}
+                    sort={sort}
+                    onReorder={onReorder}
+                    label={t(spec.label)}
+                    align={spec.align}
+                    width={spec.width}
+                    filter={filterFor(id)}
+                    widths={widths}
+                    onMeasure={() => {
+                      if (header.current) widths.measure(measureColumns<ColumnId>(header.current))
+                    }}
+                    stuck={id === 'title' && titleStuck}
+                  />
+                )
+              })}
+              <th className={cn('w-10 py-2', STUCK_RIGHT_MENU, 'z-[2]')} />
+            </tr>
+          </thead>
+          {/* Nothing matched, and the headings stay above the gap.
 
             This used to return the empty state INSTEAD of the table, so
             narrowing a filter to nothing took the whole apparatus away with
@@ -1001,94 +1009,94 @@ function Rows({
             than like a screen that broke: the filter cannot be widened from
             the controls that set it, because they are gone. The table is the
             furniture; only its contents are missing. */}
-        {visible.length === 0 && (
-          <tbody>
-            <tr>
-              <td colSpan={columns.length + 2} className="p-0">
-                <EmptyState
-                  title={t('empty.worksFiltered')}
-                  body={t('empty.worksFilteredBody')}
-                  action={<Button onClick={onClearFilters}>{t('empty.clearFilters')}</Button>}
-                />
-              </td>
-            </tr>
-          </tbody>
-        )}
-
-        {blocks.map((block) => {
-          const key = block.key ?? GROUPLESS
-          const folded = groupBy !== 'none' && collapsed.has(key)
-
-          return (
-            <tbody key={key}>
-              {groupBy !== 'none' && (
-                <tr className="border-b border-line bg-soft/60">
-                  <td colSpan={columns.length + 2} className="px-2 py-1.5">
-                    <button
-                      type="button"
-                      onClick={() => onToggleGroup(key)}
-                      aria-expanded={!folded}
-                      className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-dim transition-colors hover:text-text"
-                    >
-                      <ChevronRight
-                        className={cn('size-3.5 transition-transform', !folded && 'rotate-90')}
-                        aria-hidden
-                      />
-                      <span>{groupLabel(block.key)}</span>
-                      <span className="text-faint">{block.rows.length}</span>
-                    </button>
-                  </td>
-                </tr>
-              )}
-
-              {!folded &&
-                block.rows.map((row) => (
-                  <Row
-                    key={row.work_id}
-                    actions={actionsFor(row)}
-                    onOpen={() => onSelect(row.work_id)}
-                  >
-                    <td
-                      className={cn('py-2 pl-3 pr-2', STUCK_LEFT_TICK)}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <input
-                        type="checkbox"
-                        className="size-3.5 cursor-pointer accent-[var(--accent)]"
-                        checked={selected.has(row.work_id)}
-                        // The change carries no modifier, so the click does. A
-                        // shift-click on a label also reaches the box, and both
-                        // ways of ticking mean the same thing.
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          toggleRow(row.work_id, event.shiftKey)
-                        }}
-                        onChange={() => undefined}
-                        aria-label={t('catalogue.select', { title: row.title })}
-                      />
-                    </td>
-
-                    {columns.map((id) => (
-                      <Cell
-                        key={id}
-                        column={id}
-                        row={row}
-                        kindNarrowed={filter.kind !== undefined}
-                        titleStuck={titleStuck}
-                      />
-                    ))}
-
-                    <td className={cn('py-2 text-right', STUCK_RIGHT_MENU)}>
-                      <RowMenu
-                        label={t('catalogue.rowMenu', { title: row.title })}
-                        actions={actionsFor(row)}
-                      />
-                    </td>
-                  </Row>
-                ))}
+          {visible.length === 0 && (
+            <tbody>
+              <tr>
+                <td colSpan={columns.length + 2} className="p-0">
+                  <EmptyState
+                    title={t('empty.worksFiltered')}
+                    body={t('empty.worksFilteredBody')}
+                    action={<Button onClick={onClearFilters}>{t('empty.clearFilters')}</Button>}
+                  />
+                </td>
+              </tr>
             </tbody>
-          )
-        })}
+          )}
+
+          {blocks.map((block) => {
+            const key = block.key ?? GROUPLESS
+            const folded = groupBy !== 'none' && collapsed.has(key)
+
+            return (
+              <tbody key={key}>
+                {groupBy !== 'none' && (
+                  <tr className="border-b border-line bg-soft/60">
+                    <td colSpan={columns.length + 2} className="px-2 py-1.5">
+                      <button
+                        type="button"
+                        onClick={() => onToggleGroup(key)}
+                        aria-expanded={!folded}
+                        className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-dim transition-colors hover:text-text"
+                      >
+                        <ChevronRight
+                          className={cn('size-3.5 transition-transform', !folded && 'rotate-90')}
+                          aria-hidden
+                        />
+                        <span>{groupLabel(block.key)}</span>
+                        <span className="text-faint">{block.rows.length}</span>
+                      </button>
+                    </td>
+                  </tr>
+                )}
+
+                {!folded &&
+                  block.rows.map((row) => (
+                    <Row
+                      key={row.work_id}
+                      actions={actionsFor(row)}
+                      onOpen={() => onSelect(row.work_id)}
+                    >
+                      <td
+                        className={cn('py-2 pl-3 pr-2', STUCK_LEFT_TICK)}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          className="size-3.5 cursor-pointer accent-[var(--accent)]"
+                          checked={selected.has(row.work_id)}
+                          // The change carries no modifier, so the click does. A
+                          // shift-click on a label also reaches the box, and both
+                          // ways of ticking mean the same thing.
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            toggleRow(row.work_id, event.shiftKey)
+                          }}
+                          onChange={() => undefined}
+                          aria-label={t('catalogue.select', { title: row.title })}
+                        />
+                      </td>
+
+                      {columns.map((id) => (
+                        <Cell
+                          key={id}
+                          column={id}
+                          row={row}
+                          kindNarrowed={filter.kind !== undefined}
+                          titleStuck={titleStuck}
+                        />
+                      ))}
+
+                      <td className={cn('py-2 text-right', STUCK_RIGHT_MENU)}>
+                        <RowMenu
+                          label={t('catalogue.rowMenu', { title: row.title })}
+                          actions={actionsFor(row)}
+                        />
+                      </td>
+                    </Row>
+                  ))}
+              </tbody>
+            )
+          })}
         </table>
       </div>
     </div>
@@ -1294,9 +1302,7 @@ function CheckList<T extends string | number>({
               checked={on}
               onChange={() =>
                 onChange(
-                  on
-                    ? chosen.filter((value) => value !== option.value)
-                    : [...chosen, option.value],
+                  on ? chosen.filter((value) => value !== option.value) : [...chosen, option.value],
                 )
               }
             />
@@ -1372,7 +1378,13 @@ interface ColumnSpec {
 const COLUMN_SPECS: Record<ColumnId, ColumnSpec> = {
   id: { label: 'catalogue.column.id', sort: null, width: 'w-28', naturalWidth: 112 },
   title: { label: 'catalogue.work', sort: 'title', filter: 'title', naturalWidth: 320 },
-  stage: { label: 'catalogue.column.stage', sort: 'stage', filter: 'stages', width: 'w-14', naturalWidth: 72 },
+  stage: {
+    label: 'catalogue.column.stage',
+    sort: 'stage',
+    filter: 'stages',
+    width: 'w-14',
+    naturalWidth: 72,
+  },
   marks: { label: 'catalogue.column.marks', sort: null, filter: 'marks', naturalWidth: 160 },
   versions: {
     label: 'catalogue.column.versions',
@@ -1411,7 +1423,11 @@ function Cell({
     case 'id':
       // Monospaced and dimmed: it is here to be copied and compared, not read
       // as part of the sentence a row makes.
-      return <td className="truncate px-3 py-2 font-mono text-xs text-faint">{row.work_id.slice(0, 8)}</td>
+      return (
+        <td className="truncate px-3 py-2 font-mono text-xs text-faint">
+          {row.work_id.slice(0, 8)}
+        </td>
+      )
 
     case 'title': {
       const status = vocabulary.statuses.find((s) => s.key === row.status)
@@ -1521,9 +1537,7 @@ function Cell({
       // catalogue row carries the total, not the score behind it. Naming the
       // axis here would mean shipping every work's axes to draw a table.
       const ahead =
-        row.total === null || row.tier_pinned
-          ? undefined
-          : nextTier(vocabulary.tiers, row.total)
+        row.total === null || row.tier_pinned ? undefined : nextTier(vocabulary.tiers, row.total)
 
       return (
         <td className="overflow-hidden whitespace-nowrap px-3 py-2">
@@ -1585,14 +1599,10 @@ function Cell({
       )
 
     case 'created':
-      return (
-        <td className="truncate px-3 py-2 text-xs text-dim">{row.created_at.slice(0, 10)}</td>
-      )
+      return <td className="truncate px-3 py-2 text-xs text-dim">{row.created_at.slice(0, 10)}</td>
 
     case 'updated':
-      return (
-        <td className="truncate px-3 py-2 text-xs text-dim">{row.updated_at.slice(0, 10)}</td>
-      )
+      return <td className="truncate px-3 py-2 text-xs text-dim">{row.updated_at.slice(0, 10)}</td>
   }
 }
 
@@ -1751,7 +1761,12 @@ function ColumnPicker({
     <Menu>
       <MenuTrigger
         render={
-          <Button variant="icon" size="icon-sm" aria-label={t('catalogue.columns')} title={t('catalogue.columns')} />
+          <Button
+            variant="icon"
+            size="icon-sm"
+            aria-label={t('catalogue.columns')}
+            title={t('catalogue.columns')}
+          />
         }
       >
         <Columns3 aria-hidden />
@@ -1841,9 +1856,7 @@ function BulkMenu({
 
   return (
     <Menu>
-      <MenuTrigger
-        render={<Button variant="ghost" size="sm" disabled={busy} />}
-      >
+      <MenuTrigger render={<Button variant="ghost" size="sm" disabled={busy} />}>
         {t('catalogue.bulk.actions')}
         <ChevronDown className="ml-1" aria-hidden />
       </MenuTrigger>

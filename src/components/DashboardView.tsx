@@ -1,12 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, CalendarDays } from 'lucide-react'
-import {
-  calendar as fetchCalendar,
-  catalogue,
-  dismissedFindings,
-  type ScoredWork,
-} from '@/lib/api'
+import { calendar as fetchCalendar, catalogue, dismissedFindings, type ScoredWork } from '@/lib/api'
 import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
 import { isQuiet, summarise, type Decision } from '@/lib/dashboard'
@@ -175,7 +170,9 @@ function DecisionRow({
   const { release, daysLeft } = decision
 
   const gaps = missing(release.readiness).map((gap) =>
-    gap === 'score' ? t('calendar.missingScore') : labelOf(allOf(profile.config, 'version_roles'), gap),
+    gap === 'score'
+      ? t('calendar.missingScore')
+      : labelOf(allOf(profile.config, 'version_roles'), gap),
   )
 
   return (
@@ -240,9 +237,7 @@ function WeekRow({
       // round on all four. The row follows the panel it sits in.
       className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-soft"
     >
-      <span className="w-20 shrink-0 font-mono text-[11.5px] text-faint">
-        {when(t, daysLeft)}
-      </span>
+      <span className="w-20 shrink-0 font-mono text-[11.5px] text-faint">{when(t, daysLeft)}</span>
       <span
         aria-hidden
         className="size-8 shrink-0 rounded-lg"
@@ -287,7 +282,11 @@ function CoverCard({
       onClick={() => onSelect(work.work_id)}
       className="cursor-pointer overflow-hidden rounded-2xl border border-line bg-raise text-left transition-transform hover:-translate-y-0.5 hover:border-line-2"
     >
-      <span aria-hidden className="block h-20" style={{ background: coverImageFor(work.work_id, covers.get(work.work_id)) }} />
+      <span
+        aria-hidden
+        className="block h-20"
+        style={{ background: coverImageFor(work.work_id, covers.get(work.work_id)) }}
+      />
       <span className="block px-3 py-2">
         <span className="block truncate text-[12.5px] font-semibold">{work.title}</span>
         <span className="block font-mono text-[11px] text-faint">

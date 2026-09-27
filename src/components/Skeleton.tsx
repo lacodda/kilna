@@ -17,7 +17,9 @@ export function SkeletonList({ rows = 5, className }: { rows?: number; className
       {Array.from({ length: rows }, (_, row) => (
         <div key={row} className="flex flex-col gap-1.5 px-3 py-2">
           {/* Uneven widths so it reads as text, not as a loading bar. */}
-          <Skeleton className={cn('h-3.5', row % 3 === 0 ? 'w-2/3' : row % 3 === 1 ? 'w-4/5' : 'w-1/2')} />
+          <Skeleton
+            className={cn('h-3.5', row % 3 === 0 ? 'w-2/3' : row % 3 === 1 ? 'w-4/5' : 'w-1/2')}
+          />
           <Skeleton className="h-2.5 w-1/3" />
         </div>
       ))}

@@ -218,7 +218,9 @@ function ReleaseFieldsEditor({
                       className="flex-1"
                       value={sayLabel(field.label)}
                       aria-label={t('editor.fieldLabel')}
-                      onChange={(event) => set(kindIndex, fieldIndex, { label: event.target.value })}
+                      onChange={(event) =>
+                        set(kindIndex, fieldIndex, { label: event.target.value })
+                      }
                     />
                     <span className="shrink-0 text-2xs uppercase tracking-caption text-faint">
                       {t(`editor.fieldType.${field.type}`)}
@@ -312,9 +314,7 @@ function KindVocabulary({
       <h3 className="text-sm font-semibold">{sayLabel(kind.label)}</h3>
 
       <section className="flex flex-col gap-2">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
-          {t('editor.axes')}
-        </h4>
+        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">{t('editor.axes')}</h4>
         <p className="text-xs text-dim">{t('editor.axesHint')}</p>
         <ul className="flex flex-col gap-1.5">
           {axes.map((axis, index) => (
@@ -521,14 +521,20 @@ function ActionsEditor({
               placeholder={t('editor.actionDescription')}
               aria-label={t('editor.actionDescription')}
               onChange={(event) =>
-                set(index, { description: event.target.value === '' ? undefined : event.target.value })
+                set(index, {
+                  description: event.target.value === '' ? undefined : event.target.value,
+                })
               }
             />
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-2xs font-semibold uppercase tracking-caption text-faint">
                 {t('editor.actionKinds')}
               </span>
-              <div role="group" aria-label={t('editor.actionKinds')} className="flex flex-wrap gap-1.5">
+              <div
+                role="group"
+                aria-label={t('editor.actionKinds')}
+                className="flex flex-wrap gap-1.5"
+              >
                 {kinds.map((kind) => {
                   const on = (action.kinds ?? []).includes(kind.key)
                   return (

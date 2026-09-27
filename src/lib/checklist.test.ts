@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { progressOf, tasksOf, toggleTask } from '@/lib/checklist'
 
 describe('checklists', () => {
-  const body = ['Idea', '', '- [ ] check the layer', '- [x] find the term', '* [ ] third'].join('\n')
+  const body = ['Idea', '', '- [ ] check the layer', '- [x] find the term', '* [ ] third'].join(
+    '\n',
+  )
 
   it('finds the task lines in order, with their state', () => {
     expect(tasksOf(body)).toEqual([

@@ -21,7 +21,6 @@ import { VIDEO } from '@/lib/scenes'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
-
 interface Props {
   workId: string
   sceneId: string
@@ -207,9 +206,7 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
       </div>
 
       {frames.length === 0 ? (
-        <p className="text-xs text-dim">
-          {over ? word('dropFrame') : word('addFrameHint')}
-        </p>
+        <p className="text-xs text-dim">{over ? word('dropFrame') : word('addFrameHint')}</p>
       ) : (
         <ul className="flex flex-wrap gap-2">
           {frames.map((frame) => (

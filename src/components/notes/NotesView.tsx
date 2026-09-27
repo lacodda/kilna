@@ -108,7 +108,11 @@ export function NotesView() {
             "every character" is one click, and the chip that is on turns off.
             Only when the craft names kinds — one that names none has one. */}
         {kinds.length > 0 && (
-          <div role="group" aria-label={t('notes.kind')} className="flex flex-wrap items-center gap-1.5">
+          <div
+            role="group"
+            aria-label={t('notes.kind')}
+            className="flex flex-wrap items-center gap-1.5"
+          >
             {[
               { key: undefined, label: t('notes.allKinds'), count: total },
               ...kinds.map((one) => ({

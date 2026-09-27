@@ -84,22 +84,19 @@ export function useChipDrag({ gridRef, onEdge, onDrop }: Options) {
     [gridRef, stopEdge],
   )
 
-  const begin = useCallback(
-    (event: React.PointerEvent, id: string) => {
-      // The left button only, and never a second press while one is in the air.
-      if (event.button !== 0 || press.current !== null) return
+  const begin = useCallback((event: React.PointerEvent, id: string) => {
+    // The left button only, and never a second press while one is in the air.
+    if (event.button !== 0 || press.current !== null) return
 
-      const box = event.currentTarget.getBoundingClientRect()
-      press.current = {
-        id,
-        from: { x: event.clientX, y: event.clientY },
-        grab: { x: event.clientX - box.left, y: event.clientY - box.top },
-        size: { width: box.width, height: box.height },
-        started: false,
-      }
-    },
-    [],
-  )
+    const box = event.currentTarget.getBoundingClientRect()
+    press.current = {
+      id,
+      from: { x: event.clientX, y: event.clientY },
+      grab: { x: event.clientX - box.left, y: event.clientY - box.top },
+      size: { width: box.width, height: box.height },
+      started: false,
+    }
+  }, [])
 
   /** Let go of everything, whether or not a drag ever started. */
   const cancel = useCallback(() => {

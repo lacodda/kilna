@@ -34,11 +34,7 @@ export interface MontageOptions {
 }
 
 /** One scene's lines, given its material. */
-function block(
-  scene: Scene,
-  frames: SceneFrame[] | undefined,
-  missing: string,
-): string {
+function block(scene: Scene, frames: SceneFrame[] | undefined, missing: string): string {
   const number = String(scene.position).padStart(2, '0')
   const from = formatSeconds(scene.starts_at ?? null)
   const to = formatSeconds(scene.ends_at ?? null)

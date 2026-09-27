@@ -39,7 +39,10 @@ export function start(stored: string): DraftState {
 }
 
 /** The next state, and the text to write when the event commits one. */
-export function step(state: DraftState, event: DraftEvent): { state: DraftState; commit: string | null } {
+export function step(
+  state: DraftState,
+  event: DraftEvent,
+): { state: DraftState; commit: string | null } {
   switch (event.type) {
     case 'stored':
       return {
@@ -97,7 +100,8 @@ export function useFieldDraft(
   return {
     value: state.draft,
     onFocus: () => send({ type: 'focus' }),
-    onChange: (event: { target: { value: string } }) => send({ type: 'type', text: event.target.value }),
+    onChange: (event: { target: { value: string } }) =>
+      send({ type: 'type', text: event.target.value }),
     onBlur: () => send({ type: 'leave' }),
     onKeyDown: (event: KeyboardEvent<Element>) => {
       if (event.key === 'Escape') {

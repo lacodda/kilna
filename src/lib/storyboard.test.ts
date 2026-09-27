@@ -261,8 +261,7 @@ describe('what a board is still missing', () => {
 
 describe('a run of scenes saying the same thing', () => {
   /** A board of `count` scenes, every one written out and nothing drawn. */
-  const written = (count: number) =>
-    Array.from({ length: count }, (_, index) => scene(index + 1))
+  const written = (count: number) => Array.from({ length: count }, (_, index) => scene(index + 1))
 
   it('collapses the shape a real board actually makes', () => {
     // Measured on the owner's board, 2026-09-16: fifty scenes written out in
@@ -336,15 +335,16 @@ describe('a run of scenes saying the same thing', () => {
     const board = checkStoryboard(
       written(5),
       BLOCKS,
-      framesByScene([
-        material('a', 's5', FRAME, false),
-        material('b', 's5', FRAME, false),
-      ]),
+      framesByScene([material('a', 's5', FRAME, false), material('b', 's5', FRAME, false)]),
       null,
     )
 
     expect(board.complaints).toHaveLength(2)
-    expect(board.complaints[0]).toMatchObject({ kind: 'noFrame', count: 4, run: { from: 1, to: 4 } })
+    expect(board.complaints[0]).toMatchObject({
+      kind: 'noFrame',
+      count: 4,
+      run: { from: 1, to: 4 },
+    })
     expect(board.complaints[1]).toMatchObject({ kind: 'undecidedFrame', count: 2 })
     expect(board.complaints[1]?.run).toBeUndefined()
   })
@@ -372,11 +372,7 @@ describe('a run of scenes saying the same thing', () => {
         shot(3, { starts_at: 20, ends_at: 30 }).scene,
       ],
       BLOCKS,
-      framesByScene([
-        ...shot(1).frames,
-        ...shot(2).frames,
-        ...shot(3).frames,
-      ]),
+      framesByScene([...shot(1).frames, ...shot(2).frames, ...shot(3).frames]),
       60,
     )
 

@@ -31,9 +31,7 @@ describe('what survives a class merge', () => {
   // than on someone's screen.
   it('loses fixed when something adds relative — which is why nothing may', () => {
     const merged = cn(POPUP, 'relative')
-    expect(merged, 'tailwind-merge stopped treating position as one group').not.toMatch(
-      /\bfixed\b/,
-    )
+    expect(merged, 'tailwind-merge stopped treating position as one group').not.toMatch(/\bfixed\b/)
   })
 
   // An overlay is positioned already; a descendant needs no `relative` on it.

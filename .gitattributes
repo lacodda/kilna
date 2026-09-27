@@ -1,0 +1,16 @@
+# Line endings are not a platform preference here.
+#
+# The formatter writes LF, the gates that read source compare text, and a
+# checkout on Windows that converted files to CRLF made both disagree with
+# what was committed - nine files had arrived with CRLF by v0.77. `text=auto
+# eol=lf` keeps every working copy LF on every platform, as dowel does.
+* text=auto eol=lf
+
+# Binary, and not to be touched.
+*.png binary
+*.ico binary
+*.icns binary
+*.jpg binary
+*.webp binary
+*.woff binary
+*.woff2 binary

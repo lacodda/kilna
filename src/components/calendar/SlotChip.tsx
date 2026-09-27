@@ -78,74 +78,74 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
       // it appears — the cover, the card, this chip.
       style={{ background: coverImageFor(slot.work_id, covers.get(slot.work_id)) }}
     >
-        {/* The top line: what you grab and what the release's state is. Both
+      {/* The top line: what you grab and what the release's state is. Both
             are small and fixed-width, so they cost the title nothing. */}
-        <div className="flex items-center gap-1">
-          {/* The grip no longer owns the gesture — the whole chip does, and a
+      <div className="flex items-center gap-1">
+        {/* The grip no longer owns the gesture — the whole chip does, and a
               press only becomes a drag after `DRAG_THRESHOLD`. It stays as the
               sign that the chip can be moved at all, which was the other half
               of its job. */}
-          <span
-            aria-hidden
-            title={t('calendar.dragHandle')}
-            className={cn('shrink-0 text-white/50', released && 'opacity-30')}
-          >
-            <GripVertical className="size-3" />
-          </span>
+        <span
+          aria-hidden
+          title={t('calendar.dragHandle')}
+          className={cn('shrink-0 text-white/50', released && 'opacity-30')}
+        >
+          <GripVertical className="size-3" />
+        </span>
 
-          <button
-            type="button"
-            onClick={(event) => {
-              // The day underneath books a date; the chip opens what is already
-              // booked. One click means one of those.
-              event.stopPropagation()
-              onOpen()
-            }}
-            title={label}
-            className="flex min-w-0 flex-1 cursor-pointer items-center justify-end gap-1.5 text-left hover:opacity-80"
-          >
-            <ReadyMarks
-              readiness={slot.readiness}
-              released={released}
-              daysLeft={daysBetween(now, date)}
-              // The chip's ground is the work's own colour; the dark pill keeps
-              // the amber and red legible on any of them.
-              className={cn('rounded-[4px] bg-black/35 px-0.5 py-px', released && 'text-white/70')}
-            />
-            {/* How far along the work is, beside how ready the release is:
+        <button
+          type="button"
+          onClick={(event) => {
+            // The day underneath books a date; the chip opens what is already
+            // booked. One click means one of those.
+            event.stopPropagation()
+            onOpen()
+          }}
+          title={label}
+          className="flex min-w-0 flex-1 cursor-pointer items-center justify-end gap-1.5 text-left hover:opacity-80"
+        >
+          <ReadyMarks
+            readiness={slot.readiness}
+            released={released}
+            daysLeft={daysBetween(now, date)}
+            // The chip's ground is the work's own colour; the dark pill keeps
+            // the amber and red legible on any of them.
+            className={cn('rounded-[4px] bg-black/35 px-0.5 py-px', released && 'text-white/70')}
+          />
+          {/* How far along the work is, beside how ready the release is:
                 the two answer different questions and a chip that showed only
                 the second would call a placeholder lyric ready to ship. */}
-            {slot.work_stage !== null && (
-              <span
-                className={cn(
-                  'shrink-0 rounded-[4px] bg-black/35 px-0.5 py-px',
-                  released && 'opacity-70',
-                )}
-              >
-                <StageDial
-                  percent={slot.work_stage}
-                  stage={stageAt(profile.config, slot.work_stage)}
-                  size={10}
-                />
-              </span>
-            )}
-            {slot.slot_pinned_at !== null && (
-              <Lock aria-hidden className="size-2.5 shrink-0 text-white/70" />
-            )}
-            {manyKinds && (
-              <span className="max-w-14 shrink truncate rounded-[3px] bg-black/35 px-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-white/80">
-                {workKindLabel}
-              </span>
-            )}
-            {/* The kind, as the glyph its profile names. Two letters stood here
+          {slot.work_stage !== null && (
+            <span
+              className={cn(
+                'shrink-0 rounded-[4px] bg-black/35 px-0.5 py-px',
+                released && 'opacity-70',
+              )}
+            >
+              <StageDial
+                percent={slot.work_stage}
+                stage={stageAt(profile.config, slot.work_stage)}
+                size={10}
+              />
+            </span>
+          )}
+          {slot.slot_pinned_at !== null && (
+            <Lock aria-hidden className="size-2.5 shrink-0 text-white/70" />
+          )}
+          {manyKinds && (
+            <span className="max-w-14 shrink truncate rounded-[3px] bg-black/35 px-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-white/80">
+              {workKindLabel}
+            </span>
+          )}
+          {/* The kind, as the glyph its profile names. Two letters stood here
                 while the code was not allowed to know which kinds exist
                 (ADR 0001) — the profile now names the glyph too, so the rule
                 holds and the mark is legible at a glance. The word stays in the
                 tooltip, which is where a reader who cannot see the glyph finds
                 it. */}
-            <KindGlyph icon={kind?.icon} className="size-3 shrink-0 text-white/70" />
-          </button>
-        </div>
+          <KindGlyph icon={kind?.icon} className="size-3 shrink-0 text-white/70" />
+        </button>
+      </div>
 
       {/* The title, on its own line. It opens the release; a press that turns
           into a drag never reaches the click, because the gesture starts only

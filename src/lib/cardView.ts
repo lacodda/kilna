@@ -42,13 +42,10 @@ export function storedCardView(): CardView {
     if (typeof parsed !== 'object' || parsed === null) return DEFAULTS
     const held = parsed as Partial<Record<keyof CardView, unknown>>
     return {
-      metaStrip:
-        typeof held.metaStrip === 'boolean' ? held.metaStrip : DEFAULTS.metaStrip,
+      metaStrip: typeof held.metaStrip === 'boolean' ? held.metaStrip : DEFAULTS.metaStrip,
       // A tab that no longer exists, or one a kind may lack, falls back rather
       // than opening on nothing.
-      defaultTab: (DEFAULT_TAB_CHOICES as readonly string[]).includes(
-        held.defaultTab as string,
-      )
+      defaultTab: (DEFAULT_TAB_CHOICES as readonly string[]).includes(held.defaultTab as string)
         ? (held.defaultTab as Tab)
         : DEFAULTS.defaultTab,
     }

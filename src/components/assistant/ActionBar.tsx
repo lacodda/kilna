@@ -158,7 +158,8 @@ export function ActionBar({
         // The list is the single source of that answer — a click that is
         // still in flight is covered by `pending` rather than by a
         // second piece of state that would have to be cleared by hand.
-        const working = busy.has(taskKey(action.key, workId, sceneId, block)) || pending === action.key
+        const working =
+          busy.has(taskKey(action.key, workId, sceneId, block)) || pending === action.key
         const Icon = actionIconOf(action)
 
         return (
@@ -196,7 +197,9 @@ export function ActionBar({
             >
               <Icon aria-hidden />
               {!compact &&
-                (working ? t('assistant.actionWorking', { label: sayLabel(action.label) }) : sayLabel(action.label))}
+                (working
+                  ? t('assistant.actionWorking', { label: sayLabel(action.label) })
+                  : sayLabel(action.label))}
             </Button>
             <Button
               size="sm"
@@ -243,7 +246,8 @@ export function ActionBar({
       <MenuPopup align="end">
         {actions.map((action) => {
           const Icon = actionIconOf(action)
-          const working = busy.has(taskKey(action.key, workId, sceneId, block)) || pending === action.key
+          const working =
+            busy.has(taskKey(action.key, workId, sceneId, block)) || pending === action.key
           return (
             <MenuItem
               key={action.key}

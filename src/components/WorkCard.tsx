@@ -89,10 +89,7 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   // whether a work was cut out of another is a fact about the work rather than
   // about its kind, and the only way to know is to look.
   const cuts = useQuery({ queryKey: keys.cutsFor(workId), queryFn: () => listCuts(workId) })
-  const spliced = canBeCut(
-    cuts.data ?? [],
-    links.data?.sources.length ?? 0,
-  )
+  const spliced = canBeCut(cuts.data ?? [], links.data?.sources.length ?? 0)
 
   const remove = useMutation({
     mutationFn: () => deleteWork(workId),
@@ -155,27 +152,27 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
 
   return (
     <BlindJudgingContext value={{ blind, revealed, setBlind, setRevealed }}>
-    <div className="flex min-h-0 flex-1 flex-col">
-      <CardHeader
-        work={current}
-        releases={releases.data?.length ?? 0}
-        links={(links.data?.sources.length ?? 0) + (links.data?.derived.length ?? 0)}
-        scenes={storyboard ? (scenes.data?.length ?? 0) : undefined}
-        cuts={spliced ? (cuts.data?.length ?? 0) : undefined}
-        onDelete={() => remove.mutate()}
-      />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <CardHeader
+          work={current}
+          releases={releases.data?.length ?? 0}
+          links={(links.data?.sources.length ?? 0) + (links.data?.derived.length ?? 0)}
+          scenes={storyboard ? (scenes.data?.length ?? 0) : undefined}
+          cuts={spliced ? (cuts.data?.length ?? 0) : undefined}
+          onDelete={() => remove.mutate()}
+        />
 
-      <div
-        className={cn(
-          'flex min-h-0 flex-1 flex-col rounded-b-xl border border-line',
-          held
-            ? 'overflow-hidden p-3'
-            : 'overflow-x-hidden overflow-y-auto p-4 [scrollbar-gutter:stable]',
-        )}
-      >
-        <TabBody tab={tab} workId={workId} work={current} />
+        <div
+          className={cn(
+            'flex min-h-0 flex-1 flex-col rounded-b-xl border border-line',
+            held
+              ? 'overflow-hidden p-3'
+              : 'overflow-x-hidden overflow-y-auto p-4 [scrollbar-gutter:stable]',
+          )}
+        >
+          <TabBody tab={tab} workId={workId} work={current} />
+        </div>
       </div>
-    </div>
     </BlindJudgingContext>
   )
 }

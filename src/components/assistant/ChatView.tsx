@@ -137,10 +137,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
     // cache is what makes the question appear at once.
     onSuccess: (run) => {
       setDraft('')
-      client.setQueryData<Run[]>(keys.runs(run.chat_id), (previous) => [
-        ...(previous ?? []),
-        run,
-      ])
+      client.setQueryData<Run[]>(keys.runs(run.chat_id), (previous) => [...(previous ?? []), run])
       void client.invalidateQueries({ queryKey: keys.transcript(run.chat_id) })
       void client.invalidateQueries({ queryKey: keys.allChats })
       if (run.chat_id !== chatId) onChatCreated?.(run.chat_id)
@@ -363,8 +360,12 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
           onChange={(event) => {
             setDraft(event.target.value)
           }}
-          placeholder={t(workId === undefined ? 'assistant.placeholderAnywhere' : 'assistant.placeholder')}
-          aria-label={t(workId === undefined ? 'assistant.placeholderAnywhere' : 'assistant.placeholder')}
+          placeholder={t(
+            workId === undefined ? 'assistant.placeholderAnywhere' : 'assistant.placeholder',
+          )}
+          aria-label={t(
+            workId === undefined ? 'assistant.placeholderAnywhere' : 'assistant.placeholder',
+          )}
           onKeyDown={(event) => {
             // While the palette is open the arrows and Enter belong to it.
             if (palette !== null) {
@@ -397,11 +398,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
           }}
         />
         <div className="flex justify-end">
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={sending || draft.trim() === ''}
-          >
+          <Button type="submit" variant="primary" disabled={sending || draft.trim() === ''}>
             {t('assistant.send')}
           </Button>
         </div>
@@ -500,7 +497,9 @@ function ExchangeItem({
   return (
     <li className="flex flex-col gap-1.5">
       {item.prompt !== null && (
-        <p className="selectable rounded-xl bg-soft px-3 py-2 text-sm whitespace-pre-wrap">{item.prompt}</p>
+        <p className="selectable rounded-xl bg-soft px-3 py-2 text-sm whitespace-pre-wrap">
+          {item.prompt}
+        </p>
       )}
 
       {run !== null && run.steps.length > 0 && (
@@ -639,9 +638,7 @@ function ExchangeItem({
         />
       )}
 
-      {run?.cancelled === true && (
-        <p className="px-3 text-xs text-dim">{t('assistant.stopped')}</p>
-      )}
+      {run?.cancelled === true && <p className="px-3 text-xs text-dim">{t('assistant.stopped')}</p>}
 
       {run?.failure != null && <p className="px-3 text-xs text-dim">{run.failure}</p>}
 

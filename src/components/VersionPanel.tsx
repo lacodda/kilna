@@ -426,7 +426,8 @@ export function VersionPanel({ workId }: Props) {
   // The pane on stage renders through a portal — over the content area with
   // the sidebar in place, or over the whole window — and its inline place is
   // left empty rather than showing the same text twice.
-  const staged = stage === null ? null : stage.pane === 'text' ? textPane(stage.level) : commentPane(stage.level)
+  const staged =
+    stage === null ? null : stage.pane === 'text' ? textPane(stage.level) : commentPane(stage.level)
   const stageHost =
     stage === null
       ? null
@@ -582,8 +583,7 @@ export function VersionPanel({ workId }: Props) {
               menu
               versionId={open.data.id}
               hint={t('versions.actionsOn', {
-                name:
-                  open.data.label ?? t('versions.revision', { number: open.data.revision }),
+                name: open.data.label ?? t('versions.revision', { number: open.data.revision }),
               })}
             />
           </div>
@@ -828,7 +828,9 @@ function BodyPane({
               <MenuItem key={candidate.id} onClick={() => compare.onPick(candidate.id)}>
                 <span className="truncate">{candidate.label}</span>
                 {candidate.previous && (
-                  <span className="ml-auto pl-3 text-[11px] text-faint">{t('versions.previous')}</span>
+                  <span className="ml-auto pl-3 text-[11px] text-faint">
+                    {t('versions.previous')}
+                  </span>
                 )}
               </MenuItem>
             ))}
@@ -960,7 +962,11 @@ function BodyPane({
                 <X aria-hidden />
               </Button>
             </header>
-            <MarkedText text={against.body} lineMarks={removedLines} className={cn(metrics, 'text-dim')} />
+            <MarkedText
+              text={against.body}
+              lineMarks={removedLines}
+              className={cn(metrics, 'text-dim')}
+            />
           </aside>
         )}
       </div>

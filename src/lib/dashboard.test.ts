@@ -99,7 +99,11 @@ describe('summarise', () => {
   })
 
   it('keeps a far-off gap out of the decisions until its week comes', () => {
-    const summary = summarise([], [release({ scheduled_at: '2026-10-01', readiness: UNREADY })], TODAY)
+    const summary = summarise(
+      [],
+      [release({ scheduled_at: '2026-10-01', readiness: UNREADY })],
+      TODAY,
+    )
 
     expect(summary.decisions).toHaveLength(0)
   })

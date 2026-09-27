@@ -123,8 +123,7 @@ export function conversation(messages: Message[], runs: Run[]): Exchange[] {
         id: message.id,
         body: message.body,
         cost: typeof message.meta.cost_usd === 'number' ? message.meta.cost_usd : null,
-        durationMs:
-          typeof message.meta.duration_ms === 'number' ? message.meta.duration_ms : null,
+        durationMs: typeof message.meta.duration_ms === 'number' ? message.meta.duration_ms : null,
         proposal: proposalOf(message),
         source: sourceOf(message),
         note: typeof message.meta.note === 'string' ? message.meta.note : null,
