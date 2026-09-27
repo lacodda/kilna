@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -18,9 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { PickWorkDialog } from '@/components/shell/PickWorkDialog'
 import { NoteTagAdder } from '@/components/notes/NoteTagAdder'
 import { PromoteNoteDialog } from '@/components/notes/PromoteNoteDialog'
-
-/** How long after the last keystroke the body is written. */
-const SETTLE_MS = 600
+import { useNoteBody } from '@/components/notes/useNoteBody'
 
 // What a note changes when it is edited: the lists that show it, the tags the
 // rest of the app completes from, and the history line the edit writes.
@@ -293,69 +291,4 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
       />
     </section>
   )
-}
-
-/**
- * A note's body that saves itself a moment after the typing pauses.
- *
- * Simpler than a version's editor on purpose: a note has no revisions and no
- * score to freeze it, so every change goes into the same row. One write at a
- * time, in order, so a keystroke made while the last write is in flight is
- * not overtaken by it.
- */
-function useNoteBody(note: Note, settle: () => void, failure: string) {
-  const [text, setTextState] = useState(note.body)
-  const [status, setStatus] = useState<SaveStatus>('idle')
-  const latest = useRef(note.body)
-  const saved = useRef(note.body)
-  const chain = useRef<Promise<void>>(Promise.resolve())
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const tick = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  const persist = useCallback(async () => {
-    const body = latest.current
-    if (body === saved.current) return
-    setStatus('saving')
-    try {
-      await updateNote(note.id, { body })
-      saved.current = body
-      setStatus('saved')
-      clearTimeout(tick.current)
-      tick.current = setTimeout(() => setStatus('idle'), 2000)
-      settle()
-    } catch (cause) {
-      setStatus('idle')
-      say.failedTo(failure, cause)
-    }
-  }, [note.id, settle, failure])
-
-  const flush = useCallback(() => {
-    clearTimeout(timer.current)
-    chain.current = chain.current.then(persist)
-    return chain.current
-  }, [persist])
-
-  /** Replace the text; `now` writes at once rather than after the pause —
-   *  a ticked box is a decision, not a keystroke. */
-  const setText = useCallback(
-    (next: string, now = false) => {
-      latest.current = next
-      setTextState(next)
-      clearTimeout(timer.current)
-      if (now) void flush()
-      else timer.current = setTimeout(() => void flush(), SETTLE_MS)
-    },
-    [flush],
-  )
-
-  // Leaving the note writes what is pending.
-  useEffect(
-    () => () => {
-      clearTimeout(tick.current)
-      if (latest.current !== saved.current) void flush()
-    },
-    [flush],
-  )
-
-  return { text, setText, status, flush }
 }

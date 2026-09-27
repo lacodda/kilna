@@ -9,7 +9,7 @@ pnpm install
 pnpm tauri dev            # run the app
 pnpm format               # prettier, the layout of every file it covers
 pnpm lint                 # prettier --check + eslint + tsc + locales + tests
-pnpm test                 # frontend unit tests
+pnpm test                 # frontend tests: logic in Node, components in jsdom
 cd src-tauri
 cargo test                # backend tests
 cargo clippy -- -D warnings

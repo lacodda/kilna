@@ -93,6 +93,16 @@ small size. A control of kilna's own takes its height from the same rows -
 `h-control`, `h-control-sm` - rather than from a number, so the density
 reaches it too.
 
+**The frontend has two test runs,** and `pnpm test` runs both: the pure logic
+in `src/lib` under Node, and components and hooks (`*.test.tsx`) under jsdom,
+inside the app's own providers and against a mocked backend (`src/test/`).
+`src/app/smoke.test.tsx` opens every screen and every tab of a card on a small
+invented studio and fails on a question the test backend does not answer, on
+the crash panel, and on anything said to the console. The studio speaks the
+shipped profiles as the window receives them: `src/test/fixtures/profiles/` is
+written by the backend, and `cargo test` fails when a profile changes until the
+copies are written again with `KILNA_BLESS=1 cargo test --test profile_fixtures`.
+
 To check the backend on its own, without the UI:
 
 ```sh
