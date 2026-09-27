@@ -22,7 +22,8 @@ const EXECUTABLE: &str = "claude";
 
 /// What to say when the CLI is nowhere on the PATH. One sentence, one place:
 /// the probe, the blocking turn and a streamed run all report the same thing.
-pub const MISSING: &str = "Claude Code is not on the PATH. Install it from                            https://claude.com/claude-code, then reopen kilna.";
+pub const MISSING: &str = "Claude Code is not on the PATH. Install it from \
+ https://claude.com/claude-code, then reopen kilna.";
 
 /// Look for the CLI and report what was found.
 ///

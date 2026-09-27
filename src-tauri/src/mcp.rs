@@ -197,7 +197,13 @@ fn tools() -> Vec<Value> {
     vec![
         tool(
             "workspace",
-            "The active profile: the craft's vocabulary, per kind of work. Each kind lists its              version roles and how each reads, its scoring axes with weights and scales, its              tiers, statuses and kinds of release, and, for a kind with a storyboard, its kinds of shot and the prompt blocks a scene carries; plus how many works there are. Read this              first: a work is judged and versioned in its own kind's keys, and the other tools              speak in those keys.",
+            "The active profile: the craft's vocabulary, per kind of work. Each kind lists its \
+             version roles and how each reads, its scoring axes with weights and scales, its \
+             tiers, statuses and kinds of release, and, for a kind with a storyboard, its \
+             kinds of shot and the prompt blocks a scene carries; plus how many works there \
+             are. Read this \
+             first: a work is judged and versioned in its own kind's keys, and the other tools \
+             speak in those keys.",
             json!({}),
             &[],
         ),
@@ -336,7 +342,20 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "propose_scenes",
-            "Propose a storyboard for a work whose kind has one — a video, a short: a package              of scenes, each with its number, the section of the text it plays against, its              seconds, its kind of shot, a description and its prompt blocks. `change` says              what happens to the board that is there: `add` (the default) puts the scenes              after the last; `replace` makes them the whole board — a scene with the same              number is rewritten in place, the rest of the old board goes to the trash;              `revise` touches only the numbers named, and only in the fields given — a field              left out is kept, `blocks` are set together. Read `scenes` first when the board              is not empty, and the `context` and `plot` roles with `text` for what every              scene shares. The kind of shot and the block keys are the kind's own words (see              `workspace`); an unknown one refuses the whole package. The board lands in the              chat on the work, rendered as a table, with an *add to the board*, *replace the              board* or *revise the scenes* button; nothing is written until the person              applies it.",
+            "Propose a storyboard for a work whose kind has one — a video, a short: a package \
+             of scenes, each with its number, the section of the text it plays against, its \
+             seconds, its kind of shot, a description and its prompt blocks. `change` says \
+             what happens to the board that is there: `add` (the default) puts the scenes \
+             after the last; `replace` makes them the whole board — a scene with the same \
+             number is rewritten in place, the rest of the old board goes to the trash; \
+             `revise` touches only the numbers named, and only in the fields given — a field \
+             left out is kept, `blocks` are set together. Read `scenes` first when the board \
+             is not empty, and the `context` and `plot` roles with `text` for what every \
+             scene shares. The kind of shot and the block keys are the kind's own words (see \
+             `workspace`); an unknown one refuses the whole package. The board lands in the \
+             chat on the work, rendered as a table, with an *add to the board*, *replace the \
+             board* or *revise the scenes* button; nothing is written until the person \
+             applies it.",
             json!({
                 "work": work_arg(),
                 "scenes": scenes_arg("The scenes, in order"),
@@ -1051,7 +1070,8 @@ pub fn run_tool(
 
         other => Err(Error::Other(format!(
             "no tool named `{other}`; the tools are workspace, catalogue, work, text, scores, \
-             calendar, notes, scenes, search, propose_work, propose_version, propose_score,              propose_note, propose_scenes"
+             calendar, notes, scenes, search, propose_work, propose_version, propose_score, \
+             propose_note, propose_scenes"
         ))),
     }
 }

@@ -117,10 +117,14 @@ pub struct ScoredWork {
 /// contest by "latest". One work read 68.1 on one screen and 77.8 on the next,
 /// and the rule that decides which release keeps a date used a third number
 /// nothing displayed. `{work}` is the column holding the work id.
-pub const SPEAKING_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work}      AND version_id IS NOT NULL AND version_id = (SELECT current_version_id FROM work WHERE id = {work})      ORDER BY scored_at DESC, rowid DESC LIMIT 1";
+pub const SPEAKING_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work} \
+     AND version_id IS NOT NULL \
+     AND version_id = (SELECT current_version_id FROM work WHERE id = {work}) \
+     ORDER BY scored_at DESC, rowid DESC LIMIT 1";
 
 /// The fallback half of [`SPEAKING_SCORE`]: strongest, then most recent.
-pub const STRONGEST_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work}      ORDER BY total DESC, scored_at DESC, rowid DESC LIMIT 1";
+pub const STRONGEST_SCORE: &str = "SELECT id FROM work_score WHERE work_id = {work} \
+     ORDER BY total DESC, scored_at DESC, rowid DESC LIMIT 1";
 
 /// Both halves as one `coalesce`, ready to join against.
 pub fn speaking_score_for(work_column: &str) -> String {
