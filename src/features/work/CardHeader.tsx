@@ -20,18 +20,14 @@ import { Input } from '@/components/ui/input'
 import { RowMenu } from '@/components/RowMenu'
 import { StagePicker } from '@/components/StagePicker'
 import { TabBar } from '@/features/work/TabBar'
+import type { Tab } from '@/features/work/tabs'
 import { TagBar } from '@/features/work/TagBar'
 
 interface Props {
   work: Work
-  /** Shown on the Releases tab; the card already knows the count. */
-  releases: number
-  /** Shown on the Links tab: sources and works made from this. */
-  links?: number
-  /** Undefined for a kind with no storyboard: the tab is then not drawn. */
-  scenes?: number
-  /** Undefined for a work that was not cut out of anything: no Cut tab. */
-  cuts?: number
+  /** The tabs this work draws, and the numbers beside them; the card knows both. */
+  tabs: readonly Tab[]
+  counts: Partial<Record<Tab, number>>
   /** Deleting the work, from the header's menu. */
   onDelete: () => void
 }
@@ -50,7 +46,7 @@ interface Props {
  * real covers arrive; it is what makes one card distinguishable from another
  * before a single word is read.
  */
-export function CardHeader({ work, releases, links = 0, scenes, cuts, onDelete }: Props) {
+export function CardHeader({ work, tabs, counts, onDelete }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const { hiding } = useBlindJudging()
@@ -128,7 +124,7 @@ export function CardHeader({ work, releases, links = 0, scenes, cuts, onDelete }
         <MetaStrip work={work} />
       </div>
 
-      <TabBar workId={work.id} releases={releases} links={links} scenes={scenes} cuts={cuts} />
+      <TabBar workId={work.id} tabs={tabs} counts={counts} />
     </header>
   )
 }

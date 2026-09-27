@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
-import { DESTINATIONS } from '@/lib/keys'
+import { SCREENS } from '@/app/screens'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -18,19 +18,6 @@ interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
-
-/** Which nav word names each destination. The chord letters are fixed in
- * `keys.ts`; this only says what to call the screen they reach, so the sheet
- * cannot drift from the shortcuts it documents. */
-const SCREEN_NAME: Readonly<Record<string, string>> = Object.freeze({
-  '/dashboard': 'nav.dashboard',
-  '/catalogue': 'nav.catalogue',
-  '/calendar': 'nav.calendar',
-  '/journal': 'nav.journal',
-  '/notes': 'nav.notes',
-  '/trash': 'nav.trash',
-  '/settings': 'nav.data',
-})
 
 /** One line of the sheet: what the keys are, and what they do. */
 function Row({ keys, children }: { keys: string[]; children: string }) {
@@ -61,9 +48,9 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
  * here to confirm and nothing to take back. Close is the only way out, so it
  * is the only button.
  *
- * The going-places group is written from `DESTINATIONS` rather than typed out,
- * so a chord added in `keys.ts` appears here without anyone remembering to
- * come back. The failure mode of every hand-written shortcut sheet is being a
+ * The going-places group is written from the screens' own letters
+ * (`app/screens.tsx`) rather than typed out, so a chord given to a screen
+ * appears here without anyone remembering to come back. The failure mode of every hand-written shortcut sheet is being a
  * version behind what the application actually answers to.
  */
 export function KeyboardSheet({ open, onOpenChange }: Props) {
@@ -88,9 +75,9 @@ export function KeyboardSheet({ open, onOpenChange }: Props) {
         <DialogBody>
           <div className="grid gap-4 sm:grid-cols-2">
             <Group title={t('keys.group.going')}>
-              {Object.entries(DESTINATIONS).map(([key, where]) => (
-                <Row key={key} keys={['G', key.toUpperCase()]}>
-                  {t(SCREEN_NAME[where] ?? where)}
+              {SCREENS.filter((screen) => screen.jump !== undefined).map((screen) => (
+                <Row key={screen.key} keys={['G', screen.jump!.toUpperCase()]}>
+                  {t(screen.nav)}
                 </Row>
               ))}
             </Group>

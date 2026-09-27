@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
-import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getWorkspace, warnUnreadyReleases } from '@/lib/api'
 import { humanError } from '@/lib/errors'
+import { say } from '@/lib/toast'
 import { today } from '@/lib/month'
 import { keys } from '@/lib/query'
-import { useKeys } from '@/lib/useKeys'
+import { useKeys } from '@/app/useKeys'
 import { RAIL_WIDTH, useRail } from '@/lib/rail'
 import { ProfileContext } from '@/lib/useProfile'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -18,46 +19,9 @@ import { ResizeEdges } from '@/components/ui/window-frame'
 import { Sidebar } from '@/shell/Sidebar'
 import { Splash } from '@/shell/Splash'
 import { Titlebar } from '@/shell/Titlebar'
-import { WorkCard } from '@/features/work/WorkCard'
-import { Catalogue } from '@/features/catalogue/Catalogue'
-import { DashboardView } from '@/features/dashboard/DashboardView'
-import { CalendarView } from '@/features/calendar/CalendarView'
-import { SettingsView } from '@/features/settings/SettingsView'
-import { JournalView } from '@/features/journal/JournalView'
-import { StylesView } from '@/features/styles/StylesView'
-import { NotesView } from '@/features/notes/NotesView'
-import { CommentsView } from '@/features/comments/CommentsView'
-import { TrashView } from '@/features/trash/TrashView'
-import { Styleguide } from '@/features/styleguide/Styleguide'
 import { Panel } from '@/components/ui/panel'
 import { AppShell, Screen } from '@/components/ui/app-shell'
-
-// An open work, filling the screen. The address carries which one and which
-// tab, so the back button walks between them.
-//
-// Until v0.21 a list of every work sat beside it here, duplicating the
-// catalogue; `/works` with nothing open now sends you to the list that remains.
-function WorksScreen() {
-  const navigate = useNavigate()
-  const { workId, tab } = useParams()
-
-  if (workId === undefined) return <Navigate to="/catalogue" replace />
-
-  return (
-    // Held, not flowing: the card lays itself out against the window's height
-    // - its header stands still and the open tab takes what is left, scrolling
-    // inside itself - so the screen around it must not scroll at all.
-    <Screen scroll="held">
-      <WorkCard
-        key={workId}
-        workId={workId}
-        tab={tab}
-        onDeleted={() => navigate('/catalogue')}
-        onUndone={(restored) => navigate(`/works/${restored}`)}
-      />
-    </Screen>
-  )
-}
+import { drawn } from '@/app/screens'
 
 export default function App() {
   const { t } = useTranslation()
@@ -85,10 +49,14 @@ export default function App() {
   const profileId = workspace?.profile?.id
   useEffect(() => {
     if (profileId === undefined) return
-    void warnUnreadyReleases(today()).then((standing) => {
-      if (standing > 0) void client.invalidateQueries({ queryKey: keys.journal })
-    })
-  }, [profileId, client])
+    // A sweep that fails says so: the week's gaps would otherwise go
+    // unnoticed until the day, which is the one thing the sweep is for.
+    warnUnreadyReleases(today())
+      .then((standing) => {
+        if (standing > 0) void client.invalidateQueries({ queryKey: keys.journal })
+      })
+      .catch((cause: unknown) => say.failedTo(t('toast.sweepFailed'), cause))
+  }, [profileId, client, t])
 
   if (isPending) return <Splash />
 
@@ -191,109 +159,17 @@ export default function App() {
                     route, or the work, that caused it. */}
               <ErrorBoundary resetKey={place}>
                 <Routes>
-                  {/* The dashboard is where the app opens: the first question
-                        is what needs deciding, not what exists. */}
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <Screen>
-                        <DashboardView onSelect={openWork} />
-                      </Screen>
-                    }
-                  />
-                  {/* The open tab is part of the address, so the back button walks
-                        between tabs and a tab can be linked to directly. */}
-                  <Route path="/works/:workId?/:tab?" element={<WorksScreen />} />
-                  {/* The catalogue holds its own height rather than growing
-                        with its rows: its table scrolls both ways inside, so the
-                        sideways bar stays at the bottom of the window. */}
-                  <Route
-                    path="/catalogue"
-                    element={
-                      <Screen scroll="held">
-                        <Catalogue onSelect={openWork} />
-                      </Screen>
-                    }
-                  />
-                  {/* Like the catalogue: the screen holds the window's
-                        height rather than growing with its list, so the queue
-                        scrolls inside its own column and the month it is being
-                        read against stays on screen. */}
-                  <Route
-                    path="/calendar"
-                    element={
-                      <Screen scroll="held">
-                        <CalendarView onSelect={openWork} />
-                      </Screen>
-                    }
-                  />
-                  {/* Held like the catalogue: the list and the open note
-                        each scroll inside their own column, and the note's
-                        tags stay on the window's bottom edge. The open note
-                        is in the address, so back walks between notes. */}
-                  <Route
-                    path="/notes/:noteId?"
-                    element={
-                      <Screen scroll="held">
-                        <NotesView />
-                      </Screen>
-                    }
-                  />
-                  {/* The inbox of the audience's comments, held the same
-                        way: the list and the open comment scroll apart. */}
-                  <Route
-                    path="/comments/:commentId?"
-                    element={
-                      <Screen scroll="held">
-                        <CommentsView />
-                      </Screen>
-                    }
-                  />
-                  <Route
-                    path="/styles"
-                    element={
-                      <Screen>
-                        <StylesView />
-                      </Screen>
-                    }
-                  />
-                  <Route
-                    path="/journal"
-                    element={
-                      <Screen>
-                        <JournalView />
-                      </Screen>
-                    }
-                  />
-                  <Route
-                    path="/trash"
-                    element={
-                      <Screen>
-                        <TrashView />
-                      </Screen>
-                    }
-                  />
-                  {/* The section is part of the address, like a card's tab:
-                        the rail's Settings link lands on the first one. */}
-                  <Route
-                    path="/settings/:section?"
-                    element={
-                      <Screen scroll="held">
-                        <SettingsView />
-                      </Screen>
-                    }
-                  />
-                  {import.meta.env.DEV && (
+                  {/* Every screen from the one list the rail and the title
+                      bar read too (`app/screens.tsx`), each drawn through the
+                      shell's `Screen`, which decides where it scrolls. */}
+                  {drawn(import.meta.env.DEV).map((spec) => (
                     <Route
-                      path="/styleguide"
-                      element={
-                        <Screen>
-                          <Styleguide />
-                        </Screen>
-                      }
+                      key={spec.key}
+                      path={spec.path}
+                      element={<Screen scroll={spec.scroll}>{spec.render(openWork)}</Screen>}
                     />
-                  )}
+                  ))}
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </ErrorBoundary>

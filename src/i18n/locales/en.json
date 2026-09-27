@@ -1052,7 +1052,8 @@
     "tierUnpinned": "The score has its say again",
     "tierPinFailed": "hold the tier",
     "stageSet": "Stage set",
-    "stageCleared": "Stage cleared"
+    "stageCleared": "Stage cleared",
+    "sweepFailed": "Could not check this week's releases."
   },
   "trash": {
     "hint": "Nothing leaves for good until you say so.",

@@ -1,27 +1,11 @@
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import {
-  Calendar,
-  Disc,
-  FileText,
-  History,
-  Languages,
-  LayoutDashboard,
-  List,
-  MessagesSquare,
-  Monitor,
-  Moon,
-  Palette,
-  Settings,
-  Shapes,
-  Sun,
-  Trash2,
-  type LucideIcon,
-} from 'lucide-react'
+import { Languages, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { nextTheme, useTheme, type Theme } from '@/lib/theme'
 import { nextLanguage, useLanguage } from '@/lib/language'
-import { styleTypesOf, useProfile } from '@/lib/useProfile'
+import { useProfile } from '@/lib/useProfile'
+import { drawn, SOON, type ScreenSpec } from '@/app/screens'
 import { ProfileSwitcher } from '@/shell/ProfileSwitcher'
 import { cn } from '@/lib/utils'
 
@@ -123,12 +107,27 @@ interface Props {
 export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
   const { t } = useTranslation()
   const { config } = useProfile()
-  const hasStyles = styleTypesOf(config).length > 0
   const { theme, setTheme } = useTheme()
   const { language, setLanguage } = useLanguage()
   const ThemeIcon = THEME_ICONS[theme]
   const themeName = t(`themeName.${theme}`)
   const languageName = t(`languageName.${language}`)
+
+  // The rail is the screens' own list (`app/screens.tsx`): a screen joins its
+  // group the day it is added there, in the order it is listed.
+  const group = (name: 'work' | 'library' | 'foot') =>
+    drawn(import.meta.env.DEV)
+      .filter((screen) => screen.rail?.group === name)
+      .filter((screen) => screen.rail?.when?.(config) ?? true)
+      .map((screen: ScreenSpec) => (
+        <ScreenLink
+          key={screen.key}
+          to={`/${screen.key}`}
+          icon={screen.rail!.icon}
+          label={t(screen.nav)}
+          compact={compact}
+        />
+      ))
 
   return (
     // `h-full` so the rail runs the height of the window: the footer sits at
@@ -141,16 +140,7 @@ export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
         compact ? 'px-1.5' : 'px-2.5',
       )}
     >
-      <ScreenLink
-        to="/dashboard"
-        icon={LayoutDashboard}
-        label={t('nav.dashboard')}
-        compact={compact}
-      />
-      {/* No separate Works entry: the catalogue is the list of works, and a
-          second door to the same things only made you choose between them. */}
-      <ScreenLink to="/catalogue" icon={List} label={t('nav.catalogue')} compact={compact} />
-      <ScreenLink to="/calendar" icon={Calendar} label={t('nav.calendar')} compact={compact} />
+      {group('work')}
 
       {/* The caption becomes a rule in the compact menu: the grouping still
           reads, and a word cut to three letters would not. */}
@@ -161,32 +151,19 @@ export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
           {t('nav.library')}
         </div>
       )}
-      <SoonLink icon={Disc} label={t('nav.collections')} version="0.87" compact={compact} />
-      <ScreenLink to="/notes" icon={FileText} label={t('nav.notes')} compact={compact} />
-      <ScreenLink
-        to="/comments"
-        icon={MessagesSquare}
-        label={t('nav.comments')}
-        compact={compact}
-      />
-      {/* Only where the craft has one: a profile that names no style types
-          has no dictionary, and a door to an empty room is worse than none. */}
-      {hasStyles && (
-        <ScreenLink to="/styles" icon={Shapes} label={t('nav.styles')} compact={compact} />
-      )}
-      <ScreenLink to="/journal" icon={History} label={t('nav.journal')} compact={compact} />
-      <ScreenLink to="/trash" icon={Trash2} label={t('nav.trash')} compact={compact} />
+      {SOON.map((soon) => (
+        <SoonLink
+          key={soon.nav}
+          icon={soon.icon}
+          label={t(soon.nav)}
+          version={soon.version}
+          compact={compact}
+        />
+      ))}
+      {group('library')}
 
       <div className="mt-auto flex flex-col gap-0.5">
-        {import.meta.env.DEV && (
-          <ScreenLink
-            to="/styleguide"
-            icon={Palette}
-            label={t('nav.styleguide')}
-            compact={compact}
-          />
-        )}
-        <ScreenLink to="/settings" icon={Settings} label={t('nav.data')} compact={compact} />
+        {group('foot')}
         <button
           type="button"
           className={cn(NAV_CLASS, compact && COMPACT_CLASS)}

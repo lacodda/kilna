@@ -44,20 +44,6 @@ export interface Stroke {
   typing: boolean
 }
 
-/** Where `g` then a letter goes. The letters are the initials of the English
- * screen names, which is what makes them memorable — and they stay put when
- * the interface is read in another language, because a shortcut that moved
- * with the translation would have to be relearned per language. */
-export const DESTINATIONS: Readonly<Record<string, string>> = Object.freeze({
-  d: '/dashboard',
-  c: '/catalogue',
-  k: '/calendar',
-  j: '/journal',
-  n: '/notes',
-  t: '/trash',
-  s: '/settings',
-})
-
 /**
  * Whether a keystroke landed somewhere that owns the keyboard.
  *
@@ -126,16 +112,18 @@ export function readStroke(stroke: Stroke): Intent | null {
  * What the second key of a `g` chord means.
  *
  * Split from `readStroke` because the caller holds the "g was pressed" state
- * and this has no business knowing about it. An unknown letter returns `null`,
+ * and this has no business knowing about it. The letters are the screens'
+ * own (`JUMPS` in `app/screens.tsx`), handed in so this stays arithmetic. An
+ * unknown letter returns `null`,
  * and the caller drops the chord rather than waiting — a chord that lingers
  * turns the next unrelated keystroke into a navigation.
  */
-export function readChord(stroke: Stroke): Intent | null {
+export function readChord(stroke: Stroke, jumps: Readonly<Record<string, string>>): Intent | null {
   const { key, ctrlKey, metaKey, altKey } = stroke
   if (ctrlKey || metaKey || altKey) return null
   if (stroke.typing) return null
 
-  const where = DESTINATIONS[key.toLowerCase()]
+  const where = jumps[key.toLowerCase()]
   return where === undefined ? null : { kind: 'go', where }
 }
 

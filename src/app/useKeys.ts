@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { opensChord, readChord, readStroke, typing, type Stroke } from '@/lib/keys'
 import { useUndo } from '@/lib/useUndo'
+import { JUMPS } from '@/app/screens'
 
 /** How long a `g` waits for its second key before giving up, in milliseconds.
  *
@@ -59,7 +60,7 @@ export function useKeys(): { helpOpen: boolean; setHelpOpen: (open: boolean) => 
       // should not then act on its own.
       if (chording.current !== null) {
         drop()
-        const intent = readChord(stroke)
+        const intent = readChord(stroke, JUMPS)
         if (intent?.kind === 'go') {
           event.preventDefault()
           navigate(intent.where)

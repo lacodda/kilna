@@ -28,6 +28,16 @@ Development builds show one extra sidebar entry, **Styleguide** — the living
 inventory of the design system. Screens take their controls from that page and
 only from there; it is not part of the released app.
 
+**The folders say what a file is for** (ADR 0036). `src/app/` is the window's
+root and the one list of screens (`screens.tsx`) that the router, the rail,
+the title bar and the shortcut sheet all read; `src/shell/` is the frame around
+every screen; `src/features/<area>/` is a screen and what only it uses, with
+the open work's tabs under `features/work/tabs/`, listed once in
+`features/work/tabs.ts`; `src/components/` is what several features share; and
+`src/lib/` is logic with no screen of its own. A new screen is one entry in
+`screens.tsx` and one place in the smoke test, and a new tab one entry in
+`tabs.ts` and one body in `TabBody.tsx` - the tests fail until each is there.
+
 The design system itself is [dowel](https://lacodda.github.io/dowel/), shared
 across the lacodda line. The theme arrives as a package and the primitives are
 copied in from its registry, so they are kilna's own files to edit:

@@ -3,21 +3,16 @@ import { useQuery } from '@tanstack/react-query'
 import { countWorkComments } from '@/lib/api'
 import { keys } from '@/lib/query'
 import { NavLink } from 'react-router'
-import { TABS, type Tab } from '@/features/work/tabs'
+import type { Tab } from '@/features/work/tabs'
 import { cn } from '@/lib/utils'
 
 interface Props {
   workId: string
-  /** Shown beside the Releases tab; omitted when there are none. */
-  releases?: number
-  /** Shown beside the Links tab: sources and works made from this, together. */
-  links?: number
-  /** Shown beside the Scenes tab; the tab is not drawn at all while this is
-      undefined — a kind with no storyboard has no Scenes. */
-  scenes?: number
-  /** Shown beside the Cut tab; undefined draws no tab — a work with no donor
-      and no stretches was not cut out of anything. */
-  cuts?: number
+  /** The tabs this work draws, in order (`tabsOf`). */
+  tabs: readonly Tab[]
+  /** The number beside a tab: releases, links made either way, scenes, the
+      splice's stretches. None beside a tab with none. */
+  counts?: Partial<Record<Tab, number>>
 }
 
 /**
@@ -27,7 +22,7 @@ interface Props {
  * be linked to from a note, a journal entry or a chat — the same reason the open
  * work became `/works/:id` in v0.11.
  */
-export function TabBar({ workId, releases = 0, links = 0, scenes, cuts }: Props) {
+export function TabBar({ workId, tabs, counts = {} }: Props) {
   const { t } = useTranslation()
   // The comments' counter is the bar's own: what the audience said is about
   // the work whichever tab is open, and what still waits is worth a mark.
@@ -49,10 +44,7 @@ export function TabBar({ workId, releases = 0, links = 0, scenes, cuts }: Props)
     // vertical scrollbar down the side of the tabs, which is what the pilot
     // saw. The vertical axis is explicitly clipped: tabs never scroll upwards.
     <nav className="flex gap-0.5 overflow-x-auto overflow-y-hidden border-t border-line bg-raise [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {TABS.filter(
-        (tab) =>
-          (tab !== 'scenes' || scenes !== undefined) && (tab !== 'cuts' || cuts !== undefined),
-      ).map((tab) => (
+      {tabs.map((tab) => (
         <NavLink
           key={tab}
           to={`/works/${workId}/${tab}`}
@@ -64,19 +56,9 @@ export function TabBar({ workId, releases = 0, links = 0, scenes, cuts }: Props)
           }
         >
           {t(`card.tab.${tab satisfies Tab}`)}
-          {tab === 'releases' && releases > 0 && (
+          {(counts[tab] ?? 0) > 0 && (
             <span className="rounded-full border border-line px-1.5 text-[11px] text-faint">
-              {releases}
-            </span>
-          )}
-          {tab === 'links' && links > 0 && (
-            <span className="rounded-full border border-line px-1.5 text-[11px] text-faint">
-              {links}
-            </span>
-          )}
-          {tab === 'scenes' && scenes !== undefined && scenes > 0 && (
-            <span className="rounded-full border border-line px-1.5 text-[11px] text-faint">
-              {scenes}
+              {counts[tab]}
             </span>
           )}
           {tab === 'comments' && comments.data !== undefined && comments.data.total > 0 && (
@@ -90,11 +72,6 @@ export function TabBar({ workId, releases = 0, links = 0, scenes, cuts }: Props)
               )}
             >
               {comments.data.waiting > 0 ? comments.data.waiting : comments.data.total}
-            </span>
-          )}
-          {tab === 'cuts' && cuts !== undefined && cuts > 0 && (
-            <span className="rounded-full border border-line px-1.5 text-[11px] text-faint">
-              {cuts}
             </span>
           )}
         </NavLink>

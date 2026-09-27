@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { DESTINATIONS, opensChord, readChord, readStroke, type Stroke } from './keys'
+import { opensChord, readChord, readStroke, type Stroke } from './keys'
+
+const JUMPS = { d: '/dashboard', c: '/catalogue' }
 
 /** A keystroke with nothing held and nothing focused. */
 function stroke(key: string, over: Partial<Stroke> = {}): Stroke {
@@ -125,40 +127,32 @@ describe('opensChord', () => {
 })
 
 describe('readChord', () => {
-  it('sends every destination somewhere', () => {
-    for (const [key, where] of Object.entries(DESTINATIONS)) {
-      expect(readChord(stroke(key))).toEqual({ kind: 'go', where })
+  it('sends every letter it is given to its screen', () => {
+    for (const [key, where] of Object.entries(JUMPS)) {
+      expect(readChord(stroke(key), JUMPS)).toEqual({ kind: 'go', where })
     }
   })
 
   it('reads a capital as the same destination', () => {
     // Shift held through a chord is a slip, not a different intent.
-    expect(readChord(stroke('D', { shiftKey: true }))).toEqual({ kind: 'go', where: '/dashboard' })
+    expect(readChord(stroke('D', { shiftKey: true }), JUMPS)).toEqual({
+      kind: 'go',
+      where: '/dashboard',
+    })
   })
 
   it('gives nothing for a letter that goes nowhere', () => {
-    expect(readChord(stroke('q'))).toBeNull()
-    expect(readChord(stroke('Enter'))).toBeNull()
+    expect(readChord(stroke('q'), JUMPS)).toBeNull()
+    expect(readChord(stroke('Enter'), JUMPS)).toBeNull()
   })
 
   it('gives nothing while text is being typed', () => {
-    expect(readChord(stroke('d', { typing: true }))).toBeNull()
+    expect(readChord(stroke('d', { typing: true }), JUMPS)).toBeNull()
   })
 
   it('gives nothing when a modifier is held', () => {
-    expect(readChord(stroke('d', { ctrlKey: true }))).toBeNull()
-    expect(readChord(stroke('d', { metaKey: true }))).toBeNull()
-    expect(readChord(stroke('d', { altKey: true }))).toBeNull()
-  })
-
-  it('sends no two letters to the same screen', () => {
-    const screens = Object.values(DESTINATIONS)
-    expect(new Set(screens).size).toBe(screens.length)
-  })
-
-  it('names a real screen for every letter', () => {
-    // A destination that does not start with a slash is not a route, and the
-    // router would silently send it to the dashboard.
-    for (const where of Object.values(DESTINATIONS)) expect(where).toMatch(/^\/[a-z]+$/)
+    expect(readChord(stroke('d', { ctrlKey: true }), JUMPS)).toBeNull()
+    expect(readChord(stroke('d', { metaKey: true }), JUMPS)).toBeNull()
+    expect(readChord(stroke('d', { altKey: true }), JUMPS)).toBeNull()
   })
 })

@@ -13,7 +13,7 @@ import {
   type JournalEntry,
   type PendingProposal,
 } from '@/lib/api'
-import { screenKey } from '@/lib/screens'
+import { screenAt } from '@/app/screens'
 import { keys } from '@/lib/query'
 import { openWorkId } from '@/lib/route'
 import { say } from '@/lib/toast'
@@ -58,7 +58,7 @@ function Breadcrumbs() {
     enabled: workId !== undefined,
   })
 
-  const screen = t(screenKey(location.pathname))
+  const screen = t(screenAt(location.pathname).nav)
   if (workId === undefined) {
     return <span className="truncate text-[13px] font-semibold">{screen}</span>
   }
