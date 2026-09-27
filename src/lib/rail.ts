@@ -21,7 +21,7 @@ export const RAIL_WIDTH: Record<RailWidth, string> = {
 }
 
 /** What is stored, or the full menu — an absent or broken value is not an error. */
-export function storedRail(): RailWidth {
+function storedRail(): RailWidth {
   try {
     return localStorage.getItem(STORAGE_KEY) === 'compact' ? 'compact' : 'full'
   } catch {

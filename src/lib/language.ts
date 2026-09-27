@@ -11,7 +11,7 @@ const SUPPORTED = new Set(['en', 'ru'])
 const STORAGE_KEY = 'kilna.language'
 const FALLBACK = 'en'
 
-export function storedLanguage(): Language {
+function storedLanguage(): Language {
   const raw = localStorage.getItem(STORAGE_KEY)
   return LANGUAGES.includes(raw as Language) ? (raw as Language) : 'system'
 }
@@ -22,7 +22,7 @@ export function storedLanguage(): Language {
  * `navigator.language` is a full tag like `ru-RU`; only the base language is
  * meaningful here, since kilna does not carry regional variants.
  */
-export function resolveLanguage(choice: Language): string {
+function resolveLanguage(choice: Language): string {
   if (choice !== 'system') return choice
 
   for (const tag of navigator.languages ?? [navigator.language]) {

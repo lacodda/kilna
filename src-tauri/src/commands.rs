@@ -5,7 +5,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::asset;
 use crate::assistant::run::{self as assistant_run, Emission, Run, Sink};
-use crate::assistant::{self, Chat, Message, NewChat, Transcript, cli, prompt};
+use crate::assistant::{self, Chat, NewChat, Transcript, cli, prompt};
 use crate::collection::{self, Collection, CollectionPatch, NewCollection};
 use crate::comment::{self, Comment, CommentFilter, CommentPatch, NewComment};
 use crate::cut;
@@ -1153,16 +1153,6 @@ pub fn style_brick_counts(state: State<'_, AppState>) -> Result<Vec<(String, i64
     let conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
     style_brick::counts(&conn, &profile_id)
-}
-
-/// One brick with its references — what the editing screen opens.
-#[tauri::command]
-pub fn get_style_brick(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<Option<style_brick::StyleBrick>> {
-    let conn = state.conn();
-    style_brick::get(&conn, &id)
 }
 
 /// The pictures a brick was described from.
@@ -3819,22 +3809,6 @@ pub fn dismiss_proposal(state: State<'_, AppState>, message_id: String) -> Resul
 pub fn delete_chat(state: State<'_, AppState>, id: String) -> Result<()> {
     let conn = state.conn();
     assistant::delete(&conn, &id)
-}
-
-/// Send a prompt and wait for the reply.
-///
-/// This blocks for as long as the CLI takes. Kept for callers that want one
-/// answer and nothing else; the panel uses [`start_run`], which returns at once
-/// and reports the rest as events.
-#[tauri::command]
-pub fn ask_assistant(
-    state: State<'_, AppState>,
-    chat_id: String,
-    prompt: String,
-) -> Result<Message> {
-    let workdir = state.assistant_dir();
-    let mut conn = state.conn();
-    assistant::ask(&mut conn, &chat_id, &prompt, workdir.as_deref())
 }
 
 /// Sends run events to the window.

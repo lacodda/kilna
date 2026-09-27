@@ -622,7 +622,6 @@ export function answersFor(studio: Studio): Record<string, Handler> {
 
     list_style_bricks: () => studio.bricks,
     style_brick_counts: () => counted(studio.bricks.map((b) => b.type_key)),
-    get_style_brick: ({ id }) => studio.bricks.find((b) => b.id === id) ?? null,
     style_brick_references: () => noAssets,
 
     list_journal: () => studio.journal,

@@ -15,7 +15,7 @@ import { daysBetween } from '@/lib/readiness'
  */
 
 /** How far ahead "this week" reaches. Matches the journal's warning horizon. */
-export const WEEK_AHEAD_DAYS = 7
+const WEEK_AHEAD_DAYS = 7
 
 /** How many works the "what to work on" grid shows before it stops being a shortlist. */
 export const SHORTLIST_LIMIT = 6

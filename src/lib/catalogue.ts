@@ -182,7 +182,7 @@ export function isNarrowedByColumns(filters: ColumnFilters = {}): boolean {
   return FILTERABLE_COLUMNS.some((column) => isColumnFiltered(filters, column))
 }
 
-export const FILTERABLE_COLUMNS: FilterableColumn[] = ['title', 'stages', 'tiers', 'marks']
+const FILTERABLE_COLUMNS: FilterableColumn[] = ['title', 'stages', 'tiers', 'marks']
 
 /**
  * Narrow by the header funnels. Applied after `narrow`, on what it left.

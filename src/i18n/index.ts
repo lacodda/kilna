@@ -8,8 +8,7 @@ import ru from './locales/ru.json'
 // `tools/check-locales.mjs` holds every locale to the same shape at build time,
 // so there is nothing to fall back *to*: a gap fails the build instead of
 // reaching a person as a stray English line in a Russian window.
-export const defaultNS = 'translation'
-export const resources = {
+const resources = {
   en: { translation: en },
   ru: { translation: ru },
 } as const

@@ -19,7 +19,7 @@ import type { Asset } from '@/lib/api'
 
 /** The kinds this screen knows, in the order it shows them. Anything else is
  * gathered under `other`, so a kind invented later still appears. */
-export const MATERIAL_ORDER = ['cover', 'frame', 'video'] as const
+const MATERIAL_ORDER = ['cover', 'frame', 'video'] as const
 
 /** What a file with no kind, or an unknown one, is filed under. */
 export const OTHER = 'other'

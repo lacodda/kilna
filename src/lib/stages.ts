@@ -8,7 +8,7 @@ import type { ProfileConfig, Stage } from '@/lib/api'
  * snap to is not a dial. Answered in one place so a card, a row and a calendar
  * chip cannot disagree about what an empty list means.
  */
-export const DEFAULT_STAGES: Stage[] = [
+const DEFAULT_STAGES: Stage[] = [
   { key: 'idea', label: 'Idea', percent: 0, colour: 'plain' },
   { key: 'raw', label: 'Rough draft', percent: 17, colour: 'plain' },
   { key: 'half', label: 'Half there', percent: 33, colour: 'warn' },

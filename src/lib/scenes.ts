@@ -103,7 +103,7 @@ export function orderMoving(scenes: Scene[], id: string, to: number): string[] {
 }
 
 /** The key a work's length is kept under, in the profile's meta fields. */
-export const DURATION = 'duration'
+const DURATION = 'duration'
 
 /**
  * A work's length in seconds, when its meta carries one.

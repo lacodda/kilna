@@ -87,7 +87,7 @@ export function toNextTier(
  * already so high that its remaining marks are not enough. Whole marks,
  * because that is what the scale accepts - half a mark is not an answer.
  */
-export function marksToReach(
+function marksToReach(
   axes: Axis[],
   values: Record<string, number>,
   axis: Axis,

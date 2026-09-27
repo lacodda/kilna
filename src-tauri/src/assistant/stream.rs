@@ -1,9 +1,9 @@
 //! Reading one CLI turn as it happens.
 //!
-//! The blocking form in [`super::cli::ask`] waits for the whole answer and
-//! returns it at once. A run that may take minutes cannot be watched that way,
-//! so this module asks the CLI for `stream-json` and turns each line it prints
-//! into an [`Event`] the panel can show while the run is still going.
+//! A run may take minutes, and a panel that waited for the whole answer would
+//! show nothing until the end, so this module asks the CLI for `stream-json`
+//! and turns each line it prints into an [`Event`] the panel can show while
+//! the run is still going.
 
 use std::io::{BufRead, BufReader};
 use std::process::{Child, ChildStdout, Stdio};
@@ -250,9 +250,10 @@ impl Stream {
     ///
     /// `workdir` is where the CLI starts — the empty directory of ADR 0008.
     ///
-    /// The prompt goes in over stdin for the reason spelled out in
-    /// [`super::cli::ask`]: on Windows the executable is a `.cmd`, and Rust
-    /// refuses to pass an argument containing a newline to a batch file.
+    /// The prompt goes in over stdin: on Windows the executable is a `.cmd`,
+    /// and Rust refuses to pass an argument containing a newline to a batch
+    /// file - a deliberate guard against argument injection, and lyrics and
+    /// chapters are full of newlines.
     ///
     /// `method` is the action's method (ADR 0021), appended to the CLI's
     /// system prompt. It goes through a file rather than an argument for

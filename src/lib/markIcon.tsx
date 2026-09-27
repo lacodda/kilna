@@ -27,7 +27,7 @@ import type { BadgeProps } from '@/components/ui/badge'
  * profile reference beats a thousand names they cannot. A name outside it
  * draws the default glyph — the word beside it is what says which mark it is.
  */
-export const MARK_ICONS: Record<string, LucideIcon> = {
+const MARK_ICONS: Record<string, LucideIcon> = {
   tag: Tag,
   wrench: Wrench,
   clock: Clock,
@@ -44,9 +44,6 @@ export const MARK_ICONS: Record<string, LucideIcon> = {
   flag: Flag,
   pin: Pin,
 }
-
-/** The names, for the reference and for a picker. */
-export const MARK_ICON_NAMES = Object.keys(MARK_ICONS)
 
 export function markIconOf(mark: Pick<Mark, 'icon'>): LucideIcon {
   return (mark.icon !== undefined ? MARK_ICONS[mark.icon] : undefined) ?? Tag

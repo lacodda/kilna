@@ -3,11 +3,24 @@
 //!   cargo run --example assistant -- <path-to-kilna.db> [work title]
 //!
 //! Not a test: it costs money and needs a logged-in CLI. It exists to check the
-//! integration by hand after changing how kilna talks to the CLI.
+//! integration by hand after changing how kilna talks to the CLI, and it goes
+//! the way the window does - a streamed run, each event printed as it comes.
 
+use std::sync::Arc;
+
+use kilna_lib::assistant::run::{self, Emission, Runs, Sink};
 use kilna_lib::assistant::{self, NewChat, cli};
 use kilna_lib::work::WorkFilter;
 use kilna_lib::{db, profile, work};
+
+/// Prints what the window would be sent.
+struct Printed;
+
+impl Sink for Printed {
+    fn emit(&self, emission: &Emission) {
+        println!("event: {:?}", emission.event);
+    }
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
@@ -27,7 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let mut conn = db::open(std::path::Path::new(&path))?;
+    let conn = db::open(std::path::Path::new(&path))?;
     // The app does this on startup; a workspace opened directly needs it too,
     // or prompts shipped after the database was created are missing.
     profile::seed(&conn)?;
@@ -71,9 +84,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     // No working directory here: the example runs from wherever it was invoked.
-    let reply = assistant::ask(&mut conn, &chat.id, &prompt, None)?;
-    println!("--- reply ---\n{}\n", reply.body);
+    let runs = Arc::new(Runs::new());
+    let (started, stream) = run::start(&conn, &runs, &chat.id, &prompt, None)?;
+    let sink: Arc<dyn Sink> = Arc::new(Printed);
+    let reopen = path.clone();
+    run::pump(&runs, &sink, &started, &stream, move || {
+        db::open(std::path::Path::new(&reopen)).ok()
+    });
 
+    let transcript = assistant::transcript(&conn, &chat.id)?.ok_or("the chat vanished")?;
+    let reply = transcript.messages.last().ok_or("the run left no answer")?;
+    println!("--- reply ---\n{}\n", reply.body);
     if let Some(cost) = reply.meta.get("cost_usd") {
         println!("cost: {cost}");
     }

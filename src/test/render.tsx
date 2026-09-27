@@ -1,13 +1,10 @@
-import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router'
 import { render, renderHook, waitFor } from '@testing-library/react'
 import type { QueryClient } from '@tanstack/react-query'
 import App from '@/App'
 import { Providers } from '@/app/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import type { Profile } from '@/lib/api'
 import { createQueryClient } from '@/lib/query'
-import { ProfileContext } from '@/lib/useProfile'
 
 /**
  * The whole window at `path`: the same providers and boundary as `main.tsx`,
@@ -21,25 +18,6 @@ export function renderApp(path: string) {
         <ErrorBoundary>
           <App />
         </ErrorBoundary>
-      </MemoryRouter>
-    </Providers>,
-  )
-  return { ...view, client }
-}
-
-/**
- * One component inside the app's providers and a profile, without the shell -
- * for a hook or a panel whose question is its own behaviour.
- */
-export function renderWithin(
-  ui: ReactNode,
-  { profile, path = '/' }: { profile: Profile; path?: string },
-) {
-  const client = createQueryClient()
-  const view = render(
-    <Providers client={client}>
-      <MemoryRouter initialEntries={[path]}>
-        <ProfileContext value={profile}>{ui}</ProfileContext>
       </MemoryRouter>
     </Providers>,
   )

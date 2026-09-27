@@ -864,15 +864,6 @@ export interface Collection {
   works: number
 }
 
-export interface NewCollection {
-  kind: string
-  title: string
-  description?: string | null
-  meta?: Meta | null
-  target_size?: number | null
-  due_on?: string | null
-}
-
 export const getWorkspace = () => invoke<Workspace>('get_workspace')
 export const listProfiles = () => invoke<Profile[]>('list_profiles')
 export const activateProfile = (id: string) => invoke<void>('activate_profile', { id })
@@ -985,8 +976,6 @@ export interface Shot {
 }
 
 export const listCuts = (workId: string) => invoke<Cut[]>('list_cuts', { workId })
-/** What has been cut out of this work — the question a donor's card asks. */
-export const listCutsFrom = (sourceId: string) => invoke<Cut[]>('list_cuts_from', { sourceId })
 export const createCut = (cut: NewCut) => invoke<Cut>('create_cut', { cut })
 export const updateCut = (id: string, patch: CutPatch) => invoke<Cut>('update_cut', { id, patch })
 export const deleteCut = (id: string) => invoke<string>('delete_cut', { id })
@@ -1029,8 +1018,6 @@ export interface NewAsset {
 export const attachAsset = (source: string, asset: NewAsset) =>
   invoke<Asset>('attach_asset', { source, asset })
 export const listWorkAssets = (workId: string) => invoke<Asset[]>('list_work_assets', { workId })
-export const listReleaseAssets = (releaseId: string) =>
-  invoke<Asset[]>('list_release_assets', { releaseId })
 /** The cover of every work that has one, as [work id, path] pairs. */
 export const listCovers = () => invoke<[string, string][]>('list_covers')
 export const detachAsset = (id: string) => invoke<void>('detach_asset', { id })
@@ -1093,8 +1080,6 @@ export const selectSceneFrame = (id: string) => invoke<SceneFrame>('select_scene
  * the still it was animated from. */
 export const clearSceneFrame = (sceneId: string, kind: string) =>
   invoke<void>('clear_scene_frame', { sceneId, kind })
-export const reorderSceneFrames = (sceneId: string, kind: string, ids: string[]) =>
-  invoke<SceneFrame[]>('reorder_scene_frames', { sceneId, kind, ids })
 /** What a clone came out as, for the sentence the window says afterwards. */
 export interface Cloned {
   work: Work
@@ -1225,8 +1210,6 @@ export interface PendingCommentProposal {
 
 export const pendingCommentProposals = () =>
   invoke<PendingCommentProposal[]>('pending_comment_proposals')
-export const previewCommentTask = (id: string, action: string) =>
-  invoke<ComposedTask>('preview_comment_task', { id, action })
 /** Draft a reply in the background, in the voice of the comment's channel. */
 export const startCommentTask = (id: string, action: string) =>
   invoke<StartedTask>('start_comment_task', { id, action })
@@ -1327,7 +1310,6 @@ export interface StyleBrickFilter {
 export const listStyleBricks = (filter?: StyleBrickFilter) =>
   invoke<StyleBrick[]>('list_style_bricks', { filter })
 export const styleBrickCounts = () => invoke<[string, number][]>('style_brick_counts')
-export const getStyleBrick = (id: string) => invoke<StyleBrick | null>('get_style_brick', { id })
 export const styleBrickReferences = (id: string) =>
   invoke<Asset[]>('style_brick_references', { id })
 export const createStyleBrick = (brick: NewStyleBrick) =>
@@ -1342,8 +1324,6 @@ export const pasteStyleReference = (id: string, bytes: number[], name: string) =
 /** Describe a brick from its references — the dictionary's own AI action. */
 export const startStyleTask = (id: string, action: string) =>
   invoke<StartedTask>('start_style_task', { id, action })
-export const previewStyleTask = (id: string, action: string) =>
-  invoke<ComposedTask>('preview_style_task', { id, action })
 /** Keep an answer as a brick's description, and let it out of draft. */
 export const describeStyleBrick = (messageId: string, id: string) =>
   invoke<StyleBrick>('describe_style_brick', { messageId, id })
@@ -1459,9 +1439,6 @@ export const releaseFields = (id: string) => invoke<ReleaseFieldValue[]>('releas
 // but a typed key no field names could only come from a bug.
 export const setReleaseFields = (id: string, values: Record<string, string>) =>
   invoke<Release>('set_release_fields', { id, values })
-// What the profile would write, without writing it.
-export const previewReleaseFields = (id: string) =>
-  invoke<GeneratedFields>('preview_release_fields', { id })
 export const generateReleaseFields = (id: string) =>
   invoke<GeneratedFields>('generate_release_fields', { id })
 
@@ -1489,11 +1466,6 @@ export const releasesForWork = (workId: string) =>
   invoke<ScheduledRelease[]>('releases_for_work', { workId })
 
 export const listCollections = () => invoke<Collection[]>('list_collections')
-export const createCollection = (collection: NewCollection) =>
-  invoke<Collection>('create_collection', { collection })
-export const deleteCollection = (id: string) => invoke<string>('delete_collection', { id })
-export const setCollectionContents = (id: string, workIds: string[]) =>
-  invoke<void>('set_collection_contents', { id, workIds })
 
 /** What a trashed entry was. Mirrors the backend's `trash::Entity`; the
     backend's `the_window_knows_every_kind_the_trash_holds` test holds the
@@ -1703,8 +1675,6 @@ export interface PackageReport {
 
 export const exportPackage = (workId: string, directory: string) =>
   invoke<PackageReport>('export_package', { workId, directory })
-export const canExportPackage = (workId: string) =>
-  invoke<boolean>('can_export_package', { workId })
 
 export const exportMarkdown = (directory: string) =>
   invoke<ExportReport>('export_markdown', { directory })
@@ -1779,8 +1749,6 @@ export const dismissProposal = (messageId: string) =>
 /** Apply every proposal in a chat nobody has applied yet, oldest first. */
 export const applyPendingProposals = (chatId: string) =>
   invoke<Applied[]>('apply_pending_proposals', { chatId })
-export const askAssistant = (chatId: string, prompt: string) =>
-  invoke<Message>('ask_assistant', { chatId, prompt })
 export const startRun = (chatId: string, prompt: string) =>
   invoke<Run>('start_run', { chatId, prompt })
 export const cancelRun = (id: string) => invoke<void>('cancel_run', { id })

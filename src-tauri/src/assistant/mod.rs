@@ -10,7 +10,7 @@ pub mod waiting;
 
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
 use crate::time::now;
@@ -295,43 +295,6 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
     Ok(())
 }
 
-/// Send a prompt in a chat and record both sides of the exchange.
-///
-/// The user's message is stored before the CLI is called, so a failed or slow
-/// turn still leaves a record of what was asked.
-pub fn ask(
-    conn: &mut Connection,
-    chat_id: &str,
-    prompt: &str,
-    workdir: Option<&std::path::Path>,
-) -> Result<Message> {
-    let chat = get(conn, chat_id)?.ok_or_else(|| Error::not_found("chat", chat_id))?;
-
-    append(conn, chat_id, USER, prompt, Map::new())?;
-
-    let turn = cli::ask(prompt, chat.session_id.as_deref(), workdir)?;
-
-    let mut meta = Map::new();
-    if let Some(cost) = turn.cost_usd {
-        meta.insert("cost_usd".into(), json!(cost));
-    }
-    if let Some(duration) = turn.duration_ms {
-        meta.insert("duration_ms".into(), json!(duration));
-    }
-
-    let message = append(conn, chat_id, ASSISTANT, &turn.body, meta)?;
-
-    // Keep the session id so the next turn continues this conversation.
-    if let Some(session_id) = turn.session_id {
-        conn.execute(
-            "UPDATE chat SET session_id = ?2, updated_at = ?3 WHERE id = ?1",
-            params![chat_id, session_id, now()],
-        )?;
-    }
-
-    Ok(message)
-}
-
 /// Mark a chat as holding an unanswered question.
 ///
 /// Idempotent by design: re-marking a chat that is already waiting keeps the
@@ -432,6 +395,8 @@ fn read_chat(row: &rusqlite::Row<'_>) -> rusqlite::Result<Chat> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+
     use crate::db;
     use crate::profile;
     use crate::work::{self, NewWork};
@@ -919,12 +884,5 @@ mod tests {
         clear_waiting(&conn, &chat.id).unwrap();
 
         assert!(waiting(&conn, &profile_id).unwrap().is_empty());
-    }
-
-    #[test]
-    fn asking_in_an_unknown_chat_fails_before_the_cli_is_called() {
-        let (mut conn, _) = workspace();
-
-        assert!(ask(&mut conn, "nope", "hello", None).is_err());
     }
 }

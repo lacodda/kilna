@@ -21,7 +21,7 @@ export interface Day {
   inMonth: boolean
 }
 
-export function iso(year: number, month: number, day: number): string {
+function iso(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 

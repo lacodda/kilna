@@ -35,7 +35,7 @@ import type { PromptTemplate } from '@/lib/api'
  * glyph is what makes one findable at a glance, the short name says which it
  * is, and the long description moved into the tooltip.
  */
-export const ACTION_ICONS: Record<string, LucideIcon> = {
+const ACTION_ICONS: Record<string, LucideIcon> = {
   sparkles: Sparkles,
   wand: Wand2,
   pen: PenLine,

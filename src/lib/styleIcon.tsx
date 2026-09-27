@@ -25,7 +25,7 @@ import type { StyleType } from '@/lib/api'
  * The glyph matters more here than elsewhere: a picker of forty bricks under
  * nine types is read by shape first and by word second.
  */
-export const STYLE_ICONS: Record<string, LucideIcon> = {
+const STYLE_ICONS: Record<string, LucideIcon> = {
   palette: Palette,
   user: User,
   shirt: Shirt,
@@ -36,9 +36,6 @@ export const STYLE_ICONS: Record<string, LucideIcon> = {
   layers: Layers,
   grid: Grid3x3,
 }
-
-/** The names, for the reference and for a picker. */
-export const STYLE_ICON_NAMES = Object.keys(STYLE_ICONS)
 
 export function styleIconOf(type: Pick<StyleType, 'icon'> | undefined): LucideIcon {
   const name = type?.icon
