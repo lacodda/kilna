@@ -180,8 +180,13 @@ export default function App() {
                   This box does not scroll: it hands its height down, and each
                   `<Screen>` decides where the scrolling happens inside it. The
                   window having no scrollbar of its own is the point — see
-                  `Screen`. */}
-            <div key={screen} className="screen-in flex min-h-0 flex-1 flex-col overflow-hidden">
+                  `Screen`. `data-screen-area` is how the tests find it to
+                  hold every screen to that (`app/smoke.test.tsx`). */}
+            <div
+              key={screen}
+              data-screen-area
+              className="screen-in flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
               {/* Resetting on the place means a crash does not outlive the
                     route, or the work, that caused it. */}
               <ErrorBoundary resetKey={place}>

@@ -51,8 +51,9 @@ cannot.
 
 **The window is a window, not a page.** `styles.css` seals the document
 (`overflow: hidden` on `html, body, #root`) and switches text selection off
-across the shell; the only box that scrolls is the keyed content area in
-`App.tsx`. Two consequences when you write a screen:
+across the shell; the content area beside the rail clips, and each screen is
+a `<Screen>` that scrolls inside itself. Two consequences when you write a
+screen:
 
 - **Selection is handed back, never assumed.** Put `selectable` on anything
   that is genuinely text someone may want to copy - a version body, a note, a
@@ -63,10 +64,13 @@ across the shell; the only box that scrolls is the keyed content area in
   leaves the horizontal axis scrollable too, which is how a trackpad swipe used
   to slide whole screens sideways.
 
-Three checks in `src-tauri/tests/shell_rules.rs` fail if any of that is
-deleted. They read the source rather than the rendering, because what they
-guard are single declarations whose absence only shows up as a gesture
-behaving strangely on someone's laptop.
+`pnpm test` fails if any of that goes. The smoke test holds every screen and
+every tab of a card to it on what they actually draw: the content area clips,
+each screen is a `<Screen>` that either scrolls itself or holds the window's
+height, and the card's header stands still. What no render shows - the sealed
+document, selection handed back to text, radii from the scale - is read from
+the source by `src/test/source.test.ts`, which finds the stylesheet through the
+window's entry rather than by a path.
 
 **`components/ui/` holds the registry and nothing else.** Every file there -
 `button.tsx`, `dialog.tsx`, `toast.tsx` - is a copy from dowel's registry: it

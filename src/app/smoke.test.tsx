@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { screen, within } from '@testing-library/react'
-import type { Tab } from '@/components/card/tabs'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
+import { CARD_TABS, SCREENS } from '@/test/places'
 import { answersFor, IDS, NOW, studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
 
@@ -16,50 +16,11 @@ import en from '@/i18n/locales/en.json'
  * that stops opening is the failure it has to catch the moment it happens,
  * rather than on the owner's machine.
  *
- * Each case names a line of the studio the screen must show. Without one, a
- * screen stuck on its skeleton - or the splash - would pass every other check.
+ * And each is held to the rules that make the window an application rather
+ * than a web page (below, `keepsTheWindow`). They were checked as source text
+ * by path until v0.77, which a move of `App.tsx` would have blinded; here
+ * they are checked on what every screen actually draws.
  */
-
-const SCREENS: [path: string, shows: string][] = [
-  ['/dashboard', 'Harbour Lights'],
-  ['/catalogue', 'Harbour Lights'],
-  ['/calendar', 'Paper Lanterns (clip)'],
-  ['/notes', 'A song about tides'],
-  [`/notes/${IDS.note}`, 'Something about the tide going out and taking the day with it.'],
-  ['/comments', 'The shot on the bridge is beautiful.'],
-  [`/comments/${IDS.comment}`, 'Paper Lanterns (clip)'],
-  ['/styles', 'Dusk over water'],
-  ['/journal', '“Harbour Lights” added.'],
-  ['/trash', 'An old idea'],
-  ['/settings', en.nav.data],
-]
-
-/** The tabs a kind draws, each with a line of the studio it must show. */
-const TABS: [workId: string, tab: Tab, shows: string][] = [
-  [IDS.song, 'overview', 'BPM'],
-  [IDS.song, 'versions', 'Second pass'],
-  [IDS.song, 'score', 'Does the chorus stay with you after one listen?'],
-  [IDS.song, 'releases', '2026-09-22'],
-  [IDS.song, 'files', 'Paper Lanterns'],
-  [IDS.song, 'links', 'Paper Lanterns (clip)'],
-  [IDS.song, 'notes', 'Paper Lanterns'],
-  [IDS.song, 'comments', 'Paper Lanterns'],
-  [IDS.song, 'assistant', 'Tighten the chorus'],
-  [IDS.song, 'history', '“Paper Lanterns” scored 7.5.'],
-  [IDS.video, 'overview', 'Paper Lanterns (clip)'],
-  [IDS.video, 'versions', 'A girl lets a paper lantern go at dusk'],
-  [IDS.video, 'scenes', 'The lantern drifts under the bridge.'],
-  [IDS.video, 'cuts', 'Paper Lanterns'],
-  [IDS.video, 'score', 'Paper Lanterns (clip)'],
-  [IDS.video, 'releases', 'Paper Lanterns (clip)'],
-  [IDS.video, 'files', 'Paper Lanterns (clip)'],
-  [IDS.video, 'links', 'soundtrack'],
-  [IDS.video, 'notes', 'An old man who sells lanterns by the bridge.'],
-  [IDS.video, 'comments', 'The shot on the bridge is beautiful.'],
-  [IDS.video, 'assistant', 'Paper Lanterns (clip)'],
-  [IDS.video, 'history', 'Paper Lanterns (clip)'],
-  [IDS.short, 'cuts', 'Paper Lanterns (clip)'],
-]
 
 let backend: Backend
 let complaints: string[]
@@ -92,7 +53,7 @@ async function open(path: string, shows: string) {
   expect(backend.unanswered, `${path} asked what the test backend does not answer`).toEqual([])
   expect(screen.queryByText(en.crash.title), `${path} fell over`).toBeNull()
   expect(complaints, `${path} complained to the console`).toEqual([])
-  return area
+  return { area, screen: keepsTheWindow(container, path) }
 }
 
 /** The content area beside the rail: there once the workspace has answered. */
@@ -103,18 +64,72 @@ async function waitForArea(container: HTMLElement): Promise<HTMLElement> {
   return container.querySelector<HTMLElement>('#main-area')!
 }
 
+const FLOWS = ['overflow-y-auto', 'overflow-x-hidden', '[scrollbar-gutter:stable]']
+
+/**
+ * The window has a bottom edge, and the content stops at it.
+ *
+ * The box the screens are drawn into does not scroll: it clips, and hands its
+ * height down. When it scrolled, a long screen ran past the edge the way a
+ * web page does - no end in sight, and a wide table's sideways bar parked
+ * under two hundred rows. Each screen is a `<Screen>` (a `<main>`) that
+ * either flows - scrolls itself, the sideways axis clipped, the gutter kept
+ * so a scrollbar appearing does not shift everything - or is held against the
+ * height it was given and clips, something inside it doing the scrolling.
+ */
+function keepsTheWindow(container: HTMLElement, path: string): HTMLElement {
+  const areas = container.querySelectorAll<HTMLElement>('[data-screen-area]')
+  expect(areas, `${path}: one screen area`).toHaveLength(1)
+  const area = areas[0]!
+  expect(area, `${path}: the screen area scrolls again; it must clip`).toHaveClass(
+    'overflow-hidden',
+  )
+  expect(area, `${path}: the screen area stopped handing its height down`).toHaveClass(
+    'min-h-0',
+    'flex-1',
+  )
+
+  const screens = area.querySelectorAll<HTMLElement>('main')
+  expect(screens, `${path}: drawn through one <Screen>`).toHaveLength(1)
+  const main = screens[0]!
+  const flows = FLOWS.every((name) => main.classList.contains(name))
+  const held =
+    main.classList.contains('overflow-hidden') && !main.classList.contains('overflow-y-auto')
+  expect(
+    flows || held,
+    `${path}: the screen neither scrolls itself (${FLOWS.join(' ')}) nor clips (overflow-hidden)`,
+  ).toBe(true)
+  return main
+}
+
 describe('every screen opens', () => {
   for (const [path, shows] of SCREENS) test(path, () => open(path, shows))
+
+  test('a note is read in text that can be copied', async () => {
+    // Selection is off across the shell and handed back to text; the prose
+    // renderer is where a note's body gets it back.
+    await open(`/notes/${IDS.note}`, 'Something about the tide going out')
+    const body = screen.getByText('Something about the tide going out', { exact: false })
+    expect(body.closest('.selectable'), 'a note body that cannot be copied').not.toBeNull()
+  })
 })
 
 describe('every tab of a card opens', () => {
-  for (const [workId, tab, shows] of TABS) {
+  for (const [workId, tab, shows] of CARD_TABS) {
     test(`${workId}, on ${tab}`, async () => {
-      const area = await open(`/works/${workId}/${tab}`, shows)
+      const { area, screen: main } = await open(`/works/${workId}/${tab}`, shows)
       // The address named this tab; the bar must agree, or a tab the kind
       // does not have fell back to another and the case tested that one.
       const current = within(area).getByRole('link', { current: 'page' })
       expect(current).toHaveAttribute('href', `/works/${workId}/${tab}`)
+
+      // The card is held: its header stands still and the open tab scrolls
+      // inside the rest. A flowing card scrolls the header away again, and a
+      // `sticky` header is the sign someone wrote the old shape back in.
+      expect(main, 'the open work is no longer a held screen').toHaveClass('overflow-hidden')
+      const header = main.querySelector('header')
+      expect(header, 'the card has no header').not.toBeNull()
+      expect(header!.closest('.sticky, [class*="sticky"]'), 'the card header is sticky').toBeNull()
     })
   }
 })
