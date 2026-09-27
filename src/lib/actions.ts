@@ -1,4 +1,4 @@
-import type { PromptTemplate } from '@/lib/api'
+import type { PromptTemplate } from '@/lib/api/types'
 
 /** What a profile action is about, as the backend reads `scope`. */
 export type ActionScope = 'work' | 'scene' | 'style' | 'comment'

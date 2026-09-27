@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act } from '@testing-library/react'
-import type { Note } from '@/lib/api'
+import type { Note } from '@/lib/api/types'
 import { say } from '@/lib/toast'
 import { useNoteBody } from '@/features/notes/useNoteBody'
 import { mockBackend, type Backend } from '@/test/backend'

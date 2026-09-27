@@ -1,4 +1,4 @@
-import type { Scene, SceneBlock, SceneFrame } from '@/lib/api'
+import type { Scene, SceneBlock, SceneFrame } from '@/lib/api/types'
 import { FRAME, VIDEO, chosenFrame, chosenVideo, ofKind, readinessOf } from '@/lib/scenes'
 
 /*

@@ -11,7 +11,7 @@ import {
   User,
   type LucideIcon,
 } from 'lucide-react'
-import type { StyleType } from '@/lib/api'
+import type { StyleType } from '@/lib/api/types'
 
 /**
  * The glyphs a style type may carry, by the name the profile writes.

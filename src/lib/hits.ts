@@ -1,4 +1,4 @@
-import type { Hit, HitKind } from '@/lib/api'
+import type { Hit, HitKind } from '@/lib/api/types'
 
 /** The card tab each kind of hit lives on, for the hits a card opens on. */
 const TAB_FOR: Record<Exclude<HitKind, 'note' | 'comment'>, string> = {

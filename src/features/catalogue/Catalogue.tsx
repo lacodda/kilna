@@ -13,14 +13,10 @@ import {
   Star,
   X,
 } from 'lucide-react'
-import {
-  catalogue as fetchCatalogue,
-  deleteWorks,
-  setWorksStatus,
-  unscheduleWorks,
-  updateProfileConfig,
-  type ScoredWork,
-} from '@/lib/api'
+import { unscheduleWorks } from '@/lib/api/releases'
+import type { ScoredWork } from '@/lib/api/types'
+import { catalogue as fetchCatalogue, deleteWorks, setWorksStatus } from '@/lib/api/works'
+import { updateProfileConfig } from '@/lib/api/workspace'
 import {
   ALL_COLUMNS,
   columnsForKind,
@@ -65,7 +61,7 @@ import { ReorderGrip, ReorderIndicator, useReorder } from '@/components/ui/reord
 import { StageDial } from '@/components/StageDial'
 import { StagePicker } from '@/components/StagePicker'
 import { stagesOf } from '@/lib/stages'
-import { worksMatching } from '@/lib/api'
+import { worksMatching } from '@/lib/api/search'
 import { formatQuery, parseQuery, type Vocabulary } from '@/lib/searchQuery'
 import {
   addView,

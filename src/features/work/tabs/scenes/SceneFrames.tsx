@@ -4,15 +4,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { Check, ImagePlus, Maximize2, Trash2 } from 'lucide-react'
+import { fileSrc } from '@/lib/api/assets'
 import {
   attachSceneFrame,
   clearSceneFrame,
   detachSceneFrame,
-  fileSrc,
   pasteSceneFrame,
   selectSceneFrame,
-  type SceneFrame,
-} from '@/lib/api'
+} from '@/lib/api/scenes'
+import type { SceneFrame } from '@/lib/api/types'
 import i18n from '@/i18n'
 import { CLIPS, PICTURES } from '@/lib/media'
 import { keys } from '@/lib/query'

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ReleaseFieldType } from '@/lib/api'
+import type { ReleaseFieldType } from '@/lib/api/types'
 import en from '@/i18n/locales/en.json'
 import ru from '@/i18n/locales/ru.json'
 

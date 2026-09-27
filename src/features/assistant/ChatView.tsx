@@ -11,9 +11,8 @@ import {
   listRuns,
   renderPrompt,
   startRun,
-  type Run,
-  type RunEmission,
-} from '@/lib/api'
+} from '@/lib/api/assistant'
+import type { Run, RunEmission } from '@/lib/api/types'
 import { actionsOfScope } from '@/lib/actions'
 import { conversation, pending, type Exchange } from '@/lib/chat'
 import { reading } from '@/lib/palette'

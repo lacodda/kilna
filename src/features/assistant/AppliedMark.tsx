@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { Check } from 'lucide-react'
-import type { Applied } from '@/lib/api'
+import type { Applied } from '@/lib/api/types'
 import { Button } from '@/components/ui/button'
 
 interface Props {

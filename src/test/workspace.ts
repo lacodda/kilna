@@ -21,7 +21,7 @@ import type {
   Version,
   VersionSummary,
   Work,
-} from '@/lib/api'
+} from '@/lib/api/types'
 import type { Args, Handler } from '@/test/backend'
 import music from '@/test/fixtures/profiles/music.json'
 

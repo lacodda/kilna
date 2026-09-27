@@ -1,13 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  unpinStatus,
-  updateWork,
-  type Meta,
-  type MetaField,
-  type Work,
-  type WorkPatch,
-} from '@/lib/api'
+import type { Meta, MetaField, Work, WorkPatch } from '@/lib/api/types'
+import { unpinStatus, updateWork } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
 import { useFieldDraft } from '@/lib/fieldDraft'
 import { keys } from '@/lib/query'

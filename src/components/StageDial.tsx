@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { type Stage } from '@/lib/api'
+import type { Stage } from '@/lib/api/types'
 
 /**
  * How finished a work is, drawn as a filled dial.

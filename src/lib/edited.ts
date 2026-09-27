@@ -1,6 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import i18n from '@/i18n'
-import { lastUndoable, undoLast } from '@/lib/api'
+import { lastUndoable, undoLast } from '@/lib/api/undo'
 import { say } from '@/lib/toast'
 
 /**

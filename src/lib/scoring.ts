@@ -1,4 +1,4 @@
-import type { Axis, AxisMark, Tier } from '@/lib/api'
+import type { Axis, AxisMark, Tier } from '@/lib/api/types'
 
 // The backend is the authority on what a score is worth — it recomputes on
 // save, so two clients cannot disagree. This mirror exists only to show the

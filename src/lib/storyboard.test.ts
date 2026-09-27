@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Scene, SceneBlock, SceneFrame } from '@/lib/api'
+import type { Scene, SceneBlock, SceneFrame } from '@/lib/api/types'
 import { framesByScene, FRAME, VIDEO } from '@/lib/scenes'
 import { checkStoryboard, type ComplaintKind } from '@/lib/storyboard'
 

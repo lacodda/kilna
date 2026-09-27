@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { RunEmission } from '@/lib/api'
+import type { RunEmission } from '@/lib/api/types'
 import {
   announcement,
   channelOfTask,

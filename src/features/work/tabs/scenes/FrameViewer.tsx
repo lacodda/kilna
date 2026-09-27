@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
-import type { SceneFrame } from '@/lib/api'
+import type { SceneFrame } from '@/lib/api/types'
 import { Dialog, DialogPopup } from '@/components/ui/dialog'
 import { MediaPreview } from '@/components/MediaPreview'
 

@@ -2,13 +2,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Sparkles } from 'lucide-react'
-import {
-  generateReleaseFields,
-  releaseFields,
-  setReleaseFields,
-  type ReleaseFieldValue,
-  type ScheduledRelease,
-} from '@/lib/api'
+import { generateReleaseFields, releaseFields, setReleaseFields } from '@/lib/api/releases'
+import type { ReleaseFieldValue, ScheduledRelease } from '@/lib/api/types'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { fillable, over, written } from '@/lib/releaseFields'

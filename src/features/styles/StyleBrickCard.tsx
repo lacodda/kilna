@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ImageOff } from 'lucide-react'
-import { fileSrc, styleBrickReferences, type StyleBrick } from '@/lib/api'
+import { fileSrc } from '@/lib/api/assets'
+import { styleBrickReferences } from '@/lib/api/styles'
+import type { StyleBrick } from '@/lib/api/types'
 import { keys } from '@/lib/query'
 import { cn } from '@/lib/utils'
 

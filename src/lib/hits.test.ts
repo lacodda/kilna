@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Hit } from '@/lib/api'
+import type { Hit } from '@/lib/api/types'
 import { hrefOfHit } from '@/lib/hits'
 
 const hit = (over: Partial<Hit>): Hit => ({

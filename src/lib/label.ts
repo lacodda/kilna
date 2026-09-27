@@ -1,4 +1,4 @@
-import type { Label } from '@/lib/api'
+import type { Label } from '@/lib/api/types'
 
 /*
  * A word of a profile's vocabulary is one string, or a map from language to

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Run, RunEvent } from './api'
+import type { Run, RunEvent } from '@/lib/api/types'
 import { inOrder, view, withEvent } from './runs'
 
 const run = (events: RunEvent[], overrides: Partial<Run> = {}): Run => ({

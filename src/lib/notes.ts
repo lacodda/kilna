@@ -1,4 +1,4 @@
-import type { Note } from '@/lib/api'
+import type { Note } from '@/lib/api/types'
 
 /**
  * What a note is called in a list: its title, or its first line without the

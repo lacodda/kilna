@@ -2,13 +2,9 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ScanText, X } from 'lucide-react'
-import {
-  applyProposal,
-  catalogue,
-  dismissProposal,
-  type CommentProposal,
-  type PendingCommentProposal,
-} from '@/lib/api'
+import { applyProposal, dismissProposal } from '@/lib/api/assistant'
+import type { CommentProposal, PendingCommentProposal } from '@/lib/api/types'
+import { catalogue } from '@/lib/api/works'
 import { workByTitle } from '@/lib/comments'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'

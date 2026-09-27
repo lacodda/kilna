@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import type { Applied, WorkProposal } from '@/lib/api'
+import type { Applied, WorkProposal } from '@/lib/api/types'
 import { keys } from '@/lib/query'
 import { useApplyProposal } from '@/lib/useApplyProposal'
 import { say, useProfile, vocabularyOf } from '@/lib/useProfile'

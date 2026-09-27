@@ -10,7 +10,8 @@ import {
   ComboboxList,
   ComboboxPopup,
 } from '@/components/ui/combobox'
-import { updateWork, workTags, type Mark, type Work } from '@/lib/api'
+import type { Mark, Work } from '@/lib/api/types'
+import { updateWork, workTags } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Message, Run } from '@/lib/api'
+import type { Message, Run } from '@/lib/api/types'
 import { chatLabel, conversation, pending } from '@/lib/chat'
 
 let counter = 0

@@ -1,4 +1,4 @@
-import type { ReleaseFieldValue } from '@/lib/api'
+import type { ReleaseFieldValue } from '@/lib/api/types'
 
 /*
  * How full a release's metadata is.

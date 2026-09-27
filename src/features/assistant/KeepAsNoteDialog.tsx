@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createNote } from '@/lib/api'
+import { createNote } from '@/lib/api/notes'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'

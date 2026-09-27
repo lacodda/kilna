@@ -1,4 +1,4 @@
-import type { ProfileConfig, Stage } from '@/lib/api'
+import type { ProfileConfig, Stage } from '@/lib/api/types'
 
 /**
  * The stops of the stage dial, and how a percentage reads against them.

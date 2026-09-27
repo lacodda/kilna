@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { activateProfile, listProfiles } from '@/lib/api'
+import { activateProfile, listProfiles } from '@/lib/api/workspace'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { Select } from '@/components/AppSelect'

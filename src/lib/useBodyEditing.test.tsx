@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act } from '@testing-library/react'
-import type { NewVersion, Version } from '@/lib/api'
+import type { NewVersion, Version } from '@/lib/api/types'
 import { say } from '@/lib/toast'
 import { useBodyEditing } from '@/lib/useBodyEditing'
 import { mockBackend, type Args, type Backend } from '@/test/backend'

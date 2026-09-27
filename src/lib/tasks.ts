@@ -1,4 +1,4 @@
-import type { RunEmission } from '@/lib/api'
+import type { RunEmission } from '@/lib/api/types'
 
 /**
  * What a task is, as a key: this action, on this work.

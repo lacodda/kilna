@@ -1,4 +1,4 @@
-import type { Placement, ScheduledRelease } from '@/lib/api'
+import type { Placement, ScheduledRelease } from '@/lib/api/types'
 
 /** A planned-but-unbooked chip: where a queued release would land. */
 export interface Ghost {

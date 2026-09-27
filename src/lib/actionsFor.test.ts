@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { actionsFor } from '@/features/assistant/ActionBar'
-import type { PromptTemplate } from '@/lib/api'
+import type { PromptTemplate } from '@/lib/api/types'
 
 function action(over: Partial<PromptTemplate>): PromptTemplate {
   return { key: 'k', label: 'Label', template: 'Do it.', ...over }

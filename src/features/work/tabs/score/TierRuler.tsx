@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import type { Tier } from '@/lib/api'
+import type { Tier } from '@/lib/api/types'
 import { say } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 

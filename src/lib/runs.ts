@@ -1,4 +1,4 @@
-import type { Run, RunEvent } from '@/lib/api'
+import type { Run, RunEvent } from '@/lib/api/types'
 
 /**
  * What the panel shows for a run, whether it is going or long over.

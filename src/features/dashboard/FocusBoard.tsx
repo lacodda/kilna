@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { GripVertical, Pin, PinOff, Plus, Sparkles, Undo2, X } from 'lucide-react'
+import { startTask } from '@/lib/api/assistant'
 import {
   createFocusNote,
   deleteFocusNote,
@@ -10,13 +11,9 @@ import {
   listFocusNotes,
   reorderFocusNotes,
   restoreFinding,
-  startTask,
   updateFocusNote,
-  type Dismissal,
-  type FocusNote,
-  type ScheduledRelease,
-  type ScoredWork,
-} from '@/lib/api'
+} from '@/lib/api/focus'
+import type { Dismissal, FocusNote, ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import { dismissalKey, findings, visible, type Finding } from '@/lib/findings'
 import { today } from '@/lib/month'
 import { keys } from '@/lib/query'

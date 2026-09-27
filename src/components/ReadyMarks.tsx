@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Check, CheckCheck, FileText, Gauge } from 'lucide-react'
-import type { Readiness } from '@/lib/api'
+import type { Readiness } from '@/lib/api/types'
 import { missing, urgency } from '@/lib/readiness'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'

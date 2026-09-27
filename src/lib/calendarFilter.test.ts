@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ScheduledRelease } from '@/lib/api'
+import type { ScheduledRelease } from '@/lib/api/types'
 import type { Ghost } from '@/lib/layout'
 import { countByKind, filterByKind, filterGhosts } from './calendarFilter'
 

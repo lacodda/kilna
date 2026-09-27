@@ -1,4 +1,4 @@
-import type { Scene, SceneFrame } from '@/lib/api'
+import type { Scene, SceneFrame } from '@/lib/api/types'
 import { chosenFrame, chosenVideo } from '@/lib/scenes'
 import { formatSeconds } from '@/lib/timecode'
 

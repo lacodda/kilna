@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Cut, Shot } from '@/lib/api'
+import type { Cut, Shot } from '@/lib/api/types'
 import {
   bandsOf,
   blockerOf,

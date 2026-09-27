@@ -2,18 +2,18 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, X } from 'lucide-react'
-import {
-  updateProfileConfig,
-  type Axis,
-  type Kind,
-  type ProfileConfig,
-  type PromptTemplate,
-  type Tier,
-  type VersionRole,
-  type WorkKind,
-  type ReleaseKind,
-  type ReleaseField,
-} from '@/lib/api'
+import type {
+  Axis,
+  Kind,
+  ProfileConfig,
+  PromptTemplate,
+  Tier,
+  VersionRole,
+  WorkKind,
+  ReleaseKind,
+  ReleaseField,
+} from '@/lib/api/types'
+import { updateProfileConfig } from '@/lib/api/workspace'
 import { scopeOf } from '@/lib/actions'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'

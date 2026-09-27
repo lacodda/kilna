@@ -15,17 +15,10 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import {
-  applyProposal,
-  deleteComment,
-  dismissProposal,
-  getWork,
-  startCommentTask,
-  updateComment,
-  type Comment,
-  type CommentPatch,
-  type PendingCommentProposal,
-} from '@/lib/api'
+import { applyProposal, dismissProposal } from '@/lib/api/assistant'
+import { deleteComment, startCommentTask, updateComment } from '@/lib/api/comments'
+import type { Comment, CommentPatch, PendingCommentProposal } from '@/lib/api/types'
+import { getWork } from '@/lib/api/works'
 import { commentAction } from '@/lib/actions'
 import { standingOf } from '@/lib/comments'
 import { keys } from '@/lib/query'

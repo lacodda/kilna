@@ -1,4 +1,4 @@
-import type { ScoredWork } from '@/lib/api'
+import type { ScoredWork } from '@/lib/api/types'
 
 /** A working gap: something started but not carried through. */
 export type Gap = 'unscored' | 'unscheduled' | 'stale'

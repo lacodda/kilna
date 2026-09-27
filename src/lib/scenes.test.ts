@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Meta, Scene, SceneBlock, SceneFrame, Work } from '@/lib/api'
+import type { Meta, Scene, SceneBlock, SceneFrame, Work } from '@/lib/api/types'
 import {
   chosenFrame,
   chosenVideo,

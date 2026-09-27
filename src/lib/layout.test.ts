@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ScheduledRelease } from './api'
+import type { ScheduledRelease } from '@/lib/api/types'
 import { ghostsOf } from './layout'
 
 const queued = (id: string, title: string): ScheduledRelease =>

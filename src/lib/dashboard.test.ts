@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ScheduledRelease, ScoredWork } from '@/lib/api'
+import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import { SHORTLIST_LIMIT, isQuiet, summarise } from '@/lib/dashboard'
 
 const TODAY = '2026-08-27'

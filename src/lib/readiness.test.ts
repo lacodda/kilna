@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Readiness } from './api'
+import type { Readiness } from '@/lib/api/types'
 import { daysBetween, missing, urgency } from './readiness'
 
 const judged = (overrides: Partial<Readiness>): Readiness => ({

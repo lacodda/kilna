@@ -1,4 +1,4 @@
-import type { ScheduledRelease, ScoredWork } from '@/lib/api'
+import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import { daysBetween } from '@/lib/readiness'
 
 /**

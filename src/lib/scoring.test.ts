@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Axis, Tier } from '@/lib/api'
+import type { Axis, Tier } from '@/lib/api/types'
 import { markReaching, nextTier, rubricFor, tierFor, toNextTier, total } from '@/lib/scoring'
 
 const axis = (key: string, weight: number, scale = 10): Axis => ({ key, label: key, weight, scale })

@@ -1,5 +1,3 @@
-import { convertFileSrc, invoke } from '@tauri-apps/api/core'
-
 // These mirror the Rust structs in src-tauri/src. Nothing enforces that they
 // agree — see ADR 0003 — so a change on one side means a change here.
 
@@ -873,12 +871,6 @@ export interface Collection {
   works: number
 }
 
-export const getWorkspace = () => invoke<Workspace>('get_workspace')
-export const listProfiles = () => invoke<Profile[]>('list_profiles')
-export const activateProfile = (id: string) => invoke<void>('activate_profile', { id })
-export const updateProfileConfig = (id: string, config: ProfileConfig) =>
-  invoke<Profile>('update_profile_config', { id, config })
-
 /** What pressing undo would take back. */
 export interface Undoable {
   /** The operation that would be reversed; sent back so a stale offer is refused. */
@@ -888,41 +880,6 @@ export interface Undoable {
   /** Values the sentence interpolates. */
   params: Record<string, unknown>
 }
-
-/** What undo would take back right now, or null if nothing can be. */
-export const lastUndoable = () => invoke<Undoable | null>('last_undoable')
-
-/** Take back that operation. Fails if something else has happened since. */
-export const undoLast = (operation: string) => invoke<Undoable>('undo_last', { operation })
-
-export const listWorks = (filter?: WorkFilter) => invoke<Work[]>('list_works', { filter })
-export const getWork = (id: string) => invoke<Work | null>('get_work', { id })
-export const createWork = (work: NewWork) => invoke<Work>('create_work', { work })
-export const updateWork = (id: string, patch: WorkPatch) =>
-  invoke<Work>('update_work', { id, patch })
-export const deleteWork = (id: string) => invoke<string>('delete_work', { id })
-export const deleteWorks = (ids: string[]) => invoke<string[]>('delete_works', { ids })
-export const listLinks = (workId: string) => invoke<Links>('list_links', { workId })
-export const createLink = (link: NewLink) => invoke<Link>('create_link', { link })
-export const deleteLink = (id: string) => invoke<void>('delete_link', { id })
-/** Make a work of `kind` from another: title and overview fields copied once, a donor link. */
-export const deriveWork = (sourceId: string, kind: string, title?: string) =>
-  invoke<Work>('derive_work', { sourceId, kind, title: title ?? null })
-export const listScenes = (workId: string) => invoke<Scene[]>('list_scenes', { workId })
-export const createScene = (scene: NewScene) => invoke<Scene>('create_scene', { scene })
-export const updateScene = (id: string, patch: ScenePatch) =>
-  invoke<Scene>('update_scene', { id, patch })
-export const deleteScene = (id: string) => invoke<string>('delete_scene', { id })
-/** Number a board in the order given: 1..N, in one change. The whole order
-    travels because both gestures — putting a scene between two others and
-    moving one that is there — are the same thing said twice. */
-export const renumberScenes = (workId: string, ids: string[]) =>
-  invoke<Scene[]>('renumber_scenes', { workId, ids })
-/** Divide the work's length between the scenes of its board. */
-export const timeScenes = (workId: string) => invoke<Scene[]>('time_scenes', { workId })
-/** Build the board's frame from the parts the source text marks out. */
-export const frameScenes = (workId: string, role: string) =>
-  invoke<Scene[]>('frame_scenes', { workId, role })
 
 /**
  * One stretch of a longer work a short is spliced from.
@@ -984,17 +941,6 @@ export interface Shot {
   path: string | null
 }
 
-export const listCuts = (workId: string) => invoke<Cut[]>('list_cuts', { workId })
-export const createCut = (cut: NewCut) => invoke<Cut>('create_cut', { cut })
-export const updateCut = (id: string, patch: CutPatch) => invoke<Cut>('update_cut', { id, patch })
-export const deleteCut = (id: string) => invoke<string>('delete_cut', { id })
-/** Put a splice in the order given, 1..N, in one change. */
-export const reorderCuts = (workId: string, ids: string[]) =>
-  invoke<Cut[]>('reorder_cuts', { workId, ids })
-/** The stretches in order, each beside the donor's file: what the cutting
-    plugin is handed. The core never opens the file itself. */
-export const cutShotList = (workId: string) => invoke<Shot[]>('cut_shot_list', { workId })
-
 /** A file attached to a work or a release: a cover, a reference. */
 export interface Asset {
   id: string
@@ -1024,20 +970,6 @@ export interface NewAsset {
   label?: string
 }
 
-export const attachAsset = (source: string, asset: NewAsset) =>
-  invoke<Asset>('attach_asset', { source, asset })
-export const listWorkAssets = (workId: string) => invoke<Asset[]>('list_work_assets', { workId })
-/** The cover of every work that has one, as [work id, path] pairs. */
-export const listCovers = () => invoke<[string, string][]>('list_covers')
-export const detachAsset = (id: string) => invoke<void>('detach_asset', { id })
-
-/** A file in the workspace, as a URL the window may fetch.
-
-    A path on disk is not one: the webview reaches a local file through the
-    asset protocol, whose scope is granted at startup for the workspace's own
-    files directory and nothing else. */
-export const fileSrc = (path: string) => convertFileSrc(path)
-
 /** A note a scene is about: who is in it, where it happens. */
 export interface SceneNote {
   id: string
@@ -1048,13 +980,6 @@ export interface SceneNote {
   note_title: string | null
   created_at: string
 }
-
-export const listSceneNotes = (workId: string) =>
-  invoke<SceneNote[]>('list_scene_notes', { workId })
-export const attachSceneNote = (sceneId: string, noteId: string) =>
-  invoke<SceneNote>('attach_scene_note', { sceneId, noteId })
-export const detachSceneNote = (sceneId: string, noteId: string) =>
-  invoke<void>('detach_scene_note', { sceneId, noteId })
 
 /** A picture drawn for a scene: one of the four a prompt came back with. */
 export interface SceneFrame {
@@ -1076,37 +1001,12 @@ export interface SceneFrame {
   created_at: string
 }
 
-export const listSceneFrames = (workId: string) =>
-  invoke<SceneFrame[]>('list_scene_frames', { workId })
-export const attachSceneFrame = (sceneId: string, kind: string, source: string) =>
-  invoke<SceneFrame>('attach_scene_frame', { sceneId, kind, source })
-/** A pasted picture: the clipboard gives bytes, so the bytes are what travels. */
-export const pasteSceneFrame = (sceneId: string, kind: string, bytes: Uint8Array, name: string) =>
-  invoke<SceneFrame>('paste_scene_frame', { sceneId, kind, bytes: Array.from(bytes), name })
-export const detachSceneFrame = (id: string) => invoke<void>('detach_scene_frame', { id })
-export const selectSceneFrame = (id: string) => invoke<SceneFrame>('select_scene_frame', { id })
-/** Take back the verdict on one kind: unchoosing a clip says nothing about
- * the still it was animated from. */
-export const clearSceneFrame = (sceneId: string, kind: string) =>
-  invoke<void>('clear_scene_frame', { sceneId, kind })
 /** What a clone came out as, for the sentence the window says afterwards. */
 export interface Cloned {
   work: Work
   scenes: number
   materials: number
 }
-
-/** A second attempt at a video: the same donor and board, its own work. The
- * first is left exactly as it was — the two are meant to be compared. */
-export const cloneWork = (workId: string, title: string) =>
-  invoke<Cloned>('clone_work', { workId, title })
-
-/** Write a text the window composed to a path the person picked. The window
- * has no filesystem rights; the backend does the writing. */
-export const writeTextFile = (path: string, text: string) =>
-  invoke<string>('write_text_file', { path, text })
-export const setWorksStatus = (workIds: string[], status: string) =>
-  invoke<BulkOutcome>('set_works_status', { workIds, status })
 
 // A status the automation would change, or did.
 export interface StatusChange {
@@ -1115,37 +1015,6 @@ export interface StatusChange {
   from: string
   to: string
 }
-
-export const statusDrift = () => invoke<StatusChange[]>('status_drift')
-export const resyncStatuses = () => invoke<StatusChange[]>('resync_statuses')
-export const unpinStatus = (id: string) => invoke<Work>('unpin_status', { id })
-/** Hold a work at a tier by hand, with the reason on record. */
-export const pinTier = (id: string, tier: string, reason: string) =>
-  invoke<Work>('pin_tier', { id, tier, reason })
-/** Let the score speak for the work's tier again. */
-export const unpinTier = (id: string) => invoke<Work>('unpin_tier', { id })
-
-export const listVersions = (workId: string) =>
-  invoke<VersionSummary[]>('list_versions', { workId })
-/** The command that registers this build with Claude Code as an MCP server. */
-export const mcpRegistration = () => invoke<string>('mcp_registration')
-export const getVersion = (id: string) => invoke<Version | null>('get_version', { id })
-/** Change the open version's text in place. Refused with kind `frozen` once
-    a score has read it — then the change belongs in the next revision. */
-export const updateVersionBody = (id: string, body: string) =>
-  invoke<Version>('update_version_body', { id, body })
-export const createVersion = (workId: string, version: NewVersion) =>
-  invoke<Version>('create_version', { workId, version })
-export const setCurrentVersion = (workId: string, versionId: string) =>
-  invoke<void>('set_current_version', { workId, versionId })
-export const deleteVersion = (id: string) => invoke<string>('delete_version', { id })
-
-export const listNotes = (filter?: NoteFilter) => invoke<Note[]>('list_notes', { filter })
-export const createNote = (note: NewNote) => invoke<Note>('create_note', { note })
-export const updateNote = (id: string, patch: NotePatch) =>
-  invoke<Note>('update_note', { id, patch })
-export const deleteNote = (id: string) => invoke<string>('delete_note', { id })
-export const listTags = () => invoke<[string, number][]>('list_tags')
 
 /** Where a comment stands. A drafted reply is read off `reply`, not stored. */
 export type CommentState = 'open' | 'posted' | 'archived'
@@ -1194,19 +1063,6 @@ export interface CommentFilter {
   search?: string
 }
 
-export const listComments = (filter?: CommentFilter) =>
-  invoke<Comment[]>('list_comments', { filter: filter ?? null })
-/** Every channel comments came through, with how many wait on each. */
-export const commentChannels = () => invoke<[string, number][]>('comment_channels')
-/** A work's comments, and how many of them wait: its tab's counter. */
-export const countWorkComments = (workId: string) =>
-  invoke<{ total: number; waiting: number }>('count_work_comments', { workId })
-export const createComment = (comment: NewComment) => invoke<Comment>('create_comment', { comment })
-export const updateComment = (id: string, patch: CommentPatch) =>
-  invoke<Comment>('update_comment', { id, patch })
-/** Returns the trash entry, for the undo. */
-export const deleteComment = (id: string) => invoke<string>('delete_comment', { id })
-
 /** A comment read off a screenshot, or a drafted reply, waiting to be kept. */
 export interface PendingCommentProposal {
   message_id: string
@@ -1216,30 +1072,6 @@ export interface PendingCommentProposal {
   proposal: CommentProposal | ReplyProposal
   created_at: string
 }
-
-export const pendingCommentProposals = () =>
-  invoke<PendingCommentProposal[]>('pending_comment_proposals')
-/** Draft a reply in the background, in the voice of the comment's channel. */
-export const startCommentTask = (id: string, action: string) =>
-  invoke<StartedTask>('start_comment_task', { id, action })
-/** Read a pasted screenshot of a comment in the background. `today` is the
- *  person's own date, for turning "3 weeks ago" into a day. */
-export const startScreenshotTask = (args: {
-  bytes: Uint8Array
-  name: string
-  channel: string
-  workId: string | null
-  action: string
-  today: string
-}) =>
-  invoke<StartedTask>('start_screenshot_task', {
-    bytes: Array.from(args.bytes),
-    name: args.name,
-    channel: args.channel,
-    workId: args.workId,
-    action: args.action,
-    today: args.today,
-  })
 
 /** What a note becomes when it grows up: a work of this kind, by this name. */
 export interface Promotion {
@@ -1253,11 +1085,6 @@ export interface Promoted {
   deletion_id: string
 }
 
-/** Turn a note into a work whose first version is the note's body. The note
- *  goes to the trash; undo takes the whole gesture back. */
-export const promoteNote = (id: string, promotion: Promotion) =>
-  invoke<Promoted>('promote_note', { id, promotion })
-
 /** What a `[[work:id]]` or `[[version:id]]` link points at. A link to
     something deleted is simply absent from the answer. */
 export interface ResolvedLink {
@@ -1267,9 +1094,6 @@ export interface ResolvedLink {
   /** The work whose card opens. The work's own id for a work. */
   workId: string
 }
-
-export const resolveLinks = (works: string[], versions: string[]) =>
-  invoke<ResolvedLink[]>('resolve_links', { works, versions })
 
 /**
  * A brick of the workspace's style dictionary: a part a picture prompt is
@@ -1316,43 +1140,6 @@ export interface StyleBrickFilter {
   query?: string | null
 }
 
-export const listStyleBricks = (filter?: StyleBrickFilter) =>
-  invoke<StyleBrick[]>('list_style_bricks', { filter })
-export const styleBrickCounts = () => invoke<[string, number][]>('style_brick_counts')
-export const styleBrickReferences = (id: string) =>
-  invoke<Asset[]>('style_brick_references', { id })
-export const createStyleBrick = (brick: NewStyleBrick) =>
-  invoke<StyleBrick>('create_style_brick', { brick })
-export const updateStyleBrick = (id: string, patch: StyleBrickPatch) =>
-  invoke<StyleBrick>('update_style_brick', { id, patch })
-// Returns the trash entry, which is what the undo on the toast restores.
-export const deleteStyleBrick = (id: string) => invoke<string>('delete_style_brick', { id })
-/** A reference pasted straight onto a brick, the way a frame is. */
-export const pasteStyleReference = (id: string, bytes: number[], name: string) =>
-  invoke<Asset>('paste_style_reference', { id, bytes, name })
-/** Describe a brick from its references — the dictionary's own AI action. */
-export const startStyleTask = (id: string, action: string) =>
-  invoke<StartedTask>('start_style_task', { id, action })
-
-/** Tags in use on works, most used first — what the tag box offers. */
-export const workTags = () => invoke<[string, number][]>('work_tags')
-
-export const dismissedFindings = () => invoke<Dismissal[]>('dismissed_findings')
-export const dismissFinding = (key: DismissalKey) => invoke<Dismissal>('dismiss_finding', { key })
-export const restoreFinding = (key: DismissalKey) => invoke<void>('restore_finding', { key })
-export const listFocusNotes = () => invoke<FocusNote[]>('list_focus_notes')
-export const createFocusNote = (note: NewFocusNote) =>
-  invoke<FocusNote>('create_focus_note', { note })
-export const updateFocusNote = (id: string, patch: FocusNotePatch) =>
-  invoke<FocusNote>('update_focus_note', { id, patch })
-export const reorderFocusNotes = (order: string[]) => invoke<void>('reorder_focus_notes', { order })
-export const deleteFocusNote = (id: string) => invoke<void>('delete_focus_note', { id })
-
-export const scoreWork = (workId: string, score: NewScore) =>
-  invoke<Score>('score_work', { workId, score })
-export const scoreHistory = (workId: string) => invoke<Score[]>('score_history', { workId })
-export const latestScore = (workId: string) => invoke<Score | null>('latest_score', { workId })
-
 /** What one release kind makes of a work's latest answers. */
 export interface KindVerdict {
   kind: string
@@ -1362,13 +1149,6 @@ export interface KindVerdict {
   reweighed: boolean
 }
 
-/** The same score, read down every channel the craft ships to. */
-export const kindVerdicts = (workId: string) => invoke<KindVerdict[]>('kind_verdicts', { workId })
-export const deleteScore = (id: string) => invoke<string>('delete_score', { id })
-export const catalogue = () => invoke<ScoredWork[]>('catalogue')
-
-export const createRelease = (release: NewRelease) => invoke<Release>('create_release', { release })
-export const deleteRelease = (id: string) => invoke<string>('delete_release', { id })
 // A field left out is untouched; `null` inside a nullable field clears it.
 export interface ReleasePatch {
   kind?: string
@@ -1380,28 +1160,6 @@ export interface ReleasePatch {
   time_zone?: string | null
 }
 
-export const updateRelease = (id: string, patch: ReleasePatch) =>
-  invoke<Release>('update_release', { id, patch })
-
-export const scheduleRelease = (id: string, slot: string) =>
-  invoke<Scheduling>('schedule_release', { id, slot })
-export const previewSchedule = (id: string, slot: string) =>
-  invoke<SlotPreview>('preview_schedule', { id, slot })
-// `today` is the user's local date: the backend only knows UTC, which at a
-// negative offset is already tomorrow. Returns how many gaps are standing.
-export const warnUnreadyReleases = (today: string) =>
-  invoke<number>('warn_unready_releases', { today })
-export const setSlotPin = (id: string, pinned: boolean) =>
-  invoke<Release>('set_slot_pin', { id, pinned })
-export const unscheduleRelease = (id: string) => invoke<Release>('unschedule_release', { id })
-export const unscheduleWorks = (workIds: string[]) =>
-  invoke<BulkOutcome>('unschedule_works', { workIds })
-// `at` is the day it went out, when that is not today: a release marked late,
-// or one whose real date is known from elsewhere. Left out, the moment is now.
-export const markReleased = (id: string, url?: string | null, at?: string | null) =>
-  invoke<Release>('mark_released', { id, url, at })
-// Undoing the mark. The link is kept - see the Rust side for why.
-export const unmarkReleased = (id: string) => invoke<Release>('unmark_released', { id })
 // One line of an auto-layout plan: this release lands on this day. What
 // `planLayout` returns is exactly what `applyLayout` takes back — the preview
 // is the contract, not a sketch.
@@ -1409,10 +1167,6 @@ export interface Placement {
   release_id: string
   date: string
 }
-
-export const planLayout = (today: string) => invoke<Placement[]>('plan_layout', { today })
-export const applyLayout = (placements: Placement[]) =>
-  invoke<number>('apply_layout', { placements })
 
 /** A release field as a screen needs it: what it is, what is written in it,
     and whether the profile could write it. */
@@ -1440,14 +1194,6 @@ export interface GeneratedFields {
   refused: ReleaseFieldRefusal[]
 }
 
-export const releaseFields = (id: string) => invoke<ReleaseFieldValue[]>('release_fields', { id })
-// Keys the profile does not declare are refused: the map is open on purpose,
-// but a typed key no field names could only come from a bug.
-export const setReleaseFields = (id: string, values: Record<string, string>) =>
-  invoke<Release>('set_release_fields', { id, values })
-export const generateReleaseFields = (id: string) =>
-  invoke<GeneratedFields>('generate_release_fields', { id })
-
 /** A field a batch could not fill, named by the work it is on. */
 export interface BatchFieldRefusal {
   releaseId: string
@@ -1462,16 +1208,6 @@ export interface GeneratedBatch {
   skipped: number
   refused: BatchFieldRefusal[]
 }
-
-export const generateReleaseFieldsBatch = (ids: string[]) =>
-  invoke<GeneratedBatch>('generate_release_fields_batch', { ids })
-
-export const calendar = () => invoke<ScheduledRelease[]>('calendar')
-export const releaseQueue = () => invoke<ScheduledRelease[]>('release_queue')
-export const releasesForWork = (workId: string) =>
-  invoke<ScheduledRelease[]>('releases_for_work', { workId })
-
-export const listCollections = () => invoke<Collection[]>('list_collections')
 
 /** What a trashed entry was. Mirrors the backend's `trash::Entity`; the
     backend's `the_window_knows_every_kind_the_trash_holds` test holds the
@@ -1540,25 +1276,6 @@ export interface Hit {
   detail: string
   rank: number
 }
-
-export const search = (query: string) => invoke<Hit[]>('search', { query })
-
-/** The works whose text answers a query, best match first — ids only.
- *
- * What the catalogue's box asks, as against the palette's: the rows are
- * already on the screen, so only the narrowing comes back. */
-export const worksMatching = (query: string) => invoke<string[]>('works_matching', { query })
-
-export const listJournal = () => invoke<JournalEntry[]>('list_journal')
-export const journalForWork = (workId: string) =>
-  invoke<JournalEntry[]>('journal_for_work', { workId })
-export const unreadJournal = () => invoke<number>('unread_journal')
-export const markJournalRead = () => invoke<number>('mark_journal_read')
-
-export const listDeletions = () => invoke<Deletion[]>('list_deletions')
-export const restoreDeletion = (id: string) => invoke<void>('restore_deletion', { id })
-export const purgeDeletion = (id: string) => invoke<void>('purge_deletion', { id })
-export const emptyTrash = () => invoke<number>('empty_trash')
 
 export interface Availability {
   available: boolean
@@ -1679,17 +1396,6 @@ export interface PackageReport {
   withoutMaterial: number
 }
 
-export const exportPackage = (workId: string, directory: string) =>
-  invoke<PackageReport>('export_package', { workId, directory })
-
-export const exportMarkdown = (directory: string) =>
-  invoke<ExportReport>('export_markdown', { directory })
-export const backupWorkspace = (destination: string) =>
-  invoke<string>('backup_workspace', { destination })
-export const suggestedBackupName = () => invoke<string>('suggested_backup_name')
-export const workspacePath = () => invoke<string>('workspace_path')
-export const importLegacy = (source: string) => invoke<ImportReport>('import_legacy', { source })
-
 export interface PluginCommand {
   key: string
   label: string
@@ -1713,27 +1419,6 @@ export interface Plugin {
   reason: string | null
 }
 
-export const listPlugins = () => invoke<Plugin[]>('list_plugins')
-export const runPlugin = (
-  executable: string,
-  command: string,
-  target: 'release' | 'work',
-  id: string,
-) => invoke<string | null>('run_plugin', { executable, command, target, id })
-
-export const assistantStatus = () => invoke<Availability>('assistant_status')
-export const listChatSummaries = (workId?: string) =>
-  invoke<ChatSummary[]>('list_chat_summaries', { workId })
-export const createChat = (chat: { work_id?: string | null; title?: string | null }) =>
-  invoke<Chat>('create_chat', { chat })
-export const renameChat = (id: string, title: string | null) =>
-  invoke<void>('rename_chat', { id, title })
-export const getTranscript = (chatId: string) =>
-  invoke<Transcript | null>('get_transcript', { chatId })
-export const deleteChat = (id: string) => invoke<void>('delete_chat', { id })
-/** Apply what a message proposes — any kind — and mark the message. */
-export const applyProposal = (messageId: string, overrides?: ProposalOverrides) =>
-  invoke<Applied>('apply_proposal', { messageId, overrides: overrides ?? null })
 /** A proposal nobody has answered yet, listed away from the chat it came in. */
 export interface PendingProposal {
   message_id: string
@@ -1744,22 +1429,6 @@ export interface PendingProposal {
   kind: string
   created_at: string
 }
-
-/** Every proposal waiting for an answer, across every chat, oldest first. */
-export const pendingProposals = () => invoke<PendingProposal[]>('pending_proposals')
-
-/** Turn a proposal down: it stops waiting, and nothing is written. */
-export const dismissProposal = (messageId: string) =>
-  invoke<void>('dismiss_proposal', { messageId })
-
-/** Apply every proposal in a chat nobody has applied yet, oldest first. */
-export const applyPendingProposals = (chatId: string) =>
-  invoke<Applied[]>('apply_pending_proposals', { chatId })
-export const startRun = (chatId: string, prompt: string) =>
-  invoke<Run>('start_run', { chatId, prompt })
-export const cancelRun = (id: string) => invoke<void>('cancel_run', { id })
-export const listRuns = (chatId: string) => invoke<Run[]>('list_runs', { chatId })
-export const activeRuns = () => invoke<string[]>('active_runs')
 
 /** Where a started task went, and what it is. */
 export interface StartedTask {
@@ -1797,12 +1466,6 @@ export interface TaskAbout {
   styleBrickIds?: string[]
 }
 
-/** Start an action on a work — on one of its versions when `versionId` is
-    given: the template reads that version, and what the answer proposes is
-    bound to it; on a scene of its board for a scene action. */
-export const startTask = (workId: string, action: string, about: TaskAbout = {}) =>
-  invoke<StartedTask>('start_task', { workId, action, about })
-
 /** What a task would send: composed by the call that starts one. */
 export interface ComposedTask {
   prompt: string
@@ -1810,16 +1473,3 @@ export interface ComposedTask {
   key: string
   title: string
 }
-
-/** What starting the action would send, without sending it. */
-export const previewTask = (workId: string, action: string, about: TaskAbout = {}) =>
-  invoke<ComposedTask>('preview_task', { workId, action, about })
-export const startTasks = (workIds: readonly string[], action: string) =>
-  invoke<StartedBatch>('start_tasks', { workIds, action })
-export const activeTasks = () => invoke<string[]>('active_tasks')
-export const taskQueue = () => invoke<TaskQueue>('task_queue')
-export const clearTaskQueue = () => invoke<number>('clear_task_queue')
-export const waitingChats = () => invoke<ChatSummary[]>('waiting_chats')
-export const clearWaiting = (chatId: string) => invoke<void>('clear_waiting', { chatId })
-export const renderPrompt = (workId: string, template: string) =>
-  invoke<string>('render_prompt', { workId, template })

@@ -1,4 +1,4 @@
-import type { Applied, ChatSummary, Message, Proposal, Run } from '@/lib/api'
+import type { Applied, ChatSummary, Message, Proposal, Run } from '@/lib/api/types'
 import { inOrder, view, type RunView } from '@/lib/runs'
 
 /**

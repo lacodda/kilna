@@ -1,4 +1,4 @@
-import type { Cut, Shot } from '@/lib/api'
+import type { Cut, Shot } from '@/lib/api/types'
 
 /**
  * The arithmetic of a splice: what a track draws, and whether it can be cut.

@@ -13,7 +13,7 @@ import {
   Trash2,
   type LucideIcon,
 } from 'lucide-react'
-import type { ProfileConfig } from '@/lib/api'
+import type { ProfileConfig } from '@/lib/api/types'
 import { styleTypesOf } from '@/lib/useProfile'
 import { Catalogue } from '@/features/catalogue/Catalogue'
 import { CalendarView } from '@/features/calendar/CalendarView'

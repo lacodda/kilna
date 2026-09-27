@@ -1,4 +1,4 @@
-import type { ScheduledRelease } from '@/lib/api'
+import type { ScheduledRelease } from '@/lib/api/types'
 import type { Ghost } from '@/lib/layout'
 
 /**

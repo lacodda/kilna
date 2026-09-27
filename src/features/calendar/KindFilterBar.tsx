@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { CalendarRange } from 'lucide-react'
-import type { ScheduledRelease } from '@/lib/api'
+import type { ScheduledRelease } from '@/lib/api/types'
 import { countByKind, type KindFilter } from '@/lib/calendarFilter'
 import { KindGlyph } from '@/lib/releaseIcon'
 import { allOf, say, useProfile } from '@/lib/useProfile'

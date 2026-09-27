@@ -3,16 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, FileText, PanelLeftClose, PanelLeftOpen, Plus, Search, X } from 'lucide-react'
-import {
-  dismissProposal,
-  getWork,
-  listJournal,
-  markJournalRead,
-  pendingProposals,
-  unreadJournal,
-  type JournalEntry,
-  type PendingProposal,
-} from '@/lib/api'
+import { dismissProposal, pendingProposals } from '@/lib/api/assistant'
+import { listJournal, markJournalRead, unreadJournal } from '@/lib/api/journal'
+import type { JournalEntry, PendingProposal } from '@/lib/api/types'
+import { getWork } from '@/lib/api/works'
 import { screenAt } from '@/app/screens'
 import { keys } from '@/lib/query'
 import { openWorkId } from '@/lib/route'

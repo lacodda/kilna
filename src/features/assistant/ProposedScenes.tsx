@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import type { Applied, ScenesProposal } from '@/lib/api'
+import type { Applied, ScenesProposal } from '@/lib/api/types'
 import { keys } from '@/lib/query'
 import { useApplyProposal } from '@/lib/useApplyProposal'
 import { Button } from '@/components/ui/button'

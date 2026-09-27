@@ -10,9 +10,8 @@ import {
   unmarkReleased,
   unscheduleRelease,
   updateRelease,
-  type ReleasePatch,
-  type ScheduledRelease,
-} from '@/lib/api'
+} from '@/lib/api/releases'
+import type { ReleasePatch, ScheduledRelease } from '@/lib/api/types'
 import { keys } from '@/lib/query'
 import { daysBetween } from '@/lib/readiness'
 import { today } from '@/lib/month'

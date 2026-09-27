@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Work } from '@/lib/api'
+import type { Work } from '@/lib/api/types'
 import type { Tab } from '@/features/work/tabs'
 import { PluginBar } from '@/features/work/PluginBar'
 import { ActionBar } from '@/features/assistant/ActionBar'

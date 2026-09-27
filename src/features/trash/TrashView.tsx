@@ -2,14 +2,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { RotateCcw, Trash2 } from 'lucide-react'
-import {
-  emptyTrash,
-  listDeletions,
-  purgeDeletion,
-  restoreDeletion,
-  type DeletedEntity,
-  type Deletion,
-} from '@/lib/api'
+import { emptyTrash, listDeletions, purgeDeletion, restoreDeletion } from '@/lib/api/trash'
+import type { DeletedEntity, Deletion } from '@/lib/api/types'
 import { clearDraftsFor } from '@/lib/drafts'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'

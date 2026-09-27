@@ -1,4 +1,4 @@
-import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork, Tier } from '@/lib/api'
+import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork, Tier } from '@/lib/api/types'
 import { daysBetween } from '@/lib/readiness'
 
 /**

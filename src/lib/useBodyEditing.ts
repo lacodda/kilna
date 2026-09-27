@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { createVersion, updateVersionBody, type Version } from '@/lib/api'
+import type { Version } from '@/lib/api/types'
+import { createVersion, updateVersionBody } from '@/lib/api/versions'
 import { begun, continues, touched, type Session } from '@/lib/editing'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'

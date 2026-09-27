@@ -1,20 +1,20 @@
 import { createContext, useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import i18n from '@/i18n'
-import {
-  getWork,
-  type Axis,
-  type Kind,
-  type Label,
-  type Profile,
-  type ProfileConfig,
-  type ReleaseKind,
-  type SceneBlock,
-  type Status,
-  type StyleType,
-  type Tier,
-  type VersionRole,
-} from '@/lib/api'
+import type {
+  Axis,
+  Kind,
+  Label,
+  Profile,
+  ProfileConfig,
+  ReleaseKind,
+  SceneBlock,
+  Status,
+  StyleType,
+  Tier,
+  VersionRole,
+} from '@/lib/api/types'
+import { getWork } from '@/lib/api/works'
 import { keys } from '@/lib/query'
 import { resolveLabel } from '@/lib/label'
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { updateNote, type Note } from '@/lib/api'
+import { updateNote } from '@/lib/api/notes'
+import type { Note } from '@/lib/api/types'
 import { say } from '@/lib/toast'
 import type { SaveStatus } from '@/components/SaveState'
 

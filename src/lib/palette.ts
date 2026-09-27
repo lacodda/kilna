@@ -1,4 +1,4 @@
-import type { PromptTemplate } from '@/lib/api'
+import type { PromptTemplate } from '@/lib/api/types'
 import { say } from '@/lib/useProfile'
 
 /**

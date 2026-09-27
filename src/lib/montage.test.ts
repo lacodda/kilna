@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Scene, SceneFrame } from '@/lib/api'
+import type { Scene, SceneFrame } from '@/lib/api/types'
 import { montageFileName, montageList } from '@/lib/montage'
 import { framesByScene, FRAME, VIDEO } from '@/lib/scenes'
 

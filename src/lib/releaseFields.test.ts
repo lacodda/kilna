@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ReleaseFieldValue } from '@/lib/api'
+import type { ReleaseFieldValue } from '@/lib/api/types'
 import { batchable, fillable, over, written } from '@/lib/releaseFields'
 
 function field(over: Partial<ReleaseFieldValue> = {}): ReleaseFieldValue {

@@ -4,15 +4,15 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Diff, Eye, Maximize2, Minimize2, PenLine, Plus, Scan, X } from 'lucide-react'
+import { scoreHistory } from '@/lib/api/scores'
+import type { VersionRole } from '@/lib/api/types'
 import {
   createVersion,
   deleteVersion,
   getVersion,
   listVersions,
-  scoreHistory,
   setCurrentVersion,
-  type VersionRole,
-} from '@/lib/api'
+} from '@/lib/api/versions'
 import { changedLines, countChanges, diffLines } from '@/lib/diff'
 import { clearDraft, readDraft, writeDraft } from '@/lib/drafts'
 import { predecessor } from '@/lib/history'

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Label, ProfileConfig } from '@/lib/api'
+import type { Label, ProfileConfig } from '@/lib/api/types'
 import { allOf, hasScenes, labelOf, say, styleTypesOf, vocabularyOf } from '@/lib/useProfile'
 import blog from '@/test/fixtures/profiles/blog.json'
 import music from '@/test/fixtures/profiles/music.json'

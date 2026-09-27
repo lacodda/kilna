@@ -3,15 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { X } from 'lucide-react'
-import {
-  createLink,
-  deleteLink,
-  deriveWork,
-  listLinks,
-  listWorks,
-  type Link,
-  type Work,
-} from '@/lib/api'
+import { createLink, deleteLink, deriveWork, listLinks } from '@/lib/api/links'
+import type { Link, Work } from '@/lib/api/types'
+import { listWorks } from '@/lib/api/works'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'

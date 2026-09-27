@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ReleasePatch, ScheduledRelease } from '@/lib/api'
+import type { ReleasePatch, ScheduledRelease } from '@/lib/api/types'
 import { isWebLink } from '@/lib/link'
 import { say, useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'

@@ -10,8 +10,8 @@ import {
   deleteChat,
   listChatSummaries,
   renameChat,
-  type RunEmission,
-} from '@/lib/api'
+} from '@/lib/api/assistant'
+import type { RunEmission } from '@/lib/api/types'
 import { chatLabel } from '@/lib/chat'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'

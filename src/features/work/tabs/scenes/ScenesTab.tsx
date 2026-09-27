@@ -16,34 +16,34 @@ import {
   Save,
   Trash2,
 } from 'lucide-react'
+import { fileSrc } from '@/lib/api/assets'
+import { exportPackage, writeTextFile } from '@/lib/api/data'
+import { listLinks } from '@/lib/api/links'
+import { listNotes } from '@/lib/api/notes'
 import {
   attachSceneNote,
   createScene,
   deleteScene,
   detachSceneNote,
-  fileSrc,
   frameScenes,
-  getVersion,
-  listLinks,
-  listNotes,
-  cloneWork,
   listSceneFrames,
-  exportPackage,
-  writeTextFile,
   listSceneNotes,
   listScenes,
-  listVersions,
   renumberScenes,
   timeScenes,
   updateScene,
-  type Note,
-  type Scene,
-  type SceneBlock,
-  type SceneFrame,
-  type SceneNote,
-  type ScenePatch,
-  type Work,
-} from '@/lib/api'
+} from '@/lib/api/scenes'
+import type {
+  Note,
+  Scene,
+  SceneBlock,
+  SceneFrame,
+  SceneNote,
+  ScenePatch,
+  Work,
+} from '@/lib/api/types'
+import { getVersion, listVersions } from '@/lib/api/versions'
+import { cloneWork } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { montageFileName, montageList } from '@/lib/montage'

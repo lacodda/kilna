@@ -1,4 +1,4 @@
-import type { Readiness } from './api'
+import type { Readiness } from '@/lib/api/types'
 
 // The same gap means something different a month out and two days out. The
 // bands match the journal's warning horizon: inside a week a gap is worth

@@ -1,4 +1,4 @@
-import type { Comment } from '@/lib/api'
+import type { Comment } from '@/lib/api/types'
 
 /**
  * Where a comment stands, as a person reads it: the three stored states, with

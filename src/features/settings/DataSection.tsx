@@ -8,7 +8,7 @@ import {
   importLegacy,
   suggestedBackupName,
   workspacePath,
-} from '@/lib/api'
+} from '@/lib/api/data'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/Skeleton'

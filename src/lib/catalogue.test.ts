@@ -31,7 +31,7 @@ import {
   type CatalogueFilter,
   type SortStore,
 } from './catalogue'
-import type { ScoredWork } from '@/lib/api'
+import type { ScoredWork } from '@/lib/api/types'
 
 const row = (over: Partial<ScoredWork>): ScoredWork => ({
   work_id: 'id',

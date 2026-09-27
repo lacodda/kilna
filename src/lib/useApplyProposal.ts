@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { applyProposal, type Applied, type ProposalOverrides } from '@/lib/api'
+import { applyProposal } from '@/lib/api/assistant'
+import type { Applied, ProposalOverrides } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'

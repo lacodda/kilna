@@ -9,14 +9,13 @@ import {
   markReleased,
   planLayout,
   createRelease,
-  type NewRelease,
   releaseQueue,
   scheduleRelease,
   setSlotPin,
   unscheduleRelease,
   warnUnreadyReleases,
-  type Placement,
-} from '@/lib/api'
+} from '@/lib/api/releases'
+import type { NewRelease, Placement } from '@/lib/api/types'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'
 import { allOf, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'

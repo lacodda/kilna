@@ -1,4 +1,4 @@
-import type { Asset } from '@/lib/api'
+import type { Asset } from '@/lib/api/types'
 
 /*
  * A work's files, in groups by what they are for.

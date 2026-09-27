@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { VersionSummary } from '@/lib/api'
+import type { VersionSummary } from '@/lib/api/types'
 import { neighbour } from '@/lib/history'
 import { Button } from '@/components/ui/button'
 import { RowMenu } from '@/components/RowMenu'

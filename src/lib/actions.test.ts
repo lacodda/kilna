@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { PromptTemplate } from '@/lib/api'
+import type { PromptTemplate } from '@/lib/api/types'
 import { actionsOfScope, commentAction, scopeOf } from '@/lib/actions'
 
 const action = (key: string, over: Partial<PromptTemplate> = {}): PromptTemplate => ({

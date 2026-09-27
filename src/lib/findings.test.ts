@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api'
+import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import {
   STALE_DRAFT_DAYS,
   dismissalKey,

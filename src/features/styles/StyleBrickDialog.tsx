@@ -3,20 +3,16 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { open as openFile } from '@tauri-apps/plugin-dialog'
 import { Sparkles, Trash2, X } from 'lucide-react'
+import { attachAsset, detachAsset, fileSrc } from '@/lib/api/assets'
 import {
-  attachAsset,
   createStyleBrick,
   deleteStyleBrick,
-  detachAsset,
-  fileSrc,
   pasteStyleReference,
   startStyleTask,
   styleBrickReferences,
   updateStyleBrick,
-  type StyleBrick,
-  type StyleBrickStatus,
-  type StyleType,
-} from '@/lib/api'
+} from '@/lib/api/styles'
+import type { StyleBrick, StyleBrickStatus, StyleType } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query'
 import { say } from '@/lib/toast'

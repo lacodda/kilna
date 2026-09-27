@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fileSrc, listCovers } from '@/lib/api'
+import { fileSrc, listCovers } from '@/lib/api/assets'
 import { keys } from '@/lib/query'
 
 /**

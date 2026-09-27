@@ -1,4 +1,4 @@
-import type { Scene, SceneBlock, SceneFrame, Work } from '@/lib/api'
+import type { Scene, SceneBlock, SceneFrame, Work } from '@/lib/api/types'
 
 /** What a row of a scene's material is: the still, or the clip cut from it. */
 export const FRAME = 'frame'

@@ -16,7 +16,7 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
-import type { Mark, MarkColour } from '@/lib/api'
+import type { Mark, MarkColour } from '@/lib/api/types'
 import type { BadgeProps } from '@/components/ui/badge'
 
 /**

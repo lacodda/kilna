@@ -2,15 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ClipboardPaste, LoaderCircle, Plus } from 'lucide-react'
-import {
-  commentChannels,
-  listComments,
-  pendingCommentProposals,
-  type Comment,
-  type CommentProposal,
-  type CommentState,
-  type PendingCommentProposal,
-} from '@/lib/api'
+import { commentChannels, listComments, pendingCommentProposals } from '@/lib/api/comments'
+import type {
+  Comment,
+  CommentProposal,
+  CommentState,
+  PendingCommentProposal,
+} from '@/lib/api/types'
 import { commentAction } from '@/lib/actions'
 import { standingOf, type Standing } from '@/lib/comments'
 import { keys } from '@/lib/query'

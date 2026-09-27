@@ -1,4 +1,4 @@
-import { fileSrc } from '@/lib/api'
+import { fileSrc } from '@/lib/api/assets'
 import { extensionOf, mediaKindOf } from '@/lib/media'
 import { cn } from '@/lib/utils'
 

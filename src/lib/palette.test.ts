@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { PromptTemplate } from '@/lib/api'
+import type { PromptTemplate } from '@/lib/api/types'
 import { matching, reading } from '@/lib/palette'
 
 const action = (key: string, label: string): PromptTemplate => ({

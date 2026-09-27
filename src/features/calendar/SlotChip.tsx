@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { GripVertical, Lock } from 'lucide-react'
-import type { ScheduledRelease } from '@/lib/api'
+import type { ScheduledRelease } from '@/lib/api/types'
 import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
 import { KindGlyph } from '@/lib/releaseIcon'

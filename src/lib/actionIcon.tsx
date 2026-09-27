@@ -17,7 +17,7 @@ import {
   Wand2,
   type LucideIcon,
 } from 'lucide-react'
-import type { PromptTemplate } from '@/lib/api'
+import type { PromptTemplate } from '@/lib/api/types'
 
 /**
  * The glyphs an AI action may carry, by the name the profile writes.

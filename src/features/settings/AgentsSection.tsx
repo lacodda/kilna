@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { mcpRegistration } from '@/lib/api'
+import { mcpRegistration } from '@/lib/api/workspace'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 

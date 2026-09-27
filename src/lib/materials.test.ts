@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Asset } from '@/lib/api'
+import type { Asset } from '@/lib/api/types'
 import { groupMaterials, OTHER } from '@/lib/materials'
 
 const asset = (id: string, kind: string | null): Asset =>
