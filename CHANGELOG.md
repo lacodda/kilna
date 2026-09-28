@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.78.0] - 2026-09-28
+
+### Bug Fixes
+- Hide Base UI's own scrollbars under the window's CSP
+
+### Build
+- Import package.json with a JSON import attribute
+
+### Refactoring
+- Set every size on the dowel scale
+- Hold every screen on one frame and dowel's primitives
+
 ## [0.77.0] - 2026-09-27
 
 ### Bug Fixes
