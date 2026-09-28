@@ -5,6 +5,7 @@ import type {
   CommentPatch,
   NewComment,
   PendingCommentProposal,
+  ComposedTask,
   StartedTask,
 } from '@/lib/api/types'
 
@@ -27,6 +28,9 @@ export const pendingCommentProposals = () =>
 /** Draft a reply in the background, in the voice of the comment's channel. */
 export const startCommentTask = (id: string, action: string) =>
   invoke<StartedTask>('start_comment_task', { id, action })
+/** What drafting a reply would send, without sending it. */
+export const previewCommentTask = (id: string, action: string) =>
+  invoke<ComposedTask>('preview_comment_task', { id, action })
 /** Read a pasted screenshot of a comment in the background. `today` is the
  *  person's own date, for turning "3 weeks ago" into a day. */
 export const startScreenshotTask = (args: {

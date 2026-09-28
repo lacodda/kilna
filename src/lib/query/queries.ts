@@ -18,6 +18,7 @@ import {
   countWorkComments,
   listComments,
   pendingCommentProposals,
+  previewCommentTask,
 } from '@/lib/api/comments'
 import { cutShotList, listCuts } from '@/lib/api/cuts'
 import { workspacePath } from '@/lib/api/data'
@@ -36,7 +37,12 @@ import {
 import { listSceneFrames, listSceneNotes, listScenes } from '@/lib/api/scenes'
 import { kindVerdicts, latestScore, scoreHistory } from '@/lib/api/scores'
 import { search, worksMatching } from '@/lib/api/search'
-import { listStyleBricks, styleBrickCounts, styleBrickReferences } from '@/lib/api/styles'
+import {
+  listStyleBricks,
+  previewStyleTask,
+  styleBrickCounts,
+  styleBrickReferences,
+} from '@/lib/api/styles'
 import { listDeletions } from '@/lib/api/trash'
 import type { CommentFilter, NoteFilter, TaskAbout } from '@/lib/api/types'
 import { getVersion, listVersions } from '@/lib/api/versions'
@@ -187,6 +193,19 @@ export const queries = {
         about.attachments ?? [],
       ]),
       queryFn: () => previewTask(workId, action, about),
+    }),
+
+  /** What describing a style would send, before it is sent. */
+  styleTaskPreview: (id: string, action: string) =>
+    queryOptions({
+      queryKey: keys.taskPreview(['style', id, action]),
+      queryFn: () => previewStyleTask(id, action),
+    }),
+  /** What drafting a reply would send, before it is sent. */
+  commentTaskPreview: (id: string, action: string) =>
+    queryOptions({
+      queryKey: keys.taskPreview(['comment', id, action]),
+      queryFn: () => previewCommentTask(id, action),
     }),
 
   plugins: () => queryOptions({ queryKey: keys.plugins, queryFn: listPlugins }),

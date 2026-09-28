@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import type {
   Asset,
   NewStyleBrick,
+  ComposedTask,
   StartedTask,
   StyleBrick,
   StyleBrickFilter,
@@ -27,3 +28,6 @@ export const pasteStyleReference = (id: string, bytes: number[], name: string) =
 /** Describe a brick from its references — the dictionary's own AI action. */
 export const startStyleTask = (id: string, action: string) =>
   invoke<StartedTask>('start_style_task', { id, action })
+/** What describing a brick would send, without sending it. */
+export const previewStyleTask = (id: string, action: string) =>
+  invoke<ComposedTask>('preview_style_task', { id, action })

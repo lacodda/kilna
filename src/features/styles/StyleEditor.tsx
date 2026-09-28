@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useId, useRef } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { Sparkles, Trash2, X } from 'lucide-react'
+import { Eye, Sparkles, Trash2, X } from 'lucide-react'
 import { deleteStyleBrick, startStyleTask } from '@/lib/api/styles'
 import type { StyleBrick, StyleBrickStatus, StyleType } from '@/lib/api/types'
 import { refresh } from '@/lib/query/refresh'
@@ -10,7 +10,7 @@ import { nameProblem, type StyleForm } from '@/lib/styleDraft'
 import { styleIconOf } from '@/lib/styleIcon'
 import { announceDeleted } from '@/lib/trash'
 import { useAssistant } from '@/lib/useAssistant'
-import { say as sayLabel } from '@/lib/useProfile'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Chip, ChipGroup } from '@/components/ui/chip'
 import { Field, FieldGroup } from '@/components/ui/field'
@@ -19,6 +19,7 @@ import { SaveState } from '@/components/ui/save-state'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { Textarea } from '@/components/ui/textarea'
 import { Pane } from '@/components/frame'
+import { TaskPreviewDialog } from '@/features/assistant/TaskPreviewDialog'
 import { StyleReferences } from '@/features/styles/StyleReferences'
 import { useStyleDraft } from '@/features/styles/useStyleDraft'
 
@@ -119,6 +120,10 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
   })
 
   const hasReferences = brick.reference_count > 0
+  // The profile's describe action, for its words in the preview: the task
+  // is read before it is sent, as a work's action is.
+  const describeAction = useProfile().config.prompts.find((action) => action.key === DESCRIBE)
+  const [previewing, setPreviewing] = useState(false)
 
   return (
     <div
@@ -249,6 +254,33 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
             <Sparkles aria-hidden />
             {t('styles.describe')}
           </Button>
+          {describeAction !== undefined && hasReferences && (
+            <Button
+              variant="icon"
+              size="icon-sm"
+              className="self-start"
+              title={t('assistant.previewTask', { label: sayLabel(describeAction.label) })}
+              aria-label={t('assistant.previewTask', { label: sayLabel(describeAction.label) })}
+              disabled={describe.isPending}
+              onClick={() => setPreviewing(true)}
+            >
+              <Eye aria-hidden />
+            </Button>
+          )}
+          {previewing && describeAction !== undefined && (
+            <TaskPreviewDialog
+              open
+              onOpenChange={setPreviewing}
+              target={{ on: 'style', id: brick.id }}
+              action={describeAction}
+              // The steer typed a moment ago is what the task reads.
+              before={flush}
+              onStarted={(started) => {
+                setPreviewing(false)
+                assistant.open(started.chatId)
+              }}
+            />
+          )}
         </div>
 
         <Field label={t('styles.hint')} help={t('styles.hintHint')}>

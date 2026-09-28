@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { startTask } from '@/lib/api/assistant'
-import type { PromptTemplate } from '@/lib/api/types'
+import { startCommentTask } from '@/lib/api/comments'
+import { startStyleTask } from '@/lib/api/styles'
+import type { PromptTemplate, StartedTask } from '@/lib/api/types'
 import { humanError } from '@/lib/errors'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
@@ -14,16 +16,33 @@ import { Dialog } from '@/components/AppDialog'
 import { Field, FieldGroup } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 
+/**
+ * What a task is aimed at: a work (on one of its versions, scenes or prompt
+ * blocks), a style brick being described, or a comment being answered. The
+ * three are composed and started by different commands, and only a work's
+ * task takes reference files.
+ */
+export type TaskTarget =
+  | {
+      on: 'work'
+      workId: string
+      versionId?: string
+      sceneId?: string
+      /** One prompt block of that scene, when the action is aimed at one. */
+      block?: string
+    }
+  | { on: 'style'; id: string }
+  | { on: 'comment'; id: string }
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
-  workId: string
+  target: TaskTarget
   action: PromptTemplate
-  versionId?: string
-  sceneId?: string
-  /** One prompt block of that scene, when the action is aimed at one. */
-  block?: string
-  onStarted: () => void
+  /** What must be stored before the task reads it - a steer typed into a
+   *  style, a reply typed under a comment. Run before the task starts. */
+  before?: () => Promise<unknown>
+  onStarted: (started: StartedTask) => void
 }
 
 /** The paths typed in the box, one per line, blanks dropped. */
@@ -43,15 +62,17 @@ const pathsOf = (text: string): string[] =>
  * their folders and told to read them before answering. A path that is not
  * a file is refused here, in the preview, rather than by a run ten minutes
  * later.
+ *
+ * A style's and a comment's task are previewed the same way since v0.79:
+ * each screen that starts one offers to read it first, as a work's action
+ * bar does.
  */
 export function TaskPreviewDialog({
   open: isOpen,
   onOpenChange,
-  workId,
+  target,
   action,
-  versionId,
-  sceneId,
-  block,
+  before,
   onStarted,
 }: Props) {
   const { t } = useTranslation()
@@ -60,25 +81,40 @@ export function TaskPreviewDialog({
   // half-typed path is not sent to be checked keystroke by keystroke.
   const [attachments, setAttachments] = useState<string[]>([])
 
-  const preview = useQuery({
-    ...queries.taskPreview(workId, action.key, { versionId, sceneId, block, attachments }),
-    enabled: isOpen,
-    staleTime: 0,
-    retry: false,
-  })
+  const read =
+    target.on === 'work'
+      ? queries.taskPreview(target.workId, action.key, {
+          versionId: target.versionId,
+          sceneId: target.sceneId,
+          block: target.block,
+          attachments,
+        })
+      : target.on === 'style'
+        ? queries.styleTaskPreview(target.id, action.key)
+        : queries.commentTaskPreview(target.id, action.key)
+  const preview = useQuery({ ...read, enabled: isOpen, staleTime: 0, retry: false })
 
   const start = useAppMutation({
-    mutationFn: () =>
-      startTask(workId, action.key, {
-        versionId,
-        sceneId,
-        block,
-        attachments: pathsOf(attachmentsText),
-      }),
+    mutationFn: async () => {
+      await before?.()
+      switch (target.on) {
+        case 'work':
+          return startTask(target.workId, action.key, {
+            versionId: target.versionId,
+            sceneId: target.sceneId,
+            block: target.block,
+            attachments: pathsOf(attachmentsText),
+          })
+        case 'style':
+          return startStyleTask(target.id, action.key)
+        case 'comment':
+          return startCommentTask(target.id, action.key)
+      }
+    },
     refresh: [keys.activeTasks, keys.allChats],
     onSuccess: (started) => {
       say.info(t('assistant.taskStarted', { title: started.title }))
-      onStarted()
+      onStarted(started)
     },
   })
 
@@ -137,23 +173,29 @@ export function TaskPreviewDialog({
             )}
           </>
         )}
-        <Field label={t('assistant.attachments')} help={t('assistant.attachmentsHint')}>
-          <Textarea
-            autoResize
-            maxRows={6}
-            rows={2}
-            className="font-mono text-xs"
-            value={attachmentsText}
-            placeholder={t('assistant.attachmentsPlaceholder')}
-            onChange={(event) => setAttachmentsText(event.target.value)}
-            onBlur={(event) => setAttachments(pathsOf(event.target.value))}
-          />
-        </Field>
-        <div>
-          <Button size="sm" onClick={() => void choose()}>
-            {t('assistant.attachChoose')}
-          </Button>
-        </div>
+        {/* Reference files travel with a work's task only: a style is
+            described from its own references, a reply from its comment. */}
+        {target.on === 'work' && (
+          <>
+            <Field label={t('assistant.attachments')} help={t('assistant.attachmentsHint')}>
+              <Textarea
+                autoResize
+                maxRows={6}
+                rows={2}
+                className="font-mono text-xs"
+                value={attachmentsText}
+                placeholder={t('assistant.attachmentsPlaceholder')}
+                onChange={(event) => setAttachmentsText(event.target.value)}
+                onBlur={(event) => setAttachments(pathsOf(event.target.value))}
+              />
+            </Field>
+            <div>
+              <Button size="sm" onClick={() => void choose()}>
+                {t('assistant.attachChoose')}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </Dialog>
   )

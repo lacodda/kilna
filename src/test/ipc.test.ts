@@ -33,14 +33,6 @@ const AWAITING: Record<string, { version: string; screen: string }> = {
     version: '0.80.0',
     screen: 'release text shown before it replaces what was typed',
   },
-  preview_comment_task: {
-    version: '0.79.0',
-    screen: 'the comments screen, previewing a task as a work does',
-  },
-  preview_style_task: {
-    version: '0.79.0',
-    screen: 'the styles screen, previewing a task as a work does',
-  },
   reorder_scene_frames: { version: '0.81.0', screen: "a scene's frames put in order" },
   can_export_package: {
     version: '0.81.0',

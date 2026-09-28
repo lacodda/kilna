@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   Check,
   Copy,
+  Eye,
   LoaderCircle,
   MessageSquareReply,
   RotateCcw,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react'
 import { applyProposal, dismissProposal } from '@/lib/api/assistant'
 import { deleteComment, startCommentTask, updateComment } from '@/lib/api/comments'
+import { TaskPreviewDialog } from '@/features/assistant/TaskPreviewDialog'
 import type { Comment, CommentPatch, PendingCommentProposal } from '@/lib/api/types'
 import { commentAction } from '@/lib/actions'
 import { standingOf } from '@/lib/comments'
@@ -26,7 +28,7 @@ import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
-import { useProfile } from '@/lib/useProfile'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
@@ -80,6 +82,7 @@ export function CommentDetail({
   const [moving, setMoving] = useState(false)
   const [channel, setChannel] = useState(comment.channel)
   const [picking, setPicking] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
 
   // A reply kept from a draft arrives from outside this box; the box follows
   // it unless something typed here is still unsaved.
@@ -349,6 +352,40 @@ export function CommentDetail({
                 )}
                 {busy ? t('comments.draftingShort') : t('comments.draft')}
               </Button>
+            )}
+            {/* What the draft would be asked, before it is asked - as a
+                work's action is read before it runs. */}
+            {replier !== undefined && comment.state !== 'archived' && (
+              <Button
+                variant="icon"
+                size="icon-sm"
+                title={t('assistant.previewTask', { label: sayLabel(replier.label) })}
+                aria-label={t('assistant.previewTask', { label: sayLabel(replier.label) })}
+                disabled={busy}
+                onClick={() => setPreviewing(true)}
+              >
+                <Eye aria-hidden />
+              </Button>
+            )}
+            {previewing && replier !== undefined && (
+              <TaskPreviewDialog
+                open
+                onOpenChange={setPreviewing}
+                target={{ on: 'comment', id: comment.id }}
+                action={replier}
+                // What is typed goes in first: the draft is written against it.
+                before={async () => {
+                  if (reply !== (comment.reply ?? '')) {
+                    await updateComment(comment.id, {
+                      reply: reply.trim() === '' ? null : reply,
+                    })
+                  }
+                }}
+                onStarted={() => {
+                  setPreviewing(false)
+                  say.info(t('comments.drafting'))
+                }}
+              />
             )}
             <Button size="sm" disabled={reply.trim() === ''} onClick={copy}>
               <Copy aria-hidden />

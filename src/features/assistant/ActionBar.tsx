@@ -287,11 +287,8 @@ export function ActionBar({
           onOpenChange={(open) => {
             if (!open) setPreviewing(null)
           }}
-          workId={workId}
+          target={{ on: 'work', workId, versionId, sceneId, block }}
           action={previewing}
-          versionId={versionId}
-          sceneId={sceneId}
-          block={block}
           onStarted={() => {
             setPreviewing(null)
           }}
