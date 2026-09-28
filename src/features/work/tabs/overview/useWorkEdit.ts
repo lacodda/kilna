@@ -31,10 +31,18 @@ export function useWorkEdit(work: Work) {
 
       if (previous != null) {
         const { meta: fields, ...rest } = changes
+        // A patch's fields are `T | null` on the wire (ADR 0003) because
+        // `Option<T>` reads that way regardless of whether clearing the field
+        // means anything; for an optimistic preview, `null` and "not sent"
+        // are the same thing - the real answer replaces this in `onSuccess`.
+        const settled = Object.fromEntries(
+          Object.entries(rest).filter(([, value]) => value !== undefined && value !== null),
+        ) as Partial<Work>
         client.setQueryData<Work>(keys.work(work.id), {
           ...previous,
-          ...rest,
-          meta: fields === undefined ? previous.meta : merged(previous.meta, fields),
+          ...settled,
+          meta:
+            fields === undefined || fields === null ? previous.meta : merged(previous.meta, fields),
         })
       }
       return { previous }

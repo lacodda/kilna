@@ -9,7 +9,7 @@ use crate::profile;
 /// A score is a snapshot pinned to a version, never an overwrite of the work.
 /// That is what makes the effect of a revision visible — the reason scoring
 /// exists at all. See ADR 0002.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Score {
     pub id: String,
     pub work_id: String,
@@ -28,7 +28,8 @@ pub struct Score {
     pub revision: Option<i64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewScore {
     pub axes: Map<String, Value>,
     /// Defaults to the work's current version.
@@ -52,7 +53,7 @@ fn parse_string_list(raw: &str) -> Vec<String> {
 }
 
 /// A work with its most recent score, for the catalogue.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct ScoredWork {
     pub work_id: String,
     pub title: String,
@@ -401,29 +402,13 @@ impl RawScore {
 mod tests {
     use super::*;
     use crate::db;
+    use crate::fixtures;
     use crate::work::version::{self, NewVersion};
     use crate::work::{self, NewWork};
     use serde_json::json;
 
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
-
     fn a_work(conn: &Connection, profile_id: &str, title: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: title.into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::song(conn, profile_id, title).id
     }
 
     fn axes(values: serde_json::Value) -> Map<String, Value> {
@@ -456,7 +441,7 @@ mod tests {
 
     #[test]
     fn the_total_and_tier_are_computed_from_the_profile() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
 
         // Every axis at full marks must reach the top tier.
@@ -481,7 +466,7 @@ mod tests {
 
     #[test]
     fn a_weak_score_lands_in_the_bottom_tier() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Weak");
 
         let score = create(
@@ -507,7 +492,7 @@ mod tests {
     /// places or the two screens disagree about the same work.
     #[test]
     fn the_catalogue_counts_slots_and_releases() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
 
         let row = catalogue_row(&conn, &profile_id, &work_id);
@@ -548,7 +533,7 @@ mod tests {
 
     #[test]
     fn the_catalogue_reads_the_score_of_the_current_version() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
 
         let first = version::create(
@@ -598,7 +583,7 @@ mod tests {
     /// not become the work's number just by being last.
     #[test]
     fn a_work_with_no_current_version_is_read_at_its_strongest() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
 
         create(
@@ -630,7 +615,7 @@ mod tests {
 
     #[test]
     fn a_score_pins_itself_to_the_works_current_version() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
         let draft = version::create(
             &conn,
@@ -664,7 +649,7 @@ mod tests {
 
     #[test]
     fn scoring_does_not_overwrite_the_previous_snapshot() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
         version::create(
             &conn,
@@ -738,7 +723,7 @@ mod tests {
     /// tested instead of the hardware.
     #[test]
     fn scores_sharing_a_timestamp_come_back_newest_first() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Tied");
 
         for total in [5.0_f64, 9.0_f64] {
@@ -768,7 +753,7 @@ mod tests {
 
     #[test]
     fn a_score_cannot_point_at_another_works_version() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let mine = a_work(&conn, &profile_id, "Mine");
         let theirs = a_work(&conn, &profile_id, "Theirs");
         let stranger = version::create(
@@ -801,7 +786,7 @@ mod tests {
 
     #[test]
     fn a_snapshot_survives_the_profile_being_reconfigured() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
         let score = create(
             &conn,
@@ -846,7 +831,7 @@ mod tests {
         // a style prompt are rows too. A critique is written ABOUT the lyrics
         // and is not a draft of the song, so it is not a time the song was
         // written; a style prompt stands on its own and is.
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
 
         let write = |role: &str, body: &str| {
@@ -891,7 +876,7 @@ mod tests {
         // a role no longer named by the profile cannot be shown to be
         // commentary, so it counts. A draft that stopped being counted because
         // its role was renamed would read as work that never happened.
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
 
         version::create(
@@ -922,7 +907,7 @@ mod tests {
 
     #[test]
     fn the_catalogue_sorts_by_total_and_puts_unscored_works_last() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let weak = a_work(&conn, &profile_id, "Weak");
         let strong = a_work(&conn, &profile_id, "Strong");
         a_work(&conn, &profile_id, "Unjudged");
@@ -959,7 +944,7 @@ mod tests {
 
     #[test]
     fn a_work_edited_after_scoring_is_marked_stale() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
         create(
             &conn,
@@ -989,7 +974,7 @@ mod tests {
 
     #[test]
     fn scoring_an_unknown_work_fails() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
 
         let result = create(
             &conn,
@@ -1007,7 +992,7 @@ mod tests {
 
     #[test]
     fn a_pinned_tier_speaks_for_the_work_in_the_catalogue() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Held");
         create(
             &conn,
@@ -1045,7 +1030,7 @@ mod tests {
 
     #[test]
     fn a_score_names_who_gave_it_and_a_blank_name_is_the_author() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id, "Judged");
         let theirs = create(
             &conn,

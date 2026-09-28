@@ -23,7 +23,7 @@ use crate::time::now;
 /// The prompt blocks of a scene, by the kind's block key.
 pub type Blocks = Map<String, serde_json::Value>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Scene {
     pub id: String,
     pub profile_id: String,
@@ -44,7 +44,8 @@ pub struct Scene {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewScene {
     pub work_id: String,
     /// After the last scene when omitted.
@@ -67,7 +68,7 @@ pub struct NewScene {
 /// What an edit may change. `blocks` replaces the whole set: the screen
 /// edits one block and sends them all, so the log's `before` holds the set
 /// as it was and an undo puts the set back.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
 pub struct ScenePatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position: Option<i64>,
@@ -788,30 +789,13 @@ pub fn kind_has_scenes(config: &ProfileConfig, kind: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
+    use crate::fixtures;
     use crate::profile;
     use crate::work::{self, NewWork};
     use serde_json::json;
 
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
-
     fn video(conn: &Connection, profile_id: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "video".into(),
-                title: "Harbour lights".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::video(conn, profile_id, "Harbour lights").id
     }
 
     /// The length divides evenly, the spans join, and the last ends on the
@@ -868,7 +852,7 @@ mod tests {
     /// the text the field shipped as — as a time as well. Prose is no length.
     #[test]
     fn a_length_is_read_as_seconds_or_as_a_time() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = video(&conn, &profile_id);
         let read = |value: serde_json::Value| {
             let mut meta = serde_json::Map::new();
@@ -901,7 +885,7 @@ mod tests {
     /// rather than collapsing the board onto one instant.
     #[test]
     fn timing_a_board_needs_a_length() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = video(&conn, &profile_id);
         for _ in 0..3 {
             create(&conn, &profile_id, scene(&work_id)).unwrap();
@@ -938,7 +922,7 @@ mod tests {
     /// would be words the person has to delete before writing the shot.
     #[test]
     fn a_board_is_framed_from_the_parts_of_its_source() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let song_id = work::create(
             &conn,
             &profile_id,
@@ -1024,7 +1008,7 @@ the hook
     /// holding the whole song.
     #[test]
     fn a_source_with_no_markup_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let song_id = work::create(
             &conn,
             &profile_id,
@@ -1079,7 +1063,7 @@ with no markers
 
     #[test]
     fn scenes_are_numbered_after_the_last_and_read_back_in_order() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let video = video(&conn, &profile_id);
 
         let first = create(&conn, &profile_id, scene(&video)).unwrap();
@@ -1109,7 +1093,7 @@ with no markers
 
     #[test]
     fn the_kind_of_shot_and_the_block_keys_are_the_kinds_words() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let video = video(&conn, &profile_id);
 
         let made = create(
@@ -1168,7 +1152,7 @@ with no markers
 
     #[test]
     fn an_edit_touches_only_what_it_names_and_the_blocks_as_a_set() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let video = video(&conn, &profile_id);
         let made = create(
             &conn,
@@ -1218,7 +1202,7 @@ with no markers
 
     #[test]
     fn a_scene_cannot_end_before_it_starts() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let video = video(&conn, &profile_id);
         let err = create(
             &conn,
@@ -1259,7 +1243,7 @@ with no markers
 
     #[test]
     fn a_song_has_no_storyboard_and_a_video_has() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let config = profile::config_for(&conn, &profile_id).unwrap();
         assert!(kind_has_scenes(&config, "video"));
         assert!(kind_has_scenes(&config, "short"));
@@ -1269,7 +1253,7 @@ with no markers
 
     #[test]
     fn deleting_the_work_takes_the_scenes_and_leaves_tombstones() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let video = video(&conn, &profile_id);
         let made = create(&conn, &profile_id, scene(&video)).unwrap();
 
@@ -1289,7 +1273,7 @@ with no markers
 
     #[test]
     fn an_edit_stamps_the_clock_of_the_field_it_changed() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let video = video(&conn, &profile_id);
         let made = create(&conn, &profile_id, scene(&video)).unwrap();
 
@@ -1322,7 +1306,7 @@ with no markers
     /// the mess forward; setting the order cannot.
     #[test]
     fn a_renumbering_ends_the_disorder_it_finds() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = video(&conn, &profile_id);
 
         let ids: Vec<String> = [7, 1, 7, 4]
@@ -1371,7 +1355,7 @@ with no markers
     /// is the state this call exists to remove.
     #[test]
     fn a_renumbering_names_every_scene_exactly_once() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = video(&conn, &profile_id);
         let other = video(&conn, &profile_id);
 
@@ -1433,7 +1417,7 @@ with no markers
     /// none to write.
     #[test]
     fn the_frames_follow_their_scenes_through_a_shift() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = video(&conn, &profile_id);
 
         let scenes: Vec<String> = (0..3)
@@ -1495,7 +1479,7 @@ with no markers
     /// is now the first, which is not a board anyone meant.
     #[test]
     fn a_renumbering_leaves_the_spans_alone() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = video(&conn, &profile_id);
 
         let ids: Vec<String> = [(0.0, 10.0), (10.0, 20.0)]
@@ -1532,7 +1516,7 @@ with no markers
     /// a person who drags past the end means the end.
     #[test]
     fn an_order_puts_a_scene_where_it_was_dropped() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = video(&conn, &profile_id);
 
         let ids: Vec<String> = (0..4)

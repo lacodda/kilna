@@ -264,7 +264,7 @@ pub fn restate(conn: &Connection, profile_id: &str, work_id: &str) {
 ///
 /// Carried out of the batch rather than counted: "two were skipped" is only
 /// useful when a person can see which two, and for what.
-#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct Skipped {
     /// The work, release or other row the batch was given.
@@ -275,7 +275,7 @@ pub struct Skipped {
 }
 
 /// What a batch did: how many it reached, and the rest one by one.
-#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct BulkOutcome {
     /// Items the change actually landed on.

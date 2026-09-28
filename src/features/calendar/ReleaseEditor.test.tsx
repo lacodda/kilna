@@ -23,7 +23,9 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(NOW))
   const workspace = studio()
-  const kept = (id: unknown, patch: Partial<Release>) => {
+  // Wider than `Partial<Release>`: a patch's `Option<Option<T>>` fields
+  // accept an explicit `null` to clear them, which a plain `Partial` does not.
+  const kept = (id: unknown, patch: { [K in keyof Release]?: Release[K] | null }) => {
     const release = workspace.releases.find((r) => r.id === id)!
     Object.assign(release, patch)
     return release satisfies Release

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 pub const PROTOCOL_VERSION: u32 = 1;
 
 /// What a plugin says about itself when run with `--manifest`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Manifest {
     pub protocol_version: u32,
     pub name: String,
@@ -20,7 +20,7 @@ pub struct Manifest {
 }
 
 /// One action a plugin can perform.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Command {
     pub key: String,
     pub label: String,
@@ -35,7 +35,7 @@ pub struct Command {
 /// Deliberately few: every target is a place the core promises to keep calling,
 /// so each one added is a commitment. More can be added; none can be quietly
 /// removed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(rename_all = "snake_case")]
 pub enum Target {
     /// Offered on a release. Returns metadata merged into `release.meta`.
@@ -45,7 +45,7 @@ pub enum Target {
 }
 
 /// A plugin found on this machine, whether or not it can be used.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Plugin {
     /// Executable name, e.g. `kilna-plugin-youtube`.
     pub executable: String,

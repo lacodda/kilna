@@ -63,7 +63,7 @@ export function PluginBar({ target, id }: Props) {
           key={`${plugin.executable}:${command.key}`}
           size="sm"
           disabled={run.isPending}
-          title={command.description}
+          title={command.description ?? undefined}
           onClick={() => run.mutate({ executable: plugin.executable, command: command.key })}
         >
           {command.label}

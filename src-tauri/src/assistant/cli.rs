@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::error::{Error, Result};
 
 /// Where the CLI is and whether it can be used.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Availability {
     pub available: bool,
     pub version: Option<String>,

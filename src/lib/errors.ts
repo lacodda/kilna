@@ -1,26 +1,28 @@
 import i18n from '@/i18n'
 
-// Mirrors the `Error` enum in src-tauri/src/error.rs. The backend sends a
-// stable `kind` and a message written for a human; `kind` is the part we are
-// allowed to branch on. A refusal also carries a `code` and the `params` its
-// sentence needs - the backend never writes the sentence a person reads,
-// because the person may be reading Russian (ADR 0041).
+import type { JsonValue } from '@/lib/api/generated/serde_json/JsonValue'
+import type { Reason } from '@/lib/api/generated/Reason'
+
+// Mirrors the `Error` enum in src-tauri/src/error.rs. Its own wire shape is
+// hand-written, not generated: the backend sends a stable `kind` and a
+// message written for a human; `kind` is the part we are allowed to branch
+// on. A refusal also carries a `code` and the `params` its sentence needs -
+// the backend never writes the sentence a person reads, because the person
+// may be reading Russian (ADR 0041).
 export interface AppError {
   kind: string
   message: string
   code?: string
-  params?: Record<string, unknown>
+  params?: Record<string, JsonValue>
 }
 
 /**
- * A reason as the backend sends one: a key of the locale and the values its
- * sentence needs - `refusal.<code>`, `error.<kind>` or `skip.<why>`. Why a batch
- * passed an item over, or one problem among several.
+ * A reason, generated from `crate::error::Reason` (ADR 0003): a key of the
+ * locale and the values its sentence needs - `refusal.<code>`, `error.<kind>`
+ * or `skip.<why>`. Why a batch passed an item over, or one problem among
+ * several.
  */
-export interface Reason {
-  key: string
-  params: Record<string, unknown>
-}
+export type { Reason }
 
 // Kinds we have a sentence for. Anything else falls through to the backend's
 // own message rather than a lie about what went wrong.

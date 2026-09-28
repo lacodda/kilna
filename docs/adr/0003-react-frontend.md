@@ -1,7 +1,8 @@
 # 0003 — React and Vite for the frontend
 
 Date: 2026-08-10
-Status: Accepted
+Status: Accepted. The hand-written mirror of the IPC types is replaced by types
+generated from Rust: see ADR 0042.
 
 ## Context
 

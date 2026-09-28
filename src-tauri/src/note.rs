@@ -8,7 +8,7 @@ use crate::time::now;
 /// Ideas, lore, reference — one type distinguished by `kind` and tags rather
 /// than by four separate subsystems. The predecessor built those subsystems and
 /// they went unused; see the vision notes.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Note {
     pub id: String,
     pub profile_id: String,
@@ -21,7 +21,8 @@ pub struct Note {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewNote {
     pub body: String,
     #[serde(default)]
@@ -30,11 +31,13 @@ pub struct NewNote {
     pub title: Option<String>,
     #[serde(default)]
     pub work_id: Option<String>,
+    // Not an `Option`, so `optional_fields` cannot reach it - said by hand.
     #[serde(default)]
+    #[ts(optional = nullable)]
     pub tags: Vec<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
 pub struct NotePatch {
     #[serde(
         default,
@@ -56,8 +59,10 @@ pub struct NotePatch {
     pub work_id: Option<Option<String>>,
 }
 
-/// Narrowing applied to a listing.
-#[derive(Debug, Clone, Default, Deserialize)]
+/// Narrowing applied to a listing. Every field may be left out - serde
+/// reads a missing `Option` as none - and the generated type says so.
+#[derive(Debug, Clone, Default, Deserialize, ts_rs::TS)]
+#[ts(optional_fields = nullable)]
 pub struct NoteFilter {
     pub work_id: Option<String>,
     pub kind: Option<String>,
@@ -252,7 +257,7 @@ pub fn tags(conn: &Connection, profile_id: &str) -> Result<Vec<(String, i64)>> {
 
 /// What promoting a note asks for: the kind of work it becomes, and the title
 /// it goes by.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Promotion {
     pub kind: String,
     pub title: String,
@@ -260,7 +265,7 @@ pub struct Promotion {
 
 /// What a promotion made: the work, its first version, and the trash entry
 /// the note went to.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Promoted {
     pub work_id: String,
     pub version_id: String,
@@ -430,16 +435,8 @@ impl RawNote {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
+    use crate::fixtures;
     use crate::work::{self, NewWork};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     fn note(body: &str, tags: &[&str]) -> NewNote {
         NewNote {
@@ -453,7 +450,7 @@ mod tests {
 
     #[test]
     fn a_note_defaults_to_the_plain_kind() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let note = create(&conn, &profile_id, note("a thought", &[])).unwrap();
 
@@ -463,7 +460,7 @@ mod tests {
 
     #[test]
     fn tags_round_trip_through_the_database() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let created = create(&conn, &profile_id, note("tagged", &["idea", "winter"])).unwrap();
         let reloaded = get(&conn, &created.id).unwrap().unwrap();
@@ -473,7 +470,7 @@ mod tests {
 
     #[test]
     fn filtering_by_tag_matches_whole_tags_only() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         create(&conn, &profile_id, note("exact", &["win"])).unwrap();
         create(&conn, &profile_id, note("longer", &["winter"])).unwrap();
 
@@ -493,7 +490,7 @@ mod tests {
 
     #[test]
     fn search_covers_the_title_and_the_body() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let mut titled = note("unrelated body", &[]);
         titled.title = Some("Winter sketch".into());
         create(&conn, &profile_id, titled).unwrap();
@@ -515,7 +512,7 @@ mod tests {
 
     #[test]
     fn a_note_can_be_attached_to_a_work_and_filtered_by_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -547,7 +544,7 @@ mod tests {
 
     #[test]
     fn update_replaces_the_whole_tag_set() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let created = create(&conn, &profile_id, note("body", &["old"])).unwrap();
 
         let updated = update(
@@ -565,7 +562,7 @@ mod tests {
 
     #[test]
     fn update_can_clear_the_title() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let mut titled = note("body", &[]);
         titled.title = Some("Working title".into());
         let created = create(&conn, &profile_id, titled).unwrap();
@@ -585,7 +582,7 @@ mod tests {
 
     #[test]
     fn tags_are_counted_across_the_profile() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         create(&conn, &profile_id, note("one", &["idea", "winter"])).unwrap();
         create(&conn, &profile_id, note("two", &["idea"])).unwrap();
 
@@ -619,7 +616,7 @@ mod tests {
 
     #[test]
     fn a_promoted_note_becomes_the_first_version_of_a_work() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let idea = create(
             &conn,
             &profile_id,
@@ -648,7 +645,7 @@ mod tests {
 
     #[test]
     fn a_promoted_note_leaves_for_the_trash_and_can_come_back() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let idea = create(&conn, &profile_id, note("one text, one place", &[])).unwrap();
 
         let promoted = promote(&mut conn, &profile_id, &idea.id, "song", "Place").unwrap();
@@ -666,7 +663,7 @@ mod tests {
 
     #[test]
     fn a_promotion_to_nothing_changes_nothing() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let idea = create(&conn, &profile_id, note("still here", &[])).unwrap();
 
         assert!(promote(&mut conn, &profile_id, &idea.id, "limerick", "Title").is_err());
@@ -681,7 +678,7 @@ mod tests {
 
     #[test]
     fn deleting_an_unknown_note_fails() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
 
         assert!(delete(&conn, "nope").is_err());
     }

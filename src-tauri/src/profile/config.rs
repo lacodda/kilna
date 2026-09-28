@@ -15,7 +15,7 @@ pub const FORMAT: u32 = 2;
 /// Format 1 laid all of it flat on the profile; a format 1 document is still
 /// read — see [`RawProfileConfig`] — and comes out of the parser in format 2,
 /// with the flat vocabulary handed to every kind that declared none of its own.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 #[serde(from = "RawProfileConfig")]
 pub struct ProfileConfig {
     /// Which shape this document has. Written as [`FORMAT`]; read only to
@@ -189,7 +189,7 @@ impl From<RawProfileConfig> for ProfileConfig {
 /// through different doors. A kind that declares no axes is scored empty
 /// rather than on someone else's; a kind that declares no statuses cannot
 /// hold a work, and validation says so.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct WorkKind {
     pub key: String,
     pub label: Label,
@@ -646,7 +646,7 @@ pub const WIDGET_SIZES: [&str; 3] = ["s", "m", "l"];
 /// still read, or the whole profile would fail to load over one word the
 /// window can fall back from. Nothing in the backend draws a board, so a word
 /// costs it nothing.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ts_rs::TS)]
 pub struct OverviewConfig {
     /// One of [`OVERVIEW_LAYOUTS`].
     pub layout: String,
@@ -662,7 +662,7 @@ pub struct OverviewConfig {
 /// and the rest - and it is not checked against a list here: a widget this
 /// build does not know, written by a later one, is kept on save and simply
 /// not drawn, the way an unknown catalogue column is.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ts_rs::TS)]
 pub struct WidgetPlacement {
     pub id: String,
     /// One of [`WIDGET_SIZES`].
@@ -714,7 +714,7 @@ fn one_of(words: &[&str]) -> String {
 }
 
 /// The pace releases go out at.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Rhythm {
     /// Days the auto-layout keeps between releases. 1 is daily.
     pub every_days: u32,
@@ -743,7 +743,7 @@ pub struct Rhythm {
 /// labels for prompts and exports, where English is what we want anyway: a
 /// system prompt is written against a model's English, not the author's
 /// window, and translating one changes what the model does.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ts_rs::TS)]
 #[serde(untagged)]
 pub enum Label {
     /// One word, in whatever language it was typed in.
@@ -824,7 +824,7 @@ impl From<String> for Label {
 }
 
 /// A vocabulary entry: a stable key with a label the user may rename.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Kind {
     pub key: String,
     pub label: Label,
@@ -843,7 +843,7 @@ impl Kind {
 /// negative. The key is what the scene stores its text under and what a
 /// template (v0.62) will read; the hint is a line under the box saying what
 /// goes in it.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct SceneBlock {
     pub key: String,
     pub label: Label,
@@ -875,7 +875,7 @@ impl SceneBlock {
 /// rather than on a kind of work because a brick is not judged, shipped or
 /// storyboarded — one character serves the videos, the shorts and the covers.
 /// See ADR 0031.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct StyleType {
     pub key: String,
     pub label: Label,
@@ -908,7 +908,7 @@ impl StyleType {
 /// requirements — readiness is then judged on the universal facts alone, and
 /// every role mark reads as "not applicable" rather than "missing". A profile
 /// written before this field existed loads that way.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct ReleaseKind {
     pub key: String,
     pub label: Label,
@@ -955,7 +955,7 @@ pub struct ReleaseKind {
 /// — because a placeholder that meant one thing in one box and another thing
 /// in the next box would be two vocabularies wearing one syntax. See
 /// [`crate::assistant::prompt`].
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct ReleaseField {
     pub key: String,
     pub label: Label,
@@ -981,7 +981,7 @@ pub struct ReleaseField {
 }
 
 /// The shape of a release field's box.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(rename_all = "lowercase")]
 pub enum ReleaseFieldType {
     /// One line: a title.
@@ -1046,7 +1046,7 @@ impl ReleaseKind {
 /// automation cannot recognise a status by its key. `derive` is what it reads
 /// instead: the meaning behind the word, stated once by whoever wrote the
 /// profile.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Status {
     pub key: String,
     pub label: Label,
@@ -1077,7 +1077,9 @@ impl Status {
 /// The order of the variants is the order the automation checks them in, and
 /// `Ord` is derived from it deliberately: "which of these two is further along"
 /// is the whole question the automation asks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default, ts_rs::TS,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum Derive {
     /// Never derived. A decision someone made, with no fact in the data that
@@ -1095,7 +1097,7 @@ pub enum Derive {
 }
 
 /// One dimension a work is scored along.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Axis {
     pub key: String,
     pub label: Label,
@@ -1134,7 +1136,7 @@ pub struct Axis {
 /// choice is one option from a short list, stored by its key, with the value
 /// the option declares. All three land in the same 0–100 total, so a score
 /// snapshot never needs to know which kind an axis was when it was taken.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(rename_all = "lowercase")]
 pub enum AxisKind {
     #[default]
@@ -1148,14 +1150,14 @@ pub enum AxisKind {
 /// `at` is a mark on the axis's own scale, not on the 0-100 total: the person
 /// scoring is looking at this axis, and a rubric written in totals would be
 /// about a number they cannot see from here.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct AxisMark {
     pub at: f64,
     pub label: Label,
 }
 
 /// One answer a `choice` axis offers.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct AxisOption {
     /// Stored in the score snapshot; never renamed once scores hold it.
     pub key: String,
@@ -1185,7 +1187,7 @@ impl Axis {
 }
 
 /// A band a total score falls into. `min` is on the normalised 0–100 total.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Tier {
     pub key: String,
     pub label: Label,
@@ -1193,7 +1195,7 @@ pub struct Tier {
 }
 
 /// What one release kind makes of a set of answers.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct KindVerdict {
     pub kind: String,
     pub total: f64,
@@ -1211,7 +1213,7 @@ pub struct KindVerdict {
 /// it discusses is reading half of it. That is the whole reason the field
 /// exists rather than the code knowing which keys are commentary: the craft
 /// says what comments on what, the same way it says everything else (ADR 0001).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct VersionRole {
     pub key: String,
     pub label: Label,
@@ -1285,7 +1287,7 @@ impl VersionRole {
 ///
 /// `percent` is what is stored on the work, and what the dial draws. The key
 /// and the label are how a person speaks about it.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ts_rs::TS)]
 pub struct Stage {
     pub key: String,
     pub label: Label,
@@ -1341,7 +1343,7 @@ pub fn default_stages() -> Vec<Stage> {
 /// about this week and comes off. Keeping them apart means clearing the flags
 /// does not clear the vocabulary, and "on fire" does not offer itself while
 /// someone is typing "winter".
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Mark {
     pub key: String,
     pub label: Label,
@@ -1358,7 +1360,7 @@ pub struct Mark {
     pub icon: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, ts_rs::TS)]
 #[serde(rename_all = "lowercase")]
 pub enum MarkColour {
     /// The neutral one: a flag that carries no urgency of its own.
@@ -1372,7 +1374,7 @@ pub enum MarkColour {
 }
 
 /// A typed field inside `work.meta`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct MetaField {
     pub key: String,
     pub label: Label,
@@ -1380,7 +1382,7 @@ pub struct MetaField {
     pub field_type: MetaFieldType,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, ts_rs::TS)]
 #[serde(rename_all = "lowercase")]
 pub enum MetaFieldType {
     Text,

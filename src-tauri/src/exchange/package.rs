@@ -34,7 +34,7 @@ use crate::work;
 
 /// What a package export produced, so the person can be told rather than
 /// guess where it went.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageReport {
     /// The folder that was written, absolute.
@@ -304,33 +304,19 @@ pub fn has_anything(conn: &Connection, work_id: &str) -> Result<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
+    use crate::fixtures;
     use crate::release::NewRelease;
     use crate::scene::NewScene;
     use crate::work::NewWork;
     use serde_json::json;
 
     fn workspace() -> (Connection, String, tempfile::TempDir) {
-        let dir = tempfile::tempdir().unwrap();
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id, dir)
+        fixtures::workspace_with_media()
     }
 
     /// A video with two scenes, the second carrying a still prompt.
     fn video(conn: &mut Connection, profile_id: &str) -> String {
-        let work = work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "video".into(),
-                title: "The long way round".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap();
+        let work = fixtures::video(conn, profile_id, "The long way round");
 
         scene::create(
             conn,

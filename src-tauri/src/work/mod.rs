@@ -16,7 +16,7 @@ use crate::time::now;
 pub type Blocks = Map<String, Value>;
 
 /// A work as the frontend sees it.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Work {
     pub id: String,
     pub profile_id: String,
@@ -63,13 +63,17 @@ pub struct Work {
 ///
 /// `Default` so a caller — a test, an importer — names only what it means and
 /// is not rewritten every time the shape gains a field.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewWork {
     pub kind: String,
     pub title: String,
+    // Not an `Option`, so `optional_fields` cannot reach these - said by hand.
     #[serde(default)]
+    #[ts(optional = nullable)]
     pub tags: Vec<String>,
     #[serde(default)]
+    #[ts(optional = nullable)]
     pub marks: Vec<String>,
     #[serde(default)]
     pub status: Option<String>,
@@ -81,7 +85,7 @@ pub struct NewWork {
 
 /// Fields that may be changed. A field left as `None` is untouched, which is
 /// why every one of them is optional rather than defaulted.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
 pub struct WorkPatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
@@ -136,8 +140,10 @@ pub struct WorkPatch {
     pub cover: Option<Blocks>,
 }
 
-/// Narrowing applied to a listing.
-#[derive(Debug, Clone, Default, Deserialize)]
+/// Narrowing applied to a listing. Every field may be left out - serde
+/// reads a missing `Option` as none - and the generated type says so.
+#[derive(Debug, Clone, Default, Deserialize, ts_rs::TS)]
+#[ts(optional_fields = nullable)]
 pub struct WorkFilter {
     pub status: Option<String>,
     pub kind: Option<String>,
@@ -714,18 +720,10 @@ impl RawWork {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
+    use crate::fixtures;
     use serde_json::json;
 
     /// A workspace with the built-in profiles installed and one active.
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
-
     fn song(title: &str) -> NewWork {
         NewWork {
             kind: "song".into(),
@@ -736,7 +734,7 @@ mod tests {
 
     #[test]
     fn tags_are_trimmed_emptied_and_deduplicated_in_any_language() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = create(&conn, &profile_id, song("Winter road")).unwrap();
 
         let updated = update(
@@ -764,7 +762,7 @@ mod tests {
 
     #[test]
     fn the_first_spelling_of_a_tag_is_the_one_kept() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = create(&conn, &profile_id, song("Winter road")).unwrap();
 
         let updated = update(
@@ -784,7 +782,7 @@ mod tests {
 
     #[test]
     fn tags_and_marks_are_separate_lists() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = create(&conn, &profile_id, song("Winter road")).unwrap();
 
         let tagged = update(
@@ -817,7 +815,7 @@ mod tests {
 
     #[test]
     fn a_patch_that_names_neither_leaves_both_alone() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = create(&conn, &profile_id, song("Winter road")).unwrap();
         update(
             &conn,
@@ -846,7 +844,7 @@ mod tests {
 
     #[test]
     fn tags_are_counted_across_the_profile_most_used_first() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         for (title, tags) in [
             ("One", vec!["winter", "quiet"]),
             ("Two", vec!["winter"]),
@@ -874,7 +872,7 @@ mod tests {
 
     #[test]
     fn create_falls_back_to_the_profiles_first_status() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let work = create(&conn, &profile_id, song("First light")).unwrap();
 
@@ -885,7 +883,7 @@ mod tests {
 
     #[test]
     fn create_keeps_meta_as_a_json_object() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let mut new = song("Tempo test");
         new.meta = json!({ "bpm": 128, "key": "Am" }).as_object().cloned();
 
@@ -908,7 +906,7 @@ mod tests {
     /// removes it, and the fields it does not name stay as they were.
     #[test]
     fn fields_merge_by_key() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let mut new = song("Tempo test");
         new.meta = json!({ "bpm": 128, "key": "Am" }).as_object().cloned();
         let work = create(&conn, &profile_id, new).unwrap();
@@ -960,7 +958,7 @@ mod tests {
 
     #[test]
     fn works_are_positioned_in_order_of_creation() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let first = create(&conn, &profile_id, song("One")).unwrap();
         let second = create(&conn, &profile_id, song("Two")).unwrap();
@@ -971,7 +969,7 @@ mod tests {
 
     #[test]
     fn list_filters_by_status_kind_and_title() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         create(&conn, &profile_id, song("Winter road")).unwrap();
         let mut instrumental = song("Winter theme");
         instrumental.kind = "instrumental".into();
@@ -1021,7 +1019,7 @@ mod tests {
     // nothing else, so a Russian title was unfindable unless typed exactly.
     #[test]
     fn search_ignores_case_in_russian_too() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         create(&conn, &profile_id, song("Гавань огней")).unwrap();
 
         for query in ["гавань", "ГАВАНЬ", "огней"] {
@@ -1040,7 +1038,7 @@ mod tests {
 
     #[test]
     fn list_is_scoped_to_one_profile() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         create(&conn, &profile_id, song("Mine")).unwrap();
         conn.execute(
             "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
@@ -1058,7 +1056,7 @@ mod tests {
 
     #[test]
     fn update_touches_only_the_given_fields() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = create(&conn, &profile_id, song("Working title")).unwrap();
 
         let updated = update(
@@ -1078,7 +1076,7 @@ mod tests {
 
     #[test]
     fn update_can_clear_a_nullable_field() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let mut new = song("Grouped");
         conn.execute(
             "INSERT INTO collection (id, profile_id, kind, title, created_at, updated_at)
@@ -1105,7 +1103,7 @@ mod tests {
 
     #[test]
     fn update_of_an_unknown_work_fails() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
 
         let result = update(
             &conn,
@@ -1121,7 +1119,7 @@ mod tests {
 
     #[test]
     fn deleting_a_work_takes_its_notes_with_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = create(&conn, &profile_id, song("Doomed")).unwrap();
         conn.execute(
             "INSERT INTO note (id, profile_id, work_id, body, created_at, updated_at)
@@ -1141,7 +1139,7 @@ mod tests {
 
     #[test]
     fn a_tier_is_pinned_with_its_reason_and_unpinned_whole() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let id = create(&conn, &profile_id, song("Held")).unwrap().id;
 
         let held = pin_tier(&conn, &id, "clip", "the label already booked the shoot").unwrap();
@@ -1160,7 +1158,7 @@ mod tests {
 
     #[test]
     fn a_pin_needs_a_tier_the_profile_knows_and_a_reason() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let id = create(&conn, &profile_id, song("Held")).unwrap().id;
 
         let unknown = pin_tier(&conn, &id, "platinum", "because").unwrap_err();
@@ -1176,7 +1174,7 @@ mod tests {
 
     #[test]
     fn a_bookmark_is_set_and_cleared_through_the_patch() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let id = create(&conn, &profile_id, song("Later")).unwrap().id;
         assert_eq!(get(&conn, &id).unwrap().unwrap().bookmarked_at, None);
 

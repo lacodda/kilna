@@ -10,7 +10,7 @@ use crate::time::now;
 /// An album, a book, a season. One level deep on purpose: a collection never
 /// contains a collection. Nesting buys arbitrary depth and costs every screen
 /// a tree — see ADR 0001.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Collection {
     pub id: String,
     pub profile_id: String,
@@ -30,7 +30,8 @@ pub struct Collection {
     pub works: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewCollection {
     pub kind: String,
     pub title: String,
@@ -44,7 +45,7 @@ pub struct NewCollection {
     pub due_on: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
 pub struct CollectionPatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
@@ -364,16 +365,8 @@ impl RawCollection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
-    use crate::work::{self, NewWork, WorkFilter};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
+    use crate::fixtures;
+    use crate::work::{self, WorkFilter};
 
     fn album(conn: &Connection, profile_id: &str, title: &str) -> Collection {
         create(
@@ -392,22 +385,12 @@ mod tests {
     }
 
     fn a_work(conn: &Connection, profile_id: &str, title: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: title.into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::song(conn, profile_id, title).id
     }
 
     #[test]
     fn a_new_collection_is_empty_and_positioned_last() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let first = album(&conn, &profile_id, "First");
         let second = album(&conn, &profile_id, "Second");
@@ -419,7 +402,7 @@ mod tests {
 
     #[test]
     fn set_contents_orders_the_works_and_counts_them() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let collection = album(&conn, &profile_id, "Album");
         let one = a_work(&conn, &profile_id, "One");
         let two = a_work(&conn, &profile_id, "Two");
@@ -448,7 +431,7 @@ mod tests {
 
     #[test]
     fn set_contents_removes_works_left_out() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let collection = album(&conn, &profile_id, "Album");
         let stays = a_work(&conn, &profile_id, "Stays");
         let leaves = a_work(&conn, &profile_id, "Leaves");
@@ -463,7 +446,7 @@ mod tests {
 
     #[test]
     fn deleting_a_collection_leaves_its_works_alone() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let collection = album(&conn, &profile_id, "Album");
         let work_id = a_work(&conn, &profile_id, "Inside");
         set_contents(&conn, &collection.id, std::slice::from_ref(&work_id)).unwrap();
@@ -476,7 +459,7 @@ mod tests {
 
     #[test]
     fn collections_are_scoped_to_a_profile() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         album(&conn, &profile_id, "Mine");
         conn.execute(
             "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
@@ -494,14 +477,14 @@ mod tests {
 
     #[test]
     fn set_contents_on_an_unknown_collection_fails() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
 
         assert!(set_contents(&conn, "nope", &[]).is_err());
     }
 
     #[test]
     fn a_collection_carries_a_goal_and_refuses_one_that_is_not() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let album = album(&conn, &profile_id, "Twelve songs");
         assert_eq!(album.target_size, None);
 

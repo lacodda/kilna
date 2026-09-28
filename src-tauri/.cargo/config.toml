@@ -1,0 +1,4 @@
+# The wire carries plain JSON numbers, not bigint: i64/u64 (and their 128-bit
+# and NonZero kin) would otherwise generate TypeScript `bigint` by default.
+[env]
+TS_RS_LARGE_INT = "number"

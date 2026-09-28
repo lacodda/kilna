@@ -385,7 +385,7 @@ pub fn discard(conn: &Connection, ids: &[String]) -> Result<Discarded> {
 
 /// What a batch deletion did: the trash entries an undo names, and each work
 /// that stayed, with why.
-#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct Discarded {
     pub entries: Vec<String>,

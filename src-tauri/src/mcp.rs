@@ -1244,31 +1244,14 @@ pub fn registration_command() -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::work::NewWork;
+    use crate::fixtures;
 
+    /// [`fixtures::workspace`], with a song and its lyrics already on it - most
+    /// tests here read the transcript or the board against a work in hand.
     fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        let work_id = work::create(
-            &conn,
-            &profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: "Harbour lights".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id;
-        version::create(
-            &conn,
-            &work_id,
-            serde_json::from_value(json!({ "role": "lyrics", "body": "one line\ntwo lines" }))
-                .unwrap(),
-        )
-        .unwrap();
+        let (conn, profile_id) = fixtures::workspace();
+        let work_id = fixtures::song(&conn, &profile_id, "Harbour lights").id;
+        fixtures::version(&conn, &work_id, "lyrics", "one line\ntwo lines");
         (conn, work_id)
     }
 
@@ -1281,17 +1264,7 @@ mod tests {
     /// A video in the workspace's profile — a kind with a storyboard.
     fn video(conn: &Connection) -> String {
         let profile_id = profile::active(conn).unwrap().unwrap().id;
-        work::create(
-            conn,
-            &profile_id,
-            NewWork {
-                kind: "video".into(),
-                title: "Harbour lights — the clip".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::video(conn, &profile_id, "Harbour lights — the clip").id
     }
 
     fn first_message(conn: &Connection, work_id: &str) -> assistant::Message {

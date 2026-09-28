@@ -186,8 +186,9 @@ pub fn active_runs(state: State<'_, AppState>) -> Vec<String> {
 /// reference files travel together everywhere else, and a command with eight
 /// parameters is one where a caller swaps two of the same type without the
 /// compiler noticing.
-#[derive(Default, serde::Deserialize)]
+#[derive(Default, serde::Deserialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
+#[ts(optional_fields)]
 pub struct TaskAbout {
     #[serde(default)]
     pub version_id: Option<String>,
@@ -221,7 +222,7 @@ impl TaskAbout {
 }
 
 /// What a started task tells the card: where it went, and what it is.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct StartedTask {
     pub chat_id: String,
@@ -535,7 +536,7 @@ pub const TASK_QUEUE_EVENT: &str = "assistant:queue";
 ///
 /// Both halves travel together because a button asks one question — "is this
 /// action busy?" — and a running task and a queued one are both a yes.
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, Clone, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskQueue {
     /// Keys of tasks with a process alive.
@@ -579,7 +580,7 @@ pub fn active_tasks(state: State<'_, AppState>) -> Vec<String> {
 }
 
 /// What a batch became: started, queued, and each work passed over with why.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct StartedBatch {
     /// Works whose run is already going.

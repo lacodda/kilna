@@ -24,7 +24,7 @@ export function HookWidget({ work }: { work: Work }) {
   const box = (field: typeof first) => (
     <MetaParagraph
       label={sayLabel(field.label)}
-      value={work.meta[field.key]}
+      value={work.meta[field.key] ?? null}
       onCommit={(text) => setField(field.key, text)}
     />
   )

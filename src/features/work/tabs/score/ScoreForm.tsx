@@ -76,9 +76,9 @@ export function ScoreForm({ workId, trail, trend, work, scored, rater, onRater, 
         axes: values,
         // Empty only when the work has no draft to judge yet, and then the
         // backend attaches the work's current version, as it always has.
-        version_id: versionId === '' ? null : versionId,
-        note: note.trim() === '' ? null : note.trim(),
-        rater: rater.trim() === '' ? null : rater.trim(),
+        version_id: versionId === '' ? undefined : versionId,
+        note: note.trim() === '' ? undefined : note.trim(),
+        rater: rater.trim() === '' ? undefined : rater.trim(),
       }),
     failure: 'toast.scoreSaveFailed',
     refresh: refresh.score(workId),

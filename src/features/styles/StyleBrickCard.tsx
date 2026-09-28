@@ -14,12 +14,21 @@ import { Chip } from '@/components/ui/chip'
 /** How many references the strip across the top shows. */
 const SHOWN = 3
 
-/** The status in the line's words for it: ready is done, a draft is waiting. */
-const TONE = {
+/**
+ * The status in the line's words for it: ready is done, a draft is waiting.
+ *
+ * `status` is a plain `string` on the backend (forward compatible with a
+ * status a later build might add), so this is a lookup rather than an
+ * exhaustive match — a status this build does not know draws the same tone
+ * as a draft rather than failing to render.
+ */
+const TONE: Record<StyleBrickStatus, 'good' | 'warn' | 'soft'> = {
   ready: 'good',
   draft: 'warn',
   dropped: 'soft',
-} as const satisfies Record<StyleBrickStatus, 'good' | 'warn' | 'soft'>
+}
+const toneOf = (status: string): 'good' | 'warn' | 'soft' =>
+  status in TONE ? TONE[status as StyleBrickStatus] : 'warn'
 
 /** The strip's columns, by how many pictures it holds. */
 const COLUMNS = ['grid-cols-1', 'grid-cols-1', 'grid-cols-2', 'grid-cols-3'] as const
@@ -109,7 +118,7 @@ export function StyleBrickCard({ brick, type, icon: Icon, open, onOpen }: Props)
             <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text">
               {brick.name}
             </span>
-            <Badge variant={TONE[brick.status]} className="shrink-0">
+            <Badge variant={toneOf(brick.status)} className="shrink-0">
               {t(`styles.status.${brick.status}`)}
             </Badge>
           </span>

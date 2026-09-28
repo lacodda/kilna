@@ -33,8 +33,12 @@ use serde::Serialize;
 use crate::error::Result;
 
 /// What a hit points at, and what opening it should do.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
+// Renamed on the TypeScript side only: `profile::config::Kind` already holds
+// the generated name `Kind`, and the two would otherwise collide in
+// `generated/`.
+#[ts(rename = "HitKind")]
 pub enum Kind {
     Work,
     Version,
@@ -57,7 +61,7 @@ impl Kind {
 }
 
 /// One thing found.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Hit {
     pub kind: Kind,
     /// The row that matched: a work, a version, a note, a message. A note
@@ -391,36 +395,18 @@ fn one_line(text: &str) -> String {
 mod tests {
     use super::*;
     use crate::assistant::{self, NewChat};
-    use crate::db;
+    use crate::fixtures;
     use crate::note::{self, NewNote};
-    use crate::profile;
+    use crate::work;
     use crate::work::version::{self, NewVersion};
-    use crate::work::{self, NewWork};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     fn song(conn: &Connection, profile_id: &str, title: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: title.into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::song(conn, profile_id, title).id
     }
 
     #[test]
     fn a_work_is_found_by_part_of_its_title() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         song(&conn, &profile_id, "Harbour lights");
         song(&conn, &profile_id, "Winter shift");
 
@@ -437,7 +423,7 @@ mod tests {
     // FTS5's `unicode61` is what now makes this pass.
     #[test]
     fn case_is_ignored_in_russian_too() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         song(&conn, &profile_id, "Гавань огней");
 
         for query in ["гавань", "ГАВАНЬ", "ГаВаНь", "огней"] {
@@ -452,7 +438,7 @@ mod tests {
     // which is the whole feature failing quietly.
     #[test]
     fn a_word_matches_its_russian_inflections() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = song(&conn, &profile_id, "Кухня");
         let conn = conn;
         version::create(
@@ -482,7 +468,7 @@ mod tests {
     // not what the person asked for.
     #[test]
     fn every_word_has_to_appear() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         song(&conn, &profile_id, "Harbour lights");
         song(&conn, &profile_id, "Harbour bells");
 
@@ -497,7 +483,7 @@ mod tests {
     // dash must not turn into a syntax error the person cannot read.
     #[test]
     fn punctuation_is_searched_for_not_executed() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         song(&conn, &profile_id, "Harbour lights");
 
         for query in ["\"", "harbour OR", "-harbour", "harbour AND (", "NEAR("] {
@@ -512,7 +498,7 @@ mod tests {
     // were not searched at all before: `meta` was never even selected.
     #[test]
     fn a_work_is_found_by_its_craft_fields_and_tags() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = song(&conn, &profile_id, "Harbour lights");
         work::update(
             &conn,
@@ -542,7 +528,7 @@ mod tests {
 
     #[test]
     fn a_line_inside_a_version_is_found_and_quoted() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = song(&conn, &profile_id, "Harbour lights");
         let conn = conn;
         version::create(
@@ -572,7 +558,7 @@ mod tests {
     // trigger that fires only on insert would answer with last week's text.
     #[test]
     fn an_edited_body_is_searched_as_it_now_reads() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = song(&conn, &profile_id, "Harbour lights");
         let conn = conn;
         let version = version::create(
@@ -611,7 +597,7 @@ mod tests {
     // A deleted work must not leave hits pointing at nothing.
     #[test]
     fn a_deleted_work_leaves_the_index() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = song(&conn, &profile_id, "Harbour lights");
         conn.execute("DELETE FROM work WHERE id = ?1", params![work])
             .unwrap();
@@ -621,7 +607,7 @@ mod tests {
 
     #[test]
     fn a_note_is_found_by_its_body() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = song(&conn, &profile_id, "Harbour lights");
         note::create(
             &conn,
@@ -644,7 +630,7 @@ mod tests {
 
     #[test]
     fn a_note_on_nothing_is_found_and_names_itself() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let loose = note::create(
             &conn,
             &profile_id,
@@ -670,7 +656,7 @@ mod tests {
 
     #[test]
     fn a_comment_is_found_by_its_words_and_by_who_wrote_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let kept = crate::comment::create_minted(
             &conn,
             &profile_id,
@@ -697,7 +683,7 @@ mod tests {
 
     #[test]
     fn a_chat_message_is_found_and_carries_its_work() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = song(&conn, &profile_id, "Harbour lights");
         let chat = assistant::create(
             &conn,
@@ -727,7 +713,7 @@ mod tests {
 
     #[test]
     fn nothing_is_searched_for_when_the_query_is_blank() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         song(&conn, &profile_id, "Harbour lights");
 
         assert!(find(&conn, &profile_id, "").unwrap().is_empty());
@@ -738,7 +724,7 @@ mod tests {
 
     #[test]
     fn the_search_stays_inside_its_profile() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         conn.execute(
             "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
              SELECT 'other', 'other', 'Other', config, 0, 0, created_at, updated_at FROM profile LIMIT 1",
@@ -756,7 +742,7 @@ mod tests {
 
     #[test]
     fn each_kind_is_capped_so_one_kind_cannot_bury_the_rest() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         for index in 0..PER_KIND + 4 {
             song(&conn, &profile_id, &format!("Harbour {index}"));
         }
@@ -770,7 +756,7 @@ mod tests {
     // found by a word inside its lyric, with nothing of the sort in its title.
     #[test]
     fn a_work_is_listed_for_a_word_only_its_body_holds() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let kitchen = song(&conn, &profile_id, "Кухня");
         let harbour = song(&conn, &profile_id, "Гавань огней");
         let conn = conn;
@@ -799,7 +785,7 @@ mod tests {
     // worse than one that could not search at all.
     #[test]
     fn a_work_is_listed_once_however_often_it_matches() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = song(&conn, &profile_id, "Sea songs");
         let conn = conn;
         for index in 0..3 {
@@ -827,7 +813,7 @@ mod tests {
     // six would quietly hide the rest of the answer.
     #[test]
     fn the_catalogue_answer_is_not_capped() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         for index in 0..PER_KIND + 4 {
             song(&conn, &profile_id, &format!("Harbour {index}"));
         }
@@ -839,7 +825,7 @@ mod tests {
 
     #[test]
     fn the_catalogue_answer_stays_inside_its_profile() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         conn.execute(
             "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
              SELECT 'other', 'other', 'Other', config, 0, 0, created_at, updated_at FROM profile LIMIT 1",

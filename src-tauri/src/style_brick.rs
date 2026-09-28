@@ -20,7 +20,7 @@ use crate::minted::Minted;
 use crate::time::now;
 
 /// A brick of the workspace's style dictionary.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct StyleBrick {
     pub id: String,
     pub profile_id: String,
@@ -55,7 +55,8 @@ const SELECT: &str = "SELECT b.id, b.profile_id, b.type_key, b.name, b.descripti
      FROM style_brick b";
 
 /// What to make a brick out of.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewStyleBrick {
     pub type_key: String,
     pub name: String,
@@ -66,7 +67,7 @@ pub struct NewStyleBrick {
 }
 
 /// What may be changed about one.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
 pub struct StyleBrickPatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub type_key: Option<String>,
@@ -89,7 +90,8 @@ pub struct StyleBrickPatch {
 }
 
 /// Which bricks to list.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct StyleBrickFilter {
     /// One type only. Absent means every type.
     #[serde(default)]
@@ -97,7 +99,9 @@ pub struct StyleBrickFilter {
     /// Only bricks that can go into a prompt. The constructor sets it: a draft
     /// is unfinished by definition, and offering one silently is how a picker
     /// fills up with things nobody has touched.
+    // Not an `Option`, so `optional_fields` cannot reach it - said by hand.
     #[serde(default)]
+    #[ts(optional = nullable)]
     pub ready_only: bool,
     /// Text to match against the name and the description.
     #[serde(default)]
@@ -389,15 +393,9 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<StyleBrick> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fixtures;
+    use crate::profile;
     use crate::profile::config::StyleType;
-    use crate::{db, profile};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     fn brick(type_key: &str, name: &str) -> NewStyleBrick {
         NewStyleBrick {
@@ -410,7 +408,7 @@ mod tests {
 
     #[test]
     fn a_brick_without_a_description_is_a_draft_and_one_with_it_is_ready() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let draft = create(&conn, &profile_id, brick("character", "Ranger")).unwrap();
         assert_eq!(draft.status, DRAFT);
@@ -429,7 +427,7 @@ mod tests {
 
     #[test]
     fn describing_a_draft_makes_it_ready_but_does_not_revive_a_dropped_one() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let draft = create(&conn, &profile_id, brick("character", "Ranger")).unwrap();
         let described = describe(&conn, &draft.id, "A tall figure in a long coat.").unwrap();
@@ -460,7 +458,7 @@ mod tests {
 
     #[test]
     fn the_constructor_is_offered_only_ready_bricks() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         create(&conn, &profile_id, brick("character", "Draft one")).unwrap();
         let ready = create(
@@ -512,7 +510,7 @@ mod tests {
 
     #[test]
     fn two_bricks_of_one_type_may_not_share_a_name_but_two_types_may() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         create(&conn, &profile_id, brick("character", "Ranger")).unwrap();
         let clash = create(&conn, &profile_id, brick("character", "Ranger"));
@@ -534,7 +532,7 @@ mod tests {
 
     #[test]
     fn a_type_the_profile_does_not_name_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let refused = create(&conn, &profile_id, brick("nonsense", "Whatever")).unwrap_err();
         assert_eq!(refused.refusal().map(|r| r.code), Some("style.unknownType"));
@@ -555,7 +553,7 @@ mod tests {
 
     #[test]
     fn a_profile_naming_no_types_has_not_decided_yet() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let mut config = profile::config_for(&conn, &profile_id).unwrap();
         config.style_types.clear();
         // The actions that read `{styles}` go with the dictionary: a craft
@@ -572,7 +570,7 @@ mod tests {
 
     #[test]
     fn the_list_reads_in_the_profiles_order_of_types_not_the_alphabet() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let mut config = profile::config_for(&conn, &profile_id).unwrap();
         config.style_types = vec![
             StyleType::new("zebra", "Zebra"),
@@ -596,7 +594,7 @@ mod tests {
 
     #[test]
     fn a_search_matches_the_name_and_the_description() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         create(
             &conn,
@@ -624,7 +622,7 @@ mod tests {
 
     #[test]
     fn a_dropped_brick_is_left_out_of_the_counts() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let one = create(&conn, &profile_id, brick("character", "Kept")).unwrap();
         create(&conn, &profile_id, brick("character", "Retired")).unwrap();
@@ -644,7 +642,7 @@ mod tests {
 
     #[test]
     fn a_status_the_craft_does_not_have_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let one = create(&conn, &profile_id, brick("character", "Ranger")).unwrap();
 
         let refused = update(
@@ -665,7 +663,7 @@ mod tests {
 
     #[test]
     fn deleting_a_brick_leaves_a_tombstone_under_its_name() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let one = create(&conn, &profile_id, brick("character", "Ranger")).unwrap();
 
         // The road every deletion takes since v0.76.1: into the trash.

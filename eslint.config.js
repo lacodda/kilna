@@ -8,8 +8,9 @@ import dowel from 'dowel-ui/eslint'
 
 export default tseslint.config(
   // `docs` is its own Astro project with its own toolchain, and most of what
-  // lives there is generated.
-  { ignores: ['dist', 'src-tauri', 'docs'] },
+  // lives there is generated. `src/lib/api/generated` is ts-rs's output
+  // (`KILNA_BLESS=1 cargo test --test bindings`) - not written here either.
+  { ignores: ['dist', 'src-tauri', 'docs', 'src/lib/api/generated'] },
   js.configs.recommended,
   tseslint.configs.recommended,
   // The `flat` variant; the top-level one is still in the legacy shape.

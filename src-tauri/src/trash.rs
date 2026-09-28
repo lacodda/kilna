@@ -21,7 +21,7 @@ use crate::minted::Minted;
 ///
 /// The strings are stored in the database and travel to the frontend, so they
 /// are part of the format rather than an implementation detail.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub enum Entity {
     Work,
@@ -104,7 +104,7 @@ impl Entity {
 }
 
 /// One entry in the trash, as the screen shows it.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Deletion {
     pub id: String,
     pub entity: Entity,
@@ -1005,18 +1005,10 @@ fn json_to_sql(value: &Value) -> Result<SqlValue> {
 mod tests {
     use super::*;
     use crate::collection;
-    use crate::db;
+    use crate::fixtures;
     use crate::note::{self, NewNote};
-    use crate::profile;
     use crate::work::version::{self, NewVersion};
     use crate::work::{self, NewWork};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     fn song(title: &str) -> NewWork {
         NewWork {
@@ -1035,7 +1027,7 @@ mod tests {
 
     #[test]
     fn discarding_a_work_takes_its_children_and_gives_them_all_back() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(&conn, &profile_id, song("Winter road")).unwrap();
         version::create(
             &conn,
@@ -1091,7 +1083,7 @@ mod tests {
 
     #[test]
     fn a_restored_row_keeps_its_id_and_its_timestamps() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(&conn, &profile_id, song("Unchanged")).unwrap();
 
         let entry = discard(&conn, Entity::Work, &work.id).unwrap();
@@ -1109,7 +1101,7 @@ mod tests {
 
     #[test]
     fn a_version_cannot_come_back_while_its_work_is_still_in_the_trash() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(&conn, &profile_id, song("Doomed")).unwrap();
         let draft = version::create(
             &conn,
@@ -1152,7 +1144,7 @@ mod tests {
 
     #[test]
     fn the_trash_lists_what_each_entry_was_and_where_it_came_from() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(&conn, &profile_id, song("Winter road")).unwrap();
         let draft = version::create(
             &conn,
@@ -1180,7 +1172,7 @@ mod tests {
 
     #[test]
     fn an_entry_names_the_work_its_cover_is_drawn_from() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(&conn, &profile_id, song("Winter road")).unwrap();
         let draft = version::create(
             &conn,
@@ -1212,7 +1204,7 @@ mod tests {
 
     #[test]
     fn a_trashed_score_is_named_by_what_it_said_not_when() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(&conn, &profile_id, song("Winter road")).unwrap();
         let scored = crate::score::create(
             &conn,
@@ -1244,7 +1236,7 @@ mod tests {
 
     #[test]
     fn a_version_without_a_label_is_named_by_its_role_and_revision() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(&conn, &profile_id, song("Nameless")).unwrap();
         let draft = version::create(
             &conn,
@@ -1267,7 +1259,7 @@ mod tests {
 
     #[test]
     fn the_trash_is_scoped_to_its_profile() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let mine = work::create(&conn, &profile_id, song("Mine")).unwrap();
         conn.execute(
             "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
@@ -1287,7 +1279,7 @@ mod tests {
 
     #[test]
     fn purge_drops_one_entry_and_empty_drops_the_profiles() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let first = work::create(&conn, &profile_id, song("One")).unwrap();
         let second = work::create(&conn, &profile_id, song("Two")).unwrap();
         let first_entry = discard(&conn, Entity::Work, &first.id).unwrap();
@@ -1306,7 +1298,7 @@ mod tests {
 
     #[test]
     fn purging_a_work_takes_the_entries_that_needed_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(&conn, &profile_id, song("Doomed")).unwrap();
         let draft = version::create(
             &conn,
@@ -1352,7 +1344,7 @@ mod tests {
 
     #[test]
     fn a_restored_collection_gets_its_works_back() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let album = collection::create(
             &conn,
             &profile_id,
@@ -1393,7 +1385,7 @@ mod tests {
 
     #[test]
     fn restoring_a_collection_does_not_overrule_a_later_move() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let new_collection = |title: &str| collection::NewCollection {
             kind: "album".into(),
             title: title.into(),
@@ -1431,7 +1423,7 @@ mod tests {
 
     #[test]
     fn discarding_something_that_is_not_there_fails() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
 
         assert!(discard(&conn, Entity::Work, "nope").is_err());
         assert!(restore(&conn, "nope").is_err());
@@ -1440,7 +1432,7 @@ mod tests {
 
     #[test]
     fn a_note_without_a_work_survives_the_round_trip() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let note = note::create(
             &conn,
             &profile_id,
@@ -1508,7 +1500,7 @@ mod tests {
     /// pictures gone with it. It is a trash entity now, and comes back whole.
     #[test]
     fn a_style_goes_to_the_trash_with_its_references_and_comes_back_whole() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let media = tempfile::tempdir().unwrap();
         let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
 
@@ -1545,7 +1537,7 @@ mod tests {
 
     #[test]
     fn purging_a_style_removes_the_pictures_nothing_else_names() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let media = tempfile::tempdir().unwrap();
         let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
 
@@ -1560,7 +1552,7 @@ mod tests {
 
     #[test]
     fn emptying_the_trash_removes_the_pictures_it_held() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let media = tempfile::tempdir().unwrap();
         let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
 
@@ -1575,7 +1567,7 @@ mod tests {
     /// from under the other.
     #[test]
     fn a_purged_picture_that_a_live_row_still_names_stays() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let media = tempfile::tempdir().unwrap();
         let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
 

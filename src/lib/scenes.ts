@@ -1,4 +1,5 @@
 import type { Kind, NewScene, Scene, SceneBlock, SceneFrame, Work } from '@/lib/api/types'
+import { textOf } from '@/lib/json'
 
 /** What a row of a scene's material is: the still, or the clip cut from it. */
 export const FRAME = 'frame'
@@ -45,7 +46,7 @@ export function readinessOf(
   frames: SceneFrame[] = [],
 ): Readiness {
   const described = scene.description.trim() !== ''
-  const written = blocks.filter((block) => (scene.blocks[block.key] ?? '').trim() !== '').length
+  const written = blocks.filter((block) => textOf(scene.blocks[block.key]).trim() !== '').length
 
   if (!described && written === 0) return 'empty'
   if (described && written === blocks.length) {
@@ -130,8 +131,8 @@ export function movedTo(order: readonly string[], id: string, to: number): strin
 export function copyOf(scene: Scene): NewScene {
   return {
     work_id: scene.work_id,
-    section: scene.section,
-    shot_type: scene.shot_type,
+    section: scene.section ?? undefined,
+    shot_type: scene.shot_type ?? undefined,
     description: scene.description,
     blocks: { ...scene.blocks },
   }

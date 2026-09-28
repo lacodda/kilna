@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["tools/*.mjs"],
+  "entry": ["tools/*.mjs", "src/lib/api/types.ts"],
   "project": ["src/**/*.{ts,tsx,css}", "tools/**/*.mjs"],
-  "ignore": ["src/components/ui/**"],
+  "ignore": ["src/components/ui/**", "src/lib/api/generated/**"],
   "ignoreExportsUsedInFile": { "interface": true, "type": true }
 }

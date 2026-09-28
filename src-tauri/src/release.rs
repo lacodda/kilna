@@ -8,7 +8,7 @@ use crate::time::now;
 
 /// What ships, where and when. The predecessor spread this across three tables;
 /// here it is one row per unit of release.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Release {
     pub id: String,
     pub work_id: String,
@@ -34,7 +34,7 @@ pub struct Release {
 }
 
 /// A release with the context the calendar needs to draw it.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct ScheduledRelease {
     #[serde(flatten)]
     pub release: Release,
@@ -55,7 +55,8 @@ pub struct ScheduledRelease {
     pub work_stage: Option<i64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewRelease {
     pub work_id: String,
     pub kind: String,
@@ -71,7 +72,7 @@ pub struct NewRelease {
     pub time_zone: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
 pub struct ReleasePatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
@@ -115,7 +116,7 @@ pub struct ReleasePatch {
 ///
 /// Once carried the release that lost the slot; nothing loses a slot since
 /// the contest went in v0.44, and the field went with the model package.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Scheduling {
     pub release: Release,
 }
@@ -147,7 +148,7 @@ fn check_when(time: Option<&str>, zone: Option<&str>) -> Result<()> {
 /// How claiming a slot would end. One vocabulary for the dry run and the real
 /// one: v0.24 shipped a contest the screens described with a different rule,
 /// and a preview that can disagree with the drop is worse than none.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ts_rs::TS)]
 #[serde(rename_all = "lowercase")]
 pub enum Verdict {
     /// Nothing planned sits on the day.
@@ -162,7 +163,7 @@ pub enum Verdict {
 }
 
 /// What a day holds, shaped for the calendar to show it.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct SlotPreview {
     pub verdict: Verdict,
     /// Who is on the day, when anything is.
@@ -856,18 +857,10 @@ impl RawRelease {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
+    use crate::fixtures;
     use crate::score::{self, NewScore};
     use crate::work::{self, NewWork};
     use serde_json::json;
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     /// A work with an optional score, and one planned clip release.
     fn planned(conn: &Connection, profile_id: &str, title: &str, hook: Option<f64>) -> Release {
@@ -913,7 +906,7 @@ mod tests {
 
     #[test]
     fn a_new_release_starts_planned_and_unscheduled() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let release = planned(&conn, &profile_id, "Subject", None);
 
@@ -924,7 +917,7 @@ mod tests {
 
     #[test]
     fn scheduling_an_empty_slot_displaces_nothing() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", Some(8.0));
 
         let result = schedule(&conn, &release.id, "2026-09-01").unwrap();
@@ -941,7 +934,7 @@ mod tests {
     /// is refused, and nothing is quietly evicted.
     #[test]
     fn a_second_release_joins_a_day_rather_than_taking_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let first = planned(&conn, &profile_id, "First", Some(9.0));
         let second = planned(&conn, &profile_id, "Second", Some(4.0));
 
@@ -970,7 +963,7 @@ mod tests {
     /// the kind that shows up as a mystery months later.
     #[test]
     fn the_weaker_one_first_ends_the_same_way() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let weak = planned(&conn, &profile_id, "Weak", Some(4.0));
         let strong = planned(&conn, &profile_id, "Strong", Some(9.0));
 
@@ -984,7 +977,7 @@ mod tests {
     /// An unscored release is no longer a lesser citizen of the calendar.
     #[test]
     fn an_unscored_release_can_share_a_day_with_a_scored_one() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let scored = planned(&conn, &profile_id, "Scored", Some(3.0));
         let unscored = planned(&conn, &profile_id, "Unscored", None);
 
@@ -996,7 +989,7 @@ mod tests {
 
     #[test]
     fn rescheduling_the_same_release_does_not_displace_itself() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", Some(6.0));
         schedule(&conn, &release.id, "2026-09-01").unwrap();
 
@@ -1013,7 +1006,7 @@ mod tests {
     /// ordered by this number and a person chooses what to ship by it.
     #[test]
     fn one_score_speaks_for_a_work_on_every_screen() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let held = planned(&conn, &profile_id, "Subject", Some(7.0));
 
         // A second, weaker score taken later: with no current version named,
@@ -1068,7 +1061,7 @@ mod tests {
     /// lock and mean it.
     #[test]
     fn a_pinned_day_warns_the_layout_without_refusing_a_person() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let held = planned(&conn, &profile_id, "Held", Some(4.0));
         schedule(&conn, &held.id, "2026-09-01").unwrap();
@@ -1102,7 +1095,7 @@ mod tests {
     /// nothing displaced was ever pinned.
     #[test]
     fn losing_the_date_loses_the_pin() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         // By unscheduling.
         let first = planned(&conn, &profile_id, "First", Some(5.0));
@@ -1141,7 +1134,7 @@ mod tests {
     /// `update` edits a booking, `schedule` books one. Neither refuses.
     #[test]
     fn both_ways_of_writing_a_date_let_a_day_be_shared() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let holder = planned(&conn, &profile_id, "Holder", Some(9.0));
         schedule(&conn, &holder.id, "2026-09-05").unwrap();
@@ -1181,7 +1174,7 @@ mod tests {
     /// There is no slot to pin on something that holds no date.
     #[test]
     fn pinning_needs_a_date() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let queued = planned(&conn, &profile_id, "Subject", Some(5.0));
 
         assert!(set_slot_pin(&conn, &queued.id, true).is_err());
@@ -1189,7 +1182,7 @@ mod tests {
 
     #[test]
     fn a_released_slot_does_not_block_a_new_one() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let out = planned(&conn, &profile_id, "Already out", Some(9.0));
         schedule(&conn, &out.id, "2026-09-01").unwrap();
         mark_released(
@@ -1207,7 +1200,7 @@ mod tests {
 
     #[test]
     fn marking_released_records_the_link_and_the_date() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
 
         let out = mark_released(
@@ -1225,7 +1218,7 @@ mod tests {
 
     #[test]
     fn marking_released_can_name_the_day_it_went_out() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
 
         let out = mark_released(&conn, &release.id, None, Some("2026-07-18".into())).unwrap();
@@ -1242,7 +1235,7 @@ mod tests {
     /// not have been broken by making the uncommon one possible.
     #[test]
     fn marking_released_without_a_day_uses_this_moment() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
         let before = now();
 
@@ -1261,7 +1254,7 @@ mod tests {
     /// that cost a chat its order on CI.
     #[test]
     fn a_named_day_is_stored_the_same_width_as_a_recorded_moment() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let picked = planned(&conn, &profile_id, "Picked", None);
         let recorded = planned(&conn, &profile_id, "Recorded", None);
 
@@ -1276,7 +1269,7 @@ mod tests {
 
     #[test]
     fn a_day_that_is_not_a_day_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
 
         for bad in ["18-07-2026", "2026-07-18T12:00:00Z", "tomorrow", "2026-7-8"] {
@@ -1292,7 +1285,7 @@ mod tests {
 
     #[test]
     fn a_mark_can_be_taken_back() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
         mark_released(&conn, &release.id, None, None).unwrap();
 
@@ -1310,7 +1303,7 @@ mod tests {
     /// get a different answer depending on which field it looked at.
     #[test]
     fn taking_a_mark_back_leaves_no_half_released_row() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
         mark_released(&conn, &release.id, None, Some("2026-07-18".into())).unwrap();
 
@@ -1327,7 +1320,7 @@ mod tests {
     /// release was published under.
     #[test]
     fn taking_a_mark_back_keeps_the_link() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
         mark_released(
             &conn,
@@ -1346,7 +1339,7 @@ mod tests {
     /// slot are different facts, and only one of them was taken back.
     #[test]
     fn taking_a_mark_back_leaves_the_slot_alone() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
         update(
             &conn,
@@ -1366,14 +1359,14 @@ mod tests {
 
     #[test]
     fn taking_back_a_mark_on_a_release_that_is_not_there_is_refused() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
 
         assert!(unmark_released(&conn, "no-such-release").is_err());
     }
 
     #[test]
     fn marking_released_without_a_link_keeps_the_previous_one() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
         mark_released(
             &conn,
@@ -1390,7 +1383,7 @@ mod tests {
 
     #[test]
     fn the_queue_is_strongest_first_with_unscored_last() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         planned(&conn, &profile_id, "Middle", Some(5.0));
         planned(&conn, &profile_id, "Unscored", None);
         planned(&conn, &profile_id, "Best", Some(9.0));
@@ -1408,7 +1401,7 @@ mod tests {
 
     #[test]
     fn unscheduling_keeps_the_release_but_frees_the_slot() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", Some(7.0));
         schedule(&conn, &release.id, "2026-09-01").unwrap();
 
@@ -1429,7 +1422,7 @@ mod tests {
     /// a drift would show up as a plan booking days that are not free.
     #[test]
     fn the_preview_reports_what_the_day_holds() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let first = planned(&conn, &profile_id, "First", Some(9.0));
         let second = planned(&conn, &profile_id, "Second", Some(4.0));
@@ -1472,7 +1465,7 @@ mod tests {
 
     #[test]
     fn the_calendar_reports_how_ready_each_release_is() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         // Scored but missing both roles an audio release requires.
         let bare = planned(&conn, &profile_id, "Bare", Some(6.0));
@@ -1524,7 +1517,7 @@ mod tests {
 
     #[test]
     fn deleting_a_work_takes_its_releases_with_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Doomed", None);
 
         work::delete(&conn, &release.work_id).unwrap();
@@ -1534,7 +1527,7 @@ mod tests {
 
     #[test]
     fn a_release_needs_an_existing_work() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
 
         let result = create(
             &conn,
@@ -1554,7 +1547,7 @@ mod tests {
 
     #[test]
     fn scheduled_for_lists_only_what_holds_a_slot() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let booked = planned(&conn, &profile_id, "Booked", Some(9.0));
         let waiting = planned(&conn, &profile_id, "Waiting", Some(8.0));
 
@@ -1569,7 +1562,7 @@ mod tests {
 
     #[test]
     fn scheduled_for_leaves_a_released_date_alone() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let out = planned(&conn, &profile_id, "Shipped", Some(9.0));
         schedule(&conn, &out.id, "2026-09-10").unwrap();
         mark_released(&conn, &out.id, None, None).unwrap();
@@ -1581,7 +1574,7 @@ mod tests {
 
     #[test]
     fn a_release_carries_its_time_of_day_and_zone() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
 
         let timed = update(
@@ -1632,7 +1625,7 @@ mod tests {
 
     #[test]
     fn a_time_or_a_zone_that_would_not_read_back_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let release = planned(&conn, &profile_id, "Subject", None);
 
         for (time, zone) in [

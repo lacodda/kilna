@@ -22,7 +22,7 @@ pub const ARCHIVED: &str = "archived";
 /// Every state a comment can be in, in the order a person meets them.
 pub const STATES: [&str; 3] = [OPEN, POSTED, ARCHIVED];
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Comment {
     pub id: String,
     pub profile_id: String,
@@ -38,7 +38,8 @@ pub struct Comment {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewComment {
     pub channel: String,
     pub body: String,
@@ -54,7 +55,7 @@ pub struct NewComment {
 
 /// Fields that may be changed; `None` leaves one alone, `Some(None)` clears a
 /// field that can be empty.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
 pub struct CommentPatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub channel: Option<String>,
@@ -88,8 +89,10 @@ pub struct CommentPatch {
     pub commented_on: Option<Option<String>>,
 }
 
-/// Narrowing applied to a listing.
-#[derive(Debug, Clone, Default, Deserialize)]
+/// Narrowing applied to a listing. Every field may be left out - serde
+/// reads a missing `Option` as none - and the generated type says so.
+#[derive(Debug, Clone, Default, Deserialize, ts_rs::TS)]
+#[ts(optional_fields = nullable)]
 pub struct CommentFilter {
     pub work_id: Option<String>,
     pub channel: Option<String>,
@@ -437,29 +440,10 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Comment> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
-    use crate::work::{self, NewWork};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
+    use crate::fixtures;
 
     fn song(conn: &Connection, profile_id: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: "Harbour lights".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::song(conn, profile_id, "Harbour lights").id
     }
 
     fn said(channel: &str, body: &str) -> NewComment {
@@ -476,7 +460,7 @@ mod tests {
 
     #[test]
     fn a_comment_arrives_open_and_trimmed() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let kept = keep(
             &conn,
@@ -496,7 +480,7 @@ mod tests {
 
     #[test]
     fn a_comment_without_words_or_a_channel_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         assert!(keep(&conn, &profile_id, said("main", "   ")).is_err());
         assert!(keep(&conn, &profile_id, said("  ", "hello")).is_err());
@@ -504,7 +488,7 @@ mod tests {
 
     #[test]
     fn the_day_must_be_a_real_day() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let with_day = |day: &str| NewComment {
             commented_on: Some(day.into()),
             ..said("main", "hi")
@@ -518,7 +502,7 @@ mod tests {
 
     #[test]
     fn an_archived_comment_stays_out_of_the_inbox_until_asked_for() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let first = keep(&conn, &profile_id, said("main", "one")).unwrap();
         keep(&conn, &profile_id, said("main", "two")).unwrap();
         update_at(
@@ -551,7 +535,7 @@ mod tests {
 
     #[test]
     fn a_state_outside_the_three_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let kept = keep(&conn, &profile_id, said("main", "hi")).unwrap();
 
         let refused = update_at(
@@ -572,7 +556,7 @@ mod tests {
 
     #[test]
     fn channels_are_the_words_already_used_with_what_waits_on_each() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         keep(&conn, &profile_id, said("main", "a")).unwrap();
         keep(&conn, &profile_id, said("main", "b")).unwrap();
         let done = keep(&conn, &profile_id, said("second", "c")).unwrap();
@@ -598,7 +582,7 @@ mod tests {
 
     #[test]
     fn a_work_counts_its_comments_and_what_still_waits() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = song(&conn, &profile_id);
         let about = |body: &str| NewComment {
             work_id: Some(work_id.clone()),
@@ -626,7 +610,7 @@ mod tests {
 
     #[test]
     fn the_voice_of_a_channel_is_what_was_posted_there() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let post = |channel: &str, body: &str, reply: &str| {
             let kept = keep(&conn, &profile_id, said(channel, body)).unwrap();
             update_at(
@@ -661,7 +645,7 @@ mod tests {
 
     #[test]
     fn a_work_of_another_profile_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let refused = keep(
             &conn,
@@ -677,7 +661,7 @@ mod tests {
 
     #[test]
     fn a_comment_goes_to_the_trash_with_its_work_and_comes_back_with_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = song(&conn, &profile_id);
         let kept = keep(
             &conn,

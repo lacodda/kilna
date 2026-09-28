@@ -38,6 +38,10 @@ directory on first run. Schema changes are versioned migrations in
   `refusal`, in both languages
   ([ADR 0041](docs/adr/0041-a-refusal-is-a-code-and-the-window-says-it.md));
   `tests/refusal_keys.rs` holds the two to each other.
+- The types that cross IPC are generated from Rust into
+  `src/lib/api/generated/` ([ADR 0042](docs/adr/0042-the-ipc-types-are-generated-from-rust.md)).
+  After changing one, run `KILNA_BLESS=1 cargo test --test bindings` in
+  `src-tauri/`; the gate fails while the folder is stale.
 - Test fixtures are in `src-tauri/src/fixtures.rs`.
 - The app writes its own log to `logs/kilna.log` beside the workspace.
 

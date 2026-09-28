@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { JsonValue } from '@/lib/api/generated/serde_json/JsonValue'
 import type { Message, Run } from '@/lib/api/types'
 import { chatLabel, conversation, offers, pending, shownChat } from '@/lib/chat'
 
@@ -7,7 +8,7 @@ const message = (
   role: 'user' | 'assistant',
   body: string,
   at: string,
-  meta: Record<string, unknown> = {},
+  meta: Record<string, JsonValue> = {},
 ): Message => ({
   id: `m${String(++counter)}`,
   chat_id: 'c1',

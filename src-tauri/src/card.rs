@@ -16,7 +16,7 @@ use serde::Serialize;
 use crate::error::Result;
 
 /// The number beside each of a work's tabs.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, ts_rs::TS)]
 pub struct Counts {
     /// Versions of every role.
     pub versions: i64,
@@ -90,36 +90,17 @@ pub fn counts(conn: &Connection, work_id: &str) -> Result<Counts> {
 mod tests {
     use super::*;
     use crate::comment::{self, NewComment};
-    use crate::db;
+    use crate::fixtures;
     use crate::journal::{self, Record};
     use crate::link::{self, NewLink};
     use crate::minted::Minted;
     use crate::note::{self, NewNote};
-    use crate::profile;
     use crate::release::{self, NewRelease};
     use crate::scene::{self, NewScene};
     use crate::work::version::{self, NewVersion};
-    use crate::work::{self, NewWork};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     fn work(conn: &Connection, profile_id: &str, kind: &str, title: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: kind.into(),
-                title: title.into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::work(conn, profile_id, kind, title).id
     }
 
     fn lyrics(conn: &mut Connection, work_id: &str, body: &str) {
@@ -158,7 +139,7 @@ mod tests {
 
     #[test]
     fn a_new_work_counts_nothing_and_neither_does_a_missing_one() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let song = work(&conn, &profile_id, "song", "Tide");
 
         let fresh = counts(&conn, &song).unwrap();
@@ -175,7 +156,7 @@ mod tests {
 
     #[test]
     fn each_tab_counts_what_it_lists() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let song = work(&conn, &profile_id, "song", "Tide");
         let video = work(&conn, &profile_id, "video", "Tide (clip)");
         let other = work(&conn, &profile_id, "song", "Elsewhere");
@@ -281,7 +262,7 @@ mod tests {
 
     #[test]
     fn a_donor_counts_what_was_cut_from_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let film = work(&conn, &profile_id, "video", "Film");
         let short = work(&conn, &profile_id, "short", "Trailer");
         // Written straight in: the counter reads rows, and the stretch's own
@@ -304,7 +285,7 @@ mod tests {
 
     #[test]
     fn history_counts_no_further_than_its_tab_lists() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let song = work(&conn, &profile_id, "song", "Tide");
         let page = journal::for_entity(&conn, "work", &song).unwrap().len();
 

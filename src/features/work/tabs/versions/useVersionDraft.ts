@@ -49,9 +49,9 @@ export function useVersionDraft({ workId, role, onSaved }: Options) {
       createVersion(workId, {
         role,
         body: draft,
-        label: label.trim() === '' ? null : label.trim(),
+        label: label.trim() === '' ? undefined : label.trim(),
         make_current: makeCurrent,
-        parent_version_id: derivedFrom,
+        parent_version_id: derivedFrom ?? undefined,
       }),
     failure: 'toast.versionSaveFailed',
     refresh: refresh.version(workId),

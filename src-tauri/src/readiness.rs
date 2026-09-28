@@ -16,7 +16,7 @@ use crate::profile::config::ProfileConfig;
 use crate::release::{PLANNED, ScheduledRelease};
 
 /// One release's distance from shippable.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Readiness {
     /// One mark per version role of the profile, in the profile's order.
     pub roles: Vec<RoleMark>,
@@ -28,7 +28,7 @@ pub struct Readiness {
 
 /// Three states, not two: a short that needs no outline is different from a
 /// short that lacks one.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct RoleMark {
     pub role: String,
     /// `Some(true)` the role is there, `Some(false)` it is missing, `None` the

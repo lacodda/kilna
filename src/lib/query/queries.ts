@@ -164,12 +164,16 @@ export const queries = {
   styleBricksMatching: (typeKey: string | null, query: string) =>
     queryOptions({
       queryKey: keys.styleBricksMatching(typeKey, query),
-      queryFn: () => listStyleBricks({ type_key: typeKey, query: query === '' ? null : query }),
+      queryFn: () =>
+        listStyleBricks({
+          type_key: typeKey ?? undefined,
+          query: query === '' ? undefined : query,
+        }),
     }),
   readyStyleBricks: (query: string) =>
     queryOptions({
       queryKey: keys.readyStyleBricks(query),
-      queryFn: () => listStyleBricks({ ready_only: true, query: query === '' ? null : query }),
+      queryFn: () => listStyleBricks({ ready_only: true, query: query === '' ? undefined : query }),
     }),
   styleCounts: () => queryOptions({ queryKey: keys.styleCounts, queryFn: styleBrickCounts }),
   styleReferences: (id: string) =>

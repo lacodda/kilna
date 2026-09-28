@@ -176,7 +176,7 @@ impl std::fmt::Display for Refusal {
 ///
 /// A reason can be a value of another: a list of them is a list of problems,
 /// and both the window and [`english`] say each in turn.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, ts_rs::TS)]
 pub struct Reason {
     pub key: String,
     pub params: Map<String, Value>,

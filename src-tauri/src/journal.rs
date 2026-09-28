@@ -22,7 +22,7 @@ use crate::error::Result;
 use crate::time::now;
 
 /// How loudly an entry asks to be noticed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub enum Level {
     /// The ordinary record: something was created, edited, released.
@@ -52,7 +52,7 @@ impl Level {
 }
 
 /// One thing that happened, as the feed shows it.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Entry {
     pub id: String,
     /// The i18n key naming what happened, e.g. `work.created`.
@@ -375,19 +375,11 @@ pub fn work_title(conn: &Connection, work_id: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
+    use crate::fixtures;
 
     #[test]
     fn an_entry_keeps_its_key_and_values_rather_than_a_sentence() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         record(
             &conn,
@@ -408,7 +400,7 @@ mod tests {
 
     #[test]
     fn a_deduped_repeat_counts_up_instead_of_filling_the_feed() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let warning = || {
             Record::new("release.notReady")
                 .param("title", "Winter road")
@@ -427,7 +419,7 @@ mod tests {
 
     #[test]
     fn a_warning_that_comes_back_is_unread_again() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let warning = || Record::new("release.notReady").deduped("ready:r1").warn();
 
         record(&conn, &profile_id, warning());
@@ -448,7 +440,7 @@ mod tests {
     /// or every startup would relight the bell until the situation is fixed.
     #[test]
     fn a_once_entry_is_written_once_and_left_alone() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let warning = || {
             Record::new("release.notReady")
                 .param("title", "Winter road")
@@ -486,7 +478,7 @@ mod tests {
 
     #[test]
     fn only_warnings_are_counted_unread() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         record(&conn, &profile_id, Record::new("work.created"));
         record(&conn, &profile_id, Record::new("work.updated"));
@@ -502,7 +494,7 @@ mod tests {
 
     #[test]
     fn a_things_own_history_is_only_its_own() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         record(
             &conn,
@@ -523,7 +515,7 @@ mod tests {
 
     #[test]
     fn the_feed_is_scoped_to_its_profile() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         conn.execute(
             "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
              SELECT 'other', 'other', 'Other', config, 0, 0, created_at, updated_at FROM profile LIMIT 1",
@@ -539,7 +531,7 @@ mod tests {
 
     #[test]
     fn the_same_dedupe_key_in_another_profile_is_a_different_situation() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         conn.execute(
             "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
              SELECT 'other', 'other', 'Other', config, 0, 0, created_at, updated_at FROM profile LIMIT 1",
@@ -556,7 +548,7 @@ mod tests {
 
     #[test]
     fn sweeping_takes_old_read_entries_and_spares_unread_ones() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         // Three entries, all old enough to sweep; only some of them read. The
         // timestamp is written in the format `record` uses — RFC 3339 with a `T`
@@ -616,7 +608,7 @@ mod tests {
 
     #[test]
     fn recording_into_a_broken_journal_does_not_raise() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         conn.execute_batch("DROP TABLE journal").unwrap();
 
         // The point of the signature: this compiles without a `?` and the caller
@@ -627,7 +619,7 @@ mod tests {
 
     #[test]
     fn a_title_is_read_while_the_work_is_still_there() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = crate::work::create(
             &conn,
             &profile_id,

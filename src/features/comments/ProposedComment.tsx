@@ -38,7 +38,7 @@ export function ProposedComment({ pending, channels, onKept }: Props) {
   const suggested =
     read.work_id ??
     workByTitle(
-      read.about,
+      read.about ?? undefined,
       (works.data ?? []).map((w) => ({ id: w.work_id, title: w.title })),
     )
 
@@ -58,15 +58,15 @@ export function ProposedComment({ pending, channels, onKept }: Props) {
         comment: {
           channel: channel.trim(),
           body: body.trim(),
-          author: author.trim() === '' ? null : author.trim(),
-          commented_on: day === '' ? null : day,
-          work_id: chosen,
+          author: author.trim() === '' ? undefined : author.trim(),
+          commented_on: day === '' ? undefined : day,
+          work_id: chosen ?? undefined,
         },
       }),
     failure: 'comments.saveFailed',
     refresh: refresh.keptComment,
     onSuccess: (applied) => {
-      if (applied.comment !== undefined) onKept(applied.comment)
+      if (applied.comment !== undefined && applied.comment !== null) onKept(applied.comment)
     },
   })
 

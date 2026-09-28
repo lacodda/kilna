@@ -46,7 +46,7 @@ const MARK_ICONS: Record<string, LucideIcon> = {
 }
 
 export function markIconOf(mark: Pick<Mark, 'icon'>): LucideIcon {
-  return (mark.icon !== undefined ? MARK_ICONS[mark.icon] : undefined) ?? Tag
+  return (mark.icon != null ? MARK_ICONS[mark.icon] : undefined) ?? Tag
 }
 
 /**

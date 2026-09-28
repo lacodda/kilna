@@ -74,7 +74,7 @@ export function InsertVersionDialog({
       const version = await createVersion(workId, {
         role,
         body,
-        label: trimmed,
+        label: trimmed ?? undefined,
         make_current: makeCurrent,
       })
       return version.id

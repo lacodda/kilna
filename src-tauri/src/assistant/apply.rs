@@ -33,7 +33,7 @@ pub fn is_pending(message: &Message) -> bool {
 /// *noticed*. A proposal that came in over MCP while the window was on
 /// another screen used to wait in a chat nobody had a reason to open — the
 /// assistant had done the work and said so to an empty room.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Pending {
     pub message_id: String,
     pub chat_id: String,
@@ -107,7 +107,7 @@ pub fn pending(conn: &Connection, profile_id: &str) -> Result<Vec<Pending>> {
 /// A comment or a reply waiting to be kept, with what it says: the comments
 /// screen shows each where it belongs — a reply under its comment, a
 /// comment read off a screenshot at the top of the inbox.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct CommentProposal {
     pub message_id: String,
     pub chat_id: String,

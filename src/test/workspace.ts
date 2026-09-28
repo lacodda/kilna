@@ -647,21 +647,23 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_work_assets: () => noAssets,
 
     list_notes: ({ filter }) => {
-      const wanted = (filter ?? {}) as { work_id?: string; kind?: string; tag?: string }
+      const wanted = (filter ?? {}) as {
+        work_id?: string | null
+        kind?: string | null
+        tag?: string | null
+      }
       return studio.notes.filter(
         (note) =>
-          (wanted.work_id === undefined || note.work_id === wanted.work_id) &&
-          (wanted.kind === undefined || note.kind === wanted.kind) &&
-          (wanted.tag === undefined || note.tags.includes(wanted.tag)),
+          (wanted.work_id == null || note.work_id === wanted.work_id) &&
+          (wanted.kind == null || note.kind === wanted.kind) &&
+          (wanted.tag == null || note.tags.includes(wanted.tag)),
       )
     },
     list_tags: () => counted(studio.notes.flatMap((n) => n.tags)),
 
     list_comments: ({ filter }) => {
-      const wanted = (filter ?? {}) as { work_id?: string }
-      return studio.comments.filter(
-        (c) => wanted.work_id === undefined || c.work_id === wanted.work_id,
-      )
+      const wanted = (filter ?? {}) as { work_id?: string | null }
+      return studio.comments.filter((c) => wanted.work_id == null || c.work_id === wanted.work_id)
     },
     comment_channels: () => counted(studio.comments.map((c) => c.channel)),
     pending_comment_proposals: () => [],

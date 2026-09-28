@@ -19,7 +19,7 @@ use serde_json::{Map, Value};
 use crate::profile::config::{Label, ProfileConfig, WorkKind};
 
 /// What an answer proposed, if anything.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Proposal {
     /// Values along the profile's scoring axes.
@@ -133,7 +133,7 @@ pub enum Proposal {
 }
 
 /// What a scenes proposal does to the board already on the work.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, ts_rs::TS)]
 #[serde(rename_all = "lowercase")]
 pub enum BoardChange {
     /// The scenes go after the last; the board is otherwise untouched.
@@ -173,7 +173,7 @@ impl BoardChange {
 /// A scene inside a proposal: the fields of a row, already checked against
 /// the kind's words — the shot type and the block keys are the kind's, and
 /// the span is a span.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 pub struct PackagedScene {
     /// The number on the board; after the last when omitted on an added
     /// scene, and in order from 1 on a replaced board.
@@ -195,7 +195,7 @@ pub struct PackagedScene {
 }
 
 /// A version inside a package: the text travels with it.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 pub struct PackagedVersion {
     pub role: String,
     pub body: String,
@@ -210,7 +210,7 @@ pub struct PackagedVersion {
 /// leave a value under a key no box will ever show. A date is optional: a
 /// release with none is queued, which is what "plan this, I will find it a
 /// day" means.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 pub struct PackagedRelease {
     pub kind: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -226,7 +226,7 @@ pub struct PackagedRelease {
 }
 
 /// A note inside a package.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 pub struct PackagedNote {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
@@ -235,7 +235,7 @@ pub struct PackagedNote {
 
 /// Marks along the axes, checked against the kind — the inside of a score
 /// proposal, reused by a package.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 pub struct Marks {
     pub axes: Map<String, Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

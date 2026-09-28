@@ -79,7 +79,7 @@ describe('text that saves itself', () => {
         version: {
           role: 'lyrics',
           body: 'first line, changed',
-          label: null,
+          label: undefined,
           make_current: true,
           parent_version_id: 'v1',
         },

@@ -31,7 +31,7 @@ use crate::minted::Minted;
 pub const COVER: &str = "cover";
 
 /// A file attached to a work or a release.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Asset {
     pub id: String,
     pub profile_id: String,
@@ -52,7 +52,8 @@ pub struct Asset {
 }
 
 /// What to attach, and to what.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewAsset {
     #[serde(default)]
     pub work_id: Option<String>,
@@ -369,35 +370,18 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Asset> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::work::{self, NewWork};
-    use crate::{db, profile};
+    use crate::fixtures;
 
     fn workspace() -> (Connection, String, tempfile::TempDir) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        let media = tempfile::tempdir().unwrap();
-        (conn, profile_id, media)
+        fixtures::workspace_with_media()
     }
 
     fn a_work(conn: &Connection, profile_id: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: "Harbour lights".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::song(conn, profile_id, "Harbour lights").id
     }
 
     fn a_file(dir: &Path, name: &str) -> PathBuf {
-        let path = dir.join(name);
-        std::fs::write(&path, b"not really a picture").unwrap();
-        path
+        fixtures::file(dir, name)
     }
 
     /// A reference belongs to a style brick and to nothing else: a brick is

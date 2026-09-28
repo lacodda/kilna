@@ -19,7 +19,7 @@ use crate::error::{Error, Result};
 /// answer and the names of tools being used, not every token. The shapes the
 /// CLI prints grow over time, and everything unrecognised is ignored rather
 /// than shown as noise.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Event {
     /// The CLI accepted the prompt and named the session. Arrives first.
@@ -33,8 +33,10 @@ pub enum Event {
     /// The turn finished. Carries what the message row needs.
     Finished {
         body: String,
+        #[ts(optional)]
         #[serde(skip_serializing_if = "Option::is_none")]
         cost_usd: Option<f64>,
+        #[ts(optional)]
         #[serde(skip_serializing_if = "Option::is_none")]
         duration_ms: Option<u64>,
     },

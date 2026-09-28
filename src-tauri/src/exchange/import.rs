@@ -16,7 +16,7 @@ use crate::work::version::NewVersion;
 use crate::work::{self, NewWork, version};
 
 /// What an import brought in.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct ImportReport {
     pub works: usize,
     pub versions: usize,
@@ -334,8 +334,7 @@ fn word_for(config: &WorkKind, meaning: Derive) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
+    use crate::fixtures;
     use crate::work::WorkFilter;
 
     /// A stand-in for the predecessor's database, with the columns the import
@@ -367,19 +366,12 @@ mod tests {
         .unwrap();
     }
 
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
-
     #[test]
     fn an_import_brings_works_bodies_and_scores() {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let report = from_legacy(&conn, &source, &profile_id).unwrap();
 
@@ -400,7 +392,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         from_legacy(&conn, &source, &profile_id).unwrap();
 
         let works = work::list(
@@ -429,7 +421,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         from_legacy(&conn, &source, &profile_id).unwrap();
 
         let works = work::list(
@@ -458,7 +450,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         from_legacy(&conn, &source, &profile_id).unwrap();
 
         let works = work::list(
@@ -486,7 +478,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         from_legacy(&conn, &source, &profile_id).unwrap();
 
         let works = work::list(
@@ -507,7 +499,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         from_legacy(&conn, &source, &profile_id).unwrap();
 
         let again = from_legacy(&conn, &source, &profile_id).unwrap();
@@ -528,7 +520,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         from_legacy(&conn, &source, &profile_id).unwrap();
 
         let thrown_out = work::list(&conn, &profile_id, &WorkFilter::default())
@@ -559,7 +551,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         from_legacy(&conn, &source, &profile_id).unwrap();
         let id = work::list(&conn, &profile_id, &WorkFilter::default())
             .unwrap()
@@ -584,7 +576,7 @@ mod tests {
             .unwrap()
             .execute_batch("CREATE TABLE unrelated (id INTEGER)")
             .unwrap();
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let error = from_legacy(&conn, &stranger, &profile_id).unwrap_err();
 
@@ -598,7 +590,7 @@ mod tests {
     #[test]
     fn importing_a_missing_file_fails() {
         let dir = tempfile::tempdir().unwrap();
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         assert!(from_legacy(&conn, &dir.path().join("nope.db"), &profile_id).is_err());
     }

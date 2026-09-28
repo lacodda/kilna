@@ -108,7 +108,7 @@ describe('the score tab', () => {
     expect(backend.argsOf('score_work')).toEqual([
       {
         workId: IDS.song,
-        score: { axes: { hook: 10 }, version_id: IDS.lyrics, note: null, rater: null },
+        score: { axes: { hook: 10 }, version_id: IDS.lyrics, note: undefined, rater: undefined },
       },
     ])
   })

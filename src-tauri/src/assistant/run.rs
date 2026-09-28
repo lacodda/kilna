@@ -33,7 +33,7 @@ use super::stream::{self, Event, Stream};
 pub const PARALLEL_LIMIT: usize = 3;
 
 /// Where a run got to.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub enum RunState {
     Running,
@@ -72,12 +72,13 @@ impl RunState {
 }
 
 /// One run, as the panel sees it.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Run {
     pub id: String,
     pub chat_id: String,
     pub prompt: String,
     pub state: RunState,
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
     /// Everything the run has said so far, oldest first.
@@ -85,21 +86,24 @@ pub struct Run {
     /// What this run is, when it was started as a named task. Held in memory
     /// only: a restart breaks every run in flight, so a stored key would name
     /// a button nothing can still be waiting on.
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub task: Option<String>,
     pub started_at: String,
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ended_at: Option<String>,
 }
 
 /// What the frontend is handed for each event as it happens.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Emission {
     pub run_id: String,
     pub chat_id: String,
     /// The task key, when this run was started as one. What lets a listener
     /// that is nowhere near the chat — the launcher, a card's action bar —
     /// recognise the run as the button it disabled, and say so when it ends.
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub task: Option<String>,
     pub event: Event,
@@ -795,14 +799,8 @@ mod tests {
     use super::*;
     use crate::assistant::NewChat;
     use crate::db;
+    use crate::fixtures;
     use crate::profile;
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     fn chat(conn: &Connection, profile_id: &str) -> String {
         super::super::create(
@@ -831,7 +829,7 @@ mod tests {
 
     #[test]
     fn a_run_that_survived_a_crash_is_swept_at_startup() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let orphan = record(&conn, &chat_id, "running");
         let finished = record(&conn, &chat_id, "done");
@@ -851,7 +849,7 @@ mod tests {
 
     #[test]
     fn sweeping_twice_changes_nothing_the_second_time() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         record(&conn, &chat_id, "running");
 
@@ -861,7 +859,7 @@ mod tests {
 
     #[test]
     fn a_swept_run_says_why_it_ended() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let orphan = record(&conn, &chat_id, "running");
 
@@ -874,7 +872,7 @@ mod tests {
 
     #[test]
     fn runs_come_back_newest_first() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
 
         let first = record(&conn, &chat_id, "done");
@@ -892,7 +890,7 @@ mod tests {
 
     #[test]
     fn a_runs_events_are_replayed_in_order() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let run_id = record(&conn, &chat_id, "running");
 
@@ -915,7 +913,7 @@ mod tests {
 
     #[test]
     fn a_corrupt_event_log_does_not_hide_the_run() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let run_id = record(&conn, &chat_id, "failed");
         conn.execute(
@@ -932,7 +930,7 @@ mod tests {
 
     #[test]
     fn an_event_shape_from_a_newer_build_is_skipped_not_fatal() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let run_id = record(&conn, &chat_id, "done");
         conn.execute(
@@ -953,7 +951,7 @@ mod tests {
 
     #[test]
     fn deleting_a_chat_takes_its_runs_with_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         record(&conn, &chat_id, "done");
 
@@ -967,7 +965,7 @@ mod tests {
 
     #[test]
     fn the_schema_refuses_a_state_the_code_does_not_know() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
 
         let invented = conn.execute(
@@ -981,7 +979,7 @@ mod tests {
 
     #[test]
     fn every_state_survives_a_round_trip_through_the_database() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
 
         for state in [
@@ -1119,7 +1117,7 @@ mod tests {
 
     #[test]
     fn what_was_asked_is_tied_to_its_run() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
 
         record_asked(&conn, &chat_id, "hello", "run-9").unwrap();
@@ -1301,7 +1299,7 @@ mod tests {
 
     #[test]
     fn a_finished_run_gives_its_slot_back() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let runs = Arc::new(Runs::new());
         let run_id = record(&conn, &chat_id, "running");
@@ -1323,7 +1321,7 @@ mod tests {
     fn a_run_survives_a_database_that_will_not_open() {
         // Storage failing mid-run must not take the process down: the answer is
         // still worth showing, and the panel is the only place left to show it.
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let runs = Arc::new(Runs::new());
         let run_id = record(&conn, &chat_id, "running");
@@ -1348,7 +1346,7 @@ mod tests {
 
     #[test]
     fn the_limit_refuses_a_fourth_run_rather_than_spawning_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let runs = Arc::new(Runs::new());
 
@@ -1388,7 +1386,7 @@ mod tests {
     /// were free — or fills slots that were not.
     #[test]
     fn a_slot_is_free_until_the_limit_is_reached_and_not_after() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let runs = Arc::new(Runs::new());
 
@@ -2008,7 +2006,7 @@ The second verse is the weak one."
 
     #[test]
     fn a_task_already_going_is_refused_a_second_time() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let runs = Arc::new(Runs::new());
 
@@ -2045,7 +2043,7 @@ The second verse is the weak one."
 
     #[test]
     fn the_duplicate_check_is_by_task_not_by_chat_or_work() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let runs = Arc::new(Runs::new());
 
@@ -2088,7 +2086,7 @@ The second verse is the weak one."
 
     #[test]
     fn typed_prompts_never_count_as_duplicates_of_each_other() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let runs = Arc::new(Runs::new());
 
@@ -2122,7 +2120,7 @@ The second verse is the weak one."
     /// A run that never started answered nothing, so the question stands.
     #[test]
     fn a_refused_run_leaves_the_question_standing() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let runs = Arc::new(Runs::new());
         super::super::mark_waiting(&conn, &chat_id).unwrap();
@@ -2151,7 +2149,7 @@ The second verse is the weak one."
 
     #[test]
     fn starting_a_run_in_a_chat_that_is_gone_touches_nothing() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
         let runs = Arc::new(Runs::new());
 
         assert!(matches!(
@@ -2172,7 +2170,7 @@ The second verse is the weak one."
         //
         // What is asserted is the thing that was broken: the stop reaches the
         // process while the reader is inside `next_event`, not after it.
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat_id = chat(&conn, &profile_id);
         let runs = Arc::new(Runs::new());
         let run_id = record(&conn, &chat_id, "running");

@@ -16,7 +16,7 @@ use crate::error::{Error, Result};
 use crate::time::now;
 
 /// One conversation, optionally about a particular work.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Chat {
     pub id: String,
     pub profile_id: String,
@@ -25,22 +25,25 @@ pub struct Chat {
     pub session_id: Option<String>,
     /// When a background task in this chat stopped to ask something, and the
     /// question is still unanswered. Null when nothing is pending.
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub waiting_since: Option<String>,
     /// The profile action that opened this chat, when one did. Read on
     /// every turn for the action's method (ADR 0021).
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub action: Option<String>,
     /// The version the action was started on, when it was started on one
     /// rather than on the work's current version. What the chat proposes
     /// is about it, and applying binds to it.
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version_id: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Message {
     pub id: String,
     pub chat_id: String,
@@ -51,13 +54,14 @@ pub struct Message {
 }
 
 /// A chat with everything said in it.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Transcript {
     pub chat: Chat,
     pub messages: Vec<Message>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewChat {
     #[serde(default)]
     pub work_id: Option<String>,
@@ -70,23 +74,27 @@ pub struct NewChat {
 }
 
 /// A chat as the list draws it: named, priced, tied to its work.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct ChatSummary {
     pub id: String,
     pub work_id: Option<String>,
     /// Title of the work the chat is about, so the list can say so.
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub work_title: Option<String>,
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     /// The first thing asked, cut to a caption — the name of a chat nobody
     /// named.
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub first_prompt: Option<String>,
     /// What the answers in this chat have cost so far, as the CLI reported
     /// it. Turns that died before reporting are not in the sum.
     pub cost_usd: f64,
     /// Set while this chat holds an unanswered question.
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub waiting_since: Option<String>,
     pub updated_at: String,
@@ -395,22 +403,14 @@ fn read_chat(row: &rusqlite::Row<'_>) -> rusqlite::Result<Chat> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fixtures;
     use serde_json::json;
 
-    use crate::db;
-    use crate::profile;
     use crate::work::{self, NewWork};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     #[test]
     fn a_new_chat_has_no_session_until_a_turn_happens() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         let chat = create(
             &conn,
@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn messages_come_back_in_the_order_they_were_said() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
             &profile_id,
@@ -468,7 +468,7 @@ mod tests {
     /// SQLite keeps it for us.
     #[test]
     fn messages_sharing_a_timestamp_keep_the_order_they_were_written() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
             &profile_id,
@@ -507,7 +507,7 @@ mod tests {
 
     #[test]
     fn deleting_a_work_takes_its_chats_with_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -536,7 +536,7 @@ mod tests {
 
     #[test]
     fn deleting_a_chat_takes_its_messages_with_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
             &profile_id,
@@ -559,7 +559,7 @@ mod tests {
 
     #[test]
     fn the_schema_refuses_an_invented_role() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
             &profile_id,
@@ -576,7 +576,7 @@ mod tests {
 
     #[test]
     fn a_summary_prices_the_chat_from_what_its_answers_cost() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
             &profile_id,
@@ -608,7 +608,7 @@ mod tests {
 
     #[test]
     fn an_unnamed_chat_borrows_its_first_question() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
             &profile_id,
@@ -642,7 +642,7 @@ mod tests {
 
     #[test]
     fn a_long_first_question_is_cut_by_characters_not_bytes() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
             &profile_id,
@@ -664,7 +664,7 @@ mod tests {
 
     #[test]
     fn summaries_narrow_to_a_work_and_name_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -705,7 +705,7 @@ mod tests {
 
     #[test]
     fn renaming_a_chat_does_not_reorder_the_list() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let older = create(
             &conn,
             &profile_id,
@@ -749,7 +749,7 @@ mod tests {
 
     #[test]
     fn a_blank_rename_clears_the_title() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
             &profile_id,
@@ -768,14 +768,14 @@ mod tests {
 
     #[test]
     fn renaming_a_missing_chat_fails() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
 
         assert!(rename(&conn, "nope", Some("Named")).is_err());
     }
 
     #[test]
     fn marking_a_waiting_chat_twice_keeps_the_first_moment() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
             &profile_id,
@@ -801,7 +801,7 @@ mod tests {
 
     #[test]
     fn clearing_a_chat_that_was_not_waiting_is_not_an_error() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
             &profile_id,
@@ -825,7 +825,7 @@ mod tests {
 
     #[test]
     fn waiting_chats_come_back_oldest_question_first() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let older = create(
             &conn,
             &profile_id,
@@ -869,7 +869,7 @@ mod tests {
 
     #[test]
     fn a_chat_with_nothing_pending_is_not_listed_as_waiting() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = create(
             &conn,
             &profile_id,

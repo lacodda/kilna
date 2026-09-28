@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { Note, Scene, SceneFrame, SceneNote, ScenePatch } from '@/lib/api/types'
+import { textMap, textOf } from '@/lib/json'
 import { FRAME, ofKind, VIDEO } from '@/lib/scenes'
 import type { Vocabulary } from '@/lib/useProfile'
 import { Chip, ChipGroup } from '@/components/ui/chip'
@@ -65,10 +66,10 @@ export function SceneDetail({
   )
 
   const saveBlock = (key: string, text: string) => {
-    const blocks: Record<string, string> = { ...scene.blocks }
+    const blocks: Record<string, string> = textMap(scene.blocks)
     if (text.trim() === '') delete blocks[key]
     else blocks[key] = text
-    if ((scene.blocks[key] ?? '') !== (blocks[key] ?? '')) onPatch({ blocks })
+    if (textOf(scene.blocks[key]) !== (blocks[key] ?? '')) onPatch({ blocks })
   }
 
   // Blocks the scene holds under keys the profile no longer names: shown,
@@ -151,7 +152,7 @@ export function SceneDetail({
                 <BlockBox
                   key={block.key}
                   block={block}
-                  text={scene.blocks[block.key] ?? ''}
+                  text={textOf(scene.blocks[block.key])}
                   workId={workId}
                   sceneId={scene.id}
                   onSave={(text) => saveBlock(block.key, text)}
@@ -166,7 +167,7 @@ export function SceneDetail({
                 <BlockBox
                   key={key}
                   block={{ key, label: key, hint: t('scenes.unlistedBlock') }}
-                  text={scene.blocks[key] ?? ''}
+                  text={textOf(scene.blocks[key])}
                 />
               ))}
             </div>

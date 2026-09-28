@@ -45,9 +45,19 @@ export function ProposedScore({ workId, messageId, proposal, applied, dismissed 
     refresh: [keys.scores, keys.work(workId), keys.works, keys.catalogue],
   })
 
+  // The axes travel as JSON (the backend clamps them to a number before
+  // proposing, but the wire still carries whatever a value happened to be),
+  // so only the numbers are read here - a value that is not one is not an
+  // axis a card can draw.
+  const numericAxes = Object.fromEntries(
+    Object.entries(proposal.axes).filter(
+      (entry): entry is [string, number] => typeof entry[1] === 'number',
+    ),
+  )
+
   // The profile's own label for each axis, so the card reads the way the
   // score screen does rather than showing raw keys.
-  const named = Object.entries(proposal.axes).map(([key, value]) => ({
+  const named = Object.entries(numericAxes).map(([key, value]) => ({
     key,
     label: axes.find((axis) => axis.key === key)?.label ?? key,
     scale: axes.find((axis) => axis.key === key)?.scale,
@@ -71,7 +81,7 @@ export function ProposedScore({ workId, messageId, proposal, applied, dismissed 
       // would be a confident zero.
       figure={
         named.some((axis) => axis.scale !== undefined)
-          ? formatTotal(total(axes, proposal.axes))
+          ? formatTotal(total(axes, numericAxes))
           : undefined
       }
       warnings={warnings}

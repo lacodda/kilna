@@ -21,7 +21,7 @@ use crate::work::{self, WorkFilter, version};
 pub const FORMAT: u32 = 2;
 
 /// What an export produced, so the user can be told rather than guess.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct ExportReport {
     pub directory: String,
     pub works: usize,
@@ -387,23 +387,16 @@ pub fn default_directory(documents: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
+    use crate::fixtures;
     use crate::note::NewNote;
     use crate::score::NewScore;
     use crate::work::NewWork;
     use crate::work::version::NewVersion;
     use serde_json::json;
 
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
-
     #[test]
     fn an_export_writes_one_file_per_work_plus_the_profile() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let dir = tempfile::tempdir().unwrap();
         work::create(
             &conn,
@@ -429,7 +422,7 @@ mod tests {
 
     #[test]
     fn a_page_carries_the_bodies_scores_and_notes() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let dir = tempfile::tempdir().unwrap();
         let work = work::create(
             &conn,
@@ -508,7 +501,7 @@ mod tests {
 
     #[test]
     fn comments_go_out_with_their_work_and_the_loose_ones_on_their_own() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = crate::work::create(
             &conn,
             &profile_id,
@@ -575,7 +568,7 @@ mod tests {
 
     #[test]
     fn loose_notes_are_not_lost() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let dir = tempfile::tempdir().unwrap();
         note::create(
             &conn,
@@ -617,7 +610,7 @@ mod tests {
 
     #[test]
     fn a_page_names_its_format_and_the_new_facts() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let dir = tempfile::tempdir().unwrap();
         let created = work::create(
             &conn,

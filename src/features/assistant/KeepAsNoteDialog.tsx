@@ -44,8 +44,8 @@ export function KeepAsNoteDialog({ open, onOpenChange, body, workId }: Props) {
       createNote({
         body,
         work_id: workId,
-        kind: kind === '' ? null : kind,
-        title: title.trim() === '' ? null : title.trim(),
+        kind: kind === '' ? undefined : kind,
+        title: title.trim() === '' ? undefined : title.trim(),
       }),
     failure: 'assistant.noteKeepFailed',
     refresh: refresh.note,

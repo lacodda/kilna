@@ -15,7 +15,7 @@ use crate::error::{Error, Result};
 use crate::minted::Minted;
 
 /// A note a scene points at, as the board shows it.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct SceneNote {
     pub id: String,
     pub scene_id: String,
@@ -165,16 +165,10 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<SceneNote> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fixtures;
     use crate::profile::config::Kind;
     use crate::work::{self, NewWork};
-    use crate::{db, note, profile, scene};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
+    use crate::{note, profile, scene};
 
     fn with_note_kinds(conn: &Connection, profile_id: &str) {
         let mut config = profile::config_for(conn, profile_id).unwrap();
@@ -229,7 +223,7 @@ mod tests {
     /// which scenes is she in.
     #[test]
     fn a_scene_names_who_is_in_it_and_the_note_names_its_scenes() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         with_note_kinds(&conn, &profile_id);
         let scene_id = a_scene(&conn, &profile_id);
         let note_id = a_note(&conn, &profile_id, "character");
@@ -254,7 +248,7 @@ mod tests {
     /// duplicate row.
     #[test]
     fn naming_the_same_note_twice_is_the_same_link() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         with_note_kinds(&conn, &profile_id);
         let scene_id = a_scene(&conn, &profile_id);
         let note_id = a_note(&conn, &profile_id, "character");
@@ -269,7 +263,7 @@ mod tests {
     /// says which kinds it does name — the way a kind of shot is refused.
     #[test]
     fn a_note_of_another_kind_is_refused_by_name() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         with_note_kinds(&conn, &profile_id);
         let scene_id = a_scene(&conn, &profile_id);
         let plain = a_note(&conn, &profile_id, "note");
@@ -290,7 +284,7 @@ mod tests {
     /// goes — the leniency a kind with no kinds of shot gets.
     #[test]
     fn a_profile_naming_no_kinds_accepts_any_note() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let scene_id = a_scene(&conn, &profile_id);
         let plain = a_note(&conn, &profile_id, "note");
         assert!(attach(&conn, &scene_id, &plain).is_ok());
@@ -299,7 +293,7 @@ mod tests {
     /// The board reads what every scene is about in one go.
     #[test]
     fn a_board_reads_what_its_scenes_are_about_at_once() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         with_note_kinds(&conn, &profile_id);
         let work_id = work::create(
             &conn,
@@ -338,7 +332,7 @@ mod tests {
     /// Deleting the scene takes what it was about with it; the notes stay.
     #[test]
     fn deleting_a_scene_leaves_the_notes_alone() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         with_note_kinds(&conn, &profile_id);
         let scene_id = a_scene(&conn, &profile_id);
         let note_id = a_note(&conn, &profile_id, "character");

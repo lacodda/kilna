@@ -53,7 +53,7 @@ pub fn list_tags(state: State<'_, AppState>) -> Result<Vec<(String, i64)>> {
 /// One row per link that resolves: the title to draw, and for a version the
 /// work whose card it opens. A link to something deleted is simply absent, and
 /// the window draws it as the text it was — a dead link is worse than prose.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ResolvedLink {
     pub id: String,

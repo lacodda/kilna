@@ -133,7 +133,7 @@ pub fn generate_fields(conn: &Connection, id: &str) -> Result<release_meta::Gene
 }
 
 /// What a batch generation did, and to what.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct GeneratedBatch {
     /// Releases that gained at least one field.
@@ -148,7 +148,7 @@ pub struct GeneratedBatch {
 }
 
 /// A field a batch could not fill, named by the work it is on.
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct BatchRefusal {
     pub release_id: String,

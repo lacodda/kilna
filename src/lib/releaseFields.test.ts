@@ -60,7 +60,7 @@ describe('fillable', () => {
 
 describe('over', () => {
   it('says nothing when nobody is counting', () => {
-    expect(over(field({ limit: null }), 'any length at all')).toBeNull()
+    expect(over(field({ limit: undefined }), 'any length at all')).toBeNull()
   })
 
   it('says how far past the limit the text runs', () => {

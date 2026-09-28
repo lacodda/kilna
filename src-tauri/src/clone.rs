@@ -28,7 +28,7 @@ use crate::work::{self, NewWork, Work};
 use crate::{link, scene, scene_frame};
 
 /// What a clone came out as, for the sentence the window says afterwards.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, ts_rs::TS)]
 pub struct Cloned {
     pub work: Work,
     /// How many scenes the board brought across.
@@ -140,29 +140,16 @@ pub fn clone_work_minted(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::work::NewWork;
-    use crate::{asset, db, profile, scene, scene_frame};
+    use crate::fixtures;
+    use crate::{asset, scene, scene_frame};
 
     fn workspace() -> (Connection, String, tempfile::TempDir) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id, tempfile::tempdir().unwrap())
+        fixtures::workspace_with_media()
     }
 
     /// A video with one scene, one chosen still and one candidate beside it.
     fn a_board(conn: &Connection, profile_id: &str, media: &std::path::Path) -> String {
-        let work_id = work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "video".into(),
-                title: "Harbour lights".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id;
+        let work_id = fixtures::video(conn, profile_id, "Harbour lights").id;
         let scene_id = scene::create(
             conn,
             profile_id,

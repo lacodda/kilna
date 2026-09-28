@@ -26,7 +26,7 @@ use crate::minted::Minted;
 use crate::time::now;
 
 /// One stretch of a source, as the track draws it.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 pub struct Cut {
     pub id: String,
     pub profile_id: String,
@@ -60,7 +60,8 @@ impl Cut {
 }
 
 /// A stretch to take.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewCut {
     pub work_id: String,
     pub source_id: String,
@@ -75,7 +76,7 @@ pub struct NewCut {
 
 /// What an edit may change. Dragging an end on the track sends one number;
 /// the rest stay as they are.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
 pub struct CutPatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub starts_at: Option<f64>,
@@ -241,7 +242,7 @@ pub fn from_source(conn: &Connection, source_id: &str) -> Result<Vec<Cut>> {
 }
 
 /// One line of what a cutter is told to do: this stretch, of this file.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 pub struct Shot {
     pub cut_id: String,
     pub position: i64,
@@ -409,29 +410,13 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Cut> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fixtures;
+    use crate::profile;
     use crate::work::{self, NewWork};
-    use crate::{db, profile};
     use serde_json::json;
 
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
-
     fn a_work(conn: &Connection, profile_id: &str, kind: &str, title: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: kind.into(),
-                title: title.into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::work(conn, profile_id, kind, title).id
     }
 
     /// A donor with a length written down, which is what a track is drawn
@@ -454,7 +439,7 @@ mod tests {
     /// from two stretches of one video, and the order is the splice.
     #[test]
     fn a_short_is_several_stretches_of_one_video_in_order() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let donor = a_donor(&conn, &profile_id, "Harbour lights", 210.0);
         let short = a_work(&conn, &profile_id, "short", "Harbour lights — the hook");
 
@@ -501,7 +486,7 @@ mod tests {
     /// The donor's card answers from its own end: what has been cut out of me.
     #[test]
     fn a_donor_lists_what_was_taken_out_of_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let donor = a_donor(&conn, &profile_id, "Harbour lights", 210.0);
         let first = a_work(&conn, &profile_id, "short", "The hook");
         let second = a_work(&conn, &profile_id, "short", "The bridge");
@@ -535,7 +520,7 @@ mod tests {
     /// typo. Mutating `check_span` to let either through must break this.
     #[test]
     fn a_stretch_that_is_not_a_stretch_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let donor = a_donor(&conn, &profile_id, "Harbour lights", 210.0);
         let short = a_work(&conn, &profile_id, "short", "The hook");
 
@@ -578,7 +563,7 @@ mod tests {
     /// ordinary state of work in progress.
     #[test]
     fn a_stretch_past_the_end_is_refused_only_when_the_end_is_known() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let timed = a_donor(&conn, &profile_id, "Harbour lights", 210.0);
         let untimed = a_work(&conn, &profile_id, "video", "Still rendering");
         let short = a_work(&conn, &profile_id, "short", "The hook");
@@ -623,7 +608,7 @@ mod tests {
     /// in one gesture.
     #[test]
     fn an_end_moves_on_its_own_and_both_move_together() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let donor = a_donor(&conn, &profile_id, "Harbour lights", 210.0);
         let short = a_work(&conn, &profile_id, "short", "The hook");
         let cut = create(
@@ -682,7 +667,7 @@ mod tests {
     /// across workspaces is a reference that outlives its reason.
     #[test]
     fn a_cut_stays_inside_one_workspace_and_names_two_works() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let short = a_work(&conn, &profile_id, "short", "The hook");
 
         assert!(
@@ -744,7 +729,7 @@ mod tests {
     /// twice, or leaving one out, is refused rather than half-applied.
     #[test]
     fn the_splice_is_reordered_by_naming_all_of_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let donor = a_donor(&conn, &profile_id, "Harbour lights", 210.0);
         let short = a_work(&conn, &profile_id, "short", "The hook");
         let mut ids = Vec::new();
@@ -799,7 +784,7 @@ mod tests {
     /// path rather than refusing the whole list.
     #[test]
     fn the_shot_list_pairs_every_stretch_with_its_file() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let donor = a_donor(&conn, &profile_id, "Harbour lights", 210.0);
         let short = a_work(&conn, &profile_id, "short", "The hook");
         create(
@@ -851,7 +836,7 @@ mod tests {
     /// What the calendar reads: which videos this short is made of, once each.
     #[test]
     fn a_short_names_its_sources_without_repeats() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let first = a_donor(&conn, &profile_id, "Harbour lights", 210.0);
         let second = a_donor(&conn, &profile_id, "Winter road", 180.0);
         let short = a_work(&conn, &profile_id, "short", "Two videos");
@@ -885,7 +870,7 @@ mod tests {
     /// A cut is about two works and means nothing without either.
     #[test]
     fn a_cut_does_not_outlive_the_works_it_names() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let donor = a_donor(&conn, &profile_id, "Harbour lights", 210.0);
         let short = a_work(&conn, &profile_id, "short", "The hook");
         let cut = create(

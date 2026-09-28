@@ -32,8 +32,11 @@ export function ProposedScenes({ workId, messageId, proposal, applied, dismissed
   const { t } = useTranslation()
   const navigate = useNavigate()
   // A proposal stored by v0.62 said `replace: true` where v0.64 says
-  // `change: 'replace'`; read as it was meant.
-  const change = proposal.change ?? (proposal.replace === true ? 'replace' : 'add')
+  // `change: 'replace'`; read as it was meant. The backend's own type no
+  // longer carries the old field at all - this is reading a message stored
+  // before the rename, not the current shape - so the cast is by hand.
+  const legacyReplace = (proposal as { replace?: boolean }).replace
+  const change = proposal.change ?? (legacyReplace === true ? 'replace' : 'add')
   const words = {
     add: {
       title: 'assistant.proposedScenes',

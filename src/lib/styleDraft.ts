@@ -46,7 +46,10 @@ export function formOf(brick: StyleBrick): StyleForm {
     name: brick.name,
     description: brick.description ?? '',
     hint: brick.hint ?? '',
-    status: brick.status,
+    // `status` is a plain `string` on the backend (ADR 0003); the editor only
+    // ever writes one of the three this form knows, so a stored brick is
+    // always one of them in practice.
+    status: brick.status as StyleBrickStatus,
   }
 }
 

@@ -89,21 +89,15 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Tombstone> {
 mod tests {
     use super::*;
     use crate::assistant::{self, NewChat};
+    use crate::fixtures;
     use crate::focus::{self, NewFocusNote};
     use crate::note::{self, NewNote};
     use crate::score::{self, NewScore};
     use crate::trash::{self, Entity};
     use crate::work::version::{self, NewVersion};
     use crate::work::{self, NewWork};
-    use crate::{db, device, profile, release};
+    use crate::{device, release};
     use serde_json::json;
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     /// A work with a version, a score, a release and a note hanging off it.
     fn a_full_work(conn: &mut Connection, profile_id: &str) -> (String, [String; 4]) {
@@ -177,14 +171,14 @@ mod tests {
 
     #[test]
     fn a_row_that_was_never_deleted_has_no_tombstone() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let (work_id, _) = a_full_work(&mut conn, &profile_id);
         assert_eq!(get(&conn, "work", &work_id).unwrap(), None);
     }
 
     #[test]
     fn deleting_a_work_buries_it_and_everything_beneath_it() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let (work_id, [version_id, score_id, release_id, note_id]) =
             a_full_work(&mut conn, &profile_id);
 
@@ -207,7 +201,7 @@ mod tests {
 
     #[test]
     fn restoring_marks_the_tombstone_rather_than_removing_it() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let (work_id, [version_id, ..]) = a_full_work(&mut conn, &profile_id);
         let entry = trash::discard(&conn, Entity::Work, &work_id).unwrap();
 
@@ -223,7 +217,7 @@ mod tests {
 
     #[test]
     fn deleting_again_after_a_restore_starts_the_cycle_over() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let (work_id, _) = a_full_work(&mut conn, &profile_id);
         let entry = trash::discard(&conn, Entity::Work, &work_id).unwrap();
         trash::restore(&conn, &entry).unwrap();
@@ -240,7 +234,7 @@ mod tests {
 
     #[test]
     fn emptying_the_trash_does_not_touch_the_tombstone() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let (work_id, _) = a_full_work(&mut conn, &profile_id);
         let entry = trash::discard(&conn, Entity::Work, &work_id).unwrap();
 
@@ -255,7 +249,7 @@ mod tests {
 
     #[test]
     fn what_never_visits_the_trash_is_buried_all_the_same() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let chat = assistant::create(
             &conn,
             &profile_id,
@@ -294,7 +288,7 @@ mod tests {
 
     #[test]
     fn a_buried_title_is_known_by_its_profile_and_forgotten_on_restore() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let (work_id, _) = a_full_work(&mut conn, &profile_id);
         assert!(!buried_work_title(&conn, &profile_id, "Harbour lights").unwrap());
 

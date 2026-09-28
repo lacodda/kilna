@@ -19,36 +19,25 @@ mod common;
 
 use rusqlite::Connection;
 
+use kilna_lib::actions;
 use kilna_lib::minted::Minted;
 use kilna_lib::work::version;
 use kilna_lib::work::{NewWork, WorkPatch};
-use kilna_lib::{db, operation, profile, undo, work};
+use kilna_lib::{db, fixtures, operation, profile, undo, work};
 
 /// A workspace with one work in it, and the id of that work.
 fn workspace() -> (Connection, String, String) {
-    let mut conn = db::open_in_memory().unwrap();
-    profile::seed(&conn).unwrap();
-    let profile_id = profile::active(&conn).unwrap().unwrap().id;
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
-
-    let new = NewWork {
-        kind: "song".into(),
-        title: "Harbour lights".into(),
-        ..NewWork::default()
-    };
-    let minted = Minted::fresh();
-    let work_id = minted.id().to_owned();
-    let logged = operation::Intent::new("work.create")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("work", serde_json::to_value(&new).unwrap())
-        .minted(&minted);
-
-    let transaction = conn.transaction().unwrap();
-    work::create_minted(&transaction, &profile_id, new, minted).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
-
+    let (conn, profile_id) = fixtures::workspace();
+    let work_id = actions::work::create(
+        &conn,
+        NewWork {
+            kind: "song".into(),
+            title: "Harbour lights".into(),
+            ..NewWork::default()
+        },
+    )
+    .unwrap()
+    .id;
     (conn, profile_id, work_id)
 }
 
@@ -82,28 +71,9 @@ fn take_back(conn: &mut Connection, offer: &undo::Undoable) {
     );
 }
 
-/// Edit a work the way the command does: patch, `before`, one moment. The
-/// `before` is written by the same function the command calls, so a work's
-/// fields are recorded one level down, as they merge.
-fn edit(conn: &mut Connection, profile_id: &str, work_id: &str, patch: WorkPatch) {
-    let key = profile::key_for_id(conn, profile_id).unwrap().unwrap();
-    let before = work::get(conn, work_id).unwrap().unwrap();
-    let inverse = kilna_lib::reversal::before_of(Some(&before), &patch).unwrap();
-    let patch_json = serde_json::to_value(&patch).unwrap();
-
-    let at = kilna_lib::time::now();
-    let logged = operation::Intent::new("work.update")
-        .in_profile(profile_id)
-        .param("profile", key)
-        .param("id", work_id.to_owned())
-        .param("patch", patch_json)
-        .param("before", inverse)
-        .param("at", at.clone());
-
-    let transaction = conn.transaction().unwrap();
-    work::update_at(&transaction, work_id, patch, &at).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+/// Edit a work the way the command does: `actions::work::update`, exactly.
+fn edit(conn: &mut Connection, _profile_id: &str, work_id: &str, patch: WorkPatch) {
+    actions::work::update(conn, work_id, patch).unwrap();
 }
 
 #[test]
@@ -475,18 +445,7 @@ fn undoing_a_deletion_brings_the_row_back() {
 #[test]
 fn a_link_is_taken_back_both_ways() {
     let (mut conn, profile_id, song_id) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
-    let video_id = work::create(
-        &conn,
-        &profile_id,
-        NewWork {
-            kind: "video".into(),
-            title: "Harbour lights".into(),
-            ..NewWork::default()
-        },
-    )
-    .unwrap()
-    .id;
+    let video_id = fixtures::video(&conn, &profile_id, "Harbour lights").id;
 
     let new = kilna_lib::link::NewLink {
         work_id: video_id.clone(),
@@ -494,17 +453,7 @@ fn a_link_is_taken_back_both_ways() {
         role: None,
         source_version_id: None,
     };
-    let minted = Minted::fresh();
-    let link_id = minted.id().to_owned();
-    let logged = operation::Intent::new("link.create")
-        .in_profile(&profile_id)
-        .param("profile", key.clone())
-        .param("link", serde_json::to_value(&new).unwrap())
-        .minted(&minted);
-    let transaction = conn.transaction().unwrap();
-    kilna_lib::link::create_minted(&transaction, &profile_id, new, minted).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    let link_id = actions::link::create(&conn, new).unwrap().id;
 
     let offer = undo::last(&conn)
         .unwrap()
@@ -517,37 +466,18 @@ fn a_link_is_taken_back_both_ways() {
     );
 
     // Made again, then removed the way the command removes it, then undone.
-    let minted = Minted::fresh();
-    let link_id = minted.id().to_owned();
-    let transaction = conn.transaction().unwrap();
-    let made = kilna_lib::link::create_minted(
-        &transaction,
-        &profile_id,
+    let made = actions::link::create(
+        &conn,
         kilna_lib::link::NewLink {
             work_id: video_id.clone(),
             source_id: song_id.clone(),
             role: None,
             source_version_id: None,
         },
-        minted,
     )
     .unwrap();
-    transaction.commit().unwrap();
-    let logged = operation::Intent::new("link.delete")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("id", link_id.clone())
-        .param(
-            "before",
-            serde_json::json!({
-                "work_id": made.work_id, "source_id": made.source_id, "role": made.role,
-                "source_version_id": made.source_version_id, "created_at": made.created_at,
-            }),
-        );
-    let transaction = conn.transaction().unwrap();
-    kilna_lib::link::delete(&transaction, &link_id).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    let link_id = made.id.clone();
+    actions::link::delete(&conn, &link_id).unwrap();
     assert!(kilna_lib::link::get(&conn, &link_id).unwrap().is_none());
 
     let offer = undo::last(&conn)
@@ -751,28 +681,10 @@ fn every_operation_is_undoable_or_says_why_not() {
 /// A version's body goes back whole, and the revision number does not move.
 #[test]
 fn a_body_edit_is_taken_back() {
-    let (mut conn, profile_id, work_id) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
-    let version = version::create(
-        &conn,
-        &work_id,
-        serde_json::from_value(serde_json::json!({ "role": "lyrics", "body": "as written" }))
-            .unwrap(),
-    )
-    .unwrap();
+    let (mut conn, _profile_id, work_id) = workspace();
+    let version = fixtures::version(&conn, &work_id, "lyrics", "as written");
 
-    let at = kilna_lib::time::now();
-    let logged = operation::Intent::new("version.edit")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("id", version.id.clone())
-        .param("body", "as rewritten")
-        .param("before", "as written")
-        .param("at", at.clone());
-    let transaction = conn.transaction().unwrap();
-    version::update_body_at(&transaction, &version.id, "as rewritten", &at).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    actions::version::edit(&conn, &version.id, "as rewritten").unwrap();
 
     let offer = undo::last(&conn).unwrap().expect("the edit can be undone");
     assert_eq!(offer.action, "undo.version.edit");
@@ -789,18 +701,8 @@ fn a_body_edit_is_taken_back() {
 #[test]
 fn choosing_the_current_version_is_what_undo_takes_back() {
     let (mut conn, profile_id, work_id) = workspace();
-    let first = version::create(
-        &conn,
-        &work_id,
-        serde_json::from_value(serde_json::json!({ "role": "lyrics", "body": "first" })).unwrap(),
-    )
-    .unwrap();
-    let second = version::create(
-        &conn,
-        &work_id,
-        serde_json::from_value(serde_json::json!({ "role": "lyrics", "body": "second" })).unwrap(),
-    )
-    .unwrap();
+    let first = fixtures::version(&conn, &work_id, "lyrics", "first");
+    let second = fixtures::version(&conn, &work_id, "lyrics", "second");
     assert_eq!(
         work::get(&conn, &work_id)
             .unwrap()
@@ -841,7 +743,6 @@ fn choosing_the_current_version_is_what_undo_takes_back() {
 #[test]
 fn a_profile_edit_is_taken_back_whole() {
     let (mut conn, profile_id, _) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
     let before = profile::config_for(&conn, &profile_id).unwrap();
 
     let mut edited = before.clone();
@@ -853,18 +754,7 @@ fn a_profile_edit_is_taken_back_whole() {
         "the edit changes something"
     );
 
-    let at = kilna_lib::time::now();
-    let logged = operation::Intent::new("profile.update")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("id", profile_id.clone())
-        .param("config", serde_json::to_value(&edited).unwrap())
-        .param("before", serde_json::to_value(&before).unwrap())
-        .param("at", at.clone());
-    let transaction = conn.transaction().unwrap();
-    profile::update_config_at(&transaction, &profile_id, &edited, &at).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    actions::profile::update_config(&conn, &profile_id, &edited).unwrap();
 
     let offer = undo::last(&conn)
         .unwrap()
@@ -930,39 +820,21 @@ fn an_empty_log_offers_nothing() {
 #[test]
 fn a_scene_is_taken_back_both_ways() {
     let (mut conn, profile_id, _song_id) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
-    let video_id = work::create(
+    let video_id = fixtures::video(&conn, &profile_id, "Harbour lights").id;
+
+    // Added the way the command adds it.
+    let scene_id = actions::scene::create(
         &conn,
-        &profile_id,
-        NewWork {
-            kind: "video".into(),
-            title: "Harbour lights".into(),
-            ..NewWork::default()
+        kilna_lib::scene::NewScene {
+            work_id: video_id.clone(),
+            description: Some("a lighthouse at dusk".into()),
+            ..kilna_lib::scene::NewScene::default()
         },
     )
     .unwrap()
     .id;
 
-    // Added the way the command adds it.
-    let new = kilna_lib::scene::NewScene {
-        work_id: video_id.clone(),
-        description: Some("a lighthouse at dusk".into()),
-        ..kilna_lib::scene::NewScene::default()
-    };
-    let minted = Minted::fresh();
-    let scene_id = minted.id().to_owned();
-    let logged = operation::Intent::new("scene.create")
-        .in_profile(&profile_id)
-        .param("profile", key.clone())
-        .param("scene", serde_json::to_value(&new).unwrap())
-        .minted(&minted);
-    let transaction = conn.transaction().unwrap();
-    kilna_lib::scene::create_minted(&transaction, &profile_id, new, minted).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
-
     // Edited the way the command edits it: the blocks as a set, and a section.
-    let before = kilna_lib::scene::get(&conn, &scene_id).unwrap().unwrap();
     let patch = kilna_lib::scene::ScenePatch {
         section: Some(Some("chorus".into())),
         blocks: Some(
@@ -973,24 +845,7 @@ fn a_scene_is_taken_back_both_ways() {
         ),
         ..kilna_lib::scene::ScenePatch::default()
     };
-    let before_json = serde_json::to_value(&before).unwrap();
-    let patch_json = serde_json::to_value(&patch).unwrap();
-    let inverse = kilna_lib::reversal::invert(
-        before_json.as_object().unwrap(),
-        patch_json.as_object().unwrap(),
-    );
-    let at = kilna_lib::time::now();
-    let logged = operation::Intent::new("scene.update")
-        .in_profile(&profile_id)
-        .param("profile", key.clone())
-        .param("id", scene_id.clone())
-        .param("patch", patch_json.clone())
-        .param("before", serde_json::Value::Object(inverse))
-        .param("at", at.clone());
-    let transaction = conn.transaction().unwrap();
-    kilna_lib::scene::update_at(&transaction, &scene_id, patch, &at).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    actions::scene::update(&conn, &scene_id, patch).unwrap();
     // Something else changes the description meanwhile; the undo must leave it.
     kilna_lib::scene::update(
         &conn,
@@ -1022,33 +877,16 @@ fn a_scene_is_taken_back_both_ways() {
     // The undo of the update is itself logged; the creation is further back
     // and no longer the last operation, so it is checked on its own board.
     let (mut conn, profile_id, _) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
-    let video_id = work::create(
+    let video_id = fixtures::video(&conn, &profile_id, "Harbour lights").id;
+    let scene_id = actions::scene::create(
         &conn,
-        &profile_id,
-        NewWork {
-            kind: "video".into(),
-            title: "Harbour lights".into(),
-            ..NewWork::default()
+        kilna_lib::scene::NewScene {
+            work_id: video_id,
+            ..kilna_lib::scene::NewScene::default()
         },
     )
     .unwrap()
     .id;
-    let new = kilna_lib::scene::NewScene {
-        work_id: video_id,
-        ..kilna_lib::scene::NewScene::default()
-    };
-    let minted = Minted::fresh();
-    let scene_id = minted.id().to_owned();
-    let logged = operation::Intent::new("scene.create")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("scene", serde_json::to_value(&new).unwrap())
-        .minted(&minted);
-    let transaction = conn.transaction().unwrap();
-    kilna_lib::scene::create_minted(&transaction, &profile_id, new, minted).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
 
     let offer = undo::last(&conn)
         .unwrap()
@@ -1164,17 +1002,7 @@ fn a_timed_board_is_taken_back_whole() {
 fn a_renumbered_board_goes_back_to_the_order_it_stood_in() {
     let (mut conn, profile_id, _song_id) = workspace();
     let _key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
-    let video_id = work::create(
-        &conn,
-        &profile_id,
-        NewWork {
-            kind: "video".into(),
-            title: "Harbour lights".into(),
-            ..NewWork::default()
-        },
-    )
-    .unwrap()
-    .id;
+    let video_id = fixtures::video(&conn, &profile_id, "Harbour lights").id;
 
     let mut scene_ids = Vec::new();
     for position in [3, 1, 3, 9] {
@@ -1258,17 +1086,7 @@ fn a_framed_board_is_taken_back_whole() {
     )
     .unwrap();
 
-    let video_id = work::create(
-        &conn,
-        &profile_id,
-        NewWork {
-            kind: "video".into(),
-            title: "Harbour lights".into(),
-            ..NewWork::default()
-        },
-    )
-    .unwrap()
-    .id;
+    let video_id = fixtures::video(&conn, &profile_id, "Harbour lights").id;
     kilna_lib::link::create(
         &conn,
         &profile_id,
@@ -1312,21 +1130,10 @@ fn a_framed_board_is_taken_back_whole() {
 #[test]
 fn undoing_a_chosen_frame_puts_the_previous_one_back() {
     let (mut conn, profile_id, _song_id) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
     let media = tempfile::tempdir().unwrap();
     let source = tempfile::tempdir().unwrap();
 
-    let video_id = work::create(
-        &conn,
-        &profile_id,
-        NewWork {
-            kind: "video".into(),
-            title: "Harbour lights".into(),
-            ..NewWork::default()
-        },
-    )
-    .unwrap()
-    .id;
+    let video_id = fixtures::video(&conn, &profile_id, "Harbour lights").id;
     let scene_id = kilna_lib::scene::create(
         &conn,
         &profile_id,
@@ -1358,21 +1165,7 @@ fn undoing_a_chosen_frame_puts_the_previous_one_back() {
     kilna_lib::scene_frame::select(&conn, &frames[0].id).unwrap();
 
     // The second, recorded the way the command records it.
-    let before = kilna_lib::scene_frame::for_scene(&conn, &scene_id)
-        .unwrap()
-        .into_iter()
-        .find(|one| one.is_selected)
-        .map(|one| one.id);
-    let logged = operation::Intent::new("scene.selectFrame")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("id", frames[1].id.clone())
-        .param("sceneId", scene_id.clone())
-        .param("before", serde_json::to_value(&before).unwrap());
-    let transaction = conn.transaction().unwrap();
-    kilna_lib::scene_frame::select(&transaction, &frames[1].id).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    actions::scene::select_frame(&conn, &frames[1].id).unwrap();
 
     let offer = undo::last(&conn)
         .unwrap()
@@ -1505,10 +1298,9 @@ fn a_promotion_is_taken_back_whole() {
 /// A reply written onto a comment is taken back to what stood there.
 #[test]
 fn a_reply_is_taken_back() {
-    use kilna_lib::comment::{self, CommentPatch, NewComment};
+    use kilna_lib::comment::{self, NewComment};
 
     let (mut conn, profile_id, _) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
     let kept = comment::create_minted(
         &conn,
         &profile_id,
@@ -1522,26 +1314,7 @@ fn a_reply_is_taken_back() {
     )
     .unwrap();
 
-    let patch = CommentPatch {
-        reply: Some(Some("a better answer".into())),
-        ..CommentPatch::default()
-    };
-    let before = serde_json::to_value(&kept).unwrap();
-    let patch_json = serde_json::to_value(&patch).unwrap();
-    let inverse =
-        kilna_lib::reversal::invert(before.as_object().unwrap(), patch_json.as_object().unwrap());
-    let at = kilna_lib::time::now();
-    let logged = operation::Intent::new("comment.update")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("id", kept.id.clone())
-        .param("patch", patch_json)
-        .param("before", serde_json::Value::Object(inverse))
-        .param("at", at.clone());
-    let transaction = conn.transaction().unwrap();
-    comment::update_at(&transaction, &kept.id, patch, &at).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    actions::comment::reply(&conn, &kept.id, "a better answer").unwrap();
 
     let offer = undo::last(&conn)
         .unwrap()

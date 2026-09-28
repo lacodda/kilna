@@ -73,7 +73,7 @@ export function ProposedWork({ workId, messageId, proposal, applied, dismissed }
       .join(', ')
     parts.push(t('assistant.packageFields', { fields: labels }))
   }
-  if (proposal.score !== undefined) {
+  if (proposal.score !== undefined && proposal.score !== null) {
     parts.push(t('assistant.packageScore', { count: Object.keys(proposal.score.axes).length }))
   }
   if (notes.length > 0) parts.push(t('assistant.packageNotes', { count: notes.length }))

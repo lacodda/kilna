@@ -18,7 +18,7 @@ pub struct BuiltinProfile {
 }
 
 /// A profile as the frontend sees it.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Profile {
     pub id: String,
     pub key: String,
@@ -917,7 +917,7 @@ impl RawProfile {
 }
 
 /// A snapshot of the workspace for the status screen.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ts_rs::TS)]
 pub struct Workspace {
     pub schema_version: i64,
     pub profile: Option<Profile>,

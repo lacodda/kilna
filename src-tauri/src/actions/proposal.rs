@@ -41,7 +41,8 @@ use crate::work::{self, NewWork, WorkPatch};
 /// What a person may change about a proposal on the way in: the dialog lets
 /// them pick a version's role, name it and make it current, and correct a
 /// comment or a reply before keeping it.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct Overrides {
     #[serde(default)]
     pub role: Option<String>,
@@ -61,7 +62,7 @@ pub struct Overrides {
 
 /// What applying made. Returned to the caller and stamped on the message as
 /// `meta.applied`, so the chat shows the mark and the work it points at.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, ts_rs::TS)]
 pub struct Outcome {
     pub message_id: String,
     pub at: String,
@@ -770,37 +771,14 @@ mod tests {
         dismiss, pending, pending_comments, proposal_meta, render_board, render_package,
     };
     use crate::assistant::proposal::PackagedVersion;
+    use crate::fixtures;
     use crate::minted::Minted;
-    use crate::{db, note, operation, profile, score, trash};
+    use crate::{note, operation, profile, score, trash};
 
     fn workspace() -> (Connection, String, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        let work_id = work::create(
-            &conn,
-            &profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: "Harbour lights".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id;
-        version::create(
-            &conn,
-            &work_id,
-            NewVersion {
-                role: "lyrics".into(),
-                body: "one line".into(),
-                label: None,
-                meta: None,
-                make_current: true,
-                parent_version_id: None,
-            },
-        )
-        .unwrap();
+        let (conn, profile_id) = fixtures::workspace();
+        let work_id = fixtures::song(&conn, &profile_id, "Harbour lights").id;
+        fixtures::version(&conn, &work_id, "lyrics", "one line");
         (conn, profile_id, work_id)
     }
 
@@ -1117,9 +1095,8 @@ mod tests {
 
     #[test]
     fn a_rendered_board_is_a_table_with_the_blocks_under_it() {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let config = profile::active(&conn).unwrap().unwrap().config;
+        let (conn, profile_id) = fixtures::workspace();
+        let config = profile::config_for(&conn, &profile_id).unwrap();
         let vocabulary = config.vocabulary("video");
         let mut second = packaged("hands on a rope");
         second.position = Some(7);

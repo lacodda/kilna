@@ -12,7 +12,13 @@ import {
   total,
 } from '@/lib/scoring'
 
-const axis = (key: string, weight: number, scale = 10): Axis => ({ key, label: key, weight, scale })
+const axis = (key: string, weight: number, scale = 10): Axis => ({
+  key,
+  label: key,
+  weight,
+  scale,
+  kind: 'scale',
+})
 
 const AXES: Axis[] = [axis('hook', 2), axis('lyrics', 1.5), axis('emotion', 1)]
 
@@ -141,8 +147,8 @@ describe('toNextTier', () => {
     // little per mark: here `heavy` (weight 2, scale 100) needs fifteen marks
     // to reach fifty, while `coarse` (weight 1, scale 5) needs two.
     const scales: Axis[] = [
-      { key: 'heavy', label: 'heavy', weight: 2, scale: 100 },
-      { key: 'coarse', label: 'coarse', weight: 1, scale: 5 },
+      { key: 'heavy', label: 'heavy', weight: 2, scale: 100, kind: 'scale' },
+      { key: 'coarse', label: 'coarse', weight: 1, scale: 5, kind: 'scale' },
     ]
     const values = { heavy: 40, coarse: 2 }
     const to = toNextTier(scales, values, TIERS, total(scales, values))

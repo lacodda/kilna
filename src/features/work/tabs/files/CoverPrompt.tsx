@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SceneBlock, Work } from '@/lib/api/types'
 import { updateWork } from '@/lib/api/works'
+import { textMap, textOf } from '@/lib/json'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
@@ -61,11 +62,11 @@ export function CoverPrompt({ work }: Props) {
           <Block
             key={block.key}
             block={block}
-            value={work.cover[block.key] ?? ''}
+            value={textOf(work.cover[block.key])}
             disabled={save.isPending}
             // The whole set travels, the way a scene's blocks do: the log's
             // `before` then holds the set as it was, and an undo puts it back.
-            onCommit={(text) => save.mutate({ ...work.cover, [block.key]: text })}
+            onCommit={(text) => save.mutate({ ...textMap(work.cover), [block.key]: text })}
           />
         ))}
       </div>

@@ -8,7 +8,7 @@ use crate::minted::Minted;
 use crate::time::now;
 
 /// A draft kept whole. Bodies are never stored as diffs — see ADR 0002.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Version {
     pub id: String,
     pub work_id: String,
@@ -26,7 +26,7 @@ pub struct Version {
 }
 
 /// A version without its body — enough to draw a history list.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct VersionSummary {
     pub id: String,
     pub work_id: String,
@@ -44,7 +44,8 @@ pub struct VersionSummary {
     pub about_version_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewVersion {
     pub role: String,
     pub body: String,
@@ -54,7 +55,9 @@ pub struct NewVersion {
     pub meta: Option<Map<String, Value>>,
     /// Make this the work's current version. Defaults to true: a new draft is
     /// almost always the one being worked on.
+    // Not an `Option`, so `optional_fields` cannot reach it - said by hand.
     #[serde(default = "default_true")]
+    #[ts(optional = nullable)]
     pub make_current: bool,
     /// The version this one was derived from. Must belong to the same work
     /// and the same role: a draft is not written from a style prompt.
@@ -496,9 +499,8 @@ impl RawVersion {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
-    use crate::work::{self, NewWork};
+    use crate::fixtures;
+    use crate::work;
 
     /// The markup a lyric actually uses: a marker on its own line, the lines
     /// under it, a preamble above the first marker that belongs to no part.
@@ -608,25 +610,8 @@ with no markers at all
         assert!(sections("").is_empty());
     }
 
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
-
     fn a_work(conn: &Connection, profile_id: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: "Subject".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::song(conn, profile_id, "Subject").id
     }
 
     fn draft(role: &str, body: &str) -> NewVersion {
@@ -642,7 +627,7 @@ with no markers at all
 
     #[test]
     fn revisions_count_up_per_role_independently() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
 
         let lyrics_one = create(&conn, &work_id, draft("lyrics", "first verse")).unwrap();
@@ -656,7 +641,7 @@ with no markers at all
 
     #[test]
     fn a_new_version_becomes_current_by_default() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
 
         let version = create(&conn, &work_id, draft("lyrics", "body")).unwrap();
@@ -670,7 +655,7 @@ with no markers at all
 
     #[test]
     fn a_version_can_be_added_without_taking_over() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         let first = create(&conn, &work_id, draft("lyrics", "keep me")).unwrap();
 
@@ -684,7 +669,7 @@ with no markers at all
 
     #[test]
     fn bodies_are_stored_whole() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         let body = "line one\nline two\nline three";
 
@@ -695,7 +680,7 @@ with no markers at all
 
     #[test]
     fn list_marks_the_current_version_and_reports_length() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         create(&conn, &work_id, draft("lyrics", "short")).unwrap();
         let second = create(&conn, &work_id, draft("lyrics", "a longer body")).unwrap();
@@ -711,7 +696,7 @@ with no markers at all
 
     #[test]
     fn latest_returns_the_highest_revision_of_a_role() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         create(&conn, &work_id, draft("lyrics", "old")).unwrap();
         create(&conn, &work_id, draft("lyrics", "new")).unwrap();
@@ -724,7 +709,7 @@ with no markers at all
 
     #[test]
     fn a_version_from_another_work_is_not_this_works_own() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let first = a_work(&conn, &profile_id);
         let second = a_work(&conn, &profile_id);
         let stranger = create(&conn, &second, draft("lyrics", "theirs")).unwrap();
@@ -736,7 +721,7 @@ with no markers at all
 
     #[test]
     fn deleting_the_current_version_falls_back_to_the_previous_one() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         let first = create(&conn, &work_id, draft("lyrics", "first")).unwrap();
         let second = create(&conn, &work_id, draft("lyrics", "second")).unwrap();
@@ -753,7 +738,7 @@ with no markers at all
 
     #[test]
     fn deleting_the_only_version_clears_the_pointer() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         let only = create(&conn, &work_id, draft("lyrics", "alone")).unwrap();
 
@@ -765,7 +750,7 @@ with no markers at all
 
     #[test]
     fn a_body_changes_in_place_until_something_judges_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         let version = create(&conn, &work_id, draft("lyrics", "first line")).unwrap();
         let before = work::get(&conn, &work_id).unwrap().unwrap().updated_at;
@@ -791,7 +776,7 @@ with no markers at all
 
     #[test]
     fn a_scored_version_refuses_to_change_and_says_why() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         let version = create(&conn, &work_id, draft("lyrics", "judged as is")).unwrap();
         let new_score: crate::score::NewScore =
@@ -811,7 +796,7 @@ with no markers at all
 
     #[test]
     fn a_body_change_is_clocked_on_the_field_it_changed() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         let version = create(&conn, &work_id, draft("lyrics", "one")).unwrap();
 
@@ -833,7 +818,7 @@ with no markers at all
 
     #[test]
     fn a_version_needs_an_existing_work() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
 
         let result = create(&conn, "nope", draft("lyrics", "orphan"));
 
@@ -842,7 +827,7 @@ with no markers at all
 
     #[test]
     fn a_version_remembers_the_one_it_was_written_from() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         let first = create(&conn, &work_id, draft("lyrics", "one")).unwrap();
 
@@ -875,7 +860,7 @@ with no markers at all
 
     #[test]
     fn a_parent_must_be_a_version_of_the_same_work_and_role() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         let other_work = a_work(&conn, &profile_id);
         let style = create(&conn, &work_id, draft("style", "warm")).unwrap();
@@ -901,7 +886,7 @@ with no markers at all
 
     #[test]
     fn a_pruned_parent_leaves_the_child_without_one_rather_than_gone() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = a_work(&conn, &profile_id);
         let first = create(&conn, &work_id, draft("lyrics", "one")).unwrap();
         let second = create(

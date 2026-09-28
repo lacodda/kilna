@@ -80,7 +80,7 @@ export function FieldsWidget({ work }: { work: Work }) {
           <MetaInput
             key={field.key}
             field={field}
-            value={work.meta[field.key]}
+            value={work.meta[field.key] ?? null}
             onChange={(value) => setField(field.key, value)}
             inline={line}
           />

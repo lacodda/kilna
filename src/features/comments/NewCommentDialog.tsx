@@ -66,9 +66,9 @@ export function NewCommentDialog({
       createComment({
         channel: where.trim(),
         body: body.trim(),
-        author: author.trim() === '' ? null : author.trim(),
-        commented_on: day === '' ? null : day,
-        work_id: work,
+        author: author.trim() === '' ? undefined : author.trim(),
+        commented_on: day === '' ? undefined : day,
+        work_id: work ?? undefined,
       }),
     failure: 'comments.saveFailed',
     refresh: refresh.comment,

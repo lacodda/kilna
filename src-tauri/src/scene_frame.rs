@@ -82,7 +82,7 @@ fn check_kind(kind: &str) -> Result<()> {
 }
 
 /// A picture drawn for a scene, as the board shows it.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct SceneFrame {
     pub id: String,
     pub scene_id: String,
@@ -437,29 +437,15 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<SceneFrame> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::work::{self, NewWork};
-    use crate::{db, profile, scene};
+    use crate::fixtures;
+    use crate::scene;
 
     fn workspace() -> (Connection, String, tempfile::TempDir) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        let media = tempfile::tempdir().unwrap();
-        (conn, profile_id, media)
+        fixtures::workspace_with_media()
     }
 
     fn a_scene(conn: &Connection, profile_id: &str) -> (String, String) {
-        let work_id = work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "video".into(),
-                title: "Harbour lights".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id;
+        let work_id = fixtures::video(conn, profile_id, "Harbour lights").id;
         let scene_id = scene::create(
             conn,
             profile_id,
@@ -473,12 +459,6 @@ mod tests {
         (work_id, scene_id)
     }
 
-    fn a_picture(dir: &Path, name: &str) -> std::path::PathBuf {
-        let path = dir.join(name);
-        std::fs::write(&path, b"not really a png").unwrap();
-        path
-    }
-
     /// A picture on the clips strip, or a clip on the stills strip, is refused
     /// before anything is copied - it used to be stored and drawn as a broken
     /// player or a broken picture for good.
@@ -488,8 +468,8 @@ mod tests {
         let (_, scene_id) = a_scene(&conn, &profile_id);
         let source = tempfile::tempdir().unwrap();
 
-        let picture = a_picture(source.path(), "still.PNG");
-        let clip = a_picture(source.path(), "take.mp4");
+        let picture = fixtures::file(source.path(), "still.PNG");
+        let clip = fixtures::file(source.path(), "take.mp4");
         assert!(attach(&conn, media.path(), &scene_id, VIDEO, &picture).is_err());
         assert!(attach(&conn, media.path(), &scene_id, FRAME, &clip).is_err());
         assert_eq!(
@@ -513,7 +493,7 @@ mod tests {
         let source = tempfile::tempdir().unwrap();
 
         for n in 1..=4 {
-            let file = a_picture(source.path(), &format!("still-v{n}.png"));
+            let file = fixtures::file(source.path(), &format!("still-v{n}.png"));
             attach(&conn, media.path(), &scene_id, FRAME, &file).unwrap();
         }
 
@@ -549,7 +529,7 @@ mod tests {
             media.path(),
             &scene_id,
             FRAME,
-            &a_picture(source.path(), "a.png"),
+            &fixtures::file(source.path(), "a.png"),
         )
         .unwrap();
         let second = attach(
@@ -557,7 +537,7 @@ mod tests {
             media.path(),
             &scene_id,
             FRAME,
-            &a_picture(source.path(), "b.png"),
+            &fixtures::file(source.path(), "b.png"),
         )
         .unwrap();
 
@@ -595,7 +575,7 @@ mod tests {
             media.path(),
             &scene_id,
             FRAME,
-            &a_picture(source.path(), "a.png"),
+            &fixtures::file(source.path(), "a.png"),
         )
         .unwrap();
         let second = attach(
@@ -603,7 +583,7 @@ mod tests {
             media.path(),
             &scene_id,
             FRAME,
-            &a_picture(source.path(), "b.png"),
+            &fixtures::file(source.path(), "b.png"),
         )
         .unwrap();
 
@@ -634,7 +614,7 @@ mod tests {
             media.path(),
             &scene_id,
             FRAME,
-            &a_picture(source.path(), "a.png"),
+            &fixtures::file(source.path(), "a.png"),
         )
         .unwrap();
         let b = attach(
@@ -642,7 +622,7 @@ mod tests {
             media.path(),
             &scene_id,
             FRAME,
-            &a_picture(source.path(), "b.png"),
+            &fixtures::file(source.path(), "b.png"),
         )
         .unwrap();
 
@@ -673,7 +653,7 @@ mod tests {
             media.path(),
             &scene_id,
             FRAME,
-            &a_picture(source.path(), "a.png"),
+            &fixtures::file(source.path(), "a.png"),
         )
         .unwrap();
         let stored = std::path::PathBuf::from(&frame.path);
@@ -696,7 +676,7 @@ mod tests {
             media.path(),
             &scene_id,
             FRAME,
-            &a_picture(source.path(), "a.png"),
+            &fixtures::file(source.path(), "a.png"),
         )
         .unwrap();
 
@@ -711,7 +691,7 @@ mod tests {
             media.path(),
             &scene_id,
             FRAME,
-            &a_picture(source.path(), "b.png"),
+            &fixtures::file(source.path(), "b.png"),
         )
         .unwrap();
         scene::delete(&conn, &scene_id).unwrap();
@@ -735,7 +715,7 @@ mod tests {
             media.path(),
             &scene_id,
             FRAME,
-            &a_picture(source.path(), "still.png"),
+            &fixtures::file(source.path(), "still.png"),
         )
         .unwrap();
         let clip = attach(
@@ -743,7 +723,7 @@ mod tests {
             media.path(),
             &scene_id,
             VIDEO,
-            &a_picture(source.path(), "clip.mp4"),
+            &fixtures::file(source.path(), "clip.mp4"),
         )
         .unwrap();
 
@@ -784,7 +764,7 @@ mod tests {
                 media.path(),
                 &scene_id,
                 FRAME,
-                &a_picture(source.path(), name),
+                &fixtures::file(source.path(), name),
             )
             .unwrap();
         }
@@ -793,7 +773,7 @@ mod tests {
             media.path(),
             &scene_id,
             VIDEO,
-            &a_picture(source.path(), "take.mp4"),
+            &fixtures::file(source.path(), "take.mp4"),
         )
         .unwrap();
 
@@ -824,7 +804,7 @@ mod tests {
                 media.path(),
                 &scene_id,
                 "audio",
-                &a_picture(source.path(), "hum.wav"),
+                &fixtures::file(source.path(), "hum.wav"),
             )
             .is_err(),
             "a scene holds stills and clips, and says so"

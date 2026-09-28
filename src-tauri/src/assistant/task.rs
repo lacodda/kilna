@@ -44,11 +44,12 @@ pub struct Prepared {
 
 /// What a task would send: the text, the method behind it, its name — read
 /// before it is started, or started as it is.
-#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, ts_rs::TS)]
 pub struct Composed {
     /// The message, exactly as the run receives it.
     pub prompt: String,
     /// The action's method, exactly as the run is briefed with it.
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub method: Option<String>,
     /// What this task is, for the duplicate check.
@@ -839,18 +840,11 @@ pub fn action_of_key(conn: &Connection, task_key: &str) -> Option<PromptTemplate
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
+    use crate::fixtures;
     use crate::link::{self, NewLink};
     use crate::scene::NewScene;
     use crate::work::NewWork;
     use crate::work::version::{self, NewVersion};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     #[test]
     fn a_channel_survives_the_key_with_its_colons_and_percents() {
@@ -903,7 +897,7 @@ mod tests {
     /// the replies already posted on that channel — and no other channel's.
     #[test]
     fn a_reply_is_composed_in_the_voice_of_its_own_channel() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work_id = crate::work::create(
             &conn,
             &profile_id,
@@ -991,7 +985,7 @@ mod tests {
 
     #[test]
     fn a_comment_action_is_started_only_from_what_it_is_for() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let comment = crate::comment::create_minted(
             &conn,
             &profile_id,
@@ -1028,7 +1022,7 @@ mod tests {
 
     #[test]
     fn a_screenshot_is_composed_as_an_attachment_on_its_channel() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
         let dir = tempfile::tempdir().unwrap();
         let shot = dir.path().join("shot-7.png");
         std::fs::write(&shot, b"not really a png").unwrap();
@@ -1070,7 +1064,7 @@ mod tests {
     /// kept apart and labelled, and neither is left to be guessed at.
     #[test]
     fn describing_a_brick_carries_the_types_question_and_the_authors_steer() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let brick = crate::style_brick::create(
             &conn,
             &profile_id,
@@ -1116,7 +1110,7 @@ mod tests {
     /// nothing. The composer knows, so the composer says.
     #[test]
     fn describing_a_brick_with_no_references_says_so_rather_than_claiming_some() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let brick = crate::style_brick::create(
             &conn,
             &profile_id,
@@ -1150,7 +1144,7 @@ mod tests {
     /// reason, so this is the second lock on one door.
     #[test]
     fn a_style_action_aimed_at_a_work_is_refused() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
 
         let refused = compose(&conn, &work_id, "describe-style", About::default()).unwrap_err();
@@ -1203,7 +1197,7 @@ mod tests {
 
     #[test]
     fn a_task_gets_a_chat_of_its_own_tied_to_the_work() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
@@ -1218,7 +1212,7 @@ mod tests {
 
     #[test]
     fn every_task_opens_a_new_chat_rather_than_reusing_one() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
@@ -1233,7 +1227,7 @@ mod tests {
 
     #[test]
     fn the_chat_is_named_after_the_action_and_the_work() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
@@ -1249,7 +1243,7 @@ mod tests {
 
     #[test]
     fn the_prompt_is_rendered_against_the_work() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let work_id = work_with_body(
             &mut conn,
             &profile_id,
@@ -1274,7 +1268,7 @@ mod tests {
 
     #[test]
     fn a_task_prompt_carries_the_marker_instruction() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let action = some_action(&conn);
 
@@ -1293,7 +1287,7 @@ mod tests {
 
     #[test]
     fn an_action_the_profile_does_not_have_fails() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
 
         let refused = prepare(&conn, &work_id, "no-such-action", About::default());
@@ -1303,7 +1297,7 @@ mod tests {
 
     #[test]
     fn a_failed_task_leaves_no_chat_behind() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
 
         let _ = prepare(&conn, &work_id, "no-such-action", About::default());
@@ -1317,7 +1311,7 @@ mod tests {
 
     #[test]
     fn an_unknown_work_fails() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
         let action = some_action(&conn);
 
         assert!(prepare(&conn, "nope", &action.key, About::default()).is_err());
@@ -1331,17 +1325,7 @@ mod tests {
     }
 
     fn video(conn: &Connection, profile_id: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "video".into(),
-                title: "The clip".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::video(conn, profile_id, "The clip").id
     }
 
     fn context(conn: &mut Connection, video_id: &str) {
@@ -1362,7 +1346,7 @@ mod tests {
 
     #[test]
     fn the_preview_is_what_the_task_sends() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
 
         let composed = compose(&conn, &work_id, "critique", About::default()).unwrap();
@@ -1380,7 +1364,7 @@ mod tests {
 
     #[test]
     fn an_action_not_for_the_kind_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let video_id = video(&conn, &profile_id);
 
         let refused = compose(&conn, &video_id, "critique", About::default()).unwrap_err();
@@ -1401,7 +1385,7 @@ mod tests {
     /// so is a block on an action that is not about a scene at all.
     #[test]
     fn a_task_about_one_block_names_it_in_the_key_and_refuses_a_stranger() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let video_id = video(&conn, &profile_id);
         context(&mut conn, &video_id);
         let scene = crate::scene::create(
@@ -1486,7 +1470,7 @@ mod tests {
 
     #[test]
     fn a_scene_action_needs_its_scene_and_names_it_in_the_key() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let video_id = video(&conn, &profile_id);
         context(&mut conn, &video_id);
         let scene = crate::scene::create(
@@ -1554,7 +1538,7 @@ mod tests {
 
     #[test]
     fn a_storyboard_action_needs_the_plot_first() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let video_id = video(&conn, &profile_id);
 
         let refused = compose(&conn, &video_id, "storyboard", About::default()).unwrap_err();
@@ -1568,7 +1552,7 @@ mod tests {
 
     #[test]
     fn the_plot_action_reads_the_donor_and_refuses_without_one() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let song_id = work_with_body(
             &mut conn,
             &profile_id,
@@ -1613,7 +1597,7 @@ mod tests {
 
     #[test]
     fn reference_files_are_listed_and_a_missing_one_is_refused() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
         let dir = std::env::temp_dir().join(format!("kilna-refs-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -1676,23 +1660,16 @@ mod tests {
 #[cfg(test)]
 mod version_tests {
     use super::*;
-    use crate::db;
+    use crate::fixtures;
     use crate::work::NewWork;
     use crate::work::version::{self, NewVersion};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     /// A task started on a version reads that version, remembers it on the
     /// chat with the action, and a task started on the work as a whole
     /// remembers the action alone.
     #[test]
     fn a_task_on_a_version_reads_it_and_the_chat_remembers_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -1755,7 +1732,7 @@ mod version_tests {
     /// the prompt says so: the whole answer is what is kept.
     #[test]
     fn an_action_that_produces_a_version_says_so_in_the_prompt() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,

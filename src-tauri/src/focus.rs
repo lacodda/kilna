@@ -19,7 +19,7 @@ use crate::minted::Minted;
 use crate::time::now;
 
 /// A complaint the person has heard and put away.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Dismissal {
     pub kind: String,
     pub work_id: String,
@@ -28,7 +28,7 @@ pub struct Dismissal {
 }
 
 /// What identifies a dismissal: the kind, the work, and what was said.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct DismissalKey {
     pub kind: String,
     pub work_id: String,
@@ -36,7 +36,7 @@ pub struct DismissalKey {
 }
 
 /// A line the person put on the board themselves.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct FocusNote {
     pub id: String,
     pub profile_id: String,
@@ -51,7 +51,8 @@ pub struct FocusNote {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewFocusNote {
     pub body: String,
     #[serde(default)]
@@ -60,7 +61,7 @@ pub struct NewFocusNote {
     pub due_on: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
 pub struct FocusNotePatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body: Option<String>,
@@ -380,29 +381,12 @@ fn read_note(row: &rusqlite::Row<'_>) -> rusqlite::Result<FocusNote> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
+    use crate::fixtures;
     use crate::profile;
-    use crate::work::{self, NewWork};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
+    use crate::work;
 
     fn a_work(conn: &Connection, profile_id: &str, title: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: title.into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::song(conn, profile_id, title).id
     }
 
     fn key(kind: &str, work_id: &str, complaint: &str) -> DismissalKey {
@@ -415,7 +399,7 @@ mod tests {
 
     #[test]
     fn a_dismissed_complaint_is_remembered() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         dismiss(
             &conn,
@@ -434,7 +418,7 @@ mod tests {
     /// thing to hear than one that had sat one, and it has to come back.
     #[test]
     fn a_changed_complaint_is_news_again() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         dismiss(
             &conn,
@@ -454,7 +438,7 @@ mod tests {
 
     #[test]
     fn dismissing_the_same_complaint_twice_keeps_one_row() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         dismiss(&conn, &profile_id, &key("unscored", "w1", "unscored")).unwrap();
         dismiss(&conn, &profile_id, &key("unscored", "w1", "unscored")).unwrap();
@@ -464,7 +448,7 @@ mod tests {
 
     #[test]
     fn restoring_brings_a_complaint_back() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let subject = key("unscored", "w1", "unscored");
 
         dismiss(&conn, &profile_id, &subject).unwrap();
@@ -478,14 +462,14 @@ mod tests {
     /// already showing.
     #[test]
     fn restoring_what_was_never_hidden_is_not_an_error() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         restore(&conn, &profile_id, &key("unscored", "w1", "unscored")).unwrap();
     }
 
     #[test]
     fn a_dismissal_for_a_deleted_work_is_swept() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let kept = a_work(&conn, &profile_id, "Harbour lights");
         let going = a_work(&conn, &profile_id, "Winter road");
 
@@ -501,7 +485,7 @@ mod tests {
 
     #[test]
     fn a_new_note_lands_at_the_end() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
 
         add_note(&conn, &profile_id, note("first")).unwrap();
         add_note(&conn, &profile_id, note("second")).unwrap();
@@ -515,7 +499,7 @@ mod tests {
 
     #[test]
     fn a_pinned_note_rises_to_the_top() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         add_note(&conn, &profile_id, note("first")).unwrap();
         let second = add_note(&conn, &profile_id, note("second")).unwrap();
 
@@ -536,7 +520,7 @@ mod tests {
 
     #[test]
     fn unpinning_returns_a_note_to_its_place() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let first = add_note(&conn, &profile_id, note("first")).unwrap();
         add_note(&conn, &profile_id, note("second")).unwrap();
 
@@ -554,7 +538,7 @@ mod tests {
 
     #[test]
     fn reordering_rearranges_the_board() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let first = add_note(&conn, &profile_id, note("first")).unwrap();
         let second = add_note(&conn, &profile_id, note("second")).unwrap();
         let third = add_note(&conn, &profile_id, note("third")).unwrap();
@@ -577,7 +561,7 @@ mod tests {
     /// that view has to keep its place rather than being scattered through it.
     #[test]
     fn reordering_leaves_notes_it_does_not_name_after_the_rest() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let first = add_note(&conn, &profile_id, note("first")).unwrap();
         let second = add_note(&conn, &profile_id, note("second")).unwrap();
         add_note(&conn, &profile_id, note("unnamed")).unwrap();
@@ -597,7 +581,7 @@ mod tests {
     /// of damage nothing on screen would explain.
     #[test]
     fn reordering_leaves_another_profiles_board_alone() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let other = profile::list(&conn)
             .unwrap()
             .into_iter()
@@ -623,7 +607,7 @@ mod tests {
 
     #[test]
     fn deleting_an_unknown_note_says_so() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
 
         assert!(delete_note(&conn, "nothing").is_err());
     }
@@ -638,7 +622,7 @@ mod tests {
 
     #[test]
     fn a_board_note_can_carry_a_due_date_and_only_a_real_one() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let line = add_note(
             &conn,
             &profile_id,

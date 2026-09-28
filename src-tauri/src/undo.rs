@@ -31,7 +31,7 @@ use crate::operation::{self, Intent, Operation};
 /// journal entry is a sentence about what happened, and this has to name what
 /// *unhappening* it would mean. They usually agree; when they do not, the
 /// journal is the one that can be reworded.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct Undoable {
     /// The operation that would be taken back.

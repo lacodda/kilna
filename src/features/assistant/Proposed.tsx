@@ -47,7 +47,7 @@ export function Proposed({ answer, workId, onChooseVersion }: Props) {
           applied={applied}
           dismissed={dismissed}
           onChoose={() => {
-            onChooseVersion(proposal.role, proposal.label)
+            onChooseVersion(proposal.role, proposal.label ?? undefined)
           }}
         />
       )

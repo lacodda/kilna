@@ -20,8 +20,7 @@ use rusqlite::Connection;
 use rusqlite::types::ValueRef;
 use serde_json::{Map, Value, json};
 
-use kilna_lib::minted::Minted;
-use kilna_lib::{db, operation, profile, release, replay, work};
+use kilna_lib::{actions, fixtures, operation, profile, release, replay, work};
 
 /// Tables a rebuilt workspace has to match on. Everything the person's work
 /// lives in; nothing about this machine or this conversation.
@@ -109,38 +108,25 @@ fn contents(conn: &Connection) -> Map<String, Value> {
 
 /// An empty workspace, seeded exactly as a fresh install is.
 fn workspace() -> Connection {
-    let conn = db::open_in_memory().unwrap();
-    profile::seed(&conn).unwrap();
-    conn
+    fixtures::workspace().0
 }
 
 #[test]
 fn a_workspace_is_rebuilt_from_its_operations() {
-    let mut source = workspace();
-    let profile_id = profile::active(&source).unwrap().unwrap().id;
+    let source = workspace();
 
-    // Three works, written the way a command writes them: the operation and the
-    // row take the same minted values.
+    // Three works, written the way the window writes them: through the action,
+    // which mints the id and records the operation together.
     for title in ["Harbour lights", "Winter road", "The long way round"] {
-        let new = work::NewWork {
-            kind: "song".into(),
-            title: title.into(),
-            ..work::NewWork::default()
-        };
-        let minted = Minted::fresh();
-        let logged = operation::Intent::new("work.create")
-            .in_profile(&profile_id)
-            .param(
-                "profile",
-                profile::key_for_id(&source, &profile_id).unwrap().unwrap(),
-            )
-            .param("work", serde_json::to_value(&new).unwrap())
-            .minted(&minted);
-
-        let transaction = source.transaction().unwrap();
-        work::create_minted(&transaction, &profile_id, new, minted).unwrap();
-        operation::record(&transaction, logged).unwrap();
-        transaction.commit().unwrap();
+        actions::work::create(
+            &source,
+            work::NewWork {
+                kind: "song".into(),
+                title: title.into(),
+                ..work::NewWork::default()
+            },
+        )
+        .unwrap();
     }
 
     let mut rebuilt = workspace();
@@ -167,19 +153,18 @@ fn a_workspace_is_rebuilt_from_its_operations() {
 /// than assumed.
 #[test]
 fn the_comparison_notices_a_difference() {
-    let mut one = workspace();
-    let profile_id = profile::active(&one).unwrap().unwrap().id;
-
+    let one = workspace();
     let two = workspace();
 
-    let new = work::NewWork {
-        kind: "song".into(),
-        title: "Harbour lights".into(),
-        ..work::NewWork::default()
-    };
-    let transaction = one.transaction().unwrap();
-    work::create_minted(&transaction, &profile_id, new, Minted::fresh()).unwrap();
-    transaction.commit().unwrap();
+    actions::work::create(
+        &one,
+        work::NewWork {
+            kind: "song".into(),
+            title: "Harbour lights".into(),
+            ..work::NewWork::default()
+        },
+    )
+    .unwrap();
 
     assert_ne!(
         contents(&one),
@@ -223,49 +208,43 @@ fn an_unknown_kind_is_reported() {
 fn a_derived_status_survives_the_rebuild() {
     let mut source = workspace();
     let profile_id = profile::active(&source).unwrap().unwrap().id;
-    let key = profile::key_for_id(&source, &profile_id).unwrap().unwrap();
 
     // A work.
-    let new = work::NewWork {
-        kind: "song".into(),
-        title: "Harbour lights".into(),
-        ..work::NewWork::default()
-    };
-    let minted = Minted::fresh();
-    let work_id = minted.id().to_owned();
-    let logged = operation::Intent::new("work.create")
-        .in_profile(&profile_id)
-        .param("profile", key.clone())
-        .param("work", serde_json::to_value(&new).unwrap())
-        .minted(&minted);
-    let transaction = source.transaction().unwrap();
-    work::create_minted(&transaction, &profile_id, new, minted).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    let work_id = actions::work::create(
+        &source,
+        work::NewWork {
+            kind: "song".into(),
+            title: "Harbour lights".into(),
+            ..work::NewWork::default()
+        },
+    )
+    .unwrap()
+    .id;
 
     // A release for it.
-    let new = release::NewRelease {
-        work_id: work_id.clone(),
-        kind: "single".into(),
-        title: None,
-        scheduled_at: None,
-        meta: None,
-        scheduled_time: None,
-        time_zone: None,
-    };
-    let minted = Minted::fresh();
-    let release_id = minted.id().to_owned();
-    let logged = operation::Intent::new("release.create")
-        .in_profile(&profile_id)
-        .param("profile", key.clone())
-        .param("release", serde_json::to_value(&new).unwrap())
-        .minted(&minted);
-    let transaction = source.transaction().unwrap();
-    release::create_minted(&transaction, new, minted).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    let release_id = actions::release::create(
+        &source,
+        release::NewRelease {
+            work_id: work_id.clone(),
+            kind: "audio".into(),
+            title: None,
+            scheduled_at: None,
+            meta: None,
+            scheduled_time: None,
+            time_zone: None,
+        },
+    )
+    .unwrap()
+    .id;
 
-    // And the release goes out, which is what makes the work "released".
+    // And the release goes out, which is what makes the work "released". Kept
+    // hand-built rather than `actions::release::mark_released`: that action's
+    // restate stamps the live row with a fresh `now()` (by design - see
+    // `work::status::refresh`), a moment a replay cannot reproduce, since it
+    // restates at the operation's own `at` instead. Pinning the live restate
+    // to the same `at` here is what makes the byte-for-byte comparison below
+    // meaningful, rather than a coincidence of two clocks landing together.
+    let key = profile::key_for_id(&source, &profile_id).unwrap().unwrap();
     let at = kilna_lib::time::now();
     let logged = operation::Intent::new("release.markReleased")
         .in_profile(&profile_id)
@@ -277,7 +256,6 @@ fn a_derived_status_survives_the_rebuild() {
     operation::record(&transaction, logged).unwrap();
     transaction.commit().unwrap();
 
-    // What the live command does next, and what a rebuild has to reproduce.
     let config = profile::config_for(&source, &profile_id).unwrap();
     work::status::refresh_at(&source, &config, &work_id, &at).unwrap();
 
@@ -319,25 +297,22 @@ fn field_edits_rebuild_whether_logged_whole_or_by_key() {
     let profile_id = profile::active(&source).unwrap().unwrap().id;
     let key = profile::key_for_id(&source, &profile_id).unwrap().unwrap();
 
-    let new = work::NewWork {
-        kind: "song".into(),
-        title: "Harbour lights".into(),
-        meta: json!({ "bpm": 128, "key": "Am" }).as_object().cloned(),
-        ..work::NewWork::default()
-    };
-    let minted = Minted::fresh();
-    let work_id = minted.id().to_owned();
-    let logged = operation::Intent::new("work.create")
-        .in_profile(&profile_id)
-        .param("profile", key.clone())
-        .param("work", serde_json::to_value(&new).unwrap())
-        .minted(&minted);
-    let transaction = source.transaction().unwrap();
-    work::create_minted(&transaction, &profile_id, new, minted).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    let work_id = actions::work::create(
+        &source,
+        work::NewWork {
+            kind: "song".into(),
+            title: "Harbour lights".into(),
+            meta: json!({ "bpm": 128, "key": "Am" }).as_object().cloned(),
+            ..work::NewWork::default()
+        },
+    )
+    .unwrap()
+    .id;
 
-    // Each edit: what the log says, and what the row became live.
+    // Each edit is written by hand, one in the shape logged until v0.82 and one
+    // in the shape logged since - what `actions::work::update` would write for
+    // the second, but not for the first, which the current action can no
+    // longer produce. Both have to replay the same, so both stay literal.
     let edits = [
         // Until v0.82: the tempo changed, the key dropped, a mood added -
         // written as every field the work was left with.
@@ -447,45 +422,31 @@ fn a_promoted_note_rebuilds_as_its_work() {
 fn a_comment_and_its_reply_rebuild() {
     use kilna_lib::comment::{self, CommentPatch, NewComment};
 
-    let mut source = workspace();
-    let profile_id = profile::active(&source).unwrap().unwrap().id;
-    let key = profile::key_for_id(&source, &profile_id).unwrap().unwrap();
+    let source = workspace();
 
-    let new = NewComment {
-        channel: "main".into(),
-        body: "loved the bridge".into(),
-        author: Some("anna".into()),
-        commented_on: Some("2026-09-01".into()),
-        ..NewComment::default()
-    };
-    let minted = Minted::fresh();
-    let id = minted.id().to_owned();
-    let logged = operation::Intent::new("comment.create")
-        .in_profile(&profile_id)
-        .param("profile", key.clone())
-        .param("comment", serde_json::to_value(&new).unwrap())
-        .minted(&minted);
-    let transaction = source.transaction().unwrap();
-    comment::create_minted(&transaction, &profile_id, new, minted).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    let id = actions::comment::create(
+        &source,
+        NewComment {
+            channel: "main".into(),
+            body: "loved the bridge".into(),
+            author: Some("anna".into()),
+            commented_on: Some("2026-09-01".into()),
+            ..NewComment::default()
+        },
+    )
+    .unwrap()
+    .id;
 
-    let patch = CommentPatch {
-        reply: Some(Some("thank you!".into())),
-        state: Some(comment::POSTED.into()),
-        ..CommentPatch::default()
-    };
-    let at = kilna_lib::time::now();
-    let logged = operation::Intent::new("comment.update")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("id", id.clone())
-        .param("patch", serde_json::to_value(&patch).unwrap())
-        .param("at", at.clone());
-    let transaction = source.transaction().unwrap();
-    comment::update_at(&transaction, &id, patch, &at).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    actions::comment::update(
+        &source,
+        &id,
+        CommentPatch {
+            reply: Some(Some("thank you!".into())),
+            state: Some(comment::POSTED.into()),
+            ..CommentPatch::default()
+        },
+    )
+    .unwrap();
 
     let mut rebuilt = workspace();
     let report = replay::rebuild(&source, &mut rebuilt).unwrap();

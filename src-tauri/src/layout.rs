@@ -19,7 +19,7 @@ use crate::release::{self, Verdict};
 use crate::time::now;
 
 /// One line of the plan: this release lands on this day.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 pub struct Placement {
     pub release_id: String,
     pub date: String,

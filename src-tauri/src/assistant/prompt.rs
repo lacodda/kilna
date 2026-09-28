@@ -13,7 +13,7 @@ use crate::work::{self, version};
 /// A template is a string with `{placeholders}` filled from the work in
 /// context, so "Critique the lyrics" means the right thing in a music profile
 /// and something else entirely in a novel one.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct PromptTemplate {
     pub key: String,
     pub label: Label,
@@ -509,19 +509,11 @@ fn span(starts_at: Option<f64>, ends_at: Option<f64>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
+    use crate::fixtures;
     use crate::link::{self, NewLink};
-    use crate::profile;
     use crate::scene::{self, NewScene};
     use crate::work::NewWork;
     use crate::work::version::NewVersion;
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     #[test]
     fn placeholders_are_replaced() {
@@ -547,7 +539,7 @@ mod tests {
     /// contributes, so it can write one prompt instead of gluing three.
     #[test]
     fn picked_styles_reach_the_prompt_under_the_word_for_what_they_are() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -622,7 +614,7 @@ mod tests {
     /// "there is no character", and the person picked it on purpose.
     #[test]
     fn a_style_with_no_description_is_listed_as_undescribed_rather_than_dropped() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -665,7 +657,7 @@ mod tests {
     /// never asks for it must not pay — the same rule the board follows.
     #[test]
     fn a_template_that_never_asks_for_styles_does_not_refuse_a_missing_one() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -696,7 +688,7 @@ mod tests {
     /// chose it, and a prompt quietly missing a part is worse than none.
     #[test]
     fn a_style_that_is_not_there_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -725,7 +717,7 @@ mod tests {
 
     #[test]
     fn a_work_prompt_carries_the_title_and_the_current_body() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -763,7 +755,7 @@ mod tests {
 
     #[test]
     fn a_prompt_can_ask_for_a_role_the_work_is_not_currently_on() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -814,7 +806,7 @@ mod tests {
 
     #[test]
     fn a_work_without_versions_renders_an_empty_body_rather_than_failing() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -833,7 +825,7 @@ mod tests {
 
     #[test]
     fn an_unknown_work_fails() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
 
         assert!(for_work(&conn, "nope", "{title}", Context::default()).is_err());
     }
@@ -896,7 +888,7 @@ mod tests {
 
     #[test]
     fn the_board_and_a_scene_render_for_a_video() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let video_id = video(&conn, &profile_id, "The clip");
         let mut blocks = serde_json::Map::new();
         blocks.insert("still".into(), serde_json::json!("cranes, fog, 35mm"));
@@ -982,7 +974,7 @@ mod tests {
 
     #[test]
     fn a_donor_is_read_and_its_absence_is_refused() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let song = work::create(
             &conn,
             &profile_id,
@@ -1037,7 +1029,7 @@ mod tests {
 
     #[test]
     fn a_role_the_kind_names_but_the_work_lacks_is_refused_not_blanked() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let video_id = video(&conn, &profile_id, "The clip");
 
         let refused = for_work(&conn, &video_id, "{role:plot}", Context::default()).unwrap_err();
@@ -1055,8 +1047,7 @@ mod tests {
 #[cfg(test)]
 mod version_tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
+    use crate::fixtures;
     use crate::work::NewWork;
     use crate::work::version::NewVersion;
 
@@ -1065,9 +1056,7 @@ mod version_tests {
     /// role still reads its latest, and a version of another work is refused.
     #[test]
     fn a_named_version_is_what_the_template_reads() {
-        let mut conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let (mut conn, profile_id) = fixtures::workspace();
         let work = work::create(
             &conn,
             &profile_id,

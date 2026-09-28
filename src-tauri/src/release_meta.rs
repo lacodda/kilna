@@ -27,7 +27,7 @@ use crate::work;
 
 /// One field of a release, as a screen needs it: what it is, what is written
 /// in it, and whether the profile could write it.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 pub struct Field {
     pub key: String,
     pub label: Label,
@@ -37,8 +37,10 @@ pub struct Field {
     /// written and a field written blank are the same thing to a reader, and
     /// telling them apart would only let one of them hide.
     pub value: String,
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hint: Option<Label>,
+    #[ts(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
     /// Whether the profile can fill this field on its own.
@@ -110,7 +112,7 @@ fn stored(meta: &Map<String, Value>, key: &str) -> String {
 }
 
 /// What a generation produced, field by field.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Generated {
     /// The values, by field key, ready to be written.
     pub values: Map<String, Value>,
@@ -124,7 +126,7 @@ pub struct Generated {
 
 /// A field the profile could not fill, and the reason in the renderer's own
 /// words.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Refusal {
     pub key: String,
     pub label: Label,
@@ -239,18 +241,10 @@ pub fn fullness(fields: &[Field]) -> Fullness {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
+    use crate::fixtures;
     use crate::release::NewRelease;
     use crate::work::{self, NewWork, version};
     use serde_json::json;
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     /// A song with an audio release planned for it, and the lyrics its
     /// description template reads.
@@ -300,7 +294,7 @@ mod tests {
 
     #[test]
     fn the_fields_are_the_release_kinds_own() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let id = song_with_audio(&mut conn, &profile_id, None);
 
         let fields = fields(&conn, &id).unwrap();
@@ -315,7 +309,7 @@ mod tests {
 
     #[test]
     fn a_release_of_a_kind_the_profile_lost_still_reads() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let id = song_with_audio(&mut conn, &profile_id, None);
         release::update(
             &conn,
@@ -337,7 +331,7 @@ mod tests {
 
     #[test]
     fn generating_fills_the_templated_fields_and_leaves_the_rest_alone() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let id = song_with_audio(&mut conn, &profile_id, Some("the lamps come on at four"));
 
         let generated = generate(&conn, &id).unwrap();
@@ -360,7 +354,7 @@ mod tests {
 
     #[test]
     fn a_field_waiting_on_a_missing_role_is_named_rather_than_written_blank() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         // No lyrics: the description template reads `{role:lyrics}`.
         let id = song_with_audio(&mut conn, &profile_id, None);
 
@@ -387,7 +381,7 @@ mod tests {
 
     #[test]
     fn generating_keeps_meta_no_field_describes() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let id = song_with_audio(&mut conn, &profile_id, Some("a body"));
         // What a plugin left behind: `release.meta` is open, and a generate
         // button is not a reason to lose it.
@@ -458,7 +452,7 @@ mod tests {
 
     #[test]
     fn fullness_counts_what_is_written() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let id = song_with_audio(&mut conn, &profile_id, Some("a body"));
 
         let empty = fullness(&fields(&conn, &id).unwrap());
@@ -496,7 +490,7 @@ mod tests {
 
     #[test]
     fn a_blank_field_counts_as_unwritten() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let id = song_with_audio(&mut conn, &profile_id, None);
         release::update(
             &conn,

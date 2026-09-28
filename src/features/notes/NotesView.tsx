@@ -90,7 +90,7 @@ export function NotesView() {
         body: '',
         // Made in the kind being looked at, so it does not vanish from the
         // list it was made in.
-        kind: kind ?? kinds[0]?.key ?? null,
+        kind: kind ?? kinds[0]?.key,
         tags: tag === '' ? [] : [tag],
       }),
     failure: 'toast.noteSaveFailed',

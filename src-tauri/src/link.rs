@@ -22,7 +22,7 @@ pub const DONOR: &str = "donor";
 
 /// A link as a card reads it: the source beside the link, and whether the
 /// source has moved on since the link was made.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Link {
     pub id: String,
     /// The work that was made from the other.
@@ -55,7 +55,7 @@ pub struct Link {
 /// With where its releases stand, because "when did the clip come out" is
 /// asked on the song's card: until v0.80 the answer was only on the clip's
 /// own card or in the calendar.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Derived {
     pub link_id: String,
     pub work_id: String,
@@ -74,7 +74,8 @@ pub struct Derived {
     pub next_scheduled_at: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
 pub struct NewLink {
     pub work_id: String,
     pub source_id: String,
@@ -87,7 +88,7 @@ pub struct NewLink {
 }
 
 /// Everything a card shows about a work's links.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Links {
     /// What this work was made from.
     pub sources: Vec<Link>,
@@ -286,30 +287,11 @@ fn read_link(row: &rusqlite::Row<'_>) -> rusqlite::Result<Link> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
-    use crate::profile;
+    use crate::fixtures;
     use crate::work::version::{self, NewVersion};
-    use crate::work::{self, NewWork};
-
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
 
     fn work(conn: &Connection, profile_id: &str, kind: &str, title: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: kind.into(),
-                title: title.into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::work(conn, profile_id, kind, title).id
     }
 
     fn lyrics(conn: &mut Connection, work_id: &str, body: &str) -> String {
@@ -331,7 +313,7 @@ mod tests {
 
     #[test]
     fn a_link_remembers_the_sources_version_and_reads_the_source_beside_it() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let song = work(&conn, &profile_id, "song", "Harbour lights");
         let v1 = lyrics(&mut conn, &song, "one line");
         let video = work(&conn, &profile_id, "video", "Harbour lights");
@@ -383,7 +365,7 @@ mod tests {
 
     #[test]
     fn what_was_made_from_a_work_says_when_it_came_out_and_when_it_comes_next() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let song = work(&conn, &profile_id, "song", "S");
         let video = work(&conn, &profile_id, "video", "V");
         create(
@@ -429,7 +411,7 @@ mod tests {
 
     #[test]
     fn the_link_drifts_when_the_source_moves_on_to_another_version() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let song = work(&conn, &profile_id, "song", "S");
         lyrics(&mut conn, &song, "one line");
         let video = work(&conn, &profile_id, "video", "V");
@@ -455,7 +437,7 @@ mod tests {
 
     #[test]
     fn the_link_drifts_when_the_version_it_was_taken_at_is_edited_in_place() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let song = work(&conn, &profile_id, "song", "S");
         let v1 = lyrics(&mut conn, &song, "one line");
         let video = work(&conn, &profile_id, "video", "V");
@@ -487,7 +469,7 @@ mod tests {
 
     #[test]
     fn a_link_taken_when_the_source_had_no_version_never_drifts() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let song = work(&conn, &profile_id, "song", "S");
         let video = work(&conn, &profile_id, "video", "V");
         let link = create(
@@ -510,7 +492,7 @@ mod tests {
 
     #[test]
     fn a_work_is_not_made_from_itself_nor_twice_from_the_same_source() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let song = work(&conn, &profile_id, "song", "S");
         let video = work(&conn, &profile_id, "video", "V");
 
@@ -548,7 +530,7 @@ mod tests {
 
     #[test]
     fn a_version_of_another_work_is_refused() {
-        let (mut conn, profile_id) = workspace();
+        let (mut conn, profile_id) = fixtures::workspace();
         let song = work(&conn, &profile_id, "song", "S");
         let other = work(&conn, &profile_id, "song", "O");
         let foreign = lyrics(&mut conn, &other, "x");
@@ -574,7 +556,7 @@ mod tests {
 
     #[test]
     fn deleting_the_source_takes_the_link_and_leaves_a_tombstone() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let song = work(&conn, &profile_id, "song", "S");
         let video = work(&conn, &profile_id, "video", "V");
         let link = create(

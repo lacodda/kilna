@@ -148,7 +148,7 @@ pub fn refresh_at(
 }
 
 /// A status the automation would change, or did.
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq, ts_rs::TS)]
 pub struct Change {
     pub work_id: String,
     /// Carried along because the dry run is read as a list of works, not of
@@ -246,33 +246,23 @@ pub fn unpin_at(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db;
+    use crate::fixtures;
     use crate::profile;
     use crate::release::{self as releases, NewRelease};
     use crate::score::{self, NewScore};
-    use crate::work::{self, NewWork, WorkPatch};
+    use crate::work::{self, WorkPatch};
     use serde_json::json;
 
+    /// [`fixtures::workspace`], and the profile's config alongside it - most
+    /// tests here derive a status from it.
     fn workspace() -> (Connection, String, ProfileConfig) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let (conn, profile_id) = fixtures::workspace();
         let config = profile::config_for(&conn, &profile_id).unwrap();
         (conn, profile_id, config)
     }
 
     fn a_work(conn: &Connection, profile_id: &str, title: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: title.into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::song(conn, profile_id, title).id
     }
 
     fn a_release(conn: &Connection, work_id: &str) -> String {

@@ -39,29 +39,13 @@ pub fn for_row(conn: &Connection, entity: &str, entity_id: &str) -> Result<Vec<F
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::work::{self, NewWork, WorkPatch};
-    use crate::{db, device, profile, release, trash};
+    use crate::fixtures;
+    use crate::work::{self, WorkPatch};
+    use crate::{device, release, trash};
     use serde_json::json;
 
-    fn workspace() -> (Connection, String) {
-        let conn = db::open_in_memory().unwrap();
-        profile::seed(&conn).unwrap();
-        let profile_id = profile::active(&conn).unwrap().unwrap().id;
-        (conn, profile_id)
-    }
-
     fn a_work(conn: &Connection, profile_id: &str) -> String {
-        work::create(
-            conn,
-            profile_id,
-            NewWork {
-                kind: "song".into(),
-                title: "Harbour lights".into(),
-                ..NewWork::default()
-            },
-        )
-        .unwrap()
-        .id
+        fixtures::song(conn, profile_id, "Harbour lights").id
     }
 
     fn fields(conn: &Connection, id: &str) -> Vec<String> {
@@ -86,7 +70,7 @@ mod tests {
 
     #[test]
     fn creating_a_row_writes_no_clocks() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let id = a_work(&conn, &profile_id);
         assert!(
             fields(&conn, &id).is_empty(),
@@ -96,7 +80,7 @@ mod tests {
 
     #[test]
     fn only_the_field_that_changed_gets_a_clock() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let id = a_work(&conn, &profile_id);
 
         retitle(&conn, &id, "Harbour lights (edit)");
@@ -106,7 +90,7 @@ mod tests {
 
     #[test]
     fn a_save_with_the_same_values_leaves_no_mark() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let id = a_work(&conn, &profile_id);
 
         retitle(&conn, &id, "Harbour lights");
@@ -116,7 +100,7 @@ mod tests {
 
     #[test]
     fn a_clock_names_this_device_and_takes_the_stored_stamp_shape() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let id = a_work(&conn, &profile_id);
         // Not the status: a status set by hand pins itself, which is two
         // fields changing at once and a different test's business.
@@ -146,7 +130,7 @@ mod tests {
 
     #[test]
     fn a_later_change_replaces_the_clock_rather_than_adding_one() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let id = a_work(&conn, &profile_id);
         retitle(&conn, &id, "One");
         retitle(&conn, &id, "Two");
@@ -155,7 +139,7 @@ mod tests {
 
     #[test]
     fn a_field_going_to_or_from_null_is_a_change() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let id = a_work(&conn, &profile_id);
         let planned = release::create(
             &conn,
@@ -191,7 +175,7 @@ mod tests {
 
     #[test]
     fn deleting_a_row_takes_its_clocks_with_it() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let id = a_work(&conn, &profile_id);
         work::update(
             &conn,
@@ -211,7 +195,7 @@ mod tests {
 
     #[test]
     fn a_machine_local_column_is_not_clocked() {
-        let (conn, _) = workspace();
+        let (conn, _) = fixtures::workspace();
         let count = || -> i64 {
             conn.query_row("SELECT count(*) FROM field_clock", [], |row| row.get(0))
                 .unwrap()
@@ -227,7 +211,7 @@ mod tests {
 
     #[test]
     fn the_columns_added_by_the_model_package_are_clocked_too() {
-        let (conn, profile_id) = workspace();
+        let (conn, profile_id) = fixtures::workspace();
         let id = a_work(&conn, &profile_id);
 
         work::pin_tier(&conn, &id, "clip", "booked").unwrap();

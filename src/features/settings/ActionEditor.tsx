@@ -51,6 +51,7 @@ export function ActionEditor({
           placeholder={t('editor.producesProse')}
           value={
             action.produces !== undefined &&
+            action.produces !== null &&
             producesOptions.some((option) => option.value === action.produces)
               ? action.produces
               : ''

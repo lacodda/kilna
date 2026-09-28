@@ -106,7 +106,7 @@ export function useBodyEditing({ workId, role, open, onMinted, failure, current 
       const created = await createVersion(workId, {
         role,
         body,
-        label: null,
+        label: undefined,
         make_current: current,
         parent_version_id: parentId,
         ...(about.current === null ? {} : { meta: { about: about.current } }),

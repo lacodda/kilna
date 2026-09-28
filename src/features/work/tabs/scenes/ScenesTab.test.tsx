@@ -139,7 +139,7 @@ describe("a row's menu", () => {
         scene: {
           work_id: IDS.video,
           section: 'Chorus',
-          shot_type: null,
+          shot_type: undefined,
           description: 'The lantern drifts under the bridge.',
           blocks: {},
         },
