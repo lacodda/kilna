@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.83.0] - 2026-09-28
+
+### Refactoring
+- One function per gesture
+- Every refusal is a code the window says
+- Generate the window's types from Rust
+
 ## [0.82.0] - 2026-09-28
 
 ### Features
