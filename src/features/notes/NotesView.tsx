@@ -123,14 +123,14 @@ export function NotesView() {
                   aria-pressed={active}
                   onClick={() => setKind(active ? undefined : entry.key)}
                   className={cn(
-                    'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+                    'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
                     active
                       ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
                       : 'border-line text-dim hover:border-line-2 hover:text-text',
                   )}
                 >
                   {entry.label}
-                  <span className="text-[10.5px] text-faint tabular-nums">{entry.count}</span>
+                  <span className="text-2xs text-faint tabular-nums">{entry.count}</span>
                 </button>
               )
             })}
@@ -253,10 +253,10 @@ function NoteRow({
         active ? 'bg-accent-soft' : 'hover:bg-soft',
       )}
     >
-      <b className={cn('block truncate text-[12.5px] font-semibold', title === '' && 'text-faint')}>
+      <b className={cn('block truncate text-sm font-semibold', title === '' && 'text-faint')}>
         {title === '' ? t('notes.untitled') : title}
       </b>
-      <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-faint">
+      <span className="flex min-w-0 items-center gap-1.5 text-xs text-faint">
         <span className="truncate">
           {kindLabel} · {day}
         </span>

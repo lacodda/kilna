@@ -200,9 +200,7 @@ function ReleaseFieldBox({ field, onSave, onCopy }: BoxProps) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
-        <span className="text-2xs font-semibold uppercase tracking-caption text-faint">
-          {sayLabel(field.label)}
-        </span>
+        <span className="caption">{sayLabel(field.label)}</span>
         {counter !== null && (
           // A count, never a refusal: kilna is not the authority on what a
           // platform accepts this month, and a box that refuses to hold the

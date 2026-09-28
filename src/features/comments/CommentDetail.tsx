@@ -169,14 +169,14 @@ export function CommentDetail({
           }}
           placeholder={t('comments.authorPlaceholder')}
           aria-label={t('comments.author')}
-          className="min-w-32 flex-1 border-transparent bg-transparent px-1.5 text-[13px] font-semibold hover:border-line focus:border-line"
+          className="min-w-32 flex-1 border-transparent bg-transparent px-1.5 text-sm font-semibold hover:border-line focus:border-line"
         />
         <SaveState status={saved} />
         <button
           type="button"
           onClick={() => setMoving(!moving)}
           title={t('comments.moveChannel')}
-          className="cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-[11.5px] text-dim hover:border-line-2 hover:text-text"
+          className="cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-xs text-dim hover:border-line-2 hover:text-text"
         >
           {comment.channel}
         </button>
@@ -275,7 +275,7 @@ export function CommentDetail({
               }
             }}
             aria-label={t('comments.body')}
-            className="text-[13px]"
+            className="text-sm"
           />
         ) : (
           <blockquote
@@ -283,18 +283,16 @@ export function CommentDetail({
             onClick={() => setEditingBody(true)}
             title={t('comments.editBody')}
           >
-            <Markdown body={comment.body} className="text-[13px]" />
+            <Markdown body={comment.body} className="text-sm" />
           </blockquote>
         )}
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-2xs font-semibold uppercase tracking-caption text-faint">
-              {t('comments.reply')}
-            </span>
+            <span className="caption">{t('comments.reply')}</span>
             <span
               className={cn(
-                'rounded-full px-2 py-px text-[10.5px]',
+                'rounded-full px-2 py-px text-2xs',
                 standing === 'posted' && 'bg-good-soft text-good',
                 standing === 'drafted' && 'bg-warn-soft text-warn',
                 standing === 'waiting' && 'bg-accent-soft text-accent-2',
@@ -313,7 +311,7 @@ export function CommentDetail({
             onBlur={saveReply}
             placeholder={t('comments.replyPlaceholder')}
             aria-label={t('comments.reply')}
-            className="text-[13px]"
+            className="text-sm"
           />
 
           {/* Drafts the assistant wrote, each kept or dropped on its own:
@@ -324,8 +322,8 @@ export function CommentDetail({
               key={pending.message_id}
               className="flex flex-col gap-2 rounded-lg border border-accent/40 bg-accent-soft/40 p-2.5"
             >
-              <p className="text-[11px] font-medium text-accent-2">{t('comments.draftReady')}</p>
-              <p className="selectable text-[13px] whitespace-pre-wrap">{pending.body}</p>
+              <p className="text-xs font-medium text-accent-2">{t('comments.draftReady')}</p>
+              <p className="selectable text-sm whitespace-pre-wrap">{pending.body}</p>
               <div className="flex justify-end gap-1.5">
                 <Button
                   size="sm"

@@ -60,7 +60,7 @@ export function Sparkline({ values, max = 100, label, size, className }: Props) 
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className={cn('shrink-0', size === undefined && 'h-7 w-[120px]', className)}
+      className={cn('shrink-0', size === undefined && 'h-7 w-30', className)}
       role="img"
       aria-label={label ?? t('score.trend', { from: first.toFixed(1), to: latest.toFixed(1) })}
     >

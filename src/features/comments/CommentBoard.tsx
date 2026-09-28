@@ -140,7 +140,7 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
                   aria-pressed={active}
                   onClick={() => setChannel(active ? undefined : entry.name)}
                   className={cn(
-                    'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+                    'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
                     active
                       ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
                       : 'border-line text-dim hover:border-line-2 hover:text-text',
@@ -148,9 +148,7 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
                 >
                   {entry.label}
                   {entry.waiting !== undefined && entry.waiting > 0 && (
-                    <span className="text-[10.5px] text-accent-2 tabular-nums">
-                      {entry.waiting}
-                    </span>
+                    <span className="text-2xs text-accent-2 tabular-nums">{entry.waiting}</span>
                   )}
                 </button>
               )
@@ -169,7 +167,7 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
               aria-pressed={state === one}
               onClick={() => setState(one)}
               className={cn(
-                'cursor-pointer rounded px-2.5 py-0.5 text-[11.5px] text-dim transition-colors',
+                'cursor-pointer rounded px-2.5 py-0.5 text-xs text-dim transition-colors',
                 state === one && 'bg-raise font-semibold text-text shadow-sm',
               )}
             >
@@ -185,7 +183,7 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
           className="w-52"
         />
         <span
-          className="ml-auto hidden items-center gap-1 text-[11px] text-faint lg:flex"
+          className="ml-auto hidden items-center gap-1 text-xs text-faint lg:flex"
           title={t('comments.pasteHint')}
         >
           <ClipboardPaste aria-hidden className="size-3.5" />
@@ -203,7 +201,7 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
             {reading.map((key) => (
               <p
                 key={key}
-                className="flex items-center gap-2 rounded-lg bg-soft px-2.5 py-2 text-[11.5px] text-dim"
+                className="flex items-center gap-2 rounded-lg bg-soft px-2.5 py-2 text-xs text-dim"
               >
                 <LoaderCircle aria-hidden className="size-3.5 animate-spin" />
                 {t('comments.readingOn', { channel: channelOfTask(key) ?? '' })}
@@ -331,7 +329,7 @@ function CommentRow({
         active ? 'bg-accent-soft' : 'hover:bg-soft',
       )}
     >
-      <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-faint">
+      <span className="flex min-w-0 items-center gap-1.5 text-xs text-faint">
         <span
           aria-hidden
           title={t(`comments.standing.${standing}`)}
@@ -343,9 +341,9 @@ function CommentRow({
         <span className="truncate">· {comment.channel}</span>
         {day !== null && <span className="ml-auto shrink-0 tabular-nums">{day}</span>}
       </span>
-      <span className="line-clamp-2 text-[12.5px] text-dim">{comment.body}</span>
+      <span className="line-clamp-2 text-sm text-dim">{comment.body}</span>
       {(drafting || drafted) && (
-        <span className="flex items-center gap-1 text-[10.5px] text-accent-2">
+        <span className="flex items-center gap-1 text-2xs text-accent-2">
           {drafting && <LoaderCircle aria-hidden className="size-3 animate-spin" />}
           {drafting ? t('comments.draftingShort') : t('comments.draftReady')}
         </span>

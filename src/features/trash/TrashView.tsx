@@ -192,7 +192,7 @@ export function TrashView() {
 
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-dim">
+          <tr className="border-b border-line text-left caption">
             <th className="py-2 pr-3 font-medium">{t('trash.what')}</th>
             <th className="py-2 pr-3 font-medium">{t('trash.kind')}</th>
             <th className="py-2 pr-3 font-medium">{t('trash.when')}</th>

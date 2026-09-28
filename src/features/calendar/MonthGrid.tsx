@@ -186,10 +186,7 @@ export function MonthGrid({
         className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-line bg-line"
       >
         {WEEKDAYS.map((day) => (
-          <div
-            key={day}
-            className="bg-raise py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-faint"
-          >
+          <div key={day} className="bg-raise py-1.5 text-center caption">
             {t(`calendar.weekday.${day}`)}
           </div>
         ))}
@@ -269,7 +266,7 @@ export function MonthGrid({
                 </button>
                 <span
                   className={cn(
-                    'text-right font-mono text-[11px] tabular-nums',
+                    'text-right font-mono text-xs tabular-nums',
                     isToday ? 'font-semibold text-accent-2' : 'text-faint',
                   )}
                 >
@@ -301,7 +298,7 @@ export function MonthGrid({
                       event.stopPropagation()
                       setExpanded(day.date)
                     }}
-                    className="cursor-pointer rounded-md px-1 py-0.5 text-left text-[10px] text-dim transition-colors hover:bg-soft hover:text-text"
+                    className="cursor-pointer rounded-md px-1 py-0.5 text-left text-2xs text-dim transition-colors hover:bg-soft hover:text-text"
                   >
                     {t('calendar.moreOnDay', { count: releases.length - VISIBLE_CHIPS })}
                   </button>
@@ -313,7 +310,7 @@ export function MonthGrid({
                       event.stopPropagation()
                       setExpanded(null)
                     }}
-                    className="cursor-pointer rounded-md px-1 py-0.5 text-left text-[10px] text-dim transition-colors hover:bg-soft hover:text-text"
+                    className="cursor-pointer rounded-md px-1 py-0.5 text-left text-2xs text-dim transition-colors hover:bg-soft hover:text-text"
                   >
                     {t('calendar.showFewer')}
                   </button>
@@ -327,7 +324,7 @@ export function MonthGrid({
                   <div
                     key={ghost.releaseId}
                     title={`${ghost.title} · ${labelOf(releaseKinds, ghost.kind)}`}
-                    className="flex flex-wrap items-center gap-x-1.5 rounded-md border border-dashed px-1.5 py-1 text-[11px]"
+                    className="flex flex-wrap items-center gap-x-1.5 rounded-md border border-dashed px-1.5 py-1 text-xs"
                     style={{ borderColor: accentFor(ghost.workId) }}
                   >
                     {/* Same two rows as a booked chip, for the same reason: on
@@ -345,7 +342,7 @@ export function MonthGrid({
                 {verdict !== null && (
                   <p
                     className={cn(
-                      'rounded-sm px-1 py-0.5 text-[10px] leading-tight',
+                      'rounded-sm px-1 py-0.5 text-2xs leading-tight',
                       VERDICT_TONE[verdict.verdict],
                     )}
                   >

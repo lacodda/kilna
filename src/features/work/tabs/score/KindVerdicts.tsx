@@ -38,9 +38,7 @@ export function KindVerdicts({ workId }: Props) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
-        {t('score.byKind')}
-      </span>
+      <span className="caption">{t('score.byKind')}</span>
 
       <ul className="flex flex-wrap gap-1.5">
         {rows.map((row) => (
@@ -55,7 +53,7 @@ export function KindVerdicts({ workId }: Props) {
             <span className="text-dim">{labelOf(releaseKinds, row.kind)}</span>
             <span className="font-mono font-semibold tabular-nums">{formatNumber(row.total)}</span>
             {row.tier !== null && (
-              <span className="rounded bg-soft px-1 py-0.5 text-[10px]">
+              <span className="rounded bg-soft px-1 py-0.5 text-2xs">
                 {labelOf(tiers, row.tier)}
               </span>
             )}

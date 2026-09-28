@@ -203,9 +203,7 @@ export function ScorePanel({ workId }: Props) {
     <section className="grid min-h-0 flex-1 grid-cols-[262px_minmax(0,1fr)] gap-3">
       <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-raise">
         <div className="flex shrink-0 items-center gap-2 border-b border-line p-2">
-          <span className="px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
-            {t('score.history', { count: historyData.length })}
-          </span>
+          <span className="px-1 caption">{t('score.history', { count: historyData.length })}</span>
           {historyData.length > 0 && (
             <button
               type="button"
@@ -283,12 +281,12 @@ export function ScorePanel({ workId }: Props) {
                       )}
                     >
                       <span className="min-w-0 flex-1">
-                        <b className="block truncate text-[13px] font-semibold">
+                        <b className="block truncate text-sm font-semibold">
                           {score.revision !== null
                             ? t('score.ofRevision', { name: `v${score.revision}` })
                             : t('score.ofCurrent')}
                         </b>
-                        <span className="block truncate font-mono text-[11px] text-faint">
+                        <span className="block truncate font-mono text-xs text-faint">
                           {formatDay(score.scored_at)}
                           {score.tier !== null && ` · ${labelOf(tiers, score.tier)}`}
                           {/* Who judged, when it was not you: null has meant
@@ -300,7 +298,7 @@ export function ScorePanel({ workId }: Props) {
                       </span>
                       <span
                         className={cn(
-                          'shrink-0 font-mono text-[11px] tabular-nums',
+                          'shrink-0 font-mono text-xs tabular-nums',
                           delta === undefined || Math.abs(delta) < 0.05
                             ? 'text-faint'
                             : delta > 0
@@ -310,7 +308,7 @@ export function ScorePanel({ workId }: Props) {
                       >
                         {delta === undefined || Math.abs(delta) < 0.05 ? '—' : formatDelta(delta)}
                       </span>
-                      <span className="w-9 shrink-0 text-right font-mono text-[15px] font-semibold tabular-nums">
+                      <span className="w-9 shrink-0 text-right font-mono text-base font-semibold tabular-nums">
                         {formatNumber(score.total)}
                       </span>
                     </button>
@@ -339,9 +337,7 @@ export function ScorePanel({ workId }: Props) {
               should be one click from the number. */}
           {verdicts.length > 0 && (
             <section className="flex flex-col gap-0.5 border-t border-line pt-2">
-              <h4 className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
-                {t('score.written')}
-              </h4>
+              <h4 className="px-2 pb-1 caption">{t('score.written')}</h4>
               {verdicts.map((verdict) => (
                 <Link
                   key={verdict.id}
@@ -354,7 +350,7 @@ export function ScorePanel({ workId }: Props) {
                   <span className="min-w-0 flex-1 truncate text-sm text-text">
                     {verdict.label ?? t('versions.revision', { number: verdict.revision })}
                   </span>
-                  <span className="shrink-0 font-mono text-[11px] text-faint">
+                  <span className="shrink-0 font-mono text-xs text-faint">
                     {verdict.created_at.slice(5, 10)}
                   </span>
                 </Link>
@@ -381,7 +377,7 @@ export function ScorePanel({ workId }: Props) {
 
       <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-raise">
         <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2">
-          <span className="truncate font-mono text-[11.5px] text-faint">{heading}</span>
+          <span className="truncate font-mono text-xs text-faint">{heading}</span>
           {shown?.version_id != null && (
             // The judgement points at what was judged: the review of that
             // draft is the rest of the sentence this number starts.
@@ -418,9 +414,9 @@ export function ScorePanel({ workId }: Props) {
                 className="grid items-center gap-3 sm:grid-cols-[minmax(10rem,16rem)_minmax(0,1fr)_2.5rem]"
               >
                 <span className="min-w-0">
-                  <b className="block truncate text-[13px] font-semibold">
+                  <b className="block truncate text-sm font-semibold">
                     {sayLabel(axis.label)}{' '}
-                    <span className="font-mono text-[10.5px] font-normal text-faint">
+                    <span className="font-mono text-2xs font-normal text-faint">
                       ×{axis.weight}
                     </span>
                   </b>
@@ -431,7 +427,7 @@ export function ScorePanel({ workId }: Props) {
                       One line, with the whole of it on hover. */}
                   {sayLabel(axis.description) !== '' && (
                     <span
-                      className="block truncate text-[11px] text-faint"
+                      className="block truncate text-xs text-faint"
                       title={sayLabel(axis.description)}
                     >
                       {sayLabel(axis.description)}
@@ -490,7 +486,7 @@ export function ScorePanel({ workId }: Props) {
                       the pointer, the hover ended, the line went, the axes came
                       back under the pointer — a strobe. */}
                   <span
-                    className="block h-4 truncate text-[11px] leading-4 text-dim"
+                    className="block h-4 truncate text-xs leading-4 text-dim"
                     title={sayLabel(rubricLine(axis)?.label)}
                   >
                     {(() => {
@@ -520,7 +516,7 @@ export function ScorePanel({ workId }: Props) {
                         values={line}
                         max={axis.scale}
                         size={{ width: 52, height: 16 }}
-                        className="h-4 w-[52px]"
+                        className="h-4 w-13"
                         label={t('score.axisTrend', {
                           axis: axis.label,
                           from: formatNumber(line[0]!, 0),
@@ -530,7 +526,7 @@ export function ScorePanel({ workId }: Props) {
                     )
                   })()}
 
-                  <span className="w-6 text-right font-mono text-[13px] text-dim tabular-nums">
+                  <span className="w-6 text-right font-mono text-sm text-dim tabular-nums">
                     {values[axis.key] ?? '—'}
                   </span>
                 </span>
@@ -597,9 +593,7 @@ export function ScorePanel({ workId }: Props) {
                 which is what an empty choice means. */}
             <div className="flex flex-wrap items-end gap-3">
               <label className="flex flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
-                  {t('score.ofVersion')}
-                </span>
+                <span className="caption">{t('score.ofVersion')}</span>
                 <Select
                   className="w-64"
                   aria-label={t('score.ofVersion')}
@@ -611,9 +605,7 @@ export function ScorePanel({ workId }: Props) {
               </label>
 
               <label className="flex flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
-                  {t('score.rater')}
-                </span>
+                <span className="caption">{t('score.rater')}</span>
                 <Input
                   className="w-44"
                   value={rater}
@@ -623,9 +615,7 @@ export function ScorePanel({ workId }: Props) {
               </label>
 
               <label className="flex min-w-56 flex-1 flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
-                  {t('score.note')}
-                </span>
+                <span className="caption">{t('score.note')}</span>
                 <Input
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
@@ -640,7 +630,7 @@ export function ScorePanel({ workId }: Props) {
             come from, and the button that records it. The axes scroll above;
             this never does. */}
         <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-line px-4 py-2.5">
-          <span className="font-mono text-[22px] font-semibold tabular-nums">
+          <span className="font-mono text-2xl font-semibold tabular-nums">
             {filled === 0 ? '—' : formatNumber(preview)}
           </span>
 
@@ -650,7 +640,7 @@ export function ScorePanel({ workId }: Props) {
 
           {trail.length > 1 && !hiding && (
             <span
-              className="font-mono text-[11.5px] text-faint tabular-nums"
+              className="font-mono text-xs text-faint tabular-nums"
               title={t('score.trend', {
                 from: formatNumber(trail[0]!.total, 0),
                 to: formatNumber(trail.at(-1)!.total, 0),

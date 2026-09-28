@@ -150,7 +150,7 @@ export function FilesTab({ work }: Props) {
           and the cover used to be somewhere among them. */}
       {groupMaterials(all).map((group) => (
         <section key={group.kind} className="flex flex-col gap-2">
-          <h3 className="text-2xs font-semibold uppercase tracking-caption text-faint">
+          <h3 className="caption">
             {t(`files.group.${group.kind}`)}
             <span className="ml-1.5 font-normal normal-case tracking-normal text-dim">
               {group.assets.length}
@@ -206,7 +206,7 @@ function FileCard({
           className="max-h-full max-w-full object-contain"
         />
         {isCover && (
-          <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[10.5px] text-white/90">
+          <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-2xs text-white/90">
             <Star aria-hidden className="size-3 fill-current" />
             {t('files.cover')}
           </span>

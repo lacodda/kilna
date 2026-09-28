@@ -129,9 +129,7 @@ export function TaskPreviewDialog({
             </Field>
             {preview.data.method !== undefined && (
               <details className="flex flex-col gap-1">
-                <summary className="cursor-pointer text-2xs font-semibold uppercase tracking-caption text-faint">
-                  {t('assistant.previewMethod')}
-                </summary>
+                <summary className="cursor-pointer caption">{t('assistant.previewMethod')}</summary>
                 <pre className="selectable mt-1 max-h-72 overflow-auto whitespace-pre-wrap rounded-xl border border-line bg-soft px-3 py-2 font-mono text-xs">
                   {preview.data.method}
                 </pre>

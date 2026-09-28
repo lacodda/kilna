@@ -15,10 +15,16 @@ export default tseslint.config(
   // The `flat` variant; the top-level one is still in the legacy shape.
   reactHooks.configs.flat['recommended-latest'],
   ...dowel.configs.recommended,
-  // dowel 0.33's two new rules, held off while v0.78 moves the screens onto
-  // the scale and the primitives; the commits that satisfy them turn them on.
+  // dowel 0.33's raw-button rule, held off while v0.78 moves the screens onto
+  // the primitives; the commit that satisfies it turns it on.
   {
-    rules: { 'dowel/no-raw-button': 'off', 'dowel/no-arbitrary-scale': 'off' },
+    rules: { 'dowel/no-raw-button': 'off' },
+  },
+  // The registry's copies are dowel's, byte for byte (`pnpm registry`): what
+  // they draw is answered in dowel, not here.
+  {
+    files: ['src/components/ui/**'],
+    rules: { 'dowel/no-arbitrary-scale': 'off' },
   },
   // Where a colour is the subject rather than the styling: the cover gradients
   // are a palette this app owns, and the mark in the rail is drawn in the

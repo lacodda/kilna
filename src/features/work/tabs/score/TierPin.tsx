@@ -125,9 +125,7 @@ export function TierPin({ work, scored }: Props) {
       >
         <form id="pin-tier" onSubmit={submit} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
-              {t('score.pinTierWhich')}
-            </span>
+            <span className="caption">{t('score.pinTierWhich')}</span>
             <Select
               value={tier}
               onChange={setTier}
@@ -143,9 +141,7 @@ export function TierPin({ work, scored }: Props) {
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
-              {t('score.pinTierReason')}
-            </span>
+            <span className="caption">{t('score.pinTierReason')}</span>
             <Input
               autoFocus
               value={reason}

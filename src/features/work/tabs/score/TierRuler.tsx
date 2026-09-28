@@ -76,11 +76,11 @@ export function TierRuler({ tiers, score, className }: Props) {
             well as over the empty road ahead. */}
         <span
           style={{ left: `${at}%` }}
-          className="absolute top-1/2 h-[10px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-bg ring-2 ring-text"
+          className="absolute top-1/2 h-2.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-bg ring-2 ring-text"
         />
       </div>
 
-      <div className="flex justify-between text-[10px] text-faint">
+      <div className="flex justify-between text-2xs text-faint">
         {ordered.map((tier) => (
           <span key={tier.key} className={cn(score >= tier.min && 'font-semibold text-dim')}>
             {say(tier.label)}

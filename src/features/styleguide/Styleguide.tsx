@@ -59,7 +59,7 @@ export function Styleguide() {
                 className="h-9 rounded-lg border border-line"
                 style={{ backgroundColor: `var(--${token})` }}
               />
-              <code className="font-mono text-[11px] text-dim">{token}</code>
+              <code className="font-mono text-xs text-dim">{token}</code>
             </Panel>
           ))}
         </div>

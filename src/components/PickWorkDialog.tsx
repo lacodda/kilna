@@ -132,7 +132,7 @@ function Contents({ onOpenChange, onPick, title }: Omit<Props, 'open'>) {
           <CommandPaletteList>
             {(group: { items: ScoredWork[] }) => (
               <CommandPaletteGroup items={group.items}>
-                <ComboboxGroupLabel className="px-3.5 pt-2 pb-1 tracking-[0.08em]">
+                <ComboboxGroupLabel className="px-3.5 pt-2 pb-1 tracking-caption">
                   {t('pick.group', { count: group.items.length })}
                 </ComboboxGroupLabel>
 
@@ -173,7 +173,7 @@ function Row({ row }: { row: ScoredWork }) {
           stop === undefined ? undefined : sayLabel(stop.label)
         }
       >
-        <b className="block truncate text-[13px] font-medium">{row.title}</b>
+        <b className="block truncate text-sm font-medium">{row.title}</b>
       </CommandPaletteRow>
       <StageDial percent={row.stage} stage={stop} size={14} className="shrink-0" />
     </CommandPaletteItem>

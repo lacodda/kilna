@@ -460,11 +460,11 @@ export function VersionPanel({ workId }: Props) {
                 )}
               >
                 {sayLabel(lane.label)}
-                <span className="font-mono text-[10px] opacity-75">{counts[lane.key] ?? 0}</span>
+                <span className="font-mono text-2xs opacity-75">{counts[lane.key] ?? 0}</span>
               </button>
             ))
           ) : (
-            <span className="px-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">
+            <span className="px-1 caption">
               {t('versions.title')} · {summaries.length}
             </span>
           )}
@@ -726,7 +726,7 @@ function BodyPane({
         aria-label={t('versions.edit')}
         marks={marks}
         lineMarks={addedLines}
-        className={cn('block w-full', metrics, tall ? 'min-h-full' : 'min-h-[28rem]')}
+        className={cn('block w-full', metrics, tall ? 'min-h-full' : 'min-h-112')}
       />
     ) : (
       // Reading. The whole body is the way in: clicking it is what starting
@@ -801,9 +801,7 @@ function BodyPane({
               <MenuItem key={candidate.id} onClick={() => compare.onPick(candidate.id)}>
                 <span className="truncate">{candidate.label}</span>
                 {candidate.previous && (
-                  <span className="ml-auto pl-3 text-[11px] text-faint">
-                    {t('versions.previous')}
-                  </span>
+                  <span className="ml-auto pl-3 text-xs text-faint">{t('versions.previous')}</span>
                 )}
               </MenuItem>
             ))}
@@ -889,7 +887,7 @@ function BodyPane({
           drawn when there are none: a strip saying "no repeats" would be a
           strip taking the room the text wants. */}
       {found !== null && found.groups.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-line px-3 py-1.5 text-[11px] text-dim">
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-line px-3 py-1.5 text-xs text-dim">
           <span className="mr-1 font-medium">{t('versions.repeats')}</span>
           {found.groups.map((group, index) => (
             <span
@@ -907,13 +905,13 @@ function BodyPane({
         className={cn(
           'grid min-h-0',
           against === null ? 'grid-cols-1' : 'grid-cols-2',
-          tall ? 'flex-1 overflow-auto' : 'max-h-[32rem] overflow-auto',
+          tall ? 'flex-1 overflow-auto' : 'max-h-128 overflow-auto',
         )}
       >
         <div className="min-w-0">{content}</div>
         {against !== null && compare !== undefined && (
           <aside className="flex min-w-0 flex-col border-l border-line">
-            <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-bg px-3 py-1 text-[11px] text-dim">
+            <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-bg px-3 py-1 text-xs text-dim">
               <span className="truncate font-medium">{against.label}</span>
               {counts !== null && (
                 <span className="ml-auto whitespace-nowrap text-faint">

@@ -97,7 +97,7 @@ export function TagBar({ work }: { work: Work }) {
               })
             }
             className={cn(
-              'inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors',
+              'inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors',
               // Off is an outline: the row of what could be raised is always
               // there, so raising one is a click and not a hunt through a menu.
               on
@@ -118,7 +118,7 @@ export function TagBar({ work }: { work: Work }) {
       {work.tags.map((tag) => (
         <span
           key={tag}
-          className="group inline-flex items-center gap-1 rounded-full bg-soft px-2 py-0.5 text-[11px] text-dim"
+          className="group inline-flex items-center gap-1 rounded-full bg-soft px-2 py-0.5 text-xs text-dim"
         >
           {tag}
           <button
@@ -166,7 +166,7 @@ export function TagBar({ work }: { work: Work }) {
               // Enter belongs to the list.
               if (event.key === 'Enter' && !event.defaultPrevented) addTag(draft)
             }}
-            className="h-auto w-40 rounded-full border-accent px-2 py-0.5 text-[11px]"
+            className="h-auto w-40 rounded-full border-accent px-2 py-0.5 text-xs"
           />
 
           <ComboboxPopup className="w-48 p-1">
@@ -176,13 +176,13 @@ export function TagBar({ work }: { work: Work }) {
                   key={tag}
                   value={tag}
                   onClick={() => addTag(tag)}
-                  className="rounded-md px-2 py-1 text-[11px]"
+                  className="rounded-md px-2 py-1 text-xs"
                 >
                   {tag}
                 </ComboboxItem>
               )}
             </ComboboxList>
-            <ComboboxEmpty className="px-2 py-1 text-[11px]">{t('work.tagNoMatch')}</ComboboxEmpty>
+            <ComboboxEmpty className="px-2 py-1 text-xs">{t('work.tagNoMatch')}</ComboboxEmpty>
           </ComboboxPopup>
         </Combobox>
       ) : (
@@ -193,7 +193,7 @@ export function TagBar({ work }: { work: Work }) {
             setOpen(true)
           }}
           title={t('work.addTag')}
-          className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-dashed border-line px-2 py-0.5 text-[11px] text-faint transition-colors hover:border-line-2 hover:text-dim"
+          className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-dashed border-line px-2 py-0.5 text-xs text-faint transition-colors hover:border-line-2 hover:text-dim"
         >
           <Plus aria-hidden className="size-3" />
           {t('work.addTag')}

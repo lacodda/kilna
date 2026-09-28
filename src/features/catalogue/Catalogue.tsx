@@ -337,14 +337,14 @@ export function Catalogue({ onSelect }: Props) {
                 // a separate control for it.
                 onClick={() => setFromControl({ kind: active ? undefined : entry.key })}
                 className={cn(
-                  'cursor-pointer rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+                  'cursor-pointer rounded-full border px-2.5 py-0.5 text-xs transition-colors',
                   active
                     ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
                     : 'border-line text-dim hover:border-line-2 hover:text-text',
                 )}
               >
                 {sayLabel(entry.label)}
-                <span className="ml-1.5 text-[10.5px] text-faint tabular-nums">{entry.count}</span>
+                <span className="ml-1.5 text-2xs text-faint tabular-nums">{entry.count}</span>
               </button>
             )
           })}
@@ -353,7 +353,7 @@ export function Catalogue({ onSelect }: Props) {
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
-          className="max-w-96 font-mono text-[12.5px]"
+          className="max-w-96 font-mono text-sm"
           value={query}
           onChange={(event) => runQuery(event.target.value)}
           placeholder={t('catalogue.queryPlaceholder')}
@@ -419,7 +419,7 @@ export function Catalogue({ onSelect }: Props) {
           goes quiet the moment an operator is used, because by then it has been
           learned. A value the profile does not have is called out here rather
           than left to look like a search that found nothing. */}
-      <p id="catalogue-query-help" className="-mt-2 text-[11.5px] text-faint">
+      <p id="catalogue-query-help" className="-mt-2 text-xs text-faint">
         {unknown[0] !== undefined ? (
           <span className="text-bad">
             {t('catalogue.queryUnknown', {
@@ -443,9 +443,7 @@ export function Catalogue({ onSelect }: Props) {
       {/* Chips carry their words, not just an icon. The predecessor tried icons
           alone and nobody could tell which filter was on. */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-[0.09em] text-faint">
-          {t('catalogue.gaps')}
-        </span>
+        <span className="caption">{t('catalogue.gaps')}</span>
         {GAPS.map((gap) => {
           const active = filter.gap === gap
           return (
@@ -458,7 +456,7 @@ export function Catalogue({ onSelect }: Props) {
               aria-pressed={active}
               title={t(`catalogue.gapHint.${gap}`)}
               className={cn(
-                'cursor-pointer rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+                'cursor-pointer rounded-full border px-2.5 py-0.5 text-xs transition-colors',
                 active
                   ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
                   : 'border-line text-dim hover:border-line-2 hover:text-text',
@@ -687,7 +685,7 @@ function Rows({
         return shell(
           <Input
             autoFocus
-            className="text-[12.5px]"
+            className="text-sm"
             value={columnFilters.title ?? ''}
             onChange={(event) =>
               onColumnFilters({ ...columnFilters, title: event.target.value || undefined })
@@ -930,10 +928,7 @@ function Rows({
           {/* The headings stay while the rows move under them: a table long
             enough to need scrolling is one whose columns must remain named. */}
           <thead className="sticky top-0 z-10 bg-bg">
-            <tr
-              ref={header}
-              className="border-b border-line text-left text-xs uppercase tracking-wide text-dim"
-            >
+            <tr ref={header} className="border-b border-line text-left caption">
               {/* The tick column carries the same side padding as every other
                 cell: with none, the box sat flush against the star in the
                 next one and the two read as one control. */}
@@ -1222,7 +1217,7 @@ function Column({
             onClick={() => onReorder(sortable)}
             title={t('catalogue.sortBy', { column: label })}
             className={cn(
-              'inline-flex min-w-0 cursor-pointer items-center gap-1 uppercase tracking-wide transition-colors hover:text-text',
+              'inline-flex min-w-0 cursor-pointer items-center gap-1 caption transition-colors hover:text-text',
               active && 'text-text',
             )}
           >
@@ -1437,11 +1432,11 @@ function Cell({
             {/* Where it stands as a badge in the status's own colour, and what
                 it is in outline — read at a glance down the column, the way
                 the header reads them. */}
-            <Badge variant={badgeVariantOf(status?.colour)} className="shrink-0 px-2 text-[11px]">
+            <Badge variant={badgeVariantOf(status?.colour)} className="shrink-0 px-2 text-xs">
               {status === undefined ? row.status : sayLabel(status.label)}
             </Badge>
             {!kindNarrowed && (
-              <Badge className="shrink-0 px-2 text-[11px]">
+              <Badge className="shrink-0 px-2 text-xs">
                 {labelOf(profile.config.work_kinds, row.kind)}
               </Badge>
             )}
@@ -1470,7 +1465,7 @@ function Cell({
                   <Badge
                     key={key}
                     variant={badgeVariantOf(mark?.colour ?? 'plain')}
-                    className="gap-1 px-2 text-[11px]"
+                    className="gap-1 px-2 text-xs"
                     title={mark === undefined ? key : sayLabel(mark.label)}
                   >
                     <Icon aria-hidden className="size-3" />
@@ -1534,7 +1529,7 @@ function Cell({
               )}
               {ahead !== undefined && row.total !== null && (
                 <span
-                  className="text-[11px] text-faint tabular-nums"
+                  className="text-xs text-faint tabular-nums"
                   title={t('catalogue.toNextTier', {
                     gap: formatNumber(ahead.min - row.total),
                     tier: ahead.label,
@@ -1627,9 +1622,7 @@ function ViewBar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[11px] font-medium uppercase tracking-[0.09em] text-faint">
-        {t('catalogue.views')}
-      </span>
+      <span className="caption">{t('catalogue.views')}</span>
 
       {views.map((view) => {
         const open = active?.id === view.id
@@ -1637,7 +1630,7 @@ function ViewBar({
           <span
             key={view.id}
             className={cn(
-              'group inline-flex items-center gap-1 rounded-full border pl-2.5 pr-1 py-0.5 text-[11.5px] transition-colors',
+              'group inline-flex items-center gap-1 rounded-full border pl-2.5 pr-1 py-0.5 text-xs transition-colors',
               open
                 ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
                 : 'border-line text-dim hover:border-line-2 hover:text-text',
@@ -1676,7 +1669,7 @@ function ViewBar({
         >
           <Input
             autoFocus
-            className="h-control-sm w-44 text-[12.5px]"
+            className="h-control-sm w-44 text-sm"
             value={name}
             onChange={(event) => setName(event.target.value)}
             onKeyDown={(event) => {

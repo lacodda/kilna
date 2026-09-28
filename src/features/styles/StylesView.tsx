@@ -107,7 +107,7 @@ export function StylesView() {
               aria-pressed={active}
               onClick={() => setTypeKey(active ? undefined : entry.key)}
               className={cn(
-                'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+                'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
                 active
                   ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
                   : 'border-line text-dim hover:border-line-2 hover:text-text',
@@ -115,7 +115,7 @@ export function StylesView() {
             >
               {Icon !== undefined && <Icon aria-hidden className="size-3.5" />}
               {entry.label}
-              <span className="text-[10.5px] text-faint tabular-nums">{entry.count}</span>
+              <span className="text-2xs text-faint tabular-nums">{entry.count}</span>
             </button>
           )
         })}
@@ -139,7 +139,7 @@ export function StylesView() {
       ) : (
         groups.map((group) => (
           <section key={group.key} className="flex flex-col gap-2">
-            <h2 className="flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-caption text-faint">
+            <h2 className="flex items-center gap-1.5 caption">
               {(() => {
                 const Icon = styleIconOf(group.type)
                 return <Icon aria-hidden className="size-3.5" />

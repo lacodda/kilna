@@ -78,7 +78,7 @@ export function ProposedComment({ pending, channels, onKept }: Props) {
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-accent/40 bg-accent-soft/40 p-2.5">
-      <p className="flex items-center gap-1.5 text-[11px] font-medium text-accent-2">
+      <p className="flex items-center gap-1.5 text-xs font-medium text-accent-2">
         <ScanText aria-hidden className="size-3.5" />
         {t('comments.readOff')}
       </p>
@@ -89,7 +89,7 @@ export function ProposedComment({ pending, channels, onKept }: Props) {
         value={body}
         onChange={(event) => setBody(event.target.value)}
         aria-label={t('comments.body')}
-        className="text-[12.5px]"
+        className="text-sm"
       />
       <div className="flex gap-1.5">
         <Input
@@ -108,7 +108,7 @@ export function ProposedComment({ pending, channels, onKept }: Props) {
         />
       </div>
       <ChannelField value={channel} onChange={setChannel} known={channels} />
-      <div className="flex items-center gap-1.5 text-[11px] text-dim">
+      <div className="flex items-center gap-1.5 text-xs text-dim">
         <span className="min-w-0 flex-1 truncate">
           {chosen === null
             ? read.about === undefined

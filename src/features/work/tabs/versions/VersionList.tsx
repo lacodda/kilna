@@ -141,12 +141,12 @@ export function VersionList({
               )}
             >
               <span className="flex items-center gap-1.5">
-                <span className="font-mono text-[11.5px] text-faint">v{version.revision}</span>
+                <span className="font-mono text-xs text-faint">v{version.revision}</span>
                 <span className="min-w-0 flex-1 truncate font-medium">
                   {version.label ?? t('versions.revision', { number: version.revision })}
                 </span>
                 {version.is_current && (
-                  <span className="rounded bg-accent-soft px-1 text-[10px] font-semibold uppercase tracking-wide text-accent-2">
+                  <span className="rounded bg-accent-soft px-1 text-2xs font-semibold uppercase tracking-caption text-accent-2">
                     {t('versions.current')}
                   </span>
                 )}
@@ -163,7 +163,7 @@ export function VersionList({
                     other meant remembering a revision number across a tab. */}
                 {score !== undefined && (
                   <span
-                    className="ml-auto shrink-0 rounded bg-soft px-1 font-mono text-[10.5px] font-semibold text-text tabular-nums"
+                    className="ml-auto shrink-0 rounded bg-soft px-1 font-mono text-2xs font-semibold text-text tabular-nums"
                     title={t('versions.scored', { score })}
                   >
                     {score}
@@ -188,7 +188,7 @@ export function VersionList({
                 title={isCompared ? t('versions.stopComparing') : t('versions.compare')}
                 aria-label={isCompared ? t('versions.stopComparing') : t('versions.compare')}
               >
-                <span aria-hidden className="font-mono text-[11px]">
+                <span aria-hidden className="font-mono text-xs">
                   ±
                 </span>
               </Button>

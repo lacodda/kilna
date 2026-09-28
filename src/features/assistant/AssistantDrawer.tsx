@@ -303,7 +303,7 @@ export function AssistantButton() {
       {running > 0 && (
         <span
           aria-hidden
-          className="absolute -right-0.5 -top-0.5 flex size-3.5 animate-pulse items-center justify-center rounded-full bg-accent text-[9px] font-semibold text-on-accent"
+          className="absolute -right-0.5 -top-0.5 flex size-3.5 animate-pulse items-center justify-center rounded-full bg-accent text-2xs font-semibold text-on-accent"
         >
           {running}
         </span>

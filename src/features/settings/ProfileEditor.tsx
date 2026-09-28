@@ -75,9 +75,7 @@ export function ProfileEditor() {
       ))}
 
       <section className="flex flex-col gap-2">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
-          {t('editor.rhythm')}
-        </h4>
+        <h4 className="caption">{t('editor.rhythm')}</h4>
         <p className="text-xs text-dim">{t('editor.rhythmHint')}</p>
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-2 text-sm">
@@ -190,9 +188,7 @@ function ReleaseFieldsEditor({
 
   return (
     <section className="flex flex-col gap-3">
-      <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
-        {t('editor.releaseFields')}
-      </h4>
+      <h4 className="caption">{t('editor.releaseFields')}</h4>
       <p className="text-xs text-dim">{t('editor.releaseFieldsHint')}</p>
 
       {kinds.map((kind, kindIndex) =>
@@ -216,9 +212,7 @@ function ReleaseFieldsEditor({
                         set(kindIndex, fieldIndex, { label: event.target.value })
                       }
                     />
-                    <span className="shrink-0 text-2xs uppercase tracking-caption text-faint">
-                      {t(`editor.fieldType.${field.type}`)}
-                    </span>
+                    <span className="shrink-0 caption">{t(`editor.fieldType.${field.type}`)}</span>
                     <Input
                       className="w-24"
                       type="number"
@@ -308,7 +302,7 @@ function KindVocabulary({
       <h3 className="text-sm font-semibold">{sayLabel(kind.label)}</h3>
 
       <section className="flex flex-col gap-2">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">{t('editor.axes')}</h4>
+        <h4 className="caption">{t('editor.axes')}</h4>
         <p className="text-xs text-dim">{t('editor.axesHint')}</p>
         <ul className="flex flex-col gap-1.5">
           {axes.map((axis, index) => (
@@ -343,9 +337,7 @@ function KindVocabulary({
       </section>
 
       <section className="flex flex-col gap-2">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
-          {t('editor.tiers')}
-        </h4>
+        <h4 className="caption">{t('editor.tiers')}</h4>
         <p className="text-xs text-dim">{t('editor.tiersHint')}</p>
         <ul className="flex flex-col gap-1.5">
           {tiers.map((tier, index) => (
@@ -472,9 +464,7 @@ function ActionsEditor({
 
   return (
     <section className="flex flex-col gap-3">
-      <h4 className="text-xs font-medium uppercase tracking-wide text-dim">
-        {t('editor.prompts')}
-      </h4>
+      <h4 className="caption">{t('editor.prompts')}</h4>
       <p className="text-xs text-dim">{t('editor.promptsHint')}</p>
       <ul className="flex flex-col gap-4">
         {actions.map((action, index) => (
@@ -521,9 +511,7 @@ function ActionsEditor({
               }
             />
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-2xs font-semibold uppercase tracking-caption text-faint">
-                {t('editor.actionKinds')}
-              </span>
+              <span className="caption">{t('editor.actionKinds')}</span>
               <div
                 role="group"
                 aria-label={t('editor.actionKinds')}
@@ -539,8 +527,8 @@ function ActionsEditor({
                       onClick={() => toggleKind(index, kind.key)}
                       className={
                         on
-                          ? 'cursor-pointer rounded-full border border-transparent bg-accent-soft px-2.5 py-0.5 text-[11.5px] font-semibold text-accent-2'
-                          : 'cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-[11.5px] text-dim hover:border-line-2 hover:text-text'
+                          ? 'cursor-pointer rounded-full border border-transparent bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent-2'
+                          : 'cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-xs text-dim hover:border-line-2 hover:text-text'
                       }
                     >
                       {sayLabel(kind.label)}
@@ -625,7 +613,7 @@ interface VocabularyProps<T extends Kind> {
 function Vocabulary<T extends Kind>({ label, entries, onChange }: VocabularyProps<T>) {
   return (
     <section className="flex flex-col gap-2">
-      <h4 className="text-xs font-medium uppercase tracking-wide text-dim">{label}</h4>
+      <h4 className="caption">{label}</h4>
       <ul className="flex flex-wrap gap-1.5">
         {entries.map((entry, index) => (
           <li key={entry.key} className="flex items-center gap-1">

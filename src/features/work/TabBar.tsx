@@ -46,14 +46,14 @@ export function TabBar({ workId, tabs, counts = {} }: Props) {
           to={`/works/${workId}/${tab}`}
           className={({ isActive }) =>
             cn(
-              '-mb-px flex shrink-0 items-center gap-1.5 border-b-2 border-transparent px-[13px] py-[9px] text-[13px] text-dim transition-colors hover:text-text',
+              '-mb-px flex shrink-0 items-center gap-1.5 border-b-2 border-transparent px-3 py-2 text-sm text-dim transition-colors hover:text-text',
               isActive && 'border-accent font-semibold text-text',
             )
           }
         >
           {t(`card.tab.${tab satisfies Tab}`)}
           {(counts[tab] ?? 0) > 0 && (
-            <span className="rounded-full border border-line px-1.5 text-[11px] text-faint">
+            <span className="rounded-full border border-line px-1.5 text-xs text-faint">
               {counts[tab]}
             </span>
           )}
@@ -61,7 +61,7 @@ export function TabBar({ workId, tabs, counts = {} }: Props) {
             <span
               title={t('comments.waitingCount', { count: comments.data.waiting })}
               className={cn(
-                'rounded-full border px-1.5 text-[11px]',
+                'rounded-full border px-1.5 text-xs',
                 comments.data.waiting > 0
                   ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
                   : 'border-line text-faint',

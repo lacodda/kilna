@@ -94,7 +94,7 @@ export function VersionEditor({
       </div>
 
       {preview && markdown ? (
-        <div className="min-h-[9rem] overflow-auto rounded-md border border-line px-3 py-2">
+        <div className="min-h-36 overflow-auto rounded-md border border-line px-3 py-2">
           {draft.trim() === '' ? (
             <p className="text-sm text-faint">{t('versions.previewEmpty')}</p>
           ) : (
@@ -104,7 +104,7 @@ export function VersionEditor({
       ) : (
         <Textarea
           ref={area}
-          className={cn('min-h-[9rem]', !markdown && 'font-mono')}
+          className={cn('min-h-36', !markdown && 'font-mono')}
           rows={6}
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}

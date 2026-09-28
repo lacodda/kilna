@@ -33,7 +33,7 @@ function Row({ keys, children }: { keys: string[]; children: string }) {
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h3 className="pb-1 text-2xs uppercase tracking-caption text-faint">{title}</h3>
+      <h3 className="pb-1 caption">{title}</h3>
       {children}
     </section>
   )

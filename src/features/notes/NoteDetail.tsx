@@ -121,7 +121,7 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
           }}
           placeholder={t('notes.titlePlaceholder')}
           aria-label={t('notes.titleLabel')}
-          className="min-w-40 flex-1 border-transparent bg-transparent px-1.5 text-[13px] font-semibold hover:border-line focus:border-line"
+          className="min-w-40 flex-1 border-transparent bg-transparent px-1.5 text-sm font-semibold hover:border-line focus:border-line"
         />
         <SaveState status={status} />
         {kindOptions.length > 1 && (
@@ -222,7 +222,7 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
             }}
             placeholder={t('notes.bodyPlaceholder')}
             aria-label={t('notes.bodyLabel')}
-            className="h-full min-h-full w-full resize-none rounded-none border-0 bg-transparent px-5 py-4 font-mono text-[13px] leading-relaxed focus-visible:ring-0"
+            className="h-full min-h-full w-full resize-none rounded-none border-0 bg-transparent px-5 py-4 font-mono text-sm leading-relaxed focus-visible:ring-0"
           />
         ) : body.text.trim() === '' ? (
           <button
@@ -236,7 +236,7 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
           <div className="px-5 py-4" onDoubleClick={() => setEditing(true)}>
             <Markdown
               body={body.text}
-              className="text-[13px]"
+              className="text-sm"
               onToggleTask={(index) => body.setText(toggleTask(body.text, index), true)}
             />
           </div>
@@ -247,7 +247,7 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
         {note.tags.map((tag) => (
           <span
             key={tag}
-            className="flex items-center gap-1 rounded-full border border-line py-0.5 pr-1 pl-2.5 text-[11.5px] text-dim"
+            className="flex items-center gap-1 rounded-full border border-line py-0.5 pr-1 pl-2.5 text-xs text-dim"
           >
             <button
               type="button"

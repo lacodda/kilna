@@ -119,7 +119,7 @@ export function FocusBoard({ works, calendar, skip = [], onSelect }: Props) {
           {standing.map((finding) => (
             <span
               key={`${finding.kind}:${finding.workId}`}
-              className="flex items-center gap-2 rounded-xl border border-dashed border-line-2 px-3 py-1.5 text-[12.5px] text-dim"
+              className="flex items-center gap-2 rounded-xl border border-dashed border-line-2 px-3 py-1.5 text-sm text-dim"
             >
               <button
                 type="button"
@@ -223,7 +223,7 @@ function NoteList({
             setOver(null)
           }}
           className={cn(
-            'flex items-center gap-2 rounded-xl border border-line bg-raise px-3 py-2 text-[12.5px]',
+            'flex items-center gap-2 rounded-xl border border-line bg-raise px-3 py-2 text-sm',
             dragging === note.id && 'opacity-40',
             over === note.id && dragging !== note.id && 'border-accent',
           )}
@@ -317,7 +317,7 @@ function AddNote() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex cursor-pointer items-center gap-1.5 text-[12.5px] text-faint transition-colors hover:text-text"
+        className="flex cursor-pointer items-center gap-1.5 text-sm text-faint transition-colors hover:text-text"
       >
         <Plus aria-hidden className="size-3.5" />
         {t('focus.add')}
@@ -373,7 +373,7 @@ function Hidden({
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
-        className="cursor-pointer text-[12.5px] text-faint transition-colors hover:text-text"
+        className="cursor-pointer text-sm text-faint transition-colors hover:text-text"
       >
         {t('focus.hiddenCount', { count: rows.length })}
       </button>
@@ -385,7 +385,7 @@ function Hidden({
             type="button"
             onClick={() => onRestore(row)}
             title={t('focus.restoreHint')}
-            className="flex cursor-pointer items-center gap-1.5 rounded-full border border-line px-2.5 py-0.5 text-[11.5px] text-faint transition-colors hover:border-line-2 hover:text-text"
+            className="flex cursor-pointer items-center gap-1.5 rounded-full border border-line px-2.5 py-0.5 text-xs text-faint transition-colors hover:border-line-2 hover:text-text"
           >
             <Undo2 aria-hidden className="size-3" />
             {t(`findings.kindShort.${row.kind}`)}

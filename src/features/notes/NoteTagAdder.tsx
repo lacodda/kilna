@@ -55,7 +55,7 @@ export function NoteTagAdder({ have, known, onAdd }: Props) {
           setAdding(true)
           setOpen(true)
         }}
-        className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-dashed border-line-2 px-2.5 py-0.5 text-[11.5px] text-faint transition-colors hover:text-text"
+        className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-dashed border-line-2 px-2.5 py-0.5 text-xs text-faint transition-colors hover:text-text"
       >
         <Plus aria-hidden className="size-3" />
         {t('notes.addTag')}
@@ -87,7 +87,7 @@ export function NoteTagAdder({ have, known, onAdd }: Props) {
           // belongs to the list.
           if (event.key === 'Enter' && !event.defaultPrevented) add(draft)
         }}
-        className="h-auto w-36 rounded-full border-accent px-2.5 py-0.5 text-[11.5px]"
+        className="h-auto w-36 rounded-full border-accent px-2.5 py-0.5 text-xs"
       />
       <ComboboxPopup className="w-48 p-1">
         <ComboboxList>
@@ -96,13 +96,13 @@ export function NoteTagAdder({ have, known, onAdd }: Props) {
               key={tag}
               value={tag}
               onClick={() => add(tag)}
-              className="rounded-md px-2 py-1 text-[11.5px]"
+              className="rounded-md px-2 py-1 text-xs"
             >
               {tag}
             </ComboboxItem>
           )}
         </ComboboxList>
-        <ComboboxEmpty className="px-2 py-1 text-[11.5px]">{t('notes.tagNew')}</ComboboxEmpty>
+        <ComboboxEmpty className="px-2 py-1 text-xs">{t('notes.tagNew')}</ComboboxEmpty>
       </ComboboxPopup>
     </Combobox>
   )

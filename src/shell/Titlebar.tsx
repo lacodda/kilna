@@ -51,11 +51,11 @@ function Breadcrumbs() {
 
   const screen = t(screenAt(location.pathname).nav)
   if (workId === undefined) {
-    return <span className="truncate text-[13px] font-semibold">{screen}</span>
+    return <span className="truncate text-sm font-semibold">{screen}</span>
   }
 
   return (
-    <nav className="flex min-w-0 items-center gap-1.5 text-[13px]">
+    <nav className="flex min-w-0 items-center gap-1.5 text-sm">
       <Link to="/catalogue" className="shrink-0 text-dim transition-colors hover:text-text">
         {screen}
       </Link>
@@ -77,13 +77,9 @@ function Brand() {
   const { t } = useTranslation()
   return (
     <div className="flex shrink-0 items-center gap-2 pr-3 max-[900px]:pr-1">
-      <Mark className="size-[18px]" />
-      <b className="text-[13px] font-semibold tracking-[0.02em] max-[900px]:hidden">
-        {t('app.name')}
-      </b>
-      <small className="font-mono text-[10px] text-faint max-[900px]:hidden">
-        {__APP_VERSION__}
-      </small>
+      <Mark className="size-4.5" />
+      <b className="text-sm font-semibold max-[900px]:hidden">{t('app.name')}</b>
+      <small className="font-mono text-2xs text-faint max-[900px]:hidden">{__APP_VERSION__}</small>
     </div>
   )
 }
@@ -199,9 +195,7 @@ function Unread() {
           are the only lines in the panel that ask for something. */}
       {waiting.length > 0 && (
         <section className="border-b border-line py-2">
-          <h4 className="pb-1 text-[11px] font-semibold uppercase tracking-wide text-dim">
-            {t('assistant.waitingOnYou', { count: waiting.length })}
-          </h4>
+          <h4 className="pb-1 caption">{t('assistant.waitingOnYou', { count: waiting.length })}</h4>
           <ul>
             {waiting.map((proposal) => (
               <ProposalLine
@@ -276,16 +270,13 @@ function ProposalLine({
         className="min-w-0 flex-1 rounded-sm px-1 py-1 text-left hover:bg-soft"
       >
         <span className="flex items-baseline gap-2">
-          <span className="min-w-0 flex-1 truncate text-[13px] text-text">{what}</span>
-          <time
-            dateTime={proposal.created_at}
-            className="shrink-0 text-[11px] tabular-nums text-faint"
-          >
+          <span className="min-w-0 flex-1 truncate text-sm text-text">{what}</span>
+          <time dateTime={proposal.created_at} className="shrink-0 text-xs tabular-nums text-faint">
             {formatMoment(proposal.created_at)}
           </time>
         </span>
         {proposal.chat_title !== null && (
-          <span className="block truncate text-[11.5px] text-dim">{proposal.chat_title}</span>
+          <span className="block truncate text-xs text-dim">{proposal.chat_title}</span>
         )}
       </button>
       <Button
@@ -324,10 +315,10 @@ function RecentLine({ entry }: { entry: JournalEntry }) {
           needsALook ? 'bg-warn' : 'bg-line-2',
         )}
       />
-      <p className={cn('min-w-0 flex-1 text-[13px] text-dim', needsALook && 'text-text')}>
+      <p className={cn('min-w-0 flex-1 text-sm text-dim', needsALook && 'text-text')}>
         {sentence(entry, t)}
       </p>
-      <time dateTime={entry.created_at} className="shrink-0 text-[11px] tabular-nums text-faint">
+      <time dateTime={entry.created_at} className="shrink-0 text-xs tabular-nums text-faint">
         {formatMoment(entry.created_at)}
       </time>
     </li>
@@ -422,7 +413,7 @@ export function Titlebar({ works, compact, onToggleRail }: Props) {
       >
         <Search aria-hidden className="size-3.5 shrink-0" />
         <span className="truncate">{t('search.placeholder')}</span>
-        <kbd className="ml-auto rounded border border-line px-1.5 font-mono text-[10px]">
+        <kbd className="ml-auto rounded border border-line px-1.5 font-mono text-2xs">
           {t('search.shortcut')}
         </kbd>
       </button>

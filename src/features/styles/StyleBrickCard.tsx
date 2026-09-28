@@ -54,7 +54,7 @@ export function StyleBrickCard({ brick, onOpen }: { brick: StyleBrick; onOpen: (
           {brick.status !== 'ready' && (
             <span
               className={cn(
-                'shrink-0 rounded px-1.5 py-0.5 text-[10.5px]',
+                'shrink-0 rounded px-1.5 py-0.5 text-2xs',
                 brick.status === 'draft' ? 'bg-soft text-dim' : 'bg-soft text-faint',
               )}
             >
@@ -68,7 +68,7 @@ export function StyleBrickCard({ brick, onOpen }: { brick: StyleBrick; onOpen: (
           {brick.description ?? t('styles.notDescribed')}
         </span>
         {brick.reference_count > 0 && (
-          <span className="text-[10.5px] text-faint tabular-nums">
+          <span className="text-2xs text-faint tabular-nums">
             {t('styles.references', { count: brick.reference_count })}
           </span>
         )}

@@ -64,7 +64,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
     <div
       onPointerDown={released || asGhost ? undefined : onGrab}
       className={cn(
-        'flex flex-col gap-0.5 rounded-md px-1 py-1 text-[11px]',
+        'flex flex-col gap-0.5 rounded-md px-1 py-1 text-xs',
         !asGhost && 'transition-opacity',
         released && 'opacity-60',
         // The chip left behind while its copy travels: dimmed, so the day it
@@ -111,7 +111,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
             daysLeft={daysBetween(now, date)}
             // The chip's ground is the work's own colour; the dark pill keeps
             // the amber and red legible on any of them.
-            className={cn('rounded-[4px] bg-black/35 px-0.5 py-px', released && 'text-white/70')}
+            className={cn('rounded-xs bg-black/35 px-0.5 py-px', released && 'text-white/70')}
           />
           {/* How far along the work is, beside how ready the release is:
                 the two answer different questions and a chip that showed only
@@ -119,7 +119,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
           {slot.work_stage !== null && (
             <span
               className={cn(
-                'shrink-0 rounded-[4px] bg-black/35 px-0.5 py-px',
+                'shrink-0 rounded-xs bg-black/35 px-0.5 py-px',
                 released && 'opacity-70',
               )}
             >
@@ -134,7 +134,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
             <Lock aria-hidden className="size-2.5 shrink-0 text-white/70" />
           )}
           {manyKinds && (
-            <span className="max-w-14 shrink truncate rounded-[3px] bg-black/35 px-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-white/80">
+            <span className="max-w-14 shrink truncate rounded-xs bg-black/35 px-1 text-2xs font-semibold uppercase tracking-caption text-white/80">
               {workKindLabel}
             </span>
           )}

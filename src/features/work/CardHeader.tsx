@@ -181,7 +181,7 @@ function Title({ work }: { work: Work }) {
   return (
     <span className="inline-flex min-w-0 items-center gap-1">
       {draft === null ? (
-        <h1 className="truncate text-[19px] font-[650] tracking-[-0.01em]">{work.title}</h1>
+        <h1 className="truncate text-xl font-[650] tracking-tight">{work.title}</h1>
       ) : (
         <Input
           autoFocus
@@ -194,7 +194,7 @@ function Title({ work }: { work: Work }) {
             if (event.key === 'Enter') commit()
             if (event.key === 'Escape') setDraft(null)
           }}
-          className="w-80 max-w-full text-[17px] font-[650] tracking-[-0.01em]"
+          className="w-80 max-w-full text-lg font-[650] tracking-tight"
         />
       )}
       {draft === null && (
@@ -221,7 +221,7 @@ function Title({ work }: { work: Work }) {
             type="button"
             title={t('work.copyIdHint')}
             onClick={() => copy(work.id)}
-            className="cursor-pointer rounded px-1 font-mono text-[11.5px] text-faint transition-colors hover:text-dim"
+            className="cursor-pointer rounded px-1 font-mono text-xs text-faint transition-colors hover:text-dim"
           >
             {work.id.slice(0, 8)}
           </button>
@@ -332,7 +332,7 @@ function MetaStrip({ work }: { work: Work }) {
   if (filled.length === 0) return null
 
   return (
-    <div className="mt-2.5 flex flex-wrap gap-[22px]">
+    <div className="mt-2.5 flex flex-wrap gap-5.5">
       {filled.map((field) => {
         const value = work.meta[field.key]
         const text =
@@ -344,10 +344,8 @@ function MetaStrip({ work }: { work: Work }) {
           // pushing the work itself off screen. The full value is a hover away
           // and edited on the Overview tab.
           <span key={field.key} className="min-w-0 max-w-56" title={text}>
-            <label className="block text-[10px] uppercase tracking-[0.08em] text-faint">
-              {sayLabel(field.label)}
-            </label>
-            <b className="block truncate font-mono text-[12.5px] font-medium">{text}</b>
+            <label className="block caption">{sayLabel(field.label)}</label>
+            <b className="block truncate font-mono text-sm font-medium">{text}</b>
           </span>
         )
       })}

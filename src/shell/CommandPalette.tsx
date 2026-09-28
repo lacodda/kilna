@@ -162,7 +162,7 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
           <CommandPaletteList>
             {(group: Group) => (
               <CommandPaletteGroup key={group.kind} items={group.items}>
-                <ComboboxGroupLabel className="px-3.5 pt-2 pb-1 tracking-[0.08em]">
+                <ComboboxGroupLabel className="px-3.5 pt-2 pb-1 tracking-caption">
                   {settled.trim() === ''
                     ? t('search.group.recent')
                     : t(`search.group.${group.kind}`)}
@@ -196,13 +196,11 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
                       }
                       hint={hit.detail}
                     >
-                      <b className="block truncate text-[13px] font-medium">{hit.title}</b>
+                      <b className="block truncate text-sm font-medium">{hit.title}</b>
                       {/* Which work it came from matters most for a hit that
                           is a line of text rather than a title. */}
                       {hit.kind !== 'work' && hit.work_title !== '' && (
-                        <span className="block truncate text-[11px] text-faint">
-                          {hit.work_title}
-                        </span>
+                        <span className="block truncate text-xs text-faint">{hit.work_title}</span>
                       )}
                     </CommandPaletteRow>
                   </CommandPaletteItem>
@@ -212,7 +210,7 @@ function Contents({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
           </CommandPaletteList>
         </div>
 
-        <div className="flex gap-3.5 border-t border-line px-4 py-2.5 font-mono text-[11px] text-faint">
+        <div className="flex gap-3.5 border-t border-line px-4 py-2.5 font-mono text-xs text-faint">
           <span>{t('search.navigate')}</span>
           <span>{t('search.openHit')}</span>
           <span>{t('search.close')}</span>

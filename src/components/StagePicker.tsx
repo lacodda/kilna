@@ -136,7 +136,7 @@ export function StagePicker({
                     paragraph, and the word is a hover away. */}
                 <span
                   className={cn(
-                    'text-[10px] tabular-nums transition-colors',
+                    'text-2xs tabular-nums transition-colors',
                     reached ? 'font-semibold text-text' : 'text-faint',
                   )}
                 >
@@ -151,7 +151,7 @@ export function StagePicker({
               type="button"
               tabIndex={-1}
               onClick={() => set(null)}
-              className="ml-1 cursor-pointer self-stretch rounded-sm px-1.5 text-[10px] text-faint transition-colors hover:bg-soft hover:text-text"
+              className="ml-1 cursor-pointer self-stretch rounded-sm px-1.5 text-2xs text-faint transition-colors hover:bg-soft hover:text-text"
             >
               {t('stage.clear')}
             </button>

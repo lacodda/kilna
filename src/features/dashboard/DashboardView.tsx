@@ -86,7 +86,7 @@ export function DashboardView({ onSelect }: Props) {
           <SectionLabel>
             <AlertTriangle aria-hidden className="size-3.5" />
             {t('dashboard.decisions')}
-            <span className="font-mono text-[11px] normal-case tracking-normal text-dim">
+            <span className="font-mono text-xs normal-case tracking-normal text-dim">
               {t('dashboard.decisionsCount', { count: summary.decisions.length })}
             </span>
           </SectionLabel>
@@ -103,7 +103,7 @@ export function DashboardView({ onSelect }: Props) {
           <SectionLabel>
             <CalendarDays aria-hidden className="size-3.5" />
             {t('dashboard.week')}
-            <span className="font-mono text-[11px] normal-case tracking-normal text-dim">
+            <span className="font-mono text-xs normal-case tracking-normal text-dim">
               {t('dashboard.weekCount', { count: summary.week.length })}
             </span>
           </SectionLabel>
@@ -135,7 +135,7 @@ export function DashboardView({ onSelect }: Props) {
                 key={work.work_id}
                 type="button"
                 onClick={() => onSelect(work.work_id, 'score')}
-                className="cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-[11.5px] text-dim transition-colors hover:border-line-2 hover:text-text"
+                className="cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-xs text-dim transition-colors hover:border-line-2 hover:text-text"
               >
                 {work.title}
               </button>
@@ -196,7 +196,7 @@ function DecisionRow({
       />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold">{release.work_title}</span>
-        <span className="block truncate text-[11.5px] text-faint">{gaps.join(', ')}</span>
+        <span className="block truncate text-xs text-faint">{gaps.join(', ')}</span>
       </span>
       {/* Beside the readiness marks, which answer a different question: those
           say whether the release could go out, this says how finished the work
@@ -238,7 +238,7 @@ function WeekRow({
       // round on all four. The row follows the panel it sits in.
       className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-soft"
     >
-      <span className="w-20 shrink-0 font-mono text-[11.5px] text-faint">{when(t, daysLeft)}</span>
+      <span className="w-20 shrink-0 font-mono text-xs text-faint">{when(t, daysLeft)}</span>
       <span
         aria-hidden
         className="size-8 shrink-0 rounded-lg"
@@ -289,8 +289,8 @@ function CoverCard({
         style={{ background: coverImageFor(work.work_id, covers.get(work.work_id)) }}
       />
       <span className="block px-3 py-2">
-        <span className="block truncate text-[12.5px] font-semibold">{work.title}</span>
-        <span className="block font-mono text-[11px] text-faint">
+        <span className="block truncate text-sm font-semibold">{work.title}</span>
+        <span className="block font-mono text-xs text-faint">
           {work.tier === null ? '' : `${labelOf(allOf(profile.config, 'tiers'), work.tier)} · `}
           {work.total === null ? '' : formatNumber(work.total)}
         </span>

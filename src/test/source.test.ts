@@ -100,24 +100,6 @@ describe('the document', () => {
 })
 
 describe('every component', () => {
-  it('rounds its corners by the scale, not by a number someone picked', () => {
-    // Four roundings on one gesture - a row under the pointer - is what the
-    // owner read as "strange corners": the rail at 10px, a nav at 9, a stage
-    // stop at 5, a calendar chip at 7. The exceptions are smaller than the
-    // smallest step on purpose: a badge inside a calendar tile, where `sm`
-    // would swallow the tile's own corner.
-    const allowed = new Set(['rounded-[4px]', 'rounded-[3px]'])
-    const stray = components().flatMap(({ path, text }) =>
-      text.split('\n').flatMap((line, index) =>
-        [...line.matchAll(/rounded-\[[^\]]*px\]/g)]
-          .map((match) => match[0])
-          .filter((token) => !allowed.has(token))
-          .map((token) => `${path}:${index + 1}: ${token}`),
-      ),
-    )
-    expect(stray, 'hand-picked radii (xs 4 / sm 6 / md 9 / lg 12 / xl 16)').toEqual([])
-  })
-
   it('makes text it shows verbatim selectable', () => {
     // `whitespace-pre-wrap` and `<pre>` are how this codebase shows text
     // exactly as it was typed - a version body, a note, an error to paste

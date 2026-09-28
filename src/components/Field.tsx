@@ -44,7 +44,7 @@ export function Field({ label, children, hint }: FieldProps) {
   const hintId = useId()
   const control = singleControl(children)
 
-  const caption = 'text-2xs font-semibold uppercase tracking-caption text-faint'
+  const caption = 'caption'
   const note = hint !== undefined && (
     <span id={hintId} className="text-xs text-faint">
       {hint}

@@ -40,7 +40,7 @@ export function ChannelField({ value, onChange, known, autoFocus }: Props) {
               type="button"
               onClick={() => onChange(channel)}
               className={cn(
-                'cursor-pointer rounded-full border border-line px-2 py-0.5 text-[11px] text-dim transition-colors hover:border-line-2 hover:text-text',
+                'cursor-pointer rounded-full border border-line px-2 py-0.5 text-xs text-dim transition-colors hover:border-line-2 hover:text-text',
               )}
             >
               {channel}

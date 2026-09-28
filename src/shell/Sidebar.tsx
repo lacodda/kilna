@@ -84,7 +84,7 @@ function SoonLink({
       <Icon aria-hidden />
       <Label compact={compact}>{label}</Label>
       {!compact && (
-        <span className="ml-auto rounded-full border border-line px-1.5 font-mono text-[9.5px]">
+        <span className="ml-auto rounded-full border border-line px-1.5 font-mono text-2xs">
           {version}
         </span>
       )}
@@ -147,9 +147,7 @@ export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
       {compact ? (
         <div aria-hidden className="mx-auto my-2.5 h-px w-6 shrink-0 bg-line" />
       ) : (
-        <div className="px-2.5 pt-3 pb-1 text-[10.5px] font-medium uppercase tracking-[0.09em] text-faint">
-          {t('nav.library')}
-        </div>
+        <div className="px-2.5 pt-3 pb-1 caption">{t('nav.library')}</div>
       )}
       {SOON.map((soon) => (
         <SoonLink

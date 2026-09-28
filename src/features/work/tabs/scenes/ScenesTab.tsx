@@ -430,14 +430,14 @@ export function ScenesTab({ work }: Props) {
                 aria-pressed={active}
                 onClick={() => setShotType(active ? undefined : entry.key)}
                 className={cn(
-                  'cursor-pointer rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+                  'cursor-pointer rounded-full border px-2.5 py-0.5 text-xs transition-colors',
                   active
                     ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
                     : 'border-line text-dim hover:border-line-2 hover:text-text',
                 )}
               >
                 {sayLabel(entry.label)}
-                <span className="ml-1.5 text-[10.5px] text-faint tabular-nums">{entry.count}</span>
+                <span className="ml-1.5 text-2xs text-faint tabular-nums">{entry.count}</span>
               </button>
             )
           })}
@@ -468,7 +468,7 @@ export function ScenesTab({ work }: Props) {
                   aria-pressed={active}
                   onClick={() => setWithNote(active ? undefined : link.note_id)}
                   className={cn(
-                    'cursor-pointer rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors',
+                    'cursor-pointer rounded-full border px-2.5 py-0.5 text-xs transition-colors',
                     active
                       ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
                       : 'border-line text-dim hover:border-line-2 hover:text-text',
@@ -553,9 +553,9 @@ export function ScenesTab({ work }: Props) {
               board. Below the minimum the pane scrolls sideways, which is
               the honest answer at that width; above it the description takes
               everything the others do not. */}
-          <table className="w-full min-w-[72rem] table-fixed text-sm">
+          <table className="w-full min-w-288 table-fixed text-sm">
             <thead className="sticky top-0 z-10 bg-bg">
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-dim">
+              <tr className="border-b border-line text-left caption">
                 {/* Wide enough for the number FIELD and the chosen
                     frame beside it: at `w-10` the column fitted a
                     rendered number and clipped the input to a stub —
@@ -977,7 +977,7 @@ function SceneRow({
                 about.map((link) => (
                   <span
                     key={link.note_id}
-                    className="rounded-full border border-line px-1.5 py-0.5 text-[11px] text-dim"
+                    className="rounded-full border border-line px-1.5 py-0.5 text-xs text-dim"
                   >
                     {link.note_title ?? t('scenes.untitledNote')}
                   </span>
@@ -1069,7 +1069,7 @@ function SceneRow({
                         aria-pressed={chosen}
                         onClick={() => (chosen ? onDetach(note.id) : onAttach(note.id))}
                         className={cn(
-                          'cursor-pointer rounded-full border px-2 py-0.5 text-[11.5px] transition-colors',
+                          'cursor-pointer rounded-full border px-2 py-0.5 text-xs transition-colors',
                           chosen
                             ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
                             : 'border-line text-dim hover:border-line-2 hover:text-text',
@@ -1211,9 +1211,7 @@ function BlockBox({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1">
-        <span className="flex-1 text-2xs font-semibold uppercase tracking-caption text-faint">
-          {sayLabel(block.label)}
-        </span>
+        <span className="flex-1 caption">{sayLabel(block.label)}</span>
         <Button
           variant="icon"
           size="icon-sm"
