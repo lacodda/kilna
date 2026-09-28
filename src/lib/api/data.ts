@@ -19,4 +19,10 @@ export const backupWorkspace = (destination: string) =>
   invoke<string>('backup_workspace', { destination })
 export const suggestedBackupName = () => invoke<string>('suggested_backup_name')
 export const workspacePath = () => invoke<string>('workspace_path')
+/** Where the application's own log is written: `logs/kilna.log` beside the
+ * workspace. `null` before the log is open. */
+export const logPath = () => invoke<string | null>('log_path')
+/** Write a failure the window caught into that log: a release build has no
+ * console, and the log is what a report of "it broke yesterday" can quote. */
+export const logWindowError = (message: string) => invoke<void>('log_window_error', { message })
 export const importLegacy = (source: string) => invoke<ImportReport>('import_legacy', { source })

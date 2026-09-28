@@ -206,7 +206,7 @@ pub fn create_minted(
         ],
     )?;
 
-    get(conn, &id)?.ok_or_else(|| Error::Other("the work vanished after insert".into()))
+    get(conn, &id)?.ok_or_else(|| Error::Internal("the work vanished after insert".into()))
 }
 
 /// A cover prompt written in words the craft does not have is a prompt
@@ -220,23 +220,29 @@ pub fn create_minted(
 fn check_cover(kind: &WorkKind, cover: &Blocks) -> Result<()> {
     for (key, value) in cover {
         if !kind.cover_blocks.iter().any(|block| block.key == *key) {
-            let named: Vec<String> = kind
+            let known = kind
                 .cover_blocks
                 .iter()
-                .map(|block| format!("`{}`", block.key))
-                .collect();
-            return Err(Error::Other(format!(
-                "`{key}` is not a part of a {}'s cover; the profile names {}",
-                kind.label.as_str().to_lowercase(),
-                if named.is_empty() {
-                    "none".to_owned()
-                } else {
-                    named.join(", ")
-                }
-            )));
+                .map(|block| block.key.as_str())
+                .collect::<Vec<_>>()
+                .join(", ");
+            return Err(Error::refused("work.unknownCoverBlock")
+                .param("key", key.clone())
+                .param(
+                    "kind",
+                    serde_json::to_value(&kind.label).unwrap_or_default(),
+                )
+                .param(
+                    "known",
+                    if known.is_empty() {
+                        "none".to_owned()
+                    } else {
+                        known
+                    },
+                ));
         }
         if !value.is_string() {
-            return Err(Error::Other(format!("the cover's `{key}` must hold text")));
+            return Err(Error::refused("work.coverNotText").param("key", key.clone()));
         }
     }
     Ok(())
@@ -256,7 +262,7 @@ fn default_status(conn: &Connection, profile_id: &str, kind: &str) -> Result<Str
         .vocabulary(kind)
         .starting_status()
         .map(|status| status.key.clone())
-        .ok_or_else(|| Error::Other(format!("the kind `{kind}` defines no statuses")))
+        .ok_or_else(|| Error::refused("work.kindNoStatuses").param("kind", kind))
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Work>> {
@@ -575,16 +581,13 @@ pub fn pin_tier_at(
         .iter()
         .any(|known| known.key == tier)
     {
-        return Err(Error::Other(format!(
-            "`{tier}` is not a tier of `{}`",
-            work.kind
-        )));
+        return Err(Error::refused("work.unknownTier")
+            .param("tier", tier)
+            .param("kind", work.kind.clone()));
     }
     let reason = reason.trim();
     if reason.is_empty() {
-        return Err(Error::Other(
-            "a pinned tier needs a reason — say what the score does not know".into(),
-        ));
+        return Err(Error::refused("work.pinNeedsReason"));
     }
 
     conn.execute(
@@ -1161,9 +1164,12 @@ mod tests {
         let id = create(&conn, &profile_id, song("Held")).unwrap().id;
 
         let unknown = pin_tier(&conn, &id, "platinum", "because").unwrap_err();
-        assert!(unknown.to_string().contains("not a tier"), "{unknown}");
+        assert_eq!(unknown.refusal().map(|r| r.code), Some("work.unknownTier"));
         let silent = pin_tier(&conn, &id, "clip", "   ").unwrap_err();
-        assert!(silent.to_string().contains("reason"), "{silent}");
+        assert_eq!(
+            silent.refusal().map(|r| r.code),
+            Some("work.pinNeedsReason")
+        );
         assert!(pin_tier(&conn, "nobody", "clip", "why").is_err());
         assert!(unpin_tier(&conn, "nobody").is_err());
     }

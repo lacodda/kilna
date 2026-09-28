@@ -1,3 +1,5 @@
+import type { Reason } from '@/lib/errors'
+
 // These mirror the Rust structs in src-tauri/src. Nothing enforces that they
 // agree — see ADR 0003 — so a change on one side means a change here.
 
@@ -839,10 +841,23 @@ export interface ScoredWork {
   stage: number | null
 }
 
+/** One item a batch passed over, and why. */
+export interface Skipped {
+  id: string
+  title: string | null
+  reason: Reason
+}
+
+/** What a batch deletion did: the trash entries an undo names, and what stayed. */
+export interface Discarded {
+  entries: string[]
+  skipped: Skipped[]
+}
+
 /** What a bulk edit did. The catalogue reloads afterwards; these are for the toast. */
 export interface BulkOutcome {
   changed: number
-  skipped: number
+  skipped: Skipped[]
 }
 
 export interface Release {
@@ -1271,7 +1286,7 @@ export interface BatchFieldRefusal {
 /** What a batch generation did, and to what. */
 export interface GeneratedBatch {
   filled: number
-  skipped: number
+  skipped: Skipped[]
   refused: BatchFieldRefusal[]
 }
 
@@ -1510,7 +1525,7 @@ export interface StartedTask {
 export interface StartedBatch {
   started: number
   queued: number
-  skipped: number
+  skipped: Skipped[]
 }
 
 /** What the assistant is carrying, as task keys. */

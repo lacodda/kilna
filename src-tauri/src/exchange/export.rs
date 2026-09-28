@@ -35,7 +35,7 @@ pub struct ExportReport {
 /// matter and the bodies underneath.
 pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> {
     let profile =
-        profile::active(conn)?.ok_or_else(|| crate::Error::Other("no active profile".into()))?;
+        profile::active(conn)?.ok_or_else(|| crate::Error::refused("profile.noneActive"))?;
 
     std::fs::create_dir_all(directory)?;
     let works_dir = directory.join("works");

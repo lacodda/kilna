@@ -66,10 +66,10 @@ fn check_material(kind: &str, source: &Path) -> Result<()> {
     if allowed.contains(&ending.as_str()) {
         return Ok(());
     }
-    Err(Error::Other(format!(
-        "this strip takes a {what} ({}), and .{ending} is not one",
-        allowed.join(", ")
-    )))
+    Err(Error::refused("frame.badExtension")
+        .param("what", what)
+        .param("allowed", allowed.join(", "))
+        .param("ending", ending))
 }
 
 /// Refuse a kind the board has no column for, rather than writing a row
@@ -78,9 +78,7 @@ fn check_kind(kind: &str) -> Result<()> {
     if KINDS.contains(&kind) {
         return Ok(());
     }
-    Err(Error::Other(format!(
-        "a scene holds {FRAME} or {VIDEO}, not {kind:?}"
-    )))
+    Err(Error::refused("frame.badKind").param("kind", kind))
 }
 
 /// A picture drawn for a scene, as the board shows it.
@@ -197,10 +195,10 @@ pub fn attach_bytes(
     let holding = tempfile::Builder::new()
         .prefix("kilna-paste-")
         .tempdir()
-        .map_err(|cause| Error::Other(format!("could not hold the pasted picture: {cause}")))?;
+        .map_err(|cause| Error::Internal(format!("could not hold the pasted picture: {cause}")))?;
     let source = holding.path().join(&safe);
     std::fs::write(&source, bytes)
-        .map_err(|cause| Error::Other(format!("could not write the pasted picture: {cause}")))?;
+        .map_err(|cause| Error::Internal(format!("could not write the pasted picture: {cause}")))?;
 
     attach(conn, media_dir, scene_id, kind, &source)
 }
@@ -333,9 +331,7 @@ pub fn reorder(
         .map(|frame| frame.id)
         .collect();
     if ids.len() != known.len() || !known.iter().all(|id| ids.contains(id)) {
-        return Err(Error::Other(
-            "reordering a scene's material names each row of that kind exactly once".into(),
-        ));
+        return Err(Error::refused("frame.orderIncomplete"));
     }
     for (index, id) in ids.iter().enumerate() {
         conn.execute(

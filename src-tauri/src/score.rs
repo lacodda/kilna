@@ -181,9 +181,9 @@ pub fn create_minted(
             .optional()?
             .unwrap_or(false);
         if !belongs {
-            return Err(Error::Other(format!(
-                "version `{version_id}` does not belong to work `{work_id}`"
-            )));
+            return Err(Error::refused("score.versionNotOfWork")
+                .param("version", version_id.clone())
+                .param("work", work_id));
         }
     }
 
@@ -206,7 +206,7 @@ pub fn create_minted(
         ],
     )?;
 
-    get(conn, &id)?.ok_or_else(|| Error::Other("the score vanished after insert".into()))
+    get(conn, &id)?.ok_or_else(|| Error::Internal("the score vanished after insert".into()))
 }
 
 const SELECT_SCORE: &str = "SELECT s.id, s.work_id, s.version_id, s.axes, s.total, s.tier, \

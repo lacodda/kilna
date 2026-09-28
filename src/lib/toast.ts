@@ -1,4 +1,6 @@
 import { createToastManager } from '@/components/ui/toast'
+import type { Skipped } from '@/lib/api/types'
+import { describeSkipped } from '@/lib/batch'
 import { humanError } from '@/lib/errors'
 
 /**
@@ -32,6 +34,15 @@ export const say = {
 
   warn: (message: string, description?: string) =>
     toastManager.add({ type: 'warning', title: message, description }),
+
+  /**
+   * What a batch passed over, each with why - said after what it did, and
+   * only when it passed something over.
+   */
+  skipped: (skipped: readonly Skipped[]) => {
+    const said = describeSkipped(skipped)
+    if (said !== null) toastManager.add({ type: 'warning', ...said })
+  },
 
   /**
    * A completed action the person can take back.

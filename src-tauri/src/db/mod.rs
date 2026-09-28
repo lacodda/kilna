@@ -68,12 +68,8 @@ pub fn default_data_dir() -> Result<PathBuf> {
                 std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".local/share"))
             })
     };
-    base.map(|dir| dir.join(IDENTIFIER)).ok_or_else(|| {
-        crate::error::Error::Other(
-            "cannot tell where application data lives on this machine; pass --workspace <dir>"
-                .into(),
-        )
-    })
+    base.map(|dir| dir.join(IDENTIFIER))
+        .ok_or_else(|| crate::error::Error::refused("db.noDataDir"))
 }
 
 #[cfg(test)]

@@ -18,6 +18,7 @@ export function DataSection() {
 
   // The path never changes while the app runs, so it is asked for once.
   const path = useQuery({ ...queries.workspacePath(), staleTime: Infinity })
+  const log = useQuery({ ...queries.logPath(), staleTime: Infinity })
 
   // Each of these opens an OS file dialog first, so they are not mutations in
   // the query sense — there is nothing to retry and no variables to carry.
@@ -106,6 +107,14 @@ export function DataSection() {
           <code className="selectable font-mono text-xs break-all text-text">{path.data}</code>
         )}
       </FieldGroup>
+
+      {/* Where the application writes what went wrong while nobody was
+          looking: the file a report of "it broke yesterday" can attach. */}
+      {log.data != null && (
+        <FieldGroup label={t('data.logAt')} help={t('data.logHint')}>
+          <code className="selectable font-mono text-xs break-all text-text">{log.data}</code>
+        </FieldGroup>
+      )}
 
       <FieldGroup label={t('data.import')} help={t('data.importHint')}>
         <Button className="self-start" disabled={busy} onClick={doImport}>

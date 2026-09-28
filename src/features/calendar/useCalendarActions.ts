@@ -143,6 +143,7 @@ export function useCalendarActions({ onChanged, onPlanned, onClaimed, onDayFille
       } else {
         say.ok(t('calendar.fields.doneNone'))
       }
+      say.skipped(outcome.skipped)
       // One line per refusal, because each is a different work waiting on a
       // different thing, and a single line holding six of them is read by
       // nobody.

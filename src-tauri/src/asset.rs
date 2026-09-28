@@ -103,34 +103,25 @@ pub fn attach_minted(
     // A file belongs to something. Left hanging on nothing it is a byte in a
     // directory with no screen that shows it and no deletion that takes it.
     if new.work_id.is_none() && new.release_id.is_none() && new.style_brick_id.is_none() {
-        return Err(Error::Other(
-            "a file is attached to a work, to a release or to a style".into(),
-        ));
+        return Err(Error::refused("asset.needsOwner"));
     }
     if let Some(work_id) = new.work_id.as_deref() {
         let work =
             crate::work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
         if work.profile_id != profile_id {
-            return Err(Error::Other(
-                "a file is attached to a work of the same profile".into(),
-            ));
+            return Err(Error::refused("asset.workOtherWorkspace").param("title", work.title));
         }
     }
     if let Some(brick_id) = new.style_brick_id.as_deref() {
         let brick = crate::style_brick::get(conn, brick_id)?
             .ok_or_else(|| Error::not_found("style", brick_id))?;
         if brick.profile_id != profile_id {
-            return Err(Error::Other(
-                "a file is attached to a style of the same profile".into(),
-            ));
+            return Err(Error::refused("asset.styleOtherWorkspace").param("name", brick.name));
         }
     }
 
     if !source.is_file() {
-        return Err(Error::Other(format!(
-            "there is no file at {}",
-            source.display()
-        )));
+        return Err(Error::refused("asset.fileMissing").param("path", source.display().to_string()));
     }
     let original_name = source
         .file_name()
@@ -142,16 +133,15 @@ pub fn attach_minted(
     // a mistake — and copying over it would destroy bytes another row points
     // at. Found by the test that refuses the same id twice.
     if stored.exists() {
-        return Err(Error::Other(format!(
+        return Err(Error::Internal(format!(
             "the workspace already holds a file for `{}`",
             minted.id()
         )));
     }
     std::fs::copy(source, &stored).map_err(|cause| {
-        Error::Other(format!(
-            "could not copy {} into the workspace: {cause}",
-            source.display()
-        ))
+        Error::refused("asset.copyFailed")
+            .param("path", source.display().to_string())
+            .param("cause", cause.to_string())
     })?;
 
     let kind = new
@@ -214,10 +204,10 @@ pub fn attach_bytes(
     let holding = tempfile::Builder::new()
         .prefix("kilna-paste-")
         .tempdir()
-        .map_err(|cause| Error::Other(format!("could not hold the pasted picture: {cause}")))?;
+        .map_err(|cause| Error::Internal(format!("could not hold the pasted picture: {cause}")))?;
     let source = holding.path().join(&safe);
     std::fs::write(&source, bytes)
-        .map_err(|cause| Error::Other(format!("could not write the pasted picture: {cause}")))?;
+        .map_err(|cause| Error::Internal(format!("could not write the pasted picture: {cause}")))?;
 
     attach(conn, profile_id, media_dir, &source, new)
 }
@@ -610,9 +600,12 @@ mod tests {
             &a_file(outside.path(), "x.png"),
             NewAsset::default(),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(orphan.contains("attached to a work"), "{orphan}");
+        .unwrap_err();
+        assert_eq!(
+            orphan.refusal().map(|r| r.code),
+            Some("asset.needsOwner"),
+            "{orphan}"
+        );
 
         assert_eq!(
             std::fs::read_dir(media.path()).unwrap().count(),

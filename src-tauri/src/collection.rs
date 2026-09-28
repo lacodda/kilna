@@ -82,16 +82,12 @@ const SELECT_COLLECTION: &str = "SELECT c.id, c.profile_id, c.kind, c.title, c.d
 fn check_goal(target_size: Option<i64>, due_on: Option<&str>) -> Result<()> {
     if let Some(size) = target_size {
         if size < 1 {
-            return Err(Error::Other(format!(
-                "a target of {size} works is not a target — leave it empty or name a count"
-            )));
+            return Err(Error::refused("collection.badTargetSize").param("size", size));
         }
     }
     if let Some(day) = due_on {
         if !crate::time::is_date(day) {
-            return Err(Error::Other(format!(
-                "`{day}` is not a date — write it as YYYY-MM-DD"
-            )));
+            return Err(Error::refused("collection.badDueDate").param("value", day));
         }
     }
     Ok(())
@@ -140,7 +136,7 @@ pub fn create_minted(
         ],
     )?;
 
-    get(conn, &id)?.ok_or_else(|| Error::Other("the collection vanished after insert".into()))
+    get(conn, &id)?.ok_or_else(|| Error::Internal("the collection vanished after insert".into()))
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Collection>> {

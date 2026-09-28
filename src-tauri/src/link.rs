@@ -130,12 +130,10 @@ pub fn create_minted(
     let source = crate::work::get(conn, &new.source_id)?
         .ok_or_else(|| Error::not_found("work", &new.source_id))?;
     if work.profile_id != profile_id || source.profile_id != profile_id {
-        return Err(Error::Other(
-            "a link joins two works of the same profile".into(),
-        ));
+        return Err(Error::refused("link.otherWorkspace"));
     }
     if work.id == source.id {
-        return Err(Error::Other("a work cannot be made from itself".into()));
+        return Err(Error::refused("link.selfMade"));
     }
 
     let source_version_id = match new.source_version_id {
@@ -149,10 +147,9 @@ pub fn create_minted(
                 .optional()?
                 .unwrap_or(false);
             if !belongs {
-                return Err(Error::Other(format!(
-                    "version `{id}` is not a version of “{}”",
-                    source.title
-                )));
+                return Err(Error::refused("link.versionNotOfSource")
+                    .param("version", id)
+                    .param("title", source.title.clone()));
             }
             Some(id)
         }
@@ -177,15 +174,15 @@ pub fn create_minted(
         rusqlite::Error::SqliteFailure(error, _)
             if error.code == rusqlite::ErrorCode::ConstraintViolation =>
         {
-            Error::Other(format!(
-                "“{}” is already made from “{}” as {role}",
-                work.title, source.title
-            ))
+            Error::refused("link.alreadyExists")
+                .param("work", work.title.clone())
+                .param("source", source.title.clone())
+                .param("role", role.clone())
         }
         other => other.into(),
     })?;
 
-    get(conn, &id)?.ok_or_else(|| Error::Other("the link vanished after insert".into()))
+    get(conn, &id)?.ok_or_else(|| Error::Internal("the link vanished after insert".into()))
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Link>> {
@@ -528,7 +525,11 @@ mod tests {
             },
         )
         .unwrap_err();
-        assert!(err.to_string().contains("itself"), "{err}");
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("link.selfMade"),
+            "{err}"
+        );
 
         let new = NewLink {
             work_id: video,
@@ -538,7 +539,11 @@ mod tests {
         };
         create(&conn, &profile_id, new.clone()).unwrap();
         let err = create(&conn, &profile_id, new).unwrap_err();
-        assert!(err.to_string().contains("already made from"), "{err}");
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("link.alreadyExists"),
+            "{err}"
+        );
     }
 
     #[test]
@@ -560,7 +565,11 @@ mod tests {
             },
         )
         .unwrap_err();
-        assert!(err.to_string().contains("not a version of"), "{err}");
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("link.versionNotOfSource"),
+            "{err}"
+        );
     }
 
     #[test]

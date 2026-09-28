@@ -189,9 +189,7 @@ pub fn dismiss(conn: &Connection, message_id: &str) -> Result<()> {
 
     let mut meta: Map<String, Value> = serde_json::from_str(&raw).unwrap_or_default();
     if meta.contains_key("applied") {
-        return Err(Error::Other(
-            "this proposal was already applied; dismissing it would say otherwise".to_owned(),
-        ));
+        return Err(Error::refused("proposal.alreadyApplied"));
     }
     // Twice is not a failure: two windows can show the same bell.
     meta.insert(DISMISSED.to_owned(), Value::String(time::now()));

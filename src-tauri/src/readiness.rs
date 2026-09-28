@@ -124,10 +124,12 @@ pub fn unready_upcoming<'a>(
 ) -> Result<Vec<&'a ScheduledRelease>> {
     let iso = format_description!("[year]-[month]-[day]");
     let start = Date::parse(today, iso)
-        .map_err(|_| Error::Other(format!("`{today}` is not an ISO date")))?;
+        .map_err(|_| Error::refused("readiness.badToday").param("value", today))?;
     let until = (start + Duration::days(horizon_days))
         .format(iso)
-        .map_err(|cause| Error::Other(cause.to_string()))?;
+        .map_err(|cause| {
+            Error::Internal(format!("could not format the horizon's end date: {cause}"))
+        })?;
 
     Ok(releases
         .iter()

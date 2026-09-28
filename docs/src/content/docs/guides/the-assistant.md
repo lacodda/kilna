@@ -320,6 +320,12 @@ the board**, **Create the work**. The bell counts each one. See [MCP server](/ki
 for the tools and how to register it; the **Settings** screen shows the
 command for the build you are running.
 
+**A proposal is kept whole or not at all.** Everything in it is checked before
+anything is written, and every problem is named at once — a role the kind does
+not have *and* a release the work does not ship, not one per click. If a part
+still fails while it is being written, nothing of it stays: no half-made work,
+no line in the history, and the proposal keeps waiting for you.
+
 ## When kilna closes mid-run
 
 A run is a separate process kilna started, and it does not stop by itself when

@@ -77,7 +77,7 @@ fn copy_dir(from: &Path, to: &Path) -> Result<()> {
 /// wanted after all.
 pub fn restore(source: &Path, target: &Path, media: Option<&Path>) -> Result<Option<PathBuf>> {
     if !source.exists() {
-        return Err(Error::Other(format!("no backup at {}", source.display())));
+        return Err(Error::refused("backup.notFound").param("path", source.display().to_string()));
     }
 
     // Refuse a file that is not a kilna workspace before touching anything.
@@ -89,10 +89,9 @@ pub fn restore(source: &Path, target: &Path, media: Option<&Path>) -> Result<Opt
             |row| row.get(0),
         )?;
         if tables == 0 {
-            return Err(Error::Other(format!(
-                "{} is not a kilna workspace",
-                source.display()
-            )));
+            return Err(
+                Error::refused("backup.notAWorkspace").param("path", source.display().to_string())
+            );
         }
     }
 

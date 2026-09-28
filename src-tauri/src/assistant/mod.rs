@@ -116,7 +116,7 @@ pub fn create(conn: &Connection, profile_id: &str, new: NewChat) -> Result<Chat>
         ],
     )?;
 
-    get(conn, &id)?.ok_or_else(|| Error::Other("the chat vanished after insert".into()))
+    get(conn, &id)?.ok_or_else(|| Error::Internal("the chat vanished after insert".into()))
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Chat>> {

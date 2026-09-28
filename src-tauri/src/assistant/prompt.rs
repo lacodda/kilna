@@ -258,10 +258,9 @@ pub fn for_work(
         Some(id) => {
             let found = version::get(conn, id)?.ok_or_else(|| Error::not_found("version", id))?;
             if found.work_id != work.id {
-                return Err(Error::Other(format!(
-                    "version `{id}` is not a version of “{}”",
-                    work.title
-                )));
+                return Err(Error::refused("link.versionNotOfSource")
+                    .param("version", id)
+                    .param("title", work.title.clone()));
             }
             Some(found)
         }
@@ -294,10 +293,9 @@ pub fn for_work(
             Some(id) => {
                 let found = scene::get(conn, id)?.ok_or_else(|| Error::not_found("scene", id))?;
                 if found.work_id != work.id {
-                    return Err(Error::Other(format!(
-                        "scene `{id}` is not a scene of “{}”",
-                        work.title
-                    )));
+                    return Err(Error::refused("prompt.sceneNotOfWork")
+                        .param("scene", id)
+                        .param("title", work.title.clone()));
                 }
                 scene_sheet(&found, kind)
             }
@@ -316,10 +314,9 @@ pub fn for_work(
             let brick =
                 crate::style_brick::get(conn, id)?.ok_or_else(|| Error::not_found("style", id))?;
             if brick.profile_id != work.profile_id {
-                return Err(Error::Other(format!(
-                    "style “{}” is not of this workspace",
-                    brick.name
-                )));
+                return Err(
+                    Error::refused("asset.styleOtherWorkspace").param("name", brick.name.clone())
+                );
             }
             bricks.push(brick);
         }
@@ -357,10 +354,12 @@ pub fn for_work(
             continue;
         }
         if let Some(role) = kind.version_roles.iter().find(|r| r.key == name) {
-            return Err(Error::Other(format!(
-                "“{}” has no {} yet: write it first",
-                work.title, role.label
-            )));
+            return Err(Error::refused("prompt.roleEmpty")
+                .param("title", work.title.clone())
+                .param(
+                    "role",
+                    serde_json::to_value(&role.label).unwrap_or_default(),
+                ));
         }
     }
 
@@ -373,12 +372,7 @@ pub fn for_work(
         let donor = link::sources(conn, work_id)?
             .into_iter()
             .find(|source| source.role == link::DONOR)
-            .ok_or_else(|| {
-                Error::Other(format!(
-                    "“{}” is not made from anything yet: link its source on the Links tab first",
-                    work.title
-                ))
-            })?;
+            .ok_or_else(|| Error::refused("prompt.noDonor").param("title", work.title.clone()))?;
         rendered = rendered.replace(
             "{donor}",
             &format!("“{}” ({})", donor.source_title, donor.source_kind),
@@ -983,7 +977,7 @@ mod tests {
             },
         )
         .unwrap_err();
-        assert!(err.to_string().contains("not a scene of"), "{err}");
+        assert_eq!(err.refusal().map(|r| r.code), Some("prompt.sceneNotOfWork"));
     }
 
     #[test]
@@ -1015,10 +1009,7 @@ mod tests {
         let video_id = video(&conn, &profile_id, "The clip");
 
         let refused = for_work(&conn, &video_id, "from {donor}", Context::default()).unwrap_err();
-        assert!(
-            refused.to_string().contains("not made from anything yet"),
-            "{refused}"
-        );
+        assert_eq!(refused.refusal().map(|r| r.code), Some("prompt.noDonor"));
 
         link::create(
             &conn,
@@ -1050,7 +1041,7 @@ mod tests {
         let video_id = video(&conn, &profile_id, "The clip");
 
         let refused = for_work(&conn, &video_id, "{role:plot}", Context::default()).unwrap_err();
-        assert!(refused.to_string().contains("has no Plot yet"), "{refused}");
+        assert_eq!(refused.refusal().map(|r| r.code), Some("prompt.roleEmpty"));
 
         // A role the kind does not name stays visible, as any unknown
         // placeholder does: the save-time check is what catches it.
@@ -1144,7 +1135,10 @@ mod version_tests {
             },
         )
         .unwrap_err();
-        assert!(err.to_string().contains("not a version of"), "{err}");
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("link.versionNotOfSource")
+        );
     }
 
     #[test]

@@ -82,7 +82,7 @@ impl Entity {
             "cut" => Ok(Self::Cut),
             "comment" => Ok(Self::Comment),
             "style" => Ok(Self::Style),
-            other => Err(Error::Other(format!("unknown trash entity `{other}`"))),
+            other => Err(Error::Internal(format!("unknown trash entity `{other}`"))),
         }
     }
 
@@ -460,7 +460,7 @@ fn restore_in(tx: &Connection, deletion_id: &str) -> Result<()> {
         };
         for row in rows {
             let Value::Object(row) = row else {
-                return Err(Error::Other("a trashed row is not an object".into()));
+                return Err(Error::Internal("a trashed row is not an object".into()));
             };
             // A link is about two works. One restored while the other is
             // still gone has nothing to point at, and inserting it would fail
@@ -991,10 +991,10 @@ fn json_to_sql(value: &Value) -> Result<SqlValue> {
         Value::Number(number) => match (number.as_i64(), number.as_f64()) {
             (Some(int), _) => SqlValue::Integer(int),
             (None, Some(float)) => SqlValue::Real(float),
-            _ => return Err(Error::Other("a trashed number cannot be stored".into())),
+            _ => return Err(Error::Internal("a trashed number cannot be stored".into())),
         },
         other => {
-            return Err(Error::Other(format!(
+            return Err(Error::Internal(format!(
                 "a trashed value has an unexpected shape: {other}"
             )));
         }

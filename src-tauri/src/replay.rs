@@ -76,7 +76,7 @@ pub fn rebuild(from: &Connection, into: &mut Connection) -> Result<Report> {
                 }
             }
             Err(cause) => {
-                return Err(Error::Other(format!(
+                return Err(Error::Internal(format!(
                     "operation `{}` ({}) could not be replayed: {cause}",
                     entry.kind, entry.id
                 )));
@@ -333,7 +333,7 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             let pinned = params
                 .get("pinned")
                 .and_then(Value::as_bool)
-                .ok_or_else(|| Error::Other("the operation carries no `pinned`".into()))?;
+                .ok_or_else(|| Error::Internal("the operation carries no `pinned`".into()))?;
             let at = required(params, "at")?;
             release::set_slot_pin_at(conn, &id, pinned, &at)?;
         }
@@ -573,7 +573,7 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             let entry_ids: Vec<String> = from_params(params, "entryIds")?;
             let at = required(params, "at")?;
             if work_ids.len() != entry_ids.len() {
-                return Err(Error::Other(
+                return Err(Error::Internal(
                     "the batch names a different number of works and trash entries".into(),
                 ));
             }
@@ -604,7 +604,7 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
 fn workspace_profile(conn: &Connection, params: &Map<String, Value>) -> Result<String> {
     let key = required(params, "profile")?;
     profile::id_for_key(conn, &key)?
-        .ok_or_else(|| Error::Other(format!("this workspace has no profile `{key}`")))
+        .ok_or_else(|| Error::Internal(format!("this workspace has no profile `{key}`")))
 }
 
 /// The generated values this operation recorded.
@@ -618,7 +618,7 @@ fn required(params: &Map<String, Value>, key: &str) -> Result<String> {
         .get(key)
         .and_then(Value::as_str)
         .map(str::to_owned)
-        .ok_or_else(|| Error::Other(format!("the operation carries no `{key}`")))
+        .ok_or_else(|| Error::Internal(format!("the operation carries no `{key}`")))
 }
 
 /// Which kind of a scene's material an operation is about.
@@ -642,6 +642,6 @@ fn from_params<T: serde::de::DeserializeOwned>(
 ) -> Result<T> {
     let raw = params
         .get(key)
-        .ok_or_else(|| Error::Other(format!("the operation carries no `{key}`")))?;
+        .ok_or_else(|| Error::Internal(format!("the operation carries no `{key}`")))?;
     Ok(serde_json::from_value(raw.clone())?)
 }

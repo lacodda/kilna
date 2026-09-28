@@ -128,9 +128,7 @@ pub struct Scheduling {
 fn check_when(time: Option<&str>, zone: Option<&str>) -> Result<()> {
     if let Some(time) = time {
         if !crate::time::is_clock_time(time) {
-            return Err(Error::Other(format!(
-                "`{time}` is not a time of day — write it as HH:MM"
-            )));
+            return Err(Error::refused("release.badTime").param("value", time));
         }
     }
     if let Some(zone) = zone {
@@ -140,9 +138,7 @@ fn check_when(time: Option<&str>, zone: Option<&str>) -> Result<()> {
                     .chars()
                     .all(|c| c.is_ascii_alphanumeric() || matches!(c, '/' | '_' | '-' | '+')));
         if !plausible {
-            return Err(Error::Other(format!(
-                "`{zone}` is not a time zone name — write it as Region/City, like Europe/Lisbon"
-            )));
+            return Err(Error::refused("release.badTimeZone").param("value", zone));
         }
     }
     Ok(())
@@ -231,7 +227,7 @@ pub fn create_minted(conn: &Connection, new: NewRelease, minted: Minted) -> Resu
         ],
     )?;
 
-    get(conn, &id)?.ok_or_else(|| Error::Other("the release vanished after insert".into()))
+    get(conn, &id)?.ok_or_else(|| Error::Internal("the release vanished after insert".into()))
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Release>> {
@@ -385,9 +381,7 @@ pub fn set_slot_pin_at(conn: &Connection, id: &str, pinned: bool, at: &str) -> R
         return Err(unknown_release(id));
     };
     if pinned && scheduled.is_none() {
-        return Err(Error::Other(
-            "a release with no date has no slot to pin".into(),
-        ));
+        return Err(Error::refused("release.noSlotToPin"));
     }
 
     conn.execute(
@@ -525,7 +519,7 @@ fn day_stamp(day: &str) -> Result<String> {
             .all(|(at, byte)| at == 4 || at == 7 || byte.is_ascii_digit());
 
     if !plausible {
-        return Err(Error::Other(format!("{day} is not a calendar day")));
+        return Err(Error::refused("release.badDay").param("value", day));
     }
 
     Ok(format!("{day}T12:00:00.000Z"))
@@ -1658,7 +1652,10 @@ mod tests {
             )
             .unwrap_err();
             assert!(
-                refused.to_string().contains("write it as"),
+                matches!(
+                    refused.refusal().map(|r| r.code),
+                    Some("release.badTime" | "release.badTimeZone")
+                ),
                 "{time:?} {zone:?}: {refused}"
             );
         }

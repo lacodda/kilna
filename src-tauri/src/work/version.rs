@@ -141,10 +141,9 @@ fn create_in(tx: &Connection, work_id: &str, new: NewVersion, minted: &Minted) -
             .optional()?
             .unwrap_or(false);
         if !same_line {
-            return Err(Error::Other(format!(
-                "version `{parent}` is not a `{}` version of this work, so nothing can be written from it",
-                new.role
-            )));
+            return Err(Error::refused("version.parentNotSameRole")
+                .param("parent", parent.clone())
+                .param("role", new.role.clone()));
         }
     }
 
@@ -260,9 +259,9 @@ pub fn check_belongs(conn: &Connection, work_id: &str, version_id: &str) -> Resu
         .unwrap_or(false);
 
     if !belongs {
-        return Err(Error::Other(format!(
-            "version `{version_id}` does not belong to work `{work_id}`"
-        )));
+        return Err(Error::refused("version.notOfWork")
+            .param("version", version_id)
+            .param("work", work_id));
     }
     Ok(())
 }
@@ -313,7 +312,7 @@ pub fn update_body_at(conn: &Connection, id: &str, body: &str, at: &str) -> Resu
         params![work_id, at],
     )?;
 
-    get(conn, id)?.ok_or_else(|| Error::Other("the version vanished after update".into()))
+    get(conn, id)?.ok_or_else(|| Error::Internal("the version vanished after update".into()))
 }
 
 /// Delete a version.
@@ -892,10 +891,9 @@ with no markers at all
                 },
             )
             .unwrap_err();
-            assert!(
-                refused
-                    .to_string()
-                    .contains("nothing can be written from it"),
+            assert_eq!(
+                refused.refusal().map(|r| r.code),
+                Some("version.parentNotSameRole"),
                 "{parent}: {refused}"
             );
         }

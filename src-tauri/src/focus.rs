@@ -85,9 +85,9 @@ pub struct FocusNotePatch {
 /// Refuse a due date that would not read back as one.
 fn check_due(due_on: Option<&str>) -> Result<()> {
     match due_on {
-        Some(day) if !crate::time::is_date(day) => Err(Error::Other(format!(
-            "`{day}` is not a date — write it as YYYY-MM-DD"
-        ))),
+        Some(day) if !crate::time::is_date(day) => {
+            Err(Error::refused("focus.badDueDate").param("value", day))
+        }
         _ => Ok(()),
     }
 }
@@ -228,7 +228,8 @@ pub fn add_note_minted(
         ],
     )?;
 
-    get_note(conn, &id)?.ok_or_else(|| Error::Other("the board note vanished after insert".into()))
+    get_note(conn, &id)?
+        .ok_or_else(|| Error::Internal("the board note vanished after insert".into()))
 }
 
 pub fn get_note(conn: &Connection, id: &str) -> Result<Option<FocusNote>> {
@@ -658,7 +659,11 @@ mod tests {
             },
         )
         .unwrap_err();
-        assert!(refused.to_string().contains("YYYY-MM-DD"), "{refused}");
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("focus.badDueDate"),
+            "{refused}"
+        );
         assert!(
             add_note(
                 &conn,

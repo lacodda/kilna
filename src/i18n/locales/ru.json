@@ -216,7 +216,9 @@
     "importedLeftDeleted_few": "Удалённое здесь не возвращено: {{count}} произведения.",
     "importedLeftDeleted_many": "Удалённое здесь не возвращено: {{count}} произведений.",
     "importedLeftDeleted_other": "Удалённое здесь не возвращено: {{count}} произведения.",
-    "working": "Работаю…"
+    "working": "Работаю…",
+    "logAt": "Журнал приложения",
+    "logHint": "Что пошло не так, пока никто не смотрел: файл, который не удалось удалить, задача, которая не запустилась. Приложите его к сообщению об ошибке."
   },
   "dashboard": {
     "decisions": "Требует решения",
@@ -1713,21 +1715,49 @@
   },
   "refusal": {
     "profile": {
-      "noneActive": "Не открыт ни один профиль."
+      "noneActive": "Не открыт ни один профиль.",
+      "invalid": "Профиль нельзя сохранить в таком виде: {{problems}}"
     },
     "work": {
       "unknownKind": "В профиле нет вида произведения «{{kind}}». Есть: {{known}}.",
-      "unknownStatus": "В профиле нет статуса «{{status}}»."
+      "unknownStatus": "В профиле нет статуса «{{status}}».",
+      "unknownCoverBlock": "«{{key}}» — не часть обложки «{{kind}}»; профиль называет: {{known}}.",
+      "coverNotText": "«{{key}}» обложки должно содержать текст.",
+      "kindNoStatuses": "Вид «{{kind}}» не задаёт статусов.",
+      "unknownTier": "«{{tier}}» — не уровень «{{kind}}».",
+      "pinNeedsReason": "Закреплённому уровню нужна причина — скажите то, чего не знает оценка."
     },
     "version": {
-      "unknownRole": "У вида «{{kind}}» нет роли версии «{{role}}». Есть: {{known}}."
+      "unknownRole": "У вида «{{kind}}» нет роли версии «{{role}}». Есть: {{known}}.",
+      "parentNotSameRole": "Версия «{{parent}}» — не версия роли «{{role}}» этого произведения, поэтому от неё нельзя ничего написать.",
+      "notOfWork": "Версия «{{version}}» не принадлежит произведению «{{work}}»."
     },
     "release": {
       "unknownKind": "Вид «{{kind}}» не выходит как «{{releaseKind}}». Он выходит как: {{known}}.",
-      "unknownField": "У этого вида выпуска нет поля «{{field}}»."
+      "unknownField": "У этого вида выпуска нет поля «{{field}}».",
+      "badTime": "«{{value}}» — не время суток, напишите его как ЧЧ:ММ.",
+      "badTimeZone": "«{{value}}» — не название часового пояса, напишите его как Регион/Город, например Europe/Lisbon.",
+      "noSlotToPin": "У релиза без даты нет места для закрепления.",
+      "badDay": "«{{value}}» — не календарный день."
     },
     "scene": {
-      "noStoryboard": "У вида «{{kind}}» нет раскадровки: он не называет ни типов кадра, ни блоков промпта."
+      "noStoryboard": "У вида «{{kind}}» нет раскадровки: он не называет ни типов кадра, ни блоков промпта.",
+      "noteOtherWorkspace": "Сцена — о заметке из того же рабочего пространства.",
+      "noteUnknownKind": "Сцена — о заметке того типа, что называет профиль: {{known}}, а не «{{kind}}».",
+      "otherWorkspace": "Сцена принадлежит произведению того же рабочего пространства.",
+      "badPosition": "Сцены нумеруются с 1.",
+      "unknownShotType": "«{{shot}}» — не вид плана для «{{kind}}»; профиль называет: {{known}}.",
+      "unknownBlock": "«{{block}}» — не блок подсказки для «{{kind}}»; профиль называет: {{known}}.",
+      "blockNotText": "Блок «{{block}}» должен содержать текст.",
+      "negativeSeconds": "Секунды сцены считаются от нуля.",
+      "endsBeforeStart": "Сцена не может заканчиваться раньше, чем начинается.",
+      "noWorkDuration": "У произведения ещё нет длительности: задайте её на вкладке «Обзор».",
+      "noScenesToTime": "На доске нет сцен, чтобы их разметить по времени.",
+      "renumberIncomplete": "При перенумеровке доски нужно назвать каждую её сцену ровно один раз.",
+      "alreadyFramed": "На доске уже есть сцены: сначала очистите её, чтобы построить новый каркас.",
+      "sourceNoRole": "У «{{title}}» нет «{{role}}», откуда взять части.",
+      "noPartsMarked": "«{{title}}» не размечено на части: назовите их в тексте — [Куплет 1], [Припев] — и попробуйте снова.",
+      "partsCountChanged": "Теперь текст размечен на {{found}} частей, а не {{expected}}: перечитайте его, а не стройте каркас по несовпадающему тексту."
     },
     "undo": {
       "nothing": "Отменять нечего.",
@@ -1743,21 +1773,148 @@
       "needsWork": "Для этого нужно произведение, а чат ни о чём.",
       "newWorkNeedsTitle": "Новому произведению нужно название.",
       "newWorkNeedsKind": "Новому произведению нужен вид.",
-      "revisedSceneNeedsNumber": "Исправленная сцена должна назвать свой номер на доске."
+      "revisedSceneNeedsNumber": "Исправленная сцена должна назвать свой номер на доске.",
+      "sceneNotObject": "Сцена {{index}} — не объект.",
+      "sceneBadPosition": "Сцена {{index}}: сцены нумеруются с 1.",
+      "unknownShotType": "Сцена {{index}}: нет вида плана «{{shot}}» для «{{kind}}»; виды плана: {{known}}.",
+      "blocksNotObject": "Сцена {{index}}: «blocks» должно быть объектом «ключ блока → текст».",
+      "unknownBlock": "Сцена {{index}}: нет блока подсказки «{{block}}» для «{{kind}}»; блоки: {{known}}.",
+      "badSpan": "Сцена {{index}}: заканчивается на {{to}} раньше, чем начинается на {{from}}.",
+      "negativeSeconds": "Сцена {{index}}: секунды считаются от 0."
     },
     "file": {
       "isDirectory": "{{path}} — папка, а не файл.",
       "notWritten": "Не удалось записать {{path}}: {{cause}}"
     },
     "plugin": {
-      "unusable": "Плагин «{{plugin}}» нельзя использовать: {{reason}}"
+      "unusable": "Плагин «{{plugin}}» нельзя использовать: {{reason}}",
+      "timedOut": "Плагин не ответил за {{seconds}} секунд и был остановлен.",
+      "spawnFailed": "Не удалось запустить плагин: {{cause}}",
+      "sendFailed": "Не удалось отправить запрос плагину: {{cause}}",
+      "failed": "Плагин: {{detail}}",
+      "badReply": "Не удалось прочитать ответ плагина ({{cause}}): {{output}}",
+      "reported": "{{message}}"
     },
     "comment": {
       "clipboardEmpty": "В буфере обмена нет картинки.",
-      "screenshotNotKept": "Не удалось сохранить скриншот: {{cause}}"
+      "screenshotNotKept": "Не удалось сохранить скриншот: {{cause}}",
+      "unknownState": "«{{state}}» — не то состояние, в котором может быть комментарий.",
+      "needsField": "Комментарию нужно поле «{{field}}».",
+      "badDay": "«{{value}}» — не день, напишите его как ГГГГ-ММ-ДД."
     },
     "assistant": {
       "unknownAction": "В профиле нет действия «{{action}}»."
+    },
+    "asset": {
+      "needsOwner": "Файл должен быть прикреплён к произведению, релизу или стилю.",
+      "workOtherWorkspace": "«{{title}}» не в этом рабочем пространстве.",
+      "styleOtherWorkspace": "«{{name}}» не в этом рабочем пространстве.",
+      "fileMissing": "Файла «{{path}}» не существует.",
+      "copyFailed": "Не удалось скопировать «{{path}}» в рабочее пространство: {{cause}}"
+    },
+    "backup": {
+      "notFound": "Резервной копии по адресу «{{path}}» не существует.",
+      "notAWorkspace": "«{{path}}» — не рабочее пространство kilna."
+    },
+    "clone": {
+      "needsTitle": "У копии должно быть название."
+    },
+    "collection": {
+      "badTargetSize": "Цель в {{size}} произведений — не цель: оставьте поле пустым или укажите количество.",
+      "badDueDate": "«{{value}}» — не дата, напишите её как ГГГГ-ММ-ДД."
+    },
+    "db": {
+      "noDataDir": "Не удаётся определить, где на этом компьютере лежат данные приложения; укажите --workspace <каталог>."
+    },
+    "focus": {
+      "badDueDate": "«{{value}}» — не дата, напишите её как ГГГГ-ММ-ДД."
+    },
+    "frame": {
+      "badExtension": "Эта дорожка принимает {{what}} ({{allowed}}), а .{{ending}} — не то.",
+      "badKind": "Сцена хранит «frame» или «video», а не «{{kind}}».",
+      "orderIncomplete": "При перестановке материала сцены нужно назвать каждую строку этого вида ровно один раз."
+    },
+    "layout": {
+      "noRhythm": "У профиля нет ритма выпуска — задайте его в редакторе профиля.",
+      "rhythmTooShort": "Ритм должен быть не короче одного дня.",
+      "badDate": "«{{value}}» — не дата в формате ISO."
+    },
+    "link": {
+      "otherWorkspace": "Связь соединяет два произведения одного рабочего пространства.",
+      "selfMade": "Произведение нельзя сделать из самого себя.",
+      "versionNotOfSource": "Версия «{{version}}» не является версией «{{title}}».",
+      "alreadyExists": "«{{work}}» уже сделано из «{{source}}» как {{role}}."
+    },
+    "import": {
+      "notFound": "Базы данных по адресу «{{path}}» не существует.",
+      "notASource": "В этой базе нет таблицы «songs» — это не рабочее пространство, которое kilna может импортировать."
+    },
+    "prompt": {
+      "sceneNotOfWork": "Сцена «{{scene}}» — не сцена «{{title}}».",
+      "roleEmpty": "У «{{title}}» ещё нет {{role}}: сначала напишите её.",
+      "noDonor": "«{{title}}» ещё ни из чего не сделано: сначала свяжите источник на вкладке «Связи»."
+    },
+    "mcp": {
+      "missingArg": "«{{key}}» обязателен и не может быть пустым.",
+      "unknownWork": "Нет произведения с id или названием «{{named}}»; список даёт «catalogue».",
+      "ambiguousTitle": "{{count}} произведений называются «{{named}}»; укажите одно по id: {{ids}}.",
+      "versionOtherWork": "Версия «{{version}}» принадлежит другому произведению.",
+      "kindNoRoles": "«{{kind}}» не называет ролей текста.",
+      "unknownVersionRole": "Нет роли текста «{{role}}» для «{{kind}}»; список даёт «workspace».",
+      "noVersionYet": "У «{{title}}» ещё нет версии роли «{{role}}».",
+      "axesNotObject": "«axes» должно быть объектом «ключ оси → оценка».",
+      "noKnownAxes": "Ни одна из этих осей не принадлежит «{{kind}}»; его оси: {{known}}.",
+      "scoreAxesNotObject": "«score.axes» должно быть объектом «ключ оси → оценка».",
+      "noKnownScoreAxes": "Ни одна из осей оценки не принадлежит «{{kind}}»; его оси: {{known}}.",
+      "badReleaseDate": "«scheduled_at» — дата вида 2026-10-02, а не «{{value}}».",
+      "emptyPackage": "Пакет пуст: дайте «fields», «versions», «score», «notes», «scenes» или «releases».",
+      "scenesNotArray": "«scenes» должно быть непустым массивом.",
+      "badBoardChange": "«change» бывает «add», «replace» или «revise», а не «{{value}}».",
+      "reviseNeedsPosition": "Сцена {{index}}: пересматриваемая сцена должна называть своё «position» на доске.",
+      "unknownTool": "Нет инструмента «{{name}}»; доступны: workspace, catalogue, work, text, scores, calendar, notes, scenes, search, propose_work, propose_version, propose_score, propose_note, propose_scenes.",
+      "commentsNotProposable": "Агент вне окна не предлагает комментарии, ответы или описания стилей."
+    },
+    "note": {
+      "promoteNeedsTitle": "У произведения должно быть название.",
+      "promoteNoRole": "У «{{kind}}» нет роли, в которой можно хранить текст."
+    },
+    "readiness": {
+      "badToday": "«{{value}}» — не дата в формате ISO."
+    },
+    "score": {
+      "versionNotOfWork": "Версия «{{version}}» не принадлежит произведению «{{work}}»."
+    },
+    "task": {
+      "wrongKindForAction": "«{{action}}» — не действие для «{{kind}}».",
+      "needsScene": "«{{action}}» — о сцене: начните его со сцены.",
+      "isStyleAction": "«{{action}}» — о стиле, а не о произведении: начните его со словаря.",
+      "isCommentAction": "«{{action}}» — о комментарии, а не о произведении: начните его с комментариев.",
+      "needsSceneForBlock": "«{{action}}» не о сцене, поэтому не о блоке сцены.",
+      "unknownActionBlock": "«{{block}}» — не блок подсказки «{{kind}}»; профиль называет: {{known}}.",
+      "actionNoStoryboard": "У «{{kind}}» нет раскадровки, чтобы «{{action}}» могло предложить сцены.",
+      "actionAnswersComment": "«{{action}}» отвечает о комментарии: начните его с комментариев.",
+      "actionAnswersStyle": "«{{action}}» отвечает о стиле: начните его со словаря.",
+      "fileMissing": "Файла «{{path}}» не существует.",
+      "notCommentAction": "«{{action}}» — не действие о комментарии.",
+      "actionReadsScreenshot": "«{{action}}» читает скриншот: начните его со скриншота.",
+      "actionDraftsReply": "«{{action}}» пишет черновик ответа: начните его с комментария.",
+      "needsChannel": "Укажите, из какого канала комментарий.",
+      "screenshotMissing": "Скриншота «{{path}}» не существует."
+    },
+    "style": {
+      "needsName": "У стиля должно быть имя.",
+      "badStatus": "Стиль бывает «draft», «ready» или «dropped», а не «{{value}}».",
+      "unknownType": "Стиль — одного из типов, что называет профиль: {{known}}, а не «{{type}}».",
+      "alreadyExists": "Стиль типа «{{type}}» с именем «{{name}}» уже есть."
+    },
+    "cut": {
+      "outOfItself": "Произведение нельзя нарезать из самого себя.",
+      "spliceIncomplete": "В монтаже нужно указать каждый отрезок ровно один раз.",
+      "secondsNotANumber": "Секунды отрезка должны быть числом.",
+      "beforeZero": "Отрезок начинается с нуля секунд или позже.",
+      "endsBeforeStart": "Отрезок должен заканчиваться позже, чем начинается.",
+      "pastEnd": "«{{title}}» длится {{duration}} с, поэтому отрезок не может заканчиваться на {{endsAt}}.",
+      "notInWorkspace": "«{{title}}» не в этом рабочем пространстве."
     }
   },
   "skip": {
@@ -1766,5 +1923,17 @@
     "nothingToFill": "нечего заполнять",
     "alreadyAsked": "уже выполняется или ждёт",
     "queueFull": "очередь заполнена"
+  },
+  "batch": {
+    "skipped_one": "Пропущено: {{count}}",
+    "skipped_few": "Пропущено: {{count}}",
+    "skipped_many": "Пропущено: {{count}}",
+    "skipped_other": "Пропущено: {{count}}",
+    "skippedRow": "{{title}} — {{reason}}",
+    "untitled": "Без названия",
+    "andMore_one": "и ещё {{count}}",
+    "andMore_few": "и ещё {{count}}",
+    "andMore_many": "и ещё {{count}}",
+    "andMore_other": "и ещё {{count}}"
   }
 }

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { RotateCcw, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
+import { logWindowError } from '@/lib/api/data'
 
 interface Props {
   children: ReactNode
@@ -68,9 +69,18 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // No telemetry in kilna (that is a 1.x decision with consent attached), so
-    // the console is the only record. Keep it: it is what a bug report quotes.
+    // No telemetry in kilna (that is a 1.x decision with consent attached).
+    // The record stays on this machine: in the console for a development
+    // build, and in the application's log file for a release one, which has
+    // no console - that file is what a bug report quotes.
     console.error('component crashed', error, info.componentStack)
+    // The innermost component is enough to find the screen; the whole stack
+    // is in the console of a development build.
+    const where = info.componentStack?.trim().split(/\r?\n/)[0]?.trim() ?? ''
+    logWindowError(`a screen stopped working: ${error.message} ${where}`).catch(() => {
+      // The log is a record, not a duty: a window that cannot reach it has
+      // already shown the person the panel below.
+    })
   }
 
   render() {

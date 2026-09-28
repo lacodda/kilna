@@ -145,6 +145,7 @@ export const keys = {
 
   // Facts about this machine's install, asked once per screen that shows them.
   workspacePath: ['workspacePath'] as const,
+  logPath: ['logPath'] as const,
   mcpRegistration: ['mcpRegistration'] as const,
   /** What a task would send, composed against what the person has picked. */
   taskPreview: (parts: readonly unknown[]) => ['task-preview', ...parts] as const,

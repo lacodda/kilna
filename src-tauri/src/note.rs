@@ -103,7 +103,7 @@ pub fn create_minted(
         ],
     )?;
 
-    get(conn, &id)?.ok_or_else(|| Error::Other("the note vanished after insert".into()))
+    get(conn, &id)?.ok_or_else(|| Error::Internal("the note vanished after insert".into()))
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Note>> {
@@ -326,31 +326,21 @@ fn promote_in(
     }
     let title = promotion.title.trim();
     if title.is_empty() {
-        return Err(Error::Other("a work needs a title".into()));
+        return Err(Error::refused("note.promoteNeedsTitle"));
     }
 
     let config = crate::profile::config_for(tx, profile_id)?;
-    if !config
-        .work_kinds
-        .iter()
-        .any(|kind| kind.key == promotion.kind)
-    {
-        return Err(Error::Other(format!(
-            "`{}` is not a kind of work in this profile",
-            promotion.kind
-        )));
-    }
-    let role = config
-        .vocabulary(&promotion.kind)
+    let kind = config.require_kind(&promotion.kind)?;
+    let role = kind
         .version_roles
         .iter()
         .find(|role| role.counts_as_a_version())
         .map(|role| role.key.clone())
         .ok_or_else(|| {
-            Error::Other(format!(
-                "a {} has no role a body can be kept in",
-                promotion.kind
-            ))
+            Error::refused("note.promoteNoRole").param(
+                "kind",
+                serde_json::to_value(&kind.label).unwrap_or_default(),
+            )
         })?;
 
     let work = crate::work::create_minted(

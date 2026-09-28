@@ -118,7 +118,7 @@ pub fn create_minted(
 ) -> Result<StyleBrick> {
     let name = new.name.trim();
     if name.is_empty() {
-        return Err(Error::Other("a style needs a name".into()));
+        return Err(Error::refused("style.needsName"));
     }
     check_type(conn, profile_id, &new.type_key)?;
 
@@ -265,7 +265,7 @@ pub fn update_at(
     if let Some(next) = patch.name {
         let trimmed = next.trim().to_owned();
         if trimmed.is_empty() {
-            return Err(Error::Other("a style needs a name".into()));
+            return Err(Error::refused("style.needsName"));
         }
         name = trimmed.clone();
         set(&mut assignments, &mut values, "name", Box::new(trimmed));
@@ -278,9 +278,7 @@ pub fn update_at(
     }
     if let Some(next) = patch.status {
         if !STATUSES.contains(&next.as_str()) {
-            return Err(Error::Other(format!(
-                "a style is `{DRAFT}`, `{READY}` or `{DROPPED}`, not `{next}`"
-            )));
+            return Err(Error::refused("style.badStatus").param("value", next.clone()));
         }
         set(&mut assignments, &mut values, "status", Box::new(next));
     }
@@ -346,24 +344,24 @@ fn check_type(conn: &Connection, profile_id: &str, type_key: &str) -> Result<()>
     if config.style_types.is_empty() || config.style_type(type_key).is_some() {
         return Ok(());
     }
-    let named: Vec<String> = config
+    let known = config
         .style_types
         .iter()
-        .map(|one| format!("`{}`", one.key))
-        .collect();
-    Err(Error::Other(format!(
-        "a style is of a type the profile names: {}, not `{type_key}`",
-        named.join(", ")
-    )))
+        .map(|one| one.key.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+    Err(Error::refused("style.unknownType")
+        .param("type", type_key)
+        .param("known", known))
 }
 
 /// The unique index speaking in the craft's words rather than SQLite's.
 fn taken(error: rusqlite::Error, type_key: &str, name: &str) -> Error {
     if let rusqlite::Error::SqliteFailure(failure, _) = &error {
         if failure.code == rusqlite::ErrorCode::ConstraintViolation {
-            return Error::Other(format!(
-                "there is already a `{type_key}` style called “{name}”"
-            ));
+            return Error::refused("style.alreadyExists")
+                .param("type", type_key)
+                .param("name", name);
         }
     }
     Error::from(error)
@@ -518,12 +516,15 @@ mod tests {
 
         create(&conn, &profile_id, brick("character", "Ranger")).unwrap();
         let clash = create(&conn, &profile_id, brick("character", "Ranger"));
-        assert!(
-            clash.is_err(),
+        let clash = clash.unwrap_err();
+        assert_eq!(
+            clash.refusal().map(|r| r.code),
+            Some("style.alreadyExists"),
             "two `character` styles called Ranger are a picker nobody can choose from"
         );
-        assert!(
-            clash.unwrap_err().to_string().contains("Ranger"),
+        assert_eq!(
+            clash.refusal().and_then(|r| r.params.get("name")),
+            Some(&serde_json::Value::String("Ranger".into())),
             "the refusal names the style"
         );
 
@@ -535,11 +536,20 @@ mod tests {
     fn a_type_the_profile_does_not_name_is_refused() {
         let (conn, profile_id) = workspace();
 
-        let refused = create(&conn, &profile_id, brick("nonsense", "Whatever"));
-        let message = refused.unwrap_err().to_string();
+        let refused = create(&conn, &profile_id, brick("nonsense", "Whatever")).unwrap_err();
+        assert_eq!(refused.refusal().map(|r| r.code), Some("style.unknownType"));
+        assert_eq!(
+            refused.refusal().and_then(|r| r.params.get("type")),
+            Some(&serde_json::Value::String("nonsense".into())),
+            "names what was asked"
+        );
         assert!(
-            message.contains("nonsense") && message.contains("character"),
-            "the refusal names both what was asked and what the craft has: {message}"
+            refused
+                .refusal()
+                .and_then(|r| r.params.get("known"))
+                .and_then(|v| v.as_str())
+                .is_some_and(|known| known.contains("character")),
+            "names what the craft has: {refused}"
         );
     }
 

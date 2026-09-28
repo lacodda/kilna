@@ -138,7 +138,8 @@ pub fn create_minted(
         ],
     )?;
 
-    get(conn, minted.id())?.ok_or_else(|| Error::Other("the comment vanished after insert".into()))
+    get(conn, minted.id())?
+        .ok_or_else(|| Error::Internal("the comment vanished after insert".into()))
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Comment>> {
@@ -254,9 +255,7 @@ pub fn update_at(conn: &Connection, id: &str, patch: CommentPatch, at: &str) -> 
     }
     if let Some(state) = patch.state {
         if !STATES.contains(&state.as_str()) {
-            return Err(Error::Other(format!(
-                "`{state}` is not a state a comment can be in"
-            )));
+            return Err(Error::refused("comment.unknownState").param("state", state.clone()));
         }
         put(&mut assignments, &mut values, "state", Box::new(state));
     }
@@ -352,7 +351,7 @@ pub fn posted_on(
 fn required_text(value: &str, what: &str) -> Result<String> {
     let trimmed = value.trim();
     if trimmed.is_empty() {
-        return Err(Error::Other(format!("a comment needs its {what}")));
+        return Err(Error::refused("comment.needsField").param("field", what));
     }
     Ok(trimmed.to_owned())
 }
@@ -372,9 +371,7 @@ fn day(value: Option<&str>) -> Result<Option<String>> {
         return Ok(None);
     };
     if !is_day(value) {
-        return Err(Error::Other(format!(
-            "`{value}` is not a day; write it as YYYY-MM-DD"
-        )));
+        return Err(Error::refused("comment.badDay").param("value", value));
     }
     Ok(Some(value.to_owned()))
 }

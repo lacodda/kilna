@@ -48,9 +48,7 @@ pub fn attach_minted(
     let note = crate::note::get(conn, note_id)?.ok_or_else(|| Error::not_found("note", note_id))?;
 
     if note.profile_id != scene.profile_id {
-        return Err(Error::Other(
-            "a scene is about a note of the same profile".into(),
-        ));
+        return Err(Error::refused("scene.noteOtherWorkspace"));
     }
     check_kind(conn, &scene.profile_id, &note.kind)?;
 
@@ -142,15 +140,15 @@ fn check_kind(conn: &Connection, profile_id: &str, kind: &str) -> Result<()> {
     if config.note_kinds.is_empty() || config.note_kinds.iter().any(|one| one.key == kind) {
         return Ok(());
     }
-    let named: Vec<String> = config
+    let known = config
         .note_kinds
         .iter()
-        .map(|one| format!("`{}`", one.key))
-        .collect();
-    Err(Error::Other(format!(
-        "a scene is about a note of a kind the profile names: {}, not `{kind}`",
-        named.join(", ")
-    )))
+        .map(|one| one.key.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+    Err(Error::refused("scene.noteUnknownKind")
+        .param("kind", kind)
+        .param("known", known))
 }
 
 fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<SceneNote> {
@@ -276,11 +274,15 @@ mod tests {
         let scene_id = a_scene(&conn, &profile_id);
         let plain = a_note(&conn, &profile_id, "note");
 
-        let refused = attach(&conn, &scene_id, &plain).unwrap_err().to_string();
-        assert!(refused.contains("character"), "names the kinds: {refused}");
-        assert!(
-            refused.contains("`note`"),
-            "and what was offered: {refused}"
+        let refused = attach(&conn, &scene_id, &plain).unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("scene.noteUnknownKind")
+        );
+        assert_eq!(
+            refused.refusal().and_then(|r| r.params.get("kind")),
+            Some(&serde_json::Value::String("note".into())),
+            "and what was offered"
         );
     }
 

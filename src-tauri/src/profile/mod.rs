@@ -120,27 +120,11 @@ fn rewrite_older_formats(conn: &Connection) -> Result<()> {
 ///
 /// A profile is copied into the database on first run and then belongs to the
 /// user, so shipping a new field changes nothing for anybody who already ran
-/// the app — the older copy simply lacks it. What is added here is what has no
-/// user-authored value to overwrite:
-///
-/// * **Prompt templates** whose key is missing. A user who reworded an action
-///   keeps their wording; one they deliberately deleted comes back at the next
-///   upgrade — accepted, because an action nobody ever sees is worse.
-/// * **The `derive` role of a status**, where the stored copy still says
-///   `Manual` and the shipped one names a meaning. Without this the status
-///   automation is silently inert in every workspace that predates it, which is
-///   exactly how it was found: on a real database, deriving nothing at all.
-/// * **The `requires` list of a release kind**, where the stored copy states
-///   nothing and the shipped one names roles. Same failure mode as `derive`:
-///   readiness marks would sit blank in every workspace that predates them.
-/// * **The rhythm**, where the stored copy has none and the shipped one names
-///   a pace. Without it the auto-layout is a button that only ever refuses in
-///   every workspace that predates the field.
-/// * **Meta fields** whose key is missing. Same reasoning as prompts: a field
-///   the user renamed or retyped keeps their version, because the match is by
-///   key. New keys are appended rather than merged in place, so an order the
-///   user arranged is not rewritten.
-/// * **Marks** and **version roles**, on exactly those terms.
+/// the app — the older copy simply lacks it. What is added is what has no
+/// user-authored value to overwrite, one [`Step`] per part, in [`UPGRADE`]'s
+/// order: a missing prompt, a status's derive role where the stored one still
+/// says `Manual`, a release kind's requirements where it states none, and so
+/// on - each step says what it carries and why.
 ///
 /// A role the user deliberately set to `Manual` is indistinguishable from one
 /// that was never written, and is restored along with the rest. The same is
@@ -160,305 +144,14 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
 
     let mut config: ProfileConfig = serde_json::from_str(&raw)?;
     let mut changed = false;
-
-    let missing: Vec<_> = shipped
-        .config
-        .prompts
-        .iter()
-        .filter(|shipped| {
-            !config
-                .prompts
-                .iter()
-                .any(|existing| existing.key == shipped.key)
-        })
-        .cloned()
-        .collect();
-
-    if !missing.is_empty() {
-        config.prompts.extend(missing);
-        changed = true;
-    }
-
-    // An action's method (ADR 0021) arrives on the terms a role's body did:
-    // where the stored action names none and the shipped one does. What the
-    // action produces follows only where the stored copy says nothing. And a
-    // `score` template still reading exactly as it shipped before v0.61 —
-    // naming the axes by hand — is moved to the shipped wording, because the
-    // instruction now states the axes from the profile and a template that
-    // names other ones contradicts it; a template the owner reworded stays.
-    for prompt in &mut config.prompts {
-        let Some(shipped) = shipped
-            .config
-            .prompts
-            .iter()
-            .find(|shipped| shipped.key == prompt.key)
-        else {
-            continue;
-        };
-        if prompt.method().is_none() && shipped.method().is_some() {
-            prompt.method = shipped.method.clone();
-            changed = true;
-        }
-        if prompt.produces.is_none() && shipped.produces.is_some() {
-            prompt.produces = shipped.produces.clone();
-            changed = true;
-        }
-        // The kinds and the scope (v0.64) arrive the same way: an action
-        // stored before they existed is for every kind, which is what
-        // `critique` on a video was — a button sending a prompt with a
-        // hole in it — until the shipped copy said `song`.
-        if prompt.kinds.is_empty() && !shipped.kinds.is_empty() {
-            prompt.kinds = shipped.kinds.clone();
-            changed = true;
-        }
-        if prompt.scope.is_none() && shipped.scope.is_some() {
-            prompt.scope = shipped.scope.clone();
-            changed = true;
-        }
-        if SCORE_TEMPLATES_BEFORE_METHODS.contains(&prompt.template.as_str())
-            && prompt.template != shipped.template
-        {
-            prompt.template = shipped.template.clone();
-            changed = true;
-        }
-    }
-
-    // The vocabulary lives on each kind (format 2), so everything below is
-    // carried kind by kind: the stored kind and the shipped kind meet by key,
-    // and a kind the owner invented meets nothing and keeps what it has.
-    for kind in &mut config.work_kinds {
-        let Some(shipped_kind) = shipped
-            .config
-            .work_kinds
-            .iter()
-            .find(|shipped| shipped.key == kind.key)
-        else {
-            continue;
-        };
-
-        for status in &mut kind.statuses {
-            if status.derive != Derive::Manual {
-                continue;
-            }
-            let Some(shipped) = shipped_kind
-                .statuses
-                .iter()
-                .find(|shipped| shipped.key == status.key)
-            else {
-                continue;
-            };
-            if shipped.derive != Derive::Manual {
-                status.derive = shipped.derive;
-                changed = true;
-            }
-        }
-
-        for release_kind in &mut kind.release_kinds {
-            let Some(shipped) = shipped_kind
-                .release_kinds
-                .iter()
-                .find(|shipped| shipped.key == release_kind.key)
-            else {
-                continue;
-            };
-            if release_kind.requires.is_empty() && !shipped.requires.is_empty() {
-                release_kind.requires = shipped.requires.clone();
-                changed = true;
-            }
-            // The glyph arrives the same way the requirements did: a workspace
-            // made before the field existed gains what the shipped profile
-            // states for a kind it still recognises by key. A kind the owner
-            // added themselves is not in the shipped list and keeps its blank
-            // -- guessing a glyph for "Vinyl pressing" is not something this
-            // code can do.
-            if release_kind.icon.is_none() && shipped.icon.is_some() {
-                release_kind.icon = shipped.icon.clone();
-                changed = true;
-            }
-            // What a release of this kind says about itself arrives whole or
-            // not at all: a workspace that already lists fields for this kind
-            // has an owner who decided what a release says, and appending the
-            // shipped ones to that would put two titles in one box. A
-            // workspace with none gains the shipped list, which is how a live
-            // workspace made before v0.71 comes to have release metadata at
-            // all.
-            if release_kind.fields.is_empty() && !shipped.fields.is_empty() {
-                release_kind.fields = shipped.fields.clone();
-                changed = true;
-            }
-        }
-
-        // A role newly shipped for a kind the workspace already has is
-        // appended after the owner's; a role they renamed or retyped stays
-        // theirs, because the match is by key.
-        changed |= add_new_keys(
-            &mut kind.version_roles,
-            &shipped_kind.version_roles,
-            |role| &role.key,
-        );
-
-        // How a role's body reads arrives the way a kind's glyph did: a role
-        // the workspace still shares by key gains what the shipped profile
-        // states, when the stored copy states nothing. A choice the owner
-        // made stays theirs.
-        for role in &mut kind.version_roles {
-            let Some(shipped) = shipped_kind
-                .version_roles
-                .iter()
-                .find(|shipped| shipped.key == role.key)
-            else {
-                continue;
-            };
-            if role.body.is_none() && shipped.body.is_some() {
-                role.body = shipped.body.clone();
-                changed = true;
-            }
-        }
-
-        // The storyboard's vocabulary arrives on the same terms as a role's
-        // body: a kind the workspace has by key, whose stored copy names no
-        // kinds of shot and no prompt blocks, gains what the shipped profile
-        // states. The video kind reached the owner's workspace in v0.57
-        // before scenes existed, and without this it would have no Scenes
-        // tab. A list the owner narrowed or renamed is left alone.
-        if kind.shot_types.is_empty() && !shipped_kind.shot_types.is_empty() {
-            kind.shot_types = shipped_kind.shot_types.clone();
-            changed = true;
-        }
-        if kind.scene_blocks.is_empty() && !shipped_kind.scene_blocks.is_empty() {
-            kind.scene_blocks = shipped_kind.scene_blocks.clone();
-            changed = true;
-        }
-        // The cover's parts (v0.73) arrive the same way, and must: every
-        // workspace alive has its kinds already, so a field added to the
-        // shipped profile reaches nobody unless it is named here. Without
-        // this the Cover tab would be empty in the one workspace that has
-        // years of shorts in it.
-        if kind.cover_blocks.is_empty() && !shipped_kind.cover_blocks.is_empty() {
-            kind.cover_blocks = shipped_kind.cover_blocks.clone();
-            changed = true;
-        }
-        // The cover's parts (v0.73) arrive the same way, and must: every
-        // workspace alive has its kinds already, so a field added to the
-        // shipped profile reaches nobody unless it is named here. Without
-        // this the Cover tab would be empty in the one workspace that has
-        // years of shorts in it.
-
-        // A status badge's colour, on the same terms: by key, only where the
-        // stored status names none.
-        for status in &mut kind.statuses {
-            let Some(shipped_status) = shipped_kind
-                .statuses
-                .iter()
-                .find(|shipped| shipped.key == status.key)
-            else {
-                continue;
-            };
-            if status.colour.is_none() && shipped_status.colour.is_some() {
-                status.colour = shipped_status.colour;
-                changed = true;
-            }
-        }
-    }
-
-    // A kind the shipped profile gained since this workspace was made -- a
-    // video beside the songs -- arrives with its statuses, roles and kinds of
-    // release, and WITHOUT its axes and tiers. The judgement is the craft's
-    // own: this workspace's axes are the owner's words, and a stranger's
-    // axes appearing silently beside them would be the one thing the profile
-    // must never do. The owner writes the kind's axes when they are ready to
-    // judge it; until then works of that kind are scored empty. A fresh
-    // workspace, seeded rather than carried forward, gets the whole kind.
-    let arriving: Vec<config::WorkKind> = shipped
-        .config
-        .work_kinds
-        .iter()
-        .filter(|candidate| {
-            !config
-                .work_kinds
-                .iter()
-                .any(|kind| kind.key == candidate.key)
-        })
-        .map(config::WorkKind::without_judgement)
-        .collect();
-    if !arriving.is_empty() {
-        config.work_kinds.extend(arriving);
-        changed = true;
-    }
-
-    if config.rhythm.is_none() && shipped.config.rhythm.is_some() {
-        config.rhythm = shipped.config.rhythm.clone();
-        changed = true;
-    }
-
-    // Everything the user keys by name: a vocabulary entry they renamed or
-    // retyped stays theirs, and anything newly shipped is appended after it.
-    changed |= add_new_keys(
-        &mut config.work_meta_fields,
-        &shipped.config.work_meta_fields,
-        |field| &field.key,
-    );
-    changed |= add_new_keys(&mut config.marks, &shipped.config.marks, |mark| &mark.key);
-    // The stops of the stage dial, new in 0.72. A workspace that predates them
-    // gains the craft's own words; without this the dial would fall back to the
-    // line's generic stops in every workspace that already existed, which is
-    // every real one. A stop the owner renamed or added stays theirs.
-    changed |= add_new_keys(&mut config.stages, &shipped.config.stages, |stage| {
-        &stage.key
-    });
-    changed |= regrade_stages(&mut config.stages, &shipped.config.stages);
-    changed |= reword_untouched_tiers(&mut config, &shipped.config);
-
-    // The kinds a note can take, new in 0.65: a workspace that predates them
-    // gains the craft's words, and a kind the owner added or renamed stays
-    // theirs — matched by key like every other vocabulary.
-    changed |= add_new_keys(&mut config.note_kinds, &shipped.config.note_kinds, |kind| {
-        &kind.key
-    });
-
-    // The types a style brick can be, new in 0.75. Keyed like every other
-    // vocabulary: a type the owner renamed or added stays theirs, a newly
-    // shipped one is appended. Without this line the dictionary would reach no
-    // workspace that already exists, which is every real one (ADR 0031).
-    changed |= add_new_keys(
-        &mut config.style_types,
-        &shipped.config.style_types,
-        |style| &style.key,
-    );
-
-    // A type's hint and glyph arrive the way a mark's icon does: only where
-    // the stored copy names none. The hint is what the assistant is told to
-    // describe, so a shipped one filling a gap is a gain; one the owner wrote
-    // is theirs and is not touched.
-    for style in &mut config.style_types {
-        let Some(shipped_style) = shipped
-            .config
-            .style_types
-            .iter()
-            .find(|s| s.key == style.key)
-        else {
-            continue;
-        };
-        if style.hint.is_none() && shipped_style.hint.is_some() {
-            style.hint = shipped_style.hint.clone();
-            changed = true;
-        }
-        if style.icon.is_none() && shipped_style.icon.is_some() {
-            style.icon = shipped_style.icon.clone();
-            changed = true;
-        }
-    }
-
-    // A mark's glyph arrives the way a role's body does: a mark the
-    // workspace still shares by key gains the shipped icon when its stored
-    // copy names none. The three built-in marks reached every workspace
-    // before marks had glyphs; a glyph the owner chose stays theirs.
-    for mark in &mut config.marks {
-        let Some(shipped_mark) = shipped.config.marks.iter().find(|m| m.key == mark.key) else {
-            continue;
-        };
-        if mark.icon.is_none() && shipped_mark.icon.is_some() {
-            mark.icon = shipped_mark.icon.clone();
+    for step in UPGRADE {
+        if (step.carry)(&mut config, &shipped.config) {
+            // Said, because an upgrade that changed a person's profile at
+            // start is the first thing to look for when a word moved.
+            crate::log::info(
+                "profile",
+                &format!("carried {} into `{}`", step.name, shipped.key),
+            );
             changed = true;
         }
     }
@@ -507,6 +200,359 @@ fn carry_forward(conn: &Connection, shipped: &BuiltinProfile) -> Result<()> {
     )?;
 
     Ok(())
+}
+
+/// One thing an upgrade carries from a shipped profile into the copy a
+/// workspace holds, and whether it changed anything.
+///
+/// Every step is written on the same terms, the ones [`carry_forward`] states:
+/// it fills what the stored copy leaves blank, matched by key, and never
+/// overwrites a word the owner wrote. And every step is idempotent - run on
+/// its own result it changes nothing - which the tests below hold each one to,
+/// so a step can be added without reading the others.
+struct Step {
+    /// What it carries, as the log and a failing test name it.
+    name: &'static str,
+    carry: fn(&mut ProfileConfig, &ProfileConfig) -> bool,
+}
+
+/// The upgrade, in the order it runs. A field newly shipped reaches no
+/// workspace that already exists - which is every real one - unless a step
+/// here carries it: add the step, and the tests hold it to the rules.
+const UPGRADE: &[Step] = &[
+    Step {
+        name: "prompts the stored copy lacks",
+        carry: missing_prompts,
+    },
+    Step {
+        name: "a prompt's method, product, kinds and scope, and a score template untouched since v0.61",
+        carry: prompt_details,
+    },
+    Step {
+        name: "a status's derive role and colour",
+        carry: status_details,
+    },
+    Step {
+        name: "a release kind's requirements, glyph and fields",
+        carry: release_kind_details,
+    },
+    Step {
+        name: "version roles, and how a role's body reads",
+        carry: version_roles,
+    },
+    Step {
+        name: "the storyboard's and the cover's vocabulary",
+        carry: board_vocabulary,
+    },
+    Step {
+        name: "kinds of work the stored copy lacks, without their judgement",
+        carry: arriving_kinds,
+    },
+    Step {
+        name: "the release rhythm",
+        carry: rhythm,
+    },
+    Step {
+        name: "overview fields, marks, note kinds",
+        carry: keyed_vocabulary,
+    },
+    Step {
+        name: "the stops of the stage dial",
+        carry: stages,
+    },
+    Step {
+        name: "tier words untouched since they shipped",
+        carry: reword_untouched_tiers,
+    },
+    Step {
+        name: "style types, with their hint and glyph",
+        carry: style_types,
+    },
+    Step {
+        name: "a mark's glyph",
+        carry: mark_icons,
+    },
+];
+
+/// Prompt templates whose key is missing. A user who reworded an action keeps
+/// their wording; one they deliberately deleted comes back - accepted, because
+/// an action nobody ever sees is worse.
+fn missing_prompts(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let missing: Vec<_> = shipped
+        .prompts
+        .iter()
+        .filter(|shipped| {
+            !config
+                .prompts
+                .iter()
+                .any(|existing| existing.key == shipped.key)
+        })
+        .cloned()
+        .collect();
+    let changed = !missing.is_empty();
+    config.prompts.extend(missing);
+    changed
+}
+
+/// An action's method (ADR 0021) arrives on the terms a role's body did: where
+/// the stored action names none and the shipped one does. What the action
+/// produces follows only where the stored copy says nothing, and so do its
+/// kinds and scope (v0.64) - an action stored before they existed is for every
+/// kind, which is what `critique` on a video was until the shipped copy said
+/// `song`. A `score` template still reading exactly as it shipped before v0.61
+/// - naming the axes by hand - moves to the shipped wording, because the
+///   instruction now states the axes from the profile; a reworded one stays.
+fn prompt_details(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for prompt in &mut config.prompts {
+        let Some(shipped) = shipped.prompts.iter().find(|s| s.key == prompt.key) else {
+            continue;
+        };
+        if prompt.method().is_none() && shipped.method().is_some() {
+            prompt.method = shipped.method.clone();
+            changed = true;
+        }
+        if prompt.produces.is_none() && shipped.produces.is_some() {
+            prompt.produces = shipped.produces.clone();
+            changed = true;
+        }
+        if prompt.kinds.is_empty() && !shipped.kinds.is_empty() {
+            prompt.kinds = shipped.kinds.clone();
+            changed = true;
+        }
+        if prompt.scope.is_none() && shipped.scope.is_some() {
+            prompt.scope = shipped.scope.clone();
+            changed = true;
+        }
+        if SCORE_TEMPLATES_BEFORE_METHODS.contains(&prompt.template.as_str())
+            && prompt.template != shipped.template
+        {
+            prompt.template = shipped.template.clone();
+            changed = true;
+        }
+    }
+    changed
+}
+
+/// The stored kind and the shipped kind, met by key. A kind the owner
+/// invented meets nothing and keeps what it has.
+fn shared_kinds<'a>(
+    config: &'a mut ProfileConfig,
+    shipped: &'a ProfileConfig,
+) -> impl Iterator<Item = (&'a mut config::WorkKind, &'a config::WorkKind)> {
+    config.work_kinds.iter_mut().filter_map(|kind| {
+        let shipped_kind = shipped.work_kinds.iter().find(|s| s.key == kind.key)?;
+        Some((kind, shipped_kind))
+    })
+}
+
+/// The `derive` role of a status, where the stored copy still says `Manual`
+/// and the shipped one names a meaning - without it the status automation is
+/// silently inert in every workspace that predates it, which is how it was
+/// found. And a badge's colour, where the stored status names none.
+fn status_details(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        for status in &mut kind.statuses {
+            let Some(shipped) = shipped_kind.statuses.iter().find(|s| s.key == status.key) else {
+                continue;
+            };
+            if status.derive == Derive::Manual && shipped.derive != Derive::Manual {
+                status.derive = shipped.derive;
+                changed = true;
+            }
+            if status.colour.is_none() && shipped.colour.is_some() {
+                status.colour = shipped.colour;
+                changed = true;
+            }
+        }
+    }
+    changed
+}
+
+/// A release kind's `requires` list and glyph, where the stored copy states
+/// none: readiness marks and calendar chips would sit blank in every workspace
+/// that predates them. Its fields arrive whole or not at all - a workspace that
+/// already lists fields has an owner who decided what a release says, and
+/// appending the shipped ones would put two titles in one box.
+fn release_kind_details(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        for release_kind in &mut kind.release_kinds {
+            let Some(shipped) = shipped_kind
+                .release_kinds
+                .iter()
+                .find(|s| s.key == release_kind.key)
+            else {
+                continue;
+            };
+            if release_kind.requires.is_empty() && !shipped.requires.is_empty() {
+                release_kind.requires = shipped.requires.clone();
+                changed = true;
+            }
+            if release_kind.icon.is_none() && shipped.icon.is_some() {
+                release_kind.icon = shipped.icon.clone();
+                changed = true;
+            }
+            if release_kind.fields.is_empty() && !shipped.fields.is_empty() {
+                release_kind.fields = shipped.fields.clone();
+                changed = true;
+            }
+        }
+    }
+    changed
+}
+
+/// A role newly shipped for a kind the workspace has is appended after the
+/// owner's; a role they renamed or retyped stays theirs, because the match is
+/// by key. How a role's body reads arrives where the stored copy states
+/// nothing.
+fn version_roles(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        changed |= add_new_keys(
+            &mut kind.version_roles,
+            &shipped_kind.version_roles,
+            |role| &role.key,
+        );
+        for role in &mut kind.version_roles {
+            let Some(shipped) = shipped_kind
+                .version_roles
+                .iter()
+                .find(|s| s.key == role.key)
+            else {
+                continue;
+            };
+            if role.body.is_none() && shipped.body.is_some() {
+                role.body = shipped.body.clone();
+                changed = true;
+            }
+        }
+    }
+    changed
+}
+
+/// The storyboard's kinds of shot and prompt blocks, and the cover's parts
+/// (v0.73), where the stored kind names none: the video kind reached the
+/// owner's workspace before scenes existed, and without this it would have no
+/// Scenes tab. A list the owner narrowed or renamed is left alone.
+fn board_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        if kind.shot_types.is_empty() && !shipped_kind.shot_types.is_empty() {
+            kind.shot_types = shipped_kind.shot_types.clone();
+            changed = true;
+        }
+        if kind.scene_blocks.is_empty() && !shipped_kind.scene_blocks.is_empty() {
+            kind.scene_blocks = shipped_kind.scene_blocks.clone();
+            changed = true;
+        }
+        if kind.cover_blocks.is_empty() && !shipped_kind.cover_blocks.is_empty() {
+            kind.cover_blocks = shipped_kind.cover_blocks.clone();
+            changed = true;
+        }
+    }
+    changed
+}
+
+/// A kind the shipped profile gained since this workspace was made - a video
+/// beside the songs - arrives with its statuses, roles and kinds of release,
+/// and WITHOUT its axes and tiers. The judgement is the craft's own: this
+/// workspace's axes are the owner's words, and a stranger's axes appearing
+/// silently beside them would be the one thing the profile must never do. A
+/// fresh workspace, seeded rather than carried forward, gets the whole kind.
+fn arriving_kinds(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let arriving: Vec<config::WorkKind> = shipped
+        .work_kinds
+        .iter()
+        .filter(|candidate| {
+            !config
+                .work_kinds
+                .iter()
+                .any(|kind| kind.key == candidate.key)
+        })
+        .map(config::WorkKind::without_judgement)
+        .collect();
+    let changed = !arriving.is_empty();
+    config.work_kinds.extend(arriving);
+    changed
+}
+
+/// The rhythm, where the stored copy has none: without it the auto-layout is
+/// a button that only ever refuses.
+fn rhythm(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    if config.rhythm.is_none() && shipped.rhythm.is_some() {
+        config.rhythm = shipped.rhythm.clone();
+        return true;
+    }
+    false
+}
+
+/// Everything else the owner keys by name - overview fields, marks, the kinds
+/// a note can take (0.65): an entry they renamed or retyped stays theirs, and
+/// anything newly shipped is appended after it, so an order they arranged is
+/// not rewritten.
+fn keyed_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = add_new_keys(
+        &mut config.work_meta_fields,
+        &shipped.work_meta_fields,
+        |field| &field.key,
+    );
+    changed |= add_new_keys(&mut config.marks, &shipped.marks, |mark| &mark.key);
+    changed |= add_new_keys(&mut config.note_kinds, &shipped.note_kinds, |kind| {
+        &kind.key
+    });
+    changed
+}
+
+/// The stops of the stage dial (0.72): a workspace that predates them gains
+/// the craft's own words - without this the dial would fall back to the
+/// line's generic stops in every real workspace - and stops still at their
+/// shipped percentages follow a regrade.
+fn stages(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let changed = add_new_keys(&mut config.stages, &shipped.stages, |stage| &stage.key);
+    changed | regrade_stages(&mut config.stages, &shipped.stages)
+}
+
+/// The types a style brick can be (0.75), and a type's hint and glyph where
+/// the stored copy names none: the hint is what the assistant is told to
+/// describe, so a shipped one filling a gap is a gain; one the owner wrote is
+/// theirs (ADR 0031).
+fn style_types(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = add_new_keys(&mut config.style_types, &shipped.style_types, |style| {
+        &style.key
+    });
+    for style in &mut config.style_types {
+        let Some(shipped_style) = shipped.style_types.iter().find(|s| s.key == style.key) else {
+            continue;
+        };
+        if style.hint.is_none() && shipped_style.hint.is_some() {
+            style.hint = shipped_style.hint.clone();
+            changed = true;
+        }
+        if style.icon.is_none() && shipped_style.icon.is_some() {
+            style.icon = shipped_style.icon.clone();
+            changed = true;
+        }
+    }
+    changed
+}
+
+/// A mark's glyph, where the stored mark names none: the built-in marks
+/// reached every workspace before marks had glyphs; a glyph the owner chose
+/// stays theirs.
+fn mark_icons(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for mark in &mut config.marks {
+        let Some(shipped_mark) = shipped.marks.iter().find(|m| m.key == mark.key) else {
+            continue;
+        };
+        if mark.icon.is_none() && shipped_mark.icon.is_some() {
+            mark.icon = shipped_mark.icon.clone();
+            changed = true;
+        }
+    }
+    changed
 }
 
 /// Shipped profile names that changed, old to new. A stored copy still
@@ -808,10 +854,7 @@ pub fn update_config_at(
     // fixed by reading the list, not by guessing which line the app minded.
     let problems = config.validate();
     if !problems.is_empty() {
-        return Err(Error::Other(format!(
-            "the profile cannot be saved as written:\n- {}",
-            problems.join("\n- ")
-        )));
+        return Err(Error::refused("profile.invalid").param("problems", problems));
     }
 
     let changed = conn.execute(
@@ -913,6 +956,106 @@ mod tests {
                 profile.key
             );
         }
+    }
+
+    /// A stored copy from before every part the upgrade carries: each list the
+    /// steps fill emptied, each field they set cleared, the kinds past the
+    /// first dropped.
+    fn stripped(shipped: &ProfileConfig) -> ProfileConfig {
+        let mut old = shipped.clone();
+        old.prompts.clear();
+        old.rhythm = None;
+        old.work_meta_fields.clear();
+        old.note_kinds.clear();
+        old.stages.clear();
+        old.style_types.clear();
+        for mark in &mut old.marks {
+            mark.icon = None;
+        }
+        old.work_kinds.truncate(1);
+        for kind in &mut old.work_kinds {
+            kind.version_roles.truncate(1);
+            for role in &mut kind.version_roles {
+                role.body = None;
+            }
+            kind.shot_types.clear();
+            kind.scene_blocks.clear();
+            kind.cover_blocks.clear();
+            for status in &mut kind.statuses {
+                status.derive = Derive::Manual;
+                status.colour = None;
+            }
+            for release_kind in &mut kind.release_kinds {
+                release_kind.requires.clear();
+                release_kind.icon = None;
+                release_kind.fields.clear();
+            }
+        }
+        old
+    }
+
+    /// Every upgrade step is idempotent: run on its own result, it changes
+    /// nothing and says so. A step that reported a change every time would
+    /// rewrite every profile at every start; one that changed a second time
+    /// would be appending twice.
+    #[test]
+    fn every_upgrade_step_is_idempotent() {
+        for profile in builtin().unwrap() {
+            let mut config = stripped(&profile.config);
+            for step in UPGRADE {
+                (step.carry)(&mut config, &profile.config);
+                let once = serde_json::to_value(&config).unwrap();
+                assert!(
+                    !(step.carry)(&mut config, &profile.config),
+                    "{}: `{}` says it changed something the second time",
+                    profile.key,
+                    step.name
+                );
+                assert_eq!(
+                    serde_json::to_value(&config).unwrap(),
+                    once,
+                    "{}: `{}` changed the copy the second time",
+                    profile.key,
+                    step.name
+                );
+            }
+        }
+    }
+
+    /// The steps together bring an old copy up to what ships, except for the
+    /// judgement of kinds it did not have - the axes and tiers the upgrade
+    /// deliberately leaves for the owner to write.
+    #[test]
+    fn the_upgrade_brings_an_old_copy_up_to_what_ships() {
+        let profile = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.config.work_kinds.len() > 1)
+            .expect("a shipped profile with more than one kind");
+        let mut config = stripped(&profile.config);
+        let mut carried = Vec::new();
+        for step in UPGRADE {
+            if (step.carry)(&mut config, &profile.config) {
+                carried.push(step.name);
+            }
+        }
+
+        let mut expected = profile.config.clone();
+        for kind in expected.work_kinds.iter_mut().skip(1) {
+            *kind = kind.without_judgement();
+        }
+        assert_eq!(
+            serde_json::to_value(&config).unwrap(),
+            serde_json::to_value(&expected).unwrap(),
+            "carried {carried:?}, and the copy still differs from what ships"
+        );
+    }
+
+    #[test]
+    fn upgrade_steps_have_names_of_their_own() {
+        let names: std::collections::BTreeSet<&str> =
+            UPGRADE.iter().map(|step| step.name).collect();
+        assert_eq!(names.len(), UPGRADE.len(), "two steps share a name");
     }
 
     #[test]
@@ -1955,10 +2098,11 @@ mod tests {
         });
 
         let refused = update_config(&conn, &profile.id, &broken).unwrap_err();
-        let message = refused.to_string();
-        assert!(message.contains("cannot be saved"), "{message}");
-        assert!(message.contains("has the scale 0"), "{message}");
-        assert!(message.contains("repeats the key"), "{message}");
+        let refusal = refused.refusal().expect("a refusal");
+        assert_eq!(refusal.code, "profile.invalid");
+        let problems = refusal.params["problems"].to_string();
+        assert!(problems.contains("has the scale 0"), "{problems}");
+        assert!(problems.contains("repeats the key"), "{problems}");
 
         let stored = config_for(&conn, &profile.id).unwrap();
         assert!(

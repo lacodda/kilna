@@ -756,10 +756,10 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
     use crate::error::Error;
 
     if kind.shot_types.is_empty() && kind.scene_blocks.is_empty() {
-        return Err(Error::Other(format!(
-            "`{}` has no storyboard: the kind names no kinds of shot and no prompt blocks",
-            kind.key
-        )));
+        return Err(Error::refused("scene.noStoryboard").param(
+            "kind",
+            serde_json::to_value(&kind.label).unwrap_or_default(),
+        ));
     }
     let names = |keys: &mut dyn Iterator<Item = &str>| {
         let listed: Vec<String> = keys.map(|key| format!("`{key}`")).collect();
@@ -773,10 +773,7 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
     let mut scenes = Vec::with_capacity(raw.len());
     for (index, item) in raw.iter().enumerate() {
         let Some(item) = item.as_object() else {
-            return Err(Error::Other(format!(
-                "scene {} is not an object",
-                index + 1
-            )));
+            return Err(Error::refused("proposal.sceneNotObject").param("index", index + 1));
         };
         let text = |key: &str| {
             item.get(key)
@@ -792,10 +789,9 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
             Some(value) => match value.as_i64() {
                 Some(position) if position >= 1 => Some(position),
                 _ => {
-                    return Err(Error::Other(format!(
-                        "scene {}: a scene is numbered from 1",
-                        index + 1
-                    )));
+                    return Err(
+                        Error::refused("proposal.sceneBadPosition").param("index", index + 1)
+                    );
                 }
             },
         };
@@ -803,31 +799,38 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
         let shot_type = text("shot_type");
         if let Some(shot) = shot_type.as_deref() {
             if !kind.shot_types.iter().any(|s| s.key == shot) {
-                return Err(Error::Other(format!(
-                    "scene {}: no kind of shot `{shot}` for `{}`; its kinds of shot are {}",
-                    index + 1,
-                    kind.key,
-                    names(&mut kind.shot_types.iter().map(|s| s.key.as_str()))
-                )));
+                return Err(Error::refused("proposal.unknownShotType")
+                    .param("index", index + 1)
+                    .param("shot", shot)
+                    .param(
+                        "kind",
+                        serde_json::to_value(&kind.label).unwrap_or_default(),
+                    )
+                    .param(
+                        "known",
+                        names(&mut kind.shot_types.iter().map(|s| s.key.as_str())),
+                    ));
             }
         }
 
         let mut blocks = Map::new();
         if let Some(given) = item.get("blocks") {
             let Some(given) = given.as_object() else {
-                return Err(Error::Other(format!(
-                    "scene {}: `blocks` must be an object of block key to text",
-                    index + 1
-                )));
+                return Err(Error::refused("proposal.blocksNotObject").param("index", index + 1));
             };
             for (key, value) in given {
                 if !kind.scene_blocks.iter().any(|b| b.key == *key) {
-                    return Err(Error::Other(format!(
-                        "scene {}: no prompt block `{key}` for `{}`; its blocks are {}",
-                        index + 1,
-                        kind.key,
-                        names(&mut kind.scene_blocks.iter().map(|b| b.key.as_str()))
-                    )));
+                    return Err(Error::refused("proposal.unknownBlock")
+                        .param("index", index + 1)
+                        .param("block", key.clone())
+                        .param(
+                            "kind",
+                            serde_json::to_value(&kind.label).unwrap_or_default(),
+                        )
+                        .param(
+                            "known",
+                            names(&mut kind.scene_blocks.iter().map(|b| b.key.as_str())),
+                        ));
                 }
                 // A block is text; a blank one is no block, so an agent that
                 // sends "" for what it has nothing to say about leaves the box
@@ -848,18 +851,15 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
         let ends_at = number("ends_at");
         if let (Some(from), Some(to)) = (starts_at, ends_at) {
             if to < from {
-                return Err(Error::Other(format!(
-                    "scene {}: it ends at {to} before it starts at {from}",
-                    index + 1
-                )));
+                return Err(Error::refused("proposal.badSpan")
+                    .param("index", index + 1)
+                    .param("from", from)
+                    .param("to", to));
             }
         }
         for at in [starts_at, ends_at].into_iter().flatten() {
             if !(at.is_finite() && at >= 0.0) {
-                return Err(Error::Other(format!(
-                    "scene {}: seconds are counted from 0",
-                    index + 1
-                )));
+                return Err(Error::refused("proposal.negativeSeconds").param("index", index + 1));
             }
         }
 
@@ -1259,7 +1259,7 @@ mod tests {
         ) else {
             panic!("a wrong word is refused with its reason");
         };
-        assert!(why.contains("no kind of shot `closeup`"), "{why}");
+        assert!(why.contains("closeup"), "{why}");
         let ReadScenes::Refused(why) = read_scenes(
             &block(r#"{"scenes": []}"#),
             kind,

@@ -117,9 +117,7 @@ pub fn create_minted(
     in_profile(conn, profile_id, &new.work_id)?;
     let source = in_profile(conn, profile_id, &new.source_id)?;
     if new.work_id == new.source_id {
-        return Err(Error::Other(
-            "a work cannot be cut out of itself".to_owned(),
-        ));
+        return Err(Error::refused("cut.outOfItself"));
     }
     check_within(conn, &source, new.ends_at)?;
 
@@ -202,9 +200,7 @@ pub fn reorder(conn: &Connection, work_id: &str, ids: &[String]) -> Result<Vec<C
         .map(|cut| cut.id)
         .collect();
     if ids.len() != known.len() || !known.iter().all(|id| ids.contains(id)) {
-        return Err(Error::Other(
-            "reordering a splice names each stretch exactly once".into(),
-        ));
+        return Err(Error::refused("cut.spliceIncomplete"));
     }
     for (index, id) in ids.iter().enumerate() {
         conn.execute(
@@ -344,14 +340,14 @@ pub fn sources_by_work(
 fn check_span(starts_at: f64, ends_at: f64) -> Result<()> {
     for at in [starts_at, ends_at] {
         if !at.is_finite() {
-            return Err(Error::Other("a cut's seconds must be a number".into()));
+            return Err(Error::refused("cut.secondsNotANumber"));
         }
     }
     if starts_at < 0.0 {
-        return Err(Error::Other("a cut starts at zero seconds or later".into()));
+        return Err(Error::refused("cut.beforeZero"));
     }
     if ends_at <= starts_at {
-        return Err(Error::Other("a cut ends after it starts".into()));
+        return Err(Error::refused("cut.endsBeforeStart"));
     }
     Ok(())
 }
@@ -368,10 +364,10 @@ fn check_within(conn: &Connection, source: &crate::work::Work, ends_at: f64) -> 
         return Ok(());
     };
     if ends_at > duration {
-        return Err(Error::Other(format!(
-            "{} runs {duration} seconds, so a cut cannot end at {ends_at}",
-            source.title
-        )));
+        return Err(Error::refused("cut.pastEnd")
+            .param("title", source.title.clone())
+            .param("duration", duration)
+            .param("endsAt", ends_at));
     }
     Ok(())
 }
@@ -379,10 +375,7 @@ fn check_within(conn: &Connection, source: &crate::work::Work, ends_at: f64) -> 
 fn in_profile(conn: &Connection, profile_id: &str, work_id: &str) -> Result<crate::work::Work> {
     let work = crate::work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
     if work.profile_id != profile_id {
-        return Err(Error::Other(format!(
-            "{} is not in this workspace",
-            work.title
-        )));
+        return Err(Error::refused("cut.notInWorkspace").param("title", work.title.clone()));
     }
     Ok(work)
 }

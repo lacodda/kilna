@@ -1,6 +1,6 @@
 ---
 title: Data
-description: Export, backup and import, where the workspace file lives, why restoring needs the app closed, and what the workspace records about itself.
+description: Export, backup and import, where the workspace file and the application log live, why restoring needs the app closed, and what the workspace records about itself.
 ---
 
 kilna is local-first: one SQLite file holds your workspace, and media stays
@@ -19,6 +19,20 @@ The workspace is created under the platform's application data directory the
 first time kilna runs. From inside the app, the **workspace path** command
 reports the exact file location, so you can find it in a file manager or point
 a backup tool at it directly.
+
+## The application log
+
+What goes wrong where nobody is looking - a file the trash could not remove,
+a queued assistant task that would not start, a screen that stopped working -
+is written to a log beside the workspace: `logs/kilna.log` in the same
+directory as the workspace file. **Settings → Data → Application log** shows
+the exact path. It is one plain line per event, with the time, the level and
+the part of kilna it came from, and it is moved aside to `kilna.log.1` when it
+grows past a megabyte. Nothing in it leaves your machine; attach it to a bug
+report when something odd happened.
+
+`kilna --mcp`, the server an agent talks to, is a separate process and writes
+its own `logs/kilna-mcp.log`.
 
 ## Backup
 

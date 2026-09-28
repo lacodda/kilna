@@ -431,8 +431,7 @@ fn call_tool(
 
 /// The active profile, or the sentence an agent can act on.
 fn active(conn: &Connection) -> Result<profile::Profile> {
-    profile::active(conn)?
-        .ok_or_else(|| Error::Other("no profile is active in this workspace".into()))
+    profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))
 }
 
 fn arg<'a>(args: &'a Map<String, Value>, key: &str) -> Option<&'a str> {
@@ -443,7 +442,7 @@ fn arg<'a>(args: &'a Map<String, Value>, key: &str) -> Option<&'a str> {
 }
 
 fn required<'a>(args: &'a Map<String, Value>, key: &str) -> Result<&'a str> {
-    arg(args, key).ok_or_else(|| Error::Other(format!("`{key}` is required and cannot be empty")))
+    arg(args, key).ok_or_else(|| Error::refused("mcp.missingArg").param("key", key))
 }
 
 /// The work an argument names: by id first, then by exact title within the
@@ -458,19 +457,19 @@ fn find_work(conn: &Connection, profile_id: &str, named: &str) -> Result<work::W
         .filter(|w| w.title == named)
         .collect();
     match same_title.len() {
-        0 => Err(Error::Other(format!(
-            "no work with id or title `{named}`; `catalogue` lists them"
-        ))),
+        0 => Err(Error::refused("mcp.unknownWork").param("named", named)),
         1 => Ok(same_title.into_iter().next().expect("one")),
-        _ => Err(Error::Other(format!(
-            "{} works are titled `{named}`; name one by id: {}",
-            same_title.len(),
-            same_title
-                .iter()
-                .map(|w| w.id.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))),
+        _ => Err(Error::refused("mcp.ambiguousTitle")
+            .param("count", same_title.len())
+            .param("named", named)
+            .param(
+                "ids",
+                same_title
+                    .iter()
+                    .map(|w| w.id.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            )),
     }
 }
 
@@ -600,9 +599,7 @@ pub fn run_tool(
                     let v =
                         version::get(conn, id)?.ok_or_else(|| Error::not_found("version", id))?;
                     if v.work_id != found.id {
-                        return Err(Error::Other(format!(
-                            "version `{id}` belongs to another work"
-                        )));
+                        return Err(Error::refused("mcp.versionOtherWork").param("version", id));
                     }
                     v
                 }
@@ -615,14 +612,13 @@ pub fn run_tool(
                             .first()
                             .map(|r| r.key.clone())
                             .ok_or_else(|| {
-                                Error::Other(format!("`{}` names no version roles", found.kind))
+                                Error::refused("mcp.kindNoRoles").param("kind", found.kind.clone())
                             })?,
                     };
                     if !vocabulary.version_roles.iter().any(|r| r.key == role) {
-                        return Err(Error::Other(format!(
-                            "no version role `{role}` for `{}`; `workspace` lists them",
-                            found.kind
-                        )));
+                        return Err(Error::refused("mcp.unknownVersionRole")
+                            .param("role", role.clone())
+                            .param("kind", found.kind.clone()));
                     }
                     // The current version when it is of this role; otherwise
                     // the newest of the role — the same answer the panel gives.
@@ -634,7 +630,9 @@ pub fn run_tool(
                     match current {
                         Some(v) => v,
                         None => version::latest(conn, &found.id, &role)?.ok_or_else(|| {
-                            Error::Other(format!("“{}” has no `{role}` version yet", found.title))
+                            Error::refused("mcp.noVersionYet")
+                                .param("title", found.title.clone())
+                                .param("role", role.clone())
                         })?,
                     }
                 }
@@ -707,10 +705,9 @@ pub fn run_tool(
                 .iter()
                 .any(|r| r.key == role)
             {
-                return Err(Error::Other(format!(
-                    "no version role `{role}` for `{}`; `workspace` lists them",
-                    found.kind
-                )));
+                return Err(Error::refused("mcp.unknownVersionRole")
+                    .param("role", role)
+                    .param("kind", found.kind.clone()));
             }
             let body = required(args, "body")?;
             let proposal = Proposal::Version {
@@ -738,23 +735,22 @@ pub fn run_tool(
                 .get("axes")
                 .and_then(Value::as_object)
                 .cloned()
-                .ok_or_else(|| {
-                    Error::Other("`axes` must be an object of axis key to mark".into())
-                })?;
+                .ok_or_else(|| Error::refused("mcp.axesNotObject"))?;
             let note = arg(args, "note").map(str::to_owned);
             let vocabulary = config.vocabulary(&found.kind);
             let proposal =
                 proposal::score_from(axes, note.clone(), vocabulary).ok_or_else(|| {
-                    Error::Other(format!(
-                        "none of those axes belongs to `{}`; its axes are {}",
-                        found.kind,
-                        vocabulary
-                            .axes
-                            .iter()
-                            .map(|a| a.key.as_str())
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    ))
+                    Error::refused("mcp.noKnownAxes")
+                        .param("kind", found.kind.clone())
+                        .param(
+                            "known",
+                            vocabulary
+                                .axes
+                                .iter()
+                                .map(|a| a.key.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", "),
+                        )
                 })?;
             let summary = match &proposal {
                 Proposal::Score {
@@ -807,20 +803,14 @@ pub fn run_tool(
             let (title, kind) = match &found {
                 Some(w) => (None, w.kind.clone()),
                 None => {
-                    let title = required(args, "title").map_err(|_| {
-                        Error::Other("a new work needs a `title`; name `work` to package changes for an existing one".into())
-                    })?;
-                    let kind = required(args, "kind").map_err(|_| {
-                        Error::Other("a new work needs a `kind`; `workspace` lists them".into())
-                    })?;
+                    let title = required(args, "title")
+                        .map_err(|_| Error::refused("proposal.newWorkNeedsTitle"))?;
+                    let kind = required(args, "kind")
+                        .map_err(|_| Error::refused("proposal.newWorkNeedsKind"))?;
                     (Some(title.to_owned()), kind.to_owned())
                 }
             };
-            if config.kind(&kind).is_none() {
-                return Err(Error::Other(format!(
-                    "no kind of work `{kind}`; `workspace` lists them"
-                )));
-            }
+            config.require_kind(&kind)?;
             let vocabulary = config.vocabulary(&kind);
 
             let (fields, unknown_fields) = proposal::fields_from(
@@ -841,9 +831,9 @@ pub fn run_tool(
                 let item = item.as_object().cloned().unwrap_or_default();
                 let role = required(&item, "role")?;
                 if !vocabulary.version_roles.iter().any(|r| r.key == role) {
-                    return Err(Error::Other(format!(
-                        "no version role `{role}` for `{kind}`; `workspace` lists them"
-                    )));
+                    return Err(Error::refused("mcp.unknownVersionRole")
+                        .param("role", role)
+                        .param("kind", kind.clone()));
                 }
                 versions.push(PackagedVersion {
                     role: role.to_owned(),
@@ -858,22 +848,20 @@ pub fn run_tool(
                         .get("axes")
                         .and_then(Value::as_object)
                         .cloned()
-                        .ok_or_else(|| {
-                            Error::Other(
-                                "`score.axes` must be an object of axis key to mark".into(),
-                            )
-                        })?;
+                        .ok_or_else(|| Error::refused("mcp.scoreAxesNotObject"))?;
                     let note = arg(raw, "note").map(str::to_owned);
                     Some(proposal::marks_from(axes, note, vocabulary).ok_or_else(|| {
-                        Error::Other(format!(
-                            "none of the score's axes belongs to `{kind}`; its axes are {}",
-                            vocabulary
-                                .axes
-                                .iter()
-                                .map(|a| a.key.as_str())
-                                .collect::<Vec<_>>()
-                                .join(", ")
-                        ))
+                        Error::refused("mcp.noKnownScoreAxes")
+                            .param("kind", kind.clone())
+                            .param(
+                                "known",
+                                vocabulary
+                                    .axes
+                                    .iter()
+                                    .map(|a| a.key.as_str())
+                                    .collect::<Vec<_>>()
+                                    .join(", "),
+                            )
                     })?)
                 }
                 None => None,
@@ -907,21 +895,18 @@ pub fn run_tool(
             {
                 let item = item.as_object().cloned().unwrap_or_default();
                 let release_kind = required(&item, "kind")?;
-                let Some(defined) = vocabulary
+                config.require_release_kind(&kind, release_kind)?;
+                let defined = vocabulary
                     .release_kinds
                     .iter()
                     .find(|k| k.key == release_kind)
-                else {
-                    return Err(Error::Other(format!(
-                        "no kind of release `{release_kind}` for `{kind}`; `workspace` lists them"
-                    )));
-                };
+                    .expect("just checked by require_release_kind");
                 let scheduled_at = arg(&item, "scheduled_at").map(str::to_owned);
                 if let Some(date) = &scheduled_at {
                     if !crate::time::is_date(date) {
-                        return Err(Error::Other(format!(
-                            "`scheduled_at` is a date like 2026-10-02, not `{date}`"
-                        )));
+                        return Err(
+                            Error::refused("mcp.badReleaseDate").param("value", date.clone())
+                        );
                     }
                 }
                 let (fields, unknown_fields) = proposal::release_fields_from(
@@ -947,10 +932,7 @@ pub fn run_tool(
                 && scenes.is_empty()
                 && releases.is_empty()
             {
-                return Err(Error::Other(
-                    "the package is empty: give `fields`, `versions`, `score`, `notes`, `scenes` or `releases`"
-                        .into(),
-                ));
+                return Err(Error::refused("mcp.emptyPackage"));
             }
 
             let proposal = Proposal::Work {
@@ -993,22 +975,18 @@ pub fn run_tool(
                 .get("scenes")
                 .and_then(Value::as_array)
                 .filter(|raw| !raw.is_empty())
-                .ok_or_else(|| Error::Other("`scenes` must be a non-empty array".into()))?;
+                .ok_or_else(|| Error::refused("mcp.scenesNotArray"))?;
             let scenes = proposal::scenes_from(raw, vocabulary)?;
             let change = match args.get("change").and_then(Value::as_str) {
                 None => BoardChange::Add,
-                Some(value) => BoardChange::parse(value).ok_or_else(|| {
-                    Error::Other(format!(
-                        "`change` is `add`, `replace` or `revise`, not `{value}`"
-                    ))
-                })?,
+                Some(value) => BoardChange::parse(value)
+                    .ok_or_else(|| Error::refused("mcp.badBoardChange").param("value", value))?,
             };
             if change == BoardChange::Revise {
                 if let Some(missing) = scenes.iter().position(|scene| scene.position.is_none()) {
-                    return Err(Error::Other(format!(
-                        "scene {}: a revised scene names its `position` on the board",
-                        missing + 1
-                    )));
+                    return Err(
+                        Error::refused("mcp.reviseNeedsPosition").param("index", missing + 1)
+                    );
                 }
             }
             let count = scenes.len();
@@ -1068,11 +1046,7 @@ pub fn run_tool(
             })
         }
 
-        other => Err(Error::Other(format!(
-            "no tool named `{other}`; the tools are workspace, catalogue, work, text, scores, \
-             calendar, notes, scenes, search, propose_work, propose_version, propose_score, \
-             propose_note, propose_scenes"
-        ))),
+        other => Err(Error::refused("mcp.unknownTool").param("name", other)),
     }
 }
 
@@ -1101,10 +1075,7 @@ fn deliver(
         proposal,
         Proposal::Comment { .. } | Proposal::Reply { .. } | Proposal::Description { .. }
     ) {
-        return Err(Error::Other(
-            "an agent outside the window does not propose comments, replies or style descriptions"
-                .into(),
-        ));
+        return Err(Error::refused("mcp.commentsNotProposable"));
     }
     let client = session
         .client
@@ -1152,9 +1123,7 @@ fn deliver(
         }
         // Refused at the top of this function.
         (Proposal::Comment { .. } | Proposal::Reply { .. } | Proposal::Description { .. }, _) => {
-            return Err(Error::Other(
-                "comments and style descriptions are not proposed from outside".into(),
-            ));
+            return Err(Error::refused("mcp.commentsNotProposable"));
         }
     };
     let mut record = record.param("client", client);
@@ -1433,9 +1402,11 @@ mod tests {
             "propose_scenes",
             &args(json!({ "work": video_id, "scenes": [{ "shot_type": "closeup" }] })),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(err.contains("closeup") && err.contains("`close`"), "{err}");
+        .unwrap_err();
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("proposal.unknownShotType")
+        );
 
         let err = run_tool(
             &conn,
@@ -1443,9 +1414,8 @@ mod tests {
             "propose_scenes",
             &args(json!({ "work": video_id, "scenes": [{ "blocks": { "prompt": "x" } }] })),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(err.contains("`prompt`") && err.contains("`still`"), "{err}");
+        .unwrap_err();
+        assert_eq!(err.refusal().map(|r| r.code), Some("proposal.unknownBlock"));
 
         let err = run_tool(
             &conn,
@@ -1453,9 +1423,8 @@ mod tests {
             "propose_scenes",
             &args(json!({ "work": video_id, "scenes": [{ "starts_at": 9, "ends_at": 3 }] })),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(err.contains("before it starts"), "{err}");
+        .unwrap_err();
+        assert_eq!(err.refusal().map(|r| r.code), Some("proposal.badSpan"));
 
         let err = run_tool(
             &conn,
@@ -1463,9 +1432,8 @@ mod tests {
             "propose_scenes",
             &args(json!({ "work": song_id, "scenes": [{ "description": "x" }] })),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(err.contains("no storyboard"), "{err}");
+        .unwrap_err();
+        assert_eq!(err.refusal().map(|r| r.code), Some("scene.noStoryboard"));
 
         let err = run_tool(
             &conn,
@@ -1473,9 +1441,8 @@ mod tests {
             "propose_scenes",
             &args(json!({ "work": video_id, "scenes": [] })),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(err.contains("non-empty"), "{err}");
+        .unwrap_err();
+        assert_eq!(err.refusal().map(|r| r.code), Some("mcp.scenesNotArray"));
 
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         assert!(
@@ -1519,10 +1486,10 @@ mod tests {
             "propose_work",
             &args(json!({ "title": "x", "kind": "song", "scenes": [{ "description": "x" }] })),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(
-            err.contains("no storyboard"),
+        .unwrap_err();
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("scene.noStoryboard"),
             "a song takes no scenes: {err}"
         );
     }
@@ -1588,11 +1555,11 @@ mod tests {
                 "releases": [{ "kind": "youtube" }],
             })),
         )
-        .unwrap_err()
-        .to_string();
+        .unwrap_err();
 
-        assert!(
-            err.contains("no kind of release `youtube` for `song`"),
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("release.unknownKind"),
             "a song ships clips, shorts and audio; `youtube` belongs to the video: {err}"
         );
     }
@@ -1650,10 +1617,13 @@ mod tests {
                 "releases": [{ "kind": "youtube", "scheduled_at": "next Thursday" }],
             })),
         )
-        .unwrap_err()
-        .to_string();
+        .unwrap_err();
 
-        assert!(err.contains("is a date like 2026-10-02"), "{err}");
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("mcp.badReleaseDate"),
+            "{err}"
+        );
     }
 
     #[test]
@@ -1781,10 +1751,7 @@ mod tests {
         assert!(response["error"].is_null(), "{response}");
         assert_eq!(response["result"]["isError"], true);
         let text = response["result"]["content"][0]["text"].as_str().unwrap();
-        assert!(
-            text.contains("no work with id or title `nowhere`"),
-            "{text}"
-        );
+        assert!(text.contains("nowhere"), "{text}");
     }
 
     #[test]
@@ -1887,9 +1854,12 @@ mod tests {
             "propose_score",
             &args(json!({ "work": work_id, "axes": { "sparkle": 3 } })),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(err.contains("none of those axes"), "{err}");
+        .unwrap_err();
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("mcp.noKnownAxes"),
+            "{err}"
+        );
     }
 
     #[test]
@@ -2048,9 +2018,12 @@ mod tests {
             "propose_work",
             &args(json!({ "work": work_id, "versions": [{ "role": "storyboard", "body": "x" }] })),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(err.contains("storyboard"), "{err}");
+        .unwrap_err();
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("mcp.unknownVersionRole"),
+            "{err}"
+        );
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         assert!(
             assistant::summaries(&conn, &profile_id, Some(&work_id))
@@ -2068,18 +2041,24 @@ mod tests {
             "propose_work",
             &args(json!({ "kind": "song" })),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(err.contains("`title`"), "{err}");
+        .unwrap_err();
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("proposal.newWorkNeedsTitle"),
+            "{err}"
+        );
         let err = run_tool(
             &conn,
             &claude(),
             "propose_work",
             &args(json!({ "title": "x", "kind": "sculpture" })),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(err.contains("sculpture"), "{err}");
+        .unwrap_err();
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("work.unknownKind"),
+            "{err}"
+        );
     }
 
     #[test]
@@ -2091,9 +2070,12 @@ mod tests {
             "propose_work",
             &args(json!({ "work": work_id })),
         )
-        .unwrap_err()
-        .to_string();
-        assert!(err.contains("empty"), "{err}");
+        .unwrap_err();
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("mcp.emptyPackage"),
+            "{err}"
+        );
     }
 
     #[test]

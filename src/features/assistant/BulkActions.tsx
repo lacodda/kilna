@@ -51,6 +51,7 @@ export function BulkActions({ workIds, onStarted }: Props) {
       // and clearing the ticks would look like it worked.
       if (batch.started + batch.queued === 0) {
         say.info(t('assistant.batchNothing'))
+        say.skipped(batch.skipped)
         return
       }
 
@@ -59,6 +60,7 @@ export function BulkActions({ workIds, onStarted }: Props) {
           ? t('assistant.batchQueued', { started: batch.started, queued: batch.queued })
           : t('assistant.batchStarted', { count: batch.started }),
       )
+      say.skipped(batch.skipped)
       onStarted()
     },
   })

@@ -287,9 +287,10 @@ A bar appears above the table with your profile's AI actions, and an
 Each of these is one request rather than one per work, so the journal records
 the batch as the single thing you did, and a failure cannot leave half the
 selection changed with nothing to say where it stopped. If a work was already in
-that status, or had nothing booked, it is counted as skipped rather than
-reported as an error — that is why the number can be smaller than what you
-ticked.
+that status, or had nothing booked, it is passed over rather than reported as
+an error — that is why the number can be smaller than what you ticked — and a
+second note under the result names each work passed over and why: "already
+that way", "nothing booked", or what refused it.
 
 The same bar carries your profile's **AI actions**. A click asks that action of
 every chosen work — each gets its own chat and its own answer, exactly as a

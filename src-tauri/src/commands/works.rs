@@ -81,7 +81,10 @@ pub fn delete_work(state: State<'_, AppState>, id: String) -> Result<String> {
 }
 
 #[tauri::command]
-pub fn delete_works(state: State<'_, AppState>, ids: Vec<String>) -> Result<Vec<String>> {
+pub fn delete_works(
+    state: State<'_, AppState>,
+    ids: Vec<String>,
+) -> Result<actions::work::Discarded> {
     actions::work::discard(&state.conn(), &ids)
 }
 

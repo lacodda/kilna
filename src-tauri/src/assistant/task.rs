@@ -150,8 +150,7 @@ pub fn compose(
     action: &str,
     about: About<'_>,
 ) -> Result<Composed> {
-    let profile =
-        profile::active(conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
+    let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
 
     let template = profile
         .config
@@ -162,36 +161,30 @@ pub fn compose(
 
     let work = work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
     if !template.applies_to(&work.kind) {
-        return Err(Error::Other(format!(
-            "“{}” is not an action for a {}",
-            template.label, work.kind
-        )));
+        return Err(Error::refused("task.wrongKindForAction")
+            .param("action", template.label.as_str())
+            .param("kind", work.kind.clone()));
     }
     // Checked here rather than left to the render: a version of another work
     // must be refused before a chat is opened for it.
     if let Some(id) = about.version_id {
         let found = version::get(conn, id)?.ok_or_else(|| Error::not_found("version", id))?;
         if found.work_id != work.id {
-            return Err(Error::Other(format!(
-                "version `{id}` is not a version of “{}”",
-                work.title
-            )));
+            return Err(Error::refused("link.versionNotOfSource")
+                .param("version", id)
+                .param("title", work.title.clone()));
         }
     }
     let scene = match (template.scope(), about.scene_id) {
         (Scope::Scene, None) => {
-            return Err(Error::Other(format!(
-                "“{}” is about a scene: start it from one",
-                template.label
-            )));
+            return Err(Error::refused("task.needsScene").param("action", template.label.as_str()));
         }
         (Scope::Scene, Some(id)) => {
             let found = scene::get(conn, id)?.ok_or_else(|| Error::not_found("scene", id))?;
             if found.work_id != work.id {
-                return Err(Error::Other(format!(
-                    "scene `{id}` is not a scene of “{}”",
-                    work.title
-                )));
+                return Err(Error::refused("prompt.sceneNotOfWork")
+                    .param("scene", id)
+                    .param("title", work.title.clone()));
             }
             Some(found)
         }
@@ -203,17 +196,15 @@ pub fn compose(
         // here means a caller aimed one at a card, which is a mistake worth
         // naming rather than a prompt worth sending.
         (Scope::Style, _) => {
-            return Err(Error::Other(format!(
-                "“{}” is about a style, not a work: start it from the dictionary",
-                template.label
-            )));
+            return Err(
+                Error::refused("task.isStyleAction").param("action", template.label.as_str())
+            );
         }
         // Composed by `compose_for_comment` or `compose_for_screenshot`.
         (Scope::Comment, _) => {
-            return Err(Error::Other(format!(
-                "“{}” is about a comment, not a work: start it from the comments",
-                template.label
-            )));
+            return Err(
+                Error::refused("task.isCommentAction").param("action", template.label.as_str())
+            );
         }
     };
 
@@ -225,10 +216,9 @@ pub fn compose(
     let block = match (&scene, about.block) {
         (_, None) => None,
         (None, Some(_)) => {
-            return Err(Error::Other(format!(
-                "“{}” is not about a scene, so it is not about a block of one",
-                template.label
-            )));
+            return Err(
+                Error::refused("task.needsSceneForBlock").param("action", template.label.as_str())
+            );
         }
         (Some(_), Some(key)) => {
             if !vocabulary_for_block
@@ -236,11 +226,13 @@ pub fn compose(
                 .iter()
                 .any(|block| block.key == key)
             {
-                return Err(Error::Other(format!(
-                    "`{key}` is not a prompt block of a {}; the profile names {}",
-                    vocabulary_for_block.label.as_str().to_lowercase(),
-                    named_blocks(&vocabulary_for_block.scene_blocks)
-                )));
+                return Err(Error::refused("task.unknownActionBlock")
+                    .param("block", key)
+                    .param(
+                        "kind",
+                        serde_json::to_value(&vocabulary_for_block.label).unwrap_or_default(),
+                    )
+                    .param("known", named_blocks(&vocabulary_for_block.scene_blocks)));
             }
             Some(key)
         }
@@ -276,10 +268,9 @@ pub fn compose(
         }
         Produces::Scenes(change) => {
             if !scene::kind_has_scenes(&profile.config, &work.kind) {
-                return Err(Error::Other(format!(
-                    "a {} has no storyboard for “{}” to propose scenes on",
-                    work.kind, template.label
-                )));
+                return Err(Error::refused("task.actionNoStoryboard")
+                    .param("kind", work.kind.clone())
+                    .param("action", template.label.as_str()));
             }
             prompt.push_str(&super::proposal::scenes_instruction(
                 vocabulary,
@@ -292,17 +283,14 @@ pub fn compose(
         // Only an action about a comment produces these, and it was refused
         // above; a profile that pairs them with a work does not validate.
         Produces::Comment | Produces::Reply => {
-            return Err(Error::Other(format!(
-                "“{}” answers about a comment: start it from the comments",
-                template.label
-            )));
+            return Err(Error::refused("task.actionAnswersComment")
+                .param("action", template.label.as_str()));
         }
         // The same for an action about a style brick.
         Produces::Description => {
-            return Err(Error::Other(format!(
-                "“{}” answers about a style: start it from the dictionary",
-                template.label
-            )));
+            return Err(
+                Error::refused("task.actionAnswersStyle").param("action", template.label.as_str())
+            );
         }
     }
 
@@ -358,7 +346,7 @@ fn attachments_of(given: &[String]) -> Result<Vec<PathBuf>> {
         }
         let path = Path::new(trimmed);
         if !path.is_file() {
-            return Err(Error::Other(format!("no file at {trimmed}")));
+            return Err(Error::refused("task.fileMissing").param("path", trimmed));
         }
         if !paths.iter().any(|p| p == path) {
             paths.push(path.to_path_buf());
@@ -376,8 +364,7 @@ pub fn prepare(
     about: About<'_>,
 ) -> Result<Prepared> {
     let composed = compose(conn, work_id, action, about)?;
-    let profile =
-        profile::active(conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
+    let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
 
     let chat = super::create(
         conn,
@@ -429,14 +416,13 @@ pub fn compose_for_style(
     brick_id: &str,
     action: &str,
 ) -> Result<(Composed, String)> {
-    let profile =
-        profile::active(conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
+    let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
     let template = profile
         .config
         .prompts
         .iter()
         .find(|prompt| prompt.key == action)
-        .ok_or_else(|| Error::Other(format!("the profile has no action `{action}`")))?;
+        .ok_or_else(|| Error::not_found("prompt", action))?;
 
     let brick = crate::style_brick::get(conn, brick_id)?
         .ok_or_else(|| Error::not_found("style", brick_id))?;
@@ -594,21 +580,16 @@ fn comment_action<'a>(
         .find(|prompt| prompt.key == action)
         .ok_or_else(|| Error::not_found("prompt", action))?;
     if template.scope() != Scope::Comment {
-        return Err(Error::Other(format!(
-            "“{}” is not an action about a comment",
-            template.label
-        )));
+        return Err(
+            Error::refused("task.notCommentAction").param("action", template.label.as_str())
+        );
     }
     if template.produces() != produces {
-        return Err(Error::Other(match produces {
-            Produces::Reply => {
-                format!("“{}” reads a screenshot: start it from one", template.label)
-            }
-            _ => format!(
-                "“{}” drafts a reply: start it from a comment",
-                template.label
-            ),
-        }));
+        return Err(match produces {
+            Produces::Reply => Error::refused("task.actionReadsScreenshot")
+                .param("action", template.label.as_str()),
+            _ => Error::refused("task.actionDraftsReply").param("action", template.label.as_str()),
+        });
     }
     Ok(template)
 }
@@ -624,8 +605,7 @@ pub fn compose_for_comment(
     comment_id: &str,
     action: &str,
 ) -> Result<(Composed, String)> {
-    let profile =
-        profile::active(conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
+    let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
     let template = comment_action(&profile, action, Produces::Reply)?;
     let comment = crate::comment::get(conn, comment_id)?
         .ok_or_else(|| Error::not_found("comment", comment_id))?;
@@ -753,20 +733,16 @@ pub fn compose_for_screenshot(
     action: &str,
     shot: &Screenshot<'_>,
 ) -> Result<(Composed, String)> {
-    let profile =
-        profile::active(conn)?.ok_or_else(|| Error::Other("no profile is active".into()))?;
+    let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
     let template = comment_action(&profile, action, Produces::Comment)?;
     let channel = shot.channel.trim();
     if channel.is_empty() {
-        return Err(Error::Other(
-            "say which channel the comment came from".into(),
-        ));
+        return Err(Error::refused("task.needsChannel"));
     }
     if !shot.path.is_file() {
-        return Err(Error::Other(format!(
-            "no screenshot at {}",
-            shot.path.display()
-        )));
+        return Err(
+            Error::refused("task.screenshotMissing").param("path", shot.path.display().to_string())
+        );
     }
     let under = match shot.work_id {
         Some(id) => Some(work::get(conn, id)?.ok_or_else(|| Error::not_found("work", id))?),
@@ -1177,17 +1153,12 @@ mod tests {
         let (mut conn, profile_id) = workspace();
         let work_id = work_with_body(&mut conn, &profile_id, "Harbour lights", "the cranes");
 
-        let refused = compose(&conn, &work_id, "describe-style", About::default())
-            .unwrap_err()
-            .to_string();
+        let refused = compose(&conn, &work_id, "describe-style", About::default()).unwrap_err();
 
-        assert!(
-            refused.contains("about a style"),
-            "the refusal says what it is about: {refused}"
-        );
-        assert!(
-            refused.contains("dictionary"),
-            "and where to start it: {refused}"
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("task.isStyleAction"),
+            "{refused}"
         );
     }
 
@@ -1414,8 +1385,9 @@ mod tests {
 
         let refused = compose(&conn, &video_id, "critique", About::default()).unwrap_err();
 
-        assert!(
-            refused.to_string().contains("not an action for a video"),
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("task.wrongKindForAction"),
             "{refused}"
         );
     }
@@ -1482,13 +1454,16 @@ mod tests {
         );
 
         // A block the kind does not name, refused by name.
-        let refused = compose(&conn, &video_id, "prompts", about(Some("grade")))
-            .unwrap_err()
-            .to_string();
-        assert!(refused.contains("`grade`"), "{refused}");
-        assert!(
-            refused.contains("`still`"),
-            "names what it does have: {refused}"
+        let refused = compose(&conn, &video_id, "prompts", about(Some("grade"))).unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("task.unknownActionBlock"),
+            "{refused}"
+        );
+        assert_eq!(
+            refused.refusal().and_then(|r| r.params.get("block")),
+            Some(&serde_json::Value::String("grade".into())),
+            "names what was asked: {refused}"
         );
 
         // A block on an action that is not about a scene.
@@ -1501,9 +1476,12 @@ mod tests {
                 ..About::default()
             },
         )
-        .unwrap_err()
-        .to_string();
-        assert!(refused.contains("not about a scene"), "{refused}");
+        .unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("task.needsSceneForBlock"),
+            "{refused}"
+        );
     }
 
     #[test]
@@ -1523,8 +1501,9 @@ mod tests {
         .unwrap();
 
         let refused = compose(&conn, &video_id, "prompts", About::default()).unwrap_err();
-        assert!(
-            refused.to_string().contains("start it from one"),
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("task.needsScene"),
             "{refused}"
         );
 
@@ -1580,7 +1559,11 @@ mod tests {
 
         let refused = compose(&conn, &video_id, "storyboard", About::default()).unwrap_err();
 
-        assert!(refused.to_string().contains("has no Plot yet"), "{refused}");
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("prompt.roleEmpty"),
+            "{refused}"
+        );
     }
 
     #[test]
@@ -1595,7 +1578,11 @@ mod tests {
         let video_id = video(&conn, &profile_id);
 
         let refused = compose(&conn, &video_id, "plot", About::default()).unwrap_err();
-        assert!(refused.to_string().contains("Links tab"), "{refused}");
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("prompt.noDonor"),
+            "{refused}"
+        );
 
         link::create(
             &conn,
@@ -1677,7 +1664,11 @@ mod tests {
             },
         )
         .unwrap_err();
-        assert!(refused.to_string().contains("no file at"), "{refused}");
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("task.fileMissing"),
+            "{refused}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

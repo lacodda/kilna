@@ -188,13 +188,14 @@ fn wait_within(
             Ok(None) if started.elapsed() >= limit => {
                 let _ = child.kill();
                 let _ = child.wait();
-                return Err(Error::Other(format!(
-                    "the plugin did not answer within {} seconds and was stopped",
-                    limit.as_secs()
-                )));
+                return Err(Error::refused("plugin.timedOut").param("seconds", limit.as_secs()));
             }
             Ok(None) => std::thread::sleep(std::time::Duration::from_millis(20)),
-            Err(error) => return Err(Error::Other(format!("the plugin did not finish: {error}"))),
+            Err(error) => {
+                return Err(Error::Internal(format!(
+                    "the plugin process could not be waited on: {error}"
+                )));
+            }
         }
     };
 
@@ -219,20 +220,20 @@ pub fn invoke(path: &Path, invocation: &Invocation<'_>) -> Result<Outcome> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|error| Error::Other(format!("could not run the plugin: {error}")))?;
+        .map_err(|error| Error::refused("plugin.spawnFailed").param("cause", error.to_string()))?;
 
     {
         let mut stdin = child
             .stdin
             .take()
-            .ok_or_else(|| Error::Other("could not write to the plugin".into()))?;
+            .ok_or_else(|| Error::Internal("the plugin's stdin was not piped".into()))?;
         if let Err(error) = stdin.write_all(&payload) {
             // A plugin is allowed to answer without reading its input; if it
             // exits first, the write sees a closed pipe. The verdict still
             // arrives through stdout and the exit status, so only a failure
             // other than the closed pipe is real.
             if error.kind() != std::io::ErrorKind::BrokenPipe {
-                return Err(Error::Other(format!("could not send the request: {error}")));
+                return Err(Error::refused("plugin.sendFailed").param("cause", error.to_string()));
             }
         }
     }
@@ -241,11 +242,12 @@ pub fn invoke(path: &Path, invocation: &Invocation<'_>) -> Result<Outcome> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(Error::Other(if stderr.trim().is_empty() {
-            format!("the plugin failed with {}", output.status)
+        let detail = if stderr.trim().is_empty() {
+            format!("failed with {}", output.status)
         } else {
             stderr.trim().to_owned()
-        }));
+        };
+        return Err(Error::refused("plugin.failed").param("detail", detail));
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -259,14 +261,13 @@ pub fn invoke(path: &Path, invocation: &Invocation<'_>) -> Result<Outcome> {
     }
 
     let outcome: Outcome = serde_json::from_str(stdout.trim()).map_err(|error| {
-        Error::Other(format!(
-            "could not read the plugin's reply ({error}): {}",
-            stdout.trim()
-        ))
+        Error::refused("plugin.badReply")
+            .param("cause", error.to_string())
+            .param("output", stdout.trim().to_owned())
     })?;
 
     if let Some(message) = outcome.error {
-        return Err(Error::Other(message));
+        return Err(Error::refused("plugin.reported").param("message", message));
     }
 
     Ok(outcome)
@@ -374,8 +375,8 @@ mod tests {
         let started = std::time::Instant::now();
         let refused = wait_within(a_sleeper(), std::time::Duration::from_millis(300));
 
-        let message = refused.expect_err("the wait gives up").to_string();
-        assert!(message.contains("was stopped"), "{message}");
+        let error = refused.expect_err("the wait gives up");
+        assert_eq!(error.refusal().map(|r| r.code), Some("plugin.timedOut"));
         assert!(
             started.elapsed() < std::time::Duration::from_secs(3),
             "stopped at the limit, not when the child finished on its own"

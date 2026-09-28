@@ -207,7 +207,9 @@
     "imported": "Imported {{works}} works, {{versions}} drafts, {{scores}} scores. Skipped {{skipped}} already here.",
     "importedLeftDeleted_one": "Left {{count}} you had deleted where it was.",
     "importedLeftDeleted_other": "Left {{count}} you had deleted where they were.",
-    "working": "Working…"
+    "working": "Working…",
+    "logAt": "Application log",
+    "logHint": "What went wrong while nobody was looking — a file that could not be removed, a task that would not start. Attach it to a report."
   },
   "dashboard": {
     "decisions": "Needs a decision",
@@ -1606,21 +1608,49 @@
   },
   "refusal": {
     "profile": {
-      "noneActive": "No profile is open."
+      "noneActive": "No profile is open.",
+      "invalid": "The profile cannot be saved as written: {{problems}}"
     },
     "work": {
       "unknownKind": "The profile has no kind of work “{{kind}}”. Its kinds are: {{known}}.",
-      "unknownStatus": "The profile has no status “{{status}}”."
+      "unknownStatus": "The profile has no status “{{status}}”.",
+      "unknownCoverBlock": "“{{key}}” is not a part of a {{kind}}'s cover; the profile names {{known}}.",
+      "coverNotText": "The cover's “{{key}}” must hold text.",
+      "kindNoStatuses": "The kind “{{kind}}” defines no statuses.",
+      "unknownTier": "“{{tier}}” is not a tier of “{{kind}}”.",
+      "pinNeedsReason": "A pinned tier needs a reason — say what the score does not know."
     },
     "version": {
-      "unknownRole": "A {{kind}} has no version role “{{role}}”. Its roles are: {{known}}."
+      "unknownRole": "A {{kind}} has no version role “{{role}}”. Its roles are: {{known}}.",
+      "parentNotSameRole": "Version “{{parent}}” is not a “{{role}}” version of this work, so nothing can be written from it.",
+      "notOfWork": "Version “{{version}}” does not belong to work “{{work}}”."
     },
     "release": {
       "unknownKind": "A {{kind}} does not go out as “{{releaseKind}}”. It goes out as: {{known}}.",
-      "unknownField": "This kind of release has no field “{{field}}”."
+      "unknownField": "This kind of release has no field “{{field}}”.",
+      "badTime": "“{{value}}” is not a time of day — write it as HH:MM.",
+      "badTimeZone": "“{{value}}” is not a time zone name — write it as Region/City, like Europe/Lisbon.",
+      "noSlotToPin": "A release with no date has no slot to pin.",
+      "badDay": "“{{value}}” is not a calendar day."
     },
     "scene": {
-      "noStoryboard": "A {{kind}} has no storyboard: the kind names no kinds of shot and no prompt blocks."
+      "noStoryboard": "A {{kind}} has no storyboard: the kind names no kinds of shot and no prompt blocks.",
+      "noteOtherWorkspace": "A scene is about a note of the same workspace.",
+      "noteUnknownKind": "A scene is about a note of a kind the profile names: {{known}}, not “{{kind}}”.",
+      "otherWorkspace": "A scene belongs to a work of the same workspace.",
+      "badPosition": "A scene is numbered from 1.",
+      "unknownShotType": "“{{shot}}” is not a kind of shot for a {{kind}}; the profile names {{known}}.",
+      "unknownBlock": "“{{block}}” is not a prompt block for a {{kind}}; the profile names {{known}}.",
+      "blockNotText": "The block “{{block}}” must hold text.",
+      "negativeSeconds": "A scene's seconds count from zero.",
+      "endsBeforeStart": "A scene cannot end before it starts.",
+      "noWorkDuration": "This work has no duration yet: give it one on the Overview tab.",
+      "noScenesToTime": "This board has no scenes to time.",
+      "renumberIncomplete": "Renumbering a board names each of its scenes exactly once.",
+      "alreadyFramed": "This board already has scenes: empty it first to build a new frame.",
+      "sourceNoRole": "“{{title}}” has no {{role}} to read the parts from.",
+      "noPartsMarked": "“{{title}}” marks no parts: name them in the text — [Verse 1], [Chorus] — and try again.",
+      "partsCountChanged": "The text now marks {{found}} parts, not {{expected}}: read it again rather than framing a board that does not match it."
     },
     "undo": {
       "nothing": "There is nothing to undo.",
@@ -1636,21 +1666,148 @@
       "needsWork": "This needs a work, and the chat is about nothing.",
       "newWorkNeedsTitle": "A new work needs a title.",
       "newWorkNeedsKind": "A new work needs a kind.",
-      "revisedSceneNeedsNumber": "A revised scene names its number on the board."
+      "revisedSceneNeedsNumber": "A revised scene names its number on the board.",
+      "sceneNotObject": "Scene {{index}} is not an object.",
+      "sceneBadPosition": "Scene {{index}}: a scene is numbered from 1.",
+      "unknownShotType": "Scene {{index}}: no kind of shot “{{shot}}” for “{{kind}}”; its kinds of shot are {{known}}.",
+      "blocksNotObject": "Scene {{index}}: “blocks” must be an object of block key to text.",
+      "unknownBlock": "Scene {{index}}: no prompt block “{{block}}” for “{{kind}}”; its blocks are {{known}}.",
+      "badSpan": "Scene {{index}}: it ends at {{to}} before it starts at {{from}}.",
+      "negativeSeconds": "Scene {{index}}: seconds are counted from 0."
     },
     "file": {
       "isDirectory": "{{path}} is a folder, not a file.",
       "notWritten": "Could not write {{path}}: {{cause}}"
     },
     "plugin": {
-      "unusable": "The plugin “{{plugin}}” cannot be used: {{reason}}"
+      "unusable": "The plugin “{{plugin}}” cannot be used: {{reason}}",
+      "timedOut": "The plugin did not answer within {{seconds}} seconds and was stopped.",
+      "spawnFailed": "Could not run the plugin: {{cause}}",
+      "sendFailed": "Could not send the request to the plugin: {{cause}}",
+      "failed": "The plugin: {{detail}}",
+      "badReply": "Could not read the plugin's reply ({{cause}}): {{output}}",
+      "reported": "{{message}}"
     },
     "comment": {
       "clipboardEmpty": "The clipboard held no picture.",
-      "screenshotNotKept": "Could not keep the screenshot: {{cause}}"
+      "screenshotNotKept": "Could not keep the screenshot: {{cause}}",
+      "unknownState": "“{{state}}” is not a state a comment can be in.",
+      "needsField": "A comment needs its {{field}}.",
+      "badDay": "“{{value}}” is not a day; write it as YYYY-MM-DD."
     },
     "assistant": {
       "unknownAction": "The profile has no action “{{action}}”."
+    },
+    "asset": {
+      "needsOwner": "A file must be attached to a work, a release or a style.",
+      "workOtherWorkspace": "“{{title}}” is not in this workspace.",
+      "styleOtherWorkspace": "“{{name}}” is not in this workspace.",
+      "fileMissing": "There is no file at “{{path}}”.",
+      "copyFailed": "Could not copy “{{path}}” into the workspace: {{cause}}"
+    },
+    "backup": {
+      "notFound": "There is no backup at “{{path}}”.",
+      "notAWorkspace": "“{{path}}” is not a kilna workspace."
+    },
+    "clone": {
+      "needsTitle": "A clone is given a title."
+    },
+    "collection": {
+      "badTargetSize": "A target of {{size}} works is not a target — leave it empty or name a count.",
+      "badDueDate": "“{{value}}” is not a date — write it as YYYY-MM-DD."
+    },
+    "db": {
+      "noDataDir": "Cannot tell where application data lives on this machine; pass --workspace <dir>."
+    },
+    "focus": {
+      "badDueDate": "“{{value}}” is not a date — write it as YYYY-MM-DD."
+    },
+    "frame": {
+      "badExtension": "This strip takes a {{what}} ({{allowed}}), and .{{ending}} is not one.",
+      "badKind": "A scene holds “frame” or “video”, not “{{kind}}”.",
+      "orderIncomplete": "Reordering a scene's material names each row of that kind exactly once."
+    },
+    "layout": {
+      "noRhythm": "The profile has no release rhythm — set one in the profile editor.",
+      "rhythmTooShort": "The rhythm must be at least one day.",
+      "badDate": "“{{value}}” is not an ISO date."
+    },
+    "link": {
+      "otherWorkspace": "A link joins two works of the same workspace.",
+      "selfMade": "A work cannot be made from itself.",
+      "versionNotOfSource": "Version “{{version}}” is not a version of “{{title}}”.",
+      "alreadyExists": "“{{work}}” is already made from “{{source}}” as {{role}}."
+    },
+    "import": {
+      "notFound": "There is no database at “{{path}}”.",
+      "notASource": "This database has no “songs” table — it is not a workspace kilna can import."
+    },
+    "prompt": {
+      "sceneNotOfWork": "Scene “{{scene}}” is not a scene of “{{title}}”.",
+      "roleEmpty": "“{{title}}” has no {{role}} yet: write it first.",
+      "noDonor": "“{{title}}” is not made from anything yet: link its source on the Links tab first."
+    },
+    "mcp": {
+      "missingArg": "“{{key}}” is required and cannot be empty.",
+      "unknownWork": "No work with id or title “{{named}}”; “catalogue” lists them.",
+      "ambiguousTitle": "{{count}} works are titled “{{named}}”; name one by id: {{ids}}.",
+      "versionOtherWork": "Version “{{version}}” belongs to another work.",
+      "kindNoRoles": "“{{kind}}” names no version roles.",
+      "unknownVersionRole": "No version role “{{role}}” for “{{kind}}”; “workspace” lists them.",
+      "noVersionYet": "“{{title}}” has no “{{role}}” version yet.",
+      "axesNotObject": "“axes” must be an object of axis key to mark.",
+      "noKnownAxes": "None of those axes belongs to “{{kind}}”; its axes are {{known}}.",
+      "scoreAxesNotObject": "“score.axes” must be an object of axis key to mark.",
+      "noKnownScoreAxes": "None of the score's axes belongs to “{{kind}}”; its axes are {{known}}.",
+      "badReleaseDate": "“scheduled_at” is a date like 2026-10-02, not “{{value}}”.",
+      "emptyPackage": "The package is empty: give “fields”, “versions”, “score”, “notes”, “scenes” or “releases”.",
+      "scenesNotArray": "“scenes” must be a non-empty array.",
+      "badBoardChange": "“change” is “add”, “replace” or “revise”, not “{{value}}”.",
+      "reviseNeedsPosition": "Scene {{index}}: a revised scene names its “position” on the board.",
+      "unknownTool": "No tool named “{{name}}”; the tools are workspace, catalogue, work, text, scores, calendar, notes, scenes, search, propose_work, propose_version, propose_score, propose_note, propose_scenes.",
+      "commentsNotProposable": "An agent outside the window does not propose comments, replies or style descriptions."
+    },
+    "note": {
+      "promoteNeedsTitle": "A work needs a title.",
+      "promoteNoRole": "A “{{kind}}” has no role a body can be kept in."
+    },
+    "readiness": {
+      "badToday": "“{{value}}” is not an ISO date."
+    },
+    "score": {
+      "versionNotOfWork": "Version “{{version}}” does not belong to work “{{work}}”."
+    },
+    "task": {
+      "wrongKindForAction": "“{{action}}” is not an action for a {{kind}}.",
+      "needsScene": "“{{action}}” is about a scene: start it from one.",
+      "isStyleAction": "“{{action}}” is about a style, not a work: start it from the dictionary.",
+      "isCommentAction": "“{{action}}” is about a comment, not a work: start it from the comments.",
+      "needsSceneForBlock": "“{{action}}” is not about a scene, so it is not about a block of one.",
+      "unknownActionBlock": "“{{block}}” is not a prompt block of a {{kind}}; the profile names {{known}}.",
+      "actionNoStoryboard": "A {{kind}} has no storyboard for “{{action}}” to propose scenes on.",
+      "actionAnswersComment": "“{{action}}” answers about a comment: start it from the comments.",
+      "actionAnswersStyle": "“{{action}}” answers about a style: start it from the dictionary.",
+      "fileMissing": "There is no file at “{{path}}”.",
+      "notCommentAction": "“{{action}}” is not an action about a comment.",
+      "actionReadsScreenshot": "“{{action}}” reads a screenshot: start it from one.",
+      "actionDraftsReply": "“{{action}}” drafts a reply: start it from a comment.",
+      "needsChannel": "Say which channel the comment came from.",
+      "screenshotMissing": "There is no screenshot at “{{path}}”."
+    },
+    "style": {
+      "needsName": "A style needs a name.",
+      "badStatus": "A style is “draft”, “ready” or “dropped”, not “{{value}}”.",
+      "unknownType": "A style is of a type the profile names: {{known}}, not “{{type}}”.",
+      "alreadyExists": "There is already a “{{type}}” style called “{{name}}”."
+    },
+    "cut": {
+      "outOfItself": "A work cannot be cut out of itself.",
+      "spliceIncomplete": "A splice must name each stretch exactly once.",
+      "secondsNotANumber": "A cut’s seconds must be a number.",
+      "beforeZero": "A cut starts at zero seconds or later.",
+      "endsBeforeStart": "A cut must end after it starts.",
+      "pastEnd": "“{{title}}” runs {{duration}} seconds, so a cut cannot end at {{endsAt}}.",
+      "notInWorkspace": "“{{title}}” is not in this workspace."
     }
   },
   "skip": {
@@ -1659,5 +1816,13 @@
     "nothingToFill": "no field to fill",
     "alreadyAsked": "already running or waiting",
     "queueFull": "the queue is full"
+  },
+  "batch": {
+    "skipped_one": "{{count}} passed over",
+    "skipped_other": "{{count}} passed over",
+    "skippedRow": "{{title}} — {{reason}}",
+    "untitled": "Untitled",
+    "andMore_one": "and {{count}} more",
+    "andMore_other": "and {{count}} more"
   }
 }

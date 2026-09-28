@@ -332,7 +332,7 @@ pub fn derive(conn: &Connection, source_id: &str, kind: &str, title: Option<&str
 /// put several timestamps into a single operation, and the log has one field to
 /// keep them in — so a rebuild would have to invent the rest. One gesture
 /// happened at one time; the entries say so.
-pub fn discard(conn: &Connection, ids: &[String]) -> Result<Vec<String>> {
+pub fn discard(conn: &Connection, ids: &[String]) -> Result<Discarded> {
     gesture(conn, "work.discardBatch", |act| {
         // Titles are read before anything is discarded — afterwards there is
         // nothing left to ask.
@@ -344,9 +344,19 @@ pub fn discard(conn: &Connection, ids: &[String]) -> Result<Vec<String>> {
         act.stamped();
 
         let discarded = crate::trash::discard_batch(act, crate::trash::Entity::Work, ids, &minted)?;
-        for (id, cause) in &discarded.failed {
-            crate::log::warn("trash", &format!("{id} could not be discarded: {cause}"));
-        }
+        let skipped: Vec<Skipped> = discarded
+            .failed
+            .iter()
+            .map(|(id, cause)| Skipped {
+                id: id.clone(),
+                title: ids
+                    .iter()
+                    .position(|candidate| candidate == id)
+                    .map(|index| titles[index].clone())
+                    .filter(|title| !title.is_empty()),
+                reason: cause.reason(),
+            })
+            .collect();
 
         match discarded.done.as_slice() {
             [] => {}
@@ -366,8 +376,20 @@ pub fn discard(conn: &Connection, ids: &[String]) -> Result<Vec<String>> {
             many => act.journal(Record::new("work.deletedBatch").param("count", count(many.len()))),
         }
 
-        Ok(discarded.done.into_iter().map(|(_, entry)| entry).collect())
+        Ok(Discarded {
+            entries: discarded.done.into_iter().map(|(_, entry)| entry).collect(),
+            skipped,
+        })
     })
+}
+
+/// What a batch deletion did: the trash entries an undo names, and each work
+/// that stayed, with why.
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Discarded {
+    pub entries: Vec<String>,
+    pub skipped: Vec<Skipped>,
 }
 
 #[cfg(test)]

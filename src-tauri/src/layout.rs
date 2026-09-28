@@ -67,12 +67,10 @@ struct Queued {
 pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Placement>> {
     let config = crate::profile::config_for(conn, profile_id)?;
     let Some(rhythm) = config.rhythm else {
-        return Err(Error::Other(
-            "the profile has no release rhythm — set one in the profile editor".into(),
-        ));
+        return Err(Error::refused("layout.noRhythm"));
     };
     if rhythm.every_days == 0 {
-        return Err(Error::Other("the rhythm must be at least one day".into()));
+        return Err(Error::refused("layout.rhythmTooShort"));
     }
     let spacing = Duration::days(i64::from(rhythm.every_days) - 1);
     let today = parse_date(today)?;
@@ -148,7 +146,7 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
     while !remaining.is_empty() {
         scans_left -= 1;
         if scans_left < 0 {
-            return Err(Error::Other(
+            return Err(Error::Internal(
                 "the layout could not settle — this is a bug worth reporting".into(),
             ));
         }
@@ -250,18 +248,18 @@ fn stale(reason: &str) -> Error {
 
 fn parse_date(date: &str) -> Result<Date> {
     let iso = format_description!("[year]-[month]-[day]");
-    Date::parse(date, iso).map_err(|_| Error::Other(format!("`{date}` is not an ISO date")))
+    Date::parse(date, iso).map_err(|_| Error::refused("layout.badDate").param("value", date))
 }
 
 fn iso(date: Date) -> Result<String> {
     let iso = format_description!("[year]-[month]-[day]");
     date.format(iso)
-        .map_err(|cause| Error::Other(cause.to_string()))
+        .map_err(|cause| Error::Internal(format!("could not format a layout date: {cause}")))
 }
 
 fn next_day(date: Date) -> Result<Date> {
     date.next_day()
-        .ok_or_else(|| Error::Other("the layout ran off the end of the calendar".into()))
+        .ok_or_else(|| Error::Internal("the layout ran off the end of the calendar".into()))
 }
 
 #[cfg(test)]

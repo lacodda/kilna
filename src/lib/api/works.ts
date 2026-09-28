@@ -3,6 +3,7 @@ import type {
   BulkOutcome,
   CardCounts,
   Cloned,
+  Discarded,
   NewWork,
   ScoredWork,
   StatusChange,
@@ -19,7 +20,7 @@ export const createWork = (work: NewWork) => invoke<Work>('create_work', { work 
 export const updateWork = (id: string, patch: WorkPatch) =>
   invoke<Work>('update_work', { id, patch })
 export const deleteWork = (id: string) => invoke<string>('delete_work', { id })
-export const deleteWorks = (ids: string[]) => invoke<string[]>('delete_works', { ids })
+export const deleteWorks = (ids: string[]) => invoke<Discarded>('delete_works', { ids })
 /** A second attempt at a video: the same donor and board, its own work. The
  * first is left exactly as it was — the two are meant to be compared. */
 export const cloneWork = (workId: string, title: string) =>

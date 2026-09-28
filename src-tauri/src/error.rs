@@ -72,11 +72,6 @@ pub enum Error {
     /// said once, generically, and the detail goes to the log.
     #[error("{0}")]
     Internal(String),
-
-    /// An English sentence with no code. Being retired: every one becomes a
-    /// refusal or an internal error, and then this variant goes.
-    #[error("{0}")]
-    Other(String),
 }
 
 impl Error {
@@ -99,7 +94,6 @@ impl Error {
             Self::Frozen(_) => "frozen",
             Self::Refused(_) => "refused",
             Self::Internal(_) => "internal",
-            Self::Other(_) => "other",
         }
     }
 

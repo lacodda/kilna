@@ -45,7 +45,7 @@ impl Minted {
                 .and_then(Value::as_str)
                 .map(str::to_owned)
                 .ok_or_else(|| {
-                    Error::Other(format!(
+                    Error::Internal(format!(
                         "the operation carries no `{key}`, so replaying it would invent one"
                     ))
                 })

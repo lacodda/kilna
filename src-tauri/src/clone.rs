@@ -58,7 +58,7 @@ pub fn clone_work_minted(
 
     let title = title.trim();
     if title.is_empty() {
-        return Err(Error::Other("a clone is given a title".into()));
+        return Err(Error::refused("clone.needsTitle"));
     }
 
     // The kind, the tags and the marks come across; the score and the

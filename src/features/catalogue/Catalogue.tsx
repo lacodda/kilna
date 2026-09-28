@@ -169,14 +169,15 @@ export function Catalogue({ onSelect }: Props) {
     // apiece and could stop halfway with nothing to say where.
     mutationFn: (workIds: readonly string[]) => deleteWorks([...workIds]),
     failure: 'toast.workSaveFailed',
-    onSuccess: (deletionIds) => {
+    onSuccess: (discarded) => {
       clearSelection()
       announceDeleted({
         client,
-        deletionIds,
-        message: t('catalogue.deleted', { count: deletionIds.length }),
+        deletionIds: discarded.entries,
+        message: t('catalogue.deleted', { count: discarded.entries.length }),
         refresh: [keys.works, keys.catalogue, keys.workspace],
       })
+      say.skipped(discarded.skipped)
     },
   })
 
@@ -191,6 +192,7 @@ export function Catalogue({ onSelect }: Props) {
     onSuccess: (outcome) => {
       clearSelection()
       say.ok(t('catalogue.bulk.statusSet', { count: outcome.changed }))
+      say.skipped(outcome.skipped)
     },
   })
 
@@ -201,6 +203,7 @@ export function Catalogue({ onSelect }: Props) {
     onSuccess: (outcome) => {
       clearSelection()
       say.ok(t('catalogue.bulk.unscheduled', { count: outcome.changed }))
+      say.skipped(outcome.skipped)
     },
   })
 

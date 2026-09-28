@@ -124,9 +124,7 @@ pub fn create_minted(
     let work = crate::work::get(conn, &new.work_id)?
         .ok_or_else(|| Error::not_found("work", &new.work_id))?;
     if work.profile_id != profile_id {
-        return Err(Error::Other(
-            "a scene belongs to a work of the same profile".into(),
-        ));
+        return Err(Error::refused("scene.otherWorkspace"));
     }
     let config = crate::profile::config_for(conn, profile_id)?;
     let kind = config.vocabulary(&work.kind);
@@ -137,7 +135,7 @@ pub fn create_minted(
     check_blocks(kind, &blocks)?;
     let position = match new.position {
         Some(position) if position >= 1 => position,
-        Some(_) => return Err(Error::Other("a scene is numbered from 1".into())),
+        Some(_) => return Err(Error::refused("scene.badPosition")),
         None => next_position(conn, &work.id)?,
     };
     check_span(new.starts_at, new.ends_at)?;
@@ -162,7 +160,7 @@ pub fn create_minted(
         ],
     )?;
 
-    get(conn, &id)?.ok_or_else(|| Error::Other("the scene vanished after insert".into()))
+    get(conn, &id)?.ok_or_else(|| Error::Internal("the scene vanished after insert".into()))
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Scene>> {
@@ -224,7 +222,7 @@ pub fn update_at(conn: &Connection, id: &str, patch: ScenePatch, at: &str) -> Re
 
     if let Some(position) = patch.position {
         if position < 1 {
-            return Err(Error::Other("a scene is numbered from 1".into()));
+            return Err(Error::refused("scene.badPosition"));
         }
         set(
             &mut assignments,
@@ -333,25 +331,35 @@ fn check_shot_type(kind: &WorkKind, shot_type: Option<&str>) -> Result<()> {
     if kind.shot_types.iter().any(|shot| shot.key == shot_type) {
         return Ok(());
     }
-    Err(Error::Other(format!(
-        "`{shot_type}` is not a kind of shot for a {}; the profile names {}",
-        kind.label.as_str().to_lowercase(),
-        name_keys(kind.shot_types.iter().map(|shot| shot.key.as_str()))
-    )))
+    Err(Error::refused("scene.unknownShotType")
+        .param("shot", shot_type)
+        .param(
+            "kind",
+            serde_json::to_value(&kind.label).unwrap_or_default(),
+        )
+        .param(
+            "known",
+            name_keys(kind.shot_types.iter().map(|shot| shot.key.as_str())),
+        ))
 }
 
 /// Blocks under keys the kind names, holding text.
 fn check_blocks(kind: &WorkKind, blocks: &Blocks) -> Result<()> {
     for (key, value) in blocks {
         if !kind.scene_blocks.iter().any(|block| block.key == *key) {
-            return Err(Error::Other(format!(
-                "`{key}` is not a prompt block for a {}; the profile names {}",
-                kind.label.as_str().to_lowercase(),
-                name_keys(kind.scene_blocks.iter().map(|block| block.key.as_str()))
-            )));
+            return Err(Error::refused("scene.unknownBlock")
+                .param("block", key.clone())
+                .param(
+                    "kind",
+                    serde_json::to_value(&kind.label).unwrap_or_default(),
+                )
+                .param(
+                    "known",
+                    name_keys(kind.scene_blocks.iter().map(|block| block.key.as_str())),
+                ));
         }
         if !value.is_string() {
-            return Err(Error::Other(format!("the block `{key}` must hold text")));
+            return Err(Error::refused("scene.blockNotText").param("block", key.clone()));
         }
     }
     Ok(())
@@ -361,12 +369,12 @@ fn check_blocks(kind: &WorkKind, blocks: &Blocks) -> Result<()> {
 fn check_span(starts_at: Option<f64>, ends_at: Option<f64>) -> Result<()> {
     for at in [starts_at, ends_at].into_iter().flatten() {
         if !(at.is_finite() && at >= 0.0) {
-            return Err(Error::Other("a scene's seconds count from zero".into()));
+            return Err(Error::refused("scene.negativeSeconds"));
         }
     }
     if let (Some(starts), Some(ends)) = (starts_at, ends_at) {
         if ends < starts {
-            return Err(Error::Other("a scene cannot end before it starts".into()));
+            return Err(Error::refused("scene.endsBeforeStart"));
         }
     }
     Ok(())
@@ -538,13 +546,11 @@ pub fn timings(duration: f64, scenes: usize) -> Vec<(f64, f64)> {
 /// nothing would be fifty scenes all starting at zero.
 pub fn time_board_at(conn: &Connection, work_id: &str, at: &str) -> Result<Vec<Scene>> {
     let work = crate::work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
-    let duration = duration_of(&work).ok_or_else(|| {
-        Error::Other("this work has no duration yet: give it one on the Overview tab".into())
-    })?;
+    let duration = duration_of(&work).ok_or_else(|| Error::refused("scene.noWorkDuration"))?;
 
     let scenes = for_work(conn, work_id)?;
     if scenes.is_empty() {
-        return Err(Error::Other("this board has no scenes to time".into()));
+        return Err(Error::refused("scene.noScenesToTime"));
     }
 
     let spans = timings(duration, scenes.len());
@@ -658,9 +664,7 @@ fn check_order(scenes: &[Scene], ids: &[String]) -> Result<()> {
         scenes.iter().map(|scene| scene.id.as_str()).collect();
     let named: std::collections::BTreeSet<&str> = ids.iter().map(String::as_str).collect();
     if named.len() != ids.len() || named != known {
-        return Err(Error::Other(
-            "renumbering a board names each of its scenes exactly once".into(),
-        ));
+        return Err(Error::refused("scene.renumberIncomplete"));
     }
     Ok(())
 }
@@ -691,12 +695,7 @@ pub fn parts_of_source(conn: &Connection, work_id: &str, role: &str) -> Result<u
     let donor = crate::link::sources(conn, work_id)?
         .into_iter()
         .find(|source| source.role == crate::link::DONOR)
-        .ok_or_else(|| {
-            Error::Other(format!(
-                "“{}” is not made from anything yet: link its source on the Links tab first",
-                work.title
-            ))
-        })?;
+        .ok_or_else(|| Error::refused("prompt.noDonor").param("title", work.title.clone()))?;
     let body = crate::work::version::latest(conn, &donor.source_id, role)?
         .map(|version| version.body)
         .unwrap_or_default();
@@ -730,43 +729,32 @@ pub fn frame_from_text(
     let work = crate::work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
 
     if count(conn, work_id)? > 0 {
-        return Err(Error::Other(
-            "this board already has scenes: empty it first to build a new frame".into(),
-        ));
+        return Err(Error::refused("scene.alreadyFramed"));
     }
 
     let donor = crate::link::sources(conn, work_id)?
         .into_iter()
         .find(|source| source.role == crate::link::DONOR)
-        .ok_or_else(|| {
-            Error::Other(format!(
-                "“{}” is not made from anything yet: link its source on the Links tab first",
-                work.title
-            ))
-        })?;
+        .ok_or_else(|| Error::refused("prompt.noDonor").param("title", work.title.clone()))?;
 
     let body = crate::work::version::latest(conn, &donor.source_id, role)?
         .map(|version| version.body)
         .ok_or_else(|| {
-            Error::Other(format!(
-                "“{}” has no {role} to read the parts from",
-                donor.source_title
-            ))
+            Error::refused("scene.sourceNoRole")
+                .param("title", donor.source_title.clone())
+                .param("role", role)
         })?;
 
     let sections = crate::work::version::sections(&body);
     if sections.is_empty() {
-        return Err(Error::Other(format!(
-            "“{}” marks no parts: name them in the text — [Verse 1], [Chorus] — and try again",
-            donor.source_title
-        )));
+        return Err(
+            Error::refused("scene.noPartsMarked").param("title", donor.source_title.clone())
+        );
     }
     if sections.len() != minted.len() {
-        return Err(Error::Other(format!(
-            "the text now marks {} parts, not {}: read it again rather than framing a board that does not match it",
-            sections.len(),
-            minted.len()
-        )));
+        return Err(Error::refused("scene.partsCountChanged")
+            .param("found", sections.len())
+            .param("expected", minted.len()));
     }
 
     let profile_id = work.profile_id.clone();
@@ -1153,7 +1141,7 @@ with no markers
             },
         )
         .unwrap_err();
-        assert!(err.to_string().contains("not a kind of shot"), "{err}");
+        assert_eq!(err.refusal().map(|r| r.code), Some("scene.unknownShotType"));
 
         let err = create(
             &conn,
@@ -1164,7 +1152,7 @@ with no markers
             },
         )
         .unwrap_err();
-        assert!(err.to_string().contains("not a prompt block"), "{err}");
+        assert_eq!(err.refusal().map(|r| r.code), Some("scene.unknownBlock"));
 
         let err = update(
             &conn,
@@ -1175,7 +1163,7 @@ with no markers
             },
         )
         .unwrap_err();
-        assert!(err.to_string().contains("not a kind of shot"), "{err}");
+        assert_eq!(err.refusal().map(|r| r.code), Some("scene.unknownShotType"));
     }
 
     #[test]
@@ -1242,7 +1230,7 @@ with no markers
             },
         )
         .unwrap_err();
-        assert!(err.to_string().contains("end before"), "{err}");
+        assert_eq!(err.refusal().map(|r| r.code), Some("scene.endsBeforeStart"));
 
         let made = create(
             &conn,
@@ -1262,8 +1250,9 @@ with no markers
             },
         )
         .unwrap_err();
-        assert!(
-            err.to_string().contains("end before"),
+        assert_eq!(
+            err.refusal().map(|r| r.code),
+            Some("scene.endsBeforeStart"),
             "the stored start counts: {err}"
         );
     }

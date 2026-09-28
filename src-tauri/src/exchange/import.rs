@@ -48,7 +48,7 @@ pub fn from_legacy(conn: &Connection, source: &Path, profile_id: &str) -> Result
 
 fn import(conn: &Connection, source: &Path, profile_id: &str) -> Result<ImportReport> {
     if !source.exists() {
-        return Err(Error::Other(format!("no database at {}", source.display())));
+        return Err(Error::refused("import.notFound").param("path", source.display().to_string()));
     }
 
     let legacy = Connection::open(source)?;
@@ -196,9 +196,7 @@ fn ensure_legacy_shape(legacy: &Connection) -> Result<()> {
     )?;
 
     if songs == 0 {
-        return Err(Error::Other(
-            "this database has no `songs` table — it is not a workspace kilna can import".into(),
-        ));
+        return Err(Error::refused("import.notASource"));
     }
     Ok(())
 }
@@ -590,7 +588,11 @@ mod tests {
 
         let error = from_legacy(&conn, &stranger, &profile_id).unwrap_err();
 
-        assert!(error.to_string().contains("songs"), "got {error}");
+        assert_eq!(
+            error.refusal().map(|r| r.code),
+            Some("import.notASource"),
+            "got {error}"
+        );
     }
 
     #[test]

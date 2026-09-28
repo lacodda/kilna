@@ -27,7 +27,8 @@ function ToastList() {
   return toasts.map((toast) => (
     <Toast key={toast.id} toast={toast}>
       <ToastTitle />
-      {toast.description !== undefined && <ToastDescription />}
+      {/* Line breaks kept: a batch names what it passed over one per line. */}
+      {toast.description !== undefined && <ToastDescription className="whitespace-pre-line" />}
       {toast.actionProps !== undefined && <ToastAction />}
       <ToastClose aria-label={t('dialog.close')} />
     </Toast>

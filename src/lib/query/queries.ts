@@ -20,7 +20,7 @@ import {
   previewCommentTask,
 } from '@/lib/api/comments'
 import { cutShotList, listCuts, listCutsFrom } from '@/lib/api/cuts'
-import { canExportPackage, workspacePath } from '@/lib/api/data'
+import { canExportPackage, logPath, workspacePath } from '@/lib/api/data'
 import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
 import { journalForWork, listJournal, unreadJournal } from '@/lib/api/journal'
 import { listLinks, resolveLinks } from '@/lib/api/links'
@@ -225,5 +225,6 @@ export const queries = {
 
   plugins: () => queryOptions({ queryKey: keys.plugins, queryFn: listPlugins }),
   workspacePath: () => queryOptions({ queryKey: keys.workspacePath, queryFn: workspacePath }),
+  logPath: () => queryOptions({ queryKey: keys.logPath, queryFn: logPath }),
   mcpRegistration: () => queryOptions({ queryKey: keys.mcpRegistration, queryFn: mcpRegistration }),
 }
