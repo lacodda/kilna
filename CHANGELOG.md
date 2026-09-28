@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.80.0] - 2026-09-28
+
+### Features
+- The card to the mockup
+
 ## [0.79.0] - 2026-09-28
 
 ### Features
