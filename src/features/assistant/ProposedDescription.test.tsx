@@ -100,8 +100,13 @@ describe("a style's description", () => {
     const answer = keep.closest('li')!
     expect(within(answer).getByText(TEXT)).toBeInTheDocument()
     // Its own button, not the note's or the version's: a second copy of the
-    // text would be a second truth about the brick.
-    expect(within(answer).queryByRole('button', { name: en.assistant.keepAsNote })).toBeNull()
+    // text would be a second truth about the brick. Since v0.81 those live
+    // in the answer's menu, which offers copying and nothing else here.
+    fireEvent.click(within(answer).getByRole('button', { name: en.assistant.answerMenu }))
+    expect(await screen.findByRole('menuitem', { name: en.assistant.copy })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: en.assistant.keepAsNote })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: en.assistant.insert })).toBeNull()
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
 
     await act(async () => fireEvent.click(keep))
     await settled(client)

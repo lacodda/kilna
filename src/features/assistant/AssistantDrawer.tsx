@@ -2,10 +2,9 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ArrowUpRight, MessageSquare, Plus, X } from 'lucide-react'
+import { MessageSquare, X } from 'lucide-react'
 import type { ChatSummary } from '@/lib/api/types'
 import { chatLabel } from '@/lib/chat'
-import { formatCost } from '@/lib/format'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useRunEvent } from '@/lib/runEvents'
@@ -14,20 +13,17 @@ import { announcement, movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Drawer as DrawerRoot, DrawerClose, DrawerPopup, DrawerTitle } from '@/components/ui/drawer'
-import { EmptyState } from '@/components/ui/empty-state'
-import { RowButton } from '@/components/ui/list-row'
-import { RowContextMenu, RowMenu, type RowAction } from '@/components/RowMenu'
-import { ChatMarks, useChatQuestions, useChats } from '@/features/assistant/chats'
-import { ChatView } from '@/features/assistant/ChatView'
+import { ChatSurface } from '@/features/assistant/ChatSurface'
 
 /**
  * The assistant from anywhere: a drawer with every chat of the profile, opened
  * by the button in the title bar (`AssistantButton`), which carries a badge
  * for runs in flight.
  *
- * The card's panel shows one work's chats; this is the other half of the
+ * The card's tab shows one work's chats; this is the other half of the
  * promise that a run belongs to its chat — wherever you are, what is running
- * is one click away, and a chat does not need a work to be about.
+ * is one click away, and a chat does not need a work to be about. Both are
+ * one `ChatSurface`.
  */
 export function AssistantLauncher({ children }: { children?: React.ReactNode }) {
   const { t } = useTranslation()
@@ -103,28 +99,22 @@ export function AssistantLauncher({ children }: { children?: React.ReactNode }) 
   )
 }
 
-/** Mounted per opening, so it always starts where the opening asked for. */
+/**
+ * The drawer itself: every chat of the profile down the side, the open one
+ * beside it. The same surface as the card's tab, with the list drawn as rows.
+ *
+ * Mounted per opening, so it always starts where the opening asked for.
+ */
 function Drawer({
   initialChat,
   onClose,
 }: {
-  /** A chat to open on, or null for the list. */
+  /** A chat to open on, or null for the latest. */
   initialChat: string | null
   onClose: () => void
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-
-  const [selected, setSelected] = useState<string | null>(initialChat)
-  const shared = useChats(undefined, {
-    onCreated: (chat) => setSelected(chat.id),
-    onRemoved: (id) => {
-      if (selected === id) setSelected(null)
-    },
-  })
-  const { ask, dialogs } = useChatQuestions(shared)
-  const chats = shared.chats
-  const current = chats.find((chat) => chat.id === selected)
 
   return (
     <DrawerRoot
@@ -134,153 +124,28 @@ function Drawer({
         if (!next) onClose()
       }}
     >
-      {/* A fixed header over a scrolling body, the drawer's own anatomy - the
-          header here carries the back arrow and the work link as well. */}
-      <DrawerPopup className="w-[min(28rem,100vw)] bg-bg">
-        <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-          {current !== undefined && (
-            <Button
-              variant="icon"
-              size="icon-sm"
-              aria-label={t('assistant.back')}
-              title={t('assistant.back')}
-              onClick={() => {
-                setSelected(null)
-              }}
+      {/* Wide enough for the list and a conversation beside it: at the width
+          of a side panel the chat was a column of three words a line, and the
+          list had to be left for it. */}
+      <DrawerPopup size="xl" className="bg-bg p-4">
+        <ChatSurface
+          list="side"
+          initialChat={initialChat}
+          title={<DrawerTitle className="text-sm">{t('assistant.title')}</DrawerTitle>}
+          end={
+            <DrawerClose
+              render={<Button variant="icon" size="icon-sm" aria-label={t('dialog.close')} />}
             >
-              <ArrowLeft aria-hidden />
-            </Button>
-          )}
-          <DrawerTitle className="truncate text-sm font-semibold">
-            {current === undefined
-              ? t('assistant.title')
-              : chatLabel(current, t('assistant.untitled'))}
-          </DrawerTitle>
-
-          {current?.work_id != null && (
-            <Button
-              variant="icon"
-              size="icon-sm"
-              aria-label={t('assistant.openWork')}
-              title={t('assistant.openWork')}
-              onClick={() => {
-                onClose()
-                void navigate(`/works/${current.work_id}/assistant`)
-              }}
-            >
-              <ArrowUpRight aria-hidden />
-            </Button>
-          )}
-
-          <DrawerClose
-            render={
-              <Button
-                className="ml-auto"
-                variant="icon"
-                size="icon-sm"
-                aria-label={t('dialog.close')}
-              />
-            }
-          >
-            <X aria-hidden />
-          </DrawerClose>
-        </div>
-
-        {current === undefined ? (
-          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
-            {shared.status != null && !shared.status.available && (
-              <p className="rounded-xl border border-dashed border-line p-3 text-sm text-dim">
-                {shared.status.reason ?? t('assistant.unavailable')}
-              </p>
-            )}
-
-            <Button
-              size="sm"
-              className="self-start"
-              disabled={shared.create.isPending}
-              onClick={() => {
-                shared.create.mutate()
-              }}
-            >
-              <Plus aria-hidden className="size-3.5" />
-              {t('assistant.newChat')}
-            </Button>
-
-            {chats.length === 0 && !shared.pending && (
-              <EmptyState title={t('assistant.noChatsTitle')} body={t('assistant.noChats')} />
-            )}
-
-            <ul className="flex flex-col gap-1">
-              {chats.map((chat) => {
-                // One list for both ways in: the three dots and the right click.
-                const actions: RowAction[] = [
-                  {
-                    key: 'rename',
-                    label: t('assistant.rename'),
-                    onSelect: () => {
-                      ask.rename(chat)
-                    },
-                  },
-                  {
-                    key: 'delete',
-                    label: t('assistant.delete'),
-                    danger: true,
-                    onSelect: () => {
-                      ask.remove(chat.id)
-                    },
-                  },
-                ]
-                const running = shared.running.has(chat.id)
-                const waiting = chat.waiting_since !== undefined
-                // What the chat is about and what it has cost, under its name.
-                const about = [
-                  chat.work_title ?? '',
-                  chat.cost_usd > 0 ? formatCost(chat.cost_usd) : '',
-                ]
-                  .filter((part) => part !== '')
-                  .join(' · ')
-
-                return (
-                  <RowContextMenu
-                    key={chat.id}
-                    actions={actions}
-                    render={
-                      <li className="flex items-center gap-1 rounded-md data-[popup-open]:bg-soft" />
-                    }
-                  >
-                    <RowButton
-                      onClick={() => {
-                        setSelected(chat.id)
-                      }}
-                      className="flex-1"
-                      // The marks only when there is one: an empty slot would
-                      // still take its gap and push the title off the others.
-                      start={
-                        running || waiting ? (
-                          <span className="flex items-center gap-1.5">
-                            <ChatMarks chat={chat} running={running} />
-                          </span>
-                        ) : undefined
-                      }
-                      description={about === '' ? undefined : about}
-                    >
-                      {chatLabel(chat, t('assistant.untitled'))}
-                    </RowButton>
-                    <RowMenu label={t('assistant.chatMenu')} actions={actions} />
-                  </RowContextMenu>
-                )
-              })}
-            </ul>
-          </div>
-        ) : (
-          // The chat lays itself out against the drawer's height: its exchange
-          // scrolls, its composer stands at the foot.
-          <div className="flex min-h-0 flex-1 flex-col p-4">
-            <ChatView key={current.id} chatId={current.id} workId={current.work_id ?? undefined} />
-          </div>
-        )}
-
-        {dialogs}
+              <X aria-hidden />
+            </DrawerClose>
+          }
+          // The drawer goes as the card comes: a work opened behind a modal
+          // panel would be a screen nobody can reach until it is closed.
+          onOpenWork={(workId) => {
+            onClose()
+            void navigate(`/works/${workId}/assistant`)
+          }}
+        />
       </DrawerPopup>
     </DrawerRoot>
   )

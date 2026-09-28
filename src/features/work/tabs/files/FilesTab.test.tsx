@@ -37,15 +37,13 @@ beforeEach(() => {
 describe('a file on the card', () => {
   it('is tagged as the cover when it is one', async () => {
     renderApp(`/works/${IDS.song}/files`)
-    const tile = (await screen.findByText('lanterns-cover.png', {}, { timeout: 5000 })).closest(
-      'li',
-    )!
+    const tile = (await screen.findByText('lanterns-cover.png')).closest('li')!
     expect(within(tile).getByText(en.files.cover)).toBeVisible()
   })
 
   it('is removed only once the question is answered', async () => {
     const { client } = renderApp(`/works/${IDS.song}/files`)
-    await screen.findByText('lanterns-cover.png', {}, { timeout: 5000 })
+    await screen.findByText('lanterns-cover.png')
     await settled(client)
 
     fireEvent.click(screen.getByRole('button', { name: en.files.detach }))

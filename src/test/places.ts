@@ -39,7 +39,9 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.song, 'history', '“Paper Lanterns” scored 7.5.'],
   [IDS.video, 'overview', 'Paper Lanterns (clip)'],
   [IDS.video, 'versions', 'A girl lets a paper lantern go at dusk'],
-  [IDS.video, 'scenes', 'The lantern drifts under the bridge.'],
+  // A heading of the board, drawn only once its scenes have arrived: since
+  // v0.81 every cell is a field, and what a scene says is a field's value.
+  [IDS.video, 'scenes', en.scenes.readiness],
   [IDS.video, 'cuts', 'Paper Lanterns'],
   [IDS.video, 'score', 'Paper Lanterns (clip)'],
   [IDS.video, 'releases', 'Paper Lanterns (clip)'],

@@ -3,8 +3,7 @@ import type { Applied, WorkProposal } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
 import { useApplyProposal } from '@/lib/useApplyProposal'
 import { say, useProfile, vocabularyOf } from '@/lib/useProfile'
-import { Button } from '@/components/ui/button'
-import { AppliedMark } from '@/features/assistant/AppliedMark'
+import { ProposalCard } from '@/features/assistant/ProposalCard'
 
 interface Props {
   /** The work the chat is on; absent when the package proposes a new one. */
@@ -13,6 +12,8 @@ interface Props {
   proposal: WorkProposal
   /** Set once somebody applied it; read from the message. */
   applied: Applied | null
+  /** Set once somebody turned it down; read from the message. */
+  dismissed: boolean
 }
 
 /**
@@ -25,7 +26,7 @@ interface Props {
  * click, and the mark then links to it — the chat is on nothing, and the
  * work is what was made.
  */
-export function ProposedWork({ workId, messageId, proposal, applied }: Props) {
+export function ProposedWork({ workId, messageId, proposal, applied, dismissed }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const fresh = workId === undefined
@@ -56,13 +57,19 @@ export function ProposedWork({ workId, messageId, proposal, applied }: Props) {
   const parts: string[] = []
   if (versions.length > 0) {
     const roles = versions
-      .map((v) => vocabulary.version_roles.find((r) => r.key === v.role)?.label ?? v.role)
+      .map((v) => {
+        const label = vocabulary.version_roles.find((r) => r.key === v.role)?.label
+        return label === undefined ? v.role : say(label)
+      })
       .join(', ')
     parts.push(t('assistant.packageVersions', { count: versions.length, roles }))
   }
   if (fields.length > 0) {
     const labels = fields
-      .map((key) => profile.config.work_meta_fields.find((f) => f.key === key)?.label ?? key)
+      .map((key) => {
+        const label = profile.config.work_meta_fields.find((f) => f.key === key)?.label
+        return label === undefined ? key : say(label)
+      })
       .join(', ')
     parts.push(t('assistant.packageFields', { fields: labels }))
   }
@@ -75,49 +82,36 @@ export function ProposedWork({ workId, messageId, proposal, applied }: Props) {
 
   const unknownFields = proposal.unknown_fields ?? []
   const unknownAxes = proposal.score?.unknown ?? []
+  const warnings = [
+    ...(unknownFields.length > 0
+      ? [t('assistant.packageUnknownFields', { fields: unknownFields.join(', ') })]
+      : []),
+    ...(unknownAxes.length > 0
+      ? [t('assistant.scoreUnknown', { axes: unknownAxes.join(', ') })]
+      : []),
+  ]
 
   return (
-    <div className="mx-3 flex flex-col gap-1.5 rounded-xl border border-line bg-soft px-3 py-2 text-sm">
-      <p className="text-xs font-semibold text-dim">
-        {fresh ? t('assistant.proposedWork') : t('assistant.proposedPackage')}
-        {fresh && proposal.title !== undefined && (
-          <>
-            {' · '}
-            <b className="text-text">{proposal.title}</b>
-            {kindLabel !== '' && <span className="font-normal"> · {kindLabel}</span>}
-          </>
-        )}
-      </p>
-      {parts.length > 0 && <p className="text-xs text-dim">{parts.join(' · ')}</p>}
-      {unknownFields.length > 0 && (
-        <p className="text-xs text-warn">
-          {t('assistant.packageUnknownFields', { fields: unknownFields.join(', ') })}
+    <ProposalCard
+      messageId={messageId}
+      title={fresh ? t('assistant.proposedWork') : t('assistant.proposedPackage')}
+      warnings={warnings}
+      applied={applied}
+      dismissed={dismissed}
+      applyLabel={t(fresh ? 'assistant.createWork' : 'assistant.applyPackage')}
+      onApply={() => {
+        apply.mutate(undefined)
+      }}
+      applying={apply.isPending}
+      appliedLabel={t(fresh ? 'assistant.workCreatedMark' : 'assistant.packageAppliedMark')}
+    >
+      {fresh && proposal.title !== undefined && (
+        <p>
+          <b className="font-semibold text-text">{proposal.title}</b>
+          {kindLabel !== '' && <> · {kindLabel}</>}
         </p>
       )}
-      {unknownAxes.length > 0 && (
-        <p className="text-xs text-warn">
-          {t('assistant.scoreUnknown', { axes: unknownAxes.join(', ') })}
-        </p>
-      )}
-      <div className="flex justify-end">
-        {applied !== null ? (
-          <AppliedMark
-            applied={applied}
-            label={t(fresh ? 'assistant.workCreatedMark' : 'assistant.packageAppliedMark')}
-          />
-        ) : (
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={apply.isPending}
-            onClick={() => {
-              apply.mutate(undefined)
-            }}
-          >
-            {t(fresh ? 'assistant.createWork' : 'assistant.applyPackage')}
-          </Button>
-        )}
-      </div>
-    </div>
+      {parts.length > 0 && <p>{parts.join(' · ')}</p>}
+    </ProposalCard>
   )
 }

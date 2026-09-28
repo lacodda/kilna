@@ -4,7 +4,7 @@ import { keys } from '@/lib/query/keys'
 import { useApplyProposal } from '@/lib/useApplyProposal'
 import { say, useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
-import { AppliedMark } from '@/features/assistant/AppliedMark'
+import { ProposalCard } from '@/features/assistant/ProposalCard'
 
 interface Props {
   workId: string
@@ -12,6 +12,8 @@ interface Props {
   proposal: VersionProposal
   /** Set once somebody applied it; read from the message. */
   applied: Applied | null
+  /** Set once somebody turned it down; read from the message. */
+  dismissed: boolean
   /** Opens the dialog for a person who wants another role, a name, or to
    * make it current on the way in. */
   onChoose: () => void
@@ -25,7 +27,14 @@ interface Props {
  * default. The dialog is one click further for the person who wants to
  * change any of that first.
  */
-export function ProposedVersion({ workId, messageId, proposal, applied, onChoose }: Props) {
+export function ProposedVersion({
+  workId,
+  messageId,
+  proposal,
+  applied,
+  dismissed,
+  onChoose,
+}: Props) {
   const { t } = useTranslation()
   const roles = useVocabulary(workId).version_roles
   const roleLabel = roles.find((r) => r.key === proposal.role)?.label
@@ -38,10 +47,24 @@ export function ProposedVersion({ workId, messageId, proposal, applied, onChoose
   })
 
   return (
-    <div className="mx-3 flex flex-wrap items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm">
-      <span className="text-dim">
-        {t('assistant.proposedVersion')}
-        {' · '}
+    <ProposalCard
+      messageId={messageId}
+      title={t('assistant.proposedVersion')}
+      applied={applied}
+      dismissed={dismissed}
+      applyLabel={t('assistant.insert')}
+      onApply={() => {
+        apply.mutate(undefined)
+      }}
+      applying={apply.isPending}
+      more={
+        <Button size="sm" variant="ghost" disabled={apply.isPending} onClick={onChoose}>
+          {t('assistant.insertChoose')}
+        </Button>
+      }
+      appliedLabel={t('assistant.versionKept')}
+    >
+      <p>
         <b className="font-semibold text-text">{role}</b>
         {proposal.label !== undefined && proposal.label !== '' && (
           <>
@@ -49,28 +72,7 @@ export function ProposedVersion({ workId, messageId, proposal, applied, onChoose
             {proposal.label}
           </>
         )}
-      </span>
-      <span className="ml-auto flex items-center gap-1.5">
-        {applied !== null ? (
-          <AppliedMark applied={applied} label={t('assistant.versionKept')} />
-        ) : (
-          <>
-            <Button size="sm" disabled={apply.isPending} onClick={onChoose}>
-              {t('assistant.insertChoose')}
-            </Button>
-            <Button
-              size="sm"
-              variant="primary"
-              disabled={apply.isPending}
-              onClick={() => {
-                apply.mutate(undefined)
-              }}
-            >
-              {t('assistant.insert')}
-            </Button>
-          </>
-        )}
-      </span>
-    </div>
+      </p>
+    </ProposalCard>
   )
 }

@@ -4,7 +4,7 @@ import type { Applied, ScenesProposal } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
 import { useApplyProposal } from '@/lib/useApplyProposal'
 import { Button } from '@/components/ui/button'
-import { AppliedMark } from '@/features/assistant/AppliedMark'
+import { ProposalCard } from '@/features/assistant/ProposalCard'
 
 interface Props {
   /** The work the chat is on: a storyboard is always for one. */
@@ -13,6 +13,8 @@ interface Props {
   proposal: ScenesProposal
   /** Set once somebody applied it; read from the message. */
   applied: Applied | null
+  /** Set once somebody turned it down; read from the message. */
+  dismissed: boolean
 }
 
 /**
@@ -23,16 +25,15 @@ interface Props {
  * The decision differs by what the agent asked: *add to the board* keeps
  * what is there and numbers the new scenes after it, *replace the board*
  * rewrites a scene with the same number in place and sends the rest to the
- * trash — said under the button, because a replaced board is not undone
+ * trash — said above the button, because a replaced board is not undone
  * with one Ctrl+Z. Once applied, the board is one click away.
  */
-export function ProposedScenes({ workId, messageId, proposal, applied }: Props) {
+export function ProposedScenes({ workId, messageId, proposal, applied, dismissed }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   // A proposal stored by v0.62 said `replace: true` where v0.64 says
   // `change: 'replace'`; read as it was meant.
   const change = proposal.change ?? (proposal.replace === true ? 'replace' : 'add')
-  const replace = change === 'replace'
   const words = {
     add: {
       title: 'assistant.proposedScenes',
@@ -61,44 +62,31 @@ export function ProposedScenes({ workId, messageId, proposal, applied }: Props) 
   })
 
   return (
-    <div className="mx-3 flex flex-col gap-1.5 rounded-xl border border-line bg-soft px-3 py-2 text-sm">
-      <p className="text-xs font-semibold text-dim">
-        {t(words.title)}
-        {' · '}
-        <span className="font-normal">
-          {t('assistant.packageScenes', { count: proposal.scenes.length })}
-        </span>
-      </p>
-      {replace && applied === null && (
-        <p className="text-xs text-warn">{t('assistant.scenesReplaceHint')}</p>
-      )}
-      <div className="flex items-center justify-end gap-2">
-        {applied !== null ? (
-          <>
-            <AppliedMark applied={applied} label={t(words.mark)} />
-            <Button
-              size="xs"
-              variant="ghost"
-              onClick={() => {
-                void navigate(`/works/${workId}/scenes`)
-              }}
-            >
-              {t('assistant.openBoard')}
-            </Button>
-          </>
-        ) : (
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={apply.isPending}
-            onClick={() => {
-              apply.mutate(undefined)
-            }}
-          >
-            {t(words.button)}
-          </Button>
-        )}
-      </div>
-    </div>
+    <ProposalCard
+      messageId={messageId}
+      title={t(words.title)}
+      warnings={change === 'replace' ? [t('assistant.scenesReplaceHint')] : []}
+      applied={applied}
+      dismissed={dismissed}
+      applyLabel={t(words.button)}
+      onApply={() => {
+        apply.mutate(undefined)
+      }}
+      applying={apply.isPending}
+      appliedLabel={t(words.mark)}
+      afterApplied={
+        <Button
+          size="xs"
+          variant="ghost"
+          onClick={() => {
+            void navigate(`/works/${workId}/scenes`)
+          }}
+        >
+          {t('assistant.openBoard')}
+        </Button>
+      }
+    >
+      <p>{t('assistant.packageScenes', { count: proposal.scenes.length })}</p>
+    </ProposalCard>
   )
 }

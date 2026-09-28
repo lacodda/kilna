@@ -9,17 +9,20 @@ import {
   clearSceneFrame,
   detachSceneFrame,
   pasteSceneFrame,
+  reorderSceneFrames,
   selectSceneFrame,
 } from '@/lib/api/scenes'
 import type { SceneFrame } from '@/lib/api/types'
 import i18n from '@/i18n'
+import { landsOn } from '@/lib/drop'
 import { CLIPS, PICTURES } from '@/lib/media'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
-import { VIDEO } from '@/lib/scenes'
+import { movedTo, VIDEO } from '@/lib/scenes'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ReorderGrip, ReorderIndicator, useReorder } from '@/components/ui/reorderable-list'
 
 interface Props {
   workId: string
@@ -35,7 +38,7 @@ interface Props {
 }
 
 /**
- * The pictures drawn for one scene: a strip of candidates, one of them chosen.
+ * The pictures drawn for one scene: a list of candidates, one of them chosen.
  *
  * Three ways in, because a picture arrives three ways and each is the cheapest
  * for its case. A file on disk comes through the picker. A file dragged from a
@@ -50,13 +53,18 @@ interface Props {
  * of its strips. A drop is the strip's when it lands on it: the event carries
  * the pointer's position. A paste has no position, so it is the scene the
  * person is working in - the one holding the focus, or the only one open.
+ *
+ * The candidates stand in a column since v0.81, each on a row with its grip,
+ * because their order is the person's to set - the one to try first on top -
+ * and the line's way to reorder a list is a grip on a row: the pointer drags
+ * it, Alt with an arrow moves it from the keyboard.
  */
 export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: Props) {
   const { t } = useTranslation()
   // One component for both strips rather than a copy of it for clips: they
   // differ in the words, the file extensions and the element that draws a
   // thumbnail, and in nothing else - the same three doors in, the same
-  // choosing, the same removal.
+  // choosing, the same removal, the same order.
   const isVideo = kind === VIDEO
   const word = (key: string, values?: Record<string, unknown>) =>
     t(isVideo ? `scenes.video.${key}` : `scenes.${key}`, values ?? {})
@@ -94,6 +102,21 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
     refresh: REFRESHED,
   })
 
+  // The whole order of this kind travels, as the board's does: the backend
+  // checks it names every picture of the scene once, and a list built from
+  // the one that moved would be refused for the rest - rightly.
+  const reorder = useAppMutation({
+    mutationFn: (ids: string[]) => reorderSceneFrames(sceneId, kind, ids),
+    refresh: REFRESHED,
+  })
+
+  const ids = frames.map((frame) => frame.id)
+  const order = useReorder({
+    order: ids,
+    onMove: (id, to) => reorder.mutate(movedTo(ids, id, to)),
+    disabled: reorder.isPending,
+  })
+
   const pick = async () => {
     const chosen = await open({
       multiple: false,
@@ -115,7 +138,11 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
           setOver(false)
           return
         }
-        const here = under(region.current, payload.position)
+        const here = landsOn(
+          region.current?.getBoundingClientRect(),
+          payload.position,
+          window.devicePixelRatio,
+        )
         if (payload.type === 'over' || payload.type === 'enter') {
           setOver(here)
           return
@@ -176,12 +203,12 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
       ref={region}
       data-scene-strip={kind}
       className={cn(
-        'rounded-md border border-dashed p-2 transition-colors',
-        over ? 'border-accent bg-accent/5' : 'border-line',
+        'flex flex-col gap-2 rounded-md border border-dashed p-2 transition-colors',
+        over ? 'border-accent bg-accent-soft' : 'border-line',
       )}
     >
-      <div className="mb-2 flex items-center gap-2">
-        <span className="text-xs font-medium text-dim">{word('frames')}</span>
+      <div className="flex items-center gap-2">
+        <span className="caption">{word('frames')}</span>
         <Button size="sm" variant="ghost" onClick={() => void pick()} disabled={attach.isPending}>
           <ImagePlus aria-hidden />
           {word('addFrame')}
@@ -196,53 +223,70 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
       {frames.length === 0 ? (
         <p className="text-xs text-dim">{over ? word('dropFrame') : word('addFrameHint')}</p>
       ) : (
-        <ul className="flex flex-wrap gap-2">
-          {frames.map((frame) => (
-            <li key={frame.id} className="group relative">
-              {/* eslint-disable-next-line dowel/no-raw-button -- a thumbnail: the picture is the control and its border is the chosen state; no primitive draws a pressable picture */}
-              <button
-                type="button"
-                onClick={() => onOpen(frame)}
+        // The line where a picture would land is drawn against this box, so
+        // it holds the list rather than standing inside it.
+        <div {...order.listProps} className="relative">
+          <ul className="flex flex-col gap-1">
+            {frames.map((frame) => (
+              <li
+                key={frame.id}
+                {...order.rowProps(frame.id)}
                 className={cn(
-                  'block overflow-hidden rounded border bg-surface-2',
-                  frame.is_selected ? 'border-good ring-1 ring-good' : 'border-line',
+                  'flex items-center gap-2',
+                  order.dragging === frame.id && 'opacity-50',
                 )}
-                title={frame.original_name ?? word('openFrame')}
               >
-                {/* Contained, never cropped: a frame may be wide or tall and
-                    a common crop would misrepresent one of them. */}
-                {isVideo ? (
-                  // Muted, and not preloaded past its first frame: a strip of
-                  // four clips that each fetched themselves whole would spend
-                  // the board's memory on pictures of their opening second,
-                  // which is all that is shown here.
-                  <video
-                    src={fileSrc(frame.path)}
-                    muted
-                    preload="metadata"
-                    className="size-24 bg-surface-2 object-contain"
-                  />
+                {/* A grip only where there is somewhere to move to. */}
+                {frames.length > 1 ? (
+                  <ReorderGrip {...order.gripProps(frame.id)} title={word('moveFrame')} />
                 ) : (
-                  <img
-                    src={fileSrc(frame.path)}
-                    alt={frame.original_name ?? ''}
-                    className="size-24 object-contain"
-                  />
+                  <span aria-hidden className="w-3.5 shrink-0" />
                 )}
-              </button>
+                {/* eslint-disable-next-line dowel/no-raw-button -- a thumbnail: the picture is the control and its border is the chosen state; no primitive draws a pressable picture */}
+                <button
+                  type="button"
+                  onClick={() => onOpen(frame)}
+                  className={cn(
+                    'block shrink-0 overflow-hidden rounded border bg-soft',
+                    frame.is_selected ? 'border-good ring-1 ring-good' : 'border-line',
+                  )}
+                  title={frame.original_name ?? word('openFrame')}
+                >
+                  {/* Contained, never cropped: a frame may be wide or tall and
+                      a common crop would misrepresent one of them. */}
+                  {isVideo ? (
+                    // Muted, and not preloaded past its first frame: a list
+                    // of four clips that each fetched themselves whole would
+                    // spend the board's memory on pictures of their opening
+                    // second, which is all that is shown here.
+                    <video
+                      src={fileSrc(frame.path)}
+                      muted
+                      preload="metadata"
+                      className="size-20 object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={fileSrc(frame.path)}
+                      alt={frame.original_name ?? ''}
+                      className="size-20 object-contain"
+                    />
+                  )}
+                </button>
+                <span className="min-w-0 flex-1 truncate text-xs text-dim">
+                  {frame.original_name ?? ''}
+                </span>
 
-              {/* Buttons, not bare elements with a quarter of a line of
-                  padding: these were ~14px targets on a strip that appears
-                  under the pointer, which is a hard thing to hit and the
-                  reason the owner called them cramped. `icon-sm` is the
-                  line's smallest real control. */}
-              <div className="absolute inset-x-0 bottom-0 flex justify-between gap-0.5 bg-surface/80 px-1 py-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                {/* Always there, at the end of the row: on the strip of
+                    v0.69 they appeared over the thumbnail under the pointer
+                    and were hard to hit - the owner called them cramped. */}
                 <Button
                   variant="icon"
                   size="icon-sm"
                   onClick={() => choose.mutate(frame.id)}
                   title={frame.is_selected ? word('chosenFrame') : word('chooseFrame')}
                   aria-label={frame.is_selected ? word('chosenFrame') : word('chooseFrame')}
+                  aria-pressed={frame.is_selected}
                   className={cn(frame.is_selected && 'text-good')}
                 >
                   <Check aria-hidden />
@@ -266,26 +310,14 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
                 >
                   <Trash2 aria-hidden />
                 </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+          <ReorderIndicator offset={order.slotOffset} />
+        </div>
       )}
     </div>
   )
-}
-
-/**
- * Whether a point the window reported - in physical pixels, from the drag
- * event - falls on an element. A strip that is not mounted is under nothing.
- */
-function under(element: HTMLElement | null, position: { x: number; y: number }): boolean {
-  if (element === null) return false
-  const scale = window.devicePixelRatio || 1
-  const x = position.x / scale
-  const y = position.y / scale
-  const box = element.getBoundingClientRect()
-  return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom
 }
 
 /**

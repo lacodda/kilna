@@ -20,7 +20,7 @@ import {
   previewCommentTask,
 } from '@/lib/api/comments'
 import { cutShotList, listCuts, listCutsFrom } from '@/lib/api/cuts'
-import { workspacePath } from '@/lib/api/data'
+import { canExportPackage, workspacePath } from '@/lib/api/data'
 import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
 import { journalForWork, listJournal, unreadJournal } from '@/lib/api/journal'
 import { listLinks, resolveLinks } from '@/lib/api/links'
@@ -98,6 +98,15 @@ export const queries = {
     queryOptions({ queryKey: keys.sceneNotesFor(workId), queryFn: () => listSceneNotes(workId) }),
   sceneFrames: (workId: string) =>
     queryOptions({ queryKey: keys.sceneFramesFor(workId), queryFn: () => listSceneFrames(workId) }),
+  // Asked afresh whenever the board is opened: the other half of the answer
+  // is what a release goes out as, written on another tab under another
+  // prefix, and a button hanging on a stale no would stay hidden after it.
+  canExportPackage: (workId: string) =>
+    queryOptions({
+      queryKey: keys.scenePackageFor(workId),
+      queryFn: () => canExportPackage(workId),
+      staleTime: 0,
+    }),
 
   cuts: (workId: string) =>
     queryOptions({ queryKey: keys.cutsFor(workId), queryFn: () => listCuts(workId) }),

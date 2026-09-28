@@ -9,13 +9,15 @@ import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { PromptDialog } from '@/components/AppDialog'
 import { ConfirmAction } from '@/components/ConfirmAction'
+import type { RowAction } from '@/components/RowMenu'
 
 /*
  * The chats, as both places that list them read them: the drawer from the
  * title bar holds every chat of the profile, a card's Assistant tab holds its
  * work's. Until v0.77 each wrote the same queries, the same three writes and
- * the same two dialogs for itself; what differs now is only how the list is
- * drawn - rows in the drawer, chips on the tab.
+ * the same two dialogs for itself; since v0.81 both are one `ChatSurface`,
+ * and what differs is only how the list is drawn - rows down the side of the
+ * drawer, chips across the top of the tab (`ChatList`).
  */
 
 /**
@@ -92,9 +94,16 @@ export function ChatMarks({ chat, running }: { chat: ChatSummary; running: boole
 
 /**
  * Renaming a chat and deleting one, as the menus of both lists ask for them.
- * `ask.rename(chat)` and `ask.remove(id)` open the questions.
+ * `actionsOf(chat)` is the menu - one list for the three dots and the right
+ * click, and for the chips and the rows alike, so neither can offer what the
+ * other does not - and `dialogs` the questions its items open. `onOpenWork`,
+ * where it is given, adds the way to the chat's work: the drawer holds chats
+ * about every work, the card's tab only its own.
  */
-export function useChatQuestions(chats: ReturnType<typeof useChats>) {
+export function useChatQuestions(
+  chats: ReturnType<typeof useChats>,
+  { onOpenWork }: { onOpenWork?: (workId: string) => void } = {},
+) {
   const { t } = useTranslation()
   const [renaming, setRenaming] = useState<ChatSummary | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
@@ -135,5 +144,23 @@ export function useChatQuestions(chats: ReturnType<typeof useChats>) {
     </>
   )
 
-  return { ask: { rename: setRenaming, remove: setRemoving }, dialogs }
+  const actionsOf = (chat: ChatSummary): RowAction[] => {
+    const work = chat.work_id
+    const toWork: RowAction[] =
+      onOpenWork === undefined || work === null
+        ? []
+        : [{ key: 'work', label: t('assistant.openWork'), onSelect: () => onOpenWork(work) }]
+    return [
+      ...toWork,
+      { key: 'rename', label: t('assistant.rename'), onSelect: () => setRenaming(chat) },
+      {
+        key: 'delete',
+        label: t('assistant.delete'),
+        danger: true,
+        onSelect: () => setRemoving(chat.id),
+      },
+    ]
+  }
+
+  return { actionsOf, dialogs }
 }

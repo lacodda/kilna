@@ -2,13 +2,14 @@ import { useTranslation } from 'react-i18next'
 import type { Applied } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
 import { useApplyProposal } from '@/lib/useApplyProposal'
-import { Button } from '@/components/ui/button'
-import { AppliedMark } from '@/features/assistant/AppliedMark'
+import { ProposalCard } from '@/features/assistant/ProposalCard'
 
 interface Props {
   messageId: string
   /** Set once somebody applied it; read from the message. */
   applied: Applied | null
+  /** Set once somebody turned it down; read from the message. */
+  dismissed: boolean
 }
 
 /**
@@ -21,7 +22,7 @@ interface Props {
  * leaves its draft. Until v0.77 the answer could only be copied by hand: the
  * command that kept it had no button.
  */
-export function ProposedDescription({ messageId, applied }: Props) {
+export function ProposedDescription({ messageId, applied, dismissed }: Props) {
   const { t } = useTranslation()
 
   const keep = useApplyProposal({
@@ -31,24 +32,17 @@ export function ProposedDescription({ messageId, applied }: Props) {
   })
 
   return (
-    <div className="mx-3 flex flex-wrap items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm">
-      <span className="text-dim">{t('assistant.proposedDescription')}</span>
-      <span className="ml-auto">
-        {applied !== null ? (
-          <AppliedMark applied={applied} label={t('assistant.descriptionKept')} />
-        ) : (
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={keep.isPending}
-            onClick={() => {
-              keep.mutate(undefined)
-            }}
-          >
-            {t('assistant.keepDescription')}
-          </Button>
-        )}
-      </span>
-    </div>
+    <ProposalCard
+      messageId={messageId}
+      title={t('assistant.proposedDescription')}
+      applied={applied}
+      dismissed={dismissed}
+      applyLabel={t('assistant.keepDescription')}
+      onApply={() => {
+        keep.mutate(undefined)
+      }}
+      applying={keep.isPending}
+      appliedLabel={t('assistant.descriptionKept')}
+    />
   )
 }

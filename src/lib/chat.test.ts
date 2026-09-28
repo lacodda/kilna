@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Message, Run } from '@/lib/api/types'
-import { chatLabel, conversation, pending } from '@/lib/chat'
+import { chatLabel, conversation, offers, pending, shownChat } from '@/lib/chat'
 
 let counter = 0
 const message = (
@@ -296,5 +296,96 @@ describe('pending', () => {
     )
     expect(items[0]?.answer?.applied).toBeNull()
     expect(pending(items)).toHaveLength(1)
+  })
+
+  it('skips a proposal somebody turned down', () => {
+    // The backend's *apply all* leaves a refused proposal alone; the count
+    // over the button has to say the same, or it promises one too many.
+    const items = conversation(
+      [
+        message('assistant', 'refused', '2026-01-01T00:00:00Z', {
+          proposal: { kind: 'note' },
+          dismissed: '2026-01-01T00:00:05Z',
+        }),
+        message('assistant', 'wanted', '2026-01-01T00:00:01Z', { proposal: { kind: 'note' } }),
+      ],
+      [],
+    )
+
+    expect(items[0]?.answer?.dismissed).toBe('2026-01-01T00:00:05Z')
+    expect(items[1]?.answer?.dismissed).toBeNull()
+    expect(pending(items).map((item) => item.answer?.body)).toEqual(['wanted'])
+  })
+})
+
+describe('offers', () => {
+  const answered = (meta: Record<string, unknown> = {}, partial: Partial<Run> = {}) =>
+    conversation(
+      [
+        message('user', 'ask', '2026-01-01T00:00:00Z', { run_id: 'r9' }),
+        message('assistant', 'answer', '2026-01-01T00:00:01Z', { run_id: 'r9', ...meta }),
+      ],
+      [run('r9', 'ask', '2026-01-01T00:00:00Z', partial)],
+    )[0]!
+
+  it('offers inserting and keeping a plain answer, inserting only on a work', () => {
+    expect(offers(answered(), true)).toEqual({ insert: true, keep: true })
+    expect(offers(answered(), false)).toEqual({ insert: false, keep: true })
+  })
+
+  it('offers nothing while the answer is still growing', () => {
+    expect(offers(answered({}, { state: 'running' }), true)).toEqual({
+      insert: false,
+      keep: false,
+    })
+  })
+
+  it('leaves a proposal with a card of its own to that card', () => {
+    const own = [
+      { kind: 'version', role: 'lyrics' },
+      { kind: 'work', title: 'Winter road' },
+      { kind: 'scenes', scenes: [] },
+      { kind: 'reply', comment_id: 'c1' },
+      { kind: 'comment', channel: 'main', body: 'nice' },
+      { kind: 'description', style_id: 's1' },
+    ]
+    for (const proposal of own) {
+      expect(offers(answered({ proposal }), true), proposal.kind).toEqual({
+        insert: false,
+        keep: false,
+      })
+    }
+  })
+
+  it('does not keep a proposed note twice, and still lets a score be inserted', () => {
+    expect(offers(answered({ proposal: { kind: 'note' } }), true)).toEqual({
+      insert: true,
+      keep: false,
+    })
+    expect(offers(answered({ proposal: { kind: 'score', axes: { hook: 8 } } }), true)).toEqual({
+      insert: true,
+      keep: true,
+    })
+  })
+})
+
+describe('shownChat', () => {
+  const list = [{ id: 'newest' }, { id: 'older' }]
+
+  it('shows the chosen chat while the list has it', () => {
+    expect(shownChat(list, 'older', null)).toBe('older')
+  })
+
+  it('falls back to the latest when the chosen one is gone, and to none on no chats', () => {
+    expect(shownChat(list, 'deleted', null)).toBe('newest')
+    expect(shownChat(list, null, null)).toBe('newest')
+    expect(shownChat([], null, null)).toBeNull()
+  })
+
+  it('keeps a chat just made before the list has caught up with it', () => {
+    // The first question makes the chat and the list is refetched after:
+    // until it lands, falling back would drop the question into a blank chat.
+    expect(shownChat([], 'fresh', 'fresh')).toBe('fresh')
+    expect(shownChat(list, 'fresh', 'fresh')).toBe('fresh')
   })
 })

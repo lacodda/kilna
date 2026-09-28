@@ -18,6 +18,11 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   test: {
+    // Half the machine. Every dom file mounts the whole app, and fifteen of
+    // them at once on a sixteen-thread laptop starved each other: screens that
+    // settle in a fraction of a second alone ran past their waits, and the
+    // workers held gigabytes while an agent built Rust beside them (v0.81).
+    maxWorkers: '50%',
     projects: [
       {
         extends: true,

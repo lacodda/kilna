@@ -101,12 +101,10 @@ describe('the style dictionary', () => {
     fireEvent.change(description, { target: { value: 'Low sun, teal against amber.' } })
     // No Save button: the pause after the typing writes it.
     expect(screen.queryByRole('button', { name: en.dialog.save })).toBeNull()
-    await waitFor(
-      () =>
-        expect(backend.argsOf('update_style_brick')).toEqual([
-          { id: IDS.brick, patch: { description: 'Low sun, teal against amber.' } },
-        ]),
-      { timeout: 3000 },
+    await waitFor(() =>
+      expect(backend.argsOf('update_style_brick')).toEqual([
+        { id: IDS.brick, patch: { description: 'Low sun, teal against amber.' } },
+      ]),
     )
     expect(backend.unanswered).toEqual([])
   })

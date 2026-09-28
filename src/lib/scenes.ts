@@ -1,4 +1,4 @@
-import type { Scene, SceneBlock, SceneFrame, Work } from '@/lib/api/types'
+import type { Kind, NewScene, Scene, SceneBlock, SceneFrame, Work } from '@/lib/api/types'
 
 /** What a row of a scene's material is: the still, or the clip cut from it. */
 export const FRAME = 'frame'
@@ -100,6 +100,118 @@ export function orderMoving(scenes: Scene[], id: string, to: number): string[] {
   const at = Math.min(Math.max(to - 1, 0), order.length)
   order.splice(at, 0, id)
   return order
+}
+
+/**
+ * An order with one id taken out and put back at index `to` of the result.
+ *
+ * What a drag or an Alt+arrow in a reorderable list hands back is exactly
+ * this - the row, and the place it lands in the list as it will be - and what
+ * the backend takes is the whole order. A place past either end means that
+ * end.
+ */
+export function movedTo(order: readonly string[], id: string, to: number): string[] {
+  const rest = order.filter((held) => held !== id)
+  rest.splice(Math.min(Math.max(to, 0), rest.length), 0, id)
+  return rest
+}
+
+/**
+ * A new scene carrying what another says: the part it plays against, the
+ * kind of shot, the description and every prompt block.
+ *
+ * Not its seconds. Two scenes cannot play the same stretch of the video, and
+ * a copy that took the original's span would be an overlap the check reports
+ * the moment it lands; untimed, it is a scene waiting for its place, which is
+ * what a copy made to try a second version of a moment is. Not its pictures
+ * either: those are the original's material, drawn from its prompts, and the
+ * copy exists to be drawn differently.
+ */
+export function copyOf(scene: Scene): NewScene {
+  return {
+    work_id: scene.work_id,
+    section: scene.section,
+    shot_type: scene.shot_type,
+    description: scene.description,
+    blocks: { ...scene.blocks },
+  }
+}
+
+/**
+ * The line of a description the board's own cell shows and edits.
+ *
+ * A description is usually a sentence, and a cell is one line; but one
+ * written in the open row, or brought by a proposal, can run to paragraphs,
+ * and a single-line box cannot hold a line break - typing into one would
+ * have flattened the paragraphs into one and saved that. So the cell holds
+ * the first line with anything on it, and the rest waits in the open row
+ * untouched.
+ */
+export function headlineOf(description: string): string {
+  const lines = description.split(/\r?\n/)
+  return lines[headlineAt(lines)] ?? ''
+}
+
+/** The description with its headline replaced; an emptied headline takes its
+ * line with it, so the next line comes up rather than a blank one. */
+export function withHeadline(description: string, headline: string): string {
+  const lines = description.split(/\r?\n/)
+  const at = headlineAt(lines)
+  if (headline.trim() === '' && lines.length > 1 && (lines[at] ?? '').trim() !== '') {
+    lines.splice(at, 1)
+  } else lines[at] = headline
+  return lines.join('\n')
+}
+
+/** How many lines with anything on them follow the headline. */
+export function linesAfterHeadline(description: string): number {
+  const lines = description.split(/\r?\n/)
+  return lines.slice(headlineAt(lines) + 1).filter((line) => line.trim() !== '').length
+}
+
+function headlineAt(lines: readonly string[]): number {
+  const at = lines.findIndex((line) => line.trim() !== '')
+  return at === -1 ? 0 : at
+}
+
+/**
+ * The kinds of note a scene is about: who is in it, and where it happens.
+ *
+ * A profile names more kinds than that - lore, a plain note - and a scene
+ * could point at any of them as far as the backend cares. But the board asks
+ * "who and where", and offering every idea and shopping list in the workspace
+ * as a candidate for "who is in this shot" buried the three characters among
+ * two hundred notes (the audit of 24.09). The profile says which kinds exist;
+ * these are the two of them a scene is about.
+ */
+const ABOUT_KINDS: readonly string[] = ['character', 'location']
+
+/** The keys of the profile's note kinds a scene can be about, in its order. */
+export function aboutKindsOf(noteKinds: readonly Kind[] | undefined): string[] {
+  return (noteKinds ?? []).map((kind) => kind.key).filter((key) => ABOUT_KINDS.includes(key))
+}
+
+/**
+ * A body of markdown as one run of prose: every line with anything on it,
+ * without the marks that dress it, joined by spaces.
+ *
+ * The context stands over the board as a strip of two lines, and a strip
+ * that showed `## Palette` and `- 35mm` would spend them on punctuation.
+ */
+export function proseOf(markdown: string): string {
+  return markdown
+    .split(/\r?\n/)
+    .map((raw) =>
+      raw
+        .trim()
+        // The bold first: its stars at the head of a line are not a bullet.
+        .replace(/(\*\*|__)(.+?)\1/g, '$2')
+        .replace(/^(?:[#>*+-]+|\d+[.)])\s*/, '')
+        .replace(/^\[[ xX]\]\s*/, '')
+        .trim(),
+    )
+    .filter((line) => line !== '')
+    .join(' ')
 }
 
 /** The key a work's length is kept under, in the profile's meta fields. */

@@ -4,10 +4,10 @@ import { say } from '@/lib/useProfile'
 /**
  * Choosing a profile action by typing rather than by aiming.
  *
- * The action buttons above the composer work until a profile has more than a
- * handful; then they are a wall to read every time. Typing `/` and two letters
- * is the same choice made without leaving the keyboard — and it costs nothing
- * to a profile with three actions, because the buttons stay.
+ * The menu beside the composer is a list to read through every time, and a
+ * profile past a handful of actions makes it a long one. Typing `/` and two
+ * letters is the same choice made without leaving the keyboard — and it costs
+ * nothing to a profile with three actions, because the menu stays.
  */
 
 /** What the palette is doing right now. */

@@ -47,10 +47,9 @@ describe('the donor', () => {
 
     // The short took its stretches from this clip; its name is read from
     // the work itself, since no link says it was made from the clip.
-    // The first screen of a file is the slow one: the whole app loads cold.
-    expect(
-      await screen.findByRole('button', { name: 'Paper Lanterns (short)' }, { timeout: 5000 }),
-    ).toBeVisible()
+    // The first screen of a file is the slow one: the whole app loads cold,
+    // which the setup's wait ceiling allows for.
+    expect(await screen.findByRole('button', { name: 'Paper Lanterns (short)' })).toBeVisible()
     expect(screen.getByText(en.cuts.fromThis)).toBeVisible()
     await settled(client)
     expect(backend.argsOf('list_cuts_from')).toContainEqual({ sourceId: IDS.video })
@@ -60,11 +59,7 @@ describe('the donor', () => {
 describe('the splice', () => {
   it('puts a stretch in order from its fields, with Alt and an arrow', async () => {
     const { client } = renderApp(`/works/${IDS.short}/cuts`)
-    const [start] = await screen.findAllByRole(
-      'textbox',
-      { name: en.scenes.startsAt },
-      { timeout: 5000 },
-    )
+    const [start] = await screen.findAllByRole('textbox', { name: en.scenes.startsAt })
     await settled(client)
 
     fireEvent.keyDown(start!, { key: 'ArrowDown', altKey: true })
@@ -96,7 +91,7 @@ describe('the track', () => {
 
   it('writes a dragged stretch once, where it was let go', async () => {
     const { client, container } = renderApp(`/works/${IDS.short}/cuts`)
-    await screen.findAllByRole('textbox', { name: en.scenes.startsAt }, { timeout: 5000 })
+    await screen.findAllByRole('textbox', { name: en.scenes.startsAt })
     await settled(client)
 
     // The hand over the stretch, not the Track's own segment under it: the

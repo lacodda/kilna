@@ -1,18 +1,24 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CircleCheck, TriangleAlert } from 'lucide-react'
 import type { Complaint, Storyboard } from '@/lib/storyboard'
 import { formatSeconds } from '@/lib/timecode'
+import { cn } from '@/lib/utils'
+import { chipVariants } from '@/components/ui/chip'
 import { RowButton } from '@/components/ui/list-row'
-import { Panel, SectionLabel } from '@/components/ui/panel'
+import { Popover, PopoverPopup, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
+import { Scroll } from '@/components/frame'
 
 /*
- * What the board still owes, above the board.
+ * What the board still owes, as a chip at the foot of the board.
  *
  * The harvest of a storyboard: the counts a person would otherwise make by
- * scrolling, and the list of what is missing. It sits above the table rather
- * than in a dialog because it is not a verdict to be dismissed — it is the
- * queue the next hour of work comes out of, and a queue you have to reopen to
- * see is a queue you stop looking at.
+ * scrolling, and the list of what is missing. It stood above the board as a
+ * panel until v0.81 and took the height of its list away from the board even
+ * when the list said nothing was missing (wish 1944); now it is the mockup's
+ * chip - how many things are missing, in the colour of a warning - and the
+ * list opens from it. The number stays in sight, so the queue is not
+ * forgotten; the queue itself is one click away rather than always open.
  *
  * Every line is a way back into the board: clicking one opens the scene it is
  * about. A report that names scene 34 and leaves you to find scene 34 is a
@@ -27,20 +33,41 @@ export interface StoryboardCheckProps {
 
 export function StoryboardCheck({ board, onGo }: StoryboardCheckProps) {
   const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
   const { tally, complaints } = board
 
   // An empty board has nothing to harvest. It is not "done" and it is not
   // "wrong" — it is a board before the work, and the tab already says so.
   if (tally.scenes === 0) return null
 
+  const missing = complaints.length
+
   return (
-    <Panel className="flex flex-col gap-3 p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <SectionLabel>{t('scenes.check.title')}</SectionLabel>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className={cn(
+          chipVariants({ variant: missing === 0 ? 'good' : 'warn' }),
+          'cursor-pointer target-min',
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+        )}
+      >
+        {missing === 0 ? t('scenes.check.chipDone') : t('scenes.check.chip', { number: missing })}
+      </PopoverTrigger>
+
+      <PopoverPopup
+        size="lg"
+        side="top"
+        align="end"
+        arrow={false}
+        className="flex flex-col gap-2 p-2"
+      >
+        <PopoverTitle className="px-1.5 pt-1">
+          <span className="caption">{t('scenes.check.title')}</span>
+        </PopoverTitle>
         {/* The counts, as a sentence rather than a row of tiles: five numbers
             about one board read as a sentence and tile up into a dashboard
             that says less. */}
-        <p className="text-sm text-dim">
+        <p className="px-1.5 text-sm text-dim">
           {t('scenes.check.tally', {
             scenes: tally.scenes,
             written: tally.written,
@@ -48,28 +75,38 @@ export function StoryboardCheck({ board, onGo }: StoryboardCheckProps) {
             filmed: tally.filmed,
           })}
         </p>
-      </div>
 
-      {complaints.length === 0 ? (
-        <p className="flex items-center gap-2 text-sm text-good">
-          <CircleCheck aria-hidden className="size-4 shrink-0" />
-          {t('scenes.check.nothingMissing')}
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-1">
-          {complaints.map((complaint, index) => (
-            <Line
-              // A complaint has no id of its own — it is a fact about a board,
-              // computed fresh on every render. Its place in the list is what
-              // identifies it, and the list is rebuilt whole each time.
-              key={`${complaint.kind}:${complaint.run?.sceneId ?? complaint.scene?.id ?? index}`}
-              complaint={complaint}
-              onGo={onGo}
-            />
-          ))}
-        </ul>
-      )}
-    </Panel>
+        {missing === 0 ? (
+          <p className="flex items-center gap-2 px-1.5 pb-1 text-sm text-good">
+            <CircleCheck aria-hidden className="size-4 shrink-0" />
+            {t('scenes.check.nothingMissing')}
+          </p>
+        ) : (
+          // Held to a height of its own: a board of fifty half-drawn scenes
+          // can say a lot, and the popup must not run off the window.
+          <div className="flex max-h-80 flex-col">
+            <Scroll label={t('scenes.check.title')}>
+              <ul className="flex flex-col gap-0.5">
+                {complaints.map((complaint, index) => (
+                  <Line
+                    // A complaint has no id of its own — it is a fact about a
+                    // board, computed fresh on every render. Its place in the
+                    // list is what identifies it, and the list is rebuilt
+                    // whole each time.
+                    key={`${complaint.kind}:${complaint.run?.sceneId ?? complaint.scene?.id ?? index}`}
+                    complaint={complaint}
+                    onGo={(sceneId) => {
+                      setOpen(false)
+                      onGo(sceneId)
+                    }}
+                  />
+                ))}
+              </ul>
+            </Scroll>
+          </div>
+        )}
+      </PopoverPopup>
+    </Popover>
   )
 }
 

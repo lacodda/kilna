@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import type { Meta, Scene, SceneBlock, SceneFrame, Work } from '@/lib/api/types'
 import {
+  aboutKindsOf,
   chosenFrame,
   chosenVideo,
+  copyOf,
   durationOf,
   framesByScene,
+  headlineOf,
+  linesAfterHeadline,
+  movedTo,
   ofKind,
   orderMoving,
+  proseOf,
   readinessOf,
+  withHeadline,
   FRAME,
   VIDEO,
 } from '@/lib/scenes'
@@ -220,5 +227,118 @@ describe("a work's length", () => {
     for (const value of [null, undefined, '', '   ', 'soon', '3:', '0', '0:00', -5, 0, NaN]) {
       expect(durationOf(work(value))).toBeNull()
     }
+  })
+})
+
+describe('an order with one row moved', () => {
+  it('puts the row at the index it lands on, in the list as it will be', () => {
+    // What a reorderable list reports: the row, and where it lands with the
+    // row already taken out.
+    expect(movedTo(['a', 'b', 'c', 'd'], 'd', 0)).toEqual(['d', 'a', 'b', 'c'])
+    expect(movedTo(['a', 'b', 'c', 'd'], 'a', 2)).toEqual(['b', 'c', 'a', 'd'])
+    expect(movedTo(['a', 'b', 'c'], 'b', 1)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('reads a place past either end as that end, and never drops a row', () => {
+    expect(movedTo(['a', 'b', 'c'], 'a', 9)).toEqual(['b', 'c', 'a'])
+    expect(movedTo(['a', 'b', 'c'], 'c', -2)).toEqual(['c', 'a', 'b'])
+  })
+})
+
+describe('a copy of a scene', () => {
+  it('carries the words and the blocks, not the seconds', () => {
+    // A copy that took the original's span would be an overlap the check
+    // reports the moment it lands.
+    const original: Scene = {
+      ...scene('the bridge at night', { still: 'a bridge', motion: 'slow pan' }),
+      section: 'Chorus',
+      shot_type: 'wide',
+      starts_at: 12,
+      ends_at: 30,
+    }
+    const copy = copyOf(original)
+    expect(copy).toEqual({
+      work_id: 'w',
+      section: 'Chorus',
+      shot_type: 'wide',
+      description: 'the bridge at night',
+      blocks: { still: 'a bridge', motion: 'slow pan' },
+    })
+    expect(copy.starts_at).toBeUndefined()
+    expect(copy.ends_at).toBeUndefined()
+    // Its own blocks: editing the copy's set cannot reach the original's.
+    expect(copy.blocks).not.toBe(original.blocks)
+  })
+})
+
+describe("a description's headline", () => {
+  it('is the first line with anything on it', () => {
+    expect(headlineOf('A lantern on the water')).toBe('A lantern on the water')
+    expect(headlineOf('A lantern\nThen the bridge')).toBe('A lantern')
+    expect(headlineOf('\n  \nThe bridge\nThe dark')).toBe('The bridge')
+    expect(headlineOf('')).toBe('')
+  })
+
+  it('is replaced alone, and the paragraphs under it are left as they were', () => {
+    // A single-line box cannot hold a line break: typing the whole
+    // description into one would have flattened the paragraphs and saved
+    // that. The cell edits the headline, and only the headline travels.
+    expect(withHeadline('A lantern\n\nThen the bridge', 'A paper lantern')).toBe(
+      'A paper lantern\n\nThen the bridge',
+    )
+    expect(withHeadline('\nThe bridge\nThe dark', 'The old bridge')).toBe(
+      '\nThe old bridge\nThe dark',
+    )
+    expect(withHeadline('', 'A lantern')).toBe('A lantern')
+    expect(withHeadline('A lantern', '')).toBe('')
+  })
+
+  it('takes its line with it when emptied, so the next line comes up', () => {
+    expect(withHeadline('A lantern\nThen the bridge', '')).toBe('Then the bridge')
+    expect(headlineOf(withHeadline('A lantern\nThen the bridge', ''))).toBe('Then the bridge')
+  })
+
+  it('writes back what it read when nothing was typed', () => {
+    // The row compares the result with what is stored to decide whether
+    // anything changed; reading and writing back must be the identity.
+    for (const text of ['', '\n\n', 'one', 'one\ntwo', '\n\none\n\ntwo\n', '  indented\nnext']) {
+      expect(withHeadline(text, headlineOf(text))).toBe(text)
+    }
+  })
+
+  it('counts the lines under it that have anything on them', () => {
+    expect(linesAfterHeadline('A lantern')).toBe(0)
+    expect(linesAfterHeadline('A lantern\n\nThen the bridge\nThe dark\n')).toBe(2)
+    expect(linesAfterHeadline('')).toBe(0)
+  })
+})
+
+describe('the kinds of note a scene is about', () => {
+  it('are the characters and the locations the profile names, in its order', () => {
+    const kinds = [
+      { key: 'location', label: 'Location' },
+      { key: 'lore', label: 'Lore' },
+      { key: 'character', label: 'Character' },
+      { key: 'note', label: 'Note' },
+    ]
+    // A plain note is not somebody in the shot: offering every note in the
+    // workspace as "who is in it" was the finding of 24.09.
+    expect(aboutKindsOf(kinds)).toEqual(['location', 'character'])
+  })
+
+  it('are none when the profile names neither', () => {
+    expect(aboutKindsOf([{ key: 'guest', label: 'Guest' }])).toEqual([])
+    expect(aboutKindsOf(undefined)).toEqual([])
+  })
+})
+
+describe('markdown as a line of prose', () => {
+  it('keeps the words and drops the marks that dress them', () => {
+    expect(proseOf('## Palette\n- graphite\n- **ochre**\n\n> no faces\n1. 35mm')).toBe(
+      'Palette graphite ochre no faces 35mm',
+    )
+    expect(proseOf('- [ ] grain')).toBe('grain')
+    expect(proseOf('**Palette**\n* graphite')).toBe('Palette graphite')
+    expect(proseOf('   \n')).toBe('')
   })
 })

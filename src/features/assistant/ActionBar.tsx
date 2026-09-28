@@ -66,10 +66,11 @@ export function actionsFor(
 /**
  * The profile's actions, started from the work rather than from the panel.
  *
- * The same actions live in the assistant tab, where clicking one fills the
- * composer so the prompt can be read before it is paid for. This bar is the
- * other way of using them: hands on the work, wanting the thing done, not
- * wanting to move. A click starts a run and says where it went — nothing to
+ * The same actions live in a chat's composer, where choosing one fills the
+ * box so the prompt can be read before it is paid for. This bar is the other
+ * way of using them: hands on the work, wanting the thing done, not wanting
+ * to move - which is why the assistant tab carries it too, beside its chats,
+ * where the task's own chat appears as it starts. A click starts a run and says where it went — nothing to
  * watch, nothing to wait for. The eye beside a button shows exactly what the
  * click would send — the message and the method — and starts it from there,
  * with reference files if the method should look at some.

@@ -33,6 +33,10 @@ export const pasteSceneFrame = (sceneId: string, kind: string, bytes: Uint8Array
   invoke<SceneFrame>('paste_scene_frame', { sceneId, kind, bytes: Array.from(bytes), name })
 export const detachSceneFrame = (id: string) => invoke<void>('detach_scene_frame', { id })
 export const selectSceneFrame = (id: string) => invoke<SceneFrame>('select_scene_frame', { id })
+/** Put one kind of a scene's material in the order given, first to last: the
+ * whole order travels, as it does for the board's scenes. */
+export const reorderSceneFrames = (sceneId: string, kind: string, ids: string[]) =>
+  invoke<SceneFrame[]>('reorder_scene_frames', { sceneId, kind, ids })
 /** Take back the verdict on one kind: unchoosing a clip says nothing about
  * the still it was animated from. */
 export const clearSceneFrame = (sceneId: string, kind: string) =>

@@ -1,39 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  applyPendingProposals,
-  cancelRun,
-  createChat,
-  renderPrompt,
-  startRun,
-} from '@/lib/api/assistant'
+import { applyPendingProposals, cancelRun, createChat, startRun } from '@/lib/api/assistant'
 import type { Run } from '@/lib/api/types'
-import { actionsOfScope } from '@/lib/actions'
-import { conversation, pending, type Exchange } from '@/lib/chat'
-import { reading } from '@/lib/palette'
-import { formatCost, formatDuration } from '@/lib/format'
+import { conversation, pending } from '@/lib/chat'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
-import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
-import { CopyButton } from '@/components/ui/copy-button'
-import { RowButton } from '@/components/ui/list-row'
-import { Textarea } from '@/components/ui/textarea'
-import { Markdown } from '@/components/Markdown'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Scroll } from '@/components/frame'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SkeletonList } from '@/components/ui/skeleton'
+import { Pane } from '@/components/frame'
+import { Composer } from '@/features/assistant/Composer'
+import { ExchangeItem } from '@/features/assistant/Exchange'
 import { InsertVersionDialog } from '@/features/assistant/InsertVersionDialog'
 import { KeepAsNoteDialog } from '@/features/assistant/KeepAsNoteDialog'
-import { ProposedDescription } from '@/features/assistant/ProposedDescription'
-import { ProposedNote } from '@/features/assistant/ProposedNote'
-import { ProposedScenes } from '@/features/assistant/ProposedScenes'
-import { ProposedScore } from '@/features/assistant/ProposedScore'
-import { ProposedVersion } from '@/features/assistant/ProposedVersion'
-import { ProposedWork } from '@/features/assistant/ProposedWork'
 
 interface Props {
   /** Null when the chat does not exist yet — sending the first message creates it. */
@@ -52,11 +34,14 @@ interface Props {
  * conversation reads the same whether its runs are live, replayed, or long
  * settled into messages. A run in flight does not hold this component: it
  * belongs to its chat in the backend, and what it says arrives as events.
+ *
+ * The mockup's panel (`.panel.chat`): the exchange scrolls, the composer
+ * stands at the foot. The exchange was a box of 384 pixels inside a tab that
+ * scrolled whole until v0.78, so a long answer was read through a letterbox
+ * and the composer went off the card with it.
  */
 export function ChatView({ chatId, workId, onChatCreated }: Props) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const profile = useProfile()
   const client = useQueryClient()
 
   const [draft, setDraft] = useState('')
@@ -68,11 +53,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
   } | null>(null)
   /** The answer being kept as a note, or null. */
   const [keeping, setKeeping] = useState<string | null>(null)
-  // Which entry of the slash palette the arrow keys are on. Reset whenever the
-  // query changes, so the highlight never points past a shortened list.
-  const [highlighted, setHighlighted] = useState(0)
   const bottom = useRef<HTMLDivElement>(null)
-  const composer = useRef<HTMLTextAreaElement>(null)
 
   const transcript = useQuery({
     ...queries.transcript(chatId ?? ''),
@@ -116,40 +97,15 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
     },
   })
 
-  const stop = useAppMutation({
-    mutationFn: (id: string) => cancelRun(id),
-  })
-
-  // A profile action renders its template into the composer rather than
-  // firing: what is about to be sent — and paid for — is read and edited
-  // first. Enter still does the sending.
-  const runTemplate = useMutation({
-    // Not a write: it only fills the composer, so nothing is refreshed.
-    mutationFn: (template: string) => renderPrompt(workId!, template),
-    onSuccess: (prompt) => {
-      setDraft(prompt)
-      composer.current?.focus()
-      composer.current?.setSelectionRange(0, 0)
-      composer.current?.scrollTo({ top: 0 })
-    },
-    onError: (cause) => {
-      say.failed(cause)
-    },
-  })
-
-  // The palette is open when the draft is nothing but a slash command. Derived
-  // rather than kept in state: the draft is the only truth, and a second copy
-  // would be one more thing to get out of step with it.
-  // A work chat offers the work's actions: a scene's, a style's or a
-  // comment's template filled into it would ask about something it is not.
-  const workActions = actionsOfScope(profile.config.prompts, 'work')
-  const palette = workId === undefined ? null : reading(draft, workActions)
-  const chosen = palette?.matches[Math.min(highlighted, palette.matches.length - 1)] ?? null
-
   const items = conversation(transcript.data?.messages ?? [], runs.data ?? [])
-  const working = items.some((item) => item.run?.working === true)
-  const sending = ask.isPending || runTemplate.isPending
+  const going = items.flatMap((item) => (item.run?.working === true ? [item.run.id] : []))
   const waiting = pending(items)
+
+  // Every run of the chat still going; one, almost always, but nothing stops
+  // a second question from being sent while the first is answered.
+  const stop = useAppMutation({
+    mutationFn: (ids: string[]) => Promise.all(ids.map((id) => cancelRun(id))),
+  })
 
   // Every proposal in the chat, one click: an agent that sends a lyric, a
   // style, a score and two notes as five messages is applied as one package
@@ -172,193 +128,82 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'nearest' })
-  }, [items.length, working])
-
-  // Choosing from the palette does what its button does: render the template
-  // into the composer, to be read before it is sent. The palette is a faster
-  // way to reach the same action, not a second meaning for it.
-  const pick = (action: { template: string }) => {
-    setHighlighted(0)
-    runTemplate.mutate(action.template)
-  }
-
-  const send = (prompt: string) => {
-    if (prompt.trim() === '' || sending) return
-    ask.mutate(prompt)
-  }
+  }, [items.length, going.length])
 
   const loading = chatId !== null && (transcript.isPending || runs.isPending)
 
-  // A column that takes the height it is given: the exchange scrolls in the
-  // middle, and the composer stands at the foot. The exchange was a box of
-  // 384 pixels inside a tab that scrolled whole, so a long answer was read
-  // through a letterbox and the composer went off the card with it.
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {working && <span className="text-xs text-dim">{t('assistant.thinking')}</span>}
-
-      {workId !== undefined && workActions.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {workActions.map((prompt) => (
-            <Button
-              key={prompt.key}
-              size="sm"
-              title={sayLabel(prompt.description)}
-              disabled={sending}
-              onClick={() => {
-                runTemplate.mutate(prompt.template)
-              }}
-            >
-              {sayLabel(prompt.label)}
-            </Button>
-          ))}
-        </div>
-      )}
-
-      {loading && <Skeleton className="h-20 w-full" />}
-
-      {chatId !== null && waiting.length > 1 && (
-        <div className="flex items-center gap-2 rounded-xl border border-line bg-soft px-3 py-2 text-sm">
-          <span className="text-dim">{t('assistant.pendingCount', { count: waiting.length })}</span>
-          <Button
-            className="ml-auto"
-            size="sm"
-            variant="primary"
-            disabled={applyAll.isPending}
-            onClick={() => {
-              applyAll.mutate()
+    <>
+      <Pane
+        label={t('assistant.conversation')}
+        bodyClassName="flex flex-col gap-3 p-3.5"
+        // What waits on the person across the whole chat, over it: one card
+        // under each answer says the same thing one at a time.
+        head={
+          chatId !== null && waiting.length > 1 ? (
+            <>
+              <span className="text-xs text-dim">
+                {t('assistant.pendingCount', { count: waiting.length })}
+              </span>
+              <Button
+                className="ml-auto"
+                size="xs"
+                variant="primary"
+                disabled={applyAll.isPending}
+                onClick={() => {
+                  applyAll.mutate()
+                }}
+              >
+                {t('assistant.applyAll')}
+              </Button>
+            </>
+          ) : undefined
+        }
+        foot={
+          <Composer
+            workId={workId}
+            draft={draft}
+            onDraft={setDraft}
+            onSend={(prompt) => {
+              ask.mutate(prompt)
             }}
-          >
-            {t('assistant.applyAll')}
-          </Button>
-        </div>
-      )}
-
-      <Scroll label={t('assistant.conversation')}>
-        <ul className="flex flex-col gap-3">
-          {items.map((item) => (
-            <ExchangeItem
-              key={item.key}
-              item={item}
-              workId={workId}
-              onInsert={
-                workId === undefined
-                  ? undefined
-                  : (body, role, label, messageId) => setInserting({ body, role, label, messageId })
-              }
-              onKeepAsNote={(body) => setKeeping(body)}
-              onOpenComments={() => void navigate('/comments')}
-              onStop={(id) => {
-                stop.mutate(id)
-              }}
-              stopping={stop.isPending}
-            />
-          ))}
-          <div ref={bottom} />
-        </ul>
-      </Scroll>
-
-      <form
-        className="relative flex flex-col gap-2"
-        onSubmit={(event) => {
-          event.preventDefault()
-          if (palette !== null) {
-            if (chosen !== null) pick(chosen)
-            return
-          }
-          send(draft)
-        }}
+            sending={ask.isPending}
+            working={going.length > 0}
+            onStop={() => {
+              stop.mutate(going)
+            }}
+            stopping={stop.isPending}
+          />
+        }
       >
-        {palette !== null && (
-          <ul
-            role="listbox"
-            aria-label={t('assistant.paletteLabel')}
-            className="absolute bottom-full z-10 mb-1 max-h-64 w-full overflow-y-auto rounded-xl border border-line bg-raise p-1 shadow-raise"
-          >
-            {palette.matches.length === 0 && (
-              <li className="px-2.5 py-2 text-sm text-dim">{t('assistant.paletteEmpty')}</li>
-            )}
-            {palette.matches.map((action, index) => (
-              <li key={action.key}>
-                <RowButton
-                  role="option"
-                  selected={action.key === chosen?.key}
-                  aria-selected={action.key === chosen?.key}
-                  // In a listbox the highlighted entry is the selected option;
-                  // `aria-current` on top of it would say the same thing twice.
-                  aria-current={undefined}
-                  // Pointer down, not click: the composer keeps focus, so the
-                  // draft the choice replaces is still the one on screen.
-                  onMouseDown={(event) => {
-                    event.preventDefault()
-                    pick(action)
-                  }}
-                  onMouseEnter={() => {
-                    setHighlighted(index)
-                  }}
-                  description={
-                    action.description === undefined ? undefined : sayLabel(action.description)
-                  }
-                >
-                  {sayLabel(action.label)}
-                </RowButton>
-              </li>
+        {loading ? (
+          <SkeletonList rows={2} />
+        ) : items.length === 0 ? (
+          // Plain, and its way out is the composer under it.
+          <EmptyState plain title={t('assistant.nothingAsked')} />
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {items.map((item) => (
+              <ExchangeItem
+                key={item.key}
+                item={item}
+                workId={workId}
+                onInsert={
+                  workId === undefined
+                    ? undefined
+                    : (body, role, label, messageId) => {
+                        setInserting({ body, role, label, messageId })
+                      }
+                }
+                onKeepAsNote={(body) => {
+                  setKeeping(body)
+                }}
+              />
             ))}
           </ul>
         )}
-
-        <Textarea
-          ref={composer}
-          // A rendered template can be pages long; the box follows it up to a
-          // point instead of showing three lines of something worth reading.
-          rows={Math.min(10, Math.max(3, draft.split('\n').length))}
-          value={draft}
-          onChange={(event) => {
-            setDraft(event.target.value)
-          }}
-          placeholder={t(
-            workId === undefined ? 'assistant.placeholderAnywhere' : 'assistant.placeholder',
-          )}
-          aria-label={t(
-            workId === undefined ? 'assistant.placeholderAnywhere' : 'assistant.placeholder',
-          )}
-          onKeyDown={(event) => {
-            // While the palette is open the arrows and Enter belong to it.
-            if (palette !== null) {
-              if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                event.preventDefault()
-                const count = palette.matches.length
-                if (count > 0) {
-                  const step = event.key === 'ArrowDown' ? 1 : count - 1
-                  setHighlighted((current) => (Math.min(current, count - 1) + step) % count)
-                }
-                return
-              }
-              if (event.key === 'Escape') {
-                event.preventDefault()
-                setDraft('')
-                return
-              }
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault()
-                if (chosen !== null) pick(chosen)
-                return
-              }
-            }
-
-            // Enter sends; the panel is for questions, not for composing.
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault()
-              send(draft)
-            }
-          }}
-        />
-        <div className="flex justify-end">
-          <Button type="submit" variant="primary" disabled={sending || draft.trim() === ''}>
-            {t('assistant.send')}
-          </Button>
-        </div>
-      </form>
+        <div ref={bottom} />
+      </Pane>
 
       {/* A note does not need a work: a chat about nothing still produces
           answers worth keeping, and they become the workspace's notes. */}
@@ -387,241 +232,6 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
           messageId={inserting.messageId}
         />
       )}
-    </div>
-  )
-}
-
-function ExchangeItem({
-  item,
-  workId,
-  onInsert,
-  onKeepAsNote,
-  onOpenComments,
-  onStop,
-  stopping,
-}: {
-  item: Exchange
-  /** Absent when the chat is about nothing — there is nothing to score. */
-  workId?: string
-  /** Absent when the chat is about nothing — there is no work to version. */
-  onInsert?: (body: string, role?: string, label?: string, messageId?: string) => void
-  /** Keep the answer as a note. Always offered: a note needs no work. */
-  onKeepAsNote: (body: string) => void
-  /** Go where a comment or a reply is kept. */
-  onOpenComments: () => void
-  onStop: (runId: string) => void
-  stopping: boolean
-}) {
-  const { t } = useTranslation()
-  const run = item.run
-
-  // The settled message is canonical; a run's own body stands in while it is
-  // still growing, or when the run ended before an answer was stored.
-  const body = item.answer?.body ?? run?.body ?? ''
-  const cost = item.answer?.cost ?? run?.cost ?? null
-  // What the run cost in time as well as in money: the two facts the CLI
-  // reports about a finished turn, side by side under the answer.
-  const took = formatDuration(item.answer?.durationMs ?? run?.durationMs ?? null)
-  const proposal = item.answer?.proposal ?? null
-  const applied = item.answer?.applied ?? null
-  const settled = item.run?.working !== true
-  // A proposed version, package or storyboard has its own buttons below; the
-  // toolbar's *insert* on it would keep a rendering of a package as a lyric.
-  // A comment or a reply is kept on the comments screen, where its fields
-  // can be corrected first; neither is a version or a note of anything.
-  const aboutComment = proposal?.kind === 'comment' || proposal?.kind === 'reply'
-  // A description is kept onto its brick by its own button below; inserting
-  // it as a lyric or keeping it as a note would be a second copy of it.
-  const describes = proposal?.kind === 'description'
-  const insertable =
-    onInsert !== undefined &&
-    settled &&
-    !aboutComment &&
-    !describes &&
-    proposal?.kind !== 'version' &&
-    proposal?.kind !== 'work' &&
-    proposal?.kind !== 'scenes'
-  // Keeping needs no work, so it is offered wherever inserting would be minus
-  // that condition — and not on an answer that already proposed a note, which
-  // has its own button and would otherwise be kept twice.
-  const keepable =
-    settled &&
-    !aboutComment &&
-    !describes &&
-    proposal?.kind !== 'note' &&
-    proposal?.kind !== 'version' &&
-    proposal?.kind !== 'work' &&
-    proposal?.kind !== 'scenes'
-
-  return (
-    <li className="flex flex-col gap-1.5">
-      {item.prompt !== null && (
-        <p className="selectable rounded-xl bg-soft px-3 py-2 text-sm whitespace-pre-wrap">
-          {item.prompt}
-        </p>
-      )}
-
-      {run !== null && run.steps.length > 0 && (
-        <ul className="flex flex-col gap-0.5 px-3 text-xs text-dim">
-          {run.steps.map((step, index) => (
-            <li key={`${item.key}-${String(index)}`} className="truncate">
-              · {step}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {body !== '' && (
-        // `group`: the copy button shows while the pointer is anywhere over
-        // the answer, not only once it has found the button.
-        <div className="group rounded-xl border border-line px-3 py-2">
-          {/* Who said it, when it was not the assistant in this panel: an
-              agent outside the window, named by its client, with what it said
-              about its proposal. */}
-          {item.answer?.source != null && (
-            <p className="mb-1.5 text-xs text-dim">
-              {t('assistant.proposedBy', { client: item.answer.source })}
-              {item.answer.note != null && item.answer.note !== '' && (
-                <>
-                  {' — '}
-                  {item.answer.note}
-                </>
-              )}
-            </p>
-          )}
-          <Markdown body={body} copyLabel={t('assistant.copy')} />
-          <div className="mt-1.5 flex items-center gap-1.5">
-            {cost != null && <span className="text-xs text-dim">{formatCost(cost, 3)}</span>}
-            {took !== null && <span className="text-xs text-faint">{took}</span>}
-            {/* An answer still growing is not worth keeping yet. */}
-            {insertable && (
-              <Button
-                size="xs"
-                variant="ghost"
-                className="ml-auto"
-                onClick={() => {
-                  onInsert(body)
-                }}
-              >
-                {t('assistant.insert')}
-              </Button>
-            )}
-            {/* Beside inserting, and on the same condition: an answer still
-                growing is not worth keeping yet, and a proposal with its own
-                buttons below is kept by those. */}
-            {keepable && (
-              <Button
-                size="xs"
-                variant="ghost"
-                className={insertable ? undefined : 'ml-auto'}
-                onClick={() => {
-                  onKeepAsNote(body)
-                }}
-              >
-                {t('assistant.keepAsNote')}
-              </Button>
-            )}
-            {/* The tick only once the clipboard confirms, and a refusal said
-                in a toast rather than swallowed. */}
-            <CopyButton
-              value={body}
-              label={t('assistant.copy')}
-              copiedLabel={t('assistant.copied')}
-              onCopy={(ok) => {
-                if (!ok) say.failed(t('assistant.copyFailed'))
-              }}
-              title={t('assistant.copy')}
-              className={insertable || keepable ? undefined : 'ml-auto'}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* The action asked for something and the answer's block could not be
-          read as it: said, so a button that never appears is never silent. */}
-      {item.answer?.refused != null && settled && (
-        <p role="alert" className="mx-3 text-xs text-warn">
-          {t('assistant.proposalRefused', { why: item.answer.refused })}
-        </p>
-      )}
-
-      {/* What the answer proposed, with the button that applies it. Below the
-          answer rather than beside the copy buttons: it is a decision, not a
-          convenience, and it needs room to show the numbers first. */}
-      {workId !== undefined && item.answer !== null && proposal?.kind === 'score' && settled && (
-        <ProposedScore
-          workId={workId}
-          messageId={item.answer.id}
-          proposal={proposal}
-          applied={applied}
-        />
-      )}
-      {aboutComment && settled && (
-        <p className="mx-3 flex items-center gap-2 text-xs text-dim">
-          {applied !== null ? t('assistant.commentKept') : t('assistant.commentToKeep')}
-          {applied === null && (
-            <Button size="xs" variant="ghost" onClick={onOpenComments}>
-              {t('assistant.openComments')}
-            </Button>
-          )}
-        </p>
-      )}
-      {item.answer !== null && proposal?.kind === 'note' && settled && (
-        <ProposedNote messageId={item.answer.id} proposal={proposal} applied={applied} />
-      )}
-      {item.answer !== null && describes && settled && (
-        <ProposedDescription messageId={item.answer.id} applied={applied} />
-      )}
-      {workId !== undefined &&
-        item.answer !== null &&
-        onInsert !== undefined &&
-        proposal?.kind === 'version' &&
-        settled && (
-          <ProposedVersion
-            workId={workId}
-            messageId={item.answer.id}
-            proposal={proposal}
-            applied={applied}
-            onChoose={() => {
-              onInsert(body, proposal.role, proposal.label, item.answer?.id)
-            }}
-          />
-        )}
-      {item.answer !== null && proposal?.kind === 'work' && settled && (
-        <ProposedWork
-          workId={workId}
-          messageId={item.answer.id}
-          proposal={proposal}
-          applied={applied}
-        />
-      )}
-      {workId !== undefined && item.answer !== null && proposal?.kind === 'scenes' && settled && (
-        <ProposedScenes
-          workId={workId}
-          messageId={item.answer.id}
-          proposal={proposal}
-          applied={applied}
-        />
-      )}
-
-      {run?.cancelled === true && <p className="px-3 text-xs text-dim">{t('assistant.stopped')}</p>}
-
-      {run?.failure != null && <p className="px-3 text-xs text-dim">{run.failure}</p>}
-
-      {run?.working === true && (
-        <div className="flex items-center gap-2 px-3">
-          <span className="text-xs text-dim">{t('assistant.working')}</span>
-          <Button
-            size="sm"
-            disabled={stopping}
-            onClick={() => {
-              onStop(run.id)
-            }}
-          >
-            {t('assistant.cancel')}
-          </Button>
-        </div>
-      )}
-    </li>
+    </>
   )
 }

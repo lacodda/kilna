@@ -21,6 +21,9 @@ export const keys = {
   scenesFor: (workId: string) => ['scenes', workId] as const,
   /** The notes a board's scenes point at, per work. */
   sceneNotesFor: (workId: string) => ['scenes', 'notes', workId] as const,
+  /** Whether a work has anything to pack. Under the scenes' prefix, because a
+   *  board gaining its first scene is what usually changes the answer. */
+  scenePackageFor: (workId: string) => ['scenes', 'package', workId] as const,
   // One prefix over every splice: a stretch changes the short's track and the
   // donor's card at the same time, the way a link changes two cards.
   cuts: ['cuts'] as const,

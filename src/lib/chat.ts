@@ -33,6 +33,9 @@ export interface Exchange {
     /** What applying the proposal made, once somebody did. On the message,
      * not in the component: the mark has to survive the next fetch. */
     applied: Applied | null
+    /** When somebody turned the proposal down, stamped on the message the
+     * way `applied` is: a refused proposal is answered, and is not waiting. */
+    dismissed: string | null
     /** Why the action's block could not become a proposal, when it could
      * not — said rather than dropped, so a missing button is never silent. */
     refused: string | null
@@ -143,6 +146,7 @@ export function conversation(messages: Message[], runs: Run[]): Exchange[] {
         source: sourceOf(message),
         note: typeof message.meta.note === 'string' ? message.meta.note : null,
         applied: appliedOf(message),
+        dismissed: typeof message.meta.dismissed === 'string' ? message.meta.dismissed : null,
         refused:
           typeof message.meta.proposal_refused === 'string' ? message.meta.proposal_refused : null,
       }
@@ -180,15 +184,75 @@ export function conversation(messages: Message[], runs: Run[]): Exchange[] {
 }
 
 /**
- * The exchanges whose proposal nobody has applied yet — what *apply all*
+ * The exchanges whose proposal nobody has answered yet — what *apply all*
  * would take. An answer still growing is not counted: its proposal is not
- * settled.
+ * settled. Nor is one turned down: the backend's *apply all* leaves it alone,
+ * and a count that included it would promise more than the button does.
  */
 export function pending(items: Exchange[]): Exchange[] {
   return items.filter(
     (item) =>
-      item.answer?.proposal != null && item.answer.applied === null && item.run?.working !== true,
+      item.answer?.proposal != null &&
+      item.answer.applied === null &&
+      item.answer.dismissed === null &&
+      item.run?.working !== true,
   )
+}
+
+/** What an answer's menu offers besides copying it. */
+export interface Offers {
+  /** Insert the answer as a version of the chat's work. */
+  insert: boolean
+  /** Keep the answer as a note. */
+  keep: boolean
+}
+
+/**
+ * What an answer can be kept as, from its menu.
+ *
+ * Nothing while it is still growing: half an answer is not worth keeping.
+ * Nothing when the answer proposed something with a card of its own - a
+ * version, a package, a storyboard - because the card keeps it, and keeping
+ * a rendering of a package as a lyric would be a second, wrong copy. A comment
+ * or a reply is kept on the comments, and a style's description onto its
+ * brick; neither is a version or a note of anything. Inserting needs a work;
+ * keeping a note does not, and is not offered on an answer that proposed a
+ * note, which its card already keeps.
+ */
+export function offers(item: Exchange, onWork: boolean): Offers {
+  const settled = item.run?.working !== true
+  const kind = item.answer?.proposal?.kind
+  const ownCard =
+    kind === 'version' ||
+    kind === 'work' ||
+    kind === 'scenes' ||
+    kind === 'comment' ||
+    kind === 'reply' ||
+    kind === 'description'
+  return {
+    insert: onWork && settled && !ownCard,
+    keep: settled && !ownCard && kind !== 'note',
+  }
+}
+
+/**
+ * Which chat a surface shows.
+ *
+ * The one chosen, as long as the list still has it - or it is the one this
+ * surface has just made, which the list has not caught up with yet: the list
+ * is refetched after the write, and in the meantime the question just asked
+ * would vanish into a blank chat. The latest otherwise, and none when there
+ * are no chats, which is where the first question makes one.
+ */
+export function shownChat(
+  list: readonly { id: string }[],
+  chosen: string | null,
+  made: string | null,
+): string | null {
+  if (chosen !== null && (chosen === made || list.some((chat) => chat.id === chosen))) {
+    return chosen
+  }
+  return list[0]?.id ?? null
 }
 
 /** What the list calls a chat: its name, its first question, or the fallback. */
