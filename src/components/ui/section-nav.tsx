@@ -27,6 +27,12 @@ export interface SectionNavItem {
   id: string
   label: ReactNode
   icon?: ReactNode
+  /** A line under the label saying what the section holds - "Theme,
+   * language, start screen" - so a reader chooses a section by what is in
+   * it rather than by guessing from one word. At most two lines; past that
+   * it is cut, because a column of rows that grow unevenly stops being a
+   * list. */
+  description?: ReactNode
 }
 
 export interface SectionNavProps extends Omit<HTMLAttributes<HTMLElement>, 'children' | 'onSelect'> {
@@ -41,13 +47,27 @@ export interface SectionNavProps extends Omit<HTMLAttributes<HTMLElement>, 'chil
   render?: (item: SectionNavItem) => useRender.RenderProp
   /** Pressed, whatever the row is drawn as. */
   onSelect?: (id: string) => void
+  /** Keep the caption as the landmark's name and take it off the screen. For
+   * a screen whose own title already says it - a settings screen headed
+   * "Settings" with a list captioned "Settings" names itself twice, which is
+   * what kilna's did. */
+  labelHidden?: boolean
 }
 
-export function SectionNav({ label, items, activeId, render, onSelect, className, ...props }: SectionNavProps) {
+export function SectionNav({
+  label,
+  items,
+  activeId,
+  render,
+  onSelect,
+  labelHidden = false,
+  className,
+  ...props
+}: SectionNavProps) {
   const captionId = useId()
   return (
     <nav aria-labelledby={captionId} className={cn('flex flex-col gap-0.5', className)} {...props}>
-      <h2 id={captionId} className="px-2.5 pb-2 text-2xs font-medium uppercase tracking-caption text-faint">
+      <h2 id={captionId} className={cn('caption px-2.5 pb-2', labelHidden && 'sr-only')}>
         {label}
       </h2>
       {items.map((item) => (
@@ -83,8 +103,12 @@ function SectionNavRow({
       // it is the tinted one.
       'aria-current': active ? 'page' : undefined,
       onClick: () => onSelect?.(item.id),
+      // The whole label on hover, since the row may have cut it. Only a
+      // string can be a title; a label that is an element says itself.
+      title: typeof item.label === 'string' ? item.label : undefined,
       className: cn(
-        'flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-sm text-dim no-underline transition-colors',
+        'flex w-full gap-2.5 rounded-md px-2.5 py-1.5 text-left text-sm text-dim no-underline transition-colors',
+        item.description === undefined ? 'items-center' : 'items-start',
         'hover:bg-soft hover:text-text [&_svg:not([class*=size-])]:size-4 [&_svg]:shrink-0',
         'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
         active && 'bg-accent-soft text-text [&_svg]:text-accent',
@@ -98,7 +122,14 @@ function SectionNavRow({
               section and not the rest, so the column reads as ragged and the
               line height stops meaning anything. `min-w-0` because a flex
               child will not shrink below its content without it. */}
-          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+          {item.description === undefined ? (
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+          ) : (
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className={cn('truncate', active && 'font-semibold')}>{item.label}</span>
+              <span className="line-clamp-2 text-2xs text-faint">{item.description}</span>
+            </span>
+          )}
         </>
       ),
     },

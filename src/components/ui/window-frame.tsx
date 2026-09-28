@@ -267,6 +267,9 @@ export interface TitleBarProps {
   children?: ReactNode
   /** The product's own controls, between the handle and the window buttons. */
   actions?: ReactNode
+  /** Something that belongs to the whole window rather than to either end -
+   * the search box, most often - held at the window's centre. */
+  center?: ReactNode
   className?: string
 }
 
@@ -276,20 +279,56 @@ export interface TitleBarProps {
  * control is a handle. The stretch between the content and the actions is
  * there for that alone: a window with twenty documents open would otherwise
  * have no bar left to drag by, so it never shrinks below a minimum, and the
- * content scrolls instead. */
-export function TitleBar({ labels, mark, children, actions, className }: TitleBarProps) {
+ * content scrolls instead.
+ *
+ * **`center` is held at the window's centre, not at the centre of what is
+ * left.** A search box placed between the two ends of a flex row moves every
+ * time a tab opens, and a thing the hand reaches for without looking has to
+ * stay where it was. So with a centre the bar is three columns - two equal
+ * sides around the middle - and each side keeps a handle of its own, so the
+ * bar can still be grabbed on either side of the search. Without one the bar
+ * stays a single row, and the window's own content keeps the whole width it
+ * had. */
+export function TitleBar({ labels, mark, children, actions, center, className }: TitleBarProps) {
   const gestures = useTitleBarGestures()
+  const bar = 'h-titlebar shrink-0 items-stretch border-b border-line bg-raise select-none'
 
-  return (
-    <header
-      className={cn('flex h-titlebar shrink-0 items-stretch border-b border-line bg-raise select-none', className)}
-      {...gestures}
-    >
+  const start = (
+    <>
       {mark && <span className="flex shrink-0 items-center pr-2 pl-3">{mark}</span>}
       <div className="flex min-w-0 items-stretch">{children}</div>
-      <div aria-hidden data-titlebar-handle className="min-w-4 flex-1" />
+    </>
+  )
+  const end = (
+    <>
       {actions && <div className="flex shrink-0 items-center gap-1 px-1">{actions}</div>}
       <WindowButtons labels={labels} />
+    </>
+  )
+
+  if (center === undefined) {
+    return (
+      <header className={cn('flex', bar, className)} {...gestures}>
+        {start}
+        <div aria-hidden data-titlebar-handle className="min-w-4 flex-1" />
+        {end}
+      </header>
+    )
+  }
+
+  return (
+    <header className={cn('grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]', bar, className)} {...gestures}>
+      <div className="flex min-w-0 items-stretch">
+        {start}
+        <div aria-hidden data-titlebar-handle className="min-w-4 flex-1" />
+      </div>
+      <div data-titlebar-center className="flex items-center">
+        {center}
+      </div>
+      <div className="flex min-w-0 items-stretch">
+        <div aria-hidden data-titlebar-handle className="min-w-4 flex-1" />
+        {end}
+      </div>
     </header>
   )
 }

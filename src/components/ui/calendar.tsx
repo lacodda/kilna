@@ -203,7 +203,7 @@ export function Calendar({
               key={name}
               role="columnheader"
               aria-label={name}
-              className="py-1 text-center text-2xs uppercase tracking-caption text-faint"
+              className="caption py-1 text-center"
             >
               {name}
             </div>

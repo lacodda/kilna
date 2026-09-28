@@ -169,7 +169,7 @@ export function MenuSeparator({ className, ...props }: Base.Separator.Props) {
 export function MenuGroupLabel({ className, ...props }: Base.GroupLabel.Props) {
   return (
     <Base.GroupLabel
-      className={cn('px-2 py-1.5 text-2xs uppercase tracking-caption text-faint', className)}
+      className={cn('caption px-2 py-1.5', className)}
       {...props}
     />
   )

@@ -83,7 +83,7 @@ export function NotificationBell({
             data-badge
             className={cn(
               'absolute -right-0.5 -top-0.5 min-w-3.5 rounded-full bg-warn px-1',
-              'text-center font-mono text-[9px] leading-[14px] text-on-warn',
+              'text-center font-mono text-2xs leading-3.5 text-on-warn',
             )}
           >
             {count > 9 ? '9+' : count}

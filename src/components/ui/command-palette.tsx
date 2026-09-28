@@ -38,8 +38,8 @@ export const commandPalettePopupVariants = cva(
   {
     variants: {
       size: {
-        md: 'max-h-[24rem]',
-        lg: 'max-h-[32rem]',
+        md: 'max-h-96',
+        lg: 'max-h-128',
       },
     },
     defaultVariants: { size: 'md' },
