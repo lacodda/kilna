@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { queries } from '@/lib/query/queries'
 import { labelOf, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
-import { formatNumber } from '@/lib/format'
+import { formatTotal } from '@/lib/format'
 
 interface Props {
   workId: string
@@ -51,7 +51,7 @@ export function KindVerdicts({ workId }: Props) {
             )}
           >
             <span className="text-dim">{labelOf(releaseKinds, row.kind)}</span>
-            <span className="font-mono font-semibold tabular-nums">{formatNumber(row.total)}</span>
+            <span className="font-mono font-semibold tabular-nums">{formatTotal(row.total)}</span>
             {row.tier !== null && (
               <span className="rounded bg-soft px-1 py-0.5 text-2xs">
                 {labelOf(tiers, row.tier)}

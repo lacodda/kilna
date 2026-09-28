@@ -1,3 +1,5 @@
+import type { CardCounts } from '@/lib/api/types'
+
 /**
  * The card's tabs, in the order the mockup puts them.
  *
@@ -81,6 +83,50 @@ export function tabsOf(facts: CardFacts): Tab[] {
     const needs = RULES[tab].needs
     return needs === undefined || facts[needs]
   })
+}
+
+/** The number beside a tab. */
+export interface TabCount {
+  value: number
+  /** Something here waits for the person - a comment with no answer yet -
+      and the number says how many of those rather than how many in all. */
+  waiting: boolean
+}
+
+/**
+ * The number beside each tab, from the card's one answer (`card_counts`).
+ *
+ * A tab with nothing in it has none: a row of zeros reads as a row of
+ * warnings. The overview and the assistant count nothing - one is the work
+ * itself, the other a conversation - so they never have one. The comments'
+ * number is what still waits when anything does, and the total otherwise:
+ * what the audience said is about the work whichever tab is open, and what
+ * waits for an answer is worth a mark.
+ */
+export function tabCounts(counts: CardCounts): Partial<Record<Tab, TabCount>> {
+  const plain: Partial<Record<Tab, number>> = {
+    versions: counts.versions,
+    scenes: counts.scenes,
+    cuts: counts.cuts,
+    score: counts.scores,
+    releases: counts.releases,
+    files: counts.files,
+    // Made either way: "Links 2" is how a song shows it has clips without
+    // anyone opening the tab.
+    links: counts.sources + counts.derived,
+    notes: counts.notes,
+    history: counts.history,
+  }
+  const shown: Partial<Record<Tab, TabCount>> = {}
+  for (const [tab, value] of Object.entries(plain) as [Tab, number][]) {
+    if (value > 0) shown[tab] = { value, waiting: false }
+  }
+  if (counts.comments_waiting > 0) {
+    shown.comments = { value: counts.comments_waiting, waiting: true }
+  } else if (counts.comments > 0) {
+    shown.comments = { value: counts.comments, waiting: false }
+  }
+  return shown
 }
 
 /**

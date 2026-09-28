@@ -4,6 +4,9 @@ import type { Cut, CutPatch, NewCut, Shot } from '@/lib/api/types'
 // A short cut out of another work: its stretches and the list for the cutter.
 
 export const listCuts = (workId: string) => invoke<Cut[]>('list_cuts', { workId })
+/** What has been taken out of a work: its stretches in every short cut from
+    it, in the order they fall on it. */
+export const listCutsFrom = (sourceId: string) => invoke<Cut[]>('list_cuts_from', { sourceId })
 export const createCut = (cut: NewCut) => invoke<Cut>('create_cut', { cut })
 export const updateCut = (id: string, patch: CutPatch) => invoke<Cut>('update_cut', { id, patch })
 export const deleteCut = (id: string) => invoke<string>('delete_cut', { id })

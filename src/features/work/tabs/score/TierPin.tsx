@@ -43,6 +43,12 @@ export function TierPin({ work, scored }: Props) {
   const [reason, setReason] = useState(work.tier_pin_reason ?? '')
 
   const pinned = work.tier_pinned !== null && work.tier_pinned !== undefined
+  const held = pinned
+    ? t('score.tierPinnedBy', {
+        tier: labelOf(tiers, work.tier_pinned!),
+        reason: work.tier_pin_reason ?? '',
+      })
+    : ''
 
   const pin = useAppMutation({
     mutationFn: () => pinTier(work.id, tier, reason.trim()),
@@ -81,22 +87,26 @@ export function TierPin({ work, scored }: Props) {
   return (
     <>
       {pinned ? (
-        <p className="text-xs text-dim">
-          {t('score.tierPinnedBy', {
-            tier: labelOf(tiers, work.tier_pinned!),
-            reason: work.tier_pin_reason ?? '',
-          })}{' '}
+        // One line in the verdict's foot, beside the tier it overrides: the
+        // reason truncates before the way out does, and the whole of it is
+        // on hover.
+        <span className="flex min-w-0 items-center gap-1.5 text-xs text-dim">
+          <Pin aria-hidden className="size-3.5 shrink-0" />
+          <span className="min-w-0 truncate" title={held}>
+            {held}
+          </span>
           <Button
             variant="link"
+            className="shrink-0"
             onClick={() => release.mutate()}
             disabled={release.isPending}
             title={t('score.followFactsHint')}
           >
             {t('score.followFacts')}
           </Button>
-        </p>
+        </span>
       ) : (
-        <Button variant="icon" size="xs" onClick={start} className="self-start">
+        <Button variant="icon" size="xs" onClick={start} className="shrink-0">
           <Pin aria-hidden />
           {t('score.pinTier')}
         </Button>

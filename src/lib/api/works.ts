@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import type {
   BulkOutcome,
+  CardCounts,
   Cloned,
   NewWork,
   ScoredWork,
@@ -36,3 +37,5 @@ export const unpinTier = (id: string) => invoke<Work>('unpin_tier', { id })
 /** Tags in use on works, most used first — what the tag box offers. */
 export const workTags = () => invoke<[string, number][]>('work_tags')
 export const catalogue = () => invoke<ScoredWork[]>('catalogue')
+/** The number beside each of a work's tabs, in one answer. */
+export const cardCounts = (workId: string) => invoke<CardCounts>('card_counts', { workId })

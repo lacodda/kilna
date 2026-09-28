@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Chip, ChipGroup } from '@/components/ui/chip'
+import { Chip } from '@/components/ui/chip'
 import {
   Combobox,
   ComboboxEmpty,
@@ -12,27 +12,36 @@ import {
   ComboboxList,
   ComboboxPopup,
 } from '@/components/ui/combobox'
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 import type { Mark, Work } from '@/lib/api/types'
 import { updateWork } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { markIconOf } from '@/lib/markIcon'
+import { badgeVariantOf, markIconOf } from '@/lib/markIcon'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
-import { cn } from '@/lib/utils'
 
 /**
  * The work's own words, and the flags raised on it.
  *
  * Two lists side by side rather than one: a tag says what the work *is* and
  * stays with it, a mark says something about this week and comes off. They look
- * alike on purpose — both are chips you click — but a mark comes from the
- * profile's short list and a tag is whatever the author types.
+ * alike on purpose — both are chips with a cross that takes them away — but a
+ * mark comes from the profile's short list and a tag is whatever the author
+ * types.
  *
- * Neither derives anything. The status above already answers "where is this in
- * the process", and a second thing that quietly moved a work would be a second
- * answer to a question that has one.
+ * Only the marks that are raised are drawn. Every mark the profile knows stood
+ * here as an empty outline until v0.80, three switches before the first word
+ * of what the work is; raising one is now the menu behind "+ Mark", beside
+ * "+ Tag".
+ *
+ * Neither derives anything. The status beside them already answers "where is
+ * this in the process", and a second thing that quietly moved a work would be
+ * a second answer to a question that has one.
+ *
+ * Drawn into the header's row of chips rather than a row of its own, so it
+ * returns the chips alone.
  */
 export function TagBar({ work }: { work: Work }) {
   const { t } = useTranslation()
@@ -59,7 +68,11 @@ export function TagBar({ work }: { work: Work }) {
   const known = useQuery({ ...queries.workTags(), staleTime: 30_000, enabled: adding })
 
   const marks: Mark[] = profile.config.marks ?? []
-  const raised = new Set(work.marks)
+  // A mark the profile no longer defines is not drawn - the catalogue's rule
+  // too - but it stays on the work: raising or lowering another one sends the
+  // whole set back with it untouched.
+  const raised = marks.filter((mark) => work.marks.includes(mark.key))
+  const lowered = marks.filter((mark) => !work.marks.includes(mark.key))
 
   const addTag = (tag: string) => {
     const value = tag.trim()
@@ -82,50 +95,28 @@ export function TagBar({ work }: { work: Work }) {
     .slice(0, 8)
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-      {/* Off is an outline: the row of what could be raised is always there,
-          so raising one is a click and not a hunt through a menu. One group,
-          because the marks are one value - the set raised on the work - and
-          a press adds or takes away one of them, keeping any the profile no
-          longer lists. */}
-      {marks.length > 0 && (
-        <ChipGroup
-          multiple
-          aria-label={t('work.marks')}
-          value={work.marks}
-          onValueChange={(next) => patch.mutate({ marks: next })}
-        >
-          {marks.map((mark) => {
-            const on = raised.has(mark.key)
-            const Icon = markIconOf(mark)
-            return (
-              <Chip
-                key={mark.key}
-                value={mark.key}
-                title={t(on ? 'work.markOff' : 'work.markOn', { mark: mark.label })}
-              >
-                {/* A raised chip wears the set's "on"; the icon keeps the
-                    colour the profile gave the mark, so a warning still
-                    reads as one. */}
-                <Icon
-                  aria-hidden
-                  className={cn('size-3', on && MARK_INK[mark.colour ?? 'plain'])}
-                />
-                {sayLabel(mark.label)}
-              </Chip>
-            )
-          })}
-        </ChipGroup>
-      )}
-
-      {marks.length > 0 && work.tags.length > 0 && (
-        <span aria-hidden className="mx-0.5 h-3.5 w-px bg-line" />
-      )}
+    <>
+      {raised.map((mark) => {
+        const Icon = markIconOf(mark)
+        const label = sayLabel(mark.label)
+        return (
+          // The mark wears the colour its profile gave it, so a warning
+          // still reads as one.
+          <Chip
+            key={mark.key}
+            variant={badgeVariantOf(mark.colour ?? 'plain')}
+            removeLabel={t('work.markOff', { mark: label })}
+            onRemove={() => patch.mutate({ marks: work.marks.filter((key) => key !== mark.key) })}
+          >
+            <Icon aria-hidden className="size-3" />
+            {label}
+          </Chip>
+        )
+      })}
 
       {work.tags.map((tag) => (
         <Chip
           key={tag}
-          variant="soft"
           removeLabel={t('work.removeTag', { tag })}
           onRemove={() => patch.mutate({ tags: work.tags.filter((kept) => kept !== tag) })}
         >
@@ -194,17 +185,62 @@ export function TagBar({ work }: { work: Work }) {
             setOpen(true)
           }}
           title={t('work.addTag')}
+          className={ADD}
         >
           <Plus aria-hidden />
           {t('work.addTag')}
         </Button>
       )}
-    </div>
+
+      {/* Only while there is a mark left to raise: a menu of nothing is a
+          button that lies about what it holds. */}
+      {lowered.length > 0 && (
+        <Menu>
+          {/* Named in full for a reader: "Mark" alone, beside chips that are
+              marks, does not say that it raises one. */}
+          <MenuTrigger
+            render={
+              <Button
+                size="xs"
+                title={t('work.addMark')}
+                aria-label={t('work.addMark')}
+                className={ADD}
+              />
+            }
+          >
+            <Plus aria-hidden />
+            {t('work.mark')}
+          </MenuTrigger>
+          <MenuPopup align="start">
+            {lowered.map((mark) => {
+              const Icon = markIconOf(mark)
+              return (
+                <MenuItem
+                  key={mark.key}
+                  onClick={() => patch.mutate({ marks: [...work.marks, mark.key] })}
+                >
+                  <Icon aria-hidden className={MARK_INK[mark.colour ?? 'plain']} />
+                  {sayLabel(mark.label)}
+                </MenuItem>
+              )
+            })}
+          </MenuPopup>
+        </Menu>
+      )}
+    </>
   )
 }
 
-/** A raised mark's icon colour, by the palette role its profile named. Plain
-    and accent take the chip's own ink. */
+/**
+ * The clothes of an adding button in a row of chips: the chip's height and
+ * round ends, and a broken border - the mockup's dashed chip, which stands
+ * for something not there yet rather than one more value.
+ */
+const ADD = 'h-auto rounded-full border-dashed border-line-2 py-0.5 pr-2.5 pl-2'
+
+/** A mark's icon colour in the menu that raises it, by the palette role its
+    profile named - the colour it wears once raised. Plain and accent take the
+    item's own ink. */
 const MARK_INK: Record<string, string> = {
   plain: '',
   accent: '',

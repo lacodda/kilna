@@ -9,6 +9,7 @@ import { updateWork } from '@/lib/api/works'
 import { useBlindJudging } from '@/lib/blindJudging'
 import { useCardView } from '@/features/work/cardView'
 import { coverImageFor } from '@/lib/cover'
+import { formatTotal } from '@/lib/format'
 import { useCovers } from '@/lib/useCovers'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
@@ -18,22 +19,22 @@ import { badgeVariantOf } from '@/lib/markIcon'
 import { say } from '@/lib/toast'
 import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { useStar } from '@/lib/useStar'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/chip'
 import { Copyable } from '@/components/ui/copyable'
 import { CopyButton } from '@/components/ui/copy-button'
 import { Input } from '@/components/ui/input'
 import { RowMenu } from '@/components/RowMenu'
 import { StagePicker } from '@/components/StagePicker'
 import { TabBar } from '@/features/work/TabBar'
-import type { Tab } from '@/features/work/tabs'
+import type { Tab, TabCount } from '@/features/work/tabs'
 import { TagBar } from '@/features/work/TagBar'
 
 interface Props {
   work: Work
   /** The tabs this work draws, and the numbers beside them; the card knows both. */
   tabs: readonly Tab[]
-  counts: Partial<Record<Tab, number>>
+  counts: Partial<Record<Tab, TabCount>>
   /** Deleting the work, from the header's menu. */
   onDelete: () => void
 }
@@ -54,10 +55,62 @@ interface Props {
  */
 export function CardHeader({ work, tabs, counts, onDelete }: Props) {
   const { t } = useTranslation()
+  const cover = useCovers().get(work.id)
+
+  return (
+    <header className="shrink-0 overflow-hidden rounded-t-xl border border-b-0 border-line bg-raise">
+      {/* The cover: what tells one card from another at a glance, before a
+          word is read. The way back sits on it because that is the one place
+          on the card that carries nothing else. */}
+      <div className="relative h-14" style={{ background: coverImageFor(work.id, cover) }}>
+        <Link
+          to="/catalogue"
+          className="absolute top-2.25 left-3 inline-flex items-center gap-1.5 rounded-md bg-black/35 px-2.5 py-0.75 text-sm text-white/90 no-underline backdrop-blur-sm transition-colors hover:bg-black/50 hover:text-white/100"
+        >
+          <ArrowLeft aria-hidden className="size-3.5" />
+          {t('nav.catalogue')}
+        </Link>
+      </div>
+
+      {/* The name on a line of its own, and under it one row of chips: what
+          the work is and where it stands, then what its author says about it
+          this week and for good - the mockup's order. The kind and the
+          verdict sat on the name's line until v0.80, where they read as part
+          of the title. */}
+      <div className="px-4 pt-2.25">
+        <div className="flex flex-wrap items-center gap-x-2.25 gap-y-1.5">
+          <Title work={work} />
+
+          {/* Pushed to the end of the row: the actions are what you reach
+              for, not what tells you whose card this is. */}
+          <span className="ml-auto">
+            <HeaderActions work={work} onDelete={onDelete} />
+          </span>
+        </div>
+
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <Standing work={work} />
+          <TagBar work={work} />
+        </div>
+
+        <MetaStrip work={work} />
+      </div>
+
+      <TabBar workId={work.id} tabs={tabs} counts={counts} />
+    </header>
+  )
+}
+
+/**
+ * What the work is and where it stands: its kind, its status, the verdict of
+ * its last score, and the collection it belongs to - chips that say, rather
+ * than chips that do. Each is changed where it is decided: the status by what
+ * happens to the work, the verdict on the Score tab.
+ */
+function Standing({ work }: { work: Work }) {
   const profile = useProfile()
   const { hiding } = useBlindJudging()
   const vocabulary = vocabularyOf(profile.config, work.kind)
-  const cover = useCovers().get(work.id)
 
   // The tier and total belong here rather than only on the Score tab: they are
   // the verdict, and the verdict is what someone opens a card to check.
@@ -73,61 +126,23 @@ export function CardHeader({ work, tabs, counts, onDelete }: Props) {
   const status = vocabulary.statuses.find((s) => s.key === work.status)
 
   return (
-    <header className="shrink-0 overflow-hidden rounded-t-xl border border-b-0 border-line bg-raise">
-      {/* The cover: what tells one card from another at a glance, before a
-          word is read. The way back sits on it because that is the one place
-          on the card that carries nothing else. */}
-      <div className="relative h-16" style={{ background: coverImageFor(work.id, cover) }}>
-        <Link
-          to="/catalogue"
-          className="absolute left-3 top-2.5 inline-flex items-center gap-1.5 rounded-md bg-black/35 px-2.5 py-1 text-xs text-white/90 backdrop-blur-sm transition-colors hover:bg-black/50 hover:text-white/100"
-        >
-          <ArrowLeft aria-hidden className="size-3.5" />
-          {t('nav.catalogue')}
-        </Link>
-      </div>
+    <>
+      <Chip>{labelOf(profile.config.work_kinds, work.kind)}</Chip>
+      <Chip variant={badgeVariantOf(status?.colour)}>
+        {status === undefined ? work.status : sayLabel(status.label)}
+      </Chip>
 
-      {/* Name first, then what it is, then the craft's own numbers — the
-          order of the mockup, and the order someone reads in: the title says
-          whose card this is, the badges where it stands, and BPM/Key are
-          reference you consult rather than identify by. They sat above the
-          title until v0.20, which read as though the numbers were the
-          heading. Read-only here; they are edited on the Overview tab, and a
-          header that can be typed into shifts under the cursor as it saves. */}
-      <div className="px-4 pt-2.5 pb-2">
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-          <Title work={work} />
+      {/* Held back while this card is judged blind: it is the verdict the
+          mode exists to hide, one line above the scales. */}
+      {latest !== null && !hiding && (
+        <Chip variant="accent">
+          {latest.tier !== null && `${labelOf(vocabulary.tiers, latest.tier)} · `}
+          <span className="font-mono tabular-nums">{formatTotal(latest.total)}</span>
+        </Chip>
+      )}
 
-          <Badge>{labelOf(profile.config.work_kinds, work.kind)}</Badge>
-          <Badge variant={badgeVariantOf(status?.colour)}>
-            {status === undefined ? work.status : sayLabel(status.label)}
-          </Badge>
-
-          {/* Held back while this card is judged blind: it is the verdict the
-              mode exists to hide, one line above the scales. */}
-          {latest !== null && !hiding && (
-            <Badge variant="soft">
-              {latest.tier !== null && `${labelOf(vocabulary.tiers, latest.tier)} · `}
-              <span className="font-mono tabular-nums">{Math.round(latest.total * 10) / 10}</span>
-            </Badge>
-          )}
-
-          {collection !== undefined && <Badge>{collection.title}</Badge>}
-
-          {/* Pushed to the end of the row: the actions are what you reach
-              for, not what tells you whose card this is. */}
-          <span className="ml-auto">
-            <HeaderActions work={work} onDelete={onDelete} />
-          </span>
-        </div>
-
-        <TagBar work={work} />
-
-        <MetaStrip work={work} />
-      </div>
-
-      <TabBar workId={work.id} tabs={tabs} counts={counts} />
-    </header>
+      {collection !== undefined && <Chip>{collection.title}</Chip>}
+    </>
   )
 }
 
@@ -302,7 +317,10 @@ function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void })
           .filter((kind) => kind.key !== work.kind)
           .map((kind) => ({
             key: `derive:${kind.key}`,
-            label: t('links.makeFromThis', { kind: kind.label }),
+            // Said through the profile's words: a kind's label may be one per
+            // language, and handing the object to the sentence printed
+            // "[object Object]".
+            label: t('links.makeFromThis', { kind: sayLabel(kind.label) }),
             onSelect: () => derive.mutate(kind.key),
           })),
         { key: 'delete', label: t('work.delete'), onSelect: onDelete, danger: true },

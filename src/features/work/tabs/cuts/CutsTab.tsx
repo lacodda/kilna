@@ -3,11 +3,20 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { save } from '@tauri-apps/plugin-dialog'
-import { Film, Plus, Scissors, Trash2 } from 'lucide-react'
+import { Film, Plus, Scissors, X } from 'lucide-react'
 import { createCut, deleteCut, reorderCuts, updateCut } from '@/lib/api/cuts'
 import { writeTextFile } from '@/lib/api/data'
 import type { Cut, Work } from '@/lib/api/types'
-import { bandsOf, blockerOf, lengthOf, orderMoving, totalLength, tracksOf } from '@/lib/cuts'
+import {
+  blockerOf,
+  lengthOf,
+  orderWithin,
+  scaleOf,
+  totalLength,
+  tracksOf,
+  type Stretch,
+} from '@/lib/cuts'
+import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -19,15 +28,19 @@ import { Button } from '@/components/ui/button'
 import { InlineField, timecodeCodec } from '@/components/ui/inline-field'
 import { Panel, SectionLabel } from '@/components/ui/panel'
 import { QueryState } from '@/components/ui/query-state'
+import { ReorderGrip, ReorderIndicator, useReorder } from '@/components/ui/reorderable-list'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Frame, Scroll } from '@/components/frame'
+import { CutFromThis } from '@/features/work/tabs/cuts/CutFromThis'
+import { CutTrack } from '@/features/work/tabs/cuts/CutTrack'
 
 interface Props {
   work: Work
 }
 
 /**
- * The stretches of a longer work this one is spliced from.
+ * The stretches of a longer work this one is spliced from - and, on a work
+ * others were cut from, what they took.
  *
  * The heart of it is a track per donor: the video drawn as a bar of its own
  * length, with each stretch sitting where it actually falls. That is the
@@ -35,8 +48,9 @@ interface Props {
  * to take another twelve seconds is asking "where, relative to what I already
  * took", and two numbers cannot be looked at that way.
  *
- * The seconds are still typeable underneath, because the eye places a cut and
- * the keyboard finishes it: nobody drags to exactly 48.0.
+ * A stretch is dragged along the track to move it, or by an edge to move one
+ * end; the seconds are still typeable underneath, because the eye places a
+ * cut and the keyboard finishes it: nobody drags to exactly 48.0.
  *
  * Nothing here opens a video file. The core keeps the boundaries and hands
  * them out (decision of 2026-09-11); the cutting plugin of v1.10 does the
@@ -49,14 +63,15 @@ export function CutsTab({ work }: Props) {
 
   const cuts = useQuery(queries.cuts(work.id))
   const links = useQuery(queries.links(work.id))
+  const taken = useQuery(queries.cutsFrom(work.id))
 
   const add = useAppMutation({
     mutationFn: (sourceId: string) => {
       // A new stretch starts where the last one of that donor ended, so
       // taking three in a row is three clicks rather than three sums. The
       // first one starts at the beginning.
-      const taken = (cuts.data ?? []).filter((cut) => cut.source_id === sourceId)
-      const from = taken.reduce((latest, cut) => Math.max(latest, cut.ends_at), 0)
+      const earlier = (cuts.data ?? []).filter((cut) => cut.source_id === sourceId)
+      const from = earlier.reduce((latest, cut) => Math.max(latest, cut.ends_at), 0)
       return createCut({
         work_id: work.id,
         source_id: sourceId,
@@ -68,9 +83,16 @@ export function CutsTab({ work }: Props) {
   })
 
   const edit = useAppMutation({
-    mutationFn: ({ id, starts_at, ends_at }: { id: string; starts_at: number; ends_at: number }) =>
+    mutationFn: ({ id, starts_at, ends_at }: { id: string } & Stretch) =>
       updateCut(id, { starts_at, ends_at }),
     refresh: refresh.cut,
+    // A dragged stretch is drawn where it was let go before the write lands
+    // (see `place`); a write refused leaves it there, drawn wrong, until the
+    // splice is read again.
+    onError: (cause) => {
+      say.failed(cause)
+      void client.invalidateQueries({ queryKey: keys.cuts })
+    },
   })
 
   const rename = useAppMutation({
@@ -95,18 +117,30 @@ export function CutsTab({ work }: Props) {
     refresh: refresh.cut,
   })
 
-  // Two reads, and the tab needs both: the splice and the works it can take
-  // from. A failure of either offers to read both again.
-  if (cuts.isPending || links.isPending || cuts.isError || links.isError) {
+  /** A stretch let go on the track: drawn there at once, then written. The
+      splice is re-read after the write anyway; without this the stretch would
+      jump back to where it was taken from and forward again when the read
+      lands. */
+  const place = (id: string, stretch: Stretch) => {
+    client.setQueryData<Cut[]>(keys.cutsFor(work.id), (old) =>
+      old?.map((cut) => (cut.id === id ? { ...cut, ...stretch } : cut)),
+    )
+    edit.mutate({ id, ...stretch })
+  }
+
+  // Three reads, and the tab needs all of them: the splice, the works it can
+  // take from, and what was taken out of this one. A failure of any offers
+  // to read them again.
+  const reads = [cuts, links, taken]
+  if (reads.some((read) => read.isPending || read.isError)) {
     return (
       <Frame>
         <QueryState
-          pending={cuts.isPending || links.isPending}
-          error={cuts.isError || links.isError ? t('toast.loadFailed') : null}
+          pending={reads.some((read) => read.isPending)}
+          error={reads.some((read) => read.isError) ? t('toast.loadFailed') : null}
           skeleton={<Skeleton className="h-40 w-full" />}
           onRetry={() => {
-            void cuts.refetch()
-            void links.refetch()
+            for (const read of reads) void read.refetch()
           }}
           retryLabel={t('crash.retry')}
         >
@@ -119,59 +153,72 @@ export function CutsTab({ work }: Props) {
   const splice = cuts.data ?? []
   const donors = links.data?.sources ?? []
   const tracks = tracksOf(splice)
+  const takenFromThis = taken.data ?? []
+  // A work only ever cut into others has no splice of its own to show, and
+  // telling it to name a donor would be telling it to become something else.
+  // A work with neither says how a splice begins.
+  const spliced = splice.length > 0 || donors.length > 0 || takenFromThis.length === 0
+  const busy = edit.isPending || rename.isPending || remove.isPending || reorder.isPending
 
   return (
     <Frame>
-      <Scroll label={t('card.tab.cuts')} contentClassName="flex flex-col gap-4">
-        <Panel className="flex flex-col gap-4 p-4">
-          <header className="flex items-baseline justify-between gap-3">
-            <h3 className="text-sm font-semibold">{t('cuts.title')}</h3>
-            {splice.length > 0 && (
-              <p className="text-sm text-dim">
-                {t('cuts.runs', {
-                  length: formatSeconds(totalLength(splice)),
-                  count: splice.length,
-                })}
-              </p>
+      <Scroll label={t('card.tab.cuts')} contentClassName="flex flex-col gap-2.5">
+        {spliced && (
+          <Panel className="flex flex-col gap-2.5 px-3 py-2.5">
+            <header className="flex items-center gap-2">
+              <SectionLabel>{t('cuts.title')}</SectionLabel>
+              {splice.length > 0 && (
+                <span className="ml-auto font-mono text-xs text-faint">
+                  {t('cuts.runs', {
+                    length: formatSeconds(totalLength(splice)),
+                    count: splice.length,
+                  })}
+                </span>
+              )}
+            </header>
+
+            {donors.length === 0 && splice.length === 0 && (
+              <p className="text-sm text-dim">{t('cuts.noDonor')}</p>
             )}
-          </header>
 
-          {donors.length === 0 && splice.length === 0 && (
-            <p className="text-sm text-dim">{t('cuts.noDonor')}</p>
-          )}
+            {tracks.map((track) => (
+              <DonorTrack
+                key={track.source_id}
+                track={track}
+                splice={splice}
+                onOpen={() => void navigate(`/works/${track.source_id}/overview`)}
+                onPlace={place}
+                onEdit={(id, starts_at, ends_at) => edit.mutate({ id, starts_at, ends_at })}
+                onRename={(id, label) => rename.mutate({ id, label })}
+                onRemove={(id) => remove.mutate(id)}
+                onReorder={(ids) => reorder.mutate(ids)}
+                busy={busy}
+              />
+            ))}
 
-          {tracks.map((track) => (
-            <Track
-              key={track.source_id}
-              track={track}
-              onOpen={() => void navigate(`/works/${track.source_id}/overview`)}
-              onEdit={(id, starts_at, ends_at) => edit.mutate({ id, starts_at, ends_at })}
-              onRename={(id, label) => rename.mutate({ id, label })}
-              onRemove={(id) => remove.mutate(id)}
-              onReorder={(ids) => reorder.mutate(ids)}
-              splice={splice}
-              busy={edit.isPending || rename.isPending || remove.isPending || reorder.isPending}
-            />
-          ))}
+            {donors.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {donors.map((link) => (
+                  <Button
+                    key={link.source_id}
+                    size="sm"
+                    disabled={add.isPending}
+                    onClick={() => add.mutate(link.source_id)}
+                  >
+                    <Plus aria-hidden />
+                    {t('cuts.takeFrom', { title: link.source_title })}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </Panel>
+        )}
 
-          {donors.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {donors.map((link) => (
-                <Button
-                  key={link.source_id}
-                  variant="soft"
-                  disabled={add.isPending}
-                  onClick={() => add.mutate(link.source_id)}
-                >
-                  <Plus aria-hidden />
-                  {t('cuts.takeFrom', { title: link.source_title })}
-                </Button>
-              ))}
-            </div>
-          )}
-        </Panel>
+        {takenFromThis.length > 0 && (
+          <CutFromThis work={work} cuts={takenFromThis} derived={links.data?.derived ?? []} />
+        )}
 
-        <ShotList workId={work.id} title={work.title} />
+        {spliced && <ShotList workId={work.id} title={work.title} />}
       </Scroll>
     </Frame>
   )
@@ -181,11 +228,13 @@ export function CutsTab({ work }: Props) {
     track, short enough that nobody meant it. */
 const DEFAULT_LENGTH = 10
 
-/** One donor, drawn as its own length with the stretches taken out of it. */
-function Track({
+/** One donor, drawn as its own length with the stretches taken out of it,
+    and the stretches listed under it in the order the short plays them. */
+function DonorTrack({
   track,
   splice,
   onOpen,
+  onPlace,
   onEdit,
   onRename,
   onRemove,
@@ -195,6 +244,7 @@ function Track({
   track: ReturnType<typeof tracksOf>[number]
   splice: Cut[]
   onOpen: () => void
+  onPlace: (id: string, stretch: Stretch) => void
   onEdit: (id: string, starts_at: number, ends_at: number) => void
   onRename: (id: string, label: string | null) => void
   onRemove: (id: string) => void
@@ -202,92 +252,125 @@ function Track({
   busy: boolean
 }) {
   const { t } = useTranslation()
-  const bands = bandsOf(track.cuts, track.source_duration)
-  const [dragging, setDragging] = useState<string | null>(null)
+  const scale = scaleOf(track.source_duration)
+  // The stretch in the hand, where the pointer has it. Drawn on the track and
+  // in the seconds under it alike, so the numbers say where it will land
+  // before it is let go.
+  const [moving, setMoving] = useState<({ id: string } & Stretch) | null>(null)
+  const shown = track.cuts.map((cut) =>
+    moving?.id === cut.id ? { ...cut, starts_at: moving.starts_at, ends_at: moving.ends_at } : cut,
+  )
+
+  // Put in order by a grip rather than by the row: the row is full of fields,
+  // and a row that is itself draggable fights them for every press - and
+  // HTML5 dragging never starts in a window that takes file drops.
+  const order = useReorder({
+    order: track.cuts.map((cut) => cut.id),
+    onMove: (id, to) => onReorder(orderWithin(splice, track.cuts, id, to)),
+    disabled: busy,
+  })
 
   return (
-    <section className="flex flex-col gap-2">
-      <SectionLabel>
-        <Button variant="link" onClick={onOpen}>
-          <Film aria-hidden />
+    <section className="flex flex-col gap-1.5">
+      <div className="flex min-w-0 items-center gap-2">
+        <Film aria-hidden className="size-3.5 shrink-0 text-faint" />
+        <Button variant="link" className="min-w-0 truncate text-xs" onClick={onOpen}>
           {track.source_title}
         </Button>
-        {track.source_duration !== null && <span>{formatSeconds(track.source_duration)}</span>}
-      </SectionLabel>
+        {track.source_duration !== null && (
+          <span className="font-mono text-xs text-faint">
+            {formatSeconds(track.source_duration)}
+          </span>
+        )}
+      </div>
 
-      {bands === null ? (
+      {scale === null ? (
         // A track with no scale would place every cut at an arbitrary point
         // and look exactly as authoritative as a real one.
         <p className="text-sm text-warn">{t('cuts.noLength', { title: track.source_title })}</p>
       ) : (
-        <div className="relative h-8 w-full overflow-hidden rounded-inner bg-soft">
-          {bands.map((band) => (
-            <div
-              key={band.cut.id}
-              title={`${formatSeconds(band.cut.starts_at)}–${formatSeconds(band.cut.ends_at)}`}
-              className="absolute inset-y-0 rounded-inner bg-accent/70"
-              style={{
-                left: `${band.left * 100}%`,
-                width: `${Math.max(band.width, 0.004) * 100}%`,
-              }}
-            />
-          ))}
-        </div>
+        <CutTrack
+          cuts={shown}
+          duration={scale}
+          label={t('cuts.track', { title: track.source_title })}
+          disabled={busy}
+          onMove={(id, stretch, done) => {
+            if (!done) {
+              setMoving({ id, ...stretch })
+              return
+            }
+            setMoving(null)
+            const stored = track.cuts.find((cut) => cut.id === id)
+            if (
+              stored !== undefined &&
+              (stored.starts_at !== stretch.starts_at || stored.ends_at !== stretch.ends_at)
+            ) {
+              onPlace(id, stretch)
+            }
+          }}
+        />
       )}
 
-      <ul className="flex flex-col gap-1">
-        {track.cuts.map((cut) => (
-          <li
-            key={cut.id}
-            draggable={!busy}
-            onDragStart={() => setDragging(cut.id)}
-            onDragEnd={() => setDragging(null)}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={() => {
-              if (dragging !== null && dragging !== cut.id) {
-                onReorder(orderMoving(splice, dragging, cut.id))
-              }
-              setDragging(null)
-            }}
-            className={cn(
-              'flex items-center gap-2 rounded-inner px-2 py-1 text-sm',
-              dragging === cut.id && 'opacity-50',
-            )}
-          >
-            <span className="w-6 shrink-0 text-right text-xs text-faint">{cut.position}</span>
-            <Span
-              label={t('scenes.startsAt')}
-              value={cut.starts_at}
-              onCommit={(seconds) => onEdit(cut.id, seconds, cut.ends_at)}
-              disabled={busy}
-            />
-            <span className="text-faint">–</span>
-            <Span
-              label={t('scenes.endsAt')}
-              value={cut.ends_at}
-              onCommit={(seconds) => onEdit(cut.id, cut.starts_at, seconds)}
-              disabled={busy}
-            />
-            <span className="w-12 shrink-0 text-xs text-faint">{formatSeconds(lengthOf(cut))}</span>
-            {/* The name is stored, so it is shown and typeable: a column the
-                schema keeps and no screen draws is how a field dies. */}
-            <Label
-              value={cut.label}
-              onCommit={(label) => onRename(cut.id, label)}
-              disabled={busy}
-            />
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t('cuts.remove')}
-              disabled={busy}
-              onClick={() => onRemove(cut.id)}
+      {/* The line where a stretch would land is drawn against this box, so
+          it holds the list rather than standing inside it. */}
+      <div {...order.listProps} className="relative">
+        <ul className="flex flex-col gap-0.5">
+          {shown.map((cut) => (
+            <li
+              key={cut.id}
+              {...order.rowProps(cut.id)}
+              className={cn(
+                'flex items-center gap-2 text-sm',
+                order.dragging === cut.id && 'opacity-50',
+              )}
             >
-              <Trash2 aria-hidden className="size-4" />
-            </Button>
-          </li>
-        ))}
-      </ul>
+              {/* A grip only where there is somewhere to move to. */}
+              {track.cuts.length > 1 ? (
+                <ReorderGrip {...order.gripProps(cut.id)} title={t('cuts.move')} />
+              ) : (
+                <span aria-hidden className="w-3.5 shrink-0" />
+              )}
+              <span className="w-5 shrink-0 text-right font-mono text-xs text-faint">
+                {cut.position}
+              </span>
+              <Span
+                label={t('scenes.startsAt')}
+                value={cut.starts_at}
+                onCommit={(seconds) => onEdit(cut.id, seconds, cut.ends_at)}
+                disabled={busy}
+              />
+              <span className="text-faint">–</span>
+              <Span
+                label={t('scenes.endsAt')}
+                value={cut.ends_at}
+                onCommit={(seconds) => onEdit(cut.id, cut.starts_at, seconds)}
+                disabled={busy}
+              />
+              <span className="w-12 shrink-0 font-mono text-xs text-faint">
+                {formatSeconds(lengthOf(cut))}
+              </span>
+              {/* The name is stored, so it is shown and typeable: a column the
+                schema keeps and no screen draws is how a field dies. */}
+              <Label
+                value={cut.label}
+                onCommit={(label) => onRename(cut.id, label)}
+                disabled={busy}
+              />
+              <Button
+                variant="icon"
+                size="icon-sm"
+                title={t('cuts.remove')}
+                aria-label={t('cuts.remove')}
+                disabled={busy}
+                onClick={() => onRemove(cut.id)}
+              >
+                <X aria-hidden />
+              </Button>
+            </li>
+          ))}
+        </ul>
+        <ReorderIndicator offset={order.slotOffset} />
+      </div>
     </section>
   )
 }
@@ -312,7 +395,7 @@ function Span({
 }) {
   return (
     <InlineField
-      className="w-20 shrink-0"
+      className="w-18 shrink-0"
       label={label}
       labelHidden
       codec={timecodeCodec}
@@ -383,15 +466,17 @@ function ShotList({ workId, title }: { workId: string; title: string }) {
   const blocker = blockerOf(shots.data)
 
   return (
-    <Panel className="flex items-center justify-between gap-3 p-4">
-      <div>
-        <h3 className="text-sm font-semibold">{t('cuts.shotList')}</h3>
-        <p className="mt-1 text-sm text-dim">
+    <Panel className="flex flex-wrap items-center gap-2.5 px-3 py-2.5">
+      <div className="min-w-50 flex-1">
+        <SectionLabel>{t('cuts.shotList')}</SectionLabel>
+        {/* Good when it is ready: the one line on the tab that says the
+            work is done. */}
+        <p className={cn('mt-1 text-sm', blocker === null ? 'text-good' : 'text-dim')}>
           {blocker === null ? t('cuts.readyToCut') : t(`cuts.blocked.${blocker}`)}
         </p>
       </div>
       <Button
-        variant="soft"
+        size="sm"
         disabled={blocker !== null}
         onClick={async () => {
           if (saving.current) return

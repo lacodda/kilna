@@ -1,5 +1,6 @@
 pub mod asset;
 pub mod assistant;
+pub mod card;
 pub mod clock;
 pub mod clone;
 pub mod collection;
@@ -146,7 +147,6 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::promote_note,
             commands::list_comments,
             commands::comment_channels,
-            commands::count_work_comments,
             commands::create_comment,
             commands::update_comment,
             commands::delete_comment,
@@ -206,6 +206,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::update_collection,
             commands::delete_collection,
             commands::set_collection_contents,
+            commands::card_counts,
             commands::list_links,
             commands::create_link,
             commands::delete_link,

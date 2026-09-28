@@ -12,12 +12,15 @@ import type {
   Scheduling,
   SlotPreview,
 } from '@/lib/api/types'
+import type { ReleaseChanges } from '@/lib/releaseForm'
 
 // Releases: what goes out, where and when, and what it goes out as.
 
 export const createRelease = (release: NewRelease) => invoke<Release>('create_release', { release })
 export const deleteRelease = (id: string) => invoke<string>('delete_release', { id })
-export const updateRelease = (id: string, patch: ReleasePatch) =>
+// Written only through `saveRelease`, which is how a release's form is saved
+// wherever it is drawn.
+const updateRelease = (id: string, patch: ReleasePatch) =>
   invoke<Release>('update_release', { id, patch })
 export const scheduleRelease = (id: string, slot: string) =>
   invoke<Scheduling>('schedule_release', { id, slot })
@@ -27,9 +30,18 @@ export const previewSchedule = (id: string, slot: string) =>
 // negative offset is already tomorrow. Returns how many gaps are standing.
 export const warnUnreadyReleases = (today: string) =>
   invoke<number>('warn_unready_releases', { today })
-export const setSlotPin = (id: string, pinned: boolean) =>
-  invoke<Release>('set_slot_pin', { id, pinned })
+const setSlotPin = (id: string, pinned: boolean) => invoke<Release>('set_slot_pin', { id, pinned })
 export const unscheduleRelease = (id: string) => invoke<Release>('unschedule_release', { id })
+
+/**
+ * A release's form, written: its fields through `update_release`, then the
+ * pin through its own command. In that order, so a release given its first
+ * date and kept in one edit has the date by the time the pin asks for one.
+ */
+export async function saveRelease(id: string, changes: ReleaseChanges): Promise<void> {
+  if (changes.patch !== null) await updateRelease(id, changes.patch)
+  if (changes.pin !== null) await setSlotPin(id, changes.pin)
+}
 export const unscheduleWorks = (workIds: string[]) =>
   invoke<BulkOutcome>('unschedule_works', { workIds })
 // `at` is the day it went out, when that is not today: a release marked late,
@@ -48,6 +60,10 @@ export const setReleaseFields = (id: string, values: Record<string, string>) =>
   invoke<Release>('set_release_fields', { id, values })
 export const generateReleaseFields = (id: string) =>
   invoke<GeneratedFields>('generate_release_fields', { id })
+// The same rendering, written nowhere: what a generation would put in the
+// boxes, shown before it replaces what someone typed there.
+export const previewReleaseFields = (id: string) =>
+  invoke<GeneratedFields>('preview_release_fields', { id })
 export const generateReleaseFieldsBatch = (ids: string[]) =>
   invoke<GeneratedBatch>('generate_release_fields_batch', { ids })
 export const calendar = () => invoke<ScheduledRelease[]>('calendar')

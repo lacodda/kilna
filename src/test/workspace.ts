@@ -1,10 +1,12 @@
 import type {
   Asset,
+  CardCounts,
   ChatSummary,
   Collection,
   Comment,
   Cut,
   Deletion,
+  Derived,
   JournalEntry,
   Link,
   Links,
@@ -530,8 +532,54 @@ function linksOf(studio: Studio, workId: string): Links {
           status: derived?.status ?? '',
           role: link.role,
           created_at: link.created_at,
+          ...releasesOf(studio, link.work_id),
         }
       }),
+  }
+}
+
+/** Where a derived work's releases stand, the way `link::derived` reads it. */
+function releasesOf(
+  studio: Studio,
+  workId: string,
+): Pick<Derived, 'released' | 'last_released_at' | 'next_scheduled_at'> {
+  const mine = studio.releases.filter((r) => r.work_id === workId)
+  const out = mine.filter((r) => r.status === 'released' && r.released_at !== null)
+  const waiting = mine
+    .filter((r) => r.status !== 'released' && r.scheduled_at !== null)
+    .map((r) => r.scheduled_at!)
+    .sort()
+  return {
+    released: out.length,
+    last_released_at:
+      out
+        .map((r) => r.released_at!)
+        .sort()
+        .at(-1) ?? null,
+    next_scheduled_at: waiting[0] ?? null,
+  }
+}
+
+/** The numbers beside a card's tabs, read off the studio as `card::counts` would. */
+function countsOf(studio: Studio, workId: string): CardCounts {
+  const mine = <T extends { work_id: string | null }>(rows: T[]) =>
+    rows.filter((row) => row.work_id === workId).length
+  const comments = studio.comments.filter((c) => c.work_id === workId && c.state !== 'archived')
+  return {
+    versions: mine(studio.versions),
+    scores: mine(studio.scores),
+    releases: mine(studio.releases),
+    // No files are attached in this studio: `list_work_assets` answers none.
+    files: 0,
+    sources: mine(studio.links),
+    derived: studio.links.filter((link) => link.source_id === workId).length,
+    notes: mine(studio.notes),
+    comments: comments.length,
+    comments_waiting: comments.filter((c) => c.state === 'open').length,
+    scenes: mine(studio.scenes),
+    cuts: mine(studio.cuts),
+    cut_from: studio.cuts.filter((cut) => cut.source_id === workId).length,
+    history: studio.journal.filter((e) => e.entity === 'work' && e.entity_id === workId).length,
   }
 }
 
@@ -562,6 +610,7 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     catalogue: () => studio.works.map((row) => scored(studio, row)),
     list_works: () => studio.works,
     get_work: ({ id }) => studio.works.find((w) => w.id === id) ?? null,
+    card_counts: ({ workId }) => countsOf(studio, workId as string),
     work_tags: () => counted(studio.works.flatMap((w) => w.tags)),
     works_matching: () => [],
     search: () => [],
@@ -615,10 +664,6 @@ export function answersFor(studio: Studio): Record<string, Handler> {
       )
     },
     comment_channels: () => counted(studio.comments.map((c) => c.channel)),
-    count_work_comments: ({ workId }) => {
-      const mine = studio.comments.filter((c) => c.work_id === workId)
-      return { total: mine.length, waiting: mine.filter((c) => c.state === 'open').length }
-    },
     pending_comment_proposals: () => [],
 
     list_style_bricks: () => studio.bricks,

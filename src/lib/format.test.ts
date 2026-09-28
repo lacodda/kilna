@@ -8,6 +8,8 @@ import {
   formatMonth,
   formatNumber,
   formatStamp,
+  formatTotal,
+  formatTotalDelta,
 } from '@/lib/format'
 
 // A fixed "now", so a date's year and a moment's day read the same any day.
@@ -25,6 +27,21 @@ describe('a number', () => {
     expect(formatDelta(2.5, 1, 'en')).toBe('+2.5')
     expect(formatDelta(-1, 1, 'ru')).toBe('-1,0')
     expect(formatDelta(0, 1, 'en')).toBe('0.0')
+  })
+
+  it('says a total with one decimal wherever it is said', () => {
+    expect(formatTotal(67.5, 'en')).toBe('67.5')
+    expect(formatTotal(78, 'en')).toBe('78.0')
+    expect(formatTotal(77.96, 'ru')).toBe('78,0')
+  })
+
+  it('says a change of total only when it shows at that precision', () => {
+    expect(formatTotalDelta(5, 'en')).toBe('+5.0')
+    expect(formatTotalDelta(-2.5, 'ru')).toBe('-2,5')
+    // Floating point leaves crumbs: two equal totals are not always equal.
+    expect(formatTotalDelta(0.04, 'en')).toBeNull()
+    expect(formatTotalDelta(-0.00001, 'en')).toBeNull()
+    expect(formatTotalDelta(0.05, 'en')).toBe('+0.1')
   })
 
   it('is a price in dollars where the dollar goes in each language', () => {

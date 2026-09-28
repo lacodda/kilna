@@ -6,6 +6,9 @@ import type { Asset, NewAsset } from '@/lib/api/types'
 export const attachAsset = (source: string, asset: NewAsset) =>
   invoke<Asset>('attach_asset', { source, asset })
 export const listWorkAssets = (workId: string) => invoke<Asset[]>('list_work_assets', { workId })
+/** The files attached to one release - its thumbnail, its subtitles - oldest first. */
+export const listReleaseAssets = (releaseId: string) =>
+  invoke<Asset[]>('list_release_assets', { releaseId })
 /** The cover of every work that has one, as [work id, path] pairs. */
 export const listCovers = () => invoke<[string, string][]>('list_covers')
 export const detachAsset = (id: string) => invoke<void>('detach_asset', { id })

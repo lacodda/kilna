@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { Cut, Shot } from '@/lib/api/types'
 import {
-  bandsOf,
+  SHORTEST_DRAG,
   blockerOf,
   canBeCut,
+  dragged,
   lengthOf,
   orderMoving,
+  orderWithin,
+  scaleOf,
   totalLength,
   tracksOf,
 } from '@/lib/cuts'
@@ -54,28 +57,57 @@ describe('lengths', () => {
   })
 })
 
-describe('bandsOf', () => {
-  it('places a stretch where it sits on the donor, not scaled to fit', () => {
-    // 10..22 of a 200-second video is 5% in, 6% wide — two marks near the
-    // start, which is what the person should see.
-    const [band] = bandsOf([cut({ starts_at: 10, ends_at: 22 })], 200)!
-    expect(band!.left).toBeCloseTo(0.05)
-    expect(band!.width).toBeCloseTo(0.06)
+// Where a stretch sits on the track, and that it stays inside it, is dowel's
+// Track since v0.80 (`track-segments`, tested there). What stays here is the
+// refusal to draw against a length nobody knows.
+describe('scaleOf', () => {
+  it('draws against the donor length it is given', () => {
+    expect(scaleOf(200)).toBe(200)
   })
 
   it('draws nothing without a length, rather than drawing a guess', () => {
-    const splice = [cut({ starts_at: 10, ends_at: 22 })]
-    expect(bandsOf(splice, null)).toBeNull()
-    expect(bandsOf(splice, 0)).toBeNull()
-    expect(bandsOf(splice, Number.NaN)).toBeNull()
+    expect(scaleOf(null)).toBeNull()
+    expect(scaleOf(0)).toBeNull()
+    expect(scaleOf(Number.NaN)).toBeNull()
+  })
+})
+
+describe('dragged', () => {
+  const stretch = { starts_at: 10, ends_at: 22 }
+
+  it('moves the whole stretch and keeps its length', () => {
+    expect(dragged(stretch, 'whole', 5, 200)).toEqual({ starts_at: 15, ends_at: 27 })
+    expect(dragged(stretch, 'whole', -4, 200)).toEqual({ starts_at: 6, ends_at: 18 })
   })
 
-  it('keeps a stretch inside the track when the donor was shortened later', () => {
-    // The cut was made against a 200-second video; the length has since been
-    // corrected to 15. The band must not run off the end of the row.
-    const [band] = bandsOf([cut({ starts_at: 10, ends_at: 22 })], 15)!
-    expect(band!.left).toBeCloseTo(10 / 15)
-    expect(band!.left + band!.width).toBeLessThanOrEqual(1)
+  it('stops the whole stretch at either end of the donor', () => {
+    expect(dragged(stretch, 'whole', -50, 200)).toEqual({ starts_at: 0, ends_at: 12 })
+    expect(dragged(stretch, 'whole', 500, 200)).toEqual({ starts_at: 188, ends_at: 200 })
+  })
+
+  it('moves one end and leaves the other where it was', () => {
+    expect(dragged(stretch, 'start', -3, 200)).toEqual({ starts_at: 7, ends_at: 22 })
+    expect(dragged(stretch, 'end', 8, 200)).toEqual({ starts_at: 10, ends_at: 30 })
+  })
+
+  it('stops an end short of the other one, and at the edge of the donor', () => {
+    expect(dragged(stretch, 'start', 40, 200)).toEqual({
+      starts_at: 22 - SHORTEST_DRAG,
+      ends_at: 22,
+    })
+    expect(dragged(stretch, 'end', -40, 200)).toEqual({
+      starts_at: 10,
+      ends_at: 10 + SHORTEST_DRAG,
+    })
+    expect(dragged(stretch, 'start', -40, 200).starts_at).toBe(0)
+    expect(dragged(stretch, 'end', 400, 200).ends_at).toBe(200)
+  })
+
+  it('steps in tenths, and a press that barely moved changes nothing', () => {
+    expect(dragged(stretch, 'whole', 0.04, 200)).toBe(stretch)
+    expect(dragged(stretch, 'end', 1.26, 200)).toEqual({ starts_at: 10, ends_at: 23.3 })
+    // Three tenths added one at a time are not 0.30000000000000004 in store.
+    expect(dragged({ starts_at: 0.1, ends_at: 1 }, 'start', 0.2, 200).starts_at).toBe(0.3)
   })
 })
 
@@ -103,10 +135,12 @@ describe('blockerOf', () => {
 
 describe('canBeCut', () => {
   it('follows the facts: a donor, or stretches already taken', () => {
-    expect(canBeCut([], 0)).toBe(false)
-    expect(canBeCut([], 1)).toBe(true)
+    expect(canBeCut(0, 0)).toBe(false)
+    expect(canBeCut(0, 1)).toBe(true)
     // Stretches with no donor link left: the data is there, so the screen is.
-    expect(canBeCut([cut({ starts_at: 1, ends_at: 2 })], 0)).toBe(true)
+    expect(canBeCut(1, 0)).toBe(true)
+    // A donor only ever cut from: its tab names what was taken.
+    expect(canBeCut(0, 0, 2)).toBe(true)
   })
 })
 
@@ -131,5 +165,29 @@ describe('orderMoving', () => {
     // drag onto itself or onto something gone must still produce a whole list.
     expect(orderMoving(splice, 'b', 'b')).toEqual(['a', 'c', 'b'])
     expect(orderMoving(splice, 'b', 'gone')).toEqual(['a', 'c', 'b'])
+  })
+})
+
+describe('orderWithin', () => {
+  // Two donors interleaved: a and c from the first, b and d from the second.
+  const a = cut({ id: 'a', source_id: 's1', starts_at: 1, ends_at: 2 })
+  const b = cut({ id: 'b', source_id: 's2', starts_at: 1, ends_at: 2 })
+  const c = cut({ id: 'c', source_id: 's1', starts_at: 5, ends_at: 6 })
+  const d = cut({ id: 'd', source_id: 's2', starts_at: 5, ends_at: 6 })
+  const splice = [a, b, c, d]
+
+  it('puts a stretch before the one that follows it in its own list', () => {
+    expect(orderWithin(splice, [a, c], 'c', 0)).toEqual(['c', 'a', 'b', 'd'])
+  })
+
+  it('moves a stretch to the bottom of its list without leaving its donor', () => {
+    // Just after c, the first donor's last - not after d, which is the second
+    // donor's and happens to end the splice.
+    expect(orderWithin(splice, [a, c], 'a', 1)).toEqual(['b', 'c', 'a', 'd'])
+    expect(orderWithin(splice, [b, d], 'b', 1)).toEqual(['a', 'c', 'd', 'b'])
+  })
+
+  it('names every stretch exactly once', () => {
+    expect([...orderWithin(splice, [a], 'a', 0)].sort()).toEqual(['a', 'b', 'c', 'd'])
   })
 })

@@ -51,6 +51,10 @@ pub struct Link {
 }
 
 /// A work made from this one, as its card lists them.
+///
+/// With where its releases stand, because "when did the clip come out" is
+/// asked on the song's card: until v0.80 the answer was only on the clip's
+/// own card or in the calendar.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Derived {
     pub link_id: String,
@@ -60,6 +64,14 @@ pub struct Derived {
     pub status: String,
     pub role: String,
     pub created_at: String,
+    /// How many of its releases have gone out.
+    pub released: i64,
+    /// When the latest of them went out; none until one has.
+    pub last_released_at: Option<String>,
+    /// The earliest day one of its releases still waiting is scheduled
+    /// for - a day already past when the release is late, which is worth
+    /// seeing too. None when nothing waiting has a day.
+    pub next_scheduled_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -201,12 +213,17 @@ pub fn sources(conn: &Connection, work_id: &str) -> Result<Vec<Link>> {
 /// the one you are looking for.
 pub fn derived(conn: &Connection, source_id: &str) -> Result<Vec<Derived>> {
     let mut statement = conn.prepare(
-        "SELECT l.id, w.id, w.title, w.kind, w.status, l.role, l.created_at
+        "SELECT l.id, w.id, w.title, w.kind, w.status, l.role, l.created_at,
+                (SELECT count(*) FROM release r WHERE r.work_id = w.id AND r.status = ?2),
+                (SELECT max(r.released_at) FROM release r
+                  WHERE r.work_id = w.id AND r.status = ?2),
+                (SELECT min(r.scheduled_at) FROM release r
+                  WHERE r.work_id = w.id AND r.status <> ?2 AND r.scheduled_at IS NOT NULL)
          FROM work_link l JOIN work w ON w.id = l.work_id
          WHERE l.source_id = ?1 ORDER BY l.created_at DESC, l.rowid DESC",
     )?;
     let rows = statement
-        .query_map(params![source_id], |row| {
+        .query_map(params![source_id, crate::release::RELEASED], |row| {
             Ok(Derived {
                 link_id: row.get(0)?,
                 work_id: row.get(1)?,
@@ -215,6 +232,9 @@ pub fn derived(conn: &Connection, source_id: &str) -> Result<Vec<Derived>> {
                 status: row.get(4)?,
                 role: row.get(5)?,
                 created_at: row.get(6)?,
+                released: row.get(7)?,
+                last_released_at: row.get(8)?,
+                next_scheduled_at: row.get(9)?,
             })
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -345,6 +365,69 @@ mod tests {
         assert_eq!(from_song.derived.len(), 1);
         assert_eq!(from_song.derived[0].work_id, video);
         assert_eq!(from_song.derived[0].kind, "video");
+    }
+
+    fn release(conn: &Connection, work_id: &str, kind: &str, day: Option<&str>) -> String {
+        crate::release::create(
+            conn,
+            crate::release::NewRelease {
+                work_id: work_id.into(),
+                kind: kind.into(),
+                title: None,
+                scheduled_at: day.map(Into::into),
+                meta: None,
+                scheduled_time: None,
+                time_zone: None,
+            },
+        )
+        .unwrap()
+        .id
+    }
+
+    #[test]
+    fn what_was_made_from_a_work_says_when_it_came_out_and_when_it_comes_next() {
+        let (conn, profile_id) = workspace();
+        let song = work(&conn, &profile_id, "song", "S");
+        let video = work(&conn, &profile_id, "video", "V");
+        create(
+            &conn,
+            &profile_id,
+            NewLink {
+                work_id: video.clone(),
+                source_id: song.clone(),
+                role: None,
+                source_version_id: None,
+            },
+        )
+        .unwrap();
+
+        let fresh = &derived(&conn, &song).unwrap()[0];
+        assert_eq!(fresh.released, 0);
+        assert_eq!(fresh.last_released_at, None);
+        assert_eq!(fresh.next_scheduled_at, None, "nothing is planned yet");
+
+        // Two out, on days of their own; two waiting, one of them with no
+        // day at all; and a release of the song itself, which is not the
+        // video's to report.
+        for (kind, day) in [("youtube", "2026-09-02"), ("shorts", "2026-09-12")] {
+            let id = release(&conn, &video, kind, Some(day));
+            crate::release::mark_released(&conn, &id, None, Some(day.into())).unwrap();
+        }
+        release(&conn, &video, "reels", Some("2026-10-03"));
+        release(&conn, &video, "tiktok", Some("2026-10-20"));
+        release(&conn, &video, "vk", None);
+        release(&conn, &song, "audio", Some("2026-09-20"));
+
+        let read = &derived(&conn, &song).unwrap()[0];
+        assert_eq!(read.released, 2);
+        assert!(
+            read.last_released_at
+                .as_deref()
+                .is_some_and(|at| at.starts_with("2026-09-12")),
+            "the latest release, not the first: {:?}",
+            read.last_released_at
+        );
+        assert_eq!(read.next_scheduled_at.as_deref(), Some("2026-10-03"));
     }
 
     #[test]

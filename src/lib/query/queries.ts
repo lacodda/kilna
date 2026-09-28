@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
-import { listWorkAssets, listCovers } from '@/lib/api/assets'
+import { listReleaseAssets, listWorkAssets, listCovers } from '@/lib/api/assets'
 import {
   activeRuns,
   activeTasks,
@@ -15,12 +15,11 @@ import {
 import { listCollections } from '@/lib/api/collections'
 import {
   commentChannels,
-  countWorkComments,
   listComments,
   pendingCommentProposals,
   previewCommentTask,
 } from '@/lib/api/comments'
-import { cutShotList, listCuts } from '@/lib/api/cuts'
+import { cutShotList, listCuts, listCutsFrom } from '@/lib/api/cuts'
 import { workspacePath } from '@/lib/api/data'
 import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
 import { journalForWork, listJournal, unreadJournal } from '@/lib/api/journal'
@@ -46,7 +45,7 @@ import {
 import { listDeletions } from '@/lib/api/trash'
 import type { CommentFilter, NoteFilter, TaskAbout } from '@/lib/api/types'
 import { getVersion, listVersions } from '@/lib/api/versions'
-import { catalogue, getWork, listWorks, workTags } from '@/lib/api/works'
+import { cardCounts, catalogue, getWork, listWorks, workTags } from '@/lib/api/works'
 import { getWorkspace, listProfiles, mcpRegistration } from '@/lib/api/workspace'
 import { keys } from '@/lib/query/keys'
 
@@ -66,6 +65,8 @@ export const queries = {
 
   works: () => queryOptions({ queryKey: keys.works, queryFn: () => listWorks() }),
   work: (id: string) => queryOptions({ queryKey: keys.work(id), queryFn: () => getWork(id) }),
+  cardCounts: (workId: string) =>
+    queryOptions({ queryKey: keys.cardCounts(workId), queryFn: () => cardCounts(workId) }),
   catalogue: () => queryOptions({ queryKey: keys.catalogue, queryFn: catalogue }),
   workTags: () => queryOptions({ queryKey: keys.workTags, queryFn: workTags }),
   collections: () => queryOptions({ queryKey: keys.collections, queryFn: listCollections }),
@@ -100,6 +101,8 @@ export const queries = {
 
   cuts: (workId: string) =>
     queryOptions({ queryKey: keys.cutsFor(workId), queryFn: () => listCuts(workId) }),
+  cutsFrom: (sourceId: string) =>
+    queryOptions({ queryKey: keys.cutsFrom(sourceId), queryFn: () => listCutsFrom(sourceId) }),
   shots: (workId: string) =>
     queryOptions({ queryKey: keys.shotsFor(workId), queryFn: () => cutShotList(workId) }),
 
@@ -122,6 +125,11 @@ export const queries = {
       queryKey: keys.releaseFields(releaseId),
       queryFn: () => releaseFields(releaseId),
     }),
+  releaseAssets: (releaseId: string) =>
+    queryOptions({
+      queryKey: keys.releaseAssets(releaseId),
+      queryFn: () => listReleaseAssets(releaseId),
+    }),
   slotPreview: (releaseId: string, day: string) =>
     queryOptions({
       queryKey: keys.slotPreview(releaseId, day),
@@ -141,8 +149,6 @@ export const queries = {
   commentsMatching: (filter: CommentFilter) =>
     queryOptions({ queryKey: keys.commentsMatching(filter), queryFn: () => listComments(filter) }),
   commentChannels: () => queryOptions({ queryKey: keys.commentChannels, queryFn: commentChannels }),
-  commentCount: (workId: string) =>
-    queryOptions({ queryKey: keys.commentCount(workId), queryFn: () => countWorkComments(workId) }),
   commentProposals: () =>
     queryOptions({ queryKey: keys.commentProposals, queryFn: pendingCommentProposals }),
 

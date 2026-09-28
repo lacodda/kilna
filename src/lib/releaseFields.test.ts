@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ReleaseFieldValue } from '@/lib/api/types'
-import { batchable, fillable, over, written } from '@/lib/releaseFields'
+import { batchable, fillable, over, replacements, written } from '@/lib/releaseFields'
 
 function field(over: Partial<ReleaseFieldValue> = {}): ReleaseFieldValue {
   return {
@@ -75,6 +75,39 @@ describe('over', () => {
 
   it('counts characters, not words', () => {
     expect(over(field({ limit: 3 }), 'a b c d')).toBe(4)
+  })
+})
+
+describe('replacements', () => {
+  // The preview is read before words someone typed are replaced: a field the
+  // templates would write back unchanged would bury the one that does change.
+  it('lists only the fields whose text would change', () => {
+    const shown = replacements(
+      [
+        field({ key: 'title', value: 'Harbour Lights' }),
+        field({ key: 'description', value: 'Typed by hand.' }),
+      ],
+      { title: 'Harbour Lights', description: 'Written from the lyrics.' },
+    )
+
+    expect(shown).toEqual([
+      {
+        key: 'description',
+        label: 'Title',
+        before: 'Typed by hand.',
+        after: 'Written from the lyrics.',
+      },
+    ])
+  })
+
+  it('leaves out a field the generation does not write', () => {
+    expect(replacements([field({ key: 'tags', value: 'sea' })], { title: 'x' })).toEqual([])
+  })
+
+  it('shows an empty field being filled', () => {
+    expect(replacements([field({ key: 'title', value: '' })], { title: 'Harbour Lights' })).toEqual(
+      [{ key: 'title', label: 'Title', before: '', after: 'Harbour Lights' }],
+    )
   })
 })
 

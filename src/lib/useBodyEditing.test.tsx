@@ -160,6 +160,28 @@ describe('text that saves itself', () => {
     expect(result.current.status).toBe('idle')
   })
 
+  it('keeps a revision of commentary about the text it was about, and not current', async () => {
+    // A review of revision 2, edited beside it: the next revision is still
+    // about revision 2, and a review is never the work's current version.
+    const review: Version = { ...OPEN, id: 'r1', role: 'review', meta: { about: 'l2' } }
+    const { result } = renderHookWithin(() =>
+      useBodyEditing({
+        workId: 'w1',
+        role: 'review',
+        open: review,
+        onMinted: vi.fn(),
+        failure: 'save',
+        current: false,
+      }),
+    )
+    act(() => result.current.setText('the chorus lands'))
+    await pause()
+
+    expect(backend.argsOf('create_version')[0]).toMatchObject({
+      version: { role: 'review', make_current: false, meta: { about: 'l2' } },
+    })
+  })
+
   it('writes nothing when the text comes back to what is on disk', async () => {
     const { result } = editing()
     act(() => result.current.setText('first line, changed'))

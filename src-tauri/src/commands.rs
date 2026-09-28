@@ -6,6 +6,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::asset;
 use crate::assistant::run::{self as assistant_run, Emission, Run, Sink};
 use crate::assistant::{self, Chat, NewChat, Transcript, cli, prompt};
+use crate::card;
 use crate::collection::{self, Collection, CollectionPatch, NewCollection};
 use crate::comment::{self, Comment, CommentFilter, CommentPatch, NewComment};
 use crate::cut;
@@ -1009,20 +1010,6 @@ pub fn comment_channels(state: State<'_, AppState>) -> Result<Vec<(String, i64)>
     let conn = state.conn();
     let profile_id = active_profile_id(&conn)?;
     comment::channels(&conn, &profile_id)
-}
-
-/// How many comments a work has, and how many of them wait: its tab's counter.
-#[derive(serde::Serialize)]
-pub struct CommentCount {
-    pub total: i64,
-    pub waiting: i64,
-}
-
-#[tauri::command]
-pub fn count_work_comments(state: State<'_, AppState>, work_id: String) -> Result<CommentCount> {
-    let conn = state.conn();
-    let (total, waiting) = comment::count_for_work(&conn, &work_id)?;
-    Ok(CommentCount { total, waiting })
 }
 
 #[tauri::command]
@@ -2420,6 +2407,14 @@ pub fn update_collection(
 #[tauri::command]
 pub fn delete_collection(state: State<'_, AppState>, id: String) -> Result<String> {
     discard_and_record(&state, trash::Entity::Collection, &id)
+}
+
+/// The number beside each of a work's tabs, in one answer. The comments'
+/// counter is among them: it asked on its own until v0.80.
+#[tauri::command]
+pub fn card_counts(state: State<'_, AppState>, work_id: String) -> Result<card::Counts> {
+    let conn = state.conn();
+    card::counts(&conn, &work_id)
 }
 
 /// What a work was made from, and what was made from it.

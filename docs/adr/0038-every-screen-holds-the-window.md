@@ -70,7 +70,7 @@ would be cut off at the window's edge with nothing to scroll it - held clips
 silently, which is why the rule is structural. The live sweep
 (`sweep-078.mjs`) measures what jsdom cannot, at three window sizes.
 
-The Versions editor with its form open, and the note being edited, still
-scroll a column of their own natively: their text areas size against the
-column, which ScrollArea's content box does not give them. They move to the
-card-by-the-mockup stage with the rest of those tabs.
+The note being edited still scrolls a column of its own natively: its text
+area sizes against the column, which ScrollArea's content box does not give
+it. The Versions editor stopped doing so in v0.80, when a new version began to
+replace the open one instead of following it down the column.

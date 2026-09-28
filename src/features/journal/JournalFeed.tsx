@@ -4,8 +4,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import type { JournalEntry } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
+import { Chip, type ChipProps } from '@/components/ui/chip'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ListRow } from '@/components/ui/list-row'
+import { SectionLabel } from '@/components/ui/panel'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { Frame, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
@@ -169,11 +171,70 @@ export function JournalLines({ entries }: { entries: JournalEntry[] }) {
   )
 }
 
+/** The chip a line's area is named in, one tint per tone - the tile's tints,
+ *  in the mockup's `.chip.acc`/`.good`/`.warn` and a plain one. */
+const CHIP: Record<JournalTone, NonNullable<ChipProps['variant']>> = {
+  good: 'good',
+  accent: 'accent',
+  warn: 'warn',
+  dim: 'outline',
+}
+
+/**
+ * One line of a work's own history, in the mockup's `#p-hist` anatomy: a chip
+ * naming the area the line is about, the sentence, and the moment.
+ *
+ * Not the History screen's line. There the tile's glyph says what kind of
+ * thing happened across every work at once, and the area is a quiet word
+ * under the sentence; on a card every line is about the same work, so the
+ * area is the one thing left to tell the lines apart by, and it stands first,
+ * as a word rather than a picture of one.
+ */
+function WorkLine({ entry }: { entry: JournalEntry }) {
+  const { t } = useTranslation()
+  const look = journalLook(entry)
+  const to = destinationOf(entry)
+  const said = sentence(entry, t)
+
+  return (
+    <ListRow
+      render={<li />}
+      start={
+        // An action no area claims draws no chip, rather than one that names
+        // nothing: the sentence still says what happened.
+        look.kind === null ? undefined : <Chip variant={CHIP[look.tone]}>{t(look.kind)}</Chip>
+      }
+      end={
+        <>
+          {/* Beside the moment rather than after the sentence, which a long
+              one would push out of sight. */}
+          {entry.occurrences > 1 && (
+            <span>{t('journal.repeated', { count: entry.occurrences })}</span>
+          )}
+          <time dateTime={entry.created_at} title={entry.created_at} className="font-mono">
+            {formatStamp(entry.created_at)}
+          </time>
+        </>
+      }
+    >
+      {/* The line opens its tab, as on the History screen: here that is the
+          same card, one tab over. */}
+      {to === null ? (
+        <span title={said}>{said}</span>
+      ) : (
+        <Link to={to} title={said} className="text-text no-underline hover:underline">
+          {said}
+        </Link>
+      )}
+    </ListRow>
+  )
+}
+
 /**
  * One work's own history, on its card.
  *
- * The card's History tab: a panel of lines that scrolls under the card's
- * header. Fetches on its own rather than riding along with the card's other
+ * The card's History tab: a caption, and a panel of lines that scrolls under
+ * it. Fetches on its own rather than riding along with the card's other
  * queries — history is the part of a card nobody reads every time.
  */
 export function WorkHistory({ workId }: { workId: string }) {
@@ -181,7 +242,14 @@ export function WorkHistory({ workId }: { workId: string }) {
   const entries = useQuery(queries.journalForWork(workId))
 
   return (
-    <Frame>
+    <Frame
+      head={
+        <>
+          <SectionLabel>{t('journal.title')}</SectionLabel>
+          <span className="text-xs text-faint">{t('journal.workHint')}</span>
+        </>
+      }
+    >
       <Loaded
         query={entries}
         fill
@@ -197,7 +265,11 @@ export function WorkHistory({ workId }: { workId: string }) {
       >
         {(data) => (
           <Pane label={t('journal.title')}>
-            <JournalLines entries={data} />
+            <ul className="flex flex-col">
+              {data.map((entry) => (
+                <WorkLine key={entry.id} entry={entry} />
+              ))}
+            </ul>
           </Pane>
         )}
       </Loaded>

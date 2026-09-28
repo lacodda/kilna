@@ -15,9 +15,6 @@ export const listComments = (filter?: CommentFilter) =>
   invoke<Comment[]>('list_comments', { filter: filter ?? null })
 /** Every channel comments came through, with how many wait on each. */
 export const commentChannels = () => invoke<[string, number][]>('comment_channels')
-/** A work's comments, and how many of them wait: its tab's counter. */
-export const countWorkComments = (workId: string) =>
-  invoke<{ total: number; waiting: number }>('count_work_comments', { workId })
 export const createComment = (comment: NewComment) => invoke<Comment>('create_comment', { comment })
 export const updateComment = (id: string, patch: CommentPatch) =>
   invoke<Comment>('update_comment', { id, patch })

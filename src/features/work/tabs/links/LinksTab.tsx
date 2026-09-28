@@ -1,28 +1,36 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router'
-import { X } from 'lucide-react'
+import { Link as RouterLink, useNavigate } from 'react-router'
+import { ChevronRight, X } from 'lucide-react'
 import { createLink, deleteLink, deriveWork } from '@/lib/api/links'
-import type { Link, Work } from '@/lib/api/types'
+import type { Derived, Link, Work } from '@/lib/api/types'
+import { coverImageFor } from '@/lib/cover'
+import { formatDay } from '@/lib/format'
+import { today } from '@/lib/month'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
+import { useCovers } from '@/lib/useCovers'
 import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
-import { RowButton } from '@/components/ui/list-row'
-import { Panel } from '@/components/ui/panel'
-import { Skeleton } from '@/components/ui/skeleton'
+import { ListRow, RowButton } from '@/components/ui/list-row'
+import { Panel, SectionLabel } from '@/components/ui/panel'
+import { SkeletonList } from '@/components/ui/skeleton'
 import { Frame, Scroll } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
 
 interface Props {
   work: Work
 }
+
+/** The first role a link can have; the backend's `link::DONOR`. A source
+ *  in that role is what the panel it sits in already says it is. */
+const DONOR = 'donor'
 
 /**
  * What this work was made from, and what was made from it.
@@ -35,6 +43,10 @@ interface Props {
  * work from this one, or naming a source for it, both live here: "in the
  * song you see the clip, in the clip you see the song, and either can start
  * the other".
+ *
+ * Two panels of rows, the mockup's: a caption across the top, one line per
+ * work with its cover beside it, and what adds to the list standing in the
+ * panel's foot. The rows were cards inside a panel until v0.80.
  */
 export function LinksTab({ work }: Props) {
   const { t } = useTranslation()
@@ -61,21 +73,27 @@ export function LinksTab({ work }: Props) {
   })
 
   // The other kinds of the profile: a song becomes a video, not another song.
-  // With one kind there is nothing to make from this, and the row is gone.
+  // With one kind there is nothing to make from this, and the foot is gone.
   const otherKinds = profile.config.work_kinds.filter((kind) => kind.key !== work.kind)
 
   return (
     <Frame>
-      <Scroll label={t('card.tab.links')} contentClassName="flex flex-col gap-4">
-        <Panel className="flex flex-col gap-3 p-4">
-          <h3 className="text-sm font-semibold">{t('links.sources')}</h3>
-
-          <Loaded query={links} skeleton={<Skeleton className="h-12 w-full" />} plain>
+      <Scroll label={t('card.tab.links')} contentClassName="flex flex-col gap-2.5">
+        <LinkPanel
+          title={t('links.sources')}
+          foot={
+            <SourcePicker
+              work={work}
+              taken={new Set(links.data?.sources.map((link) => link.source_id) ?? [])}
+            />
+          }
+        >
+          <Loaded query={links} skeleton={<SkeletonList rows={1} />} plain>
             {(data) =>
               data.sources.length === 0 ? (
-                <p className="text-sm text-dim">{t('links.noSources')}</p>
+                <Nothing>{t('links.noSources')}</Nothing>
               ) : (
-                <ul className="flex flex-col gap-2">
+                <ul>
                   {data.sources.map((link) => (
                     <SourceRow
                       key={link.id}
@@ -88,61 +106,85 @@ export function LinksTab({ work }: Props) {
               )
             }
           </Loaded>
+        </LinkPanel>
 
-          <SourcePicker
-            work={work}
-            taken={new Set(links.data?.sources.map((link) => link.source_id) ?? [])}
-          />
-        </Panel>
-
-        <Panel className="flex flex-col gap-3 p-4">
-          <h3 className="text-sm font-semibold">{t('links.derived')}</h3>
-
-          {links.data !== undefined && links.data.derived.length === 0 && (
-            <p className="text-sm text-dim">{t('links.noDerived')}</p>
-          )}
-
-          {links.data !== undefined && links.data.derived.length > 0 && (
-            <ul className="flex flex-col gap-0.5">
-              {links.data.derived.map((entry) => {
-                const vocabulary = vocabularyOf(profile.config, entry.kind)
-                return (
-                  <li key={entry.link_id}>
-                    <RowButton
-                      onClick={() => void navigate(`/works/${entry.work_id}`)}
-                      end={
-                        <>
-                          {labelOf(profile.config.work_kinds, entry.kind)}
-                          {' · '}
-                          {labelOf(vocabulary.statuses, entry.status)}
-                        </>
-                      }
-                    >
-                      {entry.title}
-                    </RowButton>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-
-          {otherKinds.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              {otherKinds.map((kind) => (
-                <Button
-                  key={kind.key}
-                  size="sm"
-                  disabled={derive.isPending}
-                  onClick={() => derive.mutate(kind.key)}
-                >
-                  {t('links.makeFromThis', { kind: sayLabel(kind.label) })}
-                </Button>
-              ))}
-            </div>
-          )}
-        </Panel>
+        <LinkPanel
+          title={t('links.derived')}
+          foot={
+            otherKinds.length === 0
+              ? undefined
+              : otherKinds.map((kind) => (
+                  <Button
+                    key={kind.key}
+                    size="sm"
+                    disabled={derive.isPending}
+                    onClick={() => derive.mutate(kind.key)}
+                  >
+                    {t('links.makeFromThis', { kind: sayLabel(kind.label) })}
+                  </Button>
+                ))
+          }
+        >
+          {/* The sources' panel above says it when the links fail to load;
+              one question failing is one message, not two. */}
+          {links.data !== undefined &&
+            (links.data.derived.length === 0 ? (
+              <Nothing>{t('links.noDerived')}</Nothing>
+            ) : (
+              <ul className="divide-y divide-line">
+                {links.data.derived.map((entry) => (
+                  <DerivedRow key={entry.link_id} entry={entry} />
+                ))}
+              </ul>
+            ))}
+        </LinkPanel>
       </Scroll>
     </Frame>
+  )
+}
+
+/** One of the tab's two panels: its caption, its rows, and what adds to them. */
+function LinkPanel({
+  title,
+  foot,
+  children,
+}: {
+  title: string
+  foot?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    // `overflow-hidden`: a row's hover tint stops at the panel's rounded
+    // corners rather than bulging past them.
+    <Panel className="shrink-0 overflow-hidden">
+      <div className="border-b border-line px-3.25 py-2.5">
+        <SectionLabel>{title}</SectionLabel>
+      </div>
+      {children}
+      {foot === undefined ? null : (
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-line px-3.25 py-2.25">
+          {foot}
+        </div>
+      )}
+    </Panel>
+  )
+}
+
+/** What a panel says when it has no rows: a line, where the rows would be. */
+function Nothing({ children }: { children: ReactNode }) {
+  return <p className="px-3.25 py-2.5 text-sm text-dim">{children}</p>
+}
+
+/** A work's cover at the size of a row: what tells two rows apart before
+ *  their titles are read, as it does on the card's own band. */
+function Thumb({ workId }: { workId: string }) {
+  const cover = useCovers().get(workId)
+  return (
+    <span
+      aria-hidden
+      className="size-5.5 shrink-0 rounded-sm"
+      style={{ background: coverImageFor(workId, cover) }}
+    />
   )
 }
 
@@ -173,59 +215,118 @@ function SourceRow({
       ? `/works/${link.source_id}/versions?version=${link.source_current_version_id}&compare=${link.source_version_id}`
       : `/works/${link.source_id}/versions`
 
-  return (
-    <li
-      className={cn(
-        'flex flex-col gap-1.5 rounded-xl border px-3 py-2',
-        link.drifted ? 'border-warn/50' : 'border-line',
-      )}
-    >
-      {/* `text-sm` here, because a link takes the size of the line it sits in. */}
-      <div className="flex items-center gap-2 text-sm">
-        <Button
-          variant="link"
-          onClick={() => void navigate(`/works/${link.source_id}`)}
-          className="min-w-0 flex-1 justify-start"
-        >
-          <span className="truncate">{link.source_title}</span>
-        </Button>
-        <span className="text-xs text-dim">
-          {labelOf(profile.config.work_kinds, link.source_kind)}
-          {' · '}
-          {labelOf(vocabulary.statuses, link.source_status)}
-        </span>
-        <Button
-          variant="danger"
-          size="icon-sm"
-          title={t('links.remove')}
-          aria-label={t('links.remove')}
-          disabled={removing}
-          onClick={onRemove}
-        >
-          <X aria-hidden className="size-3.5" />
-        </Button>
-      </div>
+  // What the source is and where it stands, after its name. The role only
+  // when it is not the plain one: every row of this panel is a source.
+  const about = [
+    link.role === DONOR ? null : t(`links.role.${link.role}`, { defaultValue: link.role }),
+    labelOf(profile.config.work_kinds, link.source_kind),
+    labelOf(vocabulary.statuses, link.source_status),
+  ]
+    .filter((part) => part !== null)
+    .join(' · ')
 
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-dim">
-        <span>{t(`links.role.${link.role}`, { defaultValue: link.role })}</span>
-        {link.taken_revision !== null && (
-          <span>{t('links.takenAt', { revision: link.taken_revision })}</span>
-        )}
-        {link.drifted ? (
+  return (
+    <ListRow
+      render={<li />}
+      start={<Thumb workId={link.source_id} />}
+      end={
+        <>
+          {link.taken_revision !== null && (
+            <Chip>{t('links.takenAt', { revision: link.taken_revision })}</Chip>
+          )}
+          {link.drifted ? (
+            <>
+              <Chip variant="warn">
+                {link.current_revision !== null && link.current_revision !== link.taken_revision
+                  ? t('links.driftedTo', { revision: link.current_revision })
+                  : t('links.driftedInPlace')}
+              </Chip>
+              <Button size="sm" onClick={() => void navigate(diff)}>
+                {t('links.seeDiff')}
+              </Button>
+            </>
+          ) : (
+            link.source_version_id !== null && <Chip variant="good">{t('links.unchanged')}</Chip>
+          )}
+          <Button
+            variant="icon"
+            size="icon-sm"
+            title={t('links.remove')}
+            aria-label={t('links.remove')}
+            disabled={removing}
+            onClick={onRemove}
+            className="not-data-disabled:hover:text-bad"
+          >
+            <X aria-hidden />
+          </Button>
+        </>
+      }
+    >
+      <RouterLink
+        to={`/works/${link.source_id}`}
+        className="font-semibold text-text no-underline hover:underline"
+      >
+        {link.source_title}
+      </RouterLink>{' '}
+      <span className="text-xs text-faint">· {about}</span>
+    </ListRow>
+  )
+}
+
+/**
+ * A work made from this one: what it is, where it stands, and where its
+ * releases are - the day it came out, or the day it comes out. "When did the
+ * clip come out" is asked on the song's card, and was answered only on the
+ * clip's own card or in the calendar until v0.80. The whole row opens it.
+ */
+function DerivedRow({ entry }: { entry: Derived }) {
+  const { t } = useTranslation()
+  const profile = useProfile()
+  const navigate = useNavigate()
+  const vocabulary = vocabularyOf(profile.config, entry.kind)
+
+  // A day already past is a release that did not go out when it was meant
+  // to: still the next one, and worth the warning colour.
+  const next = entry.next_scheduled_at
+  const late = next !== null && next < today()
+
+  return (
+    <li>
+      <RowButton
+        onClick={() => void navigate(`/works/${entry.work_id}`)}
+        start={<Thumb workId={entry.work_id} />}
+        // The divided rows of a panel, as `ListRow` draws them. Its `py-row`
+        // is not a padding tailwind-merge knows, and would sit beside the
+        // button's own rather than replace it; `py-2.5` is the same 10px.
+        className="rounded-none px-3 py-2.5"
+        end={
           <>
-            <span className="text-warn">
-              {link.current_revision !== null && link.current_revision !== link.taken_revision
-                ? t('links.driftedTo', { revision: link.current_revision })
-                : t('links.driftedInPlace')}
+            <span>
+              {labelOf(profile.config.work_kinds, entry.kind)}
+              {' · '}
+              {labelOf(vocabulary.statuses, entry.status)}
             </span>
-            <Button variant="link" onClick={() => void navigate(diff)}>
-              {t('links.seeDiff')}
-            </Button>
+            {entry.released > 0 && entry.last_released_at !== null && (
+              <Chip variant="good">
+                {entry.released === 1
+                  ? t('links.releasedOnce', { day: formatDay(entry.last_released_at) })
+                  : t('links.releasedMany', {
+                      released: entry.released,
+                      day: formatDay(entry.last_released_at),
+                    })}
+              </Chip>
+            )}
+            {next !== null && (
+              <Chip variant={late ? 'warn' : 'info'}>
+                {t(late ? 'links.late' : 'links.scheduled', { day: formatDay(next) })}
+              </Chip>
+            )}
+            <ChevronRight aria-hidden className="size-3.5" />
           </>
-        ) : (
-          link.source_version_id !== null && <span>{t('links.unchanged')}</span>
-        )}
-      </p>
+        }
+      >
+        {entry.title}
+      </RowButton>
     </li>
   )
 }
@@ -265,7 +366,7 @@ function SourcePicker({ work, taken }: { work: Work; taken: ReadonlySet<string> 
           .slice(0, 8)
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
       <Input
         value={query}
         onChange={(event) => setQuery(event.target.value)}
@@ -273,15 +374,16 @@ function SourcePicker({ work, taken }: { work: Work; taken: ReadonlySet<string> 
         aria-label={t('links.pickPlaceholder')}
       />
       {needle !== '' && (
-        <ul className="flex flex-col gap-1" aria-label={t('links.matches')}>
+        <ul className="flex flex-col gap-0.5" aria-label={t('links.matches')}>
           {matches.length === 0 && works.data !== undefined && (
-            <li className="px-2 py-1 text-xs text-faint">{t('links.noMatch')}</li>
+            <li className="px-2.5 py-1 text-xs text-faint">{t('links.noMatch')}</li>
           )}
           {matches.map((candidate) => (
             <li key={candidate.id}>
               <RowButton
                 disabled={link.isPending}
                 onClick={() => link.mutate(candidate.id)}
+                start={<Thumb workId={candidate.id} />}
                 end={labelOf(profile.config.work_kinds, candidate.kind)}
               >
                 {candidate.title}

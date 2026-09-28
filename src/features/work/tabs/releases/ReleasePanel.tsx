@@ -1,40 +1,30 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, ExternalLink } from 'lucide-react'
 import {
   createRelease,
   deleteRelease,
   markReleased,
   unmarkReleased,
   unscheduleRelease,
-  updateRelease,
 } from '@/lib/api/releases'
-import type { ReleasePatch, ScheduledRelease } from '@/lib/api/types'
+import type { ScheduledRelease } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { daysBetween } from '@/lib/readiness'
 import { today } from '@/lib/month'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
-import { announceEdited } from '@/lib/edited'
-import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
-import { KindGlyph } from '@/lib/releaseIcon'
-import { openExternal, shortLink } from '@/lib/link'
-import { cn } from '@/lib/utils'
-import { formatDay } from '@/lib/format'
-import { ReadyMarks } from '@/components/ReadyMarks'
+import { say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { MarkReleasedDialog } from '@/components/MarkReleasedDialog'
-import { ReleaseFields } from '@/features/work/tabs/releases/ReleaseFields'
-import { ReleaseRowEditor } from '@/features/work/tabs/releases/ReleaseRowEditor'
 import { Button } from '@/components/ui/button'
-import { RowContextMenu, RowMenu, type RowAction } from '@/components/RowMenu'
+import type { RowAction } from '@/components/RowMenu'
 import { Select } from '@/components/AppSelect'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Frame, Scroll } from '@/components/frame'
+import { Frame, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
+import { ReleaseRow } from '@/features/work/tabs/releases/ReleaseRow'
 
 interface Props {
   workId: string
@@ -47,19 +37,26 @@ interface Props {
  * Until v0.45 this tab could add a release and delete it, and nothing else: the
  * date, the link and the mark all lived in the calendar, so a release opened
  * from the work it belongs to could not be acted on at all. It now offers what
- * the calendar's chip does, minus the drag that only a grid can have.
+ * the calendar's chip does, minus the drag that only a grid can have - and
+ * since v0.80 a release is edited where it stands, in its row unrolled, with
+ * the calendar's own form.
  */
 export function ReleasePanel({ workId, workTitle }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
   const kinds = useVocabulary(workId).release_kinds
 
-  const [kind, setKind] = useState(kinds[0]?.key ?? '')
-  const [editing, setEditing] = useState<ScheduledRelease | null>(null)
+  // The kind picked for the next release. Read against the list rather than
+  // stored as the first key: the list is empty until the work has loaded, and
+  // a first key taken then was an empty choice that never filled in.
+  const [picked, setPicked] = useState<string | null>(null)
+  const kind =
+    picked !== null && kinds.some((entry) => entry.key === picked) ? picked : (kinds[0]?.key ?? '')
+
   const [marking, setMarking] = useState<ScheduledRelease | null>(null)
-  // Which release has its metadata open. One at a time: four descriptions
-  // unrolled at once is a page nobody can find their place on, and the
-  // question being asked is always about one release.
+  // Which release is unrolled. One at a time: four descriptions unrolled at
+  // once is a page nobody can find their place on, and the question being
+  // asked is always about one release.
   const [showing, setShowing] = useState<string | null>(null)
 
   const releases = useQuery(queries.releasesForWork(workId))
@@ -73,7 +70,12 @@ export function ReleasePanel({ workId, workTitle }: Props) {
     mutationFn: () => createRelease({ work_id: workId, kind, title: workTitle }),
     failure: 'toast.releaseSaveFailed',
     refresh: refreshed,
-    onSuccess: () => say.ok(t('toast.releaseCreated')),
+    onSuccess: (created) => {
+      // Scheduling is what the button is for, and a new release has no day
+      // yet: it opens where the day is picked.
+      setShowing(created.id)
+      say.ok(t('toast.releaseCreated'))
+    },
   })
 
   const remove = useAppMutation({
@@ -86,18 +88,6 @@ export function ReleasePanel({ workId, workTitle }: Props) {
         message: t('toast.releaseDeleted'),
         refresh: refreshed,
       }),
-  })
-
-  const save = useAppMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: ReleasePatch }) => updateRelease(id, patch),
-    failure: 'toast.releaseSaveFailed',
-    onSuccess: () => {
-      announceEdited({
-        client,
-        message: t('toast.releaseEdited'),
-        refresh: refreshed,
-      })
-    },
   })
 
   const release = useAppMutation({
@@ -129,12 +119,12 @@ export function ReleasePanel({ workId, workTitle }: Props) {
     )
   }
 
-  const releasesData = releases.data ?? []
   const now = today()
 
   const actionsFor = (entry: ScheduledRelease): RowAction[] => {
     const out: RowAction[] = [
-      { key: 'edit', label: t('releases.edit'), onSelect: () => setEditing(entry) },
+      // Editing is the row unrolled: the form is there, not in a dialog.
+      { key: 'edit', label: t('releases.edit'), onSelect: () => setShowing(entry.id) },
     ]
 
     if (entry.status === 'released') {
@@ -179,130 +169,56 @@ export function ReleasePanel({ workId, workTitle }: Props) {
       // down: with a dozen releases it had gone under the card's edge.
       head={
         <>
-          <Select
-            className="w-48"
-            aria-label={t('releases.kind')}
-            value={kind}
-            onChange={setKind}
-            options={kinds.map((k) => ({ value: k.key, label: sayLabel(k.label) }))}
-          />
-          <Button onClick={() => add.mutate()} disabled={kind === '' || add.isPending}>
-            {t('releases.add')}
-          </Button>
+          <h2 className="caption">{t('card.tab.releases')}</h2>
+          {/* The mockup's head row: the kind and the button at the far end,
+              at the height of the rows they add to. */}
+          <div data-density="compact" className="ml-auto flex items-center gap-2">
+            <Select
+              className="w-44"
+              // Not "Kind": an unrolled row has a Kind of its own, and two
+              // controls of one name are one name too few.
+              aria-label={t('releases.newKind')}
+              value={kind}
+              onChange={setPicked}
+              options={kinds.map((k) => ({ value: k.key, label: sayLabel(k.label) }))}
+            />
+            <Button
+              variant="primary"
+              onClick={() => add.mutate()}
+              disabled={kind === '' || add.isPending}
+            >
+              {t('releases.add')}
+            </Button>
+          </div>
         </>
       }
     >
-      <Scroll label={t('card.tab.releases')}>
+      <Pane label={t('card.tab.releases')}>
         <Loaded
           query={releases}
           skeleton={<SkeletonList rows={2} secondary={false} />}
           isEmpty={(data) => data.length === 0}
           // Plain, and its way out is the kind and the button above it.
-          emptyState={<EmptyState plain title={t('releases.none')} />}
+          emptyState={<EmptyState plain title={t('releases.none')} className="p-3" />}
           plain
         >
-          {() => (
-            <ul className="flex flex-col gap-1">
-              {releasesData.map((entry) => {
-                const released = entry.status === 'released'
-                const url = entry.url
-                const kindEntry = kinds.find((entry_) => entry_.key === entry.kind)
-
-                const open = showing === entry.id
-
-                return (
-                  <li key={entry.id} className="flex flex-col gap-1">
-                    <RowContextMenu
-                      actions={actionsFor(entry)}
-                      render={
-                        <div
-                          className={cn(
-                            'flex items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm',
-                            // What went out is history sitting in the list, not a plan
-                            // competing for attention - the same dimming the chip uses.
-                            released && 'opacity-70',
-                            // Lit while its own menu is open, so it is clear which
-                            // release the actions belong to.
-                            'data-[popup-open]:bg-soft',
-                          )}
-                        />
-                      }
-                    >
-                      <Button
-                        variant="icon"
-                        size="icon-sm"
-                        onClick={() => setShowing(open ? null : entry.id)}
-                        aria-expanded={open}
-                        aria-label={t('releases.meta.title')}
-                        // Pulled into the row's padding, so the row stays the height
-                        // of its words rather than of the button.
-                        className="-my-1 -ml-1.5"
-                      >
-                        <ChevronRight
-                          aria-hidden
-                          className={cn('transition-transform', open && 'rotate-90')}
-                        />
-                      </Button>
-                      <KindGlyph icon={kindEntry?.icon} className="size-3.5 shrink-0 text-dim" />
-                      <span className="font-medium">{labelOf(kinds, entry.kind)}</span>
-
-                      <ReadyMarks
-                        readiness={entry.readiness}
-                        released={released}
-                        daysLeft={
-                          released || entry.scheduled_at === null
-                            ? null
-                            : daysBetween(now, entry.scheduled_at)
-                        }
-                      />
-
-                      <span className={cn('text-xs', released ? 'text-good' : 'text-dim')}>
-                        {released
-                          ? t('releases.releasedOn', {
-                              date: entry.released_at === null ? '' : formatDay(entry.released_at),
-                            })
-                          : entry.scheduled_at === null
-                            ? t('releases.unscheduled')
-                            : formatDay(entry.scheduled_at)}
-                      </span>
-
-                      {url !== null && (
-                        <Button
-                          variant="link"
-                          onClick={() => void openExternal(url)}
-                          title={url}
-                          className="min-w-0 text-xs"
-                        >
-                          <ExternalLink aria-hidden />
-                          <span className="truncate">{shortLink(url)}</span>
-                        </Button>
-                      )}
-
-                      <span className="ml-auto">
-                        <RowMenu actions={actionsFor(entry)} label={t('releases.actions')} />
-                      </span>
-                    </RowContextMenu>
-
-                    {open && (
-                      <div className="pl-6">
-                        <ReleaseFields release={entry} />
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
+          {(data) => (
+            <ul className="flex flex-col">
+              {data.map((entry) => (
+                <ReleaseRow
+                  key={entry.id}
+                  release={entry}
+                  open={showing === entry.id}
+                  onToggle={() => setShowing(showing === entry.id ? null : entry.id)}
+                  actions={actionsFor(entry)}
+                  today={now}
+                  refreshed={refreshed}
+                />
+              ))}
             </ul>
           )}
         </Loaded>
-      </Scroll>
-
-      <ReleaseRowEditor
-        release={editing}
-        onOpenChange={(open) => {
-          if (!open) setEditing(null)
-        }}
-        onSave={(id, patch) => save.mutate({ id, patch })}
-      />
+      </Pane>
 
       <MarkReleasedDialog
         release={marking}

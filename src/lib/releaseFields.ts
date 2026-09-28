@@ -1,4 +1,4 @@
-import type { ReleaseFieldValue } from '@/lib/api/types'
+import type { Label, Meta, ReleaseFieldValue } from '@/lib/api/types'
 
 /*
  * How full a release's metadata is.
@@ -51,6 +51,35 @@ export function over(field: ReleaseFieldValue, value: string): number | null {
   if (field.limit == null) return null
   const excess = value.length - field.limit
   return excess > 0 ? excess : null
+}
+
+/** One field a generation would rewrite: what it holds, and what it would. */
+export interface Replacement {
+  key: string
+  label: Label
+  before: string
+  after: string
+}
+
+/**
+ * What writing a release's fields from its work would change, field by field.
+ *
+ * Only what differs. A field the templates would write back word for word
+ * has nothing to show, and a preview that lists it beside the ones that do
+ * change hides the one change in a page of sameness. A field with no
+ * rendered value is left alone by the generation, so it is not listed
+ * either; what the renderer refused is reported beside, not here.
+ */
+export function replacements(fields: ReleaseFieldValue[], values: Meta): Replacement[] {
+  const out: Replacement[] = []
+  for (const field of fields) {
+    if (!Object.hasOwn(values, field.key)) continue
+    const rendered = values[field.key]
+    const after = typeof rendered === 'string' ? rendered : JSON.stringify(rendered)
+    if (after === field.value) continue
+    out.push({ key: field.key, label: field.label, before: field.value, after })
+  }
+  return out
 }
 
 /**

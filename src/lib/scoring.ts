@@ -1,4 +1,4 @@
-import type { Axis, AxisMark, Tier } from '@/lib/api/types'
+import type { Axis, AxisMark, Tier, VersionRole, VersionSummary } from '@/lib/api/types'
 
 // The backend is the authority on what a score is worth — it recomputes on
 // save, so two clients cannot disagree. This mirror exists only to show the
@@ -139,4 +139,55 @@ export function rubricFor(axis: Axis, mark: number): AxisMark | undefined {
       (best, entry) => (best === undefined || entry.at > best.at ? entry : best),
       undefined,
     )
+}
+
+/**
+ * Whether a version in `role` is something a score can judge.
+ *
+ * A score judges the work, and what stands as the work is a draft of it - the
+ * lyrics, a chapter. A review or a critique comments on a draft and is a
+ * verdict of its own; a style prompt is written about the song rather than
+ * being it. Judging one of those put "Score of v3" on a number that measured
+ * the wrong text. The profile already says which roles are the work itself,
+ * for the catalogue's count, so the rule is the same one: `counts_as_version`
+ * when the craft wrote it, otherwise anything that does not comment on
+ * another role.
+ */
+export function isJudged(role: VersionRole): boolean {
+  return role.counts_as_version ?? role.comments_on == null
+}
+
+/**
+ * The versions a new score may judge, newest first - the draft most likely
+ * meant is the one just written.
+ *
+ * A version whose role the profile no longer defines is left out with the
+ * ones it does not judge: a role the profile does not know is not one it
+ * judges.
+ */
+export function judgedVersions(versions: VersionSummary[], roles: VersionRole[]): VersionSummary[] {
+  const judged = new Set(roles.filter(isJudged).map((role) => role.key))
+  return versions
+    .filter((version) => judged.has(version.role))
+    .sort(
+      (left, right) =>
+        right.created_at.localeCompare(left.created_at) || right.revision - left.revision,
+    )
+}
+
+/**
+ * Which of `judged` a new score judges unless told otherwise: the work's
+ * current version, which is what "the score" of a work has always meant, and
+ * the newest when the current one is not among them - a work whose current
+ * version is its style prompt still has a draft to judge.
+ */
+export function defaultJudged(judged: VersionSummary[]): VersionSummary | undefined {
+  return (
+    judged.find((version) => version.is_current) ??
+    judged.reduce<VersionSummary | undefined>(
+      (newest, version) =>
+        newest === undefined || version.created_at > newest.created_at ? version : newest,
+      undefined,
+    )
+  )
 }

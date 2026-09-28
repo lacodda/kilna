@@ -59,6 +59,31 @@ export function formatDelta(value: number, decimals = 1, language = current()): 
   }).format(value)
 }
 
+/**
+ * How many decimals a score's total is said with. One, and one everywhere:
+ * the Score tab said a total four ways - a row `67.5`, the trend `68`, the
+ * header its own rounding - so the same score read as two numbers on one
+ * screen. Whole numbers would be shorter, but a total of 77.5 said as `78`
+ * beside a tier that starts at 78 and was not reached is a contradiction the
+ * reader cannot resolve; one decimal is the precision the journal records.
+ */
+const TOTAL_DECIMALS = 1
+
+/** A score's total: `67.5`, `78.0`. */
+export function formatTotal(value: number, language = current()): string {
+  return formatNumber(value, TOTAL_DECIMALS, language)
+}
+
+/**
+ * What one total did to the one before it: `+2.5`, `-1.0` - and `null` when
+ * the change is too small to show at the precision a total is said with, so
+ * a row never reads `+0.0` beside two totals that look the same.
+ */
+export function formatTotalDelta(value: number, language = current()): string | null {
+  if (Math.round(Math.abs(value) * 10 ** TOTAL_DECIMALS) === 0) return null
+  return formatDelta(value, TOTAL_DECIMALS, language)
+}
+
 /** What a run cost, in the dollars the CLI reports it in. */
 export function formatCost(usd: number, decimals = 2, language = current()): string {
   return numbers(language, {

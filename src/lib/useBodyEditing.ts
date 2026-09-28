@@ -20,6 +20,18 @@ interface Options {
   onMinted: (id: string) => void
   /** What to say when a write fails. */
   failure: string
+  /**
+   * Whether a revision minted here becomes the work's current version. It
+   * does for the text; commentary never does - a review is written about
+   * the text, and making it current made the review the work.
+   */
+  current?: boolean
+}
+
+/** The version a commentary is about, as its meta records it (`about`). */
+function aboutOf(version: Version | null | undefined): string | null {
+  const about = version?.meta?.about
+  return typeof about === 'string' ? about : null
 }
 
 /**
@@ -37,7 +49,7 @@ interface Options {
  * is what the person meant, so it goes into the next revision instead, which
  * is exactly what a first change to that version would have done.
  */
-export function useBodyEditing({ workId, role, open, onMinted, failure }: Options) {
+export function useBodyEditing({ workId, role, open, onMinted, failure, current = true }: Options) {
   const client = useQueryClient()
 
   const [text, setTextState] = useState(open?.body ?? '')
@@ -52,6 +64,11 @@ export function useBodyEditing({ workId, role, open, onMinted, failure }: Option
   // text to what was on disk a keystroke ago.
   const target = useRef<string | null>(open?.id ?? null)
   const saved = useRef(open?.body ?? '')
+  // What the text on screen is about, when it is commentary. A revision of a
+  // review is about the same text the review was: minted without it, the
+  // next revision fell back to being paired by its own number, and the
+  // review being typed vanished from beside the text it was written about.
+  const about = useRef(aboutOf(open))
   const session = useRef<Session | null>(null)
   const chain = useRef<Promise<void>>(Promise.resolve())
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -63,6 +80,7 @@ export function useBodyEditing({ workId, role, open, onMinted, failure }: Option
     if (open == null || open.id === target.current) return
     target.current = open.id
     saved.current = open.body
+    about.current = aboutOf(open)
     latest.current = open.body
     setTextState(open.body)
   }, [open])
@@ -89,8 +107,9 @@ export function useBodyEditing({ workId, role, open, onMinted, failure }: Option
         role,
         body,
         label: null,
-        make_current: true,
+        make_current: current,
         parent_version_id: parentId,
+        ...(about.current === null ? {} : { meta: { about: about.current } }),
       })
       target.current = created.id
       saved.current = body
@@ -98,7 +117,7 @@ export function useBodyEditing({ workId, role, open, onMinted, failure }: Option
       onMinted(created.id)
       return created.id
     },
-    [workId, role, onMinted],
+    [workId, role, onMinted, current],
   )
 
   const persist = useCallback(async () => {

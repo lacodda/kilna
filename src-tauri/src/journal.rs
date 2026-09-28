@@ -225,7 +225,7 @@ fn write(conn: &Connection, profile_id: &str, entry: Record) -> Result<()> {
 ///
 /// The feed is history, not a work surface: someone looking for something older
 /// than this is looking for a search, which the journal does not pretend to be.
-const PAGE: i64 = 200;
+pub const PAGE: i64 = 200;
 
 /// The profile's history, newest first.
 pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Entry>> {
@@ -251,6 +251,18 @@ pub fn for_entity(conn: &Connection, entity: &str, entity_id: &str) -> Result<Ve
           LIMIT ?3",
         params![entity, entity_id, PAGE],
     )
+}
+
+/// How many lines one thing's own history shows: the number beside the
+/// card's History tab. It stops where [`for_entity`] stops, so the tab never
+/// promises more lines than it lists.
+pub fn count_for_entity(conn: &Connection, entity: &str, entity_id: &str) -> Result<i64> {
+    let count: i64 = conn.query_row(
+        "SELECT count(*) FROM journal WHERE entity = ?1 AND entity_id = ?2",
+        params![entity, entity_id],
+        |row| row.get(0),
+    )?;
+    Ok(count.min(PAGE))
 }
 
 /// How many entries are asking to be looked at.

@@ -534,7 +534,7 @@ export interface Link {
   drifted: boolean
 }
 
-/** A work made from this one. */
+/** A work made from this one, with where its releases stand. */
 export interface Derived {
   link_id: string
   work_id: string
@@ -543,6 +543,38 @@ export interface Derived {
   status: string
   role: string
   created_at: string
+  /** How many of its releases have gone out. */
+  released: number
+  /** When the latest of them went out; null until one has. */
+  last_released_at: string | null
+  /** The earliest day a release still waiting is scheduled for - past, when
+      it is late. Null when nothing waiting has a day. */
+  next_scheduled_at: string | null
+}
+
+/** The number beside each of a work's tabs, in one answer (`card_counts`). */
+export interface CardCounts {
+  /** Versions of every role. */
+  versions: number
+  scores: number
+  releases: number
+  /** Everything attached, the cover among them. */
+  files: number
+  /** What the work was made from - apart, because a work with a donor can
+      be cut. */
+  sources: number
+  /** What was made from it. */
+  derived: number
+  notes: number
+  /** Comments, archived ones aside, and how many of them still wait. */
+  comments: number
+  comments_waiting: number
+  scenes: number
+  cuts: number
+  /** Stretches cut out of the work into others. */
+  cut_from: number
+  /** Lines of the work's own history, no more than its tab lists. */
+  history: number
 }
 
 export interface Links {

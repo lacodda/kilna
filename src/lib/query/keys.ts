@@ -25,6 +25,8 @@ export const keys = {
   // donor's card at the same time, the way a link changes two cards.
   cuts: ['cuts'] as const,
   cutsFor: (workId: string) => ['cuts', workId] as const,
+  /** What was cut out of a donor, for its own card. */
+  cutsFrom: (sourceId: string) => ['cuts', 'from', sourceId] as const,
   // What the cutter is told to do. Under the same prefix, because a stretch
   // moving changes it and so does a video arriving on the donor.
   shotsFor: (workId: string) => ['cuts', 'shots', workId] as const,
@@ -48,6 +50,10 @@ export const keys = {
   // list: the boxes refetch as they are typed into, and pulling the whole
   // list each time would redraw every row around them.
   releaseFields: (releaseId: string) => ['releases', 'fields', releaseId] as const,
+  // The files of one release, under the releases' prefix rather than the
+  // work's files: they are not on the work's Files tab, and a release deleted
+  // or brought back takes its files with it.
+  releaseAssets: (releaseId: string) => ['releases', 'assets', releaseId] as const,
   calendar: ['calendar'] as const,
   releaseQueue: ['releaseQueue'] as const,
   /** What a day holds for a release being carried over it. */
@@ -65,11 +71,11 @@ export const keys = {
   notesMatching: (filter: object) => ['notes', 'all', filter] as const,
   /** Every note a scene may point at: the cast, the places, the lore. */
   notesCastable: ['notes', 'castable'] as const,
-  // One prefix over the inbox, the channels, a work's counter and what waits
-  // to be kept: keeping a comment changes all four at once.
+  // One prefix over the inbox, the channels and what waits to be kept:
+  // keeping a comment changes all three at once. A work's counter is the
+  // card's, under `cardCounts`.
   comments: ['comments'] as const,
   commentChannels: ['comments', 'channels'] as const,
-  commentCount: (workId: string) => ['comments', 'count', workId] as const,
   commentProposals: ['comments', 'proposals'] as const,
   /** The inbox, under the filter it is read through. */
   commentsMatching: (filter: object) => ['comments', 'list', filter] as const,
@@ -103,6 +109,13 @@ export const keys = {
   journalFeed: ['journal', 'feed'] as const,
   journalForWork: (workId: string) => ['journal', 'work', workId] as const,
   journalUnread: ['journal', 'unread'] as const,
+  // The numbers beside a card's tabs, under the journal's prefix on purpose.
+  // Each counts rows that only a write makes or takes away, every write is an
+  // entry (ADR 0033), and every write refreshes the journal - so the counters
+  // are refreshed with every write the card makes, from any tab, without a
+  // list of which writes move which number. One cheap query refetched too
+  // often is cheaper than a count left stale by the list that forgot it.
+  cardCounts: (workId: string) => ['journal', 'counts', workId] as const,
 
   // One coarse prefix over every chat list: a finished run moves captions and
   // prices in the card's list and the drawer's alike.

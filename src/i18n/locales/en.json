@@ -50,9 +50,9 @@
     "tagPlaceholder": "A word for what this is",
     "tagNoMatch": "A new word — press Enter to add it",
     "removeTag": "Remove the tag \"{{tag}}\"",
-    "markOn": "Mark as \"{{mark}}\"",
     "markOff": "Take off \"{{mark}}\"",
-    "marks": "Marks",
+    "mark": "Mark",
+    "addMark": "Raise a mark",
     "copyTitle": "Copy the title",
     "star": "Star it: come back to this one",
     "unstar": "Take the star off",
@@ -82,14 +82,16 @@
     "preview": "Preview",
     "write": "Write",
     "view": "Read",
-    "edit": "Edit — the first change starts the next revision, and every change after saves into it",
-    "clickToEdit": "Click to edit",
-    "expand": "Give the text the whole screen",
+    "edit": "Edit (E) — the first change starts the next revision, and every change after saves into it",
+    "expand": "Give the text the whole window",
     "collapse": "Back to the card",
-    "focus": "Only the text",
-    "exitFocus": "Leave focus",
     "stageHint": "Esc steps back.",
-    "onStage": "On screen above",
+    "setCurrent": "Make current",
+    "commentaryBeside": "What was written about this revision, beside it",
+    "openSubject": "Open the revision this was written about",
+    "noCommentary": "Nothing written about the text in this role yet.",
+    "noCommentaryHint": "An action started on a revision of {{role}} writes it, and it is read beside that revision.",
+    "derivedFrom": "Started from {{name}}",
     "previewEmpty": "Nothing to preview yet.",
     "labelPlaceholder": "Name this version (optional)",
     "makeCurrentOnSave": "Make this the current version",
@@ -309,7 +311,6 @@
     "previewTier": "Tier",
     "previewState": "State",
     "previewUnscored": "not scored",
-    "clearDateHint": "Clearing the date returns it to the queue.",
     "usualTime": "Usually goes out at {{time}}.",
     "layout": "Lay out the queue",
     "layoutNeedsRhythm": "Set a release rhythm in the profile first.",
@@ -367,6 +368,7 @@
   "releases": {
     "kind": "Kind",
     "add": "Plan a release",
+    "newKind": "Kind of release to plan",
     "delete": "Delete this release",
     "unscheduled": "not scheduled",
     "releasedOn": "released {{date}}",
@@ -395,9 +397,16 @@
       "overLimit": "{{count}} over",
       "ofLimit": "{{used}} of {{limit}}",
       "refused": "Not written: {{label}} — {{reason}}",
-      "confirmTitle": "Write these again?",
-      "confirmBody": "What is written now is replaced by what the profile makes from the work. Fields the profile does not fill are left alone.",
-      "confirmAction": "Write them again"
+      "previewing": "What the work would write stands under each box it would replace. Nothing is replaced until you say so.",
+      "replace": "Replace",
+      "keepMine": "Keep what is written",
+      "proposed": "From the work",
+      "previewSame": "The work would write exactly what is here already.",
+      "empty": "not written"
+    },
+    "files": {
+      "title": "Files",
+      "none": "No files go out with this release. Attach its thumbnail, its subtitles or the cut itself."
     }
   },
   "score": {
@@ -409,13 +418,13 @@
     "none": "Not judged yet.",
     "save": "Record score",
     "delete": "Delete this score",
-    "mirroring": "These are the marks of the recorded score. Move one to judge again.",
     "noAxes": "This kind of work has no axes yet, so there is nothing to judge it on.",
     "noAxesLink": "Write its axes in the profile.",
     "partial": "{{filled}} of {{count}} axes filled — the unfilled ones are skipped, not counted as zero.",
     "unjudged": "not judged",
     "ofVersion": "Judging",
-    "currentVersion": "The current version",
+    "judged": "Draft judged",
+    "raterSelf": "You",
     "note": "Why this score",
     "notePlaceholder": "What decided it (optional)",
     "trend": "Scores from {{from}} to {{to}}",
@@ -711,7 +720,11 @@
     "unchanged": "unchanged since",
     "driftedTo": "changed since — now r{{revision}}",
     "driftedInPlace": "changed since — the same revision, edited",
-    "seeDiff": "See what changed"
+    "seeDiff": "See what changed",
+    "releasedOnce": "Out {{day}}",
+    "releasedMany": "{{released}} out · last {{day}}",
+    "scheduled": "Planned for {{day}}",
+    "late": "Late: due {{day}}"
   },
   "scenes": {
     "context": "Context",
@@ -859,6 +872,9 @@
     "attached": "“{{name}}” attached.",
     "attachFailed": "Could not attach the file.",
     "detachFailed": "Could not remove the file.",
+    "detachTitle": "Remove “{{name}}”?",
+    "detachBody": "The file is deleted from the workspace. It does not go to the trash, and undo cannot bring it back.",
+    "detachConfirm": "Remove the file",
     "pictures": "Pictures",
     "copiedIn": "A file is copied into the workspace, so a backup carries it.",
     "empty": "No files yet. A cover shows on the card, in the catalogue and in the calendar.",
@@ -1078,8 +1094,6 @@
     "scoreSaved": "Scored.",
     "releaseCreated": "Release added.",
     "releaseMoved": "Release moved.",
-    "slotPinned": "The layout will leave that date alone.",
-    "slotUnpinned": "The layout may use that date again.",
     "releaseSaved": "Release updated.",
     "releaseSaveFailed": "Could not save the release.",
     "releaseScheduled": "Slot claimed.",
@@ -1152,6 +1166,7 @@
   "journal": {
     "title": "History",
     "hint": "What happened here, newest first.",
+    "workHint": "What happened to this work.",
     "all": "Everything",
     "unreadOnly": "Needs a look",
     "markRead": "Mark all as seen",
@@ -1254,7 +1269,10 @@
       "assistant": "Assistant",
       "history": "History",
       "comments": "Comments"
-    }
+    },
+    "tabs": "The card's tabs",
+    "tabsBack": "Earlier tabs",
+    "tabsMore": "More tabs"
   },
   "search": {
     "title": "Search",
@@ -1373,7 +1391,11 @@
       "noFile": "A video this is cut from has no file attached yet, so there is nowhere to cut it out of."
     },
     "save": "Save the cut list",
-    "saved": "Cut list saved"
+    "saved": "Cut list saved",
+    "track": "Where the stretches fall on {{title}}",
+    "move": "Drag to move it in the cut. Alt with an arrow does it from its fields.",
+    "fromThis": "Cut from this",
+    "gone": "A work that is gone"
   },
   "cover": {
     "title": "Cover",

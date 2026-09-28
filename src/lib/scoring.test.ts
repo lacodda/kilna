@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import type { Axis, Tier } from '@/lib/api/types'
-import { markReaching, nextTier, rubricFor, tierFor, toNextTier, total } from '@/lib/scoring'
+import type { Axis, Tier, VersionRole, VersionSummary } from '@/lib/api/types'
+import {
+  defaultJudged,
+  isJudged,
+  judgedVersions,
+  markReaching,
+  nextTier,
+  rubricFor,
+  tierFor,
+  toNextTier,
+  total,
+} from '@/lib/scoring'
 
 const axis = (key: string, weight: number, scale = 10): Axis => ({ key, label: key, weight, scale })
 
@@ -242,5 +252,66 @@ describe('rubricFor', () => {
     const shuffled = axis('hook', 2)
     shuffled.rubric = [rubric.rubric![2]!, rubric.rubric![0]!, rubric.rubric![1]!]
     expect(rubricFor(shuffled, 6)?.at).toBe(3)
+  })
+})
+
+describe('judged versions', () => {
+  const ROLES: VersionRole[] = [
+    { key: 'lyrics', label: 'Lyrics' },
+    { key: 'style', label: 'Style prompt', counts_as_version: false },
+    { key: 'review', label: 'Review', comments_on: 'lyrics' },
+    // A commentary the craft says is a draft after all: its word wins.
+    { key: 'rewrite', label: 'Rewrite', comments_on: 'lyrics', counts_as_version: true },
+  ]
+
+  const version = (
+    id: string,
+    role: string,
+    created_at: string,
+    is_current = false,
+  ): VersionSummary => ({
+    id,
+    work_id: 'w',
+    role,
+    revision: 1,
+    label: null,
+    length: 0,
+    parent_version_id: null,
+    created_at,
+    is_current,
+    about_version_id: null,
+  })
+
+  it('judges the roles that are the work, not the ones about it', () => {
+    expect(ROLES.filter(isJudged).map((role) => role.key)).toEqual(['lyrics', 'rewrite'])
+  })
+
+  it('offers only versions in a judged role the profile still defines, newest first', () => {
+    const versions = [
+      version('l1', 'lyrics', '2026-09-01'),
+      version('s1', 'style', '2026-09-02'),
+      version('r1', 'review', '2026-09-03'),
+      version('x1', 'gone', '2026-09-04'),
+      version('w1', 'rewrite', '2026-09-05'),
+    ]
+    expect(judgedVersions(versions, ROLES).map((one) => one.id)).toEqual(['w1', 'l1'])
+  })
+
+  it('defaults to the current version', () => {
+    const judged = [
+      version('l2', 'lyrics', '2026-09-02'),
+      version('l1', 'lyrics', '2026-09-01', true),
+    ]
+    expect(defaultJudged(judged)?.id).toBe('l1')
+  })
+
+  it('falls back to the newest when the current one is not judged', () => {
+    const judged = [
+      version('l1', 'lyrics', '2026-09-01'),
+      version('l3', 'lyrics', '2026-09-03'),
+      version('l2', 'lyrics', '2026-09-02'),
+    ]
+    expect(defaultJudged(judged)?.id).toBe('l3')
+    expect(defaultJudged([])).toBeUndefined()
   })
 })

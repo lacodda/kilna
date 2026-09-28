@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
-import { Image as ImageIcon, Paperclip, Star, Trash2 } from 'lucide-react'
+import { Image as ImageIcon, Paperclip, X } from 'lucide-react'
 import { attachAsset, detachAsset } from '@/lib/api/assets'
 import type { Asset, Work } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
@@ -14,6 +14,7 @@ import { groupMaterials } from '@/lib/materials'
 import { PICTURES } from '@/lib/media'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ConfirmAction } from '@/components/ConfirmAction'
 import { MediaPreview } from '@/components/MediaPreview'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -28,8 +29,6 @@ interface Props {
 /** The kind an asset takes when it is the work's cover. */
 const COVER = 'cover'
 
-/** What the picker offers: the pictures a webview can show. */
-
 /**
  * The files attached to a work: covers and references.
  *
@@ -42,6 +41,8 @@ const COVER = 'cover'
 export function FilesTab({ work }: Props) {
   const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
+  // The file whose removal is being asked about.
+  const [leaving, setLeaving] = useState<Asset | null>(null)
 
   const files = useQuery(queries.assets(work.id))
 
@@ -57,7 +58,10 @@ export function FilesTab({ work }: Props) {
     mutationFn: (asset: Asset) => detachAsset(asset.id),
     failure: 'files.detachFailed',
     refresh: [keys.assetsFor(work.id), keys.covers],
-    onSuccess: () => say.ok(t('files.detached')),
+    onSuccess: () => {
+      setLeaving(null)
+      say.ok(t('files.detached'))
+    },
   })
 
   /** Ask for a file and attach it — the other way in is dropping one on the
@@ -116,32 +120,29 @@ export function FilesTab({ work }: Props) {
         over && 'outline-2 outline-dashed outline-offset-4 outline-accent',
       )}
       head={
-        <>
-          <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick(COVER)}>
-            <ImageIcon aria-hidden />
-            {cover === undefined ? t('files.setCover') : t('files.changeCover')}
-          </Button>
-          <Button
-            variant="soft"
-            size="sm"
-            disabled={busy || attach.isPending}
-            onClick={() => void pick()}
-          >
-            <Paperclip aria-hidden />
-            {t('files.attach')}
-          </Button>
-          <span className="text-xs text-dim">
-            {over ? t('files.dropHere') : t('files.copiedIn')}
-          </span>
-        </>
+        // The prompt stands above the buttons, as the mockup has it: writing
+        // it and looking at what came back are one activity, and the pictures
+        // scroll under both. Draws nothing for a kind whose covers are not
+        // written.
+        <div className="flex w-full flex-col gap-2.5">
+          <CoverPrompt work={work} />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick(COVER)}>
+              <ImageIcon aria-hidden />
+              {cover === undefined ? t('files.setCover') : t('files.changeCover')}
+            </Button>
+            <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick()}>
+              <Paperclip aria-hidden />
+              {t('files.attach')}
+            </Button>
+            <span className="ml-auto text-xs text-faint">
+              {over ? t('files.dropHere') : t('files.copiedIn')}
+            </span>
+          </div>
+        </div>
       }
     >
-      <Scroll label={t('card.tab.files')} contentClassName="flex flex-col gap-4">
-        {/* Above the pictures, because writing the prompt and looking at what
-            came back is one activity. Draws nothing for a kind whose covers
-            are not written. */}
-        <CoverPrompt work={work} />
-
+      <Scroll label={t('card.tab.files')} contentClassName="flex flex-col gap-3">
         <Loaded
           query={files}
           skeleton={<Skeleton className="h-32 w-full" />}
@@ -151,7 +152,7 @@ export function FilesTab({ work }: Props) {
           plain
         >
           {(data) => (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               {/* Grouped by what a file is for, not one flat list. A board of
                   fifty scenes with four candidates each puts two hundred
                   pictures in here, and the cover used to be somewhere among
@@ -159,18 +160,15 @@ export function FilesTab({ work }: Props) {
               {groupMaterials(data).map((group) => (
                 <section key={group.kind} className="flex flex-col gap-2">
                   <h3 className="caption">
-                    {t(`files.group.${group.kind}`)}
-                    <span className="ml-1.5 font-normal normal-case tracking-normal text-dim">
-                      {group.assets.length}
-                    </span>
+                    {t(`files.group.${group.kind}`)} · {group.assets.length}
                   </h3>
-                  <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
+                  <ul className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-2.5">
                     {group.assets.map((asset) => (
-                      <FileCard
+                      <FileTile
                         key={asset.id}
                         asset={asset}
                         isCover={asset.id === cover?.id}
-                        onDetach={() => detach.mutate(asset)}
+                        onDetach={() => setLeaving(asset)}
                       />
                     ))}
                   </ul>
@@ -180,18 +178,45 @@ export function FilesTab({ work }: Props) {
           )}
         </Loaded>
       </Scroll>
+
+      {/* Asked, because nothing brings it back: the file leaves the workspace
+          with its row, outside the trash and outside the undo. The one
+          question the app puts to a removal (see ConfirmAction). */}
+      <ConfirmAction
+        open={leaving !== null}
+        onOpenChange={(asking) => {
+          if (!asking) setLeaving(null)
+        }}
+        title={t('files.detachTitle', { name: nameOf(leaving) })}
+        description={t('files.detachBody')}
+        actionLabel={t('files.detachConfirm')}
+        pending={detach.isPending}
+        onConfirm={() => {
+          if (leaving !== null) detach.mutate(leaving)
+        }}
+      />
     </Frame>
   )
+}
+
+/** What a file is called on screen: the name it arrived under. */
+function nameOf(asset: Asset | null): string {
+  return asset === null ? '' : (asset.original_name ?? asset.label ?? asset.id)
 }
 
 /**
  * One file: what it looks like, what it is called, and the way out.
  *
+ * The mockup's tile: a picture well of a fixed height with the name under it,
+ * the cover marked by a tag in its corner, and the way out in the other
+ * corner - shown when the pointer is over the tile, or when the keyboard
+ * reaches it, rather than a red cross standing on every picture of a board.
+ *
  * The picture is shown whole rather than cropped to fill — a cover may be
  * square, a reference may be a tall screenshot, and a gallery that crops
  * both to the same rectangle shows neither.
  */
-function FileCard({
+function FileTile({
   asset,
   isCover,
   onDetach,
@@ -201,15 +226,11 @@ function FileCard({
   onDetach: () => void
 }) {
   const { t } = useTranslation()
+  const name = nameOf(asset)
 
   return (
-    <li className="flex flex-col gap-1.5">
-      <div
-        className={cn(
-          'relative flex h-32 items-center justify-center overflow-hidden rounded-md border bg-soft/40',
-          isCover ? 'border-accent' : 'border-line',
-        )}
-      >
+    <li className="group relative overflow-hidden rounded-md border border-line bg-raise">
+      <div className="flex h-26 items-center justify-center bg-bg">
         {/* A scene's clips are files of the work too, and drew as broken
             pictures here until each file was shown as what it is. */}
         <MediaPreview
@@ -217,30 +238,31 @@ function FileCard({
           alt={asset.original_name ?? asset.label ?? ''}
           className="max-h-full max-w-full object-contain"
         />
-        {isCover && (
-          <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-2xs text-white/90">
-            <Star aria-hidden className="size-3 fill-current" />
-            {t('files.cover')}
-          </span>
-        )}
       </div>
-      <div className="flex items-start gap-1">
-        <span
-          className="min-w-0 flex-1 truncate text-xs text-dim"
-          title={asset.original_name ?? ''}
-        >
-          {asset.original_name ?? asset.label ?? asset.id}
+      <p className="truncate px-2 py-1.5 text-xs" title={name}>
+        {name}
+      </p>
+      {isCover && (
+        <span className="absolute top-1.5 left-1.5 rounded-xs bg-accent px-1.5 text-2xs font-bold tracking-wide text-on-accent">
+          {t('files.cover')}
         </span>
-        <Button
-          variant="danger"
-          size="icon-sm"
-          title={t('files.detach')}
-          aria-label={t('files.detach')}
-          onClick={onDetach}
-        >
-          <Trash2 aria-hidden className="size-3.5" />
-        </Button>
-      </div>
+      )}
+      <Button
+        variant="icon"
+        size="icon-xs"
+        title={t('files.detach')}
+        aria-label={t('files.detach')}
+        onClick={onDetach}
+        className={cn(
+          // On the picture, so it carries a ground of its own: the theme's
+          // raised surface, which reads over a dark still and a light one.
+          'absolute top-1.5 right-1.5 rounded-sm bg-raise/85 shadow-lift',
+          'not-data-disabled:hover:bg-raise',
+          'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+        )}
+      >
+        <X aria-hidden />
+      </Button>
     </li>
   )
 }

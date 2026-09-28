@@ -7,7 +7,6 @@ import {
   markReleased,
   planLayout,
   scheduleRelease,
-  setSlotPin,
   unscheduleRelease,
   warnUnreadyReleases,
 } from '@/lib/api/releases'
@@ -16,6 +15,7 @@ import { today } from '@/lib/month'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
+import { say as sayLabel } from '@/lib/useProfile'
 
 /**
  * Both sides of this screen move together: taking a slot removes something
@@ -39,9 +39,10 @@ interface Options {
  * Every write the calendar makes.
  *
  * Held apart from the screen that draws them because they are the one part of
- * it that is not layout: nine writes, each refreshing both sides and each
+ * it that is not layout: the writes, each refreshing both sides and each
  * settling the same way. The screen hands in what its own state does when
- * one lands.
+ * one lands. Editing a booking is not among them: the release's dialog saves
+ * its own form (`ReleaseEditor`), the one the Releases tab saves too.
  */
 export function useCalendarActions({ onChanged, onPlanned, onClaimed, onDayFilled }: Options) {
   const { t } = useTranslation()
@@ -112,16 +113,6 @@ export function useCalendarActions({ onChanged, onPlanned, onClaimed, onDayFille
     },
   })
 
-  const pin = useAppMutation({
-    mutationFn: ({ id, pinned }: { id: string; pinned: boolean }) => setSlotPin(id, pinned),
-    failure: 'toast.releaseSaveFailed',
-    refresh: REFRESHED,
-    onSuccess: (pinned) => {
-      settle()
-      say.ok(pinned.slot_pinned_at === null ? t('toast.slotUnpinned') : t('toast.slotPinned'))
-    },
-  })
-
   const unschedule = useAppMutation({
     mutationFn: unscheduleRelease,
     failure: 'toast.releaseSaveFailed',
@@ -159,7 +150,8 @@ export function useCalendarActions({ onChanged, onPlanned, onClaimed, onDayFille
         say.warn(
           t('calendar.fields.refusedRow', {
             title: refusal.workTitle,
-            label: refusal.label,
+            // A shipped profile names its fields in both languages.
+            label: sayLabel(refusal.label),
             reason: refusal.reason,
           }),
         )
@@ -184,7 +176,7 @@ export function useCalendarActions({ onChanged, onPlanned, onClaimed, onDayFille
     },
   })
 
-  return { settle, claim, fillDay, release, move, pin, unschedule, preview, fillFields, book }
+  return { settle, claim, fillDay, release, move, unschedule, preview, fillFields, book }
 }
 
 export type CalendarActions = ReturnType<typeof useCalendarActions>

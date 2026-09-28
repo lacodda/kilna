@@ -27,12 +27,6 @@ const AWAITING: Record<string, { version: string; screen: string }> = {
   delete_collection: { version: '0.91.0', screen: 'the collections screen' },
   set_collection_contents: { version: '0.91.0', screen: 'the collections screen' },
   update_collection: { version: '0.91.0', screen: 'the collections screen' },
-  list_cuts_from: { version: '0.80.0', screen: "the donor's card, naming what was cut from it" },
-  list_release_assets: { version: '0.80.0', screen: "a release's files on the card" },
-  preview_release_fields: {
-    version: '0.80.0',
-    screen: 'release text shown before it replaces what was typed',
-  },
   reorder_scene_frames: { version: '0.81.0', screen: "a scene's frames put in order" },
   can_export_package: {
     version: '0.81.0',

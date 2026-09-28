@@ -9,9 +9,12 @@ import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
 import { Markdown } from '@/components/Markdown'
+import { Panel, SectionLabel, panelVariants } from '@/components/ui/panel'
 import { Textarea } from '@/components/ui/textarea'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SkeletonList } from '@/components/ui/skeleton'
@@ -22,6 +25,13 @@ interface Props {
   workId: string
 }
 
+/**
+ * The notes about one work, on its card.
+ *
+ * The mockup's anatomy: a caption over the tab, each note a panel of its own
+ * with its tags as chips under the text, and the form for a new one in a
+ * panel at the foot.
+ */
 export function NotePanel({ workId }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -77,33 +87,40 @@ export function NotePanel({ workId }: Props) {
   // note down, and a long list pushed it off the card.
   return (
     <Frame
+      head={<SectionLabel>{t('card.tab.notes')}</SectionLabel>}
       foot={
-        <form
-          className="flex w-full flex-col gap-2"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (body.trim() !== '') add.mutate()
-          }}
-        >
-          <Textarea
-            rows={2}
-            value={body}
-            onChange={(event) => setBody(event.target.value)}
-            placeholder={t('notes.placeholder')}
-            aria-label={t('notes.placeholder')}
-          />
-          <div className="flex gap-2">
-            <Input
-              value={tags}
-              onChange={(event) => setTags(event.target.value)}
-              placeholder={t('notes.tagsPlaceholder')}
-              aria-label={t('notes.tagsPlaceholder')}
+        <Panel className="w-full px-3 py-2.5">
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (body.trim() !== '') add.mutate()
+            }}
+          >
+            <Textarea
+              rows={2}
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              placeholder={t('notes.placeholder')}
+              aria-label={t('notes.placeholder')}
             />
-            <Button type="submit" variant="primary" disabled={body.trim() === '' || add.isPending}>
-              {t('notes.add')}
-            </Button>
-          </div>
-        </form>
+            <div className="flex gap-2">
+              <Input
+                value={tags}
+                onChange={(event) => setTags(event.target.value)}
+                placeholder={t('notes.tagsPlaceholder')}
+                aria-label={t('notes.tagsPlaceholder')}
+              />
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={body.trim() === '' || add.isPending}
+              >
+                {t('notes.add')}
+              </Button>
+            </div>
+          </form>
+        </Panel>
       }
     >
       <Scroll label={t('card.tab.notes')}>
@@ -120,29 +137,24 @@ export function NotePanel({ workId }: Props) {
               {data.map((note) => (
                 <li
                   key={note.id}
-                  className="flex items-start gap-2 rounded-xl border border-line p-2.5"
+                  className={cn(panelVariants(), 'flex items-start gap-2.5 px-3 py-2.5')}
                 >
-                  <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                     {/* Rendered, not shown raw: a note is where a table of images
                         or a list of phrases lands, and pipes and asterisks are not
                         what its author wrote it to be read as. Line breaks inside a
                         paragraph are kept, as everywhere markdown is rendered here. */}
                     <Markdown
                       body={note.body}
-                      className="text-sm"
+                      className="text-sm leading-relaxed text-dim"
                       onToggleTask={(index) =>
                         tick.mutate({ id: note.id, next: toggleTask(note.body, index) })
                       }
                     />
                     {note.tags.length > 0 && (
-                      <p className="mt-1 flex flex-wrap gap-1">
+                      <p className="flex flex-wrap gap-1">
                         {note.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded bg-soft px-1.5 py-0.5 text-xs text-dim"
-                          >
-                            {tag}
-                          </span>
+                          <Chip key={tag}>{tag}</Chip>
                         ))}
                       </p>
                     )}
@@ -156,7 +168,7 @@ export function NotePanel({ workId }: Props) {
                     aria-label={t('notes.openInNotes')}
                     onClick={() => void navigate(`/notes/${note.id}`)}
                   >
-                    <ArrowUpRight aria-hidden className="size-3.5" />
+                    <ArrowUpRight aria-hidden />
                   </Button>
                   <Button
                     variant="danger"
@@ -165,7 +177,7 @@ export function NotePanel({ workId }: Props) {
                     aria-label={t('notes.delete')}
                     onClick={() => remove.mutate(note.id)}
                   >
-                    <X aria-hidden className="size-3.5" />
+                    <X aria-hidden />
                   </Button>
                 </li>
               ))}

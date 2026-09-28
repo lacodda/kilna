@@ -17,41 +17,75 @@ export function totalLength(cuts: Cut[]): number {
   return cuts.reduce((sum, cut) => sum + lengthOf(cut), 0)
 }
 
-/** One stretch as the track draws it: where it sits on the donor, 0..1. */
-export interface Band {
-  cut: Cut
-  /** How far along the donor it starts, 0..1. */
-  left: number
-  /** How much of the donor it covers, 0..1. */
-  width: number
+/**
+ * The length a donor's track is drawn against, or `null` when there is none.
+ *
+ * A track drawn against an unknown length would put a 12-second cut at an
+ * arbitrary place and look exactly as authoritative as a real one. The screen
+ * says the length is missing instead, which is a thing a person can fix.
+ *
+ * Where each stretch then sits is dowel's Track (`track-segments`): placed on
+ * the donor's whole length rather than scaled to fit, so two cuts eight
+ * minutes apart in a long video read as two marks far apart, and clamped to
+ * the track, so a stretch past the end of a donor shortened later still draws
+ * inside the row.
+ */
+export function scaleOf(duration: number | null): number | null {
+  if (duration === null || !Number.isFinite(duration) || duration <= 0) return null
+  return duration
 }
+
+/** Where a stretch runs on its donor, in seconds. */
+export interface Stretch {
+  starts_at: number
+  ends_at: number
+}
+
+/** What a drag on the track holds: the whole stretch, or one of its ends. */
+export type Grip = 'whole' | 'start' | 'end'
+
+/** The shortest a drag may leave a stretch: still wide enough to take hold of
+    again, and longer than any cut anyone means. Typed seconds are not held to
+    it - the keyboard is for the exact value. */
+export const SHORTEST_DRAG = 0.5
 
 /**
- * The stretches of one donor, placed on that donor's length.
+ * Where a stretch lands when its track is dragged `delta` seconds.
  *
- * `null` when the donor has no duration: a track drawn against an unknown
- * length would put a 12-second cut at an arbitrary place and look exactly as
- * authoritative as a real one. The screen says the length is missing instead,
- * which is a thing a person can fix.
+ * The step is taken in tenths, the finest a timecode shows: a drag lands on a
+ * value the field under the track can say, and a press that did not move far
+ * enough to matter changes nothing - no write, no line in the history.
  *
- * Stretches are placed, not scaled to fit: two cuts eight minutes apart in a
- * long video should read as two marks far apart, because that is what they
- * are.
+ * Held inside the donor. The whole stretch keeps its length and stops at
+ * either end; an end stops at the donor's edge and short of the other end.
+ * The backend refuses a stretch that ends before it starts, and a drag that
+ * got there would be a failure toast for a gesture that only went too far.
  */
-export function bandsOf(cuts: Cut[], duration: number | null): Band[] | null {
-  if (duration === null || !Number.isFinite(duration) || duration <= 0) return null
-  return cuts.map((cut) => ({
-    cut,
-    left: clamp(cut.starts_at / duration),
-    // Clamped at the left edge too, so a stretch that runs past the end of a
-    // donor whose length was shortened later still draws inside the track
-    // rather than overflowing the row.
-    width: clamp(Math.min(cut.ends_at, duration) / duration) - clamp(cut.starts_at / duration),
-  }))
+export function dragged(stretch: Stretch, grip: Grip, delta: number, duration: number): Stretch {
+  const step = Math.round(delta * 10) / 10
+  if (step === 0) return stretch
+  const { starts_at, ends_at } = stretch
+
+  if (grip === 'whole') {
+    const length = ends_at - starts_at
+    const starts = clamp(starts_at + step, 0, Math.max(0, duration - length))
+    return { starts_at: tidy(starts), ends_at: tidy(starts + length) }
+  }
+  if (grip === 'start') {
+    return { starts_at: tidy(clamp(starts_at + step, 0, ends_at - SHORTEST_DRAG)), ends_at }
+  }
+  const last = Math.max(duration, starts_at + SHORTEST_DRAG)
+  return { starts_at, ends_at: tidy(clamp(ends_at + step, starts_at + SHORTEST_DRAG, last)) }
 }
 
-function clamp(value: number): number {
-  return Math.min(1, Math.max(0, value))
+function clamp(value: number, low: number, high: number): number {
+  return Math.min(high, Math.max(low, value))
+}
+
+/** Seconds without the float noise of adding tenths: 12.3, not
+    12.300000000000001, is what gets stored. */
+function tidy(seconds: number): number {
+  return Math.round(seconds * 1000) / 1000
 }
 
 /**
@@ -120,9 +154,14 @@ export function blockerOf(shots: Shot[]): Blocker | null {
  * when "which parts of it" becomes a question; a work with stretches already
  * shows the tab whatever else is true, because hiding the screen that edits
  * them would strand the data.
+ *
+ * Numbers rather than lists: the card reads both from its counters
+ * (`card_counts`), and fetches no splice for a work that has none.
  */
-export function canBeCut(cuts: Cut[], donors: number): boolean {
-  return cuts.length > 0 || donors > 0
+export function canBeCut(stretches: number, donors: number, cutFrom = 0): boolean {
+  // A donor's tab names what was cut out of it: a film only ever cut from
+  // has something on that tab too.
+  return stretches > 0 || donors > 0 || cutFrom > 0
 }
 
 /**
@@ -140,4 +179,25 @@ export function orderMoving(cuts: Cut[], moving: string, before: string | null):
   const at = ids.indexOf(before)
   if (at === -1) return [...ids, moving]
   return [...ids.slice(0, at), moving, ...ids.slice(at)]
+}
+
+/**
+ * The order of the whole splice after one donor's list was rearranged:
+ * `moving` put at index `to` of `track`, the stretches of that donor alone.
+ *
+ * The list under a track shows one donor, while the order the backend keeps
+ * runs across all of them. Moved before the stretch that now follows it in
+ * its own list, or - moved to the bottom - just after the donor's last one,
+ * rather than after the last stretch of the whole splice, which could belong
+ * to another donor and would carry this one out of its place among its own.
+ */
+export function orderWithin(splice: Cut[], track: Cut[], moving: string, to: number): string[] {
+  const rest = track.map((cut) => cut.id).filter((id) => id !== moving)
+  const before = rest[to]
+  if (before !== undefined) return orderMoving(splice, moving, before)
+
+  const others = splice.map((cut) => cut.id).filter((id) => id !== moving)
+  const last = rest.at(-1)
+  const after = last === undefined ? -1 : others.indexOf(last)
+  return orderMoving(splice, moving, after === -1 ? null : (others[after + 1] ?? null))
 }

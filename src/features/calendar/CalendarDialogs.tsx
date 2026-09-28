@@ -90,7 +90,6 @@ export function CalendarDialogs({ dialog, onDialog, slots, planned, actions, onO
         onOpenWork={onOpenWork}
         onMarkReleased={(id) => onDialog({ kind: 'release', releaseId: id })}
         onUnschedule={(id) => actions.unschedule.mutate(id)}
-        onTogglePin={(id, pinned) => actions.pin.mutate({ id, pinned })}
       />
 
       {/* The same dialog the Releases tab marks with. The calendar had its

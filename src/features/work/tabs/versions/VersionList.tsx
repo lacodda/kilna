@@ -1,20 +1,25 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { VersionSummary } from '@/lib/api/types'
 import { neighbour } from '@/lib/history'
 import { Button } from '@/components/ui/button'
 import { RowButton } from '@/components/ui/list-row'
 import { RowMenu } from '@/components/RowMenu'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { formatDay } from '@/lib/format'
 
 interface Props {
   versions: VersionSummary[]
-  loading: boolean
+  /** What the list says when the role holds nothing yet. */
+  empty: ReactNode
+  /** Whether these are versions of commentary. A review is written about the
+   * text by an action run on it: it is never the work's current version, and
+   * a copy of one would be about no revision at all. */
+  commentary: boolean
   /** The score a version was given, by version id, for the ones that were
    * judged. A version scored twice shows the score that speaks for it. */
-  scores?: Record<string, number>
+  /** The total that speaks for a version, already said as a total. */
+  scores?: Record<string, string>
   openId: string | null
   /** Which version the open one is being compared against, if any. */
   comparedId: string | null
@@ -38,7 +43,8 @@ interface Props {
  */
 export function VersionList({
   versions,
-  loading,
+  empty,
+  commentary,
   scores,
   openId,
   comparedId,
@@ -104,11 +110,7 @@ export function VersionList({
     }
   }
 
-  if (loading) return <Skeleton className="h-32 w-full" />
-
-  if (versions.length === 0) {
-    return <p className="py-4 text-sm text-dim">{t('versions.none')}</p>
-  }
+  if (versions.length === 0) return empty
 
   return (
     <ul
@@ -141,7 +143,14 @@ export function VersionList({
               // being compared reads as a pair in the list too.
               className={cn('flex-1', !isOpen && isCompared && 'bg-soft')}
               start={<span className="font-mono text-xs text-faint">v{version.revision}</span>}
-              description={`${t('versions.length', { count: version.length })} · ${formatDay(version.created_at)}`}
+              // In mono, as the mockup sets it: a length and a date are
+              // figures, and figures in a column line up.
+              description={
+                <span className="font-mono">
+                  {t('versions.length', { count: version.length })} ·{' '}
+                  {formatDay(version.created_at)}
+                </span>
+              }
               end={
                 <>
                   {version.is_current && (
@@ -197,15 +206,19 @@ export function VersionList({
             <RowMenu
               label={version.label ?? t('versions.revision', { number: version.revision })}
               actions={[
-                {
-                  // Versions never change once saved — revising means starting
-                  // the next revision from this one. See `Решения` on why there
-                  // is no edit.
-                  key: 'derive',
-                  label: t('versions.deriveFrom'),
-                  onSelect: () => onDeriveFrom(version.id),
-                },
-                ...(version.is_current
+                // Versions never change once saved — revising means starting
+                // the next revision from this one. See `Решения` on why there
+                // is no edit.
+                ...(commentary
+                  ? []
+                  : [
+                      {
+                        key: 'derive',
+                        label: t('versions.deriveFrom'),
+                        onSelect: () => onDeriveFrom(version.id),
+                      },
+                    ]),
+                ...(version.is_current || commentary
                   ? []
                   : [
                       {
