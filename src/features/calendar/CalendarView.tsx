@@ -1,267 +1,91 @@
 import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronsLeft, ChevronsRight } from 'lucide-react'
-import {
-  applyLayout,
-  generateReleaseFieldsBatch,
-  markReleased,
-  planLayout,
-  createRelease,
-  scheduleRelease,
-  setSlotPin,
-  unscheduleRelease,
-  warnUnreadyReleases,
-} from '@/lib/api/releases'
-import type { NewRelease, Placement } from '@/lib/api/types'
-import { keys } from '@/lib/query/keys'
+import { useQuery } from '@tanstack/react-query'
+import type { Placement } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
-import { useAppMutation } from '@/lib/query/useAppMutation'
-import { say } from '@/lib/toast'
-import { allOf, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { RowButton } from '@/components/ui/list-row'
-import { Select } from '@/components/AppSelect'
-import { DatePicker } from '@/components/DatePicker'
-import { ConfirmAction } from '@/components/ConfirmAction'
-import { MarkReleasedDialog } from '@/components/MarkReleasedDialog'
-import { EmptyState } from '@/components/ui/empty-state'
-import { Skeleton, SkeletonList } from '@/components/ui/skeleton'
-import { Frame, ListDetail, Pane, Scroll } from '@/components/frame'
+import { Frame, ListDetail } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
-import { KindFilterBar } from '@/features/calendar/KindFilterBar'
+import { CalendarDialogs, type CalendarDialog } from '@/features/calendar/CalendarDialogs'
+import { CalendarHead } from '@/features/calendar/CalendarHead'
+import { LayoutPreview } from '@/features/calendar/LayoutPreview'
 import { MonthGrid } from '@/features/calendar/MonthGrid'
-import { ReadyMarks } from '@/components/ReadyMarks'
-import { NewWorkDialog } from '@/components/NewWorkDialog'
-import { PickWorkDialog } from '@/components/PickWorkDialog'
-import { ReleaseEditor } from '@/features/calendar/ReleaseEditor'
+import { MonthSkeleton } from '@/features/calendar/MonthSkeleton'
+import { QueuePane } from '@/features/calendar/QueuePane'
+import { useCalendarActions } from '@/features/calendar/useCalendarActions'
+import { QUEUE, useCalendarDrag } from '@/features/calendar/useCalendarDrag'
 import { filterByKind, filterGhosts, type KindFilter } from '@/lib/calendarFilter'
-import { loadLayout, otherLayout, saveLayout, type CalendarLayout } from '@/lib/calendarLayout'
+import { loadLayout, saveLayout, type CalendarLayout } from '@/lib/calendarLayout'
 import { ghostsOf } from '@/lib/layout'
 import { monthOf, today, type Month } from '@/lib/month'
-import { stagesOf } from '@/lib/stages'
 import { batchable } from '@/lib/releaseFields'
-import { formatNumber } from '@/lib/format'
 
 interface Props {
   onSelect: (workId: string) => void
 }
 
-// The queue feeds the calendar: strongest first on the left, dated slots on the
-// right. A day holds as many releases as are put on it; dropping onto a taken
-// day says who is there, and does not push back.
+/**
+ * The queue feeds the calendar: the month on the left, what still needs a
+ * date on the right, one head across both. A day holds as many releases as
+ * are put on it; dropping onto a taken day says who is there, and does not
+ * push back. A release carried off the month onto the queue goes back into
+ * it.
+ *
+ * This file is the screen's state and how its parts are joined. The parts
+ * are their own files: the head (`CalendarHead`), the queue (`QueuePane`),
+ * the month (`MonthGrid`, a `DayCell` each), the dialogs
+ * (`CalendarDialogs`), the writes (`useCalendarActions`) and the carried chip
+ * (`useCalendarDrag`).
+ */
 export function CalendarView({ onSelect }: Props) {
-  const { t } = useTranslation()
-  const profile = useProfile()
-  const client = useQueryClient()
-
   const [picked, setPicked] = useState<string | null>(null)
-  const [slot, setSlot] = useState('')
   const [month, setMonth] = useState<Month>(() => monthOf(today()))
-  // Which kinds the grid is showing. The queue is deliberately not filtered
-  // with it: the queue is what still needs a date, and hiding part of it behind
-  // a view of the month would hide work waiting to be scheduled.
+  // Which kinds the month is showing. The queue is deliberately not filtered
+  // with it (`QueuePane`).
   const [kind, setKind] = useState<KindFilter>(null)
   // How much of the screen the month gets. Named for the width rather than
   // the layout because `layout` below is the auto-layout's plan, and two
   // different things under one word is how the wrong one gets read. Loaded
   // once: it is a standing choice, not something to rediscover every visit.
   const [width, setWidth] = useState<CalendarLayout>(loadLayout)
-  // The id of the release being edited, not the row itself: holding the row
-  // would freeze it at the moment it was opened, and pinning from inside the
-  // dialog left the tick unmoved until it was closed and opened again.
-  const [editingId, setEditingId] = useState<string | null>(null)
-  // The release waiting for a link, or null when the dialog is closed.
-  const [releasing, setReleasing] = useState<string | null>(null)
-  // The kind the new-work dialog opens on, or null when it is closed.
-  const [adding, setAdding] = useState<string | null>(null)
-  // The day a work is being chosen for, from its `+` or its right-click menu,
-  // or null when the picker is closed. Filling a day means reaching for a work
-  // that already exists far more often than it means inventing one, so the
-  // plus asks WHICH rather than offering to make a new one - and the day it
-  // was pressed on is what the chosen work is then booked for.
-  const [fillingDay, setFillingDay] = useState<string | null>(null)
-  // What the queue itself is narrowed to. Separate from `kind` above, which is
-  // a view of the MONTH: the owner asked to see "what is closest to going out"
-  // among four hundred works, and that question is asked of the queue.
-  const [queueQuery, setQueueQuery] = useState('')
-  const [queueKind, setQueueKind] = useState<string | null>(null)
-  const [queueStage, setQueueStage] = useState<number | null>(null)
   // The auto-layout plan being previewed, or null. Applying books exactly
   // this array; any other calendar change makes it a picture of the past, so
-  // `settle` clears it.
+  // settling clears it.
   const [layout, setLayout] = useState<Placement[] | null>(null)
-  // Whether the batch is asking before it writes. It always asks: it replaces
-  // the wording of every release in the month at once, and that is a great
-  // deal to undo one release at a time.
-  const [fillingFields, setFillingFields] = useState(false)
+  // The dialog open, and on what - by id, not by row: holding the row would
+  // freeze it at the moment it was opened.
+  const [dialog, setDialog] = useState<CalendarDialog>(null)
 
   const slots = useQuery(queries.calendar())
   const queued = useQuery(queries.releaseQueue())
 
-  // The queue, as the filters leave it. `work_stage` is a percentage and the
-  // filter is a stop, so the comparison is "has reached this stop" rather than
-  // equality - picking "Polishing" should show what is polishing AND what is
-  // past it, which is what "closest to going out" means.
-  const shownQueue = (queued.data ?? []).filter(
-    (entry) =>
-      (queueKind === null || entry.work_kind === queueKind) &&
-      (queueStage === null || (entry.work_stage ?? -1) >= queueStage) &&
-      entry.work_title.toLowerCase().includes(queueQuery.trim().toLowerCase()),
-  )
-
-  // Both sides of this screen move together: taking a slot removes something
-  // from the queue, returning one puts it back - what every one of these
-  // mutations disturbs.
-  const REFRESHED = [keys.calendar, keys.releaseQueue, keys.releases] as const
-
-  // What settling still does beyond the plain refresh above: clear the
-  // preview, and warn about the week ahead before the journal is read again.
-  // Displacing a release writes the one warning that lights the bell, and a
-  // change that put something unready inside the coming week warns right
-  // away rather than at the next startup - but only once the sweep itself has
-  // written it, which is later than the hook's own immediate refresh of the
-  // journal. So the feed is asked again once the sweep is done, and holds the
-  // warning that arrived too late for the first read.
-  const settle = () => {
-    setLayout(null)
-    void warnUnreadyReleases(today()).finally(() => {
-      void client.invalidateQueries({ queryKey: keys.journal })
-    })
-  }
-
-  const claim = useAppMutation({
-    mutationFn: ({ id, date }: { id: string; date: string }) => scheduleRelease(id, date),
-    failure: 'toast.releaseSaveFailed',
-    refresh: REFRESHED,
-    onSuccess: () => {
-      setPicked(null)
-      settle()
-      say.ok(t('toast.releaseScheduled'))
-    },
-  })
-
-  // A work chosen for a day, booked in one step: the release is made already
-  // holding its date, rather than being made and then dragged out of the
-  // queue onto the day it was asked for a moment ago.
-  const fillDay = useAppMutation({
-    mutationFn: (release: NewRelease) => createRelease(release),
-    failure: 'toast.releaseSaveFailed',
-    refresh: REFRESHED,
-    onSuccess: () => {
-      setFillingDay(null)
-      settle()
-      say.ok(t('toast.releaseScheduled'))
-    },
-  })
-
-  const release = useAppMutation({
-    mutationFn: ({ id, url, at }: { id: string; url: string | null; at: string | null }) =>
-      markReleased(id, url, at),
-    failure: 'toast.releaseSaveFailed',
-    refresh: REFRESHED,
-    onSuccess: () => {
-      settle()
-      say.ok(t('toast.releaseReleased'))
-    },
-  })
-
-  // The same call the queue uses. Until v0.44 dragging went through a contest
-  // and a weaker release could be evicted by the drop; now a day holds what is
-  // put on it, so moving a chip is the plainest thing on the screen — a date
-  // is written, and nothing else happens.
-  const move = useAppMutation({
-    mutationFn: ({ id, date }: { id: string; date: string }) => scheduleRelease(id, date),
-    failure: 'toast.releaseSaveFailed',
-    refresh: REFRESHED,
-    onSuccess: () => {
-      settle()
-      say.ok(t('toast.releaseMoved'))
-    },
-  })
-
-  const pin = useAppMutation({
-    mutationFn: ({ id, pinned }: { id: string; pinned: boolean }) => setSlotPin(id, pinned),
-    failure: 'toast.releaseSaveFailed',
-    refresh: REFRESHED,
-    onSuccess: (release) => {
-      settle()
-      say.ok(release.slot_pinned_at === null ? t('toast.slotUnpinned') : t('toast.slotPinned'))
-    },
-  })
-
-  const unschedule = useAppMutation({
-    mutationFn: unscheduleRelease,
-    failure: 'toast.releaseSaveFailed',
-    refresh: REFRESHED,
-    onSuccess: () => {
-      settle()
-      say.ok(t('toast.releaseUnscheduled'))
-    },
-  })
-
-  // The plan moves nothing; it is a picture to approve. Jumping to its first
-  // month is what makes the ghosts visible at all when the queue lands beyond
-  // the month on screen.
-  const preview = useAppMutation({
-    mutationFn: () => planLayout(today()),
-    failure: 'toast.layoutFailed',
-    onSuccess: (placements) => {
+  const actions = useCalendarActions({
+    onChanged: () => setLayout(null),
+    // Jumping to the plan's first month is what makes the ghosts visible at
+    // all when the queue lands beyond the month on screen.
+    onPlanned: (placements) => {
       setLayout(placements)
       const first = placements[0]
       if (first !== undefined) setMonth(monthOf(first.date))
     },
+    onClaimed: () => setPicked(null),
+    onDayFilled: () => setDialog((current) => (current?.kind === 'fill' ? null : current)),
   })
 
-  // What the month's releases go out as, written in one pass. The point is a
-  // week of the calendar: someone who planned six videos writes their
-  // metadata together or not at all.
-  const fillFields = useAppMutation({
-    mutationFn: (ids: string[]) => generateReleaseFieldsBatch(ids),
-    failure: 'calendar.fields.failed',
-    refresh: [keys.releases],
-    onSuccess: (outcome) => {
-      if (outcome.filled > 0) {
-        say.ok(t('calendar.fields.done', { count: outcome.filled }))
-      } else {
-        say.ok(t('calendar.fields.doneNone'))
-      }
-      // One line per refusal, because each is a different work waiting on a
-      // different thing, and a single line holding six of them is read by
-      // nobody.
-      for (const refusal of outcome.refused) {
-        say.warn(
-          t('calendar.fields.refusedRow', {
-            title: refusal.workTitle,
-            label: refusal.label,
-            reason: refusal.reason,
-          }),
-        )
-      }
+  const drag = useCalendarDrag({
+    month,
+    onMonthChange: setMonth,
+    // Let go over the day it came from, a chip has not moved: nothing is
+    // written, and no toast says it was.
+    onMove: (id, date) => {
+      const from = slots.data?.find((entry) => entry.id === id)?.scheduled_at
+      if (from !== date) actions.move.mutate({ id, date })
     },
+    onUnschedule: (id) => actions.unschedule.mutate(id),
   })
 
-  const book = useAppMutation({
-    mutationFn: (placements: Placement[]) => applyLayout(placements),
-    refresh: REFRESHED,
-    onSuccess: () => {
-      settle()
-      say.ok(t('toast.layoutApplied'))
-    },
-    // A stale plan is refused whole; the refetch shows what the calendar
-    // actually holds now, and the person previews again from that. `refresh`
-    // only runs on success, so the same areas are invalidated by hand here.
-    onError: (cause) => {
-      for (const key of REFRESHED) void client.invalidateQueries({ queryKey: key })
-      settle()
-      say.failedTo(t('toast.layoutFailed'), cause)
-    },
-  })
-
-  // The planned releases of the month on screen: what the batch is about.
-  // Read off the unfiltered month for the reason the button's comment gives.
-  const monthly = batchable(
+  // The planned releases of the month on screen: what the fields batch is
+  // about. Read off the unfiltered month - a narrowed view is a way of
+  // looking, not an instruction about which releases to write.
+  const planned = batchable(
     (slots.data ?? []).filter(
       (entry) =>
         entry.scheduled_at !== null &&
@@ -269,377 +93,113 @@ export function CalendarView({ onSelect }: Props) {
     ),
   )
 
-  // The queue, on the right of the month as the mockup draws it: the month is
-  // what is being planned, and the queue is read against it. Its head - how to
-  // find one of a few hundred - and its foot - how to act on it - stand; the
-  // list between them scrolls. A scroller that swallowed the foot would hide
-  // the layout button at the bottom of two hundred rows.
-  const queueActions =
-    (queued.data !== undefined && queued.data.length > 0 && layout === null) || picked !== null
-
-  const queue = (
-    <Pane
-      label={t('calendar.queue')}
-      bodyClassName="p-1.5"
-      head={
-        <div className="flex w-full flex-col gap-2">
-          <div>
-            <h3 className="text-sm font-semibold">{t('calendar.queue')}</h3>
-            <p className="text-xs text-dim">{t('calendar.queueHint')}</p>
-          </div>
-
-          {/* Finding one of a few hundred, and seeing what is nearly ready.
-              The queue is ordered by score, which answers "which is best" -
-              not "which is closest to going out", which is what someone
-              filling a week is actually asking. */}
-          <Input
-            value={queueQuery}
-            onChange={(event) => setQueueQuery(event.target.value)}
-            placeholder={t('calendar.queueSearch')}
-            aria-label={t('calendar.queueSearch')}
-            className="text-xs"
-          />
-          <div className="flex gap-1.5">
-            <Select
-              value={queueKind ?? ''}
-              onChange={(value) => setQueueKind(value === '' ? null : value)}
-              placeholder={t('calendar.queueAnyKind')}
-              aria-label={t('calendar.queueKind')}
-              className="min-w-0 flex-1"
-              options={profile.config.work_kinds.map((entry) => ({
-                value: entry.key,
-                label: sayLabel(entry.label),
-              }))}
-            />
-            <Select
-              value={queueStage === null ? '' : String(queueStage)}
-              onChange={(value) => setQueueStage(value === '' ? null : Number(value))}
-              placeholder={t('calendar.queueAnyStage')}
-              aria-label={t('calendar.queueStage')}
-              className="min-w-0 flex-1"
-              options={stagesOf(profile.config).map((stop) => ({
-                value: String(stop.percent),
-                label: sayLabel(stop.label),
-              }))}
-            />
-          </div>
-        </div>
-      }
-      foot={
-        queueActions ? (
-          <div className="flex w-full flex-col gap-2">
-            {/* One click plans the whole queue to the profile's rhythm.
-                Without a rhythm there is nothing to pace by, and the button
-                says so instead of hiding. */}
-            {queued.data !== undefined && queued.data.length > 0 && layout === null && (
-              <Button
-                size="sm"
-                disabled={profile.config.rhythm == null || preview.isPending}
-                title={profile.config.rhythm == null ? t('calendar.layoutNeedsRhythm') : undefined}
-                onClick={() => preview.mutate()}
-              >
-                {t('calendar.layout')}
-              </Button>
-            )}
-            {picked !== null && (
-              <form
-                className="flex gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (slot !== '') claim.mutate({ id: picked, date: slot })
-                }}
-              >
-                <DatePicker
-                  value={slot}
-                  onChange={setSlot}
-                  placeholder={t('calendar.slotDate')}
-                  aria-label={t('calendar.slotDate')}
-                />
-                <Button type="submit" variant="primary" disabled={slot === '' || claim.isPending}>
-                  {t('calendar.claim')}
-                </Button>
-              </form>
-            )}
-          </div>
-        ) : undefined
-      }
-    >
-      <Loaded
-        query={queued}
-        skeleton={<SkeletonList rows={4} />}
-        isEmpty={(data) => data.length === 0}
-        emptyState={<EmptyState plain title={t('calendar.queueEmpty')} className="p-2" />}
-        plain
-      >
-        {() =>
-          shownQueue.length === 0 ? (
-            // Plenty waiting, none of it matching: the way out is the search
-            // and the two filters right above.
-            <EmptyState
-              plain
-              variant="filtered"
-              title={t('calendar.queueNoMatch')}
-              className="p-2"
-            />
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {shownQueue.map((entry) => (
-                <li key={entry.id}>
-                  <RowButton
-                    selected={entry.id === picked}
-                    onClick={() => setPicked(entry.id === picked ? null : entry.id)}
-                    end={
-                      <>
-                        {/* No date yet, so no deadline: the gaps show, calmly. */}
-                        <ReadyMarks readiness={entry.readiness} released={false} daysLeft={null} />
-                        <span>{labelOf(allOf(profile.config, 'release_kinds'), entry.kind)}</span>
-                        <span
-                          className="w-10 text-right font-mono text-sm text-text"
-                          // The score orders the queue and drives the auto-layout;
-                          // since v0.44 it decides nothing about who may have a day.
-                          title={entry.total === null ? t('calendar.unscored') : undefined}
-                        >
-                          {entry.total === null ? '—' : formatNumber(entry.total, 0)}
-                        </span>
-                      </>
-                    }
-                  >
-                    {entry.work_title}
-                  </RowButton>
-                </li>
-              ))}
-            </ul>
-          )
-        }
-      </Loaded>
-    </Pane>
-  )
-
-  // The month holds the height it is given at every window width: its head -
-  // the plan waiting for approval, the filters - stands, and the grid scrolls
-  // under it when a short window cannot fit six weeks. Below `xl` the queue
-  // used to drop under the month and the screen scrolled as a page.
+  // The month holds the height it is given at every window width, and its
+  // weeks share it; nothing on this screen scrolls but the queue's list.
   const monthView = (
-    <Loaded query={slots} fill skeleton={<SkeletonMonth />}>
+    <Loaded query={slots} fill skeleton={<MonthSkeleton />}>
       {(data) => (
-        <Frame
-          head={
-            <div className="flex w-full flex-col gap-2.5">
-              {/* The plan on approval: what would land where, said in one line
-                  and drawn as ghosts in the grid. Booking applies exactly the
-                  previewed array — the backend refuses it whole if the calendar
-                  moved in between. */}
-              {layout !== null && (
-                <div className="flex flex-wrap items-center gap-3 rounded-md border border-accent bg-accent-soft px-3 py-2 text-sm">
-                  <span className="flex-1">
-                    {t('calendar.layoutPreview', {
-                      count: layout.length,
-                      from: layout[0]?.date,
-                      to: layout[layout.length - 1]?.date,
-                    })}
-                  </span>
-                  <Button size="sm" onClick={() => setLayout(null)}>
-                    {t('dialog.cancel')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    disabled={book.isPending}
-                    onClick={() => book.mutate(layout)}
-                  >
-                    {t('calendar.layoutApply')}
-                  </Button>
-                </div>
-              )}
-
-              {/* Under the layout banner, above the grid. The banner is a
-                  question waiting for an answer and outranks everything while it
-                  is up; the filter is a standing choice about what the month
-                  shows, so it sits with the thing it governs. */}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <KindFilterBar slots={data} value={kind} onChange={setKind} />
-
-                {/* Everything still planned in the month, written in one pass.
-                    Sits with the filters because it is about the month on
-                    screen, and reads what the month holds rather than what the
-                    chips are showing: a narrowed view is a way of looking, not
-                    an instruction about which releases to write. */}
-                {monthly.length > 0 && (
-                  <Button
-                    size="sm"
-                    className="ml-auto"
-                    disabled={fillFields.isPending}
-                    onClick={() => setFillingFields(true)}
-                  >
-                    {t('calendar.fields.action')}
-                  </Button>
-                )}
-
-                {/* On the same line as the filters, at the far end: both are
-                    about what the month shows, and neither is an action on a
-                    release. */}
-                <Button
-                  variant="icon"
-                  size="icon-sm"
-                  className={monthly.length > 0 ? undefined : 'ml-auto'}
-                  aria-label={t(width === 'queue' ? 'calendar.widen' : 'calendar.showQueue')}
-                  title={t(width === 'queue' ? 'calendar.widen' : 'calendar.showQueue')}
-                  onClick={() => {
-                    const next = otherLayout(width)
-                    setWidth(next)
-                    saveLayout(next)
-                  }}
-                >
-                  {width === 'queue' ? <ChevronsRight aria-hidden /> : <ChevronsLeft aria-hidden />}
-                </Button>
-              </div>
-            </div>
+        <MonthGrid
+          month={month}
+          slots={filterByKind(data, kind)}
+          // Filtered with the chips, so a narrowed month does not draw a
+          // plan it is not showing. Booking still applies every placement:
+          // the filter is a view of the month, not an instruction about
+          // what to schedule.
+          ghosts={
+            layout === null ? undefined : filterGhosts(ghostsOf(layout, queued.data ?? []), kind)
           }
-        >
-          <Scroll label={t('nav.calendar')}>
-            <MonthGrid
-              month={month}
-              onMonthChange={setMonth}
-              slots={filterByKind(data, kind)}
-              // Filtered with the chips, so a narrowed month does not draw a
-              // plan it is not showing. Booking still applies every placement:
-              // the filter is a view of the month, not an instruction about
-              // what to schedule.
-              ghosts={
-                layout === null
-                  ? undefined
-                  : filterGhosts(ghostsOf(layout, queued.data ?? []), kind)
-              }
-              // A queued release is waiting for a date: the grid becomes a way
-              // to pick one, rather than a picture of what is booked.
-              claimingId={picked}
-              onPickDay={(date) => {
-                if (picked !== null) claim.mutate({ id: picked, date })
-              }}
-              onOpenRelease={setEditingId}
-              onMove={(id, date) => move.mutate({ id, date })}
-              onUnschedule={(id) => unschedule.mutate(id)}
-              onAddOn={(date) => setFillingDay(date)}
-            />
-
-            {data.length === 0 && layout === null && (
-              <p className="pt-2 text-sm text-dim">{t('calendar.empty')}</p>
-            )}
-          </Scroll>
-        </Frame>
+          // A queued release is waiting for a date: the grid becomes a way
+          // to pick one, rather than a picture of what is booked.
+          claimingId={picked}
+          onPickDay={(date) => {
+            if (picked !== null) actions.claim.mutate({ id: picked, date })
+          }}
+          onOpenRelease={(id) => setDialog({ kind: 'edit', releaseId: id })}
+          onAddOn={(date) => setDialog({ kind: 'fill', date })}
+          gridRef={drag.gridRef}
+          dragging={drag.dragging}
+          onGrab={drag.begin}
+          over={drag.over}
+          target={drag.target}
+        />
       )}
     </Loaded>
   )
 
+  const carrying = drag.dragging !== null
+
   return (
-    <Frame>
+    <Frame
+      head={
+        <div className="flex w-full flex-col gap-2.5">
+          <CalendarHead
+            month={month}
+            onMonthChange={setMonth}
+            slots={slots.data ?? []}
+            kind={kind}
+            onKindChange={setKind}
+            planned={planned.length}
+            onFillFields={() => setDialog({ kind: 'fields' })}
+            fillingFields={actions.fillFields.isPending}
+            width={width}
+            onWidthChange={(next) => {
+              setWidth(next)
+              saveLayout(next)
+            }}
+            // With the queue hidden, the head is the one place left to take
+            // a release back.
+            drop={
+              width === 'full' && carrying
+                ? { over: drag.over === QUEUE, target: drag.target(QUEUE) }
+                : undefined
+            }
+          />
+          {layout !== null && (
+            <LayoutPreview
+              placements={layout}
+              onCancel={() => setLayout(null)}
+              onBook={() => actions.book.mutate(layout)}
+              booking={actions.book.isPending}
+            />
+          )}
+        </div>
+      }
+    >
       {/* Hidden entirely in the full-width layout rather than collapsed: a
           narrow strip of it would still take the width the month is being
           given. Claiming a slot from the queue goes with it - that is what
           the layout is for, and the toggle is one click away. */}
-      {width === 'full' ? monthView : <ListDetail side="end" list={queue} detail={monthView} />}
-
-      {/* Found afresh on every render rather than held in state: pinning from
-          inside the dialog otherwise left the tick unmoved until it was closed
-          and opened again. An invalidated query keeps serving what it has while
-          it refetches, so the row does not vanish out from under the dialog —
-          checked by pinning with the dialog open. */}
-      <NewWorkDialog kind={adding} onClose={() => setAdding(null)} onCreated={onSelect} />
-
-      {/* The day's plus: which work goes out here. Booking it is one call —
-          a release of the work's own first door, dated to the day that was
-          pressed. A work whose kind has no door cannot go out at all, and
-          says so rather than booking nothing. */}
-      <PickWorkDialog
-        open={fillingDay !== null}
-        onOpenChange={(open) => {
-          if (!open) setFillingDay(null)
-        }}
-        title={t('calendar.fillDay', { date: fillingDay ?? '' })}
-        onPick={(work) => {
-          const day = fillingDay
-          if (day === null) return
-          const door = vocabularyOf(profile.config, work.kind).release_kinds[0]
-          if (door === undefined) {
-            say.warn(t('calendar.noDoor', { title: work.title }))
-            return
+      {width === 'full' ? (
+        monthView
+      ) : (
+        <ListDetail
+          side="end"
+          detail={monthView}
+          list={
+            <QueuePane
+              queued={queued}
+              picked={picked}
+              onPick={setPicked}
+              onClaim={(id, date) => actions.claim.mutate({ id, date })}
+              claiming={actions.claim.isPending}
+              onLayOut={layout === null ? () => actions.preview.mutate() : undefined}
+              layingOut={actions.preview.isPending}
+              carrying={carrying}
+              over={drag.over === QUEUE}
+              target={drag.target(QUEUE)}
+            />
           }
-          fillDay.mutate({ work_id: work.work_id, kind: door.key, scheduled_at: day })
-        }}
-      />
+        />
+      )}
 
-      <ReleaseEditor
-        release={slots.data?.find((entry) => entry.id === editingId) ?? null}
-        onOpenChange={(open) => {
-          if (!open) setEditingId(null)
-        }}
-        onSaved={settle}
+      <CalendarDialogs
+        dialog={dialog}
+        onDialog={setDialog}
+        slots={slots.data ?? []}
+        planned={planned}
+        actions={actions}
         onOpenWork={onSelect}
-        onMarkReleased={setReleasing}
-        onUnschedule={(id) => unschedule.mutate(id)}
-        onTogglePin={(id, pinned) => pin.mutate({ id, pinned })}
-      />
-
-      {/* The same dialog the Releases tab marks with. The calendar had its
-          own prompt that asked only for the link, so the day a release went
-          out was always the moment of the click - and a mark made the day
-          after was quietly wrong (decision 02.09: the person names the day). */}
-      <MarkReleasedDialog
-        release={
-          releasing === null
-            ? null
-            : ((slots.data ?? []).find((one) => one.id === releasing) ?? null)
-        }
-        today={today()}
-        onOpenChange={(open) => {
-          if (!open) setReleasing(null)
-        }}
-        onConfirm={(id, url, at) => release.mutate({ id, url, at })}
-      />
-
-      {/* Always asked, unlike the single release's button: this replaces the
-          wording of a whole month at once, and that is a great deal to walk
-          back one release at a time. */}
-      <ConfirmAction
-        open={fillingFields}
-        onOpenChange={setFillingFields}
-        title={t('calendar.fields.title')}
-        description={t('calendar.fields.body', { count: monthly.length })}
-        actionLabel={t('calendar.fields.confirm')}
-        onConfirm={() => {
-          setFillingFields(false)
-          fillFields.mutate(monthly)
-        }}
       />
     </Frame>
-  )
-}
-
-/**
- * The month grid's own shape: the title and its arrows over six rows of seven
- * days.
- *
- * A list of rows stood here until v0.43, and it was itself the jump it was
- * meant to cover - four short lines replaced by a grid several hundred pixels
- * tall. A skeleton that is the wrong shape is worse than none: it promises
- * something the content does not keep. Six rows is what `monthGrid` always
- * returns once the neighbours fill the weeks out.
- */
-function SkeletonMonth() {
-  return (
-    <div className="flex flex-col gap-3" aria-hidden>
-      <div className="flex items-center gap-2">
-        <Skeleton className="size-7" />
-        <Skeleton className="h-4 w-44" />
-        <Skeleton className="size-7" />
-      </div>
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-line bg-line">
-        {Array.from({ length: 49 }, (_, cell) => (
-          <div key={cell} className={cell < 7 ? 'bg-raise py-1.5' : 'min-h-24 bg-bg p-1.5'}>
-            <Skeleton className={cell < 7 ? 'mx-auto h-2 w-6' : 'ml-auto h-2 w-3'} />
-          </div>
-        ))}
-      </div>
-    </div>
   )
 }

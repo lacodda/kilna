@@ -3,18 +3,18 @@ import { useQuery } from '@tanstack/react-query'
 import { queries } from '@/lib/query/queries'
 import { say } from '@/lib/toast'
 import { CopyButton } from '@/components/ui/copy-button'
+import { FieldGroup } from '@/components/ui/field'
 
 /** Agents outside the window: the MCP door, and how to register it. */
 export function AgentsSection() {
   const { t } = useTranslation()
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
-      <section className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold">{t('data.mcp')}</h3>
-        <p className="text-sm text-dim">{t('data.mcpHint')}</p>
+    // The command first and what it does under it, as a field and its hint:
+    // the one thing this section is visited for is the line to copy.
+    <div className="flex max-w-3xl flex-col gap-4">
+      <FieldGroup label={t('data.mcp')} help={`${t('data.mcpHint')} ${t('data.mcpAfter')}`}>
         <McpRegistration />
-        <p className="text-xs text-dim">{t('data.mcpAfter')}</p>
-      </section>
+      </FieldGroup>
     </div>
   )
 }

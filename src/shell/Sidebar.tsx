@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react'
-import { NavLink } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { Languages, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { nextTheme, useTheme, type Theme } from '@/lib/theme'
 import { nextLanguage, useLanguage } from '@/lib/language'
 import { useProfile } from '@/lib/useProfile'
-import { drawn, SOON, type ScreenSpec } from '@/app/screens'
+import { onRail, railAt, SOON, type ScreenSpec } from '@/app/screens'
+import { NavGroup, NavRail, NavSpacer, type NavRailItem } from '@/components/ui/nav-rail'
 import { ProfileSwitcher } from '@/shell/ProfileSwitcher'
 import { cn } from '@/lib/utils'
 
@@ -15,188 +15,120 @@ const THEME_ICONS: Record<Theme, LucideIcon> = {
   dark: Moon,
 }
 
-const NAV_CLASS =
-  'flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-sm text-dim transition-colors hover:bg-soft hover:text-text [&_svg]:size-4 [&_svg]:shrink-0'
+// Each run of entries is a NavRail of its own, stacked in one column: the
+// primitive draws destinations, and the caption and the foot between them are
+// the rail a product assembles around it (dowel's stand builds its rail the
+// same way). A run gives its height, border and padding up to the column, and
+// its overflow too - clipped at a run's edge, the focus ring of the first
+// entry in it would be cut in half.
+const RUN = 'h-auto overflow-visible border-r-0 p-0'
 
-// In the compact menu an entry is its icon, centred, and the word moves into
-// the tooltip: the only place left to say where the icon leads.
-const COMPACT_CLASS = 'justify-center px-0'
-
-/** The word beside an icon, which the compact menu drops. */
-function Label({ children, compact }: { children: ReactNode; compact: boolean }) {
-  return compact ? null : <span className="min-w-0 truncate">{children}</span>
+/** A screen as an entry of the rail. */
+function entryOf(screen: ScreenSpec, label: string): NavRailItem {
+  const Icon = screen.rail!.icon
+  return { id: screen.key, label, icon: <Icon /> }
 }
 
-function ScreenLink({
-  to,
-  icon: Icon,
-  label,
-  compact,
-}: {
-  to: string
-  icon: LucideIcon
-  label: string
-  compact: boolean
-}) {
-  return (
-    <NavLink
-      to={to}
-      title={compact ? label : undefined}
-      aria-label={compact ? label : undefined}
-      className={({ isActive }) =>
-        cn(
-          NAV_CLASS,
-          compact && COMPACT_CLASS,
-          isActive && 'bg-accent-soft text-text [&_svg]:text-accent',
-        )
-      }
-    >
-      <Icon aria-hidden />
-      <Label compact={compact}>{label}</Label>
-    </NavLink>
-  )
-}
-
-// A nav entry for a screen that exists on the roadmap but not in the build
-// yet; the chip names the version that delivers it.
-function SoonLink({
-  icon: Icon,
-  label,
-  version,
-  compact,
-}: {
-  icon: LucideIcon
-  label: string
-  version: string
-  compact: boolean
-}) {
-  const { t } = useTranslation()
-  const soon = t('nav.soon', { version })
-  return (
-    <span
-      className={cn(
-        NAV_CLASS,
-        compact && COMPACT_CLASS,
-        'cursor-default text-faint hover:bg-transparent hover:text-faint',
-      )}
-      title={compact ? `${label} · ${soon}` : soon}
-    >
-      <Icon aria-hidden />
-      <Label compact={compact}>{label}</Label>
-      {!compact && (
-        <span className="ml-auto rounded-full border border-line px-1.5 font-mono text-2xs">
-          {version}
-        </span>
-      )}
-    </span>
-  )
-}
+/** A screen's entry is a link to it: the rail puts its clothes on the router's. */
+const asLink = (item: NavRailItem) => <Link to={`/${item.id}`} />
 
 interface Props {
   profileId: string
   onProfileSwitched: () => void
   /** Icons only: the words, the version chips and the profile row are
-   *  dropped, and the Library caption becomes a rule. */
+   *  dropped, the names move into tooltips, and the Library caption becomes a
+   *  rule. */
   compact: boolean
 }
 
 // The left rail of the app frame: screens, the roadmap's next doors, and the
-// footer with settings, theme and profile. The brand moved up into the title
-// bar in v0.74, where a system title bar would have printed the name; the
-// handle that folds this rail to icons sits beside it there.
+// footer with settings, theme, language and profile. The brand moved up into
+// the title bar in v0.74, where a system title bar would have printed the
+// name; the handle that folds this rail to icons sits beside it there.
 export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
   const { t } = useTranslation()
+  const { pathname } = useLocation()
   const { config } = useProfile()
   const { theme, setTheme } = useTheme()
   const { language, setLanguage } = useLanguage()
   const ThemeIcon = THEME_ICONS[theme]
-  const themeName = t(`themeName.${theme}`)
-  const languageName = t(`languageName.${language}`)
 
   // The rail is the screens' own list (`app/screens.tsx`): a screen joins its
   // group the day it is added there, in the order it is listed.
+  const screens = onRail(import.meta.env.DEV, config)
   const group = (name: 'work' | 'library' | 'foot') =>
-    drawn(import.meta.env.DEV)
+    screens
       .filter((screen) => screen.rail?.group === name)
-      .filter((screen) => screen.rail?.when?.(config) ?? true)
-      .map((screen: ScreenSpec) => (
-        <ScreenLink
-          key={screen.key}
-          to={`/${screen.key}`}
-          icon={screen.rail!.icon}
-          label={t(screen.nav)}
-          compact={compact}
-        />
-      ))
+      .map((screen) => entryOf(screen, t(screen.nav)))
+
+  // A door to a screen the plan promises and the build does not have yet. The
+  // chip says which version brings it; folded to icons there is no chip, so
+  // the promise moves into the name the tooltip shows.
+  const soon = SOON.map((door): NavRailItem => {
+    const Icon = door.icon
+    const promise = t('nav.soon', { version: door.version })
+    return {
+      id: door.nav,
+      label: compact ? `${t(door.nav)} · ${promise}` : t(door.nav),
+      icon: <Icon />,
+      soon: true,
+      end: (
+        <span title={promise} className="rounded-full border border-line px-1.5 font-mono">
+          <span aria-hidden>{door.version}</span>
+          <span className="sr-only">{promise}</span>
+        </span>
+      ),
+    }
+  })
+
+  const active = railAt(pathname)
+  const run = { activeId: active, collapsed: compact, className: RUN, render: asLink }
 
   return (
     // `h-full` so the rail runs the height of the window: the footer sits at
-    // the bottom because the nav reaches it, not because the content does.
+    // the bottom because the column reaches it, not because the content does.
     // `overflow-x-hidden`: while the width animates, the words of the full
     // menu are wider than the track for a moment and must not draw a bar.
-    <nav
+    <div
       className={cn(
         'flex h-full flex-col gap-0.5 overflow-x-hidden overflow-y-auto border-r border-line pt-2.5 pb-3',
-        compact ? 'px-1.5' : 'px-2.5',
+        compact ? 'px-2' : 'px-2.5',
       )}
     >
-      {group('work')}
+      <NavRail label={t('nav.screens')} items={group('work')} {...run} />
 
-      {/* The caption becomes a rule in the compact menu: the grouping still
-          reads, and a word cut to three letters would not. */}
-      {compact ? (
-        <div aria-hidden className="mx-auto my-2.5 h-px w-6 shrink-0 bg-line" />
-      ) : (
-        <div className="px-2.5 pt-3 pb-1 caption">{t('nav.library')}</div>
-      )}
-      {SOON.map((soon) => (
-        <SoonLink
-          key={soon.nav}
-          icon={soon.icon}
-          label={t(soon.nav)}
-          version={soon.version}
-          compact={compact}
+      {/* Folded, the caption becomes a rule: the grouping still reads, and a
+          word cut to three letters would not. */}
+      <NavGroup collapsed={compact}>{t('nav.library')}</NavGroup>
+      <NavRail label={t('nav.library')} items={[...soon, ...group('library')]} {...run} />
+
+      <NavSpacer>
+        <NavRail label={t('nav.data')} items={group('foot')} {...run} />
+        {/* The theme and the language are entries of the rail too, dressed
+            as the links above them - but they act rather than go, so they are
+            a run of their own that answers a press instead of rendering a
+            link. */}
+        <NavRail
+          label={t('nav.appearance')}
+          collapsed={compact}
+          className={RUN}
+          items={[
+            { id: 'theme', label: t(`themeName.${theme}`), icon: <ThemeIcon /> },
+            { id: 'language', label: t(`languageName.${language}`), icon: <Languages /> },
+          ]}
+          onSelect={(id) => {
+            if (id === 'theme') setTheme(nextTheme(theme))
+            else setLanguage(nextLanguage(language))
+          }}
         />
-      ))}
-      {group('library')}
-
-      <div className="mt-auto flex flex-col gap-0.5">
-        {group('foot')}
-        {/* The theme and the language are entries of the rail, dressed as the
-            links above them. Their primitive is dowel's NavRail, which kilna
-            has not taken yet; a RowButton would set these two apart from the
-            links in weight and colour. They go over to it with the links, not
-            ahead of them. */}
-        {/* eslint-disable-next-line dowel/no-raw-button -- a rail entry: NavRail is its primitive, not yet in kilna */}
-        <button
-          type="button"
-          className={cn(NAV_CLASS, compact && COMPACT_CLASS)}
-          title={compact ? themeName : undefined}
-          aria-label={compact ? themeName : undefined}
-          onClick={() => setTheme(nextTheme(theme))}
-        >
-          <ThemeIcon aria-hidden />
-          <Label compact={compact}>{themeName}</Label>
-        </button>
-        {/* eslint-disable-next-line dowel/no-raw-button -- a rail entry: NavRail is its primitive, not yet in kilna */}
-        <button
-          type="button"
-          className={cn(NAV_CLASS, compact && COMPACT_CLASS)}
-          title={compact ? languageName : undefined}
-          aria-label={compact ? languageName : undefined}
-          onClick={() => setLanguage(nextLanguage(language))}
-        >
-          <Languages aria-hidden />
-          <Label compact={compact}>{languageName}</Label>
-        </button>
-        {/* The profile row is a name and a pill, and the compact menu has
-            room for neither; it comes back with the full menu. */}
+        {/* The profile row is a name and a pill, and the folded rail has room
+            for neither; it comes back with the full menu. */}
         {!compact && (
           <div className="px-1 pt-1">
             <ProfileSwitcher activeId={profileId} onSwitched={onProfileSwitched} />
           </div>
         )}
-      </div>
-    </nav>
+      </NavSpacer>
+    </div>
   )
 }

@@ -59,7 +59,8 @@ export interface ScreenSpec {
 /**
  * Every screen of the window, in the order the rail shows them.
  *
- * One list, read by the router, the rail, the title bar and the keyboard.
+ * One list, read by the router, the rail, the title bar, the palette and the
+ * keyboard.
  * Until v0.77 each of the four kept its own, and a screen added to one and
  * forgotten in another was named "Catalogue" in the title bar (styles, notes
  * and comments, in turn) or reached by no shortcut the sheet admitted to.
@@ -128,9 +129,11 @@ export const SCREENS: readonly ScreenSpec[] = [
   },
   {
     // Only where the craft has a dictionary: a profile that names no style
-    // types has none, and a door to an empty room is worse than none.
+    // types has none, and a door to an empty room is worse than none. The
+    // open style is in the address, as an open note is, so back walks
+    // between styles.
     key: 'styles',
-    path: '/styles',
+    path: '/styles/:styleId?',
     nav: 'nav.styles',
     rail: { group: 'library', icon: Shapes, when: (config) => styleTypesOf(config).length > 0 },
     render: () => <StylesView />,
@@ -187,6 +190,14 @@ export const SOON: readonly SoonSpec[] = [{ nav: 'nav.collections', icon: Disc, 
 export const drawn = (dev: boolean): readonly ScreenSpec[] =>
   SCREENS.filter((screen) => dev || screen.dev !== true)
 
+/**
+ * The screens the rail offers this profile: drawn in this build, and in its
+ * craft. The palette's Screens group reads the same list, so the two can
+ * never offer different doors.
+ */
+export const onRail = (dev: boolean, config: ProfileConfig): readonly ScreenSpec[] =>
+  drawn(dev).filter((screen) => screen.rail !== undefined && (screen.rail.when?.(config) ?? true))
+
 /** Where `g` then a letter goes. */
 export const JUMPS: Readonly<Record<string, string>> = Object.freeze(
   Object.fromEntries(
@@ -204,4 +215,19 @@ export const JUMPS: Readonly<Record<string, string>> = Object.freeze(
 export function screenAt(pathname: string): ScreenSpec {
   const segment = pathname.split('/')[1] ?? ''
   return SCREENS.find((screen) => screen.key === segment) ?? SCREENS[0]!
+}
+
+/**
+ * The rail entry lit at `pathname`.
+ *
+ * A screen's own, or - for a screen the rail does not show - the entry it is
+ * named after. An open work is called Catalogue in the title bar and its trail
+ * leads back there, so the rail says the same: without this the rail lit
+ * nothing at all while a work was open, and the one screen used most had no
+ * "you are here".
+ */
+export function railAt(pathname: string): string | undefined {
+  const here = screenAt(pathname)
+  if (here.rail !== undefined) return here.key
+  return SCREENS.find((screen) => screen.rail !== undefined && screen.nav === here.nav)?.key
 }

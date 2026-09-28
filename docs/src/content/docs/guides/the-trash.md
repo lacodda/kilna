@@ -20,9 +20,9 @@ was closed, so undoing a deleted work returns you to its card.
 
 **The Trash screen.** Once the message has faded, the entry is still in
 **Trash** in the sidebar. Each row shows what it was, what kind of thing it
-was, where it came from — a version's row names the work it belonged to — and
-when it went. The restore button on the row is the same action as *Undo*,
-available for as long as you want it.
+was, where it came from — a version's row names the work it belonged to, and
+carries that work's cover — and the day and time it went. **Restore** on the
+row is the same action as *Undo*, available for as long as you want it.
 
 ## What comes back with what
 
@@ -44,9 +44,9 @@ overrule decisions you made afterwards.
 ### Restoring a child needs its parent
 
 If you delete a version and then delete the work it belonged to, that version
-has nowhere to go back to. Its row in the trash is greyed out and its restore
-button is disabled, with the reason on hover. Restore the work first and the
-version can follow.
+has nowhere to go back to. Its row in the trash is greyed out and its
+**Restore** cannot be pressed — but it still says why, on hover and when you
+reach it with Tab. Restore the work first and the version can follow.
 
 ## The two final actions
 

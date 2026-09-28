@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { ChevronDown } from 'lucide-react'
 import { actionsOfScope } from '@/lib/actions'
 import { startTasks } from '@/lib/api/assistant'
 import { keys } from '@/lib/query/keys'
@@ -7,7 +8,9 @@ import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
+import { ActionBarButton } from '@/components/ui/action-bar'
 import { Button } from '@/components/ui/button'
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 
 interface Props {
   /** The works ticked right now. */
@@ -23,6 +26,11 @@ interface Props {
  * happens per work — each one gets exactly the task a click on its own card
  * would have made, which is why the answers land in the same place and can be
  * applied the same way.
+ *
+ * One button in the catalogue's bulk bar, opening the list, where it was a
+ * button per action: the bar is a row of named acts since v0.79, and "ask the
+ * assistant" is one of them - which question is the second step. It is a
+ * button of that bar's toolbar, and is drawn nowhere else.
  *
  * Only three runs may be alive at once, so a batch larger than that queues. The
  * one number worth reporting is how much of it is waiting: three started and
@@ -61,21 +69,25 @@ export function BulkActions({ workIds, onStarted }: Props) {
   if (actions.length === 0 || status.data?.available !== true) return null
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-xs text-dim">{t('assistant.askFor')}</span>
-      {actions.map((action) => (
-        <Button
-          key={action.key}
-          size="sm"
-          title={sayLabel(action.description)}
-          disabled={start.isPending}
-          onClick={() => {
-            start.mutate(action.key)
-          }}
-        >
-          {sayLabel(action.label)}
-        </Button>
-      ))}
-    </div>
+    <Menu>
+      <ActionBarButton
+        disabled={start.isPending}
+        render={<MenuTrigger render={<Button size="sm" variant="ghost" />} />}
+      >
+        {t('assistant.askMany')}
+        <ChevronDown aria-hidden />
+      </ActionBarButton>
+      <MenuPopup align="start" side="top">
+        {actions.map((action) => (
+          <MenuItem
+            key={action.key}
+            title={sayLabel(action.description)}
+            onClick={() => start.mutate(action.key)}
+          >
+            {sayLabel(action.label)}
+          </MenuItem>
+        ))}
+      </MenuPopup>
+    </Menu>
   )
 }

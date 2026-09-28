@@ -107,9 +107,17 @@ textarea,
   user-select: text;
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+/*
+ * The focus ring for whatever does not draw its own - in the base layer, so a
+ * primitive's own focus style (a field's border, an input that draws none
+ * inside a palette) wins over it. Unlayered, this rule outranked every
+ * utility, and the palette's search box wore a ring inside its own frame.
+ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

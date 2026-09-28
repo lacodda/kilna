@@ -19,6 +19,7 @@ export const SCREENS: [path: string, shows: string][] = [
   ['/comments', 'The shot on the bridge is beautiful.'],
   [`/comments/${IDS.comment}`, 'Paper Lanterns (clip)'],
   ['/styles', 'Dusk over water'],
+  [`/styles/${IDS.brick}`, en.styles.describe],
   ['/journal', '“Harbour Lights” added.'],
   ['/trash', 'An old idea'],
   ['/settings', en.nav.data],

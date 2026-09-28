@@ -4,13 +4,14 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import type { JournalEntry } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
-import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ListRow } from '@/components/ui/list-row'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { Frame, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
 import { cn } from '@/lib/utils'
-import { formatMoment } from '@/lib/format'
+import { formatStamp } from '@/lib/format'
+import { journalLook, needsALook, type JournalTone } from '@/lib/journalLook'
 import type { Tab } from '@/features/work/tabs'
 
 /** A `{{name}}` i18next left standing because the entry carried no such value,
@@ -78,60 +79,81 @@ function destinationOf(entry: JournalEntry): string | null {
   return tab === undefined ? `/works/${entry.entity_id}` : `/works/${entry.entity_id}/${tab}`
 }
 
+/** The tile a line's glyph sits on, one tint per tone: the mockup's `.jic`. */
+const TILE: Record<JournalTone, string> = {
+  good: 'bg-good-soft text-good',
+  accent: 'bg-accent-soft text-accent',
+  warn: 'bg-warn-soft text-warn',
+  dim: 'bg-soft text-dim',
+}
+
+/**
+ * One line of history, in the mockup's anatomy: a tinted tile saying what
+ * kind of thing happened, the sentence with a quieter line under it, and the
+ * moment at the end.
+ */
 function Line({ entry }: { entry: JournalEntry }) {
   const { t } = useTranslation()
-  const needsALook = entry.level === 'warn' && entry.read_at === null
+  const look = journalLook(entry)
   const to = destinationOf(entry)
+  const said = sentence(entry, t)
 
-  const body = (
-    <>
-      {sentence(entry, t)}
-      {entry.occurrences > 1 && (
-        <Badge variant="soft" className="ml-2">
-          {t('journal.repeated', { count: entry.occurrences })}
-        </Badge>
-      )}
-    </>
-  )
+  // The quieter line: the area the line is about, and how many times it
+  // happened. The count used to be a badge beside the sentence, which a long
+  // sentence pushed out of sight; under it, it is always where the eye
+  // finishes the line.
+  const under = [
+    look.kind === null ? null : t(look.kind),
+    entry.occurrences > 1 ? t('journal.repeated', { count: entry.occurrences }) : null,
+  ]
+    .filter((part) => part !== null)
+    .join(' · ')
 
   return (
-    <li className="flex items-baseline gap-3 border-b border-line py-2 last:border-b-0">
-      {/* A dot rather than a word: the feed is scanned, not read. */}
-      <span
-        aria-hidden
-        className={cn(
-          'mt-1.5 size-1.5 shrink-0 rounded-full',
-          needsALook ? 'bg-warn' : 'bg-line-2',
-        )}
-      />
+    <ListRow
+      render={<li />}
+      // The dot is placed against the row, in its left padding.
+      className="relative items-start"
+      start={
+        <>
+          {/* A dot rather than a word: the feed is scanned, not read. It
+              marks the warnings nobody has marked seen - the ones the
+              filter above counts. */}
+          {needsALook(entry) && (
+            <span className="absolute top-4 left-1 size-1.5 rounded-full bg-accent">
+              <span className="sr-only">{t('journal.unreadOnly')}</span>
+            </span>
+          )}
+          <span
+            aria-hidden
+            className={cn('grid size-6.5 place-items-center rounded-md', TILE[look.tone])}
+          >
+            <look.glyph className="size-3.5" />
+          </span>
+        </>
+      }
+      description={under === '' ? undefined : under}
+      end={
+        <time dateTime={entry.created_at} title={entry.created_at} className="font-mono text-2xs">
+          {formatStamp(entry.created_at)}
+        </time>
+      }
+    >
       {/* A line about a work opens that work, on the tab the line is about:
           reading "scored 78" and then hunting the catalogue for the song it
           was about is the walk the owner asked to be rid of. A line about
           nothing in particular stays plain text rather than becoming a link
           that goes nowhere. */}
       {to === null ? (
-        <p className={cn('min-w-0 flex-1 text-sm', entry.level === 'warn' && 'text-text')}>
-          {body}
-        </p>
+        <span className="font-semibold" title={said}>
+          {said}
+        </span>
       ) : (
-        <Link
-          to={to}
-          className={cn(
-            'min-w-0 flex-1 text-sm text-text no-underline hover:underline',
-            entry.level === 'warn' && 'text-text',
-          )}
-        >
-          {body}
+        <Link to={to} title={said} className="font-semibold text-text no-underline hover:underline">
+          {said}
         </Link>
       )}
-      <time
-        dateTime={entry.created_at}
-        title={entry.created_at}
-        className="shrink-0 text-xs tabular-nums text-faint"
-      >
-        {formatMoment(entry.created_at)}
-      </time>
-    </li>
+    </ListRow>
   )
 }
 
@@ -174,7 +196,7 @@ export function WorkHistory({ workId }: { workId: string }) {
         }
       >
         {(data) => (
-          <Pane label={t('journal.title')} bodyClassName="px-3">
+          <Pane label={t('journal.title')}>
             <JournalLines entries={data} />
           </Pane>
         )}

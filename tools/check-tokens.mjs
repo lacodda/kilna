@@ -59,6 +59,9 @@ const KEYWORDS = new Set([
   'wrap',
   'ellipsis',
   'clip',
+  // A table's border model, `border-collapse` - the registry's Table sets it.
+  'collapse',
+  'separate',
 ])
 
 /** Every `--<family>-<name>` the theme defines, as bare names. */

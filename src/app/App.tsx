@@ -114,6 +114,7 @@ export default function App() {
               works={workspace.works}
               compact={rail === 'compact'}
               onToggleRail={toggleRail}
+              onShowKeys={() => setHelpOpen(true)}
             />
           }
           side={

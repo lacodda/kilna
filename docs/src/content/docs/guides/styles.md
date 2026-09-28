@@ -25,15 +25,35 @@ A style has four things:
   *Ranger*.
 - **A description** — the text that goes into a prompt **word for word**.
   This is the whole of what a style contributes.
-- **References** — the pictures it was written from. Add them with **Add
-  pictures**, or paste one with `Ctrl+V`. They are copied into the workspace
-  like every other file, so a style survives you tidying your downloads.
+- **References** — the pictures it was written from. Drop them on the open
+  style from a folder, paste one with `Ctrl+V`, or add them with **Add
+  pictures**. They are copied into the workspace like every other file, so a
+  style survives you tidying your downloads.
 
 There is a fifth field, the **steer**, and it is the odd one: it says what
 to look at when the style is *described* — "only the jacket", "ignore the
 background". It reaches the assistant when it writes the description. It
 never reaches a generator, because it is an instruction about the
 description rather than part of one.
+
+## Making and editing a style
+
+The dictionary is a grid of cards, each led by up to three of its pictures,
+and the last card is dashed: **New style**. Drop pictures on it from a
+folder, or paste one with `Ctrl+V` while no style is open, and a new style is
+made around them and opened, called *Untitled style* with the name ready to
+be typed over. Pressing the dashed card picks the pictures from disk instead;
+**New style** at the top makes one with none.
+
+A style opens beside the dictionary rather than over it: the grid narrows to
+a column, so the other styles stay in reach, and the open one takes the rest
+of the window. There is no Save button - every field writes itself a moment
+after you stop typing, and the line beside the name says when it has. A
+picked type or status is written at once. `Escape` or the cross closes it.
+
+A name the dictionary cannot take - none at all, or one another style of the
+type already has - is said under it, and the style keeps its last name until
+it has a new one; the rest of what you type goes on saving meanwhile.
 
 ## The type is the point
 
@@ -67,16 +87,17 @@ into ready in the same move. Describing a retired style does not revive it.
 Add the pictures, pick the type, and press **Describe from the
 references**. The assistant is given the type's own question, your steer,
 the pictures and whatever the style says today, and it writes the
-description that style will carry. Whatever you changed in the dialog is
-saved first, so the description is written from the style as you left it —
-the steer you typed a moment ago included.
+description that style will carry. Whatever you typed is saved first, so the
+description is written from the style as you left it — the steer you typed a
+moment ago included. The style stays open while it is written.
 
 The answer arrives in its own chat, the way every AI action's does, with
 **Keep as its description** under it; the bell says it is waiting, and its
 line opens that chat. Nothing is written until you keep it — the assistant
 never touches the workspace itself. Kept, the answer becomes the style's
 description word for word, lets a draft out into ready, and is an edit like
-one made by hand: **Ctrl+Z** takes it back.
+one made by hand: **Ctrl+Z** takes it back. A style open at the time shows
+the kept description in its box, unless you are typing in that box yourself.
 
 With no references at all, the prompt says so rather than pretending: it
 asks for a description from the name and says plainly that there was
@@ -84,11 +105,10 @@ nothing to look at.
 
 ## Deleting a style
 
-**Delete** moves a style to the [Trash](/kilna/guides/the-trash/) together
-with its reference pictures, like every other deletion: the message offers
-*Undo*, and the Trash restores the style with its pictures for as long as you
-want. The button stands apart at the start of the dialog's row, away from
-*Cancel* and *Save*.
+The bin beside the open style's name moves it to the
+[Trash](/kilna/guides/the-trash/) together with its reference pictures, like
+every other deletion: the message offers *Undo*, and the Trash restores the
+style with its pictures for as long as you want.
 
 To put a style away without deleting it, set it to **retired** instead: it
 keeps its description and pictures and stops being offered.

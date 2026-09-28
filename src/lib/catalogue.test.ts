@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ALL_COLUMNS,
+  countGaps,
   DEFAULT_COLUMNS,
   DEFAULT_SORT,
   groupRows,
@@ -25,15 +26,20 @@ import {
   sortRows,
   toggleColumn,
   toggleSort,
+  withNextReleases,
+  withIntroduced,
+  loadColumnsChosen,
+  saveColumnsChosen,
+  type CatalogueRow,
   type ColumnId,
   type Sort,
   saveFilter,
   type CatalogueFilter,
   type SortStore,
 } from './catalogue'
-import type { ScoredWork } from '@/lib/api/types'
+import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
 
-const row = (over: Partial<ScoredWork>): ScoredWork => ({
+const row = (over: Partial<CatalogueRow>): CatalogueRow => ({
   work_id: 'id',
   title: 'Subject',
   kind: 'song',
@@ -53,6 +59,7 @@ const row = (over: Partial<ScoredWork>): ScoredWork => ({
   version_count: 0,
   stage: null,
   bookmarked_at: null,
+  next_release: null,
   ...over,
 })
 
@@ -278,6 +285,23 @@ describe('sortRows', () => {
     expect(rows.map((r) => r.work_id)).toEqual(['a', 'b'])
   })
 
+  it('sorts by the next release, with nothing booked last either way', () => {
+    const booked = (id: string, day: string | null) =>
+      row({
+        work_id: id,
+        title: id,
+        next_release:
+          day === null ? null : release({ id: `r-${id}`, work_id: id, scheduled_at: day }),
+      })
+    // Named so the tie-break on title would put the unbooked one first: the
+    // rule has to be what keeps it last.
+    const rows = [booked('b', '2026-10-02'), booked('a-unbooked', null), booked('c', '2026-09-20')]
+    const asc = sortRows(rows, { column: 'release', direction: 'asc' }).map((r) => r.work_id)
+    const desc = sortRows(rows, { column: 'release', direction: 'desc' }).map((r) => r.work_id)
+    expect(asc).toEqual(['c', 'b', 'a-unbooked'])
+    expect(desc).toEqual(['b', 'c', 'a-unbooked'])
+  })
+
   it('sorts by date, oldest or newest first', () => {
     const rows = [
       row({ work_id: 'old', title: 'old', scored_at: '2026-01-01' }),
@@ -425,6 +449,10 @@ describe('toggleSort', () => {
   it('opens a score column at its highest and a title at its first letter', () => {
     expect(toggleSort(DEFAULT_SORT, 'tier').direction).toBe('desc')
     expect(toggleSort(DEFAULT_SORT, 'title').direction).toBe('asc')
+  })
+
+  it('opens the next release at the soonest', () => {
+    expect(toggleSort(DEFAULT_SORT, 'release').direction).toBe('asc')
   })
 })
 
@@ -588,7 +616,14 @@ describe('the remembered widths', () => {
 describe('the header funnels', () => {
   const rows = [
     row({ work_id: 'a', title: 'Гавань огней', stage: 80, tier: 'clip', marks: ['hook'] }),
-    row({ work_id: 'b', title: 'Paper boats', stage: 20, tier: 'pic', marks: ['hook', 'bridge'] }),
+    row({
+      work_id: 'b',
+      title: 'Paper boats',
+      status: 'scored',
+      stage: 20,
+      tier: 'pic',
+      marks: ['hook', 'bridge'],
+    }),
     row({ work_id: 'c', title: 'Winter shift', stage: null, tier: null, marks: [] }),
   ]
   const ids = (kept: ScoredWork[]) => kept.map((r) => r.work_id)
@@ -640,6 +675,16 @@ describe('the header funnels', () => {
     expect(ids(narrowByColumns(rows, { tiers: ['pic'] }))).toEqual(['b'])
   })
 
+  // The toolbar's status dropdown went in v0.79; the funnel on the Status
+  // column is where a status is ticked now, and it takes more than one.
+  it('keeps the works standing at any of the ticked statuses', () => {
+    expect(ids(narrowByColumns(rows, { statuses: ['scored'] }))).toEqual(['b'])
+    expect(ids(narrowByColumns(rows, { statuses: ['draft', 'scored'] }))).toEqual(['a', 'b', 'c'])
+    expect(ids(narrowByColumns(rows, { statuses: ['released'] }))).toEqual([])
+    expect(isNarrowedByColumns({ statuses: ['draft'] })).toBe(true)
+    expect(isNarrowedByColumns({ statuses: [] })).toBe(false)
+  })
+
   it('keeps the works carrying any of the ticked marks', () => {
     expect(ids(narrowByColumns(rows, { marks: ['bridge'] }))).toEqual(['b'])
     expect(ids(narrowByColumns(rows, { marks: ['hook'] }))).toEqual(['a', 'b'])
@@ -677,14 +722,20 @@ describe('the header funnels', () => {
 
     it('comes back as it was left', () => {
       const held = store()
-      saveColumnFilters({ title: 'boat', stages: [20], marks: ['hook'] }, held)
-      expect(loadColumnFilters(held)).toEqual({ title: 'boat', stages: [20], marks: ['hook'] })
+      saveColumnFilters({ title: 'boat', statuses: ['draft'], stages: [20], marks: ['hook'] }, held)
+      expect(loadColumnFilters(held)).toEqual({
+        title: 'boat',
+        statuses: ['draft'],
+        stages: [20],
+        marks: ['hook'],
+      })
     })
 
     it('refuses a value of the wrong shape', () => {
       expect(loadColumnFilters(store(JSON.stringify({ stages: ['polish'] })))).toEqual({})
       expect(loadColumnFilters(store(JSON.stringify({ title: 3 })))).toEqual({})
       expect(loadColumnFilters(store(JSON.stringify({ marks: 'hook' })))).toEqual({})
+      expect(loadColumnFilters(store(JSON.stringify({ statuses: [1] })))).toEqual({})
       expect(loadColumnFilters(store('[1]'))).toEqual({})
       expect(loadColumnFilters(store('not json'))).toEqual({})
     })
@@ -783,5 +834,141 @@ describe('the star', () => {
     // filter rather than as a chip that is off.
     store.setItem('kilna.catalogue.filter', JSON.stringify({ bookmarked: false }))
     expect(loadFilter(store)).toEqual({})
+  })
+})
+
+/** A release as the calendar hands it over, booked unless told otherwise. */
+function release(
+  over: Partial<ScheduledRelease> & Pick<ScheduledRelease, 'id' | 'work_id'>,
+): ScheduledRelease {
+  return {
+    kind: 'audio',
+    status: 'planned',
+    title: null,
+    scheduled_at: '2026-09-22',
+    released_at: null,
+    url: null,
+    slot_pinned_at: null,
+    scheduled_time: null,
+    time_zone: null,
+    meta: {},
+    created_at: '2026-09-01T10:00:00Z',
+    updated_at: '2026-09-01T10:00:00Z',
+    work_title: 'Subject',
+    work_kind: 'song',
+    total: null,
+    tier: null,
+    readiness: { roles: [], scored: true, ready: true },
+    work_stage: null,
+    ...over,
+  }
+}
+
+describe('the next release', () => {
+  const next = (rows: ScoredWork[], releases: ScheduledRelease[] | undefined) =>
+    withNextReleases(rows, releases).map((r) => [r.work_id, r.next_release?.id ?? null])
+
+  it('takes the earliest booking of each work', () => {
+    const releases = [
+      release({ id: 'late', work_id: 'a', scheduled_at: '2026-10-01' }),
+      release({ id: 'soon', work_id: 'a', scheduled_at: '2026-09-20' }),
+      release({ id: 'other', work_id: 'b', scheduled_at: '2026-09-18' }),
+    ]
+    expect(next([row({ work_id: 'a' }), row({ work_id: 'b' })], releases)).toEqual([
+      ['a', 'soon'],
+      ['b', 'other'],
+    ])
+  })
+
+  // What went out is history, not a booking, and a release with no day is in
+  // the queue rather than on the calendar: neither says when the work goes
+  // out next.
+  it('passes over what has gone out and what holds no day', () => {
+    const releases = [
+      release({ id: 'out', work_id: 'a', status: 'released', scheduled_at: '2026-09-01' }),
+      release({ id: 'queued', work_id: 'a', scheduled_at: null }),
+      release({ id: 'booked', work_id: 'a', scheduled_at: '2026-11-05' }),
+    ]
+    expect(next([row({ work_id: 'a' })], releases)).toEqual([['a', 'booked']])
+  })
+
+  it('keeps a booking whose day passed without it going out', () => {
+    // The slot was missed, not kept: it is still the next thing owed.
+    const releases = [release({ id: 'missed', work_id: 'a', scheduled_at: '2026-08-01' })]
+    expect(next([row({ work_id: 'a' })], releases)).toEqual([['a', 'missed']])
+  })
+
+  it('settles two bookings on one day by the hour, the unset hour first', () => {
+    const releases = [
+      release({ id: 'evening', work_id: 'a', scheduled_time: '19:00' }),
+      release({ id: 'morning', work_id: 'a', scheduled_time: '09:30' }),
+    ]
+    expect(next([row({ work_id: 'a' })], releases)).toEqual([['a', 'morning']])
+    const unset = [...releases, release({ id: 'whenever', work_id: 'a' })]
+    expect(next([row({ work_id: 'a' })], unset)).toEqual([['a', 'whenever']])
+  })
+
+  it('gives every row none while the calendar is still being read', () => {
+    expect(next([row({ work_id: 'a' }), row({ work_id: 'b' })], undefined)).toEqual([
+      ['a', null],
+      ['b', null],
+    ])
+  })
+})
+
+describe('the gap counts', () => {
+  it('counts each gap over every row, a row in more than one gap in each', () => {
+    const rows = [
+      row({ work_id: 'unjudged', total: null }),
+      row({ work_id: 'waiting', total: 7 }),
+      row({ work_id: 'stale-waiting', total: 6, stale: true }),
+      row({ work_id: 'booked', total: 8, scheduled: 1 }),
+      row({ work_id: 'out', total: 9, released: 1 }),
+    ]
+    expect(countGaps(rows)).toEqual({ unscored: 1, unscheduled: 2, stale: 1 })
+  })
+
+  it('counts nothing in an empty catalogue', () => {
+    expect(countGaps([])).toEqual({ unscored: 0, unscheduled: 0, stale: 0 })
+  })
+})
+
+describe('the columns v0.79 introduced', () => {
+  it('show in a list stored before them, each after the column it follows', () => {
+    const stored: ColumnId[] = ['title', 'stage', 'marks', 'versions', 'total']
+    // Status follows marks, as in the default; the release columns follow
+    // versions, however the person ordered the rest.
+    expect(withIntroduced(stored, false)).toEqual([
+      'title',
+      'stage',
+      'marks',
+      'status',
+      'versions',
+      'release',
+      'ready',
+      'total',
+    ])
+  })
+
+  it('stay as the person left them once a choice was made', () => {
+    const stored: ColumnId[] = ['title', 'stage', 'total']
+    expect(withIntroduced(stored, true)).toEqual(stored)
+  })
+
+  it('are not forced into a list that already names one of them', () => {
+    // Chosen knowing them: the other two were hidden on purpose.
+    const stored: ColumnId[] = ['title', 'ready', 'total']
+    expect(withIntroduced(stored, false)).toEqual(stored)
+  })
+
+  it('remember the choice on this machine', () => {
+    const items = new Map<string, string>()
+    const store: SortStore = {
+      getItem: (key) => items.get(key) ?? null,
+      setItem: (key, value) => void items.set(key, value),
+    }
+    expect(loadColumnsChosen(store)).toBe(false)
+    saveColumnsChosen(store)
+    expect(loadColumnsChosen(store)).toBe(true)
   })
 })

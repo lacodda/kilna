@@ -6,6 +6,7 @@ import { backupWorkspace, exportMarkdown, importLegacy, suggestedBackupName } fr
 import { queries } from '@/lib/query/queries'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
+import { FieldGroup } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 
 // Getting data out and in. The export is the "you are not locked in" promise
@@ -76,50 +77,41 @@ export function DataSection() {
     })
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
-      <section className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold">{t('data.export')}</h3>
-        <p className="text-sm text-dim">{t('data.exportHint')}</p>
-        <div>
-          <Button variant="primary" disabled={busy} onClick={doExport}>
-            {t('data.exportAction')}
-          </Button>
-        </div>
-      </section>
+    // A field per way in or out, each explained under its button, as the
+    // mockup's fields are - not a heading and a paragraph the button waits
+    // below. `self-start` keeps a button its own width in the column.
+    <div className="flex max-w-105 flex-col gap-4">
+      <FieldGroup label={t('data.export')} help={t('data.exportHint')}>
+        <Button variant="primary" className="self-start" disabled={busy} onClick={doExport}>
+          {t('data.exportAction')}
+        </Button>
+      </FieldGroup>
 
-      <section className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold">{t('data.backup')}</h3>
-        <p className="text-sm text-dim">{t('data.backupHint')}</p>
-        <div>
-          <Button disabled={busy} onClick={doBackup}>
-            {t('data.backupAction')}
-          </Button>
-        </div>
+      <FieldGroup label={t('data.backup')} help={t('data.backupHint')}>
+        <Button className="self-start" disabled={busy} onClick={doBackup}>
+          {t('data.backupAction')}
+        </Button>
+      </FieldGroup>
+
+      {/* Where the workspace lives, with how a backup goes back in under
+          it: the restore is done to this file, by hand, with kilna closed. */}
+      <FieldGroup label={t('data.workspaceAt')} help={t('data.restoreHint')}>
         {/* The line keeps its place while the path is on its way. Everything
             else on this screen is static, so a skeleton of the whole thing
             would be a lie about what is loading — but this one line arriving
             late pushed the paragraph under it down, which is the jump. */}
-        <p className="text-xs text-dim">
-          {path.data == null ? (
-            <Skeleton className="h-3 w-72" />
-          ) : (
-            <>
-              {t('data.workspaceAt')} <code className="selectable font-mono">{path.data}</code>
-            </>
-          )}
-        </p>
-        <p className="text-xs text-dim">{t('data.restoreHint')}</p>
-      </section>
+        {path.data == null ? (
+          <Skeleton className="h-3 w-72" />
+        ) : (
+          <code className="selectable font-mono text-xs break-all text-text">{path.data}</code>
+        )}
+      </FieldGroup>
 
-      <section className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold">{t('data.import')}</h3>
-        <p className="text-sm text-dim">{t('data.importHint')}</p>
-        <div>
-          <Button disabled={busy} onClick={doImport}>
-            {t('data.importAction')}
-          </Button>
-        </div>
-      </section>
+      <FieldGroup label={t('data.import')} help={t('data.importHint')}>
+        <Button className="self-start" disabled={busy} onClick={doImport}>
+          {t('data.importAction')}
+        </Button>
+      </FieldGroup>
 
       {busy && <p className="text-sm text-dim">{t('data.working')}</p>}
     </div>

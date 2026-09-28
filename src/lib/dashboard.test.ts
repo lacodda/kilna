@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
-import { SHORTLIST_LIMIT, isQuiet, summarise } from '@/lib/dashboard'
+import type { ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api/types'
+import {
+  NEAREST_LIMIT,
+  SCHEDULE_LIMIT,
+  aside,
+  decide,
+  isQuiet,
+  subjectOf,
+  summarise,
+  tally,
+} from '@/lib/dashboard'
+import { findings, type Finding } from '@/lib/findings'
 
 const TODAY = '2026-08-27'
 
@@ -115,40 +125,6 @@ describe('summarise', () => {
     expect(summary.week).toHaveLength(0)
   })
 
-  it('shortlists scored work that is going nowhere, strongest first', () => {
-    const summary = summarise(
-      [
-        work({ work_id: 'weak', title: 'Weak', total: 10 }),
-        work({ work_id: 'strong', title: 'Strong', total: 40 }),
-      ],
-      [],
-      TODAY,
-    )
-
-    expect(summary.shortlist.map((w) => w.work_id)).toEqual(['strong', 'weak'])
-  })
-
-  it('keeps work that is already booked or already out off the shortlist', () => {
-    const summary = summarise(
-      [
-        work({ work_id: 'booked', total: 40, scheduled: 1 }),
-        work({ work_id: 'shipped', total: 40, released: 1 }),
-      ],
-      [],
-      TODAY,
-    )
-
-    expect(summary.shortlist).toHaveLength(0)
-  })
-
-  it('stops the shortlist at a length that is still a shortlist', () => {
-    const many = Array.from({ length: SHORTLIST_LIMIT + 4 }, (_, index) =>
-      work({ work_id: `w${index}`, title: `Work ${index}`, total: 50 - index }),
-    )
-
-    expect(summarise(many, [], TODAY).shortlist).toHaveLength(SHORTLIST_LIMIT)
-  })
-
   it('lists unscored work, and not the unscored thing already released', () => {
     const summary = summarise(
       [
@@ -160,6 +136,42 @@ describe('summarise', () => {
     )
 
     expect(summary.unscored.map((w) => w.work_id)).toEqual(['fresh'])
+  })
+
+  /** The audit of 24.09: the section showed scored work with nothing booked. */
+  it('reads the nearest slots as what goes out next, ready or not', () => {
+    const summary = summarise(
+      [work({ work_id: 'unbooked', total: 90 })],
+      [
+        release({ id: 'later', scheduled_at: '2026-09-20' }),
+        release({ id: 'soon', scheduled_at: '2026-08-29', readiness: UNREADY }),
+        release({ id: 'undated', scheduled_at: null }),
+      ],
+      TODAY,
+    )
+
+    expect(summary.nearest.map((slot) => slot.release.id)).toEqual(['soon', 'later'])
+  })
+
+  it('leaves what went out and what is past its date out of the nearest slots', () => {
+    const summary = summarise(
+      [],
+      [
+        release({ id: 'out', scheduled_at: '2026-08-29', released_at: '2026-08-29' }),
+        release({ id: 'late', scheduled_at: '2026-08-20' }),
+      ],
+      TODAY,
+    )
+
+    expect(summary.nearest).toHaveLength(0)
+  })
+
+  it('stops the nearest slots at a row of covers', () => {
+    const many = Array.from({ length: NEAREST_LIMIT + 3 }, (_, index) =>
+      release({ id: `r${index}`, scheduled_at: `2026-09-${String(10 + index)}` }),
+    )
+
+    expect(summarise([], many, TODAY).nearest).toHaveLength(NEAREST_LIMIT)
   })
 })
 
@@ -181,5 +193,145 @@ describe('isQuiet', () => {
 
   it('is not quiet while one thing still needs something', () => {
     expect(isQuiet(summarise([work()], [], TODAY))).toBe(false)
+  })
+})
+
+const CONFIG: Pick<ProfileConfig, 'work_kinds' | 'prompts'> = {
+  work_kinds: [{ key: 'song', label: 'Song' }],
+  prompts: [{ key: 'score', label: 'Score it', description: '', template: '', produces: 'score' }],
+}
+
+/** The decisions a workspace comes to, read the way the screen reads it. */
+function decisionsOf(works: ScoredWork[], calendar: ScheduledRelease[] = []) {
+  const summary = summarise(works, calendar, TODAY)
+  const standing = findings(works, calendar, CONFIG, TODAY)
+  return { decisions: decide(summary, standing, works), standing }
+}
+
+const SCORED = { total: 40, scored_at: '2026-08-20T10:00:00Z' }
+
+describe('decide', () => {
+  it('sends a release nothing has scored to the score, one missing a draft to the versions', () => {
+    const { decisions } = decisionsOf(
+      [],
+      [
+        release({ id: 'unscored', work_id: 'a', work_title: 'A', readiness: UNREADY }),
+        release({
+          id: 'no-lyrics',
+          work_id: 'b',
+          work_title: 'B',
+          scheduled_at: '2026-08-28',
+          readiness: { roles: [{ role: 'lyrics', present: false }], scored: true, ready: false },
+        }),
+      ],
+    )
+
+    expect(decisions.map((d) => [d.key, d.move, d.tab])).toEqual([
+      ['release:no-lyrics', 'open', 'versions'],
+      ['release:unscored', 'score', 'score'],
+    ])
+    expect(decisions[0]?.kind === 'release' && decisions[0].gaps).toEqual(['lyrics'])
+  })
+
+  it('puts a stale score forward to be re-scored', () => {
+    const { decisions } = decisionsOf([work({ ...SCORED, stale: true, scheduled: 1 })])
+
+    expect(decisions.map((d) => [d.move, d.tab])).toEqual([['rescore', 'score']])
+  })
+
+  it('puts judged work with nothing booked forward to be scheduled, strongest first', () => {
+    const { decisions } = decisionsOf([
+      work({ work_id: 'weak', title: 'Weak', ...SCORED, total: 10 }),
+      work({ work_id: 'strong', title: 'Strong', ...SCORED, total: 80 }),
+    ])
+
+    expect(decisions.map((d) => [d.workId, d.move, d.tab])).toEqual([
+      ['strong', 'schedule', 'releases'],
+      ['weak', 'schedule', 'releases'],
+    ])
+    expect(decisions[0]?.kind === 'finding' && decisions[0].total).toBe(80)
+  })
+
+  it('stops putting work forward at a length that is still a decision', () => {
+    const many = Array.from({ length: SCHEDULE_LIMIT + 4 }, (_, index) =>
+      work({ work_id: `w${index}`, title: `Work ${index}`, ...SCORED, total: 50 - index }),
+    )
+
+    expect(decisionsOf(many).decisions).toHaveLength(SCHEDULE_LIMIT)
+  })
+
+  it('draws one card per work: the date first, then the score, then the slot', () => {
+    const { decisions } = decisionsOf(
+      [
+        work({ work_id: 'booked', title: 'Booked', ...SCORED, stale: true, scheduled: 1 }),
+        work({ work_id: 'free', title: 'Free', ...SCORED, stale: true }),
+      ],
+      [release({ id: 'r-booked', work_id: 'booked', work_title: 'Booked', readiness: UNREADY })],
+    )
+
+    expect(decisions.map((d) => [d.workId, d.move])).toEqual([
+      ['booked', 'score'],
+      ['free', 'rescore'],
+    ])
+  })
+
+  it('draws nothing for a complaint the person has dismissed', () => {
+    const works = [work({ ...SCORED })]
+
+    expect(decide(summarise(works, [], TODAY), [], works)).toEqual([])
+  })
+})
+
+describe('aside', () => {
+  it('leaves out what a card or the lead column already says', () => {
+    const { decisions, standing } = decisionsOf([
+      work({ work_id: 'unscored', title: 'Unscored', total: null }),
+      work({ work_id: 'stale', title: 'Stale', ...SCORED, stale: true, scheduled: 1 }),
+      work({
+        work_id: 'stalled',
+        title: 'Stalled',
+        ...SCORED,
+        updated_at: '2026-06-01T10:00:00Z',
+      }),
+    ])
+
+    expect(aside(standing, decisions).map((f: Finding) => [f.kind, f.workId])).toEqual([
+      ['stale-draft', 'stalled'],
+    ])
+  })
+
+  /** Said once, somewhere: the stale score a release card displaced is not lost. */
+  it('keeps the complaint a release card displaced', () => {
+    const { decisions, standing } = decisionsOf(
+      [work({ ...SCORED, stale: true, scheduled: 1 })],
+      [release({ readiness: UNREADY })],
+    )
+
+    expect(aside(standing, decisions).map((f) => f.kind)).toEqual(['stale-score'])
+  })
+})
+
+describe('tally', () => {
+  it('counts the catalogue, what is judged, what is not, and what went out', () => {
+    expect(
+      tally([
+        work({ work_id: 'a', ...SCORED }),
+        work({ work_id: 'b', ...SCORED, released: 2 }),
+        work({ work_id: 'c' }),
+        work({ work_id: 'd', released: 1 }),
+      ]),
+    ).toEqual({ works: 4, scored: 2, unscored: 1, released: 2 })
+  })
+})
+
+describe('subjectOf', () => {
+  it('reads the action and the work back out of a task key', () => {
+    expect(subjectOf('score:w1')).toEqual({ action: 'score', workId: 'w1' })
+    expect(subjectOf('prompts:w1:sc1:still')).toEqual({ action: 'prompts', workId: 'w1' })
+  })
+
+  it('reads no work out of a task about a comment or a screenshot', () => {
+    expect(subjectOf('reply:comment:c1')).toEqual({ action: 'reply', workId: null })
+    expect(subjectOf('read:channel:yt:p1')).toEqual({ action: 'read', workId: null })
   })
 })

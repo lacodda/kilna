@@ -7,6 +7,7 @@ import {
   formatMoment,
   formatMonth,
   formatNumber,
+  formatStamp,
 } from '@/lib/format'
 
 // A fixed "now", so a date's year and a moment's day read the same any day.
@@ -51,6 +52,24 @@ describe('a date', () => {
   it('is a time today and a day before it, as a feed says it', () => {
     expect(formatMoment('2026-09-15T10:05:00', 'en', NOW)).toMatch(/^10:05/)
     expect(formatMoment('2026-09-14T10:05:00', 'en', NOW)).toBe('Sep 14')
+  })
+
+  it('keeps its time on every day, as a record says it', () => {
+    expect(formatStamp('2026-09-15T10:05:00', 'en', NOW)).toMatch(/^today · 10:05/)
+    expect(formatStamp('2026-09-14T23:50:00', 'en', NOW)).toMatch(/^yesterday · 11:50/)
+    expect(formatStamp('2026-09-13T10:05:00', 'en', NOW)).toMatch(/^Sep 13 · 10:05/)
+    expect(formatStamp('2025-09-13T10:05:00', 'en', NOW)).toMatch(/^Sep 13, 2025 · 10:05/)
+    expect(formatStamp('2026-09-14T10:05:00', 'ru', NOW)).toBe('вчера · 10:05')
+  })
+
+  it('counts days by the calendar, not by twenty-four hours', () => {
+    // Ten minutes after midnight, a line from 23:50 is yesterday's.
+    const justAfter = new Date('2026-09-15T00:10:00')
+    expect(formatStamp('2026-09-14T23:50:00', 'en', justAfter)).toMatch(/^yesterday/)
+  })
+
+  it('says a malformed moment as it came', () => {
+    expect(formatStamp('not a date', 'en', NOW)).toBe('not a date')
   })
 })
 

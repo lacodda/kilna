@@ -22,10 +22,10 @@ export default tseslint.config(
     rules: { 'dowel/no-arbitrary-scale': 'off' },
   },
   // Where a colour is the subject rather than the styling: the cover gradients
-  // are a palette this app owns, and the mark in the rail is drawn in the
-  // brand's own colours. Neither follows the theme, and neither should.
+  // are a palette this app owns, and do not follow the theme. (The mark, the
+  // other such exception, is dowel's ProductMark now and draws itself.)
   {
-    files: ['src/lib/cover.ts', 'src/shell/Sidebar.tsx'],
+    files: ['src/lib/cover.ts'],
     rules: { 'dowel/no-raw-color': 'off' },
   },
   // Where a component is the subject rather than the render: the release-kind

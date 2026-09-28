@@ -112,6 +112,11 @@ pub struct Deletion {
     pub label: String,
     /// Where it came from — the parent work's title, when it had one.
     pub origin: Option<String>,
+    /// The work it is, or the work it belonged to: what the screen draws the
+    /// entry's cover from, so a version sits beside its song in the song's
+    /// colour. `None` for what hangs off no work - a style, a collection, a
+    /// note about nothing in particular.
+    pub work_id: Option<String>,
     /// `manual`, or the entity that took it down with it.
     pub reason: String,
     pub deleted_at: String,
@@ -725,6 +730,10 @@ pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Deletion>> {
             |(id, entity, entity_id, label, origin, reason, snapshot, deleted_at)| {
                 let entity = Entity::parse(&entity)?;
                 let snapshot: Map<String, Value> = serde_json::from_str(&snapshot)?;
+                let work_id = match entity {
+                    Entity::Work => Some(entity_id.clone()),
+                    _ => work_in(entity, &snapshot),
+                };
                 Ok(Deletion {
                     restorable: missing_parent(conn, entity, &snapshot)?.is_none(),
                     id,
@@ -732,6 +741,7 @@ pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Deletion>> {
                     entity_id,
                     label,
                     origin,
+                    work_id,
                     reason,
                     deleted_at,
                 })
@@ -759,6 +769,11 @@ pub fn snapshot_work_id(conn: &Connection, entity: Entity, entity_id: &str) -> O
         .flatten()?;
 
     let snapshot: Map<String, Value> = serde_json::from_str(&snapshot).ok()?;
+    work_in(entity, &snapshot)
+}
+
+/// The `work_id` of the row a snapshot captured, when it has one.
+fn work_in(entity: Entity, snapshot: &Map<String, Value>) -> Option<String> {
     match snapshot.get(entity.table())?.as_array()?.first()? {
         Value::Object(row) => match row.get("work_id")? {
             Value::String(work_id) => Some(work_id.clone()),
@@ -1213,6 +1228,38 @@ mod tests {
     }
 
     #[test]
+    fn an_entry_names_the_work_its_cover_is_drawn_from() {
+        let (mut conn, profile_id) = workspace();
+        let work = work::create(&conn, &profile_id, song("Winter road")).unwrap();
+        let draft = version::create(
+            &mut conn,
+            &work.id,
+            NewVersion {
+                role: "lyrics".into(),
+                body: "words".into(),
+                label: None,
+                meta: None,
+                make_current: false,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
+
+        // The version first and the work after it, so the version outlives
+        // its work in the trash: the snapshot is then the only place that
+        // still knows which work it was.
+        discard(&mut conn, Entity::Version, &draft.id).unwrap();
+        discard(&mut conn, Entity::Work, &work.id).unwrap();
+        let listed = list(&conn, &profile_id).unwrap();
+
+        let works: Vec<Option<&str>> = listed
+            .iter()
+            .map(|entry| entry.work_id.as_deref())
+            .collect();
+        assert_eq!(works, [Some(work.id.as_str()), Some(work.id.as_str())]);
+    }
+
+    #[test]
     fn a_trashed_score_is_named_by_what_it_said_not_when() {
         let (mut conn, profile_id) = workspace();
         let work = work::create(&conn, &profile_id, song("Winter road")).unwrap();
@@ -1460,6 +1507,10 @@ mod tests {
         let listed = list(&conn, &profile_id).unwrap();
         assert_eq!(listed[0].label, "an idea with no home");
         assert!(listed[0].origin.is_none());
+        assert!(
+            listed[0].work_id.is_none(),
+            "a note on nothing has no cover to borrow"
+        );
         assert!(listed[0].restorable);
 
         restore(&mut conn, &entry, None).unwrap();

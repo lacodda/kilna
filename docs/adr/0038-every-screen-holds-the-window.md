@@ -46,9 +46,11 @@ The screen's margins are the mockup's: 12 under the title bar, 16 at the sides,
 is a Button, a row is a RowButton, a switch is a Chip with `pressed` or a
 ChipGroup, one of a few is a SegmentedControl, a value edited in place is an
 InlineField, a copy is a CopyButton or a Copyable, a box is a Checkbox, a number
-a NumberField. Six raw buttons remain, each disabled on its line with the reason:
-two for dowel's NavRail and one for its TableSortHeader, which kilna has not
-taken yet; two drawn on a work's own colour; one a pressable picture.
+a NumberField. Three raw buttons remain after v0.79 (the rail moved onto
+dowel's NavRail), each disabled on its line with the reason: a calendar chip
+drawn on a work's own colour, a sortable catalogue heading that holds a funnel
+and a resize grip beside it (TableSortHeader holds neither), and a pressable
+picture.
 
 **The states are the registry's.** Field and FieldGroup (a Field for an input it
 can hand its id to, a group for anything else), EmptyState in its three kinds,

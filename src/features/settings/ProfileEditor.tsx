@@ -1,626 +1,77 @@
-import { useState } from 'react'
+import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, X } from 'lucide-react'
-import type {
-  Axis,
-  Kind,
-  ProfileConfig,
-  PromptTemplate,
-  Tier,
-  VersionRole,
-  WorkKind,
-  ReleaseKind,
-  ReleaseField,
-} from '@/lib/api/types'
-import { updateProfileConfig } from '@/lib/api/workspace'
-import { scopeOf } from '@/lib/actions'
-import { keys } from '@/lib/query/keys'
-import { useAppMutation } from '@/lib/query/useAppMutation'
-import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
-import { Select } from '@/components/AppSelect'
-import { Button } from '@/components/ui/button'
-import { Chip, ChipGroup } from '@/components/ui/chip'
-import { Field } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { NumberField } from '@/components/ui/number-field'
-import { SaveState, useSaveStatus } from '@/components/ui/save-state'
-import { Textarea } from '@/components/ui/textarea'
+import type { ProfileConfig, WorkKind } from '@/lib/api/types'
+import { allOf, useProfile } from '@/lib/useProfile'
+import { Divider } from '@/components/ui/divider'
+import { ActionsEditor } from '@/features/settings/ActionsEditor'
+import { KindVocabulary } from '@/features/settings/KindVocabulary'
+import { RhythmEditor } from '@/features/settings/RhythmEditor'
+import { Vocabulary } from '@/features/settings/Vocabulary'
+import { useProfileDraft } from '@/features/settings/useProfileDraft'
 
 // Editing the scenario, not designing a schema: the tables never change, only
 // the vocabulary and the criteria. Axis keys are deliberately not editable —
 // past score snapshots are keyed by them, and renaming a key would orphan them.
+//
+// What is edited is the profile's draft (`useProfileDraft`), not a copy in
+// this component: it outlives the section, and it is saved or discarded from
+// the bar at the foot of the pane rather than from the end of this form.
 export function ProfileEditor() {
   const { t } = useTranslation()
   const profile = useProfile()
-  const [config, setConfig] = useState<ProfileConfig>(profile.config)
+  const { config, edit } = useProfileDraft()
 
   const patch = (changes: Partial<ProfileConfig>) => {
-    setConfig((current) => ({ ...current, ...changes }))
+    edit((current) => ({ ...current, ...changes }))
   }
-
-  const save = useAppMutation({
-    mutationFn: () => updateProfileConfig(profile.id, config),
-    // The vocabulary is on every screen: labels, statuses, kinds, axes.
-    refresh: [keys.workspace, keys.profiles, keys.catalogue],
-    failure: 'toast.profileSaveFailed',
-  })
-
-  const saveStatus = useSaveStatus(save.isPending, save.isError)
 
   // Writes go back into the same `work_kinds[i]` entry: copy the config,
   // replace the one kind, keep `format` and everything else untouched.
   const setKind = (index: number, changes: Partial<WorkKind>) => {
-    patch({
-      work_kinds: config.work_kinds.map((kind, i) =>
+    edit((current) => ({
+      ...current,
+      work_kinds: current.work_kinds.map((kind, i) =>
         i === index ? { ...kind, ...changes } : kind,
       ),
-    })
+    }))
   }
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
-      <header>
-        <h3 className="text-sm font-semibold">{profile.name}</h3>
-        <p className="text-sm text-dim">{profile.description}</p>
+    <div className="flex max-w-3xl flex-col gap-4">
+      <header className="flex flex-col gap-1">
+        <h3 className="caption">{profile.name}</h3>
+        {profile.description === null ? null : (
+          <p className="text-xs text-dim">{profile.description}</p>
+        )}
       </header>
 
       {/* Since v0.57 the vocabulary belongs to the kind, not the profile: a
           song and a video are judged on different axes and go out through
-          different doors. One section per `work_kinds[]` entry, heading
-          being the kind's own label. */}
+          different doors. One group per `work_kinds[]` entry, headed by the
+          kind's own label. */}
       {config.work_kinds.map((kind, kindIndex) => (
-        <KindVocabulary
-          key={kind.key}
-          kind={kind}
-          onChange={(changes) => setKind(kindIndex, changes)}
-        />
+        <Fragment key={kind.key}>
+          <Divider />
+          <KindVocabulary kind={kind} onChange={(changes) => setKind(kindIndex, changes)} />
+        </Fragment>
       ))}
 
-      <section className="flex flex-col gap-2">
-        <h4 className="caption">{t('editor.rhythm')}</h4>
-        <p className="text-xs text-dim">{t('editor.rhythmHint')}</p>
-        <div className="flex items-center gap-2">
-          <NumberField
-            className="w-44"
-            min={1}
-            step={1}
-            value={config.rhythm?.every_days ?? null}
-            unit={t('editor.rhythmDaysUnit')}
-            aria-label={t('editor.rhythmDays')}
-            onValueChange={(days) => {
-              // Clearing the field removes the rhythm entirely — "no pace"
-              // is a valid answer, and the layout button explains it.
-              patch({
-                rhythm:
-                  days === null
-                    ? null
-                    : {
-                        every_days: Math.max(1, Math.trunc(days)),
-                        default_time: config.rhythm?.default_time ?? null,
-                      },
-              })
-            }}
-          />
-          <label className="ml-4 flex items-center gap-2 text-sm">
-            {t('editor.rhythmTime')}
-            <Input
-              className="w-28"
-              type="time"
-              value={config.rhythm?.default_time ?? ''}
-              disabled={config.rhythm == null}
-              aria-label={t('editor.rhythmTime')}
-              onChange={(event) => {
-                if (config.rhythm == null) return
-                patch({
-                  rhythm: {
-                    ...config.rhythm,
-                    default_time: event.target.value === '' ? null : event.target.value,
-                  },
-                })
-              }}
-            />
-          </label>
-        </div>
-      </section>
-
+      <Divider />
+      <RhythmEditor rhythm={config.rhythm} onChange={(rhythm) => patch({ rhythm })} />
       <Vocabulary
         label={t('editor.workKinds')}
+        help={t('editor.keysHint')}
         entries={config.work_kinds}
         onChange={(work_kinds) => patch({ work_kinds })}
       />
 
+      <Divider />
       <ActionsEditor
         actions={config.prompts}
         kinds={config.work_kinds}
         roles={allOf(config, 'version_roles')}
         onChange={(prompts) => patch({ prompts })}
       />
-
-      <div className="flex items-center gap-3">
-        <Button variant="primary" disabled={save.isPending} onClick={() => save.mutate()}>
-          {t('editor.save')}
-        </Button>
-        <SaveState
-          savingLabel={t('save.saving')}
-          savedLabel={t('save.saved')}
-          status={saveStatus}
-        />
-      </div>
-
-      <p className="text-xs text-dim">{t('editor.keysHint')}</p>
     </div>
-  )
-}
-
-/**
- * What a release of each kind goes out as.
- *
- * Labels, hints, limits and templates — not keys: a key is what the value is
- * stored under on every release already planned, and renaming one would
- * orphan what was written under it, exactly as renaming an axis key would
- * orphan its scores. The same rule the rest of this screen follows.
- *
- * Adding and removing fields is deliberately not here either. A field is a
- * box on a screen and a key in a stored map, and the place to decide there
- * should be one more of those is the profile document, where the whole shape
- * is visible at once.
- */
-function ReleaseFieldsEditor({
-  kinds,
-  onChange,
-}: {
-  kinds: ReleaseKind[]
-  onChange: (kinds: ReleaseKind[]) => void
-}) {
-  const { t } = useTranslation()
-
-  const set = (kindIndex: number, fieldIndex: number, changes: Partial<ReleaseField>) => {
-    onChange(
-      kinds.map((kind, i) =>
-        i === kindIndex
-          ? {
-              ...kind,
-              fields: (kind.fields ?? []).map((field, j) =>
-                j === fieldIndex ? { ...field, ...changes } : field,
-              ),
-            }
-          : kind,
-      ),
-    )
-  }
-
-  return (
-    <section className="flex flex-col gap-3">
-      <h4 className="caption">{t('editor.releaseFields')}</h4>
-      <p className="text-xs text-dim">{t('editor.releaseFieldsHint')}</p>
-
-      {kinds.map((kind, kindIndex) =>
-        (kind.fields ?? []).length === 0 ? null : (
-          <div key={kind.key} className="flex flex-col gap-2 rounded-xl border border-line p-3">
-            <div className="flex items-center gap-2">
-              <code className="font-mono text-xs text-dim">{kind.key}</code>
-              <span className="text-sm font-medium">{sayLabel(kind.label)}</span>
-            </div>
-
-            <ul className="flex flex-col gap-3">
-              {(kind.fields ?? []).map((field, fieldIndex) => (
-                <li key={field.key} className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <code className="shrink-0 font-mono text-xs text-dim">{field.key}</code>
-                    <Input
-                      className="flex-1"
-                      value={sayLabel(field.label)}
-                      aria-label={t('editor.fieldLabel')}
-                      onChange={(event) =>
-                        set(kindIndex, fieldIndex, { label: event.target.value })
-                      }
-                    />
-                    <span className="shrink-0 caption">{t(`editor.fieldType.${field.type}`)}</span>
-                    {/* No stepper: a limit is hundreds of characters, and
-                        nobody clicks their way there. */}
-                    <NumberField
-                      className="w-24"
-                      hideStepper
-                      min={1}
-                      step={1}
-                      value={field.limit ?? null}
-                      placeholder={t('editor.fieldLimit')}
-                      aria-label={t('editor.fieldLimit')}
-                      onValueChange={(limit) => {
-                        set(kindIndex, fieldIndex, {
-                          // Nothing typed is nobody counting, not a limit of
-                          // zero — which the profile refuses to save anyway.
-                          limit: limit === null ? null : Math.max(1, Math.trunc(limit)),
-                        })
-                      }}
-                    />
-                  </div>
-                  <Field label={t('editor.fieldHintLabel')}>
-                    <Input
-                      value={sayLabel(field.hint)}
-                      placeholder={t('editor.fieldHint')}
-                      aria-label={t('editor.fieldHintLabel')}
-                      onChange={(event) =>
-                        set(kindIndex, fieldIndex, {
-                          hint: event.target.value === '' ? null : event.target.value,
-                        })
-                      }
-                    />
-                  </Field>
-                  {/* Labelled, as the actions editor labels its own template:
-                      three unlabelled boxes stacked under a field are three
-                      boxes nobody can tell apart once they are empty. */}
-                  <Field label={t('editor.fieldTemplateLabel')}>
-                    <Textarea
-                      value={field.template ?? ''}
-                      placeholder={t('editor.fieldTemplate')}
-                      aria-label={t('editor.fieldTemplateLabel')}
-                      autoResize
-                      maxRows={6}
-                      rows={2}
-                      className="font-mono text-xs"
-                      onChange={(event) =>
-                        set(kindIndex, fieldIndex, {
-                          template: event.target.value === '' ? null : event.target.value,
-                        })
-                      }
-                    />
-                  </Field>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ),
-      )}
-    </section>
-  )
-}
-
-/**
- * One kind's own vocabulary: its axes, tiers, statuses and release kinds.
- *
- * Axis keys are deliberately not editable here either — the same past-score
- * reasoning applies per kind now, not just per profile.
- */
-function KindVocabulary({
-  kind,
-  onChange,
-}: {
-  kind: WorkKind
-  onChange: (changes: Partial<WorkKind>) => void
-}) {
-  const { t } = useTranslation()
-
-  const axes = kind.axes ?? []
-  const tiers = kind.tiers ?? []
-
-  const setAxis = (index: number, changes: Partial<Axis>) => {
-    onChange({ axes: axes.map((axis, i) => (i === index ? { ...axis, ...changes } : axis)) })
-  }
-
-  const setTier = (index: number, changes: Partial<Tier>) => {
-    onChange({ tiers: tiers.map((tier, i) => (i === index ? { ...tier, ...changes } : tier)) })
-  }
-
-  return (
-    <section className="flex flex-col gap-4 border-t border-line pt-4">
-      <h3 className="text-sm font-semibold">{sayLabel(kind.label)}</h3>
-
-      <section className="flex flex-col gap-2">
-        <h4 className="caption">{t('editor.axes')}</h4>
-        <p className="text-xs text-dim">{t('editor.axesHint')}</p>
-        <ul className="flex flex-col gap-1.5">
-          {axes.map((axis, index) => (
-            <li key={axis.key} className="flex items-center gap-2">
-              <code className="w-28 shrink-0 font-mono text-xs text-dim">{axis.key}</code>
-              <Input
-                className="flex-1"
-                value={sayLabel(axis.label)}
-                onChange={(event) => setAxis(index, { label: event.target.value })}
-                aria-label={`${axis.key} label`}
-              />
-              <NumberField
-                className="w-28"
-                min={0}
-                step={0.5}
-                value={axis.weight}
-                // An emptied box is no weight, as it was when the box held text.
-                onValueChange={(weight) => setAxis(index, { weight: weight ?? 0 })}
-                aria-label={`${axis.key} weight`}
-              />
-              <Button
-                variant="danger"
-                size="icon-sm"
-                title={t('editor.removeAxis')}
-                aria-label={t('editor.removeAxis')}
-                onClick={() => onChange({ axes: axes.filter((_, i) => i !== index) })}
-              >
-                <X aria-hidden className="size-3.5" />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h4 className="caption">{t('editor.tiers')}</h4>
-        <p className="text-xs text-dim">{t('editor.tiersHint')}</p>
-        <ul className="flex flex-col gap-1.5">
-          {tiers.map((tier, index) => (
-            <li key={tier.key} className="flex items-center gap-2">
-              <code className="w-28 shrink-0 font-mono text-xs text-dim">{tier.key}</code>
-              <Input
-                className="flex-1"
-                value={sayLabel(tier.label)}
-                onChange={(event) => setTier(index, { label: event.target.value })}
-                aria-label={`${tier.key} label`}
-              />
-              <NumberField
-                className="w-20"
-                hideStepper
-                min={0}
-                max={100}
-                step={1}
-                value={tier.min}
-                onValueChange={(min) => setTier(index, { min: min ?? 0 })}
-                aria-label={`${tier.key} threshold`}
-              />
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <Vocabulary
-        label={t('editor.statuses')}
-        entries={kind.statuses ?? []}
-        onChange={(statuses) => onChange({ statuses })}
-      />
-      <Vocabulary
-        label={t('editor.releaseKinds')}
-        entries={kind.release_kinds ?? []}
-        onChange={(release_kinds) => onChange({ release_kinds })}
-      />
-      {/* What a release of each kind says about itself. Under the release
-          kinds because that is what it belongs to, and only for the kinds
-          that have any: a profile that says nothing about its releases
-          should show an empty screen, not an invitation. */}
-      {(kind.release_kinds ?? []).some((entry) => (entry.fields ?? []).length > 0) && (
-        <ReleaseFieldsEditor
-          kinds={kind.release_kinds ?? []}
-          onChange={(release_kinds) => onChange({ release_kinds })}
-        />
-      )}
-      {/* The storyboard's words, for a kind that has any: a song lists none
-          and shows nothing here. Keys, as everywhere on this screen, come
-          from the document; the labels are what is renamed. */}
-      {(kind.shot_types ?? []).length > 0 && (
-        <Vocabulary
-          label={t('editor.shotTypes')}
-          entries={kind.shot_types ?? []}
-          onChange={(shot_types) => onChange({ shot_types })}
-        />
-      )}
-      {(kind.scene_blocks ?? []).length > 0 && (
-        <Vocabulary
-          label={t('editor.sceneBlocks')}
-          entries={kind.scene_blocks ?? []}
-          onChange={(scene_blocks) => onChange({ scene_blocks })}
-        />
-      )}
-    </section>
-  )
-}
-
-/**
- * The profile's actions, whole: the wording, the method and what each
- * produces — not only the label. A method is the craft's own way of doing
- * the action (ADR 0021), shipped with the profile and edited here; the
- * key stays fixed once made, because a running task and a chat are
- * recognised by it.
- */
-function ActionsEditor({
-  actions,
-  kinds,
-  roles,
-  onChange,
-}: {
-  actions: PromptTemplate[]
-  kinds: WorkKind[]
-  roles: VersionRole[]
-  onChange: (actions: PromptTemplate[]) => void
-}) {
-  const { t } = useTranslation()
-  const [newKey, setNewKey] = useState('')
-
-  const set = (index: number, changes: Partial<PromptTemplate>) => {
-    onChange(actions.map((action, i) => (i === index ? { ...action, ...changes } : action)))
-  }
-
-  // Prose is the absence of a value, and Base UI items may not carry an
-  // empty one: it is the select's placeholder, and picking it clears.
-  const producesOptions = [
-    { value: 'score', label: t('editor.producesScore') },
-    ...roles.map((role) => ({
-      value: `version:${role.key}`,
-      label: t('editor.producesVersion', { role: role.label }),
-    })),
-    { value: 'scenes', label: t('editor.producesScenes') },
-    { value: 'scenes:add', label: t('editor.producesScenesAdd') },
-    { value: 'scenes:revise', label: t('editor.producesScenesRevise') },
-    { value: 'comment', label: t('editor.producesComment') },
-    { value: 'reply', label: t('editor.producesReply') },
-  ]
-  // Every scope the backend reads; a work is the absence of one.
-  const scopeOptions = [
-    { value: 'scene', label: t('editor.scopeScene') },
-    { value: 'style', label: t('editor.scopeStyle') },
-    { value: 'comment', label: t('editor.scopeComment') },
-  ]
-
-  // A key typed as a slug: lower case, letters, digits and dashes, unique.
-  const key = newKey.trim().toLowerCase()
-  const keyTaken = actions.some((action) => action.key === key)
-  const keyValid = /^[a-z][a-z0-9_-]*$/.test(key) && !keyTaken
-
-  return (
-    <section className="flex flex-col gap-3">
-      <h4 className="caption">{t('editor.prompts')}</h4>
-      <p className="text-xs text-dim">{t('editor.promptsHint')}</p>
-      <ul className="flex flex-col gap-4">
-        {actions.map((action, index) => (
-          <li key={action.key} className="flex flex-col gap-2 rounded-xl border border-line p-3">
-            <div className="flex items-center gap-2">
-              <code className="shrink-0 font-mono text-xs text-dim">{action.key}</code>
-              <Input
-                className="flex-1"
-                value={sayLabel(action.label)}
-                onChange={(event) => set(index, { label: event.target.value })}
-                aria-label={t('editor.actionLabel')}
-              />
-              <Select
-                className="w-56"
-                aria-label={t('editor.actionProduces')}
-                placeholder={t('editor.producesProse')}
-                value={
-                  action.produces !== undefined &&
-                  producesOptions.some((option) => option.value === action.produces)
-                    ? action.produces
-                    : ''
-                }
-                onChange={(value) => set(index, { produces: value === '' ? undefined : value })}
-                options={producesOptions}
-              />
-              <Button
-                variant="danger"
-                size="icon-sm"
-                title={t('editor.removeAction')}
-                aria-label={t('editor.removeAction')}
-                onClick={() => onChange(actions.filter((_, i) => i !== index))}
-              >
-                <X aria-hidden className="size-3.5" />
-              </Button>
-            </div>
-            <Input
-              value={sayLabel(action.description)}
-              placeholder={t('editor.actionDescription')}
-              aria-label={t('editor.actionDescription')}
-              onChange={(event) =>
-                set(index, {
-                  description: event.target.value === '' ? undefined : event.target.value,
-                })
-              }
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="caption">{t('editor.actionKinds')}</span>
-              {/* The kinds an action is for, as chips: none on means every kind. */}
-              <ChipGroup
-                multiple
-                aria-label={t('editor.actionKinds')}
-                value={action.kinds ?? []}
-                onValueChange={(next) =>
-                  set(index, { kinds: next.length === 0 ? undefined : next })
-                }
-              >
-                {kinds.map((kind) => (
-                  <Chip key={kind.key} value={kind.key}>
-                    {sayLabel(kind.label)}
-                  </Chip>
-                ))}
-              </ChipGroup>
-              <span className="text-xs text-faint">
-                {(action.kinds ?? []).length === 0 ? t('editor.actionKindsAll') : ''}
-              </span>
-              <span className="flex-1" />
-              <Select
-                className="w-44"
-                aria-label={t('editor.actionScope')}
-                placeholder={t('editor.scopeWork')}
-                value={scopeOf(action) === 'work' ? '' : scopeOf(action)}
-                onChange={(value) => set(index, { scope: value === '' ? undefined : value })}
-                options={scopeOptions}
-              />
-            </div>
-            <Field label={t('editor.actionTemplate')} help={t('editor.actionTemplateHint')}>
-              <Textarea
-                autoResize
-                maxRows={10}
-                rows={3}
-                className="font-mono text-xs"
-                value={action.template}
-                onChange={(event) => set(index, { template: event.target.value })}
-              />
-            </Field>
-            <Field label={t('editor.actionMethod')} help={t('editor.actionMethodHint')}>
-              <Textarea
-                autoResize
-                maxRows={24}
-                rows={4}
-                className="font-mono text-xs"
-                value={action.method ?? ''}
-                placeholder={t('editor.actionMethodPlaceholder')}
-                onChange={(event) =>
-                  set(index, { method: event.target.value === '' ? undefined : event.target.value })
-                }
-              />
-            </Field>
-          </li>
-        ))}
-      </ul>
-      <div className="flex items-center gap-2">
-        <Input
-          className="w-48 font-mono text-xs"
-          value={newKey}
-          placeholder={t('editor.actionKeyPlaceholder')}
-          aria-label={t('editor.actionKey')}
-          onChange={(event) => setNewKey(event.target.value)}
-        />
-        <Button
-          size="sm"
-          disabled={!keyValid}
-          onClick={() => {
-            onChange([...actions, { key, label: key, template: '' }])
-            setNewKey('')
-          }}
-        >
-          <Plus aria-hidden />
-          {t('editor.addAction')}
-        </Button>
-        {key !== '' && keyTaken && (
-          <span className="text-xs text-bad">{t('editor.actionKeyTaken')}</span>
-        )}
-      </div>
-    </section>
-  )
-}
-
-interface VocabularyProps<T extends Kind> {
-  label: string
-  entries: T[]
-  onChange: (entries: T[]) => void
-}
-
-// Generic over the entry, because a status carries a `derive` role alongside
-// its label and a kind does not — and renaming one must not drop the other.
-function Vocabulary<T extends Kind>({ label, entries, onChange }: VocabularyProps<T>) {
-  return (
-    <section className="flex flex-col gap-2">
-      <h4 className="caption">{label}</h4>
-      <ul className="flex flex-wrap gap-1.5">
-        {entries.map((entry, index) => (
-          <li key={entry.key} className="flex items-center gap-1">
-            <Input
-              className="w-40"
-              value={sayLabel(entry.label)}
-              onChange={(event) =>
-                onChange(
-                  entries.map((e, i) => (i === index ? { ...e, label: event.target.value } : e)),
-                )
-              }
-              aria-label={entry.key}
-            />
-          </li>
-        ))}
-      </ul>
-    </section>
   )
 }

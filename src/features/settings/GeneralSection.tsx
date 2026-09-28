@@ -19,38 +19,37 @@ export function GeneralSection() {
   const { language, setLanguage } = useLanguage()
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
-      <section className="flex flex-col gap-3">
-        <h3 className="text-sm font-semibold">{t('settings.appearance')}</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {/* Three options, all worth seeing at once: a segment, not a menu -
-              the choice is one press, and switching back is the same press. */}
-          <FieldGroup label={t('settings.theme')}>
-            <SegmentedControl
-              aria-label={t('settings.theme')}
-              value={theme}
-              onValueChange={(next) => setTheme(next as typeof theme)}
-            >
-              {THEMES.map((entry) => (
-                <Segment key={entry} value={entry}>
-                  {t(`themeName.${entry}`)}
-                </Segment>
-              ))}
-            </SegmentedControl>
-          </FieldGroup>
-          <FieldGroup label={t('settings.language')}>
-            <Select
-              aria-label={t('settings.language')}
-              value={language}
-              onChange={(next) => setLanguage(next as typeof language)}
-              options={LANGUAGES.map((entry) => ({
-                value: entry,
-                label: t(`languageName.${entry}`),
-              }))}
-            />
-          </FieldGroup>
-        </div>
-      </section>
-    </div>
+    // One field under another at the width of a field, as the mockup lays a
+    // settings group out: side by side, a segment and a select read as one
+    // control of two halves.
+    <section className="flex max-w-105 flex-col gap-4">
+      <h3 className="caption">{t('settings.appearance')}</h3>
+      {/* Three options, all worth seeing at once: a segment, not a menu -
+          the choice is one press, and switching back is the same press. */}
+      <FieldGroup label={t('settings.theme')}>
+        <SegmentedControl
+          aria-label={t('settings.theme')}
+          value={theme}
+          onValueChange={(next) => setTheme(next as typeof theme)}
+        >
+          {THEMES.map((entry) => (
+            <Segment key={entry} value={entry}>
+              {t(`themeName.${entry}`)}
+            </Segment>
+          ))}
+        </SegmentedControl>
+      </FieldGroup>
+      <FieldGroup label={t('settings.language')}>
+        <Select
+          aria-label={t('settings.language')}
+          value={language}
+          onChange={(next) => setLanguage(next as typeof language)}
+          options={LANGUAGES.map((entry) => ({
+            value: entry,
+            label: t(`languageName.${entry}`),
+          }))}
+        />
+      </FieldGroup>
+    </section>
   )
 }

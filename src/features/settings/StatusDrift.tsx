@@ -8,6 +8,7 @@ import { say } from '@/lib/toast'
 import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { FieldGroup } from '@/components/ui/field'
 
 /**
  * Bringing every status back in line with the facts — shown before it happens.
@@ -45,20 +46,22 @@ export function StatusDrift() {
   })
 
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold">{t('data.statusTitle')}</h3>
-      <p className="text-sm text-dim">{t('data.statusHint')}</p>
-
-      <div className="flex items-center gap-2">
-        <Button onClick={() => check.mutate()} disabled={check.isPending}>
-          {t('data.statusCheck')}
-        </Button>
-        {found != null && found.length > 0 && (
-          <Button variant="primary" onClick={() => apply.mutate()} disabled={apply.isPending}>
-            {t('data.statusApply', { count: found.length })}
+    <section className="flex max-w-3xl flex-col gap-2">
+      {/* The explanation under the buttons it explains, and the findings
+          under both: they arrive only once asked for, and a hint pushed below
+          a list of forty works would be a hint nobody reaches. */}
+      <FieldGroup label={t('data.statusTitle')} help={t('data.statusHint')}>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => check.mutate()} disabled={check.isPending}>
+            {t('data.statusCheck')}
           </Button>
-        )}
-      </div>
+          {found != null && found.length > 0 && (
+            <Button variant="primary" onClick={() => apply.mutate()} disabled={apply.isPending}>
+              {t('data.statusApply', { count: found.length })}
+            </Button>
+          )}
+        </div>
+      </FieldGroup>
 
       {found != null && found.length === 0 && (
         <p className="text-sm text-dim">{t('data.statusInStep')}</p>

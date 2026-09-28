@@ -1231,6 +1231,8 @@ export interface Deletion {
   entity_id: string
   label: string
   origin: string | null
+  /** The work it is or belonged to, for its cover; null when it hangs off none. */
+  work_id: string | null
   reason: string
   deleted_at: string
   /** False while what it belonged to is itself in the trash. */

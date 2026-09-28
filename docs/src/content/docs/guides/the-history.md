@@ -17,11 +17,20 @@ faded.
 profile, newest first. It is read-only. Nothing here can be edited or taken
 back from the feed — a record you can rewrite is not a record.
 
+Each line starts with a small tinted mark that says what kind of thing
+happened: green for something that landed (a score, a release that went out),
+the accent for something made or proposed, amber for something that moved or
+wants a look, grey for something deleted, undone or tidied. Under the sentence
+a quieter line names what it was about — a release, a version, the assistant —
+and the day and time sit at the end. A dot on the left marks the lines that
+still need a look.
+
 Two filters sit at the top:
 
 - **Everything** — the full list.
 - **Needs a look** — only the entries that are asking for attention, and only
-  while they are still unread.
+  while they are still unread. The filter counts them, so the head says there
+  is something waiting before you switch to it.
 
 **Mark all as seen** clears the second list without deleting anything from the
 first.
@@ -53,7 +62,7 @@ afresh.
 ## Repeats are collapsed
 
 When the same situation is recorded more than once, kilna updates the existing
-line instead of adding another. The line moves to the top with a count beside
+line instead of adding another. The line moves to the top with a count under
 it — `3 times` — so a recurring problem reads as one recurring problem rather
 than filling the feed with copies of itself.
 

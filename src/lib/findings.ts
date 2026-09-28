@@ -15,9 +15,11 @@ import { daysBetween } from '@/lib/readiness'
  * below therefore excludes what is finished — released work, past dates, work
  * that has been shelved.
  *
- * The dashboard reads the same two lists for its own sections, and two of these
- * kinds overlap with it on purpose: the dashboard answers "what needs me today",
- * a finding is a standing complaint that outlives the day.
+ * The dashboard reads the same two lists for its own sections, and takes some
+ * of these as its own on purpose: a stale score and judged work with nothing
+ * booked each have one move that answers them, so they are drawn as decisions
+ * with that move on a button, and the unscored are listed whole. The rest stand
+ * beside the decisions as complaints that outlive the day (`lib/dashboard`).
  *
  * Nothing here is stored. A finding is derived on every read and leaves on its
  * own the moment its complaint stops being true — which is why the board has no
@@ -206,6 +208,16 @@ export function visible(found: readonly Finding[], dismissed: readonly Dismissal
 }
 
 /**
+ * One finding as one string, the same one `visible` matches a dismissal by.
+ *
+ * For a caller that has to tell findings apart - the dashboard draws some of
+ * them as decisions and must leave exactly those out of the list beside them.
+ */
+export function identify(finding: Finding): string {
+  return keyOf(finding.kind, finding.workId, finding.complaint)
+}
+
+/**
  * The three things that identify a complaint, as one string.
  *
  * Joined on a separator no id, kind or complaint can hold. A complaint carries
@@ -223,4 +235,24 @@ const SEPARATOR = '\u0001'
 /** What `dismiss_finding` needs to remember this one. */
 export function dismissalKey(finding: Finding) {
   return { kind: finding.kind, work_id: finding.workId, complaint: finding.complaint }
+}
+
+/**
+ * The tab of a work where a complaint is answered, when there is one.
+ *
+ * A stalled draft names no single place: it is moved by writing, and which
+ * version to write into is the person's call, so it opens the work where a
+ * work opens.
+ */
+export function answeredOn(kind: FindingKind): 'score' | 'releases' | undefined {
+  switch (kind) {
+    case 'unscored':
+    case 'stale-score':
+      return 'score'
+    case 'ready-unscheduled':
+    case 'weak-scheduled':
+      return 'releases'
+    case 'stale-draft':
+      return undefined
+  }
 }

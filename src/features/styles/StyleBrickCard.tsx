@@ -1,82 +1,140 @@
+import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ImageOff } from 'lucide-react'
+import { ImageOff, type LucideIcon } from 'lucide-react'
 import { fileSrc } from '@/lib/api/assets'
-import type { StyleBrick } from '@/lib/api/types'
+import type { StyleBrick, StyleBrickStatus, StyleType } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
+import { say as sayLabel } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/chip'
+
+/** How many references the strip across the top shows. */
+const SHOWN = 3
+
+/** The status in the line's words for it: ready is done, a draft is waiting. */
+const TONE = {
+  ready: 'good',
+  draft: 'warn',
+  dropped: 'soft',
+} as const satisfies Record<StyleBrickStatus, 'good' | 'warn' | 'soft'>
+
+/** The strip's columns, by how many pictures it holds. */
+const COLUMNS = ['grid-cols-1', 'grid-cols-1', 'grid-cols-2', 'grid-cols-3'] as const
+
+interface Props {
+  brick: StyleBrick
+  /** Its type as the profile names it; absent for a type the profile dropped. */
+  type: StyleType | undefined
+  /** Its type's glyph, from `styleIconOf`. */
+  icon: LucideIcon
+  /** It is the one open beside the dictionary. */
+  open: boolean
+  onOpen: () => void
+}
 
 /**
- * One brick in the dictionary: its cover, its name, the opening of what it
- * says, and how far along it is.
+ * One style of the dictionary: a strip of its first references, its name and
+ * where it stands, the opening of what it says, its type and its pictures.
  *
- * The cover is the first reference. A brick is recognised by what it looks
- * like long before it is recognised by its name — that is what makes a picture
- * dictionary readable at forty entries.
+ * The pictures lead. A style is recognised by what it looks like long before
+ * it is recognised by its name, which is what makes a picture dictionary
+ * readable at forty entries - and three pictures say a look where one says a
+ * picture. Until v0.79 the card was a row with one 56px cover.
  */
-export function StyleBrickCard({ brick, onOpen }: { brick: StyleBrick; onOpen: () => void }) {
+export function StyleBrickCard({ brick, type, icon: Icon, open, onOpen }: Props) {
   const { t } = useTranslation()
+  const card = useRef<HTMLLIElement>(null)
 
-  // Only for a brick that has one: a query per empty card would be a query per
-  // card on a fresh dictionary.
+  // Only for a style that has any: a query per empty card would be a query
+  // per card on a fresh dictionary.
   const references = useQuery({
     ...queries.styleReferences(brick.id),
     enabled: brick.reference_count > 0,
   })
-  const cover = references.data?.[0]
+  const slots = Math.min(brick.reference_count, SHOWN)
+  const shown = (references.data ?? []).slice(0, SHOWN)
 
-  // A quiet Button in the shape of a card rather than a row of a list: the
-  // cover, two lines of what it says and the count do not fit a row's slots.
-  // No size, because a card is as tall as what it holds, not a control row.
+  // The open style narrows the dictionary to a column; its card is kept in
+  // view there, so the column says which one is open.
+  useEffect(() => {
+    if (open) card.current?.scrollIntoView({ block: 'nearest' })
+  }, [open])
+
   return (
-    <Button
-      variant="ghost"
-      size={null}
-      onClick={onOpen}
-      className={cn(
-        'items-stretch justify-start gap-3 p-2.5 text-left',
-        brick.status === 'dropped' && 'opacity-55',
-      )}
-    >
-      <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-soft">
-        {cover === undefined ? (
-          <ImageOff aria-hidden className="size-5 text-faint" />
-        ) : (
-          <img
-            src={fileSrc(cover.path)}
-            alt=""
-            className="size-full object-cover"
-            draggable={false}
-          />
+    <li ref={card} className="flex">
+      {/* A quiet Button in the shape of a card rather than a row of a list:
+          the pictures, two lines of what it says and the chips do not fit a
+          row's slots. No size, because a card is as tall as what it holds. */}
+      <Button
+        variant="ghost"
+        size={null}
+        onClick={onOpen}
+        aria-current={open ? 'true' : undefined}
+        className={cn(
+          'w-full flex-col items-stretch justify-start gap-0 overflow-hidden rounded-lg bg-raise p-0 text-left font-normal whitespace-normal',
+          open && 'border-accent',
+          brick.status === 'dropped' && 'opacity-55',
         )}
-      </div>
+      >
+        <span className={cn('grid h-18.5 gap-px bg-line', COLUMNS[slots])}>
+          {slots === 0 ? (
+            <span className="flex items-center justify-center bg-soft">
+              <ImageOff aria-hidden className="size-5 text-faint" />
+            </span>
+          ) : (
+            Array.from({ length: slots }, (_, slot) => {
+              const asset = shown[slot]
+              // A slot waits in the ground colour while its picture loads,
+              // so the strip does not reflow as they arrive.
+              return asset === undefined ? (
+                <span key={slot} className="bg-soft" />
+              ) : (
+                <img
+                  key={asset.id}
+                  src={fileSrc(asset.path)}
+                  alt=""
+                  className="size-full min-w-0 object-cover"
+                  draggable={false}
+                />
+              )
+            })
+          )}
+        </span>
 
-      <div className="flex min-w-0 flex-col gap-0.5 font-normal whitespace-normal">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate font-medium text-text">{brick.name}</span>
-          {brick.status !== 'ready' && (
-            <span
-              className={cn(
-                'shrink-0 rounded px-1.5 py-0.5 text-2xs',
-                brick.status === 'draft' ? 'bg-soft text-dim' : 'bg-soft text-faint',
-              )}
-            >
+        <span className="flex min-w-0 flex-col gap-1.5 px-3 pt-2.5 pb-3">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text">
+              {brick.name}
+            </span>
+            <Badge variant={TONE[brick.status]} className="shrink-0">
               {t(`styles.status.${brick.status}`)}
+            </Badge>
+          </span>
+          {/* The opening of the description, not the author's steer: the
+              steer is bookkeeping about how the description was written. */}
+          {brick.description !== null && (
+            <span className="line-clamp-2 text-sm leading-relaxed text-dim">
+              {brick.description}
             </span>
           )}
-        </div>
-        {/* The opening of the description, not the author's steer: the steer
-            is bookkeeping about how the description was written. */}
-        <span className="line-clamp-2 text-xs text-dim">
-          {brick.description ?? t('styles.notDescribed')}
-        </span>
-        {brick.reference_count > 0 && (
-          <span className="text-2xs text-faint tabular-nums">
-            {t('styles.references', { count: brick.reference_count })}
+          <span className="flex flex-wrap gap-1.5">
+            <Chip>
+              <Icon aria-hidden className="size-3" />
+              {type === undefined ? brick.type_key : sayLabel(type.label)}
+            </Chip>
+            {brick.description === null ? (
+              <Chip variant="dashed">{t('styles.notDescribed')}</Chip>
+            ) : (
+              brick.reference_count > 0 && (
+                <Chip>{t('styles.references', { count: brick.reference_count })}</Chip>
+              )
+            )}
           </span>
-        )}
-      </div>
-    </Button>
+        </span>
+      </Button>
+    </li>
   )
 }

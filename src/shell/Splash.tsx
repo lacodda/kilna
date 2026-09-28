@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ProductMark } from '@/components/ui/product-mark'
 import { Splash as SplashScreen } from '@/components/ui/splash'
-import { Mark } from '@/shell/Mark'
 
 /**
  * What the window shows while the workspace is being opened.
@@ -12,6 +12,10 @@ import { Mark } from '@/shell/Mark'
  * the person's language, and one thing worth knowing. The static one is taken
  * down here, on the first render, because from this moment the page is the
  * one drawing.
+ *
+ * The mark is dowel's ProductMark, at the level 56 pixels call for; the static
+ * splash writes out the same master (`dowel-ui/marks`, kilna's M), so the two
+ * are one picture.
  */
 export function Splash() {
   const { t } = useTranslation()
@@ -22,7 +26,7 @@ export function Splash() {
 
   return (
     <SplashScreen
-      mark={<Mark className="size-14" />}
+      mark={<ProductMark product="kilna" size={56} />}
       name={t('app.name')}
       tagline={t('app.tagline')}
       version={`v${__APP_VERSION__}`}

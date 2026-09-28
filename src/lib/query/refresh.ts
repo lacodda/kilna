@@ -18,18 +18,23 @@ export const refresh = {
   work: [keys.works, keys.catalogue] as readonly QueryKey[],
   /** A work made or gone: everything that counts or places works. */
   works: [keys.works, keys.catalogue, keys.workspace, keys.calendar] as readonly QueryKey[],
-  /** A version of one work: its list, the work that points at its current one. */
+  /** A version of one work: its list, the work that points at its current
+   *  one, and the calendar - a release's readiness asks for a draft, and the
+   *  catalogue's Ready column and the calendar's chips read it from there. */
   version: (workId: string): readonly QueryKey[] => [
     keys.versions(workId),
     keys.work(workId),
     keys.works,
+    keys.calendar,
   ],
-  /** A score: every screen that ranks or tiers works. */
+  /** A score: every screen that ranks or tiers works, and the calendar, whose
+   *  readiness asks for a score. */
   score: (workId: string): readonly QueryKey[] => [
     keys.scores,
     keys.work(workId),
     keys.works,
     keys.catalogue,
+    keys.calendar,
   ],
   release: [keys.releases, keys.calendar, keys.releaseQueue, keys.catalogue] as readonly QueryKey[],
   note: [keys.notes, keys.tags] as readonly QueryKey[],

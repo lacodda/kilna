@@ -12,12 +12,14 @@ export type RailWidth = 'full' | 'compact'
 
 const STORAGE_KEY = 'kilna.rail'
 
-/** The two widths, as grid track sizes. The full one is the theme's, the
- *  width every rail of the line shares; the compact one is an icon and its
- *  padding, which no other product has yet. */
+/** The two widths, as grid track sizes. Both are the theme's, the widths every
+ *  rail of the line shares: the compact one is dowel's `NavRail collapsed` - a
+ *  36px entry with air on each side. It was kilna's own 52px until the rail
+ *  moved onto NavRail, and 52 is a pixel short of an entry, its inset and the
+ *  rail's border, which would have drawn a sideways bar under the icons. */
 export const RAIL_WIDTH: Record<RailWidth, string> = {
   full: 'var(--spacing-rail)',
-  compact: '52px',
+  compact: 'var(--spacing-rail-compact)',
 }
 
 /** What is stored, or the full menu — an absent or broken value is not an error. */

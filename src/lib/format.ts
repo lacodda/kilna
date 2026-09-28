@@ -113,6 +113,45 @@ export function formatMoment(timestamp: string, language = current(), now = new 
     : formatDay(timestamp, language, now)
 }
 
+/** "today" and "yesterday" in each language, which `Intl` already knows. */
+const relatives = new Map<string, Intl.RelativeTimeFormat>()
+
+function relative(language: string): Intl.RelativeTimeFormat {
+  let found = relatives.get(language)
+  if (found === undefined) {
+    found = new Intl.RelativeTimeFormat(language, { numeric: 'auto' })
+    relatives.set(language, found)
+  }
+  return found
+}
+
+/**
+ * When something happened, as a record says it: the day and the time, always
+ * both - "today · 14:12", "yesterday · 20:41", "Sep 14 · 10:22".
+ *
+ * A feed can drop the time of an older line; a record cannot. The history and
+ * the trash said only "Sep 14" for anything before today, so two deletions an
+ * hour apart read as the same moment, and which of them to restore was a
+ * guess. The two nearest days are named because they are the ones a person
+ * counts back to without a calendar.
+ */
+export function formatStamp(timestamp: string, language = current(), now = new Date()): string {
+  const at = new Date(timestamp)
+  if (Number.isNaN(at.getTime())) return timestamp
+  const time = dates(language, { hour: '2-digit', minute: '2-digit' }).format(at)
+  // Calendar days where the window is, not 24-hour spans: a line written at
+  // 23:50 is "yesterday" ten minutes after midnight. Rounded, because a day
+  // that crosses a clock change is 23 or 25 hours long.
+  const midnight = (moment: Date) =>
+    new Date(moment.getFullYear(), moment.getMonth(), moment.getDate()).getTime()
+  const daysAgo = Math.round((midnight(now) - midnight(at)) / 86_400_000)
+  const day =
+    daysAgo === 0 || daysAgo === 1
+      ? relative(language).format(-daysAgo, 'day')
+      : formatDay(timestamp, language, now)
+  return `${day} · ${time}`
+}
+
 /**
  * How long something took: `4s`, `1m 12s`, `2h 05m` in English, each
  * language's own narrow units elsewhere. Rounded to the second, because a run

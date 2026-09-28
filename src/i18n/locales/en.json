@@ -29,9 +29,7 @@
     "add": "Add",
     "newPlaceholder": "Title of a new work",
     "search": "Search",
-    "status": "Status",
     "kind": "Kind",
-    "anyStatus": "Any status",
     "newTitle": "New work",
     "newOfKind": "New: {{kind}}",
     "title": "Title"
@@ -128,7 +126,9 @@
     "soon": "Coming in v{{version}}",
     "journal": "History",
     "styles": "Styles",
-    "comments": "Comments"
+    "comments": "Comments",
+    "screens": "Screens",
+    "appearance": "Theme and language"
   },
   "themeName": {
     "system": "System theme",
@@ -178,7 +178,7 @@
     "statusInStep": "Every status matches the facts.",
     "statusResynced_one": "{{count}} work restated.",
     "statusResynced_other": "{{count}} works restated.",
-    "cardView": "The work card",
+    "cardView": "Beside the title",
     "cardViewHint": "What the card draws beside the title. The fields themselves are untouched either way — hiding a row only stops it being drawn.",
     "showMetaStrip": "Show the row of craft fields",
     "export": "Export",
@@ -191,10 +191,10 @@
     "backupAction": "Save a backup…",
     "backupTitle": "Where to save the backup",
     "backedUp": "Saved to {{path}}",
-    "workspaceAt": "Workspace file:",
+    "workspaceAt": "Workspace file",
     "restoreHint": "To restore, close kilna and put the backup in place of that file.",
     "mcp": "Agents outside kilna",
-    "mcpHint": "kilna --mcp serves this workspace to an agent such as Claude Code over the Model Context Protocol: it can read your works, versions, scores and calendar, and propose a version, a score or a note — which you apply here, or don't. Register it with this command:",
+    "mcpHint": "kilna --mcp serves this workspace to an agent such as Claude Code over the Model Context Protocol: it can read your works, versions, scores and calendar, and propose a version, a score or a note — which you apply here, or don't. Register it with the command above.",
     "mcpCopy": "Copy",
     "mcpCopied": "Copied",
     "mcpAfter": "Proposals land in a chat named after the agent — on the work, or on nothing for a work it proposes — and the bell counts them.",
@@ -209,8 +209,37 @@
   },
   "dashboard": {
     "decisions": "Needs a decision",
-    "decisionsCount_one": "{{count}} release",
-    "decisionsCount_other": "{{count}} releases",
+    "decisionsCount_one": "{{count}} waiting",
+    "decisionsCount_other": "{{count}} waiting",
+    "lead": "What needs you",
+    "side": "At a glance",
+    "reason": {
+      "missing": "Still missing: {{gaps}}.",
+      "rescore": "Edited after it was scored, so {{total}} may no longer hold.",
+      "schedule": "Scored {{total}}, but nothing is booked."
+    },
+    "move": {
+      "open": "Open",
+      "score": "Score",
+      "rescore": "Re-score",
+      "schedule": "Schedule"
+    },
+    "noDecisionsTitle": "Nothing needs a decision",
+    "noDecisionsBody": "What is still worth doing stands beside this.",
+    "works": "Works",
+    "inCatalogue": "in the catalogue",
+    "scoredCount_one": "{{count}} scored",
+    "scoredCount_other": "{{count}} scored",
+    "unscoredCount_one": "{{count}} unscored",
+    "unscoredCount_other": "{{count}} unscored",
+    "releasedCount_one": "{{count}} released",
+    "releasedCount_other": "{{count}} released",
+    "running": "Running now",
+    "idle": "Nothing is running.",
+    "since": "Since your last visit",
+    "sinceNothing": "Nothing new since the history was last marked seen.",
+    "sinceMore_one": "{{count}} more in the history",
+    "sinceMore_other": "{{count}} more in the history",
     "week": "Next 7 days",
     "weekCount_one": "{{count}} release",
     "weekCount_other": "{{count}} releases",
@@ -227,6 +256,8 @@
   "findings": {
     "title": "Worth doing",
     "readOnly": "read-only — nothing changes without you",
+    "readOnlyShort": "read-only",
+    "none": "Nothing else stands out.",
     "askHint": "Asks the assistant. The answer lands in a chat; you decide what to do with it.",
     "kind": {
       "unscored": "“{{title}}” has no score yet",
@@ -246,6 +277,7 @@
     }
   },
   "focus": {
+    "title": "Kept in view",
     "add": "Add a line",
     "addPlaceholder": "Something to keep in front of you",
     "save": "Add",
@@ -259,7 +291,6 @@
   },
   "calendar": {
     "openWork": "Open the work",
-    "dragHandle": "Drag to another day",
     "dropToUnschedule": "Drop here to return it to the queue",
     "pinSlot": "Keep this date",
     "pinSlotHint": "The auto-layout will not put anything here.",
@@ -271,6 +302,7 @@
     "moreOnDay_one": "+{{count}} more",
     "moreOnDay_other": "+{{count}} more",
     "showFewer": "Show fewer",
+    "dayReleases": "Releases on {{date}}",
     "widen": "Give the month the full width",
     "showQueue": "Show the queue",
     "previewScore": "Score",
@@ -296,7 +328,6 @@
     "queue": "Queue",
     "queueHint": "Strongest first. Pick one, then give it a date.",
     "queueEmpty": "Nothing waiting. Add a release from a work.",
-    "empty": "No slots taken yet.",
     "slotDate": "Slot date",
     "claim": "Claim slot",
     "markReleased": "Mark released",
@@ -426,7 +457,6 @@
     "scored": "Scored",
     "stale": "changed since",
     "staleHint": "The work was edited after this score was taken.",
-    "anyTier": "Any tier",
     "starred": "Starred",
     "starredHint": "Only the works you starred to come back to",
     "queryPlaceholder": "Search, or narrow: tier:clip status:draft",
@@ -439,6 +469,8 @@
     "viewNamePlaceholder": "Unscored clips",
     "viewSave": "Save",
     "viewRemove": "Forget the view \"{{name}}\"",
+    "viewActive": "View: {{name}}",
+    "viewsEmpty": "No saved views yet. Narrow the table, then keep it here under a name.",
     "kindAll": "All",
     "gaps": "Needs work",
     "gap": {
@@ -452,6 +484,8 @@
       "stale": "The work changed after it was scored."
     },
     "showing": "{{shown}} of {{total}}",
+    "count_one": "{{count}} work",
+    "count_other": "{{count}} works",
     "selectAll": "Select every work shown",
     "select": "Select {{title}}",
     "rowMenu": "What to do with {{title}}",
@@ -468,20 +502,25 @@
     "sortBy": "Sort by {{column}}",
     "clear": "Clear",
     "columns": "Choose columns",
+    "columnsButton": "Columns",
     "column": {
       "id": "ID",
       "marks": "Marks",
+      "status": "Status",
       "versions": "Versions",
+      "release": "Next release",
+      "ready": "Ready",
       "created": "Added",
       "updated": "Edited",
       "stage": "Stage"
     },
+    "releaseHint": "{{kind}} on {{date}}",
     "groupBy": "Group by",
     "groupNone": "No grouping",
     "groupStatus": "By status",
     "groupTier": "By tier",
     "bulk": {
-      "actions": "Actions",
+      "label": "What to do with the chosen works",
       "setStatus": "Move to status",
       "unschedule": "Take off the calendar",
       "statusSet_one": "{{count}} work moved",
@@ -542,7 +581,7 @@
     "actions": "AI actions",
     "actionWorking": "{{label}} — working",
     "taskStarted": "Started: {{title}}",
-    "askFor": "Ask the assistant for",
+    "askMany": "Ask the assistant",
     "batchStarted_one": "{{count}} work sent to the assistant.",
     "batchStarted_other": "{{count}} works sent to the assistant.",
     "batchQueued": "{{started}} started, {{queued}} waiting for a free slot.",
@@ -878,8 +917,9 @@
   },
   "styles": {
     "new": "New style",
-    "edit": "Edit style",
-    "saved": "Style saved.",
+    "untitled": "Untitled style",
+    "close": "Close the style",
+    "delete": "Delete the style",
     "deleted": "“{{name}}” moved to the trash.",
     "type": "Type",
     "allTypes": "All",
@@ -891,7 +931,11 @@
     "hintHint": "What to look at when this is described — never part of a prompt.",
     "describe": "Describe from the references",
     "referenceList": "References",
-    "referenceHint": "Add pictures, or paste one with Ctrl+V.",
+    "referenceHint": "Drop pictures anywhere on the style, paste one with Ctrl+V, or add them from disk.",
+    "dropToAdd": "Let go to add them",
+    "notPictures": "{{count}} file was not a picture and was left out.",
+    "notPictures_other": "{{count}} files were not pictures and were left out.",
+    "referenceFailed": "Couldn't add the reference",
     "addReference": "Add pictures",
     "removeReference": "Remove the reference",
     "pictures": "Pictures",
@@ -916,7 +960,16 @@
     "unpick": "Take it out",
     "allPicked": "Every style is picked",
     "noneReady": "No styles are ready",
-    "noneReadyBody": "A style is offered here once it carries a description. Write one, or let the assistant describe it from its references."
+    "noneReadyBody": "A style is offered here once it carries a description. Write one, or let the assistant describe it from its references.",
+    "dropHint": "Drop references here, paste a picture with Ctrl+V, or pick files.",
+    "dropToMake": "Let go to make a style of them",
+    "makeFailed": "Couldn't make the style",
+    "saveFailed": "Couldn't save the style",
+    "nameMissing": "A style needs a name. Until it has one, the last name stays.",
+    "nameTaken": "Another style of this type is called “{{name}}”. Until this one is called something else, its last name and type stay.",
+    "gone": "This style is not here",
+    "goneBody": "It was deleted, or the address is old. The trash may still have it.",
+    "describeNeedsReferences": "Add a picture first: the description is read off the references."
   },
   "editor": {
     "axes": "Scoring axes",
@@ -1065,6 +1118,7 @@
   },
   "trash": {
     "hint": "Nothing leaves for good until you say so.",
+    "from": "· from “{{origin}}”",
     "what": "What",
     "kind": "Kind",
     "when": "Deleted",
@@ -1104,6 +1158,24 @@
     "open": "History",
     "repeated_one": "{{count}} time",
     "repeated_other": "{{count}} times",
+    "kind": {
+      "work": "Work",
+      "version": "Version",
+      "score": "Score",
+      "release": "Release",
+      "calendar": "Calendar",
+      "scene": "Scenes",
+      "cut": "Cut",
+      "link": "Link",
+      "file": "File",
+      "note": "Note",
+      "comment": "Comment",
+      "style": "Style",
+      "collection": "Collection",
+      "assistant": "Assistant",
+      "trash": "Trash",
+      "undo": "Undo"
+    },
     "work.created": "“{{title}}” added.",
     "work.cloned": "“{{title}}” started as a second attempt, with {{scenes}} scenes copied.",
     "work.renamed": "“{{from}}” renamed to “{{to}}”.",
@@ -1187,8 +1259,6 @@
   "search": {
     "title": "Search",
     "placeholder": "Search anything…",
-    "shortcut": "Ctrl K",
-    "hint": "Titles, drafts, notes and what the assistant said.",
     "searching": "Looking…",
     "nothing": "Nothing matches “{{query}}”.",
     "navigate": "↑↓ navigate",
@@ -1200,7 +1270,23 @@
       "note": "Notes",
       "message": "Assistant",
       "recent": "Recent",
-      "comment": "Comments"
+      "comment": "Comments",
+      "action": "Actions",
+      "screen": "Screens"
+    },
+    "action": {
+      "score": "Score “{{title}}”",
+      "release": "Schedule a release of “{{title}}”",
+      "theme": {
+        "system": "Follow the system theme",
+        "light": "Switch to the light theme",
+        "dark": "Switch to the dark theme"
+      },
+      "language": {
+        "system": "Follow the system language",
+        "en": "Switch to English",
+        "ru": "Switch to Russian (Русский)"
+      }
     }
   },
   "keys": {
@@ -1303,7 +1389,8 @@
     "minimize": "Minimize",
     "maximize": "Maximize",
     "restore": "Restore",
-    "close": "Close"
+    "close": "Close",
+    "trail": "Where you are"
   },
   "splash": {
     "opening": "Opening the workspace…",
@@ -1328,9 +1415,11 @@
     "appearance": "Appearance",
     "theme": "Theme",
     "language": "Language",
-    "defaultTab": "Where a card opens",
     "defaultTabHint": "The tab a work opens on from the catalogue, the calendar or a search hit. A link that names a tab still opens that tab.",
-    "defaultTabLabel": "Open on"
+    "defaultTabLabel": "Open on",
+    "unsaved": "There are unsaved changes",
+    "discard": "Discard",
+    "discarded": "Changes to the profile discarded."
   },
   "pick": {
     "placeholder": "Find a work by name…",

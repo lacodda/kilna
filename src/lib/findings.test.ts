@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import {
   STALE_DRAFT_DAYS,
+  answeredOn,
   dismissalKey,
   findings,
+  identify,
   visible,
   type Finding,
   type FindingKind,
@@ -371,5 +373,25 @@ describe('the dismissal key', () => {
     const answered: Dismissal[] = [{ ...dismissalKey(first), dismissed_at: '2026-08-28T09:00:00Z' }]
 
     expect(kinds(visible([first, second], answered))).toEqual(['stale-draft'])
+  })
+})
+
+describe('identify', () => {
+  it('tells two complaints about one work apart, and one complaint from itself not', () => {
+    const first: Finding = { kind: 'stale-score', workId: 'w1', title: 'A', complaint: 'x' }
+
+    expect(identify(first)).toBe(identify({ ...first, title: 'renamed' }))
+    expect(identify(first)).not.toBe(identify({ ...first, complaint: 'y' }))
+    expect(identify(first)).not.toBe(identify({ ...first, kind: 'stale-draft' }))
+  })
+})
+
+describe('answeredOn', () => {
+  it('opens the tab each complaint is answered on, and none for a stalled draft', () => {
+    const tabs = (
+      ['unscored', 'stale-score', 'ready-unscheduled', 'weak-scheduled', 'stale-draft'] as const
+    ).map(answeredOn)
+
+    expect(tabs).toEqual(['score', 'score', 'releases', 'releases', undefined])
   })
 })

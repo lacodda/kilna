@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { drawn, JUMPS, SCREENS, SOON, screenAt } from '@/app/screens'
+import type { ProfileConfig } from '@/lib/api/types'
+import { drawn, JUMPS, onRail, railAt, SCREENS, SOON, screenAt } from '@/app/screens'
 import { CARD_TABS, SCREENS as PLACES } from '@/test/places'
+import { studio } from '@/test/workspace'
 import { version } from '../../package.json'
 
 /*
@@ -46,6 +48,32 @@ describe('the screens', () => {
     expect(screenAt('/notes/n1').key).toBe('notes')
     expect(screenAt('/works/w1/versions').nav).toBe('nav.catalogue')
     expect(screenAt('/nowhere').key).toBe('dashboard')
+  })
+
+  it('light the rail entry of the screen open, or of the one it is named after', () => {
+    expect(railAt('/notes/n1')).toBe('notes')
+    expect(railAt('/settings/general')).toBe('settings')
+    // An open work is not in the rail; it belongs to the catalogue, which is
+    // what its trail says too.
+    expect(railAt('/works/w1/versions')).toBe('catalogue')
+    for (const screen of SCREENS) {
+      const lit = railAt(`/${screen.key}`)
+      expect(lit, screen.key).toBeDefined()
+      expect(SCREENS.find((other) => other.key === lit)?.rail, screen.key).toBeDefined()
+    }
+  })
+
+  it('offer the rail and the palette what the build and the craft have', () => {
+    const config = studio().profile.config
+    const keys = (dev: boolean, craft: ProfileConfig) => onRail(dev, craft).map((s) => s.key)
+
+    // Every screen with a door, none without one, in the list's own order.
+    expect(keys(true, config)).toEqual(
+      SCREENS.filter((screen) => screen.rail !== undefined).map((screen) => screen.key),
+    )
+    expect(keys(false, config)).not.toContain('styleguide')
+    // A craft with no style types has no dictionary, and no door to one.
+    expect(keys(true, { ...config, style_types: [] })).not.toContain('styles')
   })
 })
 
