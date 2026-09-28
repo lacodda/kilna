@@ -1,7 +1,7 @@
 //! Holds the window's hand-written unions to the backend's enums.
 //!
-//! `src/lib/api.ts` mirrors several Rust enums as TypeScript string unions,
-//! by hand. Nothing connects the two at compile time, and two had already come
+//! The window's contract types (`src/lib/api/types.ts` since v0.77) mirror
+//! several Rust enums as TypeScript string unions, by hand. Nothing connects the two at compile time, and two had already come
 //! apart:
 //!
 //! - the trash kinds: a comment deleted in v0.76 reached the trash as a kind
@@ -13,7 +13,9 @@
 //!   from before v0.44, the backend sent `taken`, and a day that merely had
 //!   something on it was painted in the colour of a refusal.
 //!
-//! Each test reads the union out of `api.ts` and compares it with the enum.
+//! Each test finds the union's declaration wherever it is in the frontend -
+//! it moved once, from `api.ts`, and this test read a file that no longer
+//! existed - and compares it with the enum.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -28,16 +30,41 @@ fn repo_root() -> PathBuf {
         .to_path_buf()
 }
 
-/// The members of a union declared in `api.ts` as `export type Name =`
-/// followed by one `| 'member'` per line, or on the same line as `'a' | 'b'`.
+/// Every `.ts` under the frontend's `src`, with its text.
+fn frontend_sources() -> Vec<(PathBuf, String)> {
+    fn walk(dir: &Path, found: &mut Vec<(PathBuf, String)>) {
+        for entry in std::fs::read_dir(dir).expect("a source directory is readable") {
+            let path = entry.expect("a readable entry").path();
+            if path.is_dir() {
+                walk(&path, found);
+            } else if path.extension().is_some_and(|ext| ext == "ts") {
+                let text = std::fs::read_to_string(&path).expect("a source file is readable");
+                found.push((path, text));
+            }
+        }
+    }
+    let mut found = Vec::new();
+    walk(&repo_root().join("src"), &mut found);
+    found
+}
+
+/// The members of a union declared as `export type Name =` followed by one
+/// `| 'member'` per line, or on the same line as `'a' | 'b'` - in whichever
+/// one file of the frontend declares it.
 fn union_members(name: &str) -> BTreeSet<String> {
-    let source =
-        std::fs::read_to_string(repo_root().join("src/lib/api.ts")).expect("api.ts is readable");
     let head = format!("export type {name} =");
-    let start = source
-        .find(&head)
-        .unwrap_or_else(|| panic!("api.ts declares {name}"))
-        + head.len();
+    let declaring: Vec<(PathBuf, String)> = frontend_sources()
+        .into_iter()
+        .filter(|(_, text)| text.contains(&head))
+        .collect();
+    assert_eq!(
+        declaring.len(),
+        1,
+        "expected exactly one declaration of `{name}` in the frontend, found {:?}",
+        declaring.iter().map(|(path, _)| path).collect::<Vec<_>>()
+    );
+    let source = &declaring[0].1;
+    let start = source.find(&head).expect("found above") + head.len();
     let mut members = BTreeSet::new();
     let mut rest = source[start..].lines();
     // The members on the declaring line itself, then one per following line
@@ -101,7 +128,7 @@ fn the_window_knows_every_kind_the_trash_holds() {
     );
     assert_eq!(
         known, sent,
-        "DeletedEntity in src/lib/api.ts and trash::Entity::ALL disagree"
+        "DeletedEntity in the frontend and trash::Entity::ALL disagree"
     );
 }
 
@@ -139,6 +166,6 @@ fn the_window_knows_every_verdict_on_a_day() {
     );
     assert_eq!(
         known, sent,
-        "SlotVerdict in src/lib/api.ts and release::Verdict disagree"
+        "SlotVerdict in the frontend and release::Verdict disagree"
     );
 }
