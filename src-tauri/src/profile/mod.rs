@@ -1968,6 +1968,39 @@ mod tests {
         );
     }
 
+    /// The layout chosen in Settings is kept on the profile; one no window
+    /// draws is refused by name and leaves the stored choice as it was.
+    #[test]
+    fn the_overview_layout_is_saved_and_an_unknown_one_refused() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let profile = active(&conn).unwrap().unwrap();
+        assert!(
+            profile.config.overview.is_none(),
+            "a shipped profile follows the window's own board"
+        );
+
+        let mut chosen = profile.config.clone();
+        chosen.overview = Some(config::OverviewConfig {
+            layout: "bands".into(),
+            widgets: Vec::new(),
+        });
+        let saved = update_config(&conn, &profile.id, &chosen).unwrap();
+        assert_eq!(saved.config.overview.as_ref().unwrap().layout, "bands");
+
+        let mut unknown = chosen.clone();
+        unknown.overview.as_mut().unwrap().layout = "carousel".into();
+        let message = update_config(&conn, &profile.id, &unknown)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            message.contains("the overview's layout is `grid`, `lead`, `bands`, `mosaic` or `sheet`, not `carousel`"),
+            "{message}"
+        );
+        let stored = config_for(&conn, &profile.id).unwrap();
+        assert_eq!(stored.overview.unwrap().layout, "bands");
+    }
+
     /// A workspace written in format 1 comes up in format 2 — and the
     /// document in the row is rewritten, so the migration happens once rather
     /// than on every read.

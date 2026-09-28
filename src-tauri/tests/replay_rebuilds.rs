@@ -18,7 +18,7 @@
 
 use rusqlite::Connection;
 use rusqlite::types::ValueRef;
-use serde_json::{Map, Value};
+use serde_json::{Map, Value, json};
 
 use kilna_lib::minted::Minted;
 use kilna_lib::{db, operation, profile, release, replay, work};
@@ -306,6 +306,85 @@ fn a_derived_status_survives_the_rebuild() {
         contents(&rebuilt),
         contents(&source),
         "the rebuilt workspace is not the same workspace"
+    );
+}
+
+/// A work's fields rebuild as they stood, from a log that holds both ways of
+/// writing them: the whole object, as an edit was logged until v0.82, and one
+/// field merged by key, as it is logged since. The older entry dropped a field
+/// by leaving it out, and read as a merge it would have kept it.
+#[test]
+fn field_edits_rebuild_whether_logged_whole_or_by_key() {
+    let mut source = workspace();
+    let profile_id = profile::active(&source).unwrap().unwrap().id;
+    let key = profile::key_for_id(&source, &profile_id).unwrap().unwrap();
+
+    let new = work::NewWork {
+        kind: "song".into(),
+        title: "Harbour lights".into(),
+        meta: json!({ "bpm": 128, "key": "Am" }).as_object().cloned(),
+        ..work::NewWork::default()
+    };
+    let minted = Minted::fresh();
+    let work_id = minted.id().to_owned();
+    let logged = operation::Intent::new("work.create")
+        .in_profile(&profile_id)
+        .param("profile", key.clone())
+        .param("work", serde_json::to_value(&new).unwrap())
+        .minted(&minted);
+    let transaction = source.transaction().unwrap();
+    work::create_minted(&transaction, &profile_id, new, minted).unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    // Each edit: what the log says, and what the row became live.
+    let edits = [
+        // Until v0.82: the tempo changed, the key dropped, a mood added -
+        // written as every field the work was left with.
+        (
+            json!({ "meta": { "bpm": 92, "mood": "dark" } }),
+            json!({ "meta": { "bpm": 128, "key": "Am" } }),
+            json!({ "bpm": 92, "key": null, "mood": "dark" }),
+        ),
+        // Since: one field, removed by name.
+        (
+            json!({ "meta": { "mood": null } }),
+            json!({ "meta": { "mood": "dark" } }),
+            json!({ "mood": null }),
+        ),
+    ];
+    for (patch, before, live) in edits {
+        let at = kilna_lib::time::now();
+        let logged = operation::Intent::new("work.update")
+            .in_profile(&profile_id)
+            .param("profile", key.clone())
+            .param("id", work_id.clone())
+            .param("patch", patch)
+            .param("before", before)
+            .param("at", at.clone());
+        let transaction = source.transaction().unwrap();
+        let fields = work::WorkPatch {
+            meta: live.as_object().cloned(),
+            ..work::WorkPatch::default()
+        };
+        work::update_at(&transaction, &work_id, fields, &at).unwrap();
+        operation::record(&transaction, logged).unwrap();
+        transaction.commit().unwrap();
+    }
+    assert_eq!(
+        Value::Object(work::get(&source, &work_id).unwrap().unwrap().meta),
+        json!({ "bpm": 92 }),
+        "the fixture is not set up"
+    );
+
+    let mut rebuilt = workspace();
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+    assert!(report.unknown.is_empty(), "{:?}", report.unknown);
+
+    assert_eq!(
+        contents(&rebuilt),
+        contents(&source),
+        "the rebuilt fields are not the fields the work was left with"
     );
 }
 

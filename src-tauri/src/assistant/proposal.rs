@@ -1459,6 +1459,7 @@ mod instruction_tests {
             catalogue_columns_by_kind: None,
             note_kinds: Vec::new(),
             style_types: Vec::new(),
+            overview: None,
         };
 
         let text = scoring_instruction(&config, "song");

@@ -137,7 +137,15 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
 
         "work.update" => {
             let id = required(params, "id")?;
-            let patch = from_params(params, "patch")?;
+            let mut patch: work::WorkPatch = from_params(params, "patch")?;
+            // A work's fields merge by key since v0.82. An entry logged
+            // before replaced them whole, and replays as it did live only
+            // with the fields it dropped spelled out - see
+            // `work::spell_out_removals`.
+            if let Some(fields) = patch.meta.as_mut() {
+                let held = params.get("before").and_then(|before| before.get("meta"));
+                work::spell_out_removals(fields, held);
+            }
             let at = required(params, "at")?;
             work::update_at(conn, &id, patch, &at)?;
         }

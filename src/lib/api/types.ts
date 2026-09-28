@@ -419,6 +419,36 @@ export interface ProfileConfig {
       the same character stands in the videos and in the shorts. Absent means
       the craft has no style dictionary and the screen does not appear. */
   style_types?: StyleType[]
+  /** How a work's overview is laid out. Absent or null means the owner's
+      choice: the `lead` layout with the placement kilna ships. On the
+      profile rather than on the machine for the columns' reason - a craft
+      looks at its works through its own board. */
+  overview?: OverviewConfig | null
+}
+
+/** The five ways the overview's widgets are arranged: an even grid, a lead
+ *  column with a rail beside it, full-width bands, a mosaic, a sheet of rows.
+ *  The backend refuses any other name on save. */
+export type OverviewLayout = 'grid' | 'lead' | 'bands' | 'mosaic' | 'sheet'
+
+/** How much of the board a widget takes: one cell, two across, two by two. */
+export type WidgetSize = 's' | 'm' | 'l'
+
+/** Where one widget stands on the overview, and how large it is. `id` is the
+ *  catalogue's (`score`, `stage`, `text`, `style`, `fields`, `axes`, `hook`,
+ *  `releases`, `links`, `recent`, `storyboard`, `cover`, `findings`,
+ *  `trend`); one this build does not know is kept on save and not drawn. */
+export interface WidgetPlacement {
+  id: string
+  size: WidgetSize
+  position: number
+}
+
+/** The overview's layout and its widgets. An empty `widgets` means the
+ *  placement kilna ships, so choosing a layout never has to invent one. */
+export interface OverviewConfig {
+  layout: OverviewLayout
+  widgets: WidgetPlacement[]
 }
 
 export interface Profile {
@@ -489,6 +519,10 @@ export interface WorkPatch {
   status?: string
   kind?: string
   collection_id?: string | null
+  /** Merged into the work's fields by key since v0.82: a key with a value
+      sets that field, a key with `null` removes it, a field not named stays.
+      Send only what changed: the undo then takes back that field and not the
+      neighbours edited since. */
   meta?: Meta
   /** Replaces the list. The backend trims, drops blanks and deduplicates
       case-insensitively, so sending what the box holds is enough. */

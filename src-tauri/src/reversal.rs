@@ -7,10 +7,67 @@
 //!
 //! So the inverse of a patch is the patch's own keys, read off the row as it
 //! was. Both are plain JSON objects here rather than the typed `*Patch`
-//! structs, because the rule is the same for all seven of them and a rule
-//! written once cannot drift between six copies of itself.
+//! structs, because the rule is the same for all of them and a rule written
+//! once cannot drift between nine copies of itself.
+//!
+//! The same rule goes one level down for a field a patch merges into rather
+//! than replaces - a work's `meta`, since v0.82. A patch that sets the tempo
+//! names only the tempo, so its inverse names only the tempo too: the key it
+//! would otherwise record is the whole object, and undoing the tempo would
+//! put back the key signature someone set a minute later.
 
 use serde_json::{Map, Value};
+
+/// A patch the log records the inverse of.
+///
+/// Each patch says which of its fields merge into the row by key rather than
+/// replace it whole, because the two need different inverses and nothing in
+/// the JSON tells them apart: a work's `meta` and a release's `meta` are both
+/// an object of fields, and only the work's merges. Implemented below for
+/// every patch in the application rather than beside each one, so the list of
+/// which merge is read in one place - and a patch that has not said cannot be
+/// recorded at all, since [`before_of`] asks for this trait.
+pub trait Patch: serde::Serialize {
+    /// Fields whose value is an object merged into the row's by key: a key
+    /// with a value sets it, a key with `null` removes it, and a key the
+    /// patch does not name is left as it is.
+    const MERGED_BY_KEY: &'static [&'static str] = &[];
+}
+
+impl Patch for crate::work::WorkPatch {
+    const MERGED_BY_KEY: &'static [&'static str] = &["meta"];
+}
+impl Patch for crate::note::NotePatch {}
+impl Patch for crate::comment::CommentPatch {}
+impl Patch for crate::style_brick::StyleBrickPatch {}
+impl Patch for crate::focus::FocusNotePatch {}
+impl Patch for crate::release::ReleasePatch {}
+impl Patch for crate::collection::CollectionPatch {}
+impl Patch for crate::scene::ScenePatch {}
+impl Patch for crate::cut::CutPatch {}
+
+/// What the fields a patch names held before it was applied, as the log
+/// records it beside the patch - see [`invert`] and [`invert_merging`].
+///
+/// A row that is not there yields an empty object rather than an error. The
+/// change about to be attempted will fail on its own and say so properly; a
+/// log helper is not the place to decide that.
+pub fn before_of<T: serde::Serialize, P: Patch>(
+    before: Option<&T>,
+    patch: &P,
+) -> crate::error::Result<Value> {
+    let (Some(before), Value::Object(patch)) = (before, serde_json::to_value(patch)?) else {
+        return Ok(Value::Object(Map::new()));
+    };
+    let Value::Object(before) = serde_json::to_value(before)? else {
+        return Ok(Value::Object(Map::new()));
+    };
+    Ok(Value::Object(invert_merging(
+        &before,
+        &patch,
+        P::MERGED_BY_KEY,
+    )))
+}
 
 /// Read a patch field that can be cleared: absent means "leave it", `null`
 /// means "clear it", a value means "set it".
@@ -54,12 +111,39 @@ const FLAGS_OVER_STAMPS: [(&str, &str); 1] = [("bookmarked", "bookmarked_at")];
 /// which is how every patch in this application spells "clear it" — a work that
 /// gained a collection is put back to having none.
 pub fn invert(before: &Map<String, Value>, patch: &Map<String, Value>) -> Map<String, Value> {
+    invert_merging(before, patch, &[])
+}
+
+/// [`invert`], for a patch some of whose fields merge by key.
+///
+/// A field named in `merged_by_key` is inverted one level down by the same
+/// rule: the keys the patch sent, each with what the row's object held under
+/// it, and `null` for a key it did not have - which the merge reads as
+/// "remove it", so a field the patch added is taken away again and every
+/// field it did not send is left alone.
+pub fn invert_merging(
+    before: &Map<String, Value>,
+    patch: &Map<String, Value>,
+    merged_by_key: &[&str],
+) -> Map<String, Value> {
     let mut inverse = Map::new();
-    for key in patch.keys() {
+    for (key, sent) in patch {
         if let Some((_, column)) = FLAGS_OVER_STAMPS.iter().find(|(flag, _)| flag == key) {
             // The flag's inverse is whether the stamp was there, not the stamp.
             let was_set = before.get(*column).is_some_and(|value| !value.is_null());
             inverse.insert(key.clone(), Value::Bool(was_set));
+            continue;
+        }
+        if let (true, Value::Object(sent)) = (merged_by_key.contains(&key.as_str()), sent) {
+            let held = before.get(key).and_then(Value::as_object);
+            let was: Map<String, Value> = sent
+                .keys()
+                .map(|field| {
+                    let value = held.and_then(|held| held.get(field)).cloned();
+                    (field.clone(), value.unwrap_or(Value::Null))
+                })
+                .collect();
+            inverse.insert(key.clone(), Value::Object(was));
             continue;
         }
         let was = before.get(key).cloned().unwrap_or(Value::Null);
@@ -174,6 +258,51 @@ mod tests {
             object(json!({ "bookmarked": false })),
             "a work that was not bookmarked has the bookmark taken off again"
         );
+    }
+
+    /// A field merged by key inverts to the keys the patch sent, not to the
+    /// object it held: undoing the tempo must not put back a key signature
+    /// set after it.
+    #[test]
+    fn a_field_merged_by_key_inverts_only_the_keys_sent() {
+        let before = object(json!({
+            "title": "Harbour lights",
+            "meta": { "bpm": 92, "key": "Am" },
+        }));
+        let patch = object(json!({ "meta": { "bpm": 120, "mood": "dark" } }));
+
+        assert_eq!(
+            invert_merging(&before, &patch, &["meta"]),
+            object(json!({ "meta": { "bpm": 92, "mood": null } })),
+            "the tempo goes back, the added field is removed, the key is not named"
+        );
+        assert_eq!(
+            invert(&before, &patch),
+            object(json!({ "meta": { "bpm": 92, "key": "Am" } })),
+            "a field that is replaced whole still inverts to the whole object"
+        );
+    }
+
+    /// A work that never had fields inverts to removing each one it gained.
+    #[test]
+    fn a_merged_field_the_row_did_not_have_inverts_to_removals() {
+        let before = object(json!({ "title": "Harbour lights" }));
+        let patch = object(json!({ "meta": { "bpm": 120 } }));
+
+        assert_eq!(
+            invert_merging(&before, &patch, &["meta"]),
+            object(json!({ "meta": { "bpm": null } }))
+        );
+    }
+
+    /// Which patches merge is said by the patch, and only the work's does.
+    #[test]
+    fn only_the_work_merges_its_meta_by_key() {
+        assert_eq!(
+            <crate::work::WorkPatch as super::Patch>::MERGED_BY_KEY,
+            ["meta"]
+        );
+        assert!(<crate::release::ReleasePatch as super::Patch>::MERGED_BY_KEY.is_empty());
     }
 
     #[test]

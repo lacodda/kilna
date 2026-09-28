@@ -748,11 +748,11 @@ fn write_fields(
     fields: Map<String, Value>,
 ) -> Result<Vec<String>> {
     let before = work::get(conn, work_id)?;
-    let mut meta = before.as_ref().map(|w| w.meta.clone()).unwrap_or_default();
     let written: Vec<String> = fields.keys().cloned().collect();
-    meta.extend(fields);
+    // Only the fields the package names: the patch merges them into the
+    // work's by key, and its undo takes back these and no others.
     let patch = WorkPatch {
-        meta: Some(meta),
+        meta: Some(fields),
         ..WorkPatch::default()
     };
     let at = time::now();

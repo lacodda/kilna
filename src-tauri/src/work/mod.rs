@@ -95,6 +95,16 @@ pub struct WorkPatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub collection_id: Option<Option<String>>,
+    /// The work's fields, merged by key rather than replaced: a key with a
+    /// value sets that field, a key with `null` removes it, and a field the
+    /// patch does not name is left as it is.
+    ///
+    /// Until v0.82 this replaced the whole object, so the screen sent every
+    /// field to change one, and the log's `before` held all of them: undoing
+    /// the tempo put back a key signature set a minute after it, and two
+    /// edits racing each other lost one. Now a patch names the field it
+    /// changes, the log records that field alone (`crate::reversal::Patch`),
+    /// and an undo takes back one field.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub meta: Option<Map<String, Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -398,7 +408,12 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
             Box::new(serde_json::to_string(&marks)?),
         );
     }
-    if let Some(meta) = patch.meta {
+    if let Some(fields) = patch.meta {
+        // Merged into the fields as they stand in this transaction, so an
+        // edit of one field cannot carry a stale copy of its neighbours back
+        // over whatever changed them since the screen last read the work.
+        let mut meta = get(conn, id)?.ok_or_else(|| unknown_work(id))?.meta;
+        merge_fields(&mut meta, fields);
         set(
             &mut assignments,
             &mut values,
@@ -475,6 +490,38 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
     }
 
     get(conn, id)?.ok_or_else(|| unknown_work(id))
+}
+
+/// Merge a patch's fields into a work's: a value sets the field, `null`
+/// removes it, and a field the patch does not name stays as it is. See
+/// [`WorkPatch::meta`].
+pub fn merge_fields(meta: &mut Map<String, Value>, fields: Map<String, Value>) {
+    for (key, value) in fields {
+        if value.is_null() {
+            meta.remove(&key);
+        } else {
+            meta.insert(key, value);
+        }
+    }
+}
+
+/// A `meta` patch from a log written before v0.82, spelled out as the merge
+/// it meant.
+///
+/// Those entries replaced the whole object and recorded it whole on both
+/// sides: the patch held every field the work was left with, `before` every
+/// field it had. Read as a merge, a field the edit removed would survive its
+/// replay, and a field it added would survive its undo. So each side is given
+/// the fields only the other names, as `null` - which the merge reads as
+/// "remove it" - and the two agree again. An entry written since names the
+/// same fields on both sides, and nothing is added to it.
+pub fn spell_out_removals(fields: &mut Map<String, Value>, other_side: Option<&Value>) {
+    let Some(other_side) = other_side.and_then(Value::as_object) else {
+        return;
+    };
+    for key in other_side.keys() {
+        fields.entry(key.clone()).or_insert(Value::Null);
+    }
 }
 
 /// Delete a work along with everything that hangs off it.
@@ -845,6 +892,67 @@ mod tests {
         // Round-trips through the database rather than only through the struct.
         let reloaded = get(&conn, &work.id).unwrap().unwrap();
         assert_eq!(reloaded.meta.get("key").unwrap(), &json!("Am"));
+    }
+
+    fn fields(value: Value) -> WorkPatch {
+        WorkPatch {
+            meta: value.as_object().cloned(),
+            ..WorkPatch::default()
+        }
+    }
+
+    /// A patch of one field changes that field: a value sets it, `null`
+    /// removes it, and the fields it does not name stay as they were.
+    #[test]
+    fn fields_merge_by_key() {
+        let (conn, profile_id) = workspace();
+        let mut new = song("Tempo test");
+        new.meta = json!({ "bpm": 128, "key": "Am" }).as_object().cloned();
+        let work = create(&conn, &profile_id, new).unwrap();
+
+        let tempo = update(&conn, &work.id, fields(json!({ "bpm": 92 }))).unwrap();
+        assert_eq!(
+            Value::Object(tempo.meta),
+            json!({ "bpm": 92, "key": "Am" }),
+            "setting the tempo left the key alone"
+        );
+
+        let added = update(&conn, &work.id, fields(json!({ "mood": "dark" }))).unwrap();
+        assert_eq!(
+            Value::Object(added.meta),
+            json!({ "bpm": 92, "key": "Am", "mood": "dark" })
+        );
+
+        let removed = update(&conn, &work.id, fields(json!({ "bpm": null }))).unwrap();
+        assert_eq!(
+            Value::Object(removed.meta),
+            json!({ "key": "Am", "mood": "dark" }),
+            "null removes the field rather than storing a null"
+        );
+
+        let reloaded = get(&conn, &work.id).unwrap().unwrap();
+        assert_eq!(
+            Value::Object(reloaded.meta),
+            json!({ "key": "Am", "mood": "dark" })
+        );
+    }
+
+    /// An entry logged before v0.82 held the whole object on both sides;
+    /// each side is given what only the other names, as a removal. One
+    /// written since names the same fields on both sides and is left as is.
+    #[test]
+    fn a_whole_object_patch_is_spelled_out_as_the_merge_it_meant() {
+        let mut after = json!({ "bpm": 92 }).as_object().cloned().unwrap();
+        spell_out_removals(&mut after, Some(&json!({ "bpm": 128, "key": "Am" })));
+        assert_eq!(Value::Object(after), json!({ "bpm": 92, "key": null }));
+
+        let mut sent = json!({ "bpm": 92 }).as_object().cloned().unwrap();
+        spell_out_removals(&mut sent, Some(&json!({ "bpm": 128 })));
+        assert_eq!(Value::Object(sent), json!({ "bpm": 92 }));
+
+        let mut lone = json!({ "bpm": 92 }).as_object().cloned().unwrap();
+        spell_out_removals(&mut lone, None);
+        assert_eq!(Value::Object(lone), json!({ "bpm": 92 }));
     }
 
     #[test]

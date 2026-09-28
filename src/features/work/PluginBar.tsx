@@ -46,31 +46,39 @@ export function PluginBar({ target, id }: Props) {
 
   if (actions.length === 0 && unusable.length === 0) return null
 
+  // One line, in the head of the overview beside the profile's actions: the
+  // name of the group as a caption, the commands, and a plugin that cannot
+  // run saying why in a word of warning - the whole reason on hover, since a
+  // line of a head has no room for a paragraph.
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold">{t('plugins.title')}</h3>
+    <div
+      role="group"
+      aria-label={t('plugins.title')}
+      className="flex min-w-0 flex-wrap items-center gap-1.5"
+    >
+      <span className="caption">{t('plugins.title')}</span>
 
-      {actions.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {actions.map(({ plugin, command }) => (
-            <Button
-              key={`${plugin.executable}:${command.key}`}
-              size="sm"
-              disabled={run.isPending}
-              title={command.description}
-              onClick={() => run.mutate({ executable: plugin.executable, command: command.key })}
-            >
-              {command.label}
-            </Button>
-          ))}
-        </div>
-      )}
+      {actions.map(({ plugin, command }) => (
+        <Button
+          key={`${plugin.executable}:${command.key}`}
+          size="sm"
+          disabled={run.isPending}
+          title={command.description}
+          onClick={() => run.mutate({ executable: plugin.executable, command: command.key })}
+        >
+          {command.label}
+        </Button>
+      ))}
 
       {unusable.map((plugin) => (
-        <p key={plugin.executable} className="text-xs text-warn">
+        <span
+          key={plugin.executable}
+          className="max-w-64 truncate text-xs text-warn"
+          title={`${plugin.executable}: ${plugin.reason ?? ''}`}
+        >
           {plugin.executable}: {plugin.reason}
-        </p>
+        </span>
       ))}
-    </section>
+    </div>
   )
 }

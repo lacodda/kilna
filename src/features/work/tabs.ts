@@ -59,11 +59,10 @@ const RULES: Readonly<Record<Tab, TabRules>> = {
 /**
  * The tab a card opens on when the URL does not say.
  *
- * The mockup opens on its Lyrics tab, because there the header holds the
- * editable fields. Here they live on Overview instead — a header that can be
- * typed into is a header that shifts under the cursor while it saves — so
- * Overview is what a card has to open on, or renaming a work would be behind a
- * tab.
+ * The mockup opens on its Lyrics tab. Here a card opens on Overview: since
+ * v0.82 it is the board that says where the work stands - its score, its
+ * stage, its text, its fields edited in place - and each widget leads to the
+ * tab that owns it. The title is renamed in the header (since v0.80).
  */
 export const DEFAULT_TAB: Tab = 'overview'
 

@@ -178,7 +178,14 @@ fn reverse(conn: &mut Connection, entry: &Operation, logged: Intent) -> Result<(
         // those fields — see `crate::reversal` for why that matters.
         "work.update" => {
             let id = required(params, "id")?;
-            let patch: crate::work::WorkPatch = from_params(params, "before")?;
+            let mut patch: crate::work::WorkPatch = from_params(params, "before")?;
+            // The fields merge by key, so the undo sends back only the ones
+            // the edit sent; an entry from before that held them all is
+            // spelled out as the merge it meant.
+            if let Some(fields) = patch.meta.as_mut() {
+                let sent = params.get("patch").and_then(|patch| patch.get("meta"));
+                crate::work::spell_out_removals(fields, sent);
+            }
             edit(conn, logged, &at, |tx| {
                 crate::work::update_at(tx, &id, patch, &at).map(|_| ())
             })?;

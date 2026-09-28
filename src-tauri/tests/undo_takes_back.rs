@@ -82,14 +82,14 @@ fn take_back(conn: &mut Connection, offer: &undo::Undoable) {
     );
 }
 
-/// Edit a work the way the command does: patch, `before`, one moment.
+/// Edit a work the way the command does: patch, `before`, one moment. The
+/// `before` is written by the same function the command calls, so a work's
+/// fields are recorded one level down, as they merge.
 fn edit(conn: &mut Connection, profile_id: &str, work_id: &str, patch: WorkPatch) {
     let key = profile::key_for_id(conn, profile_id).unwrap().unwrap();
     let before = work::get(conn, work_id).unwrap().unwrap();
-    let before = serde_json::to_value(&before).unwrap();
+    let inverse = kilna_lib::reversal::before_of(Some(&before), &patch).unwrap();
     let patch_json = serde_json::to_value(&patch).unwrap();
-    let inverse =
-        kilna_lib::reversal::invert(before.as_object().unwrap(), patch_json.as_object().unwrap());
 
     let at = kilna_lib::time::now();
     let logged = operation::Intent::new("work.update")
@@ -97,7 +97,7 @@ fn edit(conn: &mut Connection, profile_id: &str, work_id: &str, patch: WorkPatch
         .param("profile", key)
         .param("id", work_id.to_owned())
         .param("patch", patch_json)
-        .param("before", serde_json::Value::Object(inverse))
+        .param("before", inverse)
         .param("at", at.clone());
 
     let transaction = conn.transaction().unwrap();
@@ -172,6 +172,145 @@ fn undoing_one_field_leaves_another_alone() {
         after.title, "Winter road",
         "undoing the status change also reverted the rename — the inverse is \
          being built from the whole row instead of from the patch"
+    );
+}
+
+/// A patch naming these fields of the work's, and nothing else.
+fn fields(value: serde_json::Value) -> WorkPatch {
+    WorkPatch {
+        meta: value.as_object().cloned(),
+        ..WorkPatch::default()
+    }
+}
+
+/// The work's fields, as the row holds them now.
+fn meta_of(conn: &Connection, work_id: &str) -> serde_json::Value {
+    serde_json::Value::Object(work::get(conn, work_id).unwrap().unwrap().meta)
+}
+
+/// Two fields edited one after the other, and the second is taken back: the
+/// first keeps its new value. The log's `before` names the one field the edit
+/// sent, not the object it sat in.
+#[test]
+fn undoing_one_field_of_a_work_leaves_the_field_edited_before_it() {
+    let (mut conn, profile_id, work_id) = workspace();
+
+    edit(
+        &mut conn,
+        &profile_id,
+        &work_id,
+        fields(serde_json::json!({ "bpm": 92 })),
+    );
+    edit(
+        &mut conn,
+        &profile_id,
+        &work_id,
+        fields(serde_json::json!({ "key": "Am" })),
+    );
+    assert_eq!(
+        meta_of(&conn, &work_id),
+        serde_json::json!({ "bpm": 92, "key": "Am" })
+    );
+
+    let entry = operation::latest(&conn, 1).unwrap().pop().unwrap();
+    assert_eq!(
+        entry.params["before"],
+        serde_json::json!({ "meta": { "key": null } }),
+        "`before` should name the key the edit sent - and as absent, so the undo removes it"
+    );
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("a field edit can be undone");
+    assert_eq!(offer.action, "undo.work.update");
+    take_back(&mut conn, &offer);
+
+    assert_eq!(
+        meta_of(&conn, &work_id),
+        serde_json::json!({ "bpm": 92 }),
+        "the key went, and the tempo edited before it stayed"
+    );
+}
+
+/// The first of two field edits is taken back while the second - made
+/// meanwhile by something that is not on the undo stack, a second window or
+/// an arriving sync - stays. With the whole object in `before`, as until
+/// v0.82, the undo put the neighbour back to what it was before the edit.
+#[test]
+fn undoing_one_field_leaves_a_neighbour_changed_since() {
+    let (mut conn, profile_id, work_id) = workspace();
+    edit(
+        &mut conn,
+        &profile_id,
+        &work_id,
+        fields(serde_json::json!({ "bpm": 128, "key": "Am" })),
+    );
+
+    edit(
+        &mut conn,
+        &profile_id,
+        &work_id,
+        fields(serde_json::json!({ "bpm": 92 })),
+    );
+    let offer = undo::last(&conn).unwrap().unwrap();
+    work::update(&conn, &work_id, fields(serde_json::json!({ "key": "Em" }))).unwrap();
+
+    take_back(&mut conn, &offer);
+
+    assert_eq!(
+        meta_of(&conn, &work_id),
+        serde_json::json!({ "bpm": 128, "key": "Em" }),
+        "the tempo came back and the key changed since stayed"
+    );
+}
+
+/// An edit logged before v0.82 held the whole object on both sides. Taken
+/// back under the merge it still puts the work back as it was - the field it
+/// added removed again, the one it dropped restored.
+#[test]
+fn a_whole_object_edit_from_an_older_log_is_taken_back_whole() {
+    let (mut conn, profile_id, work_id) = workspace();
+    work::update(
+        &conn,
+        &work_id,
+        fields(serde_json::json!({ "bpm": 128, "key": "Am" })),
+    )
+    .unwrap();
+
+    // What the screen sent until v0.82 to change the tempo, drop the key and
+    // add a mood: every field the work was to be left with.
+    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let at = kilna_lib::time::now();
+    let logged = operation::Intent::new("work.update")
+        .in_profile(&profile_id)
+        .param("profile", key)
+        .param("id", work_id.clone())
+        .param(
+            "patch",
+            serde_json::json!({ "meta": { "bpm": 92, "mood": "dark" } }),
+        )
+        .param(
+            "before",
+            serde_json::json!({ "meta": { "bpm": 128, "key": "Am" } }),
+        )
+        .param("at", at.clone());
+    let transaction = conn.transaction().unwrap();
+    work::update_at(
+        &transaction,
+        &work_id,
+        fields(serde_json::json!({ "bpm": 92, "key": null, "mood": "dark" })),
+        &at,
+    )
+    .unwrap();
+    operation::record(&transaction, logged).unwrap();
+    transaction.commit().unwrap();
+
+    let offer = undo::last(&conn).unwrap().unwrap();
+    take_back(&mut conn, &offer);
+
+    assert_eq!(
+        meta_of(&conn, &work_id),
+        serde_json::json!({ "bpm": 128, "key": "Am" })
     );
 }
 

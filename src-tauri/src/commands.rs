@@ -121,25 +121,13 @@ pub(crate) fn recording<T>(
 ///
 /// Recorded beside the patch so that an undo has something to put back. Only
 /// the patched fields: reverting a rename must not also revert a status
-/// somebody set in between — see [`crate::reversal`], which holds the rule and
-/// the tests for it.
-///
-/// A row that is not there yields an empty object rather than an error. The
-/// change about to be attempted will fail on its own and say so properly; a log
-/// helper is not the place to decide that.
-pub(crate) fn was<T: serde::Serialize, P: serde::Serialize>(
+/// somebody set in between — see [`crate::reversal`], which holds the rule, the
+/// fields that merge by key, and the tests for both.
+pub(crate) fn was<T: serde::Serialize, P: reversal::Patch>(
     before: Option<&T>,
     patch: &P,
 ) -> Result<serde_json::Value> {
-    let (Some(before), Ok(serde_json::Value::Object(patch))) =
-        (before, serde_json::to_value(patch))
-    else {
-        return Ok(serde_json::Value::Object(serde_json::Map::new()));
-    };
-    let serde_json::Value::Object(before) = serde_json::to_value(before)? else {
-        return Ok(serde_json::Value::Object(serde_json::Map::new()));
-    };
-    Ok(serde_json::Value::Object(reversal::invert(&before, &patch)))
+    reversal::before_of(before, patch)
 }
 
 /// The stable key of a profile, for the operations log.
@@ -3643,8 +3631,11 @@ pub fn run_plugin(
             Target::Work => {
                 let before =
                     work::get(&conn, &id)?.ok_or_else(|| Error::not_found("work", id.clone()))?;
+                // Only the plugin's own keys: a work's fields merge by key,
+                // so the rest cannot be cleared and the undo takes back
+                // exactly what the plugin wrote.
                 let patch = WorkPatch {
-                    meta: Some(plugin::merge_meta(&before.meta, &outcome.meta)),
+                    meta: Some(outcome.meta.clone()),
                     ..WorkPatch::default()
                 };
                 let logged = operation::Intent::new("work.update")

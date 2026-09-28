@@ -82,6 +82,15 @@ pub struct ProfileConfig {
     /// is the same document.
     #[serde(default)]
     pub style_types: Vec<StyleType>,
+    /// How a work's overview is laid out, and where each widget stands on it.
+    /// Absent means the owner's choice - the lead layout with the placement
+    /// the window ships - which is why nothing here spells a default out: a
+    /// profile that never chose keeps following the shipped board as it
+    /// changes. On the profile for the catalogue columns' reason: a craft
+    /// looks at its works through its own board. Added in v0.82 - a document
+    /// without it is the same document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub overview: Option<OverviewConfig>,
 }
 
 /// A profile document as it is written, in either format.
@@ -118,6 +127,8 @@ pub struct RawProfileConfig {
     pub note_kinds: Vec<Kind>,
     #[serde(default)]
     pub style_types: Vec<StyleType>,
+    #[serde(default)]
+    pub overview: Option<OverviewConfig>,
     // Format 1: the vocabulary, flat on the profile.
     #[serde(default)]
     pub release_kinds: Vec<ReleaseKind>,
@@ -165,6 +176,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             catalogue_columns_by_kind: raw.catalogue_columns_by_kind,
             note_kinds: raw.note_kinds,
             style_types: raw.style_types,
+            overview: raw.overview,
         }
     }
 }
@@ -616,6 +628,90 @@ fn unique(problems: &mut Vec<String>, what: &str, keys: impl Iterator<Item = Str
 /// work whose kind was removed from the profile reads as unscorable and
 /// roleless rather than crashing the screen it is on.
 static NO_KIND: std::sync::LazyLock<WorkKind> = std::sync::LazyLock::new(|| WorkKind::new("", ""));
+
+/// The names [`OverviewConfig::layout`] may take: an even grid, a lead
+/// column with a rail beside it, full-width bands, a mosaic, a sheet of rows.
+pub const OVERVIEW_LAYOUTS: [&str; 5] = ["grid", "lead", "bands", "mosaic", "sheet"];
+
+/// The sizes a widget may take: one cell, two across, two by two.
+pub const WIDGET_SIZES: [&str; 3] = ["s", "m", "l"];
+
+/// A work's overview: which of the layouts it is drawn in, and the widgets on it.
+///
+/// The layout and the sizes are words rather than enums on this side, and
+/// checked by [`ProfileConfig::validate`] instead of by the parser. The two
+/// ends of the document are held to different rules: a save that names a
+/// layout nobody draws is a mistake to refuse with its name, while a stored
+/// document written by a later build - a sixth layout, a new size - must
+/// still read, or the whole profile would fail to load over one word the
+/// window can fall back from. Nothing in the backend draws a board, so a word
+/// costs it nothing.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OverviewConfig {
+    /// One of [`OVERVIEW_LAYOUTS`].
+    pub layout: String,
+    /// The widgets, each with its size and place. Empty means the placement
+    /// the window ships, so choosing a layout never has to invent one.
+    #[serde(default)]
+    pub widgets: Vec<WidgetPlacement>,
+}
+
+/// Where one widget stands on the overview, and how large it is.
+///
+/// The id is the window's widget catalogue's - `score`, `text`, `releases`
+/// and the rest - and it is not checked against a list here: a widget this
+/// build does not know, written by a later one, is kept on save and simply
+/// not drawn, the way an unknown catalogue column is.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct WidgetPlacement {
+    pub id: String,
+    /// One of [`WIDGET_SIZES`].
+    pub size: String,
+    /// The widget's place in the layout's reading order, first at 0.
+    pub position: u32,
+}
+
+impl OverviewConfig {
+    /// What is wrong with the overview as written, in the words of
+    /// [`ProfileConfig::validate`].
+    fn validate_into(&self, problems: &mut Vec<String>) {
+        if !OVERVIEW_LAYOUTS.contains(&self.layout.as_str()) {
+            problems.push(format!(
+                "the overview's layout is {}, not `{}`",
+                one_of(&OVERVIEW_LAYOUTS),
+                self.layout
+            ));
+        }
+        // A widget named twice would be drawn twice, or once at a place
+        // nobody chose - the corruption `unique` exists to catch.
+        unique(
+            problems,
+            "overview widget",
+            self.widgets.iter().map(|widget| widget.id.clone()),
+        );
+        for (index, widget) in self.widgets.iter().enumerate() {
+            if !WIDGET_SIZES.contains(&widget.size.as_str()) {
+                problems.push(format!(
+                    "overview widget {} (`{}`): the size is {}, not `{}`",
+                    index + 1,
+                    widget.id,
+                    one_of(&WIDGET_SIZES),
+                    widget.size
+                ));
+            }
+        }
+    }
+}
+
+/// The words a field may take, the way a person would list them:
+/// "`s`, `m` or `l`".
+fn one_of(words: &[&str]) -> String {
+    let quoted: Vec<String> = words.iter().map(|word| format!("`{word}`")).collect();
+    match quoted.split_last() {
+        Some((last, rest)) if !rest.is_empty() => format!("{} or {last}", rest.join(", ")),
+        _ => quoted.concat(),
+    }
+}
 
 /// The pace releases go out at.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1456,6 +1552,10 @@ impl ProfileConfig {
             }
         }
 
+        if let Some(overview) = &self.overview {
+            overview.validate_into(&mut problems);
+        }
+
         self.validate_prompts(&mut problems);
 
         problems
@@ -1808,6 +1908,108 @@ mod tests {
     #[test]
     fn a_profile_without_a_rhythm_parses_as_having_none() {
         assert!(config().rhythm.is_none());
+    }
+
+    // Nor an overview - and a document that never chose one must not be
+    // given one on the way out, or the shipped board could never change
+    // under a profile that is following it.
+    #[test]
+    fn a_profile_without_an_overview_reads_and_writes_as_having_none() {
+        let config = config();
+        assert!(config.overview.is_none());
+        let written = serde_json::to_value(&config).unwrap();
+        assert!(
+            written.get("overview").is_none(),
+            "an absent overview is left out, not written as null: {written}"
+        );
+    }
+
+    #[test]
+    fn an_overview_round_trips_with_a_widget_this_build_does_not_know() {
+        let mut document = serde_json::to_value(config()).unwrap();
+        document["overview"] = json!({
+            "layout": "mosaic",
+            "widgets": [
+                { "id": "score", "size": "l", "position": 0 },
+                { "id": "from-a-later-build", "size": "s", "position": 1 },
+            ],
+        });
+        let read: ProfileConfig = serde_json::from_value(document).unwrap();
+        let overview = read.overview.as_ref().expect("the overview is read");
+        assert_eq!(overview.layout, "mosaic");
+        assert_eq!(overview.widgets.len(), 2, "the unknown widget is kept");
+        assert!(read.validate().is_empty(), "{:?}", read.validate());
+
+        let again: ProfileConfig =
+            serde_json::from_value(serde_json::to_value(&read).unwrap()).unwrap();
+        assert_eq!(
+            again.overview, read.overview,
+            "it is written back as it was read"
+        );
+    }
+
+    #[test]
+    fn an_overview_that_only_names_a_layout_has_the_shipped_placement() {
+        let overview: OverviewConfig = serde_json::from_value(json!({ "layout": "lead" })).unwrap();
+        assert!(overview.widgets.is_empty());
+    }
+
+    /// A layout nobody draws is refused on save, by name - but read, so a
+    /// profile a later build wrote with a sixth layout still loads.
+    #[test]
+    fn an_unknown_layout_or_size_reads_but_is_refused_on_save() {
+        let mut document = serde_json::to_value(config()).unwrap();
+        document["overview"] = json!({
+            "layout": "carousel",
+            "widgets": [
+                { "id": "score", "size": "xl", "position": 0 },
+                { "id": "score", "size": "s", "position": 1 },
+            ],
+        });
+        let read: ProfileConfig =
+            serde_json::from_value(document).expect("an unknown layout still reads");
+        let problems = read.validate();
+        assert!(
+            problems.iter().any(|p| p
+                == "the overview's layout is `grid`, `lead`, `bands`, `mosaic` or `sheet`, not `carousel`"),
+            "{problems:?}"
+        );
+        assert!(
+            problems
+                .iter()
+                .any(|p| p == "overview widget 1 (`score`): the size is `s`, `m` or `l`, not `xl`"),
+            "{problems:?}"
+        );
+        assert!(
+            problems
+                .iter()
+                .any(|p| p.contains("overview widget 2 repeats the key `score`")),
+            "{problems:?}"
+        );
+    }
+
+    #[test]
+    fn every_layout_the_window_draws_is_accepted() {
+        let mut config = config();
+        for layout in OVERVIEW_LAYOUTS {
+            config.overview = Some(OverviewConfig {
+                layout: layout.into(),
+                widgets: WIDGET_SIZES
+                    .iter()
+                    .enumerate()
+                    .map(|(position, size)| WidgetPlacement {
+                        id: format!("w{position}"),
+                        size: (*size).into(),
+                        position: position as u32,
+                    })
+                    .collect(),
+            });
+            assert!(
+                config.validate().is_empty(),
+                "{layout}: {:?}",
+                config.validate()
+            );
+        }
     }
 
     #[test]
