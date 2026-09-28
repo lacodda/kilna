@@ -24,7 +24,7 @@ import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SectionLabel } from '@/components/ui/panel'
-import { Skeleton } from '@/components/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Props {
   works: readonly ScoredWork[]
@@ -121,13 +121,15 @@ export function FocusBoard({ works, calendar, skip = [], onSelect }: Props) {
               key={`${finding.kind}:${finding.workId}`}
               className="flex items-center gap-2 rounded-xl border border-dashed border-line-2 px-3 py-1.5 text-sm text-dim"
             >
-              <button
-                type="button"
+              {/* The complaint is the way to the work it names, so it reads as
+                  a link; it wraps rather than stretching the chip. */}
+              <Button
+                variant="link"
                 onClick={() => onSelect(finding.workId, tabFor(finding.kind))}
-                className="cursor-pointer text-left transition-colors hover:text-text"
+                className="text-left whitespace-normal"
               >
                 {t(`findings.kind.${finding.kind}`, { title: finding.title })}
-              </button>
+              </Button>
 
               {finding.action !== undefined && (
                 <Button
@@ -143,16 +145,16 @@ export function FocusBoard({ works, calendar, skip = [], onSelect }: Props) {
                 </Button>
               )}
 
-              <button
-                type="button"
+              <Button
+                variant="icon"
+                size="icon-xs"
                 aria-label={t('findings.dismiss')}
                 title={t('findings.dismissHint')}
                 disabled={hide.isPending}
                 onClick={() => hide.mutate(finding)}
-                className="cursor-pointer text-faint transition-colors hover:text-text"
               >
-                <X aria-hidden className="size-3.5" />
-              </button>
+                <X aria-hidden />
+              </Button>
             </span>
           ))}
         </div>
@@ -160,7 +162,9 @@ export function FocusBoard({ works, calendar, skip = [], onSelect }: Props) {
 
       <NoteList notes={board} onSelect={onSelect} />
 
-      <div className="flex flex-wrap items-center gap-3">
+      {/* `text-sm` is the line's, and the links in it take their size from
+          the line they sit in. */}
+      <div className="flex flex-wrap items-center gap-3 text-sm">
         <AddNote />
         {putAway.length > 0 && <Hidden rows={putAway} onRestore={(row) => unhide.mutate(row)} />}
       </div>
@@ -248,44 +252,46 @@ function NoteList({
             <GripVertical aria-hidden className="size-3.5" />
           </span>
 
+          {/* A line tied to a work is the way to it, so it reads as a link;
+              one about nothing in particular is only words. */}
           {note.work_id === null ? (
             <span className="min-w-0 flex-1">{note.body}</span>
           ) : (
-            <button
-              type="button"
+            <Button
+              variant="link"
               onClick={() => onSelect(note.work_id as string)}
-              className="min-w-0 flex-1 cursor-pointer text-left transition-colors hover:text-accent"
+              className="min-w-0 flex-1 justify-start text-left whitespace-normal"
             >
               {note.body}
-            </button>
+            </Button>
           )}
 
-          <button
-            type="button"
+          <Button
+            variant="icon"
+            size="icon-xs"
             aria-label={note.pinned_at === null ? t('focus.pin') : t('focus.unpin')}
             title={note.pinned_at === null ? t('focus.pin') : t('focus.unpin')}
             onClick={() => pin.mutate({ id: note.id, pinned: note.pinned_at === null })}
-            className={cn(
-              'shrink-0 cursor-pointer transition-colors hover:text-text',
-              note.pinned_at === null ? 'text-faint' : 'text-accent',
-            )}
           >
+            {/* The accent is the glyph's, not the button's: it is what says
+                this line is pinned, and it stays whatever the button's hover
+                does. */}
             {note.pinned_at === null ? (
-              <Pin aria-hidden className="size-3.5" />
+              <Pin aria-hidden />
             ) : (
-              <PinOff aria-hidden className="size-3.5" />
+              <PinOff aria-hidden className="text-accent" />
             )}
-          </button>
+          </Button>
 
-          <button
-            type="button"
+          <Button
+            variant="icon"
+            size="icon-xs"
             aria-label={t('focus.remove')}
             title={t('focus.remove')}
             onClick={() => rub.mutate(note.id)}
-            className="shrink-0 cursor-pointer text-faint transition-colors hover:text-bad"
           >
-            <X aria-hidden className="size-3.5" />
-          </button>
+            <X aria-hidden />
+          </Button>
         </li>
       ))}
     </ul>
@@ -314,14 +320,10 @@ function AddNote() {
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex cursor-pointer items-center gap-1.5 text-sm text-faint transition-colors hover:text-text"
-      >
-        <Plus aria-hidden className="size-3.5" />
+      <Button variant="link" onClick={() => setOpen(true)}>
+        <Plus aria-hidden />
         {t('focus.add')}
-      </button>
+      </Button>
     )
   }
 
@@ -369,27 +371,22 @@ function Hidden({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
-        className="cursor-pointer text-sm text-faint transition-colors hover:text-text"
-      >
+      <Button variant="link" onClick={() => setOpen((current) => !current)} aria-expanded={open}>
         {t('focus.hiddenCount', { count: rows.length })}
-      </button>
+      </Button>
 
       {open &&
         rows.map((row) => (
-          <button
+          <Button
             key={`${row.kind}:${row.work_id}:${row.complaint}`}
-            type="button"
+            variant="ghost"
+            size="xs"
             onClick={() => onRestore(row)}
             title={t('focus.restoreHint')}
-            className="flex cursor-pointer items-center gap-1.5 rounded-full border border-line px-2.5 py-0.5 text-xs text-faint transition-colors hover:border-line-2 hover:text-text"
           >
-            <Undo2 aria-hidden className="size-3" />
+            <Undo2 aria-hidden />
             {t(`findings.kindShort.${row.kind}`)}
-          </button>
+          </Button>
         ))}
     </div>
   )

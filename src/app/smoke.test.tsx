@@ -64,18 +64,21 @@ async function waitForArea(container: HTMLElement): Promise<HTMLElement> {
   return container.querySelector<HTMLElement>('#main-area')!
 }
 
-const FLOWS = ['overflow-y-auto', 'overflow-x-hidden', '[scrollbar-gutter:stable]']
-
 /**
  * The window has a bottom edge, and the content stops at it.
  *
  * The box the screens are drawn into does not scroll: it clips, and hands its
  * height down. When it scrolled, a long screen ran past the edge the way a
  * web page does - no end in sight, and a wide table's sideways bar parked
- * under two hundred rows. Each screen is a `<Screen>` (a `<main>`) that
- * either flows - scrolls itself, the sideways axis clipped, the gutter kept
- * so a scrollbar appearing does not shift everything - or is held against the
- * height it was given and clips, something inside it doing the scrolling.
+ * under two hundred rows. Since v0.78 no screen scrolls as a whole either:
+ * each `<Screen>` (a `<main>`) is held against the height it was given, and
+ * what it draws takes that height and scrolls inside - a head that stands, a
+ * part that moves (`components/frame`). Until then five screens still flowed,
+ * and their heads went up with their content.
+ *
+ * A held box clips, so a root that grows with its content instead of taking
+ * the height would be cut off at the window's edge with nothing to scroll
+ * it. That is the second half of the rule: the root hands the height on.
  */
 function keepsTheWindow(container: HTMLElement, path: string): HTMLElement {
   const areas = container.querySelectorAll<HTMLElement>('[data-screen-area]')
@@ -92,14 +95,21 @@ function keepsTheWindow(container: HTMLElement, path: string): HTMLElement {
   const screens = area.querySelectorAll<HTMLElement>('main')
   expect(screens, `${path}: drawn through one <Screen>`).toHaveLength(1)
   const main = screens[0]!
-  const flows = FLOWS.every((name) => main.classList.contains(name))
-  const held =
-    main.classList.contains('overflow-hidden') && !main.classList.contains('overflow-y-auto')
-  expect(
-    flows || held,
-    `${path}: the screen neither scrolls itself (${FLOWS.join(' ')}) nor clips (overflow-hidden)`,
-  ).toBe(true)
+  expect(main, `${path}: the screen does not hold its height`).toHaveClass('overflow-hidden')
+  expect(main, `${path}: the screen scrolls as a whole again`).not.toHaveClass('overflow-y-auto')
+  takesTheHeight(main, `${path}: the screen`)
   return main
+}
+
+/** What a held box draws takes the height it is given, rather than growing
+ *  past it into the clip. */
+function takesTheHeight(box: HTMLElement, what: string) {
+  const roots = [...box.children].filter((child) => child.tagName !== 'SCRIPT')
+  expect(roots, `${what} draws one root`).toHaveLength(1)
+  expect(
+    roots[0],
+    `${what}'s root grows with its content instead of taking the height`,
+  ).toHaveClass('min-h-0', 'flex-1')
 }
 
 describe('every screen opens', () => {
@@ -127,6 +137,15 @@ describe('every tab of a card opens', () => {
       // inside the rest. A flowing card scrolls the header away again, and a
       // `sticky` header is the sign someone wrote the old shape back in.
       expect(main, 'the open work is no longer a held screen').toHaveClass('overflow-hidden')
+
+      // And the tab does not scroll inside the card as a page: the box it is
+      // drawn into clips, and the tab takes its height and scrolls inside.
+      const body = main.querySelector<HTMLElement>('[data-tab-body]')
+      expect(body, 'the card has no tab body').not.toBeNull()
+      expect(body, 'the tab body scrolls as a whole again').toHaveClass('overflow-hidden')
+      expect(body).not.toHaveClass('overflow-y-auto')
+      takesTheHeight(body!, `the ${tab} tab`)
+
       const header = main.querySelector('header')
       expect(header, 'the card has no header').not.toBeNull()
       expect(header!.closest('.sticky, [class*="sticky"]'), 'the card header is sticky').toBeNull()

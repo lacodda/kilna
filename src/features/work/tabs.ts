@@ -28,13 +28,6 @@ export type Tab = (typeof TABS)[number]
 
 interface TabRules {
   /**
-   * Two columns, each scrolling on its own: a list on the left, what is
-   * picked from it on the right. Scrolling twenty revisions must not move the
-   * text being read. The card gives such a tab its height; every other tab is
-   * a page that scrolls within the box.
-   */
-  held: boolean
-  /**
    * What a work must have for the tab to exist: a storyboard is a fact of the
    * kind - a song has none - and a splice a fact of the work, whether it was
    * cut out of another. Without it the tab is not drawn, and an address
@@ -43,19 +36,22 @@ interface TabRules {
   needs?: 'storyboard' | 'splice'
 }
 
+// Every tab is held by the card since v0.78: none is a page that scrolls
+// whole, so there is no rule for it here any more - each lays itself out on
+// `components/frame`.
 const RULES: Readonly<Record<Tab, TabRules>> = {
-  overview: { held: false },
-  versions: { held: true },
-  scenes: { held: false, needs: 'storyboard' },
-  cuts: { held: false, needs: 'splice' },
-  score: { held: true },
-  releases: { held: false },
-  files: { held: false },
-  links: { held: false },
-  notes: { held: false },
-  comments: { held: true },
-  assistant: { held: false },
-  history: { held: false },
+  overview: {},
+  versions: {},
+  scenes: { needs: 'storyboard' },
+  cuts: { needs: 'splice' },
+  score: {},
+  releases: {},
+  files: {},
+  links: {},
+  notes: {},
+  comments: {},
+  assistant: {},
+  history: {},
 }
 
 /**
@@ -72,8 +68,6 @@ export const DEFAULT_TAB: Tab = 'overview'
 export function isTab(value: string | undefined): value is Tab {
   return value !== undefined && (TABS as readonly string[]).includes(value)
 }
-
-export const isHeld = (tab: Tab): boolean => RULES[tab].held
 
 /** What a work has that decides whether its tabs exist. */
 export interface CardFacts {

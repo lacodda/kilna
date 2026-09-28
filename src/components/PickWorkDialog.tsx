@@ -8,6 +8,7 @@ import { useCovers } from '@/lib/useCovers'
 import { cn } from '@/lib/utils'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { stageAt } from '@/lib/stages'
+import { Chip, ChipGroup } from '@/components/ui/chip'
 import { ComboboxGroupLabel } from '@/components/ui/combobox'
 import { StageDial } from '@/components/StageDial'
 import {
@@ -108,20 +109,24 @@ function Contents({ onOpenChange, onPick, title }: Omit<Props, 'open'>) {
 
         {/* The kinds as chips rather than a dropdown: there are four of them,
             and a menu that has to be opened to see four things is a menu in
-            the way. */}
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-line px-3 py-2">
-          <Chip on={kind === null} onClick={() => setKind(null)}>
-            {t('pick.anyKind')}
-          </Chip>
-          {profile.config.work_kinds.map((entry) => (
-            <Chip
-              key={entry.key}
-              on={kind === entry.key}
-              onClick={() => setKind(kind === entry.key ? null : entry.key)}
-            >
-              {sayLabel(entry.label)}
-            </Chip>
-          ))}
+            the way. One at a time, and pressing the one that is on lets it
+            go - the group then holds nothing, which is "any kind" again. */}
+        <div className="border-b border-line px-3 py-2">
+          <ChipGroup
+            aria-label={t('works.kind')}
+            value={[kind ?? ANY_KIND]}
+            onValueChange={(next) => {
+              const picked = next[0]
+              setKind(picked === undefined || picked === ANY_KIND ? null : picked)
+            }}
+          >
+            <Chip value={ANY_KIND}>{t('pick.anyKind')}</Chip>
+            {profile.config.work_kinds.map((entry) => (
+              <Chip key={entry.key} value={entry.key}>
+                {sayLabel(entry.label)}
+              </Chip>
+            ))}
+          </ChipGroup>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto py-1.5">
@@ -180,26 +185,7 @@ function Row({ row }: { row: ScoredWork }) {
   )
 }
 
-function Chip({
-  on,
-  onClick,
-  children,
-}: {
-  on: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={on}
-      className={cn(
-        'cursor-pointer rounded-md px-2 py-0.5 text-xs transition-colors',
-        on ? 'bg-accent-soft text-accent' : 'text-dim hover:bg-soft hover:text-text',
-      )}
-    >
-      {children}
-    </button>
-  )
-}
+/** The chip standing for "no kind chosen". A chip in a group needs a value,
+ * and Base UI swaps an empty string for a generated id; the leading space
+ * keeps it from ever meeting a profile's own kind key. */
+const ANY_KIND = ' any'

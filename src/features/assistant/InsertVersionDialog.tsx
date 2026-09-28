@@ -9,6 +9,7 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog } from '@/components/AppDialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/AppSelect'
@@ -124,17 +125,14 @@ export function InsertVersionDialog({
           placeholder={t('versions.labelPlaceholder')}
           aria-label={t('versions.labelPlaceholder')}
         />
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-dim">
-          <input
-            type="checkbox"
-            className="size-4 accent-[var(--accent)]"
-            checked={makeCurrent}
-            onChange={(event) => {
-              setMakeCurrent(event.target.checked)
-            }}
-          />
+        <Checkbox
+          checked={makeCurrent}
+          onCheckedChange={(checked) => {
+            setMakeCurrent(checked)
+          }}
+        >
           {t('versions.makeCurrentOnSave')}
-        </label>
+        </Checkbox>
       </div>
     </Dialog>
   )

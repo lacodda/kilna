@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Field } from '@/components/Field'
+import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/AppSelect'
 
@@ -131,13 +131,14 @@ function Form({
           />
         </Field>
         {kinds.length > 1 && (
-          <Field label={t('works.kind')}>
+          <FieldGroup label={t('works.kind')}>
             <Select
+              aria-label={t('works.kind')}
               value={chosen}
               onChange={setChosen}
               options={kinds.map((entry) => ({ value: entry.key, label: sayLabel(entry.label) }))}
             />
-          </Field>
+          </FieldGroup>
         )}
       </DialogBody>
       <DialogActions>

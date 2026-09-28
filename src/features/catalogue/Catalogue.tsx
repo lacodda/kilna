@@ -90,8 +90,13 @@ import { Badge } from '@/components/ui/badge'
 import { badgeVariantOf, markIconOf } from '@/lib/markIcon'
 import { useStar } from '@/lib/useStar'
 import { Button } from '@/components/ui/button'
-import { EmptyState } from '@/components/EmptyState'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Chip, ChipGroup } from '@/components/ui/chip'
+import { EmptyState } from '@/components/ui/empty-state'
+import { QueryState } from '@/components/ui/query-state'
+import { NewWorkDialog } from '@/components/NewWorkDialog'
 import { Input } from '@/components/ui/input'
+import { RowButton } from '@/components/ui/list-row'
 import { Select } from '@/components/AppSelect'
 import {
   Menu,
@@ -105,7 +110,7 @@ import {
   MenuTrigger,
 } from '@/components/ui/menu'
 import { RowContextMenu, RowMenu, type RowAction } from '@/components/RowMenu'
-import { SkeletonList } from '@/components/Skeleton'
+import { SkeletonList } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { formatDay, formatDelta, formatNumber } from '@/lib/format'
 
@@ -126,6 +131,8 @@ export function Catalogue({ onSelect }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const client = useQueryClient()
+  // The kind the new-work dialog opens on, or null while it is closed.
+  const [adding, setAdding] = useState<string | null>(null)
   // Held for the session rather than for the moment: leaving for a card and
   // coming back is the commonest thing anyone does here, and a filter that
   // does not survive it makes the catalogue hostile to its own use.
@@ -306,49 +313,37 @@ export function Catalogue({ onSelect }: Props) {
   }
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col gap-4">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5">
       {/* The kind of work as a row of chips, not one more dropdown: it is the
           mode the catalogue is in — songs, videos — and a mode is read at a
           glance and switched in one click. Hidden while the profile has one
           kind: "all" beside the only thing there is would be a choice of one.
           The counts are of the whole catalogue, so a kind reads as empty
-          rather than as absent. */}
+          rather than as absent.
+
+          One at a time, and the chip that is on turns off: the group then
+          holds nothing, which is every kind again, without a separate
+          control for it. */}
       {profile.config.work_kinds.length > 1 && (
-        <div
-          role="group"
+        <ChipGroup
           aria-label={t('works.kind')}
-          className="flex flex-wrap items-center gap-2"
+          value={[filter.kind ?? ANY_KIND]}
+          onValueChange={(next) => {
+            const picked = next[0]
+            setFromControl({
+              kind: picked === undefined || picked === ANY_KIND ? undefined : picked,
+            })
+          }}
         >
-          {[
-            { key: undefined, label: t('catalogue.kindAll'), count: rows.data?.length ?? 0 },
-            ...profile.config.work_kinds.map((kind) => ({
-              key: kind.key,
-              label: kind.label,
-              count: kindCounts.get(kind.key) ?? 0,
-            })),
-          ].map((entry) => {
-            const active = filter.kind === entry.key
-            return (
-              <button
-                key={entry.key ?? ''}
-                type="button"
-                aria-pressed={active}
-                // The chip that is on turns off: back to every kind, without
-                // a separate control for it.
-                onClick={() => setFromControl({ kind: active ? undefined : entry.key })}
-                className={cn(
-                  'cursor-pointer rounded-full border px-2.5 py-0.5 text-xs transition-colors',
-                  active
-                    ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
-                    : 'border-line text-dim hover:border-line-2 hover:text-text',
-                )}
-              >
-                {sayLabel(entry.label)}
-                <span className="ml-1.5 text-2xs text-faint tabular-nums">{entry.count}</span>
-              </button>
-            )
-          })}
-        </div>
+          <Chip value={ANY_KIND} count={rows.data?.length ?? 0}>
+            {t('catalogue.kindAll')}
+          </Chip>
+          {profile.config.work_kinds.map((kind) => (
+            <Chip key={kind.key} value={kind.key} count={kindCounts.get(kind.key) ?? 0}>
+              {sayLabel(kind.label)}
+            </Chip>
+          ))}
+        </ChipGroup>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
@@ -385,34 +380,28 @@ export function Catalogue({ onSelect }: Props) {
         {/* The works marked to come back to. Not a token in the box - a star is
             raised and lowered with a click, and is asked for the same way.
 
-            Built like the two selects beside it rather than like the kind chips
-            above: it stands in the row of CONTROLS, and as a small round chip
-            among two fields it read as something left over from the row above.
-            Same control row (`h-control`, so density moves it with them), same
-            border, same radius; what stays its own is the warn colour it takes
-            when it is on, because that is the state and a select has no
-            equivalent. */}
-        <button
-          type="button"
+            A Button rather than a Chip, and for the same reason it was never
+            drawn like the kind chips above: it stands in the row of CONTROLS,
+            and as a small round chip among two fields it read as something
+            left over from the row above. The quiet button stands on the same
+            control row as the selects (`h-control`, so density moves it with
+            them), with the same border and radius; on, it is the soft accent
+            of something chosen. The star keeps the warn colour it wears on
+            every row and on the card, because the star is what it filters by. */}
+        <Button
+          variant={filter.bookmarked === true ? 'soft' : 'ghost'}
           aria-pressed={filter.bookmarked === true}
           title={t('catalogue.starredHint')}
           onClick={() =>
             setFromControl({ bookmarked: filter.bookmarked === true ? undefined : true })
           }
-          className={cn(
-            'inline-flex h-control cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-sm transition-colors',
-            'focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent',
-            filter.bookmarked === true
-              ? 'border-warn/40 bg-warn-soft font-medium text-warn'
-              : 'border-line text-dim hover:border-line-2 hover:text-text',
-          )}
         >
           <Star
             aria-hidden
-            className={cn('size-3.5', filter.bookmarked === true && 'fill-current')}
+            className={filter.bookmarked === true ? 'fill-current text-warn' : undefined}
           />
           {t('catalogue.starred')}
-        </button>
+        </Button>
       </div>
 
       {/* Says what the box can do without a doc, and says it once — the hint
@@ -443,29 +432,22 @@ export function Catalogue({ onSelect }: Props) {
       {/* Chips carry their words, not just an icon. The predecessor tried icons
           alone and nobody could tell which filter was on. */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="caption">{t('catalogue.gaps')}</span>
-        {GAPS.map((gap) => {
-          const active = filter.gap === gap
-          return (
-            <button
-              key={gap}
-              type="button"
-              // Clicking the chip that is already on turns it off: one gap at a
-              // time, and no separate way to undo it.
-              onClick={() => set({ gap: active ? undefined : gap })}
-              aria-pressed={active}
-              title={t(`catalogue.gapHint.${gap}`)}
-              className={cn(
-                'cursor-pointer rounded-full border px-2.5 py-0.5 text-xs transition-colors',
-                active
-                  ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
-                  : 'border-line text-dim hover:border-line-2 hover:text-text',
-              )}
-            >
+        <span id="catalogue-gaps" className="caption">
+          {t('catalogue.gaps')}
+        </span>
+        {/* Clicking the chip that is already on turns it off: one gap at a
+            time, and no separate way to undo it. */}
+        <ChipGroup
+          aria-labelledby="catalogue-gaps"
+          value={filter.gap === undefined ? [] : [filter.gap]}
+          onValueChange={(next) => set({ gap: GAPS.find((gap) => gap === next[0]) })}
+        >
+          {GAPS.map((gap) => (
+            <Chip key={gap} value={gap} title={t(`catalogue.gapHint.${gap}`)}>
               {t(`catalogue.gap.${gap}`)}
-            </button>
-          )
-        })}
+            </Chip>
+          ))}
+        </ChipGroup>
         <div className="ml-auto flex items-center gap-2">
           <Select
             className="w-40"
@@ -496,6 +478,7 @@ export function Catalogue({ onSelect }: Props) {
         rows={rows.data}
         pending={rows.isPending}
         failed={rows.isError}
+        onRetry={() => void rows.refetch()}
         filter={filter}
         columnFilters={columnFilters}
         onColumnFilters={setColumnFilters}
@@ -510,6 +493,7 @@ export function Catalogue({ onSelect }: Props) {
         }}
         onReorder={reorder}
         onClearFilters={clearFilters}
+        onNew={() => setAdding(profile.config.work_kinds[0]?.key ?? null)}
         onSelect={onSelect}
         selected={selected}
         onSelectionChange={setSelected}
@@ -519,6 +503,10 @@ export function Catalogue({ onSelect }: Props) {
         onUnschedule={(workIds) => unschedule.mutate(workIds)}
         busy={restatus.isPending || unschedule.isPending}
       />
+
+      {/* The empty catalogue's way out: the same dialog the title bar's New
+          opens, on the first kind, with the kind a field inside it. */}
+      <NewWorkDialog kind={adding} onClose={() => setAdding(null)} onCreated={onSelect} />
     </div>
   )
 }
@@ -527,6 +515,7 @@ function Rows({
   rows,
   pending,
   failed,
+  onRetry,
   filter,
   columnFilters,
   onColumnFilters,
@@ -537,6 +526,7 @@ function Rows({
   onToggleGroup,
   onReorder,
   onClearFilters,
+  onNew,
   onSelect,
   selected,
   onSelectionChange,
@@ -549,6 +539,7 @@ function Rows({
   rows: ScoredWork[] | undefined
   pending: boolean
   failed: boolean
+  onRetry: () => void
   filter: CatalogueFilter
   columnFilters: ColumnFilters
   onColumnFilters: (next: ColumnFilters) => void
@@ -559,6 +550,7 @@ function Rows({
   onToggleGroup: (key: string) => void
   onReorder: (column: SortColumn) => void
   onClearFilters: () => void
+  onNew: () => void
   onSelect: (workId: string, tab?: Tab) => void
   selected: ReadonlySet<string>
   onSelectionChange: (next: ReadonlySet<string>) => void
@@ -594,6 +586,10 @@ function Rows({
   // and nothing on screen depends on it. Declared above the early returns
   // below, because a hook that runs only sometimes is not a hook.
   const anchor = useRef<string | null>(null)
+  // Whether the click that is ticking a box held Shift. The box reports a
+  // change and not the click behind it, so the cell around it notes the
+  // modifier first; see the tick cell below.
+  const extending = useRef(false)
 
   // The widths a person dragged, per machine. The header row is measured the
   // moment the first drag begins, so the columns nobody touched keep the
@@ -606,20 +602,35 @@ function Rows({
   })
   const header = useRef<HTMLTableRowElement>(null)
 
-  if (pending) return <SkeletonList rows={6} />
-
-  if (failed || rows === undefined) {
+  if (pending || failed || rows === undefined) {
     return (
-      <p role="alert" className="text-sm text-bad">
-        {t('toast.loadFailed')}
-      </p>
+      <QueryState
+        pending={pending}
+        error={failed ? t('toast.loadFailed') : null}
+        skeleton={<SkeletonList rows={6} />}
+        onRetry={onRetry}
+        retryLabel={t('crash.retry')}
+      >
+        {null}
+      </QueryState>
     )
   }
 
   // An empty profile and an over-narrow filter look the same and mean opposite
   // things: one asks you to write something, the other to stop hiding it.
   if (rows.length === 0) {
-    return <EmptyState title={t('empty.worksTitle')} body={t('empty.worksBody')} />
+    return (
+      <EmptyState
+        title={t('empty.worksTitle')}
+        body={t('empty.worksBody')}
+        action={
+          <Button variant="primary" size="sm" onClick={onNew}>
+            {t('empty.worksAction')}
+          </Button>
+        }
+        className="flex-1"
+      />
+    )
   }
 
   // The funnels narrow what the query left: the two compose as AND, and the
@@ -826,7 +837,7 @@ function Rows({
   ]
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col gap-2">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
       {/* Only while rows are ticked. It replaces nothing and hides nothing — the
           table stays exactly where it was, so the next click is on the row you
           were already looking at. */}
@@ -851,13 +862,9 @@ function Rows({
             onUnschedule={() => onUnschedule(chosen)}
             onDelete={() => onDelete(chosen)}
           />
-          <button
-            type="button"
-            onClick={() => onSelectionChange(new Set())}
-            className="ml-auto cursor-pointer text-xs text-dim underline decoration-dotted underline-offset-2 transition-colors hover:text-text"
-          >
+          <Button variant="link" onClick={() => onSelectionChange(new Set())} className="ml-auto">
             {t('catalogue.clearSelection')}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -868,13 +875,9 @@ function Rows({
           <Badge variant="soft">
             {t('catalogue.showing', { shown: visible.length, total: rows.length })}
           </Badge>
-          <button
-            type="button"
-            onClick={onClearFilters}
-            className="cursor-pointer underline decoration-dotted underline-offset-2 transition-colors hover:text-text"
-          >
+          <Button variant="link" onClick={onClearFilters}>
             {t('catalogue.clear')}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -912,9 +915,9 @@ function Rows({
           style={widths.sized ? { minWidth: total } : undefined}
         >
           {/* The widths live on the columns, not the cells: one `<col>` per
-            drawn column, and only while something was sized by hand - until
-            then the browser lays the table out from its contents as it
-            always did, and nothing here is in its way. */}
+              drawn column, and only while something was sized by hand - until
+              then the browser lays the table out from its contents as it
+              always did, and nothing here is in its way. */}
           <colgroup>
             <col style={widths.sized ? { width: SELECT_WIDTH } : undefined} />
             {columns.map((id) => (
@@ -926,23 +929,19 @@ function Rows({
             <col style={widths.sized ? { width: MENU_WIDTH } : undefined} />
           </colgroup>
           {/* The headings stay while the rows move under them: a table long
-            enough to need scrolling is one whose columns must remain named. */}
+              enough to need scrolling is one whose columns must remain named. */}
           <thead className="sticky top-0 z-10 bg-bg">
             <tr ref={header} className="border-b border-line text-left caption">
               {/* The tick column carries the same side padding as every other
-                cell: with none, the box sat flush against the star in the
-                next one and the two read as one control. */}
+                  cell: with none, the box sat flush against the star in the
+                  next one and the two read as one control. */}
               <th className={cn('w-9 py-2 pl-3 pr-2', STUCK_LEFT_TICK, 'z-[2]')}>
-                <input
-                  type="checkbox"
-                  className="size-3.5 cursor-pointer accent-[var(--accent)]"
+                <Checkbox
                   checked={allChosen}
                   // Some but not all: the box shows neither state, because it is
                   // neither, and clicking it takes the rest.
-                  ref={(box) => {
-                    if (box) box.indeterminate = chosen.length > 0 && !allChosen
-                  }}
-                  onChange={toggleAll}
+                  indeterminate={chosen.length > 0 && !allChosen}
+                  onCheckedChange={toggleAll}
                   aria-label={t('catalogue.selectAll')}
                 />
               </th>
@@ -972,18 +971,19 @@ function Rows({
           </thead>
           {/* Nothing matched, and the headings stay above the gap.
 
-            This used to return the empty state INSTEAD of the table, so
-            narrowing a filter to nothing took the whole apparatus away with
-            the rows - the funnel that was just used, and every other heading,
-            vanished with them. What is left then looks less like an answer
-            than like a screen that broke: the filter cannot be widened from
-            the controls that set it, because they are gone. The table is the
-            furniture; only its contents are missing. */}
+              This used to return the empty state INSTEAD of the table, so
+              narrowing a filter to nothing took the whole apparatus away with
+              the rows - the funnel that was just used, and every other heading,
+              vanished with them. What is left then looks less like an answer
+              than like a screen that broke: the filter cannot be widened from
+              the controls that set it, because they are gone. The table is the
+              furniture; only its contents are missing. */}
           {visible.length === 0 && (
             <tbody>
               <tr>
                 <td colSpan={columns.length + 2} className="p-0">
                   <EmptyState
+                    variant="filtered"
                     title={t('empty.worksFiltered')}
                     body={t('empty.worksFilteredBody')}
                     action={<Button onClick={onClearFilters}>{t('empty.clearFilters')}</Button>}
@@ -1001,20 +1001,28 @@ function Rows({
               <tbody key={key}>
                 {groupBy !== 'none' && (
                   <tr className="border-b border-line bg-soft/60">
-                    <td colSpan={columns.length + 2} className="px-2 py-1.5">
-                      <button
-                        type="button"
+                    {/* The whole band folds its block, not only its words: the
+                        heading of a block is a row, and a row is pressed
+                        anywhere along it. The count stays beside the words
+                        rather than in the row's end: the band is as wide as
+                        the table, and a table scrolled sideways would part
+                        the two by a screen. */}
+                    <td colSpan={columns.length + 2} className="p-0.5">
+                      <RowButton
                         onClick={() => onToggleGroup(key)}
                         aria-expanded={!folded}
-                        className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-dim transition-colors hover:text-text"
+                        start={
+                          <ChevronRight
+                            className={cn('size-3.5 transition-transform', !folded && 'rotate-90')}
+                            aria-hidden
+                          />
+                        }
                       >
-                        <ChevronRight
-                          className={cn('size-3.5 transition-transform', !folded && 'rotate-90')}
-                          aria-hidden
-                        />
-                        <span>{groupLabel(block.key)}</span>
-                        <span className="text-faint">{block.rows.length}</span>
-                      </button>
+                        {groupLabel(block.key)}
+                        <span className="ml-1.5 font-normal text-faint tabular-nums">
+                          {block.rows.length}
+                        </span>
+                      </RowButton>
                     </td>
                   </tr>
                 )}
@@ -1028,20 +1036,22 @@ function Rows({
                     >
                       <td
                         className={cn('py-2 pl-3 pr-2', STUCK_LEFT_TICK)}
+                        // The change carries no modifier, so the click does: the
+                        // cell reads Shift on the way down, before the box hears
+                        // the click and changes.
+                        onClickCapture={(event) => {
+                          extending.current = event.shiftKey
+                        }}
                         onClick={(event) => event.stopPropagation()}
                       >
-                        <input
-                          type="checkbox"
-                          className="size-3.5 cursor-pointer accent-[var(--accent)]"
+                        <Checkbox
                           checked={selected.has(row.work_id)}
-                          // The change carries no modifier, so the click does. A
-                          // shift-click on a label also reaches the box, and both
-                          // ways of ticking mean the same thing.
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            toggleRow(row.work_id, event.shiftKey)
+                          onCheckedChange={() => {
+                            toggleRow(row.work_id, extending.current)
+                            // Spent: a tick by keyboard has no click to set it,
+                            // and must not inherit the last one's Shift.
+                            extending.current = false
                           }}
-                          onChange={() => undefined}
                           aria-label={t('catalogue.select', { title: row.title })}
                         />
                       </td>
@@ -1082,22 +1092,23 @@ function RowStar({ row }: { row: ScoredWork }) {
   const star = useStar(row.work_id)
   const on = row.bookmarked_at !== null
   return (
-    <button
-      type="button"
+    <Button
+      variant="icon"
+      size="icon-xs"
       aria-pressed={on}
       title={t(on ? 'work.unstar' : 'work.star')}
+      aria-label={t(on ? 'work.unstar' : 'work.star')}
       disabled={star.isPending}
       onClick={(event) => {
         event.stopPropagation()
         star.mutate(!on)
       }}
-      className={cn(
-        'cursor-pointer rounded-md p-0.5 transition-colors',
-        on ? 'text-warn' : 'text-faint/60 hover:text-dim',
-      )}
     >
-      <Star aria-hidden className={cn('size-3.5', on && 'fill-current')} />
-    </button>
+      {/* The warn colour is the glyph's rather than the button's: a lit star
+          is what says the work is starred, here as on the card, and it stays
+          lit whatever the button's hover does. */}
+      <Star aria-hidden className={cn('size-3.5', on && 'fill-current text-warn')} />
+    </Button>
   )
 }
 
@@ -1212,6 +1223,10 @@ function Column({
         {sortable === null ? (
           <span className="truncate">{label}</span>
         ) : (
+          // A heading that sorts is its own shape: dowel draws it as
+          // TableSortHeader, part of a Table kilna does not use. A link Button
+          // would paint the sortable headings accent beside the plain ones.
+          // eslint-disable-next-line dowel/no-raw-button -- a sortable column heading; its primitive is dowel's TableSortHeader, not in kilna
           <button
             type="button"
             onClick={() => onReorder(sortable)}
@@ -1242,7 +1257,7 @@ function Column({
 /**
  * A handful of boxes to tick, for a funnel over a column of keys.
  *
- * Native checkboxes, as the rows use: three to eight of them in a panel
+ * The set's Checkbox, as the rows use: three to eight of them in a panel
  * need no list navigation, and the same box in the panel and on the row
  * reads as the same kind of control.
  */
@@ -1262,23 +1277,19 @@ function CheckList<T extends string | number>({
       {options.map((option) => {
         const on = chosen.includes(option.value)
         return (
-          <label
+          <Checkbox
             key={String(option.value)}
-            className="flex cursor-pointer items-center gap-2 rounded-sm px-1 py-0.5 hover:bg-soft"
+            checked={on}
+            onCheckedChange={() =>
+              onChange(
+                on ? chosen.filter((value) => value !== option.value) : [...chosen, option.value],
+              )
+            }
+            className="px-1 py-0.5"
           >
-            <input
-              type="checkbox"
-              className="size-3.5 cursor-pointer accent-[var(--accent)]"
-              checked={on}
-              onChange={() =>
-                onChange(
-                  on ? chosen.filter((value) => value !== option.value) : [...chosen, option.value],
-                )
-              }
-            />
             {option.icon}
             <span className="truncate">{option.label}</span>
-          </label>
+          </Checkbox>
         )
       })}
     </>
@@ -1287,6 +1298,11 @@ function CheckList<T extends string | number>({
 
 /** The key standing in for "no value", which a `Map` cannot hold as `null`. */
 const GROUPLESS = ' none'
+
+/** The chip standing for every kind. A chip in a group needs a value, and Base
+ * UI swaps an empty string for a generated id; the leading space keeps it from
+ * ever meeting a profile's own kind key, as with GROUPLESS. */
+const ANY_KIND = ' any'
 
 /** The two cells that are not columns: the tick and the row menu. Sized once
  * the layout is fixed, to what their classes give them before. */
@@ -1624,37 +1640,30 @@ function ViewBar({
     <div className="flex flex-wrap items-center gap-2">
       <span className="caption">{t('catalogue.views')}</span>
 
+      {/* A view is a chip that is on while the catalogue is in its shape, and
+          the way to forget it sits beside the chip rather than inside it: a
+          chip that switches cannot also hold a cross, or the cross is a
+          button inside a button. Pressing the chip that is on puts the view
+          back as saved rather than turning it off - there is no "off" for a
+          shape the catalogue is already in. */}
       {views.map((view) => {
         const open = active?.id === view.id
         return (
-          <span
-            key={view.id}
-            className={cn(
-              'group inline-flex items-center gap-1 rounded-full border pl-2.5 pr-1 py-0.5 text-xs transition-colors',
-              open
-                ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
-                : 'border-line text-dim hover:border-line-2 hover:text-text',
-            )}
-          >
-            <button
-              type="button"
-              onClick={() => onOpen(view)}
-              aria-pressed={open}
-              className="cursor-pointer"
-            >
+          <span key={view.id} className="inline-flex items-center">
+            <Chip pressed={open} onPressedChange={() => onOpen(view)}>
               {view.name}
-            </button>
-            <button
-              type="button"
+            </Chip>
+            <Button
+              // Always there rather than on hover: a control that appears only
+              // under the pointer cannot be reached by a keyboard at all.
+              variant="icon"
+              size="icon-xs"
               onClick={() => onRemove(view.id)}
               aria-label={t('catalogue.viewRemove', { name: view.name })}
               title={t('catalogue.viewRemove', { name: view.name })}
-              // Always there rather than on hover: a control that appears only
-              // under the pointer cannot be reached by a keyboard at all.
-              className="cursor-pointer rounded-full p-0.5 text-faint transition-colors hover:bg-soft hover:text-bad"
             >
-              <X className="size-3" aria-hidden />
-            </button>
+              <X aria-hidden />
+            </Button>
           </span>
         )
       })}

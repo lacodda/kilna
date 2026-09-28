@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Button } from '@/components/ui/button'
 import { Popover, PopoverPopup, PopoverTrigger } from '@/components/ui/popover'
 import { StageDial } from '@/components/StageDial'
 import { stageAt, stagesOf } from '@/lib/stages'
@@ -17,8 +18,8 @@ import { cn } from '@/lib/utils'
  *
  * It reports itself as a slider all the same, so the arrow keys, Home and End
  * behave the way they do everywhere else and a screen reader announces a
- * position rather than six unlabelled buttons — the pattern `SegmentedScale`
- * set for the score axes.
+ * position rather than six unlabelled buttons — the pattern the score axes
+ * set, and dowel's AxisBar keeps.
  */
 export function StagePicker({
   workId,
@@ -120,16 +121,20 @@ export function StagePicker({
           {stops.map((stop, at) => {
             const reached = index >= at
             return (
-              <button
+              // A glyph with its number under it: the icon button's clothes,
+              // with no size of its own, because a stop is a column rather
+              // than a square.
+              <Button
                 key={stop.key}
-                type="button"
+                variant="icon"
+                size={null}
                 // The row owns the keyboard; the stops are pointer targets, or
                 // tabbing past the dial would take six presses.
                 tabIndex={-1}
                 title={`${say(stop.label)} · ${stop.percent}%`}
                 aria-label={say(stop.label)}
                 onClick={() => set(percent === stop.percent ? null : stop.percent)}
-                className="group flex cursor-pointer flex-col items-center gap-1 rounded-sm px-1 py-0.5 transition-colors hover:bg-soft"
+                className="flex-col gap-1 px-1 py-0.5"
               >
                 <StageDial percent={stop.percent} stage={stop} size={16} />
                 {/* The number, not the word: six words in a row would be a
@@ -142,19 +147,20 @@ export function StagePicker({
                 >
                   {stop.percent}
                 </span>
-              </button>
+              </Button>
             )
           })}
 
           {percent !== null && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               tabIndex={-1}
               onClick={() => set(null)}
-              className="ml-1 cursor-pointer self-stretch rounded-sm px-1.5 text-2xs text-faint transition-colors hover:bg-soft hover:text-text"
+              className="ml-1"
             >
               {t('stage.clear')}
-            </button>
+            </Button>
           )}
         </div>
       </PopoverPopup>

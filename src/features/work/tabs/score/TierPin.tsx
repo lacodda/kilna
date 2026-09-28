@@ -86,25 +86,20 @@ export function TierPin({ work, scored }: Props) {
             tier: labelOf(tiers, work.tier_pinned!),
             reason: work.tier_pin_reason ?? '',
           })}{' '}
-          <button
-            type="button"
+          <Button
+            variant="link"
             onClick={() => release.mutate()}
             disabled={release.isPending}
             title={t('score.followFactsHint')}
-            className="cursor-pointer text-dim underline decoration-dotted underline-offset-2 transition-colors hover:text-text disabled:opacity-50"
           >
             {t('score.followFacts')}
-          </button>
+          </Button>
         </p>
       ) : (
-        <button
-          type="button"
-          onClick={start}
-          className="flex cursor-pointer items-center gap-1 text-xs text-faint transition-colors hover:text-text"
-        >
-          <Pin aria-hidden className="size-3" />
+        <Button variant="icon" size="xs" onClick={start} className="self-start">
+          <Pin aria-hidden />
           {t('score.pinTier')}
-        </button>
+        </Button>
       )}
 
       <Dialog

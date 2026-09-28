@@ -162,6 +162,12 @@ export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
 
       <div className="mt-auto flex flex-col gap-0.5">
         {group('foot')}
+        {/* The theme and the language are entries of the rail, dressed as the
+            links above them. Their primitive is dowel's NavRail, which kilna
+            has not taken yet; a RowButton would set these two apart from the
+            links in weight and colour. They go over to it with the links, not
+            ahead of them. */}
+        {/* eslint-disable-next-line dowel/no-raw-button -- a rail entry: NavRail is its primitive, not yet in kilna */}
         <button
           type="button"
           className={cn(NAV_CLASS, compact && COMPACT_CLASS)}
@@ -172,6 +178,7 @@ export function Sidebar({ profileId, onProfileSwitched, compact }: Props) {
           <ThemeIcon aria-hidden />
           <Label compact={compact}>{themeName}</Label>
         </button>
+        {/* eslint-disable-next-line dowel/no-raw-button -- a rail entry: NavRail is its primitive, not yet in kilna */}
         <button
           type="button"
           className={cn(NAV_CLASS, compact && COMPACT_CLASS)}

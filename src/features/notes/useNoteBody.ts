@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { updateNote } from '@/lib/api/notes'
 import type { Note } from '@/lib/api/types'
 import { say } from '@/lib/toast'
-import type { SaveStatus } from '@/components/SaveState'
+import type { SaveStatus } from '@/components/ui/save-state'
 
 /** How long after the last keystroke the body is written. */
 const SETTLE_MS = 600

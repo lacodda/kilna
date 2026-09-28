@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useCardView } from '@/features/work/cardView'
 import { DEFAULT_TAB_CHOICES } from '@/features/work/tabs'
-import { Field } from '@/components/Field'
+import { FieldGroup } from '@/components/ui/field'
 import { Select } from '@/components/AppSelect'
 import { Switch } from '@/components/ui/switch'
 
@@ -22,8 +22,9 @@ export function CardSection() {
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">{t('settings.defaultTab')}</h3>
         <p className="text-sm text-dim">{t('settings.defaultTabHint')}</p>
-        <Field label={t('settings.defaultTabLabel')}>
+        <FieldGroup label={t('settings.defaultTabLabel')}>
           <Select
+            aria-label={t('settings.defaultTabLabel')}
             className="max-w-xs"
             value={view.defaultTab}
             onChange={(next) => setCardView({ defaultTab: next as typeof view.defaultTab })}
@@ -32,7 +33,7 @@ export function CardSection() {
               label: t(`card.tab.${tab}`),
             }))}
           />
-        </Field>
+        </FieldGroup>
       </section>
 
       <section className="flex flex-col gap-2">

@@ -51,15 +51,15 @@ export function WaitingBanner() {
 
       <p className="min-w-0 flex-1 text-sm">
         <span className="text-accent-2">{t('assistant.waitingTitle')}</span>{' '}
-        <button
-          type="button"
-          className="cursor-pointer truncate underline underline-offset-2 hover:text-accent-2"
+        <Button
+          variant="link"
+          className="max-w-full"
           onClick={() => {
             assistant.open(first.id)
           }}
         >
-          {chatLabel(first, t('assistant.untitled'))}
-        </button>
+          <span className="truncate">{chatLabel(first, t('assistant.untitled'))}</span>
+        </Button>
         {rest.length > 0 && (
           <span className="text-dim"> {t('assistant.waitingMore', { count: rest.length })}</span>
         )}

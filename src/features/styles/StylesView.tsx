@@ -9,12 +9,24 @@ import { useProfile, styleTypesOf, say } from '@/lib/useProfile'
 import { styleIconOf } from '@/lib/styleIcon'
 import { useDebounced } from '@/lib/useDebounced'
 import { Button } from '@/components/ui/button'
+import { Chip, ChipGroup } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
-import { EmptyState } from '@/components/EmptyState'
-import { SkeletonList } from '@/components/Skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SkeletonList } from '@/components/ui/skeleton'
+import { Frame, Scroll } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 import { StyleBrickDialog } from '@/features/styles/StyleBrickDialog'
 import { StyleBrickCard } from '@/features/styles/StyleBrickCard'
-import { cn } from '@/lib/utils'
+
+/*
+ * What a type chip is called in its group. "All" is a chip of its own, and the
+ * types carry a prefix, so a profile that names a type "all" cannot be taken
+ * for it.
+ */
+const ALL_TYPES = 'all'
+const chipOf = (type: string | undefined) => (type === undefined ? ALL_TYPES : `type:${type}`)
+const typeOf = (chip: string | undefined) =>
+  chip === undefined || chip === ALL_TYPES ? undefined : chip.slice('type:'.length)
 
 /**
  * The workspace's style dictionary: the parts a picture prompt is built from.
@@ -66,94 +78,102 @@ export function StylesView() {
   }, [bricks.data, types])
 
   if (types.length === 0) {
-    return <EmptyState title={t('styles.noDictionary')} body={t('styles.noDictionaryBody')} />
+    return (
+      <Frame>
+        <EmptyState
+          title={t('styles.noDictionary')}
+          body={t('styles.noDictionaryBody')}
+          className="flex-1"
+        />
+      </Frame>
+    )
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          placeholder={t('styles.search')}
-          aria-label={t('styles.search')}
-          className="max-w-xs"
-        />
-        <Button variant="primary" onClick={() => setEditing('new')} className="ml-auto">
-          <Plus aria-hidden />
-          {t('styles.new')}
-        </Button>
-      </div>
-
-      {/* The types as a row of chips, the way the storyboard narrows to a kind
-          of shot: "show me every environment" is one click, and the chip that
-          is on turns off. */}
-      <div role="group" aria-label={t('styles.type')} className="flex flex-wrap items-center gap-2">
-        {[
-          { key: undefined, label: t('styles.allTypes'), count: total, type: undefined },
-          ...types.map((one) => ({
-            key: one.key,
-            label: say(one.label),
-            count: countOf.get(one.key) ?? 0,
-            type: one,
-          })),
-        ].map((entry) => {
-          const active = typeKey === entry.key
-          const Icon = entry.type === undefined ? undefined : styleIconOf(entry.type)
-          return (
-            <button
-              key={entry.key ?? ''}
-              type="button"
-              aria-pressed={active}
-              onClick={() => setTypeKey(active ? undefined : entry.key)}
-              className={cn(
-                'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
-                active
-                  ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
-                  : 'border-line text-dim hover:border-line-2 hover:text-text',
-              )}
-            >
-              {Icon !== undefined && <Icon aria-hidden className="size-3.5" />}
-              {entry.label}
-              <span className="text-2xs text-faint tabular-nums">{entry.count}</span>
-            </button>
+    <Frame
+      head={
+        <>
+          {/* The types as a row of chips, the way the storyboard narrows to a kind
+              of shot: "show me every environment" is one click, and the chip that
+              is on turns off - letting go of one leaves the group empty, which is
+              every type. */}
+          <ChipGroup
+            aria-label={t('styles.type')}
+            value={[chipOf(typeKey)]}
+            onValueChange={(next) => setTypeKey(typeOf(next[0]))}
+          >
+            <Chip value={chipOf(undefined)} count={total}>
+              {t('styles.allTypes')}
+            </Chip>
+            {types.map((one) => {
+              const Icon = styleIconOf(one)
+              return (
+                <Chip key={one.key} value={chipOf(one.key)} count={countOf.get(one.key) ?? 0}>
+                  <Icon aria-hidden className="size-3.5" />
+                  {say(one.label)}
+                </Chip>
+              )
+            })}
+          </ChipGroup>
+          <Input
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder={t('styles.search')}
+            aria-label={t('styles.search')}
+            className="max-w-60"
+          />
+          <Button variant="primary" onClick={() => setEditing('new')} className="ml-auto">
+            <Plus aria-hidden />
+            {t('styles.new')}
+          </Button>
+        </>
+      }
+    >
+      <Loaded
+        query={bricks}
+        fill
+        skeleton={<SkeletonList rows={4} />}
+        isEmpty={() => groups.length === 0}
+        emptyState={
+          query === '' ? (
+            <EmptyState
+              title={t('styles.empty')}
+              body={t('styles.emptyBody')}
+              action={
+                <Button variant="primary" onClick={() => setEditing('new')}>
+                  <Plus aria-hidden />
+                  {t('styles.new')}
+                </Button>
+              }
+              className="flex-1"
+            />
+          ) : (
+            // A search that matched nothing: the way out is the box above.
+            <EmptyState variant="filtered" title={t('styles.noMatches')} className="flex-1" />
           )
-        })}
-      </div>
-
-      {bricks.isPending ? (
-        <SkeletonList rows={4} />
-      ) : groups.length === 0 ? (
-        <EmptyState
-          title={query === '' ? t('styles.empty') : t('styles.noMatches')}
-          body={query === '' ? t('styles.emptyBody') : undefined}
-          action={
-            query === '' ? (
-              <Button variant="primary" onClick={() => setEditing('new')}>
-                <Plus aria-hidden />
-                {t('styles.new')}
-              </Button>
-            ) : undefined
-          }
-        />
-      ) : (
-        groups.map((group) => (
-          <section key={group.key} className="flex flex-col gap-2">
-            <h2 className="flex items-center gap-1.5 caption">
-              {(() => {
-                const Icon = styleIconOf(group.type)
-                return <Icon aria-hidden className="size-3.5" />
-              })()}
-              {group.type === undefined ? group.key : say(group.type.label)}
-            </h2>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-              {group.rows.map((brick) => (
-                <StyleBrickCard key={brick.id} brick={brick} onOpen={() => setEditing(brick)} />
-              ))}
-            </div>
-          </section>
-        ))
-      )}
+        }
+      >
+        {() => (
+          <Scroll label={t('nav.styles')} contentClassName="flex flex-col gap-4">
+            {groups.map((group) => (
+              <section key={group.key} className="flex flex-col gap-2">
+                <h2 className="flex items-center gap-1.5 caption">
+                  {(() => {
+                    const Icon = styleIconOf(group.type)
+                    return <Icon aria-hidden className="size-3.5" />
+                  })()}
+                  {group.type === undefined ? group.key : say(group.type.label)}
+                </h2>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {group.rows.map((brick) => (
+                    <StyleBrickCard key={brick.id} brick={brick} onOpen={() => setEditing(brick)} />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </Scroll>
+        )}
+      </Loaded>
 
       {editing !== null && (
         <StyleBrickDialog
@@ -166,6 +186,6 @@ export function StylesView() {
           onSettled={settle}
         />
       )}
-    </div>
+    </Frame>
   )
 }

@@ -13,7 +13,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Markdown } from '@/components/Markdown'
 import { Textarea } from '@/components/ui/textarea'
-import { Skeleton } from '@/components/Skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SkeletonList } from '@/components/ui/skeleton'
+import { Frame, Scroll } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 
 interface Props {
   workId: string
@@ -69,95 +72,107 @@ export function NotePanel({ workId }: Props) {
       }),
   })
 
+  // The form for a new note stands at the foot of the tab, where the eye
+  // ends up after reading the notes above it - it used to follow the last
+  // note down, and a long list pushed it off the card.
   return (
-    <section className="flex flex-col gap-3">
-      {notes.isPending && <Skeleton className="h-16 w-full" />}
-
-      {notes.isError && (
-        <p role="alert" className="text-sm text-bad">
-          {t('toast.loadFailed')}
-        </p>
-      )}
-
-      {notes.data != null && notes.data.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {notes.data.map((note) => (
-            <li
-              key={note.id}
-              className="flex items-start gap-2 rounded-xl border border-line p-2.5"
-            >
-              <div className="flex-1">
-                {/* Rendered, not shown raw: a note is where a table of images
-                    or a list of phrases lands, and pipes and asterisks are not
-                    what its author wrote it to be read as. Line breaks inside a
-                    paragraph are kept, as everywhere markdown is rendered here. */}
-                <Markdown
-                  body={note.body}
-                  className="text-sm"
-                  onToggleTask={(index) =>
-                    tick.mutate({ id: note.id, next: toggleTask(note.body, index) })
-                  }
-                />
-                {note.tags.length > 0 && (
-                  <p className="mt-1 flex flex-wrap gap-1">
-                    {note.tags.map((tag) => (
-                      <span key={tag} className="rounded bg-soft px-1.5 py-0.5 text-xs text-dim">
-                        {tag}
-                      </span>
-                    ))}
-                  </p>
-                )}
-              </div>
-              {/* Edited on the notes screen, where a note has room: the
-                  card is the view from one work, not a second editor. */}
-              <Button
-                variant="icon"
-                size="icon-sm"
-                title={t('notes.openInNotes')}
-                aria-label={t('notes.openInNotes')}
-                onClick={() => void navigate(`/notes/${note.id}`)}
-              >
-                <ArrowUpRight aria-hidden className="size-3.5" />
-              </Button>
-              <Button
-                variant="danger"
-                size="icon-sm"
-                title={t('notes.delete')}
-                onClick={() => remove.mutate(note.id)}
-              >
-                <X aria-hidden className="size-3.5" />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <form
-        className="flex flex-col gap-2"
-        onSubmit={(event) => {
-          event.preventDefault()
-          if (body.trim() !== '') add.mutate()
-        }}
-      >
-        <Textarea
-          rows={2}
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          placeholder={t('notes.placeholder')}
-          aria-label={t('notes.placeholder')}
-        />
-        <div className="flex gap-2">
-          <Input
-            value={tags}
-            onChange={(event) => setTags(event.target.value)}
-            placeholder={t('notes.tagsPlaceholder')}
-            aria-label={t('notes.tagsPlaceholder')}
+    <Frame
+      foot={
+        <form
+          className="flex w-full flex-col gap-2"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (body.trim() !== '') add.mutate()
+          }}
+        >
+          <Textarea
+            rows={2}
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            placeholder={t('notes.placeholder')}
+            aria-label={t('notes.placeholder')}
           />
-          <Button type="submit" variant="primary" disabled={body.trim() === '' || add.isPending}>
-            {t('notes.add')}
-          </Button>
-        </div>
-      </form>
-    </section>
+          <div className="flex gap-2">
+            <Input
+              value={tags}
+              onChange={(event) => setTags(event.target.value)}
+              placeholder={t('notes.tagsPlaceholder')}
+              aria-label={t('notes.tagsPlaceholder')}
+            />
+            <Button type="submit" variant="primary" disabled={body.trim() === '' || add.isPending}>
+              {t('notes.add')}
+            </Button>
+          </div>
+        </form>
+      }
+    >
+      <Scroll label={t('card.tab.notes')}>
+        <Loaded
+          query={notes}
+          skeleton={<SkeletonList rows={2} />}
+          isEmpty={(data) => data.length === 0}
+          // Plain, and its way out is the form under it.
+          emptyState={<EmptyState plain title={t('notes.emptyForWork')} />}
+          plain
+        >
+          {(data) => (
+            <ul className="flex flex-col gap-2">
+              {data.map((note) => (
+                <li
+                  key={note.id}
+                  className="flex items-start gap-2 rounded-xl border border-line p-2.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    {/* Rendered, not shown raw: a note is where a table of images
+                        or a list of phrases lands, and pipes and asterisks are not
+                        what its author wrote it to be read as. Line breaks inside a
+                        paragraph are kept, as everywhere markdown is rendered here. */}
+                    <Markdown
+                      body={note.body}
+                      className="text-sm"
+                      onToggleTask={(index) =>
+                        tick.mutate({ id: note.id, next: toggleTask(note.body, index) })
+                      }
+                    />
+                    {note.tags.length > 0 && (
+                      <p className="mt-1 flex flex-wrap gap-1">
+                        {note.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded bg-soft px-1.5 py-0.5 text-xs text-dim"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </p>
+                    )}
+                  </div>
+                  {/* Edited on the notes screen, where a note has room: the
+                      card is the view from one work, not a second editor. */}
+                  <Button
+                    variant="icon"
+                    size="icon-sm"
+                    title={t('notes.openInNotes')}
+                    aria-label={t('notes.openInNotes')}
+                    onClick={() => void navigate(`/notes/${note.id}`)}
+                  >
+                    <ArrowUpRight aria-hidden className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="icon-sm"
+                    title={t('notes.delete')}
+                    aria-label={t('notes.delete')}
+                    onClick={() => remove.mutate(note.id)}
+                  >
+                    <X aria-hidden className="size-3.5" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Loaded>
+      </Scroll>
+    </Frame>
   )
 }

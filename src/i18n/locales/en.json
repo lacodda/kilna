@@ -12,6 +12,7 @@
   "empty": {
     "worksTitle": "No works yet",
     "worksBody": "A work is one song, chapter or episode — whatever your profile calls it.",
+    "worksAction": "Add the first work",
     "worksFiltered": "Nothing matches those filters",
     "worksFilteredBody": "Clear the search or the filters to see everything again.",
     "clearFilters": "Clear filters",
@@ -53,9 +54,11 @@
     "removeTag": "Remove the tag \"{{tag}}\"",
     "markOn": "Mark as \"{{mark}}\"",
     "markOff": "Take off \"{{mark}}\"",
+    "marks": "Marks",
     "copyTitle": "Copy the title",
     "star": "Star it: come back to this one",
     "unstar": "Take the star off",
+    "copyId": "Copy the id",
     "copyIdHint": "Click to copy the id",
     "copyLink": "Copy a link to this card",
     "rename": "Rename",
@@ -108,7 +111,9 @@
     "repeats": "Repeats",
     "scored": "Scored {{score}}",
     "copyBody": "Copy the text",
-    "bodyCopied": "The text is on the clipboard."
+    "bodyCopied": "The text is on the clipboard.",
+    "lanes": "Role",
+    "commentary": "Commentary"
   },
   "nav": {
     "catalogue": "Catalogue",
@@ -341,6 +346,7 @@
     "wentOutOn": "Went out on",
     "wentOutOnHint": "The day it shipped, if that is not today.",
     "linkLooksWrong": "That is not a web address, so it will not open.",
+    "none": "Nothing is planned for this work yet. Pick a kind above and add a release.",
     "meta": {
       "title": "What it goes out as",
       "none": "Nothing is written about a {{kind}} release. The profile decides what a release of each kind says about itself.",
@@ -503,6 +509,7 @@
     "cancel": "Stop",
     "stopped": "Stopped",
     "chats": "Chats",
+    "conversation": "Conversation",
     "newChat": "New chat",
     "untitled": "New chat",
     "chatMenu": "Chat actions",
@@ -514,6 +521,7 @@
     "deleteBody": "The whole conversation goes with it — questions, answers and runs. This cannot be undone.",
     "copy": "Copy",
     "copied": "Copied.",
+    "copyFailed": "Could not copy the answer.",
     "spent": "Spent in this chat: {{amount}}",
     "insert": "Insert as version",
     "proposedBy": "Proposed by {{client}}",
@@ -724,7 +732,6 @@
     "sectionPlaceholder": "section — intro, verse 1, chorus",
     "startsAt": "Starts at",
     "endsAt": "Ends at",
-    "badTime": "“{{text}}” is not a time — type it as 1:23 or 0:04.5.",
     "description": "Description",
     "descriptionPlaceholder": "What happens in this scene",
     "copy": "Copy the {{block}} block",
@@ -865,6 +872,7 @@
     "promoted": "“{{title}}” is a work now",
     "promoteFailed": "Could not make a work of the note.",
     "openInNotes": "Open in Notes",
+    "emptyForWork": "No notes on this work yet. Write the first one below.",
     "tagPlaceholder": "A tag",
     "tagNew": "Enter adds it as a new tag"
   },

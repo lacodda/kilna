@@ -5,7 +5,7 @@ import { isWebLink } from '@/lib/link'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/DatePicker'
 import { Dialog } from '@/components/AppDialog'
-import { Field } from '@/components/Field'
+import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 
 const FORM = 'mark-released'
@@ -69,7 +69,7 @@ export function MarkReleasedDialog({ release, today, onOpenChange, onConfirm }: 
           onOpenChange(false)
         }}
       >
-        <Field label={t('releases.wentOutOn')} hint={t('releases.wentOutOnHint')}>
+        <FieldGroup label={t('releases.wentOutOn')} help={t('releases.wentOutOnHint')}>
           <DatePicker
             className="w-full"
             value={draft.at}
@@ -77,11 +77,11 @@ export function MarkReleasedDialog({ release, today, onOpenChange, onConfirm }: 
             placeholder={t('releases.wentOutOn')}
             aria-label={t('releases.wentOutOn')}
           />
-        </Field>
+        </FieldGroup>
 
         <Field
           label={t('calendar.urlPrompt')}
-          hint={linkLooksWrong ? t('releases.linkLooksWrong') : undefined}
+          help={linkLooksWrong ? t('releases.linkLooksWrong') : undefined}
         >
           <Input
             autoFocus

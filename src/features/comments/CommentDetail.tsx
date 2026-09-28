@@ -29,10 +29,11 @@ import { announceDeleted } from '@/lib/trash'
 import { useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/chip'
 import { DatePicker } from '@/components/DatePicker'
 import { Input } from '@/components/ui/input'
 import { Markdown } from '@/components/Markdown'
-import { SaveState, useSaveStatus } from '@/components/SaveState'
+import { SaveState, useSaveStatus } from '@/components/ui/save-state'
 import { Textarea } from '@/components/ui/textarea'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { ChannelField } from '@/features/comments/ChannelField'
@@ -154,7 +155,7 @@ export function CommentDetail({
   const busy = drafting || draft.isPending
 
   return (
-    <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-raise">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-raise">
       <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2">
         <Input
           value={author}
@@ -171,15 +172,12 @@ export function CommentDetail({
           aria-label={t('comments.author')}
           className="min-w-32 flex-1 border-transparent bg-transparent px-1.5 text-sm font-semibold hover:border-line focus:border-line"
         />
-        <SaveState status={saved} />
-        <button
-          type="button"
-          onClick={() => setMoving(!moving)}
-          title={t('comments.moveChannel')}
-          className="cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-xs text-dim hover:border-line-2 hover:text-text"
-        >
+        <SaveState savingLabel={t('save.saving')} savedLabel={t('save.saved')} status={saved} />
+        {/* The channel is the switch for moving it: on while the field that
+            moves it is open. */}
+        <Chip pressed={moving} onPressedChange={setMoving} title={t('comments.moveChannel')}>
           {comment.channel}
-        </button>
+        </Chip>
         <DatePicker
           value={comment.commented_on ?? ''}
           onChange={(next) => patch.mutate({ commented_on: next === '' ? null : next })}
@@ -224,27 +222,22 @@ export function CommentDetail({
       {!onWork && (
         <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-3 py-1.5 text-xs text-dim">
           {comment.work_id === null ? (
-            <button
-              type="button"
-              className="cursor-pointer text-faint hover:text-text"
-              onClick={() => setPicking(true)}
-            >
+            <Button variant="link" onClick={() => setPicking(true)}>
               {t('comments.attach')}
-            </button>
+            </Button>
           ) : (
             <>
-              <button
-                type="button"
-                className="flex min-w-0 cursor-pointer items-center gap-1 truncate hover:text-text"
+              <Button
+                variant="link"
+                className="min-w-0"
                 onClick={() => void navigate(`/works/${comment.work_id ?? ''}/comments`)}
               >
                 <span className="truncate">{work.data?.title ?? '…'}</span>
-                <ArrowUpRight aria-hidden className="size-3 shrink-0" />
-              </button>
+                <ArrowUpRight aria-hidden />
+              </Button>
               <Button
-                size="icon-sm"
+                size="icon-xs"
                 variant="icon"
-                className="size-5"
                 title={t('comments.detach')}
                 aria-label={t('comments.detach')}
                 onClick={() => patch.mutate({ work_id: null })}

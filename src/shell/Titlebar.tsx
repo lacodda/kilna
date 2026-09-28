@@ -15,6 +15,7 @@ import { openWorkId } from '@/lib/route'
 import { useAssistant } from '@/lib/useAssistant'
 import { useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
+import { RowButton } from '@/components/ui/list-row'
 import { NotificationBell } from '@/components/ui/notification-bell'
 import { CommandPalette } from '@/shell/CommandPalette'
 import { AssistantButton } from '@/features/assistant/AssistantDrawer'
@@ -264,21 +265,14 @@ function ProposalLine({
 
   return (
     <li className="flex items-center gap-1.5 py-1">
-      <button
-        type="button"
+      <RowButton
         onClick={onOpen}
-        className="min-w-0 flex-1 rounded-sm px-1 py-1 text-left hover:bg-soft"
+        description={proposal.chat_title ?? undefined}
+        end={<time dateTime={proposal.created_at}>{formatMoment(proposal.created_at)}</time>}
+        className="flex-1"
       >
-        <span className="flex items-baseline gap-2">
-          <span className="min-w-0 flex-1 truncate text-sm text-text">{what}</span>
-          <time dateTime={proposal.created_at} className="shrink-0 text-xs tabular-nums text-faint">
-            {formatMoment(proposal.created_at)}
-          </time>
-        </span>
-        {proposal.chat_title !== null && (
-          <span className="block truncate text-xs text-dim">{proposal.chat_title}</span>
-        )}
-      </button>
+        {what}
+      </RowButton>
       <Button
         variant="icon"
         size="icon-sm"
@@ -406,17 +400,20 @@ export function Titlebar({ works, compact, onToggleRail }: Props) {
         <Breadcrumbs />
       </div>
 
-      <button
-        type="button"
+      {/* A field to look at and a button to press: it opens the palette,
+          which is where the typing happens. */}
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => setSearching(true)}
-        className="flex h-control-sm min-w-0 cursor-pointer items-center gap-2 rounded-md border border-line bg-raise px-2.5 text-xs text-faint transition-colors hover:border-line-2 hover:text-dim"
+        className="min-w-0 justify-start"
       >
-        <Search aria-hidden className="size-3.5 shrink-0" />
+        <Search aria-hidden />
         <span className="truncate">{t('search.placeholder')}</span>
         <kbd className="ml-auto rounded border border-line px-1.5 font-mono text-2xs">
           {t('search.shortcut')}
         </kbd>
-      </button>
+      </Button>
 
       <div className="flex h-full min-w-0 items-center justify-end gap-2">
         <p className="text-xs whitespace-nowrap text-faint max-[900px]:hidden">

@@ -1,9 +1,8 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { queries } from '@/lib/query/queries'
 import { say } from '@/lib/toast'
-import { Button } from '@/components/ui/button'
+import { CopyButton } from '@/components/ui/copy-button'
 
 /** Agents outside the window: the MCP door, and how to register it. */
 export function AgentsSection() {
@@ -30,31 +29,27 @@ export function AgentsSection() {
 function McpRegistration() {
   const { t } = useTranslation()
   const command = useQuery(queries.mcpRegistration())
-  const [copied, setCopied] = useState(false)
 
   if (command.data === undefined) return null
 
+  // `group` so the copy button shows as soon as the pointer is over the
+  // command, not only once it finds the button.
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="group flex items-center gap-2">
       <code className="selectable min-w-0 flex-1 overflow-x-auto rounded-md border border-line bg-soft px-2.5 py-1.5 font-mono text-xs whitespace-nowrap">
         {command.data}
       </code>
-      <Button
-        size="sm"
-        onClick={() => {
-          // The tick only once the clipboard said yes; a refusal is said
-          // rather than swallowed, or the person pastes whatever was there.
-          navigator.clipboard.writeText(command.data).then(
-            () => {
-              setCopied(true)
-              setTimeout(() => setCopied(false), 2000)
-            },
-            (cause: unknown) => say.failedTo(t('work.copyFailed'), cause),
-          )
+      {/* The tick only once the clipboard said yes; a refusal is said rather
+          than swallowed, or the person pastes whatever was there. */}
+      <CopyButton
+        value={command.data}
+        label={t('data.mcpCopy')}
+        copiedLabel={t('data.mcpCopied')}
+        onCopy={(ok) => {
+          if (!ok) say.failed(t('work.copyFailed'))
         }}
-      >
-        {copied ? t('data.mcpCopied') : t('data.mcpCopy')}
-      </Button>
+        title={t('data.mcpCopy')}
+      />
     </div>
   )
 }

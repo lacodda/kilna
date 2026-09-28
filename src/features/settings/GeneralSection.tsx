@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { LANGUAGES, useLanguage } from '@/lib/language'
 import { THEMES, useTheme } from '@/lib/theme'
-import { Field } from '@/components/Field'
+import { FieldGroup } from '@/components/ui/field'
+import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { Select } from '@/components/AppSelect'
 
 /**
@@ -22,15 +23,24 @@ export function GeneralSection() {
       <section className="flex flex-col gap-3">
         <h3 className="text-sm font-semibold">{t('settings.appearance')}</h3>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label={t('settings.theme')}>
-            <Select
+          {/* Three options, all worth seeing at once: a segment, not a menu -
+              the choice is one press, and switching back is the same press. */}
+          <FieldGroup label={t('settings.theme')}>
+            <SegmentedControl
+              aria-label={t('settings.theme')}
               value={theme}
-              onChange={(next) => setTheme(next as typeof theme)}
-              options={THEMES.map((entry) => ({ value: entry, label: t(`themeName.${entry}`) }))}
-            />
-          </Field>
-          <Field label={t('settings.language')}>
+              onValueChange={(next) => setTheme(next as typeof theme)}
+            >
+              {THEMES.map((entry) => (
+                <Segment key={entry} value={entry}>
+                  {t(`themeName.${entry}`)}
+                </Segment>
+              ))}
+            </SegmentedControl>
+          </FieldGroup>
+          <FieldGroup label={t('settings.language')}>
             <Select
+              aria-label={t('settings.language')}
               value={language}
               onChange={(next) => setLanguage(next as typeof language)}
               options={LANGUAGES.map((entry) => ({
@@ -38,7 +48,7 @@ export function GeneralSection() {
                 label: t(`languageName.${entry}`),
               }))}
             />
-          </Field>
+          </FieldGroup>
         </div>
       </section>
     </div>

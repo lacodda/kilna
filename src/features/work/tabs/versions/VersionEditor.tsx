@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Eye, PenLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Markdown } from '@/components/Markdown'
@@ -114,15 +115,9 @@ export function VersionEditor({
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-dim">
-          <input
-            type="checkbox"
-            className="size-4 accent-[var(--accent)]"
-            checked={makeCurrent}
-            onChange={(event) => onMakeCurrentChange(event.target.checked)}
-          />
+        <Checkbox checked={makeCurrent} onCheckedChange={onMakeCurrentChange}>
           {t('versions.makeCurrentOnSave')}
-        </label>
+        </Checkbox>
 
         {kept && <span className="text-xs text-faint">{t('versions.kept')}</span>}
 

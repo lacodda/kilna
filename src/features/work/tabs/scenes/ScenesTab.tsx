@@ -6,7 +6,6 @@ import { open, save } from '@tauri-apps/plugin-dialog'
 import {
   ChevronRight,
   Clock,
-  Copy,
   CopyPlus,
   FolderDown,
   ListPlus,
@@ -46,7 +45,6 @@ import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { montageFileName, montageList } from '@/lib/montage'
 import { checkStoryboard } from '@/lib/storyboard'
-import { formatSeconds, parseTimecode } from '@/lib/timecode'
 import {
   chosenFrame,
   durationOf,
@@ -58,18 +56,23 @@ import {
   VIDEO,
   type Readiness,
 } from '@/lib/scenes'
-import { useFieldDraft } from '@/lib/fieldDraft'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { say as sayLabel, useProfile, vocabularyOf, type Vocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Chip, ChipGroup } from '@/components/ui/chip'
+import { CopyButton } from '@/components/ui/copy-button'
+import { useFieldDraft } from '@/components/ui/field-draft'
+import { InlineField, numberCodec, timecodeCodec } from '@/components/ui/inline-field'
+import { RowButton } from '@/components/ui/list-row'
 import { Markdown } from '@/components/Markdown'
 import { Panel } from '@/components/ui/panel'
 import { PromptDialog } from '@/components/AppDialog'
 import { Select } from '@/components/AppSelect'
-import { Skeleton } from '@/components/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Frame, Scroll } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 import { Textarea } from '@/components/ui/textarea'
 import { ActionBar, actionsFor } from '@/features/assistant/ActionBar'
 import { FrameViewer, type Viewing } from '@/features/work/tabs/scenes/FrameViewer'
@@ -82,6 +85,10 @@ interface Props {
 
 /** The role that holds what every scene has in common: hero, palette, lens. */
 const CONTEXT_ROLE = 'context'
+
+/** The "All" chip's value in the row of kinds of shot. A chip in a group needs
+    a value of its own, and an empty one is not taken as a value at all. */
+const ALL_SHOTS = '*'
 
 /**
  * The storyboard: one row per scene, owned by the work.
@@ -394,282 +401,263 @@ export function ScenesTab({ work }: Props) {
   const hasActions = actionsFor(profile.config.prompts, work.kind, 'work').length > 0
 
   return (
-    <div className="flex flex-col gap-4">
-      {vocabulary.version_roles.some((role) => role.key === CONTEXT_ROLE) && (
-        <ContextPanel workId={work.id} />
-      )}
+    <Frame
+      // What is done to the board stands at the tab's foot: it followed the
+      // last of fifty scenes down, and adding the fifty-first meant scrolling
+      // to find the button.
+      foot={
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="soft" size="sm" disabled={add.isPending} onClick={() => add.mutate()}>
+            <Plus aria-hidden />
+            {t('scenes.add')}
+          </Button>
+          {all.length > 0 && (
+            <Button
+              variant="soft"
+              size="sm"
+              disabled={time.isPending}
+              onClick={() => time.mutate()}
+              title={t('scenes.timeHint')}
+            >
+              <Clock aria-hidden />
+              {t('scenes.time')}
+            </Button>
+          )}
 
-      {/* The profile's actions for this kind, on the board's own tab: the
-          plot from the source, the board from the plot. A click starts a
-          task and the answer comes back as a proposal, applied with one
-          button; nothing here is written by the assistant itself. */}
-      <ActionBar workId={work.id} hint={t('scenes.actionsHint')} />
-
-      {/* The kind of shot as a row of chips, the way the catalogue narrows to
-          a kind: "show me every detail" is one click, and the chip that is
-          on turns off. Hidden while the kind names no kinds of shot. */}
-      {vocabulary.shot_types.length > 0 && (
-        <div
-          role="group"
-          aria-label={t('scenes.shotType')}
-          className="flex flex-wrap items-center gap-2"
-        >
-          {[
-            { key: undefined, label: t('scenes.allShots'), count: all.length },
-            ...vocabulary.shot_types.map((shot) => ({
-              key: shot.key,
-              label: shot.label,
-              count: counts.get(shot.key) ?? 0,
-            })),
-          ].map((entry) => {
-            const active = shotType === entry.key
-            return (
-              <button
-                key={entry.key ?? ''}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setShotType(active ? undefined : entry.key)}
-                className={cn(
-                  'cursor-pointer rounded-full border px-2.5 py-0.5 text-xs transition-colors',
-                  active
-                    ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
-                    : 'border-line text-dim hover:border-line-2 hover:text-text',
-                )}
+          {/* What the board is cut from, as text: the same list to the
+              clipboard or to a file, because one of them is at hand and the
+              other survives the next copy. */}
+          {all.length > 0 && (
+            <>
+              <Button variant="soft" size="sm" onClick={copyMontage}>
+                <ListVideo aria-hidden />
+                {t('scenes.montage.copy')}
+              </Button>
+              <Button variant="soft" size="sm" onClick={() => void saveMontage()}>
+                <Save aria-hidden />
+                {t('scenes.montage.save')}
+              </Button>
+              {/* The montage list is what one program needs; this is what a
+                  person needs: everything at once, in a folder, readable
+                  without kilna. */}
+              <Button
+                variant="soft"
+                size="sm"
+                title={t('scenes.package.hint')}
+                onClick={() => void savePackage()}
               >
-                {sayLabel(entry.label)}
-                <span className="ml-1.5 text-2xs text-faint tabular-nums">{entry.count}</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Who and where, as a row of chips beside the kinds of shot: "every
-          scene with her in it" is one click. Only the notes some scene of
-          this board actually names — a cast list of everyone in the
-          workspace would be a list nobody reads. */}
-      {(() => {
-        const named = new Map<string, SceneNote>()
-        for (const link of about.data ?? [])
-          if (!named.has(link.note_id)) named.set(link.note_id, link)
-        if (named.size === 0) return null
-        return (
-          <div
-            role="group"
-            aria-label={t('scenes.about')}
-            className="flex flex-wrap items-center gap-2"
-          >
-            {[...named.values()].map((link) => {
-              const active = withNote === link.note_id
-              return (
-                <button
-                  key={link.note_id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setWithNote(active ? undefined : link.note_id)}
-                  className={cn(
-                    'cursor-pointer rounded-full border px-2.5 py-0.5 text-xs transition-colors',
-                    active
-                      ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
-                      : 'border-line text-dim hover:border-line-2 hover:text-text',
-                  )}
-                >
-                  {link.note_title ?? t('scenes.untitledNote')}
-                </button>
-              )
-            })}
-          </div>
-        )
-      })()}
-
-      {scenes.isPending && <Skeleton className="h-24 w-full" />}
-      {scenes.isError && (
-        <p role="alert" className="text-sm text-bad">
-          {t('toast.loadFailed')}
-        </p>
-      )}
-
-      {scenes.data !== undefined && all.length === 0 && (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-dim">
-            {t(hasActions ? 'scenes.emptyWithActions' : 'scenes.empty')}
-          </p>
-          {/* The frame from the source text: one scene per part the lyric
-              marks out. Shown only when there is a source to read and roles
-              to read it in — a button that can only refuse is no entrance. */}
-          {donorRoles.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-dim">{t('scenes.frameFrom')}</span>
-              {donorRoles.map((role) => (
-                <Button
-                  key={role.key}
-                  variant="soft"
-                  size="sm"
-                  disabled={frame.isPending}
-                  onClick={() => frame.mutate(role.key)}
-                  title={t('scenes.frameHint')}
-                >
-                  <Rows3 aria-hidden />
-                  {sayLabel(role.label)}
-                </Button>
-              ))}
-            </div>
+                <FolderDown aria-hidden />
+                {t('scenes.package.action')}
+              </Button>
+              {/* Not a version of the video: a second work from the same donor,
+                  with this board copied into it. The first stays as it is,
+                  which is the point — the two get compared. */}
+              <Button
+                variant="soft"
+                size="sm"
+                disabled={clone.isPending}
+                title={t('scenes.clone.hint')}
+                onClick={() => setCloning(true)}
+              >
+                <CopyPlus aria-hidden />
+                {t('scenes.clone.action')}
+              </Button>
+            </>
           )}
         </div>
-      )}
-      {/* The harvest, above the board: what is counted and what is missing.
-          A click on a line opens the scene it names — on a board of fifty,
-          a report that says "scene 34" and leaves you to find it costs more
-          than it saves. */}
-      <StoryboardCheck
-        board={board}
-        onGo={(sceneId) => {
-          // Opening the row is the whole gesture: the description and the
-          // prompts are what a complaint is almost always about, and the
-          // browser takes the eye there.
-          setOpened((open) => new Set(open).add(sceneId))
-          document
-            .getElementById(`scene-${sceneId}`)
-            ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-        }}
-      />
+      }
+    >
+      <Scroll label={t('card.tab.scenes')} contentClassName="flex flex-col gap-4">
+        {vocabulary.version_roles.some((role) => role.key === CONTEXT_ROLE) && (
+          <ContextPanel workId={work.id} />
+        )}
 
-      {scenes.data !== undefined && all.length > 0 && shown.length === 0 && (
-        <p className="text-sm text-dim">{t('scenes.noneOfShot')}</p>
-      )}
+        {/* The profile's actions for this kind, on the board's own tab: the
+            plot from the source, the board from the plot. A click starts a
+            task and the answer comes back as a proposal, applied with one
+            button; nothing here is written by the assistant itself. */}
+        <ActionBar workId={work.id} hint={t('scenes.actionsHint')} />
 
-      {/* The board as one table: fifty scenes read as a list of rows, not as
-          fifty stacked cards you scroll past to compare two timings. The box
-          scrolls sideways itself and the headings stay, the way the catalogue
-          does it — a table you scroll is a table whose columns must remain
-          named. What does not fit a row — the description and the prompt
-          blocks — opens under it. */}
-      {shown.length > 0 && (
-        <div ref={pane} className="min-w-0 overflow-x-auto">
-          {/* `table-fixed` so the description is the column that gives way,
-              and a minimum width so it does not give way to nothing: with
-              every other column fixed, eight columns in a 926px pane left
-              the description six pixels wide — measured, on a fifty-scene
-              board. Below the minimum the pane scrolls sideways, which is
-              the honest answer at that width; above it the description takes
-              everything the others do not. */}
-          <table className="w-full min-w-288 table-fixed text-sm">
-            <thead className="sticky top-0 z-10 bg-bg">
-              <tr className="border-b border-line text-left caption">
-                {/* Wide enough for the number FIELD and the chosen
-                    frame beside it: at `w-10` the column fitted a
-                    rendered number and clipped the input to a stub —
-                    measured on a fifty-scene board. */}
-                <th className="w-24 px-2 py-2 text-right">{t('scenes.number')}</th>
-                <th className="w-36 px-2 py-2">{t('scenes.section')}</th>
-                <th className="w-44 px-2 py-2">{t('scenes.span')}</th>
-                {vocabulary.shot_types.length > 0 && (
-                  <th className="w-36 px-2 py-2">{t('scenes.shotType')}</th>
-                )}
-                {/* No width: the column that takes what is left, and truncates. */}
-                <th className="px-2 py-2">{t('scenes.description')}</th>
-                {noteKinds.length > 0 && <th className="w-36 px-2 py-2">{t('scenes.about')}</th>}
-                <th className="w-28 px-2 py-2">{t('scenes.readiness')}</th>
-                <th className="w-24 px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((scene) => (
-                // Keyed on the scene alone. It used to carry `updated_at` too,
-                // so a change from elsewhere redrew the fields - and so did the
-                // row's own save: every edit remounted it, and the focus a Tab
-                // had just moved to the next field fell to the page with
-                // whatever was being typed there. The fields follow the stored
-                // value themselves now (`useFieldDraft`).
-                <SceneRow
-                  key={scene.id}
-                  scene={scene}
-                  workId={work.id}
-                  vocabulary={vocabulary}
-                  open={opened.has(scene.id)}
-                  onToggle={() => toggleOpen(scene.id)}
-                  saving={patch.isPending && patch.variables?.id === scene.id}
-                  onPatch={(changes) => patch.mutate({ id: scene.id, changes })}
-                  onDelete={() => remove.mutate(scene)}
-                  paneWidth={paneWidth}
-                  about={aboutByScene.get(scene.id) ?? []}
-                  frames={framesForScene.get(scene.id) ?? []}
-                  onViewFrame={(frame) =>
-                    setViewing({ sceneId: scene.id, number: scene.position, frame })
-                  }
-                  cast={cast}
-                  onAttach={(noteId) => attach.mutate({ sceneId: scene.id, noteId })}
-                  onDetach={(noteId) => detach.mutate({ sceneId: scene.id, noteId })}
-                  onMoveTo={(position) => renumber.mutate(orderMoving(all, scene.id, position))}
-                  onInsertAfter={() => insert.mutate(scene)}
-                  total={all.length}
-                  moving={renumber.isPending || insert.isPending}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="soft" size="sm" disabled={add.isPending} onClick={() => add.mutate()}>
-          <Plus aria-hidden />
-          {t('scenes.add')}
-        </Button>
-        {all.length > 0 && (
-          <Button
-            variant="soft"
-            size="sm"
-            disabled={time.isPending}
-            onClick={() => time.mutate()}
-            title={t('scenes.timeHint')}
+        {/* The kind of shot as a row of chips, the way the catalogue narrows to
+            a kind: "show me every detail" is one click, and the chip that is
+            on turns off - which lets go of the group and puts "All" back on.
+            Hidden while the kind names no kinds of shot. */}
+        {vocabulary.shot_types.length > 0 && (
+          <ChipGroup
+            aria-label={t('scenes.shotType')}
+            value={[shotType ?? ALL_SHOTS]}
+            onValueChange={(next) => {
+              const picked = next[0]
+              setShotType(picked === undefined || picked === ALL_SHOTS ? undefined : picked)
+            }}
           >
-            <Clock aria-hidden />
-            {t('scenes.time')}
-          </Button>
+            {[
+              { key: ALL_SHOTS, label: t('scenes.allShots'), count: all.length },
+              ...vocabulary.shot_types.map((shot) => ({
+                key: shot.key,
+                label: shot.label,
+                count: counts.get(shot.key) ?? 0,
+              })),
+            ].map((entry) => (
+              <Chip key={entry.key} value={entry.key} count={entry.count}>
+                {sayLabel(entry.label)}
+              </Chip>
+            ))}
+          </ChipGroup>
         )}
 
-        {/* What the board is cut from, as text: the same list to the
-            clipboard or to a file, because one of them is at hand and the
-            other survives the next copy. */}
-        {all.length > 0 && (
-          <>
-            <Button variant="soft" size="sm" onClick={copyMontage}>
-              <ListVideo aria-hidden />
-              {t('scenes.montage.copy')}
-            </Button>
-            <Button variant="soft" size="sm" onClick={() => void saveMontage()}>
-              <Save aria-hidden />
-              {t('scenes.montage.save')}
-            </Button>
-            {/* The montage list is what one program needs; this is what a
-                person needs: everything at once, in a folder, readable
-                without kilna. */}
-            <Button
-              variant="soft"
-              size="sm"
-              title={t('scenes.package.hint')}
-              onClick={() => void savePackage()}
+        {/* Who and where, as a row of chips beside the kinds of shot: "every
+            scene with her in it" is one click. Only the notes some scene of
+            this board actually names — a cast list of everyone in the
+            workspace would be a list nobody reads. */}
+        {(() => {
+          const named = new Map<string, SceneNote>()
+          for (const link of about.data ?? [])
+            if (!named.has(link.note_id)) named.set(link.note_id, link)
+          if (named.size === 0) return null
+          return (
+            <ChipGroup
+              aria-label={t('scenes.about')}
+              value={withNote === undefined ? [] : [withNote]}
+              onValueChange={(next) => setWithNote(next[0])}
             >
-              <FolderDown aria-hidden />
-              {t('scenes.package.action')}
-            </Button>
-            {/* Not a version of the video: a second work from the same donor,
-                with this board copied into it. The first stays as it is,
-                which is the point — the two get compared. */}
-            <Button
-              variant="soft"
-              size="sm"
-              disabled={clone.isPending}
-              title={t('scenes.clone.hint')}
-              onClick={() => setCloning(true)}
-            >
-              <CopyPlus aria-hidden />
-              {t('scenes.clone.action')}
-            </Button>
-          </>
+              {[...named.values()].map((link) => (
+                <Chip key={link.note_id} value={link.note_id}>
+                  {link.note_title ?? t('scenes.untitledNote')}
+                </Chip>
+              ))}
+            </ChipGroup>
+          )
+        })()}
+
+        {(scenes.isPending || scenes.isError) && (
+          <Loaded query={scenes} skeleton={<Skeleton className="h-24 w-full" />} plain>
+            {() => null}
+          </Loaded>
         )}
-      </div>
+
+        {scenes.data !== undefined && all.length === 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-dim">
+              {t(hasActions ? 'scenes.emptyWithActions' : 'scenes.empty')}
+            </p>
+            {/* The frame from the source text: one scene per part the lyric
+                marks out. Shown only when there is a source to read and roles
+                to read it in — a button that can only refuse is no entrance. */}
+            {donorRoles.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-dim">{t('scenes.frameFrom')}</span>
+                {donorRoles.map((role) => (
+                  <Button
+                    key={role.key}
+                    variant="soft"
+                    size="sm"
+                    disabled={frame.isPending}
+                    onClick={() => frame.mutate(role.key)}
+                    title={t('scenes.frameHint')}
+                  >
+                    <Rows3 aria-hidden />
+                    {sayLabel(role.label)}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {/* The harvest, above the board: what is counted and what is missing.
+            A click on a line opens the scene it names — on a board of fifty,
+            a report that says "scene 34" and leaves you to find it costs more
+            than it saves. */}
+        <StoryboardCheck
+          board={board}
+          onGo={(sceneId) => {
+            // Opening the row is the whole gesture: the description and the
+            // prompts are what a complaint is almost always about, and the
+            // browser takes the eye there.
+            setOpened((open) => new Set(open).add(sceneId))
+            document
+              .getElementById(`scene-${sceneId}`)
+              ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          }}
+        />
+
+        {scenes.data !== undefined && all.length > 0 && shown.length === 0 && (
+          <p className="text-sm text-dim">{t('scenes.noneOfShot')}</p>
+        )}
+
+        {/* The board as one table: fifty scenes read as a list of rows, not as
+            fifty stacked cards you scroll past to compare two timings. The box
+            scrolls sideways itself and the headings stay, the way the catalogue
+            does it — a table you scroll is a table whose columns must remain
+            named. What does not fit a row — the description and the prompt
+            blocks — opens under it. */}
+        {shown.length > 0 && (
+          <div ref={pane} className="min-w-0 overflow-x-auto">
+            {/* `table-fixed` so the description is the column that gives way,
+                and a minimum width so it does not give way to nothing: with
+                every other column fixed, eight columns in a 926px pane left
+                the description six pixels wide — measured, on a fifty-scene
+                board. Below the minimum the pane scrolls sideways, which is
+                the honest answer at that width; above it the description takes
+                everything the others do not. */}
+            <table className="w-full min-w-288 table-fixed text-sm">
+              <thead className="sticky top-0 z-10 bg-bg">
+                <tr className="border-b border-line text-left caption">
+                  {/* Wide enough for the number FIELD and the chosen
+                      frame beside it: at `w-10` the column fitted a
+                      rendered number and clipped the input to a stub —
+                      measured on a fifty-scene board. */}
+                  <th className="w-24 px-2 py-2 text-right">{t('scenes.number')}</th>
+                  <th className="w-36 px-2 py-2">{t('scenes.section')}</th>
+                  <th className="w-44 px-2 py-2">{t('scenes.span')}</th>
+                  {vocabulary.shot_types.length > 0 && (
+                    <th className="w-36 px-2 py-2">{t('scenes.shotType')}</th>
+                  )}
+                  {/* No width: the column that takes what is left, and truncates. */}
+                  <th className="px-2 py-2">{t('scenes.description')}</th>
+                  {noteKinds.length > 0 && <th className="w-36 px-2 py-2">{t('scenes.about')}</th>}
+                  <th className="w-28 px-2 py-2">{t('scenes.readiness')}</th>
+                  <th className="w-24 px-2 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((scene) => (
+                  // Keyed on the scene alone. It used to carry `updated_at` too,
+                  // so a change from elsewhere redrew the fields - and so did the
+                  // row's own save: every edit remounted it, and the focus a Tab
+                  // had just moved to the next field fell to the page with
+                  // whatever was being typed there. The fields follow the stored
+                  // value themselves now (InlineField and `useFieldDraft`).
+                  <SceneRow
+                    key={scene.id}
+                    scene={scene}
+                    workId={work.id}
+                    vocabulary={vocabulary}
+                    open={opened.has(scene.id)}
+                    onToggle={() => toggleOpen(scene.id)}
+                    saving={patch.isPending && patch.variables?.id === scene.id}
+                    onPatch={(changes) => patch.mutate({ id: scene.id, changes })}
+                    onDelete={() => remove.mutate(scene)}
+                    paneWidth={paneWidth}
+                    about={aboutByScene.get(scene.id) ?? []}
+                    frames={framesForScene.get(scene.id) ?? []}
+                    onViewFrame={(frame) =>
+                      setViewing({ sceneId: scene.id, number: scene.position, frame })
+                    }
+                    cast={cast}
+                    onAttach={(noteId) => attach.mutate({ sceneId: scene.id, noteId })}
+                    onDetach={(noteId) => detach.mutate({ sceneId: scene.id, noteId })}
+                    onMoveTo={(position) => renumber.mutate(orderMoving(all, scene.id, position))}
+                    onInsertAfter={() => insert.mutate(scene)}
+                    total={all.length}
+                    moving={renumber.isPending || insert.isPending}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Scroll>
 
       <PromptDialog
         open={cloning}
@@ -688,7 +676,7 @@ export function ScenesTab({ work }: Props) {
         onStep={step}
         canStep={canStep}
       />
-    </div>
+    </Frame>
   )
 }
 
@@ -793,42 +781,35 @@ function SceneRow({
 }) {
   const { t } = useTranslation()
 
-  // Every field of the row is a draft over what is stored: it follows the
-  // scene while nobody types in it, writes only a change, and goes back to
-  // what is stored when a value is refused - a field showing an order or a
-  // time that was not applied would be a second truth about the scene.
-  const number = useFieldDraft(String(scene.position), (text) => {
-    const wanted = Number(text.trim())
-    if (text.trim() === '' || !Number.isInteger(wanted) || wanted < 1 || wanted > total) {
-      say.warn(t('scenes.badNumber', { text, total }))
+  // Every field of the row is a draft over what is stored (InlineField): it
+  // follows the scene while nobody types in it, writes only a change, and
+  // goes back to what is stored when a value is refused - a field showing an
+  // order or a time that was not applied would be a second truth about the
+  // scene. What cannot be read as a number or a time at all is refused by the
+  // field itself; a number that names no place on the board is refused here,
+  // with the range said out loud.
+  const moveTo = (wanted: number | null) => {
+    if (wanted === null || !Number.isInteger(wanted) || wanted < 1 || wanted > total) {
+      say.warn(t('scenes.badNumber', { text: wanted === null ? '' : String(wanted), total }))
       return false
     }
     if (wanted === scene.position) return false
     onMoveTo(wanted)
-  })
-
-  const timecode = (field: 'starts_at' | 'ends_at', stored: number | null) => (text: string) => {
-    const parsed = parseTimecode(text)
-    if (!parsed.ok) {
-      say.warn(t('scenes.badTime', { text }))
-      return false
-    }
-    // The same moment typed another way ("0:5") is not a change, and the
-    // box goes back to the stored spelling of it.
-    if (parsed.seconds === stored) return false
-    onPatch({ [field]: parsed.seconds })
   }
-  const starts = useFieldDraft(
-    formatSeconds(scene.starts_at),
-    timecode('starts_at', scene.starts_at),
-  )
-  const ends = useFieldDraft(formatSeconds(scene.ends_at), timecode('ends_at', scene.ends_at))
 
-  const section = useFieldDraft(scene.section ?? '', (text) => {
-    const trimmed = text.trim()
+  const timecode =
+    (field: 'starts_at' | 'ends_at', stored: number | null) => (seconds: number | null) => {
+      // The same moment typed another way ("0:5") is not a change, and the
+      // box goes back to the stored spelling of it.
+      if (seconds === stored) return false
+      onPatch({ [field]: seconds })
+    }
+
+  const section = (text: string | null) => {
+    const trimmed = (text ?? '').trim()
     if (trimmed === (scene.section ?? '')) return false
     onPatch({ section: trimmed === '' ? null : trimmed })
-  })
+  }
 
   const description = useFieldDraft(
     scene.description,
@@ -860,7 +841,12 @@ function SceneRow({
   return (
     <>
       <tr id={`scene-${scene.id}`} className="border-b border-line align-middle">
-        <td className="px-2 py-1.5 text-right text-sm font-semibold tabular-nums">
+        {/* The hint sits on the cell rather than on the field: InlineField
+            takes no title of its own, and the thumbnail beside it has one. */}
+        <td
+          className="px-2 py-1.5 text-right text-sm font-semibold tabular-nums"
+          title={t('scenes.moveToHint')}
+        >
           <span className="flex items-center justify-end gap-1.5">
             {/* The frame the scene is cut from, beside its number: the board
                 answers "which scene is this picture" and "which picture is
@@ -868,15 +854,16 @@ function SceneRow({
                 not do. A thumbnail rather than a column, so a board without
                 pictures costs no width. */}
             {chosen && (
-              <button
-                type="button"
+              <Button
+                variant="icon"
+                size="icon-sm"
                 onClick={() => onViewFrame(chosen)}
                 title={chosen.original_name ?? t('scenes.openFrame')}
                 aria-label={t('scenes.openFrame')}
-                className="overflow-hidden rounded border border-good"
+                className="overflow-hidden"
               >
                 <img src={fileSrc(chosen.path)} alt="" className="size-7 object-contain" />
-              </button>
+              </Button>
             )}
             {/* The number is where the board is reordered from, because the
                 number IS the order: typing 3 on scene 12 says "this one
@@ -893,38 +880,49 @@ function SceneRow({
             {/* Escape puts back what is stored rather than what was typed:
                 the field is a command, and a command is cancelled, not
                 half-entered. */}
-            <Input
-              className="w-11 text-right font-semibold tabular-nums"
-              inputMode="numeric"
-              aria-label={t('scenes.moveTo')}
-              title={t('scenes.moveToHint')}
+            {/* The column's heading names the cells, so each field of the row
+                keeps its caption for a screen reader only. */}
+            <InlineField
+              className="w-11"
+              label={t('scenes.moveTo')}
+              labelHidden
+              codec={numberCodec}
+              value={scene.position}
+              onCommit={moveTo}
               disabled={moving}
-              {...number}
             />
           </span>
         </td>
         <td className="px-2 py-1.5">
-          <Input
+          <InlineField
             className="w-36"
+            label={t('scenes.section')}
+            labelHidden
             placeholder={t('scenes.sectionPlaceholder')}
-            aria-label={t('scenes.section')}
-            {...section}
+            value={scene.section}
+            onCommit={section}
           />
         </td>
         <td className="px-2 py-1.5">
           <span className="flex items-center gap-1 text-xs text-dim">
-            <Input
-              className="w-20 text-center font-mono text-xs tabular-nums"
+            <InlineField
+              className="w-20"
+              label={t('scenes.startsAt')}
+              labelHidden
               placeholder="0:00"
-              aria-label={t('scenes.startsAt')}
-              {...starts}
+              codec={timecodeCodec}
+              value={scene.starts_at}
+              onCommit={timecode('starts_at', scene.starts_at)}
             />
             <span aria-hidden>–</span>
-            <Input
-              className="w-20 text-center font-mono text-xs tabular-nums"
+            <InlineField
+              className="w-20"
+              label={t('scenes.endsAt')}
+              labelHidden
               placeholder="0:00"
-              aria-label={t('scenes.endsAt')}
-              {...ends}
+              codec={timecodeCodec}
+              value={scene.ends_at}
+              onCommit={timecode('ends_at', scene.ends_at)}
             />
           </span>
         </td>
@@ -945,25 +943,26 @@ function SceneRow({
         )}
         {/* The description in one line, as much of it as the column holds.
             Clicking opens the row rather than editing in place: a paragraph
-            typed into a table cell is a paragraph you cannot see. */}
+            typed into a table cell is a paragraph you cannot see. Never
+            `selected` while open: the row it opens is under it, not a place
+            the board has moved to. */}
         <td className="px-2 py-1.5">
-          <button
-            type="button"
+          <RowButton
             onClick={onToggle}
             aria-expanded={open}
-            className="flex w-full cursor-pointer items-center gap-1.5 text-left text-sm transition-colors hover:text-accent-2"
+            start={
+              <ChevronRight
+                aria-hidden
+                className={cn('size-3.5 text-faint transition-transform', open && 'rotate-90')}
+              />
+            }
           >
-            <ChevronRight
-              aria-hidden
-              className={cn(
-                'size-3.5 shrink-0 text-faint transition-transform',
-                open && 'rotate-90',
-              )}
-            />
-            <span className={cn('truncate', scene.description === '' && 'text-faint')}>
-              {scene.description === '' ? t('scenes.describeIt') : scene.description}
-            </span>
-          </button>
+            {scene.description === '' ? (
+              <span className="text-faint">{t('scenes.describeIt')}</span>
+            ) : (
+              scene.description
+            )}
+          </RowButton>
         </td>
         {cast.length > 0 && (
           // Who and where, as names rather than as text inside the shot: a
@@ -1060,25 +1059,24 @@ function SceneRow({
               {cast.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="text-xs text-dim">{t('scenes.aboutHint')}</span>
-                  {cast.map((note) => {
-                    const chosen = named.has(note.id)
-                    return (
-                      <button
-                        key={note.id}
-                        type="button"
-                        aria-pressed={chosen}
-                        onClick={() => (chosen ? onDetach(note.id) : onAttach(note.id))}
-                        className={cn(
-                          'cursor-pointer rounded-full border px-2 py-0.5 text-xs transition-colors',
-                          chosen
-                            ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
-                            : 'border-line text-dim hover:border-line-2 hover:text-text',
-                        )}
-                      >
+                  {/* One group for the whole cast: its value is every note the
+                      scene names, and what changed says which one came or went. */}
+                  <ChipGroup
+                    multiple
+                    aria-label={t('scenes.about')}
+                    value={[...named]}
+                    onValueChange={(next) => {
+                      const kept = new Set(next)
+                      for (const id of kept) if (!named.has(id)) onAttach(id)
+                      for (const id of named) if (!kept.has(id)) onDetach(id)
+                    }}
+                  >
+                    {cast.map((note) => (
+                      <Chip key={note.id} value={note.id}>
                         {note.title ?? t('scenes.untitledNote')}
-                      </button>
-                    )
-                  })}
+                      </Chip>
+                    ))}
+                  </ChipGroup>
                 </div>
               )}
 
@@ -1175,7 +1173,8 @@ function ReadinessMark({ readiness, blocks }: { readiness: Readiness; blocks: nu
 /**
  * One prompt block: a caption, a copy button, the box. Copying is the whole
  * point of a block — it goes into a generator as it is — so the button is
- * on every block, and the tick comes only after the clipboard confirms.
+ * on every block, shown while the block is pointed at or the button has the
+ * focus, and the tick comes only after the clipboard confirms.
  */
 function BlockBox({
   block,
@@ -1197,31 +1196,25 @@ function BlockBox({
   const { t } = useTranslation()
   const draft = useFieldDraft(text, (typed) => onSave?.(typed), { multiline: true })
 
-  // What is in the box, not what was last stored: a press on Copy is the
-  // first thing to take the focus from a block being written, and copying the
-  // stored text handed the generator the prompt from before the edit - under
-  // a toast that said it was copied.
-  const copy = () => {
-    navigator.clipboard.writeText(draft.value).then(
-      () => say.ok(t('scenes.copied', { block: block.label })),
-      (cause: unknown) => say.failedTo(t('scenes.copyFailed', { block: block.label }), cause),
-    )
-  }
-
   return (
-    <div className="flex flex-col gap-1">
+    <div className="group flex flex-col gap-1">
       <div className="flex items-center gap-1">
         <span className="flex-1 caption">{sayLabel(block.label)}</span>
-        <Button
-          variant="icon"
-          size="icon-sm"
+        {/* What is in the box, not what was last stored: a press on Copy is
+            the first thing to take the focus from a block being written, and
+            copying the stored text handed the generator the prompt from
+            before the edit - under a message that said it was copied. The
+            tick and its announcement are the button's; a refusal is a toast. */}
+        <CopyButton
+          value={draft.value}
+          label={t('scenes.copy', { block: block.label })}
+          copiedLabel={t('scenes.copied', { block: block.label })}
           title={t('scenes.copy', { block: block.label })}
-          aria-label={t('scenes.copy', { block: block.label })}
           disabled={draft.value === ''}
-          onClick={copy}
-        >
-          <Copy aria-hidden className="size-3.5" />
-        </Button>
+          onCopy={(ok) => {
+            if (!ok) say.failed(t('scenes.copyFailed', { block: block.label }))
+          }}
+        />
         {/* The profile's scene actions, aimed at this block: the animation
             rewritten without touching the still. The answer is held to this
             block, and what it brings is laid over the scene rather than put

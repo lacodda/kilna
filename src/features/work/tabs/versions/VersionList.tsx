@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 import type { VersionSummary } from '@/lib/api/types'
 import { neighbour } from '@/lib/history'
 import { Button } from '@/components/ui/button'
+import { RowButton } from '@/components/ui/list-row'
 import { RowMenu } from '@/components/RowMenu'
-import { Skeleton } from '@/components/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { formatDay } from '@/lib/format'
 
@@ -124,53 +125,48 @@ export function VersionList({
 
         return (
           <li key={version.id} className="group flex items-center gap-1">
-            <button
-              type="button"
+            <RowButton
               role="option"
+              selected={isOpen}
               aria-selected={isOpen}
+              // In a listbox the open row is the selected option; `aria-current`
+              // on top of it would announce the same fact twice.
+              aria-current={undefined}
               data-version={version.id}
               // Roving focus: one stop for the whole history, and the arrows do
               // the rest. Tabbing past twenty revisions is not navigation.
               tabIndex={isOpen ? 0 : -1}
               onClick={() => onOpen(version.id)}
-              className={cn(
-                'min-w-0 flex-1 rounded-md px-2 py-1.5 text-left text-sm transition-colors',
-                isOpen && 'bg-accent-soft text-accent-2',
-                !isOpen && isCompared && 'bg-soft',
-                !isOpen && !isCompared && 'hover:bg-soft',
-              )}
+              // The version beside the open one keeps a quiet tint, so the pair
+              // being compared reads as a pair in the list too.
+              className={cn('flex-1', !isOpen && isCompared && 'bg-soft')}
+              start={<span className="font-mono text-xs text-faint">v{version.revision}</span>}
+              description={`${t('versions.length', { count: version.length })} · ${formatDay(version.created_at)}`}
+              end={
+                <>
+                  {version.is_current && (
+                    <span className="rounded bg-accent-soft px-1 text-2xs font-semibold uppercase tracking-caption text-accent-2">
+                      {t('versions.current')}
+                    </span>
+                  )}
+                  {/* The score of the version that was judged, beside the version
+                      it judged. Reading the list was the one place the two could
+                      not be seen together: the history said which drafts exist
+                      and the Score tab said how they did, and matching one to the
+                      other meant remembering a revision number across a tab. */}
+                  {score !== undefined && (
+                    <span
+                      className="rounded bg-soft px-1 font-mono text-2xs font-semibold text-text"
+                      title={t('versions.scored', { score })}
+                    >
+                      {score}
+                    </span>
+                  )}
+                </>
+              }
             >
-              <span className="flex items-center gap-1.5">
-                <span className="font-mono text-xs text-faint">v{version.revision}</span>
-                <span className="min-w-0 flex-1 truncate font-medium">
-                  {version.label ?? t('versions.revision', { number: version.revision })}
-                </span>
-                {version.is_current && (
-                  <span className="rounded bg-accent-soft px-1 text-2xs font-semibold uppercase tracking-caption text-accent-2">
-                    {t('versions.current')}
-                  </span>
-                )}
-              </span>
-              <span className="flex items-center gap-1.5 text-xs text-dim">
-                <span className="min-w-0 truncate">
-                  {t('versions.length', { count: version.length })} ·{' '}
-                  {formatDay(version.created_at)}
-                </span>
-                {/* The score of the version that was judged, beside the version
-                    it judged. Reading the list was the one place the two could
-                    not be seen together: the history said which drafts exist
-                    and the Score tab said how they did, and matching one to the
-                    other meant remembering a revision number across a tab. */}
-                {score !== undefined && (
-                  <span
-                    className="ml-auto shrink-0 rounded bg-soft px-1 font-mono text-2xs font-semibold text-text tabular-nums"
-                    title={t('versions.scored', { score })}
-                  >
-                    {score}
-                  </span>
-                )}
-              </span>
-            </button>
+              {version.label ?? t('versions.revision', { number: version.revision })}
+            </RowButton>
 
             {/* Only shown for versions other than the open one: comparing a
                 draft with itself is not a thing anyone means to do.

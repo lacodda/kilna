@@ -15,11 +15,6 @@ export default tseslint.config(
   // The `flat` variant; the top-level one is still in the legacy shape.
   reactHooks.configs.flat['recommended-latest'],
   ...dowel.configs.recommended,
-  // dowel 0.33's raw-button rule, held off while v0.78 moves the screens onto
-  // the primitives; the commit that satisfies it turns it on.
-  {
-    rules: { 'dowel/no-raw-button': 'off' },
-  },
   // The registry's copies are dowel's, byte for byte (`pnpm registry`): what
   // they draw is answered in dowel, not here.
   {

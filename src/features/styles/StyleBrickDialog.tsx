@@ -22,11 +22,12 @@ import { say as sayLabel } from '@/lib/useProfile'
 import { useAssistant } from '@/lib/useAssistant'
 import { styleIconOf } from '@/lib/styleIcon'
 import { Button } from '@/components/ui/button'
+import { Chip, ChipGroup } from '@/components/ui/chip'
 import { Dialog } from '@/components/AppDialog'
-import { Field } from '@/components/Field'
+import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { Textarea } from '@/components/ui/textarea'
-import { cn } from '@/lib/utils'
 
 /** The action of the profile that writes a description from references. */
 const DESCRIBE = 'describe-style'
@@ -232,39 +233,36 @@ export function StyleBrickDialog({
     >
       <div className="flex flex-col gap-4">
         {/* The type first: it decides which question the description answers,
-            so picking it afterwards would mean rewriting what was written. */}
-        <Field label={t('styles.type')} hint={hintOf(types, typeKey)}>
-          <div className="flex flex-wrap gap-2">
+            so picking it afterwards would mean rewriting what was written.
+            A group, named by its caption: a row of chips has no one control
+            a label could point at. */}
+        <FieldGroup label={t('styles.type')} help={hintOf(types, typeKey)}>
+          <ChipGroup
+            value={[typeKey]}
+            // A brick always has a type: pressing the one that is on leaves
+            // the group empty, and that is not a choice to keep.
+            onValueChange={([next]) => {
+              if (next !== undefined) setTypeKey(next)
+            }}
+          >
             {types.map((one) => {
               const Icon = styleIconOf(one)
-              const active = typeKey === one.key
               return (
-                <button
-                  key={one.key}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setTypeKey(one.key)}
-                  className={cn(
-                    'flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm transition-colors',
-                    active
-                      ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
-                      : 'border-line text-dim hover:border-line-2 hover:text-text',
-                  )}
-                >
-                  <Icon aria-hidden className="size-4" />
+                <Chip key={one.key} value={one.key}>
+                  <Icon aria-hidden className="size-3.5" />
                   {sayLabel(one.label)}
-                </button>
+                </Chip>
               )
             })}
-          </div>
-        </Field>
+          </ChipGroup>
+        </FieldGroup>
 
         <Field label={t('styles.name')}>
           <Input value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
 
         {id !== undefined && (
-          <Field label={t('styles.referenceList')} hint={t('styles.referenceHint')}>
+          <FieldGroup label={t('styles.referenceList')} help={t('styles.referenceHint')}>
             <div className="flex flex-wrap items-center gap-2">
               {(references.data ?? []).map((asset) => (
                 <div key={asset.id} className="group relative">
@@ -274,24 +272,29 @@ export function StyleBrickDialog({
                     className="size-20 rounded-lg object-cover"
                     draggable={false}
                   />
-                  <button
-                    type="button"
-                    onClick={() => detach.mutate(asset.id)}
-                    aria-label={t('styles.removeReference')}
-                    className="absolute -right-1.5 -top-1.5 cursor-pointer rounded-full border border-line bg-raise p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <X aria-hidden className="size-3" />
-                  </button>
+                  {/* The ground under the cross is this corner's, not the
+                      button's: over a picture a bare glyph is lost. Shown on
+                      hover, and whenever the cross has the keyboard. */}
+                  <span className="absolute -top-1.5 -right-1.5 rounded-md border border-line bg-raise opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                    <Button
+                      variant="icon"
+                      size="icon-xs"
+                      onClick={() => detach.mutate(asset.id)}
+                      aria-label={t('styles.removeReference')}
+                    >
+                      <X aria-hidden />
+                    </Button>
+                  </span>
                 </div>
               ))}
               <Button variant="ghost" onClick={() => void choose()} disabled={attach.isPending}>
                 {t('styles.addReference')}
               </Button>
             </div>
-          </Field>
+          </FieldGroup>
         )}
 
-        <Field label={t('styles.description')} hint={t('styles.descriptionHint')}>
+        <Field label={t('styles.description')} help={t('styles.descriptionHint')}>
           <Textarea
             rows={7}
             value={description}
@@ -311,31 +314,24 @@ export function StyleBrickDialog({
           </Button>
         )}
 
-        <Field label={t('styles.hint')} hint={t('styles.hintHint')}>
+        <Field label={t('styles.hint')} help={t('styles.hintHint')}>
           <Input value={hint} onChange={(event) => setHint(event.target.value)} />
         </Field>
 
         {id !== undefined && (
-          <Field label={t('styles.statusLabel')}>
-            <div className="flex gap-2">
+          <FieldGroup label={t('styles.statusLabel')}>
+            <SegmentedControl
+              aria-label={t('styles.statusLabel')}
+              value={status}
+              onValueChange={(next) => setStatus(next as StyleBrickStatus)}
+            >
               {(['draft', 'ready', 'dropped'] as const).map((one) => (
-                <button
-                  key={one}
-                  type="button"
-                  aria-pressed={status === one}
-                  onClick={() => setStatus(one)}
-                  className={cn(
-                    'cursor-pointer rounded-lg border px-2.5 py-1 text-sm transition-colors',
-                    status === one
-                      ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
-                      : 'border-line text-dim hover:border-line-2 hover:text-text',
-                  )}
-                >
+                <Segment key={one} value={one}>
                   {t(`styles.status.${one}`)}
-                </button>
+                </Segment>
               ))}
-            </div>
-          </Field>
+            </SegmentedControl>
+          </FieldGroup>
         )}
       </div>
     </Dialog>

@@ -21,11 +21,15 @@ import { say } from '@/lib/toast'
 import { allOf, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { RowButton } from '@/components/ui/list-row'
 import { Select } from '@/components/AppSelect'
 import { DatePicker } from '@/components/DatePicker'
 import { ConfirmAction } from '@/components/ConfirmAction'
 import { MarkReleasedDialog } from '@/components/MarkReleasedDialog'
-import { SkeletonList, SkeletonMonth } from '@/components/Skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Skeleton, SkeletonList } from '@/components/ui/skeleton'
+import { Frame, ListDetail, Pane, Scroll } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 import { KindFilterBar } from '@/features/calendar/KindFilterBar'
 import { MonthGrid } from '@/features/calendar/MonthGrid'
 import { ReadyMarks } from '@/components/ReadyMarks'
@@ -38,7 +42,6 @@ import { ghostsOf } from '@/lib/layout'
 import { monthOf, today, type Month } from '@/lib/month'
 import { stagesOf } from '@/lib/stages'
 import { batchable } from '@/lib/releaseFields'
-import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/format'
 
 interface Props {
@@ -266,43 +269,29 @@ export function CalendarView({ onSelect }: Props) {
     ),
   )
 
-  return (
-    // The queue takes a fixed column only where there is room for both. Below
-    // that the month wins the width: 22rem of queue left the days ~77px wide,
-    // and a day that narrow shows three letters of a title — what the pilot
-    // saw. The queue drops under the calendar instead of squeezing it.
-    //
-    // The screen holds the window's height rather than growing with the queue.
-    // It used to grow: 250-odd releases waiting for a date made the page as
-    // tall as the list, and scrolling down to reach the bottom of the queue
-    // carried the month off the top of the window with it - the one thing on
-    // this screen the queue is being read AGAINST. Now the month stays put and
-    // the list scrolls inside its own column, the way the catalogue's table
-    // has since v0.47.
-    <div
-      className={cn(
-        'grid h-full min-h-0 gap-6',
-        // Two columns only from `xl`. Below that the queue drops UNDER the
-        // month and the two together are taller than the window, so this box
-        // scrolls as one; at `xl` it stops, and each column scrolls inside
-        // itself instead — which is the arrangement the note above describes.
-        'overflow-y-auto',
-        width === 'queue' ? 'xl:grid-cols-[20rem_1fr] xl:overflow-hidden' : 'overflow-hidden',
-      )}
-    >
-      {/* Hidden entirely in the full-width layout rather than collapsed: a
-          narrow strip of it would still take the width the month is being
-          given. Claiming a slot from the queue goes with it — that is what
-          the layout is for, and the toggle is one click away. */}
-      <section className={cn('flex min-h-0 flex-col gap-3', width === 'full' && 'hidden')}>
-        <h3 className="shrink-0 text-sm font-semibold">{t('calendar.queue')}</h3>
-        <p className="shrink-0 text-xs text-dim">{t('calendar.queueHint')}</p>
+  // The queue, on the right of the month as the mockup draws it: the month is
+  // what is being planned, and the queue is read against it. Its head - how to
+  // find one of a few hundred - and its foot - how to act on it - stand; the
+  // list between them scrolls. A scroller that swallowed the foot would hide
+  // the layout button at the bottom of two hundred rows.
+  const queueActions =
+    (queued.data !== undefined && queued.data.length > 0 && layout === null) || picked !== null
 
-        {/* Finding one of a few hundred, and seeing what is nearly ready.
-            The queue is ordered by score, which answers "which is best" - not
-            "which is closest to going out", which is what someone filling a
-            week is actually asking. */}
-        <div className="flex shrink-0 flex-col gap-2">
+  const queue = (
+    <Pane
+      label={t('calendar.queue')}
+      bodyClassName="p-1.5"
+      head={
+        <div className="flex w-full flex-col gap-2">
+          <div>
+            <h3 className="text-sm font-semibold">{t('calendar.queue')}</h3>
+            <p className="text-xs text-dim">{t('calendar.queueHint')}</p>
+          </div>
+
+          {/* Finding one of a few hundred, and seeing what is nearly ready.
+              The queue is ordered by score, which answers "which is best" -
+              not "which is closest to going out", which is what someone
+              filling a week is actually asking. */}
           <Input
             value={queueQuery}
             onChange={(event) => setQueueQuery(event.target.value)}
@@ -335,173 +324,183 @@ export function CalendarView({ onSelect }: Props) {
             />
           </div>
         </div>
-
-        {queued.isPending ? (
-          <SkeletonList rows={4} />
-        ) : queued.isError ? (
-          <p role="alert" className="text-sm text-bad">
-            {t('toast.loadFailed')}
-          </p>
-        ) : shownQueue.length === 0 ? (
-          <p className="py-6 text-sm text-dim">
-            {queued.data.length === 0 ? t('calendar.queueEmpty') : t('calendar.queueNoMatch')}
-          </p>
-        ) : (
-          // The scroller is the list and not the column: the heading, the
-          // layout button and the claim form are how the queue is ACTED on,
-          // and a scroller that swallowed them would hide the button at the
-          // bottom of two hundred rows.
-          <ul className="-mr-1 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
-            {shownQueue.map((entry) => (
-              <li key={entry.id}>
-                <button
-                  type="button"
-                  onClick={() => setPicked(entry.id === picked ? null : entry.id)}
-                  className={cn(
-                    'flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors',
-                    entry.id === picked ? 'bg-accent-soft text-accent-2' : 'hover:bg-soft',
-                  )}
-                >
-                  <span className="flex-1 truncate font-medium">{entry.work_title}</span>
-                  {/* No date yet, so no deadline: the gaps show, calmly. */}
-                  <ReadyMarks readiness={entry.readiness} released={false} daysLeft={null} />
-                  <span className="text-xs text-faint">
-                    {labelOf(allOf(profile.config, 'release_kinds'), entry.kind)}
-                  </span>
-                  <span
-                    className="w-10 text-right font-mono tabular-nums"
-                    // The score orders the queue and drives the auto-layout;
-                    // since v0.44 it decides nothing about who may have a day.
-                    title={entry.total === null ? t('calendar.unscored') : undefined}
-                  >
-                    {entry.total === null ? '—' : formatNumber(entry.total, 0)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* One click plans the whole queue to the profile's rhythm. Without a
-            rhythm there is nothing to pace by, and the button says so instead
-            of hiding. */}
-        {queued.data !== undefined && queued.data.length > 0 && layout === null && (
-          <Button
-            size="sm"
-            disabled={profile.config.rhythm == null || preview.isPending}
-            title={profile.config.rhythm == null ? t('calendar.layoutNeedsRhythm') : undefined}
-            onClick={() => preview.mutate()}
-          >
-            {t('calendar.layout')}
-          </Button>
-        )}
-
-        {picked !== null && (
-          <form
-            className="flex gap-2"
-            onSubmit={(event) => {
-              event.preventDefault()
-              if (slot !== '') claim.mutate({ id: picked, date: slot })
-            }}
-          >
-            <DatePicker
-              value={slot}
-              onChange={setSlot}
-              placeholder={t('calendar.slotDate')}
-              aria-label={t('calendar.slotDate')}
-            />
-            <Button type="submit" variant="primary" disabled={slot === '' || claim.isPending}>
-              {t('calendar.claim')}
-            </Button>
-          </form>
-        )}
-      </section>
-
-      {/* The month column scrolls on its own too: on a short window the grid
-          plus the filter row can outgrow the height the screen now holds, and
-          a column that cannot scroll would simply cut the last week off. */}
-      <section className="flex min-h-0 flex-col gap-3 overflow-y-auto">
-        {slots.isPending ? (
-          <SkeletonMonth />
-        ) : slots.isError ? (
-          <p role="alert" className="text-sm text-bad">
-            {t('toast.loadFailed')}
-          </p>
-        ) : (
-          <>
-            {/* The plan on approval: what would land where, said in one line
-                and drawn as ghosts in the grid. Booking applies exactly the
-                previewed array — the backend refuses it whole if the calendar
-                moved in between. */}
-            {layout !== null && (
-              <div className="flex flex-wrap items-center gap-3 rounded-md border border-accent bg-accent-soft px-3 py-2 text-sm">
-                <span className="flex-1">
-                  {t('calendar.layoutPreview', {
-                    count: layout.length,
-                    from: layout[0]?.date,
-                    to: layout[layout.length - 1]?.date,
-                  })}
-                </span>
-                <Button size="sm" onClick={() => setLayout(null)}>
-                  {t('dialog.cancel')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  disabled={book.isPending}
-                  onClick={() => book.mutate(layout)}
-                >
-                  {t('calendar.layoutApply')}
-                </Button>
-              </div>
-            )}
-
-            {/* Under the layout banner, above the grid. The banner is a
-                question waiting for an answer and outranks everything while it
-                is up; the filter is a standing choice about what the month
-                shows, so it sits with the thing it governs. */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <KindFilterBar slots={slots.data} value={kind} onChange={setKind} />
-
-              {/* Everything still planned in the month, written in one pass.
-                  Sits with the filters because it is about the month on
-                  screen, and reads what the month holds rather than what the
-                  chips are showing: a narrowed view is a way of looking, not
-                  an instruction about which releases to write. */}
-              {monthly.length > 0 && (
-                <Button
-                  size="sm"
-                  className="ml-auto"
-                  disabled={fillFields.isPending}
-                  onClick={() => setFillingFields(true)}
-                >
-                  {t('calendar.fields.action')}
-                </Button>
-              )}
-
-              {/* On the same line as the filters, at the far end: both are
-                  about what the month shows, and neither is an action on a
-                  release. */}
+      }
+      foot={
+        queueActions ? (
+          <div className="flex w-full flex-col gap-2">
+            {/* One click plans the whole queue to the profile's rhythm.
+                Without a rhythm there is nothing to pace by, and the button
+                says so instead of hiding. */}
+            {queued.data !== undefined && queued.data.length > 0 && layout === null && (
               <Button
-                variant="icon"
-                size="icon-sm"
-                className={monthly.length > 0 ? undefined : 'ml-auto'}
-                aria-label={t(width === 'queue' ? 'calendar.widen' : 'calendar.showQueue')}
-                title={t(width === 'queue' ? 'calendar.widen' : 'calendar.showQueue')}
-                onClick={() => {
-                  const next = otherLayout(width)
-                  setWidth(next)
-                  saveLayout(next)
+                size="sm"
+                disabled={profile.config.rhythm == null || preview.isPending}
+                title={profile.config.rhythm == null ? t('calendar.layoutNeedsRhythm') : undefined}
+                onClick={() => preview.mutate()}
+              >
+                {t('calendar.layout')}
+              </Button>
+            )}
+            {picked !== null && (
+              <form
+                className="flex gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  if (slot !== '') claim.mutate({ id: picked, date: slot })
                 }}
               >
-                {width === 'queue' ? <ChevronsLeft aria-hidden /> : <ChevronsRight aria-hidden />}
-              </Button>
-            </div>
+                <DatePicker
+                  value={slot}
+                  onChange={setSlot}
+                  placeholder={t('calendar.slotDate')}
+                  aria-label={t('calendar.slotDate')}
+                />
+                <Button type="submit" variant="primary" disabled={slot === '' || claim.isPending}>
+                  {t('calendar.claim')}
+                </Button>
+              </form>
+            )}
+          </div>
+        ) : undefined
+      }
+    >
+      <Loaded
+        query={queued}
+        skeleton={<SkeletonList rows={4} />}
+        isEmpty={(data) => data.length === 0}
+        emptyState={<EmptyState plain title={t('calendar.queueEmpty')} className="p-2" />}
+        plain
+      >
+        {() =>
+          shownQueue.length === 0 ? (
+            // Plenty waiting, none of it matching: the way out is the search
+            // and the two filters right above.
+            <EmptyState
+              plain
+              variant="filtered"
+              title={t('calendar.queueNoMatch')}
+              className="p-2"
+            />
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {shownQueue.map((entry) => (
+                <li key={entry.id}>
+                  <RowButton
+                    selected={entry.id === picked}
+                    onClick={() => setPicked(entry.id === picked ? null : entry.id)}
+                    end={
+                      <>
+                        {/* No date yet, so no deadline: the gaps show, calmly. */}
+                        <ReadyMarks readiness={entry.readiness} released={false} daysLeft={null} />
+                        <span>{labelOf(allOf(profile.config, 'release_kinds'), entry.kind)}</span>
+                        <span
+                          className="w-10 text-right font-mono text-sm text-text"
+                          // The score orders the queue and drives the auto-layout;
+                          // since v0.44 it decides nothing about who may have a day.
+                          title={entry.total === null ? t('calendar.unscored') : undefined}
+                        >
+                          {entry.total === null ? '—' : formatNumber(entry.total, 0)}
+                        </span>
+                      </>
+                    }
+                  >
+                    {entry.work_title}
+                  </RowButton>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </Loaded>
+    </Pane>
+  )
 
+  // The month holds the height it is given at every window width: its head -
+  // the plan waiting for approval, the filters - stands, and the grid scrolls
+  // under it when a short window cannot fit six weeks. Below `xl` the queue
+  // used to drop under the month and the screen scrolled as a page.
+  const monthView = (
+    <Loaded query={slots} fill skeleton={<SkeletonMonth />}>
+      {(data) => (
+        <Frame
+          head={
+            <div className="flex w-full flex-col gap-2.5">
+              {/* The plan on approval: what would land where, said in one line
+                  and drawn as ghosts in the grid. Booking applies exactly the
+                  previewed array — the backend refuses it whole if the calendar
+                  moved in between. */}
+              {layout !== null && (
+                <div className="flex flex-wrap items-center gap-3 rounded-md border border-accent bg-accent-soft px-3 py-2 text-sm">
+                  <span className="flex-1">
+                    {t('calendar.layoutPreview', {
+                      count: layout.length,
+                      from: layout[0]?.date,
+                      to: layout[layout.length - 1]?.date,
+                    })}
+                  </span>
+                  <Button size="sm" onClick={() => setLayout(null)}>
+                    {t('dialog.cancel')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={book.isPending}
+                    onClick={() => book.mutate(layout)}
+                  >
+                    {t('calendar.layoutApply')}
+                  </Button>
+                </div>
+              )}
+
+              {/* Under the layout banner, above the grid. The banner is a
+                  question waiting for an answer and outranks everything while it
+                  is up; the filter is a standing choice about what the month
+                  shows, so it sits with the thing it governs. */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <KindFilterBar slots={data} value={kind} onChange={setKind} />
+
+                {/* Everything still planned in the month, written in one pass.
+                    Sits with the filters because it is about the month on
+                    screen, and reads what the month holds rather than what the
+                    chips are showing: a narrowed view is a way of looking, not
+                    an instruction about which releases to write. */}
+                {monthly.length > 0 && (
+                  <Button
+                    size="sm"
+                    className="ml-auto"
+                    disabled={fillFields.isPending}
+                    onClick={() => setFillingFields(true)}
+                  >
+                    {t('calendar.fields.action')}
+                  </Button>
+                )}
+
+                {/* On the same line as the filters, at the far end: both are
+                    about what the month shows, and neither is an action on a
+                    release. */}
+                <Button
+                  variant="icon"
+                  size="icon-sm"
+                  className={monthly.length > 0 ? undefined : 'ml-auto'}
+                  aria-label={t(width === 'queue' ? 'calendar.widen' : 'calendar.showQueue')}
+                  title={t(width === 'queue' ? 'calendar.widen' : 'calendar.showQueue')}
+                  onClick={() => {
+                    const next = otherLayout(width)
+                    setWidth(next)
+                    saveLayout(next)
+                  }}
+                >
+                  {width === 'queue' ? <ChevronsRight aria-hidden /> : <ChevronsLeft aria-hidden />}
+                </Button>
+              </div>
+            </div>
+          }
+        >
+          <Scroll label={t('nav.calendar')}>
             <MonthGrid
               month={month}
               onMonthChange={setMonth}
-              slots={filterByKind(slots.data, kind)}
+              slots={filterByKind(data, kind)}
               // Filtered with the chips, so a narrowed month does not draw a
               // plan it is not showing. Booking still applies every placement:
               // the filter is a view of the month, not an instruction about
@@ -523,12 +522,22 @@ export function CalendarView({ onSelect }: Props) {
               onAddOn={(date) => setFillingDay(date)}
             />
 
-            {slots.data.length === 0 && layout === null && (
-              <p className="text-sm text-dim">{t('calendar.empty')}</p>
+            {data.length === 0 && layout === null && (
+              <p className="pt-2 text-sm text-dim">{t('calendar.empty')}</p>
             )}
-          </>
-        )}
-      </section>
+          </Scroll>
+        </Frame>
+      )}
+    </Loaded>
+  )
+
+  return (
+    <Frame>
+      {/* Hidden entirely in the full-width layout rather than collapsed: a
+          narrow strip of it would still take the width the month is being
+          given. Claiming a slot from the queue goes with it - that is what
+          the layout is for, and the toggle is one click away. */}
+      {width === 'full' ? monthView : <ListDetail side="end" list={queue} detail={monthView} />}
 
       {/* Found afresh on every render rather than held in state: pinning from
           inside the dialog otherwise left the tick unmoved until it was closed
@@ -602,6 +611,35 @@ export function CalendarView({ onSelect }: Props) {
           fillFields.mutate(monthly)
         }}
       />
+    </Frame>
+  )
+}
+
+/**
+ * The month grid's own shape: the title and its arrows over six rows of seven
+ * days.
+ *
+ * A list of rows stood here until v0.43, and it was itself the jump it was
+ * meant to cover - four short lines replaced by a grid several hundred pixels
+ * tall. A skeleton that is the wrong shape is worse than none: it promises
+ * something the content does not keep. Six rows is what `monthGrid` always
+ * returns once the neighbours fill the weeks out.
+ */
+function SkeletonMonth() {
+  return (
+    <div className="flex flex-col gap-3" aria-hidden>
+      <div className="flex items-center gap-2">
+        <Skeleton className="size-7" />
+        <Skeleton className="h-4 w-44" />
+        <Skeleton className="size-7" />
+      </div>
+      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-line bg-line">
+        {Array.from({ length: 49 }, (_, cell) => (
+          <div key={cell} className={cell < 7 ? 'bg-raise py-1.5' : 'min-h-24 bg-bg p-1.5'}>
+            <Skeleton className={cell < 7 ? 'mx-auto h-2 w-6' : 'ml-auto h-2 w-3'} />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

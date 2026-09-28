@@ -11,7 +11,7 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/AppDialog'
-import { Field } from '@/components/Field'
+import { Field, FieldGroup } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 
 interface Props {
@@ -122,11 +122,11 @@ export function TaskPreviewDialog({
         )}
         {preview.data !== undefined && (
           <>
-            <Field label={t('assistant.previewMessage')}>
+            <FieldGroup label={t('assistant.previewMessage')}>
               <pre className="selectable max-h-72 overflow-auto whitespace-pre-wrap rounded-xl border border-line bg-soft px-3 py-2 font-mono text-xs">
                 {preview.data.prompt}
               </pre>
-            </Field>
+            </FieldGroup>
             {preview.data.method !== undefined && (
               <details className="flex flex-col gap-1">
                 <summary className="cursor-pointer caption">{t('assistant.previewMethod')}</summary>
@@ -137,7 +137,7 @@ export function TaskPreviewDialog({
             )}
           </>
         )}
-        <Field label={t('assistant.attachments')} hint={t('assistant.attachmentsHint')}>
+        <Field label={t('assistant.attachments')} help={t('assistant.attachmentsHint')}>
           <Textarea
             autoResize
             maxRows={6}

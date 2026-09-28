@@ -6,7 +6,7 @@ import { backupWorkspace, exportMarkdown, importLegacy, suggestedBackupName } fr
 import { queries } from '@/lib/query/queries'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Getting data out and in. The export is the "you are not locked in" promise
 // made checkable; the backup is the whole workspace in one file.

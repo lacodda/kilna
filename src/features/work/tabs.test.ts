@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_TAB, DEFAULT_TAB_CHOICES, isHeld, isTab, TABS, tabsOf } from '@/features/work/tabs'
+import { DEFAULT_TAB, DEFAULT_TAB_CHOICES, isTab, TABS, tabsOf } from '@/features/work/tabs'
 import { CARD_TABS } from '@/test/places'
 
 describe("the card's tabs", () => {
@@ -18,10 +18,6 @@ describe("the card's tabs", () => {
     expect(DEFAULT_TAB_CHOICES).not.toContain('scenes')
     expect(DEFAULT_TAB_CHOICES).not.toContain('cuts')
     expect(tabsOf({ storyboard: false, splice: false })).toEqual([...DEFAULT_TAB_CHOICES])
-  })
-
-  it('give the two-column tabs the card height', () => {
-    expect(TABS.filter(isHeld)).toEqual(['versions', 'score', 'comments'])
   })
 
   it('know a tab by its name and nothing else', () => {

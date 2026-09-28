@@ -20,12 +20,15 @@ import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { formatDay } from '@/lib/format'
 import { Button } from '@/components/ui/button'
+import { Chip, ChipGroup } from '@/components/ui/chip'
 import { LayerProvider } from '@/components/ui/layer'
 import { MarkedText, MarkedTextarea } from '@/components/ui/marked-text'
 import { Markdown } from '@/components/Markdown'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
-import { SaveState } from '@/components/SaveState'
-import { Skeleton } from '@/components/Skeleton'
+import { SaveState } from '@/components/ui/save-state'
+import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ListDetail, Pane } from '@/components/frame'
 import { VersionEditor } from '@/features/work/tabs/versions/VersionEditor'
 import { ActionBar } from '@/features/assistant/ActionBar'
 import { VersionList } from '@/features/work/tabs/versions/VersionList'
@@ -359,24 +362,26 @@ export function VersionPanel({ workId }: Props) {
       <BodyPane
         level={level}
         tabs={
-          // One tab per kind of commentary — a look at the axes and a critique
-          // of the lines answer different questions, and the predecessor kept
-          // them as separate documents for that reason. With one kind this is
-          // a label.
+          // One segment per kind of commentary — a look at the axes and a
+          // critique of the lines answer different questions, and the
+          // predecessor kept them as separate documents for that reason. With
+          // one kind there is nothing to choose, and it is a label.
           <>
-            {comments.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                onClick={() => setOpenCommentId(entry.id)}
-                className={cn(
-                  'cursor-pointer rounded-md px-2 py-0.5 transition-colors',
-                  entry.id === commentId ? 'bg-soft text-text' : 'hover:text-text',
-                )}
+            {comments.length > 1 ? (
+              <SegmentedControl
+                aria-label={t('versions.commentary')}
+                value={commentId ?? undefined}
+                onValueChange={setOpenCommentId}
               >
-                {labelOf(roles, entry.role)}
-              </button>
-            ))}
+                {comments.map((entry) => (
+                  <Segment key={entry.id} value={entry.id}>
+                    {labelOf(roles, entry.role)}
+                  </Segment>
+                ))}
+              </SegmentedControl>
+            ) : (
+              <span>{labelOf(roles, comments[0]!.role)}</span>
+            )}
             <span className="ml-1">
               {t('versions.revision', { number: openSummary?.revision ?? 0 })}
             </span>
@@ -431,165 +436,166 @@ export function VersionPanel({ workId }: Props) {
   // scrolls inside its own frame, so the actions under it never move.
   const fill = !showForm
 
+  const list = (
+    <Pane
+      label={t('versions.title')}
+      bodyClassName="p-1.5"
+      // The lanes as chips, with how many each holds. A craft ships four of
+      // them (text, style, review, critique) and a two-way switch does not
+      // stretch to four; with one lane there is nothing to pick, and the
+      // caption says what the list is.
+      head={
+        lanes.length > 1 ? (
+          <ChipGroup
+            aria-label={t('versions.lanes')}
+            value={[shownRole]}
+            // One lane is always open: pressing the open one again lets go
+            // of it in the group, and that is not a lane to switch to.
+            onValueChange={([next]) => {
+              if (next !== undefined) pickLane(next)
+            }}
+          >
+            {lanes.map((lane) => (
+              <Chip key={lane.key} value={lane.key} count={counts[lane.key] ?? 0}>
+                {sayLabel(lane.label)}
+              </Chip>
+            ))}
+          </ChipGroup>
+        ) : (
+          <span className="caption">
+            {t('versions.title')} · {summaries.length}
+          </span>
+        )
+      }
+      // At the foot of the list it adds to, where the next row will appear.
+      foot={
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-center"
+          onClick={() => {
+            setDerivedFrom(null)
+            setComposing(true)
+          }}
+          title={t('versions.newHint')}
+        >
+          <Plus aria-hidden />
+          {t('versions.new')}
+        </Button>
+      }
+    >
+      <VersionList
+        versions={summaries}
+        loading={versions.isPending}
+        scores={scores}
+        openId={openId}
+        comparedId={againstId}
+        onOpen={(id) => {
+          setSelectedId(id)
+          // Opening another version is reading it, whatever the last one
+          // was being done to.
+          setReading('view')
+          // A comparison with the predecessor follows the step: each
+          // revision against its own. A comparison with a version picked
+          // by hand stays where it was pointed - an original kept beside
+          // a history being walked - unless the step lands on it.
+          if (againstId !== null && againstId === before?.id) {
+            setComparedId(predecessor(summaries, id)?.id ?? null)
+          } else if (againstId === id) {
+            setComparedId(null)
+          }
+        }}
+        onCompare={(id) => setComparedId(againstId === id ? null : id)}
+        onMakeCurrent={(id) => makeCurrent.mutate(id)}
+        onDelete={(id) => remove.mutate(id)}
+        onDeriveFrom={(id) => void deriveFrom(id)}
+      />
+    </Pane>
+  )
+
+  const detail = (
+    <div
+      className={cn(
+        'flex min-h-0 min-w-0 flex-1 flex-col gap-3',
+        !fill && 'overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]',
+      )}
+    >
+      {open.isPending && openId !== null && <Skeleton className="h-32 w-full shrink-0" />}
+
+      {/* The text and what was written about it, side by side. Reading a
+          review away from the lines it discusses is reading half of it —
+          which is exactly what the predecessor's two panels got right. The
+          split only happens when there is a review of this very revision
+          and room for both; below that the review sits underneath, and the
+          two share the column's height. */}
+      {open.data != null && (
+        <div
+          className={cn(
+            'grid min-w-0 gap-3',
+            fill && 'min-h-0 flex-1 auto-rows-[minmax(0,1fr)]',
+            comments.length > 0 && '2xl:grid-cols-2',
+          )}
+        >
+          {stage?.pane === 'text' ? <StagePlaceholder /> : textPane('inline')}
+          {comments.length > 0 &&
+            (stage?.pane === 'comment' ? <StagePlaceholder /> : commentPane('inline'))}
+        </div>
+      )}
+
+      {/* The profile's actions, on this very revision: a critique or a
+          score started here reads the text above and comes back bound to
+          it — the same buttons the overview has, with the version named. */}
+      {open.data != null && reading !== 'edit' && (
+        <div className="shrink-0">
+          <ActionBar
+            workId={workId}
+            menu
+            versionId={open.data.id}
+            hint={t('versions.actionsOn', {
+              name: open.data.label ?? t('versions.revision', { number: open.data.revision }),
+            })}
+          />
+        </div>
+      )}
+
+      {showForm && (
+        <VersionEditor
+          draft={draft}
+          onDraftChange={setDraft}
+          label={label}
+          onLabelChange={setLabel}
+          makeCurrent={makeCurrentOnSave}
+          onMakeCurrentChange={setMakeCurrentOnSave}
+          onSave={() => {
+            if (draft.trim() !== '') save.mutate()
+          }}
+          onCancel={
+            composing && summaries.length > 0
+              ? () => {
+                  setComposing(false)
+                  setDerivedFrom(null)
+                }
+              : undefined
+          }
+          saving={save.isPending}
+          kept={draft.trim() !== ''}
+          markdown={formMarkdown}
+        />
+      )}
+    </div>
+  )
+
   return (
     // Two columns, each with its own scroll: the list of revisions on the
     // left, the open one on the right. Scrolling a history of twenty does not
     // move the text being read, and reading to the end of a long text does
-    // not take the list away. The list is 262px at every window width, as in
-    // the mockup: a list stacked above the text on a narrow window was a
-    // second layout for the same tab.
-    <section className="grid min-h-0 flex-1 grid-cols-[262px_minmax(0,1fr)] gap-3">
-      <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-raise">
-        {/* The lanes as chips, with how many each holds. A craft ships four
-            of them (text, style, review, critique) and a two-way switch does
-            not stretch to four; with one lane there is nothing to pick, and
-            the caption says what the list is. */}
-        <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-line p-2">
-          {lanes.length > 1 ? (
-            lanes.map((lane) => (
-              <button
-                key={lane.key}
-                type="button"
-                aria-pressed={lane.key === shownRole}
-                onClick={() => pickLane(lane.key)}
-                className={cn(
-                  'inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-0.5 text-xs transition-colors',
-                  lane.key === shownRole
-                    ? 'bg-accent-soft font-semibold text-accent-2'
-                    : 'text-dim hover:bg-soft hover:text-text',
-                )}
-              >
-                {sayLabel(lane.label)}
-                <span className="font-mono text-2xs opacity-75">{counts[lane.key] ?? 0}</span>
-              </button>
-            ))
-          ) : (
-            <span className="px-1 caption">
-              {t('versions.title')} · {summaries.length}
-            </span>
-          )}
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
-          <VersionList
-            versions={summaries}
-            loading={versions.isPending}
-            scores={scores}
-            openId={openId}
-            comparedId={againstId}
-            onOpen={(id) => {
-              setSelectedId(id)
-              // Opening another version is reading it, whatever the last one
-              // was being done to.
-              setReading('view')
-              // A comparison with the predecessor follows the step: each
-              // revision against its own. A comparison with a version picked
-              // by hand stays where it was pointed - an original kept beside
-              // a history being walked - unless the step lands on it.
-              if (againstId !== null && againstId === before?.id) {
-                setComparedId(predecessor(summaries, id)?.id ?? null)
-              } else if (againstId === id) {
-                setComparedId(null)
-              }
-            }}
-            onCompare={(id) => setComparedId(againstId === id ? null : id)}
-            onMakeCurrent={(id) => makeCurrent.mutate(id)}
-            onDelete={(id) => remove.mutate(id)}
-            onDeriveFrom={(id) => void deriveFrom(id)}
-          />
-        </div>
-
-        {/* At the foot of the list it adds to, where the next row will
-            appear. */}
-        <div className="shrink-0 border-t border-line p-1.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-center"
-            onClick={() => {
-              setDerivedFrom(null)
-              setComposing(true)
-            }}
-            title={t('versions.newHint')}
-          >
-            <Plus aria-hidden />
-            {t('versions.new')}
-          </Button>
-        </div>
-      </div>
-
-      <div
-        className={cn(
-          'flex min-h-0 min-w-0 flex-col gap-3',
-          !fill && 'overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]',
-        )}
-      >
-        {open.isPending && openId !== null && <Skeleton className="h-32 w-full shrink-0" />}
-
-        {/* The text and what was written about it, side by side. Reading a
-            review away from the lines it discusses is reading half of it —
-            which is exactly what the predecessor's two panels got right. The
-            split only happens when there is a review of this very revision
-            and room for both; below that the review sits underneath, and the
-            two share the column's height. */}
-        {open.data != null && (
-          <div
-            className={cn(
-              'grid min-w-0 gap-3',
-              fill && 'min-h-0 flex-1 auto-rows-[minmax(0,1fr)]',
-              comments.length > 0 && '2xl:grid-cols-2',
-            )}
-          >
-            {stage?.pane === 'text' ? <StagePlaceholder /> : textPane('inline')}
-            {comments.length > 0 &&
-              (stage?.pane === 'comment' ? <StagePlaceholder /> : commentPane('inline'))}
-          </div>
-        )}
-
-        {/* The profile's actions, on this very revision: a critique or a
-            score started here reads the text above and comes back bound to
-            it — the same buttons the overview has, with the version named. */}
-        {open.data != null && reading !== 'edit' && (
-          <div className="shrink-0">
-            <ActionBar
-              workId={workId}
-              menu
-              versionId={open.data.id}
-              hint={t('versions.actionsOn', {
-                name: open.data.label ?? t('versions.revision', { number: open.data.revision }),
-              })}
-            />
-          </div>
-        )}
-
-        {showForm && (
-          <VersionEditor
-            draft={draft}
-            onDraftChange={setDraft}
-            label={label}
-            onLabelChange={setLabel}
-            makeCurrent={makeCurrentOnSave}
-            onMakeCurrentChange={setMakeCurrentOnSave}
-            onSave={() => {
-              if (draft.trim() !== '') save.mutate()
-            }}
-            onCancel={
-              composing && summaries.length > 0
-                ? () => {
-                    setComposing(false)
-                    setDerivedFrom(null)
-                  }
-                : undefined
-            }
-            saving={save.isPending}
-            kept={draft.trim() !== ''}
-            markdown={formMarkdown}
-          />
-        )}
-      </div>
-
+    // not take the list away. The list keeps its width at every window width,
+    // as in the mockup: a list stacked above the text on a narrow window was
+    // a second layout for the same tab.
+    <>
+      <ListDetail list={list} detail={detail} />
       {staged !== null && stageHost !== null && createPortal(staged, stageHost)}
-    </section>
+    </>
   )
 }
 
@@ -819,7 +825,12 @@ function BodyPane({
       <header className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 text-xs text-dim">
         {title !== undefined && <span>{title}</span>}
         {tabs}
-        <SaveState status={editing.status} className="ml-2" />
+        <SaveState
+          savingLabel={t('save.saving')}
+          savedLabel={t('save.saved')}
+          status={editing.status}
+          className="ml-2"
+        />
         <div className="ml-auto flex items-center gap-1">
           {modes.map(({ mode, icon: Icon, label }) => (
             <Button

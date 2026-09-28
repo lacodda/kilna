@@ -11,8 +11,8 @@ import { useDebounced } from '@/lib/useDebounced'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/AppDialog'
 import { Input } from '@/components/ui/input'
-import { EmptyState } from '@/components/EmptyState'
-import { cn } from '@/lib/utils'
+import { EmptyState } from '@/components/ui/empty-state'
+import { RowButton } from '@/components/ui/list-row'
 
 /**
  * Picking the styles an action builds its prompt from.
@@ -159,26 +159,21 @@ export function StylePickerDialog({
               const Icon = styleIconOf(types.find((type) => type.key === one.type_key))
               return (
                 <li key={one.id}>
-                  <button
-                    type="button"
+                  <RowButton
                     onClick={() => setPicked([...picked, one.id])}
-                    className={cn(
-                      'flex w-full cursor-pointer items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 text-left',
-                      'hover:border-line-2 hover:bg-soft',
-                    )}
+                    start={
+                      <>
+                        <Cover brick={one} />
+                        <Icon aria-hidden className="ml-2" />
+                      </>
+                    }
+                    description={one.description ?? undefined}
                   >
-                    <Cover brick={one} />
-                    <Icon aria-hidden className="size-4 shrink-0 text-dim" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm">
-                        <span className="text-faint">
-                          {labelOfType.get(one.type_key) ?? one.type_key} ·{' '}
-                        </span>
-                        {one.name}
-                      </span>
-                      <span className="block truncate text-xs text-faint">{one.description}</span>
+                    <span className="font-normal text-faint">
+                      {labelOfType.get(one.type_key) ?? one.type_key} ·{' '}
                     </span>
-                  </button>
+                    {one.name}
+                  </RowButton>
                 </li>
               )
             })}

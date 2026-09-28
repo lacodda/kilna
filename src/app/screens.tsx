@@ -37,11 +37,6 @@ export interface ScreenSpec {
   path: string
   /** The word that names it: in the rail, the title bar and the shortcut sheet. */
   nav: string
-  /**
-   * Held against the window's height - something inside scrolls - or flowing,
-   * as long as its content and scrolling itself. See `Screen`.
-   */
-  scroll: 'flow' | 'held'
   /** Where the rail shows it; absent for a screen reached only from another. */
   rail?: {
     group: 'work' | 'library' | 'foot'
@@ -76,43 +71,37 @@ export const SCREENS: readonly ScreenSpec[] = [
     key: 'dashboard',
     path: '/dashboard',
     nav: 'nav.dashboard',
-    scroll: 'flow',
     rail: { group: 'work', icon: LayoutDashboard },
     jump: 'd',
     render: (open) => <DashboardView onSelect={open} />,
   },
   {
-    // The list of works. Held rather than growing with its rows: its table
-    // scrolls both ways inside, so the sideways bar stays at the bottom of the
-    // window. There is no separate Works entry: a second door to the same
-    // things only made you choose between them.
+    // The list of works. Its table scrolls both ways inside, so the sideways
+    // bar stays at the bottom of the window. There is no separate Works entry:
+    // a second door to the same things only made you choose between them.
     key: 'catalogue',
     path: '/catalogue',
     nav: 'nav.catalogue',
-    scroll: 'held',
     rail: { group: 'work', icon: List },
     jump: 'c',
     render: (open) => <Catalogue onSelect={open} />,
   },
   {
     // An open work belongs to the catalogue, where its trail and back link
-    // lead. Held: the card lays itself out against the window's height - its
-    // header stands still and the open tab scrolls inside itself. The open
-    // tab is part of the address, so the back button walks between tabs and
-    // a tab can be linked to directly.
+    // lead. Its header stands still and the open tab scrolls inside itself.
+    // The open tab is part of the address, so the back button walks between
+    // tabs and a tab can be linked to directly.
     key: 'works',
     path: '/works/:workId?/:tab?',
     nav: 'nav.catalogue',
-    scroll: 'held',
     render: () => <WorksScreen />,
   },
   {
-    // Held like the catalogue: the queue scrolls inside its own column and
-    // the month it is being read against stays on screen.
+    // The queue scrolls inside its own column and the month it is being read
+    // against stays on screen.
     key: 'calendar',
     path: '/calendar',
     nav: 'nav.calendar',
-    scroll: 'held',
     rail: { group: 'work', icon: Calendar },
     jump: 'k',
     render: (open) => <CalendarView onSelect={open} />,
@@ -124,18 +113,16 @@ export const SCREENS: readonly ScreenSpec[] = [
     key: 'notes',
     path: '/notes/:noteId?',
     nav: 'nav.notes',
-    scroll: 'held',
     rail: { group: 'library', icon: FileText },
     jump: 'n',
     render: () => <NotesView />,
   },
   {
-    // The inbox of the audience's comments, held the same way: the list and
-    // the open comment scroll apart.
+    // The inbox of the audience's comments, laid out the same way: the list
+    // and the open comment scroll apart.
     key: 'comments',
     path: '/comments/:commentId?',
     nav: 'nav.comments',
-    scroll: 'held',
     rail: { group: 'library', icon: MessagesSquare },
     render: () => <CommentsView />,
   },
@@ -145,7 +132,6 @@ export const SCREENS: readonly ScreenSpec[] = [
     key: 'styles',
     path: '/styles',
     nav: 'nav.styles',
-    scroll: 'flow',
     rail: { group: 'library', icon: Shapes, when: (config) => styleTypesOf(config).length > 0 },
     render: () => <StylesView />,
   },
@@ -153,7 +139,6 @@ export const SCREENS: readonly ScreenSpec[] = [
     key: 'journal',
     path: '/journal',
     nav: 'nav.journal',
-    scroll: 'flow',
     rail: { group: 'library', icon: History },
     jump: 'j',
     render: () => <JournalView />,
@@ -162,7 +147,6 @@ export const SCREENS: readonly ScreenSpec[] = [
     key: 'trash',
     path: '/trash',
     nav: 'nav.trash',
-    scroll: 'flow',
     rail: { group: 'library', icon: Trash2 },
     jump: 't',
     render: () => <TrashView />,
@@ -172,19 +156,17 @@ export const SCREENS: readonly ScreenSpec[] = [
     key: 'styleguide',
     path: '/styleguide',
     nav: 'nav.styleguide',
-    scroll: 'flow',
     rail: { group: 'foot', icon: Palette },
     dev: true,
     render: () => <Styleguide />,
   },
   {
     // The section is part of the address, like a card's tab: the rail's
-    // Settings link lands on the first one. Held: only the section scrolls,
-    // and the list of sections stands.
+    // Settings link lands on the first one. Only the section scrolls, and the
+    // list of sections stands.
     key: 'settings',
     path: '/settings/:section?',
     nav: 'nav.data',
-    scroll: 'held',
     rail: { group: 'foot', icon: Settings },
     jump: 's',
     render: () => <SettingsView />,

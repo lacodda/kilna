@@ -121,18 +121,18 @@ describe('every component', () => {
     // in the interface's language; a component that formats on its own is
     // where that stops being true.
     //
-    // `toFixed` is allowed where the number is geometry rather than prose - a
-    // path drawn in an SVG - and nowhere else.
-    const geometry = new Set(['src/features/work/tabs/score/Sparkline.tsx'])
+    // `toFixed` used to be allowed in the score's sparkline, where the number
+    // is the geometry of an SVG path rather than prose; the sparkline is the
+    // registry's since v0.78, and nothing of kilna's own draws one.
     const rules: [RegExp, string][] = [
       [/\.toLocale(Date|Time)?String\(/, 'toLocale…String'],
       [/new Intl\./, 'new Intl'],
       [/\.slice\(0,\s*10\)/, 'a timestamp cut to its date'],
+      [/\.toFixed\(/, 'toFixed'],
     ]
     const offenders = components().flatMap(({ path, text }) =>
       text.split('\n').flatMap((line, index) => {
         const found = rules.filter(([rule]) => rule.test(line)).map(([, name]) => name)
-        if (/\.toFixed\(/.test(line) && !geometry.has(path)) found.push('toFixed')
         return found.map((name) => `${path}:${index + 1}: ${name}`)
       }),
     )

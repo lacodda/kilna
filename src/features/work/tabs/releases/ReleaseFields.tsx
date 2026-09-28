@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Copy, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { generateReleaseFields, setReleaseFields } from '@/lib/api/releases'
 import type { ReleaseFieldValue, ScheduledRelease } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
@@ -13,9 +13,10 @@ import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ConfirmAction } from '@/components/ConfirmAction'
+import { CopyButton } from '@/components/ui/copy-button'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/Skeleton'
-import { SaveState, useSaveStatus } from '@/components/SaveState'
+import { Skeleton } from '@/components/ui/skeleton'
+import { SaveState, useSaveStatus } from '@/components/ui/save-state'
 import { Textarea } from '@/components/ui/textarea'
 
 interface Props {
@@ -75,17 +76,6 @@ export function ReleaseFields({ release }: Props) {
 
   const status = useSaveStatus(save.isPending, save.isError)
 
-  // The text handed over is what is in the box, not what is stored: pressing
-  // Copy is what takes the focus from a field being written, and its save has
-  // not landed by then - copying the stored value put the text from before the
-  // edit on the clipboard, under a toast that said it was copied.
-  const copy = (field: ReleaseFieldValue, text: string) => {
-    navigator.clipboard.writeText(text).then(
-      () => say.ok(t('releases.meta.copied', { label: field.label })),
-      (cause: unknown) => say.failedTo(t('releases.meta.copyFailed'), cause),
-    )
-  }
-
   if (fields.isPending) return <Skeleton className="h-24 w-full" />
   if (fields.isError) return null
 
@@ -112,7 +102,12 @@ export function ReleaseFields({ release }: Props) {
             ? t('releases.meta.complete')
             : t('releases.meta.written', { written: count.written, total: count.total })}
         </span>
-        <SaveState status={status} className="ml-auto" />
+        <SaveState
+          savingLabel={t('save.saving')}
+          savedLabel={t('save.saved')}
+          status={status}
+          className="ml-auto"
+        />
         {canFill && (
           <Button
             // Confirmed only when there is something to lose. On an empty
@@ -132,7 +127,6 @@ export function ReleaseFields({ release }: Props) {
         <ReleaseFieldBox
           key={field.key}
           field={field}
-          onCopy={(text) => copy(field, text)}
           onSave={(value) => {
             if (value === field.value) return
             save.mutate({ [field.key]: value })
@@ -161,8 +155,6 @@ export function ReleaseFields({ release }: Props) {
 interface BoxProps {
   field: ReleaseFieldValue
   onSave: (value: string) => void
-  /** Copy what the box holds right now. */
-  onCopy: (text: string) => void
 }
 
 /**
@@ -173,7 +165,7 @@ interface BoxProps {
  * changes underneath - a generation landed - the box takes the new text,
  * because that is what the person just asked for.
  */
-function ReleaseFieldBox({ field, onSave, onCopy }: BoxProps) {
+function ReleaseFieldBox({ field, onSave }: BoxProps) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState(field.value)
   const [syncedTo, setSyncedTo] = useState(field.value)
@@ -198,7 +190,9 @@ function ReleaseFieldBox({ field, onSave, onCopy }: BoxProps) {
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    // `group`: the copy button shows while the pointer is anywhere over the
+    // field, not only once it has found the button.
+    <div className="group flex flex-col gap-1">
       <div className="flex items-center gap-2">
         <span className="caption">{sayLabel(field.label)}</span>
         {counter !== null && (
@@ -209,16 +203,22 @@ function ReleaseFieldBox({ field, onSave, onCopy }: BoxProps) {
             {counter}
           </span>
         )}
-        <button
-          type="button"
-          onClick={() => onCopy(draft)}
+        {/* The text handed over is what is in the box, not what is stored:
+            pressing Copy is what takes the focus from a field being written,
+            and its save has not landed by then - copying the stored value put
+            the text from before the edit on the clipboard, under a toast that
+            said it was copied. */}
+        <CopyButton
+          value={draft}
+          label={t('releases.meta.copy')}
+          copiedLabel={t('releases.meta.copied', { label: sayLabel(field.label) })}
+          onCopy={(ok) => {
+            if (!ok) say.failed(t('releases.meta.copyFailed'))
+          }}
           disabled={draft.trim() === ''}
           title={t('releases.meta.copy')}
-          aria-label={t('releases.meta.copy')}
-          className="ml-auto text-faint hover:text-text disabled:opacity-40"
-        >
-          <Copy aria-hidden className="size-3.5" />
-        </button>
+          className="ml-auto"
+        />
       </div>
 
       {field.type === 'line' || field.type === 'tags' ? (

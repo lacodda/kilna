@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { SceneFrame } from '@/lib/api/types'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogPopup } from '@/components/ui/dialog'
 import { MediaPreview } from '@/components/MediaPreview'
 
@@ -64,28 +65,28 @@ export function FrameViewer({ viewing, onClose, onStep, canStep }: Props) {
             {t('scenes.frameOfScene', { number: viewing.number })}
           </span>
           <span className="truncate text-xs text-dim">{viewing.frame.original_name}</span>
-          <button
-            type="button"
+          <Button
+            variant="icon"
+            size="icon-sm"
             onClick={onClose}
             aria-label={t('scenes.closeFrame')}
             title={t('scenes.closeFrame')}
-            className="rounded p-1 text-dim hover:text-text"
           >
-            <X className="size-4" aria-hidden />
-          </button>
+            <X aria-hidden />
+          </Button>
         </div>
 
         <div className="flex min-h-0 flex-1 items-center gap-2">
-          <button
-            type="button"
+          <Button
+            variant="icon"
+            size="icon-md"
             onClick={() => onStep(-1)}
             disabled={!canStep(-1)}
             aria-label={t('scenes.previousScene')}
             title={t('scenes.previousScene')}
-            className="rounded p-2 text-dim enabled:hover:text-text disabled:opacity-30"
           >
             <ChevronLeft className="size-6" aria-hidden />
-          </button>
+          </Button>
 
           {/* Contained: a frame is looked at whole here, whatever its shape.
               A clip opened from the clips strip plays rather than showing as
@@ -97,16 +98,16 @@ export function FrameViewer({ viewing, onClose, onStep, canStep }: Props) {
             className="min-h-0 min-w-0 max-h-full flex-1 object-contain"
           />
 
-          <button
-            type="button"
+          <Button
+            variant="icon"
+            size="icon-md"
             onClick={() => onStep(1)}
             disabled={!canStep(1)}
             aria-label={t('scenes.nextScene')}
             title={t('scenes.nextScene')}
-            className="rounded p-2 text-dim enabled:hover:text-text disabled:opacity-30"
           >
             <ChevronRight className="size-6" aria-hidden />
-          </button>
+          </Button>
         </div>
       </DialogPopup>
     </Dialog>

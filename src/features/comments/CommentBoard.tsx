@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ClipboardPaste, LoaderCircle, Plus } from 'lucide-react'
+import { ClipboardPaste, LoaderCircle, MessageSquareReply, Plus } from 'lucide-react'
 import type {
   Comment,
   CommentProposal,
@@ -19,9 +19,14 @@ import { useRunningTasks } from '@/lib/useRunningTasks'
 import { cn } from '@/lib/utils'
 import { formatDay } from '@/lib/format'
 import { Button } from '@/components/ui/button'
-import { EmptyState } from '@/components/EmptyState'
+import { Chip, ChipGroup } from '@/components/ui/chip'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
-import { SkeletonList } from '@/components/Skeleton'
+import { RowButton } from '@/components/ui/list-row'
+import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
+import { SkeletonList } from '@/components/ui/skeleton'
+import { Frame, ListDetail, Pane } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 import { CommentDetail } from '@/features/comments/CommentDetail'
 import { NewCommentDialog } from '@/features/comments/NewCommentDialog'
 import { ProposedComment } from '@/features/comments/ProposedComment'
@@ -36,6 +41,17 @@ interface Props {
 
 /** The states a person narrows the list to, the inbox's first. */
 const STATES: CommentState[] = ['open', 'posted', 'archived']
+
+/*
+ * What a channel chip is called in its group. "All" is a chip of its own, and
+ * a channel is free text, so the channels carry a prefix: one someone named
+ * "all" cannot be taken for it.
+ */
+const ALL_CHANNELS = 'all'
+const chipOf = (channel: string | undefined) =>
+  channel === undefined ? ALL_CHANNELS : `channel:${channel}`
+const channelOf = (chip: string | undefined) =>
+  chip === undefined || chip === ALL_CHANNELS ? undefined : chip.slice('channel:'.length)
 
 /**
  * The comments, as a list beside the open one: the inbox on the Comments
@@ -114,90 +130,61 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
   const filtered = channel !== undefined || query !== '' || state !== 'open'
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        {/* The channels as chips, with what waits on each: the question of an
-            inbox is where the unanswered ones are. */}
-        {known.length > 0 && (
-          <div
-            role="group"
-            aria-label={t('comments.channel')}
-            className="flex flex-wrap items-center gap-1.5"
-          >
-            {[
-              {
-                name: undefined as string | undefined,
-                label: t('comments.allChannels'),
-                waiting: undefined,
-              },
-              ...(channels.data ?? []).map(([name, waiting]) => ({ name, label: name, waiting })),
-            ].map((entry) => {
-              const active = channel === entry.name
-              return (
-                <button
-                  key={entry.name ?? ''}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setChannel(active ? undefined : entry.name)}
-                  className={cn(
-                    'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
-                    active
-                      ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
-                      : 'border-line text-dim hover:border-line-2 hover:text-text',
-                  )}
-                >
-                  {entry.label}
-                  {entry.waiting !== undefined && entry.waiting > 0 && (
-                    <span className="text-2xs text-accent-2 tabular-nums">{entry.waiting}</span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        )}
-        <div
-          role="group"
-          aria-label={t('comments.state')}
-          className="flex rounded-md bg-soft p-0.5"
-        >
-          {STATES.map((one) => (
-            <button
-              key={one}
-              type="button"
-              aria-pressed={state === one}
-              onClick={() => setState(one)}
-              className={cn(
-                'cursor-pointer rounded px-2.5 py-0.5 text-xs text-dim transition-colors',
-                state === one && 'bg-raise font-semibold text-text shadow-sm',
-              )}
+    <Frame
+      head={
+        <>
+          {/* The channels as chips, with what waits on each: the question of an
+              inbox is where the unanswered ones are. */}
+          {known.length > 0 && (
+            <ChipGroup
+              aria-label={t('comments.channel')}
+              value={[chipOf(channel)]}
+              onValueChange={(next) => setChannel(channelOf(next[0]))}
             >
-              {t(`comments.states.${one}`)}
-            </button>
-          ))}
-        </div>
-        <Input
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          placeholder={t('comments.search')}
-          aria-label={t('comments.search')}
-          className="w-52"
-        />
-        <span
-          className="ml-auto hidden items-center gap-1 text-xs text-faint lg:flex"
-          title={t('comments.pasteHint')}
-        >
-          <ClipboardPaste aria-hidden className="size-3.5" />
-          {t('comments.pasteShort')}
-        </span>
-        <Button variant="primary" onClick={() => setAdding(true)}>
-          <Plus aria-hidden />
-          {t('comments.new')}
-        </Button>
-      </div>
-
-      <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] gap-3">
-        <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-raise">
-          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-1.5">
+              <Chip value={chipOf(undefined)}>{t('comments.allChannels')}</Chip>
+              {(channels.data ?? []).map(([name, waiting]) => (
+                <Chip key={name} value={chipOf(name)} count={waiting > 0 ? waiting : undefined}>
+                  {name}
+                </Chip>
+              ))}
+            </ChipGroup>
+          )}
+          {/* One state at a time, always one: the inbox is the open ones. */}
+          <SegmentedControl
+            aria-label={t('comments.state')}
+            value={state}
+            onValueChange={(next) => setState(next as CommentState)}
+          >
+            {STATES.map((one) => (
+              <Segment key={one} value={one}>
+                {t(`comments.states.${one}`)}
+              </Segment>
+            ))}
+          </SegmentedControl>
+          <Input
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder={t('comments.search')}
+            aria-label={t('comments.search')}
+            className="w-52"
+          />
+          <span
+            className="ml-auto hidden items-center gap-1 text-xs text-faint lg:flex"
+            title={t('comments.pasteHint')}
+          >
+            <ClipboardPaste aria-hidden className="size-3.5" />
+            {t('comments.pasteShort')}
+          </span>
+          <Button variant="primary" onClick={() => setAdding(true)}>
+            <Plus aria-hidden />
+            {t('comments.new')}
+          </Button>
+        </>
+      }
+    >
+      <ListDetail
+        list={
+          <Pane label={t('nav.comments')} bodyClassName="flex flex-col gap-1.5 p-1.5">
             {reading.map((key) => (
               <p
                 key={key}
@@ -216,64 +203,71 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
               />
             ))}
 
-            {comments.isPending ? (
-              <SkeletonList rows={6} />
-            ) : comments.isError ? (
-              <p role="alert" className="p-3 text-sm text-bad">
-                {t('toast.loadFailed')}
-              </p>
-            ) : rows.length === 0 ? (
-              <p className="p-3 text-xs text-faint">
-                {filtered ? t('comments.noMatches') : t('comments.none')}
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-0.5">
-                {rows.map((comment) => (
-                  <li key={comment.id}>
-                    <CommentRow
-                      comment={comment}
-                      active={comment.id === selectedId}
-                      drafting={
-                        replier !== undefined &&
-                        running.has(commentTaskKey(replier.key, comment.id))
-                      }
-                      drafted={draftsOf(comment.id).length > 0}
-                      onOpen={() => onSelect(comment.id)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-
-        {selected !== undefined ? (
-          <CommentDetail
-            key={selected.id}
-            comment={selected}
-            channels={known}
-            drafts={draftsOf(selected.id)}
-            drafting={
-              replier !== undefined && running.has(commentTaskKey(replier.key, selected.id))
-            }
-            onWork={workId !== undefined}
-            onGone={() => onSelect(null)}
-          />
-        ) : (
-          <EmptyState
-            title={rows.length === 0 && !filtered ? t('comments.empty') : t('comments.pick')}
-            body={rows.length === 0 && !filtered ? t('comments.emptyBody') : undefined}
-            action={
-              rows.length === 0 && !filtered ? (
-                <Button variant="primary" onClick={() => setAdding(true)}>
-                  <Plus aria-hidden />
-                  {t('comments.new')}
-                </Button>
-              ) : undefined
-            }
-          />
-        )}
-      </div>
+            <Loaded
+              query={comments}
+              skeleton={<SkeletonList rows={6} />}
+              isEmpty={(data) => data.length === 0}
+              emptyState={
+                <EmptyState
+                  plain
+                  variant={filtered ? 'filtered' : 'empty'}
+                  title={filtered ? t('comments.noMatches') : t('comments.none')}
+                  className="p-2"
+                />
+              }
+              plain
+            >
+              {() => (
+                <ul className="flex flex-col gap-0.5">
+                  {rows.map((comment) => (
+                    <li key={comment.id}>
+                      <CommentRow
+                        comment={comment}
+                        active={comment.id === selectedId}
+                        drafting={
+                          replier !== undefined &&
+                          running.has(commentTaskKey(replier.key, comment.id))
+                        }
+                        drafted={draftsOf(comment.id).length > 0}
+                        onOpen={() => onSelect(comment.id)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Loaded>
+          </Pane>
+        }
+        detail={
+          selected !== undefined ? (
+            <CommentDetail
+              key={selected.id}
+              comment={selected}
+              channels={known}
+              drafts={draftsOf(selected.id)}
+              drafting={
+                replier !== undefined && running.has(commentTaskKey(replier.key, selected.id))
+              }
+              onWork={workId !== undefined}
+              onGone={() => onSelect(null)}
+            />
+          ) : (
+            <EmptyState
+              className="flex-1"
+              title={rows.length === 0 && !filtered ? t('comments.empty') : t('comments.pick')}
+              body={rows.length === 0 && !filtered ? t('comments.emptyBody') : undefined}
+              action={
+                rows.length === 0 && !filtered ? (
+                  <Button variant="primary" onClick={() => setAdding(true)}>
+                    <Plus aria-hidden />
+                    {t('comments.new')}
+                  </Button>
+                ) : undefined
+              }
+            />
+          )
+        }
+      />
 
       <ScreenshotDialog
         file={pasted}
@@ -290,7 +284,7 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
         workId={workId}
         onCreated={(id) => onSelect(id)}
       />
-    </div>
+    </Frame>
   )
 }
 
@@ -319,35 +313,44 @@ function CommentRow({
   const standing = standingOf(comment)
   const day = comment.commented_on === null ? null : formatDay(comment.commented_on)
 
+  // A reply being drafted, or one drafted and waiting: a glyph beside the day,
+  // with its words for a reader and for the pointer.
+  const draft = drafting ? t('comments.draftingShort') : drafted ? t('comments.draftReady') : null
+
+  // A row of the list, so a line each: who and where, then the opening of
+  // what they said. The whole comment is one click away.
   return (
-    <button
-      type="button"
+    <RowButton
+      selected={active}
       onClick={onOpen}
-      aria-current={active ? 'true' : undefined}
-      className={cn(
-        'flex w-full cursor-pointer flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left transition-colors',
-        active ? 'bg-accent-soft' : 'hover:bg-soft',
-      )}
-    >
-      <span className="flex min-w-0 items-center gap-1.5 text-xs text-faint">
+      start={
         <span
           aria-hidden
           title={t(`comments.standing.${standing}`)}
-          className={cn('size-1.5 shrink-0 rounded-full', STANDING_DOT[standing])}
+          className={cn('size-1.5 rounded-full', STANDING_DOT[standing])}
         />
-        <b className="truncate font-semibold text-text">
-          {comment.author ?? t('comments.someone')}
-        </b>
-        <span className="truncate">· {comment.channel}</span>
-        {day !== null && <span className="ml-auto shrink-0 tabular-nums">{day}</span>}
-      </span>
-      <span className="line-clamp-2 text-sm text-dim">{comment.body}</span>
-      {(drafting || drafted) && (
-        <span className="flex items-center gap-1 text-2xs text-accent-2">
-          {drafting && <LoaderCircle aria-hidden className="size-3 animate-spin" />}
-          {drafting ? t('comments.draftingShort') : t('comments.draftReady')}
-        </span>
-      )}
-    </button>
+      }
+      description={comment.body}
+      end={
+        draft === null && day === null ? undefined : (
+          <>
+            {draft !== null && (
+              <span title={draft} className="flex items-center text-accent-2">
+                {drafting ? (
+                  <LoaderCircle aria-hidden className="size-3 animate-spin" />
+                ) : (
+                  <MessageSquareReply aria-hidden className="size-3" />
+                )}
+                <span className="sr-only">{draft}</span>
+              </span>
+            )}
+            {day}
+          </>
+        )
+      }
+    >
+      {comment.author ?? t('comments.someone')}
+      <span className="font-normal text-faint"> · {comment.channel}</span>
+    </RowButton>
   )
 }

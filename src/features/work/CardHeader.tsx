@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
-import { ArrowLeft, Copy, Pencil, Star } from 'lucide-react'
+import { ArrowLeft, Pencil, Star } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { deriveWork } from '@/lib/api/links'
 import type { Work } from '@/lib/api/types'
@@ -20,6 +20,8 @@ import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/usePro
 import { useStar } from '@/lib/useStar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Copyable } from '@/components/ui/copyable'
+import { CopyButton } from '@/components/ui/copy-button'
 import { Input } from '@/components/ui/input'
 import { RowMenu } from '@/components/RowMenu'
 import { StagePicker } from '@/components/StagePicker'
@@ -171,15 +173,16 @@ function Title({ work }: { work: Work }) {
 
   // The tick only after the clipboard confirms — the rule from v0.28: telling
   // someone a copy succeeded when it did not is worse than saying nothing.
-  const copy = (value: string) => {
-    navigator.clipboard.writeText(value).then(
-      () => say.ok(t('work.copied')),
-      (cause: unknown) => say.failedTo(t('work.copyFailed'), cause),
-    )
+  // Both copies below draw and announce their own tick; only a refusal is
+  // raised here, as a toast. The copy says that the clipboard said no, not
+  // why, so the toast carries the fact alone.
+  const refused = (ok: boolean) => {
+    if (!ok) say.failed(t('work.copyFailed'))
   }
 
+  // `group`: the title's copy button shows while the name's row is pointed at.
   return (
-    <span className="inline-flex min-w-0 items-center gap-1">
+    <span className="group inline-flex min-w-0 items-center gap-1">
       {draft === null ? (
         <h1 className="truncate text-xl font-[650] tracking-tight">{work.title}</h1>
       ) : (
@@ -208,23 +211,22 @@ function Title({ work }: { work: Work }) {
           >
             <Pencil aria-hidden />
           </Button>
-          <Button
-            variant="icon"
-            size="icon-sm"
+          <CopyButton
+            value={work.title}
+            label={t('work.copyTitle')}
+            copiedLabel={t('work.copied')}
             title={t('work.copyTitle')}
-            aria-label={t('work.copyTitle')}
-            onClick={() => copy(work.title)}
-          >
-            <Copy aria-hidden />
-          </Button>
-          <button
-            type="button"
+            onCopy={refused}
+          />
+          <Copyable
+            value={work.id}
+            label={t('work.copyId')}
+            copiedLabel={t('work.copied')}
             title={t('work.copyIdHint')}
-            onClick={() => copy(work.id)}
-            className="cursor-pointer rounded px-1 font-mono text-xs text-faint transition-colors hover:text-dim"
+            onCopy={refused}
           >
             {work.id.slice(0, 8)}
-          </button>
+          </Copyable>
           <Button
             variant="icon"
             size="icon-sm"

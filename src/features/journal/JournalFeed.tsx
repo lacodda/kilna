@@ -5,8 +5,10 @@ import { Link } from 'react-router'
 import type { JournalEntry } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
 import { Badge } from '@/components/ui/badge'
-import { EmptyState } from '@/components/EmptyState'
-import { SkeletonList } from '@/components/Skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SkeletonList } from '@/components/ui/skeleton'
+import { Frame, Pane } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 import { cn } from '@/lib/utils'
 import { formatMoment } from '@/lib/format'
 import type { Tab } from '@/features/work/tabs'
@@ -133,17 +135,9 @@ function Line({ entry }: { entry: JournalEntry }) {
   )
 }
 
-interface Props {
-  entries: JournalEntry[]
-  /** Shown when there is nothing yet — the wording differs per surface. */
-  emptyTitle: string
-  emptyBody?: string
-}
-
-/** The lines themselves, given entries someone else fetched. */
-export function JournalLines({ entries, emptyTitle, emptyBody }: Props) {
-  if (entries.length === 0) return <EmptyState title={emptyTitle} body={emptyBody} />
-
+/** The lines themselves, given entries someone else fetched. What an empty
+ *  feed says is the caller's: it differs per surface. */
+export function JournalLines({ entries }: { entries: JournalEntry[] }) {
   return (
     <ul className="flex flex-col">
       {entries.map((entry) => (
@@ -156,32 +150,35 @@ export function JournalLines({ entries, emptyTitle, emptyBody }: Props) {
 /**
  * One work's own history, on its card.
  *
- * A panel among the others for now; it becomes the card's History tab when the
- * card is split into tabs in v0.16. Fetches on its own rather than riding along
- * with the card's other queries — history is the part of a card nobody reads
- * every time.
+ * The card's History tab: a panel of lines that scrolls under the card's
+ * header. Fetches on its own rather than riding along with the card's other
+ * queries — history is the part of a card nobody reads every time.
  */
 export function WorkHistory({ workId }: { workId: string }) {
   const { t } = useTranslation()
   const entries = useQuery(queries.journalForWork(workId))
 
   return (
-    <section className="flex flex-col gap-3">
-      {entries.isPending && <SkeletonList rows={3} />}
-
-      {entries.isError && (
-        <p role="alert" className="text-sm text-bad">
-          {t('toast.loadFailed')}
-        </p>
-      )}
-
-      {entries.data != null && (
-        <JournalLines
-          entries={entries.data}
-          emptyTitle={t('empty.historyTitle')}
-          emptyBody={t('empty.historyBody')}
-        />
-      )}
-    </section>
+    <Frame>
+      <Loaded
+        query={entries}
+        fill
+        skeleton={<SkeletonList rows={3} />}
+        isEmpty={(data) => data.length === 0}
+        emptyState={
+          <EmptyState
+            title={t('empty.historyTitle')}
+            body={t('empty.historyBody')}
+            className="flex-1"
+          />
+        }
+      >
+        {(data) => (
+          <Pane label={t('journal.title')} bodyClassName="px-3">
+            <JournalLines entries={data} />
+          </Pane>
+        )}
+      </Loaded>
+    </Frame>
   )
 }

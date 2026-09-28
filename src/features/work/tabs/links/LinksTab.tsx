@@ -10,12 +10,15 @@ import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
-import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { RowButton } from '@/components/ui/list-row'
 import { Panel } from '@/components/ui/panel'
-import { Skeleton } from '@/components/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Frame, Scroll } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 
 interface Props {
   work: Work
@@ -62,89 +65,84 @@ export function LinksTab({ work }: Props) {
   const otherKinds = profile.config.work_kinds.filter((kind) => kind.key !== work.kind)
 
   return (
-    <div className="flex flex-col gap-4">
-      <Panel className="flex flex-col gap-3 p-4">
-        <h3 className="text-sm font-semibold">{t('links.sources')}</h3>
+    <Frame>
+      <Scroll label={t('card.tab.links')} contentClassName="flex flex-col gap-4">
+        <Panel className="flex flex-col gap-3 p-4">
+          <h3 className="text-sm font-semibold">{t('links.sources')}</h3>
 
-        {links.isPending && <Skeleton className="h-12 w-full" />}
-        {links.isError && (
-          <p role="alert" className="text-sm text-bad">
-            {t('toast.loadFailed')}
-          </p>
-        )}
-
-        {links.data !== undefined && links.data.sources.length === 0 && (
-          <p className="text-sm text-dim">{t('links.noSources')}</p>
-        )}
-
-        {links.data !== undefined && links.data.sources.length > 0 && (
-          <ul className="flex flex-col gap-2">
-            {links.data.sources.map((link) => (
-              <SourceRow
-                key={link.id}
-                link={link}
-                onRemove={() => remove.mutate(link.id)}
-                removing={remove.isPending}
-              />
-            ))}
-          </ul>
-        )}
-
-        <SourcePicker
-          work={work}
-          taken={new Set(links.data?.sources.map((link) => link.source_id) ?? [])}
-        />
-      </Panel>
-
-      <Panel className="flex flex-col gap-3 p-4">
-        <h3 className="text-sm font-semibold">{t('links.derived')}</h3>
-
-        {links.data !== undefined && links.data.derived.length === 0 && (
-          <p className="text-sm text-dim">{t('links.noDerived')}</p>
-        )}
-
-        {links.data !== undefined && links.data.derived.length > 0 && (
-          <ul className="flex flex-col gap-2">
-            {links.data.derived.map((entry) => {
-              const vocabulary = vocabularyOf(profile.config, entry.kind)
-              return (
-                <li key={entry.link_id}>
-                  <button
-                    type="button"
-                    onClick={() => void navigate(`/works/${entry.work_id}`)}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-line px-3 py-2 text-left transition-colors hover:bg-soft"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                      {entry.title}
-                    </span>
-                    <span className="text-xs text-dim">
-                      {labelOf(profile.config.work_kinds, entry.kind)}
-                      {' · '}
-                      {labelOf(vocabulary.statuses, entry.status)}
-                    </span>
-                  </button>
-                </li>
+          <Loaded query={links} skeleton={<Skeleton className="h-12 w-full" />} plain>
+            {(data) =>
+              data.sources.length === 0 ? (
+                <p className="text-sm text-dim">{t('links.noSources')}</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {data.sources.map((link) => (
+                    <SourceRow
+                      key={link.id}
+                      link={link}
+                      onRemove={() => remove.mutate(link.id)}
+                      removing={remove.isPending}
+                    />
+                  ))}
+                </ul>
               )
-            })}
-          </ul>
-        )}
+            }
+          </Loaded>
 
-        {otherKinds.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            {otherKinds.map((kind) => (
-              <Button
-                key={kind.key}
-                size="sm"
-                disabled={derive.isPending}
-                onClick={() => derive.mutate(kind.key)}
-              >
-                {t('links.makeFromThis', { kind: kind.label })}
-              </Button>
-            ))}
-          </div>
-        )}
-      </Panel>
-    </div>
+          <SourcePicker
+            work={work}
+            taken={new Set(links.data?.sources.map((link) => link.source_id) ?? [])}
+          />
+        </Panel>
+
+        <Panel className="flex flex-col gap-3 p-4">
+          <h3 className="text-sm font-semibold">{t('links.derived')}</h3>
+
+          {links.data !== undefined && links.data.derived.length === 0 && (
+            <p className="text-sm text-dim">{t('links.noDerived')}</p>
+          )}
+
+          {links.data !== undefined && links.data.derived.length > 0 && (
+            <ul className="flex flex-col gap-0.5">
+              {links.data.derived.map((entry) => {
+                const vocabulary = vocabularyOf(profile.config, entry.kind)
+                return (
+                  <li key={entry.link_id}>
+                    <RowButton
+                      onClick={() => void navigate(`/works/${entry.work_id}`)}
+                      end={
+                        <>
+                          {labelOf(profile.config.work_kinds, entry.kind)}
+                          {' · '}
+                          {labelOf(vocabulary.statuses, entry.status)}
+                        </>
+                      }
+                    >
+                      {entry.title}
+                    </RowButton>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
+          {otherKinds.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {otherKinds.map((kind) => (
+                <Button
+                  key={kind.key}
+                  size="sm"
+                  disabled={derive.isPending}
+                  onClick={() => derive.mutate(kind.key)}
+                >
+                  {t('links.makeFromThis', { kind: sayLabel(kind.label) })}
+                </Button>
+              ))}
+            </div>
+          )}
+        </Panel>
+      </Scroll>
+    </Frame>
   )
 }
 
@@ -182,14 +180,15 @@ function SourceRow({
         link.drifted ? 'border-warn/50' : 'border-line',
       )}
     >
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
+      {/* `text-sm` here, because a link takes the size of the line it sits in. */}
+      <div className="flex items-center gap-2 text-sm">
+        <Button
+          variant="link"
           onClick={() => void navigate(`/works/${link.source_id}`)}
-          className="min-w-0 flex-1 cursor-pointer truncate text-left text-sm font-medium hover:underline"
+          className="min-w-0 flex-1 justify-start"
         >
-          {link.source_title}
-        </button>
+          <span className="truncate">{link.source_title}</span>
+        </Button>
         <span className="text-xs text-dim">
           {labelOf(profile.config.work_kinds, link.source_kind)}
           {' · '}
@@ -219,13 +218,9 @@ function SourceRow({
                 ? t('links.driftedTo', { revision: link.current_revision })
                 : t('links.driftedInPlace')}
             </span>
-            <button
-              type="button"
-              onClick={() => void navigate(diff)}
-              className="cursor-pointer text-accent-2 underline decoration-dotted underline-offset-2"
-            >
+            <Button variant="link" onClick={() => void navigate(diff)}>
               {t('links.seeDiff')}
-            </button>
+            </Button>
           </>
         ) : (
           link.source_version_id !== null && <span>{t('links.unchanged')}</span>
@@ -284,17 +279,13 @@ function SourcePicker({ work, taken }: { work: Work; taken: ReadonlySet<string> 
           )}
           {matches.map((candidate) => (
             <li key={candidate.id}>
-              <button
-                type="button"
+              <RowButton
                 disabled={link.isPending}
                 onClick={() => link.mutate(candidate.id)}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-soft"
+                end={labelOf(profile.config.work_kinds, candidate.kind)}
               >
-                <span className="min-w-0 flex-1 truncate">{candidate.title}</span>
-                <span className="text-xs text-faint">
-                  {labelOf(profile.config.work_kinds, candidate.kind)}
-                </span>
-              </button>
+                {candidate.title}
+              </RowButton>
             </li>
           ))}
         </ul>

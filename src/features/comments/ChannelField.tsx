@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
 
 interface Props {
   value: string
@@ -16,8 +16,9 @@ interface Props {
  *
  * Free text on purpose (migration 0027): a channel is wherever the work went
  * out, and a list someone has to maintain before the first comment can be
- * kept is a list nobody maintains. The chips are what stops the second
- * comment from being filed under a near-miss of the first one's channel.
+ * kept is a list nobody maintains. The words offered under the box are what
+ * stops the second comment from being filed under a near-miss of the first
+ * one's channel.
  */
 export function ChannelField({ value, onChange, known, autoFocus }: Props) {
   const { t } = useTranslation()
@@ -35,16 +36,9 @@ export function ChannelField({ value, onChange, known, autoFocus }: Props) {
       {others.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {others.map((channel) => (
-            <button
-              key={channel}
-              type="button"
-              onClick={() => onChange(channel)}
-              className={cn(
-                'cursor-pointer rounded-full border border-line px-2 py-0.5 text-xs text-dim transition-colors hover:border-line-2 hover:text-text',
-              )}
-            >
+            <Button key={channel} size="xs" onClick={() => onChange(channel)}>
               {channel}
-            </button>
+            </Button>
           ))}
         </div>
       )}

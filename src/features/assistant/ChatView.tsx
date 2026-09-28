@@ -19,11 +19,13 @@ import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { CopyButton } from '@/components/ui/copy-button'
+import { RowButton } from '@/components/ui/list-row'
 import { Textarea } from '@/components/ui/textarea'
 import { Markdown } from '@/components/Markdown'
-import { Skeleton } from '@/components/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Scroll } from '@/components/frame'
 import { InsertVersionDialog } from '@/features/assistant/InsertVersionDialog'
 import { KeepAsNoteDialog } from '@/features/assistant/KeepAsNoteDialog'
 import { ProposedDescription } from '@/features/assistant/ProposedDescription'
@@ -185,21 +187,14 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
     ask.mutate(prompt)
   }
 
-  const copy = (body: string) => {
-    navigator.clipboard.writeText(body).then(
-      () => {
-        say.ok(t('assistant.copied'))
-      },
-      (cause: unknown) => {
-        say.failed(cause)
-      },
-    )
-  }
-
   const loading = chatId !== null && (transcript.isPending || runs.isPending)
 
+  // A column that takes the height it is given: the exchange scrolls in the
+  // middle, and the composer stands at the foot. The exchange was a box of
+  // 384 pixels inside a tab that scrolled whole, so a long answer was read
+  // through a letterbox and the composer went off the card with it.
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       {working && <span className="text-xs text-dim">{t('assistant.thinking')}</span>}
 
       {workId !== undefined && workActions.length > 0 && (
@@ -239,14 +234,13 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
         </div>
       )}
 
-      {items.length > 0 && (
-        <ul className="flex max-h-96 flex-col gap-3 overflow-y-auto">
+      <Scroll label={t('assistant.conversation')}>
+        <ul className="flex flex-col gap-3">
           {items.map((item) => (
             <ExchangeItem
               key={item.key}
               item={item}
               workId={workId}
-              onCopy={copy}
               onInsert={
                 workId === undefined
                   ? undefined
@@ -262,7 +256,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
           ))}
           <div ref={bottom} />
         </ul>
-      )}
+      </Scroll>
 
       <form
         className="relative flex flex-col gap-2"
@@ -286,10 +280,13 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
             )}
             {palette.matches.map((action, index) => (
               <li key={action.key}>
-                <button
-                  type="button"
+                <RowButton
                   role="option"
+                  selected={action.key === chosen?.key}
                   aria-selected={action.key === chosen?.key}
+                  // In a listbox the highlighted entry is the selected option;
+                  // `aria-current` on top of it would say the same thing twice.
+                  aria-current={undefined}
                   // Pointer down, not click: the composer keeps focus, so the
                   // draft the choice replaces is still the one on screen.
                   onMouseDown={(event) => {
@@ -299,18 +296,12 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
                   onMouseEnter={() => {
                     setHighlighted(index)
                   }}
-                  className={cn(
-                    'flex w-full cursor-pointer flex-col gap-0.5 rounded-md px-2.5 py-1.5 text-left',
-                    action.key === chosen?.key ? 'bg-soft text-text' : 'text-dim',
-                  )}
+                  description={
+                    action.description === undefined ? undefined : sayLabel(action.description)
+                  }
                 >
-                  <span className="text-sm">{sayLabel(action.label)}</span>
-                  {action.description !== undefined && (
-                    <span className="truncate text-xs text-faint">
-                      {sayLabel(action.description)}
-                    </span>
-                  )}
-                </button>
+                  {sayLabel(action.label)}
+                </RowButton>
               </li>
             ))}
           </ul>
@@ -403,7 +394,6 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
 function ExchangeItem({
   item,
   workId,
-  onCopy,
   onInsert,
   onKeepAsNote,
   onOpenComments,
@@ -413,7 +403,6 @@ function ExchangeItem({
   item: Exchange
   /** Absent when the chat is about nothing — there is nothing to score. */
   workId?: string
-  onCopy: (body: string) => void
   /** Absent when the chat is about nothing — there is no work to version. */
   onInsert?: (body: string, role?: string, label?: string, messageId?: string) => void
   /** Keep the answer as a note. Always offered: a note needs no work. */
@@ -483,7 +472,9 @@ function ExchangeItem({
       )}
 
       {body !== '' && (
-        <div className="rounded-xl border border-line px-3 py-2">
+        // `group`: the copy button shows while the pointer is anywhere over
+        // the answer, not only once it has found the button.
+        <div className="group rounded-xl border border-line px-3 py-2">
           {/* Who said it, when it was not the assistant in this panel: an
               agent outside the window, named by its client, with what it said
               about its proposal. */}
@@ -530,16 +521,18 @@ function ExchangeItem({
                 {t('assistant.keepAsNote')}
               </Button>
             )}
-            <Button
-              size="xs"
-              variant="ghost"
-              className={insertable || keepable ? undefined : 'ml-auto'}
-              onClick={() => {
-                onCopy(body)
+            {/* The tick only once the clipboard confirms, and a refusal said
+                in a toast rather than swallowed. */}
+            <CopyButton
+              value={body}
+              label={t('assistant.copy')}
+              copiedLabel={t('assistant.copied')}
+              onCopy={(ok) => {
+                if (!ok) say.failed(t('assistant.copyFailed'))
               }}
-            >
-              {t('assistant.copy')}
-            </Button>
+              title={t('assistant.copy')}
+              className={insertable || keepable ? undefined : 'ml-auto'}
+            />
           </div>
         </div>
       )}

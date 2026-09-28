@@ -15,8 +15,11 @@ import { PICTURES } from '@/lib/media'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { MediaPreview } from '@/components/MediaPreview'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Frame, Scroll } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 import { CoverPrompt } from '@/features/work/tabs/files/CoverPrompt'
-import { Skeleton } from '@/components/Skeleton'
 
 interface Props {
   work: Work
@@ -107,68 +110,77 @@ export function FilesTab({ work }: Props) {
   const cover = all.filter((asset) => asset.kind === COVER).at(-1)
 
   return (
-    <div
+    <Frame
       className={cn(
-        'flex flex-col gap-4 rounded-lg transition-colors',
+        'rounded-lg transition-colors',
         over && 'outline-2 outline-dashed outline-offset-4 outline-accent',
       )}
+      head={
+        <>
+          <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick(COVER)}>
+            <ImageIcon aria-hidden />
+            {cover === undefined ? t('files.setCover') : t('files.changeCover')}
+          </Button>
+          <Button
+            variant="soft"
+            size="sm"
+            disabled={busy || attach.isPending}
+            onClick={() => void pick()}
+          >
+            <Paperclip aria-hidden />
+            {t('files.attach')}
+          </Button>
+          <span className="text-xs text-dim">
+            {over ? t('files.dropHere') : t('files.copiedIn')}
+          </span>
+        </>
+      }
     >
-      {/* Above the pictures, because writing the prompt and looking at what
-          came back is one activity. Draws nothing for a kind whose covers are
-          not written. */}
-      <CoverPrompt work={work} />
+      <Scroll label={t('card.tab.files')} contentClassName="flex flex-col gap-4">
+        {/* Above the pictures, because writing the prompt and looking at what
+            came back is one activity. Draws nothing for a kind whose covers
+            are not written. */}
+        <CoverPrompt work={work} />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick(COVER)}>
-          <ImageIcon aria-hidden />
-          {cover === undefined ? t('files.setCover') : t('files.changeCover')}
-        </Button>
-        <Button
-          variant="soft"
-          size="sm"
-          disabled={busy || attach.isPending}
-          onClick={() => void pick()}
+        <Loaded
+          query={files}
+          skeleton={<Skeleton className="h-32 w-full" />}
+          isEmpty={(data) => data.length === 0}
+          // Plain: the way out - attaching one - is right above it.
+          emptyState={<EmptyState plain title={t('files.empty')} />}
+          plain
         >
-          <Paperclip aria-hidden />
-          {t('files.attach')}
-        </Button>
-        <span className="text-xs text-dim">{over ? t('files.dropHere') : t('files.copiedIn')}</span>
-      </div>
-
-      {files.isPending && <Skeleton className="h-32 w-full" />}
-      {files.isError && (
-        <p role="alert" className="text-sm text-bad">
-          {t('toast.loadFailed')}
-        </p>
-      )}
-      {files.data !== undefined && all.length === 0 && (
-        <p className="text-sm text-dim">{t('files.empty')}</p>
-      )}
-
-      {/* Grouped by what a file is for, not one flat list. A board of fifty
-          scenes with four candidates each puts two hundred pictures in here,
-          and the cover used to be somewhere among them. */}
-      {groupMaterials(all).map((group) => (
-        <section key={group.kind} className="flex flex-col gap-2">
-          <h3 className="caption">
-            {t(`files.group.${group.kind}`)}
-            <span className="ml-1.5 font-normal normal-case tracking-normal text-dim">
-              {group.assets.length}
-            </span>
-          </h3>
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
-            {group.assets.map((asset) => (
-              <FileCard
-                key={asset.id}
-                asset={asset}
-                isCover={asset.id === cover?.id}
-                onDetach={() => detach.mutate(asset)}
-              />
-            ))}
-          </ul>
-        </section>
-      ))}
-    </div>
+          {(data) => (
+            <div className="flex flex-col gap-4">
+              {/* Grouped by what a file is for, not one flat list. A board of
+                  fifty scenes with four candidates each puts two hundred
+                  pictures in here, and the cover used to be somewhere among
+                  them. */}
+              {groupMaterials(data).map((group) => (
+                <section key={group.kind} className="flex flex-col gap-2">
+                  <h3 className="caption">
+                    {t(`files.group.${group.kind}`)}
+                    <span className="ml-1.5 font-normal normal-case tracking-normal text-dim">
+                      {group.assets.length}
+                    </span>
+                  </h3>
+                  <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
+                    {group.assets.map((asset) => (
+                      <FileCard
+                        key={asset.id}
+                        asset={asset}
+                        isCover={asset.id === cover?.id}
+                        onDetach={() => detach.mutate(asset)}
+                      />
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          )}
+        </Loaded>
+      </Scroll>
+    </Frame>
   )
 }
 

@@ -117,7 +117,11 @@ for (const path of sources(SOURCE)) {
       const cls = word.slice(word.lastIndexOf(':') + 1)
       const prefix = PREFIXES.find((p) => cls.startsWith(p))
       if (prefix === undefined) continue
-      const token = cls.slice(prefix.length)
+      let token = cls.slice(prefix.length)
+      // A border's colour on one side: `border-r-transparent` names
+      // `transparent`, as the registry's spinner draws its gap.
+      const side = prefix === 'border-' ? /^[trblxyse]-(.+)$/.exec(token) : null
+      if (side !== null) token = side[1]
       if (token === '' || token.includes('/') || token.includes('[')) continue
       // A number: an opacity, or a width on one side like `border-r-0`.
       if (/^\d/.test(token) || /-\d+$/.test(token)) continue

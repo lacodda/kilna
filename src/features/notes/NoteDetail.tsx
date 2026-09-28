@@ -13,10 +13,11 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
 import { Markdown } from '@/components/Markdown'
 import { Select } from '@/components/AppSelect'
-import { SaveState, type SaveStatus } from '@/components/SaveState'
+import { SaveState, type SaveStatus } from '@/components/ui/save-state'
 import { Textarea } from '@/components/ui/textarea'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { NoteTagAdder } from '@/features/notes/NoteTagAdder'
@@ -110,7 +111,7 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
   const status: SaveStatus = body.status === 'saving' || patch.isPending ? 'saving' : body.status
 
   return (
-    <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-raise">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-raise">
       <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2">
         <Input
           value={title}
@@ -123,7 +124,7 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
           aria-label={t('notes.titleLabel')}
           className="min-w-40 flex-1 border-transparent bg-transparent px-1.5 text-sm font-semibold hover:border-line focus:border-line"
         />
-        <SaveState status={status} />
+        <SaveState savingLabel={t('save.saving')} savedLabel={t('save.saved')} status={status} />
         {kindOptions.length > 1 && (
           <Select
             value={note.kind}
@@ -163,27 +164,22 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
       <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-3 py-1.5 text-xs text-dim">
         <Link2 aria-hidden className="size-3.5 text-faint" />
         {note.work_id === null ? (
-          <button
-            type="button"
-            className="cursor-pointer text-faint hover:text-text"
-            onClick={() => setAttaching(true)}
-          >
+          <Button variant="link" onClick={() => setAttaching(true)}>
             {t('notes.attach')}
-          </button>
+          </Button>
         ) : (
           <>
-            <button
-              type="button"
-              className="flex min-w-0 cursor-pointer items-center gap-1 truncate hover:text-text"
+            <Button
+              variant="link"
+              className="min-w-0"
               onClick={() => void navigate(`/works/${note.work_id ?? ''}`)}
             >
               <span className="truncate">{work.data?.title ?? '…'}</span>
-              <ArrowUpRight aria-hidden className="size-3 shrink-0" />
-            </button>
+              <ArrowUpRight aria-hidden />
+            </Button>
             <Button
-              size="icon-sm"
+              size="icon-xs"
               variant="icon"
-              className="size-5"
               title={t('notes.detach')}
               aria-label={t('notes.detach')}
               onClick={() => patch.mutate({ work_id: null })}
@@ -225,13 +221,17 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
             className="h-full min-h-full w-full resize-none rounded-none border-0 bg-transparent px-5 py-4 font-mono text-sm leading-relaxed focus-visible:ring-0"
           />
         ) : body.text.trim() === '' ? (
-          <button
-            type="button"
-            className="w-full cursor-text px-5 py-4 text-left text-sm text-faint"
-            onClick={() => setEditing(true)}
-          >
-            {t('notes.bodyPlaceholder')}
-          </button>
+          // An empty note offers the editor in the words its placeholder
+          // uses, so the way in reads the same as the box it opens.
+          <div className="px-5 py-4 text-sm">
+            <Button
+              variant="link"
+              className="text-left whitespace-normal"
+              onClick={() => setEditing(true)}
+            >
+              {t('notes.bodyPlaceholder')}
+            </Button>
+          </div>
         ) : (
           <div className="px-5 py-4" onDoubleClick={() => setEditing(true)}>
             <Markdown
@@ -244,28 +244,22 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
       </div>
 
       <footer className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-line px-3 py-2">
+        {/* A tag is two actions side by side, not one inside the other: its
+            word narrows the list to it, its cross takes it off the note. */}
         {note.tags.map((tag) => (
-          <span
+          <Chip
             key={tag}
-            className="flex items-center gap-1 rounded-full border border-line py-0.5 pr-1 pl-2.5 text-xs text-dim"
+            onRemove={() => patch.mutate({ tags: note.tags.filter((have) => have !== tag) })}
+            removeLabel={t('notes.removeTag', { tag })}
           >
-            <button
-              type="button"
-              className="cursor-pointer hover:text-text"
+            <Button
+              variant="link"
               title={t('notes.filterByTag', { tag })}
               onClick={() => onTag(tag)}
             >
               {tag}
-            </button>
-            <button
-              type="button"
-              className="flex size-4 cursor-pointer items-center justify-center rounded-full text-faint hover:bg-soft hover:text-text"
-              aria-label={t('notes.removeTag', { tag })}
-              onClick={() => patch.mutate({ tags: note.tags.filter((have) => have !== tag) })}
-            >
-              <X aria-hidden className="size-3" />
-            </button>
-          </span>
+            </Button>
+          </Chip>
         ))}
         <NoteTagAdder
           have={note.tags}

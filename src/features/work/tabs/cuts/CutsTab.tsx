@@ -11,14 +11,16 @@ import { bandsOf, blockerOf, lengthOf, orderMoving, totalLength, tracksOf } from
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { formatSeconds, parseTimecode } from '@/lib/timecode'
+import { formatSeconds } from '@/lib/timecode'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { InlineField, timecodeCodec } from '@/components/ui/inline-field'
 import { Panel, SectionLabel } from '@/components/ui/panel'
-import { Skeleton } from '@/components/Skeleton'
+import { QueryState } from '@/components/ui/query-state'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Frame, Scroll } from '@/components/frame'
 
 interface Props {
   work: Work
@@ -93,12 +95,24 @@ export function CutsTab({ work }: Props) {
     refresh: refresh.cut,
   })
 
-  if (cuts.isPending || links.isPending) return <Skeleton className="h-40 w-full" />
-  if (cuts.isError || links.isError) {
+  // Two reads, and the tab needs both: the splice and the works it can take
+  // from. A failure of either offers to read both again.
+  if (cuts.isPending || links.isPending || cuts.isError || links.isError) {
     return (
-      <p role="alert" className="text-sm text-bad">
-        {t('toast.loadFailed')}
-      </p>
+      <Frame>
+        <QueryState
+          pending={cuts.isPending || links.isPending}
+          error={cuts.isError || links.isError ? t('toast.loadFailed') : null}
+          skeleton={<Skeleton className="h-40 w-full" />}
+          onRetry={() => {
+            void cuts.refetch()
+            void links.refetch()
+          }}
+          retryLabel={t('crash.retry')}
+        >
+          {null}
+        </QueryState>
+      </Frame>
     )
   }
 
@@ -107,57 +121,59 @@ export function CutsTab({ work }: Props) {
   const tracks = tracksOf(splice)
 
   return (
-    <div className="flex flex-col gap-4">
-      <Panel className="flex flex-col gap-4 p-4">
-        <header className="flex items-baseline justify-between gap-3">
-          <h3 className="text-sm font-semibold">{t('cuts.title')}</h3>
-          {splice.length > 0 && (
-            <p className="text-sm text-dim">
-              {t('cuts.runs', {
-                length: formatSeconds(totalLength(splice)),
-                count: splice.length,
-              })}
-            </p>
+    <Frame>
+      <Scroll label={t('card.tab.cuts')} contentClassName="flex flex-col gap-4">
+        <Panel className="flex flex-col gap-4 p-4">
+          <header className="flex items-baseline justify-between gap-3">
+            <h3 className="text-sm font-semibold">{t('cuts.title')}</h3>
+            {splice.length > 0 && (
+              <p className="text-sm text-dim">
+                {t('cuts.runs', {
+                  length: formatSeconds(totalLength(splice)),
+                  count: splice.length,
+                })}
+              </p>
+            )}
+          </header>
+
+          {donors.length === 0 && splice.length === 0 && (
+            <p className="text-sm text-dim">{t('cuts.noDonor')}</p>
           )}
-        </header>
 
-        {donors.length === 0 && splice.length === 0 && (
-          <p className="text-sm text-dim">{t('cuts.noDonor')}</p>
-        )}
+          {tracks.map((track) => (
+            <Track
+              key={track.source_id}
+              track={track}
+              onOpen={() => void navigate(`/works/${track.source_id}/overview`)}
+              onEdit={(id, starts_at, ends_at) => edit.mutate({ id, starts_at, ends_at })}
+              onRename={(id, label) => rename.mutate({ id, label })}
+              onRemove={(id) => remove.mutate(id)}
+              onReorder={(ids) => reorder.mutate(ids)}
+              splice={splice}
+              busy={edit.isPending || rename.isPending || remove.isPending || reorder.isPending}
+            />
+          ))}
 
-        {tracks.map((track) => (
-          <Track
-            key={track.source_id}
-            track={track}
-            onOpen={() => void navigate(`/works/${track.source_id}/overview`)}
-            onEdit={(id, starts_at, ends_at) => edit.mutate({ id, starts_at, ends_at })}
-            onRename={(id, label) => rename.mutate({ id, label })}
-            onRemove={(id) => remove.mutate(id)}
-            onReorder={(ids) => reorder.mutate(ids)}
-            splice={splice}
-            busy={edit.isPending || rename.isPending || remove.isPending || reorder.isPending}
-          />
-        ))}
+          {donors.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {donors.map((link) => (
+                <Button
+                  key={link.source_id}
+                  variant="soft"
+                  disabled={add.isPending}
+                  onClick={() => add.mutate(link.source_id)}
+                >
+                  <Plus aria-hidden />
+                  {t('cuts.takeFrom', { title: link.source_title })}
+                </Button>
+              ))}
+            </div>
+          )}
+        </Panel>
 
-        {donors.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {donors.map((link) => (
-              <Button
-                key={link.source_id}
-                variant="soft"
-                disabled={add.isPending}
-                onClick={() => add.mutate(link.source_id)}
-              >
-                <Plus aria-hidden />
-                {t('cuts.takeFrom', { title: link.source_title })}
-              </Button>
-            ))}
-          </div>
-        )}
-      </Panel>
-
-      <ShotList workId={work.id} title={work.title} />
-    </div>
+        <ShotList workId={work.id} title={work.title} />
+      </Scroll>
+    </Frame>
   )
 }
 
@@ -192,10 +208,10 @@ function Track({
   return (
     <section className="flex flex-col gap-2">
       <SectionLabel>
-        <button type="button" className="hover:text-text" onClick={onOpen}>
-          <Film aria-hidden className="mr-1 inline size-3" />
+        <Button variant="link" onClick={onOpen}>
+          <Film aria-hidden />
           {track.source_title}
-        </button>
+        </Button>
         {track.source_duration !== null && <span>{formatSeconds(track.source_duration)}</span>}
       </SectionLabel>
 
@@ -240,12 +256,14 @@ function Track({
           >
             <span className="w-6 shrink-0 text-right text-xs text-faint">{cut.position}</span>
             <Span
+              label={t('scenes.startsAt')}
               value={cut.starts_at}
               onCommit={(seconds) => onEdit(cut.id, seconds, cut.ends_at)}
               disabled={busy}
             />
             <span className="text-faint">–</span>
             <Span
+              label={t('scenes.endsAt')}
               value={cut.ends_at}
               onCommit={(seconds) => onEdit(cut.id, cut.starts_at, seconds)}
               disabled={busy}
@@ -254,7 +272,7 @@ function Track({
             {/* The name is stored, so it is shown and typeable: a column the
                 schema keeps and no screen draws is how a field dies. */}
             <Label
-              value={cut.label ?? ''}
+              value={cut.label}
               onCommit={(label) => onRename(cut.id, label)}
               disabled={busy}
             />
@@ -277,44 +295,36 @@ function Track({
 /**
  * One end of a stretch, typed.
  *
- * The field holds the text while it is being typed and commits on blur or
- * Enter — committing per keystroke would send `4` on the way to `48` and the
- * backend would take it, moving the other end under the cursor.
+ * The field holds the text while it is being typed and commits on leaving or
+ * Enter (InlineField) — committing per keystroke would send `4` on the way to
+ * `48` and the backend would take it, moving the other end under the cursor.
  */
 function Span({
+  label,
   value,
   onCommit,
   disabled,
 }: {
+  label: string
   value: number
   onCommit: (seconds: number) => void
   disabled: boolean
 }) {
-  const [text, setText] = useState<string | null>(null)
-  const shown = text ?? formatSeconds(value)
-
-  const commit = () => {
-    if (text === null) return
-    const parsed = parseTimecode(text)
-    // A timecode nobody can read is not guessed at: the field goes back to
-    // what is stored, which is the one value that is certainly true.
-    if (parsed.ok && parsed.seconds !== null && parsed.seconds !== value) {
-      onCommit(parsed.seconds)
-    }
-    setText(null)
-  }
-
   return (
-    <Input
-      value={shown}
-      disabled={disabled}
-      onChange={(event) => setText(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') event.currentTarget.blur()
-        if (event.key === 'Escape') setText(null)
+    <InlineField
+      className="w-20 shrink-0"
+      label={label}
+      labelHidden
+      codec={timecodeCodec}
+      value={value}
+      onCommit={(seconds) => {
+        // A timecode nobody can read is refused by the field itself; an empty
+        // one is not an end either. Either way the field goes back to what is
+        // stored, which is the one value that is certainly true.
+        if (seconds === null || seconds === value) return false
+        onCommit(seconds)
       }}
-      className="h-control-sm w-20 text-center font-mono text-xs"
+      disabled={disabled}
     />
   )
 }
@@ -331,33 +341,28 @@ function Label({
   onCommit,
   disabled,
 }: {
-  value: string
+  value: string | null
   onCommit: (label: string | null) => void
   disabled: boolean
 }) {
   const { t } = useTranslation()
-  const [text, setText] = useState<string | null>(null)
-  const shown = text ?? value
 
   return (
-    <Input
-      value={shown}
-      disabled={disabled}
+    <InlineField
+      className="flex-1"
+      label={t('cuts.name')}
+      labelHidden
       placeholder={t('cuts.namePlaceholder')}
-      aria-label={t('cuts.name')}
-      onChange={(event) => setText(event.target.value)}
-      onBlur={() => {
+      value={value}
+      onCommit={(text) => {
         const trimmed = (text ?? '').trim()
         // Blank is no name, not an empty one: the two read alike and telling
-        // them apart would only let one of them hide.
-        if (text !== null && trimmed !== value) onCommit(trimmed === '' ? null : trimmed)
-        setText(null)
+        // them apart would only let one of them hide. Only spaces around the
+        // same name is no change, and the box goes back to it.
+        if (trimmed === (value ?? '')) return false
+        onCommit(trimmed === '' ? null : trimmed)
       }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') event.currentTarget.blur()
-        if (event.key === 'Escape') setText(null)
-      }}
-      className="h-control-sm min-w-0 flex-1 border-transparent bg-transparent text-xs hover:border-line focus:border-line"
+      disabled={disabled}
     />
   )
 }

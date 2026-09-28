@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { CircleCheck, TriangleAlert } from 'lucide-react'
 import type { Complaint, Storyboard } from '@/lib/storyboard'
 import { formatSeconds } from '@/lib/timecode'
+import { RowButton } from '@/components/ui/list-row'
 import { Panel, SectionLabel } from '@/components/ui/panel'
 
 /*
@@ -100,11 +101,11 @@ function Line({ complaint, onGo }: { complaint: Complaint; onGo: (sceneId: strin
   // plain text.
   if (target === undefined) {
     return (
-      // The same padding the button below carries, so a line about the whole
+      // The padding and gap a RowButton carries, so a line about the whole
       // board stands in the same column as the lines about scenes rather
-      // than four pixels to their left — measured on a real board.
-      <li className="flex items-start gap-2 px-1 py-0.5 text-sm text-dim">
-        <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0 text-warn" />
+      // than to their left — the drift was measured on a real board once.
+      <li className="flex items-center gap-2.5 px-2.5 py-1.5 text-sm text-dim">
+        <TriangleAlert aria-hidden className="size-3.5 shrink-0 text-warn" />
         <span>{text}</span>
       </li>
     )
@@ -112,14 +113,15 @@ function Line({ complaint, onGo }: { complaint: Complaint; onGo: (sceneId: strin
 
   return (
     <li>
-      <button
-        type="button"
-        className="flex w-full items-start gap-2 rounded-inner px-1 py-0.5 text-left text-sm text-dim hover:bg-soft hover:text-text"
+      {/* The row truncates its words to one line; the title keeps a long
+          sentence readable in a narrow window. */}
+      <RowButton
+        start={<TriangleAlert aria-hidden className="size-3.5 text-warn" />}
+        title={text}
         onClick={() => onGo(target)}
       >
-        <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0 text-warn" />
-        <span>{text}</span>
-      </button>
+        {text}
+      </RowButton>
     </li>
   )
 }

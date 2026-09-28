@@ -12,14 +12,27 @@ import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { useDebounced } from '@/lib/useDebounced'
-import { cn } from '@/lib/utils'
 import { formatDay } from '@/lib/format'
 import { Button } from '@/components/ui/button'
+import { Chip, ChipGroup } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
+import { RowButton } from '@/components/ui/list-row'
 import { Select } from '@/components/AppSelect'
-import { EmptyState } from '@/components/EmptyState'
-import { SkeletonList } from '@/components/Skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SkeletonList } from '@/components/ui/skeleton'
+import { Frame, ListDetail, Pane } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 import { NoteDetail } from '@/features/notes/NoteDetail'
+
+/*
+ * What a kind chip is called in its group. "All" is a chip of its own, and the
+ * kinds carry a prefix, so a craft that names a kind "all" cannot be taken for
+ * it.
+ */
+const ALL_KINDS = 'all'
+const chipOf = (kind: string | undefined) => (kind === undefined ? ALL_KINDS : `kind:${kind}`)
+const kindOf = (chip: string | undefined) =>
+  chip === undefined || chip === ALL_KINDS ? undefined : chip.slice('kind:'.length)
 
 /**
  * Every note of the profile in one place: the list on the left with its own
@@ -96,134 +109,125 @@ export function NotesView() {
   const filtered = kind !== undefined || tag !== '' || query !== ''
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        {/* The kinds as chips, the way the style dictionary narrows to a type:
-            "every character" is one click, and the chip that is on turns off.
-            Only when the craft names kinds — one that names none has one. */}
-        {kinds.length > 0 && (
-          <div
-            role="group"
-            aria-label={t('notes.kind')}
-            className="flex flex-wrap items-center gap-1.5"
+    <Frame
+      head={
+        <>
+          {/* The kinds as chips, the way the style dictionary narrows to a type:
+              "every character" is one click, and the chip that is on turns off -
+              letting go of one leaves the group empty, which is every kind.
+              Only when the craft names kinds — one that names none has one. */}
+          {kinds.length > 0 && (
+            <ChipGroup
+              aria-label={t('notes.kind')}
+              value={[chipOf(kind)]}
+              onValueChange={(next) => setKind(kindOf(next[0]))}
+            >
+              <Chip value={chipOf(undefined)} count={total}>
+                {t('notes.allKinds')}
+              </Chip>
+              {kinds.map((one) => (
+                <Chip key={one.key} value={chipOf(one.key)} count={counts.get(one.key) ?? 0}>
+                  {labelOf(kinds, one.key)}
+                </Chip>
+              ))}
+            </ChipGroup>
+          )}
+          <Input
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder={t('notes.search')}
+            aria-label={t('notes.search')}
+            className="w-56"
+          />
+          {(tags.data ?? []).length > 0 && (
+            <Select
+              value={tag}
+              onChange={setTag}
+              placeholder={t('notes.anyTag')}
+              options={(tags.data ?? []).map(([name, uses]) => ({
+                value: name,
+                label: `${name} · ${String(uses)}`,
+              }))}
+              aria-label={t('notes.tag')}
+              className="w-44"
+            />
+          )}
+          <Button
+            variant="primary"
+            className="ml-auto"
+            disabled={add.isPending}
+            onClick={() => add.mutate()}
           >
-            {[
-              { key: undefined, label: t('notes.allKinds'), count: total },
-              ...kinds.map((one) => ({
-                key: one.key as string | undefined,
-                label: labelOf(kinds, one.key),
-                count: counts.get(one.key) ?? 0,
-              })),
-            ].map((entry) => {
-              const active = kind === entry.key
-              return (
-                <button
-                  key={entry.key ?? ''}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setKind(active ? undefined : entry.key)}
-                  className={cn(
-                    'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
-                    active
-                      ? 'border-transparent bg-accent-soft font-semibold text-accent-2'
-                      : 'border-line text-dim hover:border-line-2 hover:text-text',
-                  )}
-                >
-                  {entry.label}
-                  <span className="text-2xs text-faint tabular-nums">{entry.count}</span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-        <Input
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          placeholder={t('notes.search')}
-          aria-label={t('notes.search')}
-          className="w-56"
-        />
-        {(tags.data ?? []).length > 0 && (
-          <Select
-            value={tag}
-            onChange={setTag}
-            placeholder={t('notes.anyTag')}
-            options={(tags.data ?? []).map(([name, uses]) => ({
-              value: name,
-              label: `${name} · ${String(uses)}`,
-            }))}
-            aria-label={t('notes.tag')}
-            className="w-44"
-          />
-        )}
-        <Button
-          variant="primary"
-          className="ml-auto"
-          disabled={add.isPending}
-          onClick={() => add.mutate()}
-        >
-          <Plus aria-hidden />
-          {t('notes.new')}
-        </Button>
-      </div>
-
-      <div className="grid min-h-0 flex-1 grid-cols-[270px_minmax(0,1fr)] gap-3">
-        <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-raise">
-          <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
-            {notes.isPending ? (
-              <SkeletonList rows={6} />
-            ) : notes.isError ? (
-              <p role="alert" className="p-3 text-sm text-bad">
-                {t('toast.loadFailed')}
-              </p>
-            ) : rows.length === 0 ? (
-              <p className="p-3 text-xs text-faint">
-                {filtered ? t('notes.noMatches') : t('notes.none')}
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-0.5">
-                {rows.map((note) => (
-                  <li key={note.id}>
-                    <NoteRow
-                      note={note}
-                      kindLabel={labelOf(kinds, note.kind)}
-                      active={note.id === noteId}
-                      onOpen={() => open(note.id)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-
-        {selected !== undefined ? (
-          <NoteDetail
-            key={selected.id}
-            note={selected}
-            tags={(tags.data ?? []).map(([name]) => name)}
-            startEditing={fresh === selected.id}
-            onTag={(name) => setTag(name)}
-            onGone={() => open(null)}
-          />
-        ) : noteId !== undefined && !notes.isPending && !everything.isPending ? (
-          <EmptyState title={t('notes.gone')} body={t('notes.goneBody')} />
-        ) : (
-          <EmptyState
-            title={total === 0 ? t('notes.empty') : t('notes.pick')}
-            body={total === 0 ? t('notes.emptyBody') : undefined}
-            action={
-              total === 0 ? (
-                <Button variant="primary" onClick={() => add.mutate()}>
-                  <Plus aria-hidden />
-                  {t('notes.new')}
-                </Button>
-              ) : undefined
-            }
-          />
-        )}
-      </div>
-    </div>
+            <Plus aria-hidden />
+            {t('notes.new')}
+          </Button>
+        </>
+      }
+    >
+      <ListDetail
+        list={
+          <Pane label={t('nav.notes')} bodyClassName="p-1.5">
+            <Loaded
+              query={notes}
+              skeleton={<SkeletonList rows={6} />}
+              isEmpty={(data) => data.length === 0}
+              emptyState={
+                <EmptyState
+                  plain
+                  variant={filtered ? 'filtered' : 'empty'}
+                  title={filtered ? t('notes.noMatches') : t('notes.none')}
+                  className="p-2"
+                />
+              }
+              plain
+            >
+              {() => (
+                <ul className="flex flex-col gap-0.5">
+                  {rows.map((note) => (
+                    <li key={note.id}>
+                      <NoteRow
+                        note={note}
+                        kindLabel={labelOf(kinds, note.kind)}
+                        active={note.id === noteId}
+                        onOpen={() => open(note.id)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Loaded>
+          </Pane>
+        }
+        detail={
+          selected !== undefined ? (
+            <NoteDetail
+              key={selected.id}
+              note={selected}
+              tags={(tags.data ?? []).map(([name]) => name)}
+              startEditing={fresh === selected.id}
+              onTag={(name) => setTag(name)}
+              onGone={() => open(null)}
+            />
+          ) : noteId !== undefined && !notes.isPending && !everything.isPending ? (
+            <EmptyState title={t('notes.gone')} body={t('notes.goneBody')} className="flex-1" />
+          ) : (
+            <EmptyState
+              className="flex-1"
+              title={total === 0 ? t('notes.empty') : t('notes.pick')}
+              body={total === 0 ? t('notes.emptyBody') : undefined}
+              action={
+                total === 0 ? (
+                  <Button variant="primary" onClick={() => add.mutate()}>
+                    <Plus aria-hidden />
+                    {t('notes.new')}
+                  </Button>
+                ) : undefined
+              }
+            />
+          )
+        }
+      />
+    </Frame>
   )
 }
 
@@ -244,31 +248,22 @@ function NoteRow({
   const day = formatDay(note.updated_at)
 
   return (
-    <button
-      type="button"
+    <RowButton
+      selected={active}
       onClick={onOpen}
-      aria-current={active ? 'true' : undefined}
-      className={cn(
-        'flex w-full cursor-pointer flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left transition-colors',
-        active ? 'bg-accent-soft' : 'hover:bg-soft',
-      )}
-    >
-      <b className={cn('block truncate text-sm font-semibold', title === '' && 'text-faint')}>
-        {title === '' ? t('notes.untitled') : title}
-      </b>
-      <span className="flex min-w-0 items-center gap-1.5 text-xs text-faint">
-        <span className="truncate">
-          {kindLabel} · {day}
-        </span>
-        {/* How far along a checklist is, where the note has one: the reason
-            to open a to-do list is usually to see what is left. */}
-        {progress.total > 0 && (
-          <span className="ml-auto flex shrink-0 items-center gap-0.5 tabular-nums">
+      description={`${kindLabel} · ${day}`}
+      // How far along a checklist is, where the note has one: the reason to
+      // open a to-do list is usually to see what is left.
+      end={
+        progress.total > 0 ? (
+          <span className="flex items-center gap-0.5">
             <ListChecks aria-hidden className="size-3" />
             {progress.done}/{progress.total}
           </span>
-        )}
-      </span>
-    </button>
+        ) : undefined
+      }
+    >
+      {title === '' ? <span className="text-faint">{t('notes.untitled')}</span> : title}
+    </RowButton>
   )
 }

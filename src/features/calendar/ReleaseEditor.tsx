@@ -9,9 +9,10 @@ import { openExternal } from '@/lib/link'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DatePicker } from '@/components/DatePicker'
 import { Dialog } from '@/components/AppDialog'
-import { Field } from '@/components/Field'
+import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/AppSelect'
 
@@ -111,16 +112,17 @@ export function ReleaseEditor({
           save.mutate()
         }}
       >
-        <Field label={t('releases.kind')}>
+        <FieldGroup label={t('releases.kind')}>
           <Select
+            aria-label={t('releases.kind')}
             className="w-full"
             value={draft.kind}
             onChange={(kind) => setDraft((current) => ({ ...current, kind }))}
             options={releaseKinds.map((k) => ({ value: k.key, label: sayLabel(k.label) }))}
           />
-        </Field>
+        </FieldGroup>
 
-        <Field label={t('calendar.slotDate')} hint={t('calendar.clearDateHint')}>
+        <FieldGroup label={t('calendar.slotDate')} help={t('calendar.clearDateHint')}>
           <DatePicker
             className="w-full"
             value={draft.scheduled_at}
@@ -128,7 +130,7 @@ export function ReleaseEditor({
             placeholder={t('calendar.slotDate')}
             aria-label={t('calendar.slotDate')}
           />
-        </Field>
+        </FieldGroup>
 
         {/* The profile's usual shipping time, as a reminder beside the date.
             Slots stay whole days — the contest is per day, and a time would
@@ -150,18 +152,15 @@ export function ReleaseEditor({
         {/* Pinning belongs beside the date rather than among the actions: it
             is a property of this date, not something done to the release. */}
         {release !== null && release.scheduled_at !== null && (
-          <label className="flex cursor-pointer items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="mt-0.5 size-3.5 cursor-pointer accent-[var(--accent)]"
-              checked={release.slot_pinned_at !== null}
-              onChange={(event) => onTogglePin(release.id, event.target.checked)}
-            />
+          <Checkbox
+            checked={release.slot_pinned_at !== null}
+            onCheckedChange={(pinned) => onTogglePin(release.id, pinned)}
+          >
             <span>
               {t('calendar.pinSlot')}
               <span className="block text-xs text-faint">{t('calendar.pinSlotHint')}</span>
             </span>
-          </label>
+          </Checkbox>
         )}
 
         {/* The chip's glyphs, in words: what this release still needs. Only
@@ -219,14 +218,13 @@ export function ReleaseEditor({
         {release !== null && release.status === 'released' && release.url !== null && (
           <p className="border-t border-line pt-3 text-sm text-good">
             {t('calendar.released')}{' '}
-            <button
-              type="button"
+            <Button
+              variant="link"
               onClick={() => void openExternal(release.url ?? '')}
               title={release.url}
-              className="underline"
             >
               {t('calendar.link')}
-            </button>
+            </Button>
           </p>
         )}
       </form>

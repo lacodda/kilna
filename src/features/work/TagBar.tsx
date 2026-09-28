@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Chip, ChipGroup } from '@/components/ui/chip'
 import {
   Combobox,
   ComboboxEmpty,
@@ -81,55 +83,54 @@ export function TagBar({ work }: { work: Work }) {
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
-      {marks.map((mark) => {
-        const on = raised.has(mark.key)
-        const Icon = markIconOf(mark)
-        return (
-          <button
-            key={mark.key}
-            type="button"
-            title={t(on ? 'work.markOff' : 'work.markOn', { mark: mark.label })}
-            onClick={() =>
-              patch.mutate({
-                marks: on
-                  ? work.marks.filter((key) => key !== mark.key)
-                  : [...work.marks, mark.key],
-              })
-            }
-            className={cn(
-              'inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors',
-              // Off is an outline: the row of what could be raised is always
-              // there, so raising one is a click and not a hunt through a menu.
-              on
-                ? cn('font-medium', MARK_ON[mark.colour ?? 'plain'])
-                : 'border-line text-faint hover:text-dim',
-            )}
-          >
-            <Icon aria-hidden className="size-3" />
-            {sayLabel(mark.label)}
-          </button>
-        )
-      })}
+      {/* Off is an outline: the row of what could be raised is always there,
+          so raising one is a click and not a hunt through a menu. One group,
+          because the marks are one value - the set raised on the work - and
+          a press adds or takes away one of them, keeping any the profile no
+          longer lists. */}
+      {marks.length > 0 && (
+        <ChipGroup
+          multiple
+          aria-label={t('work.marks')}
+          value={work.marks}
+          onValueChange={(next) => patch.mutate({ marks: next })}
+        >
+          {marks.map((mark) => {
+            const on = raised.has(mark.key)
+            const Icon = markIconOf(mark)
+            return (
+              <Chip
+                key={mark.key}
+                value={mark.key}
+                title={t(on ? 'work.markOff' : 'work.markOn', { mark: mark.label })}
+              >
+                {/* A raised chip wears the set's "on"; the icon keeps the
+                    colour the profile gave the mark, so a warning still
+                    reads as one. */}
+                <Icon
+                  aria-hidden
+                  className={cn('size-3', on && MARK_INK[mark.colour ?? 'plain'])}
+                />
+                {sayLabel(mark.label)}
+              </Chip>
+            )
+          })}
+        </ChipGroup>
+      )}
 
       {marks.length > 0 && work.tags.length > 0 && (
         <span aria-hidden className="mx-0.5 h-3.5 w-px bg-line" />
       )}
 
       {work.tags.map((tag) => (
-        <span
+        <Chip
           key={tag}
-          className="group inline-flex items-center gap-1 rounded-full bg-soft px-2 py-0.5 text-xs text-dim"
+          variant="soft"
+          removeLabel={t('work.removeTag', { tag })}
+          onRemove={() => patch.mutate({ tags: work.tags.filter((kept) => kept !== tag) })}
         >
           {tag}
-          <button
-            type="button"
-            title={t('work.removeTag', { tag })}
-            onClick={() => patch.mutate({ tags: work.tags.filter((kept) => kept !== tag) })}
-            className="cursor-pointer text-faint transition-colors hover:text-bad"
-          >
-            <X aria-hidden className="size-3" />
-          </button>
-        </span>
+        </Chip>
       ))}
 
       {adding ? (
@@ -186,29 +187,29 @@ export function TagBar({ work }: { work: Work }) {
           </ComboboxPopup>
         </Combobox>
       ) : (
-        <button
-          type="button"
+        <Button
+          size="xs"
           onClick={() => {
             setAdding(true)
             setOpen(true)
           }}
           title={t('work.addTag')}
-          className="inline-flex cursor-pointer items-center gap-0.5 rounded-full border border-dashed border-line px-2 py-0.5 text-xs text-faint transition-colors hover:border-line-2 hover:text-dim"
         >
-          <Plus aria-hidden className="size-3" />
+          <Plus aria-hidden />
           {t('work.addTag')}
-        </button>
+        </Button>
       )}
     </div>
   )
 }
 
-/** A raised mark's colours, by the palette role its profile named. */
-const MARK_ON: Record<string, string> = {
-  plain: 'border-line-2 bg-soft text-text',
-  accent: 'border-transparent bg-accent-soft text-accent',
-  good: 'border-transparent bg-good-soft text-good',
-  warn: 'border-transparent bg-warn-soft text-warn',
-  bad: 'border-transparent bg-bad-soft text-bad',
-  info: 'border-transparent bg-info-soft text-info',
+/** A raised mark's icon colour, by the palette role its profile named. Plain
+    and accent take the chip's own ink. */
+const MARK_INK: Record<string, string> = {
+  plain: '',
+  accent: '',
+  good: 'text-good',
+  warn: 'text-warn',
+  bad: 'text-bad',
+  info: 'text-info',
 }

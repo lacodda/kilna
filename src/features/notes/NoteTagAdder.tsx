@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Combobox,
   ComboboxEmpty,
@@ -19,7 +20,7 @@ interface Props {
 }
 
 /**
- * The dashed chip at the end of a note's tags that turns into a box.
+ * The small "+ tag" button at the end of a note's tags that turns into a box.
  *
  * The same shape as the work's tag bar, for the reason that one gives: a
  * Combobox brings the dismiss layer, the portal and the arrow keys, and a
@@ -49,17 +50,16 @@ export function NoteTagAdder({ have, known, onAdd }: Props) {
 
   if (!adding) {
     return (
-      <button
-        type="button"
+      <Button
+        size="xs"
         onClick={() => {
           setAdding(true)
           setOpen(true)
         }}
-        className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-dashed border-line-2 px-2.5 py-0.5 text-xs text-faint transition-colors hover:text-text"
       >
-        <Plus aria-hidden className="size-3" />
+        <Plus aria-hidden />
         {t('notes.addTag')}
-      </button>
+      </Button>
     )
   }
 

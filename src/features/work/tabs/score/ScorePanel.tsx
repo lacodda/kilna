@@ -13,12 +13,17 @@ import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { markReaching, rubricFor, tierFor, toNextTier, total as computeTotal } from '@/lib/scoring'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/chip'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { SegmentedScale } from '@/features/work/tabs/score/SegmentedScale'
+import { RowButton } from '@/components/ui/list-row'
+import { SkeletonList } from '@/components/ui/skeleton'
+import { Sparkline } from '@/components/ui/sparkline'
+import { AxisBar, TierRuler } from '@/components/ui/tier'
 import { Select } from '@/components/AppSelect'
-import { Skeleton } from '@/components/Skeleton'
-import { Sparkline } from '@/features/work/tabs/score/Sparkline'
-import { TierRuler } from '@/features/work/tabs/score/TierRuler'
+import { ListDetail, Pane } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 import { TierPin } from '@/features/work/tabs/score/TierPin'
 import { KindVerdicts } from '@/features/work/tabs/score/KindVerdicts'
 import { useBlindJudging } from '@/lib/blindJudging'
@@ -195,28 +200,72 @@ export function ScorePanel({ workId }: Props) {
   // trail is read at a glance, and the line under each axis carries the rest.
   const trail = oldestFirst.slice(-5)
 
-  return (
-    // The same shape as the Versions tab, on purpose: the list of scores on
-    // the left, the one picked from it open on the right, each scrolling on
-    // its own. The history of totals is the most valuable thing on this tab,
-    // and a picker that folded it into a menu hid it.
-    <section className="grid min-h-0 flex-1 grid-cols-[262px_minmax(0,1fr)] gap-3">
-      <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-raise">
-        <div className="flex shrink-0 items-center gap-2 border-b border-line p-2">
-          <span className="px-1 caption">{t('score.history', { count: historyData.length })}</span>
+  // The verdict, fixed at the foot of the open score: the total, its tier,
+  // where it has come from, and the button that records it. The axes scroll
+  // above; this never does.
+  const verdict = (
+    <div className="flex w-full flex-wrap items-center gap-3">
+      <span className="font-mono text-2xl font-semibold tabular-nums">
+        {filled === 0 ? '—' : formatNumber(preview)}
+      </span>
+
+      {previewTier !== undefined && filled > 0 && (
+        <Badge variant="accent">{sayLabel(previewTier.label)}</Badge>
+      )}
+
+      {trail.length > 1 && !hiding && (
+        <span
+          className="font-mono text-xs text-faint tabular-nums"
+          title={t('score.trend', {
+            from: formatNumber(trail[0]!.total, 0),
+            to: formatNumber(trail.at(-1)!.total, 0),
+          })}
+        >
+          {trail.map((score, index) => {
+            const prior = trail[index - 1]?.total
+            return (
+              <span
+                key={score.id}
+                className={cn(
+                  prior !== undefined && score.total > prior && 'text-good',
+                  prior !== undefined && score.total < prior && 'text-bad',
+                )}
+              >
+                {index > 0 && ' → '}
+                {formatNumber(score.total)}
+              </span>
+            )
+          })}
+        </span>
+      )}
+
+      <Button
+        className="ml-auto"
+        variant="primary"
+        disabled={filled === 0 || !touched || save.isPending}
+        onClick={() => save.mutate()}
+      >
+        {t('score.save')}
+      </Button>
+    </div>
+  )
+
+  const list = (
+    <Pane
+      label={t('score.history', { count: historyData.length })}
+      bodyClassName="flex flex-col gap-3 p-1.5"
+      head={
+        <>
+          <span className="caption">{t('score.history', { count: historyData.length })}</span>
           {historyData.length > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                setBlind(!blind)
+            <Chip
+              pressed={blind}
+              onPressedChange={(next) => {
+                setBlind(next)
                 setRevealed(false)
               }}
               title={t('score.blindOnHint')}
-              aria-pressed={blind}
-              className={cn(
-                'ml-auto flex cursor-pointer items-center gap-1 text-xs transition-colors',
-                blind ? 'text-accent' : 'text-faint hover:text-text',
-              )}
+              className="ml-auto"
             >
               {blind ? (
                 <EyeOff aria-hidden className="size-3.5" />
@@ -224,37 +273,42 @@ export function ScorePanel({ workId }: Props) {
                 <Eye aria-hidden className="size-3.5" />
               )}
               {t('score.blindOn')}
-            </button>
+            </Chip>
           )}
-        </div>
-
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-1.5">
-          {history.isPending && <Skeleton className="h-24 w-full" />}
-
-          {history.isError && (
-            <p role="alert" className="p-2 text-sm text-bad">
-              {t('toast.loadFailed')}
-            </p>
-          )}
-
-          {history.isSuccess && historyData.length === 0 && (
-            <p className="p-2 text-sm text-dim">{t('score.none')}</p>
-          )}
-
-          {hiding && historyData.length > 0 && (
+        </>
+      }
+      foot={
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-center"
+          onClick={() => {
+            setPicked(NEW)
+            setForm(null)
+          }}
+        >
+          <Plus aria-hidden />
+          {t('score.new')}
+        </Button>
+      }
+    >
+      <Loaded
+        query={history}
+        skeleton={<SkeletonList rows={3} />}
+        isEmpty={(data) => data.length === 0}
+        // Plain, and its way out is the button at the foot.
+        emptyState={<EmptyState plain title={t('score.none')} className="p-2" />}
+        plain
+      >
+        {() =>
+          hiding ? (
             <p className="rounded-md border border-dashed border-line p-2 text-xs text-dim">
               {t('score.blindHidden')}{' '}
-              <button
-                type="button"
-                onClick={() => setRevealed(true)}
-                className="cursor-pointer underline decoration-dotted underline-offset-2 transition-colors hover:text-text"
-              >
+              <Button variant="link" onClick={() => setRevealed(true)}>
                 {t('score.blindReveal')}
-              </button>
+              </Button>
             </p>
-          )}
-
-          {!hiding && historyData.length > 0 && (
+          ) : (
             <ul className="flex flex-col gap-0.5">
               {historyData.map((score, index) => {
                 // What this score did to the one before it: the list is
@@ -265,9 +319,8 @@ export function ScorePanel({ workId }: Props) {
 
                 return (
                   <li key={score.id} className="group relative">
-                    <button
-                      type="button"
-                      aria-current={open ? 'true' : undefined}
+                    <RowButton
+                      selected={open}
                       onClick={() => {
                         setPicked(score.id)
                         // Opening another score is reading it: marks moved on
@@ -275,18 +328,10 @@ export function ScorePanel({ workId }: Props) {
                         setForm(null)
                       }}
                       title={score.note ?? undefined}
-                      className={cn(
-                        'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 pr-8 text-left transition-colors',
-                        open ? 'bg-accent-soft' : 'hover:bg-soft',
-                      )}
-                    >
-                      <span className="min-w-0 flex-1">
-                        <b className="block truncate text-sm font-semibold">
-                          {score.revision !== null
-                            ? t('score.ofRevision', { name: `v${score.revision}` })
-                            : t('score.ofCurrent')}
-                        </b>
-                        <span className="block truncate font-mono text-xs text-faint">
+                      // Room at the right edge for the delete laid over it.
+                      className="pr-8"
+                      description={
+                        <span className="font-mono">
                           {formatDay(score.scored_at)}
                           {score.tier !== null && ` · ${labelOf(tiers, score.tier)}`}
                           {/* Who judged, when it was not you: null has meant
@@ -295,23 +340,33 @@ export function ScorePanel({ workId }: Props) {
                               contrast. */}
                           {score.rater !== null && score.rater !== '' && ` · ${score.rater}`}
                         </span>
-                      </span>
-                      <span
-                        className={cn(
-                          'shrink-0 font-mono text-xs tabular-nums',
-                          delta === undefined || Math.abs(delta) < 0.05
-                            ? 'text-faint'
-                            : delta > 0
-                              ? 'text-good'
-                              : 'text-bad',
-                        )}
-                      >
-                        {delta === undefined || Math.abs(delta) < 0.05 ? '—' : formatDelta(delta)}
-                      </span>
-                      <span className="w-9 shrink-0 text-right font-mono text-base font-semibold tabular-nums">
-                        {formatNumber(score.total)}
-                      </span>
-                    </button>
+                      }
+                      end={
+                        <>
+                          <span
+                            className={cn(
+                              'font-mono',
+                              delta === undefined || Math.abs(delta) < 0.05
+                                ? 'text-faint'
+                                : delta > 0
+                                  ? 'text-good'
+                                  : 'text-bad',
+                            )}
+                          >
+                            {delta === undefined || Math.abs(delta) < 0.05
+                              ? '—'
+                              : formatDelta(delta)}
+                          </span>
+                          <span className="w-9 text-right font-mono text-base font-semibold text-text">
+                            {formatNumber(score.total)}
+                          </span>
+                        </>
+                      }
+                    >
+                      {score.revision !== null
+                        ? t('score.ofRevision', { name: `v${score.revision}` })
+                        : t('score.ofCurrent')}
+                    </RowButton>
                     {/* Over the row's right edge, on hover: deleting is rare,
                         and a cross on every row reads as the row's purpose. */}
                     <Button
@@ -328,55 +383,46 @@ export function ScorePanel({ workId }: Props) {
                 )
               })}
             </ul>
-          )}
+          )
+        }
+      </Loaded>
 
-          {/* What was written about this work, beside what it was marked. A
-              critique is a version in a commenting role; these are the same
-              rows the Versions tab holds, reached from a second place rather
-              than copied. A score is a number with a reason, and the reason
-              should be one click from the number. */}
-          {verdicts.length > 0 && (
-            <section className="flex flex-col gap-0.5 border-t border-line pt-2">
-              <h4 className="px-2 pb-1 caption">{t('score.written')}</h4>
-              {verdicts.map((verdict) => (
-                <Link
-                  key={verdict.id}
-                  to={`/works/${workId}/versions?version=${verdict.id}`}
-                  className="flex items-baseline gap-2 rounded-md px-2 py-1.5 no-underline transition-colors hover:bg-soft"
-                >
-                  <span className="shrink-0 text-xs text-dim">
-                    {labelOf(version_roles, verdict.role)}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-sm text-text">
-                    {verdict.label ?? t('versions.revision', { number: verdict.revision })}
-                  </span>
-                  <span className="shrink-0 font-mono text-xs text-faint">
-                    {verdict.created_at.slice(5, 10)}
-                  </span>
-                </Link>
-              ))}
-            </section>
-          )}
-        </div>
+      {/* What was written about this work, beside what it was marked. A
+          critique is a version in a commenting role; these are the same
+          rows the Versions tab holds, reached from a second place rather
+          than copied. A score is a number with a reason, and the reason
+          should be one click from the number. */}
+      {verdicts.length > 0 && (
+        <section className="flex flex-col gap-0.5 border-t border-line pt-2">
+          <h4 className="px-2 pb-1 caption">{t('score.written')}</h4>
+          {verdicts.map((verdict) => (
+            <Link
+              key={verdict.id}
+              to={`/works/${workId}/versions?version=${verdict.id}`}
+              className="flex items-baseline gap-2 rounded-md px-2 py-1.5 no-underline transition-colors hover:bg-soft"
+            >
+              <span className="shrink-0 text-xs text-dim">
+                {labelOf(version_roles, verdict.role)}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm text-text">
+                {verdict.label ?? t('versions.revision', { number: verdict.revision })}
+              </span>
+              <span className="shrink-0 font-mono text-xs text-faint">
+                {verdict.created_at.slice(5, 10)}
+              </span>
+            </Link>
+          ))}
+        </section>
+      )}
+    </Pane>
+  )
 
-        <div className="shrink-0 border-t border-line p-1.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-center"
-            onClick={() => {
-              setPicked(NEW)
-              setForm(null)
-            }}
-          >
-            <Plus aria-hidden />
-            {t('score.new')}
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-raise">
-        <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2">
+  const detail = (
+    <Pane
+      label={heading}
+      bodyClassName="flex flex-col gap-4 p-4"
+      head={
+        <>
           <span className="truncate font-mono text-xs text-faint">{heading}</span>
           {shown?.version_id != null && (
             // The judgement points at what was judged: the review of that
@@ -389,292 +435,261 @@ export function ScorePanel({ workId }: Props) {
               {t('score.openVersion')}
             </Link>
           )}
-        </div>
-
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 [scrollbar-gutter:stable]">
-          <div className="flex flex-col gap-2.5">
-            {/* A kind with no axes yet — a video in a workspace whose owner has
-                not written its judgement — is scored empty rather than on the
-                song's axes. Said here, with the way to the editor, because an
-                empty panel reads as broken and it is not. */}
-            {axes.length === 0 && (
-              <p className="text-sm text-dim">
-                {t('score.noAxes')}{' '}
-                <Link
-                  to="/settings"
-                  className="underline decoration-dotted underline-offset-2 hover:text-text"
+        </>
+      }
+      foot={verdict}
+    >
+      <div className="flex flex-col gap-2.5">
+        {/* A kind with no axes yet — a video in a workspace whose owner has
+            not written its judgement — is scored empty rather than on the
+            song's axes. Said here, with the way to the editor, because an
+            empty panel reads as broken and it is not. */}
+        {axes.length === 0 && (
+          <p className="text-sm text-dim">
+            {t('score.noAxes')}{' '}
+            <Link
+              to="/settings"
+              className="underline decoration-dotted underline-offset-2 hover:text-text"
+            >
+              {t('score.noAxesLink')}
+            </Link>
+          </p>
+        )}
+        {axes.map((axis) => (
+          <div
+            key={axis.key}
+            className="grid items-center gap-3 sm:grid-cols-[minmax(10rem,16rem)_minmax(0,1fr)_2.5rem]"
+          >
+            <span className="min-w-0">
+              <b className="block truncate text-sm font-semibold">
+                {sayLabel(axis.label)}{' '}
+                <span className="font-mono text-2xs font-normal text-faint">×{axis.weight}</span>
+              </b>
+              {/* The question the axis asks, in the open. It used to be a
+                  tooltip, which is the same as not being there — but wrapping
+                  it made a six-axis card taller than the screen, and scoring
+                  is a judgement you make by looking at all the axes at once.
+                  One line, with the whole of it on hover. */}
+              {sayLabel(axis.description) !== '' && (
+                <span
+                  className="block truncate text-xs text-faint"
+                  title={sayLabel(axis.description)}
                 >
-                  {t('score.noAxesLink')}
-                </Link>
-              </p>
-            )}
-            {axes.map((axis) => (
-              <div
-                key={axis.key}
-                className="grid items-center gap-3 sm:grid-cols-[minmax(10rem,16rem)_minmax(0,1fr)_2.5rem]"
+                  {sayLabel(axis.description)}
+                </span>
+              )}
+            </span>
+
+            <span className="flex flex-col gap-1">
+              <AxisBar
+                scale={axis.scale}
+                value={values[axis.key]}
+                label={sayLabel(axis.label)}
+                valueText={
+                  values[axis.key] === undefined ? t('score.unjudged') : String(values[axis.key])
+                }
+                threshold={
+                  // Only drawn where it is true: the mark on THIS axis from
+                  // which the total would cross into the tier ahead. No such
+                  // mark, no line.
+                  ahead === undefined
+                    ? undefined
+                    : (() => {
+                        const mark = markReaching(axes, values, axis, ahead.tier.min)
+                        return mark === undefined
+                          ? undefined
+                          : {
+                              mark,
+                              label: t('score.crossesHere', {
+                                tier: sayLabel(ahead.tier.label),
+                              }),
+                            }
+                      })()
+                }
+                onPreview={(mark) =>
+                  setHovered((current) => {
+                    const updated = { ...current }
+                    if (mark === undefined) delete updated[axis.key]
+                    else updated[axis.key] = mark
+                    return updated
+                  })
+                }
+                onChange={(next) =>
+                  setValues((current) => {
+                    const updated = { ...current }
+                    if (next === undefined) delete updated[axis.key]
+                    else updated[axis.key] = next
+                    return updated
+                  })
+                }
+              />
+
+              {/* What the mark under consideration means, when the craft has
+                  said. The mark being hovered wins over the one already set:
+                  the question while scoring is about the mark being weighed,
+                  not the one already given.
+
+                  The line keeps its row whether or not it has anything to
+                  say. Appearing on hover pushed the axes below out from under
+                  the pointer, the hover ended, the line went, the axes came
+                  back under the pointer — a strobe. */}
+              <span
+                className="block h-4 truncate text-xs leading-4 text-dim"
+                title={sayLabel(rubricLine(axis)?.label)}
               >
-                <span className="min-w-0">
-                  <b className="block truncate text-sm font-semibold">
-                    {sayLabel(axis.label)}{' '}
-                    <span className="font-mono text-2xs font-normal text-faint">
-                      ×{axis.weight}
-                    </span>
-                  </b>
-                  {/* The question the axis asks, in the open. It used to be a
-                      tooltip, which is the same as not being there — but wrapping
-                      it made a six-axis card taller than the screen, and scoring
-                      is a judgement you make by looking at all the axes at once.
-                      One line, with the whole of it on hover. */}
-                  {sayLabel(axis.description) !== '' && (
-                    <span
-                      className="block truncate text-xs text-faint"
-                      title={sayLabel(axis.description)}
-                    >
-                      {sayLabel(axis.description)}
-                    </span>
-                  )}
-                </span>
-
-                <span className="flex flex-col gap-1">
-                  <SegmentedScale
-                    scale={axis.scale}
-                    value={values[axis.key]}
-                    label={sayLabel(axis.label)}
-                    threshold={
-                      // Only drawn where it is true: the mark on THIS axis from
-                      // which the total would cross into the tier ahead. No such
-                      // mark, no line.
-                      ahead === undefined
-                        ? undefined
-                        : (() => {
-                            const mark = markReaching(axes, values, axis, ahead.tier.min)
-                            return mark === undefined
-                              ? undefined
-                              : {
-                                  mark,
-                                  label: t('score.crossesHere', {
-                                    tier: sayLabel(ahead.tier.label),
-                                  }),
-                                }
-                          })()
-                    }
-                    onPreview={(mark) =>
-                      setHovered((current) => {
-                        const updated = { ...current }
-                        if (mark === undefined) delete updated[axis.key]
-                        else updated[axis.key] = mark
-                        return updated
-                      })
-                    }
-                    onChange={(next) =>
-                      setValues((current) => {
-                        const updated = { ...current }
-                        if (next === undefined) delete updated[axis.key]
-                        else updated[axis.key] = next
-                        return updated
-                      })
-                    }
-                  />
-
-                  {/* What the mark under consideration means, when the craft has
-                      said. The mark being hovered wins over the one already set:
-                      the question while scoring is about the mark being weighed,
-                      not the one already given.
-
-                      The line keeps its row whether or not it has anything to
-                      say. Appearing on hover pushed the axes below out from under
-                      the pointer, the hover ended, the line went, the axes came
-                      back under the pointer — a strobe. */}
-                  <span
-                    className="block h-4 truncate text-xs leading-4 text-dim"
-                    title={sayLabel(rubricLine(axis)?.label)}
-                  >
-                    {(() => {
-                      const entry = rubricLine(axis)
-                      if (entry === undefined) return '\u00a0'
-                      return (
-                        <>
-                          <b className="font-mono font-semibold">{entry.at}</b> —{' '}
-                          {sayLabel(entry.label)}
-                        </>
-                      )
-                    })()}
-                  </span>
-                </span>
-
-                <span className="flex items-center justify-end gap-2">
-                  {/* This axis over time, beside the axis it belongs to. The one
-                      line under the total says the card moved; these say which
-                      axis moved it. */}
-                  {(() => {
-                    if (hiding) return null
-                    const line = axisTrend(axis.key)
-                    if (line.length < 2) return null
-
-                    return (
-                      <Sparkline
-                        values={line}
-                        max={axis.scale}
-                        size={{ width: 52, height: 16 }}
-                        className="h-4 w-13"
-                        label={t('score.axisTrend', {
-                          axis: axis.label,
-                          from: formatNumber(line[0]!, 0),
-                          to: formatNumber(line.at(-1)!, 0),
-                        })}
-                      />
-                    )
-                  })()}
-
-                  <span className="w-6 text-right font-mono text-sm text-dim tabular-nums">
-                    {values[axis.key] ?? '—'}
-                  </span>
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-line pt-4">
-            {!touched && filled > 0 && <p className="text-xs text-faint">{t('score.mirroring')}</p>}
-
-            {filled > 0 && (
-              <div className="flex flex-col gap-1.5">
-                <TierRuler tiers={tiers} score={preview} />
-
-                {/* The sentence the panel is for: not "you are Silver" but "you
-                    are four points short, and the cheapest four are here". */}
-                <p className="text-xs text-dim">
-                  {ahead === undefined ? (
-                    t('score.topTier')
-                  ) : (
+                {(() => {
+                  const entry = rubricLine(axis)
+                  if (entry === undefined) return '\u00a0'
+                  return (
                     <>
-                      <b className="font-semibold text-text">
-                        {t('score.toNextTier', {
-                          gap: formatNumber(ahead.gap),
-                          tier: ahead.tier.label,
-                        })}
-                      </b>
-                      {ahead.cheapest !== undefined && (
-                        <>
-                          {' · '}
-                          {t('score.cheapest', {
-                            axis: ahead.cheapest.axis.label,
-                            weight: ahead.cheapest.axis.weight,
-                            count: ahead.cheapest.marks,
-                          })}
-                        </>
-                      )}
+                      <b className="font-mono font-semibold">{entry.at}</b> —{' '}
+                      {sayLabel(entry.label)}
+                    </>
+                  )
+                })()}
+              </span>
+            </span>
+
+            <span className="flex items-center justify-end gap-2">
+              {/* This axis over time, beside the axis it belongs to. The one
+                  line under the total says the card moved; these say which
+                  axis moved it. */}
+              {(() => {
+                if (hiding) return null
+                const line = axisTrend(axis.key)
+                if (line.length < 2) return null
+
+                return (
+                  <Sparkline
+                    values={line}
+                    max={axis.scale}
+                    size="sm"
+                    label={t('score.axisTrend', {
+                      axis: sayLabel(axis.label),
+                      from: formatNumber(line[0]!, 0),
+                      to: formatNumber(line.at(-1)!, 0),
+                    })}
+                  />
+                )
+              })()}
+
+              <span className="w-6 text-right font-mono text-sm text-dim tabular-nums">
+                {values[axis.key] ?? '—'}
+              </span>
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-line pt-4">
+        {!touched && filled > 0 && <p className="text-xs text-faint">{t('score.mirroring')}</p>}
+
+        {filled > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <TierRuler
+              tiers={tiers.map((tier) => ({
+                key: tier.key,
+                label: sayLabel(tier.label),
+                min: tier.min,
+              }))}
+              value={preview}
+              label={t('score.rulerLabel', { score: formatNumber(preview) })}
+              valueText={
+                previewTier === undefined
+                  ? formatNumber(preview)
+                  : `${formatNumber(preview)}, ${sayLabel(previewTier.label)}`
+              }
+            />
+
+            {/* The sentence the panel is for: not "you are Silver" but "you
+                are four points short, and the cheapest four are here". */}
+            <p className="text-xs text-dim">
+              {ahead === undefined ? (
+                t('score.topTier')
+              ) : (
+                <>
+                  <b className="font-semibold text-text">
+                    {t('score.toNextTier', {
+                      gap: formatNumber(ahead.gap),
+                      tier: sayLabel(ahead.tier.label),
+                    })}
+                  </b>
+                  {ahead.cheapest !== undefined && (
+                    <>
+                      {' · '}
+                      {t('score.cheapest', {
+                        axis: sayLabel(ahead.cheapest.axis.label),
+                        weight: ahead.cheapest.axis.weight,
+                        count: ahead.cheapest.marks,
+                      })}
                     </>
                   )}
-                </p>
-              </div>
-            )}
-
-            {filled > 0 && filled < axes.length && (
-              <p className="text-xs text-dim">
-                {t('score.partial', { filled, count: axes.length })}
-              </p>
-            )}
-
-            {/* Held by hand, or free to follow the score. Placed under the
-                verdict it overrides, and shown even with nothing filled in:
-                a pin is about the work, not about the form being typed. */}
-            {work.data != null && (
-              <TierPin work={work.data} scored={hiding ? null : (historyData[0]?.tier ?? null)} />
-            )}
-
-            {/* What the recorded score means to each channel. Reads the latest
-                score rather than the form above: a verdict per kind is about
-                what stands, not about what is being typed. */}
-            {!hiding && <KindVerdicts workId={workId} />}
-
-            {/* Both of these have been in the API since v0.3.0 and never sent.
-                A score belongs to the draft it judged — usually the current one,
-                which is what an empty choice means. */}
-            <div className="flex flex-wrap items-end gap-3">
-              <label className="flex flex-col gap-1">
-                <span className="caption">{t('score.ofVersion')}</span>
-                <Select
-                  className="w-64"
-                  aria-label={t('score.ofVersion')}
-                  value={versionId}
-                  onChange={setVersionId}
-                  placeholder={t('score.currentVersion')}
-                  options={versionOptions}
-                />
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="caption">{t('score.rater')}</span>
-                <Input
-                  className="w-44"
-                  value={rater}
-                  onChange={(event) => setRater(event.target.value)}
-                  placeholder={t('score.raterHint')}
-                />
-              </label>
-
-              <label className="flex min-w-56 flex-1 flex-col gap-1">
-                <span className="caption">{t('score.note')}</span>
-                <Input
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                  placeholder={t('score.notePlaceholder')}
-                />
-              </label>
-            </div>
+                </>
+              )}
+            </p>
           </div>
-        </div>
+        )}
 
-        {/* The verdict, fixed at the foot: the total, its tier, where it has
-            come from, and the button that records it. The axes scroll above;
-            this never does. */}
-        <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-line px-4 py-2.5">
-          <span className="font-mono text-2xl font-semibold tabular-nums">
-            {filled === 0 ? '—' : formatNumber(preview)}
-          </span>
+        {filled > 0 && filled < axes.length && (
+          <p className="text-xs text-dim">{t('score.partial', { filled, count: axes.length })}</p>
+        )}
 
-          {previewTier !== undefined && filled > 0 && (
-            <Badge variant="accent">{sayLabel(previewTier.label)}</Badge>
-          )}
+        {/* Held by hand, or free to follow the score. Placed under the
+            verdict it overrides, and shown even with nothing filled in:
+            a pin is about the work, not about the form being typed. */}
+        {work.data != null && (
+          <TierPin work={work.data} scored={hiding ? null : (historyData[0]?.tier ?? null)} />
+        )}
 
-          {trail.length > 1 && !hiding && (
-            <span
-              className="font-mono text-xs text-faint tabular-nums"
-              title={t('score.trend', {
-                from: formatNumber(trail[0]!.total, 0),
-                to: formatNumber(trail.at(-1)!.total, 0),
-              })}
-            >
-              {trail.map((score, index) => {
-                const prior = trail[index - 1]?.total
-                return (
-                  <span
-                    key={score.id}
-                    className={cn(
-                      prior !== undefined && score.total > prior && 'text-good',
-                      prior !== undefined && score.total < prior && 'text-bad',
-                    )}
-                  >
-                    {index > 0 && ' → '}
-                    {formatNumber(score.total)}
-                  </span>
-                )
-              })}
-            </span>
-          )}
+        {/* What the recorded score means to each channel. Reads the latest
+            score rather than the form above: a verdict per kind is about
+            what stands, not about what is being typed. */}
+        {!hiding && <KindVerdicts workId={workId} />}
 
-          <Button
-            className="ml-auto"
-            variant="primary"
-            disabled={filled === 0 || !touched || save.isPending}
-            onClick={() => save.mutate()}
-          >
-            {t('score.save')}
-          </Button>
+        {/* Both of these have been in the API since v0.3.0 and never sent.
+            A score belongs to the draft it judged — usually the current one,
+            which is what an empty choice means. */}
+        <div className="flex flex-wrap items-end gap-3">
+          {/* A group rather than a Field: the select is a button and a
+              popup, not an input a Field could hand its id to. */}
+          <FieldGroup label={t('score.ofVersion')}>
+            <Select
+              className="w-64"
+              aria-label={t('score.ofVersion')}
+              value={versionId}
+              onChange={setVersionId}
+              placeholder={t('score.currentVersion')}
+              options={versionOptions}
+            />
+          </FieldGroup>
+
+          <Field label={t('score.rater')}>
+            <Input
+              className="w-44"
+              value={rater}
+              onChange={(event) => setRater(event.target.value)}
+              placeholder={t('score.raterHint')}
+            />
+          </Field>
+
+          <Field label={t('score.note')} className="min-w-56 flex-1">
+            <Input
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder={t('score.notePlaceholder')}
+            />
+          </Field>
         </div>
       </div>
-    </section>
+    </Pane>
+  )
+
+  return (
+    // The same shape as the Versions tab, on purpose: the list of scores on
+    // the left, the one picked from it open on the right, each scrolling on
+    // its own. The history of totals is the most valuable thing on this tab,
+    // and a picker that folded it into a menu hid it.
+    <ListDetail list={list} detail={detail} />
   )
 }
 

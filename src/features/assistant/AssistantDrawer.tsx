@@ -14,7 +14,8 @@ import { announcement, movesTaskList } from '@/lib/tasks'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { Drawer as DrawerRoot, DrawerClose, DrawerPopup, DrawerTitle } from '@/components/ui/drawer'
-import { EmptyState } from '@/components/EmptyState'
+import { EmptyState } from '@/components/ui/empty-state'
+import { RowButton } from '@/components/ui/list-row'
 import { RowContextMenu, RowMenu, type RowAction } from '@/components/RowMenu'
 import { ChatMarks, useChatQuestions, useChats } from '@/features/assistant/chats'
 import { ChatView } from '@/features/assistant/ChatView'
@@ -229,6 +230,15 @@ function Drawer({
                     },
                   },
                 ]
+                const running = shared.running.has(chat.id)
+                const waiting = chat.waiting_since !== undefined
+                // What the chat is about and what it has cost, under its name.
+                const about = [
+                  chat.work_title ?? '',
+                  chat.cost_usd > 0 ? formatCost(chat.cost_usd) : '',
+                ]
+                  .filter((part) => part !== '')
+                  .join(' · ')
 
                 return (
                   <RowContextMenu
@@ -238,24 +248,24 @@ function Drawer({
                       <li className="flex items-center gap-1 rounded-md data-[popup-open]:bg-soft" />
                     }
                   >
-                    <button
-                      type="button"
+                    <RowButton
                       onClick={() => {
                         setSelected(chat.id)
                       }}
-                      className="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-soft"
+                      className="flex-1"
+                      // The marks only when there is one: an empty slot would
+                      // still take its gap and push the title off the others.
+                      start={
+                        running || waiting ? (
+                          <span className="flex items-center gap-1.5">
+                            <ChatMarks chat={chat} running={running} />
+                          </span>
+                        ) : undefined
+                      }
+                      description={about === '' ? undefined : about}
                     >
-                      <span className="flex items-center gap-1.5 text-sm">
-                        <ChatMarks chat={chat} running={shared.running.has(chat.id)} />
-                        <span className="truncate">{chatLabel(chat, t('assistant.untitled'))}</span>
-                      </span>
-                      <span className="flex items-center gap-2 text-xs text-faint">
-                        {chat.work_title != null && (
-                          <span className="truncate">{chat.work_title}</span>
-                        )}
-                        {chat.cost_usd > 0 && <span>{formatCost(chat.cost_usd)}</span>}
-                      </span>
-                    </button>
+                      {chatLabel(chat, t('assistant.untitled'))}
+                    </RowButton>
                     <RowMenu label={t('assistant.chatMenu')} actions={actions} />
                   </RowContextMenu>
                 )
@@ -263,7 +273,9 @@ function Drawer({
             </ul>
           </div>
         ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          // The chat lays itself out against the drawer's height: its exchange
+          // scrolls, its composer stands at the foot.
+          <div className="flex min-h-0 flex-1 flex-col p-4">
             <ChatView key={current.id} chatId={current.id} workId={current.work_id ?? undefined} />
           </div>
         )}

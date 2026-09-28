@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import { chatLabel } from '@/lib/chat'
 import { formatCost } from '@/lib/format'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Chip, ChipGroup } from '@/components/ui/chip'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Frame } from '@/components/frame'
 import { RowMenu } from '@/components/RowMenu'
 import { ChatMarks, useChatQuestions, useChats } from '@/features/assistant/chats'
 import { ChatView } from '@/features/assistant/ChatView'
@@ -42,53 +44,51 @@ export function AssistantPanel({ workId }: Props) {
 
   if (chats.status != null && !chats.status.available) {
     return (
-      <section className="flex flex-col gap-2">
-        <p className="rounded-xl border border-dashed border-line p-4 text-sm text-dim">
-          {chats.status.reason ?? t('assistant.unavailable')}
-        </p>
-      </section>
+      <Frame>
+        <EmptyState
+          variant="error"
+          title={t('assistant.unavailable')}
+          body={chats.status.reason ?? undefined}
+          className="flex-1"
+        />
+      </Frame>
     )
   }
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        {chats.status?.version != null && (
-          <span className="text-xs text-dim">{chats.status.version}</span>
-        )}
-        {current !== undefined && current.cost_usd > 0 && (
-          <span className="ml-auto text-xs text-faint">
-            {t('assistant.spent', { amount: formatCost(current.cost_usd) })}
-          </span>
-        )}
-      </div>
-
+    <Frame
+      head={
+        <>
+          {chats.status?.version != null && (
+            <span className="text-xs text-dim">{chats.status.version}</span>
+          )}
+          {current !== undefined && current.cost_usd > 0 && (
+            <span className="ml-auto text-xs text-faint">
+              {t('assistant.spent', { amount: formatCost(current.cost_usd) })}
+            </span>
+          )}
+        </>
+      }
+    >
       {list.length > 0 && (
-        <div
-          className="flex flex-wrap items-center gap-1.5"
-          role="tablist"
-          aria-label={t('assistant.chats')}
-        >
-          {list.map((chat) => (
-            <button
-              key={chat.id}
-              type="button"
-              role="tab"
-              aria-selected={chat.id === chatId}
-              onClick={() => {
-                setSelected(chat.id)
-              }}
-              className={cn(
-                'flex max-w-48 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors',
-                chat.id === chatId
-                  ? 'border-accent bg-accent-soft text-accent-2'
-                  : 'border-line text-dim hover:border-line-2 hover:text-text',
-              )}
-            >
-              <ChatMarks chat={chat} running={chats.running.has(chat.id)} />
-              <span className="truncate">{chatLabel(chat, t('assistant.untitled'))}</span>
-            </button>
-          ))}
+        <div className="mb-2.5 flex shrink-0 flex-wrap items-center gap-1.5">
+          {/* The chats as a row of chips, one of them open. Pressing the open
+              one again would let go of it in the group, and "no chat" is not
+              a chat to show, so that press is ignored. */}
+          <ChipGroup
+            aria-label={t('assistant.chats')}
+            value={chatId === null ? [] : [chatId]}
+            onValueChange={([next]) => {
+              if (next !== undefined) setSelected(next)
+            }}
+          >
+            {list.map((chat) => (
+              <Chip key={chat.id} value={chat.id} className="max-w-48">
+                <ChatMarks chat={chat} running={chats.running.has(chat.id)} />
+                <span className="truncate">{chatLabel(chat, t('assistant.untitled'))}</span>
+              </Chip>
+            ))}
+          </ChipGroup>
 
           <Button
             variant="icon"
@@ -140,6 +140,6 @@ export function AssistantPanel({ workId }: Props) {
       />
 
       {dialogs}
-    </section>
+    </Frame>
   )
 }

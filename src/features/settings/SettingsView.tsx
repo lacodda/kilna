@@ -1,6 +1,7 @@
 import { Navigate, NavLink, useParams } from 'react-router'
-import { SectionHeading, SectionNav } from '@/components/ui/section-nav'
 import { useTranslation } from 'react-i18next'
+import { SectionHeading, SectionNav } from '@/components/ui/section-nav'
+import { Frame, ListDetail, Pane } from '@/components/frame'
 import {
   Bot,
   Database,
@@ -68,37 +69,39 @@ export function SettingsView() {
     // The nav does not move at all, and `sticky` could not give that: sticky
     // travels with the page until it reaches its offset, so a long section on
     // the right dragged the whole list up as far as the word "Настройки"
-    // before pinning — which reads as a menu that scrolls, because for those
+    // before pinning - which reads as a menu that scrolls, because for those
     // first pixels it does. Only the section scrolls instead, and the nav is
-    // simply a column of the window's height beside it.
-    // Below `md` the two columns stack, and the nav is a row above the
-    // section rather than a thing standing beside it: there the whole screen
-    // scrolls as one, which is why the scrolling is on the section only from
-    // `md` up. Without `overflow-y-auto` here the narrow layout would be
-    // clipped with no way to reach its bottom.
-    <div className="grid min-h-0 flex-1 gap-8 overflow-y-auto md:grid-cols-[11rem_minmax(0,1fr)] md:overflow-hidden">
-      <SectionNav
-        className="md:self-start"
-        label={t('settings.title')}
-        activeId={section}
-        items={SECTIONS.map((entry) => {
-          const Icon = ICONS[entry]
-          return { id: entry, label: t(`settings.section.${entry}`), icon: <Icon /> }
-        })}
-        // A link, so the back button walks between sections and one can be
-        // opened by address.
-        render={(item) => <NavLink to={`/settings/${item.id}`} />}
+    // a column of the window's height beside it, the width of the app's own
+    // rail. It stays beside the section at every width: stacked above it on a
+    // narrow window, the whole screen scrolled as one.
+    <Frame>
+      <ListDetail
+        width="rail"
+        list={
+          <Pane label={t('settings.title')} bodyClassName="p-1.5">
+            <SectionNav
+              label={t('settings.title')}
+              activeId={section}
+              items={SECTIONS.map((entry) => {
+                const Icon = ICONS[entry]
+                return { id: entry, label: t(`settings.section.${entry}`), icon: <Icon /> }
+              })}
+              // A link, so the back button walks between sections and one can
+              // be opened by address.
+              render={(item) => <NavLink to={`/settings/${item.id}`} />}
+            />
+          </Pane>
+        }
+        detail={
+          <Pane label={t(`settings.section.${section}`)} bodyClassName="flex flex-col px-4.5 py-4">
+            <SectionHeading
+              title={t(`settings.section.${section}`)}
+              description={t(`settings.hint.${section}`)}
+            />
+            <Body section={section} />
+          </Pane>
+        }
       />
-
-      {/* `pr-1` so a focus ring on the last control is not clipped by the
-          scroller's own edge. */}
-      <div className="flex min-w-0 flex-col md:min-h-0 md:overflow-y-auto md:pr-1">
-        <SectionHeading
-          title={t(`settings.section.${section}`)}
-          description={t(`settings.hint.${section}`)}
-        />
-        <Body section={section} />
-      </div>
-    </div>
+    </Frame>
   )
 }

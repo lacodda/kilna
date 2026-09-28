@@ -5,6 +5,7 @@ import { fileSrc } from '@/lib/api/assets'
 import type { StyleBrick } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 /**
  * One brick in the dictionary: its cover, its name, the opening of what it
@@ -25,13 +26,16 @@ export function StyleBrickCard({ brick, onOpen }: { brick: StyleBrick; onOpen: (
   })
   const cover = references.data?.[0]
 
+  // A quiet Button in the shape of a card rather than a row of a list: the
+  // cover, two lines of what it says and the count do not fit a row's slots.
+  // No size, because a card is as tall as what it holds, not a control row.
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
+      size={null}
       onClick={onOpen}
       className={cn(
-        'flex cursor-pointer gap-3 rounded-xl border border-line bg-raise p-2.5 text-left transition-colors',
-        'hover:border-line-2',
+        'items-stretch justify-start gap-3 p-2.5 text-left',
         brick.status === 'dropped' && 'opacity-55',
       )}
     >
@@ -48,9 +52,9 @@ export function StyleBrickCard({ brick, onOpen }: { brick: StyleBrick; onOpen: (
         )}
       </div>
 
-      <div className="flex min-w-0 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-col gap-0.5 font-normal whitespace-normal">
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate font-medium">{brick.name}</span>
+          <span className="truncate font-medium text-text">{brick.name}</span>
           {brick.status !== 'ready' && (
             <span
               className={cn(
@@ -73,6 +77,6 @@ export function StyleBrickCard({ brick, onOpen }: { brick: StyleBrick; onOpen: (
           </span>
         )}
       </div>
-    </button>
+    </Button>
   )
 }

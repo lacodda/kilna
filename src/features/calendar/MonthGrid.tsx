@@ -248,22 +248,19 @@ export function MonthGrid({
                     the row does not reflow as the pointer crosses the month,
                     and `focus-visible` brings it back for the keyboard, which
                     has no hover to offer. */}
-                <button
-                  type="button"
+                <Button
+                  variant="icon"
+                  size="icon-xs"
                   title={t('calendar.addOnDay')}
                   aria-label={t('calendar.addOnDay')}
                   onClick={(event) => {
                     event.stopPropagation()
                     onAddOn(day.date)
                   }}
-                  className={cn(
-                    'inline-flex size-4 cursor-pointer items-center justify-center rounded-sm',
-                    'text-faint opacity-0 transition-opacity hover:bg-soft hover:text-text',
-                    'group-hover:opacity-100 focus-visible:opacity-100',
-                  )}
+                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                 >
-                  <Plus aria-hidden className="size-3" />
-                </button>
+                  <Plus aria-hidden />
+                </Button>
                 <span
                   className={cn(
                     'text-right font-mono text-xs tabular-nums',
@@ -292,28 +289,28 @@ export function MonthGrid({
                     start drifting apart. The rest are one line away rather
                     than hidden: the count is the whole point. */}
                 {releases.length > VISIBLE_CHIPS && expanded !== day.date && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="link"
                     onClick={(event) => {
                       event.stopPropagation()
                       setExpanded(day.date)
                     }}
-                    className="cursor-pointer rounded-md px-1 py-0.5 text-left text-2xs text-dim transition-colors hover:bg-soft hover:text-text"
+                    className="self-start px-1 text-2xs"
                   >
                     {t('calendar.moreOnDay', { count: releases.length - VISIBLE_CHIPS })}
-                  </button>
+                  </Button>
                 )}
                 {expanded === day.date && releases.length > VISIBLE_CHIPS && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="link"
                     onClick={(event) => {
                       event.stopPropagation()
                       setExpanded(null)
                     }}
-                    className="cursor-pointer rounded-md px-1 py-0.5 text-left text-2xs text-dim transition-colors hover:bg-soft hover:text-text"
+                    className="self-start px-1 text-2xs"
                   >
                     {t('calendar.showFewer')}
-                  </button>
+                  </Button>
                 )}
 
                 {/* Where the auto-layout would put things: dashed and in the

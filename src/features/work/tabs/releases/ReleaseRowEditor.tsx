@@ -6,7 +6,7 @@ import { say, useVocabulary } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/DatePicker'
 import { Dialog } from '@/components/AppDialog'
-import { Field } from '@/components/Field'
+import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/AppSelect'
 
@@ -73,16 +73,17 @@ export function ReleaseRowEditor({ release, onOpenChange, onSave }: Props) {
           onOpenChange(false)
         }}
       >
-        <Field label={t('releases.kind')}>
+        <FieldGroup label={t('releases.kind')}>
           <Select
+            aria-label={t('releases.kind')}
             className="w-full"
             value={draft.kind}
             onChange={(kind) => setDraft((current) => ({ ...current, kind }))}
             options={releaseKinds.map((k) => ({ value: k.key, label: say(k.label) }))}
           />
-        </Field>
+        </FieldGroup>
 
-        <Field label={t('calendar.slotDate')} hint={t('calendar.clearDateHint')}>
+        <FieldGroup label={t('calendar.slotDate')} help={t('calendar.clearDateHint')}>
           <DatePicker
             className="w-full"
             value={draft.scheduled_at}
@@ -90,11 +91,11 @@ export function ReleaseRowEditor({ release, onOpenChange, onSave }: Props) {
             placeholder={t('calendar.slotDate')}
             aria-label={t('calendar.slotDate')}
           />
-        </Field>
+        </FieldGroup>
 
         <Field
           label={t('calendar.urlPrompt')}
-          hint={linkLooksWrong ? t('releases.linkLooksWrong') : undefined}
+          help={linkLooksWrong ? t('releases.linkLooksWrong') : undefined}
         >
           <Input
             value={draft.url}

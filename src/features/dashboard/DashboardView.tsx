@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, CalendarDays } from 'lucide-react'
-import type { ScoredWork } from '@/lib/api/types'
+import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import { coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
 import { isQuiet, summarise, type Decision } from '@/lib/dashboard'
@@ -15,10 +15,14 @@ import { stageAt } from '@/lib/stages'
 import { formatNumber } from '@/lib/format'
 import { ReadyMarks } from '@/components/ReadyMarks'
 import { Badge } from '@/components/ui/badge'
-import { EmptyState } from '@/components/EmptyState'
-import { FocusBoard } from '@/features/dashboard/FocusBoard'
+import { Button } from '@/components/ui/button'
+import { RowButton } from '@/components/ui/list-row'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Panel, SectionLabel } from '@/components/ui/panel'
-import { SkeletonList } from '@/components/Skeleton'
+import { SkeletonList } from '@/components/ui/skeleton'
+import { Frame, Scroll } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
+import { FocusBoard } from '@/features/dashboard/FocusBoard'
 
 interface Props {
   onSelect: (workId: string, tab?: string) => void
@@ -37,38 +41,49 @@ interface Props {
  * anything: it is a place to look before deciding where to go.
  */
 export function DashboardView({ onSelect }: Props) {
-  const { t } = useTranslation()
-  const profile = useProfile()
-
   const works = useQuery(queries.catalogue())
   const slots = useQuery(queries.calendar())
+
+  // The screen holds the window's height; what is on it scrolls under it.
+  // Two reads, each with its own way back when it fails.
+  return (
+    <Frame>
+      <Loaded query={works} fill skeleton={<SkeletonList rows={6} />}>
+        {(catalogue) => (
+          <Loaded query={slots} fill skeleton={<SkeletonList rows={6} />}>
+            {(calendar) => <Summary works={catalogue} slots={calendar} onSelect={onSelect} />}
+          </Loaded>
+        )}
+      </Loaded>
+    </Frame>
+  )
+}
+
+function Summary({
+  works,
+  slots,
+  onSelect,
+}: {
+  works: ScoredWork[]
+  slots: ScheduledRelease[]
+  onSelect: Props['onSelect']
+}) {
+  const { t } = useTranslation()
+  const profile = useProfile()
   // Read here as well as in the board: the quiet state below has to know
   // whether anything is standing, and a finding the person has already
   // answered must not keep the screen from saying it is quiet.
   const dismissals = useQuery(queries.dismissals())
 
-  if (works.isPending || slots.isPending) return <SkeletonList rows={6} />
-
-  if (works.isError || slots.isError || works.data === undefined || slots.data === undefined) {
-    return (
-      <p role="alert" className="text-sm text-bad">
-        {t('toast.loadFailed')}
-      </p>
-    )
-  }
-
   // Read once per render against the user's own day: the backend knows only
   // UTC, and after sunset at a negative offset that is already tomorrow.
-  const summary = summarise(works.data, slots.data, today())
+  const summary = summarise(works, slots, today())
 
   // A finding can outlive every section above — a scored, booked work whose
   // draft moved after the score, dated beyond the week, shows nowhere else.
   // Claiming nothing is waiting while one stands would be a lie the screen
   // tells confidently, which is worse than a busy screen.
-  const standing = visible(
-    findings(works.data, slots.data, profile.config, today()),
-    dismissals.data ?? [],
-  )
+  const standing = visible(findings(works, slots, profile.config, today()), dismissals.data ?? [])
 
   // Quiet is now shown *above* the board rather than instead of it. Returning
   // early took the board away with the sections, and the board is the one part
@@ -78,7 +93,7 @@ export function DashboardView({ onSelect }: Props) {
   const quiet = isQuiet(summary) && standing.length === 0
 
   return (
-    <div className="flex flex-col gap-6">
+    <Scroll label={t('nav.dashboard')} contentClassName="flex flex-col gap-6">
       {quiet && <EmptyState title={t('dashboard.quietTitle')} body={t('dashboard.quietBody')} />}
 
       {summary.decisions.length > 0 && (
@@ -90,7 +105,10 @@ export function DashboardView({ onSelect }: Props) {
               {t('dashboard.decisionsCount', { count: summary.decisions.length })}
             </span>
           </SectionLabel>
-          <Panel className="divide-y divide-line">
+          {/* `overflow-hidden`: a row rounds its hover to its own corner rather
+              than the panel's, and at the panel's corners that tint would
+              bulge past the curve. The panel clips it, for both lists here. */}
+          <Panel className="divide-y divide-line overflow-hidden">
             {summary.decisions.map((decision) => (
               <DecisionRow key={decision.release.id} decision={decision} onSelect={onSelect} />
             ))}
@@ -107,7 +125,7 @@ export function DashboardView({ onSelect }: Props) {
               {t('dashboard.weekCount', { count: summary.week.length })}
             </span>
           </SectionLabel>
-          <Panel className="divide-y divide-line">
+          <Panel className="divide-y divide-line overflow-hidden">
             {summary.week.map((entry) => (
               <WeekRow key={entry.release.id} entry={entry} onSelect={onSelect} />
             ))}
@@ -131,14 +149,14 @@ export function DashboardView({ onSelect }: Props) {
           <SectionLabel>{t('dashboard.unscored')}</SectionLabel>
           <div className="flex flex-wrap gap-1.5">
             {summary.unscored.map((work) => (
-              <button
+              <Button
                 key={work.work_id}
-                type="button"
+                variant="ghost"
+                size="xs"
                 onClick={() => onSelect(work.work_id, 'score')}
-                className="cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-xs text-dim transition-colors hover:border-line-2 hover:text-text"
               >
                 {work.title}
-              </button>
+              </Button>
             ))}
           </div>
         </section>
@@ -148,12 +166,12 @@ export function DashboardView({ onSelect }: Props) {
           are standing complaints. The two kinds the dashboard already draws as
           sections of its own are skipped rather than said twice. */}
       <FocusBoard
-        works={works.data}
-        calendar={slots.data}
+        works={works}
+        calendar={slots}
         skip={['unscored', 'ready-unscheduled']}
         onSelect={onSelect}
       />
-    </div>
+    </Scroll>
   )
 }
 
@@ -177,41 +195,39 @@ function DecisionRow({
   )
 
   return (
-    <button
-      type="button"
+    <RowButton
       // Straight to the tab that closes the gap: a missing score opens Score, a
       // missing draft opens the versions. Being told what is wrong and left on
       // the same screen is half an answer.
       onClick={() => onSelect(release.work_id, release.readiness.scored ? undefined : 'score')}
-      // The panel around these is `rounded-lg`, so a row rounding to `2xl`
-      // bulged past the corner it was meant to follow - a hover that went
-      // round at the top and square at the bottom, on a single-row section
-      // round on all four. The row follows the panel it sits in.
-      className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-soft"
-    >
-      <span
-        aria-hidden
-        className="size-8 shrink-0 rounded-lg"
-        style={{ background: coverImageFor(release.work_id, covers.get(release.work_id)) }}
-      />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold">{release.work_title}</span>
-        <span className="block truncate text-xs text-faint">{gaps.join(', ')}</span>
-      </span>
-      {/* Beside the readiness marks, which answer a different question: those
-          say whether the release could go out, this says how finished the work
-          behind it is. */}
-      {release.work_stage !== null && (
-        <StageDial
-          percent={release.work_stage}
-          stage={stageAt(profile.config, release.work_stage)}
+      start={
+        <span
+          aria-hidden
+          className="size-8 shrink-0 rounded-lg"
+          style={{ background: coverImageFor(release.work_id, covers.get(release.work_id)) }}
         />
-      )}
-      <ReadyMarks readiness={release.readiness} released={false} daysLeft={daysLeft} />
-      <Badge variant={daysLeft < 0 ? 'bad' : daysLeft <= 2 ? 'warn' : 'soft'}>
-        {when(t, daysLeft)}
-      </Badge>
-    </button>
+      }
+      description={gaps.join(', ')}
+      end={
+        <>
+          {/* Beside the readiness marks, which answer a different question:
+              those say whether the release could go out, this says how
+              finished the work behind it is. */}
+          {release.work_stage !== null && (
+            <StageDial
+              percent={release.work_stage}
+              stage={stageAt(profile.config, release.work_stage)}
+            />
+          )}
+          <ReadyMarks readiness={release.readiness} released={false} daysLeft={daysLeft} />
+          <Badge variant={daysLeft < 0 ? 'bad' : daysLeft <= 2 ? 'warn' : 'soft'}>
+            {when(t, daysLeft)}
+          </Badge>
+        </>
+      }
+    >
+      {release.work_title}
+    </RowButton>
   )
 }
 
@@ -229,40 +245,43 @@ function WeekRow({
   const { release, daysLeft } = entry
 
   return (
-    <button
-      type="button"
+    <RowButton
       onClick={() => onSelect(release.work_id)}
-      // The panel around these is `rounded-lg`, so a row rounding to `2xl`
-      // bulged past the corner it was meant to follow - a hover that went
-      // round at the top and square at the bottom, on a single-row section
-      // round on all four. The row follows the panel it sits in.
-      className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-soft"
+      start={
+        <span className="flex items-center gap-2.5">
+          <span className="w-20 shrink-0 font-mono text-xs text-faint">{when(t, daysLeft)}</span>
+          <span
+            aria-hidden
+            className="size-8 shrink-0 rounded-lg"
+            style={{ background: coverImageFor(release.work_id, covers.get(release.work_id)) }}
+          />
+        </span>
+      }
+      end={
+        <>
+          {/* What it is and what goes out — a video's YouTube release and a
+              song's clip are told apart by the first word, once the profile
+              has more than one kind of work. */}
+          <Badge variant="soft">
+            {profile.config.work_kinds.length > 1
+              ? `${labelOf(profile.config.work_kinds, release.work_kind)} · ${labelOf(allOf(profile.config, 'release_kinds'), release.kind)}`
+              : labelOf(allOf(profile.config, 'release_kinds'), release.kind)}
+          </Badge>
+          {/* How finished the work is, beside how ready the release is: the
+              marks say whether it could go out, the dial says whether it is
+              done. */}
+          {release.work_stage !== null && (
+            <StageDial
+              percent={release.work_stage}
+              stage={stageAt(profile.config, release.work_stage)}
+            />
+          )}
+          <ReadyMarks readiness={release.readiness} released={false} daysLeft={daysLeft} />
+        </>
+      }
     >
-      <span className="w-20 shrink-0 font-mono text-xs text-faint">{when(t, daysLeft)}</span>
-      <span
-        aria-hidden
-        className="size-8 shrink-0 rounded-lg"
-        style={{ background: coverImageFor(release.work_id, covers.get(release.work_id)) }}
-      />
-      <span className="min-w-0 flex-1 truncate text-sm font-semibold">{release.work_title}</span>
-      {/* What it is and what goes out — a video's YouTube release and a
-          song's clip are told apart by the first word, once the profile has
-          more than one kind of work. */}
-      <Badge variant="soft">
-        {profile.config.work_kinds.length > 1
-          ? `${labelOf(profile.config.work_kinds, release.work_kind)} · ${labelOf(allOf(profile.config, 'release_kinds'), release.kind)}`
-          : labelOf(allOf(profile.config, 'release_kinds'), release.kind)}
-      </Badge>
-      {/* How finished the work is, beside how ready the release is: the marks
-          say whether it could go out, the dial says whether it is done. */}
-      {release.work_stage !== null && (
-        <StageDial
-          percent={release.work_stage}
-          stage={stageAt(profile.config, release.work_stage)}
-        />
-      )}
-      <ReadyMarks readiness={release.readiness} released={false} daysLeft={daysLeft} />
-    </button>
+      {release.work_title}
+    </RowButton>
   )
 }
 
@@ -278,10 +297,14 @@ function CoverCard({
   const profile = useProfile()
 
   return (
-    <button
-      type="button"
+    // A card, not a row: a cover over two lines, which no row's slots hold.
+    // So the quiet button with no size of its own, laid out as a column; its
+    // border and hover are the card's.
+    <Button
+      variant="ghost"
+      size={null}
       onClick={() => onSelect(work.work_id)}
-      className="cursor-pointer overflow-hidden rounded-2xl border border-line bg-raise text-left transition-transform hover:-translate-y-0.5 hover:border-line-2"
+      className="flex-col items-stretch gap-0 overflow-hidden text-left"
     >
       <span
         aria-hidden
@@ -295,7 +318,7 @@ function CoverCard({
           {work.total === null ? '' : formatNumber(work.total)}
         </span>
       </span>
-    </button>
+    </Button>
   )
 }
 

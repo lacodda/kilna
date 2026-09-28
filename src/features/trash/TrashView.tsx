@@ -10,9 +10,11 @@ import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SkeletonList } from '@/components/ui/skeleton'
 import { ConfirmAction } from '@/components/ConfirmAction'
-import { EmptyState } from '@/components/EmptyState'
-import { SkeletonList } from '@/components/Skeleton'
+import { Frame, Pane } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 import { cn } from '@/lib/utils'
 import { formatDay } from '@/lib/format'
 
@@ -159,58 +161,67 @@ export function TrashView() {
     },
   })
 
-  if (entries.isPending) return <SkeletonList rows={5} />
-
-  if (entries.isError) {
-    return (
-      <p role="alert" className="text-sm text-bad">
-        {t('toast.loadFailed')}
-      </p>
-    )
-  }
-
-  if (entries.data.length === 0) {
-    return <EmptyState title={t('empty.trashTitle')} body={t('empty.trashBody')} />
-  }
-
   const busy = restore.isPending || purge.isPending || empty.isPending
+  const count = entries.data?.length ?? 0
 
   return (
-    <div className="flex flex-col gap-3">
-      <header className="flex items-center gap-3">
-        <p className="text-xs text-dim">{t('trash.hint')}</p>
-        <Button
-          variant="danger"
-          size="sm"
-          className="ml-auto"
-          disabled={busy}
-          onClick={() => setConfirmingEmpty(true)}
-        >
-          {t('trash.empty')}
-        </Button>
-      </header>
-
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-line text-left caption">
-            <th className="py-2 pr-3 font-medium">{t('trash.what')}</th>
-            <th className="py-2 pr-3 font-medium">{t('trash.kind')}</th>
-            <th className="py-2 pr-3 font-medium">{t('trash.when')}</th>
-            <th className="py-2" />
-          </tr>
-        </thead>
-        <tbody>
-          {entries.data.map((entry) => (
-            <Row
-              key={entry.id}
-              entry={entry}
-              busy={busy}
-              onRestore={() => restore.mutate(entry.id)}
-              onPurge={() => setPurging(entry)}
-            />
-          ))}
-        </tbody>
-      </table>
+    <Frame
+      head={
+        <>
+          <p className="text-xs text-dim">{t('trash.hint')}</p>
+          <Button
+            variant="danger"
+            size="sm"
+            className="ml-auto"
+            disabled={busy || count === 0}
+            onClick={() => setConfirmingEmpty(true)}
+          >
+            {t('trash.empty')}
+          </Button>
+        </>
+      }
+    >
+      <Loaded
+        query={entries}
+        fill
+        skeleton={<SkeletonList rows={5} />}
+        isEmpty={(data) => data.length === 0}
+        emptyState={
+          <EmptyState
+            title={t('empty.trashTitle')}
+            body={t('empty.trashBody')}
+            className="flex-1"
+          />
+        }
+      >
+        {(data) => (
+          <Pane label={t('nav.trash')} bodyClassName="px-3">
+            <table className="w-full text-sm">
+              {/* Sticky inside the pane's scroll: two hundred rows down, the
+                  columns still say what they are. */}
+              <thead className="sticky top-0 z-10 bg-raise">
+                <tr className="border-b border-line text-left caption">
+                  <th className="py-2 pr-3 font-medium">{t('trash.what')}</th>
+                  <th className="py-2 pr-3 font-medium">{t('trash.kind')}</th>
+                  <th className="py-2 pr-3 font-medium">{t('trash.when')}</th>
+                  <th className="py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((entry) => (
+                  <Row
+                    key={entry.id}
+                    entry={entry}
+                    busy={busy}
+                    onRestore={() => restore.mutate(entry.id)}
+                    onPurge={() => setPurging(entry)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </Pane>
+        )}
+      </Loaded>
 
       <ConfirmAction
         open={purging !== null}
@@ -230,11 +241,11 @@ export function TrashView() {
         open={confirmingEmpty}
         onOpenChange={setConfirmingEmpty}
         title={t('trash.emptyTitle')}
-        description={t('trash.emptyBody', { count: entries.data.length })}
+        description={t('trash.emptyBody', { count })}
         actionLabel={t('trash.empty')}
         pending={empty.isPending}
         onConfirm={() => empty.mutate()}
       />
-    </div>
+    </Frame>
   )
 }

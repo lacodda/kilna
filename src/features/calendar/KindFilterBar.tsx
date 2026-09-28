@@ -4,7 +4,7 @@ import type { ScheduledRelease } from '@/lib/api/types'
 import { countByKind, type KindFilter } from '@/lib/calendarFilter'
 import { KindGlyph } from '@/lib/releaseIcon'
 import { allOf, say, useProfile } from '@/lib/useProfile'
-import { cn } from '@/lib/utils'
+import { Chip, ChipGroup } from '@/components/ui/chip'
 
 interface Props {
   /** Everything with a date, unfiltered: the counts are of the whole calendar. */
@@ -37,60 +37,29 @@ export function KindFilterBar({ slots, value, onChange }: Props) {
   if (kinds.length < 2) return null
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <Chip
-        active={value === null}
-        onClick={() => onChange(null)}
-        icon={null}
-        label={t('calendar.allKinds')}
-        count={slots.length}
-      />
-      {kinds.map((kind) => (
-        <Chip
-          key={kind.key}
-          active={value === kind.key}
-          // Clicking the chip that is already on turns it off, the way the
-          // catalogue's gap chips do: one kind at a time, and no separate
-          // control for going back to all of them.
-          onClick={() => onChange(value === kind.key ? null : kind.key)}
-          icon={kind.icon}
-          label={say(kind.label)}
-          count={counts.get(kind.key) ?? 0}
-        />
-      ))}
-    </div>
-  )
-}
-
-interface ChipProps {
-  active: boolean
-  onClick: () => void
-  /** Glyph name, or null for the chip that stands for every kind at once. */
-  icon: string | null | undefined
-  label: string
-  count: number
-}
-
-function Chip({ active, onClick, icon, label, count }: ChipProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      // `aria-pressed` rather than a bare button: a toggle that only looks
-      // pressed tells a screen reader nothing about what the grid is showing.
-      aria-pressed={active}
-      className={cn(
-        'flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors',
-        active ? 'bg-accent-soft text-accent-2' : 'text-dim hover:bg-soft',
-      )}
+    <ChipGroup
+      aria-label={t('releases.kind')}
+      value={[value ?? ALL]}
+      // One kind at a time. Pressing the chip that is already on lets go of
+      // it, which is back to all of them, the way the catalogue's gap chips
+      // do: no separate control for going back.
+      onValueChange={([next]) => onChange(next === undefined || next === ALL ? null : next)}
     >
-      {icon === null ? (
+      <Chip value={ALL} count={slots.length}>
         <CalendarRange aria-hidden className="size-3.5 shrink-0" />
-      ) : (
-        <KindGlyph icon={icon} className="size-3.5 shrink-0" />
-      )}
-      {label}
-      <span className="font-mono tabular-nums text-faint">{count}</span>
-    </button>
+        {t('calendar.allKinds')}
+      </Chip>
+      {kinds.map((kind) => (
+        <Chip key={kind.key} value={kind.key} count={counts.get(kind.key) ?? 0}>
+          <KindGlyph icon={kind.icon} className="size-3.5 shrink-0" />
+          {say(kind.label)}
+        </Chip>
+      ))}
+    </ChipGroup>
   )
 }
+
+/** The value of the chip that stands for every kind at once. A symbol rather
+ * than a word, so it is not a kind a profile would name; and not empty,
+ * because a Toggle reads an empty value as none and makes up an id instead. */
+const ALL = '*'

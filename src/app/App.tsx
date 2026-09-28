@@ -93,19 +93,19 @@ export default function App() {
   return (
     <ProfileContext value={workspace.profile}>
       {/* The assistant from anywhere — a run belongs to its chat, and the chat
-            should not require walking back to the card that started it. It wraps
-            the shell rather than sitting beside it because the waiting banner
-            inside asks it to open a chat. */}
+          should not require walking back to the card that started it. It wraps
+          the shell rather than sitting beside it because the waiting banner
+          inside asks it to open a chat. */}
       <AssistantLauncher>
         {/* The frame is dowel's: the title bar runs the width of the
-              window, as a system one would, the rail starts under it, and the
-              screen takes the corner they leave. Nothing in it scrolls but
-              what is inside a `<Screen>`.
+            window, as a system one would, the rail starts under it, and the
+            screen takes the corner they leave. Nothing in it scrolls but
+            what is inside a `<Screen>`.
 
-              The rail folds to icons from the handle in the title bar. Its
-              width is the grid's column rather than the nav's own, so the
-              screen beside it grows as it folds instead of leaving a gap; the
-              160ms is the only motion, and none under reduced motion. */}
+            The rail folds to icons from the handle in the title bar. Its
+            width is the grid's column rather than the nav's own, so the
+            screen beside it grows as it folds instead of leaving a gap; the
+            160ms is the only motion, and none under reduced motion. */}
         <AppShell
           sideWidth={RAIL_WIDTH[rail]}
           className="transition-[grid-template-columns] duration-160 ease-out motion-reduce:transition-none"
@@ -126,45 +126,51 @@ export default function App() {
           }
         >
           {/* The id is for the text on stage: a version given the whole
-                content area renders into this box through a portal, rail and
-                title bar left in place. */}
+              content area renders into this box through a portal, rail and
+              title bar left in place. */}
           <div id="main-area" className="relative flex min-h-0 min-w-0 flex-1 flex-col">
             {/* Above the scroll and outside the screen key: a pending question
-                  belongs to the workspace rather than to whichever screen is
-                  open, and it must not replay its entry animation on every
-                  navigation. */}
-            <div className="flex flex-col gap-2 px-6 pt-4 empty:hidden">
+                belongs to the workspace rather than to whichever screen is
+                open, and it must not replay its entry animation on every
+                navigation. */}
+            <div className="flex flex-col gap-2 px-4 pt-3 empty:hidden">
               <WaitingBanner />
               <QueueBanner />
             </div>
 
             {/* Keyed by the screen so the entry animation replays on
-                  navigation, but not when moving between works inside the same
-                  screen.
+                navigation, but not when moving between works inside the same
+                screen.
 
-                  This box does not scroll: it hands its height down, and each
-                  `<Screen>` decides where the scrolling happens inside it. The
-                  window having no scrollbar of its own is the point — see
-                  `Screen`. `data-screen-area` is how the tests find it to
-                  hold every screen to that (`app/smoke.test.tsx`). */}
+                This box does not scroll, and neither does any screen: each
+                is held against the height it is handed and lays itself out
+                on `components/frame` - a head that stands and a part that
+                scrolls. The window having no scrollbar of its own is the
+                point. `data-screen-area` is how the tests find it to hold
+                every screen to that (`app/smoke.test.tsx`). */}
             <div
               key={screen}
               data-screen-area
               className="screen-in flex min-h-0 flex-1 flex-col overflow-hidden"
             >
               {/* Resetting on the place means a crash does not outlive the
-                    route, or the work, that caused it. */}
+                  route, or the work, that caused it. */}
               <ErrorBoundary resetKey={place}>
                 <Routes>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   {/* Every screen from the one list the rail and the title
-                      bar read too (`app/screens.tsx`), each drawn through the
-                      shell's `Screen`, which decides where it scrolls. */}
+                      bar read too (`app/screens.tsx`). The margins are the
+                      mockup's: sixteen at the sides, the head twelve under
+                      the title bar, fourteen above the window's edge. */}
                   {drawn(import.meta.env.DEV).map((spec) => (
                     <Route
                       key={spec.key}
                       path={spec.path}
-                      element={<Screen scroll={spec.scroll}>{spec.render(openWork)}</Screen>}
+                      element={
+                        <Screen scroll="held" pad="none" className="px-4 pt-3 pb-3.5">
+                          {spec.render(openWork)}
+                        </Screen>
+                      }
                     />
                   ))}
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />

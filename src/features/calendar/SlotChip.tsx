@@ -10,6 +10,7 @@ import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { StageDial } from '@/components/StageDial'
 import { stageAt } from '@/lib/stages'
 import { ReadyMarks } from '@/components/ReadyMarks'
+import { Button } from '@/components/ui/button'
 import { PreviewCard, PreviewCardPopup, PreviewCardTrigger } from '@/components/ui/preview-card'
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/format'
@@ -80,12 +81,12 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
       style={{ background: coverImageFor(slot.work_id, covers.get(slot.work_id)) }}
     >
       {/* The top line: what you grab and what the release's state is. Both
-            are small and fixed-width, so they cost the title nothing. */}
+          are small and fixed-width, so they cost the title nothing. */}
       <div className="flex items-center gap-1">
         {/* The grip no longer owns the gesture — the whole chip does, and a
-              press only becomes a drag after `DRAG_THRESHOLD`. It stays as the
-              sign that the chip can be moved at all, which was the other half
-              of its job. */}
+            press only becomes a drag after `DRAG_THRESHOLD`. It stays as the
+            sign that the chip can be moved at all, which was the other half
+            of its job. */}
         <span
           aria-hidden
           title={t('calendar.dragHandle')}
@@ -94,6 +95,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
           <GripVertical className="size-3" />
         </span>
 
+        {/* eslint-disable-next-line dowel/no-raw-button -- drawn on the work's own colour, where every Button variant's ink and hover (tokens made for the theme's surfaces) would not read */}
         <button
           type="button"
           onClick={(event) => {
@@ -114,8 +116,8 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
             className={cn('rounded-xs bg-black/35 px-0.5 py-px', released && 'text-white/70')}
           />
           {/* How far along the work is, beside how ready the release is:
-                the two answer different questions and a chip that showed only
-                the second would call a placeholder lyric ready to ship. */}
+              the two answer different questions and a chip that showed only
+              the second would call a placeholder lyric ready to ship. */}
           {slot.work_stage !== null && (
             <span
               className={cn(
@@ -139,11 +141,11 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
             </span>
           )}
           {/* The kind, as the glyph its profile names. Two letters stood here
-                while the code was not allowed to know which kinds exist
-                (ADR 0001) — the profile now names the glyph too, so the rule
-                holds and the mark is legible at a glance. The word stays in the
-                tooltip, which is where a reader who cannot see the glyph finds
-                it. */}
+              while the code was not allowed to know which kinds exist
+              (ADR 0001) — the profile now names the glyph too, so the rule
+              holds and the mark is legible at a glance. The word stays in the
+              tooltip, which is where a reader who cannot see the glyph finds
+              it. */}
           <KindGlyph icon={kind?.icon} className="size-3 shrink-0 text-white/70" />
         </button>
       </div>
@@ -151,6 +153,7 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
       {/* The title, on its own line. It opens the release; a press that turns
           into a drag never reaches the click, because the gesture starts only
           after the pointer has travelled. */}
+      {/* eslint-disable-next-line dowel/no-raw-button -- on the work's own colour, as above */}
       <button
         type="button"
         onClick={(event) => {
@@ -221,14 +224,14 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
             itself. It goes through the opener rather than an anchor: inside a
             WebView `target="_blank"` reaches no browser at all. */}
         {slot.url !== null && slot.url !== '' && (
-          <button
-            type="button"
+          <Button
+            variant="link"
             onClick={() => void openExternal(slot.url ?? '')}
             title={slot.url}
-            className="mt-2 block max-w-full truncate text-left text-xs text-accent-2 underline underline-offset-2"
+            className="mt-2 max-w-full text-xs"
           >
-            {shortLink(slot.url)}
-          </button>
+            <span className="truncate">{shortLink(slot.url)}</span>
+          </Button>
         )}
       </PreviewCardPopup>
     </PreviewCard>

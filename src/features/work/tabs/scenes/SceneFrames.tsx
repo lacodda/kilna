@@ -199,6 +199,7 @@ export function SceneFrames({ workId, sceneId, number, kind, frames, onOpen }: P
         <ul className="flex flex-wrap gap-2">
           {frames.map((frame) => (
             <li key={frame.id} className="group relative">
+              {/* eslint-disable-next-line dowel/no-raw-button -- a thumbnail: the picture is the control and its border is the chosen state; no primitive draws a pressable picture */}
               <button
                 type="button"
                 onClick={() => onOpen(frame)}

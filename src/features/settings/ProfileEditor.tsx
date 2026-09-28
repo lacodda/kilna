@@ -19,9 +19,11 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Select } from '@/components/AppSelect'
 import { Button } from '@/components/ui/button'
-import { Field } from '@/components/Field'
+import { Chip, ChipGroup } from '@/components/ui/chip'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { SaveState, useSaveStatus } from '@/components/SaveState'
+import { NumberField } from '@/components/ui/number-field'
+import { SaveState, useSaveStatus } from '@/components/ui/save-state'
 import { Textarea } from '@/components/ui/textarea'
 
 // Editing the scenario, not designing a schema: the tables never change, only
@@ -78,30 +80,27 @@ export function ProfileEditor() {
         <h4 className="caption">{t('editor.rhythm')}</h4>
         <p className="text-xs text-dim">{t('editor.rhythmHint')}</p>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 text-sm">
-            <Input
-              className="w-20"
-              type="number"
-              min={1}
-              value={config.rhythm?.every_days ?? ''}
-              aria-label={t('editor.rhythmDays')}
-              onChange={(event) => {
-                const raw = event.target.value
-                // Clearing the field removes the rhythm entirely — "no pace"
-                // is a valid answer, and the layout button explains it.
-                patch({
-                  rhythm:
-                    raw === ''
-                      ? null
-                      : {
-                          every_days: Math.max(1, Math.trunc(Number(raw))),
-                          default_time: config.rhythm?.default_time ?? null,
-                        },
-                })
-              }}
-            />
-            {t('editor.rhythmDaysUnit')}
-          </label>
+          <NumberField
+            className="w-44"
+            min={1}
+            step={1}
+            value={config.rhythm?.every_days ?? null}
+            unit={t('editor.rhythmDaysUnit')}
+            aria-label={t('editor.rhythmDays')}
+            onValueChange={(days) => {
+              // Clearing the field removes the rhythm entirely — "no pace"
+              // is a valid answer, and the layout button explains it.
+              patch({
+                rhythm:
+                  days === null
+                    ? null
+                    : {
+                        every_days: Math.max(1, Math.trunc(days)),
+                        default_time: config.rhythm?.default_time ?? null,
+                      },
+              })
+            }}
+          />
           <label className="ml-4 flex items-center gap-2 text-sm">
             {t('editor.rhythmTime')}
             <Input
@@ -141,7 +140,11 @@ export function ProfileEditor() {
         <Button variant="primary" disabled={save.isPending} onClick={() => save.mutate()}>
           {t('editor.save')}
         </Button>
-        <SaveState status={saveStatus} />
+        <SaveState
+          savingLabel={t('save.saving')}
+          savedLabel={t('save.saved')}
+          status={saveStatus}
+        />
       </div>
 
       <p className="text-xs text-dim">{t('editor.keysHint')}</p>
@@ -213,19 +216,21 @@ function ReleaseFieldsEditor({
                       }
                     />
                     <span className="shrink-0 caption">{t(`editor.fieldType.${field.type}`)}</span>
-                    <Input
+                    {/* No stepper: a limit is hundreds of characters, and
+                        nobody clicks their way there. */}
+                    <NumberField
                       className="w-24"
-                      type="number"
+                      hideStepper
                       min={1}
-                      value={field.limit ?? ''}
+                      step={1}
+                      value={field.limit ?? null}
                       placeholder={t('editor.fieldLimit')}
                       aria-label={t('editor.fieldLimit')}
-                      onChange={(event) => {
-                        const raw = event.target.value
+                      onValueChange={(limit) => {
                         set(kindIndex, fieldIndex, {
                           // Nothing typed is nobody counting, not a limit of
                           // zero — which the profile refuses to save anyway.
-                          limit: raw === '' ? null : Math.max(1, Math.trunc(Number(raw))),
+                          limit: limit === null ? null : Math.max(1, Math.trunc(limit)),
                         })
                       }}
                     />
@@ -314,19 +319,20 @@ function KindVocabulary({
                 onChange={(event) => setAxis(index, { label: event.target.value })}
                 aria-label={`${axis.key} label`}
               />
-              <Input
-                className="w-20"
-                type="number"
+              <NumberField
+                className="w-28"
                 min={0}
                 step={0.5}
                 value={axis.weight}
-                onChange={(event) => setAxis(index, { weight: Number(event.target.value) })}
+                // An emptied box is no weight, as it was when the box held text.
+                onValueChange={(weight) => setAxis(index, { weight: weight ?? 0 })}
                 aria-label={`${axis.key} weight`}
               />
               <Button
                 variant="danger"
                 size="icon-sm"
                 title={t('editor.removeAxis')}
+                aria-label={t('editor.removeAxis')}
                 onClick={() => onChange({ axes: axes.filter((_, i) => i !== index) })}
               >
                 <X aria-hidden className="size-3.5" />
@@ -349,13 +355,14 @@ function KindVocabulary({
                 onChange={(event) => setTier(index, { label: event.target.value })}
                 aria-label={`${tier.key} label`}
               />
-              <Input
+              <NumberField
                 className="w-20"
-                type="number"
+                hideStepper
                 min={0}
                 max={100}
+                step={1}
                 value={tier.min}
-                onChange={(event) => setTier(index, { min: Number(event.target.value) })}
+                onValueChange={(min) => setTier(index, { min: min ?? 0 })}
                 aria-label={`${tier.key} threshold`}
               />
             </li>
@@ -450,13 +457,6 @@ function ActionsEditor({
     { value: 'comment', label: t('editor.scopeComment') },
   ]
 
-  // The kinds an action is for, as chips: none on means every kind.
-  const toggleKind = (index: number, key: string) => {
-    const current = actions[index]?.kinds ?? []
-    const next = current.includes(key) ? current.filter((k) => k !== key) : [...current, key]
-    set(index, { kinds: next.length === 0 ? undefined : next })
-  }
-
   // A key typed as a slug: lower case, letters, digits and dashes, unique.
   const key = newKey.trim().toLowerCase()
   const keyTaken = actions.some((action) => action.key === key)
@@ -512,30 +512,21 @@ function ActionsEditor({
             />
             <div className="flex flex-wrap items-center gap-2">
               <span className="caption">{t('editor.actionKinds')}</span>
-              <div
-                role="group"
+              {/* The kinds an action is for, as chips: none on means every kind. */}
+              <ChipGroup
+                multiple
                 aria-label={t('editor.actionKinds')}
-                className="flex flex-wrap gap-1.5"
+                value={action.kinds ?? []}
+                onValueChange={(next) =>
+                  set(index, { kinds: next.length === 0 ? undefined : next })
+                }
               >
-                {kinds.map((kind) => {
-                  const on = (action.kinds ?? []).includes(kind.key)
-                  return (
-                    <button
-                      key={kind.key}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => toggleKind(index, kind.key)}
-                      className={
-                        on
-                          ? 'cursor-pointer rounded-full border border-transparent bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent-2'
-                          : 'cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-xs text-dim hover:border-line-2 hover:text-text'
-                      }
-                    >
-                      {sayLabel(kind.label)}
-                    </button>
-                  )
-                })}
-              </div>
+                {kinds.map((kind) => (
+                  <Chip key={kind.key} value={kind.key}>
+                    {sayLabel(kind.label)}
+                  </Chip>
+                ))}
+              </ChipGroup>
               <span className="text-xs text-faint">
                 {(action.kinds ?? []).length === 0 ? t('editor.actionKindsAll') : ''}
               </span>
@@ -549,7 +540,7 @@ function ActionsEditor({
                 options={scopeOptions}
               />
             </div>
-            <Field label={t('editor.actionTemplate')} hint={t('editor.actionTemplateHint')}>
+            <Field label={t('editor.actionTemplate')} help={t('editor.actionTemplateHint')}>
               <Textarea
                 autoResize
                 maxRows={10}
@@ -559,7 +550,7 @@ function ActionsEditor({
                 onChange={(event) => set(index, { template: event.target.value })}
               />
             </Field>
-            <Field label={t('editor.actionMethod')} hint={t('editor.actionMethodHint')}>
+            <Field label={t('editor.actionMethod')} help={t('editor.actionMethodHint')}>
               <Textarea
                 autoResize
                 maxRows={24}

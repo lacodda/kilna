@@ -5,9 +5,12 @@ import { markJournalRead } from '@/lib/api/journal'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { Button } from '@/components/ui/button'
-import { SkeletonList } from '@/components/Skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
+import { SkeletonList } from '@/components/ui/skeleton'
+import { Frame, Pane } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 import { JournalLines } from '@/features/journal/JournalFeed'
-import { cn } from '@/lib/utils'
 
 /**
  * Everything that happened in this profile, newest first.
@@ -27,43 +30,31 @@ export function JournalView() {
     failure: 'toast.loadFailed',
   })
 
-  if (entries.isPending) return <SkeletonList rows={6} />
-
-  if (entries.isError) {
-    return (
-      <p role="alert" className="text-sm text-bad">
-        {t('toast.loadFailed')}
-      </p>
-    )
-  }
-
   // Filtering on the client: the feed is one page of at most two hundred, and a
   // round trip to hide some of them would be slower than not hiding them.
-  const needsALook = entries.data.filter(
+  const needsALook = (entries.data ?? []).filter(
     (entry) => entry.level === 'warn' && entry.read_at === null,
   )
-  const shown = unreadOnly ? needsALook : entries.data
 
   return (
-    <div className="flex flex-col gap-3">
-      <header className="flex items-center gap-3">
-        <p className="text-xs text-dim">{t('journal.hint')}</p>
-
-        <div className="ml-auto flex items-center gap-1.5">
-          {[false, true].map((only) => (
-            <Button
-              key={String(only)}
-              variant={unreadOnly === only ? 'soft' : 'ghost'}
-              size="sm"
-              aria-pressed={unreadOnly === only}
-              onClick={() => setUnreadOnly(only)}
-            >
-              {t(only ? 'journal.unreadOnly' : 'journal.all')}
-              {only && needsALook.length > 0 && (
-                <span className={cn('ml-1.5 tabular-nums text-warn')}>{needsALook.length}</span>
+    <Frame
+      head={
+        <>
+          <p className="text-xs text-dim">{t('journal.hint')}</p>
+          <SegmentedControl
+            aria-label={t('journal.title')}
+            value={unreadOnly ? 'unread' : 'all'}
+            onValueChange={(value) => setUnreadOnly(value === 'unread')}
+            className="ml-auto"
+          >
+            <Segment value="all">{t('journal.all')}</Segment>
+            <Segment value="unread">
+              {t('journal.unreadOnly')}
+              {needsALook.length > 0 && (
+                <span className="tabular-nums text-warn">{needsALook.length}</span>
               )}
-            </Button>
-          ))}
+            </Segment>
+          </SegmentedControl>
           <Button
             variant="ghost"
             size="sm"
@@ -72,14 +63,48 @@ export function JournalView() {
           >
             {t('journal.markRead')}
           </Button>
-        </div>
-      </header>
-
-      <JournalLines
-        entries={shown}
-        emptyTitle={t(unreadOnly ? 'empty.journalClearTitle' : 'empty.journalTitle')}
-        emptyBody={t(unreadOnly ? 'empty.journalClearBody' : 'empty.journalBody')}
-      />
-    </div>
+        </>
+      }
+    >
+      <Loaded
+        query={entries}
+        fill
+        skeleton={<SkeletonList rows={6} />}
+        isEmpty={(data) => data.length === 0}
+        emptyState={
+          <EmptyState
+            title={t('empty.journalTitle')}
+            body={t('empty.journalBody')}
+            className="flex-1"
+          />
+        }
+      >
+        {(data) => {
+          const shown = unreadOnly ? needsALook : data
+          // Nothing that needs a look is a filter that matched nothing, not
+          // an empty history: the way out is back to everything.
+          if (shown.length === 0) {
+            return (
+              <EmptyState
+                variant="filtered"
+                title={t('empty.journalClearTitle')}
+                body={t('empty.journalClearBody')}
+                action={
+                  <Button size="sm" onClick={() => setUnreadOnly(false)}>
+                    {t('journal.all')}
+                  </Button>
+                }
+                className="flex-1"
+              />
+            )
+          }
+          return (
+            <Pane label={t('journal.title')} bodyClassName="px-3">
+              <JournalLines entries={shown} />
+            </Pane>
+          )
+        }}
+      </Loaded>
+    </Frame>
   )
 }

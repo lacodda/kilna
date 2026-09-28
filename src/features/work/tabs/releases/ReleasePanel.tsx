@@ -31,7 +31,10 @@ import { ReleaseRowEditor } from '@/features/work/tabs/releases/ReleaseRowEditor
 import { Button } from '@/components/ui/button'
 import { RowContextMenu, RowMenu, type RowAction } from '@/components/RowMenu'
 import { Select } from '@/components/AppSelect'
-import { Skeleton } from '@/components/Skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SkeletonList } from '@/components/ui/skeleton'
+import { Frame, Scroll } from '@/components/frame'
+import { Loaded } from '@/components/Loaded'
 
 interface Props {
   workId: string
@@ -171,117 +174,127 @@ export function ReleasePanel({ workId, workTitle }: Props) {
   }
 
   return (
-    <section className="flex flex-col gap-3">
-      {releases.isError && (
-        <p role="alert" className="text-sm text-bad">
-          {t('toast.loadFailed')}
-        </p>
-      )}
+    <Frame
+      // Adding stands above the list rather than following its last row
+      // down: with a dozen releases it had gone under the card's edge.
+      head={
+        <>
+          <Select
+            className="w-48"
+            aria-label={t('releases.kind')}
+            value={kind}
+            onChange={setKind}
+            options={kinds.map((k) => ({ value: k.key, label: sayLabel(k.label) }))}
+          />
+          <Button onClick={() => add.mutate()} disabled={kind === '' || add.isPending}>
+            {t('releases.add')}
+          </Button>
+        </>
+      }
+    >
+      <Scroll label={t('card.tab.releases')}>
+        <Loaded
+          query={releases}
+          skeleton={<SkeletonList rows={2} secondary={false} />}
+          isEmpty={(data) => data.length === 0}
+          // Plain, and its way out is the kind and the button above it.
+          emptyState={<EmptyState plain title={t('releases.none')} />}
+          plain
+        >
+          {() => (
+            <ul className="flex flex-col gap-1">
+              {releasesData.map((entry) => {
+                const released = entry.status === 'released'
+                const url = entry.url
+                const kindEntry = kinds.find((entry_) => entry_.key === entry.kind)
 
-      {releases.isPending && <Skeleton className="h-14 w-full" />}
+                const open = showing === entry.id
 
-      {releasesData.length > 0 && (
-        <ul className="flex flex-col gap-1">
-          {releasesData.map((entry) => {
-            const released = entry.status === 'released'
-            const url = entry.url
-            const kindEntry = kinds.find((entry_) => entry_.key === entry.kind)
-
-            const open = showing === entry.id
-
-            return (
-              <li key={entry.id} className="flex flex-col gap-1">
-                <RowContextMenu
-                  actions={actionsFor(entry)}
-                  render={
-                    <div
-                      className={cn(
-                        'flex items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm',
-                        // What went out is history sitting in the list, not a plan
-                        // competing for attention - the same dimming the chip uses.
-                        released && 'opacity-70',
-                        // Lit while its own menu is open, so it is clear which
-                        // release the actions belong to.
-                        'data-[popup-open]:bg-soft',
-                      )}
-                    />
-                  }
-                >
-                  <button
-                    type="button"
-                    onClick={() => setShowing(open ? null : entry.id)}
-                    aria-expanded={open}
-                    aria-label={t('releases.meta.title')}
-                    className="-my-1 -ml-1 shrink-0 rounded p-1 text-faint hover:text-text"
-                  >
-                    <ChevronRight
-                      aria-hidden
-                      className={cn('size-3.5 transition-transform', open && 'rotate-90')}
-                    />
-                  </button>
-                  <KindGlyph icon={kindEntry?.icon} className="size-3.5 shrink-0 text-dim" />
-                  <span className="font-medium">{labelOf(kinds, entry.kind)}</span>
-
-                  <ReadyMarks
-                    readiness={entry.readiness}
-                    released={released}
-                    daysLeft={
-                      released || entry.scheduled_at === null
-                        ? null
-                        : daysBetween(now, entry.scheduled_at)
-                    }
-                  />
-
-                  <span className={cn('text-xs', released ? 'text-good' : 'text-dim')}>
-                    {released
-                      ? t('releases.releasedOn', {
-                          date: entry.released_at === null ? '' : formatDay(entry.released_at),
-                        })
-                      : entry.scheduled_at === null
-                        ? t('releases.unscheduled')
-                        : formatDay(entry.scheduled_at)}
-                  </span>
-
-                  {url !== null && (
-                    <button
-                      type="button"
-                      onClick={() => void openExternal(url)}
-                      title={url}
-                      className="flex min-w-0 items-center gap-1 text-xs text-dim underline hover:text-text"
+                return (
+                  <li key={entry.id} className="flex flex-col gap-1">
+                    <RowContextMenu
+                      actions={actionsFor(entry)}
+                      render={
+                        <div
+                          className={cn(
+                            'flex items-center gap-3 rounded-xl border border-line px-3 py-1.5 text-sm',
+                            // What went out is history sitting in the list, not a plan
+                            // competing for attention - the same dimming the chip uses.
+                            released && 'opacity-70',
+                            // Lit while its own menu is open, so it is clear which
+                            // release the actions belong to.
+                            'data-[popup-open]:bg-soft',
+                          )}
+                        />
+                      }
                     >
-                      <ExternalLink aria-hidden className="size-3 shrink-0" />
-                      <span className="truncate">{shortLink(url)}</span>
-                    </button>
-                  )}
+                      <Button
+                        variant="icon"
+                        size="icon-sm"
+                        onClick={() => setShowing(open ? null : entry.id)}
+                        aria-expanded={open}
+                        aria-label={t('releases.meta.title')}
+                        // Pulled into the row's padding, so the row stays the height
+                        // of its words rather than of the button.
+                        className="-my-1 -ml-1.5"
+                      >
+                        <ChevronRight
+                          aria-hidden
+                          className={cn('transition-transform', open && 'rotate-90')}
+                        />
+                      </Button>
+                      <KindGlyph icon={kindEntry?.icon} className="size-3.5 shrink-0 text-dim" />
+                      <span className="font-medium">{labelOf(kinds, entry.kind)}</span>
 
-                  <span className="ml-auto">
-                    <RowMenu actions={actionsFor(entry)} label={t('releases.actions')} />
-                  </span>
-                </RowContextMenu>
+                      <ReadyMarks
+                        readiness={entry.readiness}
+                        released={released}
+                        daysLeft={
+                          released || entry.scheduled_at === null
+                            ? null
+                            : daysBetween(now, entry.scheduled_at)
+                        }
+                      />
 
-                {open && (
-                  <div className="pl-6">
-                    <ReleaseFields release={entry} />
-                  </div>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
+                      <span className={cn('text-xs', released ? 'text-good' : 'text-dim')}>
+                        {released
+                          ? t('releases.releasedOn', {
+                              date: entry.released_at === null ? '' : formatDay(entry.released_at),
+                            })
+                          : entry.scheduled_at === null
+                            ? t('releases.unscheduled')
+                            : formatDay(entry.scheduled_at)}
+                      </span>
 
-      <div className="flex gap-2">
-        <Select
-          className="w-48"
-          aria-label={t('releases.kind')}
-          value={kind}
-          onChange={setKind}
-          options={kinds.map((k) => ({ value: k.key, label: sayLabel(k.label) }))}
-        />
-        <Button onClick={() => add.mutate()} disabled={kind === '' || add.isPending}>
-          {t('releases.add')}
-        </Button>
-      </div>
+                      {url !== null && (
+                        <Button
+                          variant="link"
+                          onClick={() => void openExternal(url)}
+                          title={url}
+                          className="min-w-0 text-xs"
+                        >
+                          <ExternalLink aria-hidden />
+                          <span className="truncate">{shortLink(url)}</span>
+                        </Button>
+                      )}
+
+                      <span className="ml-auto">
+                        <RowMenu actions={actionsFor(entry)} label={t('releases.actions')} />
+                      </span>
+                    </RowContextMenu>
+
+                    {open && (
+                      <div className="pl-6">
+                        <ReleaseFields release={entry} />
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </Loaded>
+      </Scroll>
 
       <ReleaseRowEditor
         release={editing}
@@ -299,6 +312,6 @@ export function ReleasePanel({ workId, workTitle }: Props) {
         }}
         onConfirm={(id, url, at) => release.mutate({ id, url, at })}
       />
-    </section>
+    </Frame>
   )
 }
