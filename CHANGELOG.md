@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.82.0] - 2026-09-28
+
+### Features
+- The overview as a board of widgets
+
 ## [0.81.0] - 2026-09-28
 
 ### Features
