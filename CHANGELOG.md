@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.79.0] - 2026-09-28
+
+### Features
+- Shell screens to the mockup
+- Read a style's and a comment's task before it is sent
+
 ## [0.78.0] - 2026-09-28
 
 ### Bug Fixes
