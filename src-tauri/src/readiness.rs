@@ -308,10 +308,10 @@ mod tests {
             },
         )
         .unwrap();
-        let mut conn = conn;
+        let conn = conn;
         for role in ["lyrics", "style"] {
             crate::work::version::create(
-                &mut conn,
+                &conn,
                 &ready.work_id,
                 crate::work::version::NewVersion {
                     role: role.into(),
@@ -345,11 +345,11 @@ mod tests {
         crate::profile::seed(&conn).unwrap();
         let profile_id = crate::profile::active(&conn).unwrap().unwrap().id;
 
-        let mut conn = conn;
+        let conn = conn;
         let with_versions = sample_work(&conn, &profile_id, "With versions");
         for role in ["lyrics", "style"] {
             crate::work::version::create(
-                &mut conn,
+                &conn,
                 &with_versions,
                 crate::work::version::NewVersion {
                     role: role.into(),

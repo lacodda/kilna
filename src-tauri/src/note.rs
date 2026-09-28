@@ -299,10 +299,22 @@ impl PromotionIds {
 /// different vocabularies (see `work_tags`), and carrying "reference" onto a
 /// song would be the app guessing at a connection nobody made.
 ///
-/// One transaction for all three rows, held by the caller: a work made while
-/// the note failed to move would be the duplicate this exists to prevent.
-pub fn promote_in(
-    tx: &rusqlite::Transaction<'_>,
+/// One unit for all three rows: a work made while the note failed to move
+/// would be the duplicate this exists to prevent.
+pub fn promote(
+    conn: &Connection,
+    profile_id: &str,
+    note_id: &str,
+    promotion: Promotion,
+    ids: &PromotionIds,
+) -> Result<Promoted> {
+    crate::db::unit::atomically(conn, |tx| {
+        promote_in(tx, profile_id, note_id, promotion, ids)
+    })
+}
+
+fn promote_in(
+    tx: &Connection,
     profile_id: &str,
     note_id: &str,
     promotion: Promotion,
@@ -351,7 +363,7 @@ pub fn promote_in(
         },
         ids.work.clone(),
     )?;
-    let version_id = crate::work::version::create_in(
+    let version_id = crate::work::version::create_minted(
         tx,
         &work.id,
         crate::work::version::NewVersion {
@@ -362,10 +374,15 @@ pub fn promote_in(
             make_current: true,
             parent_version_id: None,
         },
-        &ids.version,
+        ids.version.clone(),
+    )?
+    .id;
+    let deletion_id = crate::trash::discard_minted(
+        tx,
+        crate::trash::Entity::Note,
+        note_id,
+        ids.deletion.clone(),
     )?;
-    let deletion_id =
-        crate::trash::discard_in_tx(tx, crate::trash::Entity::Note, note_id, &ids.deletion)?;
 
     Ok(Promoted {
         work_id: work.id,
@@ -650,7 +667,7 @@ mod tests {
             get(&conn, &idea.id).unwrap().is_none(),
             "the body lives in the version now, not twice"
         );
-        crate::trash::restore(&mut conn, &promoted.deletion_id, None).unwrap();
+        crate::trash::restore(&conn, &promoted.deletion_id).unwrap();
         assert_eq!(
             get(&conn, &idea.id).unwrap().unwrap().body,
             "one text, one place"

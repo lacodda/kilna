@@ -15,11 +15,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let target = args.next().ok_or("usage: migrate <kilna.db> <legacy.db>")?;
     let source = args.next().ok_or("usage: migrate <kilna.db> <legacy.db>")?;
 
-    let mut conn = db::open(std::path::Path::new(&target))?;
+    let conn = db::open(std::path::Path::new(&target))?;
     profile::seed(&conn)?;
     let profile_id = profile::active(&conn)?.ok_or("no active profile")?.id;
 
-    let report = import::from_legacy(&mut conn, std::path::Path::new(&source), &profile_id)?;
+    let report = import::from_legacy(&conn, std::path::Path::new(&source), &profile_id)?;
 
     println!("works     {}", report.works);
     println!("versions  {}", report.versions);

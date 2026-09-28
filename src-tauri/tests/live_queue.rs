@@ -16,7 +16,7 @@ use kilna_lib::{db, profile};
 #[ignore = "spawns real CLI processes"]
 fn a_batch_larger_than_the_limit_starts_some_and_queues_the_rest() {
     let dir = tempfile::tempdir().unwrap();
-    let mut conn = db::open(&dir.path().join("workspace.db")).unwrap();
+    let conn = db::open(&dir.path().join("workspace.db")).unwrap();
     profile::seed(&conn).unwrap();
     let profile_id = profile::active(&conn).unwrap().unwrap().id;
 
@@ -44,7 +44,7 @@ fn a_batch_larger_than_the_limit_starts_some_and_queues_the_rest() {
         )
         .unwrap();
         version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "lyrics".into(),

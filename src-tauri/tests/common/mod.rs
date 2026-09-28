@@ -132,6 +132,56 @@ pub fn matching_brace(code: &str, open: usize) -> usize {
     code.len()
 }
 
+/// The offset just past the parenthesis that closes the one at `open`.
+pub fn matching_paren(code: &str, open: usize) -> usize {
+    let mut depth = 0usize;
+    for (offset, byte) in code[open..].bytes().enumerate() {
+        match byte {
+            b'(' => depth += 1,
+            b')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return open + offset + 1;
+                }
+            }
+            _ => {}
+        }
+    }
+    code.len()
+}
+
+/// Every call of the gesture primitive in a file - `gesture(` or
+/// `gesture_in(`, not their definitions - as the span of its arguments in
+/// the code-only view, and the operation kind it records: the first string
+/// literal among its arguments.
+pub fn gestures(file: &Source) -> Vec<(std::ops::Range<usize>, Option<String>)> {
+    let mut found = Vec::new();
+    for marker in ["gesture(", "gesture_in("] {
+        for (at, _) in file.code.match_indices(marker) {
+            // `gesture(` must not match inside `gesture_in(`'s neighbours or
+            // any longer name, and a definition is not a call.
+            let before = file.code[..at].chars().next_back();
+            if before.is_some_and(|c| c.is_alphanumeric() || c == '_') {
+                continue;
+            }
+            if file.code[..at].trim_end().ends_with("fn") {
+                continue;
+            }
+            let open = at + marker.len() - 1;
+            let close = matching_paren(&file.code, open);
+            // The kind: the first literal inside the arguments, read from the
+            // text at the offsets the code view blanked.
+            let args = &file.text[open..close];
+            let kind = args.find('"').and_then(|start| {
+                let rest = &args[start + 1..];
+                rest.find('"').map(|end| rest[..end].to_owned())
+            });
+            found.push((open..close, kind));
+        }
+    }
+    found
+}
+
 /// The source with every comment and every string and character literal
 /// blanked to spaces, so that what is left is code: a brace inside a
 /// `format!` does not open a block, and a word in a comment does not count as
@@ -243,13 +293,18 @@ pub struct Function<'a> {
 /// Exactly one: none means it was renamed and the gate is reading nothing;
 /// two means the gate cannot know which one it is about.
 pub fn the_function<'a>(sources: &'a [Source], name: &str) -> Function<'a> {
-    let marker = format!("fn {name}(");
+    let marker = format!("fn {name}");
     let mut found = Vec::new();
     for file in sources {
         for (at, _) in file.code.match_indices(&marker) {
-            // `fn undo(` must not match inside `fn take_undo(`.
+            // `fn undo(` must not match inside `fn take_undo(`, nor `fn undo_all(`;
+            // a generic function is `fn name<`.
             let before = file.code[..at].chars().next_back();
             if before.is_some_and(|c| c.is_alphanumeric() || c == '_') {
+                continue;
+            }
+            let after = file.code[at + marker.len()..].chars().next();
+            if !matches!(after, Some('(' | '<')) {
                 continue;
             }
             let Some(open) = file.code[at..].find('{').map(|offset| at + offset) else {

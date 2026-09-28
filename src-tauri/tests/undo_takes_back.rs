@@ -370,7 +370,7 @@ fn a_stale_offer_is_refused() {
         },
     );
 
-    let refused = undo::undo(&mut conn, &stale.operation_id);
+    let refused = undo::undo(&conn, &stale.operation_id);
 
     assert!(refused.is_err(), "a stale undo was carried out anyway");
     assert_eq!(
@@ -451,24 +451,9 @@ fn undoing_a_creation_sends_it_to_the_trash() {
 /// versions, scores, releases — has to still point at it afterwards.
 #[test]
 fn undoing_a_deletion_brings_the_row_back() {
-    let (mut conn, profile_id, work_id) = workspace();
+    let (mut conn, _profile_id, work_id) = workspace();
 
-    let minted = Minted::fresh();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
-    let logged = operation::Intent::new("entity.discard")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("entity", "work")
-        .param("entityId", work_id.clone())
-        .minted(&minted);
-    kilna_lib::trash::discard_minted(
-        &mut conn,
-        kilna_lib::trash::Entity::Work,
-        &work_id,
-        minted,
-        Some(logged),
-    )
-    .unwrap();
+    kilna_lib::actions::trash::discard(&conn, kilna_lib::trash::Entity::Work, &work_id).unwrap();
     assert!(work::get(&conn, &work_id).unwrap().is_none());
 
     let offer = undo::last(&conn)
@@ -712,13 +697,20 @@ fn every_operation_is_undoable_or_says_why_not() {
     // Kinds handled by the trash rather than by an operation of their own.
     const HANDLED_ELSEWHERE: [&str; 2] = ["trash.purge", "trash.empty"];
 
-    // Every operation the backend writes, wherever it is written: the
-    // window's commands, what a person applied from the assistant, what an
-    // agent proposed. Read from the whole backend rather than one file, so a
-    // command moved to a file of its own is still read.
+    // Every operation the backend writes, wherever it is written: the kind a
+    // gesture records, and any intent still built by hand. Read from the whole
+    // backend rather than one file, so an action moved to a file of its own is
+    // still read.
     let sources = common::backend();
     let mut kinds: Vec<String> = Vec::new();
-    for (_, kind) in common::literal_arguments(&sources, "Intent::new") {
+    let gestured = sources
+        .iter()
+        .flat_map(common::gestures)
+        .filter_map(|(_, kind)| kind);
+    let by_hand = common::literal_arguments(&sources, "Intent::new")
+        .into_iter()
+        .map(|(_, kind)| kind);
+    for kind in gestured.chain(by_hand) {
         if !kinds.contains(&kind) {
             kinds.push(kind);
         }
@@ -762,7 +754,7 @@ fn a_body_edit_is_taken_back() {
     let (mut conn, profile_id, work_id) = workspace();
     let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
     let version = version::create(
-        &mut conn,
+        &conn,
         &work_id,
         serde_json::from_value(serde_json::json!({ "role": "lyrics", "body": "as written" }))
             .unwrap(),
@@ -798,13 +790,13 @@ fn a_body_edit_is_taken_back() {
 fn choosing_the_current_version_is_what_undo_takes_back() {
     let (mut conn, profile_id, work_id) = workspace();
     let first = version::create(
-        &mut conn,
+        &conn,
         &work_id,
         serde_json::from_value(serde_json::json!({ "role": "lyrics", "body": "first" })).unwrap(),
     )
     .unwrap();
     let second = version::create(
-        &mut conn,
+        &conn,
         &work_id,
         serde_json::from_value(serde_json::json!({ "role": "lyrics", "body": "second" })).unwrap(),
     )
@@ -893,19 +885,13 @@ fn a_profile_edit_is_taken_back_whole() {
 #[test]
 fn a_created_version_is_taken_back_into_the_trash() {
     let (mut conn, profile_id, work_id) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let _key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
     let new: kilna_lib::work::version::NewVersion =
         serde_json::from_value(serde_json::json!({ "role": "lyrics", "body": "a first change" }))
             .unwrap();
-    let minted = Minted::fresh();
-    let version_id = minted.id().to_owned();
-    let logged = operation::Intent::new("version.create")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("workId", work_id.clone())
-        .param("version", serde_json::to_value(&new).unwrap())
-        .minted(&minted);
-    version::create_minted(&mut conn, &work_id, new, minted, Some(logged)).unwrap();
+    let version_id = kilna_lib::actions::version::create(&conn, &work_id, new)
+        .unwrap()
+        .id;
 
     let offer = undo::last(&conn)
         .unwrap()
@@ -1089,7 +1075,7 @@ fn a_scene_is_taken_back_both_ways() {
 #[test]
 fn a_timed_board_is_taken_back_whole() {
     let (mut conn, profile_id, _song_id) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let _key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
     let video_id = work::create(
         &conn,
         &profile_id,
@@ -1137,26 +1123,7 @@ fn a_timed_board_is_taken_back_whole() {
     )
     .unwrap();
 
-    // Timed the way the command times it.
-    let before: Vec<serde_json::Value> = kilna_lib::scene::for_work(&conn, &video_id)
-        .unwrap()
-        .into_iter()
-        .map(|scene| {
-            serde_json::json!({
-                "id": scene.id,
-                "startsAt": scene.starts_at,
-                "endsAt": scene.ends_at,
-            })
-        })
-        .collect();
-    let at = kilna_lib::time::now();
-    let logged = operation::Intent::new("scene.time")
-        .in_profile(&profile_id)
-        .param("profile", key.clone())
-        .param("workId", video_id.clone())
-        .param("before", serde_json::to_value(&before).unwrap())
-        .param("at", at.clone());
-    kilna_lib::scene::time_board_at(&mut conn, &video_id, &at, Some(logged)).unwrap();
+    kilna_lib::actions::scene::time(&conn, &video_id).unwrap();
 
     let timed = kilna_lib::scene::for_work(&conn, &video_id).unwrap();
     assert_eq!(timed[0].starts_at, Some(0.0));
@@ -1196,7 +1163,7 @@ fn a_timed_board_is_taken_back_whole() {
 #[test]
 fn a_renumbered_board_goes_back_to_the_order_it_stood_in() {
     let (mut conn, profile_id, _song_id) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let _key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
     let video_id = work::create(
         &conn,
         &profile_id,
@@ -1235,23 +1202,10 @@ fn a_renumbered_board_goes_back_to_the_order_it_stood_in() {
     };
     let crooked = numbers(&conn);
 
-    // Renumbered the way the command renumbers it: the NUMBERS travel in
-    // `before`, so the undo can put back a crooked board rather than a tidy
-    // one the board has never been.
-    let places: Vec<serde_json::Value> = crooked
-        .iter()
-        .map(|(id, position)| serde_json::json!({ "id": id, "position": position }))
-        .collect();
+    // The numbers travel in the operation's `before`, so the undo can put
+    // back a crooked board rather than a tidy one it has never been.
     let wanted: Vec<String> = crooked.iter().rev().map(|(id, _)| id.clone()).collect();
-    let at = kilna_lib::time::now();
-    let logged = operation::Intent::new("scene.renumber")
-        .in_profile(&profile_id)
-        .param("profile", key.clone())
-        .param("workId", video_id.clone())
-        .param("ids", serde_json::to_value(&wanted).unwrap())
-        .param("before", serde_json::to_value(&places).unwrap())
-        .param("at", at.clone());
-    kilna_lib::scene::renumber(&mut conn, &video_id, &wanted, &at, Some(logged)).unwrap();
+    kilna_lib::actions::scene::renumber(&conn, &video_id, &wanted).unwrap();
 
     assert_eq!(
         numbers(&conn)
@@ -1289,9 +1243,9 @@ fn a_renumbered_board_goes_back_to_the_order_it_stood_in() {
 #[test]
 fn a_framed_board_is_taken_back_whole() {
     let (mut conn, profile_id, song_id) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let _key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
     kilna_lib::work::version::create(
-        &mut conn,
+        &conn,
         &song_id,
         kilna_lib::work::version::NewVersion {
             role: "lyrics".into(),
@@ -1327,21 +1281,8 @@ fn a_framed_board_is_taken_back_whole() {
     )
     .unwrap();
 
-    // Framed the way the command frames it.
-    let parts = kilna_lib::scene::parts_of_source(&conn, &video_id, "lyrics").unwrap();
-    let minted: Vec<Minted> = (0..parts).map(|_| Minted::fresh()).collect();
-    let ids: Vec<String> = minted.iter().map(|one| one.id().to_owned()).collect();
-    let at = kilna_lib::time::now();
-    let logged = operation::Intent::new("scene.frame")
-        .in_profile(&profile_id)
-        .param("profile", key.clone())
-        .param("workId", video_id.clone())
-        .param("role", "lyrics".to_owned())
-        .param("ids", serde_json::to_value(&ids).unwrap())
-        .param("at", at.clone());
-    let framed =
-        kilna_lib::scene::frame_from_text(&mut conn, &video_id, "lyrics", &minted, Some(logged))
-            .unwrap();
+    let framed = kilna_lib::actions::scene::frame(&conn, &video_id, "lyrics").unwrap();
+    let ids: Vec<String> = framed.iter().map(|scene| scene.id.clone()).collect();
     assert_eq!(framed.len(), 3);
 
     let offer = undo::last(&conn)
@@ -1521,10 +1462,10 @@ fn undoing_a_description_puts_back_the_draft_it_was() {
 /// note returns. Restoring only the note would leave its text in two places.
 #[test]
 fn a_promotion_is_taken_back_whole() {
-    use kilna_lib::note::{self, NewNote, Promotion, PromotionIds};
+    use kilna_lib::note::{self, NewNote, Promotion};
 
     let (mut conn, profile_id, _) = workspace();
-    let key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
+    let _key = profile::key_for_id(&conn, &profile_id).unwrap().unwrap();
     let idea = note::create(
         &conn,
         &profile_id,
@@ -1538,26 +1479,11 @@ fn a_promotion_is_taken_back_whole() {
     )
     .unwrap();
 
-    // Exactly what the command records.
-    let ids = PromotionIds::fresh();
     let promotion = Promotion {
         kind: "song".into(),
         title: "Graphite".into(),
     };
-    let logged = operation::Intent::new("note.promote")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("id", idea.id.clone())
-        .param("promotion", serde_json::to_value(&promotion).unwrap())
-        .param("workId", ids.work.id().to_owned())
-        .param("versionId", ids.version.id().to_owned())
-        .param("entryId", ids.deletion.id().to_owned())
-        .param("title", "Graphite")
-        .param("at", ids.work.at().to_owned());
-    let transaction = conn.transaction().unwrap();
-    let promoted = note::promote_in(&transaction, &profile_id, &idea.id, promotion, &ids).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    let promoted = kilna_lib::actions::note::promote(&conn, &idea.id, promotion).unwrap();
 
     let offer = undo::last(&conn)
         .unwrap()

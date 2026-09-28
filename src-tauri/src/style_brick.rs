@@ -655,11 +655,11 @@ mod tests {
 
     #[test]
     fn deleting_a_brick_leaves_a_tombstone_under_its_name() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let one = create(&conn, &profile_id, brick("character", "Ranger")).unwrap();
 
         // The road every deletion takes since v0.76.1: into the trash.
-        crate::trash::discard(&mut conn, crate::trash::Entity::Style, &one.id).unwrap();
+        crate::trash::discard(&conn, crate::trash::Entity::Style, &one.id).unwrap();
 
         let label: String = conn
             .query_row(

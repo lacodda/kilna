@@ -125,7 +125,7 @@ fn restate(conn: &Connection, entry: &Operation) -> Result<()> {
 /// Two kinds are deliberately absent from the match below rather than made to
 /// look replayable: see the module-level list of what a replay cannot yet
 /// rebuild byte-for-byte, in the doc comment on [`rebuild`].
-fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
+fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
     let params = &entry.params;
 
     match entry.kind.as_str() {
@@ -197,7 +197,7 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
         "version.create" => {
             let work_id = required(params, "workId")?;
             let new = from_params(params, "version")?;
-            version::create_minted(conn, &work_id, new, minted(params)?, None)?;
+            version::create_minted(conn, &work_id, new, minted(params)?)?;
         }
 
         "note.create" => {
@@ -236,9 +236,7 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
                 version: Minted::of(required(params, "versionId")?, at.clone()),
                 deletion: Minted::of(required(params, "entryId")?, at),
             };
-            let tx = conn.transaction()?;
-            note::promote_in(&tx, &profile_id, &id, promotion, &ids)?;
-            tx.commit()?;
+            note::promote(conn, &profile_id, &id, promotion, &ids)?;
         }
 
         "style.create" => {
@@ -297,7 +295,7 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
         "focusNote.reorder" => {
             let profile_id = workspace_profile(conn, params)?;
             let order: Vec<String> = from_params(params, "order")?;
-            focus::reorder_notes(conn, &profile_id, &order, None)?;
+            focus::reorder_notes(conn, &profile_id, &order)?;
         }
 
         "focusNote.delete" => {
@@ -390,7 +388,7 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
             let id = required(params, "id")?;
             let work_ids: Vec<String> = from_params(params, "workIds")?;
             let at = required(params, "at")?;
-            collection::set_contents_at(conn, &id, &work_ids, &at, None)?;
+            collection::set_contents_at(conn, &id, &work_ids, &at)?;
         }
 
         "link.create" => {
@@ -449,7 +447,7 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
         "scene.time" => {
             let work_id = required(params, "workId")?;
             let at = required(params, "at")?;
-            scene::time_board_at(conn, &work_id, &at, None)?;
+            scene::time_board_at(conn, &work_id, &at)?;
         }
 
         // The order is replayed against the board that is there. A workspace
@@ -467,7 +465,7 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
                 .collect();
             let kept: Vec<String> = ids.into_iter().filter(|id| present.contains(id)).collect();
             if kept.len() == present.len() {
-                scene::renumber(conn, &work_id, &kept, &at, None)?;
+                scene::renumber(conn, &work_id, &kept, &at)?;
             }
         }
 
@@ -535,23 +533,23 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
                 .into_iter()
                 .map(|id| crate::minted::Minted::of(id, at.clone()))
                 .collect();
-            scene::frame_from_text(conn, &work_id, &role, &minted, None)?;
+            scene::frame_from_text(conn, &work_id, &role, &minted)?;
         }
 
         "entity.discard" => {
             let entity = trash::Entity::parse(&required(params, "entity")?)?;
             let id = required(params, "entityId")?;
-            trash::discard_minted(conn, entity, &id, minted(params)?, None)?;
+            trash::discard_minted(conn, entity, &id, minted(params)?)?;
         }
 
         "trash.restore" => {
             let id = required(params, "id")?;
-            trash::restore(conn, &id, None)?;
+            trash::restore(conn, &id)?;
         }
 
         "trash.purge" => {
             let id = required(params, "id")?;
-            trash::purge(conn, &id, None)?;
+            trash::purge(conn, &id)?;
         }
 
         "trash.empty" => {
@@ -583,13 +581,13 @@ fn apply(conn: &mut Connection, entry: &Operation) -> Result<bool> {
                 .iter()
                 .map(|id| Minted::of(id.clone(), at.clone()))
                 .collect();
-            crate::trash::discard_works_batch(conn, &work_ids, &minted, None)?;
+            crate::trash::discard_batch(conn, crate::trash::Entity::Work, &work_ids, &minted)?;
         }
 
         "layout.apply" => {
             let placements: Vec<crate::layout::Placement> = from_params(params, "placements")?;
             let at = required(params, "at")?;
-            crate::layout::apply_at(conn, &placements, None, &at)?;
+            crate::layout::apply_at(conn, &placements, &at)?;
         }
 
         _ => return Ok(false),

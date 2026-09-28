@@ -95,7 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nth(1)
         .ok_or("usage: demo <path-to-kilna.db>")?;
 
-    let mut conn = db::open(std::path::Path::new(&path))?;
+    let conn = db::open(std::path::Path::new(&path))?;
     profile::seed(&conn)?;
     let profile_id = profile::active(&conn)?.ok_or("no active profile")?.id;
 
@@ -118,7 +118,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // pins to the revision it actually describes.
         for (index, body) in demo.lyrics.iter().enumerate() {
             work::version::create(
-                &mut conn,
+                &conn,
                 &created.id,
                 NewVersion {
                     role: "lyrics".into(),
@@ -151,7 +151,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         work::version::create(
-            &mut conn,
+            &conn,
             &created.id,
             NewVersion {
                 role: "style".into(),

@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let offer = undo::last(&conn)?.ok_or("nothing was offered to undo")?;
     println!("offered: {}", offer.action);
-    undo::undo(&mut conn, &offer.operation_id)?;
+    undo::undo(&conn, &offer.operation_id)?;
 
     let back = work::get(&conn, &subject.id)?.ok_or("the work vanished")?;
     println!("after undo: {}", back.title);

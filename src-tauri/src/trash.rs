@@ -9,10 +9,11 @@
 //! reason for a snapshot table rather than a `deleted_at` column.
 
 use rusqlite::types::{Value as SqlValue, ValueRef};
-use rusqlite::{Connection, OptionalExtension, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+use crate::db::unit::atomically;
 use crate::error::{Error, Result};
 use crate::minted::Minted;
 
@@ -306,52 +307,28 @@ impl Capture {
 /// Delete an entity, keeping a snapshot of it and everything beneath it.
 ///
 /// Returns the id of the trash entry, which is what an undo needs.
-pub fn discard(conn: &mut Connection, entity: Entity, id: &str) -> Result<String> {
-    discard_minted(conn, entity, id, Minted::fresh(), None)
+pub fn discard(conn: &Connection, entity: Entity, id: &str) -> Result<String> {
+    discard_minted(conn, entity, id, Minted::fresh())
 }
 
-/// Move an entity to the trash with the entry's id and moment already decided,
-/// recording the operation that asked for it.
+/// Move an entity to the trash with the entry's id and moment already decided.
 ///
 /// The seam a replay comes back through: a restore names the trash entry by id,
 /// so a rebuilt workspace has to bury the row under the same one. See ADR 0014.
 ///
-/// The operation is written inside this function's own transaction rather than
-/// by the caller around it. A log entry committed beside a deletion that then
-/// failed would replay into the removal of a row that is still there — so the
-/// two arrive together or not at all.
+/// One unit: the snapshot and the deletion land together, alone or inside the
+/// gesture that discards - see [`crate::db::unit`].
 pub fn discard_minted(
-    conn: &mut Connection,
+    conn: &Connection,
     entity: Entity,
     id: &str,
     minted: Minted,
-    logged: Option<crate::operation::Intent>,
 ) -> Result<String> {
-    let tx = conn.transaction()?;
-
-    if let Some(logged) = logged {
-        crate::operation::record(&tx, logged)?;
-    }
-
-    let deletion_id = discard_in_tx(&tx, entity, id, &minted)?;
-
-    tx.commit()?;
-    Ok(deletion_id)
+    atomically(conn, |tx| discard_in(tx, entity, id, &minted))
 }
 
-/// The body of a discard, reachable inside a transaction a caller already
-/// holds open.
-///
-/// Split out so a batch command — several works discarded under one operation
-/// — can call it once per entity without nesting a transaction inside another,
-/// which rusqlite does not allow from a bare `&mut Connection`. The caller
-/// owns the transaction, the commit, and (when there is one) the operation.
-pub(crate) fn discard_in_tx(
-    tx: &Transaction<'_>,
-    entity: Entity,
-    id: &str,
-    minted: &Minted,
-) -> Result<String> {
+/// The body of a discard: the snapshot, the entry and the deletion.
+fn discard_in(tx: &Connection, entity: Entity, id: &str, minted: &Minted) -> Result<String> {
     let (label, origin, profile_id) = describe(tx, entity, id)?;
 
     // Snapshot first, delete second: the rows have to be read while they exist.
@@ -407,82 +384,51 @@ pub(crate) fn discard_in_tx(
     Ok(deletion_id)
 }
 
-/// Move several works to the trash under one operation.
+/// Move several rows to the trash at once: a gesture that made several rows
+/// is taken back as one gesture - the works of a batch, the frame a board was
+/// built with - so the undo has one operation to write and the trash one
+/// moment to group by.
 ///
-/// Each still gets its own trash entry — an entry snapshots one entity, so
-/// each stays separately restorable — but the log holds one gesture, not one
-/// per work, so an undo has one thing to reverse. See ADR 0014.
-///
-/// Returns the trash entry id for every work actually discarded, in the same
-/// order as `ids`. A work that fails to discard (already gone, most likely) is
-/// left out rather than failing the batch — the others are unrelated.
-pub fn discard_works_batch(
-    conn: &mut Connection,
-    ids: &[String],
-    minted_ids: &[Minted],
-    logged: Option<crate::operation::Intent>,
-) -> Result<Vec<(String, String)>> {
-    discard_batch(conn, Entity::Work, ids, minted_ids, logged)
-}
-
-/// The same for any entity: several rows to the trash under one operation.
-///
-/// A gesture that made several rows is taken back as one gesture — the frame
-/// a board is built with, for instance — so the undo has one operation to
-/// write and the trash one moment to group by.
+/// Each still gets its own trash entry - an entry snapshots one entity, so
+/// each stays separately restorable. Returns `(id, entry)` for every row
+/// actually discarded, in the order given, and what could not be discarded
+/// with the reason: one row failing (already gone, most likely) does not take
+/// the others with it, and its half-written snapshot is rolled back alone.
 pub fn discard_batch(
-    conn: &mut Connection,
+    conn: &Connection,
     entity: Entity,
     ids: &[String],
     minted_ids: &[Minted],
-    logged: Option<crate::operation::Intent>,
-) -> Result<Vec<(String, String)>> {
-    let tx = conn.transaction()?;
-    if let Some(logged) = logged {
-        crate::operation::record(&tx, logged)?;
-    }
-
-    let mut discarded = Vec::new();
-    for (id, minted) in ids.iter().zip(minted_ids) {
-        match discard_in_tx(&tx, entity, id, minted) {
-            Ok(entry_id) => discarded.push((id.clone(), entry_id)),
-            Err(cause) => eprintln!("trash: {id} could not be discarded: {cause}"),
+) -> Result<Discarded> {
+    atomically(conn, |tx| {
+        let mut discarded = Discarded::default();
+        for (id, minted) in ids.iter().zip(minted_ids) {
+            match discard_minted(tx, entity, id, minted.clone()) {
+                Ok(entry_id) => discarded.done.push((id.clone(), entry_id)),
+                Err(cause) => discarded.failed.push((id.clone(), cause)),
+            }
         }
-    }
-
-    tx.commit()?;
-    Ok(discarded)
+        Ok(discarded)
+    })
 }
 
-/// Put a trashed entity back and forget the entry.
-///
-/// The operation is written inside this function's own transaction rather than
-/// by the caller around it, for the reason [`discard_minted`] gives: a log
-/// entry committed beside a restore that then failed would replay into rows
-/// coming back that never left. See ADR 0014.
-pub fn restore(
-    conn: &mut Connection,
-    deletion_id: &str,
-    logged: Option<crate::operation::Intent>,
-) -> Result<()> {
-    let tx = conn.transaction()?;
-
-    if let Some(logged) = logged {
-        crate::operation::record(&tx, logged)?;
-    }
-
-    restore_in(&tx, deletion_id)?;
-    tx.commit()?;
-
-    Ok(())
+/// What a batch discard did.
+#[derive(Debug, Default)]
+pub struct Discarded {
+    /// `(id, trash entry)` for every row that went.
+    pub done: Vec<(String, String)>,
+    /// Every row that stayed, and why.
+    pub failed: Vec<(String, Error)>,
 }
 
-/// The body of [`restore`], inside a transaction a caller already holds.
-///
-/// Split out for the reason [`discard_in_tx`] is: a gesture that brings one
-/// thing back while it throws another away — taking back a note promoted to a
-/// work — is one change, and must not commit halfway.
-pub(crate) fn restore_in(tx: &Transaction<'_>, deletion_id: &str) -> Result<()> {
+/// Put a trashed entity back and forget the entry, as one unit - a restore
+/// that failed halfway would leave rows back that the entry still claims.
+pub fn restore(conn: &Connection, deletion_id: &str) -> Result<()> {
+    atomically(conn, |tx| restore_in(tx, deletion_id))
+}
+
+/// The body of [`restore`].
+fn restore_in(tx: &Connection, deletion_id: &str) -> Result<()> {
     let (entity, entity_id, snapshot): (String, String, String) = tx
         .query_row(
             "SELECT entity, entity_id, snapshot FROM deletion WHERE id = ?1",
@@ -581,44 +527,35 @@ fn members(conn: &Connection, collection_id: &str) -> Result<Vec<Value>> {
 /// version whose work will never come back can never be restored either, and
 /// leaving it in the trash is dead weight that only ever grows.
 ///
-/// The operation is written inside this function's own transaction rather than
-/// by the caller around it, for the reason [`discard_minted`] gives. See ADR 0014.
-pub fn purge(
-    conn: &mut Connection,
-    deletion_id: &str,
-    logged: Option<crate::operation::Intent>,
-) -> Result<()> {
-    let tx = conn.transaction()?;
+/// The files the entries held are removed once the purge is committed - see
+/// [`forget_files`].
+pub fn purge(conn: &Connection, deletion_id: &str) -> Result<()> {
+    atomically(conn, |tx| {
+        let (entity, entity_id): (String, String) = tx
+            .query_row(
+                "SELECT entity, entity_id FROM deletion WHERE id = ?1",
+                params![deletion_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?
+            .ok_or_else(|| Error::not_found("deletion", deletion_id))?;
 
-    if let Some(logged) = logged {
-        crate::operation::record(&tx, logged)?;
-    }
+        // The files of everything this purge forgets, read while the entries
+        // that name them are still there.
+        let mut files = snapshot_files(tx, "deletion.id = ?1", deletion_id)?;
+        tx.execute("DELETE FROM deletion WHERE id = ?1", params![deletion_id])?;
 
-    let (entity, entity_id): (String, String) = tx
-        .query_row(
-            "SELECT entity, entity_id FROM deletion WHERE id = ?1",
-            params![deletion_id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .optional()?
-        .ok_or_else(|| Error::not_found("deletion", deletion_id))?;
+        if Entity::parse(&entity)? == Entity::Work {
+            files.extend(snapshot_files(tx, CHILDREN_OF_WORK, &entity_id)?);
+            tx.execute(
+                &format!("DELETE FROM deletion WHERE {CHILDREN_OF_WORK}"),
+                params![entity_id],
+            )?;
+        }
 
-    // The files of everything this purge forgets, read while the entries that
-    // name them are still there.
-    let mut files = snapshot_files(&tx, "deletion.id = ?1", deletion_id)?;
-    tx.execute("DELETE FROM deletion WHERE id = ?1", params![deletion_id])?;
-
-    if Entity::parse(&entity)? == Entity::Work {
-        files.extend(snapshot_files(&tx, CHILDREN_OF_WORK, &entity_id)?);
-        tx.execute(
-            &format!("DELETE FROM deletion WHERE {CHILDREN_OF_WORK}"),
-            params![entity_id],
-        )?;
-    }
-
-    tx.commit()?;
-    forget_files(conn, &files)?;
-    Ok(())
+        forget_files(tx, files);
+        Ok(())
+    })
 }
 
 /// The entries that hang off a purged work: they could only ever be restored
@@ -638,13 +575,15 @@ const CHILDREN_OF_WORK: &str =
 
 /// Empty the trash for a profile. Returns how many entries went.
 pub fn empty(conn: &Connection, profile_id: &str) -> Result<usize> {
-    let files = snapshot_files(conn, "deletion.profile_id = ?1", profile_id)?;
-    let gone = conn.execute(
-        "DELETE FROM deletion WHERE profile_id = ?1",
-        params![profile_id],
-    )?;
-    forget_files(conn, &files)?;
-    Ok(gone)
+    atomically(conn, |tx| {
+        let files = snapshot_files(tx, "deletion.profile_id = ?1", profile_id)?;
+        let gone = tx.execute(
+            "DELETE FROM deletion WHERE profile_id = ?1",
+            params![profile_id],
+        )?;
+        forget_files(tx, files);
+        Ok(gone)
+    })
 }
 
 /// The files the asset rows in some entries' snapshots point at.
@@ -665,7 +604,8 @@ fn snapshot_files(conn: &Connection, condition: &str, value: &str) -> Result<Vec
     Ok(paths.into_iter().flatten().collect())
 }
 
-/// Remove the files a purge let go of, unless something still names them.
+/// Remove the files a purge let go of, unless something still names them -
+/// once the purge is committed.
 ///
 /// Before this, purging only forgot the snapshot: the pictures of a purged
 /// work, release or style stayed in `media/` with nothing pointing at them,
@@ -673,34 +613,45 @@ fn snapshot_files(conn: &Connection, condition: &str, value: &str) -> Result<Vec
 /// trash still names it - a cloned video shares its files with the original,
 /// and two entries can hold the same picture.
 ///
-/// Runs after the commit: a file removed for a purge that then rolled back
-/// could not be put back.
-fn forget_files(conn: &Connection, paths: &[String]) -> Result<()> {
-    let mut seen = std::collections::BTreeSet::new();
-    for path in paths {
-        if !seen.insert(path.as_str()) {
-            continue;
+/// After the commit, because a file removed for a purge that then rolled back
+/// could not be put back. `empty` used to remove them inside its transaction.
+fn forget_files(conn: &Connection, paths: Vec<String>) {
+    crate::db::unit::after_commit(conn, move |conn| {
+        let mut seen = std::collections::BTreeSet::new();
+        for path in &paths {
+            if !seen.insert(path.as_str()) {
+                continue;
+            }
+            let named: rusqlite::Result<i64> = conn.query_row(
+                "SELECT (SELECT COUNT(*) FROM asset WHERE path = ?1)
+                      + (SELECT COUNT(*) FROM deletion, json_each(deletion.snapshot, '$.asset') AS a
+                         WHERE json_extract(a.value, '$.path') = ?1)",
+                params![path],
+                |row| row.get(0),
+            );
+            match named {
+                Ok(0) => {}
+                Ok(_) => continue,
+                Err(cause) => {
+                    crate::log::error(
+                        "trash",
+                        &format!("could not tell whether {path} is still named: {cause}"),
+                    );
+                    continue;
+                }
+            }
+            match std::fs::remove_file(path) {
+                Ok(()) => {}
+                // Already gone is what was wanted.
+                Err(cause) if cause.kind() == std::io::ErrorKind::NotFound => {}
+                // Said, not raised: the entry is gone either way, and a file
+                // left behind is not a reason to tell a person the purge failed.
+                Err(cause) => {
+                    crate::log::warn("trash", &format!("could not remove {path}: {cause}"));
+                }
+            }
         }
-        let named: i64 = conn.query_row(
-            "SELECT (SELECT COUNT(*) FROM asset WHERE path = ?1)
-                  + (SELECT COUNT(*) FROM deletion, json_each(deletion.snapshot, '$.asset') AS a
-                     WHERE json_extract(a.value, '$.path') = ?1)",
-            params![path],
-            |row| row.get(0),
-        )?;
-        if named > 0 {
-            continue;
-        }
-        match std::fs::remove_file(path) {
-            Ok(()) => {}
-            // Already gone is what was wanted.
-            Err(cause) if cause.kind() == std::io::ErrorKind::NotFound => {}
-            // Said, not raised: the entry is gone either way, and a file left
-            // behind is not a reason to tell a person the purge failed.
-            Err(cause) => eprintln!("trash: could not remove {path}: {cause}"),
-        }
-    }
-    Ok(())
+    });
 }
 
 /// Everything in a profile's trash, newest first.
@@ -998,7 +949,7 @@ fn read_rows(conn: &Connection, table: &str, condition: &str, value: &str) -> Re
 }
 
 /// Put one snapshotted row back.
-fn insert_row(tx: &Transaction<'_>, table: &str, row: &Map<String, Value>) -> Result<()> {
+fn insert_row(tx: &Connection, table: &str, row: &Map<String, Value>) -> Result<()> {
     let columns: Vec<&String> = row.keys().collect();
     let placeholders: Vec<String> = (1..=columns.len()).map(|n| format!("?{n}")).collect();
     let values: Vec<SqlValue> = columns
@@ -1084,10 +1035,10 @@ mod tests {
 
     #[test]
     fn discarding_a_work_takes_its_children_and_gives_them_all_back() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(&conn, &profile_id, song("Winter road")).unwrap();
         version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "lyrics".into(),
@@ -1117,13 +1068,13 @@ mod tests {
         let before = work::get(&conn, &work.id).unwrap().unwrap();
         assert!(before.current_version_id.is_some());
 
-        let entry = discard(&mut conn, Entity::Work, &work.id).unwrap();
+        let entry = discard(&conn, Entity::Work, &work.id).unwrap();
 
         assert_eq!(count(&conn, "work"), 0);
         assert_eq!(count(&conn, "work_version"), 0, "the cascade took it");
         assert_eq!(count(&conn, "note"), 0);
 
-        restore(&mut conn, &entry, None).unwrap();
+        restore(&conn, &entry).unwrap();
 
         let back = work::get(&conn, &work.id)
             .unwrap()
@@ -1140,11 +1091,11 @@ mod tests {
 
     #[test]
     fn a_restored_row_keeps_its_id_and_its_timestamps() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(&conn, &profile_id, song("Unchanged")).unwrap();
 
-        let entry = discard(&mut conn, Entity::Work, &work.id).unwrap();
-        restore(&mut conn, &entry, None).unwrap();
+        let entry = discard(&conn, Entity::Work, &work.id).unwrap();
+        restore(&conn, &entry).unwrap();
 
         let back = work::get(&conn, &work.id).unwrap().unwrap();
         assert_eq!(back.id, work.id);
@@ -1158,10 +1109,10 @@ mod tests {
 
     #[test]
     fn a_version_cannot_come_back_while_its_work_is_still_in_the_trash() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(&conn, &profile_id, song("Doomed")).unwrap();
         let draft = version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "lyrics".into(),
@@ -1174,13 +1125,13 @@ mod tests {
         )
         .unwrap();
 
-        let version_entry = discard(&mut conn, Entity::Version, &draft.id).unwrap();
-        let work_entry = discard(&mut conn, Entity::Work, &work.id).unwrap();
+        let version_entry = discard(&conn, Entity::Version, &draft.id).unwrap();
+        let work_entry = discard(&conn, Entity::Work, &work.id).unwrap();
 
         // The error has to be the one that explains itself, not a foreign-key
         // failure from an insert that was attempted anyway: the difference is
         // invisible to `is_err`, and it is the whole point of the check.
-        let refused = restore(&mut conn, &version_entry, None).unwrap_err();
+        let refused = restore(&conn, &version_entry).unwrap_err();
         assert!(
             matches!(refused, Error::NotRestorable(_)),
             "an orphan must be refused with a sentence, got: {refused}"
@@ -1194,17 +1145,17 @@ mod tests {
         assert!(!version_row.restorable, "and the screen says so beforehand");
 
         // With the work back, the version can follow.
-        restore(&mut conn, &work_entry, None).unwrap();
-        restore(&mut conn, &version_entry, None).unwrap();
+        restore(&conn, &work_entry).unwrap();
+        restore(&conn, &version_entry).unwrap();
         assert_eq!(count(&conn, "work_version"), 1);
     }
 
     #[test]
     fn the_trash_lists_what_each_entry_was_and_where_it_came_from() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(&conn, &profile_id, song("Winter road")).unwrap();
         let draft = version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "lyrics".into(),
@@ -1217,7 +1168,7 @@ mod tests {
         )
         .unwrap();
 
-        discard(&mut conn, Entity::Version, &draft.id).unwrap();
+        discard(&conn, Entity::Version, &draft.id).unwrap();
         let listed = list(&conn, &profile_id).unwrap();
 
         assert_eq!(listed.len(), 1);
@@ -1229,10 +1180,10 @@ mod tests {
 
     #[test]
     fn an_entry_names_the_work_its_cover_is_drawn_from() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(&conn, &profile_id, song("Winter road")).unwrap();
         let draft = version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "lyrics".into(),
@@ -1248,8 +1199,8 @@ mod tests {
         // The version first and the work after it, so the version outlives
         // its work in the trash: the snapshot is then the only place that
         // still knows which work it was.
-        discard(&mut conn, Entity::Version, &draft.id).unwrap();
-        discard(&mut conn, Entity::Work, &work.id).unwrap();
+        discard(&conn, Entity::Version, &draft.id).unwrap();
+        discard(&conn, Entity::Work, &work.id).unwrap();
         let listed = list(&conn, &profile_id).unwrap();
 
         let works: Vec<Option<&str>> = listed
@@ -1261,7 +1212,7 @@ mod tests {
 
     #[test]
     fn a_trashed_score_is_named_by_what_it_said_not_when() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(&conn, &profile_id, song("Winter road")).unwrap();
         let scored = crate::score::create(
             &conn,
@@ -1276,7 +1227,7 @@ mod tests {
         )
         .unwrap();
 
-        discard(&mut conn, Entity::Score, &scored.id).unwrap();
+        discard(&conn, Entity::Score, &scored.id).unwrap();
         let label = list(&conn, &profile_id).unwrap()[0].label.clone();
 
         // The old label was `scored_at`, which reads as
@@ -1293,10 +1244,10 @@ mod tests {
 
     #[test]
     fn a_version_without_a_label_is_named_by_its_role_and_revision() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(&conn, &profile_id, song("Nameless")).unwrap();
         let draft = version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "lyrics".into(),
@@ -1309,14 +1260,14 @@ mod tests {
         )
         .unwrap();
 
-        discard(&mut conn, Entity::Version, &draft.id).unwrap();
+        discard(&conn, Entity::Version, &draft.id).unwrap();
 
         assert_eq!(list(&conn, &profile_id).unwrap()[0].label, "lyrics 1");
     }
 
     #[test]
     fn the_trash_is_scoped_to_its_profile() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let mine = work::create(&conn, &profile_id, song("Mine")).unwrap();
         conn.execute(
             "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
@@ -1326,8 +1277,8 @@ mod tests {
         .unwrap();
         let theirs = work::create(&conn, "other", song("Theirs")).unwrap();
 
-        discard(&mut conn, Entity::Work, &mine.id).unwrap();
-        discard(&mut conn, Entity::Work, &theirs.id).unwrap();
+        discard(&conn, Entity::Work, &mine.id).unwrap();
+        discard(&conn, Entity::Work, &theirs.id).unwrap();
 
         let listed = list(&conn, &profile_id).unwrap();
         assert_eq!(listed.len(), 1);
@@ -1336,16 +1287,16 @@ mod tests {
 
     #[test]
     fn purge_drops_one_entry_and_empty_drops_the_profiles() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let first = work::create(&conn, &profile_id, song("One")).unwrap();
         let second = work::create(&conn, &profile_id, song("Two")).unwrap();
-        let first_entry = discard(&mut conn, Entity::Work, &first.id).unwrap();
-        discard(&mut conn, Entity::Work, &second.id).unwrap();
+        let first_entry = discard(&conn, Entity::Work, &first.id).unwrap();
+        discard(&conn, Entity::Work, &second.id).unwrap();
 
-        purge(&mut conn, &first_entry, None).unwrap();
+        purge(&conn, &first_entry).unwrap();
         assert_eq!(count(&conn, "deletion"), 1);
         assert!(
-            restore(&mut conn, &first_entry, None).is_err(),
+            restore(&conn, &first_entry).is_err(),
             "a purged entry is gone for good"
         );
 
@@ -1355,10 +1306,10 @@ mod tests {
 
     #[test]
     fn purging_a_work_takes_the_entries_that_needed_it() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(&conn, &profile_id, song("Doomed")).unwrap();
         let draft = version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "lyrics".into(),
@@ -1384,12 +1335,12 @@ mod tests {
         )
         .unwrap();
 
-        discard(&mut conn, Entity::Version, &draft.id).unwrap();
-        discard(&mut conn, Entity::Note, &survivor_note.id).unwrap();
-        let work_entry = discard(&mut conn, Entity::Work, &work.id).unwrap();
+        discard(&conn, Entity::Version, &draft.id).unwrap();
+        discard(&conn, Entity::Note, &survivor_note.id).unwrap();
+        let work_entry = discard(&conn, Entity::Work, &work.id).unwrap();
         assert_eq!(count(&conn, "deletion"), 3);
 
-        purge(&mut conn, &work_entry, None).unwrap();
+        purge(&conn, &work_entry).unwrap();
 
         // The version could never have come back once its work went for good,
         // so it goes too — but the note belonging to a different work stays.
@@ -1401,7 +1352,7 @@ mod tests {
 
     #[test]
     fn a_restored_collection_gets_its_works_back() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let album = collection::create(
             &conn,
             &profile_id,
@@ -1419,7 +1370,7 @@ mod tests {
         grouped.collection_id = Some(album.id.clone());
         let track = work::create(&conn, &profile_id, grouped).unwrap();
 
-        let entry = discard(&mut conn, Entity::Collection, &album.id).unwrap();
+        let entry = discard(&conn, Entity::Collection, &album.id).unwrap();
 
         assert_eq!(count(&conn, "collection"), 0);
         assert!(
@@ -1431,7 +1382,7 @@ mod tests {
             "the work outlives the collection, unattached"
         );
 
-        restore(&mut conn, &entry, None).unwrap();
+        restore(&conn, &entry).unwrap();
 
         assert_eq!(
             work::get(&conn, &track.id).unwrap().unwrap().collection_id,
@@ -1442,7 +1393,7 @@ mod tests {
 
     #[test]
     fn restoring_a_collection_does_not_overrule_a_later_move() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let new_collection = |title: &str| collection::NewCollection {
             kind: "album".into(),
             title: title.into(),
@@ -1457,7 +1408,7 @@ mod tests {
         grouped.collection_id = Some(first.id.clone());
         let track = work::create(&conn, &profile_id, grouped).unwrap();
 
-        let entry = discard(&mut conn, Entity::Collection, &first.id).unwrap();
+        let entry = discard(&conn, Entity::Collection, &first.id).unwrap();
         // Meanwhile the work found a new home.
         work::update(
             &conn,
@@ -1469,7 +1420,7 @@ mod tests {
         )
         .unwrap();
 
-        restore(&mut conn, &entry, None).unwrap();
+        restore(&conn, &entry).unwrap();
 
         assert_eq!(
             work::get(&conn, &track.id).unwrap().unwrap().collection_id,
@@ -1480,16 +1431,16 @@ mod tests {
 
     #[test]
     fn discarding_something_that_is_not_there_fails() {
-        let (mut conn, _) = workspace();
+        let (conn, _) = workspace();
 
-        assert!(discard(&mut conn, Entity::Work, "nope").is_err());
-        assert!(restore(&mut conn, "nope", None).is_err());
-        assert!(purge(&mut conn, "nope", None).is_err());
+        assert!(discard(&conn, Entity::Work, "nope").is_err());
+        assert!(restore(&conn, "nope").is_err());
+        assert!(purge(&conn, "nope").is_err());
     }
 
     #[test]
     fn a_note_without_a_work_survives_the_round_trip() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let note = note::create(
             &conn,
             &profile_id,
@@ -1503,7 +1454,7 @@ mod tests {
         )
         .unwrap();
 
-        let entry = discard(&mut conn, Entity::Note, &note.id).unwrap();
+        let entry = discard(&conn, Entity::Note, &note.id).unwrap();
         let listed = list(&conn, &profile_id).unwrap();
         assert_eq!(listed[0].label, "an idea with no home");
         assert!(listed[0].origin.is_none());
@@ -1513,7 +1464,7 @@ mod tests {
         );
         assert!(listed[0].restorable);
 
-        restore(&mut conn, &entry, None).unwrap();
+        restore(&conn, &entry).unwrap();
         let back = note::get(&conn, &note.id).unwrap().unwrap();
         assert_eq!(back.tags, vec!["idea".to_owned()], "the tags came back too");
     }
@@ -1557,11 +1508,11 @@ mod tests {
     /// pictures gone with it. It is a trash entity now, and comes back whole.
     #[test]
     fn a_style_goes_to_the_trash_with_its_references_and_comes_back_whole() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let media = tempfile::tempdir().unwrap();
         let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
 
-        let entry = discard(&mut conn, Entity::Style, &brick.id).unwrap();
+        let entry = discard(&conn, Entity::Style, &brick.id).unwrap();
         assert!(crate::style_brick::get(&conn, &brick.id).unwrap().is_none());
         assert!(crate::asset::get(&conn, &reference.id).unwrap().is_none());
         assert!(
@@ -1574,7 +1525,7 @@ mod tests {
         assert_eq!(listed[0].label, "Cold north");
         assert!(listed[0].restorable);
 
-        restore(&mut conn, &entry, None).unwrap();
+        restore(&conn, &entry).unwrap();
         let back = crate::style_brick::get(&conn, &brick.id).unwrap().unwrap();
         assert_eq!(back.description.as_deref(), Some("Grainy monochrome film."));
         assert_eq!(back.reference_count, 1, "the picture came back with it");
@@ -1594,12 +1545,12 @@ mod tests {
 
     #[test]
     fn purging_a_style_removes_the_pictures_nothing_else_names() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let media = tempfile::tempdir().unwrap();
         let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
 
-        let entry = discard(&mut conn, Entity::Style, &brick.id).unwrap();
-        purge(&mut conn, &entry, None).unwrap();
+        let entry = discard(&conn, Entity::Style, &brick.id).unwrap();
+        purge(&conn, &entry).unwrap();
 
         assert!(
             !std::path::Path::new(&reference.path).exists(),
@@ -1609,11 +1560,11 @@ mod tests {
 
     #[test]
     fn emptying_the_trash_removes_the_pictures_it_held() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let media = tempfile::tempdir().unwrap();
         let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
 
-        discard(&mut conn, Entity::Style, &brick.id).unwrap();
+        discard(&conn, Entity::Style, &brick.id).unwrap();
         empty(&conn, &profile_id).unwrap();
 
         assert!(!std::path::Path::new(&reference.path).exists());
@@ -1624,7 +1575,7 @@ mod tests {
     /// from under the other.
     #[test]
     fn a_purged_picture_that_a_live_row_still_names_stays() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let media = tempfile::tempdir().unwrap();
         let (brick, reference) = a_style_with_a_reference(&conn, &profile_id, media.path());
 
@@ -1636,8 +1587,8 @@ mod tests {
         )
         .unwrap();
 
-        let entry = discard(&mut conn, Entity::Style, &brick.id).unwrap();
-        purge(&mut conn, &entry, None).unwrap();
+        let entry = discard(&conn, Entity::Style, &brick.id).unwrap();
+        purge(&conn, &entry).unwrap();
 
         assert!(
             std::path::Path::new(&reference.path).exists(),

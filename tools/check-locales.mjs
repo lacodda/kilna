@@ -147,7 +147,9 @@ for (const [key, file] of used) {
 // builds keys under its prefix at runtime (`t(\`card.tab.${tab}\`)`), in which
 // case every key under that prefix may be the one built. The journal's action
 // sentences and the undo sentences are named by the backend, which holds them
-// to what it records (`src-tauri/tests/journal_keys.rs`).
+// to what it records (`src-tauri/tests/journal_keys.rs`); so are the refusals
+// and the reasons a batch skipped an item, held to the codes it refuses with
+// (`src-tauri/tests/refusal_keys.rs`).
 const code = sources(SOURCE_DIR)
   .filter((file) => !/\.test\.tsx?$/.test(file) && !/[\\/]test[\\/]/.test(file))
   .map((file) => readFileSync(file, 'utf8'))
@@ -156,7 +158,11 @@ const whole = new Set([...code.matchAll(/['"`]([A-Za-z]\w*(?:\.\w+)+)['"`]/g)].m
 const built = [...new Set([...code.matchAll(/`([A-Za-z][\w.]*[._])\$\{/g)].map((m) => m[1]))]
 // The scan's watchdog: the app asks for well over a thousand messages whole.
 if (whole.size < 1000) problems.push(`${SOURCE}: read only ${whole.size} keys from the code`)
-const namedByBackend = (key) => /^journal\.\w+\.\w+/.test(key) || key.startsWith('undo.')
+const namedByBackend = (key) =>
+  /^journal\.\w+\.\w+/.test(key) ||
+  key.startsWith('undo.') ||
+  key.startsWith('refusal.') ||
+  key.startsWith('skip.')
 for (const key of sourceStems) {
   if (namedByBackend(key) || whole.has(key)) continue
   if (built.some((prefix) => key.startsWith(prefix))) continue

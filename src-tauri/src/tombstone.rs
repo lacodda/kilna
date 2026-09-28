@@ -188,7 +188,7 @@ mod tests {
         let (work_id, [version_id, score_id, release_id, note_id]) =
             a_full_work(&mut conn, &profile_id);
 
-        trash::discard(&mut conn, Entity::Work, &work_id).unwrap();
+        trash::discard(&conn, Entity::Work, &work_id).unwrap();
 
         let stone = get(&conn, "work", &work_id).unwrap().expect("a tombstone");
         assert!(stone.is_buried());
@@ -209,9 +209,9 @@ mod tests {
     fn restoring_marks_the_tombstone_rather_than_removing_it() {
         let (mut conn, profile_id) = workspace();
         let (work_id, [version_id, ..]) = a_full_work(&mut conn, &profile_id);
-        let entry = trash::discard(&mut conn, Entity::Work, &work_id).unwrap();
+        let entry = trash::discard(&conn, Entity::Work, &work_id).unwrap();
 
-        trash::restore(&mut conn, &entry, None).unwrap();
+        trash::restore(&conn, &entry).unwrap();
 
         let stone = get(&conn, "work", &work_id).unwrap().expect("kept");
         assert!(!stone.is_buried());
@@ -225,10 +225,10 @@ mod tests {
     fn deleting_again_after_a_restore_starts_the_cycle_over() {
         let (mut conn, profile_id) = workspace();
         let (work_id, _) = a_full_work(&mut conn, &profile_id);
-        let entry = trash::discard(&mut conn, Entity::Work, &work_id).unwrap();
-        trash::restore(&mut conn, &entry, None).unwrap();
+        let entry = trash::discard(&conn, Entity::Work, &work_id).unwrap();
+        trash::restore(&conn, &entry).unwrap();
 
-        trash::discard(&mut conn, Entity::Work, &work_id).unwrap();
+        trash::discard(&conn, Entity::Work, &work_id).unwrap();
 
         let stone = get(&conn, "work", &work_id).unwrap().unwrap();
         assert!(stone.is_buried());
@@ -242,13 +242,13 @@ mod tests {
     fn emptying_the_trash_does_not_touch_the_tombstone() {
         let (mut conn, profile_id) = workspace();
         let (work_id, _) = a_full_work(&mut conn, &profile_id);
-        let entry = trash::discard(&mut conn, Entity::Work, &work_id).unwrap();
+        let entry = trash::discard(&conn, Entity::Work, &work_id).unwrap();
 
-        trash::purge(&mut conn, &entry, None).unwrap();
+        trash::purge(&conn, &entry).unwrap();
         assert!(buried(&conn, "work", &work_id), "purged, still buried");
 
         let (other_id, _) = a_full_work(&mut conn, &profile_id);
-        trash::discard(&mut conn, Entity::Work, &other_id).unwrap();
+        trash::discard(&conn, Entity::Work, &other_id).unwrap();
         trash::empty(&conn, &profile_id).unwrap();
         assert!(buried(&conn, "work", &other_id), "emptied, still buried");
     }
@@ -298,12 +298,12 @@ mod tests {
         let (work_id, _) = a_full_work(&mut conn, &profile_id);
         assert!(!buried_work_title(&conn, &profile_id, "Harbour lights").unwrap());
 
-        let entry = trash::discard(&mut conn, Entity::Work, &work_id).unwrap();
+        let entry = trash::discard(&conn, Entity::Work, &work_id).unwrap();
         assert!(buried_work_title(&conn, &profile_id, "Harbour lights").unwrap());
         assert!(!buried_work_title(&conn, "another-profile", "Harbour lights").unwrap());
         assert!(!buried_work_title(&conn, &profile_id, "Paper boats").unwrap());
 
-        trash::restore(&mut conn, &entry, None).unwrap();
+        trash::restore(&conn, &entry).unwrap();
         assert!(!buried_work_title(&conn, &profile_id, "Harbour lights").unwrap());
     }
 }

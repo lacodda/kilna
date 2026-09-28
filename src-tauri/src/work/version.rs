@@ -2,6 +2,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+use crate::db::unit::atomically;
 use crate::error::{Error, Result};
 use crate::minted::Minted;
 use crate::time::now;
@@ -65,6 +66,21 @@ fn default_true() -> bool {
     true
 }
 
+impl Default for NewVersion {
+    /// An empty body in no role, made current - the shape a deserialised one
+    /// takes when it names nothing else.
+    fn default() -> Self {
+        Self {
+            role: String::new(),
+            body: String::new(),
+            label: None,
+            meta: None,
+            make_current: true,
+            parent_version_id: None,
+        }
+    }
+}
+
 const SELECT_VERSION: &str = "SELECT id, work_id, role, revision, label, body, meta, created_at, \
      parent_version_id FROM work_version";
 
@@ -72,52 +88,30 @@ const SELECT_VERSION: &str = "SELECT id, work_id, role, revision, label, body, m
 ///
 /// The revision counts up per (work, role), so lyrics and style advance
 /// independently — revising a style prompt does not renumber the lyrics.
-pub fn create(conn: &mut Connection, work_id: &str, new: NewVersion) -> Result<Version> {
-    create_minted(conn, work_id, new, Minted::fresh(), None)
+pub fn create(conn: &Connection, work_id: &str, new: NewVersion) -> Result<Version> {
+    create_minted(conn, work_id, new, Minted::fresh())
 }
 
-/// Add a version with the id and timestamp already decided, recording the
-/// operation that asked for it.
+/// Add a version with the id and timestamp already decided.
 ///
 /// The seam a replay comes back through: live, `create` mints them; replaying,
 /// the log supplies what the first run generated, so the version lands under
 /// the id everything else already names. See ADR 0014.
 ///
-/// The operation is written inside this function's own transaction rather than
-/// by the caller around it, for the reason [`crate::trash::discard_minted`]
-/// gives: a log entry committed beside an insert that then failed would replay
-/// into a version that never landed.
+/// One unit: the row and the work's pointer to it land together, alone or as
+/// part of a larger gesture - see [`crate::db::unit`].
 pub fn create_minted(
-    conn: &mut Connection,
+    conn: &Connection,
     work_id: &str,
     new: NewVersion,
     minted: Minted,
-    logged: Option<crate::operation::Intent>,
 ) -> Result<Version> {
-    let tx = conn.transaction()?;
-
-    if let Some(logged) = logged {
-        crate::operation::record(&tx, logged)?;
-    }
-
-    let id = create_in(&tx, work_id, new, &minted)?;
-
-    tx.commit()?;
-
-    get(conn, &id)?.ok_or_else(|| Error::Other("the version vanished after insert".into()))
+    let id = atomically(conn, |tx| create_in(tx, work_id, new, &minted))?;
+    get(conn, &id)?.ok_or_else(|| Error::Internal("the version vanished after insert".into()))
 }
 
-/// The body of [`create_minted`], inside a transaction a caller already holds.
-///
-/// Split out so a gesture that makes a version among other rows — a note
-/// promoted to a work — lands as one change under one operation, rather than
-/// as a version committed before the rest failed. Returns the new id.
-pub(crate) fn create_in(
-    tx: &Connection,
-    work_id: &str,
-    new: NewVersion,
-    minted: &Minted,
-) -> Result<String> {
+/// The body of [`create_minted`]: the rows, and the new id.
+fn create_in(tx: &Connection, work_id: &str, new: NewVersion, minted: &Minted) -> Result<String> {
     let exists: bool = tx
         .query_row("SELECT 1 FROM work WHERE id = ?1", params![work_id], |_| {
             Ok(true)
@@ -412,9 +406,11 @@ fn joined(lines: &[&str]) -> String {
     )
 }
 
-pub fn delete(conn: &mut Connection, id: &str) -> Result<()> {
-    let tx = conn.transaction()?;
+pub fn delete(conn: &Connection, id: &str) -> Result<()> {
+    atomically(conn, |tx| delete_in(tx, id))
+}
 
+fn delete_in(tx: &Connection, id: &str) -> Result<()> {
     let Some((work_id, role)) = tx
         .query_row(
             "SELECT work_id, role FROM work_version WHERE id = ?1",
@@ -453,7 +449,6 @@ pub fn delete(conn: &mut Connection, id: &str) -> Result<()> {
         )?;
     }
 
-    tx.commit()?;
     Ok(())
 }
 
@@ -648,13 +643,12 @@ with no markers at all
 
     #[test]
     fn revisions_count_up_per_role_independently() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
 
-        let lyrics_one = create(&mut conn, &work_id, draft("lyrics", "first verse")).unwrap();
-        let style_one = create(&mut conn, &work_id, draft("style", "slow, warm")).unwrap();
-        let lyrics_two =
-            create(&mut conn, &work_id, draft("lyrics", "first verse, fixed")).unwrap();
+        let lyrics_one = create(&conn, &work_id, draft("lyrics", "first verse")).unwrap();
+        let style_one = create(&conn, &work_id, draft("style", "slow, warm")).unwrap();
+        let lyrics_two = create(&conn, &work_id, draft("lyrics", "first verse, fixed")).unwrap();
 
         assert_eq!(lyrics_one.revision, 1);
         assert_eq!(style_one.revision, 1, "style starts its own count");
@@ -663,10 +657,10 @@ with no markers at all
 
     #[test]
     fn a_new_version_becomes_current_by_default() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
 
-        let version = create(&mut conn, &work_id, draft("lyrics", "body")).unwrap();
+        let version = create(&conn, &work_id, draft("lyrics", "body")).unwrap();
 
         let work = work::get(&conn, &work_id).unwrap().unwrap();
         assert_eq!(
@@ -677,13 +671,13 @@ with no markers at all
 
     #[test]
     fn a_version_can_be_added_without_taking_over() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
-        let first = create(&mut conn, &work_id, draft("lyrics", "keep me")).unwrap();
+        let first = create(&conn, &work_id, draft("lyrics", "keep me")).unwrap();
 
         let mut experiment = draft("lyrics", "an experiment");
         experiment.make_current = false;
-        create(&mut conn, &work_id, experiment).unwrap();
+        create(&conn, &work_id, experiment).unwrap();
 
         let work = work::get(&conn, &work_id).unwrap().unwrap();
         assert_eq!(work.current_version_id.as_deref(), Some(first.id.as_str()));
@@ -691,21 +685,21 @@ with no markers at all
 
     #[test]
     fn bodies_are_stored_whole() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
         let body = "line one\nline two\nline three";
 
-        let version = create(&mut conn, &work_id, draft("lyrics", body)).unwrap();
+        let version = create(&conn, &work_id, draft("lyrics", body)).unwrap();
 
         assert_eq!(get(&conn, &version.id).unwrap().unwrap().body, body);
     }
 
     #[test]
     fn list_marks_the_current_version_and_reports_length() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
-        create(&mut conn, &work_id, draft("lyrics", "short")).unwrap();
-        let second = create(&mut conn, &work_id, draft("lyrics", "a longer body")).unwrap();
+        create(&conn, &work_id, draft("lyrics", "short")).unwrap();
+        let second = create(&conn, &work_id, draft("lyrics", "a longer body")).unwrap();
 
         let versions = list(&conn, &work_id).unwrap();
 
@@ -718,11 +712,11 @@ with no markers at all
 
     #[test]
     fn latest_returns_the_highest_revision_of_a_role() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
-        create(&mut conn, &work_id, draft("lyrics", "old")).unwrap();
-        create(&mut conn, &work_id, draft("lyrics", "new")).unwrap();
-        create(&mut conn, &work_id, draft("style", "unrelated")).unwrap();
+        create(&conn, &work_id, draft("lyrics", "old")).unwrap();
+        create(&conn, &work_id, draft("lyrics", "new")).unwrap();
+        create(&conn, &work_id, draft("style", "unrelated")).unwrap();
 
         let latest = latest(&conn, &work_id, "lyrics").unwrap().unwrap();
 
@@ -731,10 +725,10 @@ with no markers at all
 
     #[test]
     fn a_version_from_another_work_is_not_this_works_own() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let first = a_work(&conn, &profile_id);
         let second = a_work(&conn, &profile_id);
-        let stranger = create(&mut conn, &second, draft("lyrics", "theirs")).unwrap();
+        let stranger = create(&conn, &second, draft("lyrics", "theirs")).unwrap();
 
         let result = check_belongs(&conn, &first, &stranger.id);
 
@@ -743,12 +737,12 @@ with no markers at all
 
     #[test]
     fn deleting_the_current_version_falls_back_to_the_previous_one() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
-        let first = create(&mut conn, &work_id, draft("lyrics", "first")).unwrap();
-        let second = create(&mut conn, &work_id, draft("lyrics", "second")).unwrap();
+        let first = create(&conn, &work_id, draft("lyrics", "first")).unwrap();
+        let second = create(&conn, &work_id, draft("lyrics", "second")).unwrap();
 
-        delete(&mut conn, &second.id).unwrap();
+        delete(&conn, &second.id).unwrap();
 
         let work = work::get(&conn, &work_id).unwrap().unwrap();
         assert_eq!(
@@ -760,11 +754,11 @@ with no markers at all
 
     #[test]
     fn deleting_the_only_version_clears_the_pointer() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
-        let only = create(&mut conn, &work_id, draft("lyrics", "alone")).unwrap();
+        let only = create(&conn, &work_id, draft("lyrics", "alone")).unwrap();
 
-        delete(&mut conn, &only.id).unwrap();
+        delete(&conn, &only.id).unwrap();
 
         let work = work::get(&conn, &work_id).unwrap().unwrap();
         assert!(work.current_version_id.is_none());
@@ -772,9 +766,9 @@ with no markers at all
 
     #[test]
     fn a_body_changes_in_place_until_something_judges_it() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
-        let version = create(&mut conn, &work_id, draft("lyrics", "first line")).unwrap();
+        let version = create(&conn, &work_id, draft("lyrics", "first line")).unwrap();
         let before = work::get(&conn, &work_id).unwrap().unwrap().updated_at;
 
         let changed = update_body_at(
@@ -798,9 +792,9 @@ with no markers at all
 
     #[test]
     fn a_scored_version_refuses_to_change_and_says_why() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
-        let version = create(&mut conn, &work_id, draft("lyrics", "judged as is")).unwrap();
+        let version = create(&conn, &work_id, draft("lyrics", "judged as is")).unwrap();
         let new_score: crate::score::NewScore =
             serde_json::from_value(serde_json::json!({ "axes": { "hook": 7 } })).unwrap();
         crate::score::create(&conn, &work_id, new_score).unwrap();
@@ -818,9 +812,9 @@ with no markers at all
 
     #[test]
     fn a_body_change_is_clocked_on_the_field_it_changed() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
-        let version = create(&mut conn, &work_id, draft("lyrics", "one")).unwrap();
+        let version = create(&conn, &work_id, draft("lyrics", "one")).unwrap();
 
         update_body_at(&conn, &version.id, "two", &now()).unwrap();
 
@@ -840,21 +834,21 @@ with no markers at all
 
     #[test]
     fn a_version_needs_an_existing_work() {
-        let (mut conn, _) = workspace();
+        let (conn, _) = workspace();
 
-        let result = create(&mut conn, "nope", draft("lyrics", "orphan"));
+        let result = create(&conn, "nope", draft("lyrics", "orphan"));
 
         assert!(result.is_err());
     }
 
     #[test]
     fn a_version_remembers_the_one_it_was_written_from() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
-        let first = create(&mut conn, &work_id, draft("lyrics", "one")).unwrap();
+        let first = create(&conn, &work_id, draft("lyrics", "one")).unwrap();
 
         let second = create(
-            &mut conn,
+            &conn,
             &work_id,
             NewVersion {
                 parent_version_id: Some(first.id.clone()),
@@ -882,15 +876,15 @@ with no markers at all
 
     #[test]
     fn a_parent_must_be_a_version_of_the_same_work_and_role() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
         let other_work = a_work(&conn, &profile_id);
-        let style = create(&mut conn, &work_id, draft("style", "warm")).unwrap();
-        let elsewhere = create(&mut conn, &other_work, draft("lyrics", "far")).unwrap();
+        let style = create(&conn, &work_id, draft("style", "warm")).unwrap();
+        let elsewhere = create(&conn, &other_work, draft("lyrics", "far")).unwrap();
 
         for parent in [style.id.clone(), elsewhere.id.clone(), "nothing".to_owned()] {
             let refused = create(
-                &mut conn,
+                &conn,
                 &work_id,
                 NewVersion {
                     parent_version_id: Some(parent.clone()),
@@ -909,11 +903,11 @@ with no markers at all
 
     #[test]
     fn a_pruned_parent_leaves_the_child_without_one_rather_than_gone() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id);
-        let first = create(&mut conn, &work_id, draft("lyrics", "one")).unwrap();
+        let first = create(&conn, &work_id, draft("lyrics", "one")).unwrap();
         let second = create(
-            &mut conn,
+            &conn,
             &work_id,
             NewVersion {
                 parent_version_id: Some(first.id.clone()),
@@ -922,7 +916,7 @@ with no markers at all
         )
         .unwrap();
 
-        delete(&mut conn, &first.id).unwrap();
+        delete(&conn, &first.id).unwrap();
 
         let child = get(&conn, &second.id)
             .unwrap()

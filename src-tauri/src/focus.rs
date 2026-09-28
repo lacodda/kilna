@@ -13,6 +13,7 @@
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
+use crate::db::unit::atomically;
 use crate::error::{Error, Result};
 use crate::minted::Minted;
 use crate::time::now;
@@ -336,32 +337,18 @@ pub fn update_note_at(
 /// put back. A parameter kept only for symmetry would promise a hook that does
 /// not exist — see ADR 0014 for what the seams are for.
 ///
-/// The operation is written inside this function's own transaction rather than
-/// by the caller around it, for the reason [`crate::trash::discard_minted`]
-/// gives: a log entry committed beside a reorder that then failed would replay
-/// into an arrangement that never landed.
-pub fn reorder_notes(
-    conn: &mut Connection,
-    profile_id: &str,
-    order: &[String],
-    logged: Option<crate::operation::Intent>,
-) -> Result<()> {
-    let transaction = conn.transaction()?;
-
-    if let Some(logged) = logged {
-        crate::operation::record(&transaction, logged)?;
-    }
-
-    for (index, id) in order.iter().enumerate() {
-        let position = i64::try_from(index).unwrap_or(0) * STEP + STEP;
-        transaction.execute(
-            "UPDATE focus_note SET position = ?1 WHERE id = ?2 AND profile_id = ?3",
-            params![position, id, profile_id],
-        )?;
-    }
-
-    transaction.commit()?;
-    Ok(())
+/// One unit: an arrangement half applied is one nobody made.
+pub fn reorder_notes(conn: &Connection, profile_id: &str, order: &[String]) -> Result<()> {
+    atomically(conn, |tx| {
+        for (index, id) in order.iter().enumerate() {
+            let position = i64::try_from(index).unwrap_or(0) * STEP + STEP;
+            tx.execute(
+                "UPDATE focus_note SET position = ?1 WHERE id = ?2 AND profile_id = ?3",
+                params![position, id, profile_id],
+            )?;
+        }
+        Ok(())
+    })
 }
 
 pub fn delete_note(conn: &Connection, id: &str) -> Result<()> {
@@ -566,16 +553,15 @@ mod tests {
 
     #[test]
     fn reordering_rearranges_the_board() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let first = add_note(&conn, &profile_id, note("first")).unwrap();
         let second = add_note(&conn, &profile_id, note("second")).unwrap();
         let third = add_note(&conn, &profile_id, note("third")).unwrap();
 
         reorder_notes(
-            &mut conn,
+            &conn,
             &profile_id,
             &[third.id.clone(), first.id.clone(), second.id.clone()],
-            None,
         )
         .unwrap();
 
@@ -590,18 +576,12 @@ mod tests {
     /// that view has to keep its place rather than being scattered through it.
     #[test]
     fn reordering_leaves_notes_it_does_not_name_after_the_rest() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let first = add_note(&conn, &profile_id, note("first")).unwrap();
         let second = add_note(&conn, &profile_id, note("second")).unwrap();
         add_note(&conn, &profile_id, note("unnamed")).unwrap();
 
-        reorder_notes(
-            &mut conn,
-            &profile_id,
-            &[second.id.clone(), first.id.clone()],
-            None,
-        )
-        .unwrap();
+        reorder_notes(&conn, &profile_id, &[second.id.clone(), first.id.clone()]).unwrap();
 
         let board = notes(&conn, &profile_id).unwrap();
         assert_eq!(
@@ -616,7 +596,7 @@ mod tests {
     /// of damage nothing on screen would explain.
     #[test]
     fn reordering_leaves_another_profiles_board_alone() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let other = profile::list(&conn)
             .unwrap()
             .into_iter()
@@ -631,13 +611,7 @@ mod tests {
         let theirs = add_note(&conn, &other.id, note("theirs second")).unwrap();
         let before = theirs.position;
 
-        reorder_notes(
-            &mut conn,
-            &profile_id,
-            &[theirs.id.clone(), mine.id.clone()],
-            None,
-        )
-        .unwrap();
+        reorder_notes(&conn, &profile_id, &[theirs.id.clone(), mine.id.clone()]).unwrap();
 
         let after = get_note(&conn, &theirs.id).unwrap().unwrap();
         assert_eq!(

@@ -45,7 +45,7 @@ impl AppState {
         // Failing to sweep is not a reason to fail to start.
         if let Ok(Some(profile)) = profile::active(&conn) {
             if let Err(cause) = journal::sweep(&conn, &profile.id) {
-                eprintln!("journal: could not sweep old entries: {cause}");
+                crate::log::warn("journal", &format!("could not sweep old entries: {cause}"));
             }
         }
 
@@ -54,13 +54,19 @@ impl AppState {
         // nothing removes them either, since the table deliberately holds no
         // foreign key.
         if let Err(cause) = crate::focus::sweep(&conn) {
-            eprintln!("focus: could not sweep dismissals for deleted works: {cause}");
+            crate::log::warn(
+                "focus",
+                &format!("could not sweep dismissals for deleted works: {cause}"),
+            );
         }
 
         // Runs the previous life of the application was carrying died with it.
         // Leaving their rows as `running` would show work that nothing is doing.
         if let Err(cause) = crate::assistant::run::sweep(&conn) {
-            eprintln!("assistant: could not sweep abandoned runs: {cause}");
+            crate::log::warn(
+                "assistant",
+                &format!("could not sweep abandoned runs: {cause}"),
+            );
         }
 
         Ok(Self {
@@ -100,11 +106,11 @@ impl AppState {
         let dir = self
             .path
             .parent()
-            .ok_or_else(|| Error::Other("the workspace has no directory to keep files in".into()))?
+            .ok_or_else(|| {
+                Error::Internal("the workspace has no directory to keep files in".into())
+            })?
             .join(MEDIA_DIR);
-        std::fs::create_dir_all(&dir).map_err(|cause| {
-            Error::Other(format!("could not prepare the files directory: {cause}"))
-        })?;
+        std::fs::create_dir_all(&dir)?;
         Ok(dir)
     }
 
@@ -122,7 +128,10 @@ impl AppState {
     pub fn assistant_dir(&self) -> Option<PathBuf> {
         let dir = self.path.parent()?.join("assistant");
         if let Err(cause) = std::fs::create_dir_all(&dir) {
-            eprintln!("assistant: could not prepare the run directory: {cause}");
+            crate::log::warn(
+                "assistant",
+                &format!("could not prepare the run directory: {cause}"),
+            );
             return None;
         }
         Some(dir)
@@ -145,7 +154,10 @@ impl AppState {
         match db::open(&self.path) {
             Ok(conn) => Some(conn),
             Err(cause) => {
-                eprintln!("assistant: could not open the workspace for a run: {cause}");
+                crate::log::error(
+                    "assistant",
+                    &format!("could not open the workspace for a run: {cause}"),
+                );
                 None
             }
         }

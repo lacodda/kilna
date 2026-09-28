@@ -548,11 +548,11 @@ mod tests {
 
     #[test]
     fn the_catalogue_reads_the_score_of_the_current_version() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
 
         let first = version::create(
-            &mut conn,
+            &conn,
             &work_id,
             NewVersion {
                 role: "lyrics".into(),
@@ -567,7 +567,7 @@ mod tests {
         score_version(&conn, &work_id, &first.id, 9.0);
 
         let second = version::create(
-            &mut conn,
+            &conn,
             &work_id,
             NewVersion {
                 role: "lyrics".into(),
@@ -630,10 +630,10 @@ mod tests {
 
     #[test]
     fn a_score_pins_itself_to_the_works_current_version() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
         let draft = version::create(
-            &mut conn,
+            &conn,
             &work_id,
             NewVersion {
                 role: "lyrics".into(),
@@ -664,10 +664,10 @@ mod tests {
 
     #[test]
     fn scoring_does_not_overwrite_the_previous_snapshot() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
         version::create(
-            &mut conn,
+            &conn,
             &work_id,
             NewVersion {
                 role: "lyrics".into(),
@@ -693,7 +693,7 @@ mod tests {
 
         // Revise, then score again.
         version::create(
-            &mut conn,
+            &conn,
             &work_id,
             NewVersion {
                 role: "lyrics".into(),
@@ -768,11 +768,11 @@ mod tests {
 
     #[test]
     fn a_score_cannot_point_at_another_works_version() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let mine = a_work(&conn, &profile_id, "Mine");
         let theirs = a_work(&conn, &profile_id, "Theirs");
         let stranger = version::create(
-            &mut conn,
+            &conn,
             &theirs,
             NewVersion {
                 role: "lyrics".into(),
@@ -846,12 +846,12 @@ mod tests {
         // a style prompt are rows too. A critique is written ABOUT the lyrics
         // and is not a draft of the song, so it is not a time the song was
         // written; a style prompt stands on its own and is.
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
 
-        let mut write = |role: &str, body: &str| {
+        let write = |role: &str, body: &str| {
             version::create(
-                &mut conn,
+                &conn,
                 &work_id,
                 NewVersion {
                     role: role.into(),
@@ -891,11 +891,11 @@ mod tests {
         // a role no longer named by the profile cannot be shown to be
         // commentary, so it counts. A draft that stopped being counted because
         // its role was renamed would read as work that never happened.
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
 
         version::create(
-            &mut conn,
+            &conn,
             &work_id,
             NewVersion {
                 role: "lyrics".into(),

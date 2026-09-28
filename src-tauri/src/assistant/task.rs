@@ -927,7 +927,7 @@ mod tests {
     /// the replies already posted on that channel — and no other channel's.
     #[test]
     fn a_reply_is_composed_in_the_voice_of_its_own_channel() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = crate::work::create(
             &conn,
             &profile_id,
@@ -940,7 +940,7 @@ mod tests {
         .unwrap()
         .id;
         version::create(
-            &mut conn,
+            &conn,
             &work_id,
             NewVersion {
                 role: "lyrics".into(),
@@ -1701,7 +1701,7 @@ mod version_tests {
     /// remembers the action alone.
     #[test]
     fn a_task_on_a_version_reads_it_and_the_chat_remembers_it() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -1712,9 +1712,9 @@ mod version_tests {
             },
         )
         .unwrap();
-        let mut make = |body: &str| {
+        let make = |body: &str| {
             version::create(
-                &mut conn,
+                &conn,
                 &work.id,
                 NewVersion {
                     role: "lyrics".into(),
@@ -1764,7 +1764,7 @@ mod version_tests {
     /// the prompt says so: the whole answer is what is kept.
     #[test]
     fn an_action_that_produces_a_version_says_so_in_the_prompt() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -1776,7 +1776,7 @@ mod version_tests {
         )
         .unwrap();
         version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "lyrics".into(),

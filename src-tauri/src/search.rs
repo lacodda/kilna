@@ -454,9 +454,9 @@ mod tests {
     fn a_word_matches_its_russian_inflections() {
         let (conn, profile_id) = workspace();
         let work = song(&conn, &profile_id, "Кухня");
-        let mut conn = conn;
+        let conn = conn;
         version::create(
-            &mut conn,
+            &conn,
             &work,
             NewVersion {
                 role: "lyrics".into(),
@@ -544,9 +544,9 @@ mod tests {
     fn a_line_inside_a_version_is_found_and_quoted() {
         let (conn, profile_id) = workspace();
         let work = song(&conn, &profile_id, "Harbour lights");
-        let mut conn = conn;
+        let conn = conn;
         version::create(
-            &mut conn,
+            &conn,
             &work,
             NewVersion {
                 role: "lyrics".into(),
@@ -574,9 +574,9 @@ mod tests {
     fn an_edited_body_is_searched_as_it_now_reads() {
         let (conn, profile_id) = workspace();
         let work = song(&conn, &profile_id, "Harbour lights");
-        let mut conn = conn;
+        let conn = conn;
         let version = version::create(
-            &mut conn,
+            &conn,
             &work,
             NewVersion {
                 role: "lyrics".into(),
@@ -773,9 +773,9 @@ mod tests {
         let (conn, profile_id) = workspace();
         let kitchen = song(&conn, &profile_id, "Кухня");
         let harbour = song(&conn, &profile_id, "Гавань огней");
-        let mut conn = conn;
+        let conn = conn;
         version::create(
-            &mut conn,
+            &conn,
             &kitchen,
             NewVersion {
                 role: "lyrics".into(),
@@ -801,10 +801,10 @@ mod tests {
     fn a_work_is_listed_once_however_often_it_matches() {
         let (conn, profile_id) = workspace();
         let work = song(&conn, &profile_id, "Sea songs");
-        let mut conn = conn;
+        let conn = conn;
         for index in 0..3 {
             version::create(
-                &mut conn,
+                &conn,
                 &work,
                 NewVersion {
                     role: "lyrics".into(),

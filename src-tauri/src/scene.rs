@@ -14,6 +14,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
 
+use crate::db::unit::atomically;
 use crate::error::{Error, Result};
 use crate::minted::Minted;
 use crate::profile::config::{ProfileConfig, WorkKind};
@@ -535,12 +536,7 @@ pub fn timings(duration: f64, scenes: usize) -> Vec<(f64, f64)> {
 ///
 /// Refuses rather than guesses when the work has no length: a board timed from
 /// nothing would be fifty scenes all starting at zero.
-pub fn time_board_at(
-    conn: &mut Connection,
-    work_id: &str,
-    at: &str,
-    logged: Option<crate::operation::Intent>,
-) -> Result<Vec<Scene>> {
+pub fn time_board_at(conn: &Connection, work_id: &str, at: &str) -> Result<Vec<Scene>> {
     let work = crate::work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
     let duration = duration_of(&work).ok_or_else(|| {
         Error::Other("this work has no duration yet: give it one on the Overview tab".into())
@@ -552,20 +548,15 @@ pub fn time_board_at(
     }
 
     let spans = timings(duration, scenes.len());
-    let tx = conn.transaction()?;
-
-    if let Some(logged) = logged {
-        crate::operation::record(&tx, logged)?;
-    }
-
-    for (scene, (starts_at, ends_at)) in scenes.iter().zip(spans) {
-        tx.execute(
-            "UPDATE scene SET starts_at = ?1, ends_at = ?2, updated_at = ?3 WHERE id = ?4",
-            rusqlite::params![starts_at, ends_at, at, scene.id],
-        )?;
-    }
-
-    tx.commit()?;
+    atomically(conn, |tx| {
+        for (scene, (starts_at, ends_at)) in scenes.iter().zip(spans) {
+            tx.execute(
+                "UPDATE scene SET starts_at = ?1, ends_at = ?2, updated_at = ?3 WHERE id = ?4",
+                rusqlite::params![starts_at, ends_at, at, scene.id],
+            )?;
+        }
+        Ok(())
+    })?;
     for_work(conn, work_id)
 }
 
@@ -613,23 +604,10 @@ pub fn restore_spans_in(
 /// when, and the seconds are theirs to settle or to divide again from the
 /// length; carrying a span along with its scene would put scene 3 at 0:48
 /// because it used to be scene 12, which is not a board anyone meant.
-pub fn renumber(
-    conn: &mut Connection,
-    work_id: &str,
-    ids: &[String],
-    at: &str,
-    logged: Option<crate::operation::Intent>,
-) -> Result<Vec<Scene>> {
+pub fn renumber(conn: &Connection, work_id: &str, ids: &[String], at: &str) -> Result<Vec<Scene>> {
     let scenes = for_work(conn, work_id)?;
     check_order(&scenes, ids)?;
-
-    let tx = conn.transaction()?;
-    if let Some(logged) = logged {
-        crate::operation::record(&tx, logged)?;
-    }
-    renumber_in(&tx, ids, at)?;
-    tx.commit()?;
-
+    atomically(conn, |tx| renumber_in(tx, ids, at))?;
     for_work(conn, work_id)
 }
 
@@ -744,11 +722,10 @@ pub fn parts_of_source(conn: &Connection, work_id: &str, role: &str) -> Result<u
 /// it must match what the text marks out, or the operation is refused
 /// rather than played against a text that has changed since.
 pub fn frame_from_text(
-    conn: &mut Connection,
+    conn: &Connection,
     work_id: &str,
     role: &str,
     minted: &[Minted],
-    logged: Option<crate::operation::Intent>,
 ) -> Result<Vec<Scene>> {
     let work = crate::work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
 
@@ -793,24 +770,22 @@ pub fn frame_from_text(
     }
 
     let profile_id = work.profile_id.clone();
-    let tx = conn.transaction()?;
-    if let Some(logged) = logged {
-        crate::operation::record(&tx, logged)?;
-    }
-    for (index, (section, minted)) in sections.iter().zip(minted).enumerate() {
-        create_minted(
-            &tx,
-            &profile_id,
-            NewScene {
-                work_id: work_id.to_owned(),
-                position: Some(index as i64 + 1),
-                section: Some(section.name.clone()),
-                ..NewScene::default()
-            },
-            minted.clone(),
-        )?;
-    }
-    tx.commit()?;
+    atomically(conn, |tx| {
+        for (index, (section, minted)) in sections.iter().zip(minted).enumerate() {
+            create_minted(
+                tx,
+                &profile_id,
+                NewScene {
+                    work_id: work_id.to_owned(),
+                    position: Some(index as i64 + 1),
+                    section: Some(section.name.clone()),
+                    ..NewScene::default()
+                },
+                minted.clone(),
+            )?;
+        }
+        Ok(())
+    })?;
 
     for_work(conn, work_id)
 }
@@ -938,13 +913,13 @@ mod tests {
     /// rather than collapsing the board onto one instant.
     #[test]
     fn timing_a_board_needs_a_length() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = video(&conn, &profile_id);
         for _ in 0..3 {
             create(&conn, &profile_id, scene(&work_id)).unwrap();
         }
 
-        let refused = time_board_at(&mut conn, &work_id, "2026-09-14T10:00:00.000Z", None);
+        let refused = time_board_at(&conn, &work_id, "2026-09-14T10:00:00.000Z");
         assert!(refused.is_err(), "no length, no timing");
 
         let mut meta = serde_json::Map::new();
@@ -959,7 +934,7 @@ mod tests {
         )
         .unwrap();
 
-        let timed = time_board_at(&mut conn, &work_id, "2026-09-14T10:00:00.000Z", None).unwrap();
+        let timed = time_board_at(&conn, &work_id, "2026-09-14T10:00:00.000Z").unwrap();
         assert_eq!(timed.len(), 3);
         assert_eq!(timed[0].starts_at, Some(0.0));
         assert_eq!(timed[2].ends_at, Some(90.0));
@@ -975,7 +950,7 @@ mod tests {
     /// would be words the person has to delete before writing the shot.
     #[test]
     fn a_board_is_framed_from_the_parts_of_its_source() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let song_id = work::create(
             &conn,
             &profile_id,
@@ -988,7 +963,7 @@ mod tests {
         .unwrap()
         .id;
         crate::work::version::create(
-            &mut conn,
+            &conn,
             &song_id,
             crate::work::version::NewVersion {
                 role: "lyrics".into(),
@@ -1033,7 +1008,7 @@ the hook
         let parts = crate::scene::parts_of_source(&conn, &video_id, "lyrics").unwrap();
         assert_eq!(parts, 3);
         let minted: Vec<Minted> = (0..parts).map(|_| Minted::fresh()).collect();
-        let framed = frame_from_text(&mut conn, &video_id, "lyrics", &minted, None).unwrap();
+        let framed = frame_from_text(&conn, &video_id, "lyrics", &minted).unwrap();
 
         assert_eq!(
             framed
@@ -1052,7 +1027,7 @@ the hook
 
         // A board that already has scenes is left alone rather than doubled.
         let minted: Vec<Minted> = (0..parts).map(|_| Minted::fresh()).collect();
-        let refused = frame_from_text(&mut conn, &video_id, "lyrics", &minted, None);
+        let refused = frame_from_text(&conn, &video_id, "lyrics", &minted);
         assert!(refused.is_err(), "a board with scenes is not framed again");
         assert_eq!(count(&conn, &video_id).unwrap(), 3, "and nothing was added");
     }
@@ -1061,7 +1036,7 @@ the hook
     /// holding the whole song.
     #[test]
     fn a_source_with_no_markup_is_refused() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let song_id = work::create(
             &conn,
             &profile_id,
@@ -1074,7 +1049,7 @@ the hook
         .unwrap()
         .id;
         crate::work::version::create(
-            &mut conn,
+            &conn,
             &song_id,
             crate::work::version::NewVersion {
                 role: "lyrics".into(),
@@ -1102,7 +1077,7 @@ with no markers
         )
         .unwrap();
 
-        let refused = frame_from_text(&mut conn, &video_id, "lyrics", &[], None);
+        let refused = frame_from_text(&conn, &video_id, "lyrics", &[]);
         assert!(refused.is_err());
         assert_eq!(count(&conn, &video_id).unwrap(), 0, "no half-built board");
     }
@@ -1358,7 +1333,7 @@ with no markers
     /// the mess forward; setting the order cannot.
     #[test]
     fn a_renumbering_ends_the_disorder_it_finds() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = video(&conn, &profile_id);
 
         let ids: Vec<String> = [7, 1, 7, 4]
@@ -1385,7 +1360,7 @@ with no markers
             ids[1].clone(),
             ids[2].clone(),
         ];
-        let board = renumber(&mut conn, &work_id, &wanted, &now(), None).unwrap();
+        let board = renumber(&conn, &work_id, &wanted, &now()).unwrap();
 
         assert_eq!(
             board.iter().map(|scene| scene.position).collect::<Vec<_>>(),
@@ -1407,7 +1382,7 @@ with no markers
     /// is the state this call exists to remove.
     #[test]
     fn a_renumbering_names_every_scene_exactly_once() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = video(&conn, &profile_id);
         let other = video(&conn, &profile_id);
 
@@ -1447,7 +1422,7 @@ with no markers
             vec![first.clone(), stranger.clone()],
         ] {
             assert!(
-                renumber(&mut conn, &work_id, &wrong, &now(), None).is_err(),
+                renumber(&conn, &work_id, &wrong, &now()).is_err(),
                 "a list of {} names the board wrongly and must be refused",
                 wrong.len()
             );
@@ -1469,7 +1444,7 @@ with no markers
     /// none to write.
     #[test]
     fn the_frames_follow_their_scenes_through_a_shift() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = video(&conn, &profile_id);
 
         let scenes: Vec<String> = (0..3)
@@ -1506,7 +1481,7 @@ with no markers
         let stored = frame.path.clone();
 
         let wanted = vec![last.clone(), scenes[0].clone(), scenes[1].clone()];
-        renumber(&mut conn, &work_id, &wanted, &now(), None).unwrap();
+        renumber(&conn, &work_id, &wanted, &now()).unwrap();
 
         let held = crate::scene_frame::for_scene(&conn, &last).unwrap();
         assert_eq!(held.len(), 1, "the scene still holds its picture");
@@ -1531,7 +1506,7 @@ with no markers
     /// is now the first, which is not a board anyone meant.
     #[test]
     fn a_renumbering_leaves_the_spans_alone() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = video(&conn, &profile_id);
 
         let ids: Vec<String> = [(0.0, 10.0), (10.0, 20.0)]
@@ -1552,14 +1527,7 @@ with no markers
             })
             .collect();
 
-        let board = renumber(
-            &mut conn,
-            &work_id,
-            &[ids[1].clone(), ids[0].clone()],
-            &now(),
-            None,
-        )
-        .unwrap();
+        let board = renumber(&conn, &work_id, &[ids[1].clone(), ids[0].clone()], &now()).unwrap();
 
         assert_eq!(
             (board[0].starts_at, board[0].ends_at),

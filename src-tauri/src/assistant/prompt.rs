@@ -731,7 +731,7 @@ mod tests {
 
     #[test]
     fn a_work_prompt_carries_the_title_and_the_current_body() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -743,7 +743,7 @@ mod tests {
         )
         .unwrap();
         version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "lyrics".into(),
@@ -769,7 +769,7 @@ mod tests {
 
     #[test]
     fn a_prompt_can_ask_for_a_role_the_work_is_not_currently_on() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work = work::create(
             &conn,
             &profile_id,
@@ -781,7 +781,7 @@ mod tests {
         )
         .unwrap();
         version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "lyrics".into(),
@@ -794,7 +794,7 @@ mod tests {
         )
         .unwrap();
         version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "style".into(),
@@ -988,7 +988,7 @@ mod tests {
 
     #[test]
     fn a_donor_is_read_and_its_absence_is_refused() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let song = work::create(
             &conn,
             &profile_id,
@@ -1000,7 +1000,7 @@ mod tests {
         )
         .unwrap();
         version::create(
-            &mut conn,
+            &conn,
             &song.id,
             NewVersion {
                 role: "lyrics".into(),

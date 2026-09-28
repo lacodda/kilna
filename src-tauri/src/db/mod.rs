@@ -1,4 +1,5 @@
 pub mod migrations;
+pub mod unit;
 
 use std::path::{Path, PathBuf};
 

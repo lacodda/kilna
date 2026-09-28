@@ -68,7 +68,7 @@ pub fn serve(conn: &Connection) -> Result<()> {
                 // A line that is not JSON has no id to answer against, so
                 // there is nobody to answer; saying so on stderr is all a
                 // server can do without corrupting the stream.
-                eprintln!("kilna --mcp: ignoring a line that is not JSON: {err}");
+                crate::log::warn("mcp", &format!("ignoring a line that is not JSON: {err}"));
                 continue;
             }
         };
@@ -1279,7 +1279,7 @@ mod tests {
     use crate::work::NewWork;
 
     fn workspace() -> (Connection, String) {
-        let mut conn = db::open_in_memory().unwrap();
+        let conn = db::open_in_memory().unwrap();
         profile::seed(&conn).unwrap();
         let profile_id = profile::active(&conn).unwrap().unwrap().id;
         let work_id = work::create(
@@ -1294,7 +1294,7 @@ mod tests {
         .unwrap()
         .id;
         version::create(
-            &mut conn,
+            &conn,
             &work_id,
             serde_json::from_value(json!({ "role": "lyrics", "body": "one line\ntwo lines" }))
                 .unwrap(),

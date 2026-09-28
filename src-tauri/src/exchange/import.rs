@@ -40,7 +40,13 @@ pub struct ImportReport {
 /// import that silently rewrites what is already there is not recoverable.
 /// A title the person deleted here is skipped too — the tombstone knows it,
 /// and an import that resurrects what was thrown away is a merge that lost.
-pub fn from_legacy(conn: &mut Connection, source: &Path, profile_id: &str) -> Result<ImportReport> {
+pub fn from_legacy(conn: &Connection, source: &Path, profile_id: &str) -> Result<ImportReport> {
+    // One unit: an import that failed halfway would leave half a catalogue,
+    // and the next attempt would skip the half that landed as "already here".
+    crate::db::unit::atomically(conn, |conn| import(conn, source, profile_id))
+}
+
+fn import(conn: &Connection, source: &Path, profile_id: &str) -> Result<ImportReport> {
     if !source.exists() {
         return Err(Error::Other(format!("no database at {}", source.display())));
     }
@@ -375,9 +381,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
 
-        let report = from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let report = from_legacy(&conn, &source, &profile_id).unwrap();
 
         assert_eq!(report.works, 3);
         assert_eq!(
@@ -396,8 +402,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (mut conn, profile_id) = workspace();
-        from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let (conn, profile_id) = workspace();
+        from_legacy(&conn, &source, &profile_id).unwrap();
 
         let works = work::list(
             &conn,
@@ -425,8 +431,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (mut conn, profile_id) = workspace();
-        from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let (conn, profile_id) = workspace();
+        from_legacy(&conn, &source, &profile_id).unwrap();
 
         let works = work::list(
             &conn,
@@ -454,8 +460,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (mut conn, profile_id) = workspace();
-        from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let (conn, profile_id) = workspace();
+        from_legacy(&conn, &source, &profile_id).unwrap();
 
         let works = work::list(
             &conn,
@@ -482,8 +488,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (mut conn, profile_id) = workspace();
-        from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let (conn, profile_id) = workspace();
+        from_legacy(&conn, &source, &profile_id).unwrap();
 
         let works = work::list(
             &conn,
@@ -503,10 +509,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (mut conn, profile_id) = workspace();
-        from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let (conn, profile_id) = workspace();
+        from_legacy(&conn, &source, &profile_id).unwrap();
 
-        let again = from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let again = from_legacy(&conn, &source, &profile_id).unwrap();
 
         assert_eq!(again.works, 0);
         assert_eq!(again.skipped, 3);
@@ -524,8 +530,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (mut conn, profile_id) = workspace();
-        from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let (conn, profile_id) = workspace();
+        from_legacy(&conn, &source, &profile_id).unwrap();
 
         let thrown_out = work::list(&conn, &profile_id, &WorkFilter::default())
             .unwrap()
@@ -533,12 +539,11 @@ mod tests {
             .find(|work| work.title == "Paper boats")
             .unwrap()
             .id;
-        let entry =
-            crate::trash::discard(&mut conn, crate::trash::Entity::Work, &thrown_out).unwrap();
+        let entry = crate::trash::discard(&conn, crate::trash::Entity::Work, &thrown_out).unwrap();
         // Emptying the trash is exactly the case a snapshot could not cover.
-        crate::trash::purge(&mut conn, &entry, None).unwrap();
+        crate::trash::purge(&conn, &entry).unwrap();
 
-        let again = from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let again = from_legacy(&conn, &source, &profile_id).unwrap();
 
         assert_eq!(again.works, 0, "the deleted one stayed deleted");
         assert_eq!(again.deleted, 1);
@@ -556,18 +561,18 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
-        let (mut conn, profile_id) = workspace();
-        from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let (conn, profile_id) = workspace();
+        from_legacy(&conn, &source, &profile_id).unwrap();
         let id = work::list(&conn, &profile_id, &WorkFilter::default())
             .unwrap()
             .into_iter()
             .find(|work| work.title == "Paper boats")
             .unwrap()
             .id;
-        let entry = crate::trash::discard(&mut conn, crate::trash::Entity::Work, &id).unwrap();
-        crate::trash::restore(&mut conn, &entry, None).unwrap();
+        let entry = crate::trash::discard(&conn, crate::trash::Entity::Work, &id).unwrap();
+        crate::trash::restore(&conn, &entry).unwrap();
 
-        let again = from_legacy(&mut conn, &source, &profile_id).unwrap();
+        let again = from_legacy(&conn, &source, &profile_id).unwrap();
 
         assert_eq!(again.deleted, 0);
         assert_eq!(again.skipped, 3);
@@ -581,9 +586,9 @@ mod tests {
             .unwrap()
             .execute_batch("CREATE TABLE unrelated (id INTEGER)")
             .unwrap();
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
 
-        let error = from_legacy(&mut conn, &stranger, &profile_id).unwrap_err();
+        let error = from_legacy(&conn, &stranger, &profile_id).unwrap_err();
 
         assert!(error.to_string().contains("songs"), "got {error}");
     }
@@ -591,8 +596,8 @@ mod tests {
     #[test]
     fn importing_a_missing_file_fails() {
         let dir = tempfile::tempdir().unwrap();
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
 
-        assert!(from_legacy(&mut conn, &dir.path().join("nope.db"), &profile_id).is_err());
+        assert!(from_legacy(&conn, &dir.path().join("nope.db"), &profile_id).is_err());
     }
 }

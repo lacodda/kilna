@@ -1,20 +1,24 @@
-//! Holds every mutating command to the operations log.
+//! Holds every write the window can cause to the operations log.
 //!
-//! A command that changes the workspace and records no operation leaves a hole
-//! in the log, and a log with a hole replays to a database that never existed —
-//! silently, because nothing at the time of the missing write goes wrong. The
-//! failure surfaces much later, in a merge or a repair, as data that disagrees
-//! with itself.
+//! A write that records no operation leaves a hole in the log, and a log with
+//! a hole replays to a database that never existed — silently, because nothing
+//! at the time of the missing write goes wrong. The failure surfaces much
+//! later, in a merge or a repair, as data that disagrees with itself.
 //!
-//! Read from the source rather than by running the commands, for the reason
-//! `journal_keys.rs` gives: a command no test happens to call contributes
-//! nothing, and that is exactly the command most likely to have been forgotten.
+//! Since v0.83 the rule has two halves (ADR 0040). A command writes nothing
+//! itself: it hands a write to an action. And an action writes only inside a
+//! gesture, which records its operation by construction - the gesture records
+//! after its closure returns, so the only way to record nothing is to say so.
+//! This gate reads both halves from the source rather than running them, for
+//! the reason `journal_keys.rs` gives: a command no test happens to call
+//! contributes nothing, and that is exactly the command most likely to have
+//! been forgotten.
 
 mod common;
 
 use std::collections::BTreeSet;
 
-use common::{Source, backend, matching_brace, the_function};
+use common::{Source, backend, gestures, matching_brace, the_function};
 
 /// One `#[tauri::command]` function, as the scan sees it.
 struct Command {
@@ -25,16 +29,14 @@ struct Command {
 /// Every command in the backend, with the text of its body.
 ///
 /// Found by the attribute, in whichever file it stands: the commands were one
-/// file for a long time, and a gate that opened that file by name would read
-/// nothing - and pass - the day they were split by domain.
+/// file until v0.83, and a gate that opened that file by name would have read
+/// nothing - and passed - the day they were split by domain.
 ///
 /// The body is the function's own block, from its opening brace to the brace
 /// that closes it, read in code with comments and literals blanked. It used to
 /// run to the next `#[tauri::command]`, which took in whatever helpers sat
-/// between: `update_profile_config` was followed by the `recording` helper and
-/// `set_current_version` by `discard_and_record`, so both "recorded an
-/// operation" while writing past the log - and a doc comment mentioning a
-/// write counted as one.
+/// between, so two commands "recorded an operation" while writing past the
+/// log - and a doc comment mentioning a write counted as one.
 fn commands_in(sources: &[Source]) -> Vec<Command> {
     // Both spellings: `#[tauri::command]` and `#[tauri::command(async)]`,
     // which runs a command off the main thread.
@@ -126,246 +128,336 @@ fn the_scan_finds_every_registered_command() {
     );
 }
 
-/// Commands that change the workspace and so must record an operation.
-///
-/// Recognised by what they call, not by their names: a command mutates if its
-/// body reaches a domain function that writes. Naming them by hand would make
-/// this gate a list someone has to remember to extend, which is the failure it
-/// exists to prevent.
-fn writes_to_the_workspace(body: &str) -> bool {
-    // A domain call that writes. Deliberately not `recording(` — that is how a
-    // command records, and a gate whose test for "writes" is the same string as
-    // its test for "records" can never catch anything. Matched on `::name(` so
-    // that a local helper of
-    // the same name does not count, and listed rather than inferred because
-    // "writes" is not visible in a name: `score::catalogue` reads, `work::pin_tier`
-    // writes.
-    const WRITERS: [&str; 46] = [
-        "::create(",
-        "::create_minted(",
-        "::update(",
-        "::update_at(",
-        "::delete(",
-        "::discard(",
-        "::discard_works_batch(",
-        // Taking something back changes the workspace as surely as doing it.
-        "::undo(",
-        "::restore(",
-        "::purge(",
-        "::empty(",
-        "::activate(",
-        "::update_config(",
-        "::add_note(",
-        "::add_note_minted(",
-        "::update_note(",
-        "::update_note_at(",
-        "::delete_note(",
-        "::reorder(",
-        "::reorder_notes(",
-        "::set_contents(",
-        "::set_contents_at(",
-        "::set_current(",
-        "::resync(",
-        "::resync_at(",
-        "::apply(",
-        "::mark_released(",
-        "::mark_released_at(",
-        "::unmark_released(",
-        "::unmark_released_at(",
-        "::schedule(",
-        "::schedule_at(",
-        "::unschedule(",
-        "::unschedule_at(",
-        "::dismiss(",
-        "::dismiss_at(",
-        "::unpin(",
-        "::unpin_at(",
-        "::pin_tier(",
-        "::pin_tier_at(",
-        "::unpin_tier(",
-        "::unpin_tier_at(",
-        "::set_slot_pin(",
-        "::set_slot_pin_at(",
-        "::set_status(",
-        "::run(",
-        // The shared closure every non-self-transacting command routes its
-        // change and its log entry through together. A command whose body
-        // reaches here writes, even when the domain call it wraps has no
-        // other name on this list — `recording` is the write.
-    ];
+/// A domain call that writes, matched on `::name(` so that a local helper of
+/// the same name does not count. Listed rather than inferred because "writes"
+/// is not visible in a name: `score::catalogue` reads, `work::pin_tier_at`
+/// writes.
+const WRITERS: [&str; 64] = [
+    "::create(",
+    "::create_minted(",
+    "::update(",
+    "::update_at(",
+    "::update_body_at(",
+    "::delete(",
+    "::discard(",
+    "::discard_minted(",
+    "::discard_batch(",
+    // Taking something back changes the workspace as surely as doing it.
+    "::undo(",
+    "::restore(",
+    "::purge(",
+    "::empty(",
+    "::activate(",
+    "::update_config(",
+    "::update_config_at(",
+    "::add_note(",
+    "::add_note_minted(",
+    "::update_note(",
+    "::update_note_at(",
+    "::delete_note(",
+    "::reorder(",
+    "::reorder_notes(",
+    "::set_contents(",
+    "::set_contents_at(",
+    "::set_current(",
+    "::resync(",
+    "::resync_at(",
+    "::apply(",
+    "::apply_at(",
+    "::mark_released(",
+    "::mark_released_at(",
+    "::unmark_released(",
+    "::unmark_released_at(",
+    "::schedule(",
+    "::schedule_at(",
+    "::unschedule(",
+    "::unschedule_at(",
+    "::dismiss(",
+    "::dismiss_at(",
+    "::unpin(",
+    "::unpin_at(",
+    "::pin_tier(",
+    "::pin_tier_at(",
+    "::unpin_tier(",
+    "::unpin_tier_at(",
+    "::set_slot_pin(",
+    "::set_slot_pin_at(",
+    "::set_status(",
+    "::run(",
+    "::promote(",
+    "::attach(",
+    "::attach_minted(",
+    "::attach_bytes(",
+    "::detach(",
+    "::select(",
+    "::clear_selection(",
+    "::frame_from_text(",
+    "::time_board_at(",
+    "::renumber(",
+    "::clone_work_minted(",
+    "::from_legacy(",
+    // A chat's own rows: written, but by design not into the log.
+    "::rename(",
+    "::clear_waiting(",
+];
 
-    // Deletions all go through one helper, which records the operation once for
-    // all six entities. A command that calls it is covered by that write, not by
-    // one of its own — so it counts as both writing and recording.
-    if body.contains("discard_and_record(") {
-        return false;
+/// Where each writer is called in a piece of code, with the path it is called
+/// through: `actions::work::create` for `actions::work::create(`.
+fn writer_calls(code: &str) -> Vec<(usize, String)> {
+    let mut found = Vec::new();
+    for writer in WRITERS {
+        for (at, _) in code.match_indices(writer) {
+            // The whole path the call is made through, read backwards over
+            // the path's characters.
+            let start = code[..at]
+                .rfind(|c: char| !(c.is_alphanumeric() || c == '_' || c == ':'))
+                .map_or(0, |i| i + 1);
+            let path = &code[start..at + writer.len() - 1];
+            found.push((at, path.to_owned()));
+        }
     }
-
-    WRITERS.iter().any(|writer| body.contains(writer))
+    found
 }
 
-/// Whether a command writes an operation, by either route.
-///
-/// Most go through `recording`, which pairs the change and the log entry in one
-/// transaction. A domain function that opens its own transaction takes the
-/// operation as an argument instead, and the command builds it — so an
-/// `Intent::new` in the body counts too.
-fn records_an_operation(body: &str) -> bool {
-    body.contains("operation::record")
-        || body.contains("operation::Intent::new")
-        || body.contains("recording(")
+/// Whether a call goes through the actions: from a command, `actions::…`;
+/// from inside an action, a neighbouring action through `super::…`.
+fn through_an_action(path: &str) -> bool {
+    path.starts_with("actions::")
+        || path.starts_with("crate::actions::")
+        || path.starts_with("super::")
 }
 
-/// Commands that change something, but nothing the log is about.
+/// Commands that write past the actions, on purpose.
 ///
-/// Each entry is a promise that replaying the log without it still produces the
-/// right database, and each says why. Anything not on this list that writes has
-/// to be logged.
-const NOT_IN_THE_LOG: [(&str, &str); 18] = [
-    (
-        "undo_last",
-        "records its operation one level down, inside `undo::undo`'s own \
-         transaction — held by `take_back` in `undo_takes_back.rs`, which every \
-         undo there goes through",
-    ),
-    (
-        "import_legacy",
-        "reads a predecessor's database once into this one, many rows at a time; \
-         the log starts after it, the way it starts after the seed - a replay \
-         rebuilds on top of an import rather than repeating it from a file that \
-         may no longer exist",
-    ),
-    (
-        "mark_journal_read",
-        "the journal is a feed for a person, not part of the workspace a replay rebuilds",
-    ),
+/// Each entry is a promise that replaying the log without its write still
+/// produces the right database, and says why. Anything not on this list that
+/// writes has to hand the write to an action.
+const WRITES_PAST_THE_ACTIONS: [(&str, &str); 7] = [
     (
         "activate_profile",
         "which profile is open is a fact about this machine; ADR 0012 keeps it off the wire \
          for the same reason",
     ),
     (
-        "start_run",
-        "an assistant run writes only chat rows, which are this device's conversation",
+        "create_chat",
+        "a chat is this device's conversation with the assistant, not part of the workspace \
+         a replay rebuilds",
     ),
-    ("start_task", "as above"),
-    ("start_tasks", "as above"),
-    ("cancel_run", "as above"),
-    ("clear_waiting", "as above"),
-    ("clear_task_queue", "as above"),
-    ("create_chat", "as above"),
     ("rename_chat", "as above"),
     ("delete_chat", "as above"),
+    ("clear_waiting", "as above"),
     (
         "dismiss_proposal",
-        "marks one chat message as turned down and writes nothing else; a chat is \
-         this device's conversation, as the runs above are",
+        "marks one chat message as turned down and writes nothing else; a chat is this \
+         device's conversation",
     ),
     (
-        "apply_proposal",
-        "records one operation per row it writes, inside `assistant::apply` — the \
-         same intents the hand-driven commands record; held by \
-         `a_package_in_a_chat_on_nothing_creates_the_whole_work_through_the_log` there",
-    ),
-    ("apply_pending_proposals", "as above, once per proposal"),
-    (
-        "start_comment_task",
-        "opens a chat and starts a run, which are this device's conversation; the \
-         reply it drafts is written only when the person keeps it, through `apply_proposal`",
-    ),
-    (
-        "start_screenshot_task",
-        "as above: the comment read off the picture is kept through `apply_proposal`, \
-         and the picture itself goes to a temporary folder, not the workspace",
+        "import_legacy",
+        "reads a predecessor's database once into this one, many rows at a time; the log \
+         starts after it, the way it starts after the seed - a replay rebuilds on top of an \
+         import rather than repeating it from a file that may no longer exist",
     ),
 ];
 
 #[test]
-fn every_mutating_command_records_an_operation() {
-    let exempt: BTreeSet<&str> = NOT_IN_THE_LOG.iter().map(|(name, _)| *name).collect();
+fn no_command_writes_past_the_actions() {
+    let exempt: BTreeSet<&str> = WRITES_PAST_THE_ACTIONS
+        .iter()
+        .map(|(name, _)| *name)
+        .collect();
 
-    let missing: Vec<String> = commands()
+    let direct: Vec<String> = commands()
         .into_iter()
         .filter(|command| !exempt.contains(command.name.as_str()))
-        .filter(|command| writes_to_the_workspace(&command.body))
-        .filter(|command| !records_an_operation(&command.body))
-        .map(|command| command.name)
+        .flat_map(|command| {
+            writer_calls(&command.body)
+                .into_iter()
+                .filter(|(_, path)| !through_an_action(path))
+                .map(move |(_, path)| format!("{} calls {path}", command.name))
+        })
         .collect();
 
     assert!(
-        missing.is_empty(),
-        "these commands change the workspace but record no operation, so the log replays \
-         to a database that never existed: {missing:?}\n\
-         Either call `operation::record` in each, or — if the change genuinely does not \
-         belong in the log — add it to NOT_IN_THE_LOG with the reason."
+        direct.is_empty(),
+        "these commands write to the workspace themselves instead of through an action, so \
+         nothing records an operation for the write: {direct:?}\n\
+         Move the write into `src/actions/` inside a gesture, or - if the change genuinely \
+         does not belong in the log - add the command to WRITES_PAST_THE_ACTIONS with the reason."
     );
 }
 
-/// The exemption list has to stay a list of real commands.
+/// The exemption list has to stay a list of commands that write.
 ///
-/// A command renamed away leaves its exemption behind, and the exemption then
-/// silently covers nothing while looking like it covers something.
+/// A command renamed away, or moved onto an action, leaves its exemption
+/// behind, and the exemption then silently covers nothing while looking like
+/// it covers something.
 #[test]
-fn nothing_is_exempted_that_is_not_a_command() {
-    let names: BTreeSet<String> = commands().into_iter().map(|command| command.name).collect();
-
-    let stale: Vec<&str> = NOT_IN_THE_LOG
+fn nothing_is_exempted_that_does_not_write() {
+    let commands = commands();
+    let stale: Vec<&str> = WRITES_PAST_THE_ACTIONS
         .iter()
         .map(|(name, _)| *name)
-        .filter(|name| !names.contains(*name))
+        .filter(|name| {
+            commands
+                .iter()
+                .find(|command| command.name == *name)
+                .is_none_or(|command| {
+                    writer_calls(&command.body)
+                        .iter()
+                        .all(|(_, path)| through_an_action(path))
+                })
+        })
         .collect();
 
     assert!(
         stale.is_empty(),
-        "these names are exempted from the operations log but are not commands any more: {stale:?}"
+        "these are exempted from going through an action but are not commands that write \
+         past one: {stale:?}"
     );
 }
 
-/// The shared deletion helper records for every entity it serves.
-///
-/// `every_mutating_command_records_an_operation` passes over the commands that
-/// call it, because the write happens one level down. If the helper stopped
-/// recording, every deletion in the application would fall out of the log at
-/// once and nothing above would notice.
-///
-/// Two links, both read in code: the helper builds the operation and hands it
-/// to the trash, and the trash writes what it is handed inside its own
-/// transaction. Until v0.77 this read the helper's text, and was satisfied by
-/// a comment in it that mentioned `operation::record` - the call itself has
-/// never been in the helper.
+/// A function of the actions layer: where it is and where its body runs.
+struct ActionFn<'a> {
+    file: &'a Source,
+    name: String,
+    body: std::ops::Range<usize>,
+}
+
+fn action_functions(sources: &[Source]) -> Vec<ActionFn<'_>> {
+    let mut found = Vec::new();
+    for file in sources
+        .iter()
+        .filter(|file| file.path.starts_with("src-tauri/src/actions/"))
+    {
+        for (at, _) in file.code.match_indices("fn ") {
+            let before = file.code[..at].chars().next_back();
+            if before.is_some_and(|c| c.is_alphanumeric() || c == '_') {
+                continue;
+            }
+            let name_start = at + "fn ".len();
+            let Some(name_end) = file.code[name_start..]
+                .find(|c: char| !(c.is_alphanumeric() || c == '_'))
+                .map(|end| name_start + end)
+            else {
+                continue;
+            };
+            let Some(open) = file.code[name_end..].find('{').map(|at| name_end + at) else {
+                continue;
+            };
+            // A declaration with no body is not a function here; the first
+            // brace after it would be someone else's.
+            if file.code[name_end..open].contains(';') {
+                continue;
+            }
+            found.push(ActionFn {
+                file,
+                name: file.code[name_start..name_end].to_owned(),
+                body: open..matching_brace(&file.code, open),
+            });
+        }
+    }
+    found
+}
+
+/// Actions that write outside a gesture, on purpose, and why.
+const WRITES_OUTSIDE_A_GESTURE: [(&str, &str); 1] = [(
+    "undo",
+    "an undo records its own operation - `undo.<kind>` - inside `crate::undo::undo`, beside \
+     the reversal it makes; held by `take_back` in `undo_takes_back.rs`",
+)];
+
 #[test]
-fn the_shared_deletion_helper_records_an_operation() {
+fn every_write_in_the_actions_is_inside_a_gesture() {
     let sources = backend();
-    let helper = the_function(&sources, "discard_and_record");
+    let functions = action_functions(&sources);
     assert!(
-        helper.code.contains("operation::Intent::new(") && helper.code.contains("discard_minted("),
-        "`discard_and_record` no longer builds an operation and hands it to the trash, so \
-         every deletion in the application is missing from the log"
+        functions.len() >= 60,
+        "read only {} functions in src/actions - the scan has stopped seeing the actions layer",
+        functions.len()
     );
+    let exempt: BTreeSet<&str> = WRITES_OUTSIDE_A_GESTURE
+        .iter()
+        .map(|(name, _)| *name)
+        .collect();
 
-    let trash = the_function(&sources, "discard_minted");
+    let mut outside = Vec::new();
+    for function in &functions {
+        if exempt.contains(function.name.as_str()) {
+            continue;
+        }
+        let gestures = gestures(function.file);
+        let body = &function.file.code[function.body.clone()];
+        for (offset, path) in writer_calls(body) {
+            if through_an_action(&path) {
+                continue;
+            }
+            let at = function.body.start + offset;
+            if !gestures.iter().any(|(span, _)| span.contains(&at)) {
+                outside.push(format!(
+                    "{}::{} calls {path}",
+                    function.file.path, function.name
+                ));
+            }
+        }
+    }
+
     assert!(
-        trash.code.contains("operation::record("),
-        "`trash::discard_minted` no longer records the operation it is handed, so every \
-         deletion in the application is missing from the log"
+        outside.is_empty(),
+        "these actions write outside a gesture, so no operation is recorded for the write: \
+         {outside:?}\nWrap the write in `gesture(conn, \"kind\", |act| …)`."
     );
 }
 
-/// The gate itself has to be able to fail.
-///
-/// Without this, a change to `writes_to_the_workspace` that stops recognising
-/// anything would leave the first test green and testing nothing — the shape of
-/// false green this project has hit before.
+/// The gesture primitive itself records - the one place every action relies
+/// on. Two links, both read in code: `gesture_in` records the act's intent,
+/// and that writes the operation. If either stopped, every write in the
+/// application would fall out of the log at once and nothing above would
+/// notice.
 #[test]
-fn the_gate_recognises_the_commands_it_is_about() {
-    let recognised = commands()
-        .into_iter()
-        .filter(|command| writes_to_the_workspace(&command.body))
-        .count();
-
+fn the_gesture_records_its_operation() {
+    let sources = backend();
+    let gesture_in = the_function(&sources, "gesture_in");
     assert!(
-        recognised >= 20,
-        "only {recognised} commands look like they write — the scan has stopped seeing \
-         what it is supposed to check"
+        gesture_in.code.contains(".record_the_intent()"),
+        "`gesture_in` no longer records the act's intent, so no gesture records its operation"
+    );
+    let finish = the_function(&sources, "record_the_intent");
+    assert!(
+        finish.code.contains("operation::record("),
+        "`Act::record_the_intent` no longer records the operation"
+    );
+}
+
+/// The gate itself has to be able to fail: it must see writes where writes
+/// are. Without this, a change to the writer list that stops recognising
+/// anything would leave the gates above green and testing nothing.
+#[test]
+fn the_gate_recognises_the_writes_it_is_about() {
+    let sources = backend();
+    let writing = action_functions(&sources)
+        .iter()
+        .filter(|function| {
+            writer_calls(&function.file.code[function.body.clone()])
+                .iter()
+                .any(|(_, path)| !through_an_action(path))
+        })
+        .count();
+    assert!(
+        writing >= 40,
+        "only {writing} actions look like they write — the scan has stopped seeing what it is \
+         supposed to check"
+    );
+
+    let through = commands()
+        .iter()
+        .filter(|command| {
+            writer_calls(&command.body)
+                .iter()
+                .any(|(_, path)| through_an_action(path))
+        })
+        .count();
+    assert!(
+        through >= 50,
+        "only {through} commands hand a write to an action — the scan has stopped seeing them"
     );
 }

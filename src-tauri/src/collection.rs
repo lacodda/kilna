@@ -2,6 +2,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+use crate::db::unit::atomically;
 use crate::error::{Error, Result};
 use crate::minted::Minted;
 use crate::time::now;
@@ -269,28 +270,18 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
 
 /// Put works in a collection in the given order. Works not listed are removed
 /// from it.
-pub fn set_contents(conn: &mut Connection, id: &str, work_ids: &[String]) -> Result<()> {
-    set_contents_at(conn, id, work_ids, &now(), None)
+pub fn set_contents(conn: &Connection, id: &str, work_ids: &[String]) -> Result<()> {
+    set_contents_at(conn, id, work_ids, &now())
 }
 
-/// Set a collection's contents with the change's timestamp already decided,
-/// recording the operation that asked for it.
+/// Set a collection's contents with the change's timestamp already decided.
 ///
 /// The seam a replay comes back through: live, `set_contents` stamps
 /// `now()`; replaying, the log supplies the moment the first run recorded.
 /// See ADR 0014.
 ///
-/// The operation is written inside this function's own transaction rather than
-/// by the caller around it, for the reason [`crate::trash::discard_minted`]
-/// gives: a log entry committed beside a change that then failed would replay
-/// into contents that never landed.
-pub fn set_contents_at(
-    conn: &mut Connection,
-    id: &str,
-    work_ids: &[String],
-    at: &str,
-    logged: Option<crate::operation::Intent>,
-) -> Result<()> {
+/// One unit: contents half set are contents nobody chose.
+pub fn set_contents_at(conn: &Connection, id: &str, work_ids: &[String], at: &str) -> Result<()> {
     let exists: bool = conn
         .query_row(
             "SELECT 1 FROM collection WHERE id = ?1",
@@ -303,26 +294,20 @@ pub fn set_contents_at(
         return Err(unknown(id));
     }
 
-    let tx = conn.transaction()?;
-
-    if let Some(logged) = logged {
-        crate::operation::record(&tx, logged)?;
-    }
-
-    tx.execute(
-        "UPDATE work SET collection_id = NULL, updated_at = ?2 WHERE collection_id = ?1",
-        params![id, at],
-    )?;
-
-    for (position, work_id) in work_ids.iter().enumerate() {
+    atomically(conn, |tx| {
         tx.execute(
-            "UPDATE work SET collection_id = ?1, position = ?2, updated_at = ?3 WHERE id = ?4",
-            params![id, position as i64, at, work_id],
+            "UPDATE work SET collection_id = NULL, updated_at = ?2 WHERE collection_id = ?1",
+            params![id, at],
         )?;
-    }
 
-    tx.commit()?;
-    Ok(())
+        for (position, work_id) in work_ids.iter().enumerate() {
+            tx.execute(
+                "UPDATE work SET collection_id = ?1, position = ?2, updated_at = ?3 WHERE id = ?4",
+                params![id, position as i64, at, work_id],
+            )?;
+        }
+        Ok(())
+    })
 }
 
 fn unknown(id: &str) -> Error {
@@ -438,12 +423,12 @@ mod tests {
 
     #[test]
     fn set_contents_orders_the_works_and_counts_them() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let collection = album(&conn, &profile_id, "Album");
         let one = a_work(&conn, &profile_id, "One");
         let two = a_work(&conn, &profile_id, "Two");
 
-        set_contents(&mut conn, &collection.id, &[two.clone(), one.clone()]).unwrap();
+        set_contents(&conn, &collection.id, &[two.clone(), one.clone()]).unwrap();
 
         let reloaded = get(&conn, &collection.id).unwrap().unwrap();
         assert_eq!(reloaded.works, 2);
@@ -467,13 +452,13 @@ mod tests {
 
     #[test]
     fn set_contents_removes_works_left_out() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let collection = album(&conn, &profile_id, "Album");
         let stays = a_work(&conn, &profile_id, "Stays");
         let leaves = a_work(&conn, &profile_id, "Leaves");
-        set_contents(&mut conn, &collection.id, &[stays.clone(), leaves.clone()]).unwrap();
+        set_contents(&conn, &collection.id, &[stays.clone(), leaves.clone()]).unwrap();
 
-        set_contents(&mut conn, &collection.id, &[stays]).unwrap();
+        set_contents(&conn, &collection.id, &[stays]).unwrap();
 
         assert_eq!(get(&conn, &collection.id).unwrap().unwrap().works, 1);
         let loose = work::get(&conn, &leaves).unwrap().unwrap();
@@ -482,10 +467,10 @@ mod tests {
 
     #[test]
     fn deleting_a_collection_leaves_its_works_alone() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let collection = album(&conn, &profile_id, "Album");
         let work_id = a_work(&conn, &profile_id, "Inside");
-        set_contents(&mut conn, &collection.id, std::slice::from_ref(&work_id)).unwrap();
+        set_contents(&conn, &collection.id, std::slice::from_ref(&work_id)).unwrap();
 
         delete(&conn, &collection.id).unwrap();
 
@@ -513,9 +498,9 @@ mod tests {
 
     #[test]
     fn set_contents_on_an_unknown_collection_fails() {
-        let (mut conn, _) = workspace();
+        let (conn, _) = workspace();
 
-        assert!(set_contents(&mut conn, "nope", &[]).is_err());
+        assert!(set_contents(&conn, "nope", &[]).is_err());
     }
 
     #[test]

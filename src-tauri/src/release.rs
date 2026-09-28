@@ -1478,7 +1478,7 @@ mod tests {
 
     #[test]
     fn the_calendar_reports_how_ready_each_release_is() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
 
         // Scored but missing both roles an audio release requires.
         let bare = planned(&conn, &profile_id, "Bare", Some(6.0));
@@ -1488,7 +1488,7 @@ mod tests {
         let full = planned(&conn, &profile_id, "Full", Some(7.0));
         for role in ["lyrics", "style"] {
             crate::work::version::create(
-                &mut conn,
+                &conn,
                 &full.work_id,
                 crate::work::version::NewVersion {
                     role: role.into(),

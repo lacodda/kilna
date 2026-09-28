@@ -13,6 +13,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use time::{Date, Duration, macros::format_description};
 
+use crate::db::unit::atomically;
 use crate::error::{Error, Result};
 use crate::release::{self, Verdict};
 use crate::time::now;
@@ -204,16 +205,9 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
 /// the whole plan is refused rather than partially applied: the person
 /// approved a picture, not its surviving fragments.
 ///
-/// The operation is written inside this function's own transaction rather than
-/// by the caller around it, for the reason [`crate::trash::discard_minted`]
-/// gives: a log entry committed beside a layout that then failed would replay
-/// into placements that never landed. See ADR 0014.
-pub fn apply(
-    conn: &mut Connection,
-    placements: &[Placement],
-    logged: Option<crate::operation::Intent>,
-) -> Result<usize> {
-    apply_at(conn, placements, logged, &now())
+/// One unit: a plan half booked is not the plan that was approved.
+pub fn apply(conn: &Connection, placements: &[Placement]) -> Result<usize> {
+    apply_at(conn, placements, &now())
 }
 
 /// Apply a plan with the moment already decided.
@@ -221,31 +215,23 @@ pub fn apply(
 /// The seam a replay comes back through. One plan is one gesture, so every
 /// release it places carries the same instant — live and replayed alike. See
 /// ADR 0014.
-pub fn apply_at(
-    conn: &mut Connection,
-    placements: &[Placement],
-    logged: Option<crate::operation::Intent>,
-    at: &str,
-) -> Result<usize> {
-    let tx = conn.transaction()?;
+pub fn apply_at(conn: &Connection, placements: &[Placement], at: &str) -> Result<usize> {
+    atomically(conn, |tx| apply_in(tx, placements, at))
+}
 
-    if let Some(logged) = logged {
-        crate::operation::record(&tx, logged)?;
-    }
-
+fn apply_in(tx: &Connection, placements: &[Placement], at: &str) -> Result<usize> {
     let timestamp = at.to_owned();
 
     for placement in placements {
         // The date is stored as given, so it must be a real date — a plan is
         // trusted to come back from `plan`, but not blindly.
         parse_date(&placement.date)?;
-        let found = release::get(&tx, &placement.release_id)?
+        let found = release::get(tx, &placement.release_id)?
             .ok_or_else(|| stale("a release from the plan is gone"))?;
         if found.status != release::PLANNED || found.scheduled_at.is_some() {
             return Err(stale("a release from the plan is no longer in the queue"));
         }
-        if release::preview(&tx, &placement.release_id, &placement.date)?.verdict != Verdict::Empty
-        {
+        if release::preview(tx, &placement.release_id, &placement.date)?.verdict != Verdict::Empty {
             return Err(stale("a day from the plan is no longer free"));
         }
 
@@ -255,7 +241,6 @@ pub fn apply_at(
         )?;
     }
 
-    tx.commit()?;
     Ok(placements.len())
 }
 
@@ -641,12 +626,12 @@ mod tests {
 
     #[test]
     fn applying_the_plan_books_exactly_what_it_says() {
-        let (mut conn, profile_id) = workspace(3);
+        let (conn, profile_id) = workspace(3);
         queued(&conn, &profile_id, "One", 6.0, 1);
         queued(&conn, &profile_id, "Two", 4.0, 1);
 
         let plan = plan(&conn, &profile_id, "2026-09-01").unwrap();
-        let applied = apply(&mut conn, &plan, None).unwrap();
+        let applied = apply(&conn, &plan).unwrap();
 
         assert_eq!(applied, 2);
         assert!(release::queue(&conn, &profile_id).unwrap().is_empty());
@@ -669,7 +654,7 @@ mod tests {
     /// application is refused, and nothing from it is booked.
     #[test]
     fn a_stale_plan_is_refused_whole() {
-        let (mut conn, profile_id) = workspace(3);
+        let (conn, profile_id) = workspace(3);
         queued(&conn, &profile_id, "One", 6.0, 1);
         queued(&conn, &profile_id, "Two", 4.0, 1);
         let plan = plan(&conn, &profile_id, "2026-09-01").unwrap();
@@ -679,7 +664,7 @@ mod tests {
         let interloper = queued(&conn, &profile_id, "Interloper", 9.0, 1);
         release::schedule(&conn, &interloper[0], plan[1].date.as_str()).unwrap();
 
-        let refused = apply(&mut conn, &plan, None).unwrap_err();
+        let refused = apply(&conn, &plan).unwrap_err();
         assert_eq!(refused.kind(), "layoutStale", "got {refused}");
 
         // The first placement would have succeeded on its own; atomicity is
@@ -692,13 +677,13 @@ mod tests {
     /// the person approved a plan for.
     #[test]
     fn a_release_scheduled_since_the_preview_makes_the_plan_stale() {
-        let (mut conn, profile_id) = workspace(3);
+        let (conn, profile_id) = workspace(3);
         let ids = queued(&conn, &profile_id, "One", 6.0, 1);
         let plan = plan(&conn, &profile_id, "2026-09-01").unwrap();
 
         release::schedule(&conn, &ids[0], "2026-12-24").unwrap();
 
-        let refused = apply(&mut conn, &plan, None).unwrap_err();
+        let refused = apply(&conn, &plan).unwrap_err();
         assert_eq!(refused.kind(), "layoutStale", "got {refused}");
         // Its hand-picked date survives the refusal.
         let kept = release::get(&conn, &ids[0]).unwrap().unwrap();

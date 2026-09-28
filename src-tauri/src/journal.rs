@@ -150,7 +150,10 @@ impl Record {
 /// worse than one that says so on the console.
 pub fn record(conn: &Connection, profile_id: &str, entry: Record) {
     if let Err(cause) = write(conn, profile_id, entry) {
-        eprintln!("journal: could not record what happened: {cause}");
+        crate::log::error(
+            "journal",
+            &format!("could not record what happened: {cause}"),
+        );
     }
 }
 

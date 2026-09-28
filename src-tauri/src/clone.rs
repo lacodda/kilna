@@ -304,11 +304,11 @@ mod tests {
         // What an undo of a clone does: the work goes to the trash, and the
         // scenes and material it made go with it. The original must not
         // notice — a copy taken back is not an edit to what it copied.
-        let (mut conn, profile_id, media) = workspace();
+        let (conn, profile_id, media) = workspace();
         let source = a_board(&conn, &profile_id, media.path());
         let made = clone_work(&conn, &source, "second attempt").unwrap();
 
-        crate::trash::discard(&mut conn, crate::trash::Entity::Work, &made.work.id).unwrap();
+        crate::trash::discard(&conn, crate::trash::Entity::Work, &made.work.id).unwrap();
 
         assert!(
             scene::for_work(&conn, &made.work.id).unwrap().is_empty(),

@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn deleting_a_row_takes_its_clocks_with_it() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let id = a_work(&conn, &profile_id);
         work::update(
             &conn,
@@ -204,7 +204,7 @@ mod tests {
         .unwrap();
         assert_eq!(fields(&conn, &id), vec!["meta"]);
 
-        trash::discard(&mut conn, trash::Entity::Work, &id).unwrap();
+        trash::discard(&conn, trash::Entity::Work, &id).unwrap();
 
         assert!(fields(&conn, &id).is_empty());
     }

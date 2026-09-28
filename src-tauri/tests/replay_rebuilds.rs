@@ -392,50 +392,33 @@ fn field_edits_rebuild_whether_logged_whole_or_by_key() {
 /// gone — three rows from one operation, under the ids the first run minted.
 #[test]
 fn a_promoted_note_rebuilds_as_its_work() {
-    use kilna_lib::note::{self, NewNote, Promotion, PromotionIds};
+    use kilna_lib::note::{NewNote, Promotion};
 
-    let mut source = workspace();
+    let source = workspace();
     let profile_id = profile::active(&source).unwrap().unwrap().id;
-    let key = profile::key_for_id(&source, &profile_id).unwrap().unwrap();
+    let _key = profile::key_for_id(&source, &profile_id).unwrap().unwrap();
 
-    let new = NewNote {
-        body: "a comma in the rock".into(),
-        kind: None,
-        title: None,
-        work_id: None,
-        tags: vec!["geology".into()],
-    };
-    let minted = Minted::fresh();
-    let note_id = minted.id().to_owned();
-    let logged = operation::Intent::new("note.create")
-        .in_profile(&profile_id)
-        .param("profile", key.clone())
-        .param("note", serde_json::to_value(&new).unwrap())
-        .minted(&minted);
-    let transaction = source.transaction().unwrap();
-    note::create_minted(&transaction, &profile_id, new, minted).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
-
-    let ids = PromotionIds::fresh();
-    let promotion = Promotion {
-        kind: "song".into(),
-        title: "Graphite".into(),
-    };
-    let logged = operation::Intent::new("note.promote")
-        .in_profile(&profile_id)
-        .param("profile", key)
-        .param("id", note_id.clone())
-        .param("promotion", serde_json::to_value(&promotion).unwrap())
-        .param("workId", ids.work.id().to_owned())
-        .param("versionId", ids.version.id().to_owned())
-        .param("entryId", ids.deletion.id().to_owned())
-        .param("title", "Graphite")
-        .param("at", ids.work.at().to_owned());
-    let transaction = source.transaction().unwrap();
-    note::promote_in(&transaction, &profile_id, &note_id, promotion, &ids).unwrap();
-    operation::record(&transaction, logged).unwrap();
-    transaction.commit().unwrap();
+    let note_id = kilna_lib::actions::note::create(
+        &source,
+        NewNote {
+            body: "a comma in the rock".into(),
+            kind: None,
+            title: None,
+            work_id: None,
+            tags: vec!["geology".into()],
+        },
+    )
+    .unwrap()
+    .id;
+    kilna_lib::actions::note::promote(
+        &source,
+        &note_id,
+        Promotion {
+            kind: "song".into(),
+            title: "Graphite".into(),
+        },
+    )
+    .unwrap();
 
     let mut rebuilt = workspace();
     let report = replay::rebuild(&source, &mut rebuilt).unwrap();

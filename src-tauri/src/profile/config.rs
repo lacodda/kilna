@@ -1399,6 +1399,82 @@ impl ProfileConfig {
         self.work_kinds.iter().find(|kind| kind.key == key)
     }
 
+    /// The kind a key names, or the refusal a window, an agent and a package
+    /// all get for a kind the profile does not have.
+    ///
+    /// The vocabulary is checked here, in the domain, rather than by each
+    /// caller: the MCP server, the proposal applier and the commands each
+    /// wrote their own check, in their own words, and a caller that forgot
+    /// wrote a work of a kind no screen can show.
+    pub fn require_kind(&self, key: &str) -> crate::Result<&WorkKind> {
+        self.kind(key).ok_or_else(|| {
+            crate::Error::refused("work.unknownKind")
+                .param("kind", key)
+                .param(
+                    "known",
+                    Self::keys(self.work_kinds.iter().map(|kind| kind.key.as_str())),
+                )
+        })
+    }
+
+    /// A version role of a kind, or the refusal for one it does not have.
+    pub fn require_role(&self, kind: &str, role: &str) -> crate::Result<()> {
+        let roles = &self.vocabulary(kind).version_roles;
+        if roles.iter().any(|known| known.key == role) {
+            Ok(())
+        } else {
+            Err(crate::Error::refused("version.unknownRole")
+                .param("role", role)
+                .param("kind", self.kind_named(kind))
+                .param(
+                    "known",
+                    Self::keys(roles.iter().map(|known| known.key.as_str())),
+                ))
+        }
+    }
+
+    /// A kind of release a kind of work ships as, or the refusal for one it
+    /// does not: a release nobody could plan by hand is not one a package or
+    /// an agent may plan either.
+    pub fn require_release_kind(&self, kind: &str, release_kind: &str) -> crate::Result<()> {
+        let kinds = &self.vocabulary(kind).release_kinds;
+        if kinds.iter().any(|known| known.key == release_kind) {
+            Ok(())
+        } else {
+            Err(crate::Error::refused("release.unknownKind")
+                .param("releaseKind", release_kind)
+                .param("kind", self.kind_named(kind))
+                .param(
+                    "known",
+                    Self::keys(kinds.iter().map(|known| known.key.as_str())),
+                ))
+        }
+    }
+
+    /// A kind that has a storyboard - names kinds of shot or prompt blocks -
+    /// or the refusal for one that takes no scenes.
+    pub fn require_storyboard(&self, kind: &str) -> crate::Result<()> {
+        let vocabulary = self.vocabulary(kind);
+        if vocabulary.shot_types.is_empty() && vocabulary.scene_blocks.is_empty() {
+            Err(crate::Error::refused("scene.noStoryboard").param("kind", self.kind_named(kind)))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// What a refusal calls a kind: its label - a word the window says in
+    /// its own language - or its key when the profile does not know it.
+    fn kind_named(&self, kind: &str) -> serde_json::Value {
+        self.kind(kind)
+            .and_then(|known| serde_json::to_value(&known.label).ok())
+            .unwrap_or_else(|| serde_json::Value::String(kind.to_owned()))
+    }
+
+    /// Keys, listed for a refusal: `song, video, short`.
+    fn keys<'a>(keys: impl Iterator<Item = &'a str>) -> String {
+        keys.collect::<Vec<_>>().join(", ")
+    }
+
     /// The vocabulary of a kind: its own, or — for a kind the profile does
     /// not know — an empty one, so nothing downstream has to ask twice.
     pub fn vocabulary(&self, kind: &str) -> &WorkKind {

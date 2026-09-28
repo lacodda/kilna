@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nth(1)
         .ok_or("usage: profiles <kilna.db>")?;
 
-    let mut conn = db::open(std::path::Path::new(&path))?;
+    let conn = db::open(std::path::Path::new(&path))?;
     profile::seed(&conn)?;
 
     for entry in profile::list(&conn)? {
@@ -93,7 +93,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .first()
         .cloned()
         .ok_or("no profiles")?;
-    profile::activate(&mut conn, &first.id)?;
+    profile::activate(&conn, &first.id)?;
     let active = profile::active(&conn)?.ok_or("nothing active")?;
     println!(
         "\nactive now: {} — statuses: {}",

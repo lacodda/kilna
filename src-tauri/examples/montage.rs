@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok_or("usage: montage <path-to-kilna.db>")?
         .into();
 
-    let mut conn = db::open(&path)?;
+    let conn = db::open(&path)?;
     let workspace = kilna_lib::profile::workspace(&conn)?;
     println!("schema version  {}", workspace.schema_version);
     println!("works           {}", workspace.works);
@@ -113,9 +113,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Put everything back.
-    let entry =
-        kilna_lib::trash::discard(&mut conn, kilna_lib::trash::Entity::Work, &cloned.work.id)?;
-    kilna_lib::trash::purge(&mut conn, &entry, None)?;
+    let entry = kilna_lib::trash::discard(&conn, kilna_lib::trash::Entity::Work, &cloned.work.id)?;
+    kilna_lib::trash::purge(&conn, &entry)?;
     scene_frame::detach(&conn, &clip.id)?;
 
     let after = scene_frame::for_scene(&conn, &target.id)?.len();

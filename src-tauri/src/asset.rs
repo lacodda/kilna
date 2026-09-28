@@ -311,7 +311,9 @@ pub fn covers_of(conn: &Connection, profile_id: &str) -> Result<Vec<(String, Str
 
 /// Forget an asset and remove the file it copied in.
 ///
-/// The row goes first: while it is there the file is an asset, and a row
+/// The row goes now; the file once the deletion is committed - a file removed
+/// for a deletion that then rolled back, as part of a larger gesture, could
+/// not be put back. While the row is there the file is an asset, and a row
 /// pointing at a file that is already gone is the state a person sees as a
 /// broken picture.
 pub fn delete(conn: &Connection, id: &str) -> Result<()> {
@@ -320,27 +322,42 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
     };
     conn.execute("DELETE FROM asset WHERE id = ?1", params![id])?;
 
-    // The bytes go only when the last row pointing at them is gone. Since
-    // v0.69 a cloned video hangs its own rows on the SAME files — the second
-    // attempt usually reuses most of the first one's pictures, and copying
-    // them would double the workspace on every clone. That makes a path
-    // something more than one row may name, so deleting a row is no longer
-    // proof that nobody is looking at the file.
-    let still_used: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM asset WHERE path = ?1",
-        params![asset.path],
-        |row| row.get(0),
-    )?;
-    if still_used > 0 {
-        return Ok(());
-    }
-
-    let path = PathBuf::from(&asset.path);
-    if let Err(cause) = std::fs::remove_file(&path) {
-        // Said, not raised: the row is gone either way, and a file left
-        // behind is not a reason to tell a person their deletion failed.
-        eprintln!("asset: could not remove {}: {cause}", path.display());
-    }
+    crate::db::unit::after_commit(conn, move |conn| {
+        // The bytes go only when the last row pointing at them is gone. Since
+        // v0.69 a cloned video hangs its own rows on the SAME files — the
+        // second attempt usually reuses most of the first one's pictures, and
+        // copying them would double the workspace on every clone. That makes a
+        // path something more than one row may name, so deleting a row is no
+        // longer proof that nobody is looking at the file.
+        let still_used: rusqlite::Result<i64> = conn.query_row(
+            "SELECT COUNT(*) FROM asset WHERE path = ?1",
+            params![asset.path],
+            |row| row.get(0),
+        );
+        match still_used {
+            Ok(0) => {}
+            Ok(_) => return,
+            Err(cause) => {
+                crate::log::error(
+                    "asset",
+                    &format!(
+                        "could not tell whether {} is still used: {cause}",
+                        asset.path
+                    ),
+                );
+                return;
+            }
+        }
+        let path = PathBuf::from(&asset.path);
+        if let Err(cause) = std::fs::remove_file(&path) {
+            // Said, not raised: the row is gone either way, and a file left
+            // behind is not a reason to tell a person their deletion failed.
+            crate::log::warn(
+                "asset",
+                &format!("could not remove {}: {cause}", path.display()),
+            );
+        }
+    });
     Ok(())
 }
 

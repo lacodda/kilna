@@ -429,7 +429,7 @@ mod tests {
 
     #[test]
     fn a_page_carries_the_bodies_scores_and_notes() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let dir = tempfile::tempdir().unwrap();
         let work = work::create(
             &conn,
@@ -445,7 +445,7 @@ mod tests {
         )
         .unwrap();
         version::create(
-            &mut conn,
+            &conn,
             &work.id,
             NewVersion {
                 role: "lyrics".into(),
@@ -617,7 +617,7 @@ mod tests {
 
     #[test]
     fn a_page_names_its_format_and_the_new_facts() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let dir = tempfile::tempdir().unwrap();
         let created = work::create(
             &conn,
@@ -630,7 +630,7 @@ mod tests {
         )
         .unwrap();
         let first = version::create(
-            &mut conn,
+            &conn,
             &created.id,
             crate::work::version::NewVersion {
                 role: "lyrics".into(),
@@ -643,7 +643,7 @@ mod tests {
         )
         .unwrap();
         version::create(
-            &mut conn,
+            &conn,
             &created.id,
             crate::work::version::NewVersion {
                 role: "lyrics".into(),

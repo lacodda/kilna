@@ -771,21 +771,20 @@ pub fn list(conn: &Connection) -> Result<Vec<Profile>> {
 }
 
 /// Make `id` the active profile, deactivating the previous one.
-pub fn activate(conn: &mut Connection, id: &str) -> Result<()> {
-    let tx = conn.transaction()?;
-    // The partial unique index forbids two active rows, so clear first.
-    tx.execute("UPDATE profile SET is_active = 0 WHERE is_active = 1", [])?;
-    let changed = tx.execute(
-        "UPDATE profile SET is_active = 1, updated_at = ?2 WHERE id = ?1",
-        params![id, now()],
-    )?;
+pub fn activate(conn: &Connection, id: &str) -> Result<()> {
+    crate::db::unit::atomically(conn, |tx| {
+        // The partial unique index forbids two active rows, so clear first.
+        tx.execute("UPDATE profile SET is_active = 0 WHERE is_active = 1", [])?;
+        let changed = tx.execute(
+            "UPDATE profile SET is_active = 1, updated_at = ?2 WHERE id = ?1",
+            params![id, now()],
+        )?;
 
-    if changed == 0 {
-        return Err(Error::not_found("profile", id));
-    }
-
-    tx.commit()?;
-    Ok(())
+        if changed == 0 {
+            return Err(Error::not_found("profile", id));
+        }
+        Ok(())
+    })
 }
 
 /// Replace a profile's configuration.
@@ -1890,7 +1889,7 @@ mod tests {
 
     #[test]
     fn activate_moves_the_active_flag() {
-        let mut conn = db::open_in_memory().unwrap();
+        let conn = db::open_in_memory().unwrap();
         seed(&conn).unwrap();
         conn.execute(
             "INSERT INTO profile (id, key, name, config, is_active, is_builtin, created_at, updated_at)
@@ -1899,7 +1898,7 @@ mod tests {
         )
         .unwrap();
 
-        activate(&mut conn, "p-mine").unwrap();
+        activate(&conn, "p-mine").unwrap();
 
         assert_eq!(active(&conn).unwrap().unwrap().id, "p-mine");
         let active_count: i64 = conn
@@ -1914,10 +1913,10 @@ mod tests {
 
     #[test]
     fn activating_an_unknown_profile_fails_without_deactivating_the_current_one() {
-        let mut conn = db::open_in_memory().unwrap();
+        let conn = db::open_in_memory().unwrap();
         seed(&conn).unwrap();
 
-        assert!(activate(&mut conn, "nope").is_err());
+        assert!(activate(&conn, "nope").is_err());
         assert!(active(&conn).unwrap().is_some());
     }
 

@@ -115,7 +115,10 @@ pub fn write(conn: &Connection, work_id: &str, directory: &Path) -> Result<Packa
             // says which scene it belonged to.
             match std::fs::copy(source, &target) {
                 Ok(_) => files += 1,
-                Err(cause) => eprintln!("package: {} could not be copied: {cause}", frame.path),
+                Err(cause) => crate::log::warn(
+                    "package",
+                    &format!("{} could not be copied: {cause}", frame.path),
+                ),
             }
         }
     }

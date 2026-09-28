@@ -10,6 +10,9 @@ fn main() {
         std::process::exit(match serve_mcp(&args) {
             Ok(()) => 0,
             Err(err) => {
+                // Both: the file for later, and stderr for the agent's host,
+                // which shows a server's stderr when it will not start.
+                kilna_lib::log::error("mcp", &err.to_string());
                 eprintln!("kilna --mcp: {err}");
                 1
             }
@@ -32,6 +35,7 @@ fn serve_mcp(args: &[String]) -> kilna_lib::Result<()> {
         Some(dir) => dir,
         None => kilna_lib::db::default_data_dir()?,
     };
+    kilna_lib::log::init(&data_dir, kilna_lib::log::MCP_FILE);
     let state = kilna_lib::state::AppState::open(&kilna_lib::db::default_path(&data_dir))?;
     let conn = state.conn();
     kilna_lib::mcp::serve(&conn)

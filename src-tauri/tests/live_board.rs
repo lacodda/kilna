@@ -75,7 +75,7 @@ fn a_real_board_is_renumbered_and_comes_back() {
     // can be asked for, and the one that would expose an off-by-one.
     let at = kilna_lib::time::now();
     let reversed: Vec<String> = before.iter().rev().map(|(id, _)| id.clone()).collect();
-    kilna_lib::scene::renumber(&mut conn, &work_id, &reversed, &at, None).unwrap();
+    kilna_lib::scene::renumber(&conn, &work_id, &reversed, &at).unwrap();
 
     let after = numbers(&conn);
     assert_eq!(

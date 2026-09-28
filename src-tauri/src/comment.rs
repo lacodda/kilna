@@ -680,7 +680,7 @@ mod tests {
 
     #[test]
     fn a_comment_goes_to_the_trash_with_its_work_and_comes_back_with_it() {
-        let (mut conn, profile_id) = workspace();
+        let (conn, profile_id) = workspace();
         let work_id = song(&conn, &profile_id);
         let kept = keep(
             &conn,
@@ -692,10 +692,10 @@ mod tests {
         )
         .unwrap();
 
-        let entry = crate::trash::discard(&mut conn, crate::trash::Entity::Work, &work_id).unwrap();
+        let entry = crate::trash::discard(&conn, crate::trash::Entity::Work, &work_id).unwrap();
         assert!(get(&conn, &kept.id).unwrap().is_none());
 
-        crate::trash::restore(&mut conn, &entry, None).unwrap();
+        crate::trash::restore(&conn, &entry).unwrap();
         assert_eq!(get(&conn, &kept.id).unwrap().unwrap().body, "loved it");
     }
 }

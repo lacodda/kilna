@@ -1083,7 +1083,9 @@
     "layoutStale": "The calendar changed since this preview was drawn. Lay the queue out again.",
     "alreadyRunning": "That is already running. Wait for it to finish.",
     "busy": "Several runs are already going. Wait for one to finish, or stop one.",
-    "frozen": "That version was scored, so it stays as it was. Start the next revision instead."
+    "frozen": "That version was scored, so it stays as it was. Start the next revision instead.",
+    "internal": "Something inside kilna went wrong. The detail is in the log.",
+    "refused": "That was refused."
   },
   "save": {
     "saving": "Saving…",
@@ -1601,5 +1603,61 @@
     "readOff": "Read from a screenshot — check it and keep it",
     "waitingCount_one": "{{count}} waits for a reply",
     "waitingCount_other": "{{count}} wait for a reply"
+  },
+  "refusal": {
+    "profile": {
+      "noneActive": "No profile is open."
+    },
+    "work": {
+      "unknownKind": "The profile has no kind of work “{{kind}}”. Its kinds are: {{known}}.",
+      "unknownStatus": "The profile has no status “{{status}}”."
+    },
+    "version": {
+      "unknownRole": "A {{kind}} has no version role “{{role}}”. Its roles are: {{known}}."
+    },
+    "release": {
+      "unknownKind": "A {{kind}} does not go out as “{{releaseKind}}”. It goes out as: {{known}}.",
+      "unknownField": "This kind of release has no field “{{field}}”."
+    },
+    "scene": {
+      "noStoryboard": "A {{kind}} has no storyboard: the kind names no kinds of shot and no prompt blocks."
+    },
+    "undo": {
+      "nothing": "There is nothing to undo.",
+      "stale": "Something else has happened since; there is nothing to undo here."
+    },
+    "proposal": {
+      "alreadyApplied": "This proposal is already applied.",
+      "dismissed": "This proposal was turned down; it is kept only to be read.",
+      "nothing": "This message proposes nothing.",
+      "otherProfile": "The proposal belongs to another profile.",
+      "invalid": "The proposal cannot be applied: {{problems}}",
+      "stoppedAfter": "{{applied}} applied, then one could not be: {{reason}}",
+      "needsWork": "This needs a work, and the chat is about nothing.",
+      "newWorkNeedsTitle": "A new work needs a title.",
+      "newWorkNeedsKind": "A new work needs a kind.",
+      "revisedSceneNeedsNumber": "A revised scene names its number on the board."
+    },
+    "file": {
+      "isDirectory": "{{path}} is a folder, not a file.",
+      "notWritten": "Could not write {{path}}: {{cause}}"
+    },
+    "plugin": {
+      "unusable": "The plugin “{{plugin}}” cannot be used: {{reason}}"
+    },
+    "comment": {
+      "clipboardEmpty": "The clipboard held no picture.",
+      "screenshotNotKept": "Could not keep the screenshot: {{cause}}"
+    },
+    "assistant": {
+      "unknownAction": "The profile has no action “{{action}}”."
+    }
+  },
+  "skip": {
+    "alreadyThere": "already that way",
+    "nothingBooked": "nothing booked",
+    "nothingToFill": "no field to fill",
+    "alreadyAsked": "already running or waiting",
+    "queueFull": "the queue is full"
   }
 }
