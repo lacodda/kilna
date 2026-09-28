@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
-import { version } from './package.json'
+import pkg from './package.json' with { type: 'json' }
 
 // Dates on screen are drawn in local time, and the tests should not read
 // "07:00" on one machine and "10:00" on another. Set before any worker starts.
@@ -15,7 +15,7 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   define: {
-    __APP_VERSION__: JSON.stringify(version),
+    __APP_VERSION__: JSON.stringify(pkg.version),
   },
   test: {
     projects: [
