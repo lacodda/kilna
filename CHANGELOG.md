@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.77.0] - 2026-09-27
+
+### Bug Fixes
+- Close the runs of spaces left inside backend sentences
+
+### Features
+- Keep a style's description from the answer that wrote it
+- Say numbers, dates and durations in the window's language
+
+### Refactoring
+- Keep only registry copies in components/ui
+- Drop the column list carried over from the machine
+- Remove what nothing calls
+- Lay the frontend out by feature
+- One list of screens and one list of tabs
+- Split the wire to the backend by domain
+- Query factories, write sets and one mutation hook
+- Read through factories, write through one hook, hear runs once
+
+### Testing
+- Mount components against a mocked backend
+- Find backend code by markers, not by file paths
+- Hold the window's rules on what the frontend draws
+- Hold the window and the backend to one list of commands
+- Read past the pipe without racing the suite
+- Find the window's unions by their declaration
+
 ## [0.76.2] - 2026-09-25
 
 ### Features
