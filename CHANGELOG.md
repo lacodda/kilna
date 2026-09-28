@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.81.0] - 2026-09-28
+
+### Features
+- Scenes and the assistant to the mockup
+
 ## [0.80.0] - 2026-09-28
 
 ### Features
