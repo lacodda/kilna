@@ -161,3 +161,24 @@ textarea,
 .repeat-5 {
   background: color-mix(in oklab, var(--accent-2) 30%, transparent);
 }
+
+/*
+ * Base UI's one stylesheet, supplied from the bundle.
+ *
+ * Base UI hides a scroll area's own bars - and a select's, while it shows its
+ * arrows - with a class whose rule it inserts at run time, as a `<style>`
+ * element. The window never applied it: Tauri adds hashes for the bundled
+ * code to the page's CSP, and a `style-src` with a hash in it ignores
+ * `'unsafe-inline'`, so a style element made at run time is refused without a
+ * word. Every overlay scroller then drew a classic bar with arrows beside its
+ * overlay one, ten pixels of gutter the overlay exists to avoid - measured in
+ * the live window. `CSPProvider` in `app/Providers` tells Base UI not to make
+ * the element; the rule it would have held is here instead.
+ */
+.base-ui-disable-scrollbar {
+  scrollbar-width: none;
+}
+
+.base-ui-disable-scrollbar::-webkit-scrollbar {
+  display: none;
+}

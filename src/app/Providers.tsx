@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
+import { CSPProvider } from '@base-ui/react/csp-provider'
 import { LocaleProvider } from 'dowel-ui'
 import { Toaster } from '@/app/Toaster'
 import { useLanguage } from '@/lib/language'
@@ -30,15 +31,19 @@ function AppLocale({ children }: { children: ReactNode }) {
  */
 export function Providers({ client, children }: { client: QueryClient; children: ReactNode }) {
   return (
-    <QueryClientProvider client={client}>
-      {/* The assistant's runs are heard once, here, for every screen. */}
-      <RunEventsBridge>
-        <AppLocale>
-          {/* Wraps the app rather than sitting beside it: a toast raised from
-              anywhere inside has to reach the same provider. */}
-          <Toaster>{children}</Toaster>
-        </AppLocale>
-      </RunEventsBridge>
-    </QueryClientProvider>
+    // Base UI makes no `<style>` of its own: the window's CSP refuses one made
+    // at run time, and the rule it would hold is in `styles.css`.
+    <CSPProvider disableStyleElements>
+      <QueryClientProvider client={client}>
+        {/* The assistant's runs are heard once, here, for every screen. */}
+        <RunEventsBridge>
+          <AppLocale>
+            {/* Wraps the app rather than sitting beside it: a toast raised
+                from anywhere inside has to reach the same provider. */}
+            <Toaster>{children}</Toaster>
+          </AppLocale>
+        </RunEventsBridge>
+      </QueryClientProvider>
+    </CSPProvider>
   )
 }
