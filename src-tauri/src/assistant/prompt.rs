@@ -231,6 +231,8 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "styles"
             | "canon"
             | "selection"
+            | "register"
+            | "neighbours"
     ) || name.strip_prefix("role:").is_some_and(|r| !r.is_empty())
         || name.strip_prefix("donor:").is_some_and(|r| !r.is_empty())
         || canon_lens(name).is_some()
@@ -364,6 +366,26 @@ pub fn for_work(
             let seen = canon_through(conn, &work, current.as_ref(), lens)?;
             values.push((name.as_str(), seen));
         }
+    }
+    // The register of repeats, with what this text already takes from it,
+    // and the works whose words stand closest - read only when asked for:
+    // both walk every work of the workspace (ADR 0044).
+    let text = current.as_ref().map(|v| v.body.as_str());
+    if wants("register") {
+        values.push((
+            "register",
+            crate::register::sheet::register(conn, &work.profile_id, text)?,
+        ));
+    }
+    if wants("neighbours") {
+        let found = crate::register::neighbours::of_text(
+            conn,
+            &work.profile_id,
+            Some(&work.id),
+            text.unwrap_or_default(),
+            crate::register::sheet::NEIGHBOURS,
+        )?;
+        values.push(("neighbours", crate::register::sheet::neighbours(&found)));
     }
     if wants("selection") {
         values.push((

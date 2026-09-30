@@ -1,6 +1,6 @@
 ---
 title: Notes
-description: Ideas and references in one place — written on their own or about a work, with tags, checklists, and a way to grow an idea into a work.
+description: Ideas, phrases and references in one place — written on their own or about a work, with tags, checklists, a bank of phrases that knows what was used, and a way to grow an idea into a work.
 ---
 
 A note is anything worth keeping that is not a work: an idea you have not
@@ -76,3 +76,42 @@ would leave the same text in two places, one of them edited and the other
 not. The note goes to the [trash](/kilna/guides/the-trash/), and **Undo**
 (or `Ctrl+Z`) takes the whole thing back: the work goes, the note returns.
 Its tags stay with the note; the new work starts with none.
+
+An idea or a phrase is the exception — below.
+
+## Ideas and phrases
+
+An **idea** and a **phrase** are notes of their own kinds, in every shipped
+profile. What makes them different is that they are *material*: works are
+made from them, and a bank of material is only worth keeping if it knows what
+has been used.
+
+- **Where it stands.** An idea or a phrase is **fresh**, **used**, **parked**
+  (set aside for later) or **dropped** (given up on, and kept so it is not
+  written again). The state is picked beside the title, and the screen opens
+  such a kind on its fresh ones — the state picker above the list moves between
+  states.
+- **To a work.** Where a plain note says *Attach to a work*, an idea or a
+  phrase says **To a work**: picking the work ties the note to it and marks it
+  used, in one step, and **Undo** takes both back. The note shows on the work's
+  **Notes** tab. Letting the work go makes it fresh again.
+- **Make it a work.** The text becomes the new work's first version, as for
+  any note — but the idea stays in the bank, used and tied to the new work,
+  instead of going to the trash. The words in the work will change; the idea
+  is the record of what was taken.
+
+### The bank of phrases
+
+A phrase is one line, and a thousand of them are read as lines, not as pages.
+The **Phrase** chip opens the bank: a row per phrase — its words, its tags,
+the work it went into — and *All* leaves the phrases out, so they never bury
+the notes.
+
+- Type a new phrase into the box at the top and press `Enter`.
+- The arrow at the end of a row sends it **to a work**; the menu beside it
+  edits the line (a double-click does too), makes a work of it, sets it
+  aside, drops it, brings it back to fresh, or deletes it.
+- The search box, the tag and the state narrow the bank the way they narrow
+  the list.
+
+The bank shows the first two hundred rows; **Show more** adds the next.

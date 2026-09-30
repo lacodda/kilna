@@ -26,6 +26,12 @@ pub struct ImportReport {
     pub skipped: usize,
     /// Titles the person had deleted here and were not brought back.
     pub deleted: usize,
+    /// Terms of the register of repeats (ADR 0044).
+    pub terms: usize,
+    /// Works named as carrying an image or a scene of the register.
+    pub named: usize,
+    /// Ideas and phrases from the bank (ADR 0045).
+    pub notes: usize,
 }
 
 /// Import a slice of a predecessor workspace.
@@ -76,6 +82,9 @@ fn import(conn: &Connection, source: &Path, profile_id: &str) -> Result<ImportRe
         releases: 0,
         skipped: 0,
         deleted: 0,
+        terms: 0,
+        named: 0,
+        notes: 0,
     };
 
     for song in songs {
@@ -183,6 +192,14 @@ fn import(conn: &Connection, source: &Path, profile_id: &str) -> Result<ImportRe
             report.releases += 1;
         }
     }
+
+    // The register and the bank, after the works: an image of the register is
+    // tied to the songs it named, and those have to be here first.
+    let register = super::material::register(conn, &legacy, profile_id)?;
+    let bank = super::material::bank(conn, &legacy, profile_id)?;
+    report.terms = register.terms;
+    report.named = register.named;
+    report.notes = bank.notes;
 
     Ok(report)
 }
@@ -361,7 +378,32 @@ mod tests {
                  (2, 's1', '{\"hook\": 9, \"lyrics\": 8}', 85.0, 20),
                  (3, 's2', 'not json at all', 0.0, 30),
                  -- The positional form a real catalogue turned out to use.
-                 (4, 's3', '[9,8,9,7,9,8,9]', 84.0, 40);",
+                 (4, 's3', '[9,8,9,7,9,8,9]', 84.0, 40);
+             CREATE TABLE repetition_categories (id INTEGER PRIMARY KEY, project_id TEXT, name TEXT);
+             CREATE TABLE repetition_entries (
+                 id INTEGER PRIMARY KEY, project_id TEXT, term TEXT NOT NULL, kind TEXT NOT NULL,
+                 category_id INTEGER, severity TEXT NOT NULL, song_count INTEGER, note TEXT,
+                 created_at INTEGER
+             );
+             CREATE TABLE repetition_songs (entry_id INTEGER, song_id TEXT, title TEXT NOT NULL);
+             INSERT INTO repetition_categories VALUES (1, 'p', 'the harbour');
+             INSERT INTO repetition_entries VALUES
+                 (1, 'p', 'crane / cranes', 'noun', 1, 'ban', 12, 'every second song', 1),
+                 (2, 'p', 'a light left on for someone gone', 'image', NULL, 'limit', 3, NULL, 2);
+             INSERT INTO repetition_songs VALUES
+                 (1, 's1', 'Harbour lights'),
+                 (2, 's1', 'Harbour lights'),
+                 (2, NULL, 'A song from before the database');
+             CREATE TABLE statuses (id INTEGER PRIMARY KEY, entity TEXT, code TEXT);
+             INSERT INTO statuses VALUES (1, 'idea', 'new'), (2, 'idea', 'used');
+             CREATE TABLE ideas (
+                 id TEXT PRIMARY KEY, kind TEXT NOT NULL, title TEXT NOT NULL, body TEXT,
+                 tags TEXT, status_id INTEGER, created_at INTEGER
+             );
+             INSERT INTO ideas VALUES
+                 ('i1', 'phrase', 'The tide keeps its own time', NULL, '[\"sea\"]', 1, 1),
+                 ('i2', 'song', 'Lighthouse keeper', 'a song about a night shift', NULL, 2, 2),
+                 ('i3', 'note', 'Reference: tide tables', NULL, NULL, NULL, 3);",
         )
         .unwrap();
     }
@@ -495,6 +537,58 @@ mod tests {
     }
 
     #[test]
+    fn the_register_arrives_with_its_meanings_tied_to_the_songs_they_named() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("legacy.db");
+        legacy(&source);
+        let (conn, profile_id) = fixtures::workspace();
+
+        let report = from_legacy(&conn, &source, &profile_id).unwrap();
+
+        assert_eq!(report.terms, 2);
+        assert_eq!(
+            report.named, 1,
+            "the song from before the database is nowhere"
+        );
+        let terms = crate::register::list(&conn, &profile_id).unwrap();
+        let crane = terms.iter().find(|t| t.word == "crane").unwrap();
+        assert_eq!(crane.forms, ["cranes"]);
+        assert_eq!(crane.strictness, crate::register::Strictness::Ban);
+        assert_eq!(crane.topic.as_deref(), Some("the harbour"));
+        let image = terms.iter().find(|t| t.kind.as_str() == "image").unwrap();
+        let uses = crate::register::uses(&conn, &image.id).unwrap();
+        assert_eq!(uses.len(), 1);
+        assert_eq!(uses[0].title, "Harbour lights");
+        // Wording is read off the texts, whatever the old register listed:
+        // "the cranes go still" is in the lyrics of Harbour lights.
+        let crane_uses = crate::register::uses(&conn, &crane.id).unwrap();
+        assert_eq!(crane_uses.len(), 1);
+        assert_eq!((crane_uses[0].found, crane_uses[0].named), (1, false));
+    }
+
+    #[test]
+    fn the_bank_arrives_as_ideas_and_phrases_in_their_states() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("legacy.db");
+        legacy(&source);
+        let (conn, profile_id) = fixtures::workspace();
+
+        let report = from_legacy(&conn, &source, &profile_id).unwrap();
+
+        assert_eq!(report.notes, 3);
+        let notes =
+            crate::note::list(&conn, &profile_id, &crate::note::NoteFilter::default()).unwrap();
+        let phrase = notes.iter().find(|n| n.kind == "phrase").unwrap();
+        assert_eq!(phrase.body, "The tide keeps its own time");
+        assert_eq!(phrase.title, None);
+        assert_eq!(phrase.tags, ["sea"]);
+        let idea = notes.iter().find(|n| n.kind == "idea").unwrap();
+        assert_eq!(idea.title.as_deref(), Some("Lighthouse keeper"));
+        assert_eq!(idea.state, crate::note::NoteState::Used);
+        assert!(notes.iter().any(|n| n.kind == "note"));
+    }
+
+    #[test]
     fn a_second_import_skips_what_is_already_there() {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
@@ -506,6 +600,11 @@ mod tests {
 
         assert_eq!(again.works, 0);
         assert_eq!(again.skipped, 3);
+        assert_eq!(
+            (again.terms, again.named, again.notes),
+            (0, 0, 0),
+            "the register and the bank are not brought twice"
+        );
         assert_eq!(
             work::list(&conn, &profile_id, &WorkFilter::default())
                 .unwrap()

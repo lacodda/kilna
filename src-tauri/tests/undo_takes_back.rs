@@ -1296,6 +1296,126 @@ fn a_promotion_is_taken_back_whole() {
     );
 }
 
+#[test]
+fn a_spent_idea_goes_back_to_fresh_when_its_promotion_is_taken_back() {
+    use kilna_lib::note::{self, NewNote, NoteState, Promotion};
+
+    let (mut conn, profile_id, _) = workspace();
+    let idea = note::create(
+        &conn,
+        &profile_id,
+        NewNote {
+            body: "a lighthouse keeps the hours".into(),
+            kind: Some("idea".into()),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+
+    let promoted = kilna_lib::actions::note::promote(
+        &conn,
+        &idea.id,
+        Promotion {
+            kind: "song".into(),
+            title: "Lighthouse".into(),
+        },
+    )
+    .unwrap();
+    let spent = note::get(&conn, &idea.id).unwrap().unwrap();
+    assert_eq!(spent.state, NoteState::Used, "an idea is spent, not moved");
+    assert_eq!(spent.work_id.as_deref(), Some(promoted.work_id.as_str()));
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("the promotion can be undone");
+    take_back(&mut conn, &offer);
+
+    assert!(work::get(&conn, &promoted.work_id).unwrap().is_none());
+    let back = note::get(&conn, &idea.id).unwrap().unwrap();
+    assert_eq!(
+        back.state,
+        NoteState::Fresh,
+        "the idea is there to use again"
+    );
+    assert_eq!(back.work_id, None);
+}
+
+#[test]
+fn a_term_and_the_works_named_for_it_are_taken_back() {
+    use kilna_lib::actions::register as gestures;
+    use kilna_lib::register::{self, NewTerm, TermKind, TermPatch};
+
+    let (mut conn, profile_id, _) = workspace();
+    let song = work::create(
+        &conn,
+        &profile_id,
+        work::NewWork {
+            kind: "song".into(),
+            title: "Harbour lights".into(),
+            ..work::NewWork::default()
+        },
+    )
+    .unwrap();
+    let term = gestures::create(
+        &conn,
+        NewTerm {
+            word: "a lighthouse nobody keeps".into(),
+            kind: Some(TermKind::Image),
+            ..NewTerm::default()
+        },
+    )
+    .unwrap();
+
+    gestures::update(
+        &conn,
+        &term.id,
+        TermPatch {
+            note: Some(Some("every other song".into())),
+            ..TermPatch::default()
+        },
+    )
+    .unwrap();
+    let offer = undo::last(&conn).unwrap().expect("an edit can be undone");
+    take_back(&mut conn, &offer);
+    assert_eq!(register::get(&conn, &term.id).unwrap().unwrap().note, None);
+
+    gestures::link(&conn, &term.id, &song.id).unwrap();
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("naming a work can be undone");
+    take_back(&mut conn, &offer);
+    assert!(register::uses(&conn, &term.id).unwrap().is_empty());
+
+    gestures::link(&conn, &term.id, &song.id).unwrap();
+    gestures::unlink(&conn, &term.id, &song.id).unwrap();
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("letting go can be undone");
+    take_back(&mut conn, &offer);
+    assert_eq!(
+        register::uses(&conn, &term.id).unwrap().len(),
+        1,
+        "named again"
+    );
+
+    let made = gestures::create(
+        &conn,
+        NewTerm {
+            word: "dust".into(),
+            ..NewTerm::default()
+        },
+    )
+    .unwrap();
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("a new term can be undone");
+    take_back(&mut conn, &offer);
+    assert!(
+        register::get(&conn, &made.id).unwrap().is_none(),
+        "undoing a term's making puts it in the trash"
+    );
+}
+
 /// A reply written onto a comment is taken back to what stood there.
 #[test]
 fn a_reply_is_taken_back() {

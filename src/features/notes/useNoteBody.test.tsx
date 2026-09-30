@@ -21,6 +21,7 @@ const NOTE: Note = {
   aliases: [],
   prompt: null,
   prompt_basis: null,
+  state: 'fresh',
 }
 
 const pause = () => act(() => vi.advanceTimersByTimeAsync(600))

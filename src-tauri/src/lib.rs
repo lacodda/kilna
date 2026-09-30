@@ -28,6 +28,7 @@ pub mod operation;
 pub mod plugin;
 pub mod profile;
 pub mod readiness;
+pub mod register;
 pub mod release;
 pub mod release_meta;
 pub mod replay;
@@ -43,6 +44,7 @@ pub mod time;
 pub mod tombstone;
 pub mod trash;
 pub mod undo;
+pub mod words;
 pub mod work;
 
 pub use error::{Error, Result};
@@ -182,6 +184,16 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::notes::promote_note,
             commands::notes::list_tags,
             commands::notes::resolve_links,
+            commands::register::list_terms,
+            commands::register::term_uses,
+            commands::register::preview_term,
+            commands::register::list_term_topics,
+            commands::register::create_term,
+            commands::register::update_term,
+            commands::register::delete_term,
+            commands::register::link_term,
+            commands::register::unlink_term,
+            commands::register::check_text,
             commands::comments::list_comments,
             commands::comments::comment_channels,
             commands::comments::create_comment,

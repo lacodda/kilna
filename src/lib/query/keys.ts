@@ -113,6 +113,17 @@ export const keys = {
   canonProposals: ['proposals', 'canon'] as const,
   canonReview: (messageId: string) => ['proposals', 'canon', 'review', messageId] as const,
   tags: ['tags'] as const,
+  // One prefix over the register (ADR 0044): a term changes the counts, the
+  // checks of every text on screen and the list at once - and so does a
+  // version, since the counts are read off the works' current texts.
+  register: ['register'] as const,
+  terms: ['register', 'terms'] as const,
+  termUses: (id: string) => ['register', 'uses', id] as const,
+  termTopics: ['register', 'topics'] as const,
+  termPreview: (word: string, forms: readonly string[]) =>
+    ['register', 'preview', word, forms] as const,
+  /** A text checked against itself and the register, keyed by the text. */
+  textCheck: (text: string) => ['register', 'check', text] as const,
   workTags: ['workTags'] as const,
   deletions: ['deletions'] as const,
   search: (query: string) => ['search', query] as const,

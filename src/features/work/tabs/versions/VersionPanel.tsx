@@ -22,6 +22,7 @@ import { ListDetail, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
 import { ActionBar } from '@/features/assistant/ActionBar'
 import { ToCanonButton } from '@/features/canon/ToCanonButton'
+import { ToRegisterButton } from '@/features/register/ToRegisterButton'
 import { BodyPane, type Reading } from '@/features/work/tabs/versions/BodyPane'
 import { Commentary } from '@/features/work/tabs/versions/Commentary'
 import { CompareControl } from '@/features/work/tabs/versions/CompareControl'
@@ -375,6 +376,9 @@ export function VersionPanel({ workId }: Props) {
             {!commentaryLane && reading !== 'edit' && (
               <ToCanonButton workId={workId} versionId={shown.id} />
             )}
+            {/* A selected word, into the register of repeats - while reading
+                or while writing, where a word leaned on again is noticed. */}
+            {!commentaryLane && <ToRegisterButton />}
             {!commentaryLane && reading !== 'edit' && (
               <ActionBar
                 workId={workId}

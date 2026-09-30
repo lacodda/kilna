@@ -9,6 +9,7 @@ import {
   List,
   MessagesSquare,
   Palette,
+  Repeat2,
   Settings,
   Shapes,
   Trash2,
@@ -24,6 +25,7 @@ import { CommentsView } from '@/features/comments/CommentsView'
 import { DashboardView } from '@/features/dashboard/DashboardView'
 import { JournalView } from '@/features/journal/JournalView'
 import { NotesView } from '@/features/notes/NotesView'
+import { RegisterView } from '@/features/register/RegisterView'
 import { SettingsView } from '@/features/settings/SettingsView'
 import { Styleguide } from '@/features/styleguide/Styleguide'
 import { StylesView } from '@/features/styles/StylesView'
@@ -131,6 +133,18 @@ export const SCREENS: readonly ScreenSpec[] = [
     nav: 'nav.canon',
     rail: { group: 'library', icon: BookOpen, when: hasCanon },
     render: () => <CanonView />,
+  },
+  {
+    // The register of repeats (ADR 0044): what the works have spent, every
+    // term with how many works carry it now. Every craft repeats itself, so
+    // every craft has one. The open term is in the address, so a term in a
+    // text's strip lands on it and back walks between terms.
+    key: 'register',
+    path: '/register/:termId?',
+    nav: 'nav.register',
+    rail: { group: 'library', icon: Repeat2 },
+    jump: 'r',
+    render: () => <RegisterView />,
   },
   {
     // The inbox of the audience's comments, laid out the same way: the list

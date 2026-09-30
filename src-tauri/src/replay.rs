@@ -536,6 +536,33 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             scene::frame_from_text(conn, &work_id, &role, &minted)?;
         }
 
+        // The register of repeats (ADR 0044): terms, and the works named as
+        // carrying them.
+        "term.create" => {
+            let profile_id = workspace_profile(conn, params)?;
+            let new = from_params(params, "term")?;
+            crate::register::create_minted(conn, &profile_id, new, minted(params)?)?;
+        }
+
+        "term.update" => {
+            let id = required(params, "id")?;
+            let patch = from_params(params, "patch")?;
+            let at = required(params, "at")?;
+            crate::register::update_at(conn, &id, patch, &at)?;
+        }
+
+        "term.link" => {
+            let term_id = required(params, "termId")?;
+            let work_id = required(params, "workId")?;
+            crate::register::link_minted(conn, &term_id, &work_id, minted(params)?)?;
+        }
+
+        "term.unlink" => {
+            let term_id = required(params, "termId")?;
+            let work_id = required(params, "workId")?;
+            crate::register::unlink(conn, &term_id, &work_id)?;
+        }
+
         // The canon (ADR 0043): facts, their order, and the relations
         // between cards. A card itself is a note and replays as one.
         "fact.create" => {

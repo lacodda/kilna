@@ -80,6 +80,20 @@ export type { NoteFilter } from './generated/NoteFilter'
 export type { Promotion } from './generated/Promotion'
 export type { Promoted } from './generated/Promoted'
 export type { ResolvedLink } from './generated/ResolvedLink'
+export type { NoteState } from './generated/NoteState'
+
+// The register of repeats, and a text checked against it (ADR 0044).
+export type { Term } from './generated/Term'
+export type { NewTerm } from './generated/NewTerm'
+export type { TermPatch } from './generated/TermPatch'
+export type { TermKind } from './generated/TermKind'
+export type { Strictness } from './generated/Strictness'
+export type { RegisterEntry } from './generated/RegisterEntry'
+export type { TermUse } from './generated/TermUse'
+export type { TextCheck } from './generated/TextCheck'
+export type { TextMark } from './generated/TextMark'
+export type { TermHit } from './generated/TermHit'
+export type { RepeatGroup } from './generated/RepeatGroup'
 
 // The canon: cards (notes of a kind with sections), their facts and
 // relations (ADR 0043).

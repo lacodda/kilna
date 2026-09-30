@@ -249,6 +249,10 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
                 if !note.tags.is_empty() {
                     page.push_str(&format!(" _({})_", note.tags.join(", ")));
                 }
+                // An idea or a phrase says it was spent here (ADR 0045).
+                if is_material(&profile.config, &note.kind) {
+                    page.push_str(&format!(" · {} {}", note.kind, note.state.as_str()));
+                }
                 page.push('\n');
             }
         }
@@ -294,6 +298,9 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             if !note.tags.is_empty() {
                 page.push_str(&format!("\n_{}_\n", note.tags.join(", ")));
             }
+            if is_material(&profile.config, &note.kind) {
+                page.push_str(&format!("\n{}: {}\n", note.kind, note.state.as_str()));
+            }
             page.push('\n');
         }
         std::fs::write(directory.join("notes.md"), page)?;
@@ -308,6 +315,13 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             push_comment(&mut page, comment);
         }
         std::fs::write(directory.join("comments.md"), page)?;
+        files += 1;
+    }
+
+    // The register of repeats, one page: what is spent, and how many works
+    // carry each term at the moment of the export (ADR 0044).
+    if let Some(page) = register_page(conn, &profile.id)? {
+        std::fs::write(directory.join("register.md"), page)?;
         files += 1;
     }
 
@@ -327,6 +341,60 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         works: works.len(),
         files,
     })
+}
+
+/// Whether notes of `kind` are material: spent by works, with a state.
+fn is_material(config: &crate::profile::config::ProfileConfig, kind: &str) -> bool {
+    config.note_kind(kind).is_some_and(|kind| kind.material)
+}
+
+/// The register as one page, strictest first; none when it is empty. The
+/// counts are the moment's: they are read off the works, never stored.
+fn register_page(conn: &Connection, profile_id: &str) -> Result<Option<String>> {
+    use crate::register::{self, Strictness};
+    let entries = register::entries(conn, profile_id)?;
+    if entries.is_empty() {
+        return Ok(None);
+    }
+    let mut page = String::from("# Register of repeats\n");
+    for strictness in Strictness::ALL {
+        let group: Vec<_> = entries
+            .iter()
+            .filter(|entry| entry.term.strictness == strictness)
+            .collect();
+        if group.is_empty() {
+            continue;
+        }
+        page.push_str(&format!("\n## {}\n\n", strictness.as_str()));
+        for entry in group {
+            let term = &entry.term;
+            page.push_str(&format!("- **{}**", term.word));
+            if !term.forms.is_empty() {
+                page.push_str(&format!(" / {}", term.forms.join(" / ")));
+            }
+            page.push_str(&format!(" — {}", term.kind.as_str()));
+            if let Some(topic) = &term.topic {
+                page.push_str(&format!(" · {topic}"));
+            }
+            page.push_str(&format!(" · {} works", entry.uses));
+            if let Some(note) = &term.note {
+                page.push_str(&format!("\n  {}", note.replace('\n', "\n  ")));
+            }
+            // A meaning's works are the record itself: nothing else knows them.
+            if !term.kind.is_wording() {
+                let named: Vec<String> = register::uses(conn, &term.id)?
+                    .into_iter()
+                    .filter(|one| one.named)
+                    .map(|one| one.title)
+                    .collect();
+                if !named.is_empty() {
+                    page.push_str(&format!("\n  In: {}", named.join(", ")));
+                }
+            }
+            page.push('\n');
+        }
+    }
+    Ok(Some(page))
 }
 
 /// Write a page per card of the canon into `canon/`, and say how many.
@@ -705,6 +773,46 @@ mod tests {
         assert!(page.contains("Reply: thank you!"));
         let loose = std::fs::read_to_string(dir.path().join("comments.md")).unwrap();
         assert!(loose.contains("love the channel"));
+    }
+
+    #[test]
+    fn the_register_goes_out_with_its_counts_and_named_works() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = work::create(
+            &conn,
+            &profile_id,
+            work::NewWork {
+                kind: "song".into(),
+                title: "Harbour lights".into(),
+                ..work::NewWork::default()
+            },
+        )
+        .unwrap();
+        let image = crate::register::create(
+            &conn,
+            &profile_id,
+            crate::register::NewTerm {
+                word: "a light left on".into(),
+                kind: Some(crate::register::TermKind::Image),
+                strictness: Some(crate::register::Strictness::Ban),
+                note: Some("every other song".into()),
+                ..crate::register::NewTerm::default()
+            },
+        )
+        .unwrap();
+        crate::register::link(&conn, &image.id, &song.id).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+
+        to_markdown(&conn, dir.path()).unwrap();
+
+        let page = std::fs::read_to_string(dir.path().join("register.md")).unwrap();
+        assert!(page.contains("## ban"), "{page}");
+        assert!(
+            page.contains(
+                "- **a light left on** — image · 1 works\n  every other song\n  In: Harbour lights"
+            ),
+            "{page}"
+        );
     }
 
     #[test]

@@ -130,6 +130,10 @@ pub fn reversible(kind: &str) -> bool {
             | "canonLink.update"
             | "canonLink.delete"
             | "asset.setRole"
+            | "term.create"
+            | "term.update"
+            | "term.link"
+            | "term.unlink"
     )
 }
 
@@ -278,6 +282,34 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             let patch: crate::canon::CanonLinkPatch = from_params(params, "before")?;
             apply(conn, |tx| {
                 crate::canon::link::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // A term of the register goes back to what the fields its edit named
+        // held (ADR 0044).
+        "term.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::register::TermPatch = from_params(params, "before")?;
+            apply(conn, |tx| {
+                crate::register::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // A work named as carrying a term has no drawer in the trash, like a
+        // link between works: undoing the naming removes the row, undoing its
+        // removal puts the same row back under the same id and moment.
+        "term.link" => {
+            let term_id = required(params, "termId")?;
+            let work_id = required(params, "workId")?;
+            apply(conn, |tx| {
+                crate::register::unlink(tx, &term_id, &work_id).map(|_| ())
+            })?;
+        }
+        "term.unlink" => {
+            let term_id = required(params, "termId")?;
+            let work_id = required(params, "workId")?;
+            let minted =
+                crate::minted::Minted::of(required(params, "id")?, required(params, "createdAt")?);
+            apply(conn, |tx| {
+                crate::register::link_minted(tx, &term_id, &work_id, minted)
             })?;
         }
         // A picture's role goes back to the one it had; the file is not
@@ -471,7 +503,7 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
         // an undo would be gone in a way nothing else in kilna is.
         "work.create" | "work.clone" | "note.create" | "collection.create" | "release.create"
         | "version.create" | "scene.create" | "cut.create" | "comment.create" | "style.create"
-        | "fact.create" => {
+        | "fact.create" | "term.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -485,12 +517,31 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
         // and the note comes back out of it, in one change. Restoring the note
         // alone would leave its text twice — the duplicate promoting exists to
         // prevent.
+        //
+        // A material note never went to the trash: it stayed, used by the new
+        // work (ADR 0045). Its state and its work go back to what they were,
+        // before the work is thrown away - a note tied to a work in the trash
+        // would go with it.
         "note.promote" => {
             let work_id = required(params, "workId")?;
-            let entry_id = required(params, "entryId")?;
+            let spent = params.get("spent").and_then(Value::as_bool) == Some(true);
+            if spent {
+                let id = required(params, "id")?;
+                let before = params
+                    .get("before")
+                    .ok_or_else(|| Error::Internal("the promotion carries no `before`".into()))?;
+                let patch = crate::note::NotePatch {
+                    state: Some(serde_json::from_value(before["state"].clone())?),
+                    work_id: Some(before["work_id"].as_str().map(str::to_owned)),
+                    ..crate::note::NotePatch::default()
+                };
+                crate::note::update_at(conn, &id, patch, &at)?;
+            }
             let minted = crate::minted::Minted::of(uuid::Uuid::new_v4().to_string(), at.clone());
             crate::trash::discard_minted(conn, crate::trash::Entity::Work, &work_id, minted)?;
-            crate::trash::restore(conn, &entry_id)?;
+            if !spent {
+                crate::trash::restore(conn, &required(params, "entryId")?)?;
+            }
         }
 
         // Undoing a deletion is the restore the trash already knows how to do.
@@ -580,6 +631,7 @@ fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
         "comment.create" => crate::trash::Entity::Comment,
         "style.create" => crate::trash::Entity::Style,
         "fact.create" => crate::trash::Entity::Fact,
+        "term.create" => crate::trash::Entity::Term,
         other => return Err(Error::Internal(format!("`{other}` creates nothing"))),
     };
     Ok((entity, required(&entry.params, "id")?))

@@ -97,7 +97,8 @@ Each work's page includes:
   blocks in full.
 - Every release tied to the work: kind, date (scheduled or released), time of
   day and zone when set, and the link if one was recorded.
-- Notes attached to the work, with their tags.
+- Notes attached to the work, with their tags — and for an idea or a
+  phrase, its kind and where it stands: *phrase used*.
 - Comments on the work, archived ones included: who wrote them, where and
   when, where each stands, the words quoted, and the reply under them.
 
@@ -106,8 +107,12 @@ shape the page takes, and moves when a field changes meaning or a section
 changes shape — not when a field is added. Pages written by v0.50 and later
 say `format: 2`; earlier exports carried no line, which reads as format 1.
 
-Notes not attached to any work are written to a separate `notes.md`, and
-comments about no work to `comments.md`, rather than lost. File names are derived from each work's title with unsafe
+Notes not attached to any work are written to a separate `notes.md`, an
+idea or a phrase with its state under it, and comments about no work to
+`comments.md`, rather than lost. The [register of repeats](/kilna/guides/the-register/)
+goes to `register.md`: every term by strictness, with its forms, kind, topic
+and note, how many works carry it at the moment of the export, and for an
+image or a scene the works named for it. File names are derived from each work's title with unsafe
 characters replaced and a short id suffix appended, so two works sharing a
 title never overwrite one another — and non-ASCII titles are kept as-is,
 since a title in Cyrillic or any other script should stay readable in the
@@ -118,6 +123,17 @@ exported file name.
 kilna can bring in a slice of a predecessor workspace — the command exists for
 migrating out of an earlier personal tool, not as a general-purpose importer
 for arbitrary data. Existing titles are skipped rather than duplicated.
+
+Besides the works, the import brings the predecessor's register of repeats and
+its bank of ideas when the source has them. Each term arrives with its
+strictness, topic and note; a term written with alternatives — *свеча / свечи*,
+*мыть(ся)* — arrives as a word and its forms, and one with a placeholder —
+*всего лишь X* — as a pattern. The works an image or a scene was listed in are
+named for it where a work of that title is here; for wording they are not
+brought, because the register reads them off the texts. The bank arrives as
+notes: phrases as phrases, every other idea as an idea, in the state it was
+left in. A term already in the register, or a note with the same words, is
+skipped.
 
 A title you deleted here is skipped too, even after you emptied the trash:
 the workspace remembers what it deleted (see below), and an import that

@@ -19,6 +19,7 @@ the translation would have to be relearned per language.
 | `G` `K` | Calendar |
 | `G` `J` | History |
 | `G` `N` | Notes |
+| `G` `R` | Register |
 | `G` `T` | Trash |
 | `G` `S` | Settings |
 

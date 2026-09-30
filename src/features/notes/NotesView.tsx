@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ListChecks, Plus } from 'lucide-react'
 import { createNote } from '@/lib/api/notes'
-import type { Note } from '@/lib/api/types'
+import type { Note, NoteState } from '@/lib/api/types'
 import { progressOf } from '@/lib/checklist'
-import { titleOf } from '@/lib/notes'
+import { isLine, isMaterial, NOTE_STATES, titleOf } from '@/lib/notes'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -23,6 +23,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { Frame, ListDetail, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
+import { LineBank } from '@/features/notes/LineBank'
 import { NoteDetail } from '@/features/notes/NoteDetail'
 
 /*
@@ -34,6 +35,9 @@ const ALL_KINDS = 'all'
 const chipOf = (kind: string | undefined) => (kind === undefined ? ALL_KINDS : `kind:${kind}`)
 const kindOf = (chip: string | undefined) =>
   chip === undefined || chip === ALL_KINDS ? undefined : chip.slice('kind:'.length)
+
+/** The state filter's "every state", beside the four states. */
+const ANY_STATE = 'any'
 
 /**
  * Every note of the profile in one place: the list on the left with its own
@@ -47,6 +51,11 @@ const kindOf = (chip: string | undefined) =>
  *
  * The open note is part of the address, so the back button walks between
  * notes and a search hit can land on one directly.
+ *
+ * A kind of one line - a phrase - is not a page among the others: its chip
+ * opens the bank of lines instead, a row each, and "All" leaves it out, so a
+ * thousand phrases never bury the notes (ADR 0045). A kind that is material -
+ * an idea, a phrase - is read by its state, fresh first.
  */
 export function NotesView() {
   const { t } = useTranslation()
@@ -58,6 +67,7 @@ export function NotesView() {
   const kinds = plainNoteKindsOf(config)
 
   const [kind, setKind] = useState<string | undefined>(undefined)
+  const [state, setState] = useState<NoteState | typeof ANY_STATE>('fresh')
   const [tag, setTag] = useState('')
   const [text, setText] = useState('')
   // The list is a query; typing into it unthrottled would refetch per letter.
@@ -65,13 +75,18 @@ export function NotesView() {
   // A note just made opens in the editor rather than as an empty page.
   const [fresh, setFresh] = useState<string | null>(null)
 
+  const material = isMaterial(config, kind)
+  const line = isLine(config, kind)
   const filter = {
     kind,
     tag: tag === '' ? undefined : tag,
     search: query === '' ? undefined : query,
     canon: false,
+    // "All" is the pages: the lines have a bank of their own.
+    line: kind === undefined ? false : undefined,
+    state: material && state !== ANY_STATE ? state : undefined,
   }
-  const notes = useQuery(queries.notesMatching(filter))
+  const notes = useQuery({ ...queries.notesMatching(filter), enabled: !line })
   // Every tag in use, most used first: the filter's choices, and what the
   // tag field of the open note completes from.
   const tags = useQuery(queries.tags())
@@ -109,8 +124,10 @@ export function NotesView() {
   const selected: Note | undefined =
     rows.find((note) => note.id === noteId) ??
     (everything.data ?? []).find((note) => note.id === noteId)
-  const total = everything.data?.length ?? 0
-  const filtered = kind !== undefined || tag !== '' || query !== ''
+  // "All" counts what "All" shows: the pages, not the lines.
+  const total = (everything.data ?? []).filter((note) => !isLine(config, note.kind)).length
+  const filtered =
+    kind !== undefined || tag !== '' || query !== '' || (material && state !== ANY_STATE)
 
   return (
     <Frame
@@ -136,6 +153,22 @@ export function NotesView() {
               ))}
             </ChipGroup>
           )}
+          {/* Where the material stands: fresh first, because what is still
+              there to use is what a bank is opened for. */}
+          {material && (
+            <Select
+              value={state}
+              onChange={(next) =>
+                setState(next === '' ? 'fresh' : (next as NoteState | typeof ANY_STATE))
+              }
+              options={[
+                ...NOTE_STATES.map((one) => ({ value: one, label: t(`notes.states.${one}`) })),
+                { value: ANY_STATE, label: t('notes.anyState') },
+              ]}
+              aria-label={t('notes.stateLabel')}
+              className="w-44"
+            />
+          )}
           <Input
             value={text}
             onChange={(event) => setText(event.target.value)}
@@ -156,81 +189,88 @@ export function NotesView() {
               className="w-44"
             />
           )}
-          <Button
-            variant="primary"
-            className="ml-auto"
-            disabled={add.isPending}
-            onClick={() => add.mutate()}
-          >
-            <Plus aria-hidden />
-            {t('notes.new')}
-          </Button>
+          {!line && (
+            <Button
+              variant="primary"
+              className="ml-auto"
+              disabled={add.isPending}
+              onClick={() => add.mutate()}
+            >
+              <Plus aria-hidden />
+              {t('notes.new')}
+            </Button>
+          )}
         </>
       }
     >
-      <ListDetail
-        list={
-          <Pane label={t('nav.notes')} bodyClassName="p-1.5">
-            <Loaded
-              query={notes}
-              skeleton={<SkeletonList rows={6} />}
-              isEmpty={(data) => data.length === 0}
-              emptyState={
-                <EmptyState
-                  plain
-                  variant={filtered ? 'filtered' : 'empty'}
-                  title={filtered ? t('notes.noMatches') : t('notes.none')}
-                  className="p-2"
-                />
-              }
-              plain
-            >
-              {() => (
-                <ul className="flex flex-col gap-0.5">
-                  {rows.map((note) => (
-                    <li key={note.id}>
-                      <NoteRow
-                        note={note}
-                        kindLabel={labelOf(kinds, note.kind)}
-                        active={note.id === noteId}
-                        onOpen={() => open(note.id)}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Loaded>
-          </Pane>
-        }
-        detail={
-          selected !== undefined ? (
-            <NoteDetail
-              key={selected.id}
-              note={selected}
-              tags={(tags.data ?? []).map(([name]) => name)}
-              startEditing={fresh === selected.id}
-              onTag={(name) => setTag(name)}
-              onGone={() => open(null)}
-            />
-          ) : noteId !== undefined && !notes.isPending && !everything.isPending ? (
-            <EmptyState title={t('notes.gone')} body={t('notes.goneBody')} className="flex-1" />
-          ) : (
-            <EmptyState
-              className="flex-1"
-              title={total === 0 ? t('notes.empty') : t('notes.pick')}
-              body={total === 0 ? t('notes.emptyBody') : undefined}
-              action={
-                total === 0 ? (
-                  <Button variant="primary" onClick={() => add.mutate()}>
-                    <Plus aria-hidden />
-                    {t('notes.new')}
-                  </Button>
-                ) : undefined
-              }
-            />
-          )
-        }
-      />
+      {line && kind !== undefined ? (
+        <LineBank kind={kind} filter={filter} tag={tag} filtered={filtered} />
+      ) : (
+        <ListDetail
+          list={
+            <Pane label={t('nav.notes')} bodyClassName="p-1.5">
+              <Loaded
+                query={notes}
+                skeleton={<SkeletonList rows={6} />}
+                isEmpty={(data) => data.length === 0}
+                emptyState={
+                  <EmptyState
+                    plain
+                    variant={filtered ? 'filtered' : 'empty'}
+                    title={filtered ? t('notes.noMatches') : t('notes.none')}
+                    className="p-2"
+                  />
+                }
+                plain
+              >
+                {() => (
+                  <ul className="flex flex-col gap-0.5">
+                    {rows.map((note) => (
+                      <li key={note.id}>
+                        <NoteRow
+                          note={note}
+                          kindLabel={labelOf(kinds, note.kind)}
+                          material={isMaterial(config, note.kind)}
+                          active={note.id === noteId}
+                          onOpen={() => open(note.id)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Loaded>
+            </Pane>
+          }
+          detail={
+            selected !== undefined ? (
+              <NoteDetail
+                key={selected.id}
+                note={selected}
+                tags={(tags.data ?? []).map(([name]) => name)}
+                startEditing={fresh === selected.id}
+                onTag={(name) => setTag(name)}
+                onGone={() => open(null)}
+              />
+            ) : noteId !== undefined && !notes.isPending && !everything.isPending ? (
+              <EmptyState title={t('notes.gone')} body={t('notes.goneBody')} className="flex-1" />
+            ) : (
+              <EmptyState
+                className="flex-1"
+                title={total === 0 ? t('notes.empty') : t('notes.pick')}
+                body={total === 0 ? t('notes.emptyBody') : undefined}
+                action={
+                  total === 0 ? (
+                    <Button variant="primary" onClick={() => add.mutate()}>
+                      <Plus aria-hidden />
+                      {t('notes.new')}
+                    </Button>
+                  ) : undefined
+                }
+              />
+            )
+          }
+        />
+      )}
     </Frame>
   )
 }
@@ -238,11 +278,14 @@ export function NotesView() {
 function NoteRow({
   note,
   kindLabel,
+  material,
   active,
   onOpen,
 }: {
   note: Note
   kindLabel: string
+  /** Whether it is spent by works, and so says where it stands. */
+  material: boolean
   active: boolean
   onOpen: () => void
 }) {
@@ -250,12 +293,13 @@ function NoteRow({
   const title = titleOf(note)
   const progress = progressOf(note.body)
   const day = formatDay(note.updated_at)
+  const state = material && note.state !== 'fresh' ? ` · ${t(`notes.state.${note.state}`)}` : ''
 
   return (
     <RowButton
       selected={active}
       onClick={onOpen}
-      description={`${kindLabel} · ${day}`}
+      description={`${kindLabel}${state} · ${day}`}
       // How far along a checklist is, where the note has one: the reason to
       // open a to-do list is usually to see what is left.
       end={

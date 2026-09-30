@@ -181,6 +181,14 @@ offers the whole answer as a version in that role, with the same *Insert as
 version* button an agent's proposal gets. Studio's critique does, so a
 critique is kept beside the text it read rather than lost in a chat.
 
+So does Studio's **Neighbours in meaning**, into the *Neighbours* role. It
+reads the lyric beside the [register of repeats](/kilna/guides/the-register/)
+(`{register}`) and beside the few works whose words stand closest to it
+(`{neighbours}`), and answers with the lines that say a spent image in other
+words and the works this one says the same thing as. The register catches
+words; this is the check for meanings. Studio's critique and revision read
+`{register}` too, so a banned word is a finding rather than a suggestion.
+
 An action about a style — `"scope": "style"`, started from the
 [dictionary](/kilna/guides/styles/) — produces a **description**:
 `"produces": "description"` keeps the whole answer as the description of the

@@ -1,15 +1,21 @@
 import { useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { Copy, Eye, Maximize2, Minimize2, PenLine } from 'lucide-react'
+import type { TextCheck } from '@/lib/api/types'
 import { typing } from '@/lib/keys'
-import { findRepeats } from '@/lib/repeats'
+import { queries } from '@/lib/query/queries'
+import { strictnessStatus, termMark } from '@/lib/register'
 import { say } from '@/lib/toast'
+import { useTextCheck } from '@/lib/useTextCheck'
 import type { useBodyEditing } from '@/lib/useBodyEditing'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { MarkedTextarea } from '@/components/ui/marked-text'
+import { MarkedTextarea, type Mark } from '@/components/ui/marked-text'
 import { SaveState } from '@/components/ui/save-state'
 import { Skeleton } from '@/components/ui/skeleton'
+import { StatusDot } from '@/components/ui/status-dot'
 import { CompareColumn } from '@/features/work/tabs/versions/CompareColumn'
 import { ReadingText } from '@/features/work/tabs/versions/ReadingText'
 import { TextScroll } from '@/features/work/tabs/versions/TextScroll'
@@ -42,7 +48,8 @@ interface Props {
   onReading: (mode: Reading) => void
   /** The version standing beside this one, when one was picked. */
   against?: { label: string; body: string; onClose: () => void } | null
-  /** Whether repeated words are marked while editing. */
+  /** Whether the text is checked: its repeated words marked while it is
+   *  written, the register's terms marked always. */
   repeats?: boolean
   editing: ReturnType<typeof useBodyEditing>
   /** Whether it is over the whole window rather than on the card. */
@@ -79,22 +86,16 @@ export function BodyPane({
   const metrics = textMetrics(markdown)
 
   // What is on the left right now: the text being typed, or the body as it
-  // is on disk. The comparison and the repeats are read off this, so both
+  // is on disk. The comparison and the check are read off this, so both
   // follow the keystrokes.
   const text = reading === 'edit' ? editing.text : (body ?? '')
   const diff = useLineDiff(against?.body ?? null, text)
-  const found = useMemo(
-    () => (repeats && reading === 'edit' ? findRepeats(text) : null),
-    [repeats, reading, text],
-  )
+  // A markdown body is drawn by the renderer, where an offset into the text
+  // names no letter on screen: it is not marked (ADR 0044).
+  const { check, current } = useTextCheck(repeats && body !== null && !markdown ? text : null)
   const marks = useMemo(
-    () =>
-      (found?.marks ?? []).map((mark) => ({
-        start: mark.start,
-        end: mark.end,
-        className: `repeat-${mark.group % REPEAT_TINTS}`,
-      })),
-    [found],
+    () => (current && check !== undefined ? marksOf(check, reading === 'edit') : []),
+    [check, current, reading],
   )
 
   // When the text being read takes the focus: after the pen is put down by
@@ -169,6 +170,7 @@ export function BodyPane({
         body={body}
         markdown={markdown}
         added={diff.added}
+        marks={marks}
         metrics={metrics}
       />
     )
@@ -249,13 +251,17 @@ export function BodyPane({
         </Button>
       </div>
 
+      {/* What the register says of this text, read or written: the spent
+          terms it takes, strictest first. */}
+      {check !== undefined && check.terms.length > 0 && <RegisterStrip check={check} />}
+
       {/* The words this text leans on, while it is being written. Nothing is
           drawn when there are none: a strip saying "no repeats" would be a
           strip taking the room the text wants. */}
-      {found !== null && found.groups.length > 0 && (
+      {reading === 'edit' && check !== undefined && check.repeats.length > 0 && (
         <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-line px-3 py-1.5 text-xs text-dim">
           <span className="mr-1 font-medium">{t('versions.repeats')}</span>
-          {found.groups.map((group, index) => (
+          {check.repeats.map((group, index) => (
             <span
               key={group.stem}
               className={cn('rounded-sm px-1.5 py-px', `repeat-${index % REPEAT_TINTS}`)}
@@ -283,5 +289,66 @@ export function BodyPane({
         </div>
       </TextScroll>
     </section>
+  )
+}
+
+/**
+ * The runs of a checked text as marks: a repeated word tinted while the text
+ * is written, a term of the register marked by its strictness always. The
+ * backend cut the runs so that one never sits inside another.
+ */
+function marksOf(check: TextCheck, writing: boolean): Mark[] {
+  const out: Mark[] = []
+  for (const mark of check.marks) {
+    const tint =
+      writing && mark.repeat !== undefined ? `repeat-${mark.repeat % REPEAT_TINTS}` : undefined
+    const hit = mark.term === undefined ? undefined : check.terms[mark.term]
+    const term = hit === undefined ? undefined : termMark(hit.strictness)
+    if (tint === undefined && term === undefined) continue
+    out.push({ start: mark.start, end: mark.end, className: cn(tint, term) })
+  }
+  return out
+}
+
+/**
+ * The register under a version's toolbar (ADR 0044): each spent term the
+ * text takes, how often, and in how many works it already stands - one press
+ * away from its entry. The count of works is the register's own, read off
+ * the works' texts now.
+ */
+function RegisterStrip({ check }: { check: TextCheck }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const terms = useQuery(queries.terms())
+  const uses = useMemo(
+    () => new Map((terms.data ?? []).map((entry) => [entry.id, entry.uses])),
+    [terms.data],
+  )
+
+  return (
+    <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-line px-3 py-1.5 text-xs text-dim">
+      <span className="mr-1 font-medium">{t('register.inText')}</span>
+      {check.terms.map((hit) => {
+        const works = uses.get(hit.term_id)
+        return (
+          <Button
+            key={hit.term_id}
+            variant="ghost"
+            size="xs"
+            title={t('register.chip', { word: hit.word, count: hit.count, uses: works ?? '…' })}
+            onClick={() => void navigate(`/register/${hit.term_id}`)}
+          >
+            <StatusDot
+              size="sm"
+              status={strictnessStatus(hit.strictness)}
+              label={t(`register.strictnesses.${hit.strictness}`)}
+            />
+            <span>{hit.word}</span>
+            <span className="tabular-nums">×{hit.count}</span>
+            {works !== undefined && <span className="text-faint tabular-nums">· {works}</span>}
+          </Button>
+        )
+      })}
+    </div>
   )
 }

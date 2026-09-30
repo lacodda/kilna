@@ -395,6 +395,7 @@ pub fn keep_package(
                 tags: Vec::new(),
                 layer: card.layer,
                 aliases: card.aliases,
+                state: None,
             },
         )?;
         made.insert(card.handle, created.id.clone());

@@ -11,4 +11,16 @@ skipped: number,
 /**
  * Titles the person had deleted here and were not brought back.
  */
-deleted: number, };
+deleted: number, 
+/**
+ * Terms of the register of repeats (ADR 0044).
+ */
+terms: number, 
+/**
+ * Works named as carrying an image or a scene of the register.
+ */
+named: number, 
+/**
+ * Ideas and phrases from the bank (ADR 0045).
+ */
+notes: number, };

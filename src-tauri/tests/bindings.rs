@@ -75,6 +75,13 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::note::Promotion,
         kilna_lib::note::Promoted,
         kilna_lib::commands::notes::ResolvedLink,
+        // register.rs
+        kilna_lib::register::RegisterEntry,
+        kilna_lib::register::Term,
+        kilna_lib::register::NewTerm,
+        kilna_lib::register::TermPatch,
+        kilna_lib::register::TermUse,
+        kilna_lib::register::check::TextCheck,
         // canon.rs
         kilna_lib::canon::view::CardFilter,
         kilna_lib::canon::view::CardSummary,

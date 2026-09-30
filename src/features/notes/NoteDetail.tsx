@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowUpRight, Link2, Pencil, Sprout, Trash2, X } from 'lucide-react'
 import { deleteNote, updateNote } from '@/lib/api/notes'
-import type { Note, NotePatch } from '@/lib/api/types'
+import type { Note, NotePatch, NoteState } from '@/lib/api/types'
 import { toggleTask } from '@/lib/checklist'
+import { isMaterial, NOTE_STATES } from '@/lib/notes'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
@@ -52,6 +53,9 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
   const { config } = useProfile()
   // A plain note stays a plain note here: a card's kinds belong to the canon.
   const kinds = plainNoteKindsOf(config)
+  // An idea or a phrase is spent by works, not moved into them (ADR 0045):
+  // going to a work marks it used, and it says where it stands.
+  const material = isMaterial(config, note.kind)
 
   const [title, setTitle] = useState(note.title ?? '')
   const [editing, setEditing] = useState(startEditing)
@@ -127,6 +131,17 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
           className="min-w-40 flex-1 border-transparent bg-transparent px-1.5 text-sm font-semibold hover:border-line focus:border-line"
         />
         <SaveState savingLabel={t('save.saving')} savedLabel={t('save.saved')} status={status} />
+        {material && (
+          <Select
+            value={note.state}
+            onChange={(next) => {
+              if (next !== '' && next !== note.state) patch.mutate({ state: next as NoteState })
+            }}
+            options={NOTE_STATES.map((one) => ({ value: one, label: t(`notes.state.${one}`) }))}
+            aria-label={t('notes.stateLabel')}
+            className="w-36"
+          />
+        )}
         {kindOptions.length > 1 && (
           <Select
             value={note.kind}
@@ -167,7 +182,7 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
         <Link2 aria-hidden className="size-3.5 text-faint" />
         {note.work_id === null ? (
           <Button variant="link" onClick={() => setAttaching(true)}>
-            {t('notes.attach')}
+            {material ? t('notes.toWork') : t('notes.attach')}
           </Button>
         ) : (
           <>
@@ -184,7 +199,15 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
               variant="icon"
               title={t('notes.detach')}
               aria-label={t('notes.detach')}
-              onClick={() => patch.mutate({ work_id: null })}
+              // Let go of the work it was spent in, and it is there to use
+              // again; a note set aside stays aside.
+              onClick={() =>
+                patch.mutate(
+                  material && note.state === 'used'
+                    ? { work_id: null, state: 'fresh' }
+                    : { work_id: null },
+                )
+              }
             >
               <X aria-hidden />
             </Button>
@@ -283,8 +306,13 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
       <PickWorkDialog
         open={attaching}
         onOpenChange={setAttaching}
-        title={t('notes.attachTitle')}
-        onPick={(picked) => patch.mutate({ work_id: picked.work_id })}
+        title={material ? t('notes.toWorkTitle') : t('notes.attachTitle')}
+        // One gesture for material: tied to the work and marked used.
+        onPick={(picked) =>
+          patch.mutate(
+            material ? { work_id: picked.work_id, state: 'used' } : { work_id: picked.work_id },
+          )
+        }
       />
     </section>
   )

@@ -894,6 +894,16 @@ pub struct NoteKind {
     /// described by hand and never goes stale.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub describe_from: Vec<String>,
+    /// Notes of this kind are what works are made from, and are spent by
+    /// them: an idea, a phrase. Such a note carries a state - fresh, used,
+    /// parked, dropped - and going to a work leaves it in the bank, used
+    /// (ADR 0045).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub material: bool,
+    /// A note of this kind is one line: kept as a row of its own table, not
+    /// as a page among the notes (ADR 0045).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub line: bool,
 }
 
 impl NoteKind {
@@ -905,6 +915,8 @@ impl NoteKind {
             sections: Vec::new(),
             root: false,
             describe_from: Vec::new(),
+            material: false,
+            line: false,
         }
     }
 
@@ -927,6 +939,13 @@ impl NoteKind {
         if self.root && !self.is_card() {
             problems.push(format!(
                 "{place} is the root of the canon but names no sections"
+            ));
+        }
+        // A card is known by its facts and lives on the canon: it is neither
+        // spent by a work nor a single line.
+        if self.is_card() && (self.material || self.line) {
+            problems.push(format!(
+                "{place} names sections, and a card of the canon is neither material nor a line"
             ));
         }
         for key in &self.describe_from {
@@ -1763,6 +1782,15 @@ impl ProfileConfig {
         self.note_kinds
             .iter()
             .filter(|kind| kind.is_card())
+            .map(|kind| kind.key.as_str())
+            .collect()
+    }
+
+    /// The keys of every kind kept as one line (ADR 0045).
+    pub fn line_kinds(&self) -> Vec<&str> {
+        self.note_kinds
+            .iter()
+            .filter(|kind| kind.line)
             .map(|kind| kind.key.as_str())
             .collect()
     }

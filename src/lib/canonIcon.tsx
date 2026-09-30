@@ -2,8 +2,10 @@ import {
   BookOpen,
   Box,
   CalendarDays,
+  Lightbulb,
   List,
   MapPin,
+  Quote,
   Radio,
   Sparkle,
   StickyNote,
@@ -32,6 +34,8 @@ const CANON_ICONS: Record<string, LucideIcon> = {
   book: BookOpen,
   list: List,
   note: StickyNote,
+  lightbulb: Lightbulb,
+  quote: Quote,
 }
 
 /** The names, for the reference and for a picker. */

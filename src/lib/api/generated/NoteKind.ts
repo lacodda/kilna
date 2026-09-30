@@ -34,4 +34,16 @@ root?: boolean,
  * is stale when a fact of these sections changes. Empty: the card is
  * described by hand and never goes stale.
  */
-describe_from?: Array<string>, };
+describe_from?: Array<string>, 
+/**
+ * Notes of this kind are what works are made from, and are spent by
+ * them: an idea, a phrase. Such a note carries a state - fresh, used,
+ * parked, dropped - and going to a work leaves it in the bank, used
+ * (ADR 0045).
+ */
+material?: boolean, 
+/**
+ * A note of this kind is one line: kept as a row of its own table, not
+ * as a page among the notes (ADR 0045).
+ */
+line?: boolean, };

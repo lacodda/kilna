@@ -38,7 +38,8 @@ it, it opens the one the window uses.
 | `text` | The body of a version: the current one of a role, or a revision by id. Plain roles come back exactly as typed. |
 | `scores` | The score history of a work, newest first. |
 | `calendar` | Every release with a date, in calendar order; `from` starts at a day. |
-| `notes` | Notes, all of them or one work's. |
+| `notes` | Notes, all of them or one work's; `kind` narrows to ideas, phrases or any other kind, `state` to the fresh, used, parked or dropped ones of a material kind. |
+| `register` | The register of repeats: every term with its forms, kind, strictness, topic, note and how many works carry it now; or, with `text` or `work`, that text checked — the terms it takes word for word and how often, and the words it leans on within itself. |
 | `scenes` | The storyboard of a work, in order: each scene's number, section, seconds, kind of shot, description and prompt blocks. The shared context is the `context` role — read it with `text`. |
 | `canon` | The [canon](/kilna/guides/the-canon/): without arguments, every card — id, kind, name, aliases, layer, the work it lives at, how many facts, drafts and live zones — and the kinds of card with their sections. With `card` (an id, or an exact name or alias), that card whole: its facts by section, each with its layer, status, source, time in the world and the tasks that may read it; its relations; where it appears; its description for a picture generator and whether it is stale. `lens` — `cover`, `work` or `public` — narrows the card to what that task may read, by the same rule the window dims by; a card a lens cannot see answers that it does not exist. `query` searches the facts; `timeline` lists the facts dated in the world, earliest first. |
 | `search` | Works, versions, notes, facts and replies by text; every hit names its work or its card. |

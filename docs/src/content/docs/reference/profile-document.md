@@ -396,6 +396,18 @@ scene may only point at those. A workspace made before them gains the
 craft's kinds on the next launch, and one you renamed or added stays
 yours, the way every vocabulary does.
 
+Two flags, both optional, say what is different about a kind (v0.85,
+[ADR 0045](https://github.com/lacodda/kilna/blob/main/docs/adr/0045-material-is-spent-not-moved.md)):
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `material` | boolean, optional | Notes of the kind are what works are made from, and are spent by them — an idea, a phrase. Such a note says where it stands: fresh, used, parked or dropped. *To a work* ties it to the work and marks it used in one gesture, and *Make it a work* leaves it in the bank, used, instead of moving it. |
+| `line` | boolean, optional | A note of the kind is one line. The Notes screen keeps the kind in a bank of its own, a row each, and leaves it out of *All*. |
+
+Every shipped profile names `idea` (material) and `phrase` (material, one
+line). A kind with sections — a card of the canon — can be neither; saving
+says so.
+
 ### Cards of the canon
 
 A kind that names `sections` is a kind of **card**: its notes leave the
@@ -424,7 +436,7 @@ and lore; Podcast ships guests and segments; Blog ships only plain kinds.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `icon` | string, optional | The glyph the kind is drawn with in the card list: `radio`, `user`, `map-pin`, `box`, `users`, `calendar`, `sparkle`, `book`, `list`, `note`. Anything else draws a plain note. |
+| `icon` | string, optional | The glyph the kind is drawn with in the card list: `radio`, `user`, `map-pin`, `box`, `users`, `calendar`, `sparkle`, `book`, `list`, `note`, `lightbulb`, `quote`. Anything else draws a plain note. |
 | `sections` | list, optional | What a card of this kind knows, in the order the card reads. Empty or absent: a plain note. |
 | `root` | boolean, optional | One card of this kind per workspace — the channel, the root of the world. Studio's `channel` is the root. A second card of a root kind is refused, and a profile with two root kinds is refused when it is saved. |
 | `describe_from` | list of strings, optional | The sections the card's description for a picture generator is written from — a person's looks, not their biography. When a settled public fact in one of them changes, the description says it is stale. Absent: the description is written by hand and never goes stale. Each key must be a section of the kind. |
@@ -525,8 +537,9 @@ it is written *about* another role, so it opens **beside** what it discusses
 rather than in its own lane, matched revision for revision. A review of
 revision 2 says nothing about revision 5, so it is not shown there.
 
-Music ships `review` (a read against the axes) and `critique` (line-by-line),
-both commenting on `lyrics`. A profile that names no commentary role keeps the
+Music ships `review` (a read against the axes), `critique` (line-by-line)
+and `neighbours` (where the lyric says a spent image in other words, and which
+works it says the same thing as), all commenting on `lyrics`. A profile that names no commentary role keeps the
 Versions tab exactly as it was.
 
 `counts_as_version` answers a different question: how many times the *work*
@@ -828,7 +841,7 @@ buttons like that are neither read nor remembered.
 
 The names `icon` accepts: `sparkles`, `wand`, `pen`, `spell-check`, `scroll`,
 `tags`, `gauge`, `music`, `film`, `clapperboard`, `image`, `list`, `lightbulb`,
-`palette`, `eye`, `reply`, `book`, `quote`.
+`palette`, `eye`, `reply`, `book`, `quote`, `orbit`.
 
 The same prompt is offered in three places: in the panel it fills the composer
 for you to read and send, typing `/` reaches the same list from the keyboard,
@@ -941,6 +954,14 @@ proposes.
   is saved, as `{selection}` in a release field is.
 - `{selection}` — the lines selected in the text, word for word. Only in an
   action with `"scope": "selection"`, which must read it.
+- `{register}` — the [register of repeats](/kilna/guides/the-register/):
+  wording grouped by strictness, then the spent images, scenes and devices,
+  each with how many works carry it now and its note, and what the text the
+  action reads already takes from it word for word.
+- `{neighbours}` — the few works whose words stand closest to the text the
+  action reads — shared words weighed by how rare each is across the works —
+  each with its title, kind, the words it shares and its current text. Where
+  to look for the same thing said twice, not yet a judgement of meaning.
 - `{donor}` — the first work this one was [made from](/kilna/guides/made-from/),
   as *“Harbour lights” (song)*; `{donor:lyrics}`, `{donor:style}`, … — the
   latest revision of that role on the donor. A work made from nothing refuses

@@ -2,6 +2,7 @@
 
 /**
  * What a promotion made: the work, its first version, and the trash entry
- * the note went to.
+ * the note went to - none for a material note, which stays, used by the new
+ * work (ADR 0045).
  */
-export type Promoted = { work_id: string, version_id: string, deletion_id: string, };
+export type Promoted = { work_id: string, version_id: string, deletion_id: string | null, };

@@ -47,6 +47,7 @@ impl Patch for crate::scene::ScenePatch {}
 impl Patch for crate::cut::CutPatch {}
 impl Patch for crate::canon::FactPatch {}
 impl Patch for crate::canon::CanonLinkPatch {}
+impl Patch for crate::register::TermPatch {}
 
 /// What the fields a patch names held before it was applied, as the log
 /// records it beside the patch - see [`invert`] and [`invert_merging`].

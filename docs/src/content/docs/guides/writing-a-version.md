@@ -157,6 +157,13 @@ Function words — *и*, *the*, *не* — are left out, as is anything inside
 square brackets: `[Verse 2]` names a section and repeats by design. Nothing is
 drawn when nothing repeats.
 
+The same reading of the text checks it against the
+[register of repeats](/kilna/guides/the-register/): a second strip lists the
+terms of the register the text takes — reading or writing — and each is
+underlined where it stands, by how strictly it is spent. Both come from one
+analyser, so a word the strip counts is the word the register counts.
+**To the register** in the toolbar enters the selected word as a term.
+
 ## Walking the history
 
 With the version list focused, the arrow keys step through it: **↓** to the

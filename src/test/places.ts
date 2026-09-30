@@ -21,6 +21,7 @@ export const SCREENS: [path: string, shows: string][] = [
   ['/canon', 'The lantern keeper'],
   [`/canon/${IDS.character}`, 'A long grey coat and a pole hung with paper lanterns.'],
   ['/canon?timeline', 'Has sold lanterns by the bridge since the flood.'],
+  ['/register', en.register.empty],
   ['/styles', 'Dusk over water'],
   [`/styles/${IDS.brick}`, en.styles.describe],
   ['/journal', '“Harbour Lights” added.'],

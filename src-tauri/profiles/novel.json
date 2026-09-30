@@ -352,6 +352,19 @@
         ]
       },
       {
+        "key": "idea",
+        "label": "Idea",
+        "icon": "lightbulb",
+        "material": true
+      },
+      {
+        "key": "phrase",
+        "label": "Phrase",
+        "icon": "quote",
+        "material": true,
+        "line": true
+      },
+      {
         "key": "note",
         "label": "Note"
       }

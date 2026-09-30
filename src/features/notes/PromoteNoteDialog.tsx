@@ -5,7 +5,7 @@ import { Sprout } from 'lucide-react'
 import { promoteNote } from '@/lib/api/notes'
 import type { Note } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
-import { titleOf } from '@/lib/notes'
+import { isMaterial, titleOf } from '@/lib/notes'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
@@ -30,6 +30,9 @@ interface Props {
  * it is called — and says where the text will go, because the note itself will
  * not stay: its body becomes the work's first version and the note goes to the
  * trash, so the same words do not live in two places. Undo takes it all back.
+ *
+ * Except material: an idea or a phrase stays in the bank, marked used and tied
+ * to the new work, so it is not taken twice (ADR 0045) - and the dialog says so.
  */
 export function PromoteNoteDialog({ open, onOpenChange, note, onPromoted }: Props) {
   const { t } = useTranslation()
@@ -86,7 +89,9 @@ export function PromoteNoteDialog({ open, onOpenChange, note, onPromoted }: Prop
       description={
         role === undefined
           ? t('notes.promoteNoRole')
-          : t('notes.promoteBody', { role: sayLabel(role.label) })
+          : isMaterial(config, note.kind)
+            ? t('notes.promoteBodyMaterial', { role: sayLabel(role.label) })
+            : t('notes.promoteBody', { role: sayLabel(role.label) })
       }
       footer={
         <Button

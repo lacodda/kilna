@@ -34,6 +34,7 @@ import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
 import { journalForWork, listJournal, unreadJournal } from '@/lib/api/journal'
 import { listLinks, resolveLinks } from '@/lib/api/links'
 import { listNotes, listTags } from '@/lib/api/notes'
+import { checkText, listTerms, listTermTopics, previewTerm, termUses } from '@/lib/api/register'
 import { listPlugins } from '@/lib/api/plugins'
 import {
   calendar,
@@ -163,6 +164,23 @@ export const queries = {
     queryOptions({ queryKey: keys.notesMatching(filter), queryFn: () => listNotes(filter) }),
   notesCastable: () => queryOptions({ queryKey: keys.notesCastable, queryFn: () => listNotes() }),
   tags: () => queryOptions({ queryKey: keys.tags, queryFn: listTags }),
+
+  terms: () => queryOptions({ queryKey: keys.terms, queryFn: listTerms }),
+  termUses: (id: string) =>
+    queryOptions({ queryKey: keys.termUses(id), queryFn: () => termUses(id) }),
+  termTopics: () => queryOptions({ queryKey: keys.termTopics, queryFn: listTermTopics }),
+  termPreview: (word: string, forms: readonly string[]) =>
+    queryOptions({
+      queryKey: keys.termPreview(word, forms),
+      queryFn: () => previewTerm(word, [...forms]),
+    }),
+  textCheck: (text: string) =>
+    queryOptions({
+      queryKey: keys.textCheck(text),
+      queryFn: () => checkText(text),
+      // A text is typed past in a moment and never asked about again.
+      gcTime: 30_000,
+    }),
 
   cardsMatching: (filter: CardFilter) =>
     queryOptions({ queryKey: keys.cardsMatching(filter), queryFn: () => listCards(filter) }),

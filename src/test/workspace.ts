@@ -264,6 +264,7 @@ export function studio(): Studio {
       aliases: [],
       prompt: null,
       prompt_basis: null,
+      state: 'fresh',
     },
     {
       id: IDS.character,
@@ -279,6 +280,7 @@ export function studio(): Studio {
       aliases: ['the keeper'],
       prompt: 'an old man in a grey coat with a pole of paper lanterns',
       prompt_basis: 'f00d',
+      state: 'fresh',
     },
   ]
 
@@ -649,6 +651,13 @@ function isCard(studio: Studio, kind: string): boolean {
   )
 }
 
+/** Whether notes of `kind` are lines, kept in a bank of their own (ADR 0045). */
+function isLineKind(studio: Studio, kind: string): boolean {
+  return (studio.profile.config.note_kinds ?? []).some(
+    (one) => one.key === kind && one.line === true,
+  )
+}
+
 /** A card as the list shows it, read off the studio as `canon::view::cards` would. */
 function cardOf(studio: Studio, note: Note): CardSummary {
   const own = studio.facts.filter((fact) => fact.note_id === note.id)
@@ -755,15 +764,27 @@ export function answersFor(studio: Studio): Record<string, Handler> {
         kind?: string | null
         tag?: string | null
         canon?: boolean | null
+        line?: boolean | null
+        state?: string | null
       }
       return studio.notes.filter(
         (note) =>
           (wanted.work_id == null || note.work_id === wanted.work_id) &&
           (wanted.kind == null || note.kind === wanted.kind) &&
           (wanted.tag == null || note.tags.includes(wanted.tag)) &&
-          (wanted.canon == null || isCard(studio, note.kind) === wanted.canon),
+          (wanted.canon == null || isCard(studio, note.kind) === wanted.canon) &&
+          (wanted.line == null || isLineKind(studio, note.kind) === wanted.line) &&
+          (wanted.state == null || note.state === wanted.state),
       )
     },
+
+    // The register of repeats: empty, and every text checked against it
+    // finds nothing - a screen that shows a version asks for both.
+    list_terms: () => [],
+    list_term_topics: () => [],
+    term_uses: () => [],
+    preview_term: () => 0,
+    check_text: () => ({ repeats: [], terms: [], marks: [] }),
 
     list_cards: () =>
       studio.notes.filter((note) => isCard(studio, note.kind)).map((note) => cardOf(studio, note)),

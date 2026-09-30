@@ -277,8 +277,32 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "notes",
-            "Notes in the profile, newest first — all of them, or those of one work.",
-            json!({ "work": work_arg(), "query": text_arg("A substring of the title or body") }),
+            "Notes in the profile, newest first — all of them, or those of one work. Ideas and \
+             phrases are notes of their kinds (see `workspace`: `note_kinds`); a kind marked \
+             `material` is spent by works, and each of its notes says where it stands in \
+             `state`: fresh, used (by the work it names), parked or dropped.",
+            json!({
+                "work": work_arg(),
+                "query": text_arg("A substring of the title or body"),
+                "kind": text_arg("Only notes of this kind, as `workspace` lists them"),
+                "state": text_arg("Only notes in this state: fresh, used, parked or dropped"),
+            }),
+            &[],
+        ),
+        tool(
+            "register",
+            "The register of repeats: what this body of work has already spent. Without \
+             arguments: every term — its word and forms, its kind (noun, adjective, verb and \
+             phrase are wording, found in a text by stem; image, scene and pattern are \
+             meanings, tied to the works that carry them by name), its strictness (ban, limit, \
+             rare), topic and note, and `uses`: how many works carry it now. With `text` or \
+             `work`: that text checked against it — the terms it takes word for word and how \
+             often, and the words it leans on within itself. Read it before writing or judging \
+             a text; a meaning told in other words is yours to catch.",
+            json!({
+                "text": text_arg("A text to check against the register"),
+                "work": text_arg("A work whose current text to check: its id, or its exact title"),
+            }),
             &[],
         ),
         tool(
@@ -788,12 +812,46 @@ pub fn run_tool(
                 Some(named) => Some(find_work(conn, &profile.id, named)?.id),
                 None => None,
             };
+            let state =
+                match arg(args, "state") {
+                    Some(word) => Some(note::NoteState::from_word(word).ok_or_else(|| {
+                        Error::refused("mcp.unknownNoteState").param("state", word)
+                    })?),
+                    None => None,
+                };
             let filter = NoteFilter {
                 work_id,
                 search: arg(args, "query").map(str::to_owned),
+                kind: arg(args, "kind").map(str::to_owned),
+                state,
                 ..NoteFilter::default()
             };
             pretty(&note::list(conn, &profile.id, &filter)?)
+        }
+
+        // The register of repeats (ADR 0044): the whole of it, or a text
+        // checked against it. The marks are the window's; an agent is given
+        // what was found.
+        "register" => {
+            let text = match (arg(args, "text"), arg(args, "work")) {
+                (Some(text), _) => Some(text.to_owned()),
+                (None, Some(named)) => {
+                    let found = find_work(conn, &profile.id, named)?;
+                    let current = match found.current_version_id.as_deref() {
+                        Some(id) => version::get(conn, id)?,
+                        None => None,
+                    };
+                    Some(current.map(|v| v.body).unwrap_or_default())
+                }
+                (None, None) => None,
+            };
+            match text {
+                Some(text) => {
+                    let checked = crate::register::check::text(conn, &profile.id, &text)?;
+                    pretty(&json!({ "terms": checked.terms, "repeats": checked.repeats }))
+                }
+                None => pretty(&crate::register::entries(conn, &profile.id)?),
+            }
         }
 
         "scenes" => {

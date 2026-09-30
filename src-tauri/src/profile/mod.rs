@@ -334,6 +334,14 @@ fn prompt_details(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
             prompt.template = shipped.template.clone();
             changed = true;
         }
+        if TEMPLATES_BEFORE_THE_REGISTER
+            .iter()
+            .any(|(key, before)| *key == prompt.key && *before == prompt.template)
+            && prompt.template != shipped.template
+        {
+            prompt.template = shipped.template.clone();
+            changed = true;
+        }
     }
     changed
 }
@@ -623,6 +631,21 @@ Judge it as a finished song, along the axes below. Be honest rather than kind: a
     "Here is a chapter called \"{title}\".\n\n{body}\n\nJudge it along these axes: Pull (Does the reader turn the page, or put the book down here), Prose (Sentence by sentence: rhythm, precision, nothing limp), Character (Do people behave like people rather than like plot requirements), Structure (Does the chapter earn its place and end where it should), Tension (Is something at stake on every page).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
     "Here are the notes for an episode called \"{title}\".\n\n{body}\n\nJudge it along these axes: Hook (Does the cold open earn the next thirty seconds), Clarity (Could a listener explain the point to someone else afterward), Pacing (Where does it drag, and would a listener skip ahead), Insight (Is there a claim here nobody else is making, or just a summary), Delivery (Energy, pauses, whether it sounds read or spoken), Shareability (Is there a moment worth clipping and sending to a friend).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
     "Here is a post called \"{title}\".\n\n{body}\n\nJudge it along these axes: Hook (Does the first paragraph survive contact with a stranger's attention span), Usefulness (Could a reader act on this, or is it just an opinion floating by), Clarity (Sentence by sentence: does every paragraph earn the next one), Angle (Is there a take here, or a restatement of what everyone already thinks), Shareability (Is there a line worth quoting out of context).\n\nBe honest rather than kind: a score that flatters is worth nothing.",
+];
+
+/// Templates as they shipped before they read the register of repeats
+/// (v0.85, ADR 0044), by the action they belong to. A stored copy still
+/// reading exactly like one of these follows the shipped wording, which reads
+/// `{register}`; a reworded one stays the owner's.
+const TEMPLATES_BEFORE_THE_REGISTER: [(&str, &str); 2] = [
+    (
+        "critique",
+        "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nBe specific and be hard on it: which lines are weak, which images are worn out, what would you cut? Do not rewrite it — say what is wrong.",
+    ),
+    (
+        "polish",
+        "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nSuggest one revision that keeps the voice but fixes what is weakest. Show the changed lines only, with a sentence on why each changed.",
+    ),
 ];
 
 /// Shipped descriptions that changed, old to new, on the same terms as the

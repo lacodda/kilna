@@ -20,6 +20,7 @@ pub mod journal;
 pub mod links;
 pub mod notes;
 pub mod plugins;
+pub mod register;
 pub mod releases;
 pub mod scenes;
 pub mod scores;

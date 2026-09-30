@@ -9,6 +9,7 @@ import {
   ListOrdered,
   MessageSquareReply,
   Music,
+  Orbit,
   Palette,
   PenLine,
   ScrollText,
@@ -56,6 +57,7 @@ const ACTION_ICONS: Record<string, LucideIcon> = {
   reply: MessageSquareReply,
   book: BookOpen,
   quote: TextQuote,
+  orbit: Orbit,
 }
 
 /** The names, for the reference and for a picker. */

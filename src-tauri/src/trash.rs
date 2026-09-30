@@ -37,12 +37,15 @@ pub enum Entity {
     Style,
     /// A fact of a card of the canon, with the pictures of it (ADR 0043).
     Fact,
+    /// A term of the register of repeats, with the works named as carrying
+    /// it (ADR 0044).
+    Term,
 }
 
 impl Entity {
     /// Every kind of thing the trash holds. What a gate iterates rather than
     /// a list of its own that someone has to remember to extend.
-    pub const ALL: [Entity; 11] = [
+    pub const ALL: [Entity; 12] = [
         Entity::Work,
         Entity::Version,
         Entity::Score,
@@ -54,6 +57,7 @@ impl Entity {
         Entity::Comment,
         Entity::Style,
         Entity::Fact,
+        Entity::Term,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -69,6 +73,7 @@ impl Entity {
             Self::Comment => "comment",
             Self::Style => "style",
             Self::Fact => "fact",
+            Self::Term => "term",
         }
     }
 
@@ -87,6 +92,7 @@ impl Entity {
             "comment" => Ok(Self::Comment),
             "style" => Ok(Self::Style),
             "fact" => Ok(Self::Fact),
+            "term" => Ok(Self::Term),
             other => Err(Error::Internal(format!("unknown trash entity `{other}`"))),
         }
     }
@@ -105,6 +111,7 @@ impl Entity {
             Self::Comment => "comment",
             Self::Style => "style_brick",
             Self::Fact => "canon_fact",
+            Self::Term => "term",
         }
     }
 }
@@ -230,6 +237,13 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "comment",
                 key: "work_id",
             },
+            // The terms of the register that named it. The schema's cascade
+            // takes the rows down with the work; captured so a song restored
+            // carries its images again.
+            Capture {
+                table: "term_work",
+                key: "work_id",
+            },
         ],
         Entity::Version => &[Capture {
             table: "work_version",
@@ -300,6 +314,18 @@ fn cascade(entity: Entity) -> &'static [Capture] {
             Capture {
                 table: "scene_note",
                 key: "scene_id",
+            },
+        ],
+        // A term and the works named as carrying it: a meaning is known by
+        // them, so they come back with it.
+        Entity::Term => &[
+            Capture {
+                table: "term",
+                key: "id",
+            },
+            Capture {
+                table: "term_work",
+                key: "term_id",
             },
         ],
         // A stretch of a splice is one row and hangs nothing off itself.
@@ -945,7 +971,7 @@ fn missing_parent(
     let parents: &[(&str, &str)] = match entity {
         // These stand on their own; the profile they need is checked by the
         // insert itself.
-        Entity::Work | Entity::Collection | Entity::Style => return Ok(None),
+        Entity::Work | Entity::Collection | Entity::Style | Entity::Term => return Ok(None),
         Entity::Version
         | Entity::Score
         | Entity::Release
@@ -1094,6 +1120,14 @@ fn describe(
                 describe_row,
             )
             .optional()?,
+        // Named as the register reads it: by its word.
+        Entity::Term => conn
+            .query_row(
+                "SELECT word, NULL, profile_id FROM term WHERE id = ?1",
+                params![id],
+                describe_row,
+            )
+            .optional()?,
         // Named by what it says, placed by the card it is a fact of.
         Entity::Fact => conn
             .query_row(
@@ -1128,6 +1162,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Comment => "comment",
         Entity::Style => "style",
         Entity::Fact => "fact",
+        Entity::Term => "term",
     }
 }
 

@@ -1,5 +1,5 @@
 import { useMemo, type Ref } from 'react'
-import type { LineMark } from '@/components/ui/marked-text'
+import type { LineMark, Mark } from '@/components/ui/marked-text'
 import { MarkedText } from '@/components/ui/marked-text'
 import { Markdown } from '@/components/Markdown'
 import { withSections } from '@/features/work/tabs/versions/metrics'
@@ -14,6 +14,8 @@ interface Props {
   markdown: boolean
   /** Lines new since the version standing beside this one. */
   added: readonly LineMark[]
+  /** Words to mark: the register's terms (ADR 0044). */
+  marks?: readonly Mark[]
   /** The type the text is set in; see `textMetrics`. */
   metrics: string
   ref?: Ref<HTMLDivElement>
@@ -32,7 +34,7 @@ interface Props {
  * the key works right where the pointer left it; Tab reaches the scroller
  * around it instead, which is a stop whenever the text runs past the fold.
  */
-export function ReadingText({ body, markdown, added, metrics, ref }: Props) {
+export function ReadingText({ body, markdown, added, marks, metrics, ref }: Props) {
   const lineMarks = useMemo(() => withSections(body, added), [body, added])
 
   return (
@@ -44,7 +46,7 @@ export function ReadingText({ body, markdown, added, metrics, ref }: Props) {
           <Markdown body={body} />
         </div>
       ) : (
-        <MarkedText text={body} lineMarks={lineMarks} className={metrics} />
+        <MarkedText text={body} marks={marks} lineMarks={lineMarks} className={metrics} />
       )}
     </div>
   )

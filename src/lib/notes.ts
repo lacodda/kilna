@@ -1,4 +1,4 @@
-import type { Note } from '@/lib/api/types'
+import type { Note, NoteKind, NoteState, ProfileConfig } from '@/lib/api/types'
 
 /**
  * What a note is called in a list: its title, or its first line without the
@@ -31,4 +31,22 @@ export function tagsFrom(text: string): string[] {
     out.push(tag)
   }
   return out
+}
+
+/** Where a material note can stand, in the order a bank reads them (ADR 0045). */
+export const NOTE_STATES: readonly NoteState[] = ['fresh', 'used', 'parked', 'dropped']
+
+/** The kind a note of `key` is, when the profile names it. */
+function noteKindOf(config: ProfileConfig, key: string): NoteKind | undefined {
+  return (config.note_kinds ?? []).find((kind) => kind.key === key)
+}
+
+/** Whether notes of `key` are material: spent by works, with a state. */
+export function isMaterial(config: ProfileConfig, key: string | undefined): boolean {
+  return key !== undefined && noteKindOf(config, key)?.material === true
+}
+
+/** Whether a note of `key` is one line, kept as a row of its own table. */
+export function isLine(config: ProfileConfig, key: string | undefined): boolean {
+  return key !== undefined && noteKindOf(config, key)?.line === true
 }

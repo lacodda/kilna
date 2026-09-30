@@ -171,6 +171,35 @@ textarea,
 }
 
 /*
+ * A term of the register of repeats, marked where a text takes it (ADR 0044).
+ *
+ * A line under the word rather than a wash, so it sits with a repeat's tint on
+ * the same letters, and in its own colour, so it still shows on the editor's
+ * mirror, whose letters are transparent. The strictness is the kind of line:
+ * a ban is wavy and red, a limit a plain line, a rare word dotted.
+ */
+.term-ban,
+.term-limit,
+.term-rare {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.2em;
+  text-decoration-skip-ink: none;
+}
+.term-ban {
+  text-decoration-style: wavy;
+  text-decoration-color: var(--bad);
+}
+.term-limit {
+  text-decoration-style: solid;
+  text-decoration-color: var(--warn);
+}
+.term-rare {
+  text-decoration-style: dotted;
+  text-decoration-color: var(--info);
+}
+
+/*
  * Base UI's one stylesheet, supplied from the bundle.
  *
  * Base UI hides a scroll area's own bars - and a select's, while it shows its

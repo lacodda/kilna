@@ -6,9 +6,12 @@ use crate::error::{Error, Result};
 use crate::minted::Minted;
 use crate::time::now;
 
-/// Ideas, lore, reference — one type distinguished by `kind` and tags rather
-/// than by four separate subsystems. The predecessor built those subsystems and
-/// they went unused; see the vision notes.
+/// Ideas, phrases, lore, reference — one type distinguished by `kind` and tags
+/// rather than by separate subsystems. The predecessor built those subsystems
+/// and they went unused; see the vision notes.
+///
+/// A note of a kind the profile marks `material` - an idea, a phrase - is
+/// spent by works, and says so in its `state` (ADR 0045).
 ///
 /// A note of a kind the profile names with sections is a card of the canon
 /// (ADR 0043): the last four fields are its own, and on a plain note they
@@ -36,6 +39,55 @@ pub struct Note {
     /// A fingerprint of the facts the description was written from. When it
     /// no longer matches the card's facts, the description is stale.
     pub prompt_basis: Option<String>,
+    /// Where a note of a material kind stands: fresh, used by a work, set
+    /// aside, given up on. A plain note is fresh for ever.
+    pub state: NoteState,
+}
+
+/// Where a material note stands (ADR 0045). The code's words, not the
+/// profile's: sending a note to a work sets `used`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+pub enum NoteState {
+    /// Still there to use.
+    #[default]
+    Fresh,
+    /// Spent: gone into a work, which `work_id` names when it is in kilna.
+    Used,
+    /// Set aside for later.
+    Parked,
+    /// Given up on, kept so it is not written again.
+    Dropped,
+}
+
+impl NoteState {
+    pub const ALL: [NoteState; 4] = [
+        NoteState::Fresh,
+        NoteState::Used,
+        NoteState::Parked,
+        NoteState::Dropped,
+    ];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            NoteState::Fresh => "fresh",
+            NoteState::Used => "used",
+            NoteState::Parked => "parked",
+            NoteState::Dropped => "dropped",
+        }
+    }
+
+    /// A stored state. An unknown word is a row the schema should not have let
+    /// in.
+    pub fn parse(raw: &str) -> Result<Self> {
+        Self::from_word(raw)
+            .ok_or_else(|| Error::Internal(format!("a stored note state reads `{raw}`")))
+    }
+
+    /// A state as a caller names it; none for any other word.
+    pub fn from_word(raw: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|one| one.as_str() == raw.trim())
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
@@ -58,6 +110,9 @@ pub struct NewNote {
     #[serde(default)]
     #[ts(optional = nullable)]
     pub aliases: Vec<String>,
+    /// Fresh when absent.
+    #[serde(default)]
+    pub state: Option<NoteState>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
@@ -98,6 +153,8 @@ pub struct NotePatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub prompt_basis: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state: Option<NoteState>,
 }
 
 /// Narrowing applied to a listing. Every field may be left out - serde
@@ -114,10 +171,16 @@ pub struct NoteFilter {
     /// Cards of the canon only (`true`), or plain notes only (`false`): the
     /// Notes screen and the Canon screen list different halves of one table.
     pub canon: Option<bool>,
+    /// Notes of the kinds kept as one line (`true`), or of the others
+    /// (`false`): a thousand phrases are read as rows of their own, not
+    /// under "All" beside the pages (ADR 0045).
+    pub line: Option<bool>,
+    /// Notes in this state.
+    pub state: Option<NoteState>,
 }
 
 const SELECT_NOTE: &str = "SELECT id, profile_id, work_id, kind, title, body, tags, created_at, \
-     updated_at, layer, aliases, prompt, prompt_basis FROM note";
+     updated_at, layer, aliases, prompt, prompt_basis, state FROM note";
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewNote) -> Result<Note> {
     create_minted(conn, profile_id, new, Minted::fresh())
@@ -140,8 +203,8 @@ pub fn create_minted(
     one_root(conn, profile_id, &kind, None)?;
 
     conn.execute(
-        "INSERT INTO note (id, profile_id, work_id, kind, title, body, tags, created_at, updated_at, layer, aliases)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10)",
+        "INSERT INTO note (id, profile_id, work_id, kind, title, body, tags, created_at, updated_at, layer, aliases, state)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11)",
         params![
             id,
             profile_id,
@@ -153,6 +216,7 @@ pub fn create_minted(
             timestamp,
             new.layer.unwrap_or_default().as_str(),
             serde_json::to_string(&clean_aliases(new.aliases))?,
+            new.state.unwrap_or_default().as_str(),
         ],
     )?;
 
@@ -240,6 +304,21 @@ pub fn list(conn: &Connection, profile_id: &str, filter: &NoteFilter) -> Result<
         let n = values.len();
         sql.push_str(&format!(
             " AND (coalesce(title, '') LIKE ?{n} OR body LIKE ?{n})"
+        ));
+    }
+    if let Some(state) = filter.state {
+        values.push(Box::new(state.as_str().to_owned()));
+        sql.push_str(&format!(" AND state = ?{}", values.len()));
+    }
+    if let Some(line) = filter.line {
+        // Which kinds are lines is the profile's word, read at the moment of
+        // asking, as the canon's split is.
+        let config = crate::profile::config_for(conn, profile_id)?;
+        values.push(Box::new(serde_json::to_string(&config.line_kinds())?));
+        let n = values.len();
+        let not = if line { "" } else { "NOT " };
+        sql.push_str(&format!(
+            " AND kind {not}IN (SELECT value FROM json_each(?{n}))"
         ));
     }
     if let Some(canon) = filter.canon {
@@ -332,6 +411,14 @@ pub fn update_at(conn: &Connection, id: &str, patch: NotePatch, at: &str) -> Res
             .filter(|text| !text.is_empty());
         set(&mut assignments, &mut values, "prompt", Box::new(prompt));
     }
+    if let Some(state) = patch.state {
+        set(
+            &mut assignments,
+            &mut values,
+            "state",
+            Box::new(state.as_str().to_owned()),
+        );
+    }
     if let Some(basis) = patch.prompt_basis {
         set(
             &mut assignments,
@@ -397,12 +484,13 @@ pub struct Promotion {
 }
 
 /// What a promotion made: the work, its first version, and the trash entry
-/// the note went to.
+/// the note went to - none for a material note, which stays, used by the new
+/// work (ADR 0045).
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Promoted {
     pub work_id: String,
     pub version_id: String,
-    pub deletion_id: String,
+    pub deletion_id: Option<String>,
 }
 
 /// The ids one promotion mints, sharing the moment of the gesture.
@@ -432,6 +520,10 @@ impl PromotionIds {
 /// other not (ADR 0001). So the body moves - into the first version of the
 /// kind's first role that is the work itself - and the note goes to the
 /// trash, where it can be restored like any other deletion.
+///
+/// Except material (ADR 0045): an idea or a phrase of a kind the profile marks
+/// material is spent, not moved. It stays in the bank, used and tied to the
+/// new work, so the bank knows it went - the one thing a bank is for.
 ///
 /// Its tags stay behind with it. A note's vocabulary and a work's are
 /// different vocabularies (see `work_tags`), and carrying "reference" onto a
@@ -505,12 +597,29 @@ fn promote_in(
         ids.version.clone(),
     )?
     .id;
-    let deletion_id = crate::trash::discard_minted(
-        tx,
-        crate::trash::Entity::Note,
-        note_id,
-        ids.deletion.clone(),
-    )?;
+    let material = config
+        .note_kind(&found.kind)
+        .is_some_and(|kind| kind.material);
+    let deletion_id = if material {
+        update_at(
+            tx,
+            note_id,
+            NotePatch {
+                state: Some(NoteState::Used),
+                work_id: Some(Some(work.id.clone())),
+                ..NotePatch::default()
+            },
+            ids.work.at(),
+        )?;
+        None
+    } else {
+        Some(crate::trash::discard_minted(
+            tx,
+            crate::trash::Entity::Note,
+            note_id,
+            ids.deletion.clone(),
+        )?)
+    };
 
     Ok(Promoted {
         work_id: work.id,
@@ -537,6 +646,7 @@ struct RawNote {
     aliases: String,
     prompt: Option<String>,
     prompt_basis: Option<String>,
+    state: String,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawNote> {
@@ -554,6 +664,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawNote> {
         aliases: row.get(10)?,
         prompt: row.get(11)?,
         prompt_basis: row.get(12)?,
+        state: row.get(13)?,
     })
 }
 
@@ -562,6 +673,7 @@ impl RawNote {
         Ok(Note {
             tags: serde_json::from_str(&self.tags)?,
             layer: Layer::parse(&self.layer)?,
+            state: NoteState::parse(&self.state)?,
             aliases: serde_json::from_str(&self.aliases)?,
             id: self.id,
             profile_id: self.profile_id,
@@ -800,10 +912,78 @@ mod tests {
             get(&conn, &idea.id).unwrap().is_none(),
             "the body lives in the version now, not twice"
         );
-        crate::trash::restore(&conn, &promoted.deletion_id).unwrap();
+        crate::trash::restore(&conn, promoted.deletion_id.as_deref().unwrap()).unwrap();
         assert_eq!(
             get(&conn, &idea.id).unwrap().unwrap().body,
             "one text, one place"
+        );
+    }
+
+    #[test]
+    fn a_material_note_is_spent_not_moved() {
+        let (mut conn, profile_id) = fixtures::workspace();
+        let phrase = create(
+            &conn,
+            &profile_id,
+            NewNote {
+                body: "a lighthouse keeps the hours".into(),
+                kind: Some("phrase".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        let promoted = promote(&mut conn, &profile_id, &phrase.id, "song", "Lighthouse").unwrap();
+
+        assert!(
+            promoted.deletion_id.is_none(),
+            "a phrase does not go to the trash"
+        );
+        let kept = get(&conn, &phrase.id)
+            .unwrap()
+            .expect("the phrase stays in the bank");
+        assert_eq!(kept.state, NoteState::Used);
+        assert_eq!(kept.work_id.as_deref(), Some(promoted.work_id.as_str()));
+        let version = crate::work::version::get(&conn, &promoted.version_id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(version.body, "a lighthouse keeps the hours");
+    }
+
+    #[test]
+    fn the_lines_are_listed_apart_from_the_pages() {
+        let (conn, profile_id) = fixtures::workspace();
+        let mut phrase = note("a line", &[]);
+        phrase.kind = Some("phrase".into());
+        create(&conn, &profile_id, phrase).unwrap();
+        create(&conn, &profile_id, note("a page", &[])).unwrap();
+
+        let pages = list(
+            &conn,
+            &profile_id,
+            &NoteFilter {
+                line: Some(false),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let lines = list(
+            &conn,
+            &profile_id,
+            &NoteFilter {
+                line: Some(true),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            pages.iter().map(|n| n.body.as_str()).collect::<Vec<_>>(),
+            ["a page"]
+        );
+        assert_eq!(
+            lines.iter().map(|n| n.body.as_str()).collect::<Vec<_>>(),
+            ["a line"]
         );
     }
 

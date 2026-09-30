@@ -71,10 +71,16 @@ export function DataSection() {
         scores: report.scores,
         skipped: report.skipped,
       })
+      // The register and the bank are said only when there were any: an
+      // older source has neither (ADR 0044, 0045).
+      const material =
+        report.terms + report.notes > 0
+          ? ` ${t('data.importedMaterial', { terms: report.terms, named: report.named, notes: report.notes })}`
+          : ''
       // Said only when it happened: most imports have nothing to leave buried.
       return report.deleted > 0
-        ? `${summary} ${t('data.importedLeftDeleted', { count: report.deleted })}`
-        : summary
+        ? `${summary}${material} ${t('data.importedLeftDeleted', { count: report.deleted })}`
+        : `${summary}${material}`
     })
 
   return (

@@ -92,6 +92,19 @@
         ]
       },
       {
+        "icon": "lightbulb",
+        "key": "idea",
+        "label": "Idea",
+        "material": true
+      },
+      {
+        "icon": "quote",
+        "key": "phrase",
+        "label": "Phrase",
+        "line": true,
+        "material": true
+      },
+      {
         "key": "note",
         "label": "Note"
       }

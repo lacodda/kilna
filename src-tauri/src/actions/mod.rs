@@ -30,6 +30,7 @@ pub mod note;
 pub mod plugin;
 pub mod profile;
 pub mod proposal;
+pub mod register;
 pub mod release;
 pub mod scene;
 pub mod score;

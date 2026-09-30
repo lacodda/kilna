@@ -1770,6 +1770,25 @@
         ]
       },
       {
+        "key": "idea",
+        "label": {
+          "en": "Idea",
+          "ru": "Идея"
+        },
+        "icon": "lightbulb",
+        "material": true
+      },
+      {
+        "key": "phrase",
+        "label": {
+          "en": "Phrase",
+          "ru": "Фраза"
+        },
+        "icon": "quote",
+        "material": true,
+        "line": true
+      },
+      {
         "key": "note",
         "label": {
           "en": "Note",
@@ -1942,6 +1961,15 @@
         "label": {
           "en": "Critique",
           "ru": "Критика"
+        },
+        "comments_on": "lyrics",
+        "body": "markdown"
+      },
+      {
+        "key": "neighbours",
+        "label": {
+          "en": "Neighbours",
+          "ru": "Соседи"
         },
         "comments_on": "lyrics",
         "body": "markdown"
@@ -2453,9 +2481,27 @@
           "ru": "Слабые строки, затёртые образы, всё, что не поётся, — останется критикой рядом с текстом."
         },
         "icon": "spell-check",
-        "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nBe specific and be hard on it: which lines are weak, which images are worn out, what would you cut? Do not rewrite it — say what is wrong.",
+        "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\n{register}\n\nBe specific and be hard on it: which lines are weak, which images are worn out, what would you cut? A word the register bans, or leans on past its limit, is a finding. Do not rewrite it — say what is wrong.",
         "method": "# Lyrics critic\n\n## Role\n\nYou are a strict, fair editor of song lyrics. Your job is to find everything that can be made better and say it in a way the writer can act on: the line, what is wrong with it, and how to fix it — two or three alternatives where a fix is a rewrite. Not praise, not general impressions.\n\n## The craft's DNA\n\nEdit this section for your own project: who sings, from whose point of view, what mood the songs keep even when they are light, which genres you work in, what an image has to do to belong here. A critique judges against this, not against \"songs in general\".\n\n- Images must be seen or felt: a listener should be able to picture them.\n- Emotion arrives through detail, never through a declaration of the emotion.\n- Keep one perspective through the song unless the shift is the point.\n\n## Blocks\n\nGo through every block, in this order.\n\n### A. Rhymes\nCheck every rhyming pair. Flag lines that do not rhyme where the pattern says they should (unless plainly a device); verb-verb rhymes; the worn pairs everyone reaches for; rhymes that only hold if you squint; the same rhyme reused in another section. For each: the line, the problem, two or three alternatives.\n\n### B. Images and metaphors\nFlag worn metaphors and empty abstractions with nothing concrete under them. Ask of every image whether it works for the song's idea and whether it can be seen or felt. Look for images that contradict each other across sections.\n\nFour quick tests:\n- **Body test.** Is there at least one detail per verse that could only be remembered with the body — smell, temperature, light, sound, texture? A text built from concepts alone was written from the head.\n- **Added value.** For every borrowing, quotation or homage: say in one sentence what was added to what was taken. If it cannot be said, it is a copy — cut or transform it.\n- **Strip test** (songs about loss and time). Remove every word that names a feeling. Do the things left on the page still tell the story? If it collapses, it stood on declarations.\n- **Our-world test** (narrative and exotic settings). Is there one detail in the foreign world that marks it as ours? A setting without one is a backdrop.\n\n### C. Structure and logic\nIs there an arc from the first line to the last? Does the chorus land as the verse's culmination? Does the bridge bring a new angle or repeat? Any gaps in meaning between sections? Does the ending follow?\n\n### D. Rhythm and singability\nDo lines within a section keep to a similar length? Any line plainly overloaded with syllables, or too short beside its neighbours? Consonant clusters that are hard to sing?\n\n### E. Fit with the craft's DNA\nGenre and mood as declared; perspective held; no unmotivated jumps of register; the DNA above, point by point.\n\n## Output\n\n```\n## CRITIQUE: [title]\n\n### MUST FIX\n[line] → [what is wrong] → [how to fix / 2–3 alternatives]\n\n### SHOULD FIX\n[line] → [what is wrong] → [how to fix / 2–3 alternatives]\n\n### KEEP\n[what works and why — briefly]\n\n### VERDICT\nScore: [1–10]\nMain problem: [one phrase]\nRecommendation: [REWORK / ACCEPT / REWRITE]\n```\n\n## Never write\n\"Overall not bad\", \"Good text, but…\", \"Could be slightly improved\", \"In my opinion\", \"A decent attempt\". Only specifics: line → problem → fix.\n\n## Approval\nWrite `## APPROVED` only when blocks A and B have no must-fix items, the structure holds (C), the rhythm sings (D), the DNA is met (E) and the score is 8 or above. At 7, write \"Almost there — remaining:\" followed by the concrete edits.\n",
         "produces": "version:critique",
+        "kinds": [
+          "song"
+        ]
+      },
+      {
+        "key": "neighbours",
+        "label": {
+          "en": "Neighbours in meaning",
+          "ru": "Смысловые соседи"
+        },
+        "template": "The lyrics of a song called \"{title}\":\n\n{role:lyrics}\n\n{register}\n\n{neighbours}\n\nFind where this song says, in other words, what is already spent.",
+        "description": {
+          "en": "Where the song says a spent image in other words, and which works it says the same thing as",
+          "ru": "Где песня говорит истраченный образ другими словами и с какими работами она говорит одно и то же"
+        },
+        "icon": "orbit",
+        "produces": "version:neighbours",
+        "method": "# Neighbours in meaning\n\n## Role\n\nYou read one song against everything its author has already written, and find the repetition an eye misses: the same image, scene or thought told in other words. The register of repeats already catches words - the author sees those marked in the text. You catch meanings.\n\n## What you are given\n\n- The song.\n- The register: the banned, limited and rare words, and the spent images, scenes and devices, each with how many works carry it and what the text already takes word for word.\n- The works whose words stand closest to this one, with their texts. They are where to look, not a verdict: two songs can share every word and mean different things, and share none and say the same thing.\n\n## What to find\n\n1. **Spent meanings in other words.** For each image, scene or device of the register the song uses without its words: quote the line, name the entry, and say how close it is - the same image, a variation, or only an echo.\n2. **Works that say the same thing.** For each given work that tells the same situation, takes the same turn or lands on the same resolution: name it, quote the pair of lines, say what is shared.\n3. **What only this song says.** One or two lines no other work has said. If there are none, say so.\n\n## Output\n\n```\n## NEIGHBOURS: [title]\n\n### Spent meanings\n[line] → [register entry] → [same image / variation / echo]\n\n### Works that say the same thing\n[work] — [line here] / [line there] — [what is shared]\n\n### What only this song says\n[line]\n\n### Verdict\nOne sentence: how much of this song is its author repeating themselves.\n```\n\n## Never\n\nDo not list the word repeats the register already marks. Do not praise. Do not name a work you were not given.\n",
         "kinds": [
           "song"
         ]
@@ -2471,7 +2517,7 @@
           "ru": "Переписанный вариант, чтобы оттолкнуться, а не чтобы принять."
         },
         "icon": "pen",
-        "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\nSuggest one revision that keeps the voice but fixes what is weakest. Show the changed lines only, with a sentence on why each changed.",
+        "template": "Here are the lyrics of a song called \"{title}\".\n\n{role:lyrics}\n\n{register}\n\nSuggest one revision that keeps the voice but fixes what is weakest, reaching for nothing the register bans. Show the changed lines only, with a sentence on why each changed.",
         "kinds": [
           "song"
         ]

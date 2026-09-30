@@ -131,7 +131,8 @@
     "comments": "Comments",
     "screens": "Screens",
     "appearance": "Theme and language",
-    "canon": "Canon"
+    "canon": "Canon",
+    "register": "Register"
   },
   "themeName": {
     "system": "System theme",
@@ -210,7 +211,8 @@
     "importedLeftDeleted_other": "Left {{count}} you had deleted where they were.",
     "working": "Working…",
     "logAt": "Application log",
-    "logHint": "What went wrong while nobody was looking — a file that could not be removed, a task that would not start. Attach it to a report."
+    "logHint": "What went wrong while nobody was looking — a file that could not be removed, a task that would not start. Attach it to a report.",
+    "importedMaterial": "The register brought {{terms}} terms and named {{named}} works for its images; the bank brought {{notes}} ideas and phrases."
   },
   "dashboard": {
     "decisions": "Needs a decision",
@@ -954,7 +956,34 @@
     "openInNotes": "Open in Notes",
     "emptyForWork": "No notes on this work yet. Write the first one below.",
     "tagPlaceholder": "A tag",
-    "tagNew": "Enter adds it as a new tag"
+    "tagNew": "Enter adds it as a new tag",
+    "states": {
+      "fresh": "Fresh",
+      "used": "Used",
+      "parked": "Parked",
+      "dropped": "Dropped"
+    },
+    "state": {
+      "fresh": "fresh",
+      "used": "used",
+      "parked": "parked",
+      "dropped": "dropped"
+    },
+    "stateLabel": "State",
+    "anyState": "Any state",
+    "toWork": "To a work",
+    "toWorkTitle": "Which work does this go into?",
+    "usedIn": "Used in “{{title}}”",
+    "spent": "Used in “{{title}}”.",
+    "park": "Set aside",
+    "drop": "Drop",
+    "refresh": "Back to fresh",
+    "linePlaceholder": "A new line — Enter keeps it",
+    "lineActions": "What to do with it",
+    "lineEdit": "Edit the line",
+    "linesShown": "{{shown}} of {{total}}",
+    "showMore": "Show more",
+    "promoteBodyMaterial": "The text becomes the work’s first {{role}}. The note stays in the bank, marked used, so it is not taken twice. Undo takes it all back."
   },
   "styles": {
     "new": "New style",
@@ -1190,7 +1219,8 @@
       "cut": "Cut",
       "comment": "Comment",
       "style": "Style",
-      "fact": "Fact"
+      "fact": "Fact",
+      "term": "Term"
     }
   },
   "journal": {
@@ -1220,7 +1250,8 @@
       "assistant": "Assistant",
       "trash": "Trash",
       "undo": "Undo",
-      "canon": "Canon"
+      "canon": "Canon",
+      "register": "Register"
     },
     "work.created": "“{{title}}” added.",
     "work.cloned": "“{{title}}” started as a second attempt, with {{scenes}} scenes copied.",
@@ -1287,7 +1318,8 @@
     "style.deleted": "Style “{{label}}” deleted.",
     "proposal.canon": "{{client}} proposes facts for the canon from «{{title}}».",
     "proposal.freeCanon": "{{client}} proposes facts for the canon.",
-    "fact.deleted": "Fact «{{label}}» deleted."
+    "fact.deleted": "Fact «{{label}}» deleted.",
+    "term.deleted": "Term “{{label}}” taken out of the register."
   },
   "card": {
     "tab": {
@@ -1406,7 +1438,11 @@
     "canonLink.create": "drawing a relation",
     "canonLink.update": "an edit to a relation",
     "canonLink.delete": "removing a relation",
-    "asset.setRole": "a picture's role"
+    "asset.setRole": "a picture's role",
+    "term.create": "adding a term",
+    "term.update": "an edit to a term",
+    "term.link": "naming a work for a term",
+    "term.unlink": "letting a work go from a term"
   },
   "stage": {
     "label": "Stage",
@@ -1789,7 +1825,8 @@
       "unknownTool": "No tool named “{{name}}”; the tools are workspace, catalogue, work, text, scores, calendar, notes, scenes, search, propose_work, propose_version, propose_score, propose_note, propose_scenes.",
       "commentsNotProposable": "An agent outside the window does not propose comments, replies or style descriptions.",
       "cardPromptNotProposable": "A card's description is written by the action on the card, which knows the facts it answers to.",
-      "unknownLens": "A lens is cover, work or public, not «{{lens}}»."
+      "unknownLens": "A lens is cover, work or public, not «{{lens}}».",
+      "unknownNoteState": "No note state “{{state}}”: fresh, used, parked or dropped."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
@@ -1875,6 +1912,10 @@
       "unknownRelationKind": "«{{kind}}» is not a kind of relation the profile names: {{known}}.",
       "unknownSection": "A card of «{{kind}}» has no section «{{section}}».",
       "unknownStatus": "A fact is canon, open or draft, not «{{status}}»."
+    },
+    "term": {
+      "exists": "“{{word}}” is in the register already.",
+      "needsWord": "A term needs its word."
     }
   },
   "skip": {
@@ -2156,5 +2197,74 @@
     "timelineHint": "Every fact with a time inside the world, in the order it happened.",
     "timelineEmpty": "Nothing is dated yet",
     "timelineEmptyBody": "Give a fact a time in the world - winter 2022/23, the summer before the flood - and it takes its place here."
+  },
+  "register": {
+    "new": "Term",
+    "newTitle": "A term for the register",
+    "newBody": "Something the works have spent: a word, a phrase, an image, a scene.",
+    "add": "To the register",
+    "word": "Word",
+    "wordHelp": "As you read it. Cases need no forms: words are compared by their stems.",
+    "alreadyIn_zero": "No work says it yet.",
+    "alreadyIn_one": "{{count}} work says it now.",
+    "alreadyIn_other": "{{count}} works say it now.",
+    "meaningHelp": "An image or a scene is not looked for in the texts: name the works that carry it on the register.",
+    "forms": "Other forms",
+    "formsHelp": "Other words that count as this one, comma separated: окон, горячий.",
+    "kind": "Kind",
+    "kinds": {
+      "noun": "Noun",
+      "adjective": "Adjective",
+      "verb": "Verb",
+      "phrase": "Phrase",
+      "image": "Image",
+      "scene": "Scene",
+      "pattern": "Pattern"
+    },
+    "strictness": "Strictness",
+    "strictnesses": {
+      "ban": "Banned",
+      "limit": "Limited",
+      "rare": "Rare"
+    },
+    "strictnessHints": {
+      "ban": "Spent: one more use says nothing new",
+      "limit": "Worn: each use has to earn its place",
+      "rare": "So seldom used that even two or three uses stand out"
+    },
+    "topic": "Topic",
+    "note": "Note",
+    "notePlaceholder": "Why it is spent, or what to reach for instead",
+    "created": "“{{word}}” is in the register.",
+    "createFailed": "Could not add the term.",
+    "saveFailed": "Could not save the term.",
+    "open": "Open",
+    "search": "Search the register",
+    "allStrictness": "All",
+    "anyKind": "Any kind",
+    "empty": "The register is empty",
+    "emptyBody": "Write down what the works have spent — here, or from a text: select a word in a version and press To the register.",
+    "noMatches": "Nothing matches.",
+    "pick": "Pick a term on the left",
+    "gone": "This term is not here",
+    "goneBody": "It was deleted. The trash still has it.",
+    "uses_zero": "In no work now",
+    "uses_one": "In {{count}} work now",
+    "uses_other": "In {{count}} works now",
+    "where": "Where it is",
+    "whereWording": "Works whose current text says it, and works you named.",
+    "whereMeaning": "A meaning is not looked for in the texts: these are the works you named.",
+    "whereNone": "No work carries it now.",
+    "found": "×{{times}} in the text",
+    "named": "named",
+    "name": "Name a work",
+    "nameTitle": "Which work carries “{{word}}”?",
+    "letGo": "Let the work go",
+    "delete": "Delete the term",
+    "deleted": "“{{word}}” taken out of the register.",
+    "inText": "Register",
+    "chip": "{{word}}: ×{{count}} here, in {{uses}} works — open it in the register",
+    "toRegister": "To the register",
+    "toRegisterHint": "Enter the selected word into the register of repeats"
   }
 }

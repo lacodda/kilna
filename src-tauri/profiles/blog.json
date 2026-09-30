@@ -43,6 +43,8 @@
     ],
     "note_kinds": [
     { "key": "source", "label": "Source" },
+    { "key": "idea", "label": "Idea", "icon": "lightbulb", "material": true },
+    { "key": "phrase", "label": "Phrase", "icon": "quote", "material": true, "line": true },
     { "key": "note", "label": "Note" }
     ],
     "collection_kinds": [

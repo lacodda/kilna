@@ -20,19 +20,25 @@ it was closed at: maximised if it was maximised, 1200×1200 if it was that.
 
 ## The sidebar
 
-The sidebar lists the screens: **[Catalogue](/kilna/guides/the-catalogue/)**
-(every work there is — add, search, filter, and open one), **Calendar** (the queue and the taken slots),
-**History** (what has happened, newest first), **Trash** (everything you
-deleted, and the way back), and **Settings** (data in and out, the profile
-editor).
+The sidebar lists the screens: **Dashboard** (what needs deciding today),
+**[Catalogue](/kilna/guides/the-catalogue/)** (every work there is — add,
+search, filter, and open one), **Calendar** (the queue and the taken slots),
+and under *Library* the things kept beside the works —
+**[Notes](/kilna/guides/notes/)** (ideas, phrases, references),
+**[Canon](/kilna/guides/the-canon/)** (the world the works share),
+**[Register](/kilna/guides/the-register/)** (what the works have spent),
+**[Comments](/kilna/guides/comments/)**, **[Styles](/kilna/guides/styles/)**,
+**History** (what has happened, newest first) and **Trash** (everything you
+deleted, and the way back). **Settings** (data in and out, the profile
+editor) stands at the foot.
 
 There is one list of works, not two. Until v0.21 a Works screen carried a
 second list beside the open card; it said the same things as the catalogue
 and made you choose which to look in.
 
-Some entries are doors that are not built yet — Collections and Notes. They
-sit in the sidebar with a small version chip naming the
-release that delivers them, so the map of what is coming lives in the app
+An entry may be a door that is not built yet — Collections is one. It
+sits in the sidebar with a small version chip naming the
+release that delivers it, so the map of what is coming lives in the app
 itself rather than in a changelog.
 
 The footer holds the theme switch, the language switch, the profile picker,
