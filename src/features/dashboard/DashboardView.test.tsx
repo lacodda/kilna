@@ -52,8 +52,10 @@ describe('the dashboard', () => {
     fireEvent.click(await screen.findByRole('button', { name: en.dashboard.move.schedule }))
     await settled(client)
 
+    // A song has no Releases tab since v0.86: it is booked through what is
+    // made from it, so the move lands on its overview, where they are listed.
     expect(
-      await screen.findByRole('link', { name: new RegExp(en.card.tab.releases), current: 'page' }),
+      await screen.findByRole('link', { name: new RegExp(en.card.tab.overview), current: 'page' }),
     ).toBeTruthy()
   })
 

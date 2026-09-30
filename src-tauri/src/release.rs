@@ -645,15 +645,38 @@ const SELECT_SCHEDULED_TEMPLATE: &str = "SELECT r.id, r.work_id, r.kind, r.statu
      WHERE w.profile_id = ?1";
 
 /// The listing query with the shared scoring rule filled in.
-fn select_scheduled() -> String {
-    SELECT_SCHEDULED_TEMPLATE.replace("{speaking}", &crate::score::speaking_score_for("r.work_id"))
+///
+/// A release of a work nobody judges - an audio release, a clip in a profile
+/// whose clips name no axes - is weighed by the score of what it was made
+/// from: it goes out for that song, and it is as strong in the queue, the
+/// calendar and the auto-layout as the song is (v0.86). A work of a judged
+/// kind speaks with its own score, scored or not.
+fn select_scheduled(config: &crate::profile::config::ProfileConfig) -> String {
+    let unjudged: Vec<String> = config
+        .work_kinds
+        .iter()
+        .filter(|kind| kind.axes.is_empty())
+        .map(|kind| format!("'{}'", kind.key.replace('\'', "''")))
+        .collect();
+    let judged_by = if unjudged.is_empty() {
+        "r.work_id".to_owned()
+    } else {
+        format!(
+            "(CASE WHEN w.kind IN ({}) THEN coalesce((SELECT l.source_id FROM work_link l \
+              WHERE l.work_id = r.work_id ORDER BY l.created_at, l.rowid LIMIT 1), r.work_id) \
+              ELSE r.work_id END)",
+            unjudged.join(", ")
+        )
+    };
+    SELECT_SCHEDULED_TEMPLATE.replace("{speaking}", &crate::score::speaking_score_for(&judged_by))
 }
 
 /// Everything with a slot, in calendar order.
 pub fn calendar(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRelease>> {
+    let config = crate::profile::config_for(conn, profile_id)?;
     let mut statement = conn.prepare(&format!(
         "{} AND r.scheduled_at IS NOT NULL ORDER BY r.scheduled_at, w.title",
-        select_scheduled()
+        select_scheduled(&config)
     ))?;
     read_scheduled(conn, &mut statement, profile_id)
 }
@@ -661,10 +684,11 @@ pub fn calendar(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRele
 /// Everything planned but unscheduled, strongest first — the queue that feeds
 /// the calendar.
 pub fn queue(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRelease>> {
+    let config = crate::profile::config_for(conn, profile_id)?;
     let mut statement = conn.prepare(&format!(
         "{} AND r.scheduled_at IS NULL AND r.status = '{PLANNED}' \
          ORDER BY s.total IS NULL, s.total DESC, w.title",
-        select_scheduled()
+        select_scheduled(&config)
     ))?;
     read_scheduled(conn, &mut statement, profile_id)
 }
@@ -700,9 +724,10 @@ pub fn for_work(
     profile_id: &str,
     work_id: &str,
 ) -> Result<Vec<ScheduledRelease>> {
+    let config = crate::profile::config_for(conn, profile_id)?;
     let mut statement = conn.prepare(&format!(
         "{} AND r.work_id = ?2 ORDER BY coalesce(r.scheduled_at, r.created_at), r.rowid",
-        select_scheduled()
+        select_scheduled(&config)
     ))?;
     read_scheduled_where(
         conn,
@@ -1557,6 +1582,54 @@ mod tests {
             .unwrap();
         assert!(!entry.readiness.scored);
         assert!(!entry.readiness.ready);
+    }
+
+    /// A release of a work nobody judges goes out for what it was made from,
+    /// and is weighed by that score; a judged work speaks for itself.
+    #[test]
+    fn an_unjudged_publication_is_weighed_by_its_songs_score() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        fixtures::score(&conn, &song.id, json!({ "hook": 9.0 }));
+        let made =
+            crate::actions::work::derive(&conn, &song.id, "audio", None, Some("en")).unwrap();
+        let release_id = made.release_id.unwrap();
+        let clip = fixtures::video(&conn, &profile_id, "Harbour lights — clip");
+        crate::link::create(
+            &conn,
+            &profile_id,
+            crate::link::NewLink {
+                work_id: clip.id.clone(),
+                source_id: song.id.clone(),
+                role: None,
+                source_version_id: None,
+            },
+        )
+        .unwrap();
+        let clip_release = fixtures::release(&conn, &clip.id, "youtube", None);
+
+        let queued = queue(&conn, &profile_id).unwrap();
+        let audio = queued
+            .iter()
+            .find(|row| row.release.id == release_id)
+            .unwrap();
+        let song_total = crate::score::latest(&conn, &song.id)
+            .unwrap()
+            .unwrap()
+            .total;
+        assert_eq!(audio.total, Some(song_total));
+        assert!(
+            audio.readiness.ready,
+            "nothing is asked of it that is not there"
+        );
+        let video = queued
+            .iter()
+            .find(|row| row.release.id == clip_release.id)
+            .unwrap();
+        assert_eq!(
+            video.total, None,
+            "the shipped video kind is judged: its own score, and it has none yet"
+        );
     }
 
     #[test]

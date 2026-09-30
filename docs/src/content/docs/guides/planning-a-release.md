@@ -8,12 +8,13 @@ release, a newsletter send, a feed release — on some date, or with no date
 yet at all. Creating a release doesn't schedule it; scheduling is a separate
 step, and it's the one where kilna pushes back.
 
-**A door belongs to the work that goes through it.** In Studio a song's door
-is the audio release, and that is its only one. A clip is a
-[Video work](/kilna/guides/made-from/) with the song as its donor, and it
-ships through YouTube; a [short](/kilna/guides/shorts/) is a Short work
-shipping through its own door. The song's card shows what was made from it
-on its Links tab; the calendar shows each of them once, on the work it is.
+**A door belongs to the work that goes through it.** In Studio a song has no
+door at all: it goes out as what is [made from it](/kilna/guides/made-from/).
+Its audio release is an **Audio** work - the track under one picture - going
+out on YouTube (and, when you add one, on streaming); a clip is a Video work
+going out on YouTube; a [short](/kilna/guides/shorts/) is a Short work going
+out through its own door. The song's overview lists them with where each
+stands; the calendar shows each of them once, on the work it is.
 
 :::note[This changed in v0.74]
 Until then a song had three doors — clip, short and audio — and a clip
@@ -25,6 +26,20 @@ No date, link or text was lost: the release kept its slot, its pin, the day
 it went out, its link and everything written under it — only the work it
 hangs on and the door it goes through changed. History says how many moved.
 See [ADR 0030](https://github.com/lacodda/kilna/blob/main/docs/adr/0030-a-door-belongs-to-the-work-that-goes-through-it.md).
+:::
+
+:::note[And again in v0.86]
+The song's last door, the audio release, came off it too. The first time a
+workspace opened on v0.86, every audio release planned on a song moved onto
+the song's **Audio** work - one already made from it, a video named after the
+song and the audio release (*"Harbour lights — audio release"*), which became
+an Audio work keeping its versions and releases, or a new one titled as the
+song - going out through YouTube from there, with every day, link and word it
+had. Clips named the way kilna names them and made before a link could say so
+were linked to their songs. An Audio work left holding two releases through
+one door - a plan and the upload it became - is named in History for you to
+keep one. Then every song's status was read again through its publications.
+See [ADR 0047](https://github.com/lacodda/kilna/blob/main/docs/adr/0047-a-song-goes-out-as-what-is-made-from-it.md).
 :::
 
 ## The queue
@@ -133,8 +148,8 @@ one question a calendar is read for: **can this actually go out?**
   spells the same list out.
 
 Which roles a release needs comes from the profile: each release kind lists
-the version roles it *requires* — an audio release needs lyrics and a style
-prompt, a video's YouTube release needs a plot, a beta read needs the text.
+the version roles it *requires* — a video's YouTube release needs a plot, a
+beta read needs the text; an audio release requires none of its own.
 A role the kind does not require is neither shown nor counted: *not
 applicable* and *missing* are different answers, and only the second one
 blocks readiness. A kind that lists no requirements is judged on the score
@@ -282,6 +297,26 @@ filled blank — kilna says which field is waiting on what, and the rest are
 still written.
 
 Once something is written, the button asks before replacing it.
+
+### What it goes out under
+
+A template fills a field from the work's own words. Writing a description a
+channel would post is a different job: it reads the song the release goes out
+for, the channel's voice and signature, and what went out last week, so this
+one does not sign off or ask the way the last one did. That is the **Release
+meta** button on a release - an [assistant action](/kilna/guides/the-assistant/)
+about one release (`"scope": "release"`).
+
+It runs in the background. When the answer comes, **the fields nobody has
+written yet are filled** at once - you asked for them. The ones you had already
+started are not touched: what the answer says about them waits under the
+release, each field beside what you wrote, to take one at a time or all
+together, or to turn down. A clip, an audio release or a short made with
+**Make…** starts it on its first release by itself, and its Cover tab says
+while it is writing.
+
+An agent working through [MCP](/kilna/reference/mcp/) proposes the same way
+(`propose_release`), and fills nothing: its fields all wait for you.
 
 ### A character count, not a limit
 

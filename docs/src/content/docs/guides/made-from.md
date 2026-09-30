@@ -6,9 +6,39 @@ description: A video from a song, a video from an article — how one work is li
 A video is made from a song. An article becomes a video, a novel an
 audiobook. kilna keeps the link: in the song you see its clips, in the clip
 you see the song, and either can start the other. The link is also how a
-song comes to have a clip at all — a clip is a Video work made from the
-song, shipping through its own door, not a release on the song (since
-v0.74; see [Planning a release](/kilna/guides/planning-a-release/)).
+song goes out at all. A song is the thing - its text, its style, its score -
+and it has no release of its own: its clip, its audio release and its shorts
+are works made from it, each going out through its own doors (since v0.86;
+see [Planning a release](/kilna/guides/planning-a-release/)). They are the
+song's **publications**.
+
+## A song's publications
+
+A song's **Overview** leads with its publications: each with its kind, where
+it stands - *Out 22.07*, *Booked for 03.10*, a draft - its comments, and, for
+a short cut from the clip, which clip. Under the list, what the song's status
+stands on (*Out as "Harbour lights — audio" on 22.07*) and how many comments
+its publications gathered. The song's own status is read from them: it is out
+when any of them went out, booked when any holds a day. See
+[Statuses](/kilna/guides/statuses/).
+
+**Make…** above the list makes one - a clip, an audio release, a short - in
+one step:
+
+- the new work is named the way its kind names what is made from a song, in
+  the language the window is in: *Harbour lights — clip*, *Harbour lights —
+  audio*, *Harbour lights · short 5* - numbered among the works of that kind
+  already made from the song;
+- it takes the song's overview fields its kind has, and the ones its kind
+  starts with (an audio release starts as the *original* variant);
+- it is linked to the song at the version the song is on;
+- it is planned one release through its first door - YouTube for a clip or an
+  audio - with no day yet: making it means you are going to put it out;
+- when the profile has a **Release meta** action, it starts in the background
+  on that release and writes what it goes out under - the title, the
+  description, the tags, the pinned comment - in the channel's voice (see
+  [Planning a release](/kilna/guides/planning-a-release/#what-it-goes-out-under));
+- the new work opens on its **Cover** tab.
 
 ## Making a work from another
 
@@ -16,11 +46,13 @@ On any card, the **Links** tab ends with one button per other kind of work
 your profile has — *Make a Video from this*, *Make a Short from this*. The
 header menu offers the same. The new work opens at once, with:
 
-- the source's **title**, to rename if you like;
-- the source's **overview fields** that your profile has — mood, duration,
-  language, premise — copied **once**, now, and never again;
+- a **title** from its kind's `made_title` - or the source's title, when the
+  kind names none - to rename if you like;
+- the source's **overview fields** that the new work's kind has — mood,
+  duration, language, premise — copied **once**, now, and never again;
 - a link to the source in the **donor** role, remembering which version of
-  the source it was taken at.
+  the source it was taken at;
+- for a kind that goes out somewhere, one release with no day yet.
 
 Its text is not copied. A video's roles are its own — a plot is not a
 lyric — and the source is one click away on the same tab.

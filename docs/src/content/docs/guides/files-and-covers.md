@@ -17,8 +17,43 @@ step. Setting a second one changes the cover: the newest is the one that
 shows, and the one it replaced stays attached rather than disappearing
 behind your back. Remove it and the older one is the cover again.
 
-Where the cover is drawn rather than photographed, the tab opens with the
-prompt it is drawn from — see [Shorts](/kilna/guides/shorts/#the-covers-prompt).
+Where the cover is drawn rather than photographed, the prompt it is drawn from
+lives on the card's **Cover** tab — see
+[Shorts](/kilna/guides/shorts/#the-covers-prompt).
+
+## The cover's shape
+
+The place a release goes out decides the shape of its picture: YouTube wants a
+16:9 preview, Shorts a 9:16 frame, a streaming service a square. The shape is
+the kind of release's (`cover_format` in the
+[profile](/kilna/reference/profile-document/)), so a work that goes out in two
+places needs two covers. The **Cover** tab of a clip, an audio release or a
+short lists the shapes of the doors its kind has - lit for the ones it has a
+release through, dim for the ones it has none through yet - above the prompt.
+
+## The frame
+
+An audio release on a video platform is a track with a picture on it: one
+still that stays on screen for the whole song, and a short loop of what moves
+in it - a leaf drifting across, dust turning in a beam. A kind whose works
+play under one (`"frame": true`; Studio's **Audio**) has a **Frame** tab:
+
+- **the still** - what the picture shows, as you would describe it to a
+  generator;
+- **what moves** - the one thing alive in a picture that otherwise holds
+  still;
+- **the loop's length** - 4, 6, 8 or 10 seconds;
+- **the camera does not move** and **seamless: the last frame matches the
+  first** - two switches, on by default;
+- **the negative** - what must not appear.
+
+Beside them, three blocks to copy into the generator - the still, the loop and
+the negative. The loop's block is written for you from the settings - *LOOP
+(6 s): the beam turns. The camera does not move at all. Seamless loop: …* -
+because a still camera and a seamless join are instructions a model reads,
+not a mood it guesses from the picture. Each setting says its sentence and
+nothing else does. See
+[ADR 0046](https://github.com/lacodda/kilna/blob/main/docs/adr/0046-a-frame-is-a-still-and-a-loop-written-from-its-settings.md).
 
 ## Where the file goes
 

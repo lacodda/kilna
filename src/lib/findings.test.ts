@@ -18,6 +18,7 @@ const CONFIG: Pick<ProfileConfig, 'work_kinds' | 'prompts'> = {
     {
       key: 'song',
       label: 'Song',
+      axes: [{ key: 'hook', label: 'Hook', weight: 1, scale: 10 }],
       tiers: [
         { key: 'hold', label: 'Hold', min: 0 },
         { key: 'audio', label: 'Audio', min: 55 },
@@ -99,6 +100,18 @@ describe('findings', () => {
   })
 
   /** The predecessor's mistake, kept as a test: never chase finished work. */
+  // An audio release goes out for a song that was judged; it has no axes of
+  // its own, and chasing it for a score would put every one on the board.
+  it('says nothing about a work of a kind nobody judges', () => {
+    const audio = work({ kind: 'audio', total: null, tier: null, scored_at: null })
+    const withAudio = {
+      ...CONFIG,
+      work_kinds: [...CONFIG.work_kinds, { key: 'audio', label: 'Audio' }],
+    }
+
+    expect(findings([audio], [], withAudio, TODAY)).toEqual([])
+  })
+
   it('says nothing at all about work that has already gone out', () => {
     const found = findings(
       [work({ total: null, released: 1 }), work({ work_id: 'w2', stale: true, released: 1 })],

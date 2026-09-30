@@ -20,7 +20,10 @@ use crate::release::{PLANNED, ScheduledRelease};
 pub struct Readiness {
     /// One mark per version role of the profile, in the profile's order.
     pub roles: Vec<RoleMark>,
-    /// Whether a score speaks for the work.
+    /// Whether the score the kind asks for is there: a score speaks for the
+    /// work, or the kind is not judged at all - it names no axes, the way an
+    /// audio release goes out for a song that was judged (v0.86) - and so
+    /// asks for none.
     pub scored: bool,
     /// Everything the kind requires is there, and the work is scored.
     pub ready: bool,
@@ -67,6 +70,10 @@ pub fn assess(
                 .then(|| present.contains(&role.key)),
         })
         .collect();
+
+    // A kind nobody judges cannot wait for a score: it would never be ready,
+    // and every release of it would warn for ever.
+    let scored = scored || vocabulary.axes.is_empty();
 
     // Judged against the requirements themselves rather than the marks: a
     // requirement naming a role the profile no longer defines has no mark, but
@@ -228,6 +235,24 @@ mod tests {
 
         assert!(!judged.scored);
         assert!(!judged.ready);
+    }
+
+    /// A kind nobody judges - it names no axes, like an audio release that
+    /// goes out for a song already judged - is ready without a score: waiting
+    /// for one would keep every release of it unready and warning for ever.
+    #[test]
+    fn a_kind_nobody_judges_does_not_wait_for_a_score() {
+        let mut config = config();
+        config.work_kinds[0].axes.clear();
+
+        let judged = assess(&config, "song", "clip", &roles(&["lyrics", "style"]), false);
+
+        assert!(judged.scored, "no score is asked for");
+        assert!(judged.ready);
+        assert!(
+            !assess(&config, "song", "clip", &roles(&["lyrics"]), false).ready,
+            "the roles it requires still count"
+        );
     }
 
     /// A kind the profile does not know — a release created under an older

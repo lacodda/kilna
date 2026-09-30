@@ -42,8 +42,8 @@ that declares nothing of its own receives the flat lists, all of them, and
 the document comes out in format 2. A kind that names even one list is taken
 to have named its vocabulary on purpose and receives nothing from the flat
 ones. The shipped Novel, Blog and Podcast profiles are written flat for that
-reason; Studio writes `song` and `instrumental` flat and gives `video` and
-`short` their own. A stored profile still in the old shape is rewritten once,
+reason; Studio writes `song` flat and gives `video`, `audio` and `short` their
+own. A stored profile still in the old shape is rewritten once,
 at the next start.
 
 **A kind that arrives later arrives without its judgement.** When a kilna
@@ -78,10 +78,27 @@ A **work kind** carries the five lists described on this page — its `axes`,
 `tiers`, `version_roles`, `release_kinds` and `statuses` — beside its key
 and label, and, for a kind whose works are made in scenes, the two lists of
 [its storyboard](#shot_types-scene_blocks-and-cover_blocks); `release_kinds` therefore sit inside the work kind whose works go
-out that way, and a video's *YouTube* and a song's *audio release* are
-different doors: a door belongs to the work that goes through it, so a song
-lists only `audio`, and the clip cut to it is a `video` with doors of its
-own. `collection_kinds` stay on the profile.
+out that way. A door belongs to the work that goes through it: the clip cut to
+a song is a `video` with doors of its own, its audio release an `audio` work,
+its shorts `short` works. `collection_kinds` stay on the profile.
+
+**A kind may have no door at all.** Since v0.86 Studio's `song` lists no
+`release_kinds`: a song is the thing - its text, its style, its score - and it
+goes out as what is [made from it](/kilna/guides/made-from/). Its status is
+read from those works' releases (see [Statuses](/kilna/guides/statuses/)), its
+card has no Releases or Files tab, its overview lists its publications, and its
+comments are summed up from theirs. A release planned on a kind with no door is
+refused with that reason.
+
+A work kind may also say:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `frame` | boolean, optional | Its works play under one picture for their whole length - an audio release on a video platform - and so have a [frame](/kilna/guides/files-and-covers/#the-frame): a still, a loop of what moves in it, and a negative. The card draws a **Frame** tab. Absent is no frame. |
+| `made_title` | string or map, optional | What a work of this kind is called when it is made from another: `{title}` is the source's title and `{n}` its number among the works of this kind made from the same source - Studio's short is `{ "en": "{title} · short {n}", "ru": "{title} · шортс {n}" }`. A template without `{n}` numbers only the second and later ones ("— clip", "— clip 2"). Written in the window's language when the work is made. Absent means the source's title as it is. |
+
+The window's order of `work_kinds` is the order the **Make…** menu lists
+them in.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
@@ -113,7 +130,8 @@ a word in Settings replaces it with the one word you typed.
 instructions to a model rather than words on a screen, and translating one
 changes what the assistant does rather than what the window says.
 
-Studio's `work_kinds` are `song`, `instrumental`, `video` and `short`; its
+Studio's `work_kinds` are `song`, `video`, `audio` and `short` (the
+instrumental of earlier versions is now a `variant` of an audio release); its
 `collection_kinds` are `album`, `single` and `cycle` — a **collection** groups
 works one level deep, without nesting.
 
@@ -128,6 +146,7 @@ A **release kind** carries two extra fields:
 | `requires` | string[] | Version roles a release of this kind cannot ship without. Drives the [ready marks](/kilna/guides/planning-a-release/#ready-marks) and the not-ready warning. |
 | `icon` | string | Glyph the [calendar](/kilna/guides/planning-a-release/) draws this kind with, from the list below. |
 | `axis_weights` | object, optional | Axis weights that apply when a work is judged *for this kind* of release, keyed by axis key: `{ "hook": 4.0, "visual": 3.0 }`. An axis not named keeps the weight the axis itself declares. Absent means the axes' own weights — one tier for every kind. |
+| `cover_format` | string, optional | The shape of the picture a release of this kind goes out with, width to height: `"16:9"` for a video platform's preview, `"9:16"` for a vertical short, `"1:1"` for a streaming cover. The place decides the shape, so a work that goes out in two places needs two covers; the **Cover** tab lists the shapes of a work's releases. Refused at save when it is not two whole numbers with a colon. |
 
 A premiere lives or dies on its dynamics — the room is watching it live;
 the same video as an ordinary upload is carried by its fit to the track.
@@ -376,7 +395,28 @@ any given work:
 | --- | --- | --- |
 | `key` | string | Key inside `work.meta`. |
 | `label` | string | Display name for the field's input. |
-| `type` | `"text"` \| `"multiline"` \| `"number"` \| `"date"` \| `"boolean"` | Validated in application code — SQLite doesn't type-check inside the JSON. |
+| `type` | `"text"` \| `"multiline"` \| `"number"` \| `"date"` \| `"boolean"` \| `"choice"` | Validated in application code — SQLite doesn't type-check inside the JSON. |
+| `kinds` | string[], optional | The work kinds that have the field. Absent or empty is every kind. |
+| `options` | kind entries, for `choice` | The answers a choice offers, `{ "key", "label" }`, stored by key. Required for a choice and refused on any other type. |
+| `default` | value, optional | What a new work of a kind that has the field starts with: an option's key for a choice. |
+
+Studio's `variant` is a choice for `audio` alone - the original, the
+instrumental, a slowed or a sped-up version, a remix - starting at the
+original:
+
+```jsonc
+{
+  "key": "variant", "label": { "en": "Variant", "ru": "Вариант" }, "type": "choice",
+  "kinds": ["audio"], "default": "original",
+  "options": [
+    { "key": "original", "label": { "en": "Original", "ru": "Оригинал" } },
+    { "key": "instrumental", "label": { "en": "Instrumental", "ru": "Инструментал" } }
+  ]
+}
+```
+
+A work made from another takes the source's fields its own kind has, and the
+defaults of the rest.
 
 `multiline` is for a field that runs to paragraphs — a premise, a note on where
 a piece came from. It gets a text area spanning the panel rather than a
@@ -748,7 +788,14 @@ words that sit on it. A kind that names none has no cover prompt, and the
 screen draws nothing where the prompt would be. Added in v0.73 — a document
 without it is the same document, and a workspace that already has the video
 kinds gains it at the next start, where its stored copy names none; a list
-you narrowed yourself is left alone, the way `scene_blocks` is.
+you narrowed yourself is left alone, the way `scene_blocks` is. Studio's
+`audio` names the same three.
+
+The frame of a kind with `"frame": true` is **not** a list of blocks: its
+parts are the application's - the still, what moves in the loop, the loop's
+length, a still camera, a seamless join, the negative - because the loop's
+prompt is written from its settings (ADR 0046). See
+[Files and covers](/kilna/guides/files-and-covers/#the-frame).
 
 ## `style_types`
 
@@ -829,9 +876,9 @@ specifically.
 | `icon` | string, optional | The glyph on the button, from the list below. A name kilna does not know draws the generic spark. |
 | `template` | string | The message sent to Claude, with placeholders filled per work. Keep it short: the method carries the how. |
 | `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
-| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`. Anything else loads as prose and is refused when the profile is saved. |
+| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`. Anything else loads as prose and is refused when the profile is saved. |
 | `kinds` | list of strings, optional | The work kinds the action is offered on. Absent or empty is every kind. An action that reads `{role:lyrics}` is for the kinds that have lyrics — Studio's song actions say `["song"]` — because a button for it on a video would send a prompt with a hole in it. |
-| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. Absent is the work. |
+| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. Absent is the work. |
 
 **Keep the label to a word or two.** The button carries a glyph and that label;
 what the action does belongs in `description`, which is the tooltip. A row of
@@ -911,6 +958,17 @@ a description in English for a picture generator, written from the settled
 public facts of the kind's `describe_from` sections — the answer is kept as
 the card's description). See [The canon](/kilna/guides/the-canon/).
 
+An action with `"scope": "release"` and `"produces": "release"` writes what a
+release goes out under. kilna appends every field of the release's kind with
+its word, its shape, its hint and its limit, and asks for a json block of
+fields by key - the same shape an agent's `propose_release` gives. Started by
+you, its answer **fills the fields still empty** at once; the ones you had
+already started wait beside what you wrote as a proposal, taken a field at a
+time or all together. Studio ships `release-meta` for the clip, the audio and
+the short: it reads the release, what the work was made from, the channel and
+the canon a public text may see, and what went out lately, so a new
+description does not sign off or ask the way the last ones did.
+
 Every shipped profile carries a `score` action. Anything else declaring
 `produces` gets the same treatment; an unrecognised value is ignored when the
 profile loads, so a profile written for a future kilna still opens — and named
@@ -962,6 +1020,16 @@ proposes.
   action reads — shared words weighed by how rare each is across the works —
   each with its title, kind, the words it shares and its current text. Where
   to look for the same thing said twice, not yet a judgement of meaning.
+- `{fields}` — the work's own filled overview fields, one per line under
+  their words; a choice reads as its option's word.
+- `{source}` — what the work was made from, whole: its title and kind, its
+  fields, and the text of each role that is the work itself (the lyrics, not
+  the critique of them). A work made from nothing says so rather than
+  refusing, which is the difference from `{donor}`.
+- `{release}` and `{releases}` — only in an action with `"scope": "release"`:
+  the release it is about (where it goes out, when, and every field with what
+  is written there), and what went out lately - the latest releases with their
+  fields, newest first.
 - `{donor}` — the first work this one was [made from](/kilna/guides/made-from/),
   as *“Harbour lights” (song)*; `{donor:lyrics}`, `{donor:style}`, … — the
   latest revision of that role on the donor. A work made from nothing refuses

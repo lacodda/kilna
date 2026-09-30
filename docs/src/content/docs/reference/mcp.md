@@ -32,9 +32,9 @@ it, it opens the one the window uses.
 
 | Tool | What it answers |
 | --- | --- |
-| `workspace` | The active profile's vocabulary: the overview fields, and per kind of work its version roles and how each reads, axes with weights and scales, tiers, statuses, kinds of release, and — for a kind with a storyboard — its kinds of shot and the prompt blocks a scene carries; how many works. Read first — a work is judged in its own kind's keys, and every other tool speaks in them. |
+| `workspace` | The active profile's vocabulary: the overview fields (each with the kinds it belongs to and, for a choice, its options), and per kind of work its version roles and how each reads, axes with weights and scales, tiers, statuses, kinds of release (each with the fields a release of it goes out under and the shape of its cover), whether it goes out at all (`goes_out` — a song does not: its clip, audio and shorts do), for a kind with a storyboard its kinds of shot and the prompt blocks a scene carries, the parts of its cover prompt, and whether its works play under a frame; how many works. Read first — a work is judged in its own kind's keys, and every other tool speaks in them. |
 | `catalogue` | Every work with its verdict: id, title, kind, status, total and tier, whether the score is stale, releases out and scheduled, when it was last touched. Filter by a substring of the title, a kind, a status. |
-| `work` | One card: fields and meta, tags, every version by role (id, revision, label, length, which is current), the latest score with its axes, the releases, how many notes and scenes, what it was made from (`sources`, each saying whether the source has moved on since) and what was made from it (`derived`). No bodies. |
+| `work` | One card: fields and meta, tags, every version by role (id, revision, label, length, which is current), the latest score with its axes, the releases, how many notes and scenes, the cover prompt, the frame (for a kind that plays under one: the still, the loop as written from its settings, the negative), what it was made from (`sources`, each saying whether the source has moved on since) and what was made from it (`derived`); for a work that never goes out itself — a song — its `publications`: everything made from it, with where each stands, and the release its status stands on. No bodies. |
 | `text` | The body of a version: the current one of a role, or a revision by id. Plain roles come back exactly as typed. |
 | `scores` | The score history of a work, newest first. |
 | `calendar` | Every release with a date, in calendar order; `from` starts at a day. |
@@ -62,6 +62,7 @@ proposals apply these:
 | `propose_version` | The text of a new version in a role, with a note on what changed. **Insert as version** keeps it, verbatim, under that role and not current; **Choose role…** opens the dialog to change the role, name it or make it current on the way in. |
 | `propose_score` | Marks along the kind's axes, checked the way the assistant's own are: unknown axes are named, marks are clamped to the scale. **Apply** writes the snapshot, judged by the agent — its name is the score's rater. |
 | `propose_note` | A note, on a work or on nothing in particular. **Add as note** keeps it. |
+| `propose_release` | What one release goes out under — its title, description, tags, the comment pinned under it — by the field keys its kind of release names. `release` names it by id; it may be left out when the work has one release. A field key the kind does not have is named and left out. The fields wait in the chat on the work and under the release on its Releases tab, each beside what is written there now; the person takes them one by one or all at once. Nothing is written until they do — unlike the window's own **Release meta** action, which fills the empty fields as its answer lands, an agent outside the window only proposes. A song has no release: propose for its clip, audio or short. |
 | `propose_canon` | Cards, facts and relations for the [canon](/kilna/guides/the-canon/). A fact is an `add` to a card (by id, name, or the `handle` of a card proposed in the same call), a `refine` of a fact's id, or a `retire` with its reason; one that contradicts the canon says which fact in `contradicts`. `work` is where the facts were read from: every fact with no other source cites it, with the line in `line`, and a card with `on_work: true` lives at it. The message lists every item under a box, with the facts it contradicts beside it; **Keep all** writes the package, or untick what you do not want and keep the rest. A fact kept from a proposal is a draft — the works read it, a cover and a public text do not — until you settle it; one proposed as `open` stays a live zone. An item the canon has no place for — a kind or a section it does not have, a card it cannot find — is named in the answer and left out. |
 
 An applied proposal stays marked in the chat — *Inserted*, *Scored*,
@@ -110,7 +111,7 @@ A new song, whole:
 > Use kilna: make a song from this idea — lyrics, a style prompt, the premise
   on the card, and your score.
 
-  workspace     → kinds song / instrumental …; fields bpm, key, …, premise
+  workspace     → kinds song / video / audio / short; fields bpm, key, …, premise
   propose_work  → "Proposed a new work — “Winter road”, 2 versions (lyrics, style),
                    fields premise, a score on 7 axes. It waits in the chat named
                    after you; one click creates it with everything in it."

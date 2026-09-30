@@ -11,6 +11,14 @@ becomes scored. Give a release a slot in the calendar and it becomes
 scheduled. Mark that release as out and it becomes released. Delete the score
 again and it goes back to being a draft.
 
+A work that never goes out itself - a song, whose clip, audio release and
+shorts go out for it - is read through what was made from it: it is released
+when any of them went out, scheduled when any of them holds a day, including a
+short cut from its clip. Its score is still its own. The card's status chip
+says which one it stands on - *Released · as audio 22.07*. A clip, which goes
+out through doors of its own, is not released because a short cut from it
+went out.
+
 The alternative — a field you update by hand every time something moves — is
 where the predecessor of this app went wrong. Four different screens wrote to
 it, none of them consistently, and after a few months the word on a song had
@@ -39,7 +47,9 @@ nothing. So each status carries a `derive` role naming what it means to the
 automation, and the automation reads the role rather than the word.
 
 A status whose role is `manual` — `shelved` in every built-in profile — is
-never set automatically. Rename `Published` to *Out in the world* and it keeps
+never set automatically, and never taken away automatically either, even on a
+work that arrived with it from an import rather than by your hand: nothing in
+the data can say something truer. Rename `Published` to *Out in the world* and it keeps
 meaning "it went out". See the [profile document](/kilna/reference/profile-document/)
 for the field itself.
 

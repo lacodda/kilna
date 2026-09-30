@@ -19,10 +19,12 @@ code. The reasoning is in full in
 
 kilna ships with four profiles, each a JSON document rather than code:
 
-- **Music** — songs and instrumentals with lyrics and style kept as separate
-  version roles, judged on hook, lyrics, emotion, production, originality and
-  visual potential, shipped as audio releases — the clips and shorts cut to
-  them are works of their own, judged on the cut.
+- **Studio** — songs with lyrics and style kept as separate version roles,
+  judged on hook, lyrics, emotion, production, originality and visual
+  potential. A song never goes out itself: its clips, audio releases and
+  shorts are works of their own made from it — the clips and shorts judged on
+  the cut, the audio release a track under one picture, each with its
+  releases, cover and comments.
 - **Novel** — chapters, scenes and short stories with text, outline and
   working notes kept separately, judged on pull, prose, character, structure
   and tension, shipped to beta readers, as serial instalments, submissions or

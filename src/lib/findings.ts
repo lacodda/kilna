@@ -84,9 +84,18 @@ export function findings(
   const offer = (key: string) => (actions.has(key) ? key : undefined)
 
   const found: Finding[] = []
+  // A work of a kind nobody judges - an audio release, a publication in a
+  // profile whose clips name no axes - speaks through the work it was made
+  // from (v0.86): its score, its staleness and its readiness are the song's,
+  // and the song is where they are chased. Asking it for a score would put
+  // every audio release on the board as "unscored".
+  const judged = new Set(
+    config.work_kinds.filter((kind) => (kind.axes ?? []).length > 0).map((kind) => kind.key),
+  )
 
   for (const work of works) {
     if (!isOpen(work)) continue
+    if (!judged.has(work.kind)) continue
 
     if (work.total === null) {
       found.push({

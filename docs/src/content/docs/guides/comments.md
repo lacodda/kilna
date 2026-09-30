@@ -15,8 +15,11 @@ it, and your answers, in one place: **Comments** in the menu, or the
   is filed under the same word.
 - **The words**, exactly as written, and **who** wrote them.
 - **The day** it was written.
-- **The work** it is about, when it is about one. A comment about the channel
-  itself is about nothing in particular, which is fine.
+- **The work** it is under, when it is under one - what the audience saw: a
+  clip, an audio release, a short. Never a song: a song is not in front of
+  anyone as the song, so a comment cannot be filed on one (since v0.86). A
+  comment about the channel itself is about nothing in particular, which is
+  fine.
 - **The reply**, and where the comment stands.
 
 ## Getting comments in: paste a screenshot
@@ -44,7 +47,8 @@ Open a comment and write the reply in the box under it. It saves when you
 leave the box.
 
 **Draft a reply** asks the assistant for one, in the background. It is given
-the comment, the work it is under with the opening of its text, and the
+the comment, the work it is under with the opening of its text - and of the
+song it was made from, which is usually what the comment is about - and the
 replies you have **already posted on the same channel** — that is the
 channel's voice, and the draft is written in it. A channel with nothing
 posted yet gets a plain, warm answer. A reply you have started is rewritten
@@ -71,6 +75,11 @@ does `Ctrl+K`, which opens a comment where it lives.
 
 A work's **Comments** tab counts its comments; the number turns to the accent
 colour and shows how many still wait when any do.
+
+A song's **Comments** tab is a summary of what was said under everything made
+from it - its clip, its audio release, its shorts - grouped by publication,
+each with a way to it. Replies are written at the publication where the
+comment was left; the song's counter counts them all.
 
 ## Actions behind it
 
