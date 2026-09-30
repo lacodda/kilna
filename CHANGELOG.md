@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.86.0] - 2026-09-30
+
+### Features
+- A song goes out as what is made from it
+- Weigh an unjudged publication by its song
+- A song's card lists what goes out for it
+
+### Refactoring
+- Read works through their publications
+
 ## [0.85.0] - 2026-09-30
 
 ### Build
