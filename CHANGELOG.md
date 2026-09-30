@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.85.0] - 2026-09-30
+
+### Build
+- Raise the MSRV to 1.90 and take Tauri 2.12
+
+### Features
+- A register of repeats, and ideas and phrases as material
+
 ## [0.84.0] - 2026-09-30
 
 ### Features
