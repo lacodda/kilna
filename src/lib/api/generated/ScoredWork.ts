@@ -70,4 +70,11 @@ bookmarked_at: string | null,
  * How finished the work is, 0..=100, as the author judges it. `None` while
  * nobody has said — the dial on the row draws an empty ring for that.
  */
-stage: number | null, };
+stage: number | null, 
+/**
+ * For a work that never goes out itself - a song - everything made from
+ * it, down the links: the works whose releases are its own facts, so the
+ * row's next release is its audio's or its clip's (v0.86, ADR 0047).
+ * Empty for a work that goes out through doors of its own.
+ */
+publications: Array<string>, };

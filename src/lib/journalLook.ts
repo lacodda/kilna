@@ -162,8 +162,11 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'release.deleted': ['dim', Trash2],
   'release.unscheduledBatch': ['dim', CalendarX],
   'release.fieldsBatch': ['dim', ListChecks],
+  'release.metaWritten': ['accent', ListChecks],
   'layout.applied': ['warn', CalendarRange],
   'upgrade.doorsMoved': ['dim', ArrowRightLeft],
+  'upgrade.publicationsMoved': ['dim', ArrowRightLeft],
+  'upgrade.publicationDisputed': ['warn', TriangleAlert],
 
   'scene.created': ['accent', Clapperboard],
   'scene.framed': ['accent', Clapperboard],
@@ -193,6 +196,7 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'proposal.scenes': ['accent', Sparkles],
   'proposal.canon': ['accent', Sparkles],
   'proposal.freeCanon': ['accent', Sparkles],
+  'proposal.release': ['accent', Sparkles],
   'assistant.batchStarted': ['accent', Sparkles],
 
   'trash.restored': ['dim', RotateCcw],

@@ -10,6 +10,9 @@ import type {
   Cut,
   Deletion,
   Derived,
+  FramePrompts,
+  Publication,
+  Publications,
   JournalEntry,
   Link,
   Links,
@@ -50,13 +53,15 @@ export const IDS = {
   draft: 'w-harbour',
   video: 'w-lanterns-clip',
   short: 'w-lanterns-short',
+  /** The song's audio release, a work of its own since v0.86. */
+  audio: 'w-lanterns-audio',
   lyrics: 'v-lanterns-lyrics-2',
   lyricsFirst: 'v-lanterns-lyrics-1',
   style: 'v-lanterns-style',
   draftLyrics: 'v-harbour-lyrics',
   plot: 'v-clip-plot',
   score: 's-lanterns',
-  audio: 'r-lanterns-audio',
+  audioRelease: 'r-lanterns-audio',
   youtube: 'r-clip-youtube',
   note: 'n-idea',
   character: 'n-keeper',
@@ -66,6 +71,7 @@ export const IDS = {
   sceneClose: 'sc-close',
   cut: 'cut-chorus',
   link: 'l-clip-from-song',
+  audioLink: 'l-audio-from-song',
   collection: 'col-first',
 } as const
 
@@ -192,6 +198,23 @@ export function studio(): Studio {
       position: 2,
     }),
     work({ id: IDS.short, kind: 'short', title: 'Paper Lanterns (short)', position: 3 }),
+    work({
+      id: IDS.audio,
+      kind: 'audio',
+      title: 'Paper Lanterns — audio',
+      status: 'scheduled',
+      meta: { bpm: '96', variant: 'original' },
+      cover: { picture: 'a paper lantern on dark water, seen from above' },
+      frame: {
+        still: 'a paper lantern on dark water at dusk, seen from above',
+        motion: 'the lantern turns slowly on the current',
+        seconds: 6,
+        still_camera: true,
+        seamless: true,
+        negative: 'no people',
+      },
+      position: 4,
+    }),
   ]
 
   const versions = [
@@ -248,9 +271,9 @@ export function studio(): Studio {
 
   const releases = [
     release({
-      id: IDS.audio,
-      work_id: IDS.song,
-      kind: 'audio',
+      id: IDS.audioRelease,
+      work_id: IDS.audio,
+      kind: 'youtube',
       status: 'planned',
       scheduled_at: '2026-09-22',
     }),
@@ -377,6 +400,21 @@ export function studio(): Studio {
       work_id: IDS.video,
       source_id: IDS.song,
       role: 'soundtrack',
+      source_version_id: IDS.lyrics,
+      created_at: EARLIER,
+      source_title: 'Paper Lanterns',
+      source_kind: 'song',
+      source_status: 'scored',
+      source_current_version_id: IDS.lyrics,
+      taken_revision: 2,
+      current_revision: 2,
+      drifted: false,
+    },
+    {
+      id: IDS.audioLink,
+      work_id: IDS.audio,
+      source_id: IDS.song,
+      role: 'donor',
       source_version_id: IDS.lyrics,
       created_at: EARLIER,
       source_title: 'Paper Lanterns',
@@ -577,6 +615,7 @@ function scored(studio: Studio, row: Work): ScoredWork {
     bookmarked_at: row.bookmarked_at,
     version_count: studio.versions.filter((v) => v.work_id === row.id).length,
     stage: row.stage,
+    publications: studio.links.filter((link) => link.source_id === row.id).map((l) => l.work_id),
   }
 }
 
@@ -623,11 +662,76 @@ function releasesOf(
   }
 }
 
+/** What was made from a work, read off the studio as `publication::of` would:
+ *  directly made works only - the studio has no second step down. */
+function publicationsOf(studio: Studio, workId: string): Publications {
+  const items: Publication[] = studio.links
+    .filter((link) => link.source_id === workId)
+    .map((link) => {
+      const made = studio.works.find((w) => w.id === link.work_id)!
+      const comments = studio.comments.filter(
+        (c) => c.work_id === made.id && c.state !== 'archived',
+      )
+      return {
+        work_id: made.id,
+        title: made.title,
+        kind: made.kind,
+        status: made.status,
+        stage: made.stage,
+        depth: 1,
+        via: null,
+        releases: studio.releases.filter((r) => r.work_id === made.id).length,
+        ...releasesOf(studio, made.id),
+        comments: comments.length,
+        comments_waiting: comments.filter((c) => c.state === 'open').length,
+        created_at: made.created_at,
+      }
+    })
+  const booked = items
+    .filter((item) => item.next_scheduled_at !== null)
+    .sort((a, b) => a.next_scheduled_at!.localeCompare(b.next_scheduled_at!))[0]
+  return {
+    items,
+    basis:
+      booked === undefined
+        ? null
+        : {
+            work_id: booked.work_id,
+            title: booked.title,
+            kind: booked.kind,
+            released: false,
+            day: booked.next_scheduled_at!,
+          },
+  }
+}
+
+/** The frame's blocks, written the way `Frame::prompts` writes them. */
+function framePromptsOf(studio: Studio, workId: string): FramePrompts {
+  const frame = studio.works.find((w) => w.id === workId)?.frame
+  const motion = frame?.motion.trim() || 'barely noticeable breathing of the light'
+  return {
+    still: frame?.still ?? '',
+    loop: `LOOP (${frame?.seconds ?? 6} s): ${motion}.`,
+    negative: frame?.negative ?? '',
+  }
+}
+
 /** The numbers beside a card's tabs, read off the studio as `card::counts` would. */
 function countsOf(studio: Studio, workId: string): CardCounts {
   const mine = <T extends { work_id: string | null }>(rows: T[]) =>
     rows.filter((row) => row.work_id === workId).length
-  const comments = studio.comments.filter((c) => c.work_id === workId && c.state !== 'archived')
+  // A work that never goes out itself - a song - counts the comments under
+  // what was made from it, the way `card::counts` does since v0.86.
+  const kind = studio.works.find((w) => w.id === workId)?.kind
+  const goesOut = studio.profile.config.work_kinds.some(
+    (known) => known.key === kind && (known.release_kinds ?? []).length > 0,
+  )
+  const heard = goesOut
+    ? new Set([workId])
+    : new Set([workId, ...publicationsOf(studio, workId).items.map((item) => item.work_id)])
+  const comments = studio.comments.filter(
+    (c) => c.work_id !== null && heard.has(c.work_id) && c.state !== 'archived',
+  )
   return {
     versions: mine(studio.versions),
     scores: mine(studio.scores),
@@ -758,6 +862,9 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     can_export_package: () => true,
 
     list_links: ({ workId }) => linksOf(studio, workId as string),
+    list_publications: ({ workId }) => publicationsOf(studio, workId as string),
+    frame_prompts: ({ id }) => framePromptsOf(studio, id as string),
+    release_proposals: () => [],
     list_scenes: byWork(() => studio.scenes),
     list_scene_notes: () => [],
     list_scene_frames: () => [],
@@ -818,8 +925,16 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_tags: () => counted(studio.notes.flatMap((n) => n.tags)),
 
     list_comments: ({ filter }) => {
-      const wanted = (filter ?? {}) as { work_id?: string | null }
-      return studio.comments.filter((c) => wanted.work_id == null || c.work_id === wanted.work_id)
+      const wanted = (filter ?? {}) as { work_id?: string | null; under?: string | null }
+      const made =
+        wanted.under == null
+          ? null
+          : new Set(publicationsOf(studio, wanted.under).items.map((item) => item.work_id))
+      return studio.comments.filter(
+        (c) =>
+          (wanted.work_id == null || c.work_id === wanted.work_id) &&
+          (made === null || (c.work_id !== null && made.has(c.work_id))),
+      )
     },
     comment_channels: () => counted(studio.comments.map((c) => c.channel)),
     pending_comment_proposals: () => [],

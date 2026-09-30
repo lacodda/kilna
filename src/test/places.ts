@@ -34,8 +34,6 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.song, 'overview', 'BPM'],
   [IDS.song, 'versions', 'Second pass'],
   [IDS.song, 'score', 'Does the chorus stay with you after one listen?'],
-  [IDS.song, 'releases', 'Sep 22'],
-  [IDS.song, 'files', 'Paper Lanterns'],
   [IDS.song, 'links', 'Paper Lanterns (clip)'],
   [IDS.song, 'notes', 'Paper Lanterns'],
   [IDS.song, 'comments', 'Paper Lanterns'],
@@ -56,4 +54,10 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.video, 'assistant', 'Paper Lanterns (clip)'],
   [IDS.video, 'history', 'Paper Lanterns (clip)'],
   [IDS.short, 'cuts', 'Paper Lanterns (clip)'],
+  // The song's audio release, a work of its own since v0.86: its releases
+  // and files are its own, not the song's.
+  [IDS.audio, 'overview', 'Paper Lanterns — audio'],
+  [IDS.audio, 'releases', 'Sep 22'],
+  [IDS.audio, 'files', 'Paper Lanterns — audio'],
+  [IDS.audio, 'links', 'Paper Lanterns'],
 ]

@@ -56,10 +56,21 @@ describe('the shipped profiles', () => {
     expect(files.length).toBeGreaterThan(0)
 
     for (const file of files) {
+      type Door = { key: string; icon?: string | null }
       const profile = JSON.parse(readFileSync(dir + file, 'utf8')) as {
-        config: { release_kinds: { key: string; icon?: string | null }[] }
+        config: {
+          release_kinds?: Door[]
+          work_kinds: { release_kinds?: Door[] }[]
+        }
       }
-      for (const kind of profile.config.release_kinds) {
+      // The doors a profile lays flat for every kind, and the ones a kind
+      // names for itself - the audio release's YouTube, the short's Shorts.
+      const doors = [
+        ...(profile.config.release_kinds ?? []),
+        ...profile.config.work_kinds.flatMap((kind) => kind.release_kinds ?? []),
+      ]
+      expect(doors.length, file).toBeGreaterThan(0)
+      for (const kind of doors) {
         // Stated, and stated from the vocabulary. The first half matters as
         // much as the second: a shipped kind with no glyph would fall back to
         // the neutral mark and look exactly like a kind whose glyph was

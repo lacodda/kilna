@@ -22,7 +22,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date(NOW))
   const workspace = studio()
   workspace.releases = workspace.releases.map((release) =>
-    release.id === IDS.audio ? { ...release, scheduled_at: null, status: 'planned' } : release,
+    release.id === IDS.audioRelease ? { ...release, scheduled_at: null, status: 'planned' } : release,
   )
   workspace.works = workspace.works.map((work) =>
     work.id === IDS.song ? { ...work, updated_at: '2026-07-01T10:00:00Z' } : work,

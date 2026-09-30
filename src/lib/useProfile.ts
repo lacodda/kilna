@@ -5,8 +5,10 @@ import type {
   Axis,
   Kind,
   Label,
+  MetaField,
   Profile,
   ProfileConfig,
+  PromptTemplate,
   ReleaseKind,
   SceneBlock,
   Status,
@@ -65,6 +67,11 @@ export interface Vocabulary {
   shot_types: Kind[]
   scene_blocks: SceneBlock[]
   cover_blocks: SceneBlock[]
+  /** Works of this kind play under one picture for their whole length - a
+   *  still and a loop (v0.86, ADR 0046). */
+  frame: boolean
+  /** What a work of this kind is called when it is made from another. */
+  made_title: Label | null
 }
 
 const NOTHING: Vocabulary = {
@@ -76,6 +83,8 @@ const NOTHING: Vocabulary = {
   shot_types: [],
   scene_blocks: [],
   cover_blocks: [],
+  frame: false,
+  made_title: null,
 }
 
 /**
@@ -99,7 +108,54 @@ export function vocabularyOf(config: ProfileConfig, kind: string | undefined): V
     shot_types: found.shot_types ?? [],
     scene_blocks: found.scene_blocks ?? [],
     cover_blocks: found.cover_blocks ?? [],
+    frame: found.frame ?? false,
+    made_title: found.made_title ?? null,
   }
+}
+
+/**
+ * Whether works of `kind` go out themselves - name a kind of release - or
+ * only as what is made from them. A song goes out as its clip, its audio and
+ * its shorts, never as the song (v0.86, ADR 0047): its card has no Releases
+ * or Files tab, and its overview lists its publications instead.
+ */
+export function hasDoors(config: ProfileConfig, kind: string | undefined): boolean {
+  return vocabularyOf(config, kind).release_kinds.length > 0
+}
+
+/** The kinds of work that go out: what a work can be made into and published
+ *  as - the clip, the audio, the short - in the profile's order. */
+export function publicationKinds(config: ProfileConfig): { key: string; label: Label }[] {
+  return config.work_kinds.filter((kind) => (kind.release_kinds ?? []).length > 0)
+}
+
+/**
+ * The overview fields a work of `kind` has, in the profile's order: a field
+ * naming kinds belongs to those alone - the variant of an audio release is
+ * not a song's - and one naming none belongs to every kind.
+ */
+export function fieldsFor(config: ProfileConfig, kind: string | undefined): MetaField[] {
+  return config.work_meta_fields.filter(
+    (field) =>
+      (field.kinds ?? []).length === 0 || (kind !== undefined && field.kinds!.includes(kind)),
+  )
+}
+
+/**
+ * The profile's action about a release that is offered on works of `kind`:
+ * the one that writes what a release goes out under (`scope: release`). The
+ * profile names it; the window only looks for it by what it is about.
+ */
+export function releaseActionOf(
+  config: ProfileConfig,
+  kind: string | undefined,
+): PromptTemplate | undefined {
+  return config.prompts.find(
+    (prompt) =>
+      prompt.scope === 'release' &&
+      prompt.produces === 'release' &&
+      ((prompt.kinds ?? []).length === 0 || (kind !== undefined && prompt.kinds!.includes(kind))),
+  )
 }
 
 /**

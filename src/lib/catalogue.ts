@@ -77,7 +77,17 @@ export function withNextReleases(
     const held = next.get(release.work_id)
     if (held === undefined || sooner(release, held)) next.set(release.work_id, release)
   }
-  return rows.map((row) => ({ ...row, next_release: next.get(row.work_id) ?? null }))
+  // A song's next release is the soonest of what was made from it: it goes
+  // out as its audio, its clip and its shorts (v0.86, ADR 0047), and its row
+  // lists them in `publications`.
+  return rows.map((row) => {
+    let soonest = next.get(row.work_id) ?? null
+    for (const made of row.publications ?? []) {
+      const theirs = next.get(made)
+      if (theirs !== undefined && (soonest === null || sooner(theirs, soonest))) soonest = theirs
+    }
+    return { ...row, next_release: soonest }
+  })
 }
 
 /** Whether `a` goes out before `b`. Both hold a day; an hour is only a

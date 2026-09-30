@@ -56,7 +56,7 @@ async function carryTo(selector: string) {
   const { client, container } = renderApp('/calendar')
   await settled(client)
   const main = await screen.findByRole('main')
-  const chip = await within(main).findByText('Paper Lanterns', { exact: true })
+  const chip = await within(main).findByText('Paper Lanterns — audio', { exact: true })
 
   const target = container.querySelector(selector)
   expect(target, `the screen shows ${selector}`).not.toBeNull()
@@ -74,7 +74,9 @@ describe('the calendar', () => {
   it('claims the day a release is dropped on through the contest', async () => {
     await carryTo('[data-day="2026-09-24"]')
 
-    expect(backend.argsOf('schedule_release')).toEqual([{ id: IDS.audio, slot: '2026-09-24' }])
+    expect(backend.argsOf('schedule_release')).toEqual([
+      { id: IDS.audioRelease, slot: '2026-09-24' },
+    ])
     expect(backend.argsOf('update_release')).toEqual([])
   })
 
@@ -92,7 +94,7 @@ describe('the calendar', () => {
     const { client, container } = renderApp('/calendar')
     await settled(client)
     const main = await screen.findByRole('main')
-    const chip = await within(main).findByText('Paper Lanterns', { exact: true })
+    const chip = await within(main).findByText('Paper Lanterns — audio', { exact: true })
     const queue = container.querySelector('[data-queue-drop]')!
     Object.defineProperty(document, 'elementFromPoint', { value: () => queue, configurable: true })
 
@@ -109,7 +111,7 @@ describe('the calendar', () => {
       fireEvent.pointerUp(window, { clientX: 60, clientY: 60 })
     })
     await settled(client)
-    expect(backend.argsOf('unschedule_release')).toEqual([{ id: IDS.audio }])
+    expect(backend.argsOf('unschedule_release')).toEqual([{ id: IDS.audioRelease }])
   })
 
   it('returns a release to the queue when it is let go over the queue', async () => {
@@ -117,7 +119,7 @@ describe('the calendar', () => {
     // a carried chip is most likely to be let go.
     await carryTo('[data-queue-drop] li')
 
-    expect(backend.argsOf('unschedule_release')).toEqual([{ id: IDS.audio }])
+    expect(backend.argsOf('unschedule_release')).toEqual([{ id: IDS.audioRelease }])
     expect(backend.argsOf('schedule_release')).toEqual([])
   })
 })

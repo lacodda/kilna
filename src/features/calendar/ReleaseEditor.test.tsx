@@ -48,8 +48,8 @@ async function editing() {
   const { client } = renderApp('/calendar')
   await settled(client)
   const main = await screen.findByRole('main')
-  fireEvent.click(await within(main).findByText('Paper Lanterns', { exact: true }))
-  const dialog = await screen.findByRole('dialog', { name: 'Paper Lanterns' })
+  fireEvent.click(await within(main).findByText('Paper Lanterns — audio', { exact: true }))
+  const dialog = await screen.findByRole('dialog', { name: 'Paper Lanterns — audio' })
   return { client, dialog }
 }
 
@@ -59,8 +59,8 @@ describe("the calendar's release dialog", () => {
 
     fireEvent.click(within(dialog).getByRole('combobox', { name: en.releases.kind }))
     const offered = (await screen.findAllByRole('option')).map((option) => option.textContent)
-    // A song's one door - not the clip's YouTube or premiere.
-    expect(offered).toEqual(['Audio release'])
+    // The audio release's own doors - not the clip's premiere.
+    expect(offered).toEqual(['YouTube', 'Streaming'])
   })
 
   it('keeps the date only when Save is pressed, with the rest of the form', async () => {
@@ -80,11 +80,11 @@ describe("the calendar's release dialog", () => {
     await settled(client)
 
     // The pin alone moved: nothing else is written.
-    expect(backend.argsOf('set_slot_pin')).toEqual([{ id: IDS.audio, pinned: true }])
+    expect(backend.argsOf('set_slot_pin')).toEqual([{ id: IDS.audioRelease, pinned: true }])
     expect(backend.argsOf('update_release')).toEqual([])
     // The toast that says so is a dialog too; the editor is the one named for
     // the work.
-    expect(screen.queryByRole('dialog', { name: 'Paper Lanterns' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Paper Lanterns — audio' })).toBeNull()
   })
 
   it('keeps a link typed before the release is returned to the queue', async () => {
@@ -99,8 +99,8 @@ describe("the calendar's release dialog", () => {
     await settled(client)
 
     expect(backend.argsOf('update_release')).toEqual([
-      { id: IDS.audio, patch: { url: 'https://example.com/listen' } },
+      { id: IDS.audioRelease, patch: { url: 'https://example.com/listen' } },
     ])
-    expect(backend.argsOf('unschedule_release')).toEqual([{ id: IDS.audio }])
+    expect(backend.argsOf('unschedule_release')).toEqual([{ id: IDS.audioRelease }])
   })
 })

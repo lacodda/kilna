@@ -26,15 +26,21 @@ describe('one kind of work', () => {
         // A kind that can be judged has somewhere to put the verdict.
         expect(vocabulary.statuses.length, `${key}/${kind.key} statuses`).toBeGreaterThan(0)
         expect(vocabulary.version_roles.length, `${key}/${kind.key} roles`).toBeGreaterThan(0)
-        expect(vocabulary.axes.length, `${key}/${kind.key} axes`).toBeGreaterThan(0)
-        expect(vocabulary.tiers.length, `${key}/${kind.key} tiers`).toBeGreaterThan(0)
+        // A kind nobody judges - an audio release goes out for a song that
+        // was judged - names no axes and so no tiers; one that names axes
+        // has somewhere for the total to land.
+        expect(vocabulary.tiers.length > 0, `${key}/${kind.key} tiers`).toBe(
+          vocabulary.axes.length > 0,
+        )
       }
     }
   })
 
   it('reads a kind the profile does not know as empty rather than as another', () => {
     const nothing = vocabularyOf(studio, 'sculpture')
-    expect(Object.values(nothing).every((list) => list.length === 0)).toBe(true)
+    const { frame, made_title, ...lists } = nothing
+    expect(Object.values(lists).every((list) => list.length === 0)).toBe(true)
+    expect([frame, made_title]).toEqual([false, null])
     expect(vocabularyOf(studio, undefined)).toEqual(nothing)
   })
 

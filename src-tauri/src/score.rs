@@ -102,6 +102,11 @@ pub struct ScoredWork {
     /// How finished the work is, 0..=100, as the author judges it. `None` while
     /// nobody has said — the dial on the row draws an empty ring for that.
     pub stage: Option<i64>,
+    /// For a work that never goes out itself - a song - everything made from
+    /// it, down the links: the works whose releases are its own facts, so the
+    /// row's next release is its audio's or its clip's (v0.86, ADR 0047).
+    /// Empty for a work that goes out through doors of its own.
+    pub publications: Vec<String>,
 }
 
 /// The score that speaks for a work, as a subquery returning one `work_score.id`.
@@ -282,7 +287,8 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
     // why the craft has to be the one to say. A role the profile no longer
     // names counts as a body: the safe direction, since the alternative is to
     // hide drafts that are really there.
-    let commenting: Vec<String> = profile::config_for(conn, profile_id)?
+    let config = profile::config_for(conn, profile_id)?;
+    let commenting: Vec<String> = config
         .all_version_roles()
         .into_iter()
         .filter(|role| !role.counts_as_a_version())
@@ -347,10 +353,37 @@ pub fn catalogue(conn: &Connection, profile_id: &str) -> Result<Vec<ScoredWork>>
             tier_pinned: row.get::<_, i64>(16)? == 1,
             bookmarked_at: row.get(17)?,
             stage: row.get(18)?,
+            publications: Vec::new(),
         })
     })?;
 
-    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    let mut rows = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+    // A work with no door speaks through what was made from it: its counts
+    // are theirs, as its status is (`work::status::speaking_for`).
+    for row in &mut rows {
+        if config.vocabulary(&row.kind).has_doors() {
+            continue;
+        }
+        row.publications = crate::link::descendants(conn, &row.work_id)?
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect();
+        if row.publications.is_empty() {
+            continue;
+        }
+        let mut speaking = row.publications.clone();
+        speaking.push(row.work_id.clone());
+        let (released, scheduled): (i64, i64) = conn.query_row(
+            "SELECT coalesce(sum(status = 'released'), 0),
+                    coalesce(sum(status = 'planned' AND scheduled_at IS NOT NULL), 0)
+               FROM release WHERE work_id IN (SELECT value FROM json_each(?1))",
+            params![serde_json::to_string(&speaking)?],
+            |found| Ok((found.get(0)?, found.get(1)?)),
+        )?;
+        row.released = released;
+        row.scheduled = scheduled;
+    }
+    Ok(rows)
 }
 
 struct RawScore {
