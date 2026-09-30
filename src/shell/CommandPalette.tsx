@@ -5,7 +5,9 @@ import { useQuery } from '@tanstack/react-query'
 import type { Hit, HitKind } from '@/lib/api/types'
 import { matchCommands } from '@/lib/commands'
 import { coverImageFor } from '@/lib/cover'
+import { cardKindsOf } from '@/lib/canon'
 import { hrefOfHit } from '@/lib/hits'
+import { useProfile } from '@/lib/useProfile'
 import { useCovers } from '@/lib/useCovers'
 import { useDebounced } from '@/lib/useDebounced'
 import { queries } from '@/lib/query/queries'
@@ -33,7 +35,7 @@ interface Props {
 }
 
 /** The order the groups of hits appear in, coarsest first. */
-const GROUPS: HitKind[] = ['work', 'version', 'note', 'comment', 'message']
+const GROUPS: HitKind[] = ['work', 'version', 'note', 'fact', 'comment', 'message']
 
 /** A row of the palette: something found, or something to do. `id` is unique
  *  across both, and is what the highlight compares by. */
@@ -87,6 +89,8 @@ function Contents({
 }) {
   const covers = useCovers()
   const { t } = useTranslation()
+  // A note of a kind of card opens on the Canon screen, where it lives.
+  const cardKinds = cardKindsOf(useProfile().config)
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const { actions, screens } = usePaletteCommands(shell)
@@ -161,7 +165,7 @@ function Contents({
 
   const run = (entry: Entry) => {
     onOpenChange(false)
-    if (entry.type === 'hit') navigate(hrefOfHit(entry.hit))
+    if (entry.type === 'hit') navigate(hrefOfHit(entry.hit, cardKinds))
     else entry.command.run()
   }
 

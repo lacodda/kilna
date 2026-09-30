@@ -153,7 +153,9 @@ fn initialize() -> Value {
     than one thing to say about a work, so the person applies it all at once. \
     `propose_version`, `propose_score` and `propose_note` propose one thing each; \
     `propose_scenes` proposes a storyboard for a video or a short, added to the board or \
-    replacing it. Name works by id when you have one; an exact title works too.",
+    replacing it. `canon` reads the world the works share - cards of people, places and the \
+    channel, with facts in layers - and `propose_canon` proposes cards, facts and relations \
+    for it. Name works by id when you have one; an exact title works too.",
     })
 }
 
@@ -194,6 +196,23 @@ fn text_arg(description: &str) -> Value {
 /// The tools, in the order a session uses them: learn the vocabulary, read,
 /// then propose.
 fn tools() -> Vec<Value> {
+    // The keys a fact's data may hold, by the shape of its section: the list
+    // the write is checked against, so the two cannot drift apart.
+    use crate::profile::config::SectionShape;
+    let data_keys = format!(
+        "What a section of another shape carries: {}",
+        [
+            SectionShape::Slots,
+            SectionShape::Details,
+            SectionShape::Palette,
+            SectionShape::Marks,
+            SectionShape::Styles,
+        ]
+        .into_iter()
+        .map(|shape| crate::canon::fact::data_keys(shape).join("/"))
+        .collect::<Vec<_>>()
+        .join(", ")
+    );
     vec![
         tool(
             "workspace",
@@ -400,6 +419,94 @@ fn tools() -> Vec<Value> {
                 "body": text_arg("The note itself"),
             }),
             &["body"],
+        ),
+        tool(
+            "canon",
+            "The canon: the world the works share, kept as facts on cards — people, places, \
+             objects, groups, events, themes, and one root card for the channel. Without \
+             arguments: every card (id, kind, name, aliases, layer, the work it lives at, how \
+             many facts, drafts and live zones) and the kinds of card with their sections. With \
+             `card`: that card whole — its facts by section, each with its layer (`public`, \
+             `internal`: take the detail never the name, date or address; `inWorks`: only inside \
+             the works), its status, source and time in the world; its relations; its \
+             pictures; where it appears; its description for a picture generator and whether \
+             it is stale. `lens` narrows the card to what a task may read: `cover`, `work` or \
+             `public`. `query` searches the facts; `timeline` lists the facts dated in the world, \
+             earliest first.",
+            json!({
+                "card": text_arg("A card: its id, or its exact name or alias"),
+                "kind": text_arg("Only cards of this kind, as the list names them"),
+                "lens": { "type": "string", "enum": ["cover", "work", "public"], "description": "Read the card as this task may: cover, work or public" },
+                "query": text_arg("Search the facts for these words"),
+                "timeline": { "type": "boolean", "description": "The facts dated in the world, earliest first; of `card` when given" },
+            }),
+            &[],
+        ),
+        tool(
+            "propose_canon",
+            "Propose cards, facts and relations for the canon, applied with one click or item by \
+             item. Read `canon` first: a fact the canon holds is not proposed again, a sharper \
+             wording is a `refine` of its id, a fact no longer true is a `retire` with a reason, \
+             and a fact that contradicts the canon says so in `contradicts` — the person sees \
+             both before applying. Name cards by id, exact name, or the `handle` of a card \
+             proposed in the same call. `work` is the work the facts were read from: each fact \
+             with no other source cites it (quote the line in `line`), and a card with \
+             `on_work: true` lives at it. Sections are the kind's keys (see `canon`); an item \
+             the canon has no place for is named and left out. Nothing is written until the \
+             person applies it.",
+            json!({
+                "work": text_arg("The work the facts were read from: its id or exact title, optional"),
+                "cards": {
+                    "type": "array",
+                    "description": "New cards",
+                    "items": { "type": "object", "properties": {
+                        "handle": text_arg("How facts and relations of this call name it: new-1"),
+                        "kind": text_arg("A kind of card"),
+                        "title": text_arg("Its name"),
+                        "aliases": { "type": "array", "items": { "type": "string" }, "description": "Other forms of the name the texts use" },
+                        "layer": text_arg("public, internal or inWorks: who may know the card exists"),
+                        "on_work": { "type": "boolean", "description": "It lives only in `work` — a hero of that one work" },
+                        "note": text_arg("Its free note, optional"),
+                    }, "required": ["kind", "title"] },
+                },
+                "facts": {
+                    "type": "array",
+                    "description": "Facts to add, refine or retire",
+                    "items": { "type": "object", "properties": {
+                        "change": { "type": "string", "enum": ["add", "refine", "retire"] },
+                        "card": text_arg("For `add`: a card id, name or handle"),
+                        "fact": text_arg("For `refine` and `retire`: the fact's id"),
+                        "section": text_arg("For `add`: a section key of the card's kind"),
+                        "text": text_arg("The fact, one short statement"),
+                        "layer": text_arg("public, internal or inWorks"),
+                        "status": text_arg("open for a live zone, left open on purpose; anything else is kept as a draft until the person settles it"),
+                        "line": text_arg("The line of `work` it was read off, quoted"),
+                        "document": text_arg("Or: the document it comes from, as named"),
+                        "decision": text_arg("Or: the decision it comes from, as named"),
+                        "when": text_arg("When it happened in the world, in words"),
+                        "sort": text_arg("Where it sorts: YYYY, YYYY-MM or YYYY-MM-DD"),
+                        "reason": text_arg("For `retire`: why it is no longer true"),
+                        "data": { "type": "object", "description": data_keys, "additionalProperties": true },
+                        "contradicts": { "type": "array", "items": { "type": "object", "properties": {
+                            "fact": text_arg("The id of a fact of the canon"),
+                            "why": text_arg("One line"),
+                        } } },
+                    } },
+                },
+                "relations": {
+                    "type": "array",
+                    "description": "Relations between cards; a pair already related is redrawn",
+                    "items": { "type": "object", "properties": {
+                        "from": text_arg("A card id, name or handle"),
+                        "to": text_arg("A card id, name or handle"),
+                        "kind": text_arg("A kind of relation"),
+                        "label": text_arg("What `to` is to `from`"),
+                        "back_label": text_arg("What `from` is to `to`"),
+                        "layer": text_arg("public, internal or inWorks"),
+                    }, "required": ["from", "to"] },
+                },
+            }),
+            &[],
         ),
     ]
 }
@@ -695,6 +802,62 @@ pub fn run_tool(
         }
 
         "search" => pretty(&search::find(conn, &profile.id, required(args, "query")?)?),
+
+        "canon" => read_canon(conn, &profile.id, &config, args),
+
+        "propose_canon" => {
+            let found = match arg(args, "work") {
+                Some(named) => Some(find_work(conn, &profile.id, named)?),
+                None => None,
+            };
+            let defaults = crate::canon::proposal::Defaults {
+                card_id: None,
+                work_id: found.as_ref().map(|w| w.id.clone()),
+                version_id: found.as_ref().and_then(|w| w.current_version_id.clone()),
+            };
+            let package = crate::canon::proposal::read(
+                conn,
+                &profile.id,
+                &Value::Object(args.clone()),
+                &defaults,
+            )?;
+            let body = apply::render_canon(conn, &package);
+            let summary = format!(
+                "{} card(s), {} fact(s), {} relation(s)",
+                package.cards.len(),
+                package.facts.len(),
+                package.links.len()
+            );
+            let dropped: Vec<String> = package
+                .dropped
+                .iter()
+                .map(|reason| {
+                    let code = reason.key.strip_prefix("refusal.").unwrap_or(&reason.key);
+                    crate::error::english(code, &reason.params)
+                })
+                .collect();
+            deliver(
+                conn,
+                &profile.id,
+                session,
+                found.as_ref(),
+                Proposal::Canon { package },
+                &body,
+                None,
+            )?;
+            let mut answer = format!(
+                "Proposed {summary} for the canon. It waits in the chat {}; the person applies it whole or item by item.",
+                if found.is_some() {
+                    "on the work"
+                } else {
+                    "named after you"
+                }
+            );
+            if !dropped.is_empty() {
+                answer.push_str(&format!(" Left out: {}.", dropped.join("; ")));
+            }
+            Ok(answer)
+        }
 
         "propose_version" => {
             let found = find_work(conn, &profile.id, required(args, "work")?)?;
@@ -1050,6 +1213,140 @@ pub fn run_tool(
     }
 }
 
+/// The `canon` tool: the list of cards, one card through a lens, a search of
+/// the facts, or the timeline.
+fn read_canon(
+    conn: &Connection,
+    profile_id: &str,
+    config: &profile::config::ProfileConfig,
+    args: &Map<String, Value>,
+) -> Result<String> {
+    use crate::canon::{proposal::CardIndex, view};
+
+    let lens = match arg(args, "lens") {
+        Some(word) => Some(
+            profile::config::Lens::parse(word)
+                .ok_or_else(|| Error::refused("mcp.unknownLens").param("lens", word))?,
+        ),
+        None => None,
+    };
+    let card = match arg(args, "card") {
+        Some(named) => Some(
+            CardIndex::of(conn, profile_id)?
+                .find(named)
+                .cloned()
+                .ok_or_else(|| Error::refused("canon.unknownCard").param("card", named))?,
+        ),
+        None => None,
+    };
+
+    if args.get("timeline").and_then(Value::as_bool) == Some(true) {
+        let dated = view::timeline(conn, profile_id, card.as_ref().map(|c| c.id.as_str()))?;
+        return pretty(
+            &dated
+                .into_iter()
+                .map(|one| {
+                    json!({
+                        "card": one.fact.note_id, "card_title": one.card_title, "fact": one.fact.id,
+                        "text": one.fact.body, "when": one.fact.when, "layer": one.fact.layer,
+                        "status": one.fact.status, "read_by": one.lenses,
+                    })
+                })
+                .collect::<Vec<_>>(),
+        );
+    }
+
+    if let Some(query) = arg(args, "query") {
+        let needle = search::fold(query);
+        let mut hits = Vec::new();
+        for one in crate::canon::fact::for_profile(conn, profile_id)? {
+            if !search::matches(&one.body, &needle) {
+                continue;
+            }
+            let title = crate::note::get(conn, &one.note_id)?.and_then(|c| c.title);
+            hits.push(json!({
+                "fact": one.id, "card": one.note_id, "card_title": title, "section": one.section,
+                "text": one.body, "layer": one.layer, "status": one.status, "when": one.when,
+                "source": one.source,
+            }));
+        }
+        return pretty(&hits);
+    }
+
+    if let Some(card) = card {
+        let seen = view::card(conn, &card.id)?;
+        let kind = config.card_kind(&seen.card.kind);
+        let facts: Vec<Value> = seen
+            .facts
+            .iter()
+            .filter(|read| lens.is_none_or(|lens| read.lenses.contains(&lens)))
+            .map(|read| {
+                let one = &read.fact;
+                json!({
+                    "id": one.id, "section": one.section, "text": one.body, "layer": one.layer,
+                    "status": one.status, "retired_because": one.retired_reason,
+                    "source": one.source, "when": one.when, "only_for_work": one.scope_work_id,
+                    "data": one.data, "read_by": read.lenses,
+                })
+            })
+            .collect();
+        let relations: Vec<Value> = seen
+            .relations
+            .iter()
+            .filter(|relation| lens.is_none_or(|lens| relation.lenses.contains(&lens)))
+            .map(|relation| {
+                json!({
+                    "card": relation.other_id, "title": relation.other_title,
+                    "kind": relation.link.kind, "is": relation.label, "layer": relation.link.layer,
+                    "section": relation.section,
+                })
+            })
+            .collect();
+        if lens.is_some_and(|lens| !seen.lenses.contains(&lens)) {
+            return Ok(
+                "This card is not seen through that lens: publicly it does not exist.".into(),
+            );
+        }
+        return pretty(&json!({
+            "id": seen.card.id, "kind": seen.card.kind, "title": seen.card.title,
+            "aliases": seen.card.aliases, "layer": seen.card.layer,
+            "lives_at_work": seen.card.work_id, "note": seen.card.body,
+            "description_for_pictures": seen.card.prompt, "description_stale": seen.prompt_stale,
+            "sections": kind.map(|k| k.sections.iter().map(|s| json!({
+                "key": s.key, "label": s.label, "shape": s.shape, "read_by": s.lenses,
+            })).collect::<Vec<_>>()),
+            "facts": facts,
+            "relations": relations,
+            "pictures": seen.pictures.iter().map(|p| json!({
+                "role": p.kind, "path": p.path, "of_fact": p.canon_fact_id,
+            })).collect::<Vec<_>>(),
+            "appears_in": seen.appearances,
+        }));
+    }
+
+    let cards = view::cards(
+        conn,
+        profile_id,
+        &view::CardFilter {
+            kind: arg(args, "kind").map(str::to_owned),
+            ..view::CardFilter::default()
+        },
+    )?;
+    pretty(&json!({
+        "kinds": config.note_kinds.iter().filter(|k| k.is_card()).map(|k| json!({
+            "key": k.key, "label": k.label, "root": k.root,
+            "sections": k.sections.iter().map(|s| json!({
+                "key": s.key, "label": s.label, "shape": s.shape, "read_by": s.lenses,
+            })).collect::<Vec<_>>(),
+        })).collect::<Vec<_>>(),
+        "relation_kinds": config.relation_kinds,
+        "cards": cards.iter().map(|c| json!({
+            "id": c.id, "kind": c.kind, "title": c.title, "aliases": c.aliases, "layer": c.layer,
+            "lives_at_work": c.work_title, "facts": c.facts, "drafts": c.drafts, "open": c.open,
+        })).collect::<Vec<_>>(),
+    }))
+}
+
 /// Put a proposal where a person will see it: an assistant message in the
 /// chat named after the client, on the work when there is one.
 ///
@@ -1108,7 +1405,9 @@ fn deliver(
     // Literal keys, one per sentence in the locale: the journal gate reads
     // them out of the source. A note on nothing has no title to name, and a
     // sentence with an empty quotation in it reads as a bug, so it gets a
-    // sentence of its own.
+    // sentence of its own. A work that does not exist yet has no row to file
+    // the line under; the title it would have is the one thing to name. The
+    // arms stay close under the `let`: the gate finds a bound record by it.
     let record = match (&proposal, work) {
         (Proposal::Version { .. }, _) => Record::new("proposal.version"),
         (Proposal::Score { .. }, _) => Record::new("proposal.score"),
@@ -1116,14 +1415,19 @@ fn deliver(
         (Proposal::Note { .. }, None) => Record::new("proposal.freeNote"),
         (Proposal::Work { .. }, Some(_)) => Record::new("proposal.package"),
         (Proposal::Scenes { .. }, _) => Record::new("proposal.scenes"),
-        // A work that does not exist yet has no row to file the line under;
-        // the title it would have is the one thing the sentence can name.
         (Proposal::Work { title, .. }, None) => {
             Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
         }
+        (Proposal::Canon { .. }, Some(_)) => Record::new("proposal.canon"),
+        (Proposal::Canon { .. }, None) => Record::new("proposal.freeCanon"),
         // Refused at the top of this function.
         (Proposal::Comment { .. } | Proposal::Reply { .. } | Proposal::Description { .. }, _) => {
             return Err(Error::refused("mcp.commentsNotProposable"));
+        }
+        // A card's description is written by the action on the card, which
+        // knows the facts it answers to; no tool proposes one.
+        (Proposal::CardPrompt { .. }, _) => {
+            return Err(Error::refused("mcp.cardPromptNotProposable"));
         }
     };
     let mut record = record.param("client", client);
@@ -2068,5 +2372,98 @@ mod tests {
             "{command}"
         );
         assert!(command.ends_with("\" --mcp"), "{command}");
+    }
+
+    #[test]
+    fn the_canon_is_read_card_by_card_and_through_a_lens() {
+        let (conn, _) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren");
+        fixtures::fact(&conn, &wren.id, "looks", "Freckles across the nose.");
+        crate::canon::fact::create_minted(
+            &conn,
+            crate::canon::NewFact {
+                note_id: wren.id.clone(),
+                section: "bio".into(),
+                body: "Born on the seventeenth of June.".into(),
+                layer: Some(crate::canon::Layer::Internal),
+                ..crate::canon::NewFact::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+
+        let list = run_tool(&conn, &claude(), "canon", &args(json!({}))).unwrap();
+        assert!(
+            list.contains("\"Wren\"") && list.contains("\"sections\""),
+            "{list}"
+        );
+
+        let whole = run_tool(&conn, &claude(), "canon", &args(json!({ "card": "wren" }))).unwrap();
+        assert!(whole.contains("seventeenth"), "{whole}");
+        let cover = run_tool(
+            &conn,
+            &claude(),
+            "canon",
+            &args(json!({ "card": wren.id, "lens": "cover" })),
+        )
+        .unwrap();
+        assert!(
+            cover.contains("Freckles") && !cover.contains("seventeenth"),
+            "{cover}"
+        );
+
+        let found = run_tool(
+            &conn,
+            &claude(),
+            "canon",
+            &args(json!({ "query": "freckles" })),
+        )
+        .unwrap();
+        assert!(found.contains("Freckles across the nose."), "{found}");
+    }
+
+    #[test]
+    fn a_canon_proposed_from_outside_waits_in_the_chat_and_names_what_it_left_out() {
+        let (conn, work_id) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        fixtures::card(&conn, &profile_id, "character", "Wren");
+
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_canon",
+            &args(json!({
+                "work": work_id,
+                "facts": [
+                    { "card": "Wren", "section": "tastes", "text": "Counts the pauses.", "line": "one line" },
+                    { "card": "Wren", "section": "horoscope", "text": "Gemini" }
+                ]
+            })),
+        )
+        .unwrap();
+        assert!(
+            answer.contains("1 fact(s)") && answer.contains("Left out"),
+            "{answer}"
+        );
+
+        let message = first_message(&conn, &work_id);
+        let proposal = message.meta.get("proposal").expect("a proposal waits");
+        assert_eq!(proposal["kind"], "canon");
+        assert!(message.body.contains("Counts the pauses."));
+        assert!(
+            crate::canon::fact::for_profile(&conn, &profile_id)
+                .unwrap()
+                .is_empty(),
+            "an agent wrote a fact"
+        );
+        let lines: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM journal WHERE action = 'proposal.canon'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(lines, 1);
     }
 }

@@ -12,6 +12,15 @@ import {
   taskQueue,
   waitingChats,
 } from '@/lib/api/assistant'
+import {
+  canonTimeline,
+  cardAsSeen,
+  listCards,
+  pendingCanonProposals,
+  previewCardTask,
+  readCard,
+  reviewCanonProposal,
+} from '@/lib/api/canon'
 import { listCollections } from '@/lib/api/collections'
 import {
   commentChannels,
@@ -43,7 +52,7 @@ import {
   styleBrickReferences,
 } from '@/lib/api/styles'
 import { listDeletions } from '@/lib/api/trash'
-import type { CommentFilter, NoteFilter, TaskAbout } from '@/lib/api/types'
+import type { CardFilter, CommentFilter, Lens, NoteFilter, TaskAbout } from '@/lib/api/types'
 import { getVersion, listVersions } from '@/lib/api/versions'
 import { cardCounts, catalogue, getWork, listWorks, workTags } from '@/lib/api/works'
 import { getWorkspace, listProfiles, mcpRegistration } from '@/lib/api/workspace'
@@ -155,6 +164,24 @@ export const queries = {
   notesCastable: () => queryOptions({ queryKey: keys.notesCastable, queryFn: () => listNotes() }),
   tags: () => queryOptions({ queryKey: keys.tags, queryFn: listTags }),
 
+  cardsMatching: (filter: CardFilter) =>
+    queryOptions({ queryKey: keys.cardsMatching(filter), queryFn: () => listCards(filter) }),
+  card: (id: string) => queryOptions({ queryKey: keys.card(id), queryFn: () => readCard(id) }),
+  cardAsSeen: (id: string, lens: Lens) =>
+    queryOptions({ queryKey: keys.cardAsSeen(id, lens), queryFn: () => cardAsSeen(id, lens) }),
+  canonTimeline: (id: string | null) =>
+    queryOptions({
+      queryKey: keys.canonTimeline(id),
+      queryFn: () => canonTimeline(id ?? undefined),
+    }),
+  canonProposals: () =>
+    queryOptions({ queryKey: keys.canonProposals, queryFn: pendingCanonProposals }),
+  canonReview: (messageId: string) =>
+    queryOptions({
+      queryKey: keys.canonReview(messageId),
+      queryFn: () => reviewCanonProposal(messageId),
+    }),
+
   commentsMatching: (filter: CommentFilter) =>
     queryOptions({ queryKey: keys.commentsMatching(filter), queryFn: () => listComments(filter) }),
   commentChannels: () => queryOptions({ queryKey: keys.commentChannels, queryFn: commentChannels }),
@@ -219,6 +246,12 @@ export const queries = {
     queryOptions({
       queryKey: keys.taskPreview(['style', id, action]),
       queryFn: () => previewStyleTask(id, action),
+    }),
+  /** What an action on a card of the canon would send, before it is sent. */
+  cardTaskPreview: (id: string, action: string) =>
+    queryOptions({
+      queryKey: keys.taskPreview(['card', id, action]),
+      queryFn: () => previewCardTask(id, action),
     }),
   /** What drafting a reply would send, before it is sent. */
   commentTaskPreview: (id: string, action: string) =>

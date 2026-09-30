@@ -98,6 +98,20 @@ export const keys = {
   /** The ready bricks a prompt may be built from, under a search. */
   readyStyleBricks: (query: string) => ['styles', 'list', 'ready', query] as const,
   styleReferences: (id: string) => ['styles', 'references', id] as const,
+  // One coarse prefix over the canon: a fact changes its card, the list's
+  // counts, the timeline and where the card appears, and none of them is
+  // worth invalidating alone.
+  canon: ['canon'] as const,
+  /** The list of cards, under the filter it is read through. */
+  cardsMatching: (filter: object) => ['canon', 'cards', filter] as const,
+  card: (id: string) => ['canon', 'card', id] as const,
+  /** A card read through a task's eyes, as the prompt receives it. */
+  cardAsSeen: (id: string, lens: string) => ['canon', 'seen', id, lens] as const,
+  canonTimeline: (id: string | null) => ['canon', 'timeline', id] as const,
+  /** Proposals for the canon waiting to be kept. Under the proposals' prefix:
+   *  the bell's count moves with them. */
+  canonProposals: ['proposals', 'canon'] as const,
+  canonReview: (messageId: string) => ['proposals', 'canon', 'review', messageId] as const,
   tags: ['tags'] as const,
   workTags: ['workTags'] as const,
   deletions: ['deletions'] as const,

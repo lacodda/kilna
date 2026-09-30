@@ -152,6 +152,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "style_brick_restore",
         sql: include_str!("../../migrations/0028_style_brick_restore.sql"),
     },
+    Migration {
+        version: 29,
+        name: "canon",
+        sql: include_str!("../../migrations/0029_canon.sql"),
+    },
 ];
 
 /// The newest schema this build understands.

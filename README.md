@@ -43,6 +43,10 @@ rather than coded.
 - **A storyboard for what is made in scenes.** A video or a short carries a
   table of scenes, prompts per generator, the pictures they came back with, and
   a montage list any editor reads.
+- **A canon for the world your works share.** People, places, events and the
+  channel itself kept as cards of facts - each with who may hear it, whether
+  it is settled, where it came from and when it happened - so a cover, a
+  lyric and a release text each read exactly what they may.
 - **An assistant that proposes, never writes.** kilna talks to Claude through
   your own [Claude Code](https://claude.com/claude-code) CLI - your
   subscription, no API key - and every answer lands as a proposal you apply
@@ -67,10 +71,10 @@ later. See [Getting started](https://lacodda.github.io/kilna/getting-started/).
 
 ## Status
 
-v0.83.0, in daily use. The loop is closed end to end - a work gains versions, a
+v0.84.0, in daily use. The loop is closed end to end - a work gains versions, a
 version earns a score, a score wins a calendar slot, and the slot ends in a
-release you mark by hand - with four craft profiles, the assistant panel, an
-MCP server and a plugin protocol. The interface speaks English and Russian.
+release you mark by hand - with four craft profiles, a canon of the shared
+world, the assistant panel, an MCP server and a plugin protocol. The interface speaks English and Russian.
 What landed in each version:
 [CHANGELOG](https://github.com/lacodda/kilna/blob/main/CHANGELOG.md).
 

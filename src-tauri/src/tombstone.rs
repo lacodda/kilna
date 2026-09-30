@@ -157,6 +157,7 @@ mod tests {
                 title: None,
                 work_id: Some(work.id.clone()),
                 tags: Vec::new(),
+                ..Default::default()
             },
         )
         .unwrap();

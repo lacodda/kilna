@@ -2,6 +2,7 @@
 import type { Kind } from "./Kind";
 import type { Mark } from "./Mark";
 import type { MetaField } from "./MetaField";
+import type { NoteKind } from "./NoteKind";
 import type { OverviewConfig } from "./OverviewConfig";
 import type { PromptTemplate } from "./PromptTemplate";
 import type { Rhythm } from "./Rhythm";
@@ -88,8 +89,19 @@ catalogue_columns_by_kind?: { [key in string]: Array<string> } | null,
  * scene with her in it" a question the board can answer. An optional key
  * added in format 2 — a document without it is the same document, and a
  * note keeps taking any kind a person writes.
+ *
+ * A kind that names `sections` is a kind of card of the canon (v0.84,
+ * ADR 0043): a note of it is a card whose knowledge is facts, and it
+ * lives on the Canon screen rather than among the notes.
  */
-note_kinds: Array<Kind>, 
+note_kinds: Array<NoteKind>, 
+/**
+ * The kinds a relation between two cards of the canon can be: family, a
+ * neighbour, a pet, a partner. The craft's words, like the kinds of note;
+ * the words each side uses for the other are the relation's own. Added
+ * in v0.84 - a document without it is the same document.
+ */
+relation_kinds?: Array<Kind>, 
 /**
  * The types a style brick can be — an image style, a character, an
  * environment, a camera angle. The workspace's one dictionary of the

@@ -30,7 +30,8 @@ use crate::minted::Minted;
 /// reference goes in the gallery.
 pub const COVER: &str = "cover";
 
-/// A file attached to a work or a release.
+/// A file attached to a work, a release, a style brick or a card of the
+/// canon.
 #[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 pub struct Asset {
     pub id: String,
@@ -48,6 +49,11 @@ pub struct Asset {
     pub original_name: Option<String>,
     /// The style brick it is a reference for, when it is one (ADR 0031).
     pub style_brick_id: Option<String>,
+    /// The card of the canon it is a picture of (ADR 0043). Its role -
+    /// portrait, reference, outfit - is `kind`.
+    pub note_id: Option<String>,
+    /// The one fact of that card it shows: an outfit, a variant of a mark.
+    pub canon_fact_id: Option<String>,
     pub created_at: String,
 }
 
@@ -62,7 +68,15 @@ pub struct NewAsset {
     /// The style brick this is a reference for.
     #[serde(default)]
     pub style_brick_id: Option<String>,
-    /// `attachment` when omitted.
+    /// The card of the canon this is a picture of.
+    #[serde(default)]
+    pub note_id: Option<String>,
+    /// The fact of the card it shows. Names the card by itself: a picture of
+    /// an outfit is a picture of the person wearing it.
+    #[serde(default)]
+    pub canon_fact_id: Option<String>,
+    /// `attachment` when omitted; on a card, one of its picture roles
+    /// (`reference` when omitted).
     #[serde(default)]
     pub kind: Option<String>,
     #[serde(default)]
@@ -72,8 +86,12 @@ pub struct NewAsset {
 /// The kind an asset takes when nothing says otherwise.
 const ATTACHMENT: &str = "attachment";
 
+/// The role a picture of a card takes when nothing says otherwise: what a
+/// generator is handed beside the description.
+const REFERENCE: &str = "reference";
+
 const SELECT: &str = "SELECT id, profile_id, work_id, release_id, kind, path, label, \
-     original_name, style_brick_id, created_at FROM asset";
+     original_name, style_brick_id, note_id, canon_fact_id, created_at FROM asset";
 
 /// Copy a file into the workspace and record it.
 pub fn attach(
@@ -101,10 +119,42 @@ pub fn attach_minted(
     new: NewAsset,
     minted: Minted,
 ) -> Result<Asset> {
+    let mut new = new;
+    // A picture of a fact is a picture of its card: the card is what the
+    // trash takes it with and what the gallery shows it on.
+    if let Some(fact_id) = new.canon_fact_id.as_deref() {
+        let fact = crate::canon::fact::get(conn, fact_id)?
+            .ok_or_else(|| Error::not_found("fact", fact_id))?;
+        if new.note_id.as_deref().is_some_and(|id| id != fact.note_id) {
+            return Err(Error::refused("asset.factOfAnotherCard"));
+        }
+        new.note_id = Some(fact.note_id);
+    }
     // A file belongs to something. Left hanging on nothing it is a byte in a
     // directory with no screen that shows it and no deletion that takes it.
-    if new.work_id.is_none() && new.release_id.is_none() && new.style_brick_id.is_none() {
+    if new.work_id.is_none()
+        && new.release_id.is_none()
+        && new.style_brick_id.is_none()
+        && new.note_id.is_none()
+    {
         return Err(Error::refused("asset.needsOwner"));
+    }
+    if let Some(note_id) = new.note_id.as_deref() {
+        let card =
+            crate::note::get(conn, note_id)?.ok_or_else(|| Error::not_found("note", note_id))?;
+        if card.profile_id != profile_id {
+            return Err(Error::refused("asset.cardOtherWorkspace")
+                .param("title", card.title.unwrap_or_default()));
+        }
+        let role = new
+            .kind
+            .as_deref()
+            .map(str::trim)
+            .filter(|role| !role.is_empty())
+            .unwrap_or(REFERENCE)
+            .to_owned();
+        check_role(&role)?;
+        new.kind = Some(role);
     }
     if let Some(work_id) = new.work_id.as_deref() {
         let work =
@@ -156,8 +206,9 @@ pub fn attach_minted(
         .filter(|label| !label.is_empty());
 
     let written = conn.execute(
-        "INSERT INTO asset (id, profile_id, work_id, release_id, kind, path, label, original_name, style_brick_id, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        "INSERT INTO asset (id, profile_id, work_id, release_id, kind, path, label, original_name,
+             style_brick_id, note_id, canon_fact_id, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         params![
             minted.id(),
             profile_id,
@@ -168,6 +219,8 @@ pub fn attach_minted(
             label,
             original_name,
             new.style_brick_id,
+            new.note_id,
+            new.canon_fact_id,
             minted.at()
         ],
     );
@@ -250,6 +303,42 @@ pub fn for_style_brick(conn: &Connection, style_brick_id: &str) -> Result<Vec<As
         .query_map(params![style_brick_id], read)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(rows)
+}
+
+/// The pictures of a card of the canon, its facts' included, oldest first.
+pub fn for_card(conn: &Connection, note_id: &str) -> Result<Vec<Asset>> {
+    let mut statement = conn.prepare(&format!(
+        "{SELECT} WHERE note_id = ?1 ORDER BY created_at, rowid"
+    ))?;
+    let rows = statement
+        .query_map(params![note_id], read)?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(rows)
+}
+
+/// A role a picture of a card can have.
+fn check_role(role: &str) -> Result<()> {
+    if crate::canon::fact::PICTURE_ROLES.contains(&role) {
+        return Ok(());
+    }
+    Err(Error::refused("asset.unknownRole").param("role", role))
+}
+
+/// Give a picture of a card another role - the reference that turned out to
+/// be the portrait. Only a card's pictures have roles to change; a cover is a
+/// cover by what it was attached as.
+pub fn set_role(conn: &Connection, id: &str, role: &str) -> Result<Asset> {
+    let found = get(conn, id)?.ok_or_else(|| Error::not_found("asset", id))?;
+    if found.note_id.is_none() {
+        return Err(Error::refused("asset.roleOnlyOnCards"));
+    }
+    let role = role.trim();
+    check_role(role)?;
+    conn.execute(
+        "UPDATE asset SET kind = ?2 WHERE id = ?1",
+        params![id, role],
+    )?;
+    get(conn, id)?.ok_or_else(|| Error::not_found("asset", id))
 }
 
 /// Everything attached to a release, oldest first.
@@ -363,7 +452,9 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Asset> {
         label: row.get(6)?,
         original_name: row.get(7)?,
         style_brick_id: row.get(8)?,
-        created_at: row.get(9)?,
+        note_id: row.get(9)?,
+        canon_fact_id: row.get(10)?,
+        created_at: row.get(11)?,
     })
 }
 

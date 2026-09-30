@@ -130,6 +130,21 @@ pub enum Proposal {
     Reply { comment_id: String },
     /// A style brick's description; the text is the message body.
     Description { style_id: String },
+    /// Cards, facts and relations for the canon (ADR 0043), read and checked
+    /// against the profile and the canon as it stood - from a work's text,
+    /// from selected lines, from a card's own note, or from an agent. Kept
+    /// whole or item by item.
+    Canon {
+        package: crate::canon::proposal::Package,
+    },
+    /// The description a picture generator is given for a card; the text is
+    /// the message body. `basis` is the fingerprint of the facts it was
+    /// written against, so facts changed while it was written show it stale.
+    CardPrompt {
+        note_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        basis: Option<String>,
+    },
 }
 
 /// What a scenes proposal does to the board already on the work.
@@ -881,7 +896,7 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
 /// The last, not the first: an answer may show an example of the shape before
 /// filling it in, and what it settled on is what comes last. The fence is
 /// required — a bare object in prose is too easy to find by accident.
-fn fenced_json(body: &str) -> Option<String> {
+pub fn fenced_json(body: &str) -> Option<String> {
     let mut found: Option<String> = None;
     let mut current: Option<Vec<&str>> = None;
 
@@ -1458,6 +1473,7 @@ mod instruction_tests {
             catalogue_columns: None,
             catalogue_columns_by_kind: None,
             note_kinds: Vec::new(),
+            relation_kinds: Vec::new(),
             style_types: Vec::new(),
             overview: None,
         };

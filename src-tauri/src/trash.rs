@@ -35,12 +35,14 @@ pub enum Entity {
     Comment,
     /// A brick of the style dictionary, with the pictures it was described from.
     Style,
+    /// A fact of a card of the canon, with the pictures of it (ADR 0043).
+    Fact,
 }
 
 impl Entity {
     /// Every kind of thing the trash holds. What a gate iterates rather than
     /// a list of its own that someone has to remember to extend.
-    pub const ALL: [Entity; 10] = [
+    pub const ALL: [Entity; 11] = [
         Entity::Work,
         Entity::Version,
         Entity::Score,
@@ -51,6 +53,7 @@ impl Entity {
         Entity::Cut,
         Entity::Comment,
         Entity::Style,
+        Entity::Fact,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -65,6 +68,7 @@ impl Entity {
             Self::Cut => "cut",
             Self::Comment => "comment",
             Self::Style => "style",
+            Self::Fact => "fact",
         }
     }
 
@@ -82,6 +86,7 @@ impl Entity {
             "cut" => Ok(Self::Cut),
             "comment" => Ok(Self::Comment),
             "style" => Ok(Self::Style),
+            "fact" => Ok(Self::Fact),
             other => Err(Error::Internal(format!("unknown trash entity `{other}`"))),
         }
     }
@@ -99,6 +104,7 @@ impl Entity {
             Self::Cut => "cut",
             Self::Comment => "comment",
             Self::Style => "style_brick",
+            Self::Fact => "canon_fact",
         }
     }
 }
@@ -155,9 +161,28 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "note",
                 key: "work_id",
             },
+            // A card living at the work - the hero of the song - goes with
+            // the work, and so does everything the card knows (ADR 0043).
+            // Before the assets: a picture of an outfit names its fact.
+            Capture {
+                table: "canon_fact",
+                key: "note_id IN (SELECT id FROM note WHERE work_id = ?)",
+            },
+            Capture {
+                table: "canon_link",
+                key: "from_id IN (SELECT id FROM note WHERE work_id = ?)",
+            },
+            Capture {
+                table: "canon_link",
+                key: "to_id IN (SELECT id FROM note WHERE work_id = ?)",
+            },
             Capture {
                 table: "asset",
                 key: "work_id",
+            },
+            Capture {
+                table: "asset",
+                key: "note_id IN (SELECT id FROM note WHERE work_id = ?)",
             },
             // The storyboard belongs to the work (ADR 0020) and goes with it.
             Capture {
@@ -170,6 +195,12 @@ fn cascade(entity: Entity) -> &'static [Capture] {
             Capture {
                 table: "scene_note",
                 key: "scene_id IN (SELECT id FROM scene WHERE work_id = ?)",
+            },
+            // And the scenes of other works a hero of this one stood in:
+            // the cascade takes those rows down with the card.
+            Capture {
+                table: "scene_note",
+                key: "note_id IN (SELECT id FROM note WHERE work_id = ?)",
             },
             // A link is about two works and cascades from either; the
             // snapshot takes it from both sides, so a video restored gets
@@ -229,6 +260,36 @@ fn cascade(entity: Entity) -> &'static [Capture] {
             Capture {
                 table: "scene_note",
                 key: "note_id",
+            },
+            // What a card knows, who it stands beside and what it looks like
+            // come back with it (ADR 0043). The facts before the pictures: a
+            // picture of an outfit names its fact.
+            Capture {
+                table: "canon_fact",
+                key: "note_id",
+            },
+            Capture {
+                table: "canon_link",
+                key: "from_id",
+            },
+            Capture {
+                table: "canon_link",
+                key: "to_id",
+            },
+            Capture {
+                table: "asset",
+                key: "note_id",
+            },
+        ],
+        // A fact and the pictures of it: an outfit is recognised by them.
+        Entity::Fact => &[
+            Capture {
+                table: "canon_fact",
+                key: "id",
+            },
+            Capture {
+                table: "asset",
+                key: "canon_fact_id",
             },
         ],
         Entity::Scene => &[
@@ -339,9 +400,18 @@ fn discard_in(tx: &Connection, entity: Entity, id: &str, minted: &Minted) -> Res
             continue;
         }
         // A table captured from two sides lands under one key: the snapshot
-        // is by table, and a restore reads it by table.
+        // is by table, and a restore reads it by table. A row both sides
+        // reach - a scene of the work about the work's own hero - is kept
+        // once, or the restore would insert it twice.
         match snapshot.get_mut(capture.table) {
-            Some(Value::Array(existing)) => existing.extend(rows),
+            Some(Value::Array(existing)) => {
+                for row in rows {
+                    let id = row.get("id").cloned();
+                    if id.is_none() || !existing.iter().any(|kept| kept.get("id") == id.as_ref()) {
+                        existing.push(row);
+                    }
+                }
+            }
             _ => {
                 snapshot.insert(capture.table.to_owned(), Value::Array(rows));
             }
@@ -464,9 +534,38 @@ fn restore_in(tx: &Connection, deletion_id: &str) -> Result<()> {
             };
             // A link is about two works. One restored while the other is
             // still gone has nothing to point at, and inserting it would fail
-            // on the foreign key; it stays out, as the cascade left it, and
-            // comes back with the other work if that one is restored.
+            // on the foreign key; it is handed to the entry holding the other
+            // work, and comes back with that one.
             if capture.table == "work_link" && !link_has_both_sides(tx, row)? {
+                hand_over(
+                    tx,
+                    "work_link",
+                    row,
+                    [("work_id", "work"), ("source_id", "work")],
+                )?;
+                continue;
+            }
+            // The same for a relation between two cards, and for a scene
+            // naming a card: each has two ends.
+            if capture.table == "canon_link" && !relation_can_return(tx, row)? {
+                hand_over(
+                    tx,
+                    "canon_link",
+                    row,
+                    [("from_id", "note"), ("to_id", "note")],
+                )?;
+                continue;
+            }
+            if capture.table == "scene_note"
+                && !(alive(tx, "scene", row.get("scene_id"))?
+                    && alive(tx, "note", row.get("note_id"))?)
+            {
+                hand_over(
+                    tx,
+                    "scene_note",
+                    row,
+                    [("scene_id", "scene"), ("note_id", "note")],
+                )?;
                 continue;
             }
             insert_row(tx, capture.table, row)?;
@@ -491,6 +590,93 @@ fn restore_in(tx: &Connection, deletion_id: &str) -> Result<()> {
     tx.execute("DELETE FROM deletion WHERE id = ?1", params![deletion_id])?;
 
     Ok(())
+}
+
+/// Give a two-ended row that cannot come back yet to the trash entry holding
+/// its missing end.
+///
+/// A link goes into the trash with whichever of its two ends went first, and
+/// is gone from the table by the time the second follows. Restoring the first
+/// spends its entry; without this the row would be spent with it, and two
+/// things deleted one after the other would come back as strangers. Handed
+/// over, it comes back with the second.
+fn hand_over(
+    conn: &Connection,
+    table: &str,
+    row: &Map<String, Value>,
+    ends: [(&str, &str); 2],
+) -> Result<()> {
+    for (end, parent) in ends {
+        let Some(id) = row.get(end).and_then(Value::as_str) else {
+            continue;
+        };
+        if alive(conn, parent, row.get(end))? {
+            continue;
+        }
+        let holder: Option<(String, String)> = conn
+            .query_row(
+                &format!(
+                    "SELECT d.id, d.snapshot FROM deletion d, json_each(d.snapshot, '$.{parent}') r
+                      WHERE json_extract(r.value, '$.id') = ?1
+                      ORDER BY d.deleted_at DESC, d.rowid DESC LIMIT 1"
+                ),
+                params![id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()?;
+        let Some((holder_id, snapshot)) = holder else {
+            continue;
+        };
+        let mut snapshot: Map<String, Value> = serde_json::from_str(&snapshot)?;
+        let rows = snapshot
+            .entry(table.to_owned())
+            .or_insert_with(|| Value::Array(Vec::new()));
+        if let Value::Array(rows) = rows {
+            if !rows.iter().any(|kept| kept.get("id") == row.get("id")) {
+                rows.push(Value::Object(row.clone()));
+            }
+        }
+        conn.execute(
+            "UPDATE deletion SET snapshot = ?2 WHERE id = ?1",
+            params![holder_id, Value::Object(snapshot).to_string()],
+        )?;
+        return Ok(());
+    }
+    Ok(())
+}
+
+/// Whether a trashed relation can be put back: both its cards are here, and
+/// neither it nor another relation of the same pair already is.
+fn relation_can_return(conn: &Connection, row: &Map<String, Value>) -> Result<bool> {
+    if !(alive(conn, "note", row.get("from_id"))? && alive(conn, "note", row.get("to_id"))?) {
+        return Ok(false);
+    }
+    if alive(conn, "canon_link", row.get("id"))? {
+        return Ok(false);
+    }
+    let (Some(from), Some(to)) = (
+        row.get("from_id").and_then(Value::as_str),
+        row.get("to_id").and_then(Value::as_str),
+    ) else {
+        return Ok(false);
+    };
+    Ok(crate::canon::link::between(conn, from, to)?.is_none())
+}
+
+/// Whether the row a trashed row names is there to be named. `table` comes
+/// from the fixed checks above, never from input.
+fn alive(conn: &Connection, table: &str, id: Option<&Value>) -> Result<bool> {
+    let Some(id) = id.and_then(Value::as_str) else {
+        return Ok(false);
+    };
+    Ok(conn
+        .query_row(
+            &format!("SELECT 1 FROM {table} WHERE id = ?1"),
+            params![id],
+            |_| Ok(true),
+        )
+        .optional()?
+        .unwrap_or(false))
 }
 
 /// Whether both works a trashed link joins are alive.
@@ -552,11 +738,24 @@ pub fn purge(conn: &Connection, deletion_id: &str) -> Result<()> {
                 params![entity_id],
             )?;
         }
+        // A card purged takes the facts of it waiting in the trash: they
+        // could only ever be restored onto it.
+        if Entity::parse(&entity)? == Entity::Note {
+            files.extend(snapshot_files(tx, CHILDREN_OF_NOTE, &entity_id)?);
+            tx.execute(
+                &format!("DELETE FROM deletion WHERE {CHILDREN_OF_NOTE}"),
+                params![entity_id],
+            )?;
+        }
 
         forget_files(tx, files);
         Ok(())
     })
 }
+
+/// The entries that hang off a purged card: its facts.
+const CHILDREN_OF_NOTE: &str = "deletion.entity = 'fact'
+     AND json_extract(deletion.snapshot, '$.canon_fact[0].note_id') = ?1";
 
 /// The entries that hang off a purged work: they could only ever be restored
 /// into it, so they go with it. Qualified by table, because it is also read
@@ -742,7 +941,8 @@ fn missing_parent(
     entity: Entity,
     snapshot: &Map<String, Value>,
 ) -> Result<Option<String>> {
-    let parents: &[&str] = match entity {
+    // The column that names the parent, and the table the parent lives in.
+    let parents: &[(&str, &str)] = match entity {
         // These stand on their own; the profile they need is checked by the
         // insert itself.
         Entity::Work | Entity::Collection | Entity::Style => return Ok(None),
@@ -751,11 +951,13 @@ fn missing_parent(
         | Entity::Release
         | Entity::Note
         | Entity::Scene
-        | Entity::Comment => &["work_id"],
+        | Entity::Comment => &[("work_id", "work")],
         // A stretch of a splice names two works and needs both: without the
         // short it belongs to nothing, and without the video it is seconds of
         // nowhere. Either being gone is the same refusal.
-        Entity::Cut => &["work_id", "source_id"],
+        Entity::Cut => &[("work_id", "work"), ("source_id", "work")],
+        // A fact is a fact of its card.
+        Entity::Fact => &[("note_id", "note")],
     };
 
     let rows = match snapshot.get(entity.table()) {
@@ -766,22 +968,19 @@ fn missing_parent(
         return Ok(None);
     };
 
-    for parent in parents {
+    for (column, table) in parents {
         // A note or a comment need not belong to a work at all.
-        let Some(Value::String(work_id)) = row.get(*parent) else {
+        let Some(parent) = row.get(*column).filter(|value| value.is_string()) else {
             continue;
         };
-        let exists: bool = conn
-            .query_row("SELECT 1 FROM work WHERE id = ?1", params![work_id], |_| {
-                Ok(true)
-            })
-            .optional()?
-            .unwrap_or(false);
-        if !exists {
-            return Ok(Some(
+        if !alive(conn, table, Some(parent))? {
+            return Ok(Some(if *table == "note" {
+                "the card this belonged to is gone — restore it first, or this has nowhere to go"
+                    .to_owned()
+            } else {
                 "the work this belonged to is gone — restore it first, or this has nowhere to go"
-                    .to_owned(),
-            ));
+                    .to_owned()
+            }));
         }
     }
 
@@ -895,6 +1094,15 @@ fn describe(
                 describe_row,
             )
             .optional()?,
+        // Named by what it says, placed by the card it is a fact of.
+        Entity::Fact => conn
+            .query_row(
+                "SELECT substr(f.body, 1, 80), n.title, f.profile_id
+                 FROM canon_fact f JOIN note n ON n.id = f.note_id WHERE f.id = ?1",
+                params![id],
+                describe_row,
+            )
+            .optional()?,
     };
 
     found.ok_or_else(|| Error::not_found(entity_label(entity), id))
@@ -919,6 +1127,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Cut => "cut",
         Entity::Comment => "comment",
         Entity::Style => "style",
+        Entity::Fact => "fact",
     }
 }
 
@@ -1051,6 +1260,7 @@ mod tests {
                 title: None,
                 work_id: Some(work.id.clone()),
                 tags: vec![],
+                ..Default::default()
             },
         )
         .unwrap();
@@ -1323,6 +1533,7 @@ mod tests {
                 title: None,
                 work_id: Some(survivor.id.clone()),
                 tags: vec![],
+                ..Default::default()
             },
         )
         .unwrap();
@@ -1442,6 +1653,7 @@ mod tests {
                 title: None,
                 work_id: None,
                 tags: vec!["idea".into()],
+                ..Default::default()
             },
         )
         .unwrap();

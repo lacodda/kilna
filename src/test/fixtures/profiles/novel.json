@@ -18,16 +18,301 @@
     "marks": [],
     "note_kinds": [
       {
+        "describe_from": [
+          "looks"
+        ],
+        "icon": "user",
         "key": "character",
-        "label": "Character"
+        "label": "Character",
+        "sections": [
+          {
+            "key": "identity",
+            "label": "General",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "hint": "The description for a picture is written from these",
+            "key": "looks",
+            "label": "Appearance",
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "key": "voice",
+            "label": "Character and voice",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "bio",
+            "label": "Biography"
+          },
+          {
+            "key": "circle",
+            "label": "Circle",
+            "shape": "relations"
+          },
+          {
+            "key": "events",
+            "kinds": [
+              "event"
+            ],
+            "label": "Events",
+            "shape": "relations"
+          },
+          {
+            "key": "symbols",
+            "label": "Symbols",
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "hint": "What this person never does, says or wears",
+            "key": "bans",
+            "label": "Never",
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "hint": "Counted from scenes, texts, covers and sources",
+            "key": "where",
+            "label": "Where it appears",
+            "shape": "appearances"
+          },
+          {
+            "hint": "What is deliberately left open, for the next chapters to build",
+            "key": "open",
+            "label": "Live zones"
+          }
+        ]
       },
       {
+        "describe_from": [
+          "looks"
+        ],
+        "icon": "map-pin",
         "key": "location",
-        "label": "Location"
+        "label": "Location",
+        "sections": [
+          {
+            "key": "identity",
+            "label": "General",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "looks",
+            "label": "Appearance",
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "key": "history",
+            "label": "History"
+          },
+          {
+            "key": "circle",
+            "label": "Who is here",
+            "shape": "relations"
+          },
+          {
+            "hint": "Counted from scenes, texts, covers and sources",
+            "key": "where",
+            "label": "Where it appears",
+            "shape": "appearances"
+          },
+          {
+            "hint": "What is deliberately left open, for the next chapters to build",
+            "key": "open",
+            "label": "Live zones"
+          }
+        ]
       },
       {
+        "describe_from": [
+          "looks"
+        ],
+        "icon": "box",
+        "key": "object",
+        "label": "Object",
+        "sections": [
+          {
+            "key": "identity",
+            "label": "General",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "looks",
+            "label": "Appearance",
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "key": "history",
+            "label": "History"
+          },
+          {
+            "key": "circle",
+            "label": "Whose it is",
+            "shape": "relations"
+          },
+          {
+            "hint": "Counted from scenes, texts, covers and sources",
+            "key": "where",
+            "label": "Where it appears",
+            "shape": "appearances"
+          }
+        ]
+      },
+      {
+        "icon": "users",
+        "key": "group",
+        "label": "Group",
+        "sections": [
+          {
+            "key": "identity",
+            "label": "General",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "members",
+            "kinds": [
+              "character"
+            ],
+            "label": "Members",
+            "shape": "relations"
+          },
+          {
+            "key": "history",
+            "label": "History"
+          },
+          {
+            "key": "circle",
+            "label": "Around it",
+            "shape": "relations"
+          },
+          {
+            "hint": "Counted from scenes, texts, covers and sources",
+            "key": "where",
+            "label": "Where it appears",
+            "shape": "appearances"
+          },
+          {
+            "hint": "What is deliberately left open, for the next chapters to build",
+            "key": "open",
+            "label": "Live zones"
+          }
+        ]
+      },
+      {
+        "icon": "calendar",
+        "key": "event",
+        "label": "Event",
+        "sections": [
+          {
+            "key": "identity",
+            "label": "What happened"
+          },
+          {
+            "key": "circle",
+            "label": "Who took part",
+            "shape": "relations"
+          },
+          {
+            "key": "aftermath",
+            "label": "What it changed"
+          },
+          {
+            "hint": "Counted from scenes, texts, covers and sources",
+            "key": "where",
+            "label": "Where it appears",
+            "shape": "appearances"
+          },
+          {
+            "hint": "What is deliberately left open, for the next chapters to build",
+            "key": "open",
+            "label": "Live zones"
+          }
+        ]
+      },
+      {
+        "icon": "sparkle",
+        "key": "theme",
+        "label": "Theme",
+        "sections": [
+          {
+            "key": "identity",
+            "label": "What it is",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "motifs",
+            "label": "Motifs",
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "key": "circle",
+            "label": "Tied to",
+            "shape": "relations"
+          },
+          {
+            "hint": "Counted from scenes, texts, covers and sources",
+            "key": "where",
+            "label": "Where it appears",
+            "shape": "appearances"
+          }
+        ]
+      },
+      {
+        "icon": "book",
         "key": "lore",
-        "label": "Lore"
+        "label": "Lore",
+        "sections": [
+          {
+            "key": "identity",
+            "label": "What it is"
+          },
+          {
+            "key": "rules",
+            "label": "Rules of the world"
+          },
+          {
+            "key": "circle",
+            "label": "Tied to",
+            "shape": "relations"
+          },
+          {
+            "hint": "Counted from scenes, texts, covers and sources",
+            "key": "where",
+            "label": "Where it appears",
+            "shape": "appearances"
+          },
+          {
+            "hint": "What is deliberately left open, for the next chapters to build",
+            "key": "open",
+            "label": "Live zones"
+          }
+        ]
       },
       {
         "key": "note",
@@ -86,6 +371,91 @@
         "produces": "reply",
         "scope": "comment",
         "template": "Write the reply."
+      },
+      {
+        "description": "What the chapter says about the world, proposed as facts with the line each was read off; contradictions shown before anything is applied.",
+        "icon": "book",
+        "key": "gather-canon",
+        "label": "Gather facts into the canon",
+        "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
+        "produces": "canon",
+        "template": "The work is “{title}”. Its text:\n\n{body}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what this text adds to the canon."
+      },
+      {
+        "description": "The selected lines, proposed as facts of the canon with their source.",
+        "icon": "quote",
+        "key": "to-canon",
+        "label": "To the canon",
+        "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
+        "produces": "canon",
+        "scope": "selection",
+        "template": "The work is “{title}”. The author selected these lines of it:\n\n{selection}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what these lines add to the canon."
+      },
+      {
+        "description": "The card's free note, proposed as facts filed under its sections.",
+        "icon": "list",
+        "key": "gather-card",
+        "label": "Gather facts from the note",
+        "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
+        "produces": "canon",
+        "scope": "canon",
+        "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact."
+      },
+      {
+        "description": "An English description of the card written from its facts, given to a picture generator instead of the name.",
+        "icon": "image",
+        "key": "describe-card",
+        "label": "Describe for the generator",
+        "method": "# Card describer\n\n## Role\n\nYou write the description a picture generator is given for a card of the canon, instead of the name. A generator does not know who the person is; it knows only what it is told.\n\n## What to write\n\n- English, one paragraph: who (age, build), face, hair, marks; then nothing else.\n- Only the facts given. No clothing unless the facts are about clothing; no mood, no setting, no story.\n- Concrete and countable: named colours, named materials, sizes. Forty to eighty words.\n\n## Output\n\nThe description alone. No preamble, no heading, nothing after it.\n",
+        "produces": "card-prompt",
+        "scope": "canon",
+        "template": "Write the description of this card for a picture generator."
+      }
+    ],
+    "relation_kinds": [
+      {
+        "key": "family",
+        "label": "Family"
+      },
+      {
+        "key": "partner",
+        "label": "Loved one"
+      },
+      {
+        "key": "friend",
+        "label": "Friend"
+      },
+      {
+        "key": "enemy",
+        "label": "Enemy"
+      },
+      {
+        "key": "colleague",
+        "label": "Colleague"
+      },
+      {
+        "key": "pet",
+        "label": "Pet"
+      },
+      {
+        "key": "member",
+        "label": "Member"
+      },
+      {
+        "key": "place",
+        "label": "Place"
+      },
+      {
+        "key": "owner",
+        "label": "Owner"
+      },
+      {
+        "key": "event",
+        "label": "Took part"
+      },
+      {
+        "key": "other",
+        "label": "Other"
       }
     ],
     "rhythm": {

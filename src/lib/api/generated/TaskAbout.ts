@@ -16,4 +16,8 @@ block?: string, attachments?: Array<string>,
 /**
  * The style bricks picked for this run, in the order they were picked.
  */
-styleBrickIds?: Array<string>, };
+styleBrickIds?: Array<string>, 
+/**
+ * The lines selected in the text, for an action about a selection.
+ */
+selection?: string, };

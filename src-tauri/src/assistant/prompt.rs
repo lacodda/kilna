@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use super::proposal::BoardChange;
 use crate::error::{Error, Result};
 use crate::link;
-use crate::profile::config::{Label, ProfileConfig, WorkKind};
+use crate::profile::config::{Label, Lens, ProfileConfig, WorkKind};
 use crate::scene::{self, Scene};
 use crate::work::{self, version};
 
@@ -75,6 +75,12 @@ pub enum Produces {
     /// The whole answer, kept as the description of the style brick the
     /// action was started on.
     Description,
+    /// Cards, facts and relations for the canon, in a block the application
+    /// reads (ADR 0043).
+    Canon,
+    /// The whole answer, kept as the description a picture generator is
+    /// given for the card the action was started on.
+    CardPrompt,
 }
 
 /// What an action is about.
@@ -91,6 +97,12 @@ pub enum Scope {
     /// A comment from the audience, or a screenshot of one: offered on the
     /// comments and nowhere else (ADR 0032).
     Comment,
+    /// A card of the canon: offered on the card and nowhere else (ADR 0043).
+    Canon,
+    /// Lines a person selected in a work's text, read as `{selection}`:
+    /// offered on a selection and nowhere else - a button for it on the
+    /// panel would send a prompt with nothing selected in it.
+    Selection,
 }
 
 /// The value of `scope` that names a scene action.
@@ -101,6 +113,12 @@ pub const STYLE_SCOPE: &str = "style";
 
 /// The value of `scope` that names an action about a comment.
 pub const COMMENT_SCOPE: &str = "comment";
+
+/// The value of `scope` that names an action about a card of the canon.
+pub const CANON_SCOPE: &str = "canon";
+
+/// The value of `scope` that names an action about selected lines.
+pub const SELECTION_SCOPE: &str = "selection";
 
 impl PromptTemplate {
     /// `produces` as the application understands it. An unknown value reads
@@ -114,6 +132,8 @@ impl PromptTemplate {
             Some("comment") => Produces::Comment,
             Some("reply") => Produces::Reply,
             Some("description") => Produces::Description,
+            Some("canon") => Produces::Canon,
+            Some("card-prompt") => Produces::CardPrompt,
             Some(value) => {
                 if let Some(role) = value.strip_prefix("version:") {
                     return if role.trim().is_empty() {
@@ -153,6 +173,8 @@ impl PromptTemplate {
             Some(SCENE_SCOPE) => Scope::Scene,
             Some(STYLE_SCOPE) => Scope::Style,
             Some(COMMENT_SCOPE) => Scope::Comment,
+            Some(CANON_SCOPE) => Scope::Canon,
+            Some(SELECTION_SCOPE) => Scope::Selection,
             _ => Scope::Work,
         }
     }
@@ -199,9 +221,31 @@ pub fn placeholders(template: &str) -> Vec<String> {
 pub fn is_known_placeholder(name: &str) -> bool {
     matches!(
         name,
-        "title" | "kind" | "status" | "body" | "scenes" | "scene" | "donor" | "styles"
+        "title"
+            | "kind"
+            | "status"
+            | "body"
+            | "scenes"
+            | "scene"
+            | "donor"
+            | "styles"
+            | "canon"
+            | "selection"
     ) || name.strip_prefix("role:").is_some_and(|r| !r.is_empty())
         || name.strip_prefix("donor:").is_some_and(|r| !r.is_empty())
+        || canon_lens(name).is_some()
+}
+
+/// The lens a `{canon…}` placeholder reads the canon through: `{canon}` is the
+/// work's own, every layer; `{canon:cover}` and `{canon:public}` are what a
+/// picture and a public text may see (ADR 0043).
+pub fn canon_lens(name: &str) -> Option<Lens> {
+    match name {
+        "canon" => Some(Lens::Work),
+        "canon:cover" => Some(Lens::Cover),
+        "canon:public" => Some(Lens::Public),
+        _ => None,
+    }
 }
 
 /// Placeholders a template may use.
@@ -232,6 +276,8 @@ pub struct Context<'a> {
     /// stored on the work: which parts a picture is built from is the
     /// question being asked, and it is a different answer every time.
     pub style_brick_ids: &'a [String],
+    /// The lines a person selected in the text, for `{selection}`.
+    pub selection: Option<&'a str>,
 }
 
 /// Build the prompt for `template` in the context of `work_id`.
@@ -297,11 +343,33 @@ pub fn for_work(
                         .param("scene", id)
                         .param("title", work.title.clone()));
                 }
-                scene_sheet(&found, kind)
+                let mut sheet = scene_sheet(&found, kind);
+                let cast = scene_cast(conn, &found.id)?;
+                if !cast.is_empty() {
+                    sheet.push_str("\n\n");
+                    sheet.push_str(&cast);
+                }
+                sheet
             }
             None => String::new(),
         };
         values.push(("scene", rendered));
+    }
+
+    // The canon the work draws on: through the work's own eyes, every layer
+    // with each fact saying what its layer allows; through a cover's or a
+    // public text's, only what they may see (ADR 0043).
+    for name in &wanted {
+        if let Some(lens) = canon_lens(name) {
+            let seen = canon_through(conn, &work, current.as_ref(), lens)?;
+            values.push((name.as_str(), seen));
+        }
+    }
+    if wants("selection") {
+        values.push((
+            "selection",
+            context.selection.map(str::to_owned).unwrap_or_default(),
+        ));
     }
 
     // The bricks the person picked, each with the word of the craft that says
@@ -458,6 +526,108 @@ pub fn scene_sheet(scene: &Scene, kind: &WorkKind) -> String {
         ));
     }
     out.trim_end().to_owned()
+}
+
+/// Who and what a scene is about, as a generator needs them: by description,
+/// not by name (ADR 0043). A generator does not know who "Otto" is; it knows
+/// "a 27-year-old woman with clay under her nails". A card not described yet
+/// is still named, and says so - a silent gap would read as "nobody is here".
+pub fn scene_cast(conn: &Connection, scene_id: &str) -> Result<String> {
+    let cast = crate::scene_note::for_scene(conn, scene_id)?;
+    if cast.is_empty() {
+        return Ok(String::new());
+    }
+    let mut out = String::from("Who and where, as a picture is told:\n");
+    for one in cast {
+        let Some(card) = crate::note::get(conn, &one.note_id)? else {
+            continue;
+        };
+        let name = card.title.clone().unwrap_or_default();
+        match card.prompt.as_deref() {
+            Some(prompt) => out.push_str(&format!("- {name}: {prompt}\n")),
+            None => out.push_str(&format!("- {name} (not described yet)\n")),
+        }
+    }
+    Ok(out.trim_end().to_owned())
+}
+
+/// The canon as a work's text reads it (ADR 0043).
+pub fn canon_of_work(
+    conn: &Connection,
+    work: &work::Work,
+    current: Option<&crate::work::version::Version>,
+) -> Result<String> {
+    canon_through(conn, work, current, Lens::Work)
+}
+
+/// The canon about a work, as `lens` may read it.
+///
+/// Every card by name and id, so the answer can name the one it means; and
+/// in full the cards the work is about - its own heroes, the cards on its
+/// board and the cards its text names. A canon of a hundred cards read whole
+/// would bury the text it is meant to serve. A cover and a public text also
+/// read the root card whole - the channel's voice, marks and bans are about
+/// every work - and neither is told a card exists that is not public.
+pub fn canon_through(
+    conn: &Connection,
+    work: &work::Work,
+    current: Option<&crate::work::version::Version>,
+    lens: Lens,
+) -> Result<String> {
+    let cards: Vec<_> = crate::canon::view::cards(
+        conn,
+        &work.profile_id,
+        &crate::canon::view::CardFilter::default(),
+    )?
+    .into_iter()
+    .filter(|card| lens == Lens::Work || card.layer == crate::canon::Layer::Public)
+    .collect();
+    if cards.is_empty() {
+        return Ok("(the canon is empty)".to_owned());
+    }
+    let config = crate::profile::config_for(conn, &work.profile_id)?;
+    let on_board: Vec<String> = crate::scene_note::for_work(conn, &work.id)?
+        .into_iter()
+        .map(|one| one.note_id)
+        .collect();
+    let text = current.map(|v| v.body.as_str()).unwrap_or_default();
+
+    let mut index = String::from("Every card, by name:\n");
+    let mut full = Vec::new();
+    for card in &cards {
+        let kind = config
+            .note_kind(&card.kind)
+            .map_or(card.kind.clone(), |k| k.label.as_str().to_owned());
+        let name = card.title.clone().unwrap_or_default();
+        index.push_str(&format!("- {name} ({kind}, card `{}`)", card.id));
+        if !card.aliases.is_empty() {
+            index.push_str(&format!(" — also {}", card.aliases.join(", ")));
+        }
+        index.push('\n');
+
+        let named = std::iter::once(&name)
+            .chain(card.aliases.iter())
+            .any(|one| crate::canon::appearances::names_word(text, one));
+        let root = lens != Lens::Work && config.card_kind(&card.kind).is_some_and(|kind| kind.root);
+        if card.work_id.as_deref() == Some(work.id.as_str())
+            || on_board.contains(&card.id)
+            || named
+            || root
+        {
+            let seen = crate::canon::view::render(conn, &card.id, lens)?;
+            if !seen.is_empty() {
+                full.push(seen);
+            }
+        }
+    }
+    if full.is_empty() {
+        return Ok(index.trim_end().to_owned());
+    }
+    Ok(format!(
+        "{}\n\nThe cards this work is about:\n\n{}",
+        index.trim_end(),
+        full.join("\n\n")
+    ))
 }
 
 /// The picked bricks, each under the craft's word for what it contributes.
@@ -1155,5 +1325,48 @@ mod version_tests {
             Produces::Prose,
             "an unknown value is prose, not a refusal"
         );
+    }
+
+    #[test]
+    fn a_scene_names_who_is_in_it_by_description_not_by_name() {
+        let (conn, profile_id) = fixtures::workspace();
+        let video = fixtures::video(&conn, &profile_id, "The clip");
+        let scene = crate::scene::create(
+            &conn,
+            &profile_id,
+            crate::scene::NewScene {
+                work_id: video.id.clone(),
+                description: Some("at the kiln".into()),
+                ..crate::scene::NewScene::default()
+            },
+        )
+        .unwrap();
+        let otto = fixtures::card(&conn, &profile_id, "character", "Otto");
+        crate::actions::canon::describe(
+            &conn,
+            &otto.id,
+            Some("a woman of 27 with clay on her hands".into()),
+            None,
+        )
+        .unwrap();
+        let nobody = fixtures::card(&conn, &profile_id, "character", "Pashka");
+        crate::scene_note::attach(&conn, &scene.id, &otto.id).unwrap();
+        crate::scene_note::attach(&conn, &scene.id, &nobody.id).unwrap();
+
+        let sheet = for_work(
+            &conn,
+            &video.id,
+            "{scene}",
+            Context {
+                scene_id: Some(&scene.id),
+                ..Context::default()
+            },
+        )
+        .unwrap();
+        assert!(
+            sheet.contains("a woman of 27 with clay on her hands"),
+            "{sheet}"
+        );
+        assert!(sheet.contains("Pashka (not described yet)"), "{sheet}");
     }
 }

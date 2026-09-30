@@ -1268,6 +1268,7 @@ fn a_promotion_is_taken_back_whole() {
             title: None,
             work_id: None,
             tags: vec![],
+            ..Default::default()
         },
     )
     .unwrap();
@@ -1330,4 +1331,164 @@ fn a_reply_is_taken_back() {
             .as_deref(),
         Some("first thought")
     );
+}
+
+/// A card of the canon to write facts on, made the way the window makes it.
+fn a_card(conn: &Connection, title: &str) -> String {
+    actions::canon::create_card(
+        conn,
+        kilna_lib::note::NewNote {
+            kind: Some("character".into()),
+            title: Some(title.into()),
+            ..kilna_lib::note::NewNote::default()
+        },
+    )
+    .unwrap()
+    .id
+}
+
+fn a_fact(conn: &Connection, card: &str, section: &str, body: &str) -> kilna_lib::canon::Fact {
+    actions::canon::add_fact(
+        conn,
+        kilna_lib::canon::NewFact {
+            note_id: card.into(),
+            section: section.into(),
+            body: body.into(),
+            ..kilna_lib::canon::NewFact::default()
+        },
+    )
+    .unwrap()
+}
+
+#[test]
+fn a_fact_added_goes_to_the_trash_and_an_edit_comes_back_to_where_it_stood() {
+    use kilna_lib::canon::{self, FactPatch};
+
+    let (mut conn, _, _) = workspace();
+    let card = a_card(&conn, "Wren");
+    let hair = a_fact(&conn, &card, "looks", "Gradient hair.");
+    a_fact(&conn, &card, "looks", "Freckles.");
+
+    let freckled = a_fact(&conn, &card, "looks", "A third.");
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("adding a fact can be undone");
+    assert_eq!(offer.action, "undo.fact.create");
+    take_back(&mut conn, &offer);
+    assert!(canon::fact::get(&conn, &freckled.id).unwrap().is_none());
+
+    // Moved to another section and made internal: the undo puts it back in
+    // its section, at its place, in its layer - and nothing else.
+    actions::canon::update_fact(
+        &conn,
+        &hair.id,
+        FactPatch {
+            section: Some("symbols".into()),
+            layer: Some(canon::Layer::Internal),
+            ..FactPatch::default()
+        },
+    )
+    .unwrap();
+    let offer = undo::last(&conn).unwrap().unwrap();
+    assert_eq!(offer.action, "undo.fact.update");
+    take_back(&mut conn, &offer);
+    let back = canon::fact::get(&conn, &hair.id).unwrap().unwrap();
+    assert_eq!(back.section, "looks");
+    assert_eq!(back.position, 1);
+    assert_eq!(back.layer, canon::Layer::Public);
+
+    actions::canon::retire_fact(&conn, &hair.id, "the loose hair stays").unwrap();
+    let offer = undo::last(&conn).unwrap().unwrap();
+    take_back(&mut conn, &offer);
+    let live = canon::fact::get(&conn, &hair.id).unwrap().unwrap();
+    assert_eq!(live.status, canon::FactStatus::Canon);
+    assert_eq!(live.retired_reason, None);
+}
+
+#[test]
+fn an_order_of_facts_goes_back_to_the_one_it_replaced() {
+    use kilna_lib::canon;
+
+    let (mut conn, _, _) = workspace();
+    let card = a_card(&conn, "Wren");
+    let a = a_fact(&conn, &card, "looks", "a").id;
+    let b = a_fact(&conn, &card, "looks", "b").id;
+    let c = a_fact(&conn, &card, "looks", "c").id;
+
+    actions::canon::reorder_facts(&conn, &card, "looks", &[c.clone(), a.clone(), b.clone()])
+        .unwrap();
+    let offer = undo::last(&conn).unwrap().unwrap();
+    assert_eq!(offer.action, "undo.fact.reorder");
+    take_back(&mut conn, &offer);
+
+    let order: Vec<String> = canon::fact::in_section(&conn, &card, "looks")
+        .unwrap()
+        .into_iter()
+        .map(|f| f.id)
+        .collect();
+    assert_eq!(order, [a, b, c]);
+}
+
+#[test]
+fn a_relation_undrawn_comes_back_as_the_same_row() {
+    use kilna_lib::canon::{self, CanonLinkPatch, NewCanonLink};
+
+    let (mut conn, _, _) = workspace();
+    let wren = a_card(&conn, "Wren");
+    let otto = a_card(&conn, "Otto");
+    let drawn = actions::canon::relate(
+        &conn,
+        NewCanonLink {
+            from_id: wren.clone(),
+            to_id: otto.clone(),
+            label: Some("neighbour".into()),
+            ..NewCanonLink::default()
+        },
+    )
+    .unwrap();
+
+    actions::canon::update_relation(
+        &conn,
+        &drawn.id,
+        CanonLinkPatch {
+            label: Some(Some("first listener".into())),
+            ..CanonLinkPatch::default()
+        },
+    )
+    .unwrap();
+    let offer = undo::last(&conn).unwrap().unwrap();
+    take_back(&mut conn, &offer);
+    assert_eq!(
+        canon::link::get(&conn, &drawn.id)
+            .unwrap()
+            .unwrap()
+            .label
+            .as_deref(),
+        Some("neighbour")
+    );
+
+    actions::canon::unrelate(&conn, &drawn.id).unwrap();
+    let offer = undo::last(&conn).unwrap().unwrap();
+    assert_eq!(offer.action, "undo.canonLink.delete");
+    take_back(&mut conn, &offer);
+    let back = canon::link::get(&conn, &drawn.id)
+        .unwrap()
+        .expect("the same row came back");
+    assert_eq!(back, drawn);
+
+    let offer = undo::last(&conn).unwrap();
+    assert!(offer.is_none(), "an undo was offered for an undo");
+    actions::canon::relate(
+        &conn,
+        NewCanonLink {
+            from_id: wren,
+            to_id: a_card(&conn, "Pashka"),
+            ..NewCanonLink::default()
+        },
+    )
+    .unwrap();
+    let offer = undo::last(&conn).unwrap().unwrap();
+    assert_eq!(offer.action, "undo.canonLink.create");
+    take_back(&mut conn, &offer);
+    assert_eq!(canon::link::for_card(&conn, &otto).unwrap().len(), 1);
 }

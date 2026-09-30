@@ -135,6 +135,9 @@ pub struct About<'a> {
     /// kept on the work: which parts a picture is built from is the question
     /// being asked (ADR 0031).
     pub style_brick_ids: &'a [String],
+    /// The lines a person selected in the text, for an action about a
+    /// selection (`{selection}`).
+    pub selection: Option<&'a str>,
 }
 
 /// Compose `action` of the active profile against `work_id`: the prompt as
@@ -176,6 +179,13 @@ pub fn compose(
                 .param("title", work.title.clone()));
         }
     }
+    // An action about a selection is nothing without one: its prompt would
+    // read an empty `{selection}`.
+    if template.scope() == Scope::Selection
+        && about.selection.map(str::trim).is_none_or(str::is_empty)
+    {
+        return Err(Error::refused("task.needsSelection").param("action", template.label.as_str()));
+    }
     let scene = match (template.scope(), about.scene_id) {
         (Scope::Scene, None) => {
             return Err(Error::refused("task.needsScene").param("action", template.label.as_str()));
@@ -190,8 +200,15 @@ pub fn compose(
             Some(found)
         }
         // A work action started with a scene in hand is about the work: the
-        // scene is not read, and the key does not name it.
-        (Scope::Work, _) => None,
+        // scene is not read, and the key does not name it. So is an action
+        // about selected lines: the lines are the work's.
+        (Scope::Work | Scope::Selection, _) => None,
+        // Composed by `compose_for_card`, against a card of the canon.
+        (Scope::Canon, _) => {
+            return Err(
+                Error::refused("task.isCanonAction").param("action", template.label.as_str())
+            );
+        }
         // A style action is not about a work at all — it is composed by
         // `compose_for_style` against a brick of the dictionary. Reaching
         // here means a caller aimed one at a card, which is a mistake worth
@@ -247,6 +264,7 @@ pub fn compose(
             version_id: about.version_id,
             scene_id: scene.as_ref().map(|s| s.id.as_str()),
             style_brick_ids: about.style_brick_ids,
+            selection: about.selection,
         },
     )?;
 
@@ -291,6 +309,13 @@ pub fn compose(
         Produces::Description => {
             return Err(
                 Error::refused("task.actionAnswersStyle").param("action", template.label.as_str())
+            );
+        }
+        Produces::Canon => prompt.push_str(&crate::canon::proposal::instruction(&profile.config)),
+        // Only an action about a card describes one.
+        Produces::CardPrompt => {
+            return Err(
+                Error::refused("task.actionAnswersCard").param("action", template.label.as_str())
             );
         }
     }
@@ -524,6 +549,145 @@ pub fn prepare_for_style(conn: &Connection, brick_id: &str, action: &str) -> Res
     })
 }
 
+/// What a task about a card of the canon is, as a key: this action, on this
+/// card.
+pub fn card_key(action: &str, note_id: &str) -> String {
+    format!("{action}:card:{note_id}")
+}
+
+/// The card a task's key names - the other half of [`card_key`].
+pub fn card_of_key(key: &str) -> Option<&str> {
+    let mut parts = key.splitn(3, ':');
+    parts.next()?;
+    (parts.next()? == "card").then(|| parts.next()).flatten()
+}
+
+/// Compose `action` against a card of the canon rather than a work (ADR 0043).
+///
+/// Two things are asked of a card: its facts, gathered out of its own free
+/// note, and its description for a picture generator, written from the facts
+/// of the sections its kind says it is described from. Both read the card as
+/// the work's lens reads it - every fact, so a gathered one is not proposed
+/// twice - and the description reads only the settled public facts it will
+/// answer to, with the card's pictures as references.
+pub fn compose_for_card(
+    conn: &Connection,
+    note_id: &str,
+    action: &str,
+) -> Result<(Composed, String)> {
+    let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
+    let template = profile
+        .config
+        .prompts
+        .iter()
+        .find(|prompt| prompt.key == action)
+        .ok_or_else(|| Error::not_found("prompt", action))?;
+    if template.scope() != Scope::Canon {
+        return Err(Error::refused("task.notCanonAction").param("action", template.label.as_str()));
+    }
+    let (card, kind) = crate::canon::fact::card_of(conn, &profile.config, note_id)?;
+    let title = card.title.clone().unwrap_or_default();
+
+    let mut prompt = format!(
+        "The card is “{title}”, a {} of the canon (card `{}`).\n\n",
+        kind.label.as_str().to_lowercase(),
+        card.id
+    );
+    let mut attachments: Vec<PathBuf> = Vec::new();
+    match template.produces() {
+        Produces::CardPrompt => {
+            let mut facts = String::new();
+            for key in &kind.describe_from {
+                for one in crate::canon::fact::in_section(conn, &card.id, key)? {
+                    if one.status == crate::canon::FactStatus::Canon
+                        && one.layer == crate::canon::Layer::Public
+                    {
+                        facts.push_str(&format!("- {}\n", one.body));
+                    }
+                }
+            }
+            if facts.is_empty() {
+                prompt.push_str(
+                    "There are no settled public facts about how it looks yet. Write from its name and say in one line that you had nothing to go on.\n\n",
+                );
+            } else {
+                prompt.push_str(&format!("What is settled about how it looks:\n{facts}\n"));
+            }
+            if let Some(existing) = card.prompt.as_deref() {
+                prompt.push_str(&format!(
+                    "What its description says today, which you are rewriting:\n{existing}\n\n"
+                ));
+            }
+            attachments = crate::asset::for_card(conn, &card.id)?
+                .into_iter()
+                .filter(|picture| matches!(picture.kind.as_str(), "portrait" | "reference"))
+                .map(|picture| PathBuf::from(picture.path))
+                .filter(|path| path.is_file())
+                .collect();
+            prompt.push_str(&template.template);
+            if !attachments.is_empty() {
+                prompt.push_str("\n\nReference pictures of it:\n");
+                for path in &attachments {
+                    prompt.push_str(&format!("{}\n", path.display()));
+                }
+            }
+        }
+        Produces::Canon => {
+            let seen =
+                crate::canon::view::render(conn, &card.id, crate::profile::config::Lens::Work)?;
+            prompt.push_str(&format!("What the card holds now:\n\n{seen}\n\n"));
+            let note = card.body.trim();
+            if note.is_empty() {
+                prompt.push_str("Its free note is empty.\n\n");
+            } else {
+                prompt.push_str(&format!("Its free note:\n\n{note}\n\n"));
+            }
+            prompt.push_str(&template.template);
+            prompt.push_str(&crate::canon::proposal::instruction(&profile.config));
+        }
+        _ => {
+            return Err(
+                Error::refused("task.canonActionShape").param("action", template.label.as_str())
+            );
+        }
+    }
+
+    let prompt = super::waiting::instruct(&prompt);
+    Ok((
+        Composed {
+            prompt,
+            method: template.method().map(str::to_owned),
+            key: card_key(action, &card.id),
+            title: format!("{} · {title}", template.label.as_str()),
+            attachments,
+        },
+        profile.id,
+    ))
+}
+
+/// [`compose_for_card`] with the chat it will be answered in: on no work, for
+/// the reason a style's is - a card belongs to the workspace's world.
+pub fn prepare_for_card(conn: &Connection, note_id: &str, action: &str) -> Result<Prepared> {
+    let (composed, profile_id) = compose_for_card(conn, note_id, action)?;
+    let chat = super::create(
+        conn,
+        &profile_id,
+        super::NewChat {
+            work_id: None,
+            title: Some(composed.title.clone()),
+            action: Some(action.to_owned()),
+            version_id: None,
+        },
+    )?;
+    Ok(Prepared {
+        chat_id: chat.id,
+        prompt: composed.prompt,
+        key: composed.key,
+        title: composed.title,
+        attachments: composed.attachments,
+    })
+}
+
 /// The key of a task about one comment: this action, on this comment. A
 /// second click on the same comment is the same task; another comment's is
 /// not.
@@ -640,7 +804,7 @@ pub fn compose_for_comment(
             Some(id) => version::get(conn, id)?,
             None => None,
         };
-        if let Some(current) = current {
+        if let Some(current) = current.as_ref() {
             let body = current.body.trim();
             if !body.is_empty() {
                 let excerpt: String = body.chars().take(WORK_EXCERPT).collect();
@@ -651,6 +815,26 @@ pub fn compose_for_comment(
                 };
                 prompt.push_str(&format!("\n\nIts text:\n\n{excerpt}{cut}\n"));
             }
+        }
+        // A reply is said in public: it is given the canon a public text may
+        // see and nothing more - the internal layer never reaches it to be
+        // repeated (ADR 0043).
+        if !crate::canon::view::cards(
+            conn,
+            &profile.id,
+            &crate::canon::view::CardFilter::default(),
+        )?
+        .is_empty()
+        {
+            let seen = super::prompt::canon_through(
+                conn,
+                &work,
+                current.as_ref(),
+                crate::profile::config::Lens::Public,
+            )?;
+            prompt.push_str(&format!(
+                "\n\nWhat may be said in public about the world of the channel:\n\n{seen}\n"
+            ));
         }
     }
 
@@ -1769,6 +1953,184 @@ mod version_tests {
                 .contains("exactly as the profile defines them"),
             "{}",
             scored.prompt
+        );
+    }
+
+    #[test]
+    fn a_card_is_described_from_its_settled_public_looks_and_its_pictures() {
+        let (conn, profile_id) = fixtures::workspace();
+        let card = fixtures::card(&conn, &profile_id, "character", "Wren");
+        fixtures::fact(&conn, &card.id, "looks", "Freckles across the nose.");
+        fixtures::fact(&conn, &card.id, "bio", "Born in Petersburg.");
+
+        let (composed, _) = compose_for_card(&conn, &card.id, "describe-card").unwrap();
+        assert!(composed.prompt.contains("Freckles across the nose."));
+        assert!(
+            !composed.prompt.contains("Petersburg"),
+            "the biography went to the generator"
+        );
+        assert_eq!(composed.key, card_key("describe-card", &card.id));
+        assert_eq!(card_of_key(&composed.key), Some(card.id.as_str()));
+        assert!(composed.method.is_some());
+
+        let (gathering, _) = compose_for_card(&conn, &card.id, "gather-card").unwrap();
+        assert!(
+            gathering.prompt.contains("```json"),
+            "the block to answer in is not asked for"
+        );
+
+        assert!(
+            compose(
+                &conn,
+                &fixtures::song(&conn, &profile_id, "x").id,
+                "gather-card",
+                About::default()
+            )
+            .is_err(),
+            "an action about a card was aimed at a work"
+        );
+    }
+
+    #[test]
+    fn an_action_about_a_selection_reads_it_and_refuses_without_one() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Kiln");
+        fixtures::version(&conn, &song.id, "lyrics", "у Льва в подвале печь");
+        let otto = fixtures::card(&conn, &profile_id, "character", "Лев");
+        fixtures::fact(&conn, &otto.id, "identity", "A ceramicist.");
+
+        assert!(compose(&conn, &song.id, "to-canon", About::default()).is_err());
+
+        let composed = compose(
+            &conn,
+            &song.id,
+            "to-canon",
+            About {
+                selection: Some("у Льва в подвале печь"),
+                ..About::default()
+            },
+        )
+        .unwrap();
+        assert!(composed.prompt.contains("у Льва в подвале печь"));
+        assert!(composed.prompt.contains("Лев"), "the canon was not given");
+        assert!(
+            composed.prompt.contains("\"facts\""),
+            "the block to answer in is not asked for"
+        );
+    }
+
+    #[test]
+    fn the_canon_of_a_work_is_its_cards_by_name_and_in_full_those_it_is_about() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Kiln");
+        let lyric = fixtures::version(&conn, &song.id, "lyrics", "Otto lights the kiln");
+        let otto = fixtures::card(&conn, &profile_id, "character", "Otto");
+        fixtures::fact(&conn, &otto.id, "identity", "A ceramicist.");
+        let other = fixtures::card(&conn, &profile_id, "character", "Pashka");
+        fixtures::fact(&conn, &other.id, "identity", "A sound engineer.");
+
+        let work = crate::work::get(&conn, &song.id).unwrap().unwrap();
+        let canon = super::super::prompt::canon_of_work(&conn, &work, Some(&lyric)).unwrap();
+        assert!(canon.contains("Pashka") && canon.contains("Otto"));
+        assert!(
+            canon.contains("A ceramicist."),
+            "the card the text names was not given whole"
+        );
+        assert!(
+            !canon.contains("A sound engineer."),
+            "a card the work is not about was given whole"
+        );
+    }
+
+    /// A card of the canon with one public fact and one internal one.
+    fn otto_with_a_secret(conn: &Connection, profile_id: &str) -> crate::note::Note {
+        let otto = fixtures::card(conn, profile_id, "character", "Otto");
+        fixtures::fact(conn, &otto.id, "identity", "A ceramicist.");
+        crate::canon::fact::create_minted(
+            conn,
+            crate::canon::NewFact {
+                note_id: otto.id.clone(),
+                section: "bio".into(),
+                body: "Lives above the bakery on Mill Lane.".into(),
+                layer: Some(crate::canon::Layer::Internal),
+                ..crate::canon::NewFact::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+        otto
+    }
+
+    #[test]
+    fn a_public_text_reads_the_canon_without_its_internal_layer() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Kiln");
+        let lyric = fixtures::version(&conn, &song.id, "lyrics", "Otto lights the kiln");
+        crate::note::create(
+            &conn,
+            &profile_id,
+            crate::note::NewNote {
+                kind: Some("character".into()),
+                title: Some("Nobody Knows".into()),
+                layer: Some(crate::canon::Layer::Internal),
+                ..crate::note::NewNote::default()
+            },
+        )
+        .unwrap();
+        otto_with_a_secret(&conn, &profile_id);
+        let work = crate::work::get(&conn, &song.id).unwrap().unwrap();
+
+        let rendered = super::super::prompt::for_work(
+            &conn,
+            &work.id,
+            "{canon:public}",
+            super::super::prompt::Context::default(),
+        )
+        .unwrap();
+        assert!(rendered.contains("A ceramicist."), "{rendered}");
+        assert!(!rendered.contains("Mill Lane"), "{rendered}");
+        assert!(
+            !rendered.contains("Nobody Knows"),
+            "a card that publicly does not exist was named: {rendered}"
+        );
+
+        let own = super::super::prompt::canon_of_work(&conn, &work, Some(&lyric)).unwrap();
+        assert!(
+            own.contains("Mill Lane"),
+            "the work reads every layer: {own}"
+        );
+    }
+
+    #[test]
+    fn a_reply_is_given_the_canon_a_public_text_may_see() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Kiln");
+        fixtures::version(&conn, &song.id, "lyrics", "Otto lights the kiln");
+        otto_with_a_secret(&conn, &profile_id);
+        let comment = crate::comment::create_minted(
+            &conn,
+            &profile_id,
+            crate::comment::NewComment {
+                channel: "main".into(),
+                body: "who is Otto?".into(),
+                work_id: Some(song.id.clone()),
+                ..Default::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+
+        let (composed, _) = compose_for_comment(&conn, &comment.id, "reply-to-comment").unwrap();
+
+        assert!(
+            composed.prompt.contains("A ceramicist."),
+            "{}",
+            composed.prompt
+        );
+        assert!(
+            !composed.prompt.contains("Mill Lane"),
+            "the internal layer reached a public reply: {}",
+            composed.prompt
         );
     }
 }

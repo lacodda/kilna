@@ -18,12 +18,78 @@
     "marks": [],
     "note_kinds": [
       {
+        "icon": "user",
         "key": "guest",
-        "label": "Guest"
+        "label": "Guest",
+        "sections": [
+          {
+            "key": "identity",
+            "label": "Who they are",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "voice",
+            "label": "How they speak",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "bio",
+            "label": "Background",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "hint": "What the guest agreed to have said about them",
+            "key": "public",
+            "label": "What may be said",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "hint": "Subjects the guest asked to keep out",
+            "key": "bans",
+            "label": "Never",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "hint": "Counted from scenes, texts, covers and sources",
+            "key": "where",
+            "label": "Where it appears",
+            "shape": "appearances"
+          }
+        ]
       },
       {
+        "icon": "list",
         "key": "segment",
-        "label": "Segment"
+        "label": "Segment",
+        "sections": [
+          {
+            "key": "identity",
+            "label": "What it is",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "rules",
+            "label": "How it runs"
+          },
+          {
+            "hint": "Counted from scenes, texts, covers and sources",
+            "key": "where",
+            "label": "Where it appears",
+            "shape": "appearances"
+          }
+        ]
       },
       {
         "key": "note",
@@ -82,6 +148,16 @@
         "produces": "reply",
         "scope": "comment",
         "template": "Write the reply."
+      },
+      {
+        "description": "The card's free note, proposed as facts filed under its sections.",
+        "icon": "list",
+        "key": "gather-card",
+        "label": "Gather facts from the note",
+        "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
+        "produces": "canon",
+        "scope": "canon",
+        "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact."
       }
     ],
     "rhythm": {

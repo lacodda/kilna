@@ -31,4 +31,8 @@ detail: string,
 /**
  * Rank within its kind — lower sorts first.
  */
-rank: number, };
+rank: number, 
+/**
+ * The card a fact belongs to: what opening the hit shows.
+ */
+card_id?: string, };

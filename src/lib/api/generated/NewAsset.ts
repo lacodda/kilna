@@ -9,6 +9,16 @@ export type NewAsset = { work_id?: string, release_id?: string,
  */
 style_brick_id?: string, 
 /**
- * `attachment` when omitted.
+ * The card of the canon this is a picture of.
+ */
+note_id?: string, 
+/**
+ * The fact of the card it shows. Names the card by itself: a picture of
+ * an outfit is a picture of the person wearing it.
+ */
+canon_fact_id?: string, 
+/**
+ * `attachment` when omitted; on a card, one of its picture roles
+ * (`reference` when omitted).
  */
 kind?: string, label?: string, };

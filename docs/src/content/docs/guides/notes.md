@@ -1,15 +1,19 @@
 ---
 title: Notes
-description: Ideas, lore and references in one place — written on their own or about a work, with tags, checklists, and a way to grow an idea into a work.
+description: Ideas and references in one place — written on their own or about a work, with tags, checklists, and a way to grow an idea into a work.
 ---
 
 A note is anything worth keeping that is not a work: an idea you have not
-started, a piece of lore, a reference, a list of things to check. kilna keeps
-them as one kind of thing with a **kind** — *Character*, *Location*, *Lore*,
-*Note* in the Studio profile — rather than a separate place for each. The
+started, a reference, a list of things to check. kilna keeps them as one
+kind of thing with a **kind** rather than a separate place for each. The
 kinds are words of the craft and live in the
 [profile document](/kilna/reference/profile-document/), so a craft that works
 differently names its own.
+
+A kind the profile gives sections is a kind of **card**: the characters,
+places and lore of the Studio profile are cards of the
+[canon](/kilna/guides/the-canon/), kept on the Canon screen as facts, with
+the note as each card's free text. The Notes screen keeps the rest.
 
 ## The Notes screen
 

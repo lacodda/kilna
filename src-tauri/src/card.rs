@@ -204,6 +204,7 @@ mod tests {
                 title: None,
                 work_id: Some(song.clone()),
                 tags: vec![],
+                ..Default::default()
             },
         )
         .unwrap();

@@ -202,6 +202,9 @@ pub struct TaskAbout {
     /// The style bricks picked for this run, in the order they were picked.
     #[serde(default)]
     pub style_brick_ids: Option<Vec<String>>,
+    /// The lines selected in the text, for an action about a selection.
+    #[serde(default)]
+    pub selection: Option<String>,
 }
 
 impl TaskAbout {
@@ -217,6 +220,7 @@ impl TaskAbout {
             block: self.block.as_deref(),
             attachments,
             style_brick_ids,
+            selection: self.selection.as_deref(),
         }
     }
 }
@@ -310,6 +314,36 @@ pub fn start_style_task(
         return Err(Error::AlreadyRunning);
     }
     let prepared = assistant::task::prepare_for_style(&state.conn(), &id, &action)?;
+    launch(&app, state, prepared)
+}
+
+/// What an action on a card of the canon would send, without sending it.
+#[tauri::command]
+pub fn preview_card_task(
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+) -> Result<assistant::task::Composed> {
+    assistant::task::compose_for_card(&state.conn(), &id, &action).map(|(composed, _)| composed)
+}
+
+/// Gather a card's facts out of its note, or describe it for a picture
+/// generator: the same machinery a work's action uses, aimed at the canon.
+#[tauri::command]
+pub fn start_card_task(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+) -> Result<StartedTask> {
+    let state = state.inner();
+    if state
+        .runs()
+        .task_running(&assistant::task::card_key(&action, &id))
+    {
+        return Err(Error::AlreadyRunning);
+    }
+    let prepared = assistant::task::prepare_for_card(&state.conn(), &id, &action)?;
     launch(&app, state, prepared)
 }
 

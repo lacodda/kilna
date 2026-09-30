@@ -79,11 +79,12 @@ The names show in the **About** column, and a chip appears above the
 board for everyone the board names: click one and the board narrows to
 **every scene with her in it**.
 
-A character is a note, not a table of its own: its own editing screen
-comes later and edits that same note. Deleting a scene takes its
-references with it and leaves the notes alone; deleting a character takes
-her out of the scenes, and restoring her from the trash puts her back
-into them.
+A character is a card of the [canon](/kilna/guides/the-canon/) — a note
+with facts. An action that reads `{scene}` is given each card by its
+description for a picture generator, not by its name: a model does not
+know who she is. Deleting a scene takes its references with it and leaves
+the cards alone; deleting a character takes her out of the scenes, and
+restoring her from the trash puts her back into them.
 
 ### Framing the board from the text
 

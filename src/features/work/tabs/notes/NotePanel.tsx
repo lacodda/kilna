@@ -4,11 +4,13 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowUpRight, X } from 'lucide-react'
 import { createNote, deleteNote, updateNote } from '@/lib/api/notes'
+import { cardKindOf } from '@/lib/canon'
 import { toggleTask } from '@/lib/checklist'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
@@ -38,6 +40,7 @@ export function NotePanel({ workId }: Props) {
   const client = useQueryClient()
   const [body, setBody] = useState('')
   const [tags, setTags] = useState('')
+  const { config } = useProfile()
 
   const notes = useQuery(queries.notesFor(workId))
 
@@ -140,6 +143,16 @@ export function NotePanel({ workId }: Props) {
                   className={cn(panelVariants(), 'flex items-start gap-2.5 px-3 py-2.5')}
                 >
                   <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    {/* A hero of this work is a card of the canon: named, and
+                        opened where its facts are (ADR 0043). */}
+                    {cardKindOf(config, note.kind) !== undefined && (
+                      <p className="flex items-center gap-1.5 text-xs">
+                        <Chip variant="accent">
+                          {sayLabel(cardKindOf(config, note.kind)?.label)}
+                        </Chip>
+                        <b className="font-semibold">{note.title}</b>
+                      </p>
+                    )}
                     {/* Rendered, not shown raw: a note is where a table of images
                         or a list of phrases lands, and pipes and asterisks are not
                         what its author wrote it to be read as. Line breaks inside a
@@ -164,9 +177,23 @@ export function NotePanel({ workId }: Props) {
                   <Button
                     variant="icon"
                     size="icon-sm"
-                    title={t('notes.openInNotes')}
-                    aria-label={t('notes.openInNotes')}
-                    onClick={() => void navigate(`/notes/${note.id}`)}
+                    title={
+                      cardKindOf(config, note.kind) !== undefined
+                        ? t('canon.openInCanon')
+                        : t('notes.openInNotes')
+                    }
+                    aria-label={
+                      cardKindOf(config, note.kind) !== undefined
+                        ? t('canon.openInCanon')
+                        : t('notes.openInNotes')
+                    }
+                    onClick={() =>
+                      void navigate(
+                        cardKindOf(config, note.kind) !== undefined
+                          ? `/canon/${note.id}`
+                          : `/notes/${note.id}`,
+                      )
+                    }
                   >
                     <ArrowUpRight aria-hidden />
                   </Button>

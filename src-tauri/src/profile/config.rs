@@ -69,8 +69,18 @@ pub struct ProfileConfig {
     /// scene with her in it" a question the board can answer. An optional key
     /// added in format 2 — a document without it is the same document, and a
     /// note keeps taking any kind a person writes.
+    ///
+    /// A kind that names `sections` is a kind of card of the canon (v0.84,
+    /// ADR 0043): a note of it is a card whose knowledge is facts, and it
+    /// lives on the Canon screen rather than among the notes.
     #[serde(default)]
-    pub note_kinds: Vec<Kind>,
+    pub note_kinds: Vec<NoteKind>,
+    /// The kinds a relation between two cards of the canon can be: family, a
+    /// neighbour, a pet, a partner. The craft's words, like the kinds of note;
+    /// the words each side uses for the other are the relation's own. Added
+    /// in v0.84 - a document without it is the same document.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub relation_kinds: Vec<Kind>,
     /// The types a style brick can be — an image style, a character, an
     /// environment, a camera angle. The workspace's one dictionary of the
     /// parts a picture prompt is built from (ADR 0031).
@@ -124,7 +134,9 @@ pub struct RawProfileConfig {
     #[serde(default)]
     pub catalogue_columns_by_kind: Option<BTreeMap<String, Vec<String>>>,
     #[serde(default)]
-    pub note_kinds: Vec<Kind>,
+    pub note_kinds: Vec<NoteKind>,
+    #[serde(default)]
+    pub relation_kinds: Vec<Kind>,
     #[serde(default)]
     pub style_types: Vec<StyleType>,
     #[serde(default)]
@@ -175,6 +187,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             catalogue_columns: raw.catalogue_columns,
             catalogue_columns_by_kind: raw.catalogue_columns_by_kind,
             note_kinds: raw.note_kinds,
+            relation_kinds: raw.relation_kinds,
             style_types: raw.style_types,
             overview: raw.overview,
         }
@@ -527,6 +540,18 @@ impl WorkKind {
                             "{at} reads `{{{name}}}`, but this kind has no storyboard"
                         ));
                     }
+                    if crate::assistant::prompt::canon_lens(&name)
+                        .is_some_and(|lens| lens != Lens::Public)
+                    {
+                        problems.push(format!(
+                            "{at} reads `{{{name}}}`, but a release goes out in public: it reads `{{canon:public}}`, the canon a public text may see"
+                        ));
+                    }
+                    if name == "selection" {
+                        problems.push(format!(
+                            "{at} reads `{{selection}}`, which only an action started on selected lines is given"
+                        ));
+                    }
                     if name == "scene" {
                         problems.push(format!(
                             "{at} reads `{{scene}}`, which is one row of a board; a release is about the whole work, so it reads `{{scenes}}`"
@@ -835,6 +860,238 @@ impl Kind {
         Self {
             key: key.to_owned(),
             label: Label::from(label),
+        }
+    }
+}
+
+/// A kind a note can take, and - when it names sections - a kind of card of
+/// the canon (ADR 0043).
+///
+/// A plain kind is what every kind was before v0.84: a key and a word. A kind
+/// with sections is a character, a place, the channel: its notes are cards
+/// whose knowledge is facts filed under those sections, read by the Canon
+/// screen, by the assistant and by the tasks that draw on the world. The body
+/// of such a note stays - as the card's free note.
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+pub struct NoteKind {
+    pub key: String,
+    pub label: Label,
+    /// Name of the glyph the kind is drawn with, from the fixed set the
+    /// window knows. Carried, never read here.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+    /// What a card of this kind knows, section by section, in the order the
+    /// card reads. Empty: a plain note, not a card.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sections: Vec<CanonSection>,
+    /// One card of this kind per workspace - the channel, the root of the
+    /// world everything else hangs from. A second is refused.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub root: bool,
+    /// The sections the generator's description of the card is written
+    /// from: a person's looks, not their biography. The description says it
+    /// is stale when a fact of these sections changes. Empty: the card is
+    /// described by hand and never goes stale.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub describe_from: Vec<String>,
+}
+
+impl NoteKind {
+    pub fn new(key: &str, label: &str) -> Self {
+        Self {
+            key: key.to_owned(),
+            label: Label::from(label),
+            icon: None,
+            sections: Vec::new(),
+            root: false,
+            describe_from: Vec::new(),
+        }
+    }
+
+    /// Whether a note of this kind is a card of the canon.
+    pub fn is_card(&self) -> bool {
+        !self.sections.is_empty()
+    }
+
+    pub fn section(&self, key: &str) -> Option<&CanonSection> {
+        self.sections.iter().find(|section| section.key == key)
+    }
+
+    /// Everything wrong with this kind's sections, each line naming its place.
+    fn validate_into(&self, problems: &mut Vec<String>, place: &str, kinds: &[NoteKind]) {
+        unique(
+            problems,
+            &format!("{place}: section"),
+            self.sections.iter().map(|s| s.key.clone()),
+        );
+        if self.root && !self.is_card() {
+            problems.push(format!(
+                "{place} is the root of the canon but names no sections"
+            ));
+        }
+        for key in &self.describe_from {
+            match self.section(key) {
+                None => problems.push(format!(
+                    "{place} is described from a section `{key}` it does not have"
+                )),
+                Some(section) if !section.shape.holds_words() => problems.push(format!(
+                    "{place} is described from `{key}`, a section that holds no statements"
+                )),
+                Some(_) => {}
+            }
+        }
+        let mut gathers_the_rest = 0;
+        for section in &self.sections {
+            let at = format!("{place} section `{}`", section.key);
+            if section.shape != SectionShape::Relations && !section.kinds.is_empty() {
+                problems.push(format!(
+                    "{at} names kinds of card, which only a section of relations gathers by"
+                ));
+            }
+            if section.shape == SectionShape::Relations {
+                if section.kinds.is_empty() {
+                    gathers_the_rest += 1;
+                }
+                for kind in &section.kinds {
+                    if !kinds.iter().any(|one| &one.key == kind && one.is_card()) {
+                        problems.push(format!(
+                            "{at} gathers relations to `{kind}`, which is not a kind of card"
+                        ));
+                    }
+                }
+            }
+        }
+        if gathers_the_rest > 1 {
+            problems.push(format!(
+                "{place} has {gathers_the_rest} sections of relations that name no kinds; one gathers the rest"
+            ));
+        }
+    }
+}
+
+/// One section of a card: what it is called, what shape its entries take, and
+/// which outward tasks may read it.
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+pub struct CanonSection {
+    pub key: String,
+    pub label: Label,
+    /// A line under the section's name: what goes here, and what reads it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hint: Option<Label>,
+    /// What an entry of the section is. Statements when absent.
+    #[serde(default, skip_serializing_if = "SectionShape::is_facts")]
+    pub shape: SectionShape,
+    /// The outward tasks that read this section - a cover, a public text. A
+    /// work itself reads every section, so `work` need not be named; a
+    /// section naming none is read by the work alone.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lenses: Vec<Lens>,
+    /// For a section of relations: the kinds of card it gathers - the events
+    /// a person took part in apart from the people around them. Empty
+    /// gathers every relation no other section of the card claims.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub kinds: Vec<String>,
+}
+
+impl CanonSection {
+    pub fn new(key: &str, label: &str) -> Self {
+        Self {
+            key: key.to_owned(),
+            label: Label::from(label),
+            hint: None,
+            shape: SectionShape::Facts,
+            lenses: Vec::new(),
+            kinds: Vec::new(),
+        }
+    }
+
+    /// Whether `lens` reads this section.
+    pub fn read_by(&self, lens: Lens) -> bool {
+        lens == Lens::Work || self.lenses.contains(&lens)
+    }
+}
+
+/// What an entry of a section is.
+///
+/// Every shape but the last two is rows of facts; the shape says what a fact
+/// carries beside its words and how the card draws it. Relations and
+/// appearances are not written into at all: the first is the graph of the
+/// card's relations, the second is counted from the works.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+pub enum SectionShape {
+    /// Short statements.
+    #[default]
+    Facts,
+    /// Named values: a caption's slot and its words, a template's parts.
+    Slots,
+    /// Signature details: a name, a prompt template, where it acts, and
+    /// whether it is on by default.
+    Details,
+    /// Colours, each with a name.
+    Palette,
+    /// Variants of a mark: a code, a meaning, a description, the files.
+    Marks,
+    /// House styles: bricks of the style dictionary.
+    Styles,
+    /// The card's relations to other cards.
+    Relations,
+    /// Where the card appears, counted from scenes, texts and sources.
+    Appearances,
+}
+
+impl SectionShape {
+    fn is_facts(&self) -> bool {
+        *self == SectionShape::Facts
+    }
+
+    /// Whether a fact can be written into a section of this shape.
+    pub fn holds_facts(self) -> bool {
+        !matches!(self, SectionShape::Relations | SectionShape::Appearances)
+    }
+
+    /// Whether its entries are statements a description can be written from.
+    pub fn holds_words(self) -> bool {
+        matches!(self, SectionShape::Facts | SectionShape::Slots)
+    }
+}
+
+/// An outward task a card is read for, and what it may see of it.
+///
+/// Fixed here rather than named by the profile, because each has a reader in
+/// the code - the cover constructor, the actions over a work's text, the text
+/// a release goes out under - and the rule of the layers is the same for
+/// every craft: a cover and a public text see the public layer only, a work
+/// sees everything. What a craft decides is which sections a cover and a
+/// public text read (`CanonSection::lenses`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+pub enum Lens {
+    /// A picture: a cover, a frame.
+    Cover,
+    /// The work itself: a lyric, a chapter, a script.
+    Work,
+    /// What is said in public: a release's text, a reply to a comment.
+    Public,
+}
+
+impl Lens {
+    pub const ALL: [Lens; 3] = [Lens::Cover, Lens::Work, Lens::Public];
+
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw.trim() {
+            "cover" => Some(Lens::Cover),
+            "work" => Some(Lens::Work),
+            "public" => Some(Lens::Public),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Lens::Cover => "cover",
+            Lens::Work => "work",
+            Lens::Public => "public",
         }
     }
 }
@@ -1490,6 +1747,32 @@ impl ProfileConfig {
         self.style_types.iter().find(|kind| kind.key == key)
     }
 
+    /// The kind a note is of, by key.
+    pub fn note_kind(&self, key: &str) -> Option<&NoteKind> {
+        self.note_kinds.iter().find(|kind| kind.key == key)
+    }
+
+    /// The kind of card a note of `key` is, when it is one: a kind the
+    /// profile names with sections (ADR 0043).
+    pub fn card_kind(&self, key: &str) -> Option<&NoteKind> {
+        self.note_kind(key).filter(|kind| kind.is_card())
+    }
+
+    /// The keys of every kind of card, in the order the profile lists them.
+    pub fn card_kinds(&self) -> Vec<&str> {
+        self.note_kinds
+            .iter()
+            .filter(|kind| kind.is_card())
+            .map(|kind| kind.key.as_str())
+            .collect()
+    }
+
+    /// A kind of card, or the refusal that says the kind is not one.
+    pub fn require_card_kind(&self, key: &str) -> crate::Result<&NoteKind> {
+        self.card_kind(key)
+            .ok_or_else(|| crate::Error::refused("canon.unknownKind").param("kind", key))
+    }
+
     /// The stops of the dial: the craft's own, or the line's when it names none.
     ///
     /// Answered here rather than at each caller, so a screen and an exporter
@@ -1617,6 +1900,34 @@ impl ProfileConfig {
             kind.validate_into(&mut problems, &place);
         }
 
+        unique(
+            &mut problems,
+            "note kind",
+            self.note_kinds.iter().map(|k| k.key.clone()),
+        );
+        unique(
+            &mut problems,
+            "relation kind",
+            self.relation_kinds.iter().map(|k| k.key.clone()),
+        );
+        let roots: Vec<&str> = self
+            .note_kinds
+            .iter()
+            .filter(|kind| kind.root)
+            .map(|kind| kind.key.as_str())
+            .collect();
+        if roots.len() > 1 {
+            problems.push(format!(
+                "the canon has one root, and {} are named: {}",
+                roots.len(),
+                roots.join(", ")
+            ));
+        }
+        for (index, kind) in self.note_kinds.iter().enumerate() {
+            let place = format!("note kind {} (`{}`)", index + 1, kind.key);
+            kind.validate_into(&mut problems, &place, &self.note_kinds);
+        }
+
         if let Some(rhythm) = &self.rhythm {
             if rhythm.every_days == 0 {
                 problems.push("the rhythm must be at least one day".into());
@@ -1646,7 +1957,8 @@ impl ProfileConfig {
     /// its text placeholder and sent critiques of nothing for a month.
     fn validate_prompts(&self, problems: &mut Vec<String>) {
         use crate::assistant::prompt::{
-            COMMENT_SCOPE, Produces, SCENE_SCOPE, STYLE_SCOPE, Scope, is_known_placeholder,
+            CANON_SCOPE, COMMENT_SCOPE, Produces, SCENE_SCOPE, SELECTION_SCOPE, STYLE_SCOPE, Scope,
+            is_known_placeholder,
         };
 
         unique(
@@ -1671,16 +1983,18 @@ impl ProfileConfig {
                 if scope != SCENE_SCOPE
                     && scope != STYLE_SCOPE
                     && scope != COMMENT_SCOPE
+                    && scope != CANON_SCOPE
+                    && scope != SELECTION_SCOPE
                     && scope != "work"
                 {
                     problems.push(format!(
-                        "{place}: `scope` is `work`, `scene`, `style` or `comment`, not `{scope}`"
+                        "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment` or `canon`, not `{scope}`"
                     ));
                 }
             }
             if !prompt.produces_is_known() {
                 problems.push(format!(
-                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment` or `reply`, not `{}`",
+                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment`, `reply`, `description`, `canon` or `card-prompt`, not `{}`",
                     prompt.produces.as_deref().unwrap_or_default().trim()
                 ));
             }
@@ -1748,6 +2062,15 @@ impl ProfileConfig {
                         "{place} reads `{{scene}}` but is not about a scene: give it `\"scope\": \"scene\"`"
                     ));
                 }
+                // A card is given whole, ahead of the template, and the
+                // template goes as written: a placeholder in it would reach
+                // the model as braces.
+                Scope::Canon if !placeholders.is_empty() => {
+                    problems.push(format!(
+                        "{place} is about a card, which it is given whole: it reads no placeholders, and `{{{}}}` would be sent as written",
+                        placeholders[0]
+                    ));
+                }
                 _ => {}
             }
 
@@ -1790,11 +2113,47 @@ impl ProfileConfig {
                         "{place} produces `description`, which only an action about a style can: give it `\"scope\": \"style\"`"
                     ));
                 }
+                Produces::CardPrompt if prompt.scope() != Scope::Canon => {
+                    problems.push(format!(
+                        "{place} produces `card-prompt`, which only an action about a card can: give it `\"scope\": \"canon\"`"
+                    ));
+                }
+                Produces::Canon
+                    if matches!(prompt.scope(), Scope::Scene | Scope::Style | Scope::Comment) =>
+                {
+                    problems.push(format!(
+                        "{place} produces `canon`, which an action about a work, a selection or a card can"
+                    ));
+                }
                 Produces::Score
                 | Produces::Prose
                 | Produces::Comment
                 | Produces::Reply
-                | Produces::Description => {}
+                | Produces::Description
+                | Produces::Canon
+                | Produces::CardPrompt => {}
+            }
+            // An action about a card gathers facts or describes it; anything
+            // else it answered would have nowhere to go.
+            if prompt.scope() == Scope::Canon
+                && !matches!(prompt.produces(), Produces::Canon | Produces::CardPrompt)
+            {
+                problems.push(format!(
+                    "{place} is about a card and must produce `canon` or `card-prompt`"
+                ));
+            }
+            // An action about a selection reads it; one that does not would
+            // send the same prompt whatever was selected.
+            let reads_selection = placeholders.iter().any(|name| name == "selection");
+            if prompt.scope() == Scope::Selection && !reads_selection {
+                problems.push(format!(
+                    "{place} is about a selection but never reads `{{selection}}`"
+                ));
+            }
+            if prompt.scope() != Scope::Selection && reads_selection {
+                problems.push(format!(
+                    "{place} reads `{{selection}}` but is not about one: give it `\"scope\": \"selection\"`"
+                ));
             }
             // An action about a style brick describes it; an answer of any
             // other shape has nowhere to go - the rule an action about a
@@ -2562,6 +2921,35 @@ mod tests {
     }
 
     #[test]
+    fn a_release_field_reads_the_canon_only_as_a_public_text_may() {
+        let config = audio_fields(vec![
+            ReleaseField::new("title", "Title", ReleaseFieldType::Line).from_template("{title}"),
+            ReleaseField::new("description", "Description", ReleaseFieldType::Text)
+                .from_template("{canon}"),
+            ReleaseField::new("tags", "Tags", ReleaseFieldType::Tags)
+                .from_template("{canon:cover} {selection}"),
+            ReleaseField::new("pinned", "Pinned", ReleaseFieldType::Text)
+                .from_template("{canon:public}"),
+        ]);
+
+        let problems = config.validate().join("\n");
+
+        assert!(
+            problems.contains("reads `{canon}`, but a release goes out in public"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("reads `{canon:cover}`, but a release goes out in public"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("reads `{selection}`, which only an action"),
+            "{problems}"
+        );
+        assert!(!problems.contains("`{canon:public}`, but"), "{problems}");
+    }
+
+    #[test]
     fn a_release_field_is_held_to_the_roles_its_own_kind_has() {
         // `plot` is a role of the video kinds, not of a song — and the audio
         // release belongs to the song. An action naming no kinds would be
@@ -2836,6 +3224,91 @@ mod tests {
                 .iter()
                 .any(|p| p.contains("work kind `poem` the profile does not have")),
             "{problems:?}"
+        );
+    }
+
+    #[test]
+    fn the_canon_of_a_profile_is_checked_at_save() {
+        let mut config = studio();
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
+
+        let mut second_root = NoteKind::new("brand", "Brand");
+        second_root.root = true;
+        second_root.sections = vec![CanonSection::new("identity", "General")];
+        config.note_kinds.push(second_root);
+        let mut crooked = NoteKind::new("prop", "Prop");
+        crooked.sections = vec![{
+            let mut relations = CanonSection::new("owners", "Owners");
+            relations.shape = SectionShape::Relations;
+            relations.kinds = vec!["note".into()];
+            relations
+        }];
+        crooked.describe_from = vec!["looks".into()];
+        config.note_kinds.push(crooked);
+
+        let problems = config.validate().join("\n");
+        assert!(problems.contains("one root"), "{problems}");
+        assert!(
+            problems.contains("`note`, which is not a kind of card"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("described from a section `looks`"),
+            "{problems}"
+        );
+    }
+
+    #[test]
+    fn an_action_about_a_card_or_a_selection_is_held_to_its_shape() {
+        let mut config = studio();
+        let action = |key: &str, scope: Option<&str>, produces: Option<&str>, template: &str| {
+            let mut prompt = config.prompts[0].clone();
+            prompt.key = key.into();
+            prompt.scope = scope.map(str::to_owned);
+            prompt.produces = produces.map(str::to_owned);
+            prompt.template = template.into();
+            prompt.kinds = Vec::new();
+            prompt
+        };
+        let added = vec![
+            action("card-scores", Some("canon"), Some("score"), "Judge it."),
+            action(
+                "loose-selection",
+                Some("selection"),
+                Some("canon"),
+                "{title}",
+            ),
+            action("stray-selection", None, None, "{selection}"),
+            action("stray-describe", None, Some("card-prompt"), "Describe."),
+            action(
+                "card-by-title",
+                Some("canon"),
+                Some("canon"),
+                "About {title}.",
+            ),
+        ];
+        config.prompts.extend(added);
+
+        let problems = config.validate().join("\n");
+        assert!(
+            problems.contains("`card-scores`) is about a card"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("`loose-selection`) is about a selection but never reads"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("`stray-selection`) reads `{selection}` but is not about one"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("`stray-describe`) produces `card-prompt`"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("`card-by-title`) is about a card, which it is given whole"),
+            "{problems}"
         );
     }
 }

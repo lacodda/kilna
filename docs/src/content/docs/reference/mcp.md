@@ -40,7 +40,8 @@ it, it opens the one the window uses.
 | `calendar` | Every release with a date, in calendar order; `from` starts at a day. |
 | `notes` | Notes, all of them or one work's. |
 | `scenes` | The storyboard of a work, in order: each scene's number, section, seconds, kind of shot, description and prompt blocks. The shared context is the `context` role — read it with `text`. |
-| `search` | Works, versions, notes and replies by text; every hit names its work. |
+| `canon` | The [canon](/kilna/guides/the-canon/): without arguments, every card — id, kind, name, aliases, layer, the work it lives at, how many facts, drafts and live zones — and the kinds of card with their sections. With `card` (an id, or an exact name or alias), that card whole: its facts by section, each with its layer, status, source, time in the world and the tasks that may read it; its relations; where it appears; its description for a picture generator and whether it is stale. `lens` — `cover`, `work` or `public` — narrows the card to what that task may read, by the same rule the window dims by; a card a lens cannot see answers that it does not exist. `query` searches the facts; `timeline` lists the facts dated in the world, earliest first. |
+| `search` | Works, versions, notes, facts and replies by text; every hit names its work or its card. |
 
 A work is named by id, or by its exact title. A title two works share is
 refused with the ids to choose from, rather than guessed.
@@ -60,6 +61,7 @@ proposals apply these:
 | `propose_version` | The text of a new version in a role, with a note on what changed. **Insert as version** keeps it, verbatim, under that role and not current; **Choose role…** opens the dialog to change the role, name it or make it current on the way in. |
 | `propose_score` | Marks along the kind's axes, checked the way the assistant's own are: unknown axes are named, marks are clamped to the scale. **Apply** writes the snapshot, judged by the agent — its name is the score's rater. |
 | `propose_note` | A note, on a work or on nothing in particular. **Add as note** keeps it. |
+| `propose_canon` | Cards, facts and relations for the [canon](/kilna/guides/the-canon/). A fact is an `add` to a card (by id, name, or the `handle` of a card proposed in the same call), a `refine` of a fact's id, or a `retire` with its reason; one that contradicts the canon says which fact in `contradicts`. `work` is where the facts were read from: every fact with no other source cites it, with the line in `line`, and a card with `on_work: true` lives at it. The message lists every item under a box, with the facts it contradicts beside it; **Keep all** writes the package, or untick what you do not want and keep the rest. A fact kept from a proposal is a draft — the works read it, a cover and a public text do not — until you settle it; one proposed as `open` stays a live zone. An item the canon has no place for — a kind or a section it does not have, a card it cannot find — is named in the answer and left out. |
 
 An applied proposal stays marked in the chat — *Inserted*, *Scored*,
 *Created*, with a link to the work a package made — and cannot be applied

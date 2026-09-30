@@ -236,6 +236,9 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             &profile.id,
             &NoteFilter {
                 work_id: Some(work.id.clone()),
+                // A hero of the work is a card of the canon, with a page of
+                // its own under `canon/`.
+                canon: Some(false),
                 ..Default::default()
             },
         )?;
@@ -270,10 +273,17 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
     }
 
     // Loose notes — those not attached to a work — would otherwise be lost.
-    let loose: Vec<_> = note::list(conn, &profile.id, &NoteFilter::default())?
-        .into_iter()
-        .filter(|note| note.work_id.is_none())
-        .collect();
+    let loose: Vec<_> = note::list(
+        conn,
+        &profile.id,
+        &NoteFilter {
+            canon: Some(false),
+            ..NoteFilter::default()
+        },
+    )?
+    .into_iter()
+    .filter(|note| note.work_id.is_none())
+    .collect();
     if !loose.is_empty() {
         let mut page = String::from("# Notes\n\n");
         for note in &loose {
@@ -301,6 +311,10 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         files += 1;
     }
 
+    // The canon, a page per card: the facts by section with their layer,
+    // status, source and time, the relations, and the free note.
+    files += canon_pages(conn, &profile.id, &profile.config, directory)?;
+
     // The profile itself, so the vocabulary the export speaks in is legible.
     std::fs::write(
         directory.join("profile.json"),
@@ -315,7 +329,133 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
     })
 }
 
-/// One comment as a list item: who, where, when, where it stands, the words
+/// Write a page per card of the canon into `canon/`, and say how many.
+fn canon_pages(
+    conn: &Connection,
+    profile_id: &str,
+    config: &crate::profile::config::ProfileConfig,
+    directory: &Path,
+) -> Result<usize> {
+    let cards =
+        crate::canon::view::cards(conn, profile_id, &crate::canon::view::CardFilter::default())?;
+    if cards.is_empty() {
+        return Ok(0);
+    }
+    let canon_dir = directory.join("canon");
+    std::fs::create_dir_all(&canon_dir)?;
+    for summary in &cards {
+        let card = crate::canon::view::card(conn, &summary.id)?;
+        let kind = config.card_kind(&card.card.kind);
+        let title = card.card.title.clone().unwrap_or_default();
+        let mut page = format!(
+            "---\nformat: {FORMAT}\nkind: {}\nlayer: {}\n",
+            card.card.kind,
+            card.card.layer.as_str()
+        );
+        if !card.card.aliases.is_empty() {
+            page.push_str(&format!("aliases: {}\n", card.card.aliases.join(", ")));
+        }
+        if let Some(work) = &card.work_title {
+            page.push_str(&format!("work: {work}\n"));
+        }
+        page.push_str(&format!("---\n\n# {title}\n\n"));
+        if let Some(prompt) = &card.card.prompt {
+            page.push_str(&format!("For pictures: {prompt}\n\n"));
+        }
+        let sections: Vec<(String, String)> = match kind {
+            Some(kind) => kind
+                .sections
+                .iter()
+                .map(|s| (s.key.clone(), s.label.as_str().to_owned()))
+                .collect(),
+            None => Vec::new(),
+        };
+        for (key, label) in &sections {
+            let facts: Vec<_> = card
+                .facts
+                .iter()
+                .filter(|f| &f.fact.section == key)
+                .collect();
+            let relations: Vec<_> = card
+                .relations
+                .iter()
+                .filter(|r| r.section.as_deref() == Some(key.as_str()))
+                .collect();
+            if facts.is_empty() && relations.is_empty() {
+                continue;
+            }
+            page.push_str(&format!("## {label}\n\n"));
+            for read in facts {
+                push_fact(&mut page, &read.fact);
+            }
+            for relation in relations {
+                page.push_str(&format!(
+                    "- {} [{}]{}\n",
+                    relation.other_title.clone().unwrap_or_default(),
+                    relation.link.layer.as_str(),
+                    relation
+                        .label
+                        .as_deref()
+                        .map(|label| format!(" — {label}"))
+                        .unwrap_or_default()
+                ));
+            }
+            page.push('\n');
+        }
+        // Facts under a section the profile no longer names are kept too.
+        let orphans: Vec<_> = card
+            .facts
+            .iter()
+            .filter(|f| !sections.iter().any(|(key, _)| key == &f.fact.section))
+            .collect();
+        if !orphans.is_empty() {
+            page.push_str("## Other\n\n");
+            for read in orphans {
+                push_fact(&mut page, &read.fact);
+            }
+            page.push('\n');
+        }
+        if !card.card.body.trim().is_empty() {
+            page.push_str(&format!("## Note\n\n{}\n", card.card.body.trim()));
+        }
+        std::fs::write(
+            canon_dir.join(format!("{}.md", slug(&title, &card.card.id))),
+            page,
+        )?;
+    }
+    Ok(cards.len())
+}
+
+/// One fact as a list item: the layer, the words, and what stands beside
+/// them - its status, when it happened, where it came from.
+fn push_fact(page: &mut String, fact: &crate::canon::Fact) {
+    page.push_str(&format!("- [{}] {}", fact.layer.as_str(), fact.body));
+    let mut beside = Vec::new();
+    if fact.status != crate::canon::FactStatus::Canon {
+        beside.push(fact.status.as_str().to_owned());
+    }
+    if let Some(reason) = &fact.retired_reason {
+        beside.push(format!("because {reason}"));
+    }
+    if let Some(when) = &fact.when {
+        if let Some(words) = when.label.as_deref().or(when.sort.as_deref()) {
+            beside.push(words.to_owned());
+        }
+    }
+    if let Some(source) = &fact.source {
+        let mut said = source.label.clone().unwrap_or_default();
+        if let Some(line) = &source.line {
+            said.push_str(&format!(": «{line}»"));
+        }
+        beside.push(said);
+    }
+    if !beside.is_empty() {
+        page.push_str(&format!(" _({})_", beside.join("; ")));
+    }
+    page.push('\n');
+}
+
+// One comment as a list item: who, where, when, where it stands, the words
 /// quoted, and the reply under them.
 fn push_comment(page: &mut String, comment: &comment::Comment) {
     page.push_str(&format!(
@@ -470,6 +610,7 @@ mod tests {
                 title: None,
                 work_id: Some(work.id.clone()),
                 tags: vec!["idea".into()],
+                ..Default::default()
             },
         )
         .unwrap();
@@ -579,6 +720,7 @@ mod tests {
                 title: Some("Stray".into()),
                 work_id: None,
                 tags: vec![],
+                ..Default::default()
             },
         )
         .unwrap();

@@ -1,6 +1,9 @@
 import type {
   Asset,
   CardCounts,
+  CardSummary,
+  CardView,
+  Fact,
   ChatSummary,
   Collection,
   Comment,
@@ -73,6 +76,8 @@ export interface Studio {
   scores: Score[]
   releases: Release[]
   notes: Note[]
+  /** The facts of the canon's cards. */
+  facts: Fact[]
   comments: Comment[]
   bricks: StyleBrick[]
   scenes: Scene[]
@@ -255,6 +260,10 @@ export function studio(): Studio {
       tags: ['ideas'],
       created_at: EARLIER,
       updated_at: NOW,
+      layer: 'public',
+      aliases: [],
+      prompt: null,
+      prompt_basis: null,
     },
     {
       id: IDS.character,
@@ -266,6 +275,10 @@ export function studio(): Studio {
       tags: [],
       created_at: EARLIER,
       updated_at: EARLIER,
+      layer: 'public',
+      aliases: ['the keeper'],
+      prompt: 'an old man in a grey coat with a pole of paper lanterns',
+      prompt_basis: 'f00d',
     },
   ]
 
@@ -422,6 +435,45 @@ export function studio(): Studio {
     },
   ]
 
+  // The lantern keeper is a card of the canon (ADR 0043): a character of the
+  // Studio profile, with a fact of his looks and one of his past.
+  const facts: Fact[] = [
+    {
+      id: 'f-keeper-coat',
+      profile_id: IDS.profile,
+      note_id: IDS.character,
+      section: 'looks',
+      body: 'A long grey coat and a pole hung with paper lanterns.',
+      layer: 'public',
+      status: 'canon',
+      retired_reason: null,
+      source: null,
+      when: null,
+      scope_work_id: null,
+      data: {},
+      position: 1,
+      created_at: EARLIER,
+      updated_at: EARLIER,
+    },
+    {
+      id: 'f-keeper-bridge',
+      profile_id: IDS.profile,
+      note_id: IDS.character,
+      section: 'bio',
+      body: 'Has sold lanterns by the bridge since the flood.',
+      layer: 'internal',
+      status: 'draft',
+      retired_reason: null,
+      source: null,
+      when: { label: 'autumn 1998', sort: '1998-09' },
+      scope_work_id: null,
+      data: {},
+      position: 1,
+      created_at: EARLIER,
+      updated_at: EARLIER,
+    },
+  ]
+
   const chats: ChatSummary[] = [
     {
       id: 'chat-lanterns',
@@ -441,6 +493,7 @@ export function studio(): Studio {
     scores,
     releases,
     notes,
+    facts,
     comments,
     bricks,
     scenes,
@@ -589,6 +642,56 @@ function counted(values: string[]): [string, number][] {
   return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b))
 }
 
+/** Whether notes of this kind are cards of the canon: the kind has sections. */
+function isCard(studio: Studio, kind: string): boolean {
+  return (studio.profile.config.note_kinds ?? []).some(
+    (one) => one.key === kind && (one.sections ?? []).length > 0,
+  )
+}
+
+/** A card as the list shows it, read off the studio as `canon::view::cards` would. */
+function cardOf(studio: Studio, note: Note): CardSummary {
+  const own = studio.facts.filter((fact) => fact.note_id === note.id)
+  return {
+    id: note.id,
+    kind: note.kind,
+    title: note.title,
+    work_id: note.work_id,
+    work_title: studio.works.find((w) => w.id === note.work_id)?.title ?? null,
+    layer: note.layer,
+    aliases: note.aliases,
+    facts: own.filter((fact) => fact.status !== 'retired').length,
+    drafts: own.filter((fact) => fact.status === 'draft').length,
+    open: own.filter((fact) => fact.status === 'open').length,
+    portrait: null,
+    updated_at: note.updated_at,
+  }
+}
+
+/** A card whole, read off the studio as `canon::view::card` would. The
+ *  lenses follow the backend's rule for the two facts the studio has. */
+function viewOf(studio: Studio, note: Note): CardView {
+  return {
+    card: note,
+    work_title: studio.works.find((w) => w.id === note.work_id)?.title ?? null,
+    facts: studio.facts
+      .filter((fact) => fact.note_id === note.id)
+      .map((fact) => ({
+        fact,
+        lenses:
+          fact.layer === 'public' && fact.status === 'canon' && fact.section === 'looks'
+            ? ['cover', 'work']
+            : ['work'],
+      })),
+    relations: [],
+    pictures: [],
+    appearances: [],
+    basis: 'f00d',
+    prompt_stale: false,
+    lenses: ['cover', 'work', 'public'],
+  }
+}
+
 /**
  * The answers to every question a screen asks on its way in, read off the
  * studio. Reads only: a test about a write answers that command itself, and
@@ -651,14 +754,38 @@ export function answersFor(studio: Studio): Record<string, Handler> {
         work_id?: string | null
         kind?: string | null
         tag?: string | null
+        canon?: boolean | null
       }
       return studio.notes.filter(
         (note) =>
           (wanted.work_id == null || note.work_id === wanted.work_id) &&
           (wanted.kind == null || note.kind === wanted.kind) &&
-          (wanted.tag == null || note.tags.includes(wanted.tag)),
+          (wanted.tag == null || note.tags.includes(wanted.tag)) &&
+          (wanted.canon == null || isCard(studio, note.kind) === wanted.canon),
       )
     },
+
+    list_cards: () =>
+      studio.notes.filter((note) => isCard(studio, note.kind)).map((note) => cardOf(studio, note)),
+    read_card: ({ id }) => {
+      const note = studio.notes.find((one) => one.id === id)
+      return note === undefined ? Promise.reject(new Error('no such card')) : viewOf(studio, note)
+    },
+    card_as_seen: () => '## The lantern keeper',
+    canon_timeline: () =>
+      studio.facts
+        .filter((fact) => fact.when?.sort !== undefined)
+        .map((fact) => {
+          const card = studio.notes.find((note) => note.id === fact.note_id)
+          return {
+            fact,
+            card_title: card?.title ?? null,
+            card_kind: card?.kind ?? 'character',
+            card_layer: card?.layer ?? 'public',
+            lenses: ['work'],
+          }
+        }),
+    pending_canon_proposals: () => [],
     list_tags: () => counted(studio.notes.flatMap((n) => n.tags)),
 
     list_comments: ({ filter }) => {

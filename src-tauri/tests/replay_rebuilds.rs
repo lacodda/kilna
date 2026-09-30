@@ -24,7 +24,9 @@ use kilna_lib::{actions, fixtures, operation, profile, release, replay, work};
 
 /// Tables a rebuilt workspace has to match on. Everything the person's work
 /// lives in; nothing about this machine or this conversation.
-const COMPARED: [&str; 11] = [
+const COMPARED: [&str; 13] = [
+    "canon_fact",
+    "canon_link",
     "work",
     "work_version",
     "work_score",
@@ -381,6 +383,7 @@ fn a_promoted_note_rebuilds_as_its_work() {
             title: None,
             work_id: None,
             tags: vec!["geology".into()],
+            ..Default::default()
         },
     )
     .unwrap()
@@ -454,4 +457,117 @@ fn a_comment_and_its_reply_rebuild() {
     assert!(report.unknown.is_empty(), "unknown: {:?}", report.unknown);
     assert_eq!(contents(&rebuilt), contents(&source));
     assert_eq!(contents(&rebuilt)["comment"].as_array().unwrap().len(), 1);
+}
+
+/// A canon made by hand rebuilds as the same canon: the cards, their facts in
+/// their order and state, a fact moved and one retired, a fact taken to the
+/// trash and back, and relations drawn, redrawn and undrawn (ADR 0043).
+#[test]
+fn a_canon_rebuilds_card_by_card_and_fact_by_fact() {
+    use kilna_lib::canon::{CanonLinkPatch, FactPatch, Layer, NewCanonLink, NewFact, When};
+    use kilna_lib::note::NewNote;
+    use kilna_lib::trash::Entity;
+
+    let source = workspace();
+    let card = |kind: &str, title: &str| {
+        actions::canon::create_card(
+            &source,
+            NewNote {
+                kind: Some(kind.into()),
+                title: Some(title.into()),
+                aliases: vec![format!("{title}s")],
+                ..NewNote::default()
+            },
+        )
+        .unwrap()
+    };
+    let wren = card("character", "Wren");
+    let otto = card("character", "Otto");
+    let room = card("location", "The room");
+
+    let fact = |section: &str, body: &str| {
+        actions::canon::add_fact(
+            &source,
+            NewFact {
+                note_id: wren.id.clone(),
+                section: section.into(),
+                body: body.into(),
+                when: Some(When {
+                    label: Some("autumn 2022".into()),
+                    sort: None,
+                }),
+                ..NewFact::default()
+            },
+        )
+        .unwrap()
+    };
+    let hair = fact("looks", "Gradient hair.");
+    let freckles = fact("looks", "Freckles.");
+    let ponytail = fact("looks", "A ponytail.");
+    let moved = fact("bio", "Moved into the room.");
+
+    actions::canon::reorder_facts(
+        &source,
+        &wren.id,
+        "looks",
+        &[freckles.id.clone(), hair.id.clone(), ponytail.id.clone()],
+    )
+    .unwrap();
+    actions::canon::update_fact(
+        &source,
+        &moved.id,
+        FactPatch {
+            section: Some("tastes".into()),
+            layer: Some(Layer::Internal),
+            ..FactPatch::default()
+        },
+    )
+    .unwrap();
+    actions::canon::retire_fact(&source, &ponytail.id, "the loose hair stays").unwrap();
+    let entry = actions::trash::discard(&source, Entity::Fact, &freckles.id).unwrap();
+    actions::trash::restore(&source, &entry).unwrap();
+
+    let neighbours = actions::canon::relate(
+        &source,
+        NewCanonLink {
+            from_id: wren.id.clone(),
+            to_id: otto.id.clone(),
+            kind: Some("neighbour".into()),
+            label: Some("neighbour".into()),
+            ..NewCanonLink::default()
+        },
+    )
+    .unwrap();
+    actions::canon::update_relation(
+        &source,
+        &neighbours.id,
+        CanonLinkPatch {
+            label: Some(Some("neighbour, first listener".into())),
+            ..CanonLinkPatch::default()
+        },
+    )
+    .unwrap();
+    let lives = actions::canon::relate(
+        &source,
+        NewCanonLink {
+            from_id: wren.id.clone(),
+            to_id: room.id.clone(),
+            ..NewCanonLink::default()
+        },
+    )
+    .unwrap();
+    actions::canon::unrelate(&source, &lives.id).unwrap();
+    actions::canon::describe(&source, &wren.id, Some("a young woman".into()), None).unwrap();
+
+    let mut rebuilt = workspace();
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+    assert!(report.unknown.is_empty(), "unknown: {:?}", report.unknown);
+
+    let mut want = contents(&source);
+    let mut got = contents(&rebuilt);
+    want.remove("tombstone");
+    got.remove("tombstone");
+    assert_eq!(got, want, "the rebuilt canon is not the same canon");
+    assert_eq!(got["canon_fact"].as_array().unwrap().len(), 4);
+    assert_eq!(got["canon_link"].as_array().unwrap().len(), 1);
 }

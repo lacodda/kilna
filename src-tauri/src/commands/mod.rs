@@ -10,6 +10,7 @@
 
 pub mod assets;
 pub mod assistant;
+pub mod canon;
 pub mod collections;
 pub mod comments;
 pub mod cuts;

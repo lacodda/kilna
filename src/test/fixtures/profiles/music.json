@@ -55,25 +55,754 @@
     ],
     "note_kinds": [
       {
+        "icon": "radio",
+        "key": "channel",
+        "label": {
+          "en": "Channel",
+          "ru": "Канал"
+        },
+        "root": true,
+        "sections": [
+          {
+            "hint": {
+              "en": "Name, slogan, handle, platforms",
+              "ru": "Название, слоган, хэндл, площадки"
+            },
+            "key": "identity",
+            "label": {
+              "en": "General",
+              "ru": "Общие данные"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ],
+            "shape": "slots"
+          },
+          {
+            "hint": {
+              "en": "→ the switches of the cover and frame constructor",
+              "ru": "→ переключатели конструктора обложки и кадра"
+            },
+            "key": "details",
+            "label": {
+              "en": "Signature details",
+              "ru": "Фирменные детали"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "details"
+          },
+          {
+            "hint": {
+              "en": "→ the mark picked on a cover; variants with their meaning and files",
+              "ru": "→ выбор знака в обложке: варианты со смыслом и файлами"
+            },
+            "key": "mark",
+            "label": {
+              "en": "Mark family",
+              "ru": "Знак · семейство"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "marks"
+          },
+          {
+            "hint": {
+              "en": "→ the slots of a frame's lettering",
+              "ru": "→ слоты обвязки"
+            },
+            "key": "captions",
+            "label": {
+              "en": "Captions",
+              "ru": "Подписи"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "slots"
+          },
+          {
+            "hint": {
+              "en": "→ accents and backgrounds",
+              "ru": "→ акцент и фоны"
+            },
+            "key": "palette",
+            "label": {
+              "en": "Palette",
+              "ru": "Палитра"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "palette"
+          },
+          {
+            "hint": {
+              "en": "→ what a release goes out under, and replies",
+              "ru": "→ мета выпуска и ответы"
+            },
+            "key": "voice",
+            "label": {
+              "en": "Voice of public texts",
+              "ru": "Голос публичных текстов"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "→ the text a release goes out under: its tail, hashtags, base tags",
+              "ru": "→ мета выпуска: хвост, хэштеги, теги-основа"
+            },
+            "key": "template",
+            "label": {
+              "en": "Description template",
+              "ru": "Шаблон описания"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "slots"
+          },
+          {
+            "hint": {
+              "en": "→ the negative prompt and the idea generator",
+              "ru": "→ негатив и генератор идей"
+            },
+            "key": "bans",
+            "label": {
+              "en": "Bans",
+              "ru": "Запреты"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "→ the idea generator picks them more often",
+              "ru": "→ генератор идей берёт их чаще"
+            },
+            "key": "styles",
+            "label": {
+              "en": "House styles",
+              "ru": "Домашние стили"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "styles"
+          }
+        ]
+      },
+      {
+        "describe_from": [
+          "looks"
+        ],
+        "icon": "user",
         "key": "character",
         "label": {
           "en": "Character",
           "ru": "Персонаж"
-        }
+        },
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "General",
+              "ru": "Общие данные"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "The description for a picture is written from these",
+              "ru": "Из этих фактов собирается описание для генератора"
+            },
+            "key": "looks",
+            "label": {
+              "en": "Appearance",
+              "ru": "Внешность"
+            },
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "hint": {
+              "en": "Standing looks, and looks for one release",
+              "ru": "Постоянные и «на релиз»"
+            },
+            "key": "outfits",
+            "label": {
+              "en": "Looks",
+              "ru": "Образы"
+            },
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "key": "voice",
+            "label": {
+              "en": "Character and voice",
+              "ru": "Характер и голос"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "bio",
+            "label": {
+              "en": "Biography",
+              "ru": "Биография"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "tastes",
+            "label": {
+              "en": "Tastes",
+              "ru": "Вкусы"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "circle",
+            "label": {
+              "en": "Circle",
+              "ru": "Окружение"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "key": "events",
+            "kinds": [
+              "event"
+            ],
+            "label": {
+              "en": "Events",
+              "ru": "События"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "key": "symbols",
+            "label": {
+              "en": "Symbols",
+              "ru": "Символы"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "What may be said, and the formulas said word for word",
+              "ru": "Что можно говорить и формулы слово в слово"
+            },
+            "key": "public",
+            "label": {
+              "en": "Publicity",
+              "ru": "Публичность"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "bans",
+            "label": {
+              "en": "Bans",
+              "ru": "Запреты"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
+            "key": "where",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
+            "shape": "appearances"
+          },
+          {
+            "hint": {
+              "en": "What is deliberately left open, to be built by the works",
+              "ru": "Что оставлено открытым, чтобы достраивать песнями"
+            },
+            "key": "open",
+            "label": {
+              "en": "Live zones",
+              "ru": "Живые зоны"
+            }
+          }
+        ]
       },
       {
+        "describe_from": [
+          "looks"
+        ],
+        "icon": "map-pin",
         "key": "location",
         "label": {
           "en": "Location",
-          "ru": "Локация"
-        }
+          "ru": "Место"
+        },
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "General",
+              "ru": "Общие данные"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "looks",
+            "label": {
+              "en": "Appearance",
+              "ru": "Внешность"
+            },
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "key": "history",
+            "label": {
+              "en": "History",
+              "ru": "История"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "circle",
+            "label": {
+              "en": "Who is here",
+              "ru": "Кто здесь"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "key": "symbols",
+            "label": {
+              "en": "Symbols",
+              "ru": "Символы"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
+            "key": "where",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
+            "shape": "appearances"
+          },
+          {
+            "hint": {
+              "en": "What is deliberately left open, to be built by the works",
+              "ru": "Что оставлено открытым, чтобы достраивать песнями"
+            },
+            "key": "open",
+            "label": {
+              "en": "Live zones",
+              "ru": "Живые зоны"
+            }
+          }
+        ]
       },
       {
+        "describe_from": [
+          "looks"
+        ],
+        "icon": "box",
+        "key": "object",
+        "label": {
+          "en": "Object",
+          "ru": "Предмет"
+        },
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "General",
+              "ru": "Общие данные"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "looks",
+            "label": {
+              "en": "Appearance",
+              "ru": "Внешность"
+            },
+            "lenses": [
+              "cover"
+            ]
+          },
+          {
+            "key": "history",
+            "label": {
+              "en": "History",
+              "ru": "История"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "circle",
+            "label": {
+              "en": "Whose it is",
+              "ru": "Чей"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
+            "key": "where",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
+            "shape": "appearances"
+          }
+        ]
+      },
+      {
+        "icon": "users",
+        "key": "group",
+        "label": {
+          "en": "Group",
+          "ru": "Группа"
+        },
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "General",
+              "ru": "Общие данные"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "members",
+            "kinds": [
+              "character"
+            ],
+            "label": {
+              "en": "Members",
+              "ru": "Состав"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "key": "history",
+            "label": {
+              "en": "History",
+              "ru": "История"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "events",
+            "kinds": [
+              "event"
+            ],
+            "label": {
+              "en": "Events",
+              "ru": "События"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "key": "circle",
+            "label": {
+              "en": "Around it",
+              "ru": "Вокруг"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
+            "key": "where",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
+            "shape": "appearances"
+          },
+          {
+            "hint": {
+              "en": "What is deliberately left open, to be built by the works",
+              "ru": "Что оставлено открытым, чтобы достраивать песнями"
+            },
+            "key": "open",
+            "label": {
+              "en": "Live zones",
+              "ru": "Живые зоны"
+            }
+          }
+        ]
+      },
+      {
+        "icon": "calendar",
+        "key": "event",
+        "label": {
+          "en": "Event",
+          "ru": "Событие"
+        },
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "What happened",
+              "ru": "Что случилось"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "circle",
+            "label": {
+              "en": "Who took part",
+              "ru": "Кто участвовал"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "key": "aftermath",
+            "label": {
+              "en": "What it changed",
+              "ru": "Что изменило"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
+            "key": "where",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
+            "shape": "appearances"
+          },
+          {
+            "hint": {
+              "en": "What is deliberately left open, to be built by the works",
+              "ru": "Что оставлено открытым, чтобы достраивать песнями"
+            },
+            "key": "open",
+            "label": {
+              "en": "Live zones",
+              "ru": "Живые зоны"
+            }
+          }
+        ]
+      },
+      {
+        "icon": "sparkle",
+        "key": "theme",
+        "label": {
+          "en": "Theme",
+          "ru": "Тема"
+        },
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "What it is",
+              "ru": "Что это"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "motifs",
+            "label": {
+              "en": "Motifs",
+              "ru": "Мотивы"
+            },
+            "lenses": [
+              "cover",
+              "public"
+            ]
+          },
+          {
+            "key": "circle",
+            "label": {
+              "en": "Tied to",
+              "ru": "Связано с"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
+            "key": "where",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
+            "shape": "appearances"
+          },
+          {
+            "hint": {
+              "en": "What is deliberately left open, to be built by the works",
+              "ru": "Что оставлено открытым, чтобы достраивать песнями"
+            },
+            "key": "open",
+            "label": {
+              "en": "Live zones",
+              "ru": "Живые зоны"
+            }
+          }
+        ]
+      },
+      {
+        "icon": "book",
         "key": "lore",
         "label": {
           "en": "Lore",
           "ru": "Лор"
-        }
+        },
+        "sections": [
+          {
+            "key": "identity",
+            "label": {
+              "en": "What it is",
+              "ru": "Что это"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "rules",
+            "label": {
+              "en": "Rules of the world",
+              "ru": "Правила мира"
+            },
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "circle",
+            "label": {
+              "en": "Tied to",
+              "ru": "Связано с"
+            },
+            "lenses": [
+              "public"
+            ],
+            "shape": "relations"
+          },
+          {
+            "hint": {
+              "en": "Counted from scenes, texts, covers and sources",
+              "ru": "Считается само: из сцен, текстов, обложек и источников"
+            },
+            "key": "where",
+            "label": {
+              "en": "Where it appears",
+              "ru": "Где встречается"
+            },
+            "shape": "appearances"
+          },
+          {
+            "hint": {
+              "en": "What is deliberately left open, to be built by the works",
+              "ru": "Что оставлено открытым, чтобы достраивать песнями"
+            },
+            "key": "open",
+            "label": {
+              "en": "Live zones",
+              "ru": "Живые зоны"
+            }
+          }
+        ]
       },
       {
         "key": "note",
@@ -288,6 +1017,148 @@
         "produces": "reply",
         "scope": "comment",
         "template": "Write the reply."
+      },
+      {
+        "description": {
+          "en": "What the text says about the world, proposed as facts with the line each was read off; contradictions shown before anything is applied.",
+          "ru": "Что текст говорит о мире — факты со строкой-источником; противоречия с каноном видны до применения."
+        },
+        "icon": "book",
+        "key": "gather-canon",
+        "label": {
+          "en": "Gather facts into the canon",
+          "ru": "Собрать факты в канон"
+        },
+        "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the channel's works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere; nothing checkable by a visit, a call or a search), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it. A hero who lives only in this one work gets a card on the work.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
+        "produces": "canon",
+        "template": "The work is “{title}”. Its text:\n\n{body}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what this text adds to the canon."
+      },
+      {
+        "description": {
+          "en": "The selected lines, proposed as facts of the canon with their source.",
+          "ru": "Выделенные строки — предложением фактов канона с источником."
+        },
+        "icon": "quote",
+        "key": "to-canon",
+        "label": {
+          "en": "To the canon",
+          "ru": "В канон"
+        },
+        "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the channel's works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere; nothing checkable by a visit, a call or a search), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it. A hero who lives only in this one work gets a card on the work.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
+        "produces": "canon",
+        "scope": "selection",
+        "template": "The work is “{title}”. The author selected these lines of it:\n\n{selection}\n\nThe canon as it stands:\n\n{canon}\n\nPropose what these lines add to the canon."
+      },
+      {
+        "description": {
+          "en": "The card's free note, proposed as facts filed under its sections.",
+          "ru": "Свободная заметка карточки — предложением фактов по разделам."
+        },
+        "icon": "list",
+        "key": "gather-card",
+        "label": {
+          "en": "Gather facts from the note",
+          "ru": "Собрать факты из заметки"
+        },
+        "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the channel's works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere; nothing checkable by a visit, a call or a search), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it. A hero who lives only in this one work gets a card on the work.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
+        "produces": "canon",
+        "scope": "canon",
+        "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact."
+      },
+      {
+        "description": {
+          "en": "An English description of the card written from its facts, given to a picture generator instead of the name.",
+          "ru": "Английское описание из фактов карточки — генератор получает его вместо имени."
+        },
+        "icon": "image",
+        "key": "describe-card",
+        "label": {
+          "en": "Describe for the generator",
+          "ru": "Описать для генератора"
+        },
+        "method": "# Card describer\n\n## Role\n\nYou write the description a picture generator is given for a card of the canon, instead of the name. A generator does not know who the person is; it knows only what it is told.\n\n## What to write\n\n- English, one paragraph, the order a generator reads best: who (age, build), face, hair, marks; then nothing else.\n- Only the facts given. No clothing unless the facts are about clothing; no mood, no setting, no story.\n- Concrete and countable: named colours, named materials, sizes. No adjectives that could mean anything.\n- Forty to eighty words.\n\n## Output\n\nThe description alone. No preamble, no heading, nothing after it.\n",
+        "produces": "card-prompt",
+        "scope": "canon",
+        "template": "Write the description of this card for a picture generator."
+      }
+    ],
+    "relation_kinds": [
+      {
+        "key": "family",
+        "label": {
+          "en": "Family",
+          "ru": "Семья"
+        }
+      },
+      {
+        "key": "partner",
+        "label": {
+          "en": "Loved one",
+          "ru": "Любимый человек"
+        }
+      },
+      {
+        "key": "friend",
+        "label": {
+          "en": "Friend",
+          "ru": "Друг"
+        }
+      },
+      {
+        "key": "neighbour",
+        "label": {
+          "en": "Neighbour",
+          "ru": "Сосед"
+        }
+      },
+      {
+        "key": "colleague",
+        "label": {
+          "en": "Colleague",
+          "ru": "Коллега"
+        }
+      },
+      {
+        "key": "pet",
+        "label": {
+          "en": "Pet",
+          "ru": "Питомец"
+        }
+      },
+      {
+        "key": "member",
+        "label": {
+          "en": "Member",
+          "ru": "Участник"
+        }
+      },
+      {
+        "key": "place",
+        "label": {
+          "en": "Place",
+          "ru": "Место"
+        }
+      },
+      {
+        "key": "owner",
+        "label": {
+          "en": "Owner",
+          "ru": "Владелец"
+        }
+      },
+      {
+        "key": "event",
+        "label": {
+          "en": "Took part",
+          "ru": "Участие"
+        }
+      },
+      {
+        "key": "other",
+        "label": {
+          "en": "Other",
+          "ru": "Другое"
+        }
       }
     ],
     "rhythm": {

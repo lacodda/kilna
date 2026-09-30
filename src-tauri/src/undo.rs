@@ -123,6 +123,13 @@ pub fn reversible(kind: &str) -> bool {
             | "cut.create"
             | "cut.update"
             | "cut.reorder"
+            | "fact.create"
+            | "fact.update"
+            | "fact.reorder"
+            | "canonLink.create"
+            | "canonLink.update"
+            | "canonLink.delete"
+            | "asset.setRole"
     )
 }
 
@@ -241,6 +248,65 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             let id = required(params, "id")?;
             let patch: crate::cut::CutPatch = from_params(params, "before")?;
             apply(conn, |tx| crate::cut::update(tx, &id, patch).map(|_| ()))?;
+        }
+        // A fact goes back to what the fields its edit named held - its
+        // section and place among them too, when the edit moved it.
+        "fact.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::canon::FactPatch = from_params(params, "before")?;
+            apply(conn, |tx| {
+                crate::canon::fact::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        "fact.reorder" => {
+            let note_id = required(params, "noteId")?;
+            let section = required(params, "section")?;
+            let before: Vec<String> = from_params(params, "before")?;
+            apply(conn, |tx| {
+                crate::canon::fact::reorder(tx, &note_id, &section, &before, &at)
+            })?;
+        }
+        // A relation has no drawer in the trash, like a link between works:
+        // undoing its drawing removes it, undoing its removal puts the same
+        // row back from the copy the log kept.
+        "canonLink.create" => {
+            let id = crate::minted::Minted::from_params(params)?.id().to_owned();
+            apply(conn, |tx| crate::canon::link::delete(tx, &id))?;
+        }
+        "canonLink.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::canon::CanonLinkPatch = from_params(params, "before")?;
+            apply(conn, |tx| {
+                crate::canon::link::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // A picture's role goes back to the one it had; the file is not
+        // touched either way.
+        "asset.setRole" => {
+            let id = required(params, "id")?;
+            let before = required(params, "before")?;
+            apply(conn, |tx| {
+                crate::asset::set_role(tx, &id, &before).map(|_| ())
+            })?;
+        }
+        "canonLink.delete" => {
+            let before: crate::canon::CanonLink = from_params(params, "before")?;
+            let new = crate::canon::NewCanonLink {
+                from_id: before.from_id,
+                to_id: before.to_id,
+                kind: before.kind,
+                label: before.label,
+                back_label: before.back_label,
+                layer: Some(before.layer),
+            };
+            apply(conn, |tx| {
+                crate::canon::link::create_minted(
+                    tx,
+                    new,
+                    crate::minted::Minted::of(before.id.clone(), before.created_at.clone()),
+                )
+                .map(|_| ())
+            })?;
         }
         // The splice goes back to the order it held. The list travelled in
         // the operation, so this is the same call with the earlier order.
@@ -404,7 +470,8 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
         // outright. Someone can change their mind twice, and a row destroyed by
         // an undo would be gone in a way nothing else in kilna is.
         "work.create" | "work.clone" | "note.create" | "collection.create" | "release.create"
-        | "version.create" | "scene.create" | "cut.create" | "comment.create" | "style.create" => {
+        | "version.create" | "scene.create" | "cut.create" | "comment.create" | "style.create"
+        | "fact.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -512,6 +579,7 @@ fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
         "cut.create" => crate::trash::Entity::Cut,
         "comment.create" => crate::trash::Entity::Comment,
         "style.create" => crate::trash::Entity::Style,
+        "fact.create" => crate::trash::Entity::Fact,
         other => return Err(Error::Internal(format!("`{other}` creates nothing"))),
     };
     Ok((entity, required(&entry.params, "id")?))

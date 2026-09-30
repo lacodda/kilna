@@ -1,4 +1,5 @@
 import type { Exchange } from '@/lib/chat'
+import { ProposedCanon, ProposedCardPrompt } from '@/features/assistant/ProposedCanon'
 import { ProposedCommentOrReply } from '@/features/assistant/ProposedCommentOrReply'
 import { ProposedDescription } from '@/features/assistant/ProposedDescription'
 import { ProposedNote } from '@/features/assistant/ProposedNote'
@@ -92,5 +93,23 @@ export function Proposed({ answer, workId, onChooseVersion }: Props) {
       )
     case 'description':
       return <ProposedDescription messageId={messageId} applied={applied} dismissed={dismissed} />
+    case 'canon':
+      return (
+        <ProposedCanon
+          messageId={messageId}
+          proposal={proposal}
+          applied={applied}
+          dismissed={dismissed}
+        />
+      )
+    case 'cardPrompt':
+      return (
+        <ProposedCardPrompt
+          messageId={messageId}
+          noteId={proposal.note_id}
+          applied={applied}
+          dismissed={dismissed}
+        />
+      )
   }
 }

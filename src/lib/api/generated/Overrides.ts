@@ -16,4 +16,11 @@ comment?: NewComment,
 /**
  * A drafted reply, as the person edited it before keeping.
  */
-reply?: string, };
+reply?: string, 
+/**
+ * The items of a proposal for the canon the person kept - `card:0`,
+ * `fact:2`, `relation:1`; every item when absent. A proposal of
+ * twelve facts is read one by one, and one wrong fact must not cost the
+ * eleven right ones.
+ */
+items?: Array<string>, };

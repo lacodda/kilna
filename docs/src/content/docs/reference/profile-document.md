@@ -385,9 +385,7 @@ you glance at, and a paragraph printed there pushes the work off screen.
 
 ## `note_kinds`
 
-The kinds a note can take, each a `key` and a `label`: Studio and Novel
-ship `character`, `location`, `lore` and `note`; Podcast ships `guest`,
-`segment` and `note`; Blog ships `source` and `note`. A scene points at
+The kinds a note can take, each a `key` and a `label`. A scene points at
 notes of these kinds, which is what lets a board answer "every scene with
 her in it" (see [Scenes](/kilna/guides/scenes/#who-is-in-it-where-it-happens)).
 
@@ -397,6 +395,88 @@ kinds of note lets a scene point at any note at all; once it names some, a
 scene may only point at those. A workspace made before them gains the
 craft's kinds on the next launch, and one you renamed or added stays
 yours, the way every vocabulary does.
+
+### Cards of the canon
+
+A kind that names `sections` is a kind of **card**: its notes leave the
+Notes screen for the [Canon](/kilna/guides/the-canon/), and what a card
+knows is written as facts filed under those sections. A kind without
+sections is a plain note. Studio ships a channel, characters, locations,
+objects, groups, events, themes and lore as cards, and `note` as a plain
+note; Novel ships characters, locations, objects, groups, events, themes
+and lore; Podcast ships guests and segments; Blog ships only plain kinds.
+
+```jsonc
+{
+  "key": "character",
+  "label": "Character",
+  "icon": "user",
+  "describe_from": ["looks"],
+  "sections": [
+    { "key": "identity", "label": "Identity", "lenses": ["cover", "public"] },
+    { "key": "looks", "label": "Looks", "hint": "What a picture needs.", "lenses": ["cover"] },
+    { "key": "bio", "label": "Biography" },
+    { "key": "circle", "label": "Around", "shape": "relations" },
+    { "key": "where", "label": "Where it appears", "shape": "appearances" }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `icon` | string, optional | The glyph the kind is drawn with in the card list: `radio`, `user`, `map-pin`, `box`, `users`, `calendar`, `sparkle`, `book`, `list`, `note`. Anything else draws a plain note. |
+| `sections` | list, optional | What a card of this kind knows, in the order the card reads. Empty or absent: a plain note. |
+| `root` | boolean, optional | One card of this kind per workspace — the channel, the root of the world. Studio's `channel` is the root. A second card of a root kind is refused, and a profile with two root kinds is refused when it is saved. |
+| `describe_from` | list of strings, optional | The sections the card's description for a picture generator is written from — a person's looks, not their biography. When a settled public fact in one of them changes, the description says it is stale. Absent: the description is written by hand and never goes stale. Each key must be a section of the kind. |
+
+A section:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `key` | string | Identifies the section. A fact is filed under it, so renaming a key leaves its facts under a section the card no longer names; they still read, at the end of the card, under *Other*. |
+| `label` | string | The section's name on the card. |
+| `hint` | string, optional | A line under the name: what goes here, and what reads it. |
+| `shape` | string, optional | What an entry of the section is (below). Statements when absent. |
+| `lenses` | list, optional | The outward tasks that read this section: `cover` (a picture — a cover, a frame) and `public` (what is said in public — a release's text, a reply). The work itself reads every section, so `work` need not be named. A section naming none is read by the work alone. |
+| `kinds` | list of strings, optional | For a section of relations: the kinds of card it gathers — Studio's character keeps the events she was part of apart from the people around her. Empty gathers every relation no other section of the card claims. |
+
+The shapes:
+
+| Shape | An entry is |
+| --- | --- |
+| `facts` | A statement. The default. |
+| `slots` | A named value: a caption's slot and its words, a template's parts. |
+| `details` | A signature detail: its name, a template in English for a generator (`[[card:id]]` brings in a card's description), where it acts — `cover`, `short`, `video` — and whether it is on by default. |
+| `palette` | A colour with its name. |
+| `marks` | A variant of a mark: its code, what it means, a description for a generator, and its files. |
+| `styles` | A house style: a brick of the [style dictionary](/kilna/guides/styles/). |
+| `relations` | Holds no facts: the card's relations to other cards, drawn on the card. |
+| `appearances` | Holds no facts: where the card appears, counted from the works it is the hero of, the scenes that point at it, the texts that name it, the covers that picture it and the works its facts cite. |
+
+A fact is read by a lens when **one rule** says so: the work reads every
+fact that is not retired; a cover and a public text read only a fact that is
+settled (`canon`), `public`, on a card that is public itself, in a section
+naming that lens. The Canon screen dims what a lens does not see, the MCP
+tool answers through it, and every prompt reads through it.
+
+Saving a profile checks the canon it names: kinds and sections are unique
+by key, a section's shape and lenses are known words, `describe_from` names
+sections of the kind, a section of relations names kinds of card the
+profile has, and only one kind is the root. A workspace made before 0.84
+gains the craft's sections, root and glyphs on the next launch; a kind whose
+sections you already changed keeps yours.
+
+## `relation_kinds`
+
+The kinds a relation between two cards can take, each a `key` and a
+`label` — Studio's `family`, `partner`, `friend`, `neighbour`, `colleague`,
+`pet`, `member`, `place`, `owner`, `event` and `other`. A relation is drawn
+once per pair, with a kind from this list, a word for each side
+("neighbour" one way, "neighbour and first listener" the other) and a layer
+of its own. A kind the profile does not have is refused, and a profile with
+two relation kinds under one key is refused when it is saved. A profile
+naming none has not decided, and any word goes — the leniency a kind of
+note has.
 
 `duration` is a **number of seconds**, and the Scenes tab divides it between
 the scenes of a board (see [Scenes](/kilna/guides/scenes/#timing-the-board)).
@@ -736,9 +816,9 @@ specifically.
 | `icon` | string, optional | The glyph on the button, from the list below. A name kilna does not know draws the generic spark. |
 | `template` | string | The message sent to Claude, with placeholders filled per work. Keep it short: the method carries the how. |
 | `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
-| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment. Anything else loads as prose and is refused when the profile is saved. |
+| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`. Anything else loads as prose and is refused when the profile is saved. |
 | `kinds` | list of strings, optional | The work kinds the action is offered on. Absent or empty is every kind. An action that reads `{role:lyrics}` is for the kinds that have lyrics — Studio's song actions say `["song"]` — because a button for it on a video would send a prompt with a hole in it. |
-| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. Absent is the work. |
+| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. Absent is the work. |
 
 **Keep the label to a word or two.** The button carries a glyph and that label;
 what the action does belongs in `description`, which is the tooltip. A row of
@@ -748,7 +828,7 @@ buttons like that are neither read nor remembered.
 
 The names `icon` accepts: `sparkles`, `wand`, `pen`, `spell-check`, `scroll`,
 `tags`, `gauge`, `music`, `film`, `clapperboard`, `image`, `list`, `lightbulb`,
-`palette`, `eye`, `reply`.
+`palette`, `eye`, `reply`, `book`, `quote`.
 
 The same prompt is offered in three places: in the panel it fills the composer
 for you to read and send, typing `/` reaches the same list from the keyboard,
@@ -802,6 +882,22 @@ reply. Both come back as proposals kept on the comments screen, with every field
 open to correction first. Every shipped profile carries `read-comment` and
 `reply-to-comment`; see [Comments](/kilna/guides/comments/).
 
+An action with `"produces": "canon"` asks for a package for the canon: kilna
+appends every kind of card with its sections by key, the kinds of relation,
+the layers and the states, and the shape of the json block — new cards,
+facts on cards old or new, changes to facts already there, relations. The
+answer comes back as a proposal with every item under a box to keep it or
+leave it out, and with the facts each one would contradict shown beside it
+before anything is written. A fact the assistant proposes is a draft until
+you settle it. Started on a work, the version it read is every fact's
+source; started on a card, the card is where its facts go. Studio ships
+`gather-canon` (on a song: gather its facts), `to-canon` (on a selection:
+the selected lines as facts) and, on a card, `gather-card` (facts out of
+the card's own free note) and `describe-card` (`"produces": "card-prompt"`:
+a description in English for a picture generator, written from the settled
+public facts of the kind's `describe_from` sections — the answer is kept as
+the card's description). See [The canon](/kilna/guides/the-canon/).
+
 Every shipped profile carries a `score` action. Anything else declaring
 `produces` gets the same treatment; an unrecognised value is ignored when the
 profile loads, so a profile written for a future kilna still opens — and named
@@ -832,6 +928,19 @@ proposes.
   described. The author's steer never does — it is an instruction about
   writing the description, not part of one. A template that reads `{styles}`
   in a profile naming no style types is refused on save.
+- `{canon}` — the canon as a work reads it: every card by name and id, then
+  in full — through the work's lens — the cards the work is about: its own
+  heroes, the cards on its board and the cards its text names.
+- `{canon:cover}` and `{canon:public}` — the same, as a picture and as a
+  public text may read it: only public cards are named, only settled public
+  facts of the sections given to that lens are read, and the channel's root
+  card is read whole as well — its voice, marks and bans are about every
+  work. A release field's template may read the canon only as
+  `{canon:public}`: a release goes out in public, and `{canon}` would carry
+  the internal layer into its description. That is refused when the profile
+  is saved, as `{selection}` in a release field is.
+- `{selection}` — the lines selected in the text, word for word. Only in an
+  action with `"scope": "selection"`, which must read it.
 - `{donor}` — the first work this one was [made from](/kilna/guides/made-from/),
   as *“Harbour lights” (song)*; `{donor:lyrics}`, `{donor:style}`, … — the
   latest revision of that role on the donor. A work made from nothing refuses

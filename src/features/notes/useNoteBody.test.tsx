@@ -17,6 +17,10 @@ const NOTE: Note = {
   tags: [],
   created_at: NOW,
   updated_at: NOW,
+  layer: 'public',
+  aliases: [],
+  prompt: null,
+  prompt_basis: null,
 }
 
 const pause = () => act(() => vi.advanceTimersByTimeAsync(600))

@@ -642,6 +642,40 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
             }),
             None => Read::Nothing,
         },
+        // Cards, facts and relations, read against the canon as it stands.
+        // The card a task about a card was started on is where a fact with no
+        // card goes; the work and version the chat is about are where a fact
+        // with no source was read (ADR 0043).
+        super::prompt::Produces::Canon => {
+            let chat = super::get(conn, &run.chat_id).ok().flatten();
+            let defaults = crate::canon::proposal::Defaults {
+                card_id: super::task::card_of_key(task_key).map(str::to_owned),
+                work_id: chat.as_ref().and_then(|c| c.work_id.clone()),
+                version_id: chat.as_ref().and_then(|c| c.version_id.clone()),
+            };
+            let Some(block) = super::proposal::fenced_json(body) else {
+                return Read::Nothing;
+            };
+            let raw: Value = match serde_json::from_str(&block) {
+                Ok(raw) => raw,
+                Err(error) => {
+                    return Read::Refused(format!("the json block is not a proposal: {error}"));
+                }
+            };
+            match crate::canon::proposal::read(conn, &profile.id, &raw, &defaults) {
+                Ok(package) => value(super::proposal::Proposal::Canon { package }),
+                Err(error) => Read::Refused(error.to_string()),
+            }
+        }
+        // The whole answer is the description; the proposal says of which
+        // card, and which facts it answers to as they stand now.
+        super::prompt::Produces::CardPrompt => match super::task::card_of_key(task_key) {
+            Some(note_id) => value(super::proposal::Proposal::CardPrompt {
+                note_id: note_id.to_owned(),
+                basis: crate::canon::view::basis_for(conn, note_id).ok().flatten(),
+            }),
+            None => Read::Nothing,
+        },
         super::prompt::Produces::Scenes(change) => {
             let Some(work) = work_of_chat(conn, &run.chat_id) else {
                 return Read::Nothing;
@@ -1922,6 +1956,59 @@ The second verse is the weak one."
 
     /// A style task's answer is proposed as the description of the brick its
     /// key names - kept later with one button, like a reply.
+    /// A card's gathering answers with a block, and the facts it names land
+    /// on the card the task was started on, with no source of their own - a
+    /// card's note is not a work (ADR 0043).
+    #[test]
+    fn a_card_task_proposes_the_facts_of_its_block_onto_that_card() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let card = crate::fixtures::card(&conn, &profile_id, "character", "Wren");
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some(crate::assistant::task::card_key("gather-card", &card.id));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let body = "Two facts.\n\n```json\n{ \"facts\": [\n  { \"section\": \"looks\", \"text\": \"Freckles.\" },\n  { \"section\": \"nowhere\", \"text\": \"x\" }\n] }\n```";
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: body.into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap();
+        let proposal: crate::assistant::proposal::Proposal = serde_json::from_value(
+            answer
+                .meta
+                .get("proposal")
+                .expect("facts are proposed")
+                .clone(),
+        )
+        .unwrap();
+        let crate::assistant::proposal::Proposal::Canon { package } = proposal else {
+            panic!("not a proposal for the canon");
+        };
+        assert_eq!(package.facts.len(), 1);
+        assert_eq!(package.facts[0].card.as_deref(), Some(card.id.as_str()));
+        assert_eq!(package.facts[0].source, None);
+        assert_eq!(package.dropped.len(), 1);
+        drop(dir);
+    }
+
     #[test]
     fn a_style_task_proposes_its_answer_as_the_bricks_description() {
         let (dir, path, conn, profile_id) = on_disk();

@@ -536,6 +536,49 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             scene::frame_from_text(conn, &work_id, &role, &minted)?;
         }
 
+        // The canon (ADR 0043): facts, their order, and the relations
+        // between cards. A card itself is a note and replays as one.
+        "fact.create" => {
+            let new = from_params(params, "fact")?;
+            crate::canon::fact::create_minted(conn, new, minted(params)?)?;
+        }
+
+        "fact.update" => {
+            let id = required(params, "id")?;
+            let patch = from_params(params, "patch")?;
+            let at = required(params, "at")?;
+            crate::canon::fact::update_at(conn, &id, patch, &at)?;
+        }
+
+        "fact.reorder" => {
+            let note_id = required(params, "noteId")?;
+            let section = required(params, "section")?;
+            let order: Vec<String> = from_params(params, "order")?;
+            let at = required(params, "at")?;
+            crate::canon::fact::reorder(conn, &note_id, &section, &order, &at)?;
+        }
+
+        "canonLink.create" => {
+            let new = from_params(params, "link")?;
+            crate::canon::link::create_minted(conn, new, minted(params)?)?;
+        }
+
+        "canonLink.update" => {
+            let id = required(params, "id")?;
+            let patch = from_params(params, "patch")?;
+            let at = required(params, "at")?;
+            crate::canon::link::update_at(conn, &id, patch, &at)?;
+        }
+
+        "canonLink.delete" => {
+            let id = required(params, "id")?;
+            crate::canon::link::delete(conn, &id)?;
+        }
+
+        // A picture's role, like the picture itself, lives with the files the
+        // log does not carry: see `asset.attach` below.
+        "asset.setRole" => {}
+
         "entity.discard" => {
             let entity = trash::Entity::parse(&required(params, "entity")?)?;
             let id = required(params, "entityId")?;

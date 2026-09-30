@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   Clapperboard,
   Eye,
   Film,
@@ -14,6 +15,7 @@ import {
   Sparkles,
   SpellCheck,
   Tags,
+  TextQuote,
   Wand2,
   type LucideIcon,
 } from 'lucide-react'
@@ -52,6 +54,8 @@ const ACTION_ICONS: Record<string, LucideIcon> = {
   palette: Palette,
   eye: Eye,
   reply: MessageSquareReply,
+  book: BookOpen,
+  quote: TextQuote,
 }
 
 /** The names, for the reference and for a picker. */

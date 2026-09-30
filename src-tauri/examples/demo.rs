@@ -175,6 +175,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     title: None,
                     work_id: Some(created.id.clone()),
                     tags: tags.iter().map(|tag| (*tag).to_owned()).collect(),
+                    ..Default::default()
                 },
             )?;
         }

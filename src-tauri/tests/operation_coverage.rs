@@ -132,7 +132,7 @@ fn the_scan_finds_every_registered_command() {
 /// the same name does not count. Listed rather than inferred because "writes"
 /// is not visible in a name: `score::catalogue` reads, `work::pin_tier_at`
 /// writes.
-const WRITERS: [&str; 64] = [
+const WRITERS: [&str; 65] = [
     "::create(",
     "::create_minted(",
     "::update(",
@@ -191,6 +191,7 @@ const WRITERS: [&str; 64] = [
     "::detach(",
     "::select(",
     "::clear_selection(",
+    "::set_role(",
     "::frame_from_text(",
     "::time_board_at(",
     "::renumber(",

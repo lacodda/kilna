@@ -45,9 +45,84 @@
       }
     ],
     "note_kinds": [
-    { "key": "guest", "label": "Guest" },
-    { "key": "segment", "label": "Segment" },
-    { "key": "note", "label": "Note" }
+      {
+        "key": "guest",
+        "label": "Guest",
+        "icon": "user",
+        "sections": [
+          {
+            "key": "identity",
+            "label": "Who they are",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "voice",
+            "label": "How they speak",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "bio",
+            "label": "Background",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "public",
+            "label": "What may be said",
+            "hint": "What the guest agreed to have said about them",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "bans",
+            "label": "Never",
+            "hint": "Subjects the guest asked to keep out",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "where",
+            "label": "Where it appears",
+            "hint": "Counted from scenes, texts, covers and sources",
+            "shape": "appearances"
+          }
+        ]
+      },
+      {
+        "key": "segment",
+        "label": "Segment",
+        "icon": "list",
+        "sections": [
+          {
+            "key": "identity",
+            "label": "What it is",
+            "lenses": [
+              "public"
+            ]
+          },
+          {
+            "key": "rules",
+            "label": "How it runs"
+          },
+          {
+            "key": "where",
+            "label": "Where it appears",
+            "hint": "Counted from scenes, texts, covers and sources",
+            "shape": "appearances"
+          }
+        ]
+      },
+      {
+        "key": "note",
+        "label": "Note"
+      }
     ],
     "collection_kinds": [
       { "key": "season", "label": "Season" },
@@ -176,6 +251,16 @@
         "method": "# Reply writer\n\n## Role\n\nYou are writing, for the author of an episode, the reply to one comment from their audience. The author will read it, change what they like and post it themselves.\n\n## The voice\n\n- The replies already posted on the same channel are given with the task. They **are** the voice: match their length, their warmth, their language, how they address people, whether they use emoji. Do not describe the voice — use it.\n- With nothing posted yet, write as a person, not as a brand: plain, warm, short.\n- Answer in the language of the comment.\n\n## What to write\n\n- Answer what the comment actually says. A question gets an answer; praise gets a real thank-you that shows it was read, never a template.\n- Use what the work's text is given for when the comment is about something in it — a line, a moment, a character. Never explain the work unasked.\n- One to three sentences, unless the posted replies are longer as a rule.\n- Never promise anything on the author's behalf: a release date, a sequel, a collaboration. Never argue, and never answer rudeness in kind — a hostile comment gets a short, calm line or the note that it may not need a reply.\n- If a draft is given, rewrite it: keep what the author wrote that already works.\n\n## Output\n\nThe reply alone, as it would be posted.\n",
         "scope": "comment",
         "produces": "reply"
+      },
+      {
+        "key": "gather-card",
+        "label": "Gather facts from the note",
+        "description": "The card's free note, proposed as facts filed under its sections.",
+        "icon": "list",
+        "template": "Turn the card's note into facts filed under its sections. Keep the note's own wording where it is already a fact.",
+        "method": "# Canon keeper\n\n## Role\n\nYou read a text of the work and write down what it says about the world the works share: the people, the places, the objects, the events, the themes. What you write is proposed; the author applies it, or not.\n\n## What a fact is\n\n- One short statement, true of the world, in the language the canon is written in. Not a summary of the work: a fact the next work can build on.\n- Filed under a section of a card, by the section's key.\n- With a layer: `public` (may be said anywhere), `internal` (full names, dates, circumstances; the works take details from it without the addresses; never said in public), `inWorks` (the most personal, existing only inside the works).\n- With its source: the line of the text it was read off, quoted exactly.\n- With its time in the world when the text gives one: the words, and where it sorts (`2022`, `2022-12`, `2022-12-01`).\n\n## Rules\n\n- Only what the text actually says or plainly implies. No inventing.\n- A fact the canon already holds is not proposed again. A fact that sharpens one is proposed as `refine` of that fact's id.\n- A fact that contradicts the canon is proposed with `contradicts`, naming the fact and saying why in one line - the author decides which stands.\n- A person, a place or a thing the canon has no card for gets a new card, referred to by a handle (`new-1`) in the facts about it.\n- The layer is chosen conservatively: when in doubt, `internal`.\n- Relations between cards are proposed as relations, not as facts.\n\n## Output\n\nA few lines on what you found, then the block as the task describes it.\n",
+        "scope": "canon",
+        "produces": "canon"
       }
     ]
   }

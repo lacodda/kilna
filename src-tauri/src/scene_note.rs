@@ -166,15 +166,15 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<SceneNote> {
 mod tests {
     use super::*;
     use crate::fixtures;
-    use crate::profile::config::Kind;
+    use crate::profile::config::NoteKind;
     use crate::work::{self, NewWork};
     use crate::{note, profile, scene};
 
     fn with_note_kinds(conn: &Connection, profile_id: &str) {
         let mut config = profile::config_for(conn, profile_id).unwrap();
         config.note_kinds = vec![
-            Kind::new("character", "Character"),
-            Kind::new("location", "Location"),
+            NoteKind::new("character", "Character"),
+            NoteKind::new("location", "Location"),
         ];
         profile::update_config(conn, profile_id, &config).unwrap();
     }
@@ -213,6 +213,7 @@ mod tests {
                 title: Some("Her".into()),
                 work_id: None,
                 tags: Vec::new(),
+                ..Default::default()
             },
         )
         .unwrap()

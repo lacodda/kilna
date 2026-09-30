@@ -32,6 +32,8 @@ function asset(id: string, brick: string, name: string): Asset {
     label: null,
     original_name: name,
     style_brick_id: brick,
+    note_id: null,
+    canon_fact_id: null,
     created_at: NOW,
   }
 }

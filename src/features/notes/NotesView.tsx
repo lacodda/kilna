@@ -10,6 +10,7 @@ import { titleOf } from '@/lib/notes'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
+import { plainNoteKindsOf } from '@/lib/canon'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { useDebounced } from '@/lib/useDebounced'
 import { formatDay } from '@/lib/format'
@@ -52,7 +53,9 @@ export function NotesView() {
   const navigate = useNavigate()
   const { config } = useProfile()
   const { noteId } = useParams()
-  const kinds = config.note_kinds ?? []
+  // A card of the canon is a note too, but it lives on the Canon screen
+  // (ADR 0043): this list is the plain notes, and so are its kinds.
+  const kinds = plainNoteKindsOf(config)
 
   const [kind, setKind] = useState<string | undefined>(undefined)
   const [tag, setTag] = useState('')
@@ -66,6 +69,7 @@ export function NotesView() {
     kind,
     tag: tag === '' ? undefined : tag,
     search: query === '' ? undefined : query,
+    canon: false,
   }
   const notes = useQuery(queries.notesMatching(filter))
   // Every tag in use, most used first: the filter's choices, and what the
@@ -73,7 +77,7 @@ export function NotesView() {
   const tags = useQuery(queries.tags())
   // Counts per kind come from the unfiltered list, so a chip says how many
   // there are of that kind, not how many survived the other filters.
-  const everything = useQuery(queries.notesMatching({}))
+  const everything = useQuery(queries.notesMatching({ canon: false }))
   const counts = useMemo(() => {
     const map = new Map<string, number>()
     for (const note of everything.data ?? []) map.set(note.kind, (map.get(note.kind) ?? 0) + 1)

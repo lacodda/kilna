@@ -272,6 +272,10 @@ const UPGRADE: &[Step] = &[
         name: "a mark's glyph",
         carry: mark_icons,
     },
+    Step {
+        name: "the canon: a note kind's sections, root and glyph, and the kinds of relation",
+        carry: canon_vocabulary,
+    },
 ];
 
 /// Prompt templates whose key is missing. A user who reworded an action keeps
@@ -550,6 +554,49 @@ fn mark_icons(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
         if mark.icon.is_none() && shipped_mark.icon.is_some() {
             mark.icon = shipped_mark.icon.clone();
             changed = true;
+        }
+    }
+    changed
+}
+
+/// The canon (0.84): a note kind the workspace already has - its characters,
+/// its places - becomes a kind of card by gaining the shipped sections, where
+/// the stored kind names none; so do its root flag, the sections its
+/// description is written from, and its glyph. A kind whose sections the
+/// owner wrote keeps them whole: appending the shipped ones would put two
+/// "Looks" on one card. The kinds of relation arrive by key, as every keyed
+/// word does.
+fn canon_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = add_new_keys(
+        &mut config.relation_kinds,
+        &shipped.relation_kinds,
+        |kind| &kind.key,
+    );
+    for kind in &mut config.note_kinds {
+        let Some(shipped_kind) = shipped.note_kinds.iter().find(|s| s.key == kind.key) else {
+            continue;
+        };
+        if kind.sections.is_empty() && !shipped_kind.sections.is_empty() {
+            kind.sections = shipped_kind.sections.clone();
+            kind.root = shipped_kind.root;
+            if kind.describe_from.is_empty() {
+                kind.describe_from = shipped_kind.describe_from.clone();
+            }
+            changed = true;
+        }
+        if kind.icon.is_none() && shipped_kind.icon.is_some() {
+            kind.icon = shipped_kind.icon.clone();
+            changed = true;
+        }
+        // The kinds of note shipped in English only until the canon; a word
+        // still reading exactly as it shipped was never retyped, and follows
+        // the shipped word into every language it now has. A word the owner
+        // typed stays theirs.
+        if let config::Label::One(word) = &kind.label {
+            if word == shipped_kind.label.as_str() && kind.label != shipped_kind.label {
+                kind.label = shipped_kind.label.clone();
+                changed = true;
+            }
         }
     }
     changed
@@ -2348,6 +2395,73 @@ mod tests {
     /// a kind the owner wrote themselves is left alone: the same rule every
     /// vocabulary follows — matched by key, theirs stays theirs.
     #[test]
+    fn a_workspace_from_before_the_canon_gains_its_cards_and_keeps_its_own_sections() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        // As a workspace written before 0.84 looks: characters and places as
+        // plain kinds, no kinds of relation - and one kind the owner already
+        // gave sections of their own.
+        config.note_kinds = vec![
+            config::NoteKind::new("character", "Character"),
+            config::NoteKind::new("location", "Place I know"),
+            {
+                let mut own = config::NoteKind::new("lore", "Lore");
+                own.sections = vec![config::CanonSection::new("myth", "Myth")];
+                own
+            },
+        ];
+        config.relation_kinds = Vec::new();
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let carried = config_for(&conn, &id).unwrap();
+        let character = carried
+            .card_kind("character")
+            .expect("a character is a card now");
+        assert!(character.section("looks").is_some());
+        assert_eq!(character.describe_from, ["looks"]);
+        assert!(
+            carried.card_kind("channel").is_some_and(|k| k.root),
+            "the root arrives"
+        );
+        let lore = carried.card_kind("lore").unwrap();
+        assert_eq!(
+            lore.sections
+                .iter()
+                .map(|s| s.key.as_str())
+                .collect::<Vec<_>>(),
+            ["myth"],
+            "sections the owner wrote were overwritten"
+        );
+        assert!(carried.relation_kinds.iter().any(|k| k.key == "neighbour"));
+        assert!(
+            matches!(&character.label, Label::PerLocale(words) if words.contains_key("ru")),
+            "a kind still named as it shipped did not follow into Russian: {:?}",
+            character.label
+        );
+        assert_eq!(
+            carried.card_kind("location").unwrap().label,
+            Label::from("Place I know"),
+            "a word the owner typed was overwritten"
+        );
+        assert!(carried.validate().is_empty(), "{:?}", carried.validate());
+    }
+
+    #[test]
     fn a_workspace_from_before_note_kinds_gains_them_and_keeps_its_own() {
         let conn = db::open_in_memory().unwrap();
         seed(&conn).unwrap();
@@ -2362,7 +2476,7 @@ mod tests {
         let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
         // As a workspace written before 0.65 looks: no kinds of note at all,
         // plus one the owner added for themselves.
-        config.note_kinds = vec![config::Kind::new("prop", "Prop")];
+        config.note_kinds = vec![config::NoteKind::new("prop", "Prop")];
         conn.execute(
             "UPDATE profile SET config = ?2 WHERE id = ?1",
             params![id, serde_json::to_string(&config).unwrap()],

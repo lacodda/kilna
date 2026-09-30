@@ -11,6 +11,7 @@ import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
+import { plainNoteKindsOf } from '@/lib/canon'
 import { labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
@@ -49,7 +50,8 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
   const navigate = useNavigate()
   const client = useQueryClient()
   const { config } = useProfile()
-  const kinds = config.note_kinds ?? []
+  // A plain note stays a plain note here: a card's kinds belong to the canon.
+  const kinds = plainNoteKindsOf(config)
 
   const [title, setTitle] = useState(note.title ?? '')
   const [editing, setEditing] = useState(startEditing)

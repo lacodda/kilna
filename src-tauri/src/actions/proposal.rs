@@ -58,6 +58,12 @@ pub struct Overrides {
     /// A drafted reply, as the person edited it before keeping.
     #[serde(default)]
     pub reply: Option<String>,
+    /// The items of a proposal for the canon the person kept - `card:0`,
+    /// `fact:2`, `relation:1`; every item when absent. A proposal of
+    /// twelve facts is read one by one, and one wrong fact must not cost the
+    /// eleven right ones.
+    #[serde(default)]
+    pub items: Option<Vec<String>>,
 }
 
 /// What applying made. Returned to the caller and stamped on the message as
@@ -96,6 +102,15 @@ pub struct Outcome {
     /// The comment kept from a screenshot, or whose reply was written.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
+    /// Cards of the canon made, or described.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub cards: Vec<String>,
+    /// Facts written, refined or retired.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub facts: Vec<String>,
+    /// Relations drawn or redrawn.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub relations: Vec<String>,
 }
 
 /// Keep the proposal a message carries, and mark the message - as one unit.
@@ -315,6 +330,16 @@ pub fn check(
                 note(Err(Error::not_found("style", style_id)));
             }
         }
+        Proposal::Canon { package } => {
+            for problem in
+                super::canon::check_package(conn, config, package, overrides.items.as_deref())?
+            {
+                problems.push(problem);
+            }
+        }
+        Proposal::CardPrompt { note_id, .. } => {
+            note(crate::canon::fact::card_of(conn, config, note_id).map(|_| ()));
+        }
     }
     Ok(problems)
 }
@@ -530,6 +555,15 @@ fn keep(
             super::style::describe(conn, &style_id, body.trim())?;
             outcome.style_brick = Some(style_id);
         }
+
+        Proposal::Canon { package } => {
+            super::canon::keep_package(conn, package, overrides.items.as_deref(), outcome)?;
+        }
+
+        Proposal::CardPrompt { note_id, basis } => {
+            super::canon::describe(conn, &note_id, Some(body.to_owned()), basis)?;
+            outcome.cards.push(note_id);
+        }
     }
     Ok(())
 }
@@ -655,6 +689,7 @@ fn note(conn: &Connection, work_id: Option<&str>, packaged: PackagedNote) -> Res
             title: packaged.title.filter(|title| !title.trim().is_empty()),
             work_id: work_id.map(str::to_owned),
             tags: Vec::new(),
+            ..Default::default()
         },
     )?;
     Ok(created.id)
@@ -2282,6 +2317,187 @@ mod tests {
             1,
             "the rest went to the trash"
         );
+    }
+
+    /// A proposal for the canon of a new card with its facts and a relation.
+    fn canon_package(conn: &Connection, profile_id: &str, wren: &str, work_id: &str) -> Proposal {
+        let raw = json!({
+            "cards": [{ "handle": "new-1", "kind": "character", "title": "Alex", "on_work": true }],
+            "facts": [
+                { "card": "new-1", "section": "identity", "text": "A courier.", "line": "the courier knocks" },
+                { "card": wren, "section": "tastes", "text": "Counts the pauses." },
+            ],
+            "relations": [{ "from": "new-1", "to": wren, "label": "courier", "back_label": "client" }]
+        });
+        let package = crate::canon::proposal::read(
+            conn,
+            profile_id,
+            &raw,
+            &crate::canon::proposal::Defaults {
+                work_id: Some(work_id.to_owned()),
+                ..crate::canon::proposal::Defaults::default()
+            },
+        )
+        .unwrap();
+        Proposal::Canon { package }
+    }
+
+    #[test]
+    fn a_proposal_for_the_canon_is_kept_whole_through_the_gestures_a_hand_uses() {
+        let (conn, profile_id, work_id) = workspace();
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren").id;
+        let chat = chat_on(&conn, &profile_id, Some(&work_id));
+        let message = propose(
+            &conn,
+            &chat,
+            "",
+            canon_package(&conn, &profile_id, &wren, &work_id),
+        );
+
+        let outcome = apply(&conn, &message, Overrides::default()).unwrap();
+
+        assert_eq!(outcome.cards.len(), 1);
+        assert_eq!(outcome.facts.len(), 2);
+        assert_eq!(outcome.relations.len(), 1);
+        let alex = note::get(&conn, &outcome.cards[0]).unwrap().unwrap();
+        assert_eq!(
+            alex.work_id.as_deref(),
+            Some(work_id.as_str()),
+            "the hero lives at the work"
+        );
+        let courier = crate::canon::fact::for_card(&conn, &alex.id).unwrap();
+        assert_eq!(
+            courier[0].source.as_ref().and_then(|s| s.line.as_deref()),
+            Some("the courier knocks")
+        );
+        let kinds = operation_kinds(&conn);
+        for kind in ["note.create", "fact.create", "canonLink.create"] {
+            assert!(
+                kinds.iter().any(|k| k == kind),
+                "no `{kind}` in the log: {kinds:?}"
+            );
+        }
+        assert!(
+            apply(&conn, &message, Overrides::default()).is_err(),
+            "kept twice"
+        );
+    }
+
+    #[test]
+    fn what_the_assistant_proposes_is_kept_as_a_draft_and_a_live_zone_stays_one() {
+        let (conn, profile_id, work_id) = workspace();
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren");
+        let settled = fixtures::fact(&conn, &wren.id, "looks", "Freckles.");
+        let raw = json!({
+            "facts": [
+                { "card": wren.id, "section": "tastes", "text": "Counts the pauses.", "status": "canon" },
+                { "card": wren.id, "section": "open", "text": "Who taught her the song?", "status": "open" },
+                { "change": "refine", "fact": settled.id, "text": "Freckles across the nose.", "status": "canon" },
+            ]
+        });
+        let package = crate::canon::proposal::read(
+            &conn,
+            &profile_id,
+            &raw,
+            &crate::canon::proposal::Defaults::default(),
+        )
+        .unwrap();
+        let chat = chat_on(&conn, &profile_id, Some(&work_id));
+        let message = propose(&conn, &chat, "", Proposal::Canon { package });
+
+        apply(&conn, &message, Overrides::default()).unwrap();
+
+        let status_of = |body: &str| {
+            crate::canon::fact::for_card(&conn, &wren.id)
+                .unwrap()
+                .into_iter()
+                .find(|fact| fact.body == body)
+                .map(|fact| fact.status)
+        };
+        assert_eq!(
+            status_of("Counts the pauses."),
+            Some(crate::canon::FactStatus::Draft),
+            "a proposal settled a fact itself: it would reach a cover unread"
+        );
+        assert_eq!(
+            status_of("Who taught her the song?"),
+            Some(crate::canon::FactStatus::Open)
+        );
+        assert_eq!(
+            status_of("Freckles across the nose."),
+            Some(crate::canon::FactStatus::Canon),
+            "a sharper wording keeps the fact as settled as it was"
+        );
+    }
+
+    #[test]
+    fn a_proposal_for_the_canon_is_kept_item_by_item_and_a_fact_on_a_card_left_out_is_refused() {
+        let (conn, profile_id, work_id) = workspace();
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren").id;
+        let chat = chat_on(&conn, &profile_id, Some(&work_id));
+        let message = propose(
+            &conn,
+            &chat,
+            "",
+            canon_package(&conn, &profile_id, &wren, &work_id),
+        );
+
+        let refused = apply(
+            &conn,
+            &message,
+            Overrides {
+                items: Some(vec!["fact:0".into()]),
+                ..Overrides::default()
+            },
+        )
+        .unwrap_err();
+        assert_eq!(problems(&refused), ["refusal.canon.onACardLeftOut"]);
+        assert!(
+            crate::canon::fact::for_card(&conn, &wren)
+                .unwrap()
+                .is_empty(),
+            "a refused proposal wrote a fact"
+        );
+
+        let outcome = apply(
+            &conn,
+            &message,
+            Overrides {
+                items: Some(vec!["fact:1".into()]),
+                ..Overrides::default()
+            },
+        )
+        .unwrap();
+        assert!(outcome.cards.is_empty());
+        assert_eq!(outcome.facts.len(), 1);
+        assert_eq!(
+            crate::canon::fact::for_card(&conn, &wren).unwrap()[0].body,
+            "Counts the pauses."
+        );
+    }
+
+    #[test]
+    fn a_description_is_written_with_the_facts_it_answers_to() {
+        let (conn, profile_id, _) = workspace();
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren").id;
+        fixtures::fact(&conn, &wren, "looks", "Freckles.");
+        let basis = crate::canon::view::basis_for(&conn, &wren).unwrap();
+        let chat = chat_on(&conn, &profile_id, None);
+        let message = propose(
+            &conn,
+            &chat,
+            "  a young woman with freckles  ",
+            Proposal::CardPrompt {
+                note_id: wren.clone(),
+                basis,
+            },
+        );
+
+        apply(&conn, &message, Overrides::default()).unwrap();
+
+        let card = note::get(&conn, &wren).unwrap().unwrap();
+        assert_eq!(card.prompt.as_deref(), Some("a young woman with freckles"));
+        assert!(!crate::canon::view::card(&conn, &wren).unwrap().prompt_stale);
     }
 }
 

@@ -1,6 +1,7 @@
 pub mod actions;
 pub mod asset;
 pub mod assistant;
+pub mod canon;
 pub mod card;
 pub mod clock;
 pub mod clone;
@@ -153,6 +154,27 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::versions::update_version_body,
             commands::versions::set_current_version,
             commands::versions::delete_version,
+            commands::canon::list_cards,
+            commands::canon::read_card,
+            commands::canon::card_as_seen,
+            commands::canon::canon_timeline,
+            commands::canon::expand_card_references,
+            commands::canon::create_card,
+            commands::canon::describe_card,
+            commands::canon::add_fact,
+            commands::canon::update_fact,
+            commands::canon::retire_fact,
+            commands::canon::reorder_facts,
+            commands::canon::delete_fact,
+            commands::canon::relate_cards,
+            commands::canon::update_relation,
+            commands::canon::unrelate_cards,
+            commands::canon::paste_card_picture,
+            commands::canon::set_picture_role,
+            commands::canon::pending_canon_proposals,
+            commands::canon::review_canon_proposal,
+            commands::assistant::preview_card_task,
+            commands::assistant::start_card_task,
             commands::notes::list_notes,
             commands::notes::create_note,
             commands::notes::update_note,

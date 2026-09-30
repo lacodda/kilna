@@ -467,3 +467,153 @@ pub fn proposal_meta(
     }
     Ok(meta)
 }
+
+/// A proposal for the canon waiting to be kept, with what it says: the Canon
+/// screen shows each beside the cards it touches (ADR 0043).
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+pub struct CanonProposal {
+    pub message_id: String,
+    pub chat_id: String,
+    pub chat_title: Option<String>,
+    /// The work the facts were read from, when they were.
+    pub work_id: Option<String>,
+    /// A description's text; the answer's prose for a package.
+    pub body: String,
+    pub proposal: Proposal,
+    /// Every card of the canon the proposal touches, by id: the cards its
+    /// facts land on or change, the ends of its relations, the card it
+    /// describes. What the screen finds the proposals of an open card by.
+    pub cards: Vec<String>,
+    pub created_at: String,
+}
+
+/// Every proposal for the canon nobody has answered, oldest first.
+pub fn pending_canon(conn: &Connection, profile_id: &str) -> Result<Vec<CanonProposal>> {
+    let mut statement = conn.prepare(
+        "SELECT m.id, m.chat_id, c.title, c.work_id, m.body, m.meta, m.created_at
+           FROM chat_message m
+           JOIN chat c ON c.id = m.chat_id
+          WHERE c.profile_id = ?1 AND m.role = ?2
+            AND json_extract(m.meta, '$.proposal.kind') IN ('canon', 'cardPrompt')
+          ORDER BY m.created_at, m.rowid",
+    )?;
+    let rows = statement
+        .query_map(params![profile_id, ASSISTANT], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, Option<String>>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+            ))
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+
+    let mut out = Vec::new();
+    for (message_id, chat_id, chat_title, work_id, body, raw, created_at) in rows {
+        let meta: Map<String, Value> = serde_json::from_str(&raw).unwrap_or_default();
+        if meta.contains_key("applied") || meta.contains_key(DISMISSED) {
+            continue;
+        }
+        let Some(proposal) = meta
+            .get("proposal")
+            .cloned()
+            .and_then(|value| serde_json::from_value::<Proposal>(value).ok())
+        else {
+            continue;
+        };
+        let mut cards: Vec<String> = Vec::new();
+        let mut touch = |id: &str| {
+            if !id.is_empty() && !cards.iter().any(|known| known == id) {
+                cards.push(id.to_owned());
+            }
+        };
+        match &proposal {
+            Proposal::Canon { package } => {
+                for fact in &package.facts {
+                    if let Some(card) = fact.card.as_deref() {
+                        touch(card);
+                    }
+                }
+                for link in &package.links {
+                    touch(&link.from);
+                    touch(&link.to);
+                }
+            }
+            Proposal::CardPrompt { note_id, .. } => touch(note_id),
+            _ => {}
+        }
+        out.push(CanonProposal {
+            message_id,
+            chat_id,
+            chat_title,
+            work_id,
+            body,
+            proposal,
+            cards,
+            created_at,
+        });
+    }
+    Ok(out)
+}
+
+/// A proposal for the canon as a person reads it in a chat: the new cards,
+/// the facts by card, the relations. The body of a message an agent's
+/// proposal lands as, where there is no answer of the assistant's own to show.
+pub fn render_canon(conn: &Connection, package: &crate::canon::proposal::Package) -> String {
+    use crate::canon::proposal::FactChange;
+
+    let name = |id: &str| -> String {
+        if let Some(card) = package.cards.iter().find(|c| c.handle == id) {
+            return card.title.clone();
+        }
+        crate::note::get(conn, id)
+            .ok()
+            .flatten()
+            .and_then(|card| card.title)
+            .unwrap_or_else(|| id.to_owned())
+    };
+    let mut out = String::new();
+    if !package.cards.is_empty() {
+        out.push_str("New cards:\n");
+        for card in &package.cards {
+            out.push_str(&format!("- {} ({})\n", card.title, card.kind));
+        }
+        out.push('\n');
+    }
+    if !package.facts.is_empty() {
+        out.push_str("Facts:\n");
+        for fact in &package.facts {
+            let card = name(fact.card.as_deref().unwrap_or_default());
+            match fact.change {
+                FactChange::Add => out.push_str(&format!(
+                    "- {card} · {}: {}\n",
+                    fact.section.as_deref().unwrap_or_default(),
+                    fact.body.as_deref().unwrap_or_default()
+                )),
+                FactChange::Refine => out.push_str(&format!(
+                    "- {card}, refined: {}\n",
+                    fact.body.as_deref().unwrap_or_default()
+                )),
+                FactChange::Retire => out.push_str(&format!(
+                    "- {card}, retired: {}\n",
+                    fact.reason.as_deref().unwrap_or_default()
+                )),
+            }
+        }
+        out.push('\n');
+    }
+    if !package.links.is_empty() {
+        out.push_str("Relations:\n");
+        for link in &package.links {
+            out.push_str(&format!("- {} — {}", name(&link.from), name(&link.to)));
+            if let Some(label) = &link.label {
+                out.push_str(&format!(": {label}"));
+            }
+            out.push('\n');
+        }
+    }
+    out.trim_end().to_owned()
+}

@@ -21,6 +21,8 @@ const COVER: Asset = {
   label: null,
   original_name: 'lanterns-cover.png',
   style_brick_id: null,
+  note_id: null,
+  canon_fact_id: null,
   created_at: NOW,
 }
 

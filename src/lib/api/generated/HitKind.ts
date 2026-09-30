@@ -3,4 +3,4 @@
 /**
  * What a hit points at, and what opening it should do.
  */
-export type HitKind = "work" | "version" | "note" | "message" | "comment";
+export type HitKind = "work" | "version" | "note" | "message" | "comment" | "fact";

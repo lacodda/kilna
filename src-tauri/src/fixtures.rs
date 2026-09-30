@@ -117,3 +117,33 @@ pub fn file(dir: &Path, name: &str) -> PathBuf {
     std::fs::write(&path, b"not really a picture").expect("the file is written");
     path
 }
+
+/// A card of the canon: a note of `kind`, which the shipped profile names
+/// with sections, called `title`.
+pub fn card(conn: &Connection, profile_id: &str, kind: &str, title: &str) -> crate::note::Note {
+    crate::note::create(
+        conn,
+        profile_id,
+        crate::note::NewNote {
+            kind: Some(kind.into()),
+            title: Some(title.into()),
+            ..crate::note::NewNote::default()
+        },
+    )
+    .expect("the card is created")
+}
+
+/// A fact of a card, in `section`, saying `body`, in the public layer.
+pub fn fact(conn: &Connection, note_id: &str, section: &str, body: &str) -> crate::canon::Fact {
+    crate::canon::fact::create_minted(
+        conn,
+        crate::canon::NewFact {
+            note_id: note_id.into(),
+            section: section.into(),
+            body: body.into(),
+            ..crate::canon::NewFact::default()
+        },
+        crate::minted::Minted::fresh(),
+    )
+    .expect("the fact is written")
+}

@@ -12,4 +12,9 @@ tag?: string | null,
 /**
  * Case-insensitive substring of the title or body.
  */
-search?: string | null, };
+search?: string | null, 
+/**
+ * Cards of the canon only (`true`), or plain notes only (`false`): the
+ * Notes screen and the Canon screen list different halves of one table.
+ */
+canon?: boolean | null, };

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import {
+  BookOpen,
   Calendar,
   Disc,
   FileText,
@@ -14,9 +15,11 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { ProfileConfig } from '@/lib/api/types'
+import { hasCanon } from '@/lib/canon'
 import { styleTypesOf } from '@/lib/useProfile'
 import { Catalogue } from '@/features/catalogue/Catalogue'
 import { CalendarView } from '@/features/calendar/CalendarView'
+import { CanonView } from '@/features/canon/CanonView'
 import { CommentsView } from '@/features/comments/CommentsView'
 import { DashboardView } from '@/features/dashboard/DashboardView'
 import { JournalView } from '@/features/journal/JournalView'
@@ -117,6 +120,17 @@ export const SCREENS: readonly ScreenSpec[] = [
     rail: { group: 'library', icon: FileText },
     jump: 'n',
     render: () => <NotesView />,
+  },
+  {
+    // The world the works are made from (ADR 0043), beside the notes and the
+    // styles it stands with in the mockup - only where the craft keeps one.
+    // The open card is in the address, so back walks between cards and a
+    // search hit lands on one.
+    key: 'canon',
+    path: '/canon/:cardId?',
+    nav: 'nav.canon',
+    rail: { group: 'library', icon: BookOpen, when: hasCanon },
+    render: () => <CanonView />,
   },
   {
     // The inbox of the audience's comments, laid out the same way: the list

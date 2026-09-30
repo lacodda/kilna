@@ -1,6 +1,7 @@
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
+use crate::canon::Layer;
 use crate::error::{Error, Result};
 use crate::minted::Minted;
 use crate::time::now;
@@ -8,6 +9,10 @@ use crate::time::now;
 /// Ideas, lore, reference — one type distinguished by `kind` and tags rather
 /// than by four separate subsystems. The predecessor built those subsystems and
 /// they went unused; see the vision notes.
+///
+/// A note of a kind the profile names with sections is a card of the canon
+/// (ADR 0043): the last four fields are its own, and on a plain note they
+/// stand at their defaults.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Note {
     pub id: String,
@@ -19,9 +24,21 @@ pub struct Note {
     pub tags: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
+    /// Who may know the card exists: a task that reads the public layer
+    /// does not see a card of the internal one at all.
+    pub layer: Layer,
+    /// The names the card goes by in the works' texts - the forms a lyric
+    /// uses, since there is no stemmer to find them.
+    pub aliases: Vec<String>,
+    /// The English description a picture generator is given instead of the
+    /// name.
+    pub prompt: Option<String>,
+    /// A fingerprint of the facts the description was written from. When it
+    /// no longer matches the card's facts, the description is stale.
+    pub prompt_basis: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
 #[ts(optional_fields)]
 pub struct NewNote {
     pub body: String,
@@ -35,6 +52,12 @@ pub struct NewNote {
     #[serde(default)]
     #[ts(optional = nullable)]
     pub tags: Vec<String>,
+    /// The public layer when absent.
+    #[serde(default)]
+    pub layer: Option<Layer>,
+    #[serde(default)]
+    #[ts(optional = nullable)]
+    pub aliases: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
@@ -57,6 +80,24 @@ pub struct NotePatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub work_id: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layer: Option<Layer>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub aliases: Option<Vec<String>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub prompt: Option<Option<String>>,
+    /// Set together with `prompt`, by the action that knows which facts the
+    /// description was written from - never by the window.
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub prompt_basis: Option<Option<String>>,
 }
 
 /// Narrowing applied to a listing. Every field may be left out - serde
@@ -70,10 +111,13 @@ pub struct NoteFilter {
     pub tag: Option<String>,
     /// Case-insensitive substring of the title or body.
     pub search: Option<String>,
+    /// Cards of the canon only (`true`), or plain notes only (`false`): the
+    /// Notes screen and the Canon screen list different halves of one table.
+    pub canon: Option<bool>,
 }
 
-const SELECT_NOTE: &str =
-    "SELECT id, profile_id, work_id, kind, title, body, tags, created_at, updated_at FROM note";
+const SELECT_NOTE: &str = "SELECT id, profile_id, work_id, kind, title, body, tags, created_at, \
+     updated_at, layer, aliases, prompt, prompt_basis FROM note";
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewNote) -> Result<Note> {
     create_minted(conn, profile_id, new, Minted::fresh())
@@ -92,23 +136,69 @@ pub fn create_minted(
 ) -> Result<Note> {
     let id = minted.id().to_owned();
     let timestamp = minted.at().to_owned();
+    let kind = new.kind.unwrap_or_else(|| "note".into());
+    one_root(conn, profile_id, &kind, None)?;
 
     conn.execute(
-        "INSERT INTO note (id, profile_id, work_id, kind, title, body, tags, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)",
+        "INSERT INTO note (id, profile_id, work_id, kind, title, body, tags, created_at, updated_at, layer, aliases)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10)",
         params![
             id,
             profile_id,
             new.work_id,
-            new.kind.unwrap_or_else(|| "note".into()),
+            kind,
             new.title,
             new.body,
             serde_json::to_string(&new.tags)?,
             timestamp,
+            new.layer.unwrap_or_default().as_str(),
+            serde_json::to_string(&clean_aliases(new.aliases))?,
         ],
     )?;
 
     get(conn, &id)?.ok_or_else(|| Error::Internal("the note vanished after insert".into()))
+}
+
+/// The names a card goes by, as they are kept: trimmed, the empty ones
+/// dropped, each once - the first spelling wins, whatever its case.
+pub fn clean_aliases(aliases: Vec<String>) -> Vec<String> {
+    let mut kept: Vec<String> = Vec::new();
+    for alias in aliases {
+        let alias = alias.trim().to_owned();
+        if alias.is_empty()
+            || kept
+                .iter()
+                .any(|k| k.to_lowercase() == alias.to_lowercase())
+        {
+            continue;
+        }
+        kept.push(alias);
+    }
+    kept
+}
+
+/// The canon has one root: a second card of the root kind is refused, whether
+/// it is made or an existing note is turned into one. `except` is the note
+/// being changed, which may of course be the root already.
+fn one_root(conn: &Connection, profile_id: &str, kind: &str, except: Option<&str>) -> Result<()> {
+    let config = crate::profile::config_for(conn, profile_id)?;
+    let Some(root) = config.note_kind(kind).filter(|k| k.root) else {
+        return Ok(());
+    };
+    let existing: Option<String> = conn
+        .query_row(
+            "SELECT id FROM note WHERE profile_id = ?1 AND kind = ?2 AND id IS NOT ?3 LIMIT 1",
+            params![profile_id, kind, except],
+            |row| row.get(0),
+        )
+        .optional()?;
+    match existing {
+        Some(_) => Err(Error::refused("canon.secondRoot").param(
+            "kind",
+            serde_json::to_value(&root.label).unwrap_or_default(),
+        )),
+        None => Ok(()),
+    }
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Note>> {
@@ -150,6 +240,17 @@ pub fn list(conn: &Connection, profile_id: &str, filter: &NoteFilter) -> Result<
         let n = values.len();
         sql.push_str(&format!(
             " AND (coalesce(title, '') LIKE ?{n} OR body LIKE ?{n})"
+        ));
+    }
+    if let Some(canon) = filter.canon {
+        // Which kinds are cards is the profile's word, so the split is read
+        // from it at the moment of asking rather than kept on the row.
+        let config = crate::profile::config_for(conn, profile_id)?;
+        values.push(Box::new(serde_json::to_string(&config.card_kinds())?));
+        let n = values.len();
+        let not = if canon { "" } else { "NOT " };
+        sql.push_str(&format!(
+            " AND kind {not}IN (SELECT value FROM json_each(?{n}))"
         ));
     }
 
@@ -194,6 +295,8 @@ pub fn update_at(conn: &Connection, id: &str, patch: NotePatch, at: &str) -> Res
         set(&mut assignments, &mut values, "body", Box::new(body));
     }
     if let Some(kind) = patch.kind {
+        let found = get(conn, id)?.ok_or_else(|| unknown_note(id))?;
+        one_root(conn, &found.profile_id, &kind, Some(id))?;
         set(&mut assignments, &mut values, "kind", Box::new(kind));
     }
     if let Some(tags) = patch.tags {
@@ -206,6 +309,36 @@ pub fn update_at(conn: &Connection, id: &str, patch: NotePatch, at: &str) -> Res
     }
     if let Some(work_id) = patch.work_id {
         set(&mut assignments, &mut values, "work_id", Box::new(work_id));
+    }
+    if let Some(layer) = patch.layer {
+        set(
+            &mut assignments,
+            &mut values,
+            "layer",
+            Box::new(layer.as_str().to_owned()),
+        );
+    }
+    if let Some(aliases) = patch.aliases {
+        set(
+            &mut assignments,
+            &mut values,
+            "aliases",
+            Box::new(serde_json::to_string(&clean_aliases(aliases))?),
+        );
+    }
+    if let Some(prompt) = patch.prompt {
+        let prompt = prompt
+            .map(|text| text.trim().to_owned())
+            .filter(|text| !text.is_empty());
+        set(&mut assignments, &mut values, "prompt", Box::new(prompt));
+    }
+    if let Some(basis) = patch.prompt_basis {
+        set(
+            &mut assignments,
+            &mut values,
+            "prompt_basis",
+            Box::new(basis),
+        );
     }
 
     if assignments.is_empty() {
@@ -400,6 +533,10 @@ struct RawNote {
     tags: String,
     created_at: String,
     updated_at: String,
+    layer: String,
+    aliases: String,
+    prompt: Option<String>,
+    prompt_basis: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawNote> {
@@ -413,6 +550,10 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawNote> {
         tags: row.get(6)?,
         created_at: row.get(7)?,
         updated_at: row.get(8)?,
+        layer: row.get(9)?,
+        aliases: row.get(10)?,
+        prompt: row.get(11)?,
+        prompt_basis: row.get(12)?,
     })
 }
 
@@ -420,6 +561,8 @@ impl RawNote {
     fn into_note(self) -> Result<Note> {
         Ok(Note {
             tags: serde_json::from_str(&self.tags)?,
+            layer: Layer::parse(&self.layer)?,
+            aliases: serde_json::from_str(&self.aliases)?,
             id: self.id,
             profile_id: self.profile_id,
             work_id: self.work_id,
@@ -428,6 +571,8 @@ impl RawNote {
             body: self.body,
             created_at: self.created_at,
             updated_at: self.updated_at,
+            prompt: self.prompt,
+            prompt_basis: self.prompt_basis,
         })
     }
 }
@@ -445,6 +590,7 @@ mod tests {
             title: None,
             work_id: None,
             tags: tags.iter().map(|t| (*t).to_owned()).collect(),
+            ..Default::default()
         }
     }
 

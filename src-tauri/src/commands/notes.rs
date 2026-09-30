@@ -22,7 +22,12 @@ pub fn create_note(state: State<'_, AppState>, note: NewNote) -> Result<Note> {
 }
 
 #[tauri::command]
-pub fn update_note(state: State<'_, AppState>, id: String, patch: NotePatch) -> Result<Note> {
+pub fn update_note(state: State<'_, AppState>, id: String, mut patch: NotePatch) -> Result<Note> {
+    // A card's description is written through `describe_card`, which knows
+    // the facts it answers to; written here it would carry no fingerprint and
+    // read as stale forever.
+    patch.prompt = None;
+    patch.prompt_basis = None;
     actions::note::update(&state.conn(), &id, patch)
 }
 

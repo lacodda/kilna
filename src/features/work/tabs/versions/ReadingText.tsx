@@ -4,6 +4,10 @@ import { MarkedText } from '@/components/ui/marked-text'
 import { Markdown } from '@/components/Markdown'
 import { withSections } from '@/features/work/tabs/versions/metrics'
 
+/** Where the text being read is: a selection inside it is a selection of the
+ *  version, which is what "To the canon" hands on (`ToCanonButton`). */
+export const READING_TEXT = 'data-reading-text'
+
 interface Props {
   body: string
   /** Rendered as prose rather than set as typed. See `VersionRole.body`. */
@@ -32,7 +36,9 @@ export function ReadingText({ body, markdown, added, metrics, ref }: Props) {
   const lineMarks = useMemo(() => withSections(body, added), [body, added])
 
   return (
-    <div ref={ref} tabIndex={-1} className="outline-none">
+    // Marked as the text being read, so a selection made in it can be told
+    // from one made anywhere else (`ToCanonButton`).
+    <div ref={ref} tabIndex={-1} className="outline-none" {...{ [READING_TEXT]: '' }}>
       {markdown ? (
         <div className={metrics}>
           <Markdown body={body} />

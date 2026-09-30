@@ -71,6 +71,8 @@ beforeEach(() => {
               label: null,
               original_name: 'thumbnail.png',
               style_brick_id: null,
+              note_id: null,
+              canon_fact_id: null,
               created_at: NOW,
             },
           ] satisfies Asset[])

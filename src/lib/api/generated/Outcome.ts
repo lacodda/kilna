@@ -33,4 +33,16 @@ style_brick?: string | null,
 /**
  * The comment kept from a screenshot, or whose reply was written.
  */
-comment?: string | null, };
+comment?: string | null, 
+/**
+ * Cards of the canon made, or described.
+ */
+cards?: Array<string>, 
+/**
+ * Facts written, refined or retired.
+ */
+facts?: Array<string>, 
+/**
+ * Relations drawn or redrawn.
+ */
+relations?: Array<string>, };

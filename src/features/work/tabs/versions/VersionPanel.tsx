@@ -21,6 +21,7 @@ import { Skeleton, SkeletonList } from '@/components/ui/skeleton'
 import { ListDetail, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
 import { ActionBar } from '@/features/assistant/ActionBar'
+import { ToCanonButton } from '@/features/canon/ToCanonButton'
 import { BodyPane, type Reading } from '@/features/work/tabs/versions/BodyPane'
 import { Commentary } from '@/features/work/tabs/versions/Commentary'
 import { CompareControl } from '@/features/work/tabs/versions/CompareControl'
@@ -369,6 +370,11 @@ export function VersionPanel({ workId }: Props) {
                 score started here reads the text and comes back bound to it.
                 Not while it is being written: the revision the action would
                 read is the one the typing is replacing. */}
+            {/* Selected lines, handed to the canon: a fact read off the very
+                line it came from, with this version as its source. */}
+            {!commentaryLane && reading !== 'edit' && (
+              <ToCanonButton workId={workId} versionId={shown.id} />
+            )}
             {!commentaryLane && reading !== 'edit' && (
               <ActionBar
                 workId={workId}

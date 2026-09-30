@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { PromptTemplate } from '@/lib/api/types'
-import { actionsOfScope, commentAction, scopeOf } from '@/lib/actions'
+import {
+  actionsOfScope,
+  cardAction,
+  commentAction,
+  gatherAction,
+  scopeOf,
+  selectionAction,
+} from '@/lib/actions'
 
 const action = (key: string, over: Partial<PromptTemplate> = {}): PromptTemplate => ({
   key,
@@ -26,6 +33,20 @@ describe('actions by scope', () => {
 
   it('keeps comment and style actions off a work', () => {
     expect(actionsOfScope(all, 'work').map((one) => one.key)).toEqual(['critique', 'later'])
+  })
+
+  it('keeps actions about a card or a selection off a work, and finds them by what they produce', () => {
+    const canon = [
+      action('gather-canon', { produces: 'canon' }),
+      action('to-canon', { scope: 'selection', produces: 'canon' }),
+      action('gather-card', { scope: 'canon', produces: 'canon' }),
+      action('describe-card', { scope: 'canon', produces: 'card-prompt' }),
+    ]
+    expect(actionsOfScope(canon, 'work').map((one) => one.key)).toEqual(['gather-canon'])
+    expect(selectionAction(canon)?.key).toBe('to-canon')
+    expect(gatherAction(canon)?.key).toBe('gather-canon')
+    expect(cardAction(canon, 'canon')?.key).toBe('gather-card')
+    expect(cardAction(canon, 'card-prompt')?.key).toBe('describe-card')
   })
 
   it('finds the comment action by what it produces', () => {

@@ -1,7 +1,7 @@
 import type { PromptTemplate } from '@/lib/api/types'
 
 /** What a profile action is about, as the backend reads `scope`. */
-export type ActionScope = 'work' | 'scene' | 'style' | 'comment'
+export type ActionScope = 'work' | 'scene' | 'style' | 'comment' | 'canon' | 'selection'
 
 /**
  * The scope of an action. Anything the backend reads as a work action — no
@@ -16,6 +16,10 @@ export function scopeOf(action: Pick<PromptTemplate, 'scope'>): ActionScope {
       return 'style'
     case 'comment':
       return 'comment'
+    case 'canon':
+      return 'canon'
+    case 'selection':
+      return 'selection'
     default:
       return 'work'
   }
@@ -34,4 +38,23 @@ export function commentAction(
   produces: 'comment' | 'reply',
 ): PromptTemplate | undefined {
   return actionsOfScope(actions, 'comment').find((action) => action.produces?.trim() === produces)
+}
+
+/** The action about a card of the canon that produces this, if the profile
+ *  has one: `canon` gathers the card's facts, `card-prompt` describes it. */
+export function cardAction(
+  actions: PromptTemplate[],
+  produces: 'canon' | 'card-prompt',
+): PromptTemplate | undefined {
+  return actionsOfScope(actions, 'canon').find((action) => action.produces?.trim() === produces)
+}
+
+/** The action that reads selected lines into the canon, if the profile has one. */
+export function selectionAction(actions: PromptTemplate[]): PromptTemplate | undefined {
+  return actionsOfScope(actions, 'selection').find((action) => action.produces?.trim() === 'canon')
+}
+
+/** A work action that gathers the canon from the work's text, if the profile has one. */
+export function gatherAction(actions: PromptTemplate[]): PromptTemplate | undefined {
+  return actionsOfScope(actions, 'work').find((action) => action.produces?.trim() === 'canon')
 }

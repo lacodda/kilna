@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { open } from '@tauri-apps/plugin-dialog'
 import { startTask } from '@/lib/api/assistant'
+import { startCardTask } from '@/lib/api/canon'
 import { startCommentTask } from '@/lib/api/comments'
 import { startStyleTask } from '@/lib/api/styles'
 import type { PromptTemplate, StartedTask } from '@/lib/api/types'
@@ -33,6 +34,8 @@ export type TaskTarget =
     }
   | { on: 'style'; id: string }
   | { on: 'comment'; id: string }
+  /** A card of the canon: its facts gathered, or its description written. */
+  | { on: 'card'; id: string }
 
 interface Props {
   open: boolean
@@ -91,7 +94,9 @@ export function TaskPreviewDialog({
         })
       : target.on === 'style'
         ? queries.styleTaskPreview(target.id, action.key)
-        : queries.commentTaskPreview(target.id, action.key)
+        : target.on === 'card'
+          ? queries.cardTaskPreview(target.id, action.key)
+          : queries.commentTaskPreview(target.id, action.key)
   const preview = useQuery({ ...read, enabled: isOpen, staleTime: 0, retry: false })
 
   const start = useAppMutation({
@@ -109,6 +114,8 @@ export function TaskPreviewDialog({
           return startStyleTask(target.id, action.key)
         case 'comment':
           return startCommentTask(target.id, action.key)
+        case 'card':
+          return startCardTask(target.id, action.key)
       }
     },
     refresh: [keys.activeTasks, keys.allChats],

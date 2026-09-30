@@ -45,6 +45,8 @@ pub enum Kind {
     Note,
     Message,
     Comment,
+    /// A fact of a card of the canon; it opens the card.
+    Fact,
 }
 
 impl Kind {
@@ -56,6 +58,7 @@ impl Kind {
             Kind::Note => "note",
             Kind::Message => "message",
             Kind::Comment => "comment",
+            Kind::Fact => "fact",
         }
     }
 }
@@ -79,6 +82,10 @@ pub struct Hit {
     pub detail: String,
     /// Rank within its kind — lower sorts first.
     pub rank: i64,
+    /// The card a fact belongs to: what opening the hit shows.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub card_id: Option<String>,
 }
 
 /// How many hits of each kind are worth showing.
@@ -145,6 +152,7 @@ pub fn find(conn: &Connection, profile_id: &str, query: &str) -> Result<Vec<Hit>
         Kind::Note,
         Kind::Message,
         Kind::Comment,
+        Kind::Fact,
     ] {
         hits.extend(of_kind(conn, profile_id, &expression, kind)?);
     }
@@ -224,7 +232,7 @@ fn of_kind(conn: &Connection, profile_id: &str, expression: &str, kind: Kind) ->
         // A hit with nowhere to open is worse than no hit: a chat on nothing is
         // skipped rather than offered. A note or a comment on nothing opens on
         // its own screen, so it stays.
-        if work_id.is_none() && !matches!(kind, Kind::Note | Kind::Comment) {
+        if work_id.is_none() && !matches!(kind, Kind::Note | Kind::Comment | Kind::Fact) {
             continue;
         }
         let Some(described) = describe(conn, kind, &entity_id, work_id.as_deref(), &snippet)?
@@ -276,6 +284,7 @@ fn describe(
                 title,
                 detail: format!("{kind_key} · {status}"),
                 rank: 0,
+                card_id: None,
             }),
         Kind::Version => conn
             .query_row(
@@ -305,6 +314,7 @@ fn describe(
                     label.unwrap_or_else(|| format!("v{revision}"))
                 ),
                 rank: 0,
+                card_id: None,
             }),
         Kind::Note => conn
             .query_row(
@@ -328,6 +338,7 @@ fn describe(
                 title: title.unwrap_or_else(|| one_line(snippet)),
                 detail: note_kind,
                 rank: 0,
+                card_id: None,
             }),
         Kind::Message => conn
             .query_row(
@@ -347,6 +358,7 @@ fn describe(
                 title: one_line(snippet),
                 detail: role,
                 rank: 0,
+                card_id: None,
             }),
         // Named by who said it and where: the words are the snippet already.
         Kind::Comment => conn
@@ -374,6 +386,33 @@ fn describe(
                     None => channel,
                 },
                 rank: 0,
+                card_id: None,
+            }),
+        // Named by what it says, placed by the card it is a fact of - which
+        // is what opening it shows.
+        Kind::Fact => conn
+            .query_row(
+                "SELECT f.note_id, coalesce(n.title, ''), n.kind
+                   FROM canon_fact f JOIN note n ON n.id = f.note_id
+                  WHERE f.id = ?1",
+                params![entity_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .map(|(card_id, card_title, card_kind)| Hit {
+                kind: Kind::Fact,
+                entity_id: entity.clone(),
+                work_id: None,
+                work_title: String::new(),
+                title: one_line(snippet),
+                detail: format!("{card_kind} · {card_title}"),
+                rank: 0,
+                card_id: Some(card_id),
             }),
     };
 
@@ -618,6 +657,7 @@ mod tests {
                 title: None,
                 work_id: Some(work.clone()),
                 tags: vec![],
+                ..Default::default()
             },
         )
         .unwrap();
@@ -640,6 +680,7 @@ mod tests {
                 title: None,
                 work_id: None,
                 tags: vec![],
+                ..Default::default()
             },
         )
         .unwrap();

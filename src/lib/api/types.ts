@@ -81,6 +81,39 @@ export type { Promotion } from './generated/Promotion'
 export type { Promoted } from './generated/Promoted'
 export type { ResolvedLink } from './generated/ResolvedLink'
 
+// The canon: cards (notes of a kind with sections), their facts and
+// relations (ADR 0043).
+export type { NoteKind } from './generated/NoteKind'
+export type { CanonSection } from './generated/CanonSection'
+export type { SectionShape } from './generated/SectionShape'
+export type { Lens } from './generated/Lens'
+export type { Layer } from './generated/Layer'
+export type { FactStatus } from './generated/FactStatus'
+export type { Fact } from './generated/Fact'
+export type { NewFact } from './generated/NewFact'
+export type { FactPatch } from './generated/FactPatch'
+export type { Source as FactSource } from './generated/Source'
+export type { SourceKind as FactSourceKind } from './generated/SourceKind'
+export type { When as WorldTime } from './generated/When'
+export type { CanonLink } from './generated/CanonLink'
+export type { NewCanonLink } from './generated/NewCanonLink'
+export type { CanonLinkPatch } from './generated/CanonLinkPatch'
+export type { CardFilter } from './generated/CardFilter'
+export type { CardSummary } from './generated/CardSummary'
+export type { CardView } from './generated/CardView'
+export type { ReadFact } from './generated/ReadFact'
+export type { Relation } from './generated/Relation'
+export type { Appearance } from './generated/Appearance'
+export type { Dated } from './generated/Dated'
+export type { Package as CanonPackage } from './generated/Package'
+export type { ProposedCard } from './generated/ProposedCard'
+export type { ProposedFact } from './generated/ProposedFact'
+export type { ProposedLink } from './generated/ProposedLink'
+export type { FactChange } from './generated/FactChange'
+export type { Contradiction } from './generated/Contradiction'
+export type { FactReview } from './generated/FactReview'
+export type { CanonProposal } from './generated/CanonProposal'
+
 // Comments.
 export type { Comment } from './generated/Comment'
 export type { NewComment } from './generated/NewComment'
@@ -213,6 +246,8 @@ export type ScenesProposal = Extract<Proposal, { kind: 'scenes' }>
 export type CommentProposal = Extract<Proposal, { kind: 'comment' }>
 export type ReplyProposal = Extract<Proposal, { kind: 'reply' }>
 export type DescriptionProposal = Extract<Proposal, { kind: 'description' }>
+export type CanonProposalKind = Extract<Proposal, { kind: 'canon' }>
+export type CardPromptProposal = Extract<Proposal, { kind: 'cardPrompt' }>
 
 // Data in and out.
 export type { ExportReport } from './generated/ExportReport'
