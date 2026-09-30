@@ -8,6 +8,7 @@ import { changesOf, type ReleaseChanges, type ReleaseDraft } from '@/lib/release
 import { ReleaseForm, useReleaseDraft } from '@/components/ReleaseForm'
 import { ReleaseAssets } from '@/features/work/tabs/releases/ReleaseAssets'
 import { ReleaseFields } from '@/features/work/tabs/releases/ReleaseFields'
+import { ReleaseProposals } from '@/features/work/tabs/releases/ReleaseProposals'
 
 interface Props {
   release: ScheduledRelease
@@ -17,7 +18,7 @@ interface Props {
 
 /**
  * A release's row, unrolled: its date, its link and its kind, what it goes
- * out as, and the files that go with it.
+ * out as and what is proposed it should, and the files that go with it.
  *
  * In place, under the row, rather than in a dialog. Until v0.80 the date and
  * the link were a dialog away and the fields a box nested under the row, so
@@ -63,6 +64,9 @@ export function ReleaseDetails({ release, refreshed }: Props) {
         />
       )}
       <ReleaseFields release={release} />
+      {/* What the assistant or an agent proposes the fields say, under the
+          fields it would change. */}
+      <ReleaseProposals release={release} />
       <ReleaseAssets release={release} />
     </div>
   )

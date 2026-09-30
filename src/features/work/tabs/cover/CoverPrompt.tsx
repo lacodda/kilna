@@ -6,10 +6,11 @@ import { textMap, textOf } from '@/lib/json'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
-import { say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { CopyButton } from '@/components/ui/copy-button'
 import { Panel, SectionLabel } from '@/components/ui/panel'
 import { Textarea } from '@/components/ui/textarea'
+import { coverBlocksOf } from '@/features/work/tabs/cover/cover'
 
 interface Props {
   work: Work
@@ -24,9 +25,10 @@ interface Props {
  * `cover_blocks`, and each is edited and copied on its own because each goes
  * into a different field of whatever draws it.
  *
- * It sits on the Files tab, above the pictures. Writing the prompt and
- * looking at what came back are one activity; a tab of their own for each
- * would put them on opposite sides of the card.
+ * It has a tab of its own since v0.86, under the shapes the work's doors
+ * ask for. It stood on the Files tab above the pictures until then; a song
+ * has no Files tab any more, and what a publication looks like where it goes
+ * out became a subject of its own, with the frame beside it.
  *
  * The parts stand side by side, not one under another. Three boxes the width
  * of the card stacked above the gallery took most of its height before the
@@ -35,12 +37,14 @@ interface Props {
  * own copy button.
  *
  * A kind that names no parts draws nothing here at all — a song whose cover
- * is the album's has no prompt of its own to write.
+ * is the album's has no prompt of its own to write — unless the work holds a
+ * prompt all the same, which is then shown in the words of any kind that has
+ * them (`coverBlocksOf`).
  */
 export function CoverPrompt({ work }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const blocks = vocabularyOf(profile.config, work.kind).cover_blocks
+  const blocks = coverBlocksOf(profile.config, work)
 
   const save = useAppMutation({
     mutationFn: (cover: Record<string, string>) => updateWork(work.id, { cover }),

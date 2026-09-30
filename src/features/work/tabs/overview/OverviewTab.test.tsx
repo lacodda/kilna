@@ -9,9 +9,9 @@ import { axisBar } from '@/features/work/tabs/overview/MiniBars'
 
 /*
  * The overview as a board of widgets (v0.82), on the fake studio: "Paper
- * Lanterns" is a scored song with lyrics, a style prompt and a planned
- * release; "Harbour Lights" a song nothing has judged; the clip a video with
- * a storyboard.
+ * Lanterns" is a scored song with lyrics and a style prompt, going out as the
+ * clip and the audio made from it (v0.86); "Harbour Lights" a song nothing
+ * has judged; the clip a video with a storyboard and a release of its own.
  */
 
 let workspace: Studio
@@ -41,7 +41,8 @@ async function openOverview(workId: string) {
   const view = renderApp(`/works/${workId}/overview`)
   await settled(view.client)
   const main = await screen.findByRole('main')
-  await within(main).findByRole('group', { name: en.card.tab.releases })
+  // Every kind draws its links, so the board has landed when they have.
+  await within(main).findByRole('group', { name: en.card.tab.links })
   await settled(view.client)
   return { ...view, main }
 }
@@ -62,11 +63,15 @@ describe('the overview', () => {
     const board = main.querySelector('[data-layout]')
     expect(board).toHaveAttribute('data-layout', 'lead')
     const names = widgetsIn(main)
-    // The text leads, and what a song has no use for is not drawn at all.
-    expect(names[0]).toMatch(/^Lyrics · Revision 2/)
+    // What the song goes out as leads, the text under it, and what a song has
+    // no use for is not drawn at all: no storyboard, and no releases of its
+    // own - it goes out as its publications (ADR 0047).
+    expect(names[0]).toBe(en.publications.caption)
+    expect(names[1]).toMatch(/^Lyrics · Revision 2/)
     expect(names).toContain('Style prompt · Revision 1')
     expect(names).toContain(en.card.tab.score)
     expect(names).not.toContain(en.card.tab.scenes)
+    expect(names).not.toContain(en.card.tab.releases)
   })
 
   it('draws a storyboard on a clip, and no style prompt where the kind keeps none', async () => {
@@ -75,6 +80,9 @@ describe('the overview', () => {
     const names = widgetsIn(main)
     expect(names).toContain(en.card.tab.scenes)
     expect(names.some((name) => name.startsWith('Style prompt'))).toBe(false)
+    // A clip goes out itself: its releases, not publications of its own.
+    expect(names).toContain(en.card.tab.releases)
+    expect(names).not.toContain(en.publications.caption)
     const board = within(main).getByRole('group', { name: en.card.tab.scenes })
     expect(within(board).getByText('2')).toBeInTheDocument()
   })
@@ -128,7 +136,7 @@ describe('the overview', () => {
     const { main } = await openOverview(IDS.song)
 
     expect(main.querySelector('[data-layout]')).toHaveAttribute('data-layout', 'sheet')
-    expect(widgetsIn(main)).toContain(en.card.tab.releases)
+    expect(widgetsIn(main)).toContain(en.publications.caption)
   })
 })
 

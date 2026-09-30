@@ -59,6 +59,7 @@ const row = (over: Partial<CatalogueRow>): CatalogueRow => ({
   version_count: 0,
   stage: null,
   bookmarked_at: null,
+  publications: [],
   next_release: null,
   ...over,
 })

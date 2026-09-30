@@ -244,3 +244,20 @@ describe('the package', () => {
     expect(backend.argsOf('can_export_package')).toEqual([{ workId: IDS.video }])
   })
 })
+
+describe('a board its kind names no words for', () => {
+  it("is read in another kind's blocks rather than hidden", async () => {
+    // An audio release that was a video once keeps its still-frame scenes;
+    // the audio kind names no storyboard of its own.
+    for (const scene of workspace.scenes) scene.work_id = IDS.audio
+    const { client } = renderApp(`/works/${IDS.audio}/scenes`)
+    await screen.findAllByRole('textbox', { name: en.scenes.description })
+    await settled(client)
+
+    expect(screen.queryByText(en.scenes.noneForKind)).toBeNull()
+    await unfold(1)
+    expect(await screen.findByRole('textbox', { name: 'Still frame' })).toHaveValue(
+      'close-up of hands lighting a paper lantern at dusk',
+    )
+  })
+})

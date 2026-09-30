@@ -3,6 +3,7 @@ import { ProposedCanon, ProposedCardPrompt } from '@/features/assistant/Proposed
 import { ProposedCommentOrReply } from '@/features/assistant/ProposedCommentOrReply'
 import { ProposedDescription } from '@/features/assistant/ProposedDescription'
 import { ProposedNote } from '@/features/assistant/ProposedNote'
+import { ProposedRelease } from '@/features/assistant/ProposedRelease'
 import { ProposedScenes } from '@/features/assistant/ProposedScenes'
 import { ProposedScore } from '@/features/assistant/ProposedScore'
 import { ProposedVersion } from '@/features/assistant/ProposedVersion'
@@ -109,6 +110,16 @@ export function Proposed({ answer, workId, onChooseVersion }: Props) {
           noteId={proposal.note_id}
           applied={applied}
           dismissed={dismissed}
+        />
+      )
+    case 'release':
+      return (
+        <ProposedRelease
+          messageId={messageId}
+          proposal={proposal}
+          applied={applied}
+          dismissed={dismissed}
+          workId={workId}
         />
       )
   }

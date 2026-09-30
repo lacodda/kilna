@@ -35,6 +35,7 @@ function work(over: Partial<ScoredWork> = {}): ScoredWork {
     version_count: 0,
     stage: null,
     bookmarked_at: null,
+    publications: [],
     ...over,
   }
 }
@@ -197,7 +198,13 @@ describe('isQuiet', () => {
 })
 
 const CONFIG: Pick<ProfileConfig, 'work_kinds' | 'prompts'> = {
-  work_kinds: [{ key: 'song', label: 'Song' }],
+  work_kinds: [
+    {
+      key: 'song',
+      label: 'Song',
+      axes: [{ key: 'hook', label: 'Hook', kind: 'scale', weight: 1, scale: 10 }],
+    },
+  ],
   prompts: [{ key: 'score', label: 'Score it', description: '', template: '', produces: 'score' }],
 }
 
@@ -330,8 +337,9 @@ describe('subjectOf', () => {
     expect(subjectOf('prompts:w1:sc1:still')).toEqual({ action: 'prompts', workId: 'w1' })
   })
 
-  it('reads no work out of a task about a comment or a screenshot', () => {
+  it('reads no work out of a task about a comment, a screenshot or a release', () => {
     expect(subjectOf('reply:comment:c1')).toEqual({ action: 'reply', workId: null })
     expect(subjectOf('read:channel:yt:p1')).toEqual({ action: 'read', workId: null })
+    expect(subjectOf('release-meta:release:r1')).toEqual({ action: 'release-meta', workId: null })
   })
 })

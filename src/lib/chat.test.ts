@@ -225,6 +225,37 @@ describe('a proposal on an answer', () => {
     ])
   })
 
+  it('reads what answers about a release or the canon propose, and only whole', () => {
+    // The canon's two read as nothing from v0.84 until v0.86: a package of
+    // cards had no button under its answer.
+    const items = conversation(
+      [
+        message('assistant', 'fields', 't1', {
+          proposal: { kind: 'release', release_id: 'r-1', fields: { title: 'Harbour lights' } },
+        }),
+        message('assistant', 'cards', 't2', {
+          proposal: { kind: 'canon', package: { cards: [] } },
+        }),
+        message('assistant', 'A lantern on wet stone.', 't3', {
+          proposal: { kind: 'cardPrompt', note_id: 'n-1' },
+        }),
+        message('assistant', 'broken', 't4', { proposal: { kind: 'canon' } }),
+        message('assistant', 'broken', 't5', { proposal: { kind: 'cardPrompt' } }),
+        message('assistant', 'broken', 't6', { proposal: { kind: 'release' } }),
+      ],
+      [],
+    )
+
+    expect(items.map((item) => item.answer?.proposal?.kind ?? null)).toEqual([
+      'release',
+      'canon',
+      'cardPrompt',
+      null,
+      null,
+      null,
+    ])
+  })
+
   it('is absent on an ordinary answer', () => {
     const items = conversation(
       [message('user', 'ask', 't1'), message('assistant', 'prose', 't2')],

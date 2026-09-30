@@ -5,6 +5,7 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { startTask } from '@/lib/api/assistant'
 import { startCardTask } from '@/lib/api/canon'
 import { startCommentTask } from '@/lib/api/comments'
+import { previewReleaseTask, startReleaseTask } from '@/lib/api/releases'
 import { startStyleTask } from '@/lib/api/styles'
 import type { PromptTemplate, StartedTask } from '@/lib/api/types'
 import { humanError } from '@/lib/errors'
@@ -36,6 +37,8 @@ export type TaskTarget =
   | { on: 'comment'; id: string }
   /** A card of the canon: its facts gathered, or its description written. */
   | { on: 'card'; id: string }
+  /** A release: what it goes out under, written (v0.86). */
+  | { on: 'release'; id: string }
 
 interface Props {
   open: boolean
@@ -96,7 +99,12 @@ export function TaskPreviewDialog({
         ? queries.styleTaskPreview(target.id, action.key)
         : target.on === 'card'
           ? queries.cardTaskPreview(target.id, action.key)
-          : queries.commentTaskPreview(target.id, action.key)
+          : target.on === 'release'
+            ? {
+                queryKey: keys.taskPreview(['release', target.id, action.key]),
+                queryFn: () => previewReleaseTask(target.id, action.key),
+              }
+            : queries.commentTaskPreview(target.id, action.key)
   const preview = useQuery({ ...read, enabled: isOpen, staleTime: 0, retry: false })
 
   const start = useAppMutation({
@@ -116,6 +124,8 @@ export function TaskPreviewDialog({
           return startCommentTask(target.id, action.key)
         case 'card':
           return startCardTask(target.id, action.key)
+        case 'release':
+          return startReleaseTask(target.id, action.key)
       }
     },
     refresh: [keys.activeTasks, keys.allChats],

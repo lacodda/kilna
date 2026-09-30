@@ -14,15 +14,19 @@ import {
   applies,
   boardOf,
   currentIn,
+  doorsOf,
   fieldsOf,
   leadOf,
   nextStage,
   previewOf,
   previousOf,
+  publicationFact,
   releaseTone,
   styleRoleOf,
+  takesAn,
   textRoleOf,
   trailOf,
+  wordOf,
   type Placed,
   type WidgetFacts,
 } from '@/lib/overview'
@@ -88,13 +92,20 @@ describe('applies', () => {
     style: false,
     prose: false,
     releases: false,
+    publications: false,
     scenes: false,
+    cover: false,
     findings: false,
   }
 
   it('draws only what the work always has when the kind names nothing', () => {
     const drawn = WIDGETS.filter((id) => applies(id, none))
-    expect(drawn.sort()).toEqual(['cover', 'fields', 'links', 'recent', 'stage'])
+    expect(drawn.sort()).toEqual(['fields', 'links', 'recent', 'stage'])
+  })
+
+  it('draws the cover where a picture can be set or already is', () => {
+    expect(applies('cover', none)).toBe(false)
+    expect(applies('cover', { ...none, cover: true })).toBe(true)
   })
 
   it('draws no storyboard on a song and one on a clip', () => {
@@ -112,6 +123,22 @@ describe('applies', () => {
   it('draws the findings only while there is something to say', () => {
     expect(applies('findings', none)).toBe(false)
     expect(applies('findings', { ...none, findings: true })).toBe(true)
+  })
+
+  it("draws a song's publications where a clip draws its releases", () => {
+    const song = { ...none, publications: true }
+    const clip = { ...none, releases: true }
+    expect([applies('publications', song), applies('releases', song)]).toEqual([true, false])
+    expect([applies('publications', clip), applies('releases', clip)]).toEqual([false, true])
+  })
+})
+
+describe('the shipped placement', () => {
+  it("leads a song's board with its publications, across the lead column", () => {
+    const board = boardOf({ overview: null })
+    const ids = board.widgets.map((widget) => widget.id)
+    expect(ids.indexOf('publications')).toBe(ids.indexOf('findings') + 1)
+    expect(board.widgets.find((widget) => widget.id === 'publications')?.size).toBe('l')
   })
 })
 
@@ -292,5 +319,69 @@ describe('previewOf', () => {
   it('cuts at a line, and says whether there is more', () => {
     expect(previewOf('one\ntwo\nthree', 2)).toEqual({ text: 'one\ntwo', more: true })
     expect(previewOf('one\ntwo\n\n\n', 2)).toEqual({ text: 'one\ntwo', more: false })
+  })
+})
+
+describe('publicationFact', () => {
+  const TODAY = '2026-09-15'
+  const nothing = { released: 0, last_released_at: null, next_scheduled_at: null }
+
+  it('says it is out, with the day it went out, even with another release booked', () => {
+    const out = {
+      released: 1,
+      last_released_at: '2026-09-02T09:00:00Z',
+      next_scheduled_at: '2026-09-30',
+    }
+    expect(publicationFact(out, TODAY)).toEqual({ said: 'out', day: '2026-09-02T09:00:00Z' })
+  })
+
+  it('says it is booked for its day, and late once that day has passed', () => {
+    expect(publicationFact({ ...nothing, next_scheduled_at: '2026-09-22' }, TODAY)).toEqual({
+      said: 'booked',
+      day: '2026-09-22',
+    })
+    expect(publicationFact({ ...nothing, next_scheduled_at: '2026-09-10' }, TODAY)).toEqual({
+      said: 'late',
+      day: '2026-09-10',
+    })
+    // Today is not late: the day has not passed yet.
+    expect(publicationFact({ ...nothing, next_scheduled_at: TODAY }, TODAY).said).toBe('booked')
+  })
+
+  it('leaves the status word to say it when nothing is out or booked', () => {
+    expect(publicationFact(nothing, TODAY)).toEqual({ said: 'status', day: null })
+  })
+})
+
+describe('a kind as a word in a sentence', () => {
+  it('lowers the first letter, and leaves an abbreviation alone', () => {
+    expect(wordOf('Audio')).toBe('audio')
+    expect(wordOf('YouTube Short')).toBe('YouTube Short')
+    expect(wordOf('Short film')).toBe('short film')
+    expect(wordOf('MV')).toBe('MV')
+    expect(wordOf('Шортс', 'ru')).toBe('шортс')
+    expect(wordOf('')).toBe('')
+  })
+
+  it('takes "an" before a vowel', () => {
+    expect(takesAn('audio')).toBe(true)
+    expect(takesAn('short')).toBe(false)
+  })
+})
+
+describe('doorsOf', () => {
+  const name = (label: unknown) => String(label)
+
+  it('says each door with the shape its cover is drawn in', () => {
+    const doors = [
+      { label: 'YouTube', cover_format: '16:9' },
+      { label: 'Streaming', cover_format: '1:1' },
+    ]
+    expect(doorsOf(doors, name)).toBe('YouTube · 16:9, Streaming · 1:1')
+  })
+
+  it('says a door with no shape by its name alone, and no door as nothing', () => {
+    expect(doorsOf([{ label: 'Premiere', cover_format: null }], name)).toBe('Premiere')
+    expect(doorsOf([], name)).toBe('')
   })
 })

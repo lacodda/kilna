@@ -62,7 +62,10 @@
     "rename": "Rename",
     "renameHint": "Enter saves, Escape cancels",
     "copied": "Copied",
-    "copyFailed": "Could not copy that."
+    "copyFailed": "Could not copy that.",
+    "choice": "{{field}}: {{value}}",
+    "standsOn": "{{status}} · as {{kind}} {{day}}",
+    "madeFrom": "from “{{title}}”"
   },
   "versions": {
     "title": "Versions",
@@ -412,6 +415,39 @@
     "files": {
       "title": "Files",
       "none": "No files go out with this release. Attach its thumbnail, its subtitles or the cut itself."
+    },
+    "task": {
+      "writing": "Writing…",
+      "writingMeta": "Writing the meta…"
+    },
+    "proposals": {
+      "label": "Proposed release meta",
+      "byAssistant": "Proposed by the assistant",
+      "byClient": "Proposed by {{client}}",
+      "openChat": "Open the chat",
+      "now": "Now",
+      "proposed": "Proposed",
+      "takeField": "Take the proposed {{label}}",
+      "takeChosen": "Take the chosen",
+      "dismiss": "Turn it down",
+      "taken": "Taken into the release.",
+      "waiting_one": "{{count}} field proposed",
+      "waiting_other": "{{count}} fields proposed",
+      "inChat": "Release meta, proposed",
+      "takeAll": "Take all",
+      "takenMark": "Taken",
+      "unknown": "Not fields of this release, left out: {{keys}}"
+    },
+    "metaStatus": {
+      "writing": "Writing the release meta for {{kind}}…",
+      "waiting_one": "Release meta for {{kind}}: {{count}} field waits for you",
+      "waiting_other": "Release meta for {{kind}}: {{count}} fields wait for you",
+      "waitingMany_one": "Release meta: {{count}} field waits for you",
+      "waitingMany_other": "Release meta: {{count}} fields wait for you",
+      "written": "The release meta for {{kind}} is ready",
+      "writtenFields": "The release meta for {{kind}} is ready: {{fields}}",
+      "open": "Open the release",
+      "close": "Close"
     }
   },
   "score": {
@@ -687,7 +723,8 @@
       "other": "Something was proposed",
       "comment": "A comment was read off a screenshot",
       "reply": "A reply was drafted",
-      "description": "A style description was written"
+      "description": "A style description was written",
+      "release": "Release meta was proposed"
     },
     "keepAsNote": "Keep as a note",
     "keepAsNoteTitle": "Keep as a note",
@@ -716,8 +753,6 @@
     "noSources": "Made from nothing in particular. Name a source below, or leave it.",
     "derived": "Made from this",
     "noDerived": "Nothing has been made from this yet.",
-    "makeFromThis": "Make a {{kind}} from this",
-    "made": "Made “{{title}}” from this.",
     "pickPlaceholder": "Name a source — start typing a title",
     "matches": "Works matching",
     "noMatch": "No work by that title",
@@ -1101,7 +1136,18 @@
     "producesComment": "A comment read off a screenshot",
     "producesReply": "A reply to the comment",
     "scopeStyle": "About a style",
-    "scopeComment": "About a comment"
+    "scopeComment": "About a comment",
+    "madeTitle": "Title of a work made from another",
+    "madeTitleHint": "{title} is the source's title, {n} its number. Leave empty to keep the source's title as it is.",
+    "madeTitleNoTitle": "The title never reads {title}, so every work made this way would be named the same.",
+    "madeTitleUnknown": "{{name}} is not filled here: a made title reads {title} and {n}.",
+    "coverFormats": "Cover shape",
+    "coverFormatsHint": "The shape of the picture a release of each kind goes out with, width to height: 16:9, 9:16, 1:1. Leave empty for no picture of its own.",
+    "coverFormatInvalid": "Two whole numbers above zero with a colon between them, like 16:9.",
+    "frameLine": "Works of this kind play under a frame for their whole length: a still picture and the loop of what moves in it."
+  },
+  "fields": {
+    "choiceNone": "Not set"
   },
   "plugins": {
     "title": "Plugins"
@@ -1332,6 +1378,8 @@
       "overview": "Overview",
       "versions": "Versions",
       "scenes": "Scenes",
+      "cover": "Cover",
+      "frame": "Frame",
       "cuts": "Cut",
       "score": "Score",
       "releases": "Releases",
@@ -1483,10 +1531,40 @@
   },
   "cover": {
     "title": "Cover",
-    "hint": "The prompt the cover picture is drawn from. The picture itself goes below, like any other file.",
+    "hint": "The prompt the cover picture is drawn from. The picture itself is attached on the Files tab.",
     "saved": "Cover prompt saved",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "formats": "Formats",
+    "noRelease": "no release of this kind yet",
+    "formatsHint": "The shape comes from the kind of release: a work that goes out in two places needs a cover for each."
+  },
+  "frame": {
+    "still": "Still",
+    "stillHint": "The picture that stands for the whole track: who or what, where, the light, the lens, the mood.",
+    "loop": "Loop",
+    "loopHint": "what moves, round and round",
+    "motion": "What moves",
+    "motionPlaceholder": "The one thing alive in a picture that otherwise holds still.",
+    "length": "Length",
+    "seconds": "{{seconds}} s",
+    "stillCamera": "The camera does not move",
+    "seamless": "Seamless: the last frame matches the first",
+    "negative": "Negative",
+    "negativeHint": "What must not appear in the still or the loop.",
+    "shape": "Video frame · {{format}}",
+    "shapeless": "Video frame",
+    "shapeHint": "what stays on screen for the whole track",
+    "prompts": "The frame's prompts",
+    "prompt": {
+      "still": "Picture",
+      "loop": "Loop",
+      "negative": "Negative"
+    },
+    "copy": "Copy: {{part}}",
+    "copied": "Copied",
+    "nothing": "Nothing written yet.",
+    "saveFailed": "Could not save the frame."
   },
   "shell": {
     "new": "New",
@@ -1664,7 +1742,18 @@
     "readFailed": "Could not read the screenshot.",
     "readOff": "Read from a screenshot — check it and keep it",
     "waitingCount_one": "{{count}} waits for a reply",
-    "waitingCount_other": "{{count}} wait for a reply"
+    "waitingCount_other": "{{count}} wait for a reply",
+    "notAPublication": "“{{title}}” does not go out itself, so nobody commented on it there. Move the comment to the publication it was left under.",
+    "moveToPublication": "Move to a publication",
+    "summary": {
+      "title": "Summary of its publications",
+      "hint": "Replies are written at the publication where the comment was left.",
+      "none": "Nothing has been said under its publications yet.",
+      "count_one": "{{count}} comment",
+      "count_other": "{{count}} comments",
+      "open": "Open its comments",
+      "somewhere": "A publication"
+    }
   },
   "refusal": {
     "profile": {
@@ -2284,5 +2373,35 @@
     "chip": "{{word}}: ×{{count}} here, in {{uses}} works — open it in the register",
     "toRegister": "To the register",
     "toRegisterHint": "Enter the selected word into the register of repeats"
+  },
+  "publications": {
+    "caption": "Publications",
+    "hint": "releases, files and covers live with them",
+    "none": "Nothing has been made from it yet. It goes out as what is made from it — make the first.",
+    "makeMenu": "Make…",
+    "make": "Make a {{kind}}",
+    "make_an": "Make an {{kind}}",
+    "makeFrom": "Make a {{kind}} from this",
+    "makeFrom_an": "Make an {{kind}} from this",
+    "makeFailed": "Could not make it",
+    "made": "Made “{{title}}”",
+    "madeLinked": "Linked to what it was made from.",
+    "madeRelease": "Linked, with a {{door}} release that has no day yet.",
+    "madeWriting": "Linked, with a {{door}} release that has no day yet. Its meta is being written in the background.",
+    "metaNotStarted": "The release meta did not start. The work is made without it.",
+    "out": "Out {{day}}",
+    "booked": "Booked for {{day}}",
+    "late": "Late: due {{day}}",
+    "commentCount_one": "{{count}} comment",
+    "commentCount_other": "{{count}} comments",
+    "via": "from “{{title}}”",
+    "outAs": "Out as “{{title}}” on {{day}}",
+    "bookedAs": "Booked as “{{title}}” for {{day}}",
+    "nothingOut": "Nothing has gone out yet.",
+    "commentsUnder_one": "{{count}} comment under its publications",
+    "commentsUnder_other": "{{count}} comments under its publications",
+    "commentsWaiting_one": "{{count}} waiting",
+    "commentsWaiting_other": "{{count}} waiting",
+    "noComments": "No comments under its publications yet."
   }
 }

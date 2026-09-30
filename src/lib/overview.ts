@@ -1,7 +1,10 @@
 import type {
+  Label,
   MetaField,
   OverviewLayout,
   ProfileConfig,
+  Publication,
+  ReleaseKind,
   ScheduledRelease,
   Score,
   Stage,
@@ -43,6 +46,7 @@ export const WIDGETS = [
   'cover',
   'findings',
   'trend',
+  'publications',
 ] as const
 
 export type WidgetId = (typeof WIDGETS)[number]
@@ -79,11 +83,15 @@ export interface Placed {
  * lead layout pairs them under the text.
  *
  * What needs attention comes first, so on any layout it is the first thing
- * read; it is only drawn while there is something to say (`applies`).
+ * read; it is only drawn while there is something to say (`applies`). A
+ * song's publications come next and across the lead (v0.86): a song goes
+ * out as what is made from it, and where those stand is where the song
+ * stands - the first thing a song's card is opened to check.
  */
 export const DEFAULT_PLACEMENT: readonly WidgetPlacement[] = (
   [
     ['findings', 'm'],
+    ['publications', 'l'],
     ['text', 'l'],
     ['score', 's'],
     ['axes', 's'],
@@ -153,8 +161,15 @@ export interface WidgetFacts {
   prose: boolean
   /** The kind names ways a work of it goes out. */
   releases: boolean
+  /** The kind names none: a work of it goes out as what is made from it -
+   *  a song as its clip, its audio and its shorts (ADR 0047). */
+  publications: boolean
   /** The kind has a storyboard. */
   scenes: boolean
+  /** The work can have a picture: it goes out itself, or it already holds
+   *  one. A song goes out as what is made from it, and its cover is theirs -
+   *  an invitation to set one would lead to a Files tab it does not have. */
+  cover: boolean
   /** Something about this work is waiting for a decision. */
   findings: boolean
 }
@@ -182,15 +197,18 @@ export function applies(id: WidgetId, facts: WidgetFacts): boolean {
       return facts.prose
     case 'releases':
       return facts.releases
+    case 'publications':
+      return facts.publications
     case 'storyboard':
       return facts.scenes
     case 'findings':
       return facts.findings
+    case 'cover':
+      return facts.cover
     case 'stage':
     case 'fields':
     case 'links':
     case 'recent':
-    case 'cover':
       return true
   }
 }
@@ -347,4 +365,79 @@ export function releaseTone(release: ScheduledRelease): Tone {
 export function previewOf(body: string, lines: number): { text: string; more: boolean } {
   const all = body.replace(/\s+$/, '').split('\n')
   return { text: all.slice(0, lines).join('\n'), more: all.length > lines }
+}
+
+/**
+ * What a publication's chip says about it: out, with the day it went out;
+ * booked, with the day it holds - late when that day has passed and nothing
+ * went out; otherwise its status word, and nothing to date.
+ *
+ * Out wins over booked: a clip that went out on the 2nd and has another
+ * release booked for the 30th is a clip that is out, and that is what the
+ * song's card is opened to check.
+ */
+export type PublicationFact =
+  { said: 'out' | 'booked' | 'late'; day: string } | { said: 'status'; day: null }
+
+export function publicationFact(
+  publication: Pick<Publication, 'released' | 'last_released_at' | 'next_scheduled_at'>,
+  today: string,
+): PublicationFact {
+  if (publication.released > 0 && publication.last_released_at !== null) {
+    return { said: 'out', day: publication.last_released_at }
+  }
+  const next = publication.next_scheduled_at
+  if (next !== null) return { said: next < today ? 'late' : 'booked', day: next }
+  return { said: 'status', day: null }
+}
+
+/** The colour each of those facts wears; the status word wears its own. */
+export const FACT_TONE: Record<
+  Exclude<PublicationFact['said'], 'status'>,
+  Exclude<Tone, 'neutral'>
+> = {
+  out: 'good',
+  booked: 'info',
+  late: 'warn',
+}
+
+/**
+ * A kind's label as a word inside a sentence - "Make an audio", "Released ·
+ * as audio Sep 22": the first letter lowered, since the profile writes a
+ * label to stand alone. A first word with a capital past its first letter -
+ * an abbreviation, "MV", or a name, "YouTube" - keeps every capital it has:
+ * lowered, it is a different word.
+ */
+export function wordOf(label: string, language?: string): string {
+  const rest = (label.split(/\s/)[0] ?? '').slice(1)
+  if (rest !== rest.toLocaleLowerCase(language)) return label
+  return label.charAt(0).toLocaleLowerCase(language) + label.slice(1)
+}
+
+/**
+ * Whether an English article before `word` is "an": a word that starts with
+ * a vowel letter. The sentence is the locale's; only the article is chosen
+ * here, and a language without articles says the same either way.
+ */
+export function takesAn(word: string): boolean {
+  return /^[aeiou]/i.test(word)
+}
+
+/**
+ * Where works of a kind go out, as one line: each door with the shape its
+ * cover is drawn in - "YouTube · 16:9, Streaming · 1:1". The shape belongs
+ * to the door (ADR 0047), so it is said beside the door, not once for the
+ * kind. Empty for a kind with no door.
+ */
+export function doorsOf(
+  doors: readonly Pick<ReleaseKind, 'label' | 'cover_format'>[],
+  name: (label: Label) => string,
+): string {
+  return doors
+    .map((door) =>
+      door.cover_format == null || door.cover_format === ''
+        ? name(door.label)
+        : `${name(door.label)} · ${door.cover_format}`,
+    )
+    .join(', ')
 }

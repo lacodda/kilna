@@ -10,7 +10,10 @@ export type Readiness = {
  */
 roles: Array<RoleMark>, 
 /**
- * Whether a score speaks for the work.
+ * Whether the score the kind asks for is there: a score speaks for the
+ * work, or the kind is not judged at all - it names no axes, the way an
+ * audio release goes out for a song that was judged (v0.86) - and so
+ * asks for none.
  */
 scored: boolean, 
 /**

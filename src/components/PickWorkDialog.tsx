@@ -30,6 +30,9 @@ interface Props {
   onPick: (work: ScoredWork) => void
   /** The day being filled, shown so it is obvious what is being answered. */
   title: string
+  /** Only works of these kinds are offered, and only these kinds stand as
+   *  chips - a comment is filed under a publication, never under a song. */
+  kinds?: readonly string[]
 }
 
 /**
@@ -48,11 +51,13 @@ interface Props {
  * search index, because a work with no text in it yet still has to be
  * schedulable, and the search index only knows what has been written.
  */
-export function PickWorkDialog({ open, onOpenChange, onPick, title }: Props) {
-  return open ? <Contents onOpenChange={onOpenChange} onPick={onPick} title={title} /> : null
+export function PickWorkDialog({ open, onOpenChange, onPick, title, kinds }: Props) {
+  return open ? (
+    <Contents onOpenChange={onOpenChange} onPick={onPick} title={title} kinds={kinds} />
+  ) : null
 }
 
-function Contents({ onOpenChange, onPick, title }: Omit<Props, 'open'>) {
+function Contents({ onOpenChange, onPick, title, kinds }: Omit<Props, 'open'>) {
   const { t } = useTranslation()
   const profile = useProfile()
   const [query, setQuery] = useState('')
@@ -66,10 +71,13 @@ function Contents({ onOpenChange, onPick, title }: Omit<Props, 'open'>) {
     const needle = query.trim().toLowerCase()
     return (rows.data ?? [])
       .filter(
-        (row) => (kind === null || row.kind === kind) && row.title.toLowerCase().includes(needle),
+        (row) =>
+          (kinds === undefined || kinds.includes(row.kind)) &&
+          (kind === null || row.kind === kind) &&
+          row.title.toLowerCase().includes(needle),
       )
       .slice(0, 200)
-  }, [rows.data, query, kind])
+  }, [rows.data, query, kind, kinds])
 
   const groups = useMemo(() => (shown.length === 0 ? [] : [{ items: shown }]), [shown])
 
@@ -121,11 +129,13 @@ function Contents({ onOpenChange, onPick, title }: Omit<Props, 'open'>) {
             }}
           >
             <Chip value={ANY_KIND}>{t('pick.anyKind')}</Chip>
-            {profile.config.work_kinds.map((entry) => (
-              <Chip key={entry.key} value={entry.key}>
-                {sayLabel(entry.label)}
-              </Chip>
-            ))}
+            {profile.config.work_kinds
+              .filter((entry) => kinds === undefined || kinds.includes(entry.key))
+              .map((entry) => (
+                <Chip key={entry.key} value={entry.key}>
+                  {sayLabel(entry.label)}
+                </Chip>
+              ))}
           </ChipGroup>
         </div>
 

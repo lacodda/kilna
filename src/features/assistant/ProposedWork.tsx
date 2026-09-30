@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { Applied, WorkProposal } from '@/lib/api/types'
+import { fieldText } from '@/lib/fieldValue'
 import { keys } from '@/lib/query/keys'
 import { useApplyProposal } from '@/lib/useApplyProposal'
 import { say, useProfile, vocabularyOf } from '@/lib/useProfile'
@@ -67,8 +68,14 @@ export function ProposedWork({ workId, messageId, proposal, applied, dismissed }
   if (fields.length > 0) {
     const labels = fields
       .map((key) => {
-        const label = profile.config.work_meta_fields.find((f) => f.key === key)?.label
-        return label === undefined ? key : say(label)
+        const field = profile.config.work_meta_fields.find((f) => f.key === key)
+        if (field === undefined) return key
+        // A choice says which answer, by its label: "Variant: Slowed" is the
+        // whole of what the package would set, where "Variant" alone leaves
+        // the one thing worth reading out.
+        if (field.type !== 'choice') return say(field.label)
+        const value = fieldText(field, proposal.fields?.[key])
+        return value === null ? say(field.label) : `${say(field.label)}: ${value}`
       })
       .join(', ')
     parts.push(t('assistant.packageFields', { fields: labels }))

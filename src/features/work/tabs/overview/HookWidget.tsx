@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import type { Work } from '@/lib/api/types'
 import { fieldsOf } from '@/lib/overview'
-import { say as sayLabel, useProfile } from '@/lib/useProfile'
+import { fieldsFor, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { MetaParagraph } from '@/features/work/tabs/overview/MetaInput'
 import { Widget } from '@/features/work/tabs/overview/Widget'
 import { useWorkEdit } from '@/features/work/tabs/overview/useWorkEdit'
@@ -17,7 +17,8 @@ import { useWorkEdit } from '@/features/work/tabs/overview/useWorkEdit'
 export function HookWidget({ work }: { work: Work }) {
   const profile = useProfile()
   const { setField } = useWorkEdit(work)
-  const { prose } = fieldsOf(profile.config.work_meta_fields)
+  // The work's kind's paragraphs: a field naming kinds belongs to those alone.
+  const { prose } = fieldsOf(fieldsFor(profile.config, work.kind))
   const [first, ...rest] = prose
   if (first === undefined) return null
 

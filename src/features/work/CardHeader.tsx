@@ -1,23 +1,31 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { ArrowLeft, Pencil, Star } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { deriveWork } from '@/lib/api/links'
-import type { Work } from '@/lib/api/types'
+import type { MetaField, ProfileConfig, Work } from '@/lib/api/types'
 import { updateWork } from '@/lib/api/works'
 import { useBlindJudging } from '@/lib/blindJudging'
 import { useCardView } from '@/features/work/cardView'
 import { coverImageFor } from '@/lib/cover'
-import { formatTotal } from '@/lib/format'
+import { fieldText } from '@/lib/fieldValue'
+import { formatDay, formatTotal } from '@/lib/format'
 import { useCovers } from '@/lib/useCovers'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceEdited } from '@/lib/edited'
 import { badgeVariantOf } from '@/lib/markIcon'
+import { wordOf } from '@/lib/overview'
 import { say } from '@/lib/toast'
-import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
+import {
+  fieldsFor,
+  hasDoors,
+  labelOf,
+  say as sayLabel,
+  useProfile,
+  vocabularyOf,
+} from '@/lib/useProfile'
 import { useStar } from '@/lib/useStar'
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
@@ -29,6 +37,7 @@ import { StagePicker } from '@/components/StagePicker'
 import { TabBar } from '@/features/work/TabBar'
 import type { Tab, TabCount } from '@/features/work/tabs'
 import { TagBar } from '@/features/work/TagBar'
+import { useMakePublication } from '@/features/work/useMakePublication'
 
 interface Props {
   work: Work
@@ -108,9 +117,11 @@ export function CardHeader({ work, tabs, counts, onDelete }: Props) {
  * happens to the work, the verdict on the Score tab.
  */
 function Standing({ work }: { work: Work }) {
+  const { t, i18n } = useTranslation()
   const profile = useProfile()
   const { hiding } = useBlindJudging()
   const vocabulary = vocabularyOf(profile.config, work.kind)
+  const doorless = !hasDoors(profile.config, work.kind)
 
   // The tier and total belong here rather than only on the Score tab: they are
   // the verdict, and the verdict is what someone opens a card to check.
@@ -120,17 +131,63 @@ function Standing({ work }: { work: Work }) {
     // Only fetched when the work is actually in one.
     enabled: work.collection_id !== null,
   })
+  // A song's status is its publications' fact (ADR 0047), so the chip says
+  // which one: asked only of a work that goes out through what is made from it.
+  const publications = useQuery({ ...queries.publications(work.id), enabled: doorless })
+  // And a publication says what it goes out for: the song is one click away
+  // from its clip, its audio, its short - the way back the mockup draws.
+  const links = useQuery({ ...queries.links(work.id), enabled: !doorless })
+  const donor = links.data?.sources[0]
 
   const collection = collections.data?.find((item) => item.id === work.collection_id)
   const latest = score.data ?? null
   const status = vocabulary.statuses.find((s) => s.key === work.status)
+  const said = status === undefined ? work.status : sayLabel(status.label)
+
+  // The basis beside the word only when the word is that fact - "Released ·
+  // as audio Jul 22". A status someone set by hand, "shelved", stands on no
+  // publication even while one is out, and saying one beside it would read
+  // as the reason for it.
+  const basis = publications.data?.basis ?? null
+  const standsOn =
+    basis !== null && status?.derive === (basis.released ? 'released' : 'scheduled') ? basis : null
 
   return (
     <>
       <Chip>{labelOf(profile.config.work_kinds, work.kind)}</Chip>
-      <Chip variant={badgeVariantOf(status?.colour)}>
-        {status === undefined ? work.status : sayLabel(status.label)}
+      {choicesOf(profile.config, work).map(({ field, option }) => (
+        <Chip key={field.key}>
+          {t('work.choice', { field: sayLabel(field.label), value: option })}
+        </Chip>
+      ))}
+      <Chip
+        variant={badgeVariantOf(status?.colour)}
+        title={
+          standsOn === null
+            ? undefined
+            : t(standsOn.released ? 'publications.outAs' : 'publications.bookedAs', {
+                title: standsOn.title,
+                day: formatDay(standsOn.day),
+              })
+        }
+      >
+        {standsOn === null
+          ? said
+          : t('work.standsOn', {
+              status: said,
+              kind: wordOf(labelOf(profile.config.work_kinds, standsOn.kind), i18n.language),
+              day: formatDay(standsOn.day),
+            })}
       </Chip>
+
+      {donor !== undefined && (
+        <Link
+          to={`/works/${donor.source_id}`}
+          className="truncate text-xs text-dim hover:text-text hover:underline"
+        >
+          {t('work.madeFrom', { title: donor.source_title })}
+        </Link>
+      )}
 
       {/* Held back while this card is judged blind: it is the verdict the
           mode exists to hide, one line above the scales. */}
@@ -144,6 +201,20 @@ function Standing({ work }: { work: Work }) {
       {collection !== undefined && <Chip>{collection.title}</Chip>}
     </>
   )
+}
+
+/**
+ * The choice fields of the work's kind that hold an answer - the variant of
+ * an audio release: what kind of thing this one is, said beside the kind,
+ * by the answer's label rather than its key.
+ */
+function choicesOf(config: ProfileConfig, work: Work): { field: MetaField; option: string }[] {
+  return fieldsFor(config, work.kind)
+    .filter((field) => field.type === 'choice')
+    .flatMap((field) => {
+      const option = fieldText(field, work.meta[field.key])
+      return option === null ? [] : [{ field, option }]
+    })
 }
 
 /**
@@ -275,22 +346,12 @@ function Title({ work }: { work: Work }) {
  * tab. The deletion is undoable from its toast, as it always was.
  */
 function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void }) {
-  const { t, i18n } = useTranslation()
-  const profile = useProfile()
-  const navigate = useNavigate()
+  const { t } = useTranslation()
 
-  // A work of another kind made from this one — a video from a song. One
-  // entry per other kind of the profile, so the menu says what can be made
-  // rather than opening a dialog to ask.
-  const derive = useAppMutation({
-    mutationFn: (kind: string) => deriveWork(work.id, kind, i18n.language),
-    failure: 'toast.workSaveFailed',
-    refresh: [keys.works, keys.catalogue, keys.links, keys.releases, keys.calendar],
-    onSuccess: ({ work: created }) => {
-      say.ok(t('links.made', { title: created.title }))
-      void navigate(`/works/${created.id}/links`)
-    },
-  })
+  // A work of another kind made from this one — a clip from a song. One entry
+  // per kind that can be made, so the menu says what can be made rather than
+  // opening a dialog to ask; the same gesture as the overview's Make menu.
+  const make = useMakePublication(work)
 
   // The tick only after the clipboard confirms — the rule from v0.28: telling
   // someone a copy succeeded when it did not is worse than saying nothing.
@@ -313,16 +374,11 @@ function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void })
           // it lives.
           onSelect: () => copy(`kilna://works/${work.id}`),
         },
-        ...profile.config.work_kinds
-          .filter((kind) => kind.key !== work.kind)
-          .map((kind) => ({
-            key: `derive:${kind.key}`,
-            // Said through the profile's words: a kind's label may be one per
-            // language, and handing the object to the sentence printed
-            // "[object Object]".
-            label: t('links.makeFromThis', { kind: sayLabel(kind.label) }),
-            onSelect: () => derive.mutate(kind.key),
-          })),
+        ...make.kinds.map((kind) => ({
+          key: `derive:${kind.key}`,
+          label: kind.label,
+          onSelect: () => make.make(kind.key),
+        })),
         { key: 'delete', label: t('work.delete'), onSelect: onDelete, danger: true },
       ]}
     />
@@ -330,7 +386,6 @@ function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void })
 }
 
 function MetaStrip({ work }: { work: Work }) {
-  const { i18n } = useTranslation()
   const profile = useProfile()
   const { view } = useCardView()
 
@@ -339,24 +394,24 @@ function MetaStrip({ work }: { work: Work }) {
   // works that way, and the fields themselves are untouched either way.
   if (!view.metaStrip) return null
 
-  const filled = profile.config.work_meta_fields.filter(
-    (field) =>
-      // A paragraph belongs on the Overview tab, not here. The strip is the
-      // reference line you glance at — a premise printed in full took half the
-      // screen above the tabs and pushed the work out of sight, which is the
-      // opposite of what a header carrying the title is for.
-      field.type !== 'multiline' &&
-      work.meta[field.key] !== undefined &&
-      work.meta[field.key] !== '',
-  )
+  // The fields of this work's kind: the variant of an audio release is no
+  // field of a song's, even when an old value is still in its meta. A choice
+  // reads as its answer's label, not the key it is stored by (`fieldText`).
+  const filled = fieldsFor(profile.config, work.kind)
+    // A paragraph belongs on the Overview tab, not here. The strip is the
+    // reference line you glance at — a premise printed in full took half the
+    // screen above the tabs and pushed the work out of sight, which is the
+    // opposite of what a header carrying the title is for.
+    .filter((field) => field.type !== 'multiline')
+    .flatMap((field) => {
+      const text = fieldText(field, work.meta[field.key])
+      return text === null ? [] : [{ field, text }]
+    })
   if (filled.length === 0) return null
 
   return (
     <div className="mt-2.5 flex flex-wrap gap-5.5">
-      {filled.map((field) => {
-        const value = work.meta[field.key]
-        const text =
-          field.type === 'boolean' ? i18n.t(value === true ? 'work.yes' : 'work.no') : String(value)
+      {filled.map(({ field, text }) => {
         return (
           // Each field is capped in width and truncated. A craft writes what it
           // likes into these — a mood can be a sentence, a vocal note a whole

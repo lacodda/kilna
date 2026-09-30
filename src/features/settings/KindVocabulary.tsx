@@ -2,12 +2,14 @@ import { useTranslation } from 'react-i18next'
 import type { WorkKind } from '@/lib/api/types'
 import { say as sayLabel } from '@/lib/useProfile'
 import { AxesEditor } from '@/features/settings/AxesEditor'
+import { PublicationEditor } from '@/features/settings/PublicationEditor'
 import { ReleaseFieldsEditor } from '@/features/settings/ReleaseFieldsEditor'
 import { TiersEditor } from '@/features/settings/TiersEditor'
 import { Vocabulary } from '@/features/settings/Vocabulary'
 
 /**
- * One kind's own vocabulary: its axes, tiers, statuses and release kinds.
+ * One kind's own vocabulary: its axes, tiers, statuses and release kinds, and
+ * what its works are called and shaped like when made from another.
  *
  * Axis keys are deliberately not editable here either — the same past-score
  * reasoning applies per kind now, not just per profile.
@@ -47,6 +49,9 @@ export function KindVocabulary({
           onChange={(release_kinds) => onChange({ release_kinds })}
         />
       )}
+      {/* After the doors, since a cover's shape is a door's: the place
+          decides the shape of the picture a release goes out with. */}
+      <PublicationEditor kind={kind} onChange={onChange} />
       {/* The storyboard's words, for a kind that has any: a song lists none
           and shows nothing here. Keys, as everywhere on this screen, come
           from the document; the labels are what is renamed. */}

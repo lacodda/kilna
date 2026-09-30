@@ -8,8 +8,7 @@ import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { noteDeleted, noteOpened } from '@/lib/recent'
 import { announceDeleted } from '@/lib/trash'
-import { canBeCut } from '@/lib/cuts'
-import { hasScenes, useProfile } from '@/lib/useProfile'
+import { useProfile } from '@/lib/useProfile'
 import { BlindJudgingContext } from '@/lib/blindJudging'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -17,7 +16,14 @@ import { QueryState } from '@/components/ui/query-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Frame } from '@/components/frame'
 import { CardHeader } from '@/features/work/CardHeader'
-import { DEFAULT_TAB, isTab, tabCounts, tabsOf } from '@/features/work/tabs'
+import {
+  DEFAULT_TAB,
+  factsOf,
+  isTab,
+  NOTHING_COUNTED,
+  tabCounts,
+  tabsOf,
+} from '@/features/work/tabs'
 import { storedCardView } from '@/features/work/cardView'
 import { TabBody } from '@/features/work/TabBody'
 
@@ -59,17 +65,9 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
   // The numbers beside the tabs, in one answer; each tab fetches what it
   // draws itself. Until v0.80 the card fetched every release, link, scene
   // and stretch of the work to read four lengths. Refreshed with every write
-  // the card makes, from any tab (see `keys.cardCounts`).
+  // the card makes, from any tab (see `keys.cardCounts`). They are also what
+  // the work holds, which keeps a tab its kind no longer names (`factsOf`).
   const counts = useQuery(queries.cardCounts(workId))
-  // The storyboard is a fact of the kind: a song has none.
-  const storyboard = hasScenes(profile.config, work.data?.kind)
-  // Whether the work has a splice is a fact about the work rather than its
-  // kind - it was cut out of another - and the counts are how it is known.
-  const spliced = canBeCut(
-    counts.data?.cuts ?? 0,
-    counts.data?.sources ?? 0,
-    counts.data?.cut_from ?? 0,
-  )
 
   const remove = useAppMutation({
     mutationFn: () => deleteWork(workId),
@@ -135,10 +133,10 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
 
   // A tab this work does not have - a storyboard on a song, a splice on a work
   // cut from nothing - goes to the default one, by the same rule the tab bar
-  // hides it. It used to draw an empty tab with nothing lit in the bar. Whether
-  // a work was cut is only known once its counts have loaded: until then the
+  // hides it. It used to draw an empty tab with nothing lit in the bar. What a
+  // work holds is only known once its counts have loaded: until then the
   // address is trusted rather than bounced.
-  const tabs = tabsOf({ storyboard, splice: counts.isSuccess ? spliced : true })
+  const tabs = tabsOf(factsOf(profile.config, current, counts.data))
   if (!tabs.includes(tab)) {
     return <Navigate to={`/works/${workId}/${DEFAULT_TAB}`} replace />
   }
@@ -148,7 +146,7 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
       <div className="flex min-h-0 flex-1 flex-col">
         <CardHeader
           work={current}
-          tabs={tabsOf({ storyboard, splice: spliced })}
+          tabs={tabsOf(factsOf(profile.config, current, counts.data ?? NOTHING_COUNTED))}
           counts={counts.data === undefined ? {} : tabCounts(counts.data)}
           onDelete={() => remove.mutate()}
         />

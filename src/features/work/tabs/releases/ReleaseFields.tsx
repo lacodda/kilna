@@ -23,6 +23,8 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SaveState, useSaveStatus } from '@/components/ui/save-state'
 import { Textarea } from '@/components/ui/textarea'
+import { ReleaseMetaButton } from '@/features/work/tabs/releases/ReleaseMetaButton'
+import { useReleaseMeta } from '@/features/work/tabs/releases/releaseMeta'
 
 interface Props {
   release: ScheduledRelease
@@ -49,6 +51,9 @@ interface Props {
 export function ReleaseFields({ release }: Props) {
   const { t } = useTranslation()
   const kinds = useVocabulary(release.work_id).release_kinds
+  // The assistant's way of writing them, beside the templates' - offered when
+  // the profile has an action for this kind of work.
+  const meta = useReleaseMeta(release.work_kind)
 
   // What the work would write, while it is being looked at; null otherwise.
   const [proposal, setProposal] = useState<Replacement[] | null>(null)
@@ -153,6 +158,13 @@ export function ReleaseFields({ release }: Props) {
           status={status}
           className="ml-auto"
         />
+        {meta.action !== undefined && (
+          <ReleaseMetaButton
+            releaseId={release.id}
+            action={meta.action}
+            writing={meta.writing(release.id)}
+          />
+        )}
         {proposal !== null ? (
           <>
             <Button size="sm" onClick={() => setProposal(null)} disabled={replace.isPending}>

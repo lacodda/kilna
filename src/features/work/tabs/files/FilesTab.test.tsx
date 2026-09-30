@@ -8,13 +8,14 @@ import en from '@/i18n/locales/en.json'
 
 /*
  * The Files tab: a grid of tiles, the cover tagged, and a removal that asks
- * first - the one removal in the card nothing brings back.
+ * first - the one removal in the card nothing brings back. On the clip: a
+ * song has no Files tab since v0.86, going out only as what is made from it.
  */
 
 const COVER: Asset = {
   id: 'a-cover',
   profile_id: IDS.profile,
-  work_id: IDS.song,
+  work_id: IDS.video,
   release_id: null,
   kind: 'cover',
   path: 'C:/ws/media/a-cover.png',
@@ -31,20 +32,20 @@ let backend: Backend
 beforeEach(() => {
   backend = mockBackend({
     ...answersFor(studio()),
-    list_work_assets: ({ workId }) => (workId === IDS.song ? [COVER] : []),
+    list_work_assets: ({ workId }) => (workId === IDS.video ? [COVER] : []),
     detach_asset: () => null,
   })
 })
 
 describe('a file on the card', () => {
   it('is tagged as the cover when it is one', async () => {
-    renderApp(`/works/${IDS.song}/files`)
+    renderApp(`/works/${IDS.video}/files`)
     const tile = (await screen.findByText('lanterns-cover.png')).closest('li')!
     expect(within(tile).getByText(en.files.cover)).toBeVisible()
   })
 
   it('is removed only once the question is answered', async () => {
-    const { client } = renderApp(`/works/${IDS.song}/files`)
+    const { client } = renderApp(`/works/${IDS.video}/files`)
     await screen.findByText('lanterns-cover.png')
     await settled(client)
 

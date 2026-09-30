@@ -4,6 +4,7 @@ import type { Derived, Links } from '@/lib/api/types'
 import { mockBackend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, IDS, NOW, studio } from '@/test/workspace'
+import en from '@/i18n/locales/en.json'
 
 /*
  * What was made from a work says where its releases are.
@@ -88,5 +89,31 @@ describe('what was made from this', () => {
     // Nothing out and nothing planned: no chip saying so.
     const quiet = await rowOf('Nothing planned')
     expect(within(quiet).queryByText(/out|Planned|Late/)).toBeNull()
+  })
+})
+
+describe('what can be made from this', () => {
+  /** The make buttons in the foot of "Made from this", as they read. */
+  async function makeButtons(workId: string): Promise<string[]> {
+    mockBackend(answersFor(studio()))
+    const { client } = renderApp(`/works/${workId}/links`)
+    await settled(client)
+    const main = await screen.findByRole('main')
+    await within(main).findByText(en.links.derived)
+    return within(main)
+      .getAllByRole('button', { name: /^Make / })
+      .map((button) => button.textContent ?? '')
+  }
+
+  it("offers a song's publications - a song goes out as what is made from it", async () => {
+    expect(await makeButtons(IDS.song)).toEqual(['Make a video', 'Make an audio', 'Make a short'])
+  })
+
+  it('offers every other kind from a work that goes out itself', async () => {
+    expect(await makeButtons(IDS.video)).toEqual([
+      'Make a song from this',
+      'Make an audio from this',
+      'Make a short from this',
+    ])
   })
 })

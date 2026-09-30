@@ -4,8 +4,10 @@ import type { Tab } from '@/features/work/tabs'
 import { WorkHistory } from '@/features/journal/JournalFeed'
 import { AssistantPanel } from '@/features/work/tabs/assistant/AssistantPanel'
 import { CommentsPanel } from '@/features/work/tabs/comments/CommentsPanel'
+import { CoverTab } from '@/features/work/tabs/cover/CoverTab'
 import { CutsTab } from '@/features/work/tabs/cuts/CutsTab'
 import { FilesTab } from '@/features/work/tabs/files/FilesTab'
+import { FrameTab } from '@/features/work/tabs/frame/FrameTab'
 import { LinksTab } from '@/features/work/tabs/links/LinksTab'
 import { NotePanel } from '@/features/work/tabs/notes/NotePanel'
 import { OverviewTab } from '@/features/work/tabs/overview/OverviewTab'
@@ -30,6 +32,10 @@ const BODIES: Readonly<Record<Tab, (props: Props) => ReactNode>> = {
   overview: ({ work }) => <OverviewTab work={work} />,
   versions: ({ workId }) => <VersionPanel workId={workId} />,
   scenes: ({ work }) => <ScenesTab work={work} />,
+  // What a publication looks like where it goes out (v0.86): the cover's
+  // prompt, and the still and the loop an audio release plays under.
+  cover: ({ work }) => <CoverTab work={work} />,
+  frame: ({ work }) => <FrameTab work={work} />,
   cuts: ({ work }) => <CutsTab work={work} />,
   score: ({ workId }) => <ScorePanel workId={workId} />,
   releases: ({ workId, work }) => <ReleasePanel workId={workId} workTitle={work.title} />,

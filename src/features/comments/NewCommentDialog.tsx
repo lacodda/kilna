@@ -6,6 +6,7 @@ import { recallChannel, rememberChannel } from '@/lib/comments'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
+import { publicationKinds, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/DatePicker'
 import { Dialog } from '@/components/AppDialog'
@@ -35,6 +36,7 @@ export function NewCommentDialog({
   onCreated,
 }: Props) {
   const { t } = useTranslation()
+  const { config } = useProfile()
 
   const [where, setWhere] = useState('')
   const [author, setAuthor] = useState('')
@@ -148,6 +150,8 @@ export function NewCommentDialog({
         open={picking}
         onOpenChange={setPicking}
         title={t('comments.pickWorkTitle')}
+        // Comments are left under what goes out, never under a song.
+        kinds={publicationKinds(config).map((kind) => kind.key)}
         onPick={(picked) => setWork(picked.work_id)}
       />
     </>

@@ -36,7 +36,9 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.song, 'score', 'Does the chorus stay with you after one listen?'],
   [IDS.song, 'links', 'Paper Lanterns (clip)'],
   [IDS.song, 'notes', 'Paper Lanterns'],
-  [IDS.song, 'comments', 'Paper Lanterns'],
+  // A song's comments are a summary of its publications' (v0.86): the clip's
+  // comment, read under the song.
+  [IDS.song, 'comments', 'The shot on the bridge is beautiful.'],
   [IDS.song, 'assistant', 'Tighten the chorus'],
   [IDS.song, 'history', '“Paper Lanterns” scored 7.5.'],
   [IDS.video, 'overview', 'Paper Lanterns (clip)'],
@@ -44,6 +46,7 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   // A heading of the board, drawn only once its scenes have arrived: since
   // v0.81 every cell is a field, and what a scene says is a field's value.
   [IDS.video, 'scenes', en.scenes.readiness],
+  [IDS.video, 'cover', 'YouTube · 16:9'],
   [IDS.video, 'cuts', 'Paper Lanterns'],
   [IDS.video, 'score', 'Paper Lanterns (clip)'],
   [IDS.video, 'releases', 'Paper Lanterns (clip)'],
@@ -57,6 +60,10 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   // The song's audio release, a work of its own since v0.86: its releases
   // and files are its own, not the song's.
   [IDS.audio, 'overview', 'Paper Lanterns — audio'],
+  // The shape its YouTube release asks for, lit: it holds one.
+  [IDS.audio, 'cover', 'YouTube · 16:9'],
+  // The loop's prompt, written by the backend from the frame's settings.
+  [IDS.audio, 'frame', 'the lantern turns slowly on the current'],
   [IDS.audio, 'releases', 'Sep 22'],
   [IDS.audio, 'files', 'Paper Lanterns — audio'],
   [IDS.audio, 'links', 'Paper Lanterns'],

@@ -282,12 +282,19 @@ export interface TaskSubject {
  *
  * The key is built by `taskKey` and its siblings in `lib/tasks`: the action,
  * then the work, then a scene and a block when the task is about one. A task
- * about a comment or a screenshot carries a marker where the work would be,
- * and is about no work at all.
+ * about a comment, a screenshot or a release carries a marker where the work
+ * would be, and is about no work at all: a release's work is the release's to
+ * say, not the key's.
  */
 export function subjectOf(key: string): TaskSubject {
   const [action = '', second] = key.split(':')
-  if (second === undefined || second === '' || second === 'comment' || second === 'channel') {
+  if (
+    second === undefined ||
+    second === '' ||
+    second === 'comment' ||
+    second === 'channel' ||
+    second === 'release'
+  ) {
     return { action, workId: null }
   }
   return { action, workId: second }

@@ -1,4 +1,7 @@
-import type { CardCounts } from '@/lib/api/types'
+import type { CardCounts, ProfileConfig, Work } from '@/lib/api/types'
+import { canBeCut } from '@/lib/cuts'
+import { textOf } from '@/lib/json'
+import { vocabularyOf } from '@/lib/useProfile'
 
 /**
  * The card's tabs, in the order the mockup puts them.
@@ -10,11 +13,17 @@ import type { CardCounts } from '@/lib/api/types'
  * card may open on in the settings - and a tab added to one could be missing
  * from the next. What each tab draws is `TabBody`, a table the compiler holds
  * to this list.
+ *
+ * The cover and the frame stand between the storyboard and the splice since
+ * v0.86: what a publication looks like is written after its board and before
+ * it is cut and sent out.
  */
 export const TABS = [
   'overview',
   'versions',
   'scenes',
+  'cover',
+  'frame',
   'cuts',
   'score',
   'releases',
@@ -28,32 +37,76 @@ export const TABS = [
 
 export type Tab = (typeof TABS)[number]
 
-interface TabRules {
-  /**
-   * What a work must have for the tab to exist: a storyboard is a fact of the
-   * kind - a song has none - and a splice a fact of the work, whether it was
-   * cut out of another. Without it the tab is not drawn, and an address
-   * naming it goes to the default tab.
-   */
-  needs?: 'storyboard' | 'splice'
+/**
+ * What decides whether a work's tabs exist: what its kind names, and what
+ * the work already holds.
+ *
+ * Both, because either alone strands something. The kind says what a work of
+ * it is made of - a song has lyrics and axes but no doors (ADR 0047), an audio
+ * release a cover and a frame but no storyboard. The rows say what was
+ * written: a work whose kind was changed, or a profile that dropped a list,
+ * keeps what it had, and a tab that hid them would hide data nobody can reach
+ * any other way. So a tab exists when the kind names what it is for **or**
+ * the work holds rows only that tab shows.
+ */
+export interface CardFacts {
+  /** What the work's kind names. */
+  names: {
+    /** Version roles: lyrics, a plot. */
+    roles: boolean
+    /** Axes it is scored on. */
+    axes: boolean
+    /** Kinds of shot or prompt blocks for a board. */
+    storyboard: boolean
+    /** Kinds of release - whether it goes out itself (`hasDoors`). */
+    doors: boolean
+    /** The parts its cover prompt is written in. */
+    cover: boolean
+    /** A still and a loop it plays under (v0.86). */
+    frame: boolean
+  }
+  /** What the work holds, whatever its kind says now. */
+  holds: {
+    versions: boolean
+    scores: boolean
+    scenes: boolean
+    releases: boolean
+    files: boolean
+    /** Any block of a cover prompt with words in it. */
+    cover: boolean
+    /** Stretches, a donor to take them from, or stretches taken from it
+        (`canBeCut`). A donor counts only for a work cut from pictures - a
+        kind with a storyboard: an audio release is made from its song
+        whole, under one frame, and has nothing to splice. */
+    splice: boolean
+  }
 }
+
+/** Whether a tab exists for these facts; `null` for a tab every work has. */
+type Rule = ((facts: CardFacts) => boolean) | null
 
 // Every tab is held by the card since v0.78: none is a page that scrolls
 // whole, so there is no rule for it here any more - each lays itself out on
 // `components/frame`.
-const RULES: Readonly<Record<Tab, TabRules>> = {
-  overview: {},
-  versions: {},
-  scenes: { needs: 'storyboard' },
-  cuts: { needs: 'splice' },
-  score: {},
-  releases: {},
-  files: {},
-  links: {},
-  notes: {},
-  comments: {},
-  assistant: {},
-  history: {},
+const RULES: Readonly<Record<Tab, Rule>> = {
+  overview: null,
+  versions: ({ names, holds }) => names.roles || holds.versions,
+  scenes: ({ names, holds }) => names.storyboard || holds.scenes,
+  cover: ({ names, holds }) => names.cover || holds.cover,
+  // Nothing is held here that another kind could strand: the backend refuses
+  // a frame on a kind without one (`work.noFrame`).
+  frame: ({ names }) => names.frame,
+  cuts: ({ holds }) => holds.splice,
+  score: ({ names, holds }) => names.axes || holds.scores,
+  releases: ({ names, holds }) => names.doors || holds.releases,
+  // A work's files are its cover and what its releases go out with: a song,
+  // which goes out only as what is made from it, has none of its own.
+  files: ({ names, holds }) => names.doors || holds.files,
+  links: null,
+  notes: null,
+  comments: null,
+  assistant: null,
+  history: null,
 }
 
 /**
@@ -70,18 +123,76 @@ export function isTab(value: string | undefined): value is Tab {
   return value !== undefined && (TABS as readonly string[]).includes(value)
 }
 
-/** What a work has that decides whether its tabs exist. */
-export interface CardFacts {
-  storyboard: boolean
-  splice: boolean
-}
-
 /** The tabs this work draws, in order. */
 export function tabsOf(facts: CardFacts): Tab[] {
   return TABS.filter((tab) => {
-    const needs = RULES[tab].needs
-    return needs === undefined || facts[needs]
+    const rule = RULES[tab]
+    return rule === null || rule(facts)
   })
+}
+
+/** A card with nothing counted yet: what its tab bar is drawn from before
+ *  `card_counts` answers, so a tab appears when its rows are known to be there
+ *  rather than disappearing when they are known not to be. */
+export const NOTHING_COUNTED: CardCounts = {
+  versions: 0,
+  scores: 0,
+  releases: 0,
+  files: 0,
+  sources: 0,
+  derived: 0,
+  notes: 0,
+  comments: 0,
+  comments_waiting: 0,
+  scenes: 0,
+  cuts: 0,
+  cut_from: 0,
+  history: 0,
+}
+
+/**
+ * The facts of one work: its kind's vocabulary, its cover, and its counts.
+ *
+ * `counts` left out means they have not loaded, and every row is then taken
+ * as held: an address naming a tab is trusted until the counts can say the
+ * tab is not there, rather than bounced to the overview and lost on the way.
+ * The bar is drawn from what is known (`NOTHING_COUNTED` until then).
+ */
+export function factsOf(
+  config: ProfileConfig,
+  work: Pick<Work, 'kind' | 'cover'>,
+  counts?: CardCounts,
+): CardFacts {
+  const vocabulary = vocabularyOf(config, work.kind)
+  const known = counts !== undefined
+  return {
+    names: {
+      roles: vocabulary.version_roles.length > 0,
+      axes: vocabulary.axes.length > 0,
+      storyboard: vocabulary.shot_types.length > 0 || vocabulary.scene_blocks.length > 0,
+      doors: vocabulary.release_kinds.length > 0,
+      cover: vocabulary.cover_blocks.length > 0,
+      frame: vocabulary.frame,
+    },
+    holds: {
+      versions: !known || counts.versions > 0,
+      scores: !known || counts.scores > 0,
+      scenes: !known || counts.scenes > 0,
+      releases: !known || counts.releases > 0,
+      files: !known || counts.files > 0,
+      // Read off the work itself, which is already here.
+      cover: Object.values(work.cover).some((value) => textOf(value).trim() !== ''),
+      splice:
+        !known ||
+        canBeCut(
+          counts.cuts,
+          vocabulary.shot_types.length > 0 || vocabulary.scene_blocks.length > 0
+            ? counts.sources
+            : 0,
+          counts.cut_from,
+        ),
+    },
+  }
 }
 
 /** The number beside a tab. */
@@ -131,10 +242,14 @@ export function tabCounts(counts: CardCounts): Partial<Record<Tab, TabCount>> {
 /**
  * The tabs a person may make the card open on.
  *
- * Every tab every work has: a default of Scenes on a song would open on
- * nothing. The choice is a machine setting (`cardView`), because where a card
- * opens is a habit of the person, not a fact of the craft.
+ * Every tab but the ones a single kind's making draws - the board, the
+ * cover, the frame, the splice. The rest are what a person lives in whatever
+ * the work: one who opens every card on Versions keeps that habit, and a
+ * work without the tab - a song has no Releases since v0.86 - opens on the
+ * overview instead (`WorkCard`). The choice is a machine setting
+ * (`cardView`), because where a card opens is a habit of the person, not a
+ * fact of the craft.
  */
 export const DEFAULT_TAB_CHOICES: readonly Tab[] = TABS.filter(
-  (tab) => RULES[tab].needs === undefined,
+  (tab) => !(['scenes', 'cover', 'frame', 'cuts'] as readonly Tab[]).includes(tab),
 )

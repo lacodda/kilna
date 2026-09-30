@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import type { Scene, SceneNote, Work } from '@/lib/api/types'
+import type { ProfileConfig, Scene, SceneNote, Work } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
 import { checkStoryboard } from '@/lib/storyboard'
 import {
@@ -13,7 +13,7 @@ import {
   orderMoving,
   FRAME,
 } from '@/lib/scenes'
-import { useProfile, vocabularyOf } from '@/lib/useProfile'
+import { allOf, useProfile, vocabularyOf, type Vocabulary } from '@/lib/useProfile'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Panel } from '@/components/ui/panel'
 import { SkeletonList } from '@/components/ui/skeleton'
@@ -55,7 +55,7 @@ interface Props {
 export function ScenesTab({ work }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
-  const vocabulary = vocabularyOf(profile.config, work.kind)
+  const vocabulary = boardVocabularyOf(profile.config, work.kind)
   const [shotType, setShotType] = useState<string | undefined>(undefined)
   // Which note the board is narrowed to: "every scene with her in it".
   const [withNote, setWithNote] = useState<string | undefined>(undefined)
@@ -89,8 +89,9 @@ export function ScenesTab({ work }: Props) {
 
   const edits = useSceneEdits(work.id)
 
-  // A kind that names no kinds of shot and no blocks has no storyboard: the
-  // tab says where to give it one rather than drawing an empty board.
+  // A profile whose kinds name no kinds of shot and no blocks at all has no
+  // storyboard to read a board in: the tab says where to give it one rather
+  // than drawing an empty board.
   if (vocabulary.shot_types.length === 0 && vocabulary.scene_blocks.length === 0) {
     return (
       <Frame>
@@ -337,4 +338,26 @@ export function ScenesTab({ work }: Props) {
       />
     </Frame>
   )
+}
+
+/**
+ * The words the board is read in: the kind's own, or - for a work that holds
+ * scenes while its kind names no storyboard - every kind's.
+ *
+ * The card shows the Scenes tab for such a work because nothing written may
+ * hide (`tabs.ts`): the owner's audio releases were videos once, and kept
+ * their still-frame scenes when they became audio. A board drawn with no
+ * kinds of shot and no blocks would show their rows with every prompt gone,
+ * so the blocks and the shots are borrowed from whichever kinds have them
+ * (`allOf`), by key - the key is what a scene stores its text under. The
+ * rest of the vocabulary stays the kind's own.
+ */
+function boardVocabularyOf(config: ProfileConfig, kind: string): Vocabulary {
+  const own = vocabularyOf(config, kind)
+  if (own.shot_types.length > 0 || own.scene_blocks.length > 0) return own
+  return {
+    ...own,
+    shot_types: allOf(config, 'shot_types'),
+    scene_blocks: allOf(config, 'scene_blocks'),
+  }
 }

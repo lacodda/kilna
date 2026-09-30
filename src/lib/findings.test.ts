@@ -18,7 +18,7 @@ const CONFIG: Pick<ProfileConfig, 'work_kinds' | 'prompts'> = {
     {
       key: 'song',
       label: 'Song',
-      axes: [{ key: 'hook', label: 'Hook', weight: 1, scale: 10 }],
+      axes: [{ key: 'hook', label: 'Hook', kind: 'scale', weight: 1, scale: 10 }],
       tiers: [
         { key: 'hold', label: 'Hold', min: 0 },
         { key: 'audio', label: 'Audio', min: 55 },
@@ -53,6 +53,7 @@ function work(over: Partial<ScoredWork> = {}): ScoredWork {
     version_count: 0,
     stage: null,
     bookmarked_at: null,
+    publications: [],
     ...over,
   }
 }

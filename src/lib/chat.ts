@@ -89,6 +89,21 @@ const proposalOf = (message: Message): Proposal | null => {
       return typeof (proposal as Partial<{ style_id: unknown }>).style_id === 'string'
         ? (proposal as Proposal)
         : null
+    // What a release goes out under (v0.86), field by field.
+    case 'release':
+      return typeof (proposal as Partial<{ release_id: unknown }>).release_id === 'string'
+        ? (proposal as Proposal)
+        : null
+    // The canon's two (v0.84) fell to the default until v0.86: a package of
+    // cards or a card's picture prompt said nothing under its answer.
+    case 'canon':
+      return typeof (proposal as Partial<{ package: unknown }>).package === 'object'
+        ? (proposal as Proposal)
+        : null
+    case 'cardPrompt':
+      return typeof (proposal as Partial<{ note_id: unknown }>).note_id === 'string'
+        ? (proposal as Proposal)
+        : null
     default:
       return null
   }

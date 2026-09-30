@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import type { Meta, MetaField } from '@/lib/api/types'
 import { say as sayLabel } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
+import { Select } from '@/components/AppSelect'
 import { DatePicker } from '@/components/DatePicker'
 import { FieldGroup } from '@/components/ui/field'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -66,6 +67,35 @@ export function MetaInput({ field, value, onChange, inline = false }: Props) {
 
   if (field.type === 'multiline') {
     return <MetaParagraph label={label} value={value} onCommit={(text) => onChange(text)} />
+  }
+
+  if (field.type === 'choice') {
+    // One of the answers the profile offers, stored by its key and shown by
+    // its label; the empty entry at the top takes the answer back. A picker
+    // rather than a box: typing "slowed" by hand is how a variant ends up
+    // spelt three ways across three releases.
+    const chosen = textOf(value) ?? ''
+    const options = (field.options ?? []).map((option) => ({
+      value: option.key,
+      label: sayLabel(option.label),
+    }))
+    // A key the field no longer offers stays visible as it is, rather than
+    // the picker pretending nothing was chosen.
+    if (chosen !== '' && !options.some((option) => option.value === chosen)) {
+      options.push({ value: chosen, label: chosen })
+    }
+    return (
+      <FieldGroup label={label}>
+        <Select
+          aria-label={label}
+          className="h-control-sm w-full text-xs"
+          value={chosen}
+          placeholder={t('fields.choiceNone')}
+          onChange={(next) => onChange(next)}
+          options={options}
+        />
+      </FieldGroup>
+    )
   }
 
   // The caption at a fixed width to the left, right-aligned, on a line of the

@@ -10,7 +10,7 @@ import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
-import { useProfile } from '@/lib/useProfile'
+import { publicationKinds, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/AppDialog'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
@@ -150,6 +150,8 @@ export function ScreenshotDialog({ file, onClose, channels, channel, workId }: P
         open={picking}
         onOpenChange={setPicking}
         title={t('comments.pickWorkTitle')}
+        // Comments are left under what goes out, never under a song.
+        kinds={publicationKinds(config).map((kind) => kind.key)}
         onPick={(picked) => setWork(picked.work_id)}
       />
     </>

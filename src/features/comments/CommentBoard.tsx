@@ -288,7 +288,8 @@ export function CommentBoard({ workId, selectedId, onSelect }: Props) {
   )
 }
 
-const STANDING_DOT: Record<Standing, string> = {
+/** The dot a comment's standing is drawn with, here and in a song's summary. */
+export const STANDING_DOT: Record<Standing, string> = {
   waiting: 'bg-accent',
   drafted: 'bg-warn',
   posted: 'bg-good',

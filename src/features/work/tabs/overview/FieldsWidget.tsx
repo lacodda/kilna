@@ -6,7 +6,7 @@ import { fieldsOf } from '@/lib/overview'
 import { keys } from '@/lib/query/keys'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { fieldsFor, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
@@ -27,7 +27,9 @@ import { useWorkEdit } from '@/features/work/tabs/overview/useWorkEdit'
  * way back from that were only ever set on this tab.
  *
  * The paragraphs are the hook widget's (`fieldsOf`): a premise in a grid cell
- * was a column of two-word lines.
+ * was a column of two-word lines. The fields are the work's kind's
+ * (`fieldsFor`): a field naming kinds belongs to those alone, and the variant
+ * of an audio release is no box on a song.
  */
 export function FieldsWidget({ work }: { work: Work }) {
   const { t } = useTranslation()
@@ -36,7 +38,7 @@ export function FieldsWidget({ work }: { work: Work }) {
   const { patch, setField } = useWorkEdit(work)
   const saveStatus = useSaveStatus(patch.isPending, patch.isError)
 
-  const { short } = fieldsOf(profile.config.work_meta_fields)
+  const { short } = fieldsOf(fieldsFor(profile.config, work.kind))
   const line = presentation === 'line'
 
   return (

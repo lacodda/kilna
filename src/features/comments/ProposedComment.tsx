@@ -8,6 +8,7 @@ import { workByTitle } from '@/lib/comments'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
+import { hasDoors, publicationKinds, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/DatePicker'
 import { Input } from '@/components/ui/input'
@@ -32,14 +33,19 @@ interface Props {
  */
 export function ProposedComment({ pending, channels, onKept }: Props) {
   const { t } = useTranslation()
+  const { config } = useProfile()
   const read = pending.proposal
 
   const works = useQuery(queries.catalogue())
+  // Suggested among what goes out only: a picture's title matching a song
+  // would suggest the one work a comment cannot be kept under.
   const suggested =
     read.work_id ??
     workByTitle(
       read.about ?? undefined,
-      (works.data ?? []).map((w) => ({ id: w.work_id, title: w.title })),
+      (works.data ?? [])
+        .filter((w) => hasDoors(config, w.kind))
+        .map((w) => ({ id: w.work_id, title: w.title })),
     )
 
   const [channel, setChannel] = useState(read.channel)
@@ -139,6 +145,7 @@ export function ProposedComment({ pending, channels, onKept }: Props) {
         open={picking}
         onOpenChange={setPicking}
         title={t('comments.pickWorkTitle')}
+        kinds={publicationKinds(config).map((kind) => kind.key)}
         onPick={(picked) => setWork(picked.work_id)}
       />
     </div>

@@ -28,7 +28,7 @@ import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
-import { say as sayLabel, useProfile } from '@/lib/useProfile'
+import { hasDoors, publicationKinds, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
@@ -142,6 +142,11 @@ export function CommentDetail({
     enabled: comment.work_id !== null && !onWork,
   })
 
+  // A comment filed under a work that does not go out - a song, from before
+  // songs stopped going out themselves (v0.86). It stays readable, and says
+  // where it belongs: under the publication it was left on.
+  const misfiled = work.data != null && !hasDoors(config, work.data.kind)
+
   const saveReply = () => {
     if (reply === (comment.reply ?? '')) return
     patch.mutate({ reply: reply.trim() === '' ? null : reply })
@@ -249,6 +254,17 @@ export function CommentDetail({
               </Button>
             </>
           )}
+        </div>
+      )}
+
+      {!onWork && misfiled && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-warn-soft px-3 py-1.5 text-xs text-warn">
+          <span className="min-w-0 flex-1">
+            {t('comments.notAPublication', { title: work.data?.title ?? '' })}
+          </span>
+          <Button size="xs" onClick={() => setPicking(true)}>
+            {t('comments.moveToPublication')}
+          </Button>
         </div>
       )}
 
@@ -442,6 +458,8 @@ export function CommentDetail({
         open={picking}
         onOpenChange={setPicking}
         title={t('comments.pickWorkTitle')}
+        // Comments are left under what goes out, never under a song.
+        kinds={publicationKinds(config).map((kind) => kind.key)}
         onPick={(picked) => patch.mutate({ work_id: picked.work_id })}
       />
     </section>

@@ -11,7 +11,8 @@ import {
   type WidgetFacts,
   type WidgetId,
 } from '@/lib/overview'
-import { hasScenes, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { useCovers } from '@/lib/useCovers'
+import { fieldsFor, hasDoors, hasScenes, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Frame, Scroll } from '@/components/frame'
 import { ActionBar } from '@/features/assistant/ActionBar'
 import { PluginBar } from '@/features/work/PluginBar'
@@ -22,6 +23,7 @@ import { FieldsWidget } from '@/features/work/tabs/overview/FieldsWidget'
 import { FindingsWidget } from '@/features/work/tabs/overview/FindingsWidget'
 import { HookWidget } from '@/features/work/tabs/overview/HookWidget'
 import { LinksWidget } from '@/features/work/tabs/overview/LinksWidget'
+import { PublicationsWidget } from '@/features/work/tabs/overview/PublicationsWidget'
 import { RecentWidget } from '@/features/work/tabs/overview/RecentWidget'
 import { ReleasesWidget } from '@/features/work/tabs/overview/ReleasesWidget'
 import { ScoreWidget } from '@/features/work/tabs/overview/ScoreWidget'
@@ -62,6 +64,7 @@ const WIDGET_BODIES: Readonly<Record<WidgetId, (drawn: Drawn) => ReactNode>> = {
   cover: ({ work }) => <CoverWidget work={work} />,
   findings: ({ work }) => <FindingsWidget work={work} />,
   trend: ({ work }) => <TrendWidget work={work} />,
+  publications: ({ work }) => <PublicationsWidget work={work} />,
 }
 
 /**
@@ -75,7 +78,8 @@ const WIDGET_BODIES: Readonly<Record<WidgetId, (drawn: Drawn) => ReactNode>> = {
  * The profile says how the widgets are laid out (`config.overview`, read by
  * `boardOf`): the owner chose the lead column and its rail, and Settings can
  * pick any of the five. What a work's kind does not have - a storyboard on a
- * song, a style prompt on a clip - is not drawn at all (`applies`).
+ * song, a style prompt on a clip, releases on a song, which goes out as its
+ * publications instead - is not drawn at all (`applies`).
  *
  * The profile's actions and the plugins' commands stand in the board's head:
  * the same gesture from the person's side - do this to this work - and a
@@ -86,6 +90,7 @@ export function OverviewTab({ work }: Props) {
   const profile = useProfile()
   const vocabulary = vocabularyOf(profile.config, work.kind)
   const standing = useWorkFindings(work.id)
+  const covers = useCovers()
 
   const board = boardOf(profile.config)
   const drawn: Drawn = {
@@ -97,9 +102,16 @@ export function OverviewTab({ work }: Props) {
     scored: vocabulary.axes.length > 0,
     text: drawn.text !== undefined,
     style: drawn.style !== undefined,
-    prose: fieldsOf(profile.config.work_meta_fields).prose.length > 0,
-    releases: vocabulary.release_kinds.length > 0,
+    // The fields the kind has, not every field of the profile: a premise the
+    // kind does not carry is no reason to draw the widget that edits one.
+    prose: fieldsOf(fieldsFor(profile.config, work.kind)).prose.length > 0,
+    releases: hasDoors(profile.config, work.kind),
+    // A song lists what goes out for it where a clip lists its releases.
+    publications: !hasDoors(profile.config, work.kind),
     scenes: hasScenes(profile.config, work.kind),
+    // A song's picture is its publications'; one it already holds - from
+    // before v0.86, or an import - is still shown.
+    cover: hasDoors(profile.config, work.kind) || covers.has(work.id),
     findings: standing.length > 0,
   }
   const widgets = board.widgets.filter((widget) => applies(widget.id, facts))

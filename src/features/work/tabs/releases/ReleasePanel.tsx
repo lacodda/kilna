@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -56,8 +57,11 @@ export function ReleasePanel({ workId, workTitle }: Props) {
   const [marking, setMarking] = useState<ScheduledRelease | null>(null)
   // Which release is unrolled. One at a time: four descriptions unrolled at
   // once is a page nobody can find their place on, and the question being
-  // asked is always about one release.
-  const [showing, setShowing] = useState<string | null>(null)
+  // asked is always about one release. A release named in the address opens
+  // on arrival: the status bar over a publication's cover sends the person
+  // here, to the release whose meta waits for them.
+  const [params] = useSearchParams()
+  const [showing, setShowing] = useState<string | null>(() => params.get('release'))
 
   const releases = useQuery(queries.releasesForWork(workId))
 

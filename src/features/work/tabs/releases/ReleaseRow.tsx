@@ -1,16 +1,20 @@
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, ExternalLink } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { ChevronRight, ExternalLink, LoaderCircle } from 'lucide-react'
 import type { ScheduledRelease } from '@/lib/api/types'
 import { formatDay } from '@/lib/format'
 import { openExternal, shortLink } from '@/lib/link'
+import { queries } from '@/lib/query/queries'
 import { KindGlyph } from '@/lib/releaseIcon'
 import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { RowButton } from '@/components/ui/list-row'
 import { RowContextMenu, RowMenu, type RowAction } from '@/components/RowMenu'
 import { ReleaseDetails } from '@/features/work/tabs/releases/ReleaseDetails'
 import { ReleaseReadiness } from '@/features/work/tabs/releases/ReleaseReadiness'
+import { useReleaseMeta } from '@/features/work/tabs/releases/releaseMeta'
 
 interface Props {
   release: ScheduledRelease
@@ -41,6 +45,13 @@ export function ReleaseRow({ release, open, onToggle, actions, today, refreshed 
 
   const released = release.status === 'released'
   const url = release.url
+
+  // Said on the line, so a folded release still tells that its meta is being
+  // written, or that some of it waits to be taken.
+  const meta = useReleaseMeta(release.work_kind)
+  const writing = meta.writing(release.id)
+  const proposals = useQuery(queries.releaseProposals(release.id))
+  const waiting = (proposals.data ?? []).reduce((sum, one) => sum + one.fields.length, 0)
 
   return (
     <li className="border-b border-line last:border-b-0">
@@ -81,6 +92,19 @@ export function ReleaseRow({ release, open, onToggle, actions, today, refreshed 
         >
           {labelOf(kinds, release.kind)}
         </RowButton>
+
+        {writing ? (
+          <span className="flex shrink-0 items-center gap-1 text-xs text-info">
+            <LoaderCircle aria-hidden className="size-3 animate-spin" />
+            {t('releases.task.writingMeta')}
+          </span>
+        ) : (
+          waiting > 0 && (
+            <Badge variant="accent" className="shrink-0">
+              {t('releases.proposals.waiting', { count: waiting })}
+            </Badge>
+          )
+        )}
 
         <ReleaseReadiness release={release} today={today} />
 

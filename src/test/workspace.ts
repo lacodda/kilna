@@ -594,7 +594,17 @@ function summary(studio: Studio, row: Version): VersionSummary {
 
 function scored(studio: Studio, row: Work): ScoredWork {
   const score = studio.scores.find((s) => s.work_id === row.id)
-  const releases = studio.releases.filter((r) => r.work_id === row.id)
+  const publications = studio.links
+    .filter((link) => link.source_id === row.id)
+    .map((l) => l.work_id)
+  // A work with no door counts its publications' releases as its own, the
+  // way `score::catalogue` reads a song since v0.86: the song is booked when
+  // its audio is.
+  const doorless = !studio.profile.config.work_kinds.some(
+    (known) => known.key === row.kind && (known.release_kinds ?? []).length > 0,
+  )
+  const speaking = new Set(doorless ? [row.id, ...publications] : [row.id])
+  const releases = studio.releases.filter((r) => speaking.has(r.work_id))
   return {
     work_id: row.id,
     title: row.title,
@@ -615,7 +625,7 @@ function scored(studio: Studio, row: Work): ScoredWork {
     bookmarked_at: row.bookmarked_at,
     version_count: studio.versions.filter((v) => v.work_id === row.id).length,
     stage: row.stage,
-    publications: studio.links.filter((link) => link.source_id === row.id).map((l) => l.work_id),
+    publications,
   }
 }
 

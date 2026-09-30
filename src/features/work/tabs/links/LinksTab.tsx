@@ -3,18 +3,17 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Link as RouterLink, useNavigate } from 'react-router'
 import { ChevronRight, X } from 'lucide-react'
-import { createLink, deleteLink, deriveWork } from '@/lib/api/links'
+import { createLink, deleteLink } from '@/lib/api/links'
 import type { Derived, Link, Work } from '@/lib/api/types'
 import { coverImageFor } from '@/lib/cover'
 import { formatDay } from '@/lib/format'
 import { today } from '@/lib/month'
-import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { useCovers } from '@/lib/useCovers'
-import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
@@ -23,6 +22,7 @@ import { Panel, SectionLabel } from '@/components/ui/panel'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { Frame, Scroll } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
+import { useMakePublication } from '@/features/work/useMakePublication'
 
 interface Props {
   work: Work
@@ -49,9 +49,7 @@ const DONOR = 'donor'
  * panel's foot. The rows were cards inside a panel until v0.80.
  */
 export function LinksTab({ work }: Props) {
-  const { t, i18n } = useTranslation()
-  const profile = useProfile()
-  const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const links = useQuery(queries.links(work.id))
 
@@ -61,20 +59,11 @@ export function LinksTab({ work }: Props) {
     onSuccess: () => say.ok(t('links.removed')),
   })
 
-  const derive = useAppMutation({
-    mutationFn: (kind: string) => deriveWork(work.id, kind, i18n.language),
-    failure: 'toast.workSaveFailed',
-    refresh: [keys.links, keys.works, keys.catalogue, keys.releases, keys.calendar],
-    onSuccess: ({ work: created }) => {
-      say.ok(t('links.made', { title: created.title }))
-      // Straight into the new work: making one is the start of working on it.
-      void navigate(`/works/${created.id}/links`)
-    },
-  })
-
-  // The other kinds of the profile: a song becomes a video, not another song.
-  // With one kind there is nothing to make from this, and the foot is gone.
-  const otherKinds = profile.config.work_kinds.filter((kind) => kind.key !== work.kind)
+  // What can be made from this: a song's publications, or any other kind
+  // from a work that goes out itself - one gesture, the overview's Make menu
+  // (`useMakePublication`). With one kind there is nothing to make from this,
+  // and the foot is gone.
+  const make = useMakePublication(work)
 
   return (
     <Frame>
@@ -111,16 +100,17 @@ export function LinksTab({ work }: Props) {
         <LinkPanel
           title={t('links.derived')}
           foot={
-            otherKinds.length === 0
+            make.kinds.length === 0
               ? undefined
-              : otherKinds.map((kind) => (
+              : make.kinds.map((kind) => (
                   <Button
                     key={kind.key}
                     size="sm"
-                    disabled={derive.isPending}
-                    onClick={() => derive.mutate(kind.key)}
+                    disabled={make.making !== null}
+                    title={kind.description === '' ? undefined : kind.description}
+                    onClick={() => make.make(kind.key)}
                   >
-                    {t('links.makeFromThis', { kind: sayLabel(kind.label) })}
+                    {kind.label}
                   </Button>
                 ))
           }

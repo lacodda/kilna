@@ -20,7 +20,6 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Frame, Scroll } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
-import { CoverPrompt } from '@/features/work/tabs/files/CoverPrompt'
 
 interface Props {
   work: Work
@@ -120,25 +119,20 @@ export function FilesTab({ work }: Props) {
         over && 'outline-2 outline-dashed outline-offset-4 outline-accent',
       )}
       head={
-        // The prompt stands above the buttons, as the mockup has it: writing
-        // it and looking at what came back are one activity, and the pictures
-        // scroll under both. Draws nothing for a kind whose covers are not
-        // written.
-        <div className="flex w-full flex-col gap-2.5">
-          <CoverPrompt work={work} />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick(COVER)}>
-              <ImageIcon aria-hidden />
-              {cover === undefined ? t('files.setCover') : t('files.changeCover')}
-            </Button>
-            <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick()}>
-              <Paperclip aria-hidden />
-              {t('files.attach')}
-            </Button>
-            <span className="ml-auto text-xs text-faint">
-              {over ? t('files.dropHere') : t('files.copiedIn')}
-            </span>
-          </div>
+        // The cover's prompt has a tab of its own since v0.86 (`tabs/cover`);
+        // what stands here is what adds a file, over the gallery.
+        <div className="flex w-full flex-wrap items-center gap-2">
+          <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick(COVER)}>
+            <ImageIcon aria-hidden />
+            {cover === undefined ? t('files.setCover') : t('files.changeCover')}
+          </Button>
+          <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick()}>
+            <Paperclip aria-hidden />
+            {t('files.attach')}
+          </Button>
+          <span className="ml-auto text-xs text-faint">
+            {over ? t('files.dropHere') : t('files.copiedIn')}
+          </span>
         </div>
       }
     >
