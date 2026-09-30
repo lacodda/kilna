@@ -525,12 +525,12 @@ impl WorkKind {
                         problems.push(format!("{at} reads `{{{name}}}`, which nothing fills"));
                         continue;
                     }
-                    if let Some(role) = name.strip_prefix("role:") {
-                        if !roles.contains(role) {
-                            problems.push(format!(
-                                "{at} reads `{{{name}}}`, but this kind has no `{role}` role"
-                            ));
-                        }
+                    if let Some(role) = name.strip_prefix("role:")
+                        && !roles.contains(role)
+                    {
+                        problems.push(format!(
+                            "{at} reads `{{{name}}}`, but this kind has no `{role}` role"
+                        ));
                     }
                     if (name == "scenes" || name == "scene")
                         && self.shot_types.is_empty()
@@ -1932,12 +1932,12 @@ impl ProfileConfig {
             if rhythm.every_days == 0 {
                 problems.push("the rhythm must be at least one day".into());
             }
-            if let Some(time) = &rhythm.default_time {
-                if !crate::time::is_clock_time(time) {
-                    problems.push(format!(
-                        "the rhythm's default time `{time}` is not a time of day (HH:MM)"
-                    ));
-                }
+            if let Some(time) = &rhythm.default_time
+                && !crate::time::is_clock_time(time)
+            {
+                problems.push(format!(
+                    "the rhythm's default time `{time}` is not a time of day (HH:MM)"
+                ));
             }
         }
 
@@ -1979,18 +1979,17 @@ impl ProfileConfig {
                     ));
                 }
             }
-            if let Some(scope) = prompt.scope.as_deref().map(str::trim) {
-                if scope != SCENE_SCOPE
-                    && scope != STYLE_SCOPE
-                    && scope != COMMENT_SCOPE
-                    && scope != CANON_SCOPE
-                    && scope != SELECTION_SCOPE
-                    && scope != "work"
-                {
-                    problems.push(format!(
+            if let Some(scope) = prompt.scope.as_deref().map(str::trim)
+                && scope != SCENE_SCOPE
+                && scope != STYLE_SCOPE
+                && scope != COMMENT_SCOPE
+                && scope != CANON_SCOPE
+                && scope != SELECTION_SCOPE
+                && scope != "work"
+            {
+                problems.push(format!(
                         "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment` or `canon`, not `{scope}`"
                     ));
-                }
             }
             if !prompt.produces_is_known() {
                 problems.push(format!(

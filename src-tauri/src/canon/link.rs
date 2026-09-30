@@ -121,10 +121,10 @@ pub fn update_at(
         Some(kind) => clean(kind),
         None => found.kind.clone(),
     };
-    if let Some(kind) = kind.as_deref() {
-        if found.kind.as_deref() != Some(kind) {
-            check_kind(conn, &found.profile_id, kind)?;
-        }
+    if let Some(kind) = kind.as_deref()
+        && found.kind.as_deref() != Some(kind)
+    {
+        check_kind(conn, &found.profile_id, kind)?;
     }
     let label = match patch.label {
         Some(label) => clean(label),

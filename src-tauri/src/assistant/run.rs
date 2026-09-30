@@ -302,10 +302,10 @@ pub fn start_as(
 
     // Checked before the parallel limit: telling someone their own click is
     // already running is more useful than telling them the machine is busy.
-    if let Some(key) = &task {
-        if runs.task_running(key) {
-            return Err(Error::AlreadyRunning);
-        }
+    if let Some(key) = &task
+        && runs.task_running(key)
+    {
+        return Err(Error::AlreadyRunning);
     }
 
     if !runs.has_slot() {

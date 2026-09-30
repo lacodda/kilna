@@ -81,15 +81,15 @@ const SELECT_COLLECTION: &str = "SELECT c.id, c.profile_id, c.kind, c.title, c.d
 
 /// Refuse a goal that could not be read back as one.
 fn check_goal(target_size: Option<i64>, due_on: Option<&str>) -> Result<()> {
-    if let Some(size) = target_size {
-        if size < 1 {
-            return Err(Error::refused("collection.badTargetSize").param("size", size));
-        }
+    if let Some(size) = target_size
+        && size < 1
+    {
+        return Err(Error::refused("collection.badTargetSize").param("size", size));
     }
-    if let Some(day) = due_on {
-        if !crate::time::is_date(day) {
-            return Err(Error::refused("collection.badDueDate").param("value", day));
-        }
+    if let Some(day) = due_on
+        && !crate::time::is_date(day)
+    {
+        return Err(Error::refused("collection.badDueDate").param("value", day));
     }
     Ok(())
 }

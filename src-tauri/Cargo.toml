@@ -6,7 +6,7 @@ authors = ["Kirill Lakhtachev <lahtachev@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/lacodda/kilna"
 edition = "2024"
-rust-version = "1.87"
+rust-version = "1.90"
 # Presentation rasters are for the README and the release page, not for anyone
 # building from the crate. icon.ico stays: build.rs needs it on Windows.
 exclude = [
@@ -22,24 +22,21 @@ name = "kilna_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2.7", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["protocol-asset"] }
+tauri = { version = "2.12", features = ["protocol-asset"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.40", features = ["bundled", "serde_json", "backup"] }
 thiserror = "2"
-# Held at 0.3.45: 0.3.55 requires Rust 1.88, and raising the MSRV of this
-# application for a timestamp formatter is the wrong trade. Revisit when
-# something else forces the floor up.
-time = { version = "=0.3.45", features = ["formatting", "macros"] }
+time = { version = "0.3.55", features = ["formatting", "macros"] }
 uuid = { version = "1", features = ["v4"] }
-tauri-plugin-dialog = "2.7.3"
-tauri-plugin-opener = "2.5.5"
+tauri-plugin-dialog = "2.8"
+tauri-plugin-opener = "2.7"
 # The window comes back the size and place it was closed at: a maximised
 # window opens maximised, a 1200x1200 one opens at 1200x1200.
-tauri-plugin-window-state = "2"
+tauri-plugin-window-state = "2.5"
 # A pasted picture arrives as bytes and needs a file to be copied from; the
 # window is not given filesystem permissions for one temporary write.
 tempfile = "3"

@@ -93,10 +93,10 @@ pub fn cards(conn: &Connection, profile_id: &str, filter: &CardFilter) -> Result
             }
         }
         let count = |status: FactStatus| own.iter().filter(|f| f.status == status).count();
-        if let Some(status) = filter.status {
-            if count(status) == 0 {
-                continue;
-            }
+        if let Some(status) = filter.status
+            && count(status) == 0
+        {
+            continue;
         }
         let work_title = match note.work_id.as_deref() {
             Some(id) => crate::work::get(conn, id)?.map(|w| w.title),
@@ -336,10 +336,10 @@ pub fn timeline(conn: &Connection, profile_id: &str, note_id: Option<&str>) -> R
     let mut cards: BTreeMap<String, Note> = BTreeMap::new();
     let mut out = Vec::new();
     for one in fact::dated(conn, profile_id, note_id)? {
-        if !cards.contains_key(&one.note_id) {
-            if let Some(card) = crate::note::get(conn, &one.note_id)? {
-                cards.insert(card.id.clone(), card);
-            }
+        if !cards.contains_key(&one.note_id)
+            && let Some(card) = crate::note::get(conn, &one.note_id)?
+        {
+            cards.insert(card.id.clone(), card);
         }
         let Some(card) = cards.get(&one.note_id) else {
             continue;
@@ -493,10 +493,10 @@ fn fact_line(one: &Fact, shape: SectionShape, lens: Lens) -> String {
         }
         _ => format!("- {}", one.body),
     };
-    if let Some(when) = &one.when {
-        if let Some(label) = when.label.as_deref().or(when.sort.as_deref()) {
-            line.push_str(&format!(" ({label})"));
-        }
+    if let Some(when) = &one.when
+        && let Some(label) = when.label.as_deref().or(when.sort.as_deref())
+    {
+        line.push_str(&format!(" ({label})"));
     }
     if lens == Lens::Work {
         if one.layer != Layer::Public {

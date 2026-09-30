@@ -209,10 +209,9 @@ fn stored_proposal(meta: &Map<String, Value>) -> Result<Proposal> {
     if value.get("kind").and_then(Value::as_str) == Some("scenes")
         && value.get("replace").and_then(Value::as_bool) == Some(true)
         && value.get("change").is_none()
+        && let Some(object) = value.as_object_mut()
     {
-        if let Some(object) = value.as_object_mut() {
-            object.insert("change".into(), json!("replace"));
-        }
+        object.insert("change".into(), json!("replace"));
     }
     Ok(serde_json::from_value(value)?)
 }

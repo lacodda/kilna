@@ -569,31 +569,29 @@ pub fn read_scenes(
                 missing + 1
             ));
         }
-        if let Some(only) = only {
-            if let Some(other) = scenes
+        if let Some(only) = only
+            && let Some(other) = scenes
                 .iter()
                 .find(|scene| scene.position != Some(only))
                 .and_then(|scene| scene.position)
-            {
-                return ReadScenes::Refused(format!(
-                    "the answer revised scene {other}; the action was about scene {only}"
-                ));
-            }
+        {
+            return ReadScenes::Refused(format!(
+                "the answer revised scene {other}; the action was about scene {only}"
+            ));
         }
         // Aimed at one block, an answer that writes another is refused the
         // same way an answer about another scene is. It would be applied —
         // the blocks are laid over, not put in place — but it would still
         // rewrite a prompt nobody asked it to, and quietly.
-        if let Some(only_block) = only_block {
-            if let Some(other) = scenes
+        if let Some(only_block) = only_block
+            && let Some(other) = scenes
                 .iter()
                 .flat_map(|scene| scene.blocks.keys())
                 .find(|key| key.as_str() != only_block)
-            {
-                return ReadScenes::Refused(format!(
-                    "the answer wrote the `{other}` block; the action was about `{only_block}`"
-                ));
-            }
+        {
+            return ReadScenes::Refused(format!(
+                "the answer wrote the `{other}` block; the action was about `{only_block}`"
+            ));
         }
     }
     ReadScenes::Proposal(Box::new(Proposal::Scenes { scenes, change }))
@@ -812,20 +810,20 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
         };
 
         let shot_type = text("shot_type");
-        if let Some(shot) = shot_type.as_deref() {
-            if !kind.shot_types.iter().any(|s| s.key == shot) {
-                return Err(Error::refused("proposal.unknownShotType")
-                    .param("index", index + 1)
-                    .param("shot", shot)
-                    .param(
-                        "kind",
-                        serde_json::to_value(&kind.label).unwrap_or_default(),
-                    )
-                    .param(
-                        "known",
-                        names(&mut kind.shot_types.iter().map(|s| s.key.as_str())),
-                    ));
-            }
+        if let Some(shot) = shot_type.as_deref()
+            && !kind.shot_types.iter().any(|s| s.key == shot)
+        {
+            return Err(Error::refused("proposal.unknownShotType")
+                .param("index", index + 1)
+                .param("shot", shot)
+                .param(
+                    "kind",
+                    serde_json::to_value(&kind.label).unwrap_or_default(),
+                )
+                .param(
+                    "known",
+                    names(&mut kind.shot_types.iter().map(|s| s.key.as_str())),
+                ));
         }
 
         let mut blocks = Map::new();
@@ -864,13 +862,13 @@ pub fn scenes_from(raw: &[Value], kind: &WorkKind) -> crate::error::Result<Vec<P
 
         let starts_at = number("starts_at");
         let ends_at = number("ends_at");
-        if let (Some(from), Some(to)) = (starts_at, ends_at) {
-            if to < from {
-                return Err(Error::refused("proposal.badSpan")
-                    .param("index", index + 1)
-                    .param("from", from)
-                    .param("to", to));
-            }
+        if let (Some(from), Some(to)) = (starts_at, ends_at)
+            && to < from
+        {
+            return Err(Error::refused("proposal.badSpan")
+                .param("index", index + 1)
+                .param("from", from)
+                .param("to", to));
         }
         for at in [starts_at, ends_at].into_iter().flatten() {
             if !(at.is_finite() && at >= 0.0) {
@@ -908,10 +906,10 @@ pub fn fenced_json(body: &str) -> Option<String> {
                 // fence of another language — is skipped rather than ending
                 // the search: the block worth reading usually comes after
                 // several lines that are neither.
-                if let Some(rest) = trimmed.strip_prefix("```") {
-                    if rest.trim().eq_ignore_ascii_case("json") {
-                        current = Some(Vec::new());
-                    }
+                if let Some(rest) = trimmed.strip_prefix("```")
+                    && rest.trim().eq_ignore_ascii_case("json")
+                {
+                    current = Some(Vec::new());
                 }
             }
             Some(collected) => {

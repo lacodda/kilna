@@ -99,14 +99,14 @@ pub fn sort_key_of(label: &str) -> Option<String> {
     // A numeric date, day first: 9.06.2025, 09/06/2025.
     for word in lower.split(|c: char| c.is_whitespace() || c == ',') {
         let parts: Vec<&str> = word.split(['.', '/']).collect();
-        if let [day, month, year] = parts.as_slice() {
-            if year.len() == 4 && year.bytes().all(|b| b.is_ascii_digit()) {
-                if let (Ok(day), Ok(month)) = (day.parse::<u32>(), month.parse::<u32>()) {
-                    let key = format!("{year}-{month:02}-{day:02}");
-                    if is_sort_key(&key) {
-                        return Some(key);
-                    }
-                }
+        if let [day, month, year] = parts.as_slice()
+            && year.len() == 4
+            && year.bytes().all(|b| b.is_ascii_digit())
+            && let (Ok(day), Ok(month)) = (day.parse::<u32>(), month.parse::<u32>())
+        {
+            let key = format!("{year}-{month:02}-{day:02}");
+            if is_sort_key(&key) {
+                return Some(key);
             }
         }
     }

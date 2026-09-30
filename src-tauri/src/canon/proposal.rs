@@ -292,10 +292,10 @@ fn read_fact(
     let when = match (text(item, "when"), text(item, "sort")) {
         (None, None) => None,
         (label, sort) => {
-            if let Some(sort) = &sort {
-                if !super::when::is_sort_key(sort) {
-                    return Err(Error::refused("canon.badWorldDate").param("value", sort.clone()));
-                }
+            if let Some(sort) = &sort
+                && !super::when::is_sort_key(sort)
+            {
+                return Err(Error::refused("canon.badWorldDate").param("value", sort.clone()));
             }
             Some(When { label, sort })
         }

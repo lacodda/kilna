@@ -631,10 +631,10 @@ fn hand_over(
         let rows = snapshot
             .entry(table.to_owned())
             .or_insert_with(|| Value::Array(Vec::new()));
-        if let Value::Array(rows) = rows {
-            if !rows.iter().any(|kept| kept.get("id") == row.get("id")) {
-                rows.push(Value::Object(row.clone()));
-            }
+        if let Value::Array(rows) = rows
+            && !rows.iter().any(|kept| kept.get("id") == row.get("id"))
+        {
+            rows.push(Value::Object(row.clone()));
         }
         conn.execute(
             "UPDATE deletion SET snapshot = ?2 WHERE id = ?1",

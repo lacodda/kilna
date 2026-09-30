@@ -1065,12 +1065,10 @@ pub fn run_tool(
                     .find(|k| k.key == release_kind)
                     .expect("just checked by require_release_kind");
                 let scheduled_at = arg(&item, "scheduled_at").map(str::to_owned);
-                if let Some(date) = &scheduled_at {
-                    if !crate::time::is_date(date) {
-                        return Err(
-                            Error::refused("mcp.badReleaseDate").param("value", date.clone())
-                        );
-                    }
+                if let Some(date) = &scheduled_at
+                    && !crate::time::is_date(date)
+                {
+                    return Err(Error::refused("mcp.badReleaseDate").param("value", date.clone()));
                 }
                 let (fields, unknown_fields) = proposal::release_fields_from(
                     item.get("fields")
@@ -1145,12 +1143,10 @@ pub fn run_tool(
                 Some(value) => BoardChange::parse(value)
                     .ok_or_else(|| Error::refused("mcp.badBoardChange").param("value", value))?,
             };
-            if change == BoardChange::Revise {
-                if let Some(missing) = scenes.iter().position(|scene| scene.position.is_none()) {
-                    return Err(
-                        Error::refused("mcp.reviseNeedsPosition").param("index", missing + 1)
-                    );
-                }
+            if change == BoardChange::Revise
+                && let Some(missing) = scenes.iter().position(|scene| scene.position.is_none())
+            {
+                return Err(Error::refused("mcp.reviseNeedsPosition").param("index", missing + 1));
             }
             let count = scenes.len();
             let standing = scene::count(conn, &found.id)?;

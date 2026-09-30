@@ -43,10 +43,10 @@ impl AppState {
         // timer: there is no scheduler in this app, and an app that is left open
         // for a fortnight can carry a fortnight of history without complaint.
         // Failing to sweep is not a reason to fail to start.
-        if let Ok(Some(profile)) = profile::active(&conn) {
-            if let Err(cause) = journal::sweep(&conn, &profile.id) {
-                crate::log::warn("journal", &format!("could not sweep old entries: {cause}"));
-            }
+        if let Ok(Some(profile)) = profile::active(&conn)
+            && let Err(cause) = journal::sweep(&conn, &profile.id)
+        {
+            crate::log::warn("journal", &format!("could not sweep old entries: {cause}"));
         }
 
         // Dismissed complaints about works that have since been deleted. They

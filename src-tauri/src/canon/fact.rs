@@ -531,13 +531,13 @@ fn checked_source(
                     source.label = Some(work.title);
                 }
             }
-            if let Some(version_id) = source.version_id.as_deref() {
-                if fresh {
-                    let version = crate::work::version::get(conn, version_id)?
-                        .ok_or_else(|| Error::not_found("version", version_id))?;
-                    if version.work_id != work_id {
-                        return Err(Error::refused("canon.sourceVersionOfAnotherWork"));
-                    }
+            if let Some(version_id) = source.version_id.as_deref()
+                && fresh
+            {
+                let version = crate::work::version::get(conn, version_id)?
+                    .ok_or_else(|| Error::not_found("version", version_id))?;
+                if version.work_id != work_id {
+                    return Err(Error::refused("canon.sourceVersionOfAnotherWork"));
                 }
             }
         }

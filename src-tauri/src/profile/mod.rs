@@ -592,11 +592,12 @@ fn canon_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool
         // still reading exactly as it shipped was never retyped, and follows
         // the shipped word into every language it now has. A word the owner
         // typed stays theirs.
-        if let config::Label::One(word) = &kind.label {
-            if word == shipped_kind.label.as_str() && kind.label != shipped_kind.label {
-                kind.label = shipped_kind.label.clone();
-                changed = true;
-            }
+        if let config::Label::One(word) = &kind.label
+            && word == shipped_kind.label.as_str()
+            && kind.label != shipped_kind.label
+        {
+            kind.label = shipped_kind.label.clone();
+            changed = true;
         }
     }
     changed

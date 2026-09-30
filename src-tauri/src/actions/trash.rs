@@ -56,10 +56,10 @@ pub fn discard(conn: &Connection, entity: Entity, id: &str) -> Result<String> {
         // what the work's status should say. The work itself is exempt: it is
         // in the trash, and restating a row nobody can see would only make
         // noise.
-        if entity != Entity::Work {
-            if let Some(work_id) = behind {
-                act.restate(&work_id);
-            }
+        if entity != Entity::Work
+            && let Some(work_id) = behind
+        {
+            act.restate(&work_id);
         }
         Ok(entry_id)
     })

@@ -361,12 +361,12 @@ fn check_type(conn: &Connection, profile_id: &str, type_key: &str) -> Result<()>
 
 /// The unique index speaking in the craft's words rather than SQLite's.
 fn taken(error: rusqlite::Error, type_key: &str, name: &str) -> Error {
-    if let rusqlite::Error::SqliteFailure(failure, _) = &error {
-        if failure.code == rusqlite::ErrorCode::ConstraintViolation {
-            return Error::refused("style.alreadyExists")
-                .param("type", type_key)
-                .param("name", name);
-        }
+    if let rusqlite::Error::SqliteFailure(failure, _) = &error
+        && failure.code == rusqlite::ErrorCode::ConstraintViolation
+    {
+        return Error::refused("style.alreadyExists")
+            .param("type", type_key)
+            .param("name", name);
     }
     Error::from(error)
 }

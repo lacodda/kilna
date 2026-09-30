@@ -302,10 +302,10 @@ pub fn check_package(
             }
             Err(cause) => note(Err(cause)),
         }
-        if let Some(work_id) = card.work_id.as_deref() {
-            if crate::work::get(conn, work_id)?.is_none() {
-                note(Err(Error::not_found("work", work_id)));
-            }
+        if let Some(work_id) = card.work_id.as_deref()
+            && crate::work::get(conn, work_id)?.is_none()
+        {
+            note(Err(Error::not_found("work", work_id)));
         }
     }
     let left_out: Vec<&str> = package

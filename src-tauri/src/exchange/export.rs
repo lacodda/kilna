@@ -437,10 +437,10 @@ fn push_fact(page: &mut String, fact: &crate::canon::Fact) {
     if let Some(reason) = &fact.retired_reason {
         beside.push(format!("because {reason}"));
     }
-    if let Some(when) = &fact.when {
-        if let Some(words) = when.label.as_deref().or(when.sort.as_deref()) {
-            beside.push(words.to_owned());
-        }
+    if let Some(when) = &fact.when
+        && let Some(words) = when.label.as_deref().or(when.sort.as_deref())
+    {
+        beside.push(words.to_owned());
     }
     if let Some(source) = &fact.source {
         let mut said = source.label.clone().unwrap_or_default();

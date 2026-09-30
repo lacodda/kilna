@@ -116,10 +116,10 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             let handle = app.handle().clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(3));
-                if let Some(window) = handle.get_webview_window("main") {
-                    if !window.is_visible().unwrap_or(true) {
-                        let _ = window.show();
-                    }
+                if let Some(window) = handle.get_webview_window("main")
+                    && !window.is_visible().unwrap_or(true)
+                {
+                    let _ = window.show();
                 }
             });
             Ok(())

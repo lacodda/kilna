@@ -373,10 +373,10 @@ fn check_span(starts_at: Option<f64>, ends_at: Option<f64>) -> Result<()> {
             return Err(Error::refused("scene.negativeSeconds"));
         }
     }
-    if let (Some(starts), Some(ends)) = (starts_at, ends_at) {
-        if ends < starts {
-            return Err(Error::refused("scene.endsBeforeStart"));
-        }
+    if let (Some(starts), Some(ends)) = (starts_at, ends_at)
+        && ends < starts
+    {
+        return Err(Error::refused("scene.endsBeforeStart"));
     }
     Ok(())
 }

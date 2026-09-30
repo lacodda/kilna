@@ -127,10 +127,10 @@ pub struct Scheduling {
 /// against the IANA list: the app does not carry the list, and a name the
 /// list gains next year must not be refused by a build from this one.
 fn check_when(time: Option<&str>, zone: Option<&str>) -> Result<()> {
-    if let Some(time) = time {
-        if !crate::time::is_clock_time(time) {
-            return Err(Error::refused("release.badTime").param("value", time));
-        }
+    if let Some(time) = time
+        && !crate::time::is_clock_time(time)
+    {
+        return Err(Error::refused("release.badTime").param("value", time));
     }
     if let Some(zone) = zone {
         let plausible = zone == "UTC"
