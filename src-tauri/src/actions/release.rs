@@ -110,6 +110,91 @@ pub fn set_fields(
     )
 }
 
+/// Write what a release's own action answered into the fields still empty,
+/// and leave the rest waiting (v0.86).
+///
+/// The person started the action, so the fields nobody has written yet are
+/// the application's to fill - that is what they asked for. A field someone
+/// already started is theirs: what the answer says about it waits beside it
+/// as a proposal, to take or leave. When nothing is left to decide the
+/// message is marked applied, as a proposal kept by hand is; otherwise it
+/// records what was written (`filled`), and taking the rest later does not
+/// write those twice. Returns the keys written now.
+pub fn fill_from_proposal(conn: &Connection, message_id: &str) -> Result<Vec<String>> {
+    atomically(conn, |conn| {
+        let message = crate::assistant::message(conn, message_id)?
+            .ok_or_else(|| Error::not_found("message", message_id))?;
+        if message.meta.contains_key("applied")
+            || message.meta.contains_key(super::proposal::FILLED)
+        {
+            return Ok(Vec::new());
+        }
+        let Ok(crate::assistant::proposal::Proposal::Release {
+            release_id, fields, ..
+        }) = super::proposal::stored_proposal(&message.meta)
+        else {
+            return Ok(Vec::new());
+        };
+        let current = release_meta::fields(conn, &release_id)?;
+        let now_of = |key: &str| {
+            current
+                .iter()
+                .find(|field| field.key == key)
+                .map(|field| field.value.trim().to_owned())
+        };
+        let mut empty: BTreeMap<String, String> = BTreeMap::new();
+        let mut waiting = 0usize;
+        for (key, value) in &fields {
+            let Some(proposed) = value.as_str() else {
+                continue;
+            };
+            match now_of(key) {
+                Some(written) if written.is_empty() => {
+                    empty.insert(key.clone(), proposed.to_owned());
+                }
+                Some(written) if written != proposed.trim() => waiting += 1,
+                _ => {}
+            }
+        }
+
+        let mut work_id = None;
+        if !empty.is_empty() {
+            let written = set_fields(conn, &release_id, &empty)?;
+            let profile_id = super::active_profile_id(conn)?;
+            crate::journal::record(
+                conn,
+                &profile_id,
+                Record::new("release.metaWritten")
+                    .param(
+                        "title",
+                        crate::journal::work_title(conn, &written.work_id).unwrap_or_default(),
+                    )
+                    .param("count", count(empty.len()))
+                    .about("work", written.work_id.clone()),
+            );
+            work_id = Some(written.work_id);
+        }
+
+        let keys: Vec<String> = empty.into_keys().collect();
+        let mut meta = message.meta;
+        if waiting == 0 {
+            let outcome = super::proposal::Outcome {
+                message_id: message_id.to_owned(),
+                at: crate::time::now(),
+                work_id,
+                releases: vec![release_id],
+                release_fields: keys.clone(),
+                ..super::proposal::Outcome::default()
+            };
+            meta.insert("applied".into(), serde_json::to_value(&outcome)?);
+        } else {
+            meta.insert(super::proposal::FILLED.into(), serde_json::json!(keys));
+        }
+        crate::assistant::set_meta(conn, message_id, &meta)?;
+        Ok(keys)
+    })
+}
+
 /// Fill a release's fields from the profile's templates.
 ///
 /// Only templated fields are touched; what has no template stays as it was
@@ -569,7 +654,7 @@ mod tests {
     #[test]
     fn a_release_of_a_kind_the_work_does_not_ship_is_refused() {
         let (conn, profile_id) = fixtures::workspace();
-        let work = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let work = fixtures::video(&conn, &profile_id, "Harbour lights");
 
         let refused = create(
             &conn,
@@ -589,5 +674,185 @@ mod tests {
             refused.refusal().map(|refusal| refusal.code),
             Some("release.unknownKind")
         );
+    }
+
+    /// A release with its action's answer waiting in a chat on its work.
+    fn answered(
+        conn: &Connection,
+        profile_id: &str,
+        release_id: &str,
+        fields: serde_json::Value,
+    ) -> String {
+        let release = release::get(conn, release_id).unwrap().unwrap();
+        let chat = crate::assistant::create(
+            conn,
+            profile_id,
+            crate::assistant::NewChat {
+                work_id: Some(release.work_id),
+                ..crate::assistant::NewChat::default()
+            },
+        )
+        .unwrap();
+        let proposal = crate::assistant::proposal::Proposal::Release {
+            release_id: release_id.to_owned(),
+            fields: fields.as_object().cloned().unwrap(),
+            unknown: Vec::new(),
+        };
+        let mut meta = serde_json::Map::new();
+        meta.insert("proposal".into(), serde_json::to_value(&proposal).unwrap());
+        crate::assistant::append(
+            conn,
+            &chat.id,
+            crate::assistant::ASSISTANT,
+            "the answer",
+            meta,
+        )
+        .unwrap()
+        .id
+    }
+
+    fn written(conn: &Connection, release_id: &str, key: &str) -> String {
+        release_meta::fields(conn, release_id)
+            .unwrap()
+            .into_iter()
+            .find(|field| field.key == key)
+            .map(|field| field.value)
+            .unwrap_or_default()
+    }
+
+    /// The person asked for it, so what nobody has written yet is written at
+    /// once; what they started waits beside the answer, and taking it later
+    /// writes only that.
+    #[test]
+    fn an_answer_fills_the_empty_fields_and_the_started_ones_wait() {
+        let (conn, profile_id) = fixtures::workspace();
+        let clip = fixtures::video(&conn, &profile_id, "Harbour lights — clip");
+        let release = fixtures::release(&conn, &clip.id, "youtube", None);
+        set_fields(
+            &conn,
+            &release.id,
+            &BTreeMap::from([("description".to_owned(), "mine".to_owned())]),
+        )
+        .unwrap();
+        let message = answered(
+            &conn,
+            &profile_id,
+            &release.id,
+            serde_json::json!({
+                "title": "Harbour lights",
+                "description": "theirs",
+                "tags": "sea, night",
+            }),
+        );
+
+        let filled = fill_from_proposal(&conn, &message).unwrap();
+
+        assert_eq!(filled, vec!["tags".to_owned(), "title".to_owned()]);
+        assert_eq!(written(&conn, &release.id, "title"), "Harbour lights");
+        assert_eq!(written(&conn, &release.id, "description"), "mine");
+        let waiting = release_meta::pending(&conn, &release.id).unwrap();
+        assert_eq!(waiting.len(), 1);
+        assert_eq!(
+            waiting[0]
+                .fields
+                .iter()
+                .map(|field| (
+                    field.key.as_str(),
+                    field.proposed.as_str(),
+                    field.current.as_str()
+                ))
+                .collect::<Vec<_>>(),
+            vec![("description", "theirs", "mine")],
+            "only what would change is offered"
+        );
+        assert!(
+            fill_from_proposal(&conn, &message).unwrap().is_empty(),
+            "an answer is filled from once"
+        );
+
+        let outcome = crate::actions::proposal::apply(
+            &conn,
+            &message,
+            crate::actions::proposal::Overrides::default(),
+        )
+        .unwrap();
+        assert_eq!(outcome.release_fields, vec!["description".to_owned()]);
+        assert_eq!(written(&conn, &release.id, "description"), "theirs");
+        assert!(
+            release_meta::pending(&conn, &release.id)
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    /// An answer with nothing left to decide is marked kept as it lands; one
+    /// taken a field at a time writes only the fields taken.
+    #[test]
+    fn an_answer_is_kept_whole_or_a_field_at_a_time() {
+        let (conn, profile_id) = fixtures::workspace();
+        let clip = fixtures::video(&conn, &profile_id, "Harbour lights — clip");
+        let empty = fixtures::release(&conn, &clip.id, "youtube", None);
+        let whole = answered(
+            &conn,
+            &profile_id,
+            &empty.id,
+            serde_json::json!({ "title": "Harbour lights" }),
+        );
+        fill_from_proposal(&conn, &whole).unwrap();
+        let message = crate::assistant::message(&conn, &whole).unwrap().unwrap();
+        assert!(message.meta.contains_key("applied"));
+
+        let started = fixtures::release(&conn, &clip.id, "premiere", None);
+        set_fields(
+            &conn,
+            &started.id,
+            &BTreeMap::from([
+                ("title".to_owned(), "a".to_owned()),
+                ("description".to_owned(), "b".to_owned()),
+            ]),
+        )
+        .unwrap();
+        let offered = answered(
+            &conn,
+            &profile_id,
+            &started.id,
+            serde_json::json!({ "title": "A", "description": "B" }),
+        );
+        fill_from_proposal(&conn, &offered).unwrap();
+        crate::actions::proposal::apply(
+            &conn,
+            &offered,
+            crate::actions::proposal::Overrides {
+                items: Some(vec!["title".into()]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(written(&conn, &started.id, "title"), "A");
+        assert_eq!(written(&conn, &started.id, "description"), "b");
+    }
+
+    /// A song has no door of its own: it goes out as the works made from it,
+    /// and saying so beats listing the doors it does not have (v0.86).
+    #[test]
+    fn a_release_on_a_work_that_never_goes_out_itself_is_refused_as_such() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+
+        let refused = create(
+            &conn,
+            NewRelease {
+                work_id: song.id,
+                kind: "youtube".into(),
+                title: None,
+                scheduled_at: None,
+                meta: None,
+                scheduled_time: None,
+                time_zone: None,
+            },
+        )
+        .unwrap_err();
+
+        assert_eq!(refused.refusal().map(|r| r.code), Some("release.noDoors"));
     }
 }

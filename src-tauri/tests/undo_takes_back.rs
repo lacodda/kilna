@@ -747,7 +747,7 @@ fn a_profile_edit_is_taken_back_whole() {
 
     let mut edited = before.clone();
     let as_seeded = serde_json::to_value(&edited).unwrap();
-    edited.work_kinds.retain(|kind| kind.key != "instrumental");
+    edited.work_kinds[0].label = "Track".into();
     assert_ne!(
         serde_json::to_value(&edited).unwrap(),
         as_seeded,

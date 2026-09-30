@@ -23,7 +23,9 @@ sources: number,
 derived: number, notes: number, 
 /**
  * The work's comments, the archived ones aside, and how many of them
- * still wait for an answer - the part of the counter worth a mark.
+ * still wait for an answer - the part of the counter worth a mark. For
+ * a work that never goes out itself, the comments under what was made
+ * from it: its Comments tab sums them up (v0.86).
  */
 comments: number, comments_waiting: number, scenes: number, 
 /**

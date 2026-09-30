@@ -95,6 +95,11 @@ pub struct CommentPatch {
 #[ts(optional_fields = nullable)]
 pub struct CommentFilter {
     pub work_id: Option<String>,
+    /// Comments under the works made from this one - a song's clip, its
+    /// audio, its shorts - rather than under the work itself: what a song's
+    /// card sums up, since the audience comments on a publication, never on
+    /// the song (v0.86).
+    pub under: Option<String>,
     pub channel: Option<String>,
     /// One state. Absent means everything that still asks for something or
     /// was answered — every state but `archived`, which is the inbox's own
@@ -120,7 +125,7 @@ pub fn create_minted(
     let body = required_text(&new.body, "text")?;
     let commented_on = day(new.commented_on.as_deref())?;
     if let Some(work_id) = &new.work_id {
-        in_profile(conn, profile_id, work_id)?;
+        a_publication(conn, profile_id, work_id)?;
     }
 
     conn.execute(
@@ -167,6 +172,17 @@ pub fn list(conn: &Connection, profile_id: &str, filter: &CommentFilter) -> Resu
     if let Some(work_id) = &filter.work_id {
         values.push(Box::new(work_id.clone()));
         sql.push_str(&format!(" AND work_id = ?{}", values.len()));
+    }
+    if let Some(source) = &filter.under {
+        let made: Vec<String> = crate::link::descendants(conn, source)?
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect();
+        values.push(Box::new(serde_json::to_string(&made)?));
+        sql.push_str(&format!(
+            " AND work_id IN (SELECT value FROM json_each(?{}))",
+            values.len()
+        ));
     }
     if let Some(channel) = &filter.channel {
         values.push(Box::new(channel.clone()));
@@ -228,7 +244,7 @@ pub fn update_at(conn: &Connection, id: &str, patch: CommentPatch, at: &str) -> 
     }
     if let Some(work_id) = patch.work_id {
         if let Some(work_id) = &work_id {
-            in_profile(conn, &current.profile_id, work_id)?;
+            a_publication(conn, &current.profile_id, work_id)?;
         }
         put(&mut assignments, &mut values, "work_id", Box::new(work_id));
     }
@@ -401,20 +417,33 @@ pub fn is_day(value: &str) -> bool {
         .is_some()
 }
 
-/// Refuse a work of another profile: a comment filed there would be invisible
-/// from both sides.
-fn in_profile(conn: &Connection, profile_id: &str, work_id: &str) -> Result<()> {
-    let found: Option<String> = conn
+/// Refuse a work of another profile - a comment filed there would be
+/// invisible from both sides - and a work that does not go out itself.
+///
+/// The audience comments on what it saw: a clip, an audio release, a short.
+/// A song is never in front of anyone as the song, so a comment filed on it
+/// says where it was read wrongly; its card sums up the comments of what was
+/// made from it instead (v0.86).
+fn a_publication(conn: &Connection, profile_id: &str, work_id: &str) -> Result<()> {
+    let found: Option<(String, String)> = conn
         .query_row(
-            "SELECT profile_id FROM work WHERE id = ?1",
+            "SELECT profile_id, kind FROM work WHERE id = ?1",
             params![work_id],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .optional()?;
-    match found {
-        Some(owner) if owner == profile_id => Ok(()),
-        _ => Err(Error::not_found("work", work_id)),
+    let Some((_, kind)) = found.filter(|(owner, _)| owner == profile_id) else {
+        return Err(Error::not_found("work", work_id));
+    };
+    let config = crate::profile::config_for(conn, profile_id)?;
+    let vocabulary = config.vocabulary(&kind);
+    if !vocabulary.has_doors() {
+        return Err(Error::refused("comment.notAPublication").param(
+            "kind",
+            serde_json::to_value(&vocabulary.label).unwrap_or_default(),
+        ));
     }
+    Ok(())
 }
 
 fn unknown(id: &str) -> Error {
@@ -442,8 +471,9 @@ mod tests {
     use super::*;
     use crate::fixtures;
 
+    /// A clip: what an audience comments on. A song never is (v0.86).
     fn song(conn: &Connection, profile_id: &str) -> String {
-        fixtures::song(conn, profile_id, "Harbour lights").id
+        fixtures::video(conn, profile_id, "Harbour lights").id
     }
 
     fn said(channel: &str, body: &str) -> NewComment {
@@ -657,6 +687,98 @@ mod tests {
         );
 
         assert!(refused.is_err());
+    }
+
+    /// The audience comments on what it saw - a clip, an audio release, a
+    /// short - and never on the song, which nobody sees as the song.
+    #[test]
+    fn a_comment_on_a_work_that_never_goes_out_is_refused() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+
+        let refused = keep(
+            &conn,
+            &profile_id,
+            NewComment {
+                work_id: Some(song.id.clone()),
+                ..said("main", "loved it")
+            },
+        )
+        .unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("comment.notAPublication")
+        );
+
+        // Moving one there is refused the same way.
+        let loose = keep(&conn, &profile_id, said("main", "loved it")).unwrap();
+        let moved = update_at(
+            &conn,
+            &loose.id,
+            CommentPatch {
+                work_id: Some(Some(song.id)),
+                ..CommentPatch::default()
+            },
+            "2026-09-30T00:00:00Z",
+        )
+        .unwrap_err();
+        assert_eq!(
+            moved.refusal().map(|r| r.code),
+            Some("comment.notAPublication")
+        );
+    }
+
+    /// A song's card sums up what was said under everything made from it -
+    /// and under what was made from that - and nothing said elsewhere.
+    #[test]
+    fn a_song_reads_the_comments_under_its_publications() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let clip = fixtures::video(&conn, &profile_id, "Harbour lights — clip");
+        let cut = fixtures::work(&conn, &profile_id, "short", "Harbour lights · short 1");
+        let other = fixtures::video(&conn, &profile_id, "Another clip");
+        for (made, source) in [(&clip.id, &song.id), (&cut.id, &clip.id)] {
+            crate::link::create(
+                &conn,
+                &profile_id,
+                crate::link::NewLink {
+                    work_id: made.clone(),
+                    source_id: source.clone(),
+                    role: None,
+                    source_version_id: None,
+                },
+            )
+            .unwrap();
+        }
+        for (work, body) in [
+            (&clip.id, "on the clip"),
+            (&cut.id, "on the short"),
+            (&other.id, "elsewhere"),
+        ] {
+            keep(
+                &conn,
+                &profile_id,
+                NewComment {
+                    work_id: Some(work.clone()),
+                    ..said("main", body)
+                },
+            )
+            .unwrap();
+        }
+
+        let under = list(
+            &conn,
+            &profile_id,
+            &CommentFilter {
+                under: Some(song.id),
+                ..CommentFilter::default()
+            },
+        )
+        .unwrap();
+
+        let mut bodies: Vec<&str> = under.iter().map(|c| c.body.as_str()).collect();
+        bodies.sort_unstable();
+        assert_eq!(bodies, vec!["on the clip", "on the short"]);
     }
 
     #[test]

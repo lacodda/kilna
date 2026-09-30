@@ -145,6 +145,19 @@ pub enum Proposal {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         basis: Option<String>,
     },
+    /// What a release goes out under - its title, description, tags, the
+    /// comment pinned under it - by the release kind's field keys, already
+    /// held to the fields the kind names and tidied to their shape (v0.86).
+    /// Written by the release's own action, or by an agent outside the
+    /// window (`propose_release`).
+    Release {
+        release_id: String,
+        fields: Map<String, Value>,
+        /// Keys the answer named that the release kind does not have, shown
+        /// rather than dropped silently.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        unknown: Vec<String>,
+    },
 }
 
 /// What a scenes proposal does to the board already on the work.
@@ -383,6 +396,108 @@ pub fn comment_instruction(today: &str) -> String {
 pub fn reply_instruction() -> &'static str {
     "\n\nYour whole reply is kept as the answer to the comment, word for word: write only it — \
      no preamble, no options to choose from, no quotation marks around it."
+}
+
+/// What an action that writes a release's metadata appends to its prompt.
+///
+/// Every field the release kind names is listed with its word, its hint and
+/// its limit, in the order the profile gives them, because a key the kind
+/// does not have is dropped on the way in and a model handed only `{}`
+/// invents its own. The shape is the one `propose_release` takes from an
+/// agent, so both arrive as the same proposal.
+pub fn release_instruction(fields: &[crate::profile::config::ReleaseField]) -> String {
+    let mut listed = String::new();
+    for field in fields {
+        listed.push_str(&format!("- `{}`: {}", field.key, field.label));
+        match field.field_type {
+            crate::profile::config::ReleaseFieldType::Line => listed.push_str(" (one line)"),
+            crate::profile::config::ReleaseFieldType::Text => listed.push_str(" (paragraphs)"),
+            crate::profile::config::ReleaseFieldType::Tags => {
+                listed.push_str(" (words separated by commas)");
+            }
+        }
+        if let Some(hint) = &field.hint {
+            listed.push_str(&format!(" — {hint}"));
+        }
+        if let Some(limit) = field.limit {
+            listed.push_str(&format!(" At most {limit} characters."));
+        }
+        listed.push('\n');
+    }
+    format!(
+        "\n\nEnd your reply with a fenced json block, exactly this shape - one key per field \
+         below, each holding the text it goes out under:\n\n```json\n{{\n  \"fields\": {{ \
+         \"<key>\": \"<text>\" }}\n}}\n```\n\nThe fields:\n{}\nWrite every field. Write in the \
+         language the work itself is in, not the language of these instructions.",
+        listed.trim_end()
+    )
+}
+
+/// Find what a release goes out under in an answer.
+///
+/// Accepts the block the instruction asks for - `{"fields": {...}}` - and the
+/// bare object a model sometimes writes instead, since both say the same
+/// thing. Only the kind's own keys are kept, each tidied to its shape (a line
+/// stays one line, tags lose repeats); a key the kind does not name is listed
+/// in `unknown`. An answer that fills no field at all is refused with the
+/// reason: an empty proposal is a button that does nothing.
+pub fn read_release(
+    body: &str,
+    release_id: &str,
+    fields: &[crate::profile::config::ReleaseField],
+) -> std::result::Result<Proposal, String> {
+    let block = fenced_json(body).ok_or("the answer holds no json block")?;
+    let raw: Value =
+        serde_json::from_str(&block).map_err(|err| format!("the block is not JSON: {err}"))?;
+    release_from_value(&raw, release_id, fields)
+}
+
+/// A release's fields read out of the value an answer or an agent gave. See
+/// [`read_release`].
+pub fn release_from_value(
+    raw: &Value,
+    release_id: &str,
+    fields: &[crate::profile::config::ReleaseField],
+) -> std::result::Result<Proposal, String> {
+    let object = raw
+        .get("fields")
+        .and_then(Value::as_object)
+        .or_else(|| raw.as_object())
+        .ok_or("the block is not an object of fields")?;
+    let mut kept = Map::new();
+    let mut unknown = Vec::new();
+    for (key, value) in object {
+        let Some(field) = fields.iter().find(|field| field.key == *key) else {
+            unknown.push(key.clone());
+            continue;
+        };
+        let text = match value {
+            Value::String(text) => text.clone(),
+            Value::Array(items) => items
+                .iter()
+                .map(|item| match item {
+                    Value::String(text) => text.clone(),
+                    other => other.to_string(),
+                })
+                .collect::<Vec<_>>()
+                .join(", "),
+            Value::Null => continue,
+            other => other.to_string(),
+        };
+        let text = crate::release_meta::tidy(&text, field);
+        if text.is_empty() {
+            continue;
+        }
+        kept.insert(key.clone(), Value::String(text));
+    }
+    if kept.is_empty() {
+        return Err("the block fills none of the release's fields".to_owned());
+    }
+    Ok(Proposal::Release {
+        release_id: release_id.to_owned(),
+        fields: kept,
+        unknown,
+    })
 }
 
 /// Find a comment in an answer to a screenshot.
@@ -1128,6 +1243,38 @@ mod tests {
         let body = format!("I would write {{\"axes\": {{\"{axis}\": 7}}}} if you asked.");
 
         assert_eq!(read_score(&body, &config, "song"), None);
+    }
+
+    #[test]
+    fn a_release_answer_keeps_the_kinds_fields_tidied_and_names_the_rest() {
+        use crate::profile::config::{ReleaseField, ReleaseFieldType};
+        let fields = vec![
+            ReleaseField::new("title", "Title", ReleaseFieldType::Line),
+            ReleaseField::new("tags", "Tags", ReleaseFieldType::Tags),
+        ];
+        let body = "Kept it short.\n\n```json\n{\"fields\": {\"title\": \"Harbour\\n  lights\", \"tags\": [\"sea\", \"Sea\", \"night\"], \"mood\": \"x\"}}\n```";
+
+        let Ok(Proposal::Release {
+            release_id,
+            fields: kept,
+            unknown,
+        }) = read_release(body, "r-1", &fields)
+        else {
+            panic!("a release answer reads as one");
+        };
+
+        assert_eq!(release_id, "r-1");
+        assert_eq!(kept.get("title"), Some(&Value::from("Harbour lights")));
+        assert_eq!(kept.get("tags"), Some(&Value::from("sea, night")));
+        assert_eq!(unknown, vec!["mood".to_owned()]);
+        assert!(
+            read_release("```json\n{\"fields\": {}}\n```", "r-1", &fields).is_err(),
+            "an answer that fills nothing is refused with the reason"
+        );
+        assert!(
+            read_release("```json\n{\"title\": \"bare\"}\n```", "r-1", &fields).is_ok(),
+            "the bare object a model sometimes writes says the same thing"
+        );
     }
 
     #[test]

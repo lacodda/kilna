@@ -1463,31 +1463,75 @@ mod tests {
         assert!(preview(&conn, "nope", "2026-09-01").is_err());
     }
 
-    #[test]
-    fn the_calendar_reports_how_ready_each_release_is() {
-        let (conn, profile_id) = fixtures::workspace();
-
-        // Scored but missing both roles an audio release requires.
-        let bare = planned(&conn, &profile_id, "Bare", Some(6.0));
-        schedule(&conn, &bare.id, "2026-09-01").unwrap();
-
-        // Scored, with a version for every required role.
-        let full = planned(&conn, &profile_id, "Full", Some(7.0));
-        for role in ["lyrics", "style"] {
-            crate::work::version::create(
-                &conn,
-                &full.work_id,
-                crate::work::version::NewVersion {
-                    role: role.into(),
-                    body: "body".into(),
-                    label: None,
-                    meta: None,
-                    make_current: true,
-                    parent_version_id: None,
+    /// A video with a YouTube release planned for it: a door that asks for
+    /// a plot before it can go out. Scored along the video's own axes.
+    fn planned_video(
+        conn: &Connection,
+        profile_id: &str,
+        title: &str,
+        mark: Option<f64>,
+    ) -> Release {
+        let work = work::create(
+            conn,
+            profile_id,
+            NewWork {
+                kind: "video".into(),
+                title: title.into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+        if let Some(mark) = mark {
+            score::create(
+                conn,
+                &work.id,
+                NewScore {
+                    axes: json!({ "dynamics": mark }).as_object().cloned().unwrap(),
+                    version_id: None,
+                    note: None,
+                    rater: None,
                 },
             )
             .unwrap();
         }
+        create(
+            conn,
+            NewRelease {
+                work_id: work.id,
+                kind: "youtube".into(),
+                title: None,
+                scheduled_at: None,
+                meta: None,
+                scheduled_time: None,
+                time_zone: None,
+            },
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn the_calendar_reports_how_ready_each_release_is() {
+        let (conn, profile_id) = fixtures::workspace();
+
+        // Scored but missing the role a YouTube release requires.
+        let bare = planned_video(&conn, &profile_id, "Bare", Some(6.0));
+        schedule(&conn, &bare.id, "2026-09-01").unwrap();
+
+        // Scored, with a version for every required role.
+        let full = planned_video(&conn, &profile_id, "Full", Some(7.0));
+        crate::work::version::create(
+            &conn,
+            &full.work_id,
+            crate::work::version::NewVersion {
+                role: "plot".into(),
+                body: "body".into(),
+                label: None,
+                meta: None,
+                make_current: true,
+                parent_version_id: None,
+            },
+        )
+        .unwrap();
         schedule(&conn, &full.id, "2026-09-02").unwrap();
 
         let shown = calendar(&conn, &profile_id).unwrap();
@@ -1505,7 +1549,7 @@ mod tests {
         assert!(of(&full.id).readiness.ready);
 
         // The queue is judged the same way.
-        let queued = planned(&conn, &profile_id, "Queued unscored", None);
+        let queued = planned_video(&conn, &profile_id, "Queued unscored", None);
         let queue = queue(&conn, &profile_id).unwrap();
         let entry = queue
             .iter()

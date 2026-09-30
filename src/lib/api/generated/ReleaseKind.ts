@@ -44,4 +44,13 @@ axis_weights?: { [key in string]: number },
  * written before the field existed — means a release of this kind says
  * nothing about itself, and the tab shows no metadata for it.
  */
-fields?: Array<ReleaseField>, };
+fields?: Array<ReleaseField>, 
+/**
+ * The shape of the picture a release of this kind goes out with, as
+ * width to height: `16:9` for a video platform's preview, `9:16` for a
+ * vertical short, `1:1` for a streaming cover. The place decides the
+ * shape, so the shape is the door's - a work that goes out in two
+ * places needs two covers (v0.86). Absent means the door shows no
+ * picture of its own.
+ */
+cover_format?: string | null, };

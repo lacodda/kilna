@@ -15,8 +15,19 @@ use crate::work::{self, NewWork, Work, WorkPatch};
 /// The id and the moment are minted by the gesture, so the same values reach
 /// the row and the log: a replay rebuilds the work under the id that every
 /// version, score and release already names (ADR 0014).
-pub fn create(conn: &Connection, new: NewWork) -> Result<Work> {
+pub fn create(conn: &Connection, mut new: NewWork) -> Result<Work> {
     gesture(conn, "work.create", |act| {
+        // The fields a work of this kind starts at - an audio release plays
+        // the original unless someone says otherwise - filled in before the
+        // work is logged, so a replay makes the work the log names rather
+        // than asking a profile that may have changed since.
+        let defaults = crate::profile::config_for(act, act.profile_id())?.defaults_of(&new.kind);
+        if !defaults.is_empty() {
+            let meta = new.meta.get_or_insert_with(serde_json::Map::new);
+            for (key, value) in defaults {
+                meta.entry(key).or_insert(value);
+            }
+        }
         act.json("work", &new)?;
         let minted = act.mint();
         let created = work::create_minted(act, act.profile_id(), new, minted)?;
@@ -269,41 +280,80 @@ pub fn clone(conn: &Connection, work_id: &str, title: &str) -> Result<crate::clo
     })
 }
 
-/// Make a work from another: a video from a song.
+/// What making a work from another made: the work, and the release it was
+/// given to go out through when its kind has a door - planned for no day yet.
+#[derive(Debug, Clone, serde::Serialize, ts_rs::TS)]
+pub struct Made {
+    pub work: Work,
+    pub release_id: Option<String>,
+}
+
+/// Make a work from another: a clip, an audio release or a short from a song.
 ///
-/// The new work takes the source's title and the overview fields the profile
-/// has — the inputs flow once, at creation, and never again (decision of
+/// The new work takes the source's overview fields that its own kind has -
+/// the inputs flow once, at creation, and never again (decision of
 /// 2026-09-10): what the source does afterwards is a fact the link reports,
 /// not a change pushed into the work. Its text is not copied: a video's roles
-/// are its own. Two gestures, as a hand would make them - the work, then the
-/// link - in one unit, so neither lands without the other.
-pub fn derive(conn: &Connection, source_id: &str, kind: &str, title: Option<&str>) -> Result<Work> {
+/// are its own. Its title is the kind's `made_title` in the window's
+/// language - "Harbour lights — clip", "Harbour lights · short 5", numbered
+/// among the works of that kind already made from the source - unless one is
+/// given. A kind that goes out somewhere is planned one release through its
+/// first door, with no day: "make an audio" means "I am going to put this
+/// out", and the release is where what it goes out under is written (v0.86).
+///
+/// Gestures as a hand would make them - the work, the link, the release - in
+/// one unit, so none lands without the others.
+pub fn derive(
+    conn: &Connection,
+    source_id: &str,
+    kind: &str,
+    title: Option<&str>,
+    locale: Option<&str>,
+) -> Result<Made> {
     atomically(conn, |conn| {
         let source =
             work::get(conn, source_id)?.ok_or_else(|| Error::not_found("work", source_id))?;
         let config = crate::profile::config_for(conn, &super::active_profile_id(conn)?)?;
-        config.require_kind(kind)?;
-        // Only fields the profile has: a stray key in the source's meta is not
-        // carried into a new work.
+        let vocabulary = config.require_kind(kind)?;
+        // Only the fields the new work's kind has: a stray key in the
+        // source's meta, or a song's field no clip has, is not carried over.
         let meta: serde_json::Map<String, serde_json::Value> = source
             .meta
             .iter()
             .filter(|(key, _)| {
                 config
-                    .work_meta_fields
+                    .fields_of(kind)
                     .iter()
                     .any(|field| field.key == **key)
             })
             .map(|(key, value)| (key.clone(), value.clone()))
             .collect();
+        let made_before: i64 = conn.query_row(
+            "SELECT count(*) FROM work_link l JOIN work w ON w.id = l.work_id
+              WHERE l.source_id = ?1 AND w.kind = ?2",
+            rusqlite::params![source_id, kind],
+            |row| row.get(0),
+        )?;
+        let number = usize::try_from(made_before).unwrap_or(0) + 1;
+        let title = title
+            .map(|title| title.trim().to_owned())
+            .filter(|title| !title.is_empty())
+            .unwrap_or_else(|| {
+                vocabulary.title_made_from(
+                    &source.title,
+                    locale.unwrap_or(crate::profile::config::SOURCE_LOCALE),
+                    number,
+                )
+            });
+        let door = vocabulary
+            .release_kinds
+            .first()
+            .map(|door| door.key.clone());
         let created = create(
             conn,
             NewWork {
                 kind: kind.to_owned(),
-                title: title
-                    .map(|title| title.trim().to_owned())
-                    .filter(|title| !title.is_empty())
-                    .unwrap_or_else(|| source.title.clone()),
+                title,
                 meta: Some(meta),
                 ..NewWork::default()
             },
@@ -317,7 +367,26 @@ pub fn derive(conn: &Connection, source_id: &str, kind: &str, title: Option<&str
                 source_version_id: None,
             },
         )?;
-        Ok(created)
+        let release_id = match door {
+            Some(door) => Some(
+                super::release::create(
+                    conn,
+                    crate::release::NewRelease {
+                        work_id: created.id.clone(),
+                        kind: door,
+                        title: None,
+                        scheduled_at: None,
+                        meta: None,
+                        scheduled_time: None,
+                        time_zone: None,
+                    },
+                )?
+                .id,
+            ),
+            None => None,
+        };
+        let work = work::get(conn, &created.id)?.unwrap_or(created);
+        Ok(Made { work, release_id })
     })
 }
 
@@ -343,7 +412,20 @@ pub fn discard(conn: &Connection, ids: &[String]) -> Result<Discarded> {
         act.json("entryIds", &entry_ids)?;
         act.stamped();
 
+        // What each work was made from, read while the links still stand, so
+        // the songs whose status was theirs are asked again (v0.86).
+        let mut sources: Vec<String> = Vec::new();
+        for id in ids {
+            for source in crate::link::ancestors(act, id)? {
+                if !sources.contains(&source) && !ids.contains(&source) {
+                    sources.push(source);
+                }
+            }
+        }
         let discarded = crate::trash::discard_batch(act, crate::trash::Entity::Work, ids, &minted)?;
+        for source in &sources {
+            act.restate(source);
+        }
         let skipped: Vec<Skipped> = discarded
             .failed
             .iter()
@@ -458,17 +540,87 @@ mod tests {
         let (conn, profile_id) = fixtures::workspace();
         let song = fixtures::song(&conn, &profile_id, "Harbour lights");
 
-        let video = derive(&conn, &song.id, "video", None).unwrap();
+        let made = derive(&conn, &song.id, "video", None, Some("en")).unwrap();
 
-        assert_eq!(video.title, "Harbour lights");
-        let links = crate::link::for_work(&conn, &video.id).unwrap();
+        assert_eq!(made.work.title, "Harbour lights — clip");
+        let links = crate::link::for_work(&conn, &made.work.id).unwrap();
         assert_eq!(links.sources.len(), 1);
-        let kinds: Vec<String> = operation::latest(&conn, 2)
+        let release = crate::release::get(&conn, made.release_id.as_deref().unwrap())
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            release.kind, "youtube",
+            "a clip is planned through its first door"
+        );
+        assert_eq!(release.scheduled_at, None, "with no day yet");
+        let kinds: Vec<String> = operation::latest(&conn, 3)
             .unwrap()
             .into_iter()
             .map(|op| op.kind)
             .collect();
-        assert_eq!(kinds, ["link.create", "work.create"]);
+        assert_eq!(kinds, ["release.create", "link.create", "work.create"]);
+    }
+
+    /// Made from a song, a work is named the way its kind names what is made -
+    /// in the window's language, numbered among its kind made from the same
+    /// song - and starts with the fields its kind has: the song's, and the
+    /// audio's variant at the original.
+    #[test]
+    fn a_made_work_is_named_numbered_and_given_its_kinds_fields() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        work::update(
+            &conn,
+            &song.id,
+            WorkPatch {
+                meta: serde_json::json!({ "bpm": 96, "stray": "no field" })
+                    .as_object()
+                    .cloned(),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+
+        let first = derive(&conn, &song.id, "short", None, Some("ru")).unwrap();
+        let second = derive(&conn, &song.id, "short", None, Some("ru")).unwrap();
+        let clip = derive(&conn, &song.id, "video", None, Some("ru")).unwrap();
+        let again = derive(&conn, &song.id, "video", None, Some("en")).unwrap();
+        let audio = derive(&conn, &song.id, "audio", None, None).unwrap();
+        let named = derive(&conn, &song.id, "short", Some("  The hook  "), Some("ru")).unwrap();
+
+        assert_eq!(first.work.title, "Harbour lights · шортс 1");
+        assert_eq!(second.work.title, "Harbour lights · шортс 2");
+        assert_eq!(clip.work.title, "Harbour lights — клип");
+        assert_eq!(again.work.title, "Harbour lights — clip 2");
+        assert_eq!(audio.work.title, "Harbour lights — audio");
+        assert_eq!(named.work.title, "The hook", "a title given wins");
+        assert_eq!(
+            audio.work.meta,
+            serde_json::json!({ "bpm": 96, "variant": "original" })
+                .as_object()
+                .cloned()
+                .unwrap()
+        );
+        assert_eq!(clip.work.meta.get("variant"), None, "a clip has no variant");
+        let door = crate::release::get(&conn, audio.release_id.as_deref().unwrap())
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            (door.kind.as_str(), door.scheduled_at.as_deref()),
+            ("youtube", None)
+        );
+    }
+
+    /// A work that goes out nowhere is made with no release to plan.
+    #[test]
+    fn a_made_work_of_a_kind_without_doors_plans_nothing() {
+        let (conn, profile_id) = fixtures::workspace();
+        let clip = fixtures::video(&conn, &profile_id, "Harbour lights — clip");
+
+        let song = derive(&conn, &clip.id, "song", None, Some("en")).unwrap();
+
+        assert_eq!(song.release_id, None);
+        assert_eq!(song.work.title, "Harbour lights — clip");
     }
 
     #[test]
@@ -477,7 +629,7 @@ mod tests {
         let song = fixtures::song(&conn, &profile_id, "Harbour lights");
         let before = operation::count(&conn).unwrap();
 
-        let refused = derive(&conn, &song.id, "opera", None).unwrap_err();
+        let refused = derive(&conn, &song.id, "opera", None, None).unwrap_err();
 
         assert_eq!(refused.refusal().map(|r| r.code), Some("work.unknownKind"));
         assert_eq!(operation::count(&conn).unwrap(), before);

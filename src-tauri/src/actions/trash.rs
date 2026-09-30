@@ -25,7 +25,18 @@ pub fn discard(conn: &Connection, entity: Entity, id: &str) -> Result<String> {
         // Minted here so the entry a restore names is the same one after a
         // rebuild (ADR 0014).
         let minted = act.mint();
+        // What a work was made from, read while its links still stand: they
+        // go into the trash with it, and a song whose status was its clip's
+        // has to be asked again once the clip is gone (v0.86).
+        let sources = if entity == Entity::Work {
+            crate::link::ancestors(act, id)?
+        } else {
+            Vec::new()
+        };
         let entry_id = trash::discard_minted(act, entity, id, minted)?;
+        for source in &sources {
+            act.restate(source);
+        }
 
         let described = trash::list(act, act.profile_id())?
             .into_iter()

@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import type {
   BulkOutcome,
+  ComposedTask,
   GeneratedBatch,
   GeneratedFields,
   NewRelease,
@@ -8,9 +9,11 @@ import type {
   Release,
   ReleaseFieldValue,
   ReleasePatch,
+  ReleaseProposal,
   ScheduledRelease,
   Scheduling,
   SlotPreview,
+  StartedTask,
 } from '@/lib/api/types'
 import type { ReleaseChanges } from '@/lib/releaseForm'
 
@@ -66,6 +69,18 @@ export const previewReleaseFields = (id: string) =>
   invoke<GeneratedFields>('preview_release_fields', { id })
 export const generateReleaseFieldsBatch = (ids: string[]) =>
   invoke<GeneratedBatch>('generate_release_fields_batch', { ids })
+/** Write what a release goes out under in the background (v0.86): the fields
+ *  nobody wrote yet are filled when the answer comes, the ones already
+ *  started wait beside it as a proposal. */
+export const startReleaseTask = (id: string, action: string) =>
+  invoke<StartedTask>('start_release_task', { id, action })
+/** What writing a release's metadata would send, without sending it. */
+export const previewReleaseTask = (id: string, action: string) =>
+  invoke<ComposedTask>('preview_release_task', { id, action })
+/** The proposals for a release that still wait, each field beside what is
+ *  written now. */
+export const releaseProposals = (id: string) =>
+  invoke<ReleaseProposal[]>('release_proposals', { id })
 export const calendar = () => invoke<ScheduledRelease[]>('calendar')
 export const releaseQueue = () => invoke<ScheduledRelease[]>('release_queue')
 export const releasesForWork = (workId: string) =>

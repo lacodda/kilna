@@ -58,10 +58,11 @@ pub struct Overrides {
     /// A drafted reply, as the person edited it before keeping.
     #[serde(default)]
     pub reply: Option<String>,
-    /// The items of a proposal for the canon the person kept - `card:0`,
-    /// `fact:2`, `relation:1`; every item when absent. A proposal of
-    /// twelve facts is read one by one, and one wrong fact must not cost the
-    /// eleven right ones.
+    /// The items of a proposal the person kept: for the canon `card:0`,
+    /// `fact:2`, `relation:1`; for a release the keys of the fields taken.
+    /// Every item when absent. A proposal of twelve facts is read one by
+    /// one, and one wrong fact must not cost the eleven right ones - nor a
+    /// description the person had already written cost them the title.
     #[serde(default)]
     pub items: Option<Vec<String>>,
 }
@@ -111,6 +112,9 @@ pub struct Outcome {
     /// Relations drawn or redrawn.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub relations: Vec<String>,
+    /// The fields of a release written, by key.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub release_fields: Vec<String>,
 }
 
 /// Keep the proposal a message carries, and mark the message - as one unit.
@@ -126,6 +130,21 @@ pub fn apply(conn: &Connection, message_id: &str, overrides: Overrides) -> Resul
             return Err(Error::refused("proposal.dismissed"));
         }
         let proposal = stored_proposal(&message.meta)?;
+        // What the application already wrote of a release's proposal - the
+        // fields that were empty when the answer came - is not offered twice.
+        let mut overrides = overrides;
+        if let Proposal::Release { fields, .. } = &proposal
+            && overrides.items.is_none()
+        {
+            let filled = filled_of(&message.meta);
+            overrides.items = Some(
+                fields
+                    .keys()
+                    .filter(|key| !filled.contains(key))
+                    .cloned()
+                    .collect(),
+            );
+        }
         let chat = assistant::get(conn, &message.chat_id)?
             .ok_or_else(|| Error::not_found("chat", &message.chat_id))?;
         if chat.profile_id != profile_id {
@@ -199,8 +218,26 @@ pub fn apply_pending(conn: &Connection, chat_id: &str) -> Result<Vec<Outcome>> {
     Ok(outcomes)
 }
 
+/// The fields of a release's proposal the application already wrote when the
+/// answer came, by key.
+pub fn filled_of(meta: &Map<String, Value>) -> Vec<String> {
+    meta.get(FILLED)
+        .and_then(Value::as_array)
+        .map(|keys| {
+            keys.iter()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Where a message records the fields of a release's proposal written on
+/// arrival: the ones that were empty (v0.86).
+pub const FILLED: &str = "filled";
+
 /// The proposal as stored, read as it was meant.
-fn stored_proposal(meta: &Map<String, Value>) -> Result<Proposal> {
+pub fn stored_proposal(meta: &Map<String, Value>) -> Result<Proposal> {
     let Some(mut value) = meta.get("proposal").cloned() else {
         return Err(Error::refused("proposal.nothing"));
     };
@@ -339,6 +376,33 @@ pub fn check(
         Proposal::CardPrompt { note_id, .. } => {
             note(crate::canon::fact::card_of(conn, config, note_id).map(|_| ()));
         }
+        Proposal::Release {
+            release_id, fields, ..
+        } => match crate::release::get(conn, release_id)? {
+            None => note(Err(Error::not_found("release", release_id))),
+            Some(_) => {
+                let known = crate::release_meta::fields(conn, release_id)?;
+                for key in fields.keys() {
+                    if !known.iter().any(|field| field.key == *key) {
+                        note(Err(
+                            Error::refused("release.unknownField").param("field", key.as_str())
+                        ));
+                    }
+                }
+                if let Some(items) = &overrides.items {
+                    if items.is_empty() {
+                        note(Err(Error::refused("proposal.nothingTaken")));
+                    }
+                    for key in items {
+                        if !fields.contains_key(key) {
+                            note(Err(
+                                Error::refused("release.unknownField").param("field", key.as_str())
+                            ));
+                        }
+                    }
+                }
+            }
+        },
     }
     Ok(problems)
 }
@@ -562,6 +626,27 @@ fn keep(
         Proposal::CardPrompt { note_id, basis } => {
             super::canon::describe(conn, &note_id, Some(body.to_owned()), basis)?;
             outcome.cards.push(note_id);
+        }
+
+        Proposal::Release {
+            release_id, fields, ..
+        } => {
+            let taken: std::collections::BTreeMap<String, String> = fields
+                .into_iter()
+                .filter(|(key, _)| {
+                    overrides
+                        .items
+                        .as_ref()
+                        .is_none_or(|items| items.contains(key))
+                })
+                .filter_map(|(key, value)| Some((key, value.as_str()?.to_owned())))
+                .collect();
+            if !taken.is_empty() {
+                let written = super::release::set_fields(conn, &release_id, &taken)?;
+                outcome.work_id = Some(written.work_id);
+            }
+            outcome.release_fields = taken.into_keys().collect();
+            outcome.releases.push(release_id);
         }
     }
     Ok(())
@@ -1210,7 +1295,9 @@ mod tests {
 
     #[test]
     fn a_comment_read_off_a_screenshot_is_kept_through_the_log() {
-        let (conn, profile_id, work_id) = workspace();
+        let (conn, profile_id, _) = workspace();
+        // A comment is under a publication, never under the song (v0.86).
+        let work_id = fixtures::video(&conn, &profile_id, "Harbour lights - clip").id;
         let chat = chat_on(&conn, &profile_id, Some(&work_id));
         let message = propose(
             &conn,
@@ -1682,7 +1769,7 @@ mod tests {
             [
                 "refusal.version.unknownRole",
                 "refusal.scene.noStoryboard",
-                "refusal.release.unknownKind",
+                "refusal.release.noDoors",
             ]
         );
         assert!(operation_kinds(&conn).is_empty(), "nothing was written");

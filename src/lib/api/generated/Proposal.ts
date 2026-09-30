@@ -64,4 +64,9 @@ commented_on?: string | null,
  * What the picture says it was written under — a video's title —
  * when no work was given: a hint for choosing one, never a key.
  */
-about?: string | null, } | { "kind": "reply", comment_id: string, } | { "kind": "description", style_id: string, } | { "kind": "canon", package: Package, } | { "kind": "cardPrompt", note_id: string, basis?: string | null, };
+about?: string | null, } | { "kind": "reply", comment_id: string, } | { "kind": "description", style_id: string, } | { "kind": "canon", package: Package, } | { "kind": "cardPrompt", note_id: string, basis?: string | null, } | { "kind": "release", release_id: string, fields: { [key in string]: JsonValue }, 
+/**
+ * Keys the answer named that the release kind does not have, shown
+ * rather than dropped silently.
+ */
+unknown?: Array<string>, };

@@ -223,21 +223,12 @@ fn a_derived_status_survives_the_rebuild() {
     .unwrap()
     .id;
 
-    // A release for it.
-    let release_id = actions::release::create(
-        &source,
-        release::NewRelease {
-            work_id: work_id.clone(),
-            kind: "audio".into(),
-            title: None,
-            scheduled_at: None,
-            meta: None,
-            scheduled_time: None,
-            time_zone: None,
-        },
-    )
-    .unwrap()
-    .id;
+    // Its audio release: a work made from it, with a release planned
+    // through its first door (v0.86) - the song itself goes out as what is
+    // made from it, so its status is derived one link away.
+    let made = actions::work::derive(&source, &work_id, "audio", None, Some("en")).unwrap();
+    let audio_id = made.work.id.clone();
+    let release_id = made.release_id.expect("an audio work is planned a release");
 
     // And the release goes out, which is what makes the work "released". Kept
     // hand-built rather than `actions::release::mark_released`: that action's
@@ -259,12 +250,13 @@ fn a_derived_status_survives_the_rebuild() {
     transaction.commit().unwrap();
 
     let config = profile::config_for(&source, &profile_id).unwrap();
+    work::status::refresh_at(&source, &config, &audio_id, &at).unwrap();
     work::status::refresh_at(&source, &config, &work_id, &at).unwrap();
 
     let before = work::get(&source, &work_id).unwrap().unwrap().status;
     assert_eq!(
         before, "released",
-        "the fixture is not set up: the work should be released before the rebuild"
+        "the fixture is not set up: the song should be out as its audio before the rebuild"
     );
 
     let mut rebuilt = workspace();

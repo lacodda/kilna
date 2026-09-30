@@ -81,6 +81,9 @@ pub enum Produces {
     /// The whole answer, kept as the description a picture generator is
     /// given for the card the action was started on.
     CardPrompt,
+    /// What a release goes out under - its title, its description, its
+    /// tags - field by field, in a block the application reads (v0.86).
+    Release,
 }
 
 /// What an action is about.
@@ -103,6 +106,9 @@ pub enum Scope {
     /// offered on a selection and nowhere else - a button for it on the
     /// panel would send a prompt with nothing selected in it.
     Selection,
+    /// One release of a work, read as `{release}`: offered on the release
+    /// and nowhere else (v0.86).
+    Release,
 }
 
 /// The value of `scope` that names a scene action.
@@ -120,6 +126,9 @@ pub const CANON_SCOPE: &str = "canon";
 /// The value of `scope` that names an action about selected lines.
 pub const SELECTION_SCOPE: &str = "selection";
 
+/// The value of `scope` that names an action about one release.
+pub const RELEASE_SCOPE: &str = "release";
+
 impl PromptTemplate {
     /// `produces` as the application understands it. An unknown value reads
     /// as prose rather than failing: a profile written for a later kilna
@@ -134,6 +143,7 @@ impl PromptTemplate {
             Some("description") => Produces::Description,
             Some("canon") => Produces::Canon,
             Some("card-prompt") => Produces::CardPrompt,
+            Some("release") => Produces::Release,
             Some(value) => {
                 if let Some(role) = value.strip_prefix("version:") {
                     return if role.trim().is_empty() {
@@ -175,6 +185,7 @@ impl PromptTemplate {
             Some(COMMENT_SCOPE) => Scope::Comment,
             Some(CANON_SCOPE) => Scope::Canon,
             Some(SELECTION_SCOPE) => Scope::Selection,
+            Some(RELEASE_SCOPE) => Scope::Release,
             _ => Scope::Work,
         }
     }
@@ -233,6 +244,10 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "selection"
             | "register"
             | "neighbours"
+            | "fields"
+            | "source"
+            | "release"
+            | "releases"
     ) || name.strip_prefix("role:").is_some_and(|r| !r.is_empty())
         || name.strip_prefix("donor:").is_some_and(|r| !r.is_empty())
         || canon_lens(name).is_some()
@@ -392,6 +407,18 @@ pub fn for_work(
             "selection",
             context.selection.map(str::to_owned).unwrap_or_default(),
         ));
+    }
+    // The work's own overview fields, each under its word: the facts a text
+    // about the work stands on - its mood, its tempo, its idea.
+    if wants("fields") {
+        values.push(("fields", fields_sheet(&config, &work)));
+    }
+    // What the work was made from, whole: the song an audio release, a clip
+    // or a short goes out as (v0.86). A work made from nothing says so rather
+    // than refusing - an action about a standalone video still has a video to
+    // write about - which is the difference from `{donor}`.
+    if wants("source") {
+        values.push(("source", source_sheet(conn, &config, &work.id)?));
     }
 
     // The bricks the person picked, each with the word of the craft that says
@@ -680,6 +707,81 @@ pub fn brick_sheet(bricks: &[crate::style_brick::StyleBrick], config: &ProfileCo
         }
     }
     out.trim_end().to_owned()
+}
+
+/// A work's filled overview fields, one per line under its word, for
+/// `{fields}`. A choice reads as the option's word rather than its key, and a
+/// yes or no as the word: the model is told what the field says, not how it
+/// is stored.
+pub fn fields_sheet(config: &ProfileConfig, work: &work::Work) -> String {
+    let mut out = String::new();
+    for field in config.fields_of(&work.kind) {
+        let Some(value) = work.meta.get(&field.key) else {
+            continue;
+        };
+        let text = match value {
+            serde_json::Value::String(text) => field
+                .options
+                .iter()
+                .find(|option| option.key == *text)
+                .map_or_else(|| text.trim().to_owned(), |option| option.label.to_string()),
+            serde_json::Value::Bool(yes) => (if *yes { "yes" } else { "no" }).to_owned(),
+            serde_json::Value::Null => String::new(),
+            other => other.to_string(),
+        };
+        if text.is_empty() {
+            continue;
+        }
+        out.push_str(&format!("- {}: {}\n", field.label, text.replace('\n', " ")));
+    }
+    if out.is_empty() {
+        return "(no fields filled in)".to_owned();
+    }
+    out.trim_end().to_owned()
+}
+
+/// What a work was made from, for `{source}`: the donor's title and kind, its
+/// fields, and the text of every role that is the work itself - the lyrics,
+/// not the critique of them nor the style prompt. The donor's current
+/// version stands for its role; the other roles read their latest revision.
+pub fn source_sheet(conn: &Connection, config: &ProfileConfig, work_id: &str) -> Result<String> {
+    let Some(donor) = link::sources(conn, work_id)?
+        .into_iter()
+        .find(|source| source.role == link::DONOR)
+    else {
+        return Ok("(this work was not made from another)".to_owned());
+    };
+    let Some(source) = work::get(conn, &donor.source_id)? else {
+        return Ok("(this work was not made from another)".to_owned());
+    };
+    let kind = config.vocabulary(&source.kind);
+    let kind_word = config
+        .kind(&source.kind)
+        .map_or(source.kind.clone(), |known| known.label.to_string());
+    let mut out = format!(
+        "“{}” ({kind_word})\n\n{}",
+        source.title,
+        fields_sheet(config, &source)
+    );
+    let current = match &source.current_version_id {
+        Some(id) => version::get(conn, id)?,
+        None => None,
+    };
+    for role in kind
+        .version_roles
+        .iter()
+        .filter(|role| role.counts_as_a_version())
+    {
+        let body = match &current {
+            Some(current) if current.role == role.key => Some(current.body.clone()),
+            _ => version::latest(conn, &source.id, &role.key)?.map(|latest| latest.body),
+        };
+        let Some(body) = body.filter(|body| !body.trim().is_empty()) else {
+            continue;
+        };
+        out.push_str(&format!("\n\n{}:\n{}", role.label, body.trim()));
+    }
+    Ok(out)
 }
 
 fn shot_label(kind: &WorkKind, key: &str) -> String {

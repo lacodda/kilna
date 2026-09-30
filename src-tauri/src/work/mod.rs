@@ -1,3 +1,4 @@
+pub mod frame;
 pub mod status;
 pub mod version;
 
@@ -55,6 +56,10 @@ pub struct Work {
     /// one per work (which is why it is not a scene). Empty for a craft whose
     /// covers are not written, and for every work made before v0.73.
     pub cover: Blocks,
+    /// The still and the loop a work of a kind with a frame plays under for
+    /// its whole length (v0.86, ADR 0046). A frame at its starting settings
+    /// for every other work, and for every work made before it existed.
+    pub frame: frame::Frame,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -138,6 +143,10 @@ pub struct WorkPatch {
     /// log's `before` holds the set as it was and an undo puts the set back.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cover: Option<Blocks>,
+    /// Replaces the whole frame, for the cover's reason: the screen sends it
+    /// whole, so the log's `before` holds the frame as it was.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub frame: Option<frame::Frame>,
 }
 
 /// Narrowing applied to a listing. Every field may be left out - serde
@@ -154,7 +163,7 @@ pub struct WorkFilter {
 
 const SELECT_WORK: &str = "SELECT id, profile_id, collection_id, kind, title, status, \
      status_pinned_at, meta, tags, marks, current_version_id, position, created_at, updated_at, \
-     tier_pinned, tier_pinned_at, tier_pin_reason, bookmarked_at, stage, cover \
+     tier_pinned, tier_pinned_at, tier_pin_reason, bookmarked_at, stage, cover, frame \
      FROM work";
 
 /// Create a work in the given profile.
@@ -476,6 +485,27 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
             Box::new(serde_json::to_string(cover)?),
         );
     }
+    if let Some(frame) = &patch.frame {
+        // Judged against the kind the work will have, as the cover is: a
+        // frame on a kind that plays under no picture is a frame nothing
+        // will ever show.
+        let before = get(conn, id)?.ok_or_else(|| unknown_work(id))?;
+        let kind = kind_after.as_deref().unwrap_or(&before.kind);
+        let config = crate::profile::config_for(conn, &before.profile_id)?;
+        let vocabulary = config.vocabulary(kind);
+        if !vocabulary.frame {
+            return Err(Error::refused("work.noFrame").param(
+                "kind",
+                serde_json::to_value(&vocabulary.label).unwrap_or_default(),
+            ));
+        }
+        set(
+            &mut assignments,
+            &mut values,
+            "frame",
+            Box::new(serde_json::to_string(frame)?),
+        );
+    }
 
     if assignments.is_empty() {
         return get(conn, id)?.ok_or_else(|| unknown_work(id));
@@ -663,6 +693,7 @@ struct RawWork {
     bookmarked_at: Option<String>,
     stage: Option<i64>,
     cover: String,
+    frame: String,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
@@ -687,6 +718,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawWork> {
         bookmarked_at: row.get(17)?,
         stage: row.get(18)?,
         cover: row.get(19)?,
+        frame: row.get(20)?,
     })
 }
 
@@ -697,6 +729,7 @@ impl RawWork {
             tags: serde_json::from_str(&self.tags)?,
             marks: serde_json::from_str(&self.marks)?,
             cover: serde_json::from_str(&self.cover)?,
+            frame: serde_json::from_str(&self.frame)?,
             id: self.id,
             profile_id: self.profile_id,
             collection_id: self.collection_id,
@@ -967,13 +1000,56 @@ mod tests {
         assert_eq!(second.position, 1);
     }
 
+    /// A frame is written on a kind that plays under one picture, and read
+    /// back whole; on any other kind it is refused, and the search finds the
+    /// words it holds.
+    #[test]
+    fn a_frame_is_kept_only_where_a_work_plays_under_one() {
+        let (conn, profile_id) = fixtures::workspace();
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Harbour lights — audio");
+        let written = frame::Frame {
+            still: "a lighthouse over wet slate roofs at dusk".into(),
+            motion: "the beam turns".into(),
+            seconds: 8,
+            still_camera: true,
+            seamless: false,
+            negative: "no people".into(),
+        };
+
+        let kept = update(
+            &conn,
+            &audio.id,
+            WorkPatch {
+                frame: Some(written.clone()),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(kept.frame, written);
+        assert_eq!(get(&conn, &audio.id).unwrap().unwrap().frame, written);
+        let found = crate::search::works_matching(&conn, &profile_id, "lighthouse").unwrap();
+        assert!(found.contains(&audio.id), "the frame's words find the work");
+
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let refused = update(
+            &conn,
+            &song.id,
+            WorkPatch {
+                frame: Some(written),
+                ..WorkPatch::default()
+            },
+        )
+        .unwrap_err();
+        assert_eq!(refused.refusal().map(|r| r.code), Some("work.noFrame"));
+    }
+
     #[test]
     fn list_filters_by_status_kind_and_title() {
         let (conn, profile_id) = fixtures::workspace();
         create(&conn, &profile_id, song("Winter road")).unwrap();
-        let mut instrumental = song("Winter theme");
-        instrumental.kind = "instrumental".into();
-        create(&conn, &profile_id, instrumental).unwrap();
+        let mut clip = song("Winter theme");
+        clip.kind = "video".into();
+        create(&conn, &profile_id, clip).unwrap();
         let mut released = song("Old release");
         released.status = Some("released".into());
         create(&conn, &profile_id, released).unwrap();

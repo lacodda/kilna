@@ -175,7 +175,7 @@ pub fn generate(conn: &Connection, release_id: &str) -> Result<Generated> {
 /// lose their blanks and their repeats, keeping the first spelling of each,
 /// because a list holding `lighthouse, Lighthouse, lighthouse` is a list
 /// someone will have to clean by hand.
-fn tidy(rendered: &str, field: &ReleaseField) -> String {
+pub fn tidy(rendered: &str, field: &ReleaseField) -> String {
     match field.field_type {
         ReleaseFieldType::Line => rendered.split_whitespace().collect::<Vec<_>>().join(" "),
         ReleaseFieldType::Text => rendered.trim().to_owned(),
@@ -208,6 +208,213 @@ pub fn merged(existing: &Map<String, Value>, values: &Map<String, Value>) -> Map
         merged.insert(key.clone(), value.clone());
     }
     merged
+}
+
+/// The release an action is about, for `{release}`: where it goes out, when,
+/// and every field its kind asks for with what is written there now - the
+/// fields a model is about to write, and the ones a person already started.
+pub fn sheet(conn: &Connection, release_id: &str) -> Result<String> {
+    let (release, defined) = definition(conn, release_id)?;
+    let work = work::get(conn, &release.work_id)?
+        .ok_or_else(|| Error::not_found("work", &release.work_id))?;
+    let config = crate::profile::config_for(conn, &work.profile_id)?;
+    let door = config
+        .vocabulary(&work.kind)
+        .release_kinds
+        .iter()
+        .find(|kind| kind.key == release.kind)
+        .map_or(release.kind.clone(), |kind| kind.label.to_string());
+    let when = match (&release.released_at, &release.scheduled_at) {
+        (Some(out), _) => format!("went out {}", day_of(out)),
+        (None, Some(day)) => format!("planned for {day}"),
+        (None, None) => "not planned for a day yet".to_owned(),
+    };
+    let mut out = format!("The release: {door}, {when}.\n");
+    for field in &defined {
+        let value = stored(&release.meta, &field.key);
+        if value.trim().is_empty() {
+            out.push_str(&format!("\n{} (`{}`): (empty)", field.label, field.key));
+        } else {
+            out.push_str(&format!(
+                "\n{} (`{}`):\n{}",
+                field.label,
+                field.key,
+                value.trim()
+            ));
+        }
+        out.push('\n');
+    }
+    Ok(out.trim_end().to_owned())
+}
+
+/// A proposal for what a release goes out under that still waits for the
+/// person: from the release's own action, the fields that were already
+/// started; from an agent outside the window, all of them.
+#[derive(Debug, Clone, PartialEq, Serialize, ts_rs::TS)]
+pub struct ReleaseProposal {
+    pub message_id: String,
+    pub chat_id: String,
+    /// Who proposed it, when it was an agent outside the window.
+    pub client: Option<String>,
+    pub created_at: String,
+    /// The fields it would change, each beside what is written now.
+    pub fields: Vec<ProposedField>,
+}
+
+/// One field of a waiting proposal.
+#[derive(Debug, Clone, PartialEq, Serialize, ts_rs::TS)]
+pub struct ProposedField {
+    pub key: String,
+    pub label: Label,
+    pub proposed: String,
+    pub current: String,
+}
+
+/// Every proposal for a release that still waits, oldest first, with only the
+/// fields it would actually change: one the application already wrote on
+/// arrival is left out, and so is one whose text is what the field already
+/// says. A proposal with nothing left to change is not listed.
+pub fn pending(conn: &Connection, release_id: &str) -> Result<Vec<ReleaseProposal>> {
+    let ids: Vec<String> = conn
+        .prepare(
+            "SELECT id FROM chat_message
+              WHERE json_extract(meta, '$.proposal.kind') = 'release'
+                AND json_extract(meta, '$.proposal.release_id') = ?1
+              ORDER BY created_at, rowid",
+        )?
+        .query_map(rusqlite::params![release_id], |row| row.get(0))?
+        .collect::<rusqlite::Result<_>>()?;
+    let current = fields(conn, release_id)?;
+    let mut found = Vec::new();
+    for id in ids {
+        let Some(message) = crate::assistant::message(conn, &id)? else {
+            continue;
+        };
+        if !crate::assistant::apply::is_pending(&message) {
+            continue;
+        }
+        let Ok(crate::assistant::proposal::Proposal::Release {
+            fields: proposed, ..
+        }) = crate::actions::proposal::stored_proposal(&message.meta)
+        else {
+            continue;
+        };
+        let filled = crate::actions::proposal::filled_of(&message.meta);
+        let changes: Vec<ProposedField> = current
+            .iter()
+            .filter(|field| !filled.contains(&field.key))
+            .filter_map(|field| {
+                let text = proposed.get(&field.key)?.as_str()?;
+                (text.trim() != field.value.trim()).then(|| ProposedField {
+                    key: field.key.clone(),
+                    label: field.label.clone(),
+                    proposed: text.to_owned(),
+                    current: field.value.clone(),
+                })
+            })
+            .collect();
+        if changes.is_empty() {
+            continue;
+        }
+        found.push(ReleaseProposal {
+            message_id: message.id.clone(),
+            chat_id: message.chat_id.clone(),
+            client: message
+                .meta
+                .get("client")
+                .and_then(Value::as_str)
+                .map(str::to_owned),
+            created_at: message.created_at.clone(),
+            fields: changes,
+        });
+    }
+    Ok(found)
+}
+
+/// The fields a release's kind declares, whatever is written in them.
+pub fn declared(conn: &Connection, release_id: &str) -> Result<Vec<ReleaseField>> {
+    Ok(definition(conn, release_id)?.1)
+}
+
+/// How many earlier releases `{releases}` reads: enough to see the habits a
+/// channel repeats - the sign-off, the question at the end - and few enough
+/// not to bury the work the text is about.
+pub const HISTORY: usize = 8;
+
+/// What went out before, for `{releases}`: the latest releases of the
+/// workspace through doors with fields, newest first, each with what it went
+/// out under. Read so a new description does not open, sign off or ask the
+/// way the last few did. Releases that went out come first, then the ones
+/// planned for a day; the release the action is about is left out.
+pub fn history(conn: &Connection, release_id: &str, limit: usize) -> Result<String> {
+    let (release, _) = definition(conn, release_id)?;
+    let work = work::get(conn, &release.work_id)?
+        .ok_or_else(|| Error::not_found("work", &release.work_id))?;
+    let config = crate::profile::config_for(conn, &work.profile_id)?;
+    let mut statement = conn.prepare(
+        "SELECT r.id FROM release r JOIN work w ON w.id = r.work_id
+          WHERE w.profile_id = ?1 AND r.id <> ?2 AND r.meta <> '{}'
+            AND (r.released_at IS NOT NULL OR r.scheduled_at IS NOT NULL)
+          ORDER BY (r.released_at IS NULL), coalesce(r.released_at, r.scheduled_at) DESC, r.rowid DESC",
+    )?;
+    let ids: Vec<String> = statement
+        .query_map(rusqlite::params![work.profile_id, release.id], |row| {
+            row.get(0)
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+
+    let mut entries = Vec::new();
+    for id in ids {
+        if entries.len() >= limit {
+            break;
+        }
+        let Some(earlier) = release::get(conn, &id)? else {
+            continue;
+        };
+        let Some(earlier_work) = work::get(conn, &earlier.work_id)? else {
+            continue;
+        };
+        let Some(door) = config
+            .vocabulary(&earlier_work.kind)
+            .release_kinds
+            .iter()
+            .find(|kind| kind.key == earlier.kind)
+        else {
+            continue;
+        };
+        let written: Vec<String> = door
+            .fields
+            .iter()
+            .filter_map(|field| {
+                let value = stored(&earlier.meta, &field.key);
+                (!value.trim().is_empty()).then(|| format!("{}:\n{}", field.label, value.trim()))
+            })
+            .collect();
+        if written.is_empty() {
+            continue;
+        }
+        let when = earlier
+            .released_at
+            .as_deref()
+            .map(day_of)
+            .or(earlier.scheduled_at.clone())
+            .unwrap_or_default();
+        entries.push(format!(
+            "“{}” ({}, {when})\n{}",
+            earlier_work.title,
+            door.label,
+            written.join("\n\n")
+        ));
+    }
+    if entries.is_empty() {
+        return Ok("(nothing has gone out yet)".to_owned());
+    }
+    Ok(entries.join("\n\n---\n\n"))
+}
+
+/// The day of a moment, as a person dates a release.
+fn day_of(moment: &str) -> String {
+    moment.get(..10).unwrap_or(moment).to_owned()
 }
 
 /// How full a release's metadata is, for a screen that has to say whether
@@ -246,27 +453,27 @@ mod tests {
     use crate::work::{self, NewWork, version};
     use serde_json::json;
 
-    /// A song with an audio release planned for it, and the lyrics its
+    /// A video with a YouTube release planned for it, and the plot its
     /// description template reads.
-    fn song_with_audio(conn: &mut Connection, profile_id: &str, lyrics: Option<&str>) -> String {
+    fn video_with_release(conn: &mut Connection, profile_id: &str, plot: Option<&str>) -> String {
         let work = work::create(
             conn,
             profile_id,
             NewWork {
-                kind: "song".into(),
+                kind: "video".into(),
                 title: "Harbour lights".into(),
                 ..NewWork::default()
             },
         )
         .unwrap();
 
-        if let Some(lyrics) = lyrics {
+        if let Some(plot) = plot {
             version::create(
                 conn,
                 &work.id,
                 version::NewVersion {
-                    role: "lyrics".into(),
-                    body: lyrics.into(),
+                    role: "plot".into(),
+                    body: plot.into(),
                     label: None,
                     meta: None,
                     make_current: true,
@@ -280,7 +487,7 @@ mod tests {
             conn,
             NewRelease {
                 work_id: work.id,
-                kind: "audio".into(),
+                kind: "youtube".into(),
                 title: Some("Harbour lights".into()),
                 scheduled_at: None,
                 meta: None,
@@ -295,22 +502,22 @@ mod tests {
     #[test]
     fn the_fields_are_the_release_kinds_own() {
         let (mut conn, profile_id) = fixtures::workspace();
-        let id = song_with_audio(&mut conn, &profile_id, None);
+        let id = video_with_release(&mut conn, &profile_id, None);
 
         let fields = fields(&conn, &id).unwrap();
 
         let keys: Vec<&str> = fields.iter().map(|f| f.key.as_str()).collect();
         assert_eq!(
             keys,
-            vec!["title", "description", "tags"],
-            "an audio release is asked for what it goes out as, in the profile's order"
+            vec!["title", "description", "tags", "pinned"],
+            "a video's release is asked for what it goes out as, in the profile's order"
         );
     }
 
     #[test]
     fn a_release_of_a_kind_the_profile_lost_still_reads() {
         let (mut conn, profile_id) = fixtures::workspace();
-        let id = song_with_audio(&mut conn, &profile_id, None);
+        let id = video_with_release(&mut conn, &profile_id, None);
         release::update(
             &conn,
             &id,
@@ -332,7 +539,7 @@ mod tests {
     #[test]
     fn generating_fills_the_templated_fields_and_leaves_the_rest_alone() {
         let (mut conn, profile_id) = fixtures::workspace();
-        let id = song_with_audio(&mut conn, &profile_id, Some("the lamps come on at four"));
+        let id = video_with_release(&mut conn, &profile_id, Some("the lamps come on at four"));
 
         let generated = generate(&conn, &id).unwrap();
 
@@ -355,8 +562,8 @@ mod tests {
     #[test]
     fn a_field_waiting_on_a_missing_role_is_named_rather_than_written_blank() {
         let (mut conn, profile_id) = fixtures::workspace();
-        // No lyrics: the description template reads `{role:lyrics}`.
-        let id = song_with_audio(&mut conn, &profile_id, None);
+        // No plot: the description template reads `{role:plot}`.
+        let id = video_with_release(&mut conn, &profile_id, None);
 
         let generated = generate(&conn, &id).unwrap();
 
@@ -382,7 +589,7 @@ mod tests {
     #[test]
     fn generating_keeps_meta_no_field_describes() {
         let (mut conn, profile_id) = fixtures::workspace();
-        let id = song_with_audio(&mut conn, &profile_id, Some("a body"));
+        let id = video_with_release(&mut conn, &profile_id, Some("a body"));
         // What a plugin left behind: `release.meta` is open, and a generate
         // button is not a reason to lose it.
         release::update(
@@ -453,14 +660,14 @@ mod tests {
     #[test]
     fn fullness_counts_what_is_written() {
         let (mut conn, profile_id) = fixtures::workspace();
-        let id = song_with_audio(&mut conn, &profile_id, Some("a body"));
+        let id = video_with_release(&mut conn, &profile_id, Some("a body"));
 
         let empty = fullness(&fields(&conn, &id).unwrap());
         assert_eq!(
             empty,
             Fullness {
                 written: 0,
-                total: 3
+                total: 4
             }
         );
         assert!(!empty.complete());
@@ -482,16 +689,16 @@ mod tests {
             after,
             Fullness {
                 written: 2,
-                total: 3
+                total: 4
             },
-            "the two templated fields are written; the one typed by hand is not"
+            "the two templated fields are written; the ones typed by hand are not"
         );
     }
 
     #[test]
     fn a_blank_field_counts_as_unwritten() {
         let (mut conn, profile_id) = fixtures::workspace();
-        let id = song_with_audio(&mut conn, &profile_id, None);
+        let id = video_with_release(&mut conn, &profile_id, None);
         release::update(
             &conn,
             &id,

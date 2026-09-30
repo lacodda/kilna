@@ -18,9 +18,10 @@ comment?: NewComment,
  */
 reply?: string, 
 /**
- * The items of a proposal for the canon the person kept - `card:0`,
- * `fact:2`, `relation:1`; every item when absent. A proposal of
- * twelve facts is read one by one, and one wrong fact must not cost the
- * eleven right ones.
+ * The items of a proposal the person kept: for the canon `card:0`,
+ * `fact:2`, `relation:1`; for a release the keys of the fields taken.
+ * Every item when absent. A proposal of twelve facts is read one by
+ * one, and one wrong fact must not cost the eleven right ones - nor a
+ * description the person had already written cost them the title.
  */
 items?: Array<string>, };

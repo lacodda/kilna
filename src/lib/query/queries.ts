@@ -32,7 +32,7 @@ import { cutShotList, listCuts, listCutsFrom } from '@/lib/api/cuts'
 import { canExportPackage, logPath, workspacePath } from '@/lib/api/data'
 import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
 import { journalForWork, listJournal, unreadJournal } from '@/lib/api/journal'
-import { listLinks, resolveLinks } from '@/lib/api/links'
+import { listLinks, listPublications, resolveLinks } from '@/lib/api/links'
 import { listNotes, listTags } from '@/lib/api/notes'
 import { checkText, listTerms, listTermTopics, previewTerm, termUses } from '@/lib/api/register'
 import { listPlugins } from '@/lib/api/plugins'
@@ -40,6 +40,7 @@ import {
   calendar,
   previewSchedule,
   releaseFields,
+  releaseProposals,
   releaseQueue,
   releasesForWork,
 } from '@/lib/api/releases'
@@ -55,7 +56,7 @@ import {
 import { listDeletions } from '@/lib/api/trash'
 import type { CardFilter, CommentFilter, Lens, NoteFilter, TaskAbout } from '@/lib/api/types'
 import { getVersion, listVersions } from '@/lib/api/versions'
-import { cardCounts, catalogue, getWork, listWorks, workTags } from '@/lib/api/works'
+import { cardCounts, catalogue, framePrompts, getWork, listWorks, workTags } from '@/lib/api/works'
 import { getWorkspace, listProfiles, mcpRegistration } from '@/lib/api/workspace'
 import { keys } from '@/lib/query/keys'
 
@@ -77,6 +78,13 @@ export const queries = {
   work: (id: string) => queryOptions({ queryKey: keys.work(id), queryFn: () => getWork(id) }),
   cardCounts: (workId: string) =>
     queryOptions({ queryKey: keys.cardCounts(workId), queryFn: () => cardCounts(workId) }),
+  publications: (workId: string) =>
+    queryOptions({
+      queryKey: keys.publicationsFor(workId),
+      queryFn: () => listPublications(workId),
+    }),
+  framePrompts: (workId: string) =>
+    queryOptions({ queryKey: keys.framePromptsFor(workId), queryFn: () => framePrompts(workId) }),
   catalogue: () => queryOptions({ queryKey: keys.catalogue, queryFn: catalogue }),
   workTags: () => queryOptions({ queryKey: keys.workTags, queryFn: workTags }),
   collections: () => queryOptions({ queryKey: keys.collections, queryFn: listCollections }),
@@ -143,6 +151,11 @@ export const queries = {
     queryOptions({
       queryKey: keys.releaseFields(releaseId),
       queryFn: () => releaseFields(releaseId),
+    }),
+  releaseProposals: (releaseId: string) =>
+    queryOptions({
+      queryKey: keys.releaseProposalsFor(releaseId),
+      queryFn: () => releaseProposals(releaseId),
     }),
   releaseAssets: (releaseId: string) =>
     queryOptions({

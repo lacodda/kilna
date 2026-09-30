@@ -13,6 +13,8 @@ pub fn create(conn: &Connection, new: NewLink) -> Result<Link> {
         act.json("link", &new)?;
         let minted = act.mint();
         let created = link::create_minted(act, act.profile_id(), new, minted)?;
+        // A song whose status is its publications' gained one (v0.86).
+        super::restate_linked(act, act.profile_id(), &created.work_id, &created.source_id);
         act.journal(
             Record::new("link.created")
                 .param("title", act.title_of(&created.work_id))
@@ -42,7 +44,11 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
                 "created_at": before.created_at,
             }),
         );
+        // The moment travels, so a replay restates the two works at it, the
+        // way the live gesture does below.
+        act.stamped();
         link::delete(act, id)?;
+        super::restate_linked(act, act.profile_id(), &before.work_id, &before.source_id);
         act.journal(
             Record::new("link.removed")
                 .param("title", act.title_of(&before.work_id))

@@ -275,7 +275,7 @@ function Title({ work }: { work: Work }) {
  * tab. The deletion is undoable from its toast, as it always was.
  */
 function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const profile = useProfile()
   const navigate = useNavigate()
 
@@ -283,10 +283,10 @@ function HeaderActions({ work, onDelete }: { work: Work; onDelete: () => void })
   // entry per other kind of the profile, so the menu says what can be made
   // rather than opening a dialog to ask.
   const derive = useAppMutation({
-    mutationFn: (kind: string) => deriveWork(work.id, kind),
+    mutationFn: (kind: string) => deriveWork(work.id, kind, i18n.language),
     failure: 'toast.workSaveFailed',
-    refresh: [keys.works, keys.catalogue, keys.links],
-    onSuccess: (created) => {
+    refresh: [keys.works, keys.catalogue, keys.links, keys.releases, keys.calendar],
+    onSuccess: ({ work: created }) => {
       say.ok(t('links.made', { title: created.title }))
       void navigate(`/works/${created.id}/links`)
     },

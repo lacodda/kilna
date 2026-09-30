@@ -49,7 +49,7 @@ const DONOR = 'donor'
  * panel's foot. The rows were cards inside a panel until v0.80.
  */
 export function LinksTab({ work }: Props) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const profile = useProfile()
   const navigate = useNavigate()
 
@@ -62,10 +62,10 @@ export function LinksTab({ work }: Props) {
   })
 
   const derive = useAppMutation({
-    mutationFn: (kind: string) => deriveWork(work.id, kind),
+    mutationFn: (kind: string) => deriveWork(work.id, kind, i18n.language),
     failure: 'toast.workSaveFailed',
-    refresh: [keys.links, keys.works, keys.catalogue],
-    onSuccess: (created) => {
+    refresh: [keys.links, keys.works, keys.catalogue, keys.releases, keys.calendar],
+    onSuccess: ({ work: created }) => {
       say.ok(t('links.made', { title: created.title }))
       // Straight into the new work: making one is the start of working on it.
       void navigate(`/works/${created.id}/links`)

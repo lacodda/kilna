@@ -239,6 +239,51 @@ pub fn derived(conn: &Connection, source_id: &str) -> Result<Vec<Derived>> {
     Ok(rows)
 }
 
+/// Every work made from this one, directly or from something made from it -
+/// a song's clip, and the shorts cut from the clip - each once, with how far
+/// down it stands. The walk follows links of every role; a loop in the links
+/// cannot make it run forever, because a work already reached is not reached
+/// again.
+pub fn descendants(conn: &Connection, work_id: &str) -> Result<Vec<(String, i64)>> {
+    let mut statement = conn.prepare(
+        "WITH RECURSIVE down(id, depth) AS (
+             SELECT work_id, 1 FROM work_link WHERE source_id = ?1
+             UNION
+             SELECT l.work_id, down.depth + 1
+               FROM work_link l JOIN down ON l.source_id = down.id
+              WHERE down.depth < 16
+         )
+         SELECT down.id, min(down.depth) FROM down JOIN work w ON w.id = down.id
+          WHERE down.id <> ?1
+          GROUP BY down.id ORDER BY min(down.depth), w.created_at, w.rowid",
+    )?;
+    let rows = statement
+        .query_map(params![work_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(rows)
+}
+
+/// Every work this one was made from, directly or through what it was made
+/// from, nearest first. The other direction of [`descendants`].
+pub fn ancestors(conn: &Connection, work_id: &str) -> Result<Vec<String>> {
+    let mut statement = conn.prepare(
+        "WITH RECURSIVE up(id, depth) AS (
+             SELECT source_id, 1 FROM work_link WHERE work_id = ?1
+             UNION
+             SELECT l.source_id, up.depth + 1
+               FROM work_link l JOIN up ON l.work_id = up.id
+              WHERE up.depth < 16
+         )
+         SELECT up.id FROM up JOIN work w ON w.id = up.id
+          WHERE up.id <> ?1
+          GROUP BY up.id ORDER BY min(up.depth), w.created_at, w.rowid",
+    )?;
+    let rows = statement
+        .query_map(params![work_id], |row| row.get(0))?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(rows)
+}
+
 /// Both directions at once, for the card.
 pub fn for_work(conn: &Connection, work_id: &str) -> Result<Links> {
     Ok(Links {

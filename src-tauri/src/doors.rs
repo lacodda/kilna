@@ -80,7 +80,7 @@ pub fn upgrade(conn: &mut Connection) -> Result<usize> {
         let mut config: ProfileConfig = serde_json::from_str(&raw)?;
         let tx = conn.transaction()?;
 
-        let moved = move_releases(&tx, &profile_id, &config)?;
+        let (moved, sources) = move_releases(&tx, &profile_id, &config)?;
         if moved > 0 {
             journal::record(
                 &tx,
@@ -97,6 +97,15 @@ pub fn upgrade(conn: &mut Connection) -> Result<usize> {
                 "UPDATE profile SET config = ?2, updated_at = ?3 WHERE id = ?1",
                 params![profile_id, serde_json::to_string(&config)?, now()],
             )?;
+        }
+
+        // The song lost a fact - the release that made it "released" or
+        // "scheduled" now speaks for another work - so its status is derived
+        // again, against the document as it now stands: a song whose doors
+        // came off speaks through what was made from it (v0.86). A status a
+        // person pinned is stepped over, as always.
+        for source_id in sources {
+            status::refresh(&tx, &config, &source_id)?;
         }
 
         tx.commit()?;
@@ -116,7 +125,11 @@ fn target_ready(config: &ProfileConfig, mv: &Move) -> bool {
         .is_some_and(|kind| kind.starting_status().is_some())
 }
 
-fn move_releases(conn: &Connection, profile_id: &str, config: &ProfileConfig) -> Result<usize> {
+fn move_releases(
+    conn: &Connection,
+    profile_id: &str,
+    config: &ProfileConfig,
+) -> Result<(usize, BTreeSet<String>)> {
     let doors: Vec<&str> = MOVES.iter().map(|mv| mv.door).collect();
     let mut statement = conn.prepare(
         "SELECT r.id, r.kind, r.status, w.id, w.title, w.meta
@@ -216,14 +229,7 @@ fn move_releases(conn: &Connection, profile_id: &str, config: &ProfileConfig) ->
         moved += 1;
     }
 
-    // The song lost a fact — the release that made it "released" or
-    // "scheduled" now speaks for another work — so its status is derived
-    // again. A status a person pinned is stepped over, as always.
-    for source_id in sources {
-        status::refresh(conn, config, &source_id)?;
-    }
-
-    Ok(moved)
+    Ok((moved, sources))
 }
 
 /// Take the moved doors off the song and the instrumental in the stored
@@ -499,14 +505,13 @@ mod tests {
         assert_eq!(videos[0].stage, None);
         assert_eq!(
             work::get(&conn, &song).unwrap().unwrap().status,
-            "draft",
-            "nothing of the song's own has gone out"
+            "released",
+            "the song went out as the short made from it (v0.86)"
         );
 
         // The doors are off the song; the tier of the same name is not.
         let config = stored_config(&conn, &profile_id);
-        assert_eq!(doors_of(&config, "song"), vec!["audio"]);
-        assert_eq!(doors_of(&config, "instrumental"), vec!["audio"]);
+        assert!(doors_of(&config, "song").is_empty());
         assert!(
             config
                 .vocabulary("song")
@@ -605,7 +610,7 @@ mod tests {
         let config = stored_config(&conn, &profile_id);
         assert_eq!(
             doors_of(&config, "song"),
-            vec!["clip", "audio"],
+            vec!["clip"],
             "the door with nowhere to go stays, the other is off"
         );
         assert_eq!(journal_lines(&conn, &profile_id)[0].params["count"], 1);
@@ -636,7 +641,7 @@ mod tests {
         );
         assert_eq!(
             doors_of(&stored_config(&conn, "mine"), "song"),
-            vec!["clip", "short", "audio"]
+            vec!["clip", "short"]
         );
         assert!(journal_lines(&conn, "mine").is_empty());
     }
@@ -666,9 +671,6 @@ mod tests {
             "video"
         );
         let profile_id = profile::id_for_key(&conn, STUDIO).unwrap().unwrap();
-        assert_eq!(
-            doors_of(&stored_config(&conn, &profile_id), "song"),
-            vec!["audio"]
-        );
+        assert!(doors_of(&stored_config(&conn, &profile_id), "song").is_empty());
     }
 }

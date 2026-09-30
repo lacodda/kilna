@@ -12,6 +12,14 @@ export const keys = {
 
   works: ['works'] as const,
   work: (id: string) => ['works', 'item', id] as const,
+  /** What was made from a work, and where each stands (v0.86). Under the
+   *  works' prefix, because a status changing anywhere down the chain is a
+   *  work changing; the links, releases and comments refresh it as well. */
+  publications: ['works', 'publications'] as const,
+  publicationsFor: (workId: string) => ['works', 'publications', workId] as const,
+  /** The frame's blocks as they are copied, written on the Rust side from
+   *  the frame the work holds. */
+  framePromptsFor: (workId: string) => ['works', 'frame', workId] as const,
 
   versions: (workId: string) => ['versions', workId] as const,
   // One prefix over every work's links: a link changes two cards at once.
@@ -57,6 +65,9 @@ export const keys = {
   // work's files: they are not on the work's Files tab, and a release deleted
   // or brought back takes its files with it.
   releaseAssets: (releaseId: string) => ['releases', 'assets', releaseId] as const,
+  /** What an answer or an agent proposes a release goes out under, waiting
+   *  beside what is written. */
+  releaseProposalsFor: (releaseId: string) => ['releases', 'proposals', releaseId] as const,
   calendar: ['calendar'] as const,
   releaseQueue: ['releaseQueue'] as const,
   /** What a day holds for a release being carried over it. */

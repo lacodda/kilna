@@ -1117,6 +1117,27 @@
         "produces": "card-prompt",
         "scope": "canon",
         "template": "Write the description of this card for a picture generator."
+      },
+      {
+        "description": {
+          "en": "The title, description, tags and pinned comment of this release, in the channel’s voice and unlike the last ones.",
+          "ru": "Название, описание, теги и закреп выпуска голосом канала — не так, как в прошлых."
+        },
+        "icon": "tags",
+        "key": "release-meta",
+        "kinds": [
+          "video",
+          "audio",
+          "short"
+        ],
+        "label": {
+          "en": "Release meta",
+          "ru": "Мета выпуска"
+        },
+        "method": "# Release writer\n\n## Role\n\nYou write what one release goes out under - the title it is listed by, the description under it, the tags it is found by, the comment pinned beneath it - for the author to read, change and post themselves. You are given the release and what is already written in it, the work and what it was made from, the channel's card with the canon a public text may see, and what went out lately.\n\n## The channel\n\n- The root card of the canon is the channel. Its voice, its signature, its rules of alternation and its description template are the law when it holds them: the description follows the template's order, speaks in the voice, and ends with the signature the rules call for next.\n- Only what the public canon says may be said. What it does not say is not known to the audience: never name a place, a person, a date or a detail it does not give.\n\n## Not repeating\n\n- The releases that went out lately are given newest first. Do not open the way they opened, do not sign off with the signature the rules say comes after the last one, and do not ask the audience the question they asked.\n\n## What to write\n\n- The title: the title of the song, then whatever the channel's titles carry after it, in the form the recent titles use.\n- The description: a short piece about the song, told the way the channel tells things - what it is about, a moment behind it, one image from it - then the signature and the hashtags the template asks for. Never retell the lyrics line by line, and never explain the song.\n- The tags: ten to twenty, commas between them, from broad to narrow - the channel, the song, the genre, the themes.\n- The pinned comment: one or two sentences from the author about a line or a moment they love, and a question to the audience unlike the recent ones.\n- A field that is already written is rewritten in its spirit, not replaced by something unrelated.\n- Write in the language of the work, whatever the language of these instructions.\n\n## Output\n\nA sentence or two on the choices you made, then the block the task asks for, with every field.\n",
+        "produces": "release",
+        "scope": "release",
+        "template": "Write what this release goes out under.\n\n{release}\n\nThe work: “{title}”.\n\n{fields}\n\nWhat it was made from:\n\n{source}\n\nThe channel and the world it tells of, as a public text may see them:\n\n{canon:public}\n\nWhat went out lately, newest first:\n\n{releases}"
       }
     ],
     "relation_kinds": [
@@ -1608,457 +1629,6 @@
           "en": "Song",
           "ru": "Песня"
         },
-        "release_kinds": [
-          {
-            "fields": [
-              {
-                "key": "title",
-                "label": {
-                  "en": "Title",
-                  "ru": "Заголовок"
-                },
-                "limit": 205,
-                "template": "{title}",
-                "type": "line"
-              },
-              {
-                "key": "description",
-                "label": {
-                  "en": "Description",
-                  "ru": "Описание"
-                },
-                "template": "{role:lyrics}",
-                "type": "text"
-              },
-              {
-                "hint": {
-                  "en": "Comma separated.",
-                  "ru": "Через запятую."
-                },
-                "key": "tags",
-                "label": {
-                  "en": "Tags",
-                  "ru": "Теги"
-                },
-                "type": "tags"
-              }
-            ],
-            "icon": "disc",
-            "key": "audio",
-            "label": {
-              "en": "Audio release",
-              "ru": "Аудио-релиз"
-            },
-            "requires": [
-              "lyrics",
-              "style"
-            ]
-          }
-        ],
-        "statuses": [
-          {
-            "derive": "draft",
-            "key": "draft",
-            "label": {
-              "en": "Draft",
-              "ru": "Черновик"
-            }
-          },
-          {
-            "colour": "accent",
-            "derive": "scored",
-            "key": "scored",
-            "label": {
-              "en": "Scored",
-              "ru": "Оценено"
-            }
-          },
-          {
-            "colour": "warn",
-            "derive": "scheduled",
-            "key": "scheduled",
-            "label": {
-              "en": "Scheduled",
-              "ru": "Запланировано"
-            }
-          },
-          {
-            "colour": "good",
-            "derive": "released",
-            "key": "released",
-            "label": {
-              "en": "Released",
-              "ru": "Вышло"
-            }
-          },
-          {
-            "colour": "plain",
-            "derive": "manual",
-            "key": "shelved",
-            "label": {
-              "en": "Shelved",
-              "ru": "На полке"
-            }
-          }
-        ],
-        "tiers": [
-          {
-            "key": "hold",
-            "label": {
-              "en": "Hold",
-              "ru": "Придержать"
-            },
-            "min": 0.0
-          },
-          {
-            "key": "audio",
-            "label": {
-              "en": "Work on it",
-              "ru": "Доработать"
-            },
-            "min": 55.0
-          },
-          {
-            "key": "picture",
-            "label": {
-              "en": "Release it",
-              "ru": "Выпускать"
-            },
-            "min": 68.0
-          },
-          {
-            "key": "clip",
-            "label": {
-              "en": "Strong",
-              "ru": "Сильная"
-            },
-            "min": 78.0
-          }
-        ],
-        "version_roles": [
-          {
-            "body": "plain",
-            "key": "lyrics",
-            "label": {
-              "en": "Lyrics",
-              "ru": "Текст"
-            }
-          },
-          {
-            "body": "plain",
-            "counts_as_version": false,
-            "key": "style",
-            "label": {
-              "en": "Style prompt",
-              "ru": "Промпт стиля"
-            }
-          },
-          {
-            "body": "markdown",
-            "comments_on": "lyrics",
-            "key": "review",
-            "label": {
-              "en": "Review",
-              "ru": "Разбор"
-            }
-          },
-          {
-            "body": "markdown",
-            "comments_on": "lyrics",
-            "key": "critique",
-            "label": {
-              "en": "Critique",
-              "ru": "Критика"
-            }
-          },
-          {
-            "body": "markdown",
-            "comments_on": "lyrics",
-            "key": "neighbours",
-            "label": {
-              "en": "Neighbours",
-              "ru": "Соседи"
-            }
-          }
-        ]
-      },
-      {
-        "axes": [
-          {
-            "description": {
-              "en": "Does the chorus stay with you after one listen?",
-              "ru": "Остаётся ли припев в голове после одного прослушивания?"
-            },
-            "key": "hook",
-            "kind": "scale",
-            "label": {
-              "en": "Hook",
-              "ru": "Припев"
-            },
-            "rubric": [
-              {
-                "at": 2.0,
-                "label": {
-                  "en": "you could not hum it back straight after",
-                  "ru": "сразу после не напоёшь"
-                }
-              },
-              {
-                "at": 5.0,
-                "label": {
-                  "en": "the chorus lands, but you have heard it land before",
-                  "ru": "припев ложится, но так он уже ложился"
-                }
-              },
-              {
-                "at": 8.0,
-                "label": {
-                  "en": "you catch yourself singing it hours later",
-                  "ru": "ловишь себя на том, что напеваешь спустя часы"
-                }
-              }
-            ],
-            "scale": 10.0,
-            "weight": 2.0
-          },
-          {
-            "description": {
-              "en": "Imagery, rhyme and whether a line earns its place.",
-              "ru": "Образность, рифма и заслуживает ли строка своего места."
-            },
-            "key": "lyrics",
-            "kind": "scale",
-            "label": {
-              "en": "Lyrics",
-              "ru": "Текст"
-            },
-            "rubric": [
-              {
-                "at": 2.0,
-                "label": {
-                  "en": "the lines fill the bar and say nothing",
-                  "ru": "строки заполняют такт и ничего не говорят"
-                }
-              },
-              {
-                "at": 5.0,
-                "label": {
-                  "en": "clear and true, with no line you would quote",
-                  "ru": "честно и ясно, но цитировать нечего"
-                }
-              },
-              {
-                "at": 8.0,
-                "label": {
-                  "en": "at least one line you would quote to someone",
-                  "ru": "есть хотя бы строка, которую кому-то процитируешь"
-                }
-              }
-            ],
-            "scale": 10.0,
-            "weight": 1.5
-          },
-          {
-            "description": {
-              "en": "Does it move a listener who knows nothing about it?",
-              "ru": "Трогает ли слушателя, который ничего об этом не знает?"
-            },
-            "key": "emotion",
-            "kind": "scale",
-            "label": {
-              "en": "Emotion",
-              "ru": "Эмоция"
-            },
-            "rubric": [
-              {
-                "at": 2.0,
-                "label": {
-                  "en": "it describes a feeling instead of causing one",
-                  "ru": "описывает чувство вместо того, чтобы вызвать его"
-                }
-              },
-              {
-                "at": 5.0,
-                "label": {
-                  "en": "it moves you because you know what it is about",
-                  "ru": "трогает, потому что знаешь, о чём это"
-                }
-              },
-              {
-                "at": 8.0,
-                "label": {
-                  "en": "it moves a stranger who knows none of that",
-                  "ru": "трогает постороннего, который ничего этого не знает"
-                }
-              }
-            ],
-            "scale": 10.0,
-            "weight": 1.5
-          },
-          {
-            "description": {
-              "en": "Arrangement, mix and how finished it sounds.",
-              "ru": "Аранжировка, сведение и насколько законченно звучит."
-            },
-            "key": "production",
-            "kind": "scale",
-            "label": {
-              "en": "Production",
-              "ru": "Продакшн"
-            },
-            "rubric": [
-              {
-                "at": 2.0,
-                "label": {
-                  "en": "a demo, and it sounds like one",
-                  "ru": "демо, и звучит как демо"
-                }
-              },
-              {
-                "at": 5.0,
-                "label": {
-                  "en": "clean, and nothing about it is interesting",
-                  "ru": "чисто, и ничего интересного"
-                }
-              },
-              {
-                "at": 8.0,
-                "label": {
-                  "en": "the arrangement is part of what the song means",
-                  "ru": "аранжировка — часть смысла песни"
-                }
-              }
-            ],
-            "scale": 10.0,
-            "weight": 1.0
-          },
-          {
-            "description": {
-              "en": "Distance from the obvious version of this idea.",
-              "ru": "Насколько далеко от очевидной версии этой идеи."
-            },
-            "key": "originality",
-            "kind": "scale",
-            "label": {
-              "en": "Originality",
-              "ru": "Оригинальность"
-            },
-            "rubric": [
-              {
-                "at": 2.0,
-                "label": {
-                  "en": "the first version anyone would write of this idea",
-                  "ru": "первая версия, которую написал бы кто угодно"
-                }
-              },
-              {
-                "at": 5.0,
-                "label": {
-                  "en": "a familiar shape done properly",
-                  "ru": "знакомая форма, сделанная как следует"
-                }
-              },
-              {
-                "at": 8.0,
-                "label": {
-                  "en": "you cannot name the song it is like",
-                  "ru": "не назовёшь песню, на которую это похоже"
-                }
-              }
-            ],
-            "scale": 10.0,
-            "weight": 1.0
-          },
-          {
-            "description": {
-              "en": "Is there a clip in it, or only a cover?",
-              "ru": "Есть ли здесь клип — или только обложка?"
-            },
-            "key": "visual",
-            "kind": "scale",
-            "label": {
-              "en": "Visual potential",
-              "ru": "Визуальный потенциал"
-            },
-            "rubric": [
-              {
-                "at": 2.0,
-                "label": {
-                  "en": "a cover, at most",
-                  "ru": "обложка, не больше"
-                }
-              },
-              {
-                "at": 5.0,
-                "label": {
-                  "en": "a picture track: one idea held for the length of it",
-                  "ru": "трек с картинкой: одна идея на всю длину"
-                }
-              },
-              {
-                "at": 8.0,
-                "label": {
-                  "en": "you can already see the cut",
-                  "ru": "монтаж уже видно"
-                }
-              }
-            ],
-            "scale": 10.0,
-            "weight": 1.0
-          }
-        ],
-        "key": "instrumental",
-        "label": {
-          "en": "Instrumental",
-          "ru": "Инструментал"
-        },
-        "release_kinds": [
-          {
-            "fields": [
-              {
-                "key": "title",
-                "label": {
-                  "en": "Title",
-                  "ru": "Заголовок"
-                },
-                "limit": 205,
-                "template": "{title}",
-                "type": "line"
-              },
-              {
-                "key": "description",
-                "label": {
-                  "en": "Description",
-                  "ru": "Описание"
-                },
-                "template": "{role:lyrics}",
-                "type": "text"
-              },
-              {
-                "hint": {
-                  "en": "Comma separated.",
-                  "ru": "Через запятую."
-                },
-                "key": "tags",
-                "label": {
-                  "en": "Tags",
-                  "ru": "Теги"
-                },
-                "type": "tags"
-              }
-            ],
-            "icon": "disc",
-            "key": "audio",
-            "label": {
-              "en": "Audio release",
-              "ru": "Аудио-релиз"
-            },
-            "requires": [
-              "lyrics",
-              "style"
-            ]
-          }
-        ],
         "statuses": [
           {
             "derive": "draft",
@@ -2414,8 +1984,13 @@
           "en": "Video",
           "ru": "Видео"
         },
+        "made_title": {
+          "en": "{title} — clip",
+          "ru": "{title} — клип"
+        },
         "release_kinds": [
           {
+            "cover_format": "16:9",
             "fields": [
               {
                 "hint": {
@@ -2481,6 +2056,7 @@
             ]
           },
           {
+            "cover_format": "16:9",
             "fields": [
               {
                 "key": "title",
@@ -2680,6 +2256,206 @@
             "label": {
               "en": "Plot",
               "ru": "Сюжет"
+            }
+          },
+          {
+            "body": "markdown",
+            "key": "context",
+            "label": {
+              "en": "Context",
+              "ru": "Контекст"
+            }
+          }
+        ]
+      },
+      {
+        "cover_blocks": [
+          {
+            "hint": {
+              "en": "What the thumbnail shows: subject, framing, light, mood.",
+              "ru": "Что показывает превью: объект, кадрирование, свет, настроение."
+            },
+            "key": "picture",
+            "label": {
+              "en": "Picture",
+              "ru": "Картинка"
+            }
+          },
+          {
+            "hint": {
+              "en": "What must not appear on it.",
+              "ru": "Чего на ней быть не должно."
+            },
+            "key": "negative",
+            "label": {
+              "en": "Negative",
+              "ru": "Негатив"
+            }
+          },
+          {
+            "hint": {
+              "en": "The words on the cover, and how they sit: size, weight, place.",
+              "ru": "Слова на обложке и как они лежат: размер, насыщенность, место."
+            },
+            "key": "typography",
+            "label": {
+              "en": "Typography",
+              "ru": "Типографика"
+            }
+          }
+        ],
+        "frame": true,
+        "key": "audio",
+        "label": {
+          "en": "Audio",
+          "ru": "Аудио"
+        },
+        "made_title": {
+          "en": "{title} — audio",
+          "ru": "{title} — аудио"
+        },
+        "release_kinds": [
+          {
+            "cover_format": "16:9",
+            "fields": [
+              {
+                "hint": {
+                  "en": "What the track is listed under.",
+                  "ru": "Под каким названием трек стоит в списке."
+                },
+                "key": "title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
+                "limit": 205,
+                "type": "line"
+              },
+              {
+                "hint": {
+                  "en": "The text under the track.",
+                  "ru": "Текст под треком."
+                },
+                "key": "description",
+                "label": {
+                  "en": "Description",
+                  "ru": "Описание"
+                },
+                "limit": 5000,
+                "template": "{donor:lyrics}",
+                "type": "text"
+              },
+              {
+                "hint": {
+                  "en": "Comma separated.",
+                  "ru": "Через запятую."
+                },
+                "key": "tags",
+                "label": {
+                  "en": "Tags",
+                  "ru": "Теги"
+                },
+                "type": "tags"
+              },
+              {
+                "hint": {
+                  "en": "The comment left under it, pinned to the top.",
+                  "ru": "Комментарий под видео, закреплённый сверху."
+                },
+                "key": "pinned",
+                "label": {
+                  "en": "Pinned comment",
+                  "ru": "Закреплённый комментарий"
+                },
+                "type": "text"
+              }
+            ],
+            "icon": "disc",
+            "key": "youtube",
+            "label": {
+              "en": "YouTube",
+              "ru": "YouTube"
+            },
+            "requires": []
+          },
+          {
+            "cover_format": "1:1",
+            "fields": [
+              {
+                "hint": {
+                  "en": "What the track is called on the services.",
+                  "ru": "Как трек называется на площадках."
+                },
+                "key": "title",
+                "label": {
+                  "en": "Title",
+                  "ru": "Заголовок"
+                },
+                "type": "line"
+              }
+            ],
+            "icon": "music",
+            "key": "streaming",
+            "label": {
+              "en": "Streaming",
+              "ru": "Стриминг"
+            },
+            "requires": []
+          }
+        ],
+        "statuses": [
+          {
+            "derive": "draft",
+            "key": "draft",
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            }
+          },
+          {
+            "colour": "accent",
+            "derive": "scored",
+            "key": "scored",
+            "label": {
+              "en": "Scored",
+              "ru": "Оценено"
+            }
+          },
+          {
+            "colour": "warn",
+            "derive": "scheduled",
+            "key": "scheduled",
+            "label": {
+              "en": "Scheduled",
+              "ru": "Запланировано"
+            }
+          },
+          {
+            "colour": "good",
+            "derive": "released",
+            "key": "released",
+            "label": {
+              "en": "Released",
+              "ru": "Вышло"
+            }
+          },
+          {
+            "colour": "plain",
+            "derive": "manual",
+            "key": "shelved",
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            }
+          }
+        ],
+        "version_roles": [
+          {
+            "body": "markdown",
+            "key": "plot",
+            "label": {
+              "en": "Concept",
+              "ru": "Концепция"
             }
           },
           {
@@ -2920,8 +2696,13 @@
           "en": "Short",
           "ru": "Шортс"
         },
+        "made_title": {
+          "en": "{title} · short {n}",
+          "ru": "{title} · шортс {n}"
+        },
         "release_kinds": [
           {
+            "cover_format": "9:16",
             "fields": [
               {
                 "hint": {
@@ -3245,10 +3026,59 @@
           "ru": "Завязка"
         },
         "type": "multiline"
+      },
+      {
+        "default": "original",
+        "key": "variant",
+        "kinds": [
+          "audio"
+        ],
+        "label": {
+          "en": "Variant",
+          "ru": "Вариант"
+        },
+        "options": [
+          {
+            "key": "original",
+            "label": {
+              "en": "Original",
+              "ru": "Оригинал"
+            }
+          },
+          {
+            "key": "instrumental",
+            "label": {
+              "en": "Instrumental",
+              "ru": "Инструментал"
+            }
+          },
+          {
+            "key": "slowed",
+            "label": {
+              "en": "Slowed",
+              "ru": "Slowed"
+            }
+          },
+          {
+            "key": "sped-up",
+            "label": {
+              "en": "Sped up",
+              "ru": "Speed up"
+            }
+          },
+          {
+            "key": "remix",
+            "label": {
+              "en": "Remix",
+              "ru": "Ремикс"
+            }
+          }
+        ],
+        "type": "choice"
       }
     ]
   },
-  "description": "Songs and the videos made for them: lyrics and style drafts judged on hook and craft, shipped as audio releases; the clips and shorts cut to them are works of their own, judged on the cut.",
+  "description": "Songs and what goes out for them: lyrics and style drafts judged on hook and craft; the clips, audio releases and shorts made from them are works of their own, each with its releases, cover and comments.",
   "key": "music",
   "name": "Studio"
 }

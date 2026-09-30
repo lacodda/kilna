@@ -214,7 +214,7 @@ fn params_written() -> BTreeMap<String, BTreeSet<String>> {
         let before = &source[..index];
         let assigned = before
             .rsplit('\n')
-            .take(12)
+            .take(20)
             .any(|line| line.contains("let ") && !line.trim_start().starts_with("//"));
         let window = if assigned {
             &rest[..rest.find("\n}").unwrap_or(rest.len())]

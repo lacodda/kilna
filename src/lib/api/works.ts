@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import type {
   BulkOutcome,
   CardCounts,
+  FramePrompts,
   Cloned,
   Discarded,
   NewWork,
@@ -40,3 +41,6 @@ export const workTags = () => invoke<[string, number][]>('work_tags')
 export const catalogue = () => invoke<ScoredWork[]>('catalogue')
 /** The number beside each of a work's tabs, in one answer. */
 export const cardCounts = (workId: string) => invoke<CardCounts>('card_counts', { workId })
+/** The frame as it is copied into a generator: the still, the loop written
+ *  from its settings, the negative - written once, on the Rust side. */
+export const framePrompts = (id: string) => invoke<FramePrompts>('frame_prompts', { id })

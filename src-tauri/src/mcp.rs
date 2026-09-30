@@ -153,9 +153,12 @@ fn initialize() -> Value {
     than one thing to say about a work, so the person applies it all at once. \
     `propose_version`, `propose_score` and `propose_note` propose one thing each; \
     `propose_scenes` proposes a storyboard for a video or a short, added to the board or \
-    replacing it. `canon` reads the world the works share - cards of people, places and the \
-    channel, with facts in layers - and `propose_canon` proposes cards, facts and relations \
-    for it. Name works by id when you have one; an exact title works too.",
+    replacing it. A song never goes out itself: its clip, its audio release and its shorts do, \
+    each a work made from it with releases of its own, and `propose_release` proposes what one \
+    of those releases goes out under - its title, description, tags, pinned comment. `canon` \
+    reads the world the works share - cards of people, places and the channel, with facts in \
+    layers - and `propose_canon` proposes cards, facts and relations for it. Name works by id \
+    when you have one; an exact title works too.",
     })
 }
 
@@ -218,11 +221,14 @@ fn tools() -> Vec<Value> {
             "workspace",
             "The active profile: the craft's vocabulary, per kind of work. Each kind lists its \
              version roles and how each reads, its scoring axes with weights and scales, its \
-             tiers, statuses and kinds of release, and, for a kind with a storyboard, its \
-             kinds of shot and the prompt blocks a scene carries; plus how many works there \
-             are. Read this \
-             first: a work is judged and versioned in its own kind's keys, and the other tools \
-             speak in those keys.",
+             tiers, statuses and kinds of release (each with the fields a release of it goes out \
+             under and the shape of its cover, 16:9 or 9:16), and, for a kind with a storyboard, \
+             its kinds of shot and the prompt blocks a scene carries; the parts of its cover \
+             prompt; whether its works play under one frame (a still and a loop). A kind with \
+             no kind of release never goes out itself - its works go out as what is made from \
+             them. Plus the overview fields, each with the kinds it belongs to, and how many \
+             works there are. Read this first: a work is judged and versioned in its own kind's \
+             keys, and the other tools speak in those keys.",
             json!({}),
             &[],
         ),
@@ -243,8 +249,11 @@ fn tools() -> Vec<Value> {
             "work",
             "One work as its card shows it: the fields and meta, tags, every version by role \
              (id, revision, label, length, which is current), the latest score with its axes, \
-             the releases, how many notes and scenes, what it was made from (`sources`, with \
-             whether the source has moved on since) and what was made from it (`derived`). \
+             the releases, how many notes and scenes, the cover prompt, the frame (for a kind \
+             that plays under one: the still, the loop written from its settings, the \
+             negative), what it was made from (`sources`, with whether the source has moved on \
+             since) and what was made from it (`derived`); for a work that never goes out \
+             itself, its `publications` - everything made from it, with where each stands. \
              Bodies are not included — read one with `text`; the storyboard with `scenes`.",
             json!({ "work": work_arg() }),
             &["work"],
@@ -405,6 +414,26 @@ fn tools() -> Vec<Value> {
                 "change": { "type": "string", "enum": ["add", "replace", "revise"], "description": "What happens to the board that is there: add after the last (default), replace the whole board, or revise only the numbered scenes" },
             }),
             &["work", "scenes"],
+        ),
+        tool(
+            "propose_release",
+            "Propose what one release goes out under: its title, its description, its tags, the \
+             comment pinned under it - by the field keys its kind of release names (see \
+             `workspace`). Read the work first, and what it was made from: an audio release, a \
+             clip or a short goes out for a song, and its text and fields are the song's. Read \
+             the root card of `canon` through the `public` lens for the channel's voice, \
+             signature and rules, and the `calendar` for what went out lately - a new \
+             description does not sign off or ask the way the last few did. `release` names the \
+             release by id; it may be left out when the work has one. The fields land in the \
+             chat on the work, each beside what is written now; the person takes them one by \
+             one or all at once. Nothing is written until they do.",
+            json!({
+                "work": work_arg(),
+                "release": text_arg("The release, by id, as `work` lists it; optional when the work has one"),
+                "fields": { "type": "object", "description": "What it goes out under, by field key of its kind of release", "additionalProperties": { "type": "string" } },
+                "note": text_arg("One sentence on the choices made, optional"),
+            }),
+            &["work", "fields"],
         ),
         tool(
             "propose_version",
@@ -629,7 +658,12 @@ pub fn run_tool(
             let fields: Vec<Value> = config
                 .work_meta_fields
                 .iter()
-                .map(|f| json!({ "key": f.key, "label": f.label, "type": f.field_type }))
+                .map(|f| {
+                    json!({
+                        "key": f.key, "label": f.label, "type": f.field_type,
+                        "kinds": f.kinds, "options": f.options,
+                    })
+                })
                 .collect();
             let kinds: Vec<Value> = config
                 .work_kinds
@@ -645,9 +679,18 @@ pub fn run_tool(
                         })).collect::<Vec<_>>(),
                         "tiers": kind.tiers,
                         "statuses": kind.statuses.iter().map(|s| json!({ "key": s.key, "label": s.label })).collect::<Vec<_>>(),
-                        "release_kinds": kind.release_kinds.iter().map(|k| json!({ "key": k.key, "label": k.label })).collect::<Vec<_>>(),
+                        "release_kinds": kind.release_kinds.iter().map(|k| json!({
+                            "key": k.key, "label": k.label, "cover_format": k.cover_format,
+                            "fields": k.fields.iter().map(|f| json!({
+                                "key": f.key, "label": f.label, "type": f.field_type,
+                                "hint": f.hint, "limit": f.limit,
+                            })).collect::<Vec<_>>(),
+                        })).collect::<Vec<_>>(),
+                        "goes_out": kind.has_doors(),
                         "shot_types": kind.shot_types,
                         "scene_blocks": kind.scene_blocks,
+                        "cover_blocks": kind.cover_blocks,
+                        "frame": kind.frame,
                     })
                 })
                 .collect();
@@ -699,6 +742,20 @@ pub fn run_tool(
                 |row| row.get(0),
             )?;
             let scenes = scene::count(conn, &found.id)?;
+            let vocabulary = config.vocabulary(&found.kind);
+            let frame = vocabulary.frame.then(|| {
+                let prompts = found.frame.prompts();
+                json!({
+                    "still": prompts.still, "loop": prompts.loop_, "negative": prompts.negative,
+                    "motion": found.frame.motion, "seconds": found.frame.seconds(),
+                    "still_camera": found.frame.still_camera, "seamless": found.frame.seamless,
+                })
+            });
+            let publications = if vocabulary.has_doors() {
+                None
+            } else {
+                Some(crate::publication::of(conn, &config, &found.id)?)
+            };
             pretty(&json!({
                 "id": found.id, "title": found.title, "kind": found.kind, "status": found.status,
                 "meta": found.meta, "tags": found.tags, "marks": found.marks,
@@ -713,6 +770,9 @@ pub fn run_tool(
                 "releases": releases,
                 "notes": notes,
                 "scenes": scenes,
+                "cover": found.cover,
+                "frame": frame,
+                "publications": publications,
                 "sources": links.sources.iter().map(|l| json!({
                     "work": l.source_id, "title": l.source_title, "kind": l.source_kind, "role": l.role,
                     "taken_at_version": l.source_version_id, "drifted": l.drifted,
@@ -1236,6 +1296,85 @@ pub fn run_tool(
             })
         }
 
+        "propose_release" => {
+            let found = find_work(conn, &profile.id, required(args, "work")?)?;
+            let releases: Vec<release::Release> = release::for_work(conn, &profile.id, &found.id)?
+                .into_iter()
+                .map(|scheduled| scheduled.release)
+                .collect();
+            let chosen = match arg(args, "release") {
+                Some(id) => releases
+                    .iter()
+                    .find(|r| r.id == id)
+                    .ok_or_else(|| Error::refused("mcp.releaseOtherWork").param("release", id))?,
+                None => match releases.as_slice() {
+                    [only] => only,
+                    [] => {
+                        return Err(Error::refused("mcp.workHasNoRelease")
+                            .param("title", found.title.clone()));
+                    }
+                    _ => {
+                        return Err(Error::refused("mcp.whichRelease")
+                            .param("title", found.title.clone())
+                            .param(
+                                "ids",
+                                releases
+                                    .iter()
+                                    .map(|r| format!("{} ({})", r.id, r.kind))
+                                    .collect::<Vec<_>>()
+                                    .join(", "),
+                            ));
+                    }
+                },
+            };
+            let declared = crate::release_meta::declared(conn, &chosen.id)?;
+            let raw = args
+                .get("fields")
+                .cloned()
+                .ok_or_else(|| Error::refused("mcp.missingArg").param("key", "fields"))?;
+            let proposal =
+                proposal::release_from_value(&json!({ "fields": raw }), &chosen.id, &declared)
+                    .map_err(|why| Error::refused("mcp.releaseFieldsUnread").param("why", why))?;
+            let Proposal::Release {
+                fields, unknown, ..
+            } = &proposal
+            else {
+                return Err(Error::Internal(
+                    "a release proposal read as something else".into(),
+                ));
+            };
+            let mut body = String::new();
+            for field in &declared {
+                if let Some(text) = fields.get(&field.key).and_then(Value::as_str) {
+                    body.push_str(&format!("**{}**\n\n{text}\n\n", field.label));
+                }
+            }
+            let taken = fields.len();
+            let left: Vec<String> = unknown.clone();
+            deliver(
+                conn,
+                &profile.id,
+                session,
+                Some(&found),
+                proposal,
+                body.trim_end(),
+                arg(args, "note"),
+            )?;
+            let mut said = format!(
+                "Proposed {taken} field{} for the {} release of “{}”; it waits in the chat on the work, each field beside what is written now.",
+                if taken == 1 { "" } else { "s" },
+                chosen.kind,
+                found.title
+            );
+            if !left.is_empty() {
+                said.push_str(&format!(
+                    " Left out, as the kind of release has no such field: {}.",
+                    left.join(", ")
+                ));
+            }
+            Ok(said)
+        }
+
         "propose_note" => {
             let found = match arg(args, "work") {
                 Some(named) => Some(find_work(conn, &profile.id, named)?),
@@ -1469,6 +1608,7 @@ fn deliver(
         (Proposal::Note { .. }, None) => Record::new("proposal.freeNote"),
         (Proposal::Work { .. }, Some(_)) => Record::new("proposal.package"),
         (Proposal::Scenes { .. }, _) => Record::new("proposal.scenes"),
+        (Proposal::Release { .. }, _) => Record::new("proposal.release"),
         (Proposal::Work { title, .. }, None) => {
             Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
         }
@@ -1634,6 +1774,75 @@ mod tests {
             .unwrap()
             .messages
             .remove(0)
+    }
+
+    /// What a release goes out under, proposed by an agent: it waits in the
+    /// chat on the work, every field beside what is written now, and nothing
+    /// is written - an agent never fills a field, even an empty one.
+    #[test]
+    fn a_proposed_release_waits_beside_what_is_written() {
+        let (conn, _) = workspace();
+        let video_id = video(&conn);
+        let release = fixtures::release(&conn, &video_id, "youtube", None);
+
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_release",
+            &args(json!({
+                "work": video_id,
+                "fields": { "title": "Harbour lights", "tags": "sea, night", "mood": "grey" },
+            })),
+        )
+        .unwrap();
+
+        assert!(answer.contains("Proposed 2 fields"), "{answer}");
+        assert!(
+            answer.contains("mood"),
+            "the field it left out is named: {answer}"
+        );
+        let message = first_message(&conn, &video_id);
+        assert_eq!(message.meta["proposal"]["kind"], "release");
+        assert!(message.body.contains("Harbour lights"), "{}", message.body);
+        let waiting = crate::release_meta::pending(&conn, &release.id).unwrap();
+        assert_eq!(waiting.len(), 1);
+        assert_eq!(waiting[0].client.as_deref(), Some("Claude Code"));
+        assert!(
+            crate::release_meta::fields(&conn, &release.id)
+                .unwrap()
+                .iter()
+                .all(|field| field.value.is_empty()),
+            "nothing is written until the person takes it"
+        );
+    }
+
+    /// A work with two releases needs the one named; a work with none, and a
+    /// song, which never goes out itself, have nothing to propose for.
+    #[test]
+    fn a_release_proposal_names_its_release_when_there_is_a_choice() {
+        let (conn, song) = workspace();
+        let video_id = video(&conn);
+        fixtures::release(&conn, &video_id, "youtube", None);
+        fixtures::release(&conn, &video_id, "premiere", None);
+        let fields = json!({ "title": "Harbour lights" });
+
+        let which = run_tool(
+            &conn,
+            &claude(),
+            "propose_release",
+            &args(json!({ "work": video_id, "fields": fields })),
+        )
+        .unwrap_err();
+        assert_eq!(which.refusal().map(|r| r.code), Some("mcp.whichRelease"));
+
+        let none = run_tool(
+            &conn,
+            &claude(),
+            "propose_release",
+            &args(json!({ "work": song, "fields": fields })),
+        )
+        .unwrap_err();
+        assert_eq!(none.refusal().map(|r| r.code), Some("mcp.workHasNoRelease"));
     }
 
     #[test]
@@ -1890,8 +2099,8 @@ mod tests {
 
         assert_eq!(
             err.refusal().map(|r| r.code),
-            Some("release.unknownKind"),
-            "a song ships clips, shorts and audio; `youtube` belongs to the video: {err}"
+            Some("release.noDoors"),
+            "a song ships nothing itself - its clips, audio and shorts do: {err}"
         );
     }
 

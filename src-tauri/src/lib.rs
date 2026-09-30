@@ -27,6 +27,7 @@ pub mod note;
 pub mod operation;
 pub mod plugin;
 pub mod profile;
+pub mod publication;
 pub mod readiness;
 pub mod register;
 pub mod release;
@@ -138,6 +139,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::works::get_work,
             commands::works::create_work,
             commands::works::update_work,
+            commands::works::frame_prompts,
             commands::works::status_drift,
             commands::works::resync_statuses,
             commands::works::unpin_status,
@@ -249,6 +251,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::links::create_link,
             commands::links::delete_link,
             commands::links::derive_work,
+            commands::links::list_publications,
             commands::scenes::list_scenes,
             commands::scenes::create_scene,
             commands::scenes::update_scene,
@@ -312,6 +315,9 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::assistant::start_style_task,
             commands::assistant::preview_comment_task,
             commands::assistant::start_comment_task,
+            commands::assistant::preview_release_task,
+            commands::assistant::start_release_task,
+            commands::assistant::release_proposals,
             commands::assistant::start_screenshot_task,
             commands::assistant::waiting_chats,
             commands::assistant::clear_waiting,

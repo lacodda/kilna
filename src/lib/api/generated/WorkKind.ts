@@ -59,4 +59,23 @@ scene_blocks?: Array<SceneBlock>,
  * edits one does not appear. Added in v0.73 — a document without it is
  * the same document.
  */
-cover_blocks?: Array<SceneBlock>, };
+cover_blocks?: Array<SceneBlock>, 
+/**
+ * Whether a work of this kind plays under one picture for the whole of
+ * its length - a track on a video platform - and so has a frame: the
+ * still, and the loop of what moves in it. Unlike the cover's parts the
+ * frame's are the application's, not the craft's: the loop is written
+ * from its settings (length, a still camera, a seamless join), the way
+ * the cover's layout is (decision of 2026-09-27, ADR 0046). Absent is
+ * no frame. Added in v0.86 - a document without it is the same document.
+ */
+frame?: boolean, 
+/**
+ * What a work of this kind is called when it is made from another:
+ * `{title}` is the source's title and `{n}` the new work's number among
+ * the works of this kind made from the same source - "{title} · short
+ * {n}". A template without `{n}` numbers only the second and later ones,
+ * so the first clip of a song is "the clip" and the next "the clip 2".
+ * Absent means the source's title as it is. Added in v0.86.
+ */
+made_title?: Label | null, };

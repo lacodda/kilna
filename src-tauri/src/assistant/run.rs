@@ -454,7 +454,28 @@ pub fn pump<S, F>(
                     Read::Nothing => {}
                 }
 
-                let _ = super::append(&conn, &run.chat_id, super::ASSISTANT, body, meta);
+                let fills = meta
+                    .get("proposal")
+                    .and_then(|proposal| proposal.get("kind"))
+                    .and_then(Value::as_str)
+                    == Some("release");
+                let appended = super::append(&conn, &run.chat_id, super::ASSISTANT, body, meta);
+
+                // What a release goes out under, asked for by the person from
+                // the release itself: the fields nobody has written yet are
+                // filled at once, and only the ones already started wait as a
+                // proposal (v0.86). An agent outside the window never gets
+                // here - it has no task - and so only ever proposes.
+                if fills
+                    && let Ok(message) = &appended
+                    && let Err(cause) =
+                        crate::actions::release::fill_from_proposal(&conn, &message.id)
+                {
+                    crate::log::error(
+                        "assistant",
+                        &format!("could not fill the release from its answer: {cause}"),
+                    );
+                }
 
                 // Only a task is read for a question. A prompt typed in the
                 // panel was asked by someone looking at the reply, and telling
@@ -676,6 +697,21 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
             }),
             None => Read::Nothing,
         },
+        // What a release goes out under, held to the fields its kind names,
+        // read out of the key the release's own action was started with.
+        super::prompt::Produces::Release => {
+            let Some(release_id) = super::task::release_of_key(task_key) else {
+                return Read::Nothing;
+            };
+            let fields = match crate::release_meta::declared(conn, release_id) {
+                Ok(fields) => fields,
+                Err(error) => return Read::Refused(error.to_string()),
+            };
+            match super::proposal::read_release(body, release_id, &fields) {
+                Ok(proposal) => value(proposal),
+                Err(why) => Read::Refused(why),
+            }
+        }
         super::prompt::Produces::Scenes(change) => {
             let Some(work) = work_of_chat(conn, &run.chat_id) else {
                 return Read::Nothing;

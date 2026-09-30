@@ -247,7 +247,30 @@ pub fn restate(conn: &Connection, profile_id: &str, work_id: &str) {
         }
     };
 
-    match crate::work::status::refresh(conn, &config, work_id) {
+    restate_one(conn, profile_id, &config, work_id);
+
+    // A fact about a clip is a fact about the song it was made from, when the
+    // song has no door of its own (v0.86): the song's status is derived from
+    // what was made from it, so it follows. Every work up the chain is asked;
+    // one whose kind has doors derives from its own releases and stays put.
+    match crate::link::ancestors(conn, work_id) {
+        Ok(ancestors) => {
+            for ancestor in ancestors {
+                restate_one(conn, profile_id, &config, &ancestor);
+            }
+        }
+        Err(cause) => crate::log::error("status", &format!("could not read the sources: {cause}")),
+    }
+}
+
+/// Restate one work and say so in the history.
+fn restate_one(
+    conn: &Connection,
+    profile_id: &str,
+    config: &crate::profile::config::ProfileConfig,
+    work_id: &str,
+) {
+    match crate::work::status::refresh(conn, config, work_id) {
         Ok(Some(change)) => journal::record(
             conn,
             profile_id,
@@ -260,6 +283,13 @@ pub fn restate(conn: &Connection, profile_id: &str, work_id: &str) {
         Ok(None) => {}
         Err(cause) => crate::log::error("status", &format!("could not restate the work: {cause}")),
     }
+}
+
+/// Restate the works a link joins, after it was made or taken away: a song
+/// that gained or lost a clip gained or lost the clip's facts.
+pub fn restate_linked(conn: &Connection, profile_id: &str, work_id: &str, source_id: &str) {
+    restate(conn, profile_id, work_id);
+    restate(conn, profile_id, source_id);
 }
 
 /// One item of a batch that was passed over, and why.

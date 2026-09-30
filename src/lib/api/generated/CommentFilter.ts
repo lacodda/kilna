@@ -4,7 +4,14 @@
  * Narrowing applied to a listing. Every field may be left out - serde
  * reads a missing `Option` as none - and the generated type says so.
  */
-export type CommentFilter = { work_id?: string | null, channel?: string | null, 
+export type CommentFilter = { work_id?: string | null, 
+/**
+ * Comments under the works made from this one - a song's clip, its
+ * audio, its shorts - rather than under the work itself: what a song's
+ * card sums up, since the audience comments on a publication, never on
+ * the song (v0.86).
+ */
+under?: string | null, channel?: string | null, 
 /**
  * One state. Absent means everything that still asks for something or
  * was answered — every state but `archived`, which is the inbox's own

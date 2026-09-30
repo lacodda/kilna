@@ -224,6 +224,12 @@ pub fn compose(
                 Error::refused("task.isCommentAction").param("action", template.label.as_str())
             );
         }
+        // Composed by `compose_for_release`, against one release.
+        (Scope::Release, _) => {
+            return Err(
+                Error::refused("task.isReleaseAction").param("action", template.label.as_str())
+            );
+        }
     };
 
     // One block of that scene, when the action is aimed at one. Refused
@@ -317,6 +323,11 @@ pub fn compose(
             return Err(
                 Error::refused("task.actionAnswersCard").param("action", template.label.as_str())
             );
+        }
+        // Only an action about a release writes what it goes out under.
+        Produces::Release => {
+            return Err(Error::refused("task.actionAnswersRelease")
+                .param("action", template.label.as_str()));
         }
     }
 
@@ -792,33 +803,47 @@ pub fn compose_for_comment(
         None => None,
     };
     if let Some(work) = under {
-        let kind = profile
-            .config
-            .kind(&work.kind)
-            .map_or(work.kind.clone(), |kind| kind.label.as_str().to_lowercase());
-        prompt.push_str(&format!(
-            "\nIt was written under “{}”, a {kind}.",
-            work.title
-        ));
-        let current = match work.current_version_id.as_deref() {
-            Some(id) => version::get(conn, id)?,
-            None => None,
+        let kind_of = |work: &work::Work| {
+            profile
+                .config
+                .kind(&work.kind)
+                .map_or(work.kind.clone(), |kind| kind.label.as_str().to_lowercase())
         };
+        prompt.push_str(&format!(
+            "\nIt was written under “{}”, a {}.",
+            work.title,
+            kind_of(&work)
+        ));
+        let current = current_text(conn, &work)?;
         if let Some(current) = current.as_ref() {
-            let body = current.body.trim();
-            if !body.is_empty() {
-                let excerpt: String = body.chars().take(WORK_EXCERPT).collect();
-                let cut = if excerpt.len() < body.len() {
-                    "\n[…]"
-                } else {
-                    ""
-                };
-                prompt.push_str(&format!("\n\nIts text:\n\n{excerpt}{cut}\n"));
+            prompt.push_str(&excerpt_of("Its text", &current.body));
+        }
+        // What the publication was made from: the song a clip, an audio
+        // release or a short goes out for, which is what the audience heard
+        // (v0.86). Its words are what a comment is usually about.
+        let donor = crate::link::sources(conn, &work.id)?
+            .into_iter()
+            .find(|source| source.role == crate::link::DONOR)
+            .map(|source| work::get(conn, &source.source_id))
+            .transpose()?
+            .flatten();
+        let mut anchor = (work.clone(), current.clone());
+        if let Some(source) = donor {
+            prompt.push_str(&format!(
+                "\nIt was made from “{}”, a {}.",
+                source.title,
+                kind_of(&source)
+            ));
+            let text = current_text(conn, &source)?;
+            if let Some(text) = text.as_ref() {
+                prompt.push_str(&excerpt_of("The text of that", &text.body));
             }
+            anchor = (source, text);
         }
         // A reply is said in public: it is given the canon a public text may
         // see and nothing more - the internal layer never reaches it to be
-        // repeated (ADR 0043).
+        // repeated (ADR 0043). Read about what the audience heard: the work
+        // the publication was made from, when it was made from one.
         if !crate::canon::view::cards(
             conn,
             &profile.id,
@@ -828,8 +853,8 @@ pub fn compose_for_comment(
         {
             let seen = super::prompt::canon_through(
                 conn,
-                &work,
-                current.as_ref(),
+                &anchor.0,
+                anchor.1.as_ref(),
                 crate::profile::config::Lens::Public,
             )?;
             prompt.push_str(&format!(
@@ -976,6 +1001,111 @@ pub fn prepare_for_screenshot(
     )
 }
 
+/// The key of a task about one release: this action, on this release. A
+/// second click while it runs is the same task; another release's is not.
+pub fn release_key(action: &str, release_id: &str) -> String {
+    format!("{action}:release:{release_id}")
+}
+
+/// The release a task key names, when it names one.
+pub fn release_of_key(key: &str) -> Option<&str> {
+    let mut parts = key.splitn(3, ':');
+    parts.next()?;
+    (parts.next()? == "release").then(|| parts.next()).flatten()
+}
+
+/// Compose `action` against one release: what it goes out under (v0.86).
+///
+/// The template is rendered against the release's work - so it reads the
+/// work's fields, what it was made from and the canon a public text may see,
+/// the way any action does - and two placeholders only a release has:
+/// `{release}`, the fields to write and what is in them already, and
+/// `{releases}`, what earlier releases went out under, so a new one does not
+/// sign off or ask the way the last few did. The answer is asked for as a
+/// block of fields, the same shape an agent's `propose_release` takes.
+pub fn compose_for_release(
+    conn: &Connection,
+    release_id: &str,
+    action: &str,
+) -> Result<(Composed, String)> {
+    let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
+    let template = profile
+        .config
+        .prompts
+        .iter()
+        .find(|prompt| prompt.key == action)
+        .ok_or_else(|| Error::not_found("prompt", action))?;
+    if template.scope() != Scope::Release || template.produces() != Produces::Release {
+        return Err(
+            Error::refused("task.notReleaseAction").param("action", template.label.as_str())
+        );
+    }
+    let release = crate::release::get(conn, release_id)?
+        .ok_or_else(|| Error::not_found("release", release_id))?;
+    let work = work::get(conn, &release.work_id)?
+        .ok_or_else(|| Error::not_found("work", &release.work_id))?;
+    if !template.applies_to(&work.kind) {
+        return Err(Error::refused("task.wrongKindForAction")
+            .param("action", template.label.as_str())
+            .param("kind", work.kind.clone()));
+    }
+    let door = profile
+        .config
+        .vocabulary(&work.kind)
+        .release_kinds
+        .iter()
+        .find(|kind| kind.key == release.kind)
+        .ok_or_else(|| {
+            Error::refused("release.unknownKind")
+                .param("releaseKind", release.kind.clone())
+                .param("kind", work.kind.clone())
+                .param("known", "")
+        })?;
+    if door.fields.is_empty() {
+        return Err(Error::refused("task.releaseHasNoFields").param(
+            "releaseKind",
+            serde_json::to_value(&door.label).unwrap_or_default(),
+        ));
+    }
+
+    let rendered = super::prompt::for_work(
+        conn,
+        &work.id,
+        &template.template,
+        super::prompt::Context::default(),
+    )?;
+    // After the work's own placeholders, so the text already written into a
+    // release - which may hold braces of its own - is not rendered a second
+    // time as if it were a template.
+    let mut prompt = rendered
+        .replace(
+            "{releases}",
+            &crate::release_meta::history(conn, release_id, crate::release_meta::HISTORY)?,
+        )
+        .replace("{release}", &crate::release_meta::sheet(conn, release_id)?);
+    prompt.push_str(&super::proposal::release_instruction(&door.fields));
+    let prompt = super::waiting::instruct(&prompt);
+
+    Ok((
+        Composed {
+            prompt,
+            method: template.method().map(str::to_owned),
+            key: release_key(action, release_id),
+            title: format!("{} · {} · {}", template.label, work.title, door.label),
+            attachments: Vec::new(),
+        },
+        profile.id,
+    ))
+}
+
+/// [`compose_for_release`] with the chat it will be answered in: on the
+/// release's work, where the release is.
+pub fn prepare_for_release(conn: &Connection, release_id: &str, action: &str) -> Result<Prepared> {
+    let (composed, profile_id) = compose_for_release(conn, release_id, action)?;
+    let work_id = crate::release::get(conn, release_id)?.map(|release| release.work_id);
+    prepared(conn, &profile_id, composed, work_id, action)
+}
+
 /// A composed task with a new chat of its own.
 fn prepared(
     conn: &Connection,
@@ -1001,6 +1131,30 @@ fn prepared(
         title: composed.title,
         attachments: composed.attachments,
     })
+}
+
+/// A work's current version, when it has one.
+fn current_text(conn: &Connection, work: &work::Work) -> Result<Option<version::Version>> {
+    match work.current_version_id.as_deref() {
+        Some(id) => version::get(conn, id),
+        None => Ok(None),
+    }
+}
+
+/// The opening of a text under a heading, cut where a reply stops needing
+/// more of it. Nothing for an empty text.
+fn excerpt_of(heading: &str, body: &str) -> String {
+    let body = body.trim();
+    if body.is_empty() {
+        return String::new();
+    }
+    let excerpt: String = body.chars().take(WORK_EXCERPT).collect();
+    let cut = if excerpt.len() < body.len() {
+        "\n[…]"
+    } else {
+        ""
+    };
+    format!("\n\n{heading}:\n\n{excerpt}{cut}\n")
 }
 
 /// A text on one line, for a list of examples.
@@ -1050,6 +1204,28 @@ mod tests {
 
     fn action_of_key_str(key: &str) -> &str {
         key.split(':').next().unwrap_or_default()
+    }
+
+    /// A clip made from a work, as the audience meets it.
+    pub(super) fn clip_of(
+        conn: &Connection,
+        profile_id: &str,
+        source_id: &str,
+        title: &str,
+    ) -> String {
+        let clip = fixtures::video(conn, profile_id, title).id;
+        crate::link::create(
+            conn,
+            profile_id,
+            crate::link::NewLink {
+                work_id: clip.clone(),
+                source_id: source_id.to_owned(),
+                role: None,
+                source_version_id: None,
+            },
+        )
+        .unwrap();
+        clip
     }
 
     fn post(conn: &Connection, profile_id: &str, channel: &str, body: &str, reply: &str) {
@@ -1120,6 +1296,9 @@ mod tests {
             "nice",
             "OFFICIAL REPLY FROM THE TEAM",
         );
+        // The audience comments under the clip made from the song; the
+        // reply still reads the song's words, which is what it heard.
+        let clip = clip_of(&conn, &profile_id, &work_id, "Harbour lights — clip");
         let comment = crate::comment::create_minted(
             &conn,
             &profile_id,
@@ -1127,7 +1306,7 @@ mod tests {
                 channel: "main".into(),
                 body: "what is the bridge about?".into(),
                 author: Some("anna".into()),
-                work_id: Some(work_id),
+                work_id: Some(clip),
                 ..Default::default()
             },
             crate::minted::Minted::fresh(),
@@ -1138,7 +1317,8 @@ mod tests {
 
         assert!(composed.prompt.contains("> what is the bridge about?"));
         assert!(composed.prompt.contains("from anna"));
-        assert!(composed.prompt.contains("“Harbour lights”"));
+        assert!(composed.prompt.contains("under “Harbour lights — clip”"));
+        assert!(composed.prompt.contains("made from “Harbour lights”"));
         assert!(
             composed
                 .prompt
@@ -1156,6 +1336,79 @@ mod tests {
         assert!(
             composed.method.is_some(),
             "the action's method travels with it"
+        );
+    }
+
+    /// The release action reads the release and what is in it, the song the
+    /// audio goes out for - its words and its fields - and what went out
+    /// lately; and it asks for the fields back by key.
+    #[test]
+    fn the_release_action_reads_the_release_the_song_and_what_went_out() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        fixtures::version(&conn, &song.id, "lyrics", "the lamps come on at four");
+        crate::work::update(
+            &conn,
+            &song.id,
+            crate::work::WorkPatch {
+                meta: serde_json::json!({ "mood": "grey and warm" })
+                    .as_object()
+                    .cloned(),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let made =
+            crate::actions::work::derive(&conn, &song.id, "audio", None, Some("en")).unwrap();
+        let release_id = made.release_id.unwrap();
+        crate::actions::release::set_fields(
+            &conn,
+            &release_id,
+            &std::collections::BTreeMap::from([("tags".to_owned(), "sea".to_owned())]),
+        )
+        .unwrap();
+        let earlier = fixtures::video(&conn, &profile_id, "Old clip");
+        let gone = fixtures::release(&conn, &earlier.id, "youtube", Some("2026-09-01"));
+        crate::actions::release::set_fields(
+            &conn,
+            &gone.id,
+            &std::collections::BTreeMap::from([(
+                "description".to_owned(),
+                "Watching the sea, yours E.".to_owned(),
+            )]),
+        )
+        .unwrap();
+        crate::release::mark_released(&conn, &gone.id, None, None).unwrap();
+
+        let (composed, _) = compose_for_release(&conn, &release_id, "release-meta").unwrap();
+
+        for said in [
+            "the lamps come on at four",
+            "grey and warm",
+            "Watching the sea, yours E.",
+            "not planned for a day yet",
+            "Tags (`tags`):\nsea",
+            "`pinned`",
+        ] {
+            assert!(
+                composed.prompt.contains(said),
+                "missing {said:?}:\n{}",
+                composed.prompt
+            );
+        }
+        assert!(
+            !composed.prompt.contains("{release"),
+            "every placeholder is filled"
+        );
+        assert_eq!(composed.key, release_key("release-meta", &release_id));
+        assert_eq!(release_of_key(&composed.key), Some(release_id.as_str()));
+        assert!(composed.method.is_some());
+
+        // The same action is not a work action.
+        let refused = compose(&conn, &made.work.id, "release-meta", About::default()).unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("task.isReleaseAction")
         );
     }
 
@@ -2107,13 +2360,14 @@ mod version_tests {
         let song = fixtures::song(&conn, &profile_id, "Kiln");
         fixtures::version(&conn, &song.id, "lyrics", "Otto lights the kiln");
         otto_with_a_secret(&conn, &profile_id);
+        let clip = super::tests::clip_of(&conn, &profile_id, &song.id, "Kiln — clip");
         let comment = crate::comment::create_minted(
             &conn,
             &profile_id,
             crate::comment::NewComment {
                 channel: "main".into(),
                 body: "who is Otto?".into(),
-                work_id: Some(song.id.clone()),
+                work_id: Some(clip),
                 ..Default::default()
             },
             crate::minted::Minted::fresh(),

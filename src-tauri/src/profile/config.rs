@@ -239,6 +239,23 @@ pub struct WorkKind {
     /// the same document.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub cover_blocks: Vec<SceneBlock>,
+    /// Whether a work of this kind plays under one picture for the whole of
+    /// its length - a track on a video platform - and so has a frame: the
+    /// still, and the loop of what moves in it. Unlike the cover's parts the
+    /// frame's are the application's, not the craft's: the loop is written
+    /// from its settings (length, a still camera, a seamless join), the way
+    /// the cover's layout is (decision of 2026-09-27, ADR 0046). Absent is
+    /// no frame. Added in v0.86 - a document without it is the same document.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub frame: bool,
+    /// What a work of this kind is called when it is made from another:
+    /// `{title}` is the source's title and `{n}` the new work's number among
+    /// the works of this kind made from the same source - "{title} · short
+    /// {n}". A template without `{n}` numbers only the second and later ones,
+    /// so the first clip of a song is "the clip" and the next "the clip 2".
+    /// Absent means the source's title as it is. Added in v0.86.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub made_title: Option<Label>,
 }
 
 impl WorkKind {
@@ -254,7 +271,33 @@ impl WorkKind {
             shot_types: Vec::new(),
             scene_blocks: Vec::new(),
             cover_blocks: Vec::new(),
+            frame: false,
+            made_title: None,
         }
+    }
+
+    /// Whether a work of this kind goes out itself - names a kind of
+    /// release - or only through the works made from it: a song ships as
+    /// its clip, its audio and its shorts, never as the song (v0.86).
+    pub fn has_doors(&self) -> bool {
+        !self.release_kinds.is_empty()
+    }
+
+    /// The title a work of this kind takes when it is made from a work
+    /// called `source`, in `locale`, as the `number`-th of its kind made from
+    /// that source. See [`made_title`](Self::made_title).
+    pub fn title_made_from(&self, source: &str, locale: &str, number: usize) -> String {
+        let Some(template) = &self.made_title else {
+            return source.to_owned();
+        };
+        let template = template.in_locale(locale);
+        let mut title = template.replace("{title}", source);
+        if template.contains("{n}") {
+            title = title.replace("{n}", &number.to_string());
+        } else if number > 1 {
+            title = format!("{title} {number}");
+        }
+        title.trim().to_owned()
     }
 
     /// Whether the kind states no vocabulary at all — the state a format 1
@@ -432,6 +475,38 @@ impl WorkKind {
             problems.push(format!(
                 "{place} names no statuses; a work has to start somewhere"
             ));
+        }
+
+        // The title of a work made from another is written from the source's
+        // title and a number, and from nothing else: a template that lost
+        // `{title}` names every clip of every song the same.
+        if let Some(template) = &self.made_title {
+            for word in template.words() {
+                if !word.contains("{title}") {
+                    problems.push(format!(
+                        "{place}: the title of a work made from another, `{word}`, never reads `{{title}}`"
+                    ));
+                }
+                for name in crate::assistant::prompt::placeholders(word) {
+                    if name != "title" && name != "n" {
+                        problems.push(format!(
+                            "{place}: the title of a work made from another reads `{{{name}}}`; it reads `{{title}}` and `{{n}}`"
+                        ));
+                    }
+                }
+            }
+        }
+
+        for (index, kind) in self.release_kinds.iter().enumerate() {
+            if let Some(format) = &kind.cover_format
+                && !is_cover_format(format)
+            {
+                problems.push(format!(
+                    "{place}: release kind {} (`{}`) gives its cover the shape `{format}`; a shape is width to height, `16:9`",
+                    index + 1,
+                    kind.key
+                ));
+            }
         }
 
         let roles: BTreeSet<&str> = self.version_roles.iter().map(|r| r.key.as_str()).collect();
@@ -793,6 +868,27 @@ impl Label {
                 .get(SOURCE_LOCALE)
                 .or_else(|| words.values().next())
                 .map_or("", String::as_str),
+        }
+    }
+
+    /// The word in `locale`, or in the source language when the label does
+    /// not carry that one. For the few words the application writes into a
+    /// person's own data - the title of a work made from another - where the
+    /// window says which language it is showing.
+    pub fn in_locale(&self, locale: &str) -> &str {
+        match self {
+            Self::One(word) => word,
+            Self::PerLocale(words) => words
+                .get(locale)
+                .map_or_else(|| self.as_str(), String::as_str),
+        }
+    }
+
+    /// Every word the label carries, whatever the language.
+    pub fn words(&self) -> Vec<&str> {
+        match self {
+            Self::One(word) => vec![word.as_str()],
+            Self::PerLocale(words) => words.values().map(String::as_str).collect(),
         }
     }
 
@@ -1220,6 +1316,28 @@ pub struct ReleaseKind {
     /// nothing about itself, and the tab shows no metadata for it.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub fields: Vec<ReleaseField>,
+    /// The shape of the picture a release of this kind goes out with, as
+    /// width to height: `16:9` for a video platform's preview, `9:16` for a
+    /// vertical short, `1:1` for a streaming cover. The place decides the
+    /// shape, so the shape is the door's - a work that goes out in two
+    /// places needs two covers (v0.86). Absent means the door shows no
+    /// picture of its own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover_format: Option<String>,
+}
+
+/// Whether `format` is a shape a cover can take: two whole numbers above
+/// zero with a colon between them, `16:9`.
+pub fn is_cover_format(format: &str) -> bool {
+    let Some((width, height)) = format.split_once(':') else {
+        return false;
+    };
+    let whole = |side: &str| {
+        !side.is_empty()
+            && side.bytes().all(|byte| byte.is_ascii_digit())
+            && side.parse::<u32>().is_ok_and(|value| value > 0)
+    };
+    whole(width) && whole(height)
 }
 
 /// One thing written about a release: the box it is typed in, and the
@@ -1306,6 +1424,7 @@ impl ReleaseKind {
             icon: None,
             axis_weights: BTreeMap::new(),
             fields: Vec::new(),
+            cover_format: None,
         }
     }
 
@@ -1656,6 +1775,42 @@ pub struct MetaField {
     pub label: Label,
     #[serde(rename = "type")]
     pub field_type: MetaFieldType,
+    /// The kinds of work that have this field; empty means every kind. A
+    /// song's tempo is a fact of the clip cut to it as well, while which
+    /// variant of the track an audio release plays - the original, the
+    /// instrumental, a slowed one - is a fact of the audio release and of
+    /// nothing else. Added in v0.86: a document without it gives every field
+    /// to every kind, as it always did.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub kinds: Vec<String>,
+    /// The answers a `choice` field offers, stored by key. Meaningless, and
+    /// required to be empty, for the other types.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub options: Vec<Kind>,
+    /// What a new work of a kind that has the field starts with: the key of
+    /// an option for a choice, the value itself otherwise. Absent means the
+    /// field starts empty.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(type = "unknown")]
+    pub default: Option<serde_json::Value>,
+}
+
+impl MetaField {
+    pub fn new(key: &str, label: &str, field_type: MetaFieldType) -> Self {
+        Self {
+            key: key.to_owned(),
+            label: Label::from(label),
+            field_type,
+            kinds: Vec::new(),
+            options: Vec::new(),
+            default: None,
+        }
+    }
+
+    /// Whether a work of `kind` has this field.
+    pub fn applies_to(&self, kind: &str) -> bool {
+        self.kinds.is_empty() || self.kinds.iter().any(|named| named == kind)
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, ts_rs::TS)]
@@ -1669,6 +1824,9 @@ pub enum MetaFieldType {
     Number,
     Date,
     Boolean,
+    /// One of the answers the field lists in `options`, stored by its key: a
+    /// short closed list a person picks from rather than types into (v0.86).
+    Choice,
 }
 
 impl ProfileConfig {
@@ -1716,6 +1874,14 @@ impl ProfileConfig {
     /// an agent may plan either.
     pub fn require_release_kind(&self, kind: &str, release_kind: &str) -> crate::Result<()> {
         let kinds = &self.vocabulary(kind).release_kinds;
+        // A kind with no door at all goes out through what is made from it: a
+        // song ships as its audio, its clip, its shorts (v0.86). Said as that,
+        // rather than as an empty list of doors to choose from.
+        if kinds.is_empty() {
+            return Err(
+                crate::Error::refused("release.noDoors").param("kind", self.kind_named(kind))
+            );
+        }
         if kinds.iter().any(|known| known.key == release_kind) {
             Ok(())
         } else {
@@ -1757,6 +1923,23 @@ impl ProfileConfig {
     /// not know — an empty one, so nothing downstream has to ask twice.
     pub fn vocabulary(&self, kind: &str) -> &WorkKind {
         self.kind(kind).unwrap_or(&NO_KIND)
+    }
+
+    /// The overview fields a work of `kind` has, in the profile's order.
+    pub fn fields_of(&self, kind: &str) -> Vec<&MetaField> {
+        self.work_meta_fields
+            .iter()
+            .filter(|field| field.applies_to(kind))
+            .collect()
+    }
+
+    /// The fields a new work of `kind` starts with: every field of the kind
+    /// that names a default, at it.
+    pub fn defaults_of(&self, kind: &str) -> serde_json::Map<String, serde_json::Value> {
+        self.fields_of(kind)
+            .into_iter()
+            .filter_map(|field| Some((field.key.clone(), field.default.clone()?)))
+            .collect()
     }
 
     /// The type a style brick is of, by key. Absent when the craft does not
@@ -1923,6 +2106,40 @@ impl ProfileConfig {
             problems.push("the profile names no work kinds".into());
         }
 
+        for (index, field) in self.work_meta_fields.iter().enumerate() {
+            let place = format!("meta field {} (`{}`)", index + 1, field.key);
+            for kind in &field.kinds {
+                if self.kind(kind).is_none() {
+                    problems.push(format!(
+                        "{place} names a work kind `{kind}` the profile does not have"
+                    ));
+                }
+            }
+            if field.field_type == MetaFieldType::Choice {
+                if field.options.is_empty() {
+                    problems.push(format!("{place} is a choice with nothing to choose from"));
+                }
+                unique(
+                    &mut problems,
+                    &format!("{place}: option"),
+                    field.options.iter().map(|option| option.key.clone()),
+                );
+                if let Some(default) = &field.default
+                    && !default
+                        .as_str()
+                        .is_some_and(|key| field.options.iter().any(|option| option.key == key))
+                {
+                    problems.push(format!(
+                        "{place} starts at {default}, which is not one of its options"
+                    ));
+                }
+            } else if !field.options.is_empty() {
+                problems.push(format!(
+                    "{place} lists options but is not a choice; set `type` to `choice` or drop them"
+                ));
+            }
+        }
+
         for (index, kind) in self.work_kinds.iter().enumerate() {
             let place = format!("work kind {} (`{}`)", index + 1, kind.key);
             kind.validate_into(&mut problems, &place);
@@ -1985,8 +2202,8 @@ impl ProfileConfig {
     /// its text placeholder and sent critiques of nothing for a month.
     fn validate_prompts(&self, problems: &mut Vec<String>) {
         use crate::assistant::prompt::{
-            CANON_SCOPE, COMMENT_SCOPE, Produces, SCENE_SCOPE, SELECTION_SCOPE, STYLE_SCOPE, Scope,
-            is_known_placeholder,
+            CANON_SCOPE, COMMENT_SCOPE, Produces, RELEASE_SCOPE, SCENE_SCOPE, SELECTION_SCOPE,
+            STYLE_SCOPE, Scope, is_known_placeholder,
         };
 
         unique(
@@ -2013,15 +2230,16 @@ impl ProfileConfig {
                 && scope != COMMENT_SCOPE
                 && scope != CANON_SCOPE
                 && scope != SELECTION_SCOPE
+                && scope != RELEASE_SCOPE
                 && scope != "work"
             {
                 problems.push(format!(
-                        "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment` or `canon`, not `{scope}`"
+                        "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment`, `canon` or `release`, not `{scope}`"
                     ));
             }
             if !prompt.produces_is_known() {
                 problems.push(format!(
-                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment`, `reply`, `description`, `canon` or `card-prompt`, not `{}`",
+                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment`, `reply`, `description`, `canon`, `card-prompt` or `release`, not `{}`",
                     prompt.produces.as_deref().unwrap_or_default().trim()
                 ));
             }
@@ -2152,13 +2370,47 @@ impl ProfileConfig {
                         "{place} produces `canon`, which an action about a work, a selection or a card can"
                     ));
                 }
+                Produces::Release if prompt.scope() != Scope::Release => {
+                    problems.push(format!(
+                        "{place} produces `release`, which only an action about a release can: give it `\"scope\": \"release\"`"
+                    ));
+                }
                 Produces::Score
                 | Produces::Prose
                 | Produces::Comment
                 | Produces::Reply
                 | Produces::Description
                 | Produces::Canon
-                | Produces::CardPrompt => {}
+                | Produces::CardPrompt
+                | Produces::Release => {}
+            }
+            // An action about a release writes what it goes out under, and is
+            // offered only where there is a release: on a kind that goes out.
+            if prompt.scope() == Scope::Release {
+                if prompt.produces() != Produces::Release {
+                    problems.push(format!(
+                        "{place} is about a release and must produce `release`"
+                    ));
+                }
+                let missing = lacking(&|kind: &WorkKind| kind.has_doors());
+                if !missing.is_empty() {
+                    problems.push(format!(
+                        "{place} is about a release, but {} {} no kind of release",
+                        missing.join(", "),
+                        if missing.len() == 1 { "has" } else { "have" }
+                    ));
+                }
+            }
+            // `{release}` and `{releases}` are filled only for an action
+            // about a release; anywhere else they would be sent as written.
+            if prompt.scope() != Scope::Release
+                && let Some(name) = placeholders
+                    .iter()
+                    .find(|name| *name == "release" || *name == "releases")
+            {
+                problems.push(format!(
+                    "{place} reads `{{{name}}}` but is not about a release: give it `\"scope\": \"release\"`"
+                ));
             }
             // An action about a card gathers facts or describes it; anything
             // else it answered would have nowhere to go.
@@ -2880,13 +3132,16 @@ mod tests {
         }
     }
 
-    /// The shipped Studio profile, with `song`'s audio release — its one
-    /// door since v0.74 — given the fields named here.
+    /// The shipped Studio profile, with the audio release's YouTube door -
+    /// the audio kind's own since v0.86 - given the fields named here.
     fn audio_fields(fields: Vec<ReleaseField>) -> ProfileConfig {
         let mut config = studio();
         for kind in &mut config.work_kinds {
+            if kind.key != "audio" {
+                continue;
+            }
             for release_kind in &mut kind.release_kinds {
-                if release_kind.key == "audio" {
+                if release_kind.key == "youtube" {
                     release_kind.fields = fields.clone();
                 }
             }
@@ -2914,21 +3169,166 @@ mod tests {
                 .collect()
         };
 
-        // A song's one door, and a video's: the video goes out with a
-        // comment pinned under it, an audio release does not.
-        let audio = door_of("song", "audio");
-        assert_eq!(keys_of(&audio), vec!["title", "description", "tags"]);
-        let youtube = door_of("video", "youtube");
-        assert_eq!(
-            keys_of(&youtube),
-            vec!["title", "description", "tags", "pinned"]
+        // A song goes out as what is made from it, never itself (v0.86).
+        assert!(
+            config.vocabulary("song").release_kinds.is_empty(),
+            "a song has no door of its own"
         );
-        for door in [&audio, &youtube] {
-            assert!(
-                door.fields[0].template().is_some(),
-                "the title is filled from the work rather than typed every time"
+        // The audio release and the clip both go out on YouTube, each with a
+        // comment pinned under it, and each in the shape of a video's preview.
+        let audio = door_of("audio", "youtube");
+        let clip = door_of("video", "youtube");
+        for door in [&audio, &clip] {
+            assert_eq!(
+                keys_of(door),
+                vec!["title", "description", "tags", "pinned"]
             );
+            assert_eq!(door.cover_format.as_deref(), Some("16:9"));
         }
+        assert_eq!(
+            door_of("short", "short").cover_format.as_deref(),
+            Some("9:16")
+        );
+        assert_eq!(
+            door_of("audio", "streaming").cover_format.as_deref(),
+            Some("1:1")
+        );
+        assert!(
+            clip.fields[0].template().is_some(),
+            "a clip's title is filled from the work rather than typed every time"
+        );
+        assert_eq!(
+            audio.fields[1].template(),
+            Some("{donor:lyrics}"),
+            "an audio release is described by the song's words, as the song's own door was"
+        );
+    }
+
+    /// An action about a release is offered where there is one, reads
+    /// `{release}` only there, and answers with fields.
+    #[test]
+    fn an_action_about_a_release_is_held_to_releases() {
+        let mut config = studio();
+        let mut about = action("Write {release} for {title}, after {releases}");
+        about.scope = Some("release".into());
+        about.produces = Some("release".into());
+        about.kinds = vec!["video".into(), "audio".into()];
+        config.prompts = vec![about.clone()];
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
+
+        let mut on_a_song = about.clone();
+        on_a_song.kinds = vec!["song".into()];
+        config.prompts = vec![on_a_song];
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("is about a release, but `song` has no kind of release")),
+            "{:?}",
+            config.validate()
+        );
+
+        let mut loose = action("Write {release}");
+        loose.produces = Some("release".into());
+        config.prompts = vec![loose];
+        let problems = config.validate().join("\n");
+        assert!(
+            problems.contains("which only an action about a release can"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("reads `{release}` but is not about a release"),
+            "{problems}"
+        );
+
+        let mut prose = about;
+        prose.produces = None;
+        config.prompts = vec![prose];
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("is about a release and must produce `release`"))
+        );
+    }
+
+    /// A choice lists what can be chosen and starts at one of those; a field
+    /// of kinds names kinds the profile has.
+    #[test]
+    fn a_choice_field_offers_its_options_and_starts_at_one_of_them() {
+        let mut config = studio();
+        let variant = config
+            .work_meta_fields
+            .iter()
+            .find(|field| field.key == "variant")
+            .expect("the studio profile ships the audio's variant")
+            .clone();
+        assert_eq!(variant.field_type, MetaFieldType::Choice);
+        assert!(variant.applies_to("audio") && !variant.applies_to("song"));
+        assert_eq!(
+            config.defaults_of("audio").get("variant"),
+            Some(&serde_json::json!("original"))
+        );
+        assert!(config.defaults_of("song").is_empty());
+
+        let mut broken = variant.clone();
+        broken.default = Some(serde_json::json!("slowed-to-a-halt"));
+        broken.kinds.push("opera".into());
+        let mut empty = MetaField::new("mood-of-the-day", "Mood", MetaFieldType::Choice);
+        empty.key = "empty".into();
+        let mut stray = MetaField::new("tempo-word", "Tempo", MetaFieldType::Text);
+        stray.options = variant.options.clone();
+        config.work_meta_fields = vec![broken, empty, stray];
+        let problems = config.validate().join("\n");
+        assert!(
+            problems.contains("which is not one of its options"),
+            "{problems}"
+        );
+        assert!(problems.contains("names a work kind `opera`"), "{problems}");
+        assert!(
+            problems.contains("is a choice with nothing to choose from"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("lists options but is not a choice"),
+            "{problems}"
+        );
+    }
+
+    /// The title of a work made from another reads the source's title and a
+    /// number, and a cover is a shape.
+    #[test]
+    fn a_made_title_and_a_cover_shape_are_checked() {
+        let short = studio().kind("short").unwrap().clone();
+        assert_eq!(short.title_made_from("Tide", "ru", 3), "Tide · шортс 3");
+        assert_eq!(short.title_made_from("Tide", "de", 1), "Tide · short 1");
+        let clip = studio().kind("video").unwrap().clone();
+        assert_eq!(clip.title_made_from("Tide", "en", 1), "Tide — clip");
+        assert_eq!(
+            clip.title_made_from("Tide", "en", 2),
+            "Tide — clip 2",
+            "a template without a number numbers the second one on"
+        );
+
+        let mut config = studio();
+        for kind in &mut config.work_kinds {
+            if kind.key == "video" {
+                kind.made_title = Some("{name} ({n})".into());
+                kind.release_kinds[0].cover_format = Some("wide".into());
+            }
+        }
+        let problems = config.validate().join("\n");
+        assert!(problems.contains("never reads `{title}`"), "{problems}");
+        assert!(
+            problems.contains("reads `{name}`; it reads `{title}` and `{n}`"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("gives its cover the shape `wide`"),
+            "{problems}"
+        );
+        assert!(is_cover_format("16:9") && is_cover_format("1:1"));
+        assert!(!is_cover_format("16:0") && !is_cover_format("16x9") && !is_cover_format(":9"));
     }
 
     #[test]
@@ -2978,23 +3378,21 @@ mod tests {
 
     #[test]
     fn a_release_field_is_held_to_the_roles_its_own_kind_has() {
-        // `plot` is a role of the video kinds, not of a song — and the audio
-        // release belongs to the song. An action naming no kinds would be
-        // judged against every kind and could pass on the strength of the
-        // video's roles; a release field cannot, because it is read against
-        // exactly one kind.
+        // `lyrics` is a role of the song, not of the audio release made from
+        // it - which reads the song's words as `{donor:lyrics}`. An action
+        // naming no kinds would be judged against every kind and could pass
+        // on the strength of the song's roles; a release field cannot,
+        // because it is read against exactly one kind.
         let config = audio_fields(vec![
             ReleaseField::new("description", "Description", ReleaseFieldType::Text)
-                .from_template("{role:plot}"),
+                .from_template("{role:lyrics}"),
         ]);
 
         let problems = config.validate();
 
         assert!(
-            problems
-                .iter()
-                .any(|problem| problem
-                    .contains("reads `{role:plot}`, but this kind has no `plot` role")),
+            problems.iter().any(|problem| problem
+                .contains("reads `{role:lyrics}`, but this kind has no `lyrics` role")),
             "{problems:?}"
         );
     }
@@ -3067,7 +3465,7 @@ mod tests {
     fn a_release_field_reading_a_role_its_kind_has_is_accepted() {
         let config = audio_fields(vec![
             ReleaseField::new("description", "Description", ReleaseFieldType::Text)
-                .from_template("{title}\n\n{role:lyrics}"),
+                .from_template("{title}\n\n{role:plot}"),
         ]);
 
         assert!(config.validate().is_empty(), "{:?}", config.validate());
@@ -3091,10 +3489,9 @@ mod tests {
         config.prompts = vec![action("{role:lyrics}")];
         let problems = config.validate();
         assert!(
-            problems
-                .iter()
-                .any(|p| p
-                    .contains("reads `{role:lyrics}`, but `video`, `short` have no `lyrics` role")),
+            problems.iter().any(|p| p.contains(
+                "reads `{role:lyrics}`, but `video`, `audio`, `short` have no `lyrics` role"
+            )),
             "{problems:?}"
         );
         config.prompts[0].kinds = vec!["song".into()];

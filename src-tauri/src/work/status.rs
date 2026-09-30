@@ -29,7 +29,6 @@ pub fn derive_for(
     config: &ProfileConfig,
     work_id: &str,
 ) -> Result<Option<String>> {
-    let meaning = fact_for(conn, work_id)?;
     // The word for the fact is the work's kind's word: a video and a song may
     // call "released" differently, or one of them may have no word for it.
     let kind: String = conn.query_row(
@@ -37,34 +36,61 @@ pub fn derive_for(
         params![work_id],
         |row| row.get(0),
     )?;
-    Ok(status_named(config.vocabulary(&kind), meaning))
+    let vocabulary = config.vocabulary(&kind);
+    let meaning = fact_for(conn, work_id, vocabulary.has_doors())?;
+    Ok(status_named(vocabulary, meaning))
+}
+
+/// The works whose releases speak for this one: itself and, for a work whose
+/// kind has no door of its own, everything made from it (v0.86). A song goes
+/// out as its clip, its audio and its shorts - so it has gone out when any of
+/// them has, and is booked when any of them holds a slot. A kind with doors
+/// speaks only for itself: a clip is not released because a short cut from it
+/// went out. The work's own releases always count, so a song that still holds
+/// one - written before its doors came off - is not silently unreleased.
+pub fn speaking_for(conn: &Connection, work_id: &str, has_doors: bool) -> Result<Vec<String>> {
+    let mut works = vec![work_id.to_owned()];
+    if !has_doors {
+        works.extend(
+            crate::link::descendants(conn, work_id)?
+                .into_iter()
+                .map(|(id, _)| id),
+        );
+    }
+    Ok(works)
 }
 
 /// The strongest fact that is true of a work right now.
-fn fact_for(conn: &Connection, work_id: &str) -> Result<Derive> {
-    let released: bool = conn
-        .query_row(
-            "SELECT 1 FROM release WHERE work_id = ?1 AND status = ?2 LIMIT 1",
-            params![work_id, release::RELEASED],
-            |_| Ok(true),
-        )
-        .optional()?
-        .unwrap_or(false);
+fn fact_for(conn: &Connection, work_id: &str, has_doors: bool) -> Result<Derive> {
+    let works = speaking_for(conn, work_id, has_doors)?;
+    let any = |sql: &str| -> Result<bool> {
+        for id in &works {
+            let found = conn
+                .query_row(sql, params![id], |_| Ok(true))
+                .optional()?
+                .unwrap_or(false);
+            if found {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    };
+
+    let released = any(&format!(
+        "SELECT 1 FROM release WHERE work_id = ?1 AND status = '{}' LIMIT 1",
+        release::RELEASED
+    ))?;
     if released {
         return Ok(Derive::Released);
     }
 
     // A planned release without a date is an intention, not a slot: it holds
     // nothing in the calendar, so it does not make a work "scheduled".
-    let scheduled: bool = conn
-        .query_row(
-            "SELECT 1 FROM release
-              WHERE work_id = ?1 AND status = ?2 AND scheduled_at IS NOT NULL LIMIT 1",
-            params![work_id, release::PLANNED],
-            |_| Ok(true),
-        )
-        .optional()?
-        .unwrap_or(false);
+    let scheduled = any(&format!(
+        "SELECT 1 FROM release
+          WHERE work_id = ?1 AND status = '{}' AND scheduled_at IS NOT NULL LIMIT 1",
+        release::PLANNED
+    ))?;
     if scheduled {
         return Ok(Derive::Scheduled);
     }
@@ -112,18 +138,31 @@ pub fn refresh_at(
     work_id: &str,
     at: &str,
 ) -> Result<Option<Change>> {
-    let row: Option<(String, String, Option<String>)> = conn
+    derive_at(conn, config, work_id, at, false)
+}
+
+/// Recompute one work's status. `handed_back` is a person giving the status
+/// back to the automation: then a word only a person can say - shelved - is
+/// no longer theirs to keep, and the facts speak.
+fn derive_at(
+    conn: &Connection,
+    config: &ProfileConfig,
+    work_id: &str,
+    at: &str,
+    handed_back: bool,
+) -> Result<Option<Change>> {
+    let row: Option<(String, String, Option<String>, String)> = conn
         .query_row(
-            "SELECT title, status, status_pinned_at FROM work WHERE id = ?1",
+            "SELECT title, status, status_pinned_at, kind FROM work WHERE id = ?1",
             params![work_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
         )
         .optional()?;
 
-    let Some((title, current, pinned_at)) = row else {
+    let Some((title, current, pinned_at, kind)) = row else {
         return Ok(None);
     };
-    if pinned_at.is_some() {
+    if pinned_at.is_some() || (!handed_back && said_by_hand(config, &kind, &current)) {
         return Ok(None);
     }
 
@@ -147,6 +186,19 @@ pub fn refresh_at(
     }))
 }
 
+/// Whether a status is one only a person can say - shelved, on hold - and so
+/// a person's word whether or not it carries a pin. Setting one by hand pins
+/// it; one that arrived another way (an import of the predecessor's
+/// catalogue) is the same decision, and the automation has no fact that could
+/// replace it with anything truer.
+fn said_by_hand(config: &ProfileConfig, kind: &str, status: &str) -> bool {
+    config
+        .vocabulary(kind)
+        .statuses
+        .iter()
+        .any(|known| known.key == status && known.derive == Derive::Manual)
+}
+
 /// A status the automation would change, or did.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq, ts_rs::TS)]
 pub struct Change {
@@ -165,18 +217,21 @@ pub struct Change {
 /// and there is no undo for "all of them at once".
 pub fn drift(conn: &Connection, config: &ProfileConfig, profile_id: &str) -> Result<Vec<Change>> {
     let mut statement = conn.prepare(
-        "SELECT id, title, status FROM work
+        "SELECT id, title, status, kind FROM work
           WHERE profile_id = ?1 AND status_pinned_at IS NULL
           ORDER BY title",
     )?;
-    let works: Vec<(String, String, String)> = statement
+    let works: Vec<(String, String, String, String)> = statement
         .query_map(params![profile_id], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
     let mut changes = Vec::new();
-    for (work_id, title, current) in works {
+    for (work_id, title, current, kind) in works {
+        if said_by_hand(config, &kind, &current) {
+            continue;
+        }
         let Some(derived) = derive_for(conn, config, &work_id)? else {
             continue;
         };
@@ -240,7 +295,7 @@ pub fn unpin_at(
         "UPDATE work SET status_pinned_at = NULL WHERE id = ?1",
         params![work_id],
     )?;
-    refresh_at(conn, config, work_id, at)
+    derive_at(conn, config, work_id, at, true)
 }
 
 #[cfg(test)]
@@ -380,6 +435,28 @@ mod tests {
 
         assert_eq!(refresh(&conn, &config, &work_id).unwrap(), None);
         assert_eq!(status_of(&conn, &work_id), "shelved");
+    }
+
+    /// A status only a person can say - shelved - stands even without a pin,
+    /// the way one arrives from an import: the automation has no fact that
+    /// could say something truer.
+    #[test]
+    fn a_status_only_a_person_can_say_stands_without_a_pin() {
+        let (conn, profile_id, config) = workspace();
+        let work_id = a_work(&conn, &profile_id, "Subject");
+        conn.execute(
+            "UPDATE work SET status = 'shelved' WHERE id = ?1",
+            params![work_id],
+        )
+        .unwrap();
+        a_score(&conn, &work_id);
+
+        assert_eq!(refresh(&conn, &config, &work_id).unwrap(), None);
+        assert_eq!(status_of(&conn, &work_id), "shelved");
+        assert!(
+            drift(&conn, &config, &profile_id).unwrap().is_empty(),
+            "nor does a full recompute offer to change it"
+        );
     }
 
     #[test]

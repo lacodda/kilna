@@ -276,6 +276,10 @@ const UPGRADE: &[Step] = &[
         name: "the canon: a note kind's sections, root and glyph, and the kinds of relation",
         carry: canon_vocabulary,
     },
+    Step {
+        name: "publications: a door's cover shape, a kind's frame and the title of what is made from it, a field's kinds, options and start",
+        carry: publication_vocabulary,
+    },
 ];
 
 /// Prompt templates whose key is missing. A user who reworded an action keeps
@@ -474,19 +478,29 @@ fn board_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool
 /// silently beside them would be the one thing the profile must never do. A
 /// fresh workspace, seeded rather than carried forward, gets the whole kind.
 fn arriving_kinds(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
-    let arriving: Vec<config::WorkKind> = shipped
-        .work_kinds
-        .iter()
-        .filter(|candidate| {
-            !config
+    let mut changed = false;
+    for (index, candidate) in shipped.work_kinds.iter().enumerate() {
+        if config
+            .work_kinds
+            .iter()
+            .any(|kind| kind.key == candidate.key)
+        {
+            continue;
+        }
+        // Where the shipped list puts it: after the kind it follows there,
+        // when the workspace has that one - the audio release between the
+        // clip and the short, as the menu that makes them lists them -
+        // and at the end otherwise.
+        let after = shipped.work_kinds[..index].iter().rev().find_map(|before| {
+            config
                 .work_kinds
                 .iter()
-                .any(|kind| kind.key == candidate.key)
-        })
-        .map(config::WorkKind::without_judgement)
-        .collect();
-    let changed = !arriving.is_empty();
-    config.work_kinds.extend(arriving);
+                .position(|kind| kind.key == before.key)
+        });
+        let at = after.map_or(config.work_kinds.len(), |position| position + 1);
+        config.work_kinds.insert(at, candidate.without_judgement());
+        changed = true;
+    }
     changed
 }
 
@@ -611,6 +625,64 @@ fn canon_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool
     changed
 }
 
+/// What a publication is made of (v0.86): the shape of a door's cover, a
+/// kind's frame and the title a work of it takes when it is made from
+/// another - each where the stored copy says nothing, matched by key. And a
+/// field's kinds, options and starting value where the stored field names
+/// none: the variant of an audio release is a choice for audio alone, and a
+/// field that arrived by key without them would be a free box on every kind.
+fn publication_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        if !kind.frame && shipped_kind.frame {
+            kind.frame = true;
+            changed = true;
+        }
+        if kind.made_title.is_none() && shipped_kind.made_title.is_some() {
+            kind.made_title = shipped_kind.made_title.clone();
+            changed = true;
+        }
+        for door in &mut kind.release_kinds {
+            let Some(shipped_door) = shipped_kind
+                .release_kinds
+                .iter()
+                .find(|candidate| candidate.key == door.key)
+            else {
+                continue;
+            };
+            if door.cover_format.is_none() && shipped_door.cover_format.is_some() {
+                door.cover_format = shipped_door.cover_format.clone();
+                changed = true;
+            }
+        }
+    }
+    for field in &mut config.work_meta_fields {
+        let Some(shipped_field) = shipped
+            .work_meta_fields
+            .iter()
+            .find(|candidate| candidate.key == field.key)
+        else {
+            continue;
+        };
+        if field.kinds.is_empty() && !shipped_field.kinds.is_empty() {
+            field.kinds = shipped_field.kinds.clone();
+            changed = true;
+        }
+        if field.options.is_empty()
+            && !shipped_field.options.is_empty()
+            && field.field_type == shipped_field.field_type
+        {
+            field.options = shipped_field.options.clone();
+            changed = true;
+        }
+        if field.default.is_none() && shipped_field.default.is_some() {
+            field.default = shipped_field.default.clone();
+            changed = true;
+        }
+    }
+    changed
+}
+
 /// Shipped profile names that changed, old to new. A stored copy still
 /// carrying the old one is renamed at the next start; see `carry_forward`.
 const RENAMED: [(&str, &str); 1] = [("Music", "Studio")];
@@ -652,7 +724,7 @@ const TEMPLATES_BEFORE_THE_REGISTER: [(&str, &str); 2] = [
 /// names: a copy the owner never touched follows, a rewritten one stays.
 /// Every wording the file ever shipped maps to the current one, so a copy
 /// that skipped a release still arrives.
-const REDESCRIBED: [(&str, &str); 2] = [
+const REDESCRIBED: [(&str, &str); 3] = [
     (
         "Songs with independent lyrics and style drafts, judged on hook and craft, shipped as clips, shorts and audio releases.",
         STUDIO_DESCRIPTION,
@@ -661,12 +733,16 @@ const REDESCRIBED: [(&str, &str); 2] = [
         "Songs and the videos made for them: lyrics and style drafts judged on hook and craft, clips and shorts judged on the cut, shipped as clips, shorts and audio releases.",
         STUDIO_DESCRIPTION,
     ),
+    (
+        "Songs and the videos made for them: lyrics and style drafts judged on hook and craft, shipped as audio releases; the clips and shorts cut to them are works of their own, judged on the cut.",
+        STUDIO_DESCRIPTION,
+    ),
 ];
 
-/// The Studio profile's one-sentence description as it ships since v0.74:
-/// a song's door is the audio release, and the clips and shorts cut to it
-/// are works of their own (ADR 0030).
-const STUDIO_DESCRIPTION: &str = "Songs and the videos made for them: lyrics and style drafts judged on hook and craft, shipped as audio releases; the clips and shorts cut to them are works of their own, judged on the cut.";
+/// The Studio profile's one-sentence description as it ships since v0.86:
+/// a song has no door of its own, and everything that goes out for it is a
+/// work made from it (ADR 0030, ADR 0047).
+const STUDIO_DESCRIPTION: &str = "Songs and what goes out for them: lyrics and style drafts judged on hook and craft; the clips, audio releases and shorts made from them are works of their own, each with its releases, cover and comments.";
 
 /// The `format` a stored document claims — 1 when it says nothing, the way
 /// every document written before the field did.
@@ -1321,11 +1397,85 @@ mod tests {
                 .icon
                 .clone()
         };
-        assert_eq!(icon_of("song", "audio").as_deref(), Some("disc"));
+        assert_eq!(icon_of("audio", "youtube").as_deref(), Some("disc"));
         assert_eq!(icon_of("video", "youtube").as_deref(), Some("film"));
         assert_eq!(icon_of("short", "short").as_deref(), Some("smartphone"));
         // A glyph the user picked themselves is not taken back by the upgrade.
         assert_eq!(icon_of("video", "premiere").as_deref(), Some("radio"));
+    }
+
+    /// A workspace from before v0.86 gains the audio kind where the shipped
+    /// list puts it, the shape of every door's cover, the titles of what is
+    /// made from a song, and the variant as a choice for audio alone - and a
+    /// word the owner wrote is not taken back.
+    #[test]
+    fn an_older_workspace_gains_what_a_publication_is_made_of() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
+        config.work_kinds.retain(|kind| kind.key != "audio");
+        for kind in &mut config.work_kinds {
+            kind.made_title = None;
+            for door in &mut kind.release_kinds {
+                door.cover_format = None;
+            }
+            if kind.key == "short" {
+                kind.made_title = Some("{title} (cut {n})".into());
+            }
+        }
+        for field in &mut config.work_meta_fields {
+            if field.key == "variant" {
+                field.kinds.clear();
+                field.options.clear();
+                field.default = None;
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let config = config_for(&conn, &id).unwrap();
+        let order: Vec<&str> = config
+            .work_kinds
+            .iter()
+            .map(|kind| kind.key.as_str())
+            .collect();
+        assert_eq!(order, vec!["song", "video", "audio", "short"]);
+        assert!(config.vocabulary("audio").frame);
+        assert_eq!(
+            config.vocabulary("video").release_kinds[0]
+                .cover_format
+                .as_deref(),
+            Some("16:9")
+        );
+        assert_eq!(
+            config.vocabulary("video").title_made_from("Tide", "en", 1),
+            "Tide — clip"
+        );
+        assert_eq!(
+            config.vocabulary("short").title_made_from("Tide", "en", 2),
+            "Tide (cut 2)",
+            "a title the owner wrote stays theirs"
+        );
+        let variant = config
+            .work_meta_fields
+            .iter()
+            .find(|field| field.key == "variant")
+            .unwrap();
+        assert_eq!(variant.kinds, vec!["audio".to_owned()]);
+        assert_eq!(variant.options.len(), 5);
+        assert_eq!(variant.default, Some(serde_json::json!("original")));
     }
 
     #[test]
@@ -1390,14 +1540,19 @@ mod tests {
             )
             .unwrap();
         let mut config: ProfileConfig = serde_json::from_str(&raw).unwrap();
-        config.work_kinds[0].release_kinds.insert(
+        let video = config
+            .work_kinds
+            .iter()
+            .position(|kind| kind.key == "video")
+            .unwrap();
+        config.work_kinds[video].release_kinds.insert(
             0,
             crate::profile::config::ReleaseKind::new("vinyl", "Vinyl pressing", &[]),
         );
         // The shipped door beside it loses its glyph, so the backfill has
         // something to do that the assertion below can tell from nothing.
-        for door in &mut config.work_kinds[0].release_kinds {
-            if door.key == "audio" {
+        for door in &mut config.work_kinds[video].release_kinds {
+            if door.key == "youtube" {
                 door.icon = None;
             }
         }
@@ -1410,7 +1565,8 @@ mod tests {
         seed(&conn).unwrap();
 
         let config = config_for(&conn, &id).unwrap();
-        let vinyl = config.work_kinds[0]
+        let vinyl = config
+            .vocabulary("video")
             .release_kinds
             .iter()
             .find(|kind| kind.key == "vinyl")
@@ -1419,10 +1575,11 @@ mod tests {
         // And the kinds that do ship still got theirs, so the assertion above
         // is not passing because the backfill did nothing at all.
         assert!(
-            config.work_kinds[0]
+            config
+                .vocabulary("video")
                 .release_kinds
                 .iter()
-                .any(|kind| kind.key == "audio" && kind.icon.as_deref() == Some("disc"))
+                .any(|kind| kind.key == "youtube" && kind.icon.as_deref() == Some("film"))
         );
     }
 
@@ -1524,6 +1681,18 @@ mod tests {
                             kind.key
                         );
                     }
+                }
+
+                // A kind nobody judges - an audio release is judged as the
+                // song it plays - has no axes and so no tiers; the rest of
+                // the checks below are about judgement.
+                if vocab.axes.is_empty() {
+                    assert!(
+                        vocab.tiers.is_empty(),
+                        "{key}/{}: tiers no score can land in",
+                        vocab.key
+                    );
+                    continue;
                 }
 
                 // A tier reachable by nothing is a tier that never appears.
@@ -2668,7 +2837,7 @@ mod tests {
             )
             .unwrap();
         assert!(
-            description.starts_with("Songs and the videos"),
+            description.starts_with("Songs and what goes out for them"),
             "{description}"
         );
     }

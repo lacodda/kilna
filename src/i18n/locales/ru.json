@@ -1417,7 +1417,17 @@
     "proposal.canon": "{{client}} предлагает факты в канон из «{{title}}».",
     "proposal.freeCanon": "{{client}} предлагает факты в канон.",
     "fact.deleted": "Факт «{{label}}» удалён.",
-    "term.deleted": "Термин «{{label}}» убран из реестра."
+    "term.deleted": "Термин «{{label}}» убран из реестра.",
+    "proposal.release": "{{client}} предлагает, под чем выходит «{{title}}».",
+    "release.metaWritten_one": "Действие написало {{count}} поле выпуска «{{title}}».",
+    "release.metaWritten_few": "Действие написало {{count}} поля выпуска «{{title}}».",
+    "release.metaWritten_many": "Действие написало {{count}} полей выпуска «{{title}}».",
+    "release.metaWritten_other": "Действие написало {{count}} поля выпуска «{{title}}».",
+    "upgrade.publicationsMoved_one": "Песни больше не выходят сами: {{count}} выпуск перенесён на аудио (создано {{created}}, из видео {{converted}}, связано по названию {{linked}}).",
+    "upgrade.publicationsMoved_few": "Песни больше не выходят сами: {{count}} выпуска перенесено на аудио (создано {{created}}, из видео {{converted}}, связано по названию {{linked}}).",
+    "upgrade.publicationsMoved_many": "Песни больше не выходят сами: {{count}} выпусков перенесено на аудио (создано {{created}}, из видео {{converted}}, связано по названию {{linked}}).",
+    "upgrade.publicationsMoved_other": "Песни больше не выходят сами: {{count}} выпуска перенесено на аудио (создано {{created}}, из видео {{converted}}, связано по названию {{linked}}).",
+    "upgrade.publicationDisputed": "У аудио «{{title}}» больше одного выпуска через одну дверь — оставьте один."
   },
   "card": {
     "tab": {
@@ -1779,7 +1789,8 @@
       "coverNotText": "«{{key}}» обложки должно содержать текст.",
       "kindNoStatuses": "Вид «{{kind}}» не задаёт статусов.",
       "unknownTier": "«{{tier}}» — не уровень «{{kind}}».",
-      "pinNeedsReason": "Закреплённому уровню нужна причина — скажите то, чего не знает оценка."
+      "pinNeedsReason": "Закреплённому уровню нужна причина — скажите то, чего не знает оценка.",
+      "noFrame": "У вида «{{kind}}» нет кадра."
     },
     "version": {
       "unknownRole": "У вида «{{kind}}» нет роли версии «{{role}}». Есть: {{known}}.",
@@ -1792,7 +1803,8 @@
       "badTime": "«{{value}}» — не время суток, напишите его как ЧЧ:ММ.",
       "badTimeZone": "«{{value}}» — не название часового пояса, напишите его как Регион/Город, например Europe/Lisbon.",
       "noSlotToPin": "У релиза без даты нет места для закрепления.",
-      "badDay": "«{{value}}» — не календарный день."
+      "badDay": "«{{value}}» — не календарный день.",
+      "noDoors": "«{{kind}}» не выходит сама по себе: сделайте из неё аудио, клип или шортс — выпуск планируется у них."
     },
     "scene": {
       "noStoryboard": "У вида «{{kind}}» нет раскадровки: он не называет ни типов кадра, ни блоков промпта.",
@@ -1834,7 +1846,8 @@
       "blocksNotObject": "Сцена {{index}}: «blocks» должно быть объектом «ключ блока → текст».",
       "unknownBlock": "Сцена {{index}}: нет блока подсказки «{{block}}» для «{{kind}}»; блоки: {{known}}.",
       "badSpan": "Сцена {{index}}: заканчивается на {{to}} раньше, чем начинается на {{from}}.",
-      "negativeSeconds": "Сцена {{index}}: секунды считаются от 0."
+      "negativeSeconds": "Сцена {{index}}: секунды считаются от 0.",
+      "nothingTaken": "Ничего не выбрано."
     },
     "file": {
       "isDirectory": "{{path}} — папка, а не файл.",
@@ -1854,7 +1867,8 @@
       "screenshotNotKept": "Не удалось сохранить скриншот: {{cause}}",
       "unknownState": "«{{state}}» — не то состояние, в котором может быть комментарий.",
       "needsField": "Комментарию нужно поле «{{field}}».",
-      "badDay": "«{{value}}» — не день, напишите его как ГГГГ-ММ-ДД."
+      "badDay": "«{{value}}» — не день, напишите его как ГГГГ-ММ-ДД.",
+      "notAPublication": "Комментарий живёт у того, что видела аудитория, — у клипа, аудио или шортса, а не у вида «{{kind}}»."
     },
     "assistant": {
       "unknownAction": "В профиле нет действия «{{action}}»."
@@ -1933,7 +1947,11 @@
       "commentsNotProposable": "Агент вне окна не предлагает комментарии, ответы или описания стилей.",
       "cardPromptNotProposable": "Описание карточки пишет действие на карточке — оно знает, из каких фактов.",
       "unknownLens": "Линза — cover, work или public, а не «{{lens}}».",
-      "unknownNoteState": "Нет состояния заметки «{{state}}»: fresh, used, parked или dropped."
+      "unknownNoteState": "Нет состояния заметки «{{state}}»: fresh, used, parked или dropped.",
+      "releaseOtherWork": "Выпуск «{{release}}» — не этого произведения.",
+      "workHasNoRelease": "У «{{title}}» нет выпуска. Песня выходит тем, что из неё сделано: предлагайте для её клипа, аудио или шортса.",
+      "whichRelease": "У «{{title}}» несколько выпусков; назовите нужный по id: {{ids}}.",
+      "releaseFieldsUnread": "Поля не прочитались: {{why}}."
     },
     "note": {
       "promoteNeedsTitle": "У произведения должно быть название.",
@@ -1965,7 +1983,11 @@
       "canonActionShape": "«{{action}}» — действие над карточкой: оно собирает факты или описывает её.",
       "isCanonAction": "«{{action}}» — про карточку канона: запускайте его на карточке.",
       "needsSelection": "«{{action}}» работает с выделенными строками — сначала выделите их.",
-      "notCanonAction": "«{{action}}» — не про карточку."
+      "notCanonAction": "«{{action}}» — не про карточку.",
+      "notReleaseAction": "«{{action}}» — не действие о выпуске.",
+      "isReleaseAction": "«{{action}}» — о выпуске, а не о произведении: запускайте его из выпуска.",
+      "actionAnswersRelease": "«{{action}}» пишет, под чем выходит выпуск: запускайте его из выпуска.",
+      "releaseHasNoFields": "У выпуска «{{releaseKind}}» нет полей, которые можно написать."
     },
     "style": {
       "needsName": "У стиля должно быть имя.",

@@ -347,6 +347,47 @@ pub fn start_card_task(
     launch(&app, state, prepared)
 }
 
+/// What writing a release's metadata would send, without sending it.
+#[tauri::command]
+pub fn preview_release_task(
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+) -> Result<assistant::task::Composed> {
+    assistant::task::compose_for_release(&state.conn(), &id, &action).map(|(composed, _)| composed)
+}
+
+/// Write what a release goes out under, in the background (v0.86). The
+/// fields nobody has written yet are filled when the answer comes; the ones
+/// already started wait beside it as a proposal.
+#[tauri::command]
+pub fn start_release_task(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+) -> Result<StartedTask> {
+    let state = state.inner();
+    if state
+        .runs()
+        .task_running(&assistant::task::release_key(&action, &id))
+    {
+        return Err(Error::AlreadyRunning);
+    }
+    let prepared = assistant::task::prepare_for_release(&state.conn(), &id, &action)?;
+    launch(&app, state, prepared)
+}
+
+/// The proposals for one release that still wait, each field beside what is
+/// written now.
+#[tauri::command]
+pub fn release_proposals(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Vec<crate::release_meta::ReleaseProposal>> {
+    crate::release_meta::pending(&state.conn(), &id)
+}
+
 /// What drafting a reply to a comment would send, without sending it.
 #[tauri::command]
 pub fn preview_comment_task(

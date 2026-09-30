@@ -33,6 +33,16 @@ pub fn update_work(state: State<'_, AppState>, id: String, patch: WorkPatch) -> 
     actions::work::update(&state.conn(), &id, patch)
 }
 
+/// The frame of a work as it is copied into a generator: the still, the loop
+/// written from its settings, the negative (v0.86). Written here, once, so
+/// the tab and the agent copy the same words.
+#[tauri::command]
+pub fn frame_prompts(state: State<'_, AppState>, id: String) -> Result<work::frame::FramePrompts> {
+    let found = work::get(&state.conn(), &id)?
+        .ok_or_else(|| crate::error::Error::not_found("work", &id))?;
+    Ok(found.frame.prompts())
+}
+
 /// What a full recompute would change, changing nothing.
 ///
 /// The dry run is the whole reason a mass restate is safe to offer: a profile

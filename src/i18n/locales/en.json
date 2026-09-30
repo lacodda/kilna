@@ -1319,7 +1319,13 @@
     "proposal.canon": "{{client}} proposes facts for the canon from «{{title}}».",
     "proposal.freeCanon": "{{client}} proposes facts for the canon.",
     "fact.deleted": "Fact «{{label}}» deleted.",
-    "term.deleted": "Term “{{label}}” taken out of the register."
+    "term.deleted": "Term “{{label}}” taken out of the register.",
+    "proposal.release": "{{client}} proposed what “{{title}}” goes out under.",
+    "release.metaWritten_one": "{{count}} field of “{{title}}” written by its action.",
+    "release.metaWritten_other": "{{count}} fields of “{{title}}” written by its action.",
+    "upgrade.publicationsMoved_one": "Songs no longer go out themselves: {{count}} release moved onto an audio work ({{created}} made, {{converted}} turned from videos, {{linked}} linked by name).",
+    "upgrade.publicationsMoved_other": "Songs no longer go out themselves: {{count}} releases moved onto audio works ({{created}} made, {{converted}} turned from videos, {{linked}} linked by name).",
+    "upgrade.publicationDisputed": "The audio of “{{title}}” holds more than one release through one door - keep one."
   },
   "card": {
     "tab": {
@@ -1672,7 +1678,8 @@
       "coverNotText": "The cover's “{{key}}” must hold text.",
       "kindNoStatuses": "The kind “{{kind}}” defines no statuses.",
       "unknownTier": "“{{tier}}” is not a tier of “{{kind}}”.",
-      "pinNeedsReason": "A pinned tier needs a reason — say what the score does not know."
+      "pinNeedsReason": "A pinned tier needs a reason — say what the score does not know.",
+      "noFrame": "A {{kind}} does not play under a frame."
     },
     "version": {
       "unknownRole": "A {{kind}} has no version role “{{role}}”. Its roles are: {{known}}.",
@@ -1685,7 +1692,8 @@
       "badTime": "“{{value}}” is not a time of day — write it as HH:MM.",
       "badTimeZone": "“{{value}}” is not a time zone name — write it as Region/City, like Europe/Lisbon.",
       "noSlotToPin": "A release with no date has no slot to pin.",
-      "badDay": "“{{value}}” is not a calendar day."
+      "badDay": "“{{value}}” is not a calendar day.",
+      "noDoors": "A {{kind}} does not go out itself: make an audio, a clip or a short from it, and plan the release there."
     },
     "scene": {
       "noStoryboard": "A {{kind}} has no storyboard: the kind names no kinds of shot and no prompt blocks.",
@@ -1727,7 +1735,8 @@
       "blocksNotObject": "Scene {{index}}: “blocks” must be an object of block key to text.",
       "unknownBlock": "Scene {{index}}: no prompt block “{{block}}” for “{{kind}}”; its blocks are {{known}}.",
       "badSpan": "Scene {{index}}: it ends at {{to}} before it starts at {{from}}.",
-      "negativeSeconds": "Scene {{index}}: seconds are counted from 0."
+      "negativeSeconds": "Scene {{index}}: seconds are counted from 0.",
+      "nothingTaken": "Nothing was chosen to take."
     },
     "file": {
       "isDirectory": "{{path}} is a folder, not a file.",
@@ -1747,7 +1756,8 @@
       "screenshotNotKept": "Could not keep the screenshot: {{cause}}",
       "unknownState": "“{{state}}” is not a state a comment can be in.",
       "needsField": "A comment needs its {{field}}.",
-      "badDay": "“{{value}}” is not a day; write it as YYYY-MM-DD."
+      "badDay": "“{{value}}” is not a day; write it as YYYY-MM-DD.",
+      "notAPublication": "A comment belongs under what the audience saw - a clip, an audio release, a short - not under a {{kind}}."
     },
     "assistant": {
       "unknownAction": "The profile has no action “{{action}}”."
@@ -1826,7 +1836,11 @@
       "commentsNotProposable": "An agent outside the window does not propose comments, replies or style descriptions.",
       "cardPromptNotProposable": "A card's description is written by the action on the card, which knows the facts it answers to.",
       "unknownLens": "A lens is cover, work or public, not «{{lens}}».",
-      "unknownNoteState": "No note state “{{state}}”: fresh, used, parked or dropped."
+      "unknownNoteState": "No note state “{{state}}”: fresh, used, parked or dropped.",
+      "releaseOtherWork": "The release “{{release}}” is not one of this work’s.",
+      "workHasNoRelease": "“{{title}}” has no release to write for. A song goes out as what is made from it: propose for its clip, audio or short.",
+      "whichRelease": "“{{title}}” has more than one release; name it by id: {{ids}}.",
+      "releaseFieldsUnread": "The fields could not be read: {{why}}."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
@@ -1858,7 +1872,11 @@
       "canonActionShape": "«{{action}}» is about a card, and gathers its facts or describes it.",
       "isCanonAction": "«{{action}}» is about a card of the canon: start it on the card.",
       "needsSelection": "«{{action}}» works on selected lines: select some first.",
-      "notCanonAction": "«{{action}}» is not about a card."
+      "notCanonAction": "«{{action}}» is not about a card.",
+      "notReleaseAction": "“{{action}}” is not an action about a release.",
+      "isReleaseAction": "“{{action}}” is about a release, not a work: start it from the release.",
+      "actionAnswersRelease": "“{{action}}” writes what a release goes out under: start it from the release.",
+      "releaseHasNoFields": "A “{{releaseKind}}” release has no fields to write."
     },
     "style": {
       "needsName": "A style needs a name.",

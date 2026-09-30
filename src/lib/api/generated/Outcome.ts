@@ -45,4 +45,8 @@ facts?: Array<string>,
 /**
  * Relations drawn or redrawn.
  */
-relations?: Array<string>, };
+relations?: Array<string>, 
+/**
+ * The fields of a release written, by key.
+ */
+release_fields?: Array<string>, };

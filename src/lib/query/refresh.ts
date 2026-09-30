@@ -43,17 +43,26 @@ export const refresh = {
     keys.catalogue,
     keys.calendar,
   ],
-  release: [keys.releases, keys.calendar, keys.releaseQueue, keys.catalogue] as readonly QueryKey[],
+  /** A release: the calendar and the queue, and every work list - the
+   *  release is a fact the status of its work, and of the song it was made
+   *  from, is derived from (v0.86). */
+  release: [
+    keys.releases,
+    keys.calendar,
+    keys.releaseQueue,
+    keys.catalogue,
+    keys.works,
+  ] as readonly QueryKey[],
   note: [keys.notes, keys.tags] as readonly QueryKey[],
   /** A term of the register: the list, its works, and every text checked
    *  against it. */
   term: [keys.register] as readonly QueryKey[],
-  comment: [keys.comments] as readonly QueryKey[],
+  comment: [keys.comments, keys.publications] as readonly QueryKey[],
   /** A comment or a reply kept from an answer: the inbox and the proposal it was. */
   keptComment: [keys.comments, keys.pendingProposals, keys.transcripts] as readonly QueryKey[],
   scene: [keys.scenes] as readonly QueryKey[],
   cut: [keys.cuts] as readonly QueryKey[],
-  link: [keys.links] as readonly QueryKey[],
+  link: [keys.links, keys.works] as readonly QueryKey[],
   style: [keys.styles] as readonly QueryKey[],
   /** The canon: a card's facts, relations, pictures or description. The
    *  notes too - a card is a note - and the search, which finds facts. */

@@ -31,7 +31,9 @@ pub struct Counts {
     pub derived: i64,
     pub notes: i64,
     /// The work's comments, the archived ones aside, and how many of them
-    /// still wait for an answer - the part of the counter worth a mark.
+    /// still wait for an answer - the part of the counter worth a mark. For
+    /// a work that never goes out itself, the comments under what was made
+    /// from it: its Comments tab sums them up (v0.86).
     pub comments: i64,
     pub comments_waiting: i64,
     pub scenes: i64,
@@ -51,7 +53,26 @@ pub struct Counts {
 /// that asks is already saying the work is gone, and a second error beside
 /// that would say it twice.
 pub fn counts(conn: &Connection, work_id: &str) -> Result<Counts> {
-    let (comments, comments_waiting) = crate::comment::count_for_work(conn, work_id)?;
+    // The comments a work's tab lists: its own, or - for a song, which the
+    // audience never meets as the song - those under its publications. The
+    // same works a status is read from.
+    let heard = match crate::work::get(conn, work_id)? {
+        Some(work) => {
+            let config = crate::profile::config_for(conn, &work.profile_id)?;
+            crate::work::status::speaking_for(
+                conn,
+                work_id,
+                config.vocabulary(&work.kind).has_doors(),
+            )?
+        }
+        None => vec![work_id.to_owned()],
+    };
+    let (mut comments, mut comments_waiting) = (0, 0);
+    for id in &heard {
+        let (listed, waiting) = crate::comment::count_for_work(conn, id)?;
+        comments += listed;
+        comments_waiting += waiting;
+    }
     let history = crate::journal::count_for_entity(conn, "work", work_id)?;
 
     Ok(conn.query_row(
@@ -165,11 +186,11 @@ mod tests {
         lyrics(&mut conn, &song, "one line\ntwo lines");
         lyrics(&mut conn, &other, "not this one");
 
-        for kind in ["audio", "youtube"] {
+        for kind in ["youtube", "premiere"] {
             release::create(
                 &conn,
                 NewRelease {
-                    work_id: song.clone(),
+                    work_id: video.clone(),
                     kind: kind.into(),
                     title: None,
                     scheduled_at: None,
@@ -209,9 +230,9 @@ mod tests {
         )
         .unwrap();
 
-        comment(&conn, &profile_id, &song, "lovely");
-        let posted = comment(&conn, &profile_id, &song, "when is the clip out?");
-        let archived = comment(&conn, &profile_id, &song, "spam");
+        comment(&conn, &profile_id, &video, "lovely");
+        let posted = comment(&conn, &profile_id, &video, "when is the clip out?");
+        let archived = comment(&conn, &profile_id, &video, "spam");
         for (id, state) in [(posted, comment::POSTED), (archived, comment::ARCHIVED)] {
             conn.execute(
                 "UPDATE comment SET state = ?2 WHERE id = ?1",
@@ -242,11 +263,14 @@ mod tests {
             song_counts.versions, 2,
             "the other song's version is its own"
         );
-        assert_eq!(song_counts.releases, 2);
+        assert_eq!(song_counts.releases, 0, "a song goes out as its clip");
         assert_eq!(song_counts.sources, 0);
         assert_eq!(song_counts.derived, 1);
         assert_eq!(song_counts.notes, 1);
-        assert_eq!(song_counts.comments, 2, "the archived one is not listed");
+        assert_eq!(
+            song_counts.comments, 2,
+            "a song sums up the comments under its clip; the archived one is not listed"
+        );
         assert_eq!(
             song_counts.comments_waiting, 1,
             "the one answered waits no more"
@@ -255,10 +279,11 @@ mod tests {
         assert_eq!(song_counts.history, before + 1);
 
         let video_counts = counts(&conn, &video).unwrap();
+        assert_eq!(video_counts.releases, 2);
+        assert_eq!(video_counts.comments, 2, "the clip's own");
         assert_eq!(video_counts.sources, 1);
         assert_eq!(video_counts.derived, 0);
         assert_eq!(video_counts.scenes, 1);
-        assert_eq!(video_counts.releases, 0);
     }
 
     #[test]

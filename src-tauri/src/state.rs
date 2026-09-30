@@ -38,6 +38,10 @@ impl AppState {
         // (ADR 0030). After the seed on purpose: the carry-forward is what
         // brings the kinds they move to into a workspace that predates them.
         crate::doors::upgrade(&mut conn)?;
+        // And their audio releases move onto audio works of their own, the
+        // song keeping no door at all (v0.86). After the door move above, so
+        // a workspace that skipped v0.74 arrives through both in order.
+        crate::publication::upgrade(&mut conn)?;
 
         // Old, already-read journal entries go at startup rather than on a
         // timer: there is no scheduler in this app, and an app that is left open

@@ -715,7 +715,7 @@ mod tests {
             &conn,
             &profile_id,
             crate::work::NewWork {
-                kind: "song".into(),
+                kind: "video".into(),
                 title: "Harbour lights".into(),
                 ..crate::work::NewWork::default()
             },
