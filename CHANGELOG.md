@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.84.0] - 2026-09-30
+
+### Features
+- Cards of facts for the world the works share
+
 ## [0.83.0] - 2026-09-28
 
 ### Refactoring
