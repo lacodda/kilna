@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.87.0] - 2026-10-01
+
+### Features
+- Ship a starter set and say where a style came from
+
 ## [0.86.0] - 2026-09-30
 
 ### Features
