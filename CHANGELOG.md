@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.89.0] - 2026-10-01
+
+### Features
+- A board of ideas for a publication's cover
+
 ## [0.88.0] - 2026-10-01
 
 ### Bug Fixes
