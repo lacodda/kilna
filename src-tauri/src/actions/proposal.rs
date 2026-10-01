@@ -2713,6 +2713,45 @@ mod tests {
         );
     }
 
+    /// A package of pictures and descriptions alone waits on the cards it
+    /// is about: the side panel of an open card finds it there (found
+    /// moving the owner's characters, v0.89.3 - the panel listed only the
+    /// cards of facts and relations).
+    #[test]
+    fn a_package_of_pictures_and_descriptions_waits_on_the_cards_it_is_about() {
+        let (conn, profile_id, _) = workspace();
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren");
+        let harbour = fixtures::card(&conn, &profile_id, "location", "Harbour");
+        let dir = tempfile::tempdir().unwrap();
+        let face = fixtures::file(dir.path(), "wren.png");
+        let raw = json!({
+            "pictures": [{ "card": wren.id, "path": face.display().to_string() }],
+            "descriptions": [{ "card": harbour.id, "text": "A stone pier at dusk." }]
+        });
+        let package = crate::canon::proposal::read(
+            &conn,
+            &profile_id,
+            &raw,
+            &crate::canon::proposal::Defaults::default(),
+        )
+        .unwrap();
+        let chat = chat_on(&conn, &profile_id, None);
+        propose(&conn, &chat, "", Proposal::Canon { package });
+
+        let waiting = crate::assistant::apply::pending_canon(&conn, &profile_id).unwrap();
+        assert_eq!(waiting.len(), 1);
+        assert!(
+            waiting[0].cards.contains(&wren.id),
+            "{:?}",
+            waiting[0].cards
+        );
+        assert!(
+            waiting[0].cards.contains(&harbour.id),
+            "{:?}",
+            waiting[0].cards
+        );
+    }
+
     #[test]
     fn a_proposal_for_the_canon_is_kept_item_by_item_and_a_fact_on_a_card_left_out_is_refused() {
         let (conn, profile_id, work_id) = workspace();

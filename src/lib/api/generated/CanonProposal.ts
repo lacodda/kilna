@@ -16,7 +16,8 @@ work_id: string | null,
 body: string, proposal: Proposal, 
 /**
  * Every card of the canon the proposal touches, by id: the cards its
- * facts land on or change, the ends of its relations, the card it
- * describes. What the screen finds the proposals of an open card by.
+ * facts land on or change, the ends of its relations, the cards its
+ * pictures show and its descriptions describe, the card it describes.
+ * What the screen finds the proposals of an open card by.
  */
 cards: Array<string>, created_at: string, };

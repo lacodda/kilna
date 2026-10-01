@@ -552,8 +552,9 @@ pub struct CanonProposal {
     pub body: String,
     pub proposal: Proposal,
     /// Every card of the canon the proposal touches, by id: the cards its
-    /// facts land on or change, the ends of its relations, the card it
-    /// describes. What the screen finds the proposals of an open card by.
+    /// facts land on or change, the ends of its relations, the cards its
+    /// pictures show and its descriptions describe, the card it describes.
+    /// What the screen finds the proposals of an open card by.
     pub cards: Vec<String>,
     pub created_at: String,
 }
@@ -611,6 +612,12 @@ pub fn pending_canon(conn: &Connection, profile_id: &str) -> Result<Vec<CanonPro
                 for link in &package.links {
                     touch(&link.from);
                     touch(&link.to);
+                }
+                for picture in &package.pictures {
+                    touch(&picture.card);
+                }
+                for description in &package.descriptions {
+                    touch(&description.card);
                 }
             }
             Proposal::CardPrompt { note_id, .. } => touch(note_id),
