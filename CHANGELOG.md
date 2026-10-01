@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.89.1] - 2026-10-01
+
+### Features
+- Let an idea keep out what its scene risks
+
 ## [0.89.0] - 2026-10-01
 
 ### Features
