@@ -1615,6 +1615,10 @@
       "title": "Scene, in English",
       "placeholder": "What the picture shows, for the generator"
     },
+    "avoid": {
+      "title": "Keep out, in English",
+      "placeholder": "What this scene must not show beyond the channel's bans"
+    },
     "hero": {
       "title": "Hero",
       "hint": "from the canon, or the one the scene describes",

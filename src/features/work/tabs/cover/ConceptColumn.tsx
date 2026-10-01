@@ -64,6 +64,15 @@ export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props)
           placeholder={t('cover.scene.placeholder')}
           onCommit={(scene) => change((c) => ({ ...c, scene }))}
         />
+        <span className="caption">{t('cover.avoid.title')}</span>
+        <DraftText
+          label={t('cover.avoid.title')}
+          value={cover.avoid}
+          rows={2}
+          mono
+          placeholder={t('cover.avoid.placeholder')}
+          onCommit={(avoid) => change((c) => ({ ...c, avoid }))}
+        />
       </Section>
 
       <Section title={t('cover.hero.title')} hint={t('cover.hero.hint')}>

@@ -25,6 +25,14 @@ idea: string,
  */
 scene: string, 
 /**
+ * What this picture must keep out beyond the channel's bans, in the
+ * generator's English: what the scene risks - a filter's trigger, a
+ * detail the song's lines invite and the channel does not show. Part of
+ * the idea: it goes into the constructor with the scene and into the
+ * negative after the bans, where the person's own words come last.
+ */
+avoid: string, 
+/**
  * The hero from the canon. Absent, the hero is the one the scene
  * describes.
  */

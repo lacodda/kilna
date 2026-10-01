@@ -315,6 +315,9 @@ fn negative(cover: &Cover, target: Target, parts: &Ingredients) -> String {
         Target::Scene => "No text, no title, no watermark, no frame or border.".to_owned(),
     });
     out.extend(parts.bans.iter().map(|ban| sentence(ban)));
+    if !cover.avoid.trim().is_empty() {
+        out.push(sentence(&cover.avoid));
+    }
     if target == Target::Cover && !cover.negative.trim().is_empty() {
         out.push(cover.negative.trim().to_owned());
     }
@@ -610,6 +613,32 @@ mod tests {
         assert!(
             negative.ends_with("no skulls. No crowns. no blood"),
             "{negative}"
+        );
+    }
+
+    /// What the idea keeps out is the scene's own: it follows the channel's
+    /// bans in every picture drawn from the scene - the still a track plays
+    /// under included - and the person's own words still come last.
+    #[test]
+    fn what_the_scene_keeps_out_follows_the_bans() {
+        let cover = Cover {
+            avoid: "gallows, blood on the snow".into(),
+            negative: "no blood".into(),
+            ..built()
+        };
+        let banned = Ingredients {
+            bans: vec!["no skulls".into()],
+            ..parts()
+        };
+        let negative = build(&cover, Target::Cover, wide(), &banned).negative;
+        assert!(
+            negative.ends_with("no skulls. gallows, blood on the snow. no blood"),
+            "{negative}"
+        );
+        let frame = build(&cover, Target::Frame, wide(), &banned).negative;
+        assert!(
+            frame.ends_with("no skulls. gallows, blood on the snow."),
+            "{frame}"
         );
     }
 

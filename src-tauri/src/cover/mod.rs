@@ -13,9 +13,9 @@
 //! a concept of this same shape, kept in [`idea`] (ADR 0050).
 //!
 //! One record per publication, in `work.cover`. Its parts that are words -
-//! the idea, the scene and the person's own words for each block - stand at
-//! the top of the JSON, so the search finds them as it found the blocks
-//! written before v0.88; everything else is nested.
+//! the idea, the scene, what it keeps out and the person's own words for
+//! each block - stand at the top of the JSON, so the search finds them as it
+//! found the blocks written before v0.88; everything else is nested.
 //!
 //! The blocks a cover had before v0.88 (`picture`, `negative`, `typography`)
 //! are its own words now, written after whatever is built. A cover with
@@ -52,6 +52,12 @@ pub struct Cover {
     pub idea: String,
     /// What the picture shows, in the generator's English.
     pub scene: String,
+    /// What this picture must keep out beyond the channel's bans, in the
+    /// generator's English: what the scene risks - a filter's trigger, a
+    /// detail the song's lines invite and the channel does not show. Part of
+    /// the idea: it goes into the constructor with the scene and into the
+    /// negative after the bans, where the person's own words come last.
+    pub avoid: String,
     /// The hero from the canon. Absent, the hero is the one the scene
     /// describes.
     pub hero: Option<Hero>,
@@ -259,6 +265,7 @@ impl Cover {
             || self.bricks.any()
             || self.hero.is_some()
             || !self.scene.trim().is_empty()
+            || !self.avoid.trim().is_empty()
             || self.accent.is_some()
             || self.mark.variant.is_some()
             || !self.details.is_empty()
@@ -389,6 +396,10 @@ mod tests {
                 ..Cover::default()
             },
             Cover {
+                avoid: "a drowned body".into(),
+                ..Cover::default()
+            },
+            Cover {
                 lettering: Lettering {
                     apart: true,
                     ..Lettering::default()
@@ -431,7 +442,8 @@ mod tests {
             .values()
             .filter_map(|value| value.as_str())
             .collect();
-        assert_eq!(texts, ["an idea", "", "", "", ""]);
+        // In the keys' order: avoid, idea, negative, picture, scene, typography.
+        assert_eq!(texts, ["", "an idea", "", "", "", ""]);
     }
 
     #[test]

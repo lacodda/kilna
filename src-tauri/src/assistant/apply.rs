@@ -478,6 +478,9 @@ pub fn render_ideas(
         if !idea.concept.scene.trim().is_empty() {
             out.push_str(&format!("\n> {}\n", idea.concept.scene.trim()));
         }
+        if !idea.concept.avoid.trim().is_empty() {
+            out.push_str(&format!("\n> Avoid: {}\n", idea.concept.avoid.trim()));
+        }
         let mut parts = Vec::new();
         if let Some(framing) = idea.concept.framing {
             parts.push(

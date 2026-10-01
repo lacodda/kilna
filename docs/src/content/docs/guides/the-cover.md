@@ -46,10 +46,11 @@ Three things to do with it:
   to stay away from it. A turned-down idea can be taken off the board, into
   the trash;
 - **Into the constructor** - the cover becomes what the idea decides: its
-  idea and scene, the hero, the frame, the four bricks, the accent, the mark's
-  variant and the captions. What belongs to the publication stays: the
-  lettered title, where and how the mark goes, the switches of the channel's
-  details and your own words. An idea of words alone changes only the idea.
+  idea, its scene and what the scene keeps out, the hero, the frame, the four
+  bricks, the accent, the mark's variant and the captions. What belongs to
+  the publication stays: the lettered title, where and how the mark goes, the
+  switches of the channel's details and your own words. An idea of words
+  alone changes only the idea.
   It is an ordinary edit of the cover - undo takes it back.
 
 **More in this direction** asks for new ideas with the shortlist as examples
@@ -96,6 +97,13 @@ and the rest of the idea lands. See
 sent to a generator; it is what you write the scene from.
 
 **Scene.** What the picture shows, in English, for the generator.
+
+**Keep out.** What this scene must not show beyond the channel's bans, in
+English: what the scene itself risks - a detail the song's lines invite and
+the channel never shows, a word a generator's filter trips on. It belongs to
+the idea: it comes into the constructor with the scene, and goes into the
+negative of the cover and of the still drawn from it, after the channel's
+bans and before your own words.
 
 **Hero.** Either the one the scene describes, or a card of the
 [canon](/kilna/guides/the-canon/). A card brings its description for a
@@ -166,7 +174,7 @@ Three blocks, each copied on its own or all at once:
   hero, the scene, the ground, the details, the mark when it is drawn, and the
   title with its lettering and dressing;
 - **negative** - what every cover keeps out, the channel's bans for pictures
-  and the hero's, and your own words;
+  and the hero's, what the scene keeps out, and your own words;
 - **typography** - only when *the title as a second prompt* is on: the
   picture then asks for no text, and this block is an edit of the finished
   picture that letters it.

@@ -282,9 +282,9 @@ pub fn update_at(conn: &Connection, id: &str, patch: IdeaPatch, at: &str) -> Res
 
 /// The cover a publication has once `idea` is taken into its constructor.
 ///
-/// An idea decides the picture: its idea and scene, the hero, the built
-/// frame, the four bricks, the accent, which variant of the mark, the
-/// captions - each as the idea has it, an absent one absent. What belongs to
+/// An idea decides the picture: its idea and scene and what the scene keeps
+/// out, the hero, the built frame, the four bricks, the accent, which variant
+/// of the mark, the captions - each as the idea has it, an absent one absent. What belongs to
 /// the publication stays: the lettered title and whether it goes apart,
 /// where and how the mark goes, the switches of the channel's details, the
 /// person's own words and the prompt as it was last copied.
@@ -302,6 +302,7 @@ pub fn taken_into(cover: &Cover, idea: &Cover) -> Cover {
     Cover {
         idea: idea.idea.clone(),
         scene: idea.scene.clone(),
+        avoid: idea.avoid.clone(),
         hero: idea.hero.clone(),
         framing: idea.framing,
         bricks: idea.bricks.clone(),
@@ -856,6 +857,7 @@ pub fn read(
         let mut concept = Cover {
             idea,
             scene,
+            avoid: text(object, "avoid").unwrap_or_default(),
             ..Cover::default()
         };
 
@@ -1392,7 +1394,7 @@ pub fn instruction(request: &IdeaRequest) -> String {
     format!(
         "\n\nEnd your answer with one fenced ```json block holding exactly {total} idea{plural}:\n\n\
 ```json\n\
-{{\"ideas\": [\n  {{\n    \"source\": \"ai\",\n    \"angle\": \"what sets this one apart, a few words\",\n    \"headline\": \"what the card is called\",\n    \"idea\": \"what the cover says, one or two sentences in the language of the work\",\n    \"scene\": \"what the picture shows, in English, for the generator: the hero, what they do, the objects around\",\n    \"hero\": \"a card id from the heroes, or leave it out\",\n    \"layout\": \"one of the layouts\",\n    \"size\": \"optional, moves the layout's frame; so do column, row, crop and place\",\n    \"style\": \"a style id\",\n    \"typography\": \"a lettering id\",\n    \"dressing\": \"a dressing id\",\n    \"background\": \"a ground id\",\n    \"accent\": \"#RRGGBB\",\n    \"mark\": \"a variant id of the mark\",\n    \"captions\": {{\"slot\": [\"a line\"]}}\n  }}\n]}}\n```\n\n\
+{{\"ideas\": [\n  {{\n    \"source\": \"ai\",\n    \"angle\": \"what sets this one apart, a few words\",\n    \"headline\": \"what the card is called\",\n    \"idea\": \"what the cover says, one or two sentences in the language of the work\",\n    \"scene\": \"what the picture shows, in English, for the generator: the hero, what they do, the objects around\",\n    \"avoid\": \"what this scene must keep out beyond the channel's bans, in English, or leave it out\",\n    \"hero\":\"a card id from the heroes, or leave it out\",\n    \"layout\": \"one of the layouts\",\n    \"size\": \"optional, moves the layout's frame; so do column, row, crop and place\",\n    \"style\": \"a style id\",\n    \"typography\": \"a lettering id\",\n    \"dressing\": \"a dressing id\",\n    \"background\": \"a ground id\",\n    \"accent\": \"#RRGGBB\",\n    \"mark\": \"a variant id of the mark\",\n    \"captions\": {{\"slot\": [\"a line\"]}}\n  }}\n]}}\n```\n\n\
 - Use the ids from the lists exactly; a name that is not in a list is left out of the idea.\n\
 - `idea` and `scene` are required; every other key may be left out.{refined}",
         plural = if total == 1 { "" } else { "s" },
@@ -1473,11 +1475,18 @@ mod tests {
         };
         let idea = Cover {
             hero: None,
+            avoid: "a drowned body".into(),
+            negative: "the idea's own words".into(),
             ..built()
         };
         let taken = taken_into(&cover, &idea);
         assert_eq!(taken.idea, idea.idea);
         assert_eq!(taken.scene, idea.scene);
+        assert_eq!(
+            taken.avoid, "a drowned body",
+            "what the scene keeps out goes with it"
+        );
+        assert_eq!(taken.negative, "", "the publication's own words stay");
         assert_eq!(
             taken.hero, None,
             "an idea without a card takes the card away"
@@ -1595,6 +1604,7 @@ mod tests {
                 "headline": "The keeper",
                 "idea": "Смотритель маяка",
                 "scene": "a keeper on a rock",
+                "avoid": "  a drowned body  ",
                 "layout": "poster",
                 "size": "huge",
                 "style": style.id,
@@ -1629,6 +1639,8 @@ mod tests {
         );
         assert_eq!(first.concept.accent.as_ref().unwrap().color, "#1E9E95");
         assert_eq!(first.concept.lettering.captions.len(), 1);
+        assert_eq!(first.concept.avoid, "a drowned body");
+        assert_eq!(read.ideas[1].concept.avoid, "");
         assert_eq!(read.ideas[1].concept.framing, None);
         assert_eq!(read.ideas[1].source, Source::Ai);
 

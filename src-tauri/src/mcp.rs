@@ -463,7 +463,8 @@ fn tools() -> Vec<Value> {
              Each idea is a concept the constructor shows: `idea` (what the cover says, in the \
              language of the work) and `scene` (what the picture shows, in English) are \
              required; `angle` (what sets it apart) and `headline` (what its card is called); \
-             `hero`, a card id from the heroes; `layout` and optionally `column`, `row`, \
+             `avoid`, what this scene must keep out beyond the channel's bans, in English - \
+             it goes with the scene into the negative; `hero`, a card id from the heroes; `layout` and optionally `column`, `row`, \
              `size`, `crop`, `place` to move its frame; `style`, `typography`, `dressing`, \
              `background`, brick ids; `accent`, a colour #RRGGBB or a name of the palette; \
              `mark`, a variant id whose meaning fits the song; `captions`, lines by slot of \
@@ -485,6 +486,7 @@ fn tools() -> Vec<Value> {
                         "headline": text_arg("What its card is called"),
                         "idea": text_arg("What the cover says, in the language of the work"),
                         "scene": text_arg("What the picture shows, in English, for a generator"),
+                        "avoid": text_arg("What this scene must keep out beyond the channel's bans, in English, or leave it out"),
                         "hero": text_arg("A card id from the heroes of `cover`, or leave it out"),
                         "layout": text_arg("One of the layouts of `cover`"),
                         "column": text_arg("left, centre or right"),

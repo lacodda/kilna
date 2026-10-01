@@ -138,6 +138,21 @@ describe('the constructor', () => {
     expect(sent()[0]?.picture).toBe('a paper lantern on dark water, seen from above')
   })
 
+  it('keeps what the scene keeps out on the cover, beside the scene', async () => {
+    backend.answer('cover_view', () => builtView())
+    await openCover(IDS.audio)
+
+    const box = screen.getByRole('textbox', { name: en.cover.avoid.title })
+    fireEvent.focus(box)
+    fireEvent.change(box, { target: { value: 'gallows, blood on the snow' } })
+    fireEvent.blur(box)
+
+    await waitFor(() => expect(sent()).toHaveLength(1))
+    expect(sent()[0]?.avoid).toBe('gallows, blood on the snow')
+    // The person's own negative is a word of its own and stays as it was.
+    expect(sent()[0]?.negative).toBe('')
+  })
+
   it('asks for the prompt in the shape picked among the doors', async () => {
     backend.answer('cover_view', ({ format }) =>
       builtView({ format: (format as string | null) ?? '16:9' }),

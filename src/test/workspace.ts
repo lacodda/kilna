@@ -103,6 +103,7 @@ export function coverOf(fields: Partial<Cover> = {}): Cover {
   return {
     idea: '',
     scene: '',
+    avoid: '',
     hero: null,
     framing: null,
     bricks: { style: null, typography: null, dressing: null, background: null },

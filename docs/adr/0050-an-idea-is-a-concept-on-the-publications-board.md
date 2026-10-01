@@ -102,3 +102,23 @@ changed).
   start the run it shows - "Make…" may have.
 - The markdown export does not carry the cover's concept or its board yet
   (wish recorded).
+
+## Amendment, v0.89.1: an idea keeps out what its scene risks
+
+Moving the owner's first ideas in showed what a concept could not say: many
+came with a warning about their own scene - the lines of the song invite
+blood or gallows the channel does not show, a god of love must be drawn grown
+and dressed or a generator's filter refuses the picture. The channel's bans
+are the channel's, the same for every cover; the person's own `negative` is
+the publication's and stays when an idea is taken in. Neither is the idea's.
+
+The cover gains `avoid`: what this scene keeps out beyond the channel's bans,
+in the generator's English. It is part of what an idea decides - read from
+an answer and from `propose_cover`, taken into the constructor with the
+scene, compared with it - and it is written into the negative of the cover
+and of the still drawn from it, after the bans and before the person's own
+words. A word of the cover's top level, like the scene, so the search finds
+it. Rejected: the warning in the idea's text (the idea never reaches a
+generator, and a warning is exactly what the negative is for); the idea's
+own `negative` taken over the publication's (it would erase what the person
+wrote for this publication).
