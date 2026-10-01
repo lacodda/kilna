@@ -40,12 +40,14 @@ pub enum Entity {
     /// A term of the register of repeats, with the works named as carrying
     /// it (ADR 0044).
     Term,
+    /// An idea on a cover's board (ADR 0050).
+    Idea,
 }
 
 impl Entity {
     /// Every kind of thing the trash holds. What a gate iterates rather than
     /// a list of its own that someone has to remember to extend.
-    pub const ALL: [Entity; 12] = [
+    pub const ALL: [Entity; 13] = [
         Entity::Work,
         Entity::Version,
         Entity::Score,
@@ -58,6 +60,7 @@ impl Entity {
         Entity::Style,
         Entity::Fact,
         Entity::Term,
+        Entity::Idea,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -74,6 +77,7 @@ impl Entity {
             Self::Style => "style",
             Self::Fact => "fact",
             Self::Term => "term",
+            Self::Idea => "idea",
         }
     }
 
@@ -93,6 +97,7 @@ impl Entity {
             "style" => Ok(Self::Style),
             "fact" => Ok(Self::Fact),
             "term" => Ok(Self::Term),
+            "idea" => Ok(Self::Idea),
             other => Err(Error::Internal(format!("unknown trash entity `{other}`"))),
         }
     }
@@ -112,6 +117,7 @@ impl Entity {
             Self::Style => "style_brick",
             Self::Fact => "canon_fact",
             Self::Term => "term",
+            Self::Idea => "cover_idea",
         }
     }
 }
@@ -237,6 +243,11 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "comment",
                 key: "work_id",
             },
+            // The ideas on its cover's board, for the comments' reason.
+            Capture {
+                table: "cover_idea",
+                key: "work_id",
+            },
             // The terms of the register that named it. The schema's cascade
             // takes the rows down with the work; captured so a song restored
             // carries its images again.
@@ -336,6 +347,11 @@ fn cascade(entity: Entity) -> &'static [Capture] {
         // A comment is one row and hangs nothing off itself.
         Entity::Comment => &[Capture {
             table: "comment",
+            key: "id",
+        }],
+        // So is an idea on a cover's board.
+        Entity::Idea => &[Capture {
+            table: "cover_idea",
             key: "id",
         }],
         // A brick and the pictures it was described from. The pictures are
@@ -787,13 +803,14 @@ const CHILDREN_OF_NOTE: &str = "deletion.entity = 'fact'
 /// into it, so they go with it. Qualified by table, because it is also read
 /// beside `json_each`, whose own columns include an `id`.
 const CHILDREN_OF_WORK: &str =
-    "deletion.entity IN ('version', 'score', 'release', 'note', 'comment')
+    "deletion.entity IN ('version', 'score', 'release', 'note', 'comment', 'idea')
      AND json_extract(deletion.snapshot, '$.' || (
          CASE deletion.entity
              WHEN 'version' THEN 'work_version'
              WHEN 'score' THEN 'work_score'
              WHEN 'release' THEN 'release'
              WHEN 'comment' THEN 'comment'
+             WHEN 'idea' THEN 'cover_idea'
              ELSE 'note'
          END
      ) || '[0].work_id') = ?1";
@@ -977,7 +994,8 @@ fn missing_parent(
         | Entity::Release
         | Entity::Note
         | Entity::Scene
-        | Entity::Comment => &[("work_id", "work")],
+        | Entity::Comment
+        | Entity::Idea => &[("work_id", "work")],
         // A stretch of a splice names two works and needs both: without the
         // short it belongs to nothing, and without the video it is seconds of
         // nowhere. Either being gone is the same refusal.
@@ -1137,6 +1155,19 @@ fn describe(
                 describe_row,
             )
             .optional()?,
+        // Named by its headline, or by what it says when it has none, and
+        // placed by the publication whose board it was on.
+        Entity::Idea => conn
+            .query_row(
+                "SELECT substr(coalesce(nullif(trim(i.headline), ''),
+                                       nullif(trim(json_extract(i.concept, '$.idea')), ''),
+                                       i.angle), 1, 80),
+                        w.title, i.profile_id
+                 FROM cover_idea i JOIN work w ON w.id = i.work_id WHERE i.id = ?1",
+                params![id],
+                describe_row,
+            )
+            .optional()?,
     };
 
     found.ok_or_else(|| Error::not_found(entity_label(entity), id))
@@ -1163,6 +1194,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Style => "style",
         Entity::Fact => "fact",
         Entity::Term => "term",
+        Entity::Idea => "idea",
     }
 }
 

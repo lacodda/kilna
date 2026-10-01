@@ -108,6 +108,18 @@ export type { CoverHeroState } from './generated/CoverHeroState'
 export type { CoverReference } from './generated/CoverReference'
 export type { CoverProblem } from './generated/CoverProblem'
 export type { SceneFrameView } from './generated/SceneFrameView'
+// The board of ideas for a publication's cover (v0.89, ADR 0050).
+export type { CoverBoard } from './generated/CoverBoard'
+export type { CoverIdea } from './generated/CoverIdea'
+export type { IdeaCard } from './generated/IdeaCard'
+export type { IdeaLook } from './generated/IdeaLook'
+export type { IdeaBrick } from './generated/IdeaBrick'
+export type { IdeaSource } from './generated/IdeaSource'
+export type { IdeaVerdict } from './generated/IdeaVerdict'
+export type { IdeaRequest } from './generated/IdeaRequest'
+export type { IdeaDropped } from './generated/IdeaDropped'
+export type { PackagedIdea } from './generated/PackagedIdea'
+export type { SiblingCover } from './generated/SiblingCover'
 export type { Publication } from './generated/Publication'
 export type { Publications } from './generated/Publications'
 export type { Basis as PublicationBasis } from './generated/Basis'
@@ -310,6 +322,7 @@ export type ReplyProposal = Extract<Proposal, { kind: 'reply' }>
 export type DescriptionProposal = Extract<Proposal, { kind: 'description' }>
 export type CanonProposalKind = Extract<Proposal, { kind: 'canon' }>
 export type CardPromptProposal = Extract<Proposal, { kind: 'cardPrompt' }>
+export type CoverIdeasProposal = Extract<Proposal, { kind: 'coverIdeas' }>
 
 // Data in and out.
 export type { ExportReport } from './generated/ExportReport'

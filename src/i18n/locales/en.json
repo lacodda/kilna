@@ -724,7 +724,8 @@
       "comment": "A comment was read off a screenshot",
       "reply": "A reply was drafted",
       "description": "A style description was written",
-      "release": "Release meta was proposed"
+      "release": "Release meta was proposed",
+      "coverIdeas": "Ideas for a cover were proposed"
     },
     "keepAsNote": "Keep as a note",
     "keepAsNoteTitle": "Keep as a note",
@@ -1191,7 +1192,9 @@
     "coverFormatsHint": "The shape of the picture a release of each kind goes out with, width to height: 16:9, 9:16, 1:1. Leave empty for no picture of its own.",
     "coverFormatInvalid": "Two whole numbers above zero with a colon between them, like 16:9.",
     "frameLine": "Works of this kind play under a frame for their whole length: a still picture and the loop of what moves in it.",
-    "coverLine": "Works of this kind go out under a cover built in the constructor: a picture, a negative and a title, written from what is chosen."
+    "coverLine": "Works of this kind go out under a cover built in the constructor: a picture, a negative and a title, written from what is chosen.",
+    "coverIdeas": "Ideas for the cover on “Make…”",
+    "coverIdeasHint": "When a clip, an audio or a short is made, the assistant proposes this many ideas for its cover, beside the release meta. 0 asks for none."
   },
   "fields": {
     "choiceNone": "Not set"
@@ -1313,7 +1316,8 @@
       "comment": "Comment",
       "style": "Style",
       "fact": "Fact",
-      "term": "Term"
+      "term": "Term",
+      "idea": "Idea"
     }
   },
   "journal": {
@@ -1344,7 +1348,8 @@
       "trash": "Trash",
       "undo": "Undo",
       "canon": "Canon",
-      "register": "Register"
+      "register": "Register",
+      "cover": "Cover"
     },
     "work.created": "“{{title}}” added.",
     "work.cloned": "“{{title}}” started as a second attempt, with {{scenes}} scenes copied.",
@@ -1418,7 +1423,9 @@
     "release.metaWritten_other": "{{count}} fields of “{{title}}” written by its action.",
     "upgrade.publicationsMoved_one": "Songs no longer go out themselves: {{count}} release moved onto an audio work ({{created}} made, {{converted}} turned from videos, {{linked}} linked by name).",
     "upgrade.publicationsMoved_other": "Songs no longer go out themselves: {{count}} releases moved onto audio works ({{created}} made, {{converted}} turned from videos, {{linked}} linked by name).",
-    "upgrade.publicationDisputed": "The audio of “{{title}}” holds more than one release through one door - keep one."
+    "upgrade.publicationDisputed": "The audio of “{{title}}” holds more than one release through one door - keep one.",
+    "proposal.coverIdeas": "{{client}} proposed ideas for the cover of “{{title}}”.",
+    "idea.deleted": "Idea “{{label}}” taken off the board."
   },
   "card": {
     "tab": {
@@ -1544,7 +1551,9 @@
     "term.create": "adding a term",
     "term.update": "an edit to a term",
     "term.link": "naming a work for a term",
-    "term.unlink": "letting a work go from a term"
+    "term.unlink": "letting a work go from a term",
+    "idea.create": "putting an idea on the board",
+    "idea.update": "a verdict on an idea"
   },
   "stage": {
     "label": "Stage",
@@ -2223,7 +2232,8 @@
       "releaseOtherWork": "The release “{{release}}” is not one of this work’s.",
       "workHasNoRelease": "“{{title}}” has no release to write for. A song goes out as what is made from it: propose for its clip, audio or short.",
       "whichRelease": "“{{title}}” has more than one release; name it by id: {{ids}}.",
-      "releaseFieldsUnread": "The fields could not be read: {{why}}."
+      "releaseFieldsUnread": "The fields could not be read: {{why}}.",
+      "ideasNotArray": "“ideas” must be a list of at least one idea."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
@@ -2259,7 +2269,10 @@
       "notReleaseAction": "“{{action}}” is not an action about a release.",
       "isReleaseAction": "“{{action}}” is about a release, not a work: start it from the release.",
       "actionAnswersRelease": "“{{action}}” writes what a release goes out under: start it from the release.",
-      "releaseHasNoFields": "A “{{releaseKind}}” release has no fields to write."
+      "releaseHasNoFields": "A “{{releaseKind}}” release has no fields to write.",
+      "isCoverAction": "“{{action}}” is about a cover’s board: start it on the Cover tab.",
+      "actionAnswersCover": "“{{action}}” proposes ideas for a cover: start it on the Cover tab.",
+      "notCoverAction": "“{{action}}” is not an action about a cover."
     },
     "style": {
       "needsName": "A style needs a name.",
@@ -2330,6 +2343,17 @@
       "accentNotHex": "An accent is a colour written #RRGGBB, not “{{value}}”.",
       "unknownMark": "There is no variant “{{id}}” of the channel's mark.",
       "markNotAVariant": "That fact is not a variant of the channel's mark."
+    },
+    "idea": {
+      "noCover": "“{{title}}” has no cover to have ideas for.",
+      "empty": "An idea needs words: what the cover says, or what it shows.",
+      "siblingWithoutWork": "A neighbour’s idea names the publication it came from.",
+      "workOfNoSibling": "Only a neighbour’s idea names a publication it came from.",
+      "notASibling": "That is not a publication of the same song as “{{title}}”.",
+      "siblingHasNoCover": "“{{title}}” has no cover built yet.",
+      "tooMany": "One run gives at most {{most}} ideas.",
+      "nothingAsked": "Ask for at least one idea, or write your own to be worked out.",
+      "noIdeas": "The answer holds no idea with words or a scene."
     }
   },
   "skip": {
@@ -2709,6 +2733,97 @@
     "commentsUnder_other": "{{count}} comments under its publications",
     "commentsWaiting_one": "{{count}} waiting",
     "commentsWaiting_other": "{{count}} waiting",
-    "noComments": "No comments under its publications yet."
+    "noComments": "No comments under its publications yet.",
+    "madeIdeas": "Ideas for its cover are on the way: {{count}}.",
+    "ideasNotStarted": "The cover’s ideas did not start. Ask for them on the board."
+  },
+  "ideas": {
+    "title": "Ideas",
+    "constructor": "Constructor",
+    "views": "The cover: ideas or the constructor",
+    "noMaster": "No master: everything starts on this board",
+    "savedAsMade": "Every choice is saved into the cover as it is made",
+    "composer": "Ask for ideas",
+    "own": "Your idea · optional",
+    "ownPlaceholder": "What the cover could show, in your own words",
+    "refine": "Work my idea out",
+    "fromAi": "Ideas from AI",
+    "generate": "Generate",
+    "putOwn": "Put on the board",
+    "more": "More in this direction · ★ {{stars}}",
+    "moreBoth": "More in this direction · ★ {{stars}} · ✕ {{rejected}}",
+    "moreHint": "The starred ideas go as examples, the turned-down ones as anti-examples",
+    "moreNeedsStars": "Star an idea first: it shows the direction",
+    "filter": "Show",
+    "filters": {
+      "all": "All",
+      "star": "Shortlist",
+      "mine": "Mine",
+      "sibling": "From neighbours",
+      "rejected": "Turned down"
+    },
+    "writing_one": "Writing {{count}} idea",
+    "writing_other": "Writing {{count}} ideas",
+    "stop": "Stop",
+    "board": "Ideas on the board",
+    "empty": "Nothing on the board yet. Write your idea above, or ask the assistant for some.",
+    "emptyFilter": "No idea under this filter.",
+    "untitled": {
+      "own": "My idea",
+      "refined": "My idea, worked out",
+      "ai": "An idea",
+      "sibling": "A neighbour’s cover",
+      "offered": "A neighbour’s cover"
+    },
+    "source": {
+      "own": "mine",
+      "refined": "worked out",
+      "ai": "AI",
+      "sibling": "neighbour",
+      "offered": "neighbour",
+      "from": "from “{{title}}”"
+    },
+    "fresh": "new",
+    "scheme": "The idea’s frame",
+    "noFrame": "No frame yet: this idea is words",
+    "mark": "mark {{code}}",
+    "star": "To the shortlist",
+    "reject": "Not that",
+    "delete": "Off the board",
+    "take": "Into the constructor",
+    "askFailed": "Could not ask for ideas.",
+    "stopFailed": "Could not stop the ideas.",
+    "addFailed": "Could not put the idea on the board.",
+    "judgeFailed": "Could not mark the idea.",
+    "takeFailed": "Could not take the idea into the constructor.",
+    "deleteFailed": "Could not take the idea off the board.",
+    "putFailed": "Could not put the ideas on the board.",
+    "agent": "{{client}} proposed ideas for this cover",
+    "anAgent": "An agent",
+    "putProposed": "Put on the board",
+    "all": "All ideas",
+    "shortlist": "The shortlist",
+    "proposed": "Ideas for the cover · {{count}}",
+    "putDone": "On the board: {{count}}",
+    "putMark": "On the board",
+    "openBoard": "Open the board",
+    "dropped": "Idea {{idea}}: {{part}} “{{value}}” is not in the workspace and was left out.",
+    "part": {
+      "idea": "an idea with no words",
+      "style": "the style",
+      "typography": "the lettering",
+      "dressing": "the dressing",
+      "background": "the ground",
+      "hero": "the hero",
+      "mark": "the mark",
+      "accent": "the accent",
+      "layout": "the layout",
+      "column": "the column",
+      "row": "the row",
+      "size": "the size",
+      "crop": "the crop",
+      "place": "the title’s place"
+    },
+    "preview": "What will be sent"
   }
 }

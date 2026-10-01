@@ -567,7 +567,11 @@ fn slots_of(parts: &Ingredients) -> Vec<String> {
 }
 
 /// The shapes a work's covers take, held or not.
-fn formats_of(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<Vec<CoverFormat>> {
+pub(super) fn formats_of(
+    conn: &Connection,
+    config: &ProfileConfig,
+    work: &Work,
+) -> Result<Vec<CoverFormat>> {
     let doors: Vec<String> = crate::release::for_work(conn, &work.profile_id, &work.id)?
         .into_iter()
         .map(|scheduled| scheduled.release.kind)
@@ -591,7 +595,7 @@ fn formats_of(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<
 
 /// The shape asked for, when the work has a door of it; else the first door
 /// it goes out through; else its kind's first; else a square.
-fn shape_for(formats: &[CoverFormat], asked: Option<&str>) -> Shape {
+pub(super) fn shape_for(formats: &[CoverFormat], asked: Option<&str>) -> Shape {
     let pick = asked
         .and_then(|asked| formats.iter().find(|format| format.format == asked.trim()))
         .or_else(|| formats.iter().find(|format| format.held))

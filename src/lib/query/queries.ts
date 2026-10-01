@@ -54,6 +54,7 @@ import {
   styleBrickReferences,
   styleSlotValues,
 } from '@/lib/api/styles'
+import { coverBoard } from '@/lib/api/ideas'
 import { listDeletions } from '@/lib/api/trash'
 import type { CardFilter, CommentFilter, Lens, NoteFilter, TaskAbout } from '@/lib/api/types'
 import { getVersion, listVersions } from '@/lib/api/versions'
@@ -97,6 +98,8 @@ export const queries = {
       queryKey: keys.coverView(workId, format),
       queryFn: () => coverView(workId, format),
     }),
+  coverBoard: (workId: string) =>
+    queryOptions({ queryKey: keys.coverBoard(workId), queryFn: () => coverBoard(workId) }),
   frameView: (workId: string) =>
     queryOptions({ queryKey: keys.frameView(workId), queryFn: () => frameView(workId) }),
   sceneFrameView: (sceneId: string) =>

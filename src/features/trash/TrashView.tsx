@@ -48,6 +48,7 @@ const ENTITY_KEYS: Record<DeletedEntity, string> = {
   style: 'trash.entity.style',
   fact: 'trash.entity.fact',
   term: 'trash.entity.term',
+  idea: 'trash.entity.idea',
 }
 
 function entityLabel(entity: DeletedEntity, t: (key: string) => string): string {

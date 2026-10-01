@@ -135,6 +135,8 @@ pub fn reversible(kind: &str) -> bool {
             | "term.update"
             | "term.link"
             | "term.unlink"
+            | "idea.create"
+            | "idea.update"
     )
 }
 
@@ -221,6 +223,15 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             let patch: crate::comment::CommentPatch = from_params(params, "before")?;
             apply(conn, |tx| {
                 crate::comment::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // A star or a "not that" goes back to what the idea had: none, or
+        // the other one.
+        "idea.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::cover::idea::IdeaPatch = from_params(params, "before")?;
+            apply(conn, |tx| {
+                crate::cover::idea::update_at(tx, &id, patch, &at).map(|_| ())
             })?;
         }
         // The written description goes back to what stood there, blank
@@ -510,7 +521,7 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
         // an undo would be gone in a way nothing else in kilna is.
         "work.create" | "work.clone" | "note.create" | "collection.create" | "release.create"
         | "version.create" | "scene.create" | "cut.create" | "comment.create" | "style.create"
-        | "fact.create" | "term.create" => {
+        | "fact.create" | "term.create" | "idea.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -639,6 +650,7 @@ fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
         "style.create" => crate::trash::Entity::Style,
         "fact.create" => crate::trash::Entity::Fact,
         "term.create" => crate::trash::Entity::Term,
+        "idea.create" => crate::trash::Entity::Idea,
         other => return Err(Error::Internal(format!("`{other}` creates nothing"))),
     };
     Ok((entity, required(&entry.params, "id")?))

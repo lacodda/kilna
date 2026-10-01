@@ -1,6 +1,6 @@
 ---
 title: The cover
-description: Building a publication's cover from parts - the idea, the hero, a built frame, the styles, the channel's mark and details - and the prompt written from them.
+description: Building a publication's cover from parts - the idea, the hero, a built frame, the styles, the channel's mark and details - starting from a board of ideas, and the prompt written from them.
 ---
 
 A clip, an audio release and a short go out under a picture, and the picture
@@ -10,9 +10,85 @@ on it, how they stand in the frame, the styles it is drawn in, the channel's
 mark and signature details. Every choice is kept on the publication, and the
 prompt is written from them on the spot.
 
-The tab has two columns. On the left, what the cover is built from. On the
-right, what that makes: the frame drawn in the shape of the release, the
-prompt to copy, the files to hand the generator, and what came back.
+The tab has two halves, switched at its top: **Ideas**, a board of ideas for
+the cover, and **Constructor**, where one is built. A cover with nothing in it
+opens on the ideas; one that holds anything opens on the constructor.
+
+The constructor has two columns. On the left, what the cover is built from.
+On the right, what that makes: the frame drawn in the shape of the release,
+the prompt to copy, the files to hand the generator, and what came back.
+
+## The board of ideas
+
+There is no wizard: every cover starts here or straight in the constructor.
+
+**Your idea** is optional - a sentence of what the cover could show, in your
+own words. **Generate** puts it on the board as your own, and asks the
+assistant for ideas: as many of its own as you pick (0 to 5), and, with
+**Work my idea out** ticked, your idea worked out into one more - your hero
+and your moment, with a frame, objects, a style and a mark added. With no
+ideas asked from the assistant, the button just puts your idea on the board.
+The eye beside it shows what will be sent before anything is.
+
+While the assistant writes, skeletons stand where the ideas will be, with the
+time it has taken and **Stop**. The ideas land on the board as the answer
+comes, marked *new*.
+
+Each card shows where the idea came from - yours, worked out, the
+assistant's, a neighbour's - and its angle, the frame drawn small with the
+style's picture in its corner, its headline and idea, and what it is built
+from: the style and the ground, the layout and the status of the mark.
+Three things to do with it:
+
+- **★ To the shortlist** - the ideas you like; they also show the direction
+  for more;
+- **✕ Not that** - turned down: the card steps back, and the assistant is told
+  to stay away from it. A turned-down idea can be taken off the board, into
+  the trash;
+- **Into the constructor** - the cover becomes what the idea decides: its
+  idea and scene, the hero, the frame, the four bricks, the accent, the mark's
+  variant and the captions. What belongs to the publication stays: the
+  lettered title, where and how the mark goes, the switches of the channel's
+  details and your own words. An idea of words alone changes only the idea.
+  It is an ordinary edit of the cover - undo takes it back.
+
+**More in this direction** asks for new ideas with the shortlist as examples
+of what is wanted and the turned-down ones as what is not.
+
+**From neighbours.** The covers of the other publications of the same song -
+the clip's, the audio's, a short's - lie on the board as cards of their own,
+fitted to this publication's shape: in a tall frame a layout built around a
+side is centred, and a title kept to a side goes to the top. Taken into the
+constructor, the neighbour's cover is copied, not linked; starred or turned
+down, it is copied onto the board as it stands.
+
+The filters - all, the shortlist, mine, from neighbours, turned down - count
+what each holds. In the constructor, the shortlist stands over the idea:
+one press builds the cover from another starred idea.
+
+**Make… starts the ideas.** Making a clip, an audio or a short from a song
+asks for ideas for its cover beside its release meta, and lands on the board
+while both are written. How many is a setting of the profile - three unless
+it says otherwise, 0 for none - in **Settings → Profile**.
+
+### How the assistant thinks of a cover
+
+The action is the profile's - **Cover ideas** in Studio, with its method in
+**Settings → Profile → Actions**. It is given what is asked and what stands on
+the board, the song the publication is made from, the canon a picture may
+see, and everything a cover is built from, each with the id to name it by:
+the layouts and their settings, the bricks with when to reach for each (the
+channel's house styles marked), the palette, the variants of the mark with
+what each means, the heroes of the canon, and what the channel never shows in
+a picture. Its method asks for one moment of the song through one hero,
+drawable objects from the song's own images, ideas that differ by angle
+rather than colour, the mark's status chosen by the song's meaning, the house
+styles more often, and never anything the channel bans.
+
+It answers with a block of concepts. Every name in it is looked up by id or
+by name; one that is not in the workspace is left out of its idea and said,
+and the rest of the idea lands. See
+[ADR 0050](https://github.com/lacodda/kilna/blob/main/docs/adr/0050-an-idea-is-a-concept-on-the-publications-board.md).
 
 ## What a cover is built from
 

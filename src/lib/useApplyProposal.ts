@@ -19,7 +19,7 @@ interface Options {
 
 /** How many operations applying wrote: the work, each version, the score, each note, the
  * fields, each scene written, each scene a replaced board sent to the trash, a style's
- * description, and each card, fact and relation of the canon. */
+ * description, each card, fact and relation of the canon, and each idea put on a board. */
 export function writesOf(applied: Applied): number {
   return (
     (applied.created_work === true ? 1 : 0) +
@@ -32,7 +32,8 @@ export function writesOf(applied: Applied): number {
     (applied.style_brick !== undefined ? 1 : 0) +
     (applied.cards?.length ?? 0) +
     (applied.facts?.length ?? 0) +
-    (applied.relations?.length ?? 0)
+    (applied.relations?.length ?? 0) +
+    (applied.ideas?.length ?? 0)
   )
 }
 

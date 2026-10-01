@@ -46,7 +46,8 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   // A heading of the board, drawn only once its scenes have arrived: since
   // v0.81 every cell is a field, and what a scene says is a field's value.
   [IDS.video, 'scenes', en.scenes.readiness],
-  [IDS.video, 'cover', '16:9 · YouTube'],
+  // A cover with nothing in it opens on its board of ideas (v0.89).
+  [IDS.video, 'cover', en.ideas.own],
   [IDS.video, 'cuts', 'Paper Lanterns'],
   [IDS.video, 'score', 'Paper Lanterns (clip)'],
   [IDS.video, 'releases', 'Paper Lanterns (clip)'],

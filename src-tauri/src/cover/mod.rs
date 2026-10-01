@@ -9,6 +9,9 @@
 //! dictionary, the mark, the details, and the prompt is written from them in
 //! code (ADR 0049).
 //!
+//! Before it is settled, a cover is looked for on a board of ideas - each
+//! a concept of this same shape, kept in [`idea`] (ADR 0050).
+//!
 //! One record per publication, in `work.cover`. Its parts that are words -
 //! the idea, the scene and the person's own words for each block - stand at
 //! the top of the JSON, so the search finds them as it found the blocks
@@ -23,6 +26,7 @@
 #[cfg(test)]
 mod agreement;
 pub mod framing;
+pub mod idea;
 pub mod prompt;
 pub mod read;
 

@@ -287,7 +287,9 @@ export interface TaskSubject {
  * say, not the key's.
  */
 export function subjectOf(key: string): TaskSubject {
-  const [action = '', second] = key.split(':')
+  const [action = '', second, third] = key.split(':')
+  // A board's task names its publication third: `cover-ideas:cover:<work>`.
+  if (second === 'cover') return { action, workId: third ?? null }
   if (
     second === undefined ||
     second === '' ||

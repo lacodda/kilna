@@ -452,6 +452,74 @@ fn longest_backtick_run(text: &str) -> usize {
     longest
 }
 
+/// Ideas for a cover as a person reads them before putting them on the
+/// board: each with its headline and angle, what it says, and what it is
+/// built from; then what was left out, and why.
+pub fn render_ideas(
+    conn: &rusqlite::Connection,
+    ideas: &[crate::cover::idea::Packaged],
+    dropped: &[crate::cover::idea::Dropped],
+) -> String {
+    let mut out = String::new();
+    for (index, idea) in ideas.iter().enumerate() {
+        let headline = if idea.headline.is_empty() {
+            format!("Idea {}", index + 1)
+        } else {
+            idea.headline.clone()
+        };
+        out.push_str(&format!("**{headline}**"));
+        if !idea.angle.is_empty() {
+            out.push_str(&format!(" · _{}_", idea.angle));
+        }
+        out.push('\n');
+        if !idea.concept.idea.trim().is_empty() {
+            out.push_str(&format!("\n{}\n", idea.concept.idea.trim()));
+        }
+        if !idea.concept.scene.trim().is_empty() {
+            out.push_str(&format!("\n> {}\n", idea.concept.scene.trim()));
+        }
+        let mut parts = Vec::new();
+        if let Some(framing) = idea.concept.framing {
+            parts.push(
+                serde_json::to_value(framing.layout)
+                    .ok()
+                    .and_then(|value| value.as_str().map(str::to_owned))
+                    .unwrap_or_default(),
+            );
+        }
+        for id in [
+            &idea.concept.bricks.style,
+            &idea.concept.bricks.typography,
+            &idea.concept.bricks.dressing,
+            &idea.concept.bricks.background,
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if let Ok(Some(brick)) = crate::style_brick::get(conn, id) {
+                parts.push(brick.name);
+            }
+        }
+        if let Some(accent) = &idea.concept.accent {
+            parts.push(accent.said());
+        }
+        if !parts.is_empty() {
+            out.push_str(&format!("\n{}\n", parts.join(" · ")));
+        }
+        out.push('\n');
+    }
+    if !dropped.is_empty() {
+        out.push_str("Left out, not in the workspace:\n");
+        for one in dropped {
+            out.push_str(&format!(
+                "- idea {}: {} “{}”\n",
+                one.idea, one.part, one.value
+            ));
+        }
+    }
+    out.trim_end().to_owned()
+}
+
 /// The message meta a proposal from outside the window is stored with.
 pub fn proposal_meta(
     client: &str,

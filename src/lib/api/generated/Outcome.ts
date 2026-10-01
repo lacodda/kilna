@@ -49,4 +49,8 @@ relations?: Array<string>,
 /**
  * The fields of a release written, by key.
  */
-release_fields?: Array<string>, };
+release_fields?: Array<string>, 
+/**
+ * Ideas put on a cover's board.
+ */
+ideas?: Array<string>, };

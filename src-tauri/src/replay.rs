@@ -226,6 +226,19 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             crate::comment::update_at(conn, &id, patch, &at)?;
         }
 
+        "idea.create" => {
+            let profile_id = workspace_profile(conn, params)?;
+            let new = from_params(params, "idea")?;
+            crate::cover::idea::create_minted(conn, &profile_id, new, minted(params)?)?;
+        }
+
+        "idea.update" => {
+            let id = required(params, "id")?;
+            let patch = from_params(params, "patch")?;
+            let at = required(params, "at")?;
+            crate::cover::idea::update_at(conn, &id, patch, &at)?;
+        }
+
         "note.promote" => {
             let profile_id = workspace_profile(conn, params)?;
             let id = required(params, "id")?;

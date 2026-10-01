@@ -230,6 +230,12 @@ pub fn compose(
                 Error::refused("task.isReleaseAction").param("action", template.label.as_str())
             );
         }
+        // Composed by `compose_for_cover`, against the board of ideas.
+        (Scope::Cover, _) => {
+            return Err(
+                Error::refused("task.isCoverAction").param("action", template.label.as_str())
+            );
+        }
     };
 
     // One block of that scene, when the action is aimed at one. Refused
@@ -328,6 +334,12 @@ pub fn compose(
         Produces::Release => {
             return Err(Error::refused("task.actionAnswersRelease")
                 .param("action", template.label.as_str()));
+        }
+        // Only an action about a cover's board proposes ideas for it.
+        Produces::CoverIdeas => {
+            return Err(
+                Error::refused("task.actionAnswersCover").param("action", template.label.as_str())
+            );
         }
     }
 
@@ -1106,6 +1118,95 @@ pub fn prepare_for_release(conn: &Connection, release_id: &str, action: &str) ->
     prepared(conn, &profile_id, composed, work_id, action)
 }
 
+/// The key of a task about a cover's board of ideas: this action, on this
+/// publication's cover. One run at a time per board: a second click while
+/// ideas are being written is the same task.
+pub fn cover_key(action: &str, work_id: &str) -> String {
+    format!("{action}:cover:{work_id}")
+}
+
+/// The publication whose board a task key names, when it names one.
+pub fn cover_of_key(key: &str) -> Option<&str> {
+    let mut parts = key.splitn(3, ':');
+    parts.next()?;
+    (parts.next()? == "cover").then(|| parts.next()).flatten()
+}
+
+/// Compose `action` against a publication's board of ideas (v0.89, ADR
+/// 0050): the template is rendered against the work, the way any action is,
+/// and two placeholders only a board has - `{ideas}`, what is asked and what
+/// already stands on the board, and `{choices}`, everything an idea may be
+/// built from, with the ids to name it by. The answer is asked for as a
+/// block of concepts, the same shape an agent's `propose_cover` takes.
+pub fn compose_for_cover(
+    conn: &Connection,
+    work_id: &str,
+    action: &str,
+    request: &crate::cover::idea::IdeaRequest,
+) -> Result<(Composed, String)> {
+    let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
+    let template = profile
+        .config
+        .prompts
+        .iter()
+        .find(|prompt| prompt.key == action)
+        .ok_or_else(|| Error::not_found("prompt", action))?;
+    if template.scope() != Scope::Cover || template.produces() != Produces::CoverIdeas {
+        return Err(Error::refused("task.notCoverAction").param("action", template.label.as_str()));
+    }
+    let work = work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
+    if !template.applies_to(&work.kind) || !profile.config.vocabulary(&work.kind).cover {
+        return Err(Error::refused("task.wrongKindForAction")
+            .param("action", template.label.as_str())
+            .param("kind", work.kind.clone()));
+    }
+    request.check()?;
+
+    let rendered = super::prompt::for_work(conn, &work.id, &template.template, Context::default())?;
+    // After the work's own placeholders, so the words already on the board -
+    // which may hold braces of their own - are not rendered a second time.
+    let mut prompt = rendered
+        .replace(
+            "{ideas}",
+            &crate::cover::idea::request_sheet(conn, &work, request)?,
+        )
+        .replace(
+            "{choices}",
+            &crate::cover::idea::choices_sheet(conn, &work)?,
+        );
+    prompt.push_str(&crate::cover::idea::instruction(request));
+    let prompt = super::waiting::instruct(&prompt);
+
+    Ok((
+        Composed {
+            prompt,
+            method: template.method().map(str::to_owned),
+            key: cover_key(action, &work.id),
+            title: format!("{} · {}", template.label, work.title),
+            attachments: Vec::new(),
+        },
+        profile.id,
+    ))
+}
+
+/// [`compose_for_cover`] with the chat it will be answered in: on the
+/// publication.
+pub fn prepare_for_cover(
+    conn: &Connection,
+    work_id: &str,
+    action: &str,
+    request: &crate::cover::idea::IdeaRequest,
+) -> Result<Prepared> {
+    let (composed, profile_id) = compose_for_cover(conn, work_id, action, request)?;
+    prepared(
+        conn,
+        &profile_id,
+        composed,
+        Some(work_id.to_owned()),
+        action,
+    )
+}
+
 /// A composed task with a new chat of its own.
 fn prepared(
     conn: &Connection,
@@ -1204,6 +1305,102 @@ mod tests {
 
     fn action_of_key_str(key: &str) -> &str {
         key.split(':').next().unwrap_or_default()
+    }
+
+    /// Asking a board for ideas reads what is asked and what stands on it,
+    /// everything an idea is built from, and the block to answer with; the
+    /// key names the board, so a second ask while one runs is the same task.
+    #[test]
+    fn a_cover_task_reads_the_board_and_the_choices() {
+        let (conn, profile_id) = fixtures::workspace();
+        crate::style_set::seed(&conn).unwrap();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Harbour lights — audio");
+        link::create(
+            &conn,
+            &profile_id,
+            NewLink {
+                work_id: audio.id.clone(),
+                source_id: song.id.clone(),
+                role: None,
+                source_version_id: None,
+            },
+        )
+        .unwrap();
+        let turned_down =
+            crate::actions::idea::add_own(&conn, &audio.id, "a storm over the harbour").unwrap();
+        crate::actions::idea::judge(
+            &conn,
+            &turned_down.id,
+            Some(crate::cover::idea::Verdict::Rejected),
+        )
+        .unwrap();
+
+        let request = crate::cover::idea::IdeaRequest {
+            count: 2,
+            refine: Some("the keeper asleep by the lamp".into()),
+            more: false,
+        };
+        let (composed, _) = compose_for_cover(&conn, &audio.id, "cover-ideas", &request).unwrap();
+        assert_eq!(composed.key, cover_key("cover-ideas", &audio.id));
+        assert_eq!(cover_of_key(&composed.key), Some(audio.id.as_str()));
+        assert!(composed.method.is_some());
+        let prompt = &composed.prompt;
+        assert!(prompt.contains("2 new ideas"), "{prompt}");
+        assert!(prompt.contains("the keeper asleep by the lamp"));
+        assert!(
+            prompt.contains("a storm over the harbour"),
+            "a turned-down idea is an anti-example"
+        );
+        assert!(
+            prompt.contains("`emblemRight`"),
+            "the layouts are listed by name"
+        );
+        assert!(
+            prompt.contains("```json"),
+            "the block to answer with is spelled out"
+        );
+        assert!(prompt.contains("exactly 3 ideas"));
+        assert!(!prompt.contains("{ideas}") && !prompt.contains("{choices}"));
+    }
+
+    #[test]
+    fn a_cover_task_is_refused_where_there_is_no_board_or_nothing_is_asked() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Harbour lights — audio");
+        let three = crate::cover::idea::IdeaRequest {
+            count: 3,
+            ..Default::default()
+        };
+        let code = |result: Result<(Composed, String)>| {
+            result.unwrap_err().refusal().map(|refusal| refusal.code)
+        };
+        assert_eq!(
+            code(compose_for_cover(&conn, &song.id, "cover-ideas", &three)),
+            Some("task.wrongKindForAction")
+        );
+        assert_eq!(
+            code(compose_for_cover(
+                &conn,
+                &audio.id,
+                "cover-ideas",
+                &crate::cover::idea::IdeaRequest::default()
+            )),
+            Some("idea.nothingAsked")
+        );
+        assert_eq!(
+            code(compose_for_cover(&conn, &audio.id, "release-meta", &three)),
+            Some("task.notCoverAction")
+        );
+        // And a work action never composes one.
+        assert_eq!(
+            compose(&conn, &audio.id, "cover-ideas", About::default())
+                .unwrap_err()
+                .refusal()
+                .map(|refusal| refusal.code),
+            Some("task.isCoverAction")
+        );
     }
 
     /// A clip made from a work, as the audience meets it.

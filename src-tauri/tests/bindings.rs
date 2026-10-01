@@ -62,6 +62,11 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::actions::work::Made,
         kilna_lib::cover::read::CoverView,
         kilna_lib::cover::read::FrameView,
+        // ideas.rs
+        kilna_lib::cover::idea::CoverBoard,
+        kilna_lib::cover::idea::CoverIdea,
+        kilna_lib::cover::idea::Verdict,
+        kilna_lib::cover::idea::IdeaRequest,
         kilna_lib::actions::BulkOutcome,
         kilna_lib::score::ScoredWork,
         kilna_lib::card::Counts,

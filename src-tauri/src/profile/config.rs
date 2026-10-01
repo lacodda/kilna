@@ -106,6 +106,11 @@ pub struct ProfileConfig {
     /// without it is the same document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub overview: Option<OverviewConfig>,
+    /// How many ideas for its cover a publication is given when it is made
+    /// ("Make a clip"), 0 to 5; 0 asks for none. Absent means three. Added
+    /// in v0.89 - a document without it is the same document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover_ideas: Option<u8>,
 }
 
 /// A profile document as it is written, in either format.
@@ -146,6 +151,8 @@ pub struct RawProfileConfig {
     pub style_types: Vec<StyleType>,
     #[serde(default)]
     pub overview: Option<OverviewConfig>,
+    #[serde(default)]
+    pub cover_ideas: Option<u8>,
     // Format 1: the vocabulary, flat on the profile.
     #[serde(default)]
     pub release_kinds: Vec<ReleaseKind>,
@@ -202,6 +209,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             relation_kinds: raw.relation_kinds,
             style_types: raw.style_types,
             overview: raw.overview,
+            cover_ideas: raw.cover_ideas,
         }
     }
 }
@@ -2014,6 +2022,13 @@ impl ProfileConfig {
         self.kind(kind).unwrap_or(&NO_KIND)
     }
 
+    /// How many ideas for its cover a publication is given when it is made.
+    pub fn ideas_on_make(&self) -> u8 {
+        self.cover_ideas
+            .unwrap_or(crate::cover::idea::ON_MAKE)
+            .min(crate::cover::idea::MOST)
+    }
+
     /// The overview fields a work of `kind` has, in the profile's order.
     pub fn fields_of(&self, kind: &str) -> Vec<&MetaField> {
         self.work_meta_fields
@@ -2280,6 +2295,15 @@ impl ProfileConfig {
             kind.validate_into(&mut problems, &place, &self.note_kinds);
         }
 
+        if let Some(count) = self.cover_ideas
+            && count > crate::cover::idea::MOST
+        {
+            problems.push(format!(
+                "a publication is given at most {} ideas for its cover when it is made, not {count}",
+                crate::cover::idea::MOST
+            ));
+        }
+
         if let Some(rhythm) = &self.rhythm {
             if rhythm.every_days == 0 {
                 problems.push("the rhythm must be at least one day".into());
@@ -2309,8 +2333,8 @@ impl ProfileConfig {
     /// its text placeholder and sent critiques of nothing for a month.
     fn validate_prompts(&self, problems: &mut Vec<String>) {
         use crate::assistant::prompt::{
-            CANON_SCOPE, COMMENT_SCOPE, Produces, RELEASE_SCOPE, SCENE_SCOPE, SELECTION_SCOPE,
-            STYLE_SCOPE, Scope, is_known_placeholder,
+            CANON_SCOPE, COMMENT_SCOPE, COVER_SCOPE, Produces, RELEASE_SCOPE, SCENE_SCOPE,
+            SELECTION_SCOPE, STYLE_SCOPE, Scope, is_known_placeholder,
         };
 
         unique(
@@ -2338,15 +2362,16 @@ impl ProfileConfig {
                 && scope != CANON_SCOPE
                 && scope != SELECTION_SCOPE
                 && scope != RELEASE_SCOPE
+                && scope != COVER_SCOPE
                 && scope != "work"
             {
                 problems.push(format!(
-                        "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment`, `canon` or `release`, not `{scope}`"
+                        "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment`, `canon`, `release` or `cover`, not `{scope}`"
                     ));
             }
             if !prompt.produces_is_known() {
                 problems.push(format!(
-                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment`, `reply`, `description`, `canon`, `card-prompt` or `release`, not `{}`",
+                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment`, `reply`, `description`, `canon`, `card-prompt`, `release` or `cover-ideas`, not `{}`",
                     prompt.produces.as_deref().unwrap_or_default().trim()
                 ));
             }
@@ -2482,6 +2507,11 @@ impl ProfileConfig {
                         "{place} produces `release`, which only an action about a release can: give it `\"scope\": \"release\"`"
                     ));
                 }
+                Produces::CoverIdeas if prompt.scope() != Scope::Cover => {
+                    problems.push(format!(
+                        "{place} produces `cover-ideas`, which only an action about a cover can: give it `\"scope\": \"cover\"`"
+                    ));
+                }
                 Produces::Score
                 | Produces::Prose
                 | Produces::Comment
@@ -2489,7 +2519,8 @@ impl ProfileConfig {
                 | Produces::Description
                 | Produces::Canon
                 | Produces::CardPrompt
-                | Produces::Release => {}
+                | Produces::Release
+                | Produces::CoverIdeas => {}
             }
             // An action about a release writes what it goes out under, and is
             // offered only where there is a release: on a kind that goes out.
@@ -2517,6 +2548,34 @@ impl ProfileConfig {
             {
                 problems.push(format!(
                     "{place} reads `{{{name}}}` but is not about a release: give it `\"scope\": \"release\"`"
+                ));
+            }
+            // An action about a cover's board proposes ideas for it, and is
+            // offered only where there is a board: on a kind with a cover.
+            if prompt.scope() == Scope::Cover {
+                if prompt.produces() != Produces::CoverIdeas {
+                    problems.push(format!(
+                        "{place} is about a cover and must produce `cover-ideas`"
+                    ));
+                }
+                let missing = lacking(&|kind: &WorkKind| kind.cover);
+                if !missing.is_empty() {
+                    problems.push(format!(
+                        "{place} is about a cover, but {} {} no cover",
+                        missing.join(", "),
+                        if missing.len() == 1 { "has" } else { "have" }
+                    ));
+                }
+            }
+            // `{ideas}` and `{choices}` are filled only for an action about a
+            // cover; anywhere else they would be sent as written.
+            if prompt.scope() != Scope::Cover
+                && let Some(name) = placeholders
+                    .iter()
+                    .find(|name| *name == "ideas" || *name == "choices")
+            {
+                problems.push(format!(
+                    "{place} reads `{{{name}}}` but is not about a cover: give it `\"scope\": \"cover\"`"
                 ));
             }
             // An action about a card gathers facts or describes it; anything
@@ -3356,6 +3415,80 @@ mod tests {
                 .validate()
                 .iter()
                 .any(|p| p.contains("is about a release and must produce `release`"))
+        );
+    }
+
+    /// An action about a cover is offered where there is a board - on a kind
+    /// with a cover - reads `{ideas}` and `{choices}` only there, and answers
+    /// with ideas. The shipped one is valid as it ships.
+    #[test]
+    fn an_action_about_a_cover_is_held_to_boards() {
+        let mut config = studio();
+        let shipped = config
+            .prompts
+            .iter()
+            .find(|prompt| prompt.key == "cover-ideas")
+            .expect("Studio ships the cover's ideas")
+            .clone();
+        assert_eq!(shipped.scope(), crate::assistant::prompt::Scope::Cover);
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
+
+        let mut about = action("Ideas for {title}: {ideas} {choices}");
+        about.scope = Some("cover".into());
+        about.produces = Some("cover-ideas".into());
+        about.kinds = vec!["song".into()];
+        config.prompts = vec![about.clone()];
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("is about a cover, but `song` has no cover")),
+            "{:?}",
+            config.validate()
+        );
+
+        let mut loose = action("Ideas for {title}: {ideas}");
+        loose.produces = Some("cover-ideas".into());
+        config.prompts = vec![loose];
+        let problems = config.validate().join("\n");
+        assert!(
+            problems.contains("which only an action about a cover can"),
+            "{problems}"
+        );
+        assert!(
+            problems.contains("reads `{ideas}` but is not about a cover"),
+            "{problems}"
+        );
+
+        let mut prose = about;
+        prose.kinds = vec!["audio".into()];
+        prose.produces = None;
+        config.prompts = vec![prose];
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("is about a cover and must produce `cover-ideas`"))
+        );
+    }
+
+    /// How many ideas a "Make…" asks for: three when the profile says
+    /// nothing, never more than a run gives.
+    #[test]
+    fn the_ideas_on_make_default_to_three_and_stop_at_five() {
+        let mut config = studio();
+        assert_eq!(config.ideas_on_make(), 3);
+        config.cover_ideas = Some(0);
+        assert_eq!(config.ideas_on_make(), 0);
+        assert!(config.validate().is_empty());
+        config.cover_ideas = Some(9);
+        assert!(
+            config
+                .validate()
+                .iter()
+                .any(|p| p.contains("at most 5 ideas")),
+            "{:?}",
+            config.validate()
         );
     }
 

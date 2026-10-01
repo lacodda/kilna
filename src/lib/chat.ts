@@ -104,6 +104,11 @@ const proposalOf = (message: Message): Proposal | null => {
       return typeof (proposal as Partial<{ note_id: unknown }>).note_id === 'string'
         ? (proposal as Proposal)
         : null
+    // Ideas for a cover (v0.89), put on its board.
+    case 'coverIdeas':
+      return Array.isArray((proposal as Partial<{ ideas: unknown }>).ideas)
+        ? (proposal as Proposal)
+        : null
     default:
       return null
   }
@@ -243,7 +248,8 @@ export function offers(item: Exchange, onWork: boolean): Offers {
     kind === 'scenes' ||
     kind === 'comment' ||
     kind === 'reply' ||
-    kind === 'description'
+    kind === 'description' ||
+    kind === 'coverIdeas'
   return {
     insert: onWork && settled && !ownCard,
     keep: settled && !ownCard && kind !== 'note',

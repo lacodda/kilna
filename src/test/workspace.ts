@@ -961,6 +961,9 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_links: ({ workId }) => linksOf(studio, workId as string),
     list_publications: ({ workId }) => publicationsOf(studio, workId as string),
     frame_view: ({ id }) => frameViewOf(studio, id as string),
+    // A board with nothing on it yet: the smoke opens the Cover tab on its
+    // ideas, and a cover's own tests give it the cards they need.
+    cover_board: () => ({ format: '16:9', ideas: [], siblings: [] }),
     cover_view: ({ id, format }) =>
       coverViewOf(studio, id as string, (format as string | null | undefined) ?? null),
     release_proposals: () => [],

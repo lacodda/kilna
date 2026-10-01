@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
-import type { Cover, CoverView } from '@/lib/api/types'
+import type { Cover, CoverBoard, CoverView } from '@/lib/api/types'
 import { Button } from '@/components/ui/button'
 import { Pane } from '@/components/frame'
 import { BrickPick } from '@/features/cover/BrickPick'
@@ -13,11 +13,16 @@ import { BackgroundPick } from '@/features/work/tabs/cover/BackgroundPick'
 import { CaptionSlots } from '@/features/work/tabs/cover/CaptionSlots'
 import { MarkPick } from '@/features/work/tabs/cover/MarkPick'
 import { TitleField } from '@/features/work/tabs/cover/TitleField'
+import { Shortlist } from '@/features/work/tabs/cover/Shortlist'
 
 interface Props {
   cover: Cover
   view: CoverView | undefined
+  /** The board of ideas, for the shortlist across the idea's block. */
+  board: CoverBoard | undefined
   change: (patch: (cover: Cover) => Cover) => void
+  /** Back to the board of ideas. */
+  onAllIdeas: () => void
 }
 
 /**
@@ -27,13 +32,22 @@ interface Props {
  * channel's details. Every choice is saved as it is made - the cover is the
  * record, and the prompt beside it is written from it.
  */
-export function ConceptColumn({ cover, view, change }: Props) {
+export function ConceptColumn({ cover, view, board, change, onAllIdeas }: Props) {
   const { t } = useTranslation()
   const house = view?.house_styles ?? []
 
   return (
     <Pane label={t('cover.concept')} bodyClassName="flex flex-col px-3 pb-1">
-      <Section title={t('cover.idea.title')} hint={t('cover.idea.hint')}>
+      <Section
+        title={t('cover.idea.title')}
+        hint={t('cover.idea.hint')}
+        actions={
+          <Button variant="link" className="text-xs" onClick={onAllIdeas}>
+            {t('ideas.all')}
+          </Button>
+        }
+      >
+        {board !== undefined && <Shortlist board={board} cover={cover} />}
         <DraftText
           label={t('cover.idea.title')}
           value={cover.idea}

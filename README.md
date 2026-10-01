@@ -43,10 +43,11 @@ rather than coded.
 - **A storyboard for what is made in scenes.** A video or a short carries a
   table of scenes, prompts per generator, the pictures they came back with, and
   a montage list any editor reads.
-- **Covers built from parts, not typed.** Pick a layout, a hero from the
-  canon, a style, a lettering and the channel's mark; kilna writes the
-  generator's prompt from them, draws the frame it asks for, and keeps the
-  picture that came back as the release's preview.
+- **Covers built from parts, not typed.** Start from a board of ideas -
+  yours, worked out, from other angles, a sibling release's - then pick a
+  layout, a hero from the canon, a style, a lettering and the channel's mark;
+  kilna writes the generator's prompt from them, draws the frame it asks for,
+  and keeps the picture that came back as the release's preview.
 - **A canon for the world your works share.** People, places, events and the
   channel itself kept as cards of facts - each with who may hear it, whether
   it is settled, where it came from and when it happened - so a cover, a

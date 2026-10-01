@@ -677,6 +677,14 @@ stored profile that gained *Final* at 100 while keeping *Finished* at 100 would
 hold two stops on one number. A stop you added yourself is not in the shipped
 list and is never touched.
 
+## `cover_ideas`
+
+How many ideas for its cover a publication is given when it is made -
+**Make a clip**, **Make an audio**, **Make a short** start them beside the
+release meta. A number from 0 to 5; 0 asks for none; absent is 3. Set in
+**Settings → Profile**. Added in v0.89: a document without it is the same
+document.
+
 ## `rhythm`
 
 The pace releases go out at:
@@ -913,9 +921,9 @@ specifically.
 | `icon` | string, optional | The glyph on the button, from the list below. A name kilna does not know draws the generic spark. |
 | `template` | string | The message sent to Claude, with placeholders filled per work. Keep it short: the method carries the how. |
 | `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
-| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`. Anything else loads as prose and is refused when the profile is saved. |
+| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`; `"cover-ideas"` — ideas for a publication's cover, each a concept, only in an action with `"scope": "cover"`. Anything else loads as prose and is refused when the profile is saved. |
 | `kinds` | list of strings, optional | The work kinds the action is offered on. Absent or empty is every kind. An action that reads `{role:lyrics}` is for the kinds that have lyrics — Studio's song actions say `["song"]` — because a button for it on a video would send a prompt with a hole in it. |
-| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. Absent is the work. |
+| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. `"cover"` for one about a publication's [board of ideas](/kilna/guides/the-cover/#the-board-of-ideas): it reads `{ideas}` and `{choices}`, is offered on the board (and started by **Make…**), must produce `cover-ideas`, and may only name kinds with a cover. Absent is the work. |
 
 **Keep the label to a word or two.** The button carries a glyph and that label;
 what the action does belongs in `description`, which is the tooltip. A row of
@@ -1006,6 +1014,19 @@ the short: it reads the release, what the work was made from, the channel and
 the canon a public text may see, and what went out lately, so a new
 description does not sign off or ask the way the last ones did.
 
+An action with `"scope": "cover"` and `"produces": "cover-ideas"` proposes
+ideas for a publication's cover. kilna appends the block to answer with - a
+json list of concepts: `idea` and `scene`, the angle and the headline, the
+hero by card id, a layout and its settings, the bricks by id, the accent, the
+mark's variant, the captions - and reads it against the workspace: a name it
+cannot find is left out of its idea and said. Asked for from the board, the
+ideas **land on the board** as the answer comes; nothing about the cover
+changes until one is taken into the constructor. Studio ships `cover-ideas`
+for the clip, the audio and the short, with a method that holds the plot of a
+cover: one moment through one hero, ideas that differ by angle, the mark's
+status by the song's meaning, the house styles more often, the channel's bans
+never.
+
 Every shipped profile carries a `score` action. Anything else declaring
 `produces` gets the same treatment; an unrecognised value is ignored when the
 profile loads, so a profile written for a future kilna still opens — and named
@@ -1074,6 +1095,16 @@ proposes.
   the release it is about (where it goes out, when, and every field with what
   is written there), and what went out lately - the latest releases with their
   fields, newest first.
+- `{ideas}` and `{choices}` — only in an action with `"scope": "cover"`: what
+  the board asks for (how many ideas, the person's own to work out, more in
+  the direction of the shortlist) with what already stands on it - the
+  shortlist, the turned-down ideas as what is not wanted, the rest - the cover
+  as it stands, the neighbouring publications' covers and, for a short, the
+  song it comes from; and everything an idea is built from, each with the id
+  to name it by - the layouts and settings of the frame, the bricks of the
+  style dictionary by place with when to use them and the channel's house
+  styles marked, the palette, the variants of the mark with what each means,
+  the heroes of the canon, and what the channel bans in a picture.
 - `{donor}` — the first work this one was [made from](/kilna/guides/made-from/),
   as *“Harbour lights” (song)*; `{donor:lyrics}`, `{donor:style}`, … — the
   latest revision of that role on the donor. A work made from nothing refuses

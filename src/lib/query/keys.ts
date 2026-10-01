@@ -80,6 +80,9 @@ export const keys = {
    *  the backend picks. */
   coverView: (workId: string, format: string | null) =>
     ['pictures', 'cover', workId, format] as const,
+  /** A publication's board of ideas for its cover: its schemes and names
+   *  are drawn from the same bricks and cards the cover is. */
+  coverBoard: (workId: string) => ['pictures', 'board', workId] as const,
   /** The Frame tab: the still, the loop, the scheme. */
   frameView: (workId: string) => ['pictures', 'frame', workId] as const,
   /** A scene's built frame. */

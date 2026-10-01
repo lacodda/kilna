@@ -4,6 +4,7 @@ import { writesOf } from '@/lib/useApplyProposal'
 describe('writesOf', () => {
   it('counts one operation for a single version, score or note', () => {
     expect(writesOf({ message_id: 'm', at: 't', versions: ['v1'] })).toBe(1)
+    expect(writesOf({ message_id: 'm', at: 't', ideas: ['i1', 'i2'] })).toBe(2)
     expect(writesOf({ message_id: 'm', at: 't', score: 's1' })).toBe(1)
     expect(writesOf({ message_id: 'm', at: 't', notes: ['n1'] })).toBe(1)
   })

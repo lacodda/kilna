@@ -1,9 +1,11 @@
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { deriveWork } from '@/lib/api/links'
+import { startCoverTask } from '@/lib/api/ideas'
 import { startReleaseTask } from '@/lib/api/releases'
 import type { Made, Work } from '@/lib/api/types'
 import { humanError } from '@/lib/errors'
+import { coverActionOf, ideasOnMake } from '@/lib/ideas'
 import { doorsOf, takesAn, wordOf } from '@/lib/overview'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -35,29 +37,36 @@ export interface MakePublication {
   making: string | null
 }
 
-/** What the gesture came back with: the work, and whether the meta started. */
+/** What the gesture came back with: the work, and whether the meta and the
+ *  cover's ideas started. */
 interface Outcome {
   made: Made
   /** The action that writes the release's meta, when one was started. */
   started: boolean
   /** Why it did not start, when it was asked to and could not. */
   refused: unknown
+  /** How many ideas for the cover were asked for; 0 when none were. */
+  ideas: number
+  /** Why they were not, when they were to be and could not. */
+  ideasRefused: unknown
 }
 
 /**
  * Make a work from `source` in one gesture (ADR 0047): the new work named by
  * its kind in the window's language, linked, with a release through its
  * first door and no day - then the profile's release action set writing what
- * that release goes out under, and the new work opened on its cover, where
- * the next decision is.
+ * that release goes out under, the cover's ideas asked for beside it
+ * (v0.89, ADR 0050), and the new work opened on its cover, where the next
+ * decision is.
  *
  * The overview's Make menu, the header's menu and the Links tab's buttons
  * all make a work this way, so the three cannot drift into three gestures
  * that each do part of it.
  *
- * The meta is the gesture's second half and not its condition: an assistant
- * that is not there, or a task already running, leaves the work made and
- * says why the meta did not start, in a toast that warns rather than fails.
+ * The meta and the ideas are the gesture's second half and not its
+ * condition: an assistant that is not there, or a task already running,
+ * leaves the work made and says why either did not start, in a toast that
+ * warns rather than fails.
  */
 export function useMakePublication(source: Work): MakePublication {
   const { t, i18n } = useTranslation()
@@ -86,16 +95,30 @@ export function useMakePublication(source: Work): MakePublication {
   const mutation = useAppMutation({
     mutationFn: async (kind: string): Promise<Outcome> => {
       const made = await deriveWork(source.id, kind, i18n.language)
+      const outcome: Outcome = { made, started: false, refused: null, ideas: 0, ideasRefused: null }
       const action = releaseActionOf(config, kind)
-      if (made.release_id === null || action === undefined) {
-        return { made, started: false, refused: null }
+      if (made.release_id !== null && action !== undefined) {
+        try {
+          await startReleaseTask(made.release_id, action.key)
+          outcome.started = true
+        } catch (cause) {
+          outcome.refused = cause
+        }
       }
-      try {
-        await startReleaseTask(made.release_id, action.key)
-        return { made, started: true, refused: null }
-      } catch (cause) {
-        return { made, started: false, refused: cause }
+      // The cover's ideas start beside the meta (v0.89): the person lands on
+      // the board while both are written. The number is the profile's - three
+      // unless it says otherwise, none when it says 0.
+      const ideas = coverActionOf(config, kind)
+      const count = ideasOnMake(config)
+      if (ideas !== undefined && count > 0 && vocabularyOf(config, kind).cover) {
+        try {
+          await startCoverTask(made.work.id, ideas.key, { count, refine: null, more: false })
+          outcome.ideas = count
+        } catch (cause) {
+          outcome.ideasRefused = cause
+        }
       }
+      return outcome
     },
     failure: 'publications.makeFailed',
     refresh: [
@@ -109,7 +132,7 @@ export function useMakePublication(source: Work): MakePublication {
       keys.activeTasks,
       keys.allChats,
     ],
-    onSuccess: ({ made, started, refused }) => {
+    onSuccess: ({ made, started, refused, ideas, ideasRefused }) => {
       const vocabulary = vocabularyOf(config, made.work.kind)
       const door = vocabulary.release_kinds[0]
       const said =
@@ -123,9 +146,12 @@ export function useMakePublication(source: Work): MakePublication {
       toastManager.add({
         type: 'success',
         title: t('publications.made', { title: made.work.title }),
-        description: said,
+        description: ideas > 0 ? `${said} ${t('publications.madeIdeas', { count: ideas })}` : said,
       })
       if (refused !== null) say.warn(t('publications.metaNotStarted'), humanError(refused))
+      if (ideasRefused !== null) {
+        say.warn(t('publications.ideasNotStarted'), humanError(ideasRefused))
+      }
 
       // Straight to where the next decision is: the cover, for a kind that
       // has one to write; the card itself otherwise.

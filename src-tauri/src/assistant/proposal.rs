@@ -158,6 +158,18 @@ pub enum Proposal {
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         unknown: Vec<String>,
     },
+    /// Ideas for a publication's cover, each a concept already read against
+    /// the workspace (v0.89, ADR 0050). Written by the board's own action -
+    /// and then put on the board as soon as it comes - or by an agent outside
+    /// the window (`propose_cover`), which waits for the person.
+    CoverIdeas {
+        work_id: String,
+        ideas: Vec<crate::cover::idea::Packaged>,
+        /// What the answer named that the workspace does not have, left out
+        /// of its idea and said rather than dropped silently.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        dropped: Vec<crate::cover::idea::Dropped>,
+    },
 }
 
 /// What a scenes proposal does to the board already on the work.
@@ -1613,6 +1625,7 @@ mod instruction_tests {
             work_meta_fields: Vec::new(),
             marks: Vec::new(),
             stages: Vec::new(),
+            cover_ideas: None,
             prompts: Vec::new(),
             rhythm: None,
             catalogue_columns: None,

@@ -84,6 +84,9 @@ pub enum Produces {
     /// What a release goes out under - its title, its description, its
     /// tags - field by field, in a block the application reads (v0.86).
     Release,
+    /// Ideas for a publication's cover, each a concept the constructor
+    /// shows, in a block the application reads (v0.89, ADR 0050).
+    CoverIdeas,
 }
 
 /// What an action is about.
@@ -109,6 +112,9 @@ pub enum Scope {
     /// One release of a work, read as `{release}`: offered on the release
     /// and nowhere else (v0.86).
     Release,
+    /// The board of ideas for a publication's cover, read as `{ideas}` and
+    /// `{choices}`: offered on the board and nowhere else (v0.89).
+    Cover,
 }
 
 /// The value of `scope` that names a scene action.
@@ -129,6 +135,12 @@ pub const SELECTION_SCOPE: &str = "selection";
 /// The value of `scope` that names an action about one release.
 pub const RELEASE_SCOPE: &str = "release";
 
+/// The value of `scope` that names an action about a cover's board of ideas.
+pub const COVER_SCOPE: &str = "cover";
+
+/// The value of `produces` that names ideas for a cover.
+pub const COVER_IDEAS: &str = "cover-ideas";
+
 impl PromptTemplate {
     /// `produces` as the application understands it. An unknown value reads
     /// as prose rather than failing: a profile written for a later kilna
@@ -144,6 +156,7 @@ impl PromptTemplate {
             Some("canon") => Produces::Canon,
             Some("card-prompt") => Produces::CardPrompt,
             Some("release") => Produces::Release,
+            Some(COVER_IDEAS) => Produces::CoverIdeas,
             Some(value) => {
                 if let Some(role) = value.strip_prefix("version:") {
                     return if role.trim().is_empty() {
@@ -186,6 +199,7 @@ impl PromptTemplate {
             Some(CANON_SCOPE) => Scope::Canon,
             Some(SELECTION_SCOPE) => Scope::Selection,
             Some(RELEASE_SCOPE) => Scope::Release,
+            Some(COVER_SCOPE) => Scope::Cover,
             _ => Scope::Work,
         }
     }
@@ -249,6 +263,8 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "source"
             | "release"
             | "releases"
+            | "ideas"
+            | "choices"
     ) || name.strip_prefix("role:").is_some_and(|r| !r.is_empty())
         || name.strip_prefix("donor:").is_some_and(|r| !r.is_empty())
         || canon_lens(name).is_some()

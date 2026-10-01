@@ -341,5 +341,7 @@ describe('subjectOf', () => {
     expect(subjectOf('reply:comment:c1')).toEqual({ action: 'reply', workId: null })
     expect(subjectOf('read:channel:yt:p1')).toEqual({ action: 'read', workId: null })
     expect(subjectOf('release-meta:release:r1')).toEqual({ action: 'release-meta', workId: null })
+    // A board's task is about its publication, named third.
+    expect(subjectOf('cover-ideas:cover:w1')).toEqual({ action: 'cover-ideas', workId: 'w1' })
   })
 })

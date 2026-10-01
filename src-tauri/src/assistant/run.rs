@@ -248,6 +248,17 @@ impl Runs {
         stops.len()
     }
 
+    /// Stop the run carrying a task, by the task's key. Returns whether
+    /// there was one to stop.
+    pub fn cancel_task(&self, key: &str) -> bool {
+        let run_id = self
+            .live()
+            .iter()
+            .find(|(_, live)| live.task.as_deref() == Some(key))
+            .map(|(id, _)| id.clone());
+        run_id.is_some_and(|id| self.cancel(&id))
+    }
+
     /// Stop a run. Returns whether there was one to stop.
     ///
     /// The registry lock is given back before the process is touched: killing a
@@ -454,11 +465,13 @@ pub fn pump<S, F>(
                     Read::Nothing => {}
                 }
 
-                let fills = meta
+                let kind = meta
                     .get("proposal")
                     .and_then(|proposal| proposal.get("kind"))
                     .and_then(Value::as_str)
-                    == Some("release");
+                    .map(str::to_owned);
+                let fills = kind.as_deref() == Some("release");
+                let lands = kind.as_deref() == Some("coverIdeas");
                 let appended = super::append(&conn, &run.chat_id, super::ASSISTANT, body, meta);
 
                 // What a release goes out under, asked for by the person from
@@ -474,6 +487,25 @@ pub fn pump<S, F>(
                     crate::log::error(
                         "assistant",
                         &format!("could not fill the release from its answer: {cause}"),
+                    );
+                }
+
+                // Ideas for a cover, asked for from the board (or by making
+                // the publication): they land on the board at once - the
+                // board is where a person judges them, and nothing about the
+                // work changes until one is taken into the constructor
+                // (ADR 0050). An agent's ideas never get here; they wait.
+                if lands
+                    && let Ok(message) = &appended
+                    && let Err(cause) = crate::actions::proposal::apply(
+                        &conn,
+                        &message.id,
+                        crate::actions::proposal::Overrides::default(),
+                    )
+                {
+                    crate::log::error(
+                        "assistant",
+                        &format!("could not put the ideas on the board: {cause}"),
                     );
                 }
 
@@ -710,6 +742,32 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
             match super::proposal::read_release(body, release_id, &fields) {
                 Ok(proposal) => value(proposal),
                 Err(why) => Read::Refused(why),
+            }
+        }
+        // Ideas for the cover of the publication the key names, read
+        // against the workspace as it stands.
+        super::prompt::Produces::CoverIdeas => {
+            let Some(work_id) = super::task::cover_of_key(task_key) else {
+                return Read::Nothing;
+            };
+            let Some(block) = super::proposal::fenced_json(body) else {
+                return Read::Refused("the answer holds no ```json block of ideas".into());
+            };
+            let raw: Value = match serde_json::from_str(&block) {
+                Ok(raw) => raw,
+                Err(error) => {
+                    return Read::Refused(format!(
+                        "the json block is not a list of ideas: {error}"
+                    ));
+                }
+            };
+            match crate::cover::idea::read(conn, &profile.id, &profile.config, &raw, None) {
+                Ok(read) => value(super::proposal::Proposal::CoverIdeas {
+                    work_id: work_id.to_owned(),
+                    ideas: read.ideas,
+                    dropped: read.dropped,
+                }),
+                Err(error) => Read::Refused(error.to_string()),
             }
         }
         super::prompt::Produces::Scenes(change) => {
@@ -2085,6 +2143,106 @@ The second verse is the weak one."
                 .as_str()
                 .or(proposal["style_id"].as_str()),
             Some("b-7")
+        );
+        drop(dir);
+    }
+
+    /// Ideas asked for from a board land on it as soon as the answer comes:
+    /// the message carries the proposal and the mark of it applied, and the
+    /// board holds them.
+    #[test]
+    fn a_cover_task_puts_its_ideas_on_the_board_at_once() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Harbour lights — audio");
+        let chat_id = super::super::create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: Some(audio.id.clone()),
+                ..NewChat::default()
+            },
+        )
+        .unwrap()
+        .id;
+        let runs = Arc::new(Runs::new());
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some(crate::assistant::task::cover_key("cover-ideas", &audio.id));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let body = "Two angles.\n\n```json\n{\"ideas\": [\n  {\"angle\": \"close\", \"idea\": \"Огни гавани\", \"scene\": \"a keeper's face lit by the lamp\", \"layout\": \"closeUp\"},\n  {\"angle\": \"far\", \"idea\": \"Один на молу\", \"scene\": \"a small figure at the end of a pier\", \"layout\": \"figure\", \"style\": \"No such style\"}\n]}\n```";
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: body.into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap();
+        assert_eq!(answer.meta["proposal"]["kind"], "coverIdeas");
+        assert_eq!(answer.meta["proposal"]["dropped"][0]["part"], "style");
+        assert_eq!(
+            answer.meta["applied"]["ideas"].as_array().map(Vec::len),
+            Some(2),
+            "the ideas landed and the message says so"
+        );
+        let board = crate::cover::idea::for_work(&conn, &audio.id).unwrap();
+        assert_eq!(board.len(), 2);
+        assert!(
+            board
+                .iter()
+                .all(|idea| idea.source == crate::cover::idea::Source::Ai)
+        );
+        assert_eq!(board[1].concept.bricks.style, None);
+        drop(dir);
+    }
+
+    /// An answer whose block cannot be read as ideas says why, under the
+    /// answer, and nothing lands.
+    #[test]
+    fn a_cover_task_without_a_block_says_why() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Harbour lights — audio");
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        run.task = Some(crate::assistant::task::cover_key("cover-ideas", &audio.id));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: "I could not think of anything.".into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap();
+        assert!(answer.meta.get("proposal").is_none());
+        assert!(answer.meta["proposal_refused"].is_string());
+        assert!(
+            crate::cover::idea::for_work(&conn, &audio.id)
+                .unwrap()
+                .is_empty()
         );
         drop(dir);
     }

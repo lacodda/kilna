@@ -115,6 +115,9 @@ pub struct Outcome {
     /// The fields of a release written, by key.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub release_fields: Vec<String>,
+    /// Ideas put on a cover's board.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ideas: Vec<String>,
 }
 
 /// Keep the proposal a message carries, and mark the message - as one unit.
@@ -403,8 +406,37 @@ pub fn check(
                 }
             }
         },
+        Proposal::CoverIdeas { work_id, ideas, .. } => match work::get(conn, work_id)? {
+            None => note(Err(Error::not_found("work", work_id))),
+            Some(found) => {
+                if !config.vocabulary(&found.kind).cover {
+                    note(Err(
+                        Error::refused("idea.noCover").param("title", found.title.clone())
+                    ));
+                }
+                if overrides.items.as_ref().is_some_and(Vec::is_empty) || ideas.is_empty() {
+                    note(Err(Error::refused("proposal.nothingTaken")));
+                }
+                // What a brick deleted since the answer came would make of an
+                // idea is said before any idea lands.
+                for (index, idea) in ideas.iter().enumerate() {
+                    if taken_idea(overrides, index) {
+                        note(crate::cover::check(conn, &chat.profile_id, &idea.concept));
+                    }
+                }
+            }
+        },
     }
     Ok(problems)
+}
+
+/// Whether the person kept the idea at `index` of a proposal: every one when
+/// they named none, else the ones named `idea:<index>`.
+fn taken_idea(overrides: &Overrides, index: usize) -> bool {
+    overrides
+        .items
+        .as_ref()
+        .is_none_or(|items| items.iter().any(|item| *item == format!("idea:{index}")))
 }
 
 /// Write what a checked proposal says, through the actions a hand uses.
@@ -647,6 +679,28 @@ fn keep(
             }
             outcome.release_fields = taken.into_keys().collect();
             outcome.releases.push(release_id);
+        }
+
+        Proposal::CoverIdeas { work_id, ideas, .. } => {
+            for (index, idea) in ideas.into_iter().enumerate() {
+                if !taken_idea(&overrides, index) {
+                    continue;
+                }
+                let made = super::idea::create(
+                    conn,
+                    crate::cover::idea::NewIdea {
+                        work_id: work_id.clone(),
+                        source: idea.source,
+                        from_work_id: None,
+                        angle: idea.angle,
+                        headline: idea.headline,
+                        concept: idea.concept,
+                        verdict: None,
+                    },
+                )?;
+                outcome.ideas.push(made.id);
+            }
+            outcome.work_id = Some(work_id);
         }
     }
     Ok(())

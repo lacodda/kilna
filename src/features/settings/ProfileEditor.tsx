@@ -5,6 +5,7 @@ import { allOf, useProfile } from '@/lib/useProfile'
 import { Divider } from '@/components/ui/divider'
 import { ActionsEditor } from '@/features/settings/ActionsEditor'
 import { KindVocabulary } from '@/features/settings/KindVocabulary'
+import { CoverIdeasEditor } from '@/features/settings/CoverIdeasEditor'
 import { RhythmEditor } from '@/features/settings/RhythmEditor'
 import { Vocabulary } from '@/features/settings/Vocabulary'
 import { useProfileDraft } from '@/features/settings/useProfileDraft'
@@ -58,6 +59,7 @@ export function ProfileEditor() {
 
       <Divider />
       <RhythmEditor rhythm={config.rhythm} onChange={(rhythm) => patch({ rhythm })} />
+      <CoverIdeasEditor config={config} onChange={(cover_ideas) => patch({ cover_ideas })} />
       <Vocabulary
         label={t('editor.workKinds')}
         help={t('editor.keysHint')}

@@ -155,7 +155,9 @@ fn initialize() -> Value {
     `propose_scenes` proposes a storyboard for a video or a short, added to the board or \
     replacing it. A song never goes out itself: its clip, its audio release and its shorts do, \
     each a work made from it with releases of its own, and `propose_release` proposes what one \
-    of those releases goes out under - its title, description, tags, pinned comment. `canon` \
+    of those releases goes out under - its title, description, tags, pinned comment. `cover` \
+    reads the board of ideas for a publication's cover and everything an idea is built from, \
+    and `propose_cover` proposes ideas onto it. `canon` \
     reads the world the works share - cards of people, places and the channel, with facts in \
     layers - and `propose_canon` proposes cards, facts and relations for it. Name works by id \
     when you have one; an exact title works too.",
@@ -437,6 +439,71 @@ fn tools() -> Vec<Value> {
                 "note": text_arg("One sentence on the choices made, optional"),
             }),
             &["work", "fields"],
+        ),
+        tool(
+            "cover",
+            "The board of ideas for the cover of a publication - a clip, an audio release, a \
+             short - and everything an idea is built from. `cover` is the concept as it stands \
+             (the idea, the scene, the hero, the built frame, the bricks of the style \
+             dictionary by id, the accent, the mark); `ideas` are the ideas on the board, each \
+             with where it came from (own, refined, ai, sibling), the person's verdict (star: \
+             on the shortlist; rejected: not that; none), its angle, headline and concept; \
+             `siblings` are the covers of the other publications of the same song, fitted to \
+             this one's shape; `choices` is the text an idea chooses from - the layouts and \
+             the five settings of the frame, the bricks with their ids and when to use them \
+             (the channel's house styles marked), the palette, the variants of the mark with \
+             what each means, the heroes of the canon, and what a picture of the channel never \
+             shows. Read it before `propose_cover`.",
+            json!({ "work": work_arg() }),
+            &["work"],
+        ),
+        tool(
+            "propose_cover",
+            "Propose ideas for the cover of a publication - a clip, an audio release, a short. \
+             Each idea is a concept the constructor shows: `idea` (what the cover says, in the \
+             language of the work) and `scene` (what the picture shows, in English) are \
+             required; `angle` (what sets it apart) and `headline` (what its card is called); \
+             `hero`, a card id from the heroes; `layout` and optionally `column`, `row`, \
+             `size`, `crop`, `place` to move its frame; `style`, `typography`, `dressing`, \
+             `background`, brick ids; `accent`, a colour #RRGGBB or a name of the palette; \
+             `mark`, a variant id whose meaning fits the song; `captions`, lines by slot of \
+             the dressing. Read `cover` first for the ids: a name that is not in the \
+             workspace is left out of its idea and said in the answer, the rest lands. \
+             Vary the ideas by angle - the hero close or small, from below, in a vast space - \
+             reach for the house styles, never propose what the channel bans, and do not \
+             repeat the ideas on the board: a rejected one shows what is not wanted. The \
+             ideas wait in the chat on the work and above its board; one click puts them on \
+             the board, where the person stars them, turns them down or takes one into the \
+             constructor.",
+            json!({
+                "work": work_arg(),
+                "ideas": {
+                    "type": "array",
+                    "description": "The ideas, each a concept",
+                    "items": { "type": "object", "properties": {
+                        "angle": text_arg("What sets it apart, a few words"),
+                        "headline": text_arg("What its card is called"),
+                        "idea": text_arg("What the cover says, in the language of the work"),
+                        "scene": text_arg("What the picture shows, in English, for a generator"),
+                        "hero": text_arg("A card id from the heroes of `cover`, or leave it out"),
+                        "layout": text_arg("One of the layouts of `cover`"),
+                        "column": text_arg("left, centre or right"),
+                        "row": text_arg("top, middle or bottom"),
+                        "size": text_arg("small, emblem, large, full, over or macro"),
+                        "crop": text_arg("full, waist, bust, head or detail"),
+                        "place": text_arg("Where the title goes: left, right, top, bottom, behind, overlap, vertical, corner or poster"),
+                        "style": text_arg("An image style brick id"),
+                        "typography": text_arg("A lettering brick id"),
+                        "dressing": text_arg("A dressing brick id"),
+                        "background": text_arg("A ground brick id"),
+                        "accent": text_arg("A colour #RRGGBB, or a name of the channel's palette"),
+                        "mark": text_arg("A variant id of the channel's mark"),
+                        "captions": { "type": "object", "description": "Lines by slot of the dressing", "additionalProperties": { "type": "array", "items": { "type": "string" } } },
+                    }, "required": ["idea", "scene"] },
+                },
+                "note": text_arg("One sentence on the choices made, optional"),
+            }),
+            &["work", "ideas"],
         ),
         tool(
             "propose_version",
@@ -1264,6 +1331,95 @@ pub fn run_tool(
             })
         }
 
+        "cover" => {
+            let found = find_work(conn, &profile.id, required(args, "work")?)?;
+            if !config.vocabulary(&found.kind).cover {
+                return Err(Error::refused("idea.noCover").param("title", found.title.clone()));
+            }
+            let board = crate::cover::idea::board(conn, &found.id)?;
+            let ideas: Vec<Value> = board
+                .ideas
+                .iter()
+                .map(|card| {
+                    json!({
+                        "id": card.idea.id,
+                        "source": card.idea.source,
+                        "verdict": card.idea.verdict,
+                        "angle": card.idea.angle,
+                        "headline": card.idea.headline,
+                        "from": card.from_title,
+                        "concept": card.idea.concept,
+                    })
+                })
+                .collect();
+            let siblings: Vec<Value> = board
+                .siblings
+                .iter()
+                .map(|sibling| {
+                    json!({
+                        "work": sibling.work_id,
+                        "title": sibling.title,
+                        "kind": sibling.kind,
+                        "concept": sibling.concept,
+                    })
+                })
+                .collect();
+            pretty(&json!({
+                "work": found.id,
+                "title": found.title,
+                "format": board.format,
+                "cover": found.cover,
+                "ideas": ideas,
+                "siblings": siblings,
+                "choices": crate::cover::idea::choices_sheet(conn, &found)?,
+            }))
+        }
+
+        "propose_cover" => {
+            let found = find_work(conn, &profile.id, required(args, "work")?)?;
+            if !config.vocabulary(&found.kind).cover {
+                return Err(Error::refused("idea.noCover").param("title", found.title.clone()));
+            }
+            let raw = args
+                .get("ideas")
+                .filter(|raw| raw.as_array().is_some_and(|list| !list.is_empty()))
+                .ok_or_else(|| Error::refused("mcp.ideasNotArray"))?;
+            let read = crate::cover::idea::read(conn, &profile.id, &config, raw, None)?;
+            let count = read.ideas.len();
+            let left_out: Vec<String> = read
+                .dropped
+                .iter()
+                .map(|one| format!("idea {}: {} “{}”", one.idea, one.part, one.value))
+                .collect();
+            let body = apply::render_ideas(conn, &read.ideas, &read.dropped);
+            let proposal = Proposal::CoverIdeas {
+                work_id: found.id.clone(),
+                ideas: read.ideas,
+                dropped: read.dropped,
+            };
+            deliver(
+                conn,
+                &profile.id,
+                session,
+                Some(&found),
+                proposal,
+                &body,
+                arg(args, "note"),
+            )?;
+            let plural = if count == 1 { "" } else { "s" };
+            let mut said = format!(
+                "Proposed {count} idea{plural} for the cover of “{}”. They wait in the chat on the work and above its board; one click puts them on the board.",
+                found.title
+            );
+            if !left_out.is_empty() {
+                said.push_str(&format!(
+                    " Left out, not in the workspace: {}.",
+                    left_out.join("; ")
+                ));
+            }
+            Ok(said)
+        }
+
         "propose_scenes" => {
             let found = find_work(conn, &profile.id, required(args, "work")?)?;
             let vocabulary = config.vocabulary(&found.kind);
@@ -1626,6 +1782,7 @@ fn deliver(
         (Proposal::Work { .. }, Some(_)) => Record::new("proposal.package"),
         (Proposal::Scenes { .. }, _) => Record::new("proposal.scenes"),
         (Proposal::Release { .. }, _) => Record::new("proposal.release"),
+        (Proposal::CoverIdeas { .. }, _) => Record::new("proposal.coverIdeas"),
         (Proposal::Work { title, .. }, None) => {
             Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
         }
@@ -1791,6 +1948,78 @@ mod tests {
             .unwrap()
             .messages
             .remove(0)
+    }
+
+    /// An agent reads a board and what an idea is built from, proposes ideas
+    /// onto it, and they wait: the board stays as it was until the person
+    /// puts them on it. A name not in the workspace is left out and said.
+    #[test]
+    fn proposed_ideas_wait_until_the_person_puts_them_on_the_board() {
+        let (conn, song) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Harbour lights — audio");
+
+        let read = run_tool(
+            &conn,
+            &claude(),
+            "cover",
+            &args(json!({ "work": audio.id })),
+        )
+        .unwrap();
+        let read: Value = serde_json::from_str(&read).unwrap();
+        assert_eq!(read["ideas"], json!([]));
+        assert!(
+            read["choices"].as_str().unwrap().contains("`masthead`"),
+            "the choices name the layouts"
+        );
+
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_cover",
+            &args(json!({
+                "work": audio.id,
+                "ideas": [
+                    { "idea": "Огни гавани", "scene": "a keeper's face by the lamp", "layout": "closeUp", "angle": "close" },
+                    { "idea": "Один на молу", "scene": "a small figure on a pier", "style": "No such style" }
+                ],
+                "note": "two distances",
+            })),
+        )
+        .unwrap();
+        assert!(answer.contains("Proposed 2 ideas"), "{answer}");
+        assert!(answer.contains("No such style"), "{answer}");
+        let message = first_message(&conn, &audio.id);
+        assert_eq!(message.meta["proposal"]["kind"], "coverIdeas");
+        assert!(message.body.contains("Огни гавани"), "{}", message.body);
+        assert!(
+            crate::cover::idea::for_work(&conn, &audio.id)
+                .unwrap()
+                .is_empty(),
+            "nothing lands until the person says so"
+        );
+
+        crate::actions::proposal::apply(
+            &conn,
+            &message.id,
+            crate::actions::proposal::Overrides {
+                items: Some(vec!["idea:1".into()]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let board = crate::cover::idea::for_work(&conn, &audio.id).unwrap();
+        assert_eq!(board.len(), 1, "only the idea kept");
+        assert_eq!(board[0].concept.idea, "Один на молу");
+
+        let refused = run_tool(
+            &conn,
+            &claude(),
+            "propose_cover",
+            &args(json!({ "work": song, "ideas": [{ "idea": "x", "scene": "y" }] })),
+        )
+        .unwrap_err();
+        assert_eq!(refused.refusal().map(|r| r.code), Some("idea.noCover"));
     }
 
     /// What a release goes out under, proposed by an agent: it waits in the

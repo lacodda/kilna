@@ -378,6 +378,47 @@ pub fn start_release_task(
     launch(&app, state, prepared)
 }
 
+/// What asking a cover's board for ideas would send, without sending it.
+#[tauri::command]
+pub fn preview_cover_task(
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+    request: crate::cover::idea::IdeaRequest,
+) -> Result<assistant::task::Composed> {
+    assistant::task::compose_for_cover(&state.conn(), &id, &action, &request)
+        .map(|(composed, _)| composed)
+}
+
+/// Ask for ideas for a publication's cover, in the background (v0.89). They
+/// land on its board as soon as the answer comes (ADR 0050).
+#[tauri::command]
+pub fn start_cover_task(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+    request: crate::cover::idea::IdeaRequest,
+) -> Result<StartedTask> {
+    let state = state.inner();
+    if state
+        .runs()
+        .task_running(&assistant::task::cover_key(&action, &id))
+    {
+        return Err(Error::AlreadyRunning);
+    }
+    let prepared = assistant::task::prepare_for_cover(&state.conn(), &id, &action, &request)?;
+    launch(&app, state, prepared)
+}
+
+/// Stop a task by what it is rather than by which run carries it: the board
+/// that asked for ideas did not necessarily start the run - "Make…" may have.
+/// Says whether there was one to stop.
+#[tauri::command]
+pub fn stop_task(state: State<'_, AppState>, key: String) -> bool {
+    state.runs().cancel_task(&key)
+}
+
 /// The proposals for one release that still wait, each field beside what is
 /// written now.
 #[tauri::command]

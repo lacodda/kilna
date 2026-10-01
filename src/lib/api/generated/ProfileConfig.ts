@@ -128,4 +128,10 @@ style_types: Array<StyleType>,
  * looks at its works through its own board. Added in v0.82 - a document
  * without it is the same document.
  */
-overview?: OverviewConfig | null, };
+overview?: OverviewConfig | null, 
+/**
+ * How many ideas for its cover a publication is given when it is made
+ * ("Make a clip"), 0 to 5; 0 asks for none. Absent means three. Added
+ * in v0.89 - a document without it is the same document.
+ */
+cover_ideas?: number | null, };

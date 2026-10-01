@@ -1172,6 +1172,27 @@
         "produces": "release",
         "scope": "release",
         "template": "Write what this release goes out under.\n\n{release}\n\nThe work: “{title}”.\n\n{fields}\n\nWhat it was made from:\n\n{source}\n\nThe channel and the world it tells of, as a public text may see them:\n\n{canon:public}\n\nWhat went out lately, newest first:\n\n{releases}"
+      },
+      {
+        "description": {
+          "en": "Ideas for this publication's cover from different angles - the hero of the song, the mark's status for its meaning, the channel's house styles.",
+          "ru": "Идеи обложки этой публикации с разных ракурсов - герой песни, статус знака под её смысл, домашние стили канала."
+        },
+        "icon": "lightbulb",
+        "key": "cover-ideas",
+        "kinds": [
+          "video",
+          "audio",
+          "short"
+        ],
+        "label": {
+          "en": "Cover ideas",
+          "ru": "Идеи обложки"
+        },
+        "method": "# Cover ideas\n\n## Role\n\nYou propose ideas for the cover of one publication of a song - its clip, its audio release, its short - for the author to judge on a board: they star the ones that fit, turn the rest down and take one into the constructor, which builds the prompt from what you chose. You are given what is asked and what already stands on the board, the song the publication is made from, the canon a picture may see, and everything a cover is built from, each with the id to name it by.\n\n## The plot of a cover\n\n- A cover tells one moment of the song through one hero. The hero is the song's own - the one its lines are about - or a card of the canon that stands in the song: name the card in `hero` when there is one, and describe what the hero does in the scene either way.\n- The scene is concrete and drawable: who, doing what, where, with three to six symbolic objects taken from the song's own images, not from its title alone. Nothing a generator cannot draw (\"hope\", \"memory\", \"the passing of time\").\n- The ideas differ by angle, not by colour: the hero close or small, from below or above, seen through an object, alone in a vast space, as an emblem, a poster, a magazine cover. No two ideas from one angle; say the angle in `angle`, and let the layout and its settings carry it.\n- The variant of the mark is chosen by what the song means - read what each variant stands for and take the one that fits; the reason should be visible in the idea.\n- The channel's house styles are reached for more often than the rest, and a style is chosen for the song by its \"when\", never at random.\n- What the channel bans in a picture is never proposed - not as a detail, an object or a style.\n- Turned-down ideas show what is not wanted: stay away from their angle and their hero. When asked for more in this direction, the shortlist shows what is wanted: keep its mood and its kind of picture, and find angles it has not taken.\n- The person's own idea, when it is asked to be worked out, keeps their hero and their moment: you add the frame, the objects, the style, the ground, the accent and the mark.\n- The covers of the neighbouring publications are the same world: an idea may answer one of them, never copy it.\n\n## Words\n\n- `idea`: one or two sentences in the language of the work - what the cover says, the way the author would put it.\n- `scene`: in English, for a generator - the hero, what they do, where, the objects around. No words of style: the style brick carries those.\n- `headline`: a few words the card is called by, in the language of the work.\n- `captions`: only for the slots of the dressing you chose, short, in the language the dressing asks for.\n\n## Output\n\nA sentence on the direction you took, then the block the task asks for, with every idea it asks for.\n",
+        "produces": "cover-ideas",
+        "scope": "cover",
+        "template": "Ideas for the cover of “{title}”.\n\n{ideas}\n\nWhat it is made from:\n\n{source}\n\nThe world it tells of, as a picture may see it:\n\n{canon:cover}\n\nWhat a cover is built from:\n\n{choices}"
       }
     ],
     "relation_kinds": [

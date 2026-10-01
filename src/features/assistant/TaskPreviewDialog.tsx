@@ -5,9 +5,10 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { startTask } from '@/lib/api/assistant'
 import { startCardTask } from '@/lib/api/canon'
 import { startCommentTask } from '@/lib/api/comments'
+import { previewCoverTask, startCoverTask } from '@/lib/api/ideas'
 import { previewReleaseTask, startReleaseTask } from '@/lib/api/releases'
 import { startStyleTask } from '@/lib/api/styles'
-import type { PromptTemplate, StartedTask } from '@/lib/api/types'
+import type { IdeaRequest, PromptTemplate, StartedTask } from '@/lib/api/types'
 import { humanError } from '@/lib/errors'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
@@ -39,6 +40,8 @@ export type TaskTarget =
   | { on: 'card'; id: string }
   /** A release: what it goes out under, written (v0.86). */
   | { on: 'release'; id: string }
+  /** A publication's board: ideas for its cover, as asked (v0.89). */
+  | { on: 'cover'; workId: string; request: IdeaRequest }
 
 interface Props {
   open: boolean
@@ -104,7 +107,12 @@ export function TaskPreviewDialog({
                 queryKey: keys.taskPreview(['release', target.id, action.key]),
                 queryFn: () => previewReleaseTask(target.id, action.key),
               }
-            : queries.commentTaskPreview(target.id, action.key)
+            : target.on === 'cover'
+              ? {
+                  queryKey: keys.taskPreview(['cover', target.workId, action.key, target.request]),
+                  queryFn: () => previewCoverTask(target.workId, action.key, target.request),
+                }
+              : queries.commentTaskPreview(target.id, action.key)
   const preview = useQuery({ ...read, enabled: isOpen, staleTime: 0, retry: false })
 
   const start = useAppMutation({
@@ -126,6 +134,8 @@ export function TaskPreviewDialog({
           return startCardTask(target.id, action.key)
         case 'release':
           return startReleaseTask(target.id, action.key)
+        case 'cover':
+          return startCoverTask(target.workId, action.key, target.request)
       }
     },
     refresh: [keys.activeTasks, keys.allChats],
