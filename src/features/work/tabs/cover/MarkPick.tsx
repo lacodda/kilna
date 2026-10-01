@@ -71,7 +71,7 @@ export function MarkPick({ mark, options, disabled, onChange }: Props) {
                   />
                 )}
                 <span className="w-full truncate text-center font-mono text-2xs">
-                  {option.code ?? option.name}
+                  {option.file === null ? meaningOf(option) : (option.code ?? option.name)}
                 </span>
               </Button>
             </li>
@@ -87,7 +87,7 @@ export function MarkPick({ mark, options, disabled, onChange }: Props) {
           value={mark.place}
           disabled={disabled}
           onValueChange={(place) => set({ place: place as CoverMarkPlace })}
-          className="h-auto flex-wrap"
+          className="h-auto! flex-wrap"
         >
           {(['corner', 'hidden', 'none'] as const).map((place) => (
             <Segment key={place} value={place} className="px-2 py-0.5 text-xs">
@@ -127,7 +127,7 @@ export function MarkPick({ mark, options, disabled, onChange }: Props) {
               value={hidden ? 'drawn' : mark.way}
               disabled={disabled}
               onValueChange={(way) => set({ way: way as CoverMarkWay })}
-              className="h-auto flex-wrap"
+              className="h-auto! flex-wrap"
             >
               <Segment value="overlay" disabled={hidden} className="px-2 py-0.5 text-xs">
                 {t('cover.mark.way.overlay')}
@@ -146,4 +146,14 @@ export function MarkPick({ mark, options, disabled, onChange }: Props) {
       )}
     </div>
   )
+}
+
+/**
+ * What a variant means, without its code: with no file to show, the box
+ * already draws the code, and "404 - erased" under "404" says it twice.
+ */
+function meaningOf(option: CoverMarkOption): string {
+  const code = option.code
+  if (code === null || !option.name.startsWith(code)) return option.name
+  return option.name.slice(code.length).replace(/^\s*[-–—:·]\s*/, '') || option.name
 }

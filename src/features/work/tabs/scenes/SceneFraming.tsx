@@ -37,7 +37,7 @@ export function SceneFraming({ scene, onFraming }: Props) {
         <b className="text-sm font-semibold">{t('scenes.framing.title')}</b>
         <span className="text-2xs text-faint">{t('scenes.framing.hint')}</span>
         {scene.framing !== null && (
-          <Button variant="link" className="ml-auto" onClick={() => onFraming(null)}>
+          <Button variant="link" className="ml-auto text-xs" onClick={() => onFraming(null)}>
             {t('scenes.framing.clear')}
           </Button>
         )}
@@ -54,8 +54,8 @@ export function SceneFraming({ scene, onFraming }: Props) {
         />
         {data !== undefined && data.scheme !== null && data.still !== null && (
           <div className="group flex min-w-0 flex-col gap-2">
-            <div className="grid h-36 place-items-center rounded-md bg-soft p-2">
-              <SchemeView scheme={data.scheme} label={t('cover.schemeLabel')} className="h-full" />
+            <div className="flex h-36 items-center justify-center rounded-md bg-soft p-2">
+              <SchemeView scheme={data.scheme} label={t('cover.schemeLabel')} fit />
             </div>
             {data.problems.map((problem, index) => (
               <p key={index} className="flex items-start gap-1.5 text-xs text-warn">

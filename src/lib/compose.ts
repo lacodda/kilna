@@ -8,6 +8,15 @@
  * canvas and its bytes could not be read back out.
  */
 
+/**
+ * Raw bytes from the backend as an `ArrayBuffer`, whichever shape the IPC
+ * channel delivered them in: a buffer over the IPC protocol, an array of
+ * numbers over the message channel.
+ */
+export function bytesOf(raw: ArrayBuffer | readonly number[]): ArrayBuffer {
+  return raw instanceof ArrayBuffer ? raw : Uint8Array.from(raw).buffer
+}
+
 /** A box as shares of a picture's width and height. */
 export interface Box {
   x: number

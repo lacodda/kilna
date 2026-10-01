@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { markPlacement, typeOf } from '@/lib/compose'
+import { bytesOf, markPlacement, typeOf } from '@/lib/compose'
 
 /*
  * Where an exported cover gets its mark: the box the backend gives - the
@@ -37,5 +37,15 @@ describe('the mark on an exported cover', () => {
     expect(typeOf('C:/media/mark.svg')).toBe('image/svg+xml')
     expect(typeOf('cover.JPG')).toBe('image/jpeg')
     expect(typeOf('no-ending')).toBe('image/png')
+  })
+})
+
+describe('the bytes of a file', () => {
+  it('are a buffer whichever shape they arrive in', () => {
+    const fromArray = bytesOf([137, 80, 78, 71])
+    expect(fromArray).toBeInstanceOf(ArrayBuffer)
+    expect(Array.from(new Uint8Array(fromArray))).toEqual([137, 80, 78, 71])
+    const buffer = new Uint8Array([1, 2, 3]).buffer
+    expect(bytesOf(buffer)).toBe(buffer)
   })
 })

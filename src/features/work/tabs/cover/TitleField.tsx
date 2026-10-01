@@ -46,7 +46,12 @@ export function TitleField({ title, sourceTitle, disabled, onChange }: Props) {
           {t('cover.lettering.noTitle')}
         </Checkbox>
         {title !== null && title !== '' && (
-          <Button variant="link" disabled={disabled} onClick={() => onChange(null)}>
+          <Button
+            variant="link"
+            className="text-xs"
+            disabled={disabled}
+            onClick={() => onChange(null)}
+          >
             {t('cover.lettering.followSource')}
           </Button>
         )}

@@ -105,7 +105,11 @@ export function FrameTab({ work }: Props) {
                     }
                     actions={
                       frame.framing !== null && (
-                        <Button variant="link" onClick={() => change({ framing: null })}>
+                        <Button
+                          variant="link"
+                          className="text-xs"
+                          onClick={() => change({ framing: null })}
+                        >
                           {t('frame.framing.backToCover')}
                         </Button>
                       )
@@ -226,11 +230,11 @@ function FramePanel({ view }: { view: FrameView }) {
       bodyClassName="flex flex-col gap-3 p-3"
     >
       {view.from_cover && (
-        <div className="grid h-[clamp(9rem,28vh,17rem)] place-items-center rounded-md bg-soft p-2.5">
+        <div className="flex h-[clamp(9rem,28vh,17rem)] items-center justify-center rounded-md bg-soft p-2.5">
           {view.scheme === null ? (
             <p className="max-w-80 text-center text-sm text-faint">{t('frame.noScheme')}</p>
           ) : (
-            <SchemeView scheme={view.scheme} label={t('cover.schemeLabel')} className="h-full" />
+            <SchemeView scheme={view.scheme} label={t('cover.schemeLabel')} fit />
           )}
         </div>
       )}

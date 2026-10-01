@@ -1,5 +1,6 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import type { Asset, NewAsset } from '@/lib/api/types'
+import { bytesOf } from '@/lib/compose'
 
 // Files kept in the workspace, and the covers among them.
 
@@ -17,8 +18,17 @@ export const pasteAsset = (bytes: Uint8Array, name: string, asset: NewAsset) =>
   invoke<Asset>('paste_asset', { bytes: Array.from(bytes), name, asset })
 /** Make a picture the work's cover: the final one, the release's preview. */
 export const chooseCover = (id: string) => invoke<Asset>('choose_cover', { id })
-/** A file's bytes, for the window to draw on without tainting a canvas. */
-export const assetBytes = (id: string) => invoke<ArrayBuffer>('asset_bytes', { id })
+/**
+ * A file's bytes, for the window to draw on without tainting a canvas.
+ *
+ * The backend answers with raw bytes, which arrive as an `ArrayBuffer` over
+ * the IPC protocol and as an array of numbers over the message channel the
+ * window falls back to - measured on the owner's machine: a Blob made of the
+ * array was the text "137,80,78,..." and no picture. Both are taken.
+ */
+export async function assetBytes(id: string): Promise<ArrayBuffer> {
+  return bytesOf(await invoke<ArrayBuffer | number[]>('asset_bytes', { id }))
+}
 /** Write a picture the window composed to a place the person chose. */
 export const savePicture = (path: string, bytes: Uint8Array) =>
   invoke<void>('save_picture', { path, bytes: Array.from(bytes) })

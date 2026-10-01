@@ -86,6 +86,9 @@ export function FramingPicker({ framing, layouts, lettering, disabled, onChange 
       {framing !== null && (
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
           <span className="caption">{t('cover.framing.where')}</span>
+          {/* `h-auto!`: a segmented control stands on the control row's
+              height, a token tailwind-merge does not know to replace - a
+              grid or a wrapped row of segments ran over the row below. */}
           <SegmentedControl
             aria-label={t('cover.framing.where')}
             value={`${framing.column}:${framing.row}`}
@@ -94,7 +97,7 @@ export function FramingPicker({ framing, layouts, lettering, disabled, onChange 
               const [column, row] = next.split(':') as [CoverColumn, CoverRow]
               set({ column, row })
             }}
-            className="grid h-auto w-fit grid-cols-3 gap-0.5"
+            className="grid h-auto! w-fit grid-cols-3 gap-0.5"
           >
             {ROWS.flatMap((row) =>
               COLUMNS.map((column) => (
@@ -119,7 +122,7 @@ export function FramingPicker({ framing, layouts, lettering, disabled, onChange 
             value={framing.size}
             disabled={disabled}
             onValueChange={(size) => set({ size: size as CoverSize })}
-            className="h-auto flex-wrap"
+            className="h-auto! flex-wrap"
           >
             {SIZES.map((size) => (
               <Segment key={size} value={size} className="px-2 py-0.5 text-xs">
@@ -134,7 +137,7 @@ export function FramingPicker({ framing, layouts, lettering, disabled, onChange 
             value={framing.crop}
             disabled={disabled}
             onValueChange={(crop) => set({ crop: crop as CoverCrop })}
-            className="h-auto flex-wrap"
+            className="h-auto! flex-wrap"
           >
             {CROPS.map((crop) => (
               <Segment key={crop} value={crop} className="px-2 py-0.5 text-xs">
@@ -151,7 +154,7 @@ export function FramingPicker({ framing, layouts, lettering, disabled, onChange 
                 value={framing.place}
                 disabled={disabled}
                 onValueChange={(place) => set({ place: place as CoverPlace })}
-                className="h-auto flex-wrap"
+                className="h-auto! flex-wrap"
               >
                 {PLACES.map((place) => (
                   <Segment key={place} value={place} className="px-2 py-0.5 text-xs">

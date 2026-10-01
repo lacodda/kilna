@@ -51,14 +51,17 @@ export function CoverStage({ view, mark, onFormat }: Props) {
           {held ? t('cover.formatHint') : t('cover.formatNotHeld')}
         </span>
       </div>
-      <div className="grid h-[clamp(10rem,32vh,20rem)] place-items-center rounded-md bg-soft p-2.5">
+      <div
+        data-stage
+        className="flex h-[clamp(10rem,32vh,20rem)] items-center justify-center rounded-md bg-soft p-2.5"
+      >
         {view.scheme === null ? (
           <p className="max-w-80 text-center text-sm text-faint">{t('cover.noScheme')}</p>
         ) : (
           <SchemeView
             scheme={view.scheme}
             label={t('cover.schemeLabel')}
-            className="h-full max-w-full"
+            fit
             mark={
               laid && file !== null ? (
                 <img

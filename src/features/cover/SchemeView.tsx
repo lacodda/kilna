@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { Scheme, SchemePaint, SchemeRect } from '@/lib/api/types'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +14,10 @@ interface Props {
   /** Drawn over the scheme in the box the mark goes in: the mark's own file
       when it is laid over the picture at export. */
   mark?: ReactNode
+  /** Fit the whole picture inside the box this is put in, whatever its
+      shape - a stage of a fixed height takes a 16:9 and a 9:16 alike.
+      Without it the drawing is as wide as its box. */
+  fit?: boolean
 }
 
 /**
@@ -26,13 +30,79 @@ interface Props {
  * does not ask for. The colours are the picture's own, not the window's
  * theme: a scheme on a paper ground is light in a dark window too.
  */
-export function SchemeView({ scheme, label, className, mark, decorative }: Props) {
+export function SchemeView({ scheme, label, className, mark, decorative, fit }: Props) {
+  if (fit === true) {
+    return (
+      <Fitted ratio={scheme.width / scheme.height} className={className}>
+        <Drawing scheme={scheme} label={label} mark={mark} decorative={decorative} />
+      </Fitted>
+    )
+  }
+  return (
+    <Drawing
+      scheme={scheme}
+      label={label}
+      mark={mark}
+      decorative={decorative}
+      className={className}
+    />
+  )
+}
+
+/**
+ * A box of `ratio` as large as fits in the one it is put in.
+ *
+ * Measured rather than left to CSS: a box given a height and an aspect
+ * ratio overflows its parent when the parent is narrower than the ratio
+ * wants, and one given a width overflows a short parent - a 9:16 scheme on
+ * a stage built for 16:9 ran down over the prompt. Until the first
+ * measurement, and where nothing measures, it takes the width and its ratio.
+ */
+function Fitted({
+  ratio,
+  className,
+  children,
+}: {
+  ratio: number
+  className?: string
+  children: ReactNode
+}) {
+  const outer = useRef<HTMLSpanElement>(null)
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null)
+  useLayoutEffect(() => {
+    const box = outer.current
+    if (box === null || typeof ResizeObserver === 'undefined') return
+    const measure = () => {
+      const width = box.clientWidth
+      const height = box.clientHeight
+      if (width === 0 || height === 0) return
+      const w = Math.min(width, height * ratio)
+      setSize({ w, h: w / ratio })
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(box)
+    return () => observer.disconnect()
+  }, [ratio])
+  return (
+    <span ref={outer} className={cn('flex size-full items-center justify-center', className)}>
+      <span
+        className="block"
+        style={size === null ? { width: '100%' } : { width: size.w, height: size.h }}
+      >
+        {children}
+      </span>
+    </span>
+  )
+}
+
+function Drawing({ scheme, label, className, mark, decorative }: Omit<Props, 'fit'>) {
   const fill = (paint: SchemePaint) => scheme.colours[paint === 'accent' ? 'accent' : paint]
   return (
     // The box takes the picture's shape, so an overlay placed in shares of it
     // lands where the scheme says.
     <span
-      className={cn('relative block', className)}
+      className={cn('relative block w-full', className)}
       style={{ aspectRatio: `${scheme.width} / ${scheme.height}` }}
     >
       <svg

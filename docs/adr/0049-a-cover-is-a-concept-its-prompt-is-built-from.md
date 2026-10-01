@@ -89,6 +89,9 @@ drawn from, when the channel or a brick changes later.
 ## Consequences
 
 - Migration 0033 adds `scene.framing`; the cover needs no migration of data.
+- The CSP gains `blob:` in `img-src`: the export draws the picture and the
+  mark from their bytes (`asset_bytes`) through blob URLs, since a picture
+  from the asset protocol would taint the canvas.
 - The idea generator of v0.89 writes concepts, not text: everything it
   proposes is a choice this constructor already shows.
 - A cover is one record for every shape of its doors: an audio release on

@@ -65,7 +65,11 @@ export function ConceptColumn({ cover, view, change }: Props) {
         hint={t('cover.framing.hint')}
         actions={
           cover.framing !== null && (
-            <Button variant="link" onClick={() => change((c) => ({ ...c, framing: null }))}>
+            <Button
+              variant="link"
+              className="text-xs"
+              onClick={() => change((c) => ({ ...c, framing: null }))}
+            >
               {t('cover.framing.clear')}
             </Button>
           )
@@ -164,7 +168,7 @@ export function ConceptColumn({ cover, view, change }: Props) {
 function CanonLink() {
   const { t } = useTranslation()
   return (
-    <Button variant="link" render={<Link to="/canon" />}>
+    <Button variant="link" className="text-xs" render={<Link to="/canon" />}>
       {t('cover.toCanon')}
     </Button>
   )
