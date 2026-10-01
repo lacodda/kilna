@@ -2689,8 +2689,14 @@ mod tests {
         assert_eq!(pictures.len(), 2);
         let portrait = pictures.iter().find(|p| p.kind == "portrait").unwrap();
         assert_eq!(portrait.original_name.as_deref(), Some("wren-face.png"));
+        // By the real paths: on macOS the temporary directory is reached
+        // through a link (/var is /private/var), and the database names it
+        // by where it really is.
+        let media = std::fs::canonicalize(dir.path().join("media")).unwrap();
         assert!(
-            std::path::Path::new(&portrait.path).starts_with(dir.path().join("media")),
+            std::fs::canonicalize(&portrait.path)
+                .unwrap()
+                .starts_with(&media),
             "copied beside the workspace: {}",
             portrait.path
         );
