@@ -1,22 +1,24 @@
-import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import type { FramePrompts, Frame as WorkFrame, Work } from '@/lib/api/types'
+import type { FramePrompts, Frame as WorkFrame, FrameView, Work } from '@/lib/api/types'
 import { updateWork } from '@/lib/api/works'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
-import { useProfile } from '@/lib/useProfile'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CopyButton } from '@/components/ui/copy-button'
 import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Textarea } from '@/components/ui/textarea'
 import { Frame, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
+import { DetailSwitches } from '@/features/cover/DetailSwitches'
+import { FramingPicker } from '@/features/cover/FramingPicker'
+import { SchemeView } from '@/features/cover/SchemeView'
+import { DraftText, Section } from '@/features/cover/Section'
 import { ReleaseMetaStatus } from '@/features/work/ReleaseMetaStatus'
-import { coverFormatsOf } from '@/features/work/tabs/cover/cover'
+import { useCoverEdit } from '@/features/work/tabs/cover/useCoverEdit'
 
 interface Props {
   work: Work
@@ -32,43 +34,35 @@ const PROMPTS = ['still', 'loop', 'negative'] as const satisfies readonly (keyof
  * The picture a work plays under for its whole length (v0.86, ADR 0046): a
  * still, and a loop made from it.
  *
- * An audio release goes out on a video platform as a track under one picture.
- * What moves in it is one small thing - the light, the water - turning round
- * and round, so the settings of the loop are few and the same every time:
- * how long one turn runs, whether the camera holds, whether the last frame
- * meets the first.
+ * Since v0.88 the still is built from the work's cover without its words
+ * by default - the same idea, hero, style, ground and mark, no title and no
+ * dressing - in a layout of its own when the cover's does not suit a
+ * picture with nothing written on it. A still written whole, as every frame
+ * was before, stays the person's ("own scene"). The loop's settings are as
+ * they were: how long one turn runs, whether the camera holds, whether the
+ * last frame meets the first.
  *
- * Laid out as the mockup's s-frame: what is written on the left, what is
- * copied on the right. The prompts are written on the Rust side from the
- * settings (`frame_prompts`) - the loop's sentence is built there, so what
- * is copied here is what an agent reading the work over MCP would get too.
- *
- * The whole frame travels with every change, the way the cover's blocks do:
- * the log's `before` then holds the frame as it was, and an undo puts all of
- * it back.
+ * Laid out as the mockup's s-frame: what is chosen on the left, what is
+ * copied on the right. The prompts and the scheme are written on the Rust
+ * side (`frame_view`), so what is copied here is what an agent gets too.
  */
 export function FrameTab({ work }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
-  const profile = useProfile()
+  const cover = useCoverEdit(work)
+  const view = useQuery(queries.frameView(work.id))
 
   const save = useAppMutation({
     mutationFn: (frame: WorkFrame) => updateWork(work.id, { frame }),
     failure: 'frame.saveFailed',
-    refresh: [keys.work(work.id), keys.framePromptsFor(work.id)],
-    // The work as the backend now holds it, at once.
+    refresh: [keys.work(work.id), keys.pictures],
     onSuccess: (updated) => client.setQueryData(keys.work(work.id), updated),
   })
 
   /**
-   * Change a part of the frame and send the whole of it.
-   *
-   * Made over the frame in the cache, not the one this render was handed,
-   * and written back into the cache before the save goes: two switches
-   * pressed in a row then both land, rather than the second carrying the
-   * first one's old value back - a render between two clicks is not
-   * promised. The switches show the change at once for the same reason. A
-   * refusal reads the work again, so what is shown is what is stored.
+   * Change a part of the frame and send the whole of it, made over the frame
+   * in the cache - two switches pressed in a row both land - and written back
+   * before the save goes. A refusal reads the work again.
    */
   const change = (patch: Partial<WorkFrame>) => {
     const held = client.getQueryData<Work | null>(keys.work(work.id))
@@ -79,37 +73,87 @@ export function FrameTab({ work }: Props) {
     })
   }
   const { frame } = work
-
-  // The shape of the picture is the door's, not the frame's: the first door
-  // of the kind that says what shape its picture is.
-  const format = coverFormatsOf(profile.config, work.kind)[0]?.format
+  const built = view.data?.from_cover ?? frame.built ?? frame.still.trim() === ''
 
   return (
     <Frame>
-      {/* One column with its own gap, as on the Cover tab: the status draws
-          nothing when nothing is being written. */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5">
         <ReleaseMetaStatus work={work} />
         <div className="flex min-h-0 min-w-0 flex-1 gap-2.5">
-          {/* The mockup's left column is a fixed width, as a list's is: the
-              settings read the same on a wide window and the prompts take
-              what is left. */}
           <div className="flex min-h-0 w-98 shrink-0 flex-col">
             <Pane label={t('card.tab.frame')} bodyClassName="flex flex-col px-3 pb-1">
-              <Section title={t('frame.still')} hint={t('frame.stillHint')}>
-                <FrameText
-                  label={t('frame.still')}
-                  value={frame.still}
-                  rows={5}
-                  onCommit={(still) => change({ still })}
-                />
+              <Section title={t('frame.source.title')}>
+                <SegmentedControl
+                  aria-label={t('frame.source.title')}
+                  value={built ? 'cover' : 'own'}
+                  onValueChange={(next) => change({ built: next === 'cover' })}
+                >
+                  <Segment value="cover">{t('frame.source.cover')}</Segment>
+                  <Segment value="own">{t('frame.source.own')}</Segment>
+                </SegmentedControl>
+                <span className="text-xs text-faint">
+                  {built ? t('frame.source.coverHint') : t('frame.source.ownHint')}
+                </span>
               </Section>
 
+              {built ? (
+                <>
+                  <Section
+                    title={t('frame.framing.title')}
+                    hint={
+                      frame.framing === null ? t('frame.framing.asCover') : t('frame.framing.own')
+                    }
+                    actions={
+                      frame.framing !== null && (
+                        <Button variant="link" onClick={() => change({ framing: null })}>
+                          {t('frame.framing.backToCover')}
+                        </Button>
+                      )
+                    }
+                  >
+                    <FramingPicker
+                      framing={frame.framing ?? work.cover.framing}
+                      layouts={view.data?.layouts ?? []}
+                      lettering={false}
+                      onChange={(framing) => change({ framing })}
+                    />
+                  </Section>
+                  <Section title={t('frame.ownWords')} hint={t('frame.ownWordsHint')}>
+                    <DraftText
+                      label={t('frame.ownWords')}
+                      value={frame.still}
+                      rows={2}
+                      mono
+                      onCommit={(still) => change({ still })}
+                    />
+                  </Section>
+                  <Section title={t('cover.details.title')} hint={t('frame.detailsHint')}>
+                    <DetailSwitches
+                      details={view.data?.details ?? []}
+                      onToggle={(id, on) =>
+                        cover.change((c) => ({ ...c, details: { ...c.details, [id]: on } }))
+                      }
+                    />
+                  </Section>
+                </>
+              ) : (
+                <Section title={t('frame.still')} hint={t('frame.stillHint')}>
+                  <DraftText
+                    label={t('frame.still')}
+                    value={frame.still}
+                    rows={5}
+                    mono
+                    onCommit={(still) => change({ still })}
+                  />
+                </Section>
+              )}
+
               <Section title={t('frame.loop')} hint={t('frame.loopHint')}>
-                <FrameText
+                <DraftText
                   label={t('frame.motion')}
                   value={frame.motion}
                   rows={2}
+                  mono
                   placeholder={t('frame.motionPlaceholder')}
                   onCommit={(motion) => change({ motion })}
                 />
@@ -141,11 +185,15 @@ export function FrameTab({ work }: Props) {
                 </Checkbox>
               </Section>
 
-              <Section title={t('frame.negative')} hint={t('frame.negativeHint')}>
-                <FrameText
+              <Section
+                title={built ? t('frame.negativeOwn') : t('frame.negative')}
+                hint={t('frame.negativeHint')}
+              >
+                <DraftText
                   label={t('frame.negative')}
                   value={frame.negative}
                   rows={2}
+                  mono
                   onCommit={(negative) => change({ negative })}
                 />
               </Section>
@@ -153,24 +201,73 @@ export function FrameTab({ work }: Props) {
           </div>
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <Pane
-              label={t('frame.prompts')}
-              head={
-                <>
-                  <b className="text-sm font-semibold">
-                    {format === undefined ? t('frame.shapeless') : t('frame.shape', { format })}
-                  </b>
-                  <span className="text-2xs text-faint">{t('frame.shapeHint')}</span>
-                </>
-              }
-              bodyClassName="flex flex-col gap-3 p-3"
-            >
-              <PromptBlocks workId={work.id} />
-            </Pane>
+            <Loaded query={view} skeleton={<SkeletonList rows={3} secondary={false} />} plain>
+              {(data) => <FramePanel view={data} />}
+            </Loaded>
           </div>
         </div>
       </div>
     </Frame>
+  )
+}
+
+/** The scheme of a built still, then the three prompts to copy. */
+function FramePanel({ view }: { view: FrameView }) {
+  const { t } = useTranslation()
+  return (
+    <Pane
+      label={t('frame.prompts')}
+      head={
+        <>
+          <b className="text-sm font-semibold">{t('frame.shape', { format: view.format })}</b>
+          <span className="text-2xs text-faint">{t('frame.shapeHint')}</span>
+        </>
+      }
+      bodyClassName="flex flex-col gap-3 p-3"
+    >
+      {view.from_cover && (
+        <div className="grid h-[clamp(9rem,28vh,17rem)] place-items-center rounded-md bg-soft p-2.5">
+          {view.scheme === null ? (
+            <p className="max-w-80 text-center text-sm text-faint">{t('frame.noScheme')}</p>
+          ) : (
+            <SchemeView scheme={view.scheme} label={t('cover.schemeLabel')} className="h-full" />
+          )}
+        </div>
+      )}
+      {PROMPTS.map((part) => {
+        const name = t(`frame.prompt.${part}`)
+        const text = view.prompts[part]
+        const empty = text.trim() === ''
+        return (
+          // `group`: the copy button shows while the pointer is over the
+          // block it copies, and whenever the keyboard is on it.
+          <section key={part} aria-label={name} className="group flex min-w-0 flex-col gap-1.5">
+            <header className="flex min-h-5 items-center gap-2">
+              <span className="caption">{name}</span>
+              <span className="font-mono text-2xs text-faint">{part}</span>
+              <CopyButton
+                value={text}
+                label={t('frame.copy', { part: name })}
+                copiedLabel={t('frame.copied')}
+                title={t('frame.copy', { part: name })}
+                disabled={empty}
+                className="ml-auto"
+                onCopy={(ok) => {
+                  if (!ok) say.failed(t('work.copyFailed'))
+                }}
+              />
+            </header>
+            {empty ? (
+              <p className="text-xs text-faint">{t('frame.nothing')}</p>
+            ) : (
+              <pre className="selectable rounded-md border border-line bg-soft px-2.5 py-2 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap text-dim">
+                {text}
+              </pre>
+            )}
+          </section>
+        )
+      })}
+    </Pane>
   )
 }
 
@@ -179,103 +276,4 @@ export function FrameTab({ work }: Props) {
  *  no choice at all. */
 function lengthsWith(seconds: number): number[] {
   return LENGTHS.includes(seconds) ? LENGTHS : [...LENGTHS, seconds].sort((a, b) => a - b)
-}
-
-/** A block of the settings, the mockup's `csec`: a title and a hint across
- *  the top, a line under it. */
-function Section({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2.5 border-b border-line py-3 last:border-b-0">
-      <header className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <b className="text-sm font-semibold">{title}</b>
-        <span className="text-2xs text-faint">{hint}</span>
-      </header>
-      {children}
-    </section>
-  )
-}
-
-/**
- * A text of the frame, held while it is typed and saved on blur - and only
- * when it changed, so tabbing through the boxes writes nothing. A save per
- * keystroke would write half-words and redraw the box under the cursor (the
- * cover's blocks say the same).
- */
-function FrameText({
-  label,
-  value,
-  rows,
-  placeholder,
-  onCommit,
-}: {
-  label: string
-  value: string
-  rows: number
-  placeholder?: string
-  onCommit: (text: string) => void
-}) {
-  const [text, setText] = useState<string | null>(null)
-  return (
-    <Textarea
-      value={text ?? value}
-      rows={rows}
-      aria-label={label}
-      placeholder={placeholder}
-      className="font-mono text-xs leading-relaxed"
-      onChange={(event) => setText(event.target.value)}
-      onBlur={() => {
-        if (text !== null && text !== value) onCommit(text)
-        setText(null)
-      }}
-    />
-  )
-}
-
-/**
- * The three prompts, each copied on its own: each goes into a different box
- * of whatever draws the picture and animates it.
- */
-function PromptBlocks({ workId }: { workId: string }) {
-  const { t } = useTranslation()
-  const prompts = useQuery(queries.framePrompts(workId))
-
-  return (
-    <Loaded query={prompts} skeleton={<SkeletonList rows={3} secondary={false} />} plain>
-      {(data) =>
-        PROMPTS.map((part) => {
-          const name = t(`frame.prompt.${part}`)
-          const text = data[part]
-          const empty = text.trim() === ''
-          return (
-            // `group`: the copy button shows while the pointer is over the
-            // block it copies, and whenever the keyboard is on it.
-            <section key={part} aria-label={name} className="group flex min-w-0 flex-col gap-1.5">
-              <header className="flex min-h-5 items-center gap-2">
-                <span className="caption">{name}</span>
-                <span className="font-mono text-2xs text-faint">{part}</span>
-                <CopyButton
-                  value={text}
-                  label={t('frame.copy', { part: name })}
-                  copiedLabel={t('frame.copied')}
-                  title={t('frame.copy', { part: name })}
-                  disabled={empty}
-                  className="ml-auto"
-                  onCopy={(ok) => {
-                    if (!ok) say.failed(t('work.copyFailed'))
-                  }}
-                />
-              </header>
-              {empty ? (
-                <p className="text-xs text-faint">{t('frame.nothing')}</p>
-              ) : (
-                <pre className="selectable rounded-md border border-line bg-soft px-2.5 py-2 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap text-dim">
-                  {text}
-                </pre>
-              )}
-            </section>
-          )
-        })
-      }
-    </Loaded>
-  )
 }

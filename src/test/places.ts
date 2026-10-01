@@ -46,7 +46,7 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   // A heading of the board, drawn only once its scenes have arrived: since
   // v0.81 every cell is a field, and what a scene says is a field's value.
   [IDS.video, 'scenes', en.scenes.readiness],
-  [IDS.video, 'cover', 'YouTube · 16:9'],
+  [IDS.video, 'cover', '16:9 · YouTube'],
   [IDS.video, 'cuts', 'Paper Lanterns'],
   [IDS.video, 'score', 'Paper Lanterns (clip)'],
   [IDS.video, 'releases', 'Paper Lanterns (clip)'],
@@ -61,7 +61,7 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   // and files are its own, not the song's.
   [IDS.audio, 'overview', 'Paper Lanterns — audio'],
   // The shape its YouTube release asks for, lit: it holds one.
-  [IDS.audio, 'cover', 'YouTube · 16:9'],
+  [IDS.audio, 'cover', '16:9 · YouTube'],
   // The loop's prompt, written by the backend from the frame's settings.
   [IDS.audio, 'frame', 'the lantern turns slowly on the current'],
   [IDS.audio, 'releases', 'Sep 22'],

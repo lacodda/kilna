@@ -2,8 +2,9 @@ import { invoke } from '@tauri-apps/api/core'
 import type {
   BulkOutcome,
   CardCounts,
-  FramePrompts,
   Cloned,
+  CoverView,
+  FrameView,
   Discarded,
   NewWork,
   ScoredWork,
@@ -41,6 +42,12 @@ export const workTags = () => invoke<[string, number][]>('work_tags')
 export const catalogue = () => invoke<ScoredWork[]>('catalogue')
 /** The number beside each of a work's tabs, in one answer. */
 export const cardCounts = (workId: string) => invoke<CardCounts>('card_counts', { workId })
-/** The frame as it is copied into a generator: the still, the loop written
- *  from its settings, the negative - written once, on the Rust side. */
-export const framePrompts = (id: string) => invoke<FramePrompts>('frame_prompts', { id })
+/** The Cover tab: the prompt written from the work's cover for one of its
+ *  doors' shapes, the scheme drawn from the same settings, and what the
+ *  channel's card offers - written once, on the Rust side. */
+export const coverView = (id: string, format: string | null) =>
+  invoke<CoverView>('cover_view', { id, format })
+/** The frame as it is copied into a generator: the still - built from the
+ *  cover or written whole - the loop written from its settings, the
+ *  negative, and the scheme of a built still. */
+export const frameView = (id: string) => invoke<FrameView>('frame_view', { id })

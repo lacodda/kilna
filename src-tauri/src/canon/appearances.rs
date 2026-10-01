@@ -162,8 +162,10 @@ fn phrase_of(name: &str) -> Option<String> {
     Some(format!("\"{}\"", words.join(" ").replace('"', "\"\"")))
 }
 
-/// The works whose cover prompt names the card: by a `[[card:id]]` reference,
-/// or by one of its names as a whole word.
+/// The works whose cover names the card: as its hero (v0.88), by a
+/// `[[card:id]]` reference in its words, or by one of its names as a whole
+/// word of them. The words are the cover's own - its idea, its scene, what
+/// the person wrote for each block - not the ids and settings beside them.
 fn covers_naming(
     conn: &Connection,
     profile_id: &str,
@@ -180,8 +182,22 @@ fn covers_naming(
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(covers
         .into_iter()
-        .filter(|(_, cover)| {
-            cover.contains(&reference) || names.iter().any(|name| names_word(cover, name))
+        .filter(|(_, raw)| {
+            let Ok(cover) = serde_json::from_str::<crate::cover::Cover>(raw) else {
+                return false;
+            };
+            if cover.hero_card() == Some(card_id) {
+                return true;
+            }
+            let words = [
+                cover.idea.as_str(),
+                cover.scene.as_str(),
+                cover.picture.as_str(),
+                cover.negative.as_str(),
+                cover.typography.as_str(),
+            ]
+            .join("\n");
+            words.contains(&reference) || names.iter().any(|name| names_word(&words, name))
         })
         .map(|(id, _)| id)
         .collect())

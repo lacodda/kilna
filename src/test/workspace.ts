@@ -10,7 +10,9 @@ import type {
   Cut,
   Deletion,
   Derived,
-  FramePrompts,
+  Cover,
+  CoverView,
+  FrameView,
   Publication,
   Publications,
   JournalEntry,
@@ -95,6 +97,27 @@ export interface Studio {
   chats: ChatSummary[]
 }
 
+/** A cover with nothing in it, the way `Cover` reads `{}` on the Rust side;
+ *  `fields` fills in what a fixture says. */
+export function coverOf(fields: Partial<Cover> = {}): Cover {
+  return {
+    idea: '',
+    scene: '',
+    hero: null,
+    framing: null,
+    bricks: { style: null, typography: null, dressing: null, background: null },
+    accent: null,
+    lettering: { title: null, apart: false, captions: {} },
+    mark: { variant: null, place: 'corner', corner: 'bottomRight', way: 'overlay' },
+    details: {},
+    picture: '',
+    negative: '',
+    typography: '',
+    sent: null,
+    ...fields,
+  }
+}
+
 function work(fields: Partial<Work> & Pick<Work, 'id' | 'kind' | 'title'>): Work {
   return {
     profile_id: IDS.profile,
@@ -111,7 +134,7 @@ function work(fields: Partial<Work> & Pick<Work, 'id' | 'kind' | 'title'>): Work
     tier_pin_reason: null,
     bookmarked_at: null,
     stage: null,
-    cover: {},
+    cover: coverOf(),
     frame: {
       still: '',
       motion: '',
@@ -119,6 +142,8 @@ function work(fields: Partial<Work> & Pick<Work, 'id' | 'kind' | 'title'>): Work
       still_camera: true,
       seamless: true,
       negative: '',
+      built: null,
+      framing: null,
     },
     created_at: EARLIER,
     updated_at: NOW,
@@ -204,7 +229,7 @@ export function studio(): Studio {
       title: 'Paper Lanterns — audio',
       status: 'scheduled',
       meta: { bpm: '96', variant: 'original' },
-      cover: { picture: 'a paper lantern on dark water, seen from above' },
+      cover: coverOf({ picture: 'a paper lantern on dark water, seen from above' }),
       frame: {
         still: 'a paper lantern on dark water at dusk, seen from above',
         motion: 'the lantern turns slowly on the current',
@@ -212,6 +237,8 @@ export function studio(): Studio {
         still_camera: true,
         seamless: true,
         negative: 'no people',
+        built: null,
+        framing: null,
       },
       position: 4,
     }),
@@ -365,6 +392,7 @@ export function studio(): Studio {
       shot_type: null,
       description: 'The lantern is lit on the riverbank.',
       blocks: { still: 'close-up of hands lighting a paper lantern at dusk' },
+      framing: null,
       created_at: EARLIER,
       updated_at: NOW,
     },
@@ -379,6 +407,7 @@ export function studio(): Studio {
       shot_type: null,
       description: 'The lantern drifts under the bridge.',
       blocks: {},
+      framing: null,
       created_at: EARLIER,
       updated_at: NOW,
     },
@@ -722,14 +751,65 @@ function publicationsOf(studio: Studio, workId: string): Publications {
   }
 }
 
-/** The frame's blocks, written the way `Frame::prompts` writes them. */
-function framePromptsOf(studio: Studio, workId: string): FramePrompts {
+/** The frame as `frame_view` gives it for a frame written whole: the blocks
+ *  written the way `Frame::prompts` writes them, no scheme. A frame built
+ *  from its cover is answered by a test that needs one. */
+function frameViewOf(studio: Studio, workId: string): FrameView {
   const frame = studio.works.find((w) => w.id === workId)?.frame
   const motion = frame?.motion.trim() || 'barely noticeable breathing of the light'
   return {
-    still: frame?.still ?? '',
-    loop: `LOOP (${frame?.seconds ?? 6} s): ${motion}.`,
-    negative: frame?.negative ?? '',
+    prompts: {
+      still: frame?.still ?? '',
+      loop: `LOOP (${frame?.seconds ?? 6} s): ${motion}.`,
+      negative: frame?.negative ?? '',
+    },
+    from_cover: false,
+    format: '16:9',
+    scheme: null,
+    layouts: [],
+    details: [],
+    problems: [],
+  }
+}
+
+/** The Cover tab of a work, as `cover_view` gives it for a cover written by
+ *  hand: its own words are its prompt, and its kind's doors its shapes. */
+function coverViewOf(studio: Studio, workId: string, format: string | null): CoverView {
+  const found = studio.works.find((w) => w.id === workId)
+  const cover = found?.cover ?? coverOf()
+  const kind = studio.profile.config.work_kinds.find((k) => k.key === found?.kind)
+  const held = new Set(studio.releases.filter((r) => r.work_id === workId).map((r) => r.kind))
+  const formats = (kind?.release_kinds ?? [])
+    .filter((door) => (door.cover_format ?? null) !== null)
+    .map((door) => ({
+      door: door.key,
+      label: door.label,
+      format: door.cover_format!,
+      held: held.has(door.key),
+    }))
+  return {
+    built: false,
+    prompts: {
+      picture: cover.picture,
+      negative: cover.negative,
+      typography: cover.typography === '' ? null : cover.typography,
+    },
+    format: format ?? formats.find((f) => f.held)?.format ?? formats[0]?.format ?? '1:1',
+    formats,
+    scheme: null,
+    layouts: [],
+    title: found?.title ?? '',
+    source_title: found?.title ?? '',
+    slots: [],
+    details: [],
+    marks: [],
+    palette: [],
+    house_styles: [],
+    hero: null,
+    references: [],
+    problems: [],
+    sent_differs: false,
+    mark_box: null,
   }
 }
 
@@ -880,7 +960,9 @@ export function answersFor(studio: Studio): Record<string, Handler> {
 
     list_links: ({ workId }) => linksOf(studio, workId as string),
     list_publications: ({ workId }) => publicationsOf(studio, workId as string),
-    frame_prompts: ({ id }) => framePromptsOf(studio, id as string),
+    frame_view: ({ id }) => frameViewOf(studio, id as string),
+    cover_view: ({ id, format }) =>
+      coverViewOf(studio, id as string, (format as string | null | undefined) ?? null),
     release_proposals: () => [],
     list_scenes: byWork(() => studio.scenes),
     list_scene_notes: () => [],

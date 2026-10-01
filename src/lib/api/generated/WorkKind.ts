@@ -51,15 +51,16 @@ shot_types?: Array<Kind>,
  */
 scene_blocks?: Array<SceneBlock>, 
 /**
- * The parts of the prompt a work's cover picture is drawn from — what to
- * draw, what to keep out, what words go on it. The same shape as
- * [`scene_blocks`] and for the same reason: the craft names the parts,
- * the code does not know them (ADR 0001). A kind that names none (a song
- * whose cover is the album's) has no cover prompt, and the tab that
- * edits one does not appear. Added in v0.73 — a document without it is
- * the same document.
+ * Whether a work of this kind goes out under a cover it builds itself - a
+ * clip, an audio release, a short - and so has the Cover tab. The
+ * cover's parts are the application's since v0.88 (ADR 0049): the
+ * constructor writes a picture, a negative and a lettering from what is
+ * chosen, as the frame writes its loop. A kind that says nothing (a song,
+ * which goes out as what is made from it) has no cover. Format 2 named
+ * the parts here as `cover_blocks`; a document that still does is read as
+ * saying `cover: true`.
  */
-cover_blocks?: Array<SceneBlock>, 
+cover?: boolean, 
 /**
  * Whether a work of this kind plays under one picture for the whole of
  * its length - a track on a video platform - and so has a frame: the

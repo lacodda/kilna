@@ -24,7 +24,9 @@ export default tseslint.config(
   },
   // Where a colour is the subject rather than the styling: the cover gradients
   // are a palette this app owns, and do not follow the theme; a background
-  // style is a colour the owner picked, and its editor and rules speak in it.
+  // style is a colour the owner picked, and its editor and rules speak in it;
+  // a scheme of a cover's frame is drawn in the picture's own colours, which
+  // the tests of the constructor write out.
   // (The mark, the other such exception, is dowel's ProductMark now and draws
   // itself.)
   {
@@ -33,6 +35,8 @@ export default tseslint.config(
       'src/lib/styleBrick.ts',
       'src/lib/styleDraft.test.ts',
       'src/features/styles/StylesView.test.tsx',
+      'src/features/work/tabs/cover/CoverTab.test.tsx',
+      'src/features/work/tabs/frame/FrameTab.test.tsx',
     ],
     rules: { 'dowel/no-raw-color': 'off' },
   },

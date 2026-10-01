@@ -17,9 +17,10 @@ step. Setting a second one changes the cover: the newest is the one that
 shows, and the one it replaced stays attached rather than disappearing
 behind your back. Remove it and the older one is the cover again.
 
-Where the cover is drawn rather than photographed, the prompt it is drawn from
-lives on the card's **Cover** tab — see
-[Shorts](/kilna/guides/shorts/#the-covers-prompt).
+Where the cover is drawn rather than photographed, it is built on the card's
+**Cover** tab - see [The cover](/kilna/guides/the-cover/). The pictures a
+generator gives back land there as **candidates**, and one is made the cover;
+here they are a group of files of their own.
 
 ## The cover's shape
 
@@ -28,8 +29,8 @@ The place a release goes out decides the shape of its picture: YouTube wants a
 the kind of release's (`cover_format` in the
 [profile](/kilna/reference/profile-document/)), so a work that goes out in two
 places needs two covers. The **Cover** tab of a clip, an audio release or a
-short lists the shapes of the doors its kind has - lit for the ones it has a
-release through, dim for the ones it has none through yet - above the prompt.
+short offers the shapes of the doors its kind has, and says of a shape it
+does not go out through yet that it does not.
 
 ## The frame
 
@@ -46,6 +47,11 @@ play under one (`"frame": true`; Studio's **Audio**) has a **Frame** tab:
 - **the camera does not move** and **seamless: the last frame matches the
   first** - two switches, on by default;
 - **the negative** - what must not appear.
+
+Since v0.88 the still is **built from the cover** by default - the same idea,
+hero, style, ground and mark, without the title - and what you write is added
+to it as your own words; **own scene** keeps the still as you write it,
+whole. See [The cover](/kilna/guides/the-cover/#the-frame-of-an-audio-release).
 
 Beside them, three blocks to copy into the generator - the still, the loop and
 the negative. The loop's block is written for you from the settings - *LOOP
@@ -95,7 +101,7 @@ hole.
 ## Files in groups
 
 The tab shows a work's files grouped by what they are for: the cover first,
-then the stills its scenes are drawn from, then the clips animated from
+then the candidates for it, then the stills its scenes are drawn from, then the clips animated from
 those, then everything else. A group with nothing in it is not drawn at all.
 
 The grouping earns its place on a storyboard. Scene stills and clips are

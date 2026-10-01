@@ -492,6 +492,7 @@ mod tests {
             shot_type: None,
             description: String::new(),
             blocks: serde_json::Map::new(),
+            framing: None,
             created_at: String::new(),
             updated_at: String::new(),
         };
@@ -527,6 +528,7 @@ mod tests {
             shot_type: None,
             description: String::new(),
             blocks: serde_json::Map::new(),
+            framing: None,
             created_at: String::new(),
             updated_at: String::new(),
         };

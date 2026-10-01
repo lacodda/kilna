@@ -1,5 +1,12 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { NewScene, Scene, SceneFrame, SceneNote, ScenePatch } from '@/lib/api/types'
+import type {
+  NewScene,
+  Scene,
+  SceneFrame,
+  SceneFrameView,
+  SceneNote,
+  ScenePatch,
+} from '@/lib/api/types'
 
 // A work's storyboard: scenes, their notes and their frames.
 
@@ -32,6 +39,9 @@ export const attachSceneFrame = (sceneId: string, kind: string, source: string) 
 export const pasteSceneFrame = (sceneId: string, kind: string, bytes: Uint8Array, name: string) =>
   invoke<SceneFrame>('paste_scene_frame', { sceneId, kind, bytes: Array.from(bytes), name })
 export const detachSceneFrame = (id: string) => invoke<void>('detach_scene_frame', { id })
+/** A scene's built frame: its still written around the picture block in the
+ *  clip's style, and the scheme of where its hero stands. */
+export const sceneFrameView = (id: string) => invoke<SceneFrameView>('scene_frame_view', { id })
 export const selectSceneFrame = (id: string) => invoke<SceneFrame>('select_scene_frame', { id })
 /** Put one kind of a scene's material in the order given, first to last: the
  * whole order travels, as it does for the board's scenes. */

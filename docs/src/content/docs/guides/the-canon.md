@@ -97,6 +97,16 @@ lets the channel be a card like the others:
 - **Marks** — a variant of the mark: its code, what it means, its
   description for a generator.
 - **House styles** — bricks of the [style dictionary](/kilna/guides/styles/).
+- **Bans** — what must not appear. A cover reads a picture's bans into its
+  negative; a public text reads the bans of texts. Studio keeps them apart on
+  the channel and on a character - *Bans* for what is said, *Picture bans*
+  for what is drawn - so moderation words and the rules of the voice stay
+  out of a picture's prompt.
+
+Each shape has its reader in the [cover constructor](/kilna/guides/the-cover/):
+details are its switches, marks the family a cover picks from, the palette
+its accents, house styles the bricks it offers first, slots the captions of
+a dressing, picture bans its negative.
 
 The channel card lays these out as a board of panels rather than one
 column.
@@ -138,7 +148,7 @@ text** — shows the card as that task sees it, dimming what it may not read:
   not retired, drafts and live zones included.
 - **A cover** reads only settled, public facts of a public card, in the
   sections the profile gave covers — a character's looks, outfits, symbols
-  and bans in the Studio profile.
+  and picture bans in the Studio profile.
 - **A public text** — a release's text, a reply to a comment — reads only
   settled, public facts in the sections given to it. A card that publicly
   does not exist is not seen at all.

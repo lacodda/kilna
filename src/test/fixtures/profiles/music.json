@@ -23,7 +23,7 @@
         }
       }
     ],
-    "format": 2,
+    "format": 3,
     "marks": [
       {
         "colour": "warn",
@@ -170,8 +170,8 @@
           },
           {
             "hint": {
-              "en": "→ the negative prompt and the idea generator",
-              "ru": "→ негатив и генератор идей"
+              "en": "→ what a release goes out under, and replies",
+              "ru": "→ мета выпуска и ответы"
             },
             "key": "bans",
             "label": {
@@ -179,9 +179,24 @@
               "ru": "Запреты"
             },
             "lenses": [
-              "cover",
               "public"
-            ]
+            ],
+            "shape": "bans"
+          },
+          {
+            "hint": {
+              "en": "→ the negative of a cover, a frame and a scene; the idea generator",
+              "ru": "→ негатив обложки, кадра и сцены; генератор идей"
+            },
+            "key": "picture_bans",
+            "label": {
+              "en": "Picture bans",
+              "ru": "Запреты картинки"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "bans"
           },
           {
             "hint": {
@@ -330,15 +345,34 @@
             ]
           },
           {
+            "hint": {
+              "en": "What may not be said about them",
+              "ru": "Что о персонаже нельзя говорить"
+            },
             "key": "bans",
             "label": {
               "en": "Bans",
               "ru": "Запреты"
             },
             "lenses": [
-              "cover",
               "public"
-            ]
+            ],
+            "shape": "bans"
+          },
+          {
+            "hint": {
+              "en": "→ the negative of a picture they are in",
+              "ru": "→ негатив картинки, где он есть"
+            },
+            "key": "picture_bans",
+            "label": {
+              "en": "Picture bans",
+              "ru": "Запреты картинки"
+            },
+            "lenses": [
+              "cover"
+            ],
+            "shape": "bans"
           },
           {
             "hint": {
@@ -2017,41 +2051,7 @@
             "weight": 1.0
           }
         ],
-        "cover_blocks": [
-          {
-            "hint": {
-              "en": "What the thumbnail shows: subject, framing, light, mood.",
-              "ru": "Что показывает превью: объект, кадрирование, свет, настроение."
-            },
-            "key": "picture",
-            "label": {
-              "en": "Picture",
-              "ru": "Картинка"
-            }
-          },
-          {
-            "hint": {
-              "en": "What must not appear on it.",
-              "ru": "Чего на ней быть не должно."
-            },
-            "key": "negative",
-            "label": {
-              "en": "Negative",
-              "ru": "Негатив"
-            }
-          },
-          {
-            "hint": {
-              "en": "The words on the cover, and how they sit: size, weight, place.",
-              "ru": "Слова на обложке и как они лежат: размер, насыщенность, место."
-            },
-            "key": "typography",
-            "label": {
-              "en": "Typography",
-              "ru": "Типографика"
-            }
-          }
-        ],
+        "cover": true,
         "key": "video",
         "label": {
           "en": "Video",
@@ -2173,7 +2173,8 @@
             "label": {
               "en": "Still frame",
               "ru": "Стоп-кадр"
-            }
+            },
+            "picture": true
           },
           {
             "hint": {
@@ -2342,41 +2343,7 @@
         ]
       },
       {
-        "cover_blocks": [
-          {
-            "hint": {
-              "en": "What the thumbnail shows: subject, framing, light, mood.",
-              "ru": "Что показывает превью: объект, кадрирование, свет, настроение."
-            },
-            "key": "picture",
-            "label": {
-              "en": "Picture",
-              "ru": "Картинка"
-            }
-          },
-          {
-            "hint": {
-              "en": "What must not appear on it.",
-              "ru": "Чего на ней быть не должно."
-            },
-            "key": "negative",
-            "label": {
-              "en": "Negative",
-              "ru": "Негатив"
-            }
-          },
-          {
-            "hint": {
-              "en": "The words on the cover, and how they sit: size, weight, place.",
-              "ru": "Слова на обложке и как они лежат: размер, насыщенность, место."
-            },
-            "key": "typography",
-            "label": {
-              "en": "Typography",
-              "ru": "Типографика"
-            }
-          }
-        ],
+        "cover": true,
         "frame": true,
         "key": "audio",
         "label": {
@@ -2729,41 +2696,7 @@
             "weight": 1.0
           }
         ],
-        "cover_blocks": [
-          {
-            "hint": {
-              "en": "What the thumbnail shows: subject, framing, light, mood.",
-              "ru": "Что показывает превью: объект, кадрирование, свет, настроение."
-            },
-            "key": "picture",
-            "label": {
-              "en": "Picture",
-              "ru": "Картинка"
-            }
-          },
-          {
-            "hint": {
-              "en": "What must not appear on it.",
-              "ru": "Чего на ней быть не должно."
-            },
-            "key": "negative",
-            "label": {
-              "en": "Negative",
-              "ru": "Негатив"
-            }
-          },
-          {
-            "hint": {
-              "en": "The words on the cover, and how they sit: size, weight, place.",
-              "ru": "Слова на обложке и как они лежат: размер, насыщенность, место."
-            },
-            "key": "typography",
-            "label": {
-              "en": "Typography",
-              "ru": "Типографика"
-            }
-          }
-        ],
+        "cover": true,
         "key": "short",
         "label": {
           "en": "Short",
@@ -2834,7 +2767,8 @@
             "label": {
               "en": "Still frame",
               "ru": "Стоп-кадр"
-            }
+            },
+            "picture": true
           },
           {
             "hint": {

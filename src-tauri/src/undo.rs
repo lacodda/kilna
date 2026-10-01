@@ -130,6 +130,7 @@ pub fn reversible(kind: &str) -> bool {
             | "canonLink.update"
             | "canonLink.delete"
             | "asset.setRole"
+            | "asset.chooseCover"
             | "term.create"
             | "term.update"
             | "term.link"
@@ -320,6 +321,12 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             apply(conn, |tx| {
                 crate::asset::set_role(tx, &id, &before).map(|_| ())
             })?;
+        }
+        // The pictures of the work go back to the kinds they had: the cover
+        // that was set aside is the cover again.
+        "asset.chooseCover" => {
+            let before: Vec<(String, String)> = from_params(params, "before")?;
+            apply(conn, |tx| crate::asset::restore_kinds(tx, &before))?;
         }
         "canonLink.delete" => {
             let before: crate::canon::CanonLink = from_params(params, "before")?;

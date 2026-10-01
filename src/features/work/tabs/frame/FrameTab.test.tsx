@@ -113,16 +113,19 @@ describe("the frame's prompts", () => {
   it('are the three blocks the backend writes, under the shape of the first door', async () => {
     await openFrame()
 
-    expect(screen.getByText(en.frame.shape.replace('{{format}}', '16:9'))).toBeInTheDocument()
-    const still = await screen.findByRole('region', { name: en.frame.prompt.still })
+    expect(
+      await screen.findByText(en.frame.shape.replace('{{format}}', '16:9')),
+    ).toBeInTheDocument()
+    const panel = screen.getByLabelText(en.frame.prompts)
+    const still = within(panel).getByRole('region', { name: en.frame.prompt.still })
     expect(
       within(still).getByText('a paper lantern on dark water at dusk, seen from above'),
     ).toBeInTheDocument()
-    const loop = screen.getByRole('region', { name: en.frame.prompt.loop })
+    const loop = within(panel).getByRole('region', { name: en.frame.prompt.loop })
     expect(
       within(loop).getByText('LOOP (6 s): the lantern turns slowly on the current.'),
     ).toBeInTheDocument()
-    const negative = screen.getByRole('region', { name: en.frame.prompt.negative })
+    const negative = within(panel).getByRole('region', { name: en.frame.prompt.negative })
     expect(within(negative).getByText('no people')).toBeInTheDocument()
   })
 
@@ -143,7 +146,7 @@ describe("the frame's prompts", () => {
 
   it('are asked for again once the frame is saved', async () => {
     const client = await openFrame()
-    const before = backend.argsOf('frame_prompts').length
+    const before = backend.argsOf('frame_view').length
 
     const motion = screen.getByRole('textbox', { name: en.frame.motion })
     fireEvent.change(motion, { target: { value: 'the reeds sway' } })
@@ -151,7 +154,53 @@ describe("the frame's prompts", () => {
 
     await waitFor(() => expect(sent()).toHaveLength(1))
     await settled(client)
-    expect(backend.argsOf('frame_prompts').length).toBeGreaterThan(before)
+    expect(backend.argsOf('frame_view').length).toBeGreaterThan(before)
     expect(await screen.findByText('LOOP (6 s): the reeds sway.')).toBeInTheDocument()
+  })
+})
+
+describe('where the still comes from', () => {
+  it('is the still as written for a frame written before the constructor, until told otherwise', async () => {
+    await openFrame()
+
+    const source = screen.getByRole('radiogroup', { name: en.frame.source.title })
+    expect(within(source).getByRole('radio', { name: en.frame.source.own })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+    fireEvent.click(within(source).getByRole('radio', { name: en.frame.source.cover }))
+
+    await waitFor(() => expect(sent()).toEqual([{ ...STORED, built: true }]))
+  })
+
+  it("is built from the cover, drawn in the cover's frame, the written still as its own words", async () => {
+    backend.answer('frame_view', () => ({
+      prompts: {
+        still: 'FRAME: a wide 16:9 video frame that stays on screen for the whole track.',
+        loop: 'LOOP (6 s): the lantern turns slowly on the current.',
+        negative: 'No text, no title, no logos, no watermark, no frame or border.',
+      },
+      from_cover: true,
+      format: '16:9',
+      scheme: {
+        width: 177.78,
+        height: 100,
+        colours: { background: '#EFEBE3', figure: '#57525F', ink: '#121114', accent: '#9D9A94' },
+        shapes: [],
+        hero: { x: 0, y: 0, w: 10, h: 10 },
+        zones: [],
+        mark: null,
+      },
+      layouts: [],
+      details: [],
+      problems: [],
+    }))
+    workspace.works.find((work) => work.id === IDS.audio)!.frame.built = true
+    const { client } = renderApp(`/works/${IDS.audio}/frame`)
+    await screen.findByRole('textbox', { name: en.frame.ownWords })
+    await settled(client)
+
+    expect(screen.getByRole('img', { name: en.cover.schemeLabel })).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: en.frame.still })).toBeNull()
   })
 })

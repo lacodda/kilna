@@ -922,6 +922,14 @@
       "withoutMaterial_one": "{{count}} scene has nothing chosen for it yet.",
       "withoutMaterial_other": "{{count}} scenes have nothing chosen for them yet.",
       "failed": "Could not write the package."
+    },
+    "framing": {
+      "title": "Built frame",
+      "hint": "the cover constructor without words, in the clip's style",
+      "clear": "Copy the blocks as written",
+      "noPictureBlock": "The profile marks no block of a scene as the picture, so there is nothing to build the still around.",
+      "still": "Still, built",
+      "copy": "Copy the built still"
     }
   },
   "files": {
@@ -945,7 +953,8 @@
       "cover": "Cover",
       "frame": "Scene stills",
       "video": "Scene clips",
-      "other": "Other files"
+      "other": "Other files",
+      "candidate": "Cover candidates"
     }
   },
   "notes": {
@@ -1181,7 +1190,8 @@
     "coverFormats": "Cover shape",
     "coverFormatsHint": "The shape of the picture a release of each kind goes out with, width to height: 16:9, 9:16, 1:1. Leave empty for no picture of its own.",
     "coverFormatInvalid": "Two whole numbers above zero with a colon between them, like 16:9.",
-    "frameLine": "Works of this kind play under a frame for their whole length: a still picture and the loop of what moves in it."
+    "frameLine": "Works of this kind play under a frame for their whole length: a still picture and the loop of what moves in it.",
+    "coverLine": "Works of this kind go out under a cover built in the constructor: a picture, a negative and a title, written from what is chosen."
   },
   "fields": {
     "choiceNone": "Not set"
@@ -1530,6 +1540,7 @@
     "canonLink.update": "an edit to a relation",
     "canonLink.delete": "removing a relation",
     "asset.setRole": "a picture's role",
+    "asset.chooseCover": "choosing a cover",
     "term.create": "adding a term",
     "term.update": "an edit to a term",
     "term.link": "naming a work for a term",
@@ -1567,14 +1578,241 @@
     "gone": "A work that is gone"
   },
   "cover": {
-    "title": "Cover",
-    "hint": "The prompt the cover picture is drawn from. The picture itself is attached on the Files tab.",
-    "saved": "Cover prompt saved",
-    "copy": "Copy",
     "copied": "Copied",
-    "formats": "Formats",
-    "noRelease": "no release of this kind yet",
-    "formatsHint": "The shape comes from the kind of release: a work that goes out in two places needs a cover for each."
+    "saveFailed": "Could not save the cover.",
+    "concept": "What the cover is built from",
+    "made": "What it makes",
+    "format": "Shape",
+    "formatHint": "the shape comes from where it goes out",
+    "formatNotHeld": "the work does not go out there yet",
+    "noScheme": "Pick a layout on the left, and the frame is drawn here as the prompt asks for it.",
+    "schemeLabel": "The built frame: where the hero stands, where the title goes",
+    "toCanon": "Channel",
+    "problems": "What needs a look",
+    "problem": {
+      "brickGone": "A style chosen for this cover is no longer in the dictionary; the prompt leaves it out.",
+      "heroGone": "The hero's card is gone.",
+      "heroUndescribed": "«{{title}}» has no description for a generator yet, so the prompt does not name the hero. Describe the card in the Canon.",
+      "markGone": "The chosen variant of the mark is gone from the channel.",
+      "markWithoutFile": "The mark {{code}} has no file to lay over the picture; attach one to it in the channel's card.",
+      "slotEmpty": "Nothing fills {{slot}}: its phrase drops out of the prompt."
+    },
+    "idea": {
+      "title": "Idea",
+      "hint": "in your own words; not sent to the generator",
+      "placeholder": "What the cover says, and why this picture"
+    },
+    "scene": {
+      "title": "Scene, in English",
+      "placeholder": "What the picture shows, for the generator"
+    },
+    "hero": {
+      "title": "Hero",
+      "hint": "from the canon, or the one the scene describes",
+      "from": "Where the hero comes from",
+      "fromScene": "From the scene",
+      "fromCanon": "A card of the canon",
+      "sceneHint": "The hero is the one the scene describes.",
+      "gone": "A card that is gone",
+      "pick": "Pick a card",
+      "swap": "Another card",
+      "search": "Find a card",
+      "cards": "Public cards of the canon",
+      "nothing": "No public card matches.",
+      "untitled": "Untitled card",
+      "undescribed": "No description for a generator yet - describe the card in the Canon, or the prompt will not name the hero.",
+      "noPictures": "The card has no pictures to hand over",
+      "references_one": "Hand over the card's picture · {{count}}",
+      "references_other": "Hand over the card's pictures · {{count}}"
+    },
+    "framing": {
+      "title": "Frame",
+      "hint": "built in: the scheme and the prompt agree",
+      "clear": "No frame",
+      "layouts": "Layouts",
+      "where": "Where the hero is",
+      "at": "{{column}}, {{row}}",
+      "size": "Size",
+      "crop": "Of the hero",
+      "place": "Title"
+    },
+    "layout": {
+      "emblemRight": "Emblem right",
+      "emblemLeft": "Emblem left",
+      "centre": "Centre, full height",
+      "poster": "Hype poster",
+      "masthead": "Title behind the head",
+      "closeUp": "Close-up",
+      "figure": "Figure in the void",
+      "split": "Split"
+    },
+    "column": {
+      "left": "left third",
+      "centre": "centre",
+      "right": "right third"
+    },
+    "row": {
+      "top": "near the top",
+      "middle": "in the middle",
+      "bottom": "on the bottom edge"
+    },
+    "size": {
+      "small": "Small",
+      "emblem": "Emblem",
+      "large": "Large",
+      "full": "Full",
+      "over": "Past the edge",
+      "macro": "Macro"
+    },
+    "crop": {
+      "full": "Full figure",
+      "waist": "Waist up",
+      "bust": "Bust",
+      "head": "Head",
+      "detail": "Detail"
+    },
+    "place": {
+      "left": "Left",
+      "right": "Right",
+      "top": "Top",
+      "bottom": "Bottom",
+      "behind": "Behind the head",
+      "overlap": "Over the hero",
+      "vertical": "Vertical",
+      "corner": "In the corner",
+      "poster": "Poster"
+    },
+    "style": {
+      "title": "Style of the picture"
+    },
+    "brick": {
+      "none": "Not chosen",
+      "gone": "No longer in the dictionary",
+      "change": "Change: {{place}}",
+      "choose": "Choose",
+      "swap": "Change",
+      "search": "Find a style",
+      "nothing": "No ready style of this kind matches.",
+      "clear": "Take off: {{place}}",
+      "house": "house"
+    },
+    "lettering": {
+      "title": "Typography",
+      "hint": "the generator letters the title in the same prompt",
+      "words": "The title on the cover",
+      "noTitle": "No title, captions only",
+      "followSource": "As the song is called"
+    },
+    "dressing": {
+      "title": "Dressing",
+      "hint": "slots: this cover's captions, then the channel's",
+      "captions": "Captions",
+      "own": "this cover's",
+      "fromChannel": "from the channel",
+      "drops": "empty: the phrase drops out",
+      "slot": "Captions for {{slot}}, one per line"
+    },
+    "ground": {
+      "title": "Background",
+      "none": "No background chosen"
+    },
+    "accent": {
+      "title": "Accent",
+      "noPalette": "The channel's card has no palette yet; write a colour here.",
+      "words": "The accent in words",
+      "wordsPlaceholder": "hot pink",
+      "colour": "The accent's colour"
+    },
+    "mark": {
+      "title": "Mark",
+      "hint": "the family from the channel's card",
+      "none": "The channel's card has no mark yet. Add its variants there, each with a meaning and a file.",
+      "variants": "Variants of the mark",
+      "where": "Where",
+      "corner": "Corner",
+      "how": "How",
+      "place": {
+        "corner": "In a corner",
+        "hidden": "Hidden in the picture",
+        "none": "No mark"
+      },
+      "way": {
+        "overlay": "Lay the exact file over",
+        "drawn": "Draw in the style"
+      },
+      "overlayHint": "kilna lays the mark's file over the final picture when it is exported - the mark is always exact.",
+      "drawnHint": "The mark's description goes into the prompt and its file to the generator as a reference; the generator draws it in the picture's style."
+    },
+    "corner": {
+      "topLeft": "Upper left",
+      "topRight": "Upper right",
+      "bottomLeft": "Lower left",
+      "bottomRight": "Lower right"
+    },
+    "cornerArrow": {
+      "topLeft": "↖",
+      "topRight": "↗",
+      "bottomLeft": "↙",
+      "bottomRight": "↘"
+    },
+    "details": {
+      "title": "Signature details",
+      "hint_one": "from the channel's card · {{count}}",
+      "hint_other": "from the channel's card · {{count}}",
+      "none": "The channel's card has no signature details for this picture.",
+      "ownChoice": "this picture's own"
+    },
+    "prompt": {
+      "title": "The cover's prompt",
+      "hint": "picture · negative · typography",
+      "apart": "The title as a second prompt",
+      "byHand": "This cover is written by hand: its prompt is the words below, exactly. Choose a layout, a style or a hero on the left, and it is built from them.",
+      "part": {
+        "picture": "Picture",
+        "negative": "Negative",
+        "typography": "Title, as a second message"
+      },
+      "copy": "Copy: {{part}}",
+      "empty": "Nothing to copy yet.",
+      "own": {
+        "picture": "Your own words for the picture",
+        "negative": "Your own words for the negative",
+        "typography": "Your own words for the lettering"
+      },
+      "ownPlaceholder": "Added at the end, as written",
+      "copyAll": "Copy all",
+      "sent": "Kept on the cover · {{time}}",
+      "changedSince": "the prompt has changed since it was copied"
+    },
+    "references": {
+      "title": "To hand the generator",
+      "hint": "upload these with the prompt",
+      "role": {
+        "hero": "hero",
+        "mark": "mark",
+        "style": "style"
+      },
+      "show": "Show in its folder"
+    },
+    "result": {
+      "title": "Result",
+      "hint": "the final one is the release's preview: the catalogue, the calendar and the header show it",
+      "pick": "Add a picture",
+      "added": "Picture added",
+      "pasted": "Picture pasted",
+      "chosen": "That is the cover now",
+      "pictures": "Pictures",
+      "notPictures_one": "{{count}} file is not a picture and was left out",
+      "notPictures_other": "{{count}} files are not pictures and were left out",
+      "drop": "Drop pictures from the generator here, or paste one with Ctrl+V",
+      "final": "final",
+      "choose": "Make it the cover",
+      "remove": "Remove the picture",
+      "export": "Export the cover",
+      "exportWithMark": "Export with the mark",
+      "exported": "Cover saved",
+      "markHasNoFile": "the mark has no file to lay over - it is exported without one"
+    }
   },
   "frame": {
     "still": "Still",
@@ -1590,7 +1828,6 @@
     "negative": "Negative",
     "negativeHint": "What must not appear in the still or the loop.",
     "shape": "Video frame · {{format}}",
-    "shapeless": "Video frame",
     "shapeHint": "what stays on screen for the whole track",
     "prompts": "The frame's prompts",
     "prompt": {
@@ -1601,7 +1838,25 @@
     "copy": "Copy: {{part}}",
     "copied": "Copied",
     "nothing": "Nothing written yet.",
-    "saveFailed": "Could not save the frame."
+    "saveFailed": "Could not save the frame.",
+    "source": {
+      "title": "Where the still comes from",
+      "cover": "From the cover, without words",
+      "own": "Own scene",
+      "coverHint": "The idea, the hero, the style, the background and the mark are the cover's; the title and the dressing are left off, and the layout can be its own.",
+      "ownHint": "The still as you write it, whole."
+    },
+    "framing": {
+      "title": "Frame",
+      "asCover": "as the cover's",
+      "own": "its own",
+      "backToCover": "As the cover"
+    },
+    "ownWords": "Your own words for the still",
+    "ownWordsHint": "added after what is built",
+    "detailsHint": "the channel's, where they belong in a frame; switched as on the cover",
+    "negativeOwn": "Your own words for the negative",
+    "noScheme": "The cover has no frame yet: pick a layout on the left."
   },
   "shell": {
     "new": "New",
@@ -1800,12 +2055,11 @@
     "work": {
       "unknownKind": "The profile has no kind of work “{{kind}}”. Its kinds are: {{known}}.",
       "unknownStatus": "The profile has no status “{{status}}”.",
-      "unknownCoverBlock": "“{{key}}” is not a part of a {{kind}}'s cover; the profile names {{known}}.",
-      "coverNotText": "The cover's “{{key}}” must hold text.",
       "kindNoStatuses": "The kind “{{kind}}” defines no statuses.",
       "unknownTier": "“{{tier}}” is not a tier of “{{kind}}”.",
       "pinNeedsReason": "A pinned tier needs a reason — say what the score does not know.",
-      "noFrame": "A {{kind}} does not play under a frame."
+      "noFrame": "A {{kind}} does not play under a frame.",
+      "noCover": "A {{kind}} does not go out under a cover."
     },
     "version": {
       "unknownRole": "A {{kind}} has no version role “{{role}}”. Its roles are: {{known}}.",
@@ -1897,7 +2151,10 @@
       "cardOtherWorkspace": "«{{title}}» is a card of another workspace.",
       "factOfAnotherCard": "That fact belongs to another card.",
       "roleOnlyOnCards": "Only a picture of a card has a role to change.",
-      "unknownRole": "A picture of a card is a portrait, a reference, an outfit, a mood, a still or a mark, not «{{role}}»."
+      "unknownRole": "A picture of a card is a portrait, a reference, an outfit, a mood, a still or a mark, not «{{role}}».",
+      "coverOnlyOnWorks": "Only a picture of a work can be its cover.",
+      "notAPicture": "Only a cover or a candidate for one can be chosen as the cover.",
+      "saveFailed": "Could not save “{{path}}”: {{cause}}"
     },
     "backup": {
       "notFound": "There is no backup at “{{path}}”.",
@@ -2064,6 +2321,15 @@
     "term": {
       "exists": "“{{word}}” is in the register already.",
       "needsWord": "A term needs its word."
+    },
+    "cover": {
+      "unknownBrick": "There is no style “{{id}}” in this workspace.",
+      "brickOfOtherForm": "“{{name}}” cannot go in that place of a cover: it is another kind of style.",
+      "unknownHero": "There is no card “{{id}}” to be the hero.",
+      "heroNotACard": "«{{title}}» is a note, not a card of the canon.",
+      "accentNotHex": "An accent is a colour written #RRGGBB, not “{{value}}”.",
+      "unknownMark": "There is no variant “{{id}}” of the channel's mark.",
+      "markNotAVariant": "That fact is not a variant of the channel's mark."
     }
   },
   "skip": {

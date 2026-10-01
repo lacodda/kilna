@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import type { Link, Made, Release, StartedTask, Work } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
-import { answersFor, IDS, NOW, studio, type Studio } from '@/test/workspace'
+import { answersFor, coverOf, IDS, NOW, studio, type Studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
 
 /*
@@ -57,7 +57,7 @@ function answerDerive() {
       title: `${source.title} — audio 2`,
       status: 'draft',
       meta: { bpm: '96', variant: 'original' },
-      cover: {},
+      cover: coverOf(),
     }
     const link: Link = {
       ...workspace.links.find((l) => l.id === IDS.audioLink)!,

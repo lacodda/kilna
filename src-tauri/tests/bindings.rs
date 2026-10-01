@@ -60,7 +60,8 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::work::status::Change,
         kilna_lib::actions::work::Discarded,
         kilna_lib::actions::work::Made,
-        kilna_lib::work::frame::FramePrompts,
+        kilna_lib::cover::read::CoverView,
+        kilna_lib::cover::read::FrameView,
         kilna_lib::actions::BulkOutcome,
         kilna_lib::score::ScoredWork,
         kilna_lib::card::Counts,
@@ -146,6 +147,7 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::scene::ScenePatch,
         kilna_lib::scene_note::SceneNote,
         kilna_lib::scene_frame::SceneFrame,
+        kilna_lib::cover::read::SceneFrameView,
         // cuts.rs
         kilna_lib::cut::Cut,
         kilna_lib::cut::NewCut,
@@ -279,7 +281,9 @@ fn every_type_a_command_names_is_generated() {
         return;
     }
     // Names in signatures that are not the wire's: Tauri's and std's.
-    const NOT_ON_THE_WIRE: [&str; 9] = [
+    // `Response` is Tauri's raw answer - bytes, which arrive in the window as
+    // an `ArrayBuffer` and have no shape to generate.
+    const NOT_ON_THE_WIRE: [&str; 10] = [
         "State",
         "AppState",
         "AppHandle",
@@ -289,6 +293,7 @@ fn every_type_a_command_names_is_generated() {
         "String",
         "BTreeMap",
         "Value",
+        "Response",
     ];
     let commands_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/commands");
     let generated: BTreeSet<String> = read_tree(&generated_dir())

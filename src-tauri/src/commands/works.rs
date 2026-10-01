@@ -33,14 +33,25 @@ pub fn update_work(state: State<'_, AppState>, id: String, patch: WorkPatch) -> 
     actions::work::update(&state.conn(), &id, patch)
 }
 
-/// The frame of a work as it is copied into a generator: the still, the loop
-/// written from its settings, the negative (v0.86). Written here, once, so
-/// the tab and the agent copy the same words.
+/// The Cover tab of a work (v0.88): the prompt written from its cover for
+/// one of its doors' shapes, the scheme drawn from the same settings, and
+/// what the channel's card offers the constructor. Written here, once, so
+/// the tab and an agent read the same words.
 #[tauri::command]
-pub fn frame_prompts(state: State<'_, AppState>, id: String) -> Result<work::frame::FramePrompts> {
-    let found = work::get(&state.conn(), &id)?
-        .ok_or_else(|| crate::error::Error::not_found("work", &id))?;
-    Ok(found.frame.prompts())
+pub fn cover_view(
+    state: State<'_, AppState>,
+    id: String,
+    format: Option<String>,
+) -> Result<crate::cover::read::CoverView> {
+    crate::cover::read::view(&state.conn(), &id, format.as_deref())
+}
+
+/// The frame of a work as it is copied into a generator: the still - built
+/// from the cover without its words, or written whole - the loop written
+/// from its settings, the negative (v0.86, v0.88).
+#[tauri::command]
+pub fn frame_view(state: State<'_, AppState>, id: String) -> Result<crate::cover::read::FrameView> {
+    crate::cover::read::frame_view(&state.conn(), &id)
 }
 
 /// What a full recompute would change, changing nothing.

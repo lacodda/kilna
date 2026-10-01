@@ -13,7 +13,7 @@ import {
 } from '@/features/work/tabs'
 import type { CardCounts, Work } from '@/lib/api/types'
 import { CARD_TABS } from '@/test/places'
-import { answersFor, IDS, studio } from '@/test/workspace'
+import { answersFor, coverOf, IDS, studio } from '@/test/workspace'
 
 /** Facts with nothing named and nothing held, and whatever a test sets. */
 function facts(
@@ -163,10 +163,10 @@ describe("the card's tabs", () => {
       expect(drawn(IDS.song, { ...song, releases: 1 })).toContain('releases')
       expect(drawn(IDS.song, { ...song, files: 2 })).toContain('files')
       expect(drawn(IDS.song, { ...song, scenes: 3 })).toContain('scenes')
-      const covered: Work = { ...workOf(IDS.song), cover: { picture: 'a lantern' } }
+      const covered: Work = { ...workOf(IDS.song), cover: coverOf({ picture: 'a lantern' }) }
       expect(tabsOf(factsOf(config, covered, song))).toContain('cover')
       // A block written as nothing is nothing held.
-      const blank: Work = { ...workOf(IDS.song), cover: { picture: '  ' } }
+      const blank: Work = { ...workOf(IDS.song), cover: coverOf({ picture: '  ' }) }
       expect(tabsOf(factsOf(config, blank, song))).not.toContain('cover')
     })
 

@@ -8,6 +8,7 @@ pub mod clone;
 pub mod collection;
 pub mod commands;
 pub mod comment;
+pub mod cover;
 pub mod cut;
 pub mod db;
 pub mod device;
@@ -140,7 +141,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::works::get_work,
             commands::works::create_work,
             commands::works::update_work,
-            commands::works::frame_prompts,
+            commands::works::cover_view,
+            commands::works::frame_view,
             commands::works::status_drift,
             commands::works::resync_statuses,
             commands::works::unpin_status,
@@ -269,6 +271,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::scenes::attach_scene_frame,
             commands::scenes::paste_scene_frame,
             commands::scenes::detach_scene_frame,
+            commands::scenes::scene_frame_view,
             commands::scenes::select_scene_frame,
             commands::scenes::clear_scene_frame,
             commands::scenes::reorder_scene_frames,
@@ -284,6 +287,10 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::assets::list_release_assets,
             commands::assets::list_covers,
             commands::assets::detach_asset,
+            commands::assets::paste_asset,
+            commands::assets::choose_cover,
+            commands::assets::asset_bytes,
+            commands::assets::save_picture,
             commands::search::search,
             commands::search::works_matching,
             commands::journal::list_journal,

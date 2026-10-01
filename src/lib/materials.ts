@@ -18,8 +18,10 @@ import type { Asset } from '@/lib/api/types'
  */
 
 /** The kinds this screen knows, in the order it shows them. Anything else is
- * gathered under `other`, so a kind invented later still appears. */
-const MATERIAL_ORDER = ['cover', 'frame', 'video'] as const
+ * gathered under `other`, so a kind invented later still appears. The
+ * candidates for a cover (v0.88) come right after it: they are chosen among
+ * on the Cover tab, and here they are files like any other. */
+const MATERIAL_ORDER = ['cover', 'candidate', 'frame', 'video'] as const
 
 /** What a file with no kind, or an unknown one, is filed under. */
 export const OTHER = 'other'

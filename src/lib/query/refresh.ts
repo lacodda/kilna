@@ -15,7 +15,7 @@ import { keys } from '@/lib/query/keys'
  */
 export const refresh = {
   /** A work's fields, stage, star, tags or tier: the lists that show works. */
-  work: [keys.works, keys.catalogue] as readonly QueryKey[],
+  work: [keys.works, keys.catalogue, keys.pictures] as readonly QueryKey[],
   /** A work made or gone: everything that counts or places works. */
   works: [
     keys.works,
@@ -52,6 +52,7 @@ export const refresh = {
     keys.releaseQueue,
     keys.catalogue,
     keys.works,
+    keys.pictures,
   ] as readonly QueryKey[],
   note: [keys.notes, keys.tags] as readonly QueryKey[],
   /** A term of the register: the list, its works, and every text checked
@@ -60,13 +61,19 @@ export const refresh = {
   comment: [keys.comments, keys.publications] as readonly QueryKey[],
   /** A comment or a reply kept from an answer: the inbox and the proposal it was. */
   keptComment: [keys.comments, keys.pendingProposals, keys.transcripts] as readonly QueryKey[],
-  scene: [keys.scenes] as readonly QueryKey[],
+  scene: [keys.scenes, keys.pictures] as readonly QueryKey[],
   cut: [keys.cuts] as readonly QueryKey[],
   link: [keys.links, keys.works] as readonly QueryKey[],
-  style: [keys.styles] as readonly QueryKey[],
+  style: [keys.styles, keys.pictures] as readonly QueryKey[],
   /** The canon: a card's facts, relations, pictures or description. The
    *  notes too - a card is a note - and the search, which finds facts. */
-  canon: [keys.canon, keys.notes, ['search'], keys.styleSlots] as readonly QueryKey[],
+  canon: [
+    keys.canon,
+    keys.notes,
+    ['search'],
+    keys.styleSlots,
+    keys.pictures,
+  ] as readonly QueryKey[],
   focus: [keys.focus] as readonly QueryKey[],
   profile: [keys.workspace, keys.profiles] as readonly QueryKey[],
 }

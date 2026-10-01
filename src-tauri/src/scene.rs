@@ -40,6 +40,10 @@ pub struct Scene {
     pub description: String,
     /// Prompt blocks by the kind's `scene_blocks` key.
     pub blocks: Blocks,
+    /// The scene's built frame (v0.88): where its hero stands and how big.
+    /// With one, the still is written around the kind's picture block in
+    /// the clip's style; without, the blocks are copied as written.
+    pub framing: Option<crate::cover::Framing>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -100,10 +104,18 @@ pub struct ScenePatch {
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub blocks: Option<Blocks>,
+    /// `Some(None)` takes the built frame away: the blocks are copied as
+    /// written again.
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub framing: Option<Option<crate::cover::Framing>>,
 }
 
 const SELECT_SCENE: &str = "SELECT id, profile_id, work_id, position, section, starts_at, ends_at, \
-     shot_type, description, blocks, created_at, updated_at FROM scene";
+     shot_type, description, blocks, created_at, updated_at, framing FROM scene";
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewScene) -> Result<Scene> {
     create_minted(conn, profile_id, new, Minted::fresh())
@@ -282,6 +294,13 @@ pub fn update_at(conn: &Connection, id: &str, patch: ScenePatch, at: &str) -> Re
         );
     }
 
+    if let Some(framing) = patch.framing {
+        let framing = framing
+            .map(|framing| serde_json::to_string(&framing))
+            .transpose()?;
+        set(&mut assignments, &mut values, "framing", Box::new(framing));
+    }
+
     if assignments.is_empty() {
         return Ok(before);
     }
@@ -414,6 +433,7 @@ struct RawScene {
     blocks: String,
     created_at: String,
     updated_at: String,
+    framing: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawScene> {
@@ -430,6 +450,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawScene> {
         blocks: row.get(9)?,
         created_at: row.get(10)?,
         updated_at: row.get(11)?,
+        framing: row.get(12)?,
     })
 }
 
@@ -437,6 +458,11 @@ impl RawScene {
     fn into_scene(self) -> Result<Scene> {
         Ok(Scene {
             blocks: serde_json::from_str(&self.blocks)?,
+            framing: self
+                .framing
+                .as_deref()
+                .map(serde_json::from_str)
+                .transpose()?,
             id: self.id,
             profile_id: self.profile_id,
             work_id: self.work_id,

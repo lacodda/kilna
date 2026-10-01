@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ActionBar } from '@/features/assistant/ActionBar'
 import { BlockBox } from '@/features/work/tabs/scenes/BlockBox'
 import { SceneFrames } from '@/features/work/tabs/scenes/SceneFrames'
+import { SceneFraming } from '@/features/work/tabs/scenes/SceneFraming'
 
 interface Props {
   scene: Scene
@@ -159,6 +160,14 @@ export function SceneDetail({
                 />
               ))}
             </div>
+          )}
+
+          {/* The built frame, under the blocks it is written around: a
+              layout picked here wraps the picture block in the clip's
+              style and the scene's characters. Only for a kind that marks
+              which block is the picture. */}
+          {vocabulary.scene_blocks.some((block) => block.picture === true) && (
+            <SceneFraming scene={scene} onFraming={(framing) => onPatch({ framing })} />
           )}
 
           {unlisted.length > 0 && (

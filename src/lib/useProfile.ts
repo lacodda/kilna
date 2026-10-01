@@ -66,7 +66,9 @@ export interface Vocabulary {
   statuses: Status[]
   shot_types: Kind[]
   scene_blocks: SceneBlock[]
-  cover_blocks: SceneBlock[]
+  /** Works of this kind go out under a cover built in the constructor
+   *  (v0.88, ADR 0049). */
+  cover: boolean
   /** Works of this kind play under one picture for their whole length - a
    *  still and a loop (v0.86, ADR 0046). */
   frame: boolean
@@ -82,7 +84,7 @@ const NOTHING: Vocabulary = {
   statuses: [],
   shot_types: [],
   scene_blocks: [],
-  cover_blocks: [],
+  cover: false,
   frame: false,
   made_title: null,
 }
@@ -107,7 +109,7 @@ export function vocabularyOf(config: ProfileConfig, kind: string | undefined): V
     statuses: found.statuses ?? [],
     shot_types: found.shot_types ?? [],
     scene_blocks: found.scene_blocks ?? [],
-    cover_blocks: found.cover_blocks ?? [],
+    cover: found.cover ?? false,
     frame: found.frame ?? false,
     made_title: found.made_title ?? null,
   }

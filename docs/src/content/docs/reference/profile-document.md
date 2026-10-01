@@ -19,7 +19,7 @@ names its own.
 
 ```jsonc
 {
-  "format": 2,
+  "format": 3,
   "work_kinds": [
     { "key": "song",  "label": "Song",  "axes": [...], "tiers": [...], "version_roles": [...], "release_kinds": [...], "statuses": [...] },
     { "key": "video", "label": "Video", "axes": [...], "tiers": [...], "version_roles": [...], "release_kinds": [...], "statuses": [...] }
@@ -77,7 +77,7 @@ collection can take:
 A **work kind** carries the five lists described on this page — its `axes`,
 `tiers`, `version_roles`, `release_kinds` and `statuses` — beside its key
 and label, and, for a kind whose works are made in scenes, the two lists of
-[its storyboard](#shot_types-scene_blocks-and-cover_blocks); `release_kinds` therefore sit inside the work kind whose works go
+[its storyboard](#shot_types-scene_blocks-and-cover); `release_kinds` therefore sit inside the work kind whose works go
 out that way. A door belongs to the work that goes through it: the clip cut to
 a song is a `video` with doors of its own, its audio release an `audio` work,
 its shorts `short` works. `collection_kinds` stay on the profile.
@@ -94,6 +94,7 @@ A work kind may also say:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
+| `cover` | boolean, optional | Its works go out under a cover built in the [constructor](/kilna/guides/the-cover/): a picture, a negative and a title written from what is chosen. The card draws a **Cover** tab. Absent is no cover. See [below](#shot_types-scene_blocks-and-cover). |
 | `frame` | boolean, optional | Its works play under one picture for their whole length - an audio release on a video platform - and so have a [frame](/kilna/guides/files-and-covers/#the-frame): a still, a loop of what moves in it, and a negative. The card draws a **Frame** tab. Absent is no frame. |
 | `made_title` | string or map, optional | What a work of this kind is called when it is made from another: `{title}` is the source's title and `{n}` its number among the works of this kind made from the same source - Studio's short is `{ "en": "{title} · short {n}", "ru": "{title} · шортс {n}" }`. A template without `{n}` numbers only the second and later ones ("— clip", "— clip 2"). Written in the window's language when the work is made. Absent means the source's title as it is. |
 
@@ -498,10 +499,11 @@ The shapes:
 | --- | --- |
 | `facts` | A statement. The default. |
 | `slots` | A named value: a caption's slot and its words, a template's parts. |
-| `details` | A signature detail: its name, a template in English for a generator (`[[card:id]]` brings in a card's description), where it acts — `cover`, `short`, `video` — and whether it is on by default. |
+| `details` | A signature detail: its name, a template in English for a generator (`[[card:id]]` brings in a card's description), the pictures it belongs in — `cover`, `frame`, `scene` — and whether it is on by default. The [cover constructor](/kilna/guides/the-cover/) shows each as a switch. |
 | `palette` | A colour with its name. |
 | `marks` | A variant of a mark: its code, what it means, a description for a generator, and its files. |
 | `styles` | A house style: a brick of the [style dictionary](/kilna/guides/styles/). |
+| `bans` | A statement of what must not appear. Read through the `cover` lens into the negative of a picture (a cover, a frame, a scene), through the `public` lens by what is said in public. Studio keeps the two apart: `bans` for texts, `picture_bans` for pictures, on the channel and on a character. |
 | `relations` | Holds no facts: the card's relations to other cards, drawn on the card. |
 | `appearances` | Holds no facts: where the card appears, counted from the works it is the hero of, the scenes that point at it, the texts that name it, the covers that picture it and the works its facts cite. |
 
@@ -734,9 +736,9 @@ existed loads: the auto-layout then refuses with an explanation instead of
 inventing a pace. A workspace whose stored copy has no rhythm gains the
 shipped one at the next start; a pace you set yourself is left alone.
 
-## `shot_types`, `scene_blocks` and `cover_blocks`
+## `shot_types`, `scene_blocks` and `cover`
 
-Three optional lists on a **work kind**. The first two are for a kind whose
+Two optional lists and a flag on a **work kind**. The lists are for a kind whose
 works are made in scenes — Studio's `video` and `short`. A kind that names
 neither has no storyboard, and its cards draw no [Scenes](/kilna/guides/scenes/)
 tab. A document without them is the same document: format 2 is not changed.
@@ -750,15 +752,11 @@ tab. A document without them is the same document: format 2 is not changed.
     { "key": "detail", "label": "Detail" }
   ],
   "scene_blocks": [
-    { "key": "still", "label": "Still frame", "hint": "The frame as a picture: subject, light, lens, mood." },
+    { "key": "still", "label": "Still frame", "hint": "The frame as a picture: subject, light, lens, mood.", "picture": true },
     { "key": "motion", "label": "Animation", "hint": "What moves, and how the camera moves, from that frame." },
     { "key": "negative", "label": "Negative", "hint": "What must not appear." }
   ],
-  "cover_blocks": [
-    { "key": "picture", "label": "Picture", "hint": "What the thumbnail shows: subject, framing, light, mood." },
-    { "key": "negative", "label": "Negative", "hint": "What must not appear on it." },
-    { "key": "typography", "label": "Typography", "hint": "The words on the cover, and how they sit: size, weight, place." }
-  ]
+  "cover": true
 }
 ```
 
@@ -769,27 +767,22 @@ tab. A document without them is the same document: format 2 is not changed.
 | `scene_blocks[].key` | string | The key a scene stores that block's text under, and the key a template (v0.62) will read. A block under a key this list does not name is refused on write. |
 | `scene_blocks[].label` | string | The caption over the box and on its copy button. |
 | `scene_blocks[].hint` | string, optional | A line under the box saying what goes in it. |
-| `cover_blocks[].key` | string | The key a work stores that block's text under, in `work.cover`. A block under a key this list does not name is refused on write, the same as a scene block. |
-| `cover_blocks[].label` | string | The caption over the box and on its copy button. |
-| `cover_blocks[].hint` | string, optional | A line under the box saying what goes in it. |
+| `scene_blocks[].picture` | boolean, optional | The block that says what the picture shows. A scene with a built frame has its still written around it, in the clip's style (see [the cover](/kilna/guides/the-cover/#a-scene-of-a-clip)). One per kind; a kind that marks none has no built frames. |
+| `cover` | boolean, optional | Its works go out under a cover built in the constructor. |
 
 Studio also gives both kinds a `context` [version role](#version_roles)
 for what every scene shares — the hero, the palette, the lens. A workspace
 that already has the video kinds gains the two lists at the next start,
 where its stored copy names none; a list you narrowed is left alone.
 
-`cover_blocks` is the same shape as `scene_blocks` and for the same reason:
-the craft names the parts of a cover's prompt, the code does not know them.
-It is not about the storyboard — a song's cover is its album's and a song has
-no scenes, so a kind can carry either list without the other. Studio gives
-`video` and `short` three blocks each: `picture`, `negative` and
-`typography` — what the thumbnail shows, what must not appear on it, and the
-words that sit on it. A kind that names none has no cover prompt, and the
-screen draws nothing where the prompt would be. Added in v0.73 — a document
-without it is the same document, and a workspace that already has the video
-kinds gains it at the next start, where its stored copy names none; a list
-you narrowed yourself is left alone, the way `scene_blocks` is. Studio's
-`audio` names the same three.
+A cover's parts are the application's, not the craft's (v0.88, ADR 0049):
+the constructor writes a picture, a negative and - when the title goes apart -
+a typography block from what is chosen, so a kind says only whether its works
+have one. Studio's `video`, `audio` and `short` do; a song goes out as what is
+made from it, and has none. **Format 2** named the parts of a cover's prompt
+here as `cover_blocks`; a document that still does is read as `"cover": true`
+and written back in format 3. A workspace that has the kinds gains the flag,
+and the still's `picture` mark, at the next start.
 
 The frame of a kind with `"frame": true` is **not** a list of blocks: its
 parts are the application's - the still, what moves in the loop, the loop's

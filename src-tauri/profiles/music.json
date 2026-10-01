@@ -453,7 +453,8 @@
             "hint": {
               "en": "The frame as a picture: subject, light, lens, mood.",
               "ru": "Кадр как картинка: объект, свет, объектив, настроение."
-            }
+            },
+            "picture": true
           },
           {
             "key": "motion",
@@ -478,41 +479,7 @@
             }
           }
         ],
-        "cover_blocks": [
-          {
-            "key": "picture",
-            "label": {
-              "en": "Picture",
-              "ru": "Картинка"
-            },
-            "hint": {
-              "en": "What the thumbnail shows: subject, framing, light, mood.",
-              "ru": "Что показывает превью: объект, кадрирование, свет, настроение."
-            }
-          },
-          {
-            "key": "negative",
-            "label": {
-              "en": "Negative",
-              "ru": "Негатив"
-            },
-            "hint": {
-              "en": "What must not appear on it.",
-              "ru": "Чего на ней быть не должно."
-            }
-          },
-          {
-            "key": "typography",
-            "label": {
-              "en": "Typography",
-              "ru": "Типографика"
-            },
-            "hint": {
-              "en": "The words on the cover, and how they sit: size, weight, place.",
-              "ru": "Слова на обложке и как они лежат: размер, насыщенность, место."
-            }
-          }
-        ],
+        "cover": true,
         "made_title": {
           "en": "{title} — clip",
           "ru": "{title} — клип"
@@ -677,41 +644,7 @@
             "colour": "plain"
           }
         ],
-        "cover_blocks": [
-          {
-            "key": "picture",
-            "label": {
-              "en": "Picture",
-              "ru": "Картинка"
-            },
-            "hint": {
-              "en": "What the thumbnail shows: subject, framing, light, mood.",
-              "ru": "Что показывает превью: объект, кадрирование, свет, настроение."
-            }
-          },
-          {
-            "key": "negative",
-            "label": {
-              "en": "Negative",
-              "ru": "Негатив"
-            },
-            "hint": {
-              "en": "What must not appear on it.",
-              "ru": "Чего на ней быть не должно."
-            }
-          },
-          {
-            "key": "typography",
-            "label": {
-              "en": "Typography",
-              "ru": "Типографика"
-            },
-            "hint": {
-              "en": "The words on the cover, and how they sit: size, weight, place.",
-              "ru": "Слова на обложке и как они лежат: размер, насыщенность, место."
-            }
-          }
-        ],
+        "cover": true,
         "frame": true,
         "made_title": {
           "en": "{title} — audio",
@@ -1109,7 +1042,8 @@
             "hint": {
               "en": "The frame as a picture: subject, light, lens, mood.",
               "ru": "Кадр как картинка: объект, свет, объектив, настроение."
-            }
+            },
+            "picture": true
           },
           {
             "key": "motion",
@@ -1134,41 +1068,7 @@
             }
           }
         ],
-        "cover_blocks": [
-          {
-            "key": "picture",
-            "label": {
-              "en": "Picture",
-              "ru": "Картинка"
-            },
-            "hint": {
-              "en": "What the thumbnail shows: subject, framing, light, mood.",
-              "ru": "Что показывает превью: объект, кадрирование, свет, настроение."
-            }
-          },
-          {
-            "key": "negative",
-            "label": {
-              "en": "Negative",
-              "ru": "Негатив"
-            },
-            "hint": {
-              "en": "What must not appear on it.",
-              "ru": "Чего на ней быть не должно."
-            }
-          },
-          {
-            "key": "typography",
-            "label": {
-              "en": "Typography",
-              "ru": "Типографика"
-            },
-            "hint": {
-              "en": "The words on the cover, and how they sit: size, weight, place.",
-              "ru": "Слова на обложке и как они лежат: размер, насыщенность, место."
-            }
-          }
-        ],
+        "cover": true,
         "made_title": {
           "en": "{title} · short {n}",
           "ru": "{title} · шортс {n}"
@@ -1297,12 +1197,27 @@
               "ru": "Запреты"
             },
             "hint": {
-              "en": "→ the negative prompt and the idea generator",
-              "ru": "→ негатив и генератор идей"
+              "en": "→ what a release goes out under, and replies",
+              "ru": "→ мета выпуска и ответы"
             },
+            "shape": "bans",
             "lenses": [
-              "cover",
               "public"
+            ]
+          },
+          {
+            "key": "picture_bans",
+            "label": {
+              "en": "Picture bans",
+              "ru": "Запреты картинки"
+            },
+            "hint": {
+              "en": "→ the negative of a cover, a frame and a scene; the idea generator",
+              "ru": "→ негатив обложки, кадра и сцены; генератор идей"
+            },
+            "shape": "bans",
+            "lenses": [
+              "cover"
             ]
           },
           {
@@ -1457,9 +1372,28 @@
               "en": "Bans",
               "ru": "Запреты"
             },
+            "hint": {
+              "en": "What may not be said about them",
+              "ru": "Что о персонаже нельзя говорить"
+            },
+            "shape": "bans",
             "lenses": [
-              "cover",
               "public"
+            ]
+          },
+          {
+            "key": "picture_bans",
+            "label": {
+              "en": "Picture bans",
+              "ru": "Запреты картинки"
+            },
+            "hint": {
+              "en": "→ the negative of a picture they are in",
+              "ru": "→ негатив картинки, где он есть"
+            },
+            "shape": "bans",
+            "lenses": [
+              "cover"
             ]
           },
           {

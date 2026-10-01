@@ -54,26 +54,12 @@ reads exactly the same list.
 
 ## The cover's prompt
 
-A short is picked off a wall of thumbnails, so its cover is written and
-reworked the way the thing itself is. The **Files** tab of a kind whose
-profile names cover parts opens with them — in the shipped music profile a
-video and a short get three:
-
-| Part | What goes in it |
-| --- | --- |
-| Picture | What the thumbnail shows: subject, framing, light, mood. |
-| Negative | What must not appear on it. |
-| Typography | The words on the cover, and how they sit. |
-
-Each is copied on its own, because each goes into a different field of
-whatever draws it. The picture that comes back is attached below, on the same
-tab, as the work's cover — writing the prompt and looking at the result are
-one activity and belong on one screen.
-
-These are your craft's words, not kilna's: rename them, drop one, add a
-fourth in the [profile document](/kilna/reference/profile-document/) under
-`cover_blocks`. A kind that names none — a song whose cover is the album's —
-draws nothing here.
+A short is picked off a wall of thumbnails, so its cover is built and reworked
+the way the thing itself is - on its **Cover** tab, in the vertical 9:16 of
+the Shorts door. The tab builds the prompt from parts: the idea and the
+scene, the hero, a built frame, the styles, the channel's mark and details;
+the picture that comes back is dropped onto the same tab and made the cover.
+See [The cover](/kilna/guides/the-cover/).
 
 The prompt is searched with the rest of the work, so the short you remember
 by its picture is findable by the words that made it.

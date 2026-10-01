@@ -839,6 +839,9 @@ fn rewrite_scene(
             shot_type: Some(packaged.shot_type),
             description: Some(packaged.description),
             blocks: Some(packaged.blocks),
+            // A storyboard proposed whole says nothing about a scene's built
+            // frame: the one the person set stays.
+            framing: None,
         },
     )?;
     Ok(id.to_owned())
@@ -877,6 +880,7 @@ fn revise_scene(conn: &Connection, id: &str, packaged: PackagedScene) -> Result<
             shot_type: packaged.shot_type.map(Some),
             description: (!packaged.description.trim().is_empty()).then_some(packaged.description),
             blocks,
+            framing: None,
         },
     )?;
     Ok(id.to_owned())

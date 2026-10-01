@@ -112,6 +112,16 @@ pub fn paste_scene_frame(
     actions::scene::paste_frame(&state.conn(), &media, &scene_id, &kind, &bytes, &name)
 }
 
+/// A scene's built frame (v0.88): its still written around the picture
+/// block in the clip's style, and the scheme of where its hero stands.
+#[tauri::command]
+pub fn scene_frame_view(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<crate::cover::read::SceneFrameView> {
+    crate::cover::read::scene_view(&state.conn(), &id)
+}
+
 #[tauri::command]
 pub fn detach_scene_frame(state: State<'_, AppState>, id: String) -> Result<()> {
     actions::scene::detach_frame(&state.conn(), &id)

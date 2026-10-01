@@ -129,7 +129,7 @@ export function useMakePublication(source: Work): MakePublication {
 
       // Straight to where the next decision is: the cover, for a kind that
       // has one to write; the card itself otherwise.
-      const cover = vocabulary.cover_blocks.length > 0
+      const cover = vocabulary.cover
       void navigate(`/works/${made.work.id}${cover ? '/cover' : ''}`)
     },
   })

@@ -10,11 +10,11 @@ import { Input } from '@/components/ui/input'
  * What a kind says about the works made from others and the pictures they go
  * out with (v0.86, ADR 0047): the title a work of it takes when it is made
  * from another, the shape of each door's cover, and - read only - whether its
- * works play under a frame.
+ * works go out under a cover and play under a frame.
  *
- * The frame is not a word to rename but a fact of the kind's shape, like a
- * key: the tabs a work of it has hang on it, and the place to change it is
- * the profile document.
+ * The cover and the frame are not words to rename but facts of the kind's
+ * shape, like a key: the tabs a work of it has hang on them, and the place
+ * to change them is the profile document.
  */
 export function PublicationEditor({
   kind,
@@ -28,7 +28,7 @@ export function PublicationEditor({
   // A door has a cover shape to set when its work has a picture to go out
   // with - a cover, or the frame it plays under - or when the profile gave it
   // one already, which must stay reachable to be changed or cleared.
-  const pictured = (kind.cover_blocks ?? []).length > 0 || kind.frame === true
+  const pictured = kind.cover === true || kind.frame === true
   const shaped = doors.filter((door) => pictured || (door.cover_format ?? null) !== null)
 
   const setDoor = (key: string, changes: Partial<ReleaseKind>) =>
@@ -81,6 +81,7 @@ export function PublicationEditor({
         </FieldGroup>
       )}
 
+      {kind.cover === true && <p className="text-xs text-dim">{t('editor.coverLine')}</p>}
       {kind.frame === true && <p className="text-xs text-dim">{t('editor.frameLine')}</p>}
     </>
   )

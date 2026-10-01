@@ -1,7 +1,7 @@
 import type { CardCounts, ProfileConfig, Work } from '@/lib/api/types'
 import { canBeCut } from '@/lib/cuts'
-import { textOf } from '@/lib/json'
 import { vocabularyOf } from '@/lib/useProfile'
+import { coverHoldsAnything } from '@/features/work/tabs/cover/useCoverEdit'
 
 /**
  * The card's tabs, in the order the mockup puts them.
@@ -171,7 +171,7 @@ export function factsOf(
       axes: vocabulary.axes.length > 0,
       storyboard: vocabulary.shot_types.length > 0 || vocabulary.scene_blocks.length > 0,
       doors: vocabulary.release_kinds.length > 0,
-      cover: vocabulary.cover_blocks.length > 0,
+      cover: vocabulary.cover,
       frame: vocabulary.frame,
     },
     holds: {
@@ -181,7 +181,7 @@ export function factsOf(
       releases: !known || counts.releases > 0,
       files: !known || counts.files > 0,
       // Read off the work itself, which is already here.
-      cover: Object.values(work.cover).some((value) => textOf(value).trim() !== ''),
+      cover: coverHoldsAnything(work.cover),
       splice:
         !known ||
         canBeCut(

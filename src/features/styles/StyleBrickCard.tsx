@@ -94,7 +94,7 @@ export function StyleBrickCard({ brick, type, icon: Icon, open, onOpen }: Props)
           brick.status === 'dropped' && 'opacity-55',
         )}
       >
-        <BrickTop brick={brick} type={type} />
+        <BrickFace brick={brick} type={type} />
 
         <span className="flex min-w-0 flex-col gap-1.5 px-3 pt-2.5 pb-3">
           <span className="flex min-w-0 items-center gap-2">
@@ -135,8 +135,20 @@ export function StyleBrickCard({ brick, type, icon: Icon, open, onOpen }: Props)
   )
 }
 
-/** The top of a card, by what the brick is made of. */
-function BrickTop({ brick, type }: { brick: StyleBrick; type: StyleType | undefined }) {
+/**
+ * What a brick looks like, by what it is made of: the top of its card, and
+ * the face the cover constructor shows it by. `className` sets its height
+ * where the card's would not fit - a square beside a name, a tile in a list.
+ */
+export function BrickFace({
+  brick,
+  type,
+  className,
+}: {
+  brick: StyleBrick
+  type: StyleType | undefined
+  className?: string
+}) {
   const { t } = useTranslation()
   const form = type?.form ?? 'picture'
 
@@ -150,7 +162,10 @@ function BrickTop({ brick, type }: { brick: StyleBrick; type: StyleType | undefi
   if (form === 'lettering') {
     return (
       <span
-        className="flex h-18.5 items-center justify-center overflow-hidden px-2 text-2xl whitespace-nowrap"
+        className={cn(
+          'flex h-18.5 items-center justify-center overflow-hidden px-2 text-2xl whitespace-nowrap',
+          className,
+        )}
         style={sampleGround(brick.colours)}
       >
         <span style={sampleStyle(brick.sample)}>{t('styles.sampleWord')}</span>
@@ -160,16 +175,21 @@ function BrickTop({ brick, type }: { brick: StyleBrick; type: StyleType | undefi
   if (form === 'colour') {
     const colour = brick.colours[0]
     return colour === undefined ? (
-      <Empty />
+      <Empty className={className} />
     ) : (
       // The colour is the subject here, not the styling: it is the brick's own.
-      <span className="block h-18.5" style={{ background: colour }} />
+      <span className={cn('block h-18.5', className)} style={{ background: colour }} />
     )
   }
   if (form === 'dressing') {
     const slots = slotsOf(brick.description ?? '')
     return (
-      <span className="flex h-18.5 flex-wrap content-center items-center justify-center gap-1 overflow-hidden bg-soft px-3">
+      <span
+        className={cn(
+          'flex h-18.5 flex-wrap content-center items-center justify-center gap-1 overflow-hidden bg-soft px-3',
+          className,
+        )}
+      >
         {slots.length === 0 ? (
           <span className="text-xs text-faint">{t('styles.noSlots')}</span>
         ) : (
@@ -187,9 +207,9 @@ function BrickTop({ brick, type }: { brick: StyleBrick; type: StyleType | undefi
   if (slots === 0) {
     // No pictures yet: the palette it is described by, when it has one.
     return brick.colours.length === 0 ? (
-      <Empty />
+      <Empty className={className} />
     ) : (
-      <span className="flex h-18.5">
+      <span className={cn('flex h-18.5', className)}>
         {brick.colours.map((colour, index) => (
           <span key={index} className="flex-1" style={{ background: colour }} />
         ))}
@@ -198,7 +218,7 @@ function BrickTop({ brick, type }: { brick: StyleBrick; type: StyleType | undefi
   }
   const shown = (references.data ?? []).slice(0, SHOWN)
   return (
-    <span className={cn('grid h-18.5 gap-px bg-line', COLUMNS[slots])}>
+    <span className={cn('grid h-18.5 gap-px bg-line', COLUMNS[slots], className)}>
       {Array.from({ length: slots }, (_, slot) => {
         const asset = shown[slot]
         // A slot waits in the ground colour while its picture loads, so the
@@ -219,9 +239,9 @@ function BrickTop({ brick, type }: { brick: StyleBrick; type: StyleType | undefi
   )
 }
 
-function Empty() {
+function Empty({ className }: { className?: string }) {
   return (
-    <span className="flex h-18.5 items-center justify-center bg-soft">
+    <span className={cn('flex h-18.5 items-center justify-center bg-soft', className)}>
       <ImageOff aria-hidden className="size-5 text-faint" />
     </span>
   )

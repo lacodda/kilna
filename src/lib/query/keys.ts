@@ -17,9 +17,6 @@ export const keys = {
    *  work changing; the links, releases and comments refresh it as well. */
   publications: ['works', 'publications'] as const,
   publicationsFor: (workId: string) => ['works', 'publications', workId] as const,
-  /** The frame's blocks as they are copied, written on the Rust side from
-   *  the frame the work holds. */
-  framePromptsFor: (workId: string) => ['works', 'frame', workId] as const,
 
   versions: (workId: string) => ['versions', workId] as const,
   // One prefix over every work's links: a link changes two cards at once.
@@ -74,6 +71,19 @@ export const keys = {
   slotPreview: (releaseId: string, day: string) => ['slotPreview', releaseId, day] as const,
 
   collections: ['collections'] as const,
+  // One coarse prefix over what a picture's prompt is written from: a
+  // cover's concept, the bricks it names, the channel's card, the hero's
+  // card, the doors the work goes out through. Each of those writes
+  // refreshes it (see `refresh`), rather than each view naming its sources.
+  pictures: ['pictures'] as const,
+  /** The Cover tab, written for one of the work's shapes - null is the one
+   *  the backend picks. */
+  coverView: (workId: string, format: string | null) =>
+    ['pictures', 'cover', workId, format] as const,
+  /** The Frame tab: the still, the loop, the scheme. */
+  frameView: (workId: string) => ['pictures', 'frame', workId] as const,
+  /** A scene's built frame. */
+  sceneFrameView: (sceneId: string) => ['pictures', 'scene', sceneId] as const,
   // One key for every work's cover: attaching one changes the catalogue,
   // the card, the calendar and the dashboard at once.
   covers: ['covers'] as const,

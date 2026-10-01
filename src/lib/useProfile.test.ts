@@ -38,9 +38,9 @@ describe('one kind of work', () => {
 
   it('reads a kind the profile does not know as empty rather than as another', () => {
     const nothing = vocabularyOf(studio, 'sculpture')
-    const { frame, made_title, ...lists } = nothing
+    const { cover, frame, made_title, ...lists } = nothing
     expect(Object.values(lists).every((list) => list.length === 0)).toBe(true)
-    expect([frame, made_title]).toEqual([false, null])
+    expect([cover, frame, made_title]).toEqual([false, false, null])
     expect(vocabularyOf(studio, undefined)).toEqual(nothing)
   })
 

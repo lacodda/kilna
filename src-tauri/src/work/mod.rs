@@ -8,13 +8,7 @@ use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
 use crate::minted::Minted;
-use crate::profile::config::WorkKind;
 use crate::time::now;
-
-/// The parts of a cover's prompt, by the kind's `cover_blocks` key. The same
-/// shape a scene's prompt blocks take, because it is the same thing one level
-/// up: text a person edits and copies a part at a time.
-pub type Blocks = Map<String, Value>;
 
 /// A work as the frontend sees it.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
@@ -50,12 +44,14 @@ pub struct Work {
     /// nobody has said yet, which is not the same as "a bare idea" — the stops
     /// along the way are the profile's `stages`.
     pub stage: Option<i64>,
-    /// The prompt the work's cover picture is drawn from, by the kind's
-    /// `cover_blocks` key: what to draw, what to keep out, what words go on
-    /// it. A body rather than a field (which is why it is not in `meta`), and
-    /// one per work (which is why it is not a scene). Empty for a craft whose
-    /// covers are not written, and for every work made before v0.73.
-    pub cover: Blocks,
+    /// What the work's cover is built from: the idea, the scene, the hero,
+    /// the built frame, the bricks, the mark, the details, and the person's
+    /// own words for each part of the prompt (v0.88, ADR 0049). A body
+    /// rather than a field (which is why it is not in `meta`), and one per
+    /// work (which is why it is not a scene). Empty for a kind with no cover,
+    /// and for every work made before v0.73; the three blocks written before
+    /// v0.88 read as its own words.
+    pub cover: crate::cover::Cover,
     /// The still and the loop a work of a kind with a frame plays under for
     /// its whole length (v0.86, ADR 0046). A frame at its starting settings
     /// for every other work, and for every work made before it existed.
@@ -138,11 +134,13 @@ pub struct WorkPatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub stage: Option<Option<i64>>,
-    /// Replaces the whole set, the way `ScenePatch::blocks` does and for the
-    /// same reason: the screen edits one block and sends them all, so the
-    /// log's `before` holds the set as it was and an undo puts the set back.
+    /// Replaces the whole cover, the way `ScenePatch::blocks` replaces a
+    /// scene's blocks and for the same reason: the screen changes one part
+    /// and sends it all, so the log's `before` holds the cover as it was and
+    /// an undo puts it back. A patch logged before v0.88 - three blocks of
+    /// text - reads as the cover's own words.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub cover: Option<Blocks>,
+    pub cover: Option<crate::cover::Cover>,
     /// Replaces the whole frame, for the cover's reason: the screen sends it
     /// whole, so the log's `before` holds the frame as it was.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -222,45 +220,6 @@ pub fn create_minted(
     )?;
 
     get(conn, &id)?.ok_or_else(|| Error::Internal("the work vanished after insert".into()))
-}
-
-/// A cover prompt written in words the craft does not have is a prompt
-/// nothing will ever read back, so it is refused at the door rather than
-/// stored where only a future reader would find it wrong.
-///
-/// The twin of `scene::check_blocks`, deliberately not shared with it: the two
-/// take their vocabulary from different fields of the kind, and a helper
-/// parameterised by which field would be a helper whose only job is to hide
-/// which field. The rule is a dozen lines; the confusion would be permanent.
-fn check_cover(kind: &WorkKind, cover: &Blocks) -> Result<()> {
-    for (key, value) in cover {
-        if !kind.cover_blocks.iter().any(|block| block.key == *key) {
-            let known = kind
-                .cover_blocks
-                .iter()
-                .map(|block| block.key.as_str())
-                .collect::<Vec<_>>()
-                .join(", ");
-            return Err(Error::refused("work.unknownCoverBlock")
-                .param("key", key.clone())
-                .param(
-                    "kind",
-                    serde_json::to_value(&kind.label).unwrap_or_default(),
-                )
-                .param(
-                    "known",
-                    if known.is_empty() {
-                        "none".to_owned()
-                    } else {
-                        known
-                    },
-                ));
-        }
-        if !value.is_string() {
-            return Err(Error::refused("work.coverNotText").param("key", key.clone()));
-        }
-    }
-    Ok(())
 }
 
 /// The status a work starts in: the profile's word for a draft.
@@ -472,12 +431,21 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
     if let Some(cover) = &patch.cover {
         // Judged against the kind the work will have when this edit lands,
         // not the one it has now: an edit that changes the kind and writes
-        // the new kind's blocks in one gesture is one gesture, and checking
-        // against the old kind would refuse it.
+        // the new kind's cover in one gesture is one gesture, and checking
+        // against the old kind would refuse it. A cover with nothing in it
+        // is no cover, and may be written anywhere: it is what clearing one
+        // sends.
         let before = get(conn, id)?.ok_or_else(|| unknown_work(id))?;
         let kind = kind_after.as_deref().unwrap_or(&before.kind);
         let config = crate::profile::config_for(conn, &before.profile_id)?;
-        check_cover(config.vocabulary(kind), cover)?;
+        let vocabulary = config.vocabulary(kind);
+        if !vocabulary.cover && cover.holds_anything() {
+            return Err(Error::refused("work.noCover").param(
+                "kind",
+                serde_json::to_value(&vocabulary.label).unwrap_or_default(),
+            ));
+        }
+        crate::cover::check(conn, &before.profile_id, cover)?;
         set(
             &mut assignments,
             &mut values,
@@ -1014,6 +982,7 @@ mod tests {
             still_camera: true,
             seamless: false,
             negative: "no people".into(),
+            ..frame::Frame::default()
         };
 
         let kept = update(

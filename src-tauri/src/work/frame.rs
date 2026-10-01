@@ -46,6 +46,18 @@ pub struct Frame {
     pub seamless: bool,
     /// What must not appear in the still or the loop.
     pub negative: String,
+    /// Whether the still is built from the cover's concept without its
+    /// words - the idea, the hero, the style, the ground, the mark - with the
+    /// still's text added after it as the person's own words; or is the still
+    /// as written, whole (v0.88). Absent - every frame written before - it is
+    /// built when nobody wrote a still, and theirs when somebody did: see
+    /// [`Frame::from_cover`]. A flag rather than a word, so the search, which
+    /// reads a frame's words, does not find "cover" in every frame.
+    pub built: Option<bool>,
+    /// The frame's own layout, when it is built from the cover and a
+    /// different one suits a picture with no words on it. Absent, the
+    /// cover's.
+    pub framing: Option<crate::cover::Framing>,
 }
 
 impl Default for Frame {
@@ -57,6 +69,8 @@ impl Default for Frame {
             still_camera: true,
             seamless: true,
             negative: String::new(),
+            built: None,
+            framing: None,
         }
     }
 }
@@ -81,6 +95,13 @@ impl Frame {
         !(self.still.trim().is_empty()
             && self.motion.trim().is_empty()
             && self.negative.trim().is_empty())
+    }
+
+    /// Whether the still is built from the cover. A frame that never said -
+    /// written before v0.88 - is built from the cover unless a person wrote
+    /// its still, which stays theirs.
+    pub fn from_cover(&self) -> bool {
+        self.built.unwrap_or_else(|| self.still.trim().is_empty())
     }
 
     /// The loop's length, held to the lengths a loop may run.
@@ -188,6 +209,29 @@ mod tests {
             "an empty motion is a sentence, not a hole: {}",
             prompts.loop_
         );
+    }
+
+    /// A frame that never said where its still comes from keeps a still a
+    /// person wrote, and is built from the cover otherwise; one that says is
+    /// taken at its word.
+    #[test]
+    fn a_frame_is_built_from_the_cover_unless_its_still_was_written() {
+        assert!(Frame::default().from_cover());
+        let written = Frame {
+            still: "a lamp on a windowsill".into(),
+            ..Frame::default()
+        };
+        assert!(!written.from_cover());
+        let told = Frame {
+            built: Some(true),
+            ..written.clone()
+        };
+        assert!(told.from_cover());
+        let own = Frame {
+            built: Some(false),
+            ..Frame::default()
+        };
+        assert!(!own.from_cover());
     }
 
     #[test]

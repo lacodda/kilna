@@ -278,11 +278,11 @@ const UPGRADE: &[Step] = &[
         carry: mark_icons,
     },
     Step {
-        name: "the canon: a note kind's sections, root and glyph, and the kinds of relation",
+        name: "the canon: a note kind's sections, root and glyph, a section's shape, lenses and hint, and the kinds of relation",
         carry: canon_vocabulary,
     },
     Step {
-        name: "publications: a door's cover shape, a kind's frame and the title of what is made from it, a field's kinds, options and start",
+        name: "publications: a door's cover shape, a kind's cover, frame and the title of what is made from it, a field's kinds, options and start",
         carry: publication_vocabulary,
     },
 ];
@@ -453,10 +453,12 @@ fn version_roles(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
     changed
 }
 
-/// The storyboard's kinds of shot and prompt blocks, and the cover's parts
-/// (v0.73), where the stored kind names none: the video kind reached the
-/// owner's workspace before scenes existed, and without this it would have no
-/// Scenes tab. A list the owner narrowed or renamed is left alone.
+/// The storyboard's kinds of shot and prompt blocks, where the stored kind
+/// names none: the video kind reached the owner's workspace before scenes
+/// existed, and without this it would have no Scenes tab. A list the owner
+/// narrowed or renamed is left alone. Which block says what the picture
+/// shows (v0.88) follows the shipped block of the same key, where no stored
+/// block says it yet - the mark did not exist before.
 fn board_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
     let mut changed = false;
     for (kind, shipped_kind) in shared_kinds(config, shipped) {
@@ -468,8 +470,14 @@ fn board_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool
             kind.scene_blocks = shipped_kind.scene_blocks.clone();
             changed = true;
         }
-        if kind.cover_blocks.is_empty() && !shipped_kind.cover_blocks.is_empty() {
-            kind.cover_blocks = shipped_kind.cover_blocks.clone();
+        if !kind.scene_blocks.iter().any(|block| block.picture)
+            && let Some(shipped_block) = shipped_kind.scene_blocks.iter().find(|b| b.picture)
+            && let Some(block) = kind
+                .scene_blocks
+                .iter_mut()
+                .find(|block| block.key == shipped_block.key)
+        {
+            block.picture = true;
             changed = true;
         }
     }
@@ -630,6 +638,8 @@ fn canon_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool
                 kind.describe_from = shipped_kind.describe_from.clone();
             }
             changed = true;
+        } else if !kind.sections.is_empty() {
+            changed |= card_sections(&kind.key, &mut kind.sections, &shipped_kind.sections);
         }
         if kind.icon.is_none() && shipped_kind.icon.is_some() {
             kind.icon = shipped_kind.icon.clone();
@@ -650,9 +660,109 @@ fn canon_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool
     changed
 }
 
+/// Sections whose words changed since they shipped: a stored section still
+/// reading exactly as it shipped before follows the new ones. By kind of
+/// card and section, the lenses and the hint they shipped with.
+///
+/// v0.88 split what a picture must not show from what a text must not say:
+/// bans read by the cover's lens reach a picture's negative, and the
+/// channel's bans were mostly about texts - moderation words, the voice.
+#[allow(clippy::type_complexity)]
+const SECTIONS_BEFORE: [(&str, &str, &[config::Lens], Option<(&str, &str)>); 2] = [
+    (
+        "channel",
+        "bans",
+        &[config::Lens::Cover, config::Lens::Public],
+        Some((
+            "→ the negative prompt and the idea generator",
+            "→ негатив и генератор идей",
+        )),
+    ),
+    (
+        "character",
+        "bans",
+        &[config::Lens::Cover, config::Lens::Public],
+        None,
+    ),
+];
+
+/// Sections shipped after the canon itself, by kind of card, with the
+/// section each arrives after. One arrives only in a kind that has that
+/// section - a card kind the canon gave its sections - and never in one whose
+/// sections the owner wrote: appending shipped sections there would put two
+/// of one thing on a card under two names.
+const SECTIONS_ARRIVED: [(&str, &str, &str); 2] = [
+    ("channel", "picture_bans", "bans"),
+    ("character", "picture_bans", "bans"),
+];
+
+/// A card kind's sections the stored copy already has, brought forward
+/// (v0.88): a section shipped since arrives after the one it follows
+/// ([`SECTIONS_ARRIVED`]); a section still of plain statements takes the shape
+/// the shipped one now has - the shape is who reads it, and a stored section
+/// was never told otherwise; a hint arrives where the stored section has
+/// none; and the lenses and hint still exactly as they shipped before follow
+/// the new ones ([`SECTIONS_BEFORE`]). A word the owner wrote stays theirs.
+fn card_sections(
+    kind: &str,
+    sections: &mut Vec<config::CanonSection>,
+    shipped: &[config::CanonSection],
+) -> bool {
+    let mut changed = false;
+    for (of, key, after) in SECTIONS_ARRIVED {
+        if of != kind || sections.iter().any(|section| section.key == key) {
+            continue;
+        }
+        let (Some(at), Some(arriving)) = (
+            sections.iter().position(|section| section.key == after),
+            shipped.iter().find(|section| section.key == key),
+        ) else {
+            continue;
+        };
+        sections.insert(at + 1, arriving.clone());
+        changed = true;
+    }
+    for section in sections.iter_mut() {
+        let Some(shipped_section) = shipped.iter().find(|s| s.key == section.key) else {
+            continue;
+        };
+        if section.shape == config::SectionShape::Facts
+            && shipped_section.shape != config::SectionShape::Facts
+        {
+            section.shape = shipped_section.shape;
+            changed = true;
+        }
+        let before = SECTIONS_BEFORE
+            .iter()
+            .find(|(of, key, _, _)| *of == kind && *key == section.key);
+        if let Some((_, _, lenses, hint)) = before {
+            if section.lenses.as_slice() == *lenses && section.lenses != shipped_section.lenses {
+                section.lenses = shipped_section.lenses.clone();
+                changed = true;
+            }
+            let as_shipped = match (hint, &section.hint) {
+                (Some((en, ru)), Some(stored)) => {
+                    stored.in_locale("en") == *en && stored.in_locale("ru") == *ru
+                }
+                _ => false,
+            };
+            if as_shipped && section.hint != shipped_section.hint {
+                section.hint = shipped_section.hint.clone();
+                changed = true;
+            }
+        }
+        if section.hint.is_none() && shipped_section.hint.is_some() {
+            section.hint = shipped_section.hint.clone();
+            changed = true;
+        }
+    }
+    changed
+}
+
 /// What a publication is made of (v0.86): the shape of a door's cover, a
-/// kind's frame and the title a work of it takes when it is made from
-/// another - each where the stored copy says nothing, matched by key. And a
+/// kind's cover (v0.88) and frame and the title a work of it takes when it is
+/// made from another - each where the stored copy says nothing, matched by
+/// key. And a
 /// field's kinds, options and starting value where the stored field names
 /// none: the variant of an audio release is a choice for audio alone, and a
 /// field that arrived by key without them would be a free box on every kind.
@@ -661,6 +771,10 @@ fn publication_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -
     for (kind, shipped_kind) in shared_kinds(config, shipped) {
         if !kind.frame && shipped_kind.frame {
             kind.frame = true;
+            changed = true;
+        }
+        if !kind.cover && shipped_kind.cover {
+            kind.cover = true;
             changed = true;
         }
         if kind.made_title.is_none() && shipped_kind.made_title.is_some() {
@@ -1152,7 +1266,7 @@ mod tests {
             }
             kind.shot_types.clear();
             kind.scene_blocks.clear();
-            kind.cover_blocks.clear();
+            kind.cover = false;
             for status in &mut kind.statuses {
                 status.derive = Derive::Manual;
                 status.colour = None;
@@ -2740,9 +2854,9 @@ mod tests {
             if kind.key == "short" {
                 // The owner kept one kind of shot on purpose.
                 kind.shot_types.retain(|shot| shot.key == "close");
-                // And their shorts predate covers having parts at all — the
-                // state of every workspace alive when v0.73 lands.
-                kind.cover_blocks.clear();
+                // And their shorts predate covers at all — the state of
+                // every workspace alive when v0.73 landed.
+                kind.cover = false;
             }
         }
         conn.execute(
@@ -2768,8 +2882,8 @@ mod tests {
             "a list the owner narrowed is theirs"
         );
         assert!(
-            !short.cover_blocks.is_empty(),
-            "the cover's parts arrived in a workspace that had the kind already"
+            short.cover,
+            "the cover arrived in a workspace that had the kind already"
         );
     }
 
@@ -2905,5 +3019,128 @@ mod tests {
             by_key("score").kinds.is_empty(),
             "an action for every kind stays so"
         );
+    }
+
+    /// A workspace from before v0.88: its kinds name the parts of a cover
+    /// (format 2), its scene blocks mark no picture, and the channel's and a
+    /// character's bans are plain statements read by covers and public texts
+    /// alike, as they shipped. After the upgrade a kind with parts has a
+    /// cover, the still is the picture, the bans are bans read by public
+    /// texts, and the bans of a picture have a section of their own beside
+    /// them. A section the owner re-read keeps its lenses.
+    #[test]
+    fn a_workspace_from_before_the_constructor_gains_covers_and_picture_bans() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut stored: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        stored["format"] = serde_json::json!(2);
+        for kind in stored["work_kinds"].as_array_mut().unwrap() {
+            let has_cover = kind.get("cover").is_some();
+            kind.as_object_mut().unwrap().remove("cover");
+            if has_cover {
+                kind["cover_blocks"] = serde_json::json!([
+                    { "key": "picture", "label": "Picture" },
+                    { "key": "negative", "label": "Negative" }
+                ]);
+            }
+            // `get_mut`, not an index: indexing a missing key writes a null.
+            let blocks = kind.get_mut("scene_blocks").and_then(|v| v.as_array_mut());
+            for block in blocks.into_iter().flatten() {
+                block.as_object_mut().unwrap().remove("picture");
+            }
+        }
+        for kind in stored["note_kinds"].as_array_mut().unwrap() {
+            let key = kind["key"].as_str().unwrap_or_default().to_owned();
+            let Some(sections) = kind.get_mut("sections").and_then(|v| v.as_array_mut()) else {
+                continue;
+            };
+            sections.retain(|section| section["key"] != "picture_bans");
+            for section in sections.iter_mut() {
+                if section["key"] == "bans" {
+                    let object = section.as_object_mut().unwrap();
+                    object.remove("shape");
+                    object.insert("lenses".into(), serde_json::json!(["cover", "public"]));
+                    if key == "channel" {
+                        object.insert(
+                            "hint".into(),
+                            serde_json::json!({
+                                "en": "→ the negative prompt and the idea generator",
+                                "ru": "→ негатив и генератор идей"
+                            }),
+                        );
+                    } else {
+                        // The owner read this one again and kept covers on it.
+                        object.remove("hint");
+                        object.insert("lenses".into(), serde_json::json!(["cover"]));
+                    }
+                }
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, stored.to_string()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let carried = config_for(&conn, &id).unwrap();
+        assert_eq!(carried.format, config::FORMAT);
+        for key in ["video", "audio", "short"] {
+            assert!(carried.kind(key).unwrap().cover, "{key} has a cover");
+        }
+        assert!(!carried.kind("song").unwrap().cover, "a song has none");
+        let video = carried.kind("video").unwrap();
+        assert_eq!(
+            video
+                .scene_blocks
+                .iter()
+                .filter(|block| block.picture)
+                .map(|block| block.key.as_str())
+                .collect::<Vec<_>>(),
+            ["still"]
+        );
+        let written = config_for(&conn, &id).unwrap();
+        let channel = written.card_kind("channel").unwrap();
+        let keys: Vec<&str> = channel.sections.iter().map(|s| s.key.as_str()).collect();
+        let bans = keys.iter().position(|key| *key == "bans").unwrap();
+        assert_eq!(keys[bans + 1], "picture_bans", "{keys:?}");
+        let channel_bans = channel.section("bans").unwrap();
+        assert_eq!(channel_bans.shape, config::SectionShape::Bans);
+        assert_eq!(channel_bans.lenses, [config::Lens::Public]);
+        assert_eq!(
+            channel.section("picture_bans").unwrap().lenses,
+            [config::Lens::Cover]
+        );
+        let character = written.card_kind("character").unwrap();
+        let character_bans = character.section("bans").unwrap();
+        assert_eq!(character_bans.shape, config::SectionShape::Bans);
+        assert_eq!(
+            character_bans.lenses,
+            [config::Lens::Cover],
+            "lenses the owner set are theirs"
+        );
+        assert!(character.section("picture_bans").is_some());
+
+        // Idempotent: a second start changes nothing.
+        let before: String = conn
+            .query_row("SELECT config FROM profile WHERE id = ?1", [&id], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        seed(&conn).unwrap();
+        let after: String = conn
+            .query_row("SELECT config FROM profile WHERE id = ?1", [&id], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(before, after);
     }
 }

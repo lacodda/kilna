@@ -1613,3 +1613,81 @@ fn a_relation_undrawn_comes_back_as_the_same_row() {
     take_back(&mut conn, &offer);
     assert_eq!(canon::link::for_card(&conn, &otto).unwrap().len(), 1);
 }
+
+/// Choosing the cover among the candidates (v0.88) is taken back whole: the
+/// cover that was set aside is the cover again, and the chosen picture a
+/// candidate.
+#[test]
+fn choosing_a_cover_is_taken_back() {
+    let (mut conn, profile_id, media) = fixtures::workspace_with_media();
+    let clip = fixtures::work(&conn, &profile_id, "video", "Harbour lights — clip");
+    let attach = |conn: &Connection, name: &str, kind: &str| {
+        actions::asset::attach(
+            conn,
+            media.path(),
+            fixtures::file(media.path(), name).to_str().unwrap(),
+            kilna_lib::asset::NewAsset {
+                work_id: Some(clip.id.clone()),
+                kind: Some(kind.into()),
+                ..Default::default()
+            },
+        )
+        .unwrap()
+    };
+    let first = attach(&conn, "first.png", kilna_lib::asset::COVER);
+    let second = attach(&conn, "second.png", kilna_lib::asset::CANDIDATE);
+
+    actions::asset::choose_cover(&conn, &second.id).unwrap();
+    let kind = |conn: &Connection, id: &str| kilna_lib::asset::get(conn, id).unwrap().unwrap().kind;
+    assert_eq!(kind(&conn, &second.id), kilna_lib::asset::COVER);
+    assert_eq!(kind(&conn, &first.id), kilna_lib::asset::CANDIDATE);
+    assert_eq!(
+        kilna_lib::asset::cover_of(&conn, &clip.id)
+            .unwrap()
+            .map(|a| a.id),
+        Some(second.id.clone()),
+        "the chosen one is what the catalogue shows"
+    );
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("the choice can be undone");
+    assert_eq!(offer.action, "undo.asset.chooseCover");
+    take_back(&mut conn, &offer);
+
+    assert_eq!(kind(&conn, &first.id), kilna_lib::asset::COVER);
+    assert_eq!(kind(&conn, &second.id), kilna_lib::asset::CANDIDATE);
+}
+
+/// A cover's concept travels whole, so one undo takes a whole change back.
+#[test]
+fn a_change_to_a_cover_is_taken_back() {
+    let (mut conn, profile_id, _) = workspace();
+    let clip = fixtures::work(&conn, &profile_id, "video", "Harbour lights — clip");
+    let built = kilna_lib::cover::Cover {
+        scene: "a lighthouse at dusk".into(),
+        framing: Some(kilna_lib::cover::framing::Layout::Figure.defaults()),
+        picture: "a lantern".into(),
+        ..Default::default()
+    };
+    actions::work::update(
+        &conn,
+        &clip.id,
+        WorkPatch {
+            cover: Some(built.clone()),
+            ..WorkPatch::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(work::get(&conn, &clip.id).unwrap().unwrap().cover, built);
+
+    let offer = undo::last(&conn)
+        .unwrap()
+        .expect("the change can be undone");
+    take_back(&mut conn, &offer);
+
+    assert_eq!(
+        work::get(&conn, &clip.id).unwrap().unwrap().cover,
+        kilna_lib::cover::Cover::default()
+    );
+}

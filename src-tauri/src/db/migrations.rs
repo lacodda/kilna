@@ -172,6 +172,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "style_set",
         sql: include_str!("../../migrations/0032_style_set.sql"),
     },
+    Migration {
+        version: 33,
+        name: "scene_framing",
+        sql: include_str!("../../migrations/0033_scene_framing.sql"),
+    },
 ];
 
 /// The newest schema this build understands.

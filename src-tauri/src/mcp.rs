@@ -223,8 +223,9 @@ fn tools() -> Vec<Value> {
              version roles and how each reads, its scoring axes with weights and scales, its \
              tiers, statuses and kinds of release (each with the fields a release of it goes out \
              under and the shape of its cover, 16:9 or 9:16), and, for a kind with a storyboard, \
-             its kinds of shot and the prompt blocks a scene carries; the parts of its cover \
-             prompt; whether its works play under one frame (a still and a loop). A kind with \
+             its kinds of shot and the prompt blocks a scene carries; whether its works go out \
+             under a cover built in the constructor; whether they play under one frame (a \
+             still and a loop). A kind with \
              no kind of release never goes out itself - its works go out as what is made from \
              them. Plus the overview fields, each with the kinds it belongs to, and how many \
              works there are. Read this first: a work is judged and versioned in its own kind's \
@@ -249,9 +250,11 @@ fn tools() -> Vec<Value> {
             "work",
             "One work as its card shows it: the fields and meta, tags, every version by role \
              (id, revision, label, length, which is current), the latest score with its axes, \
-             the releases, how many notes and scenes, the cover prompt, the frame (for a kind \
-             that plays under one: the still, the loop written from its settings, the \
-             negative), what it was made from (`sources`, with whether the source has moved on \
+             the releases, how many notes and scenes, the cover (the prompt written from its \
+             concept - picture, negative and, when the title goes apart, typography - with the \
+             concept itself), the frame (for a kind that plays under one: the still, built from \
+             the cover or written whole, the loop written from its settings, the negative), \
+             what it was made from (`sources`, with whether the source has moved on \
              since) and what was made from it (`derived`); for a work that never goes out \
              itself, its `publications` - everything made from it, with where each stands. \
              Bodies are not included — read one with `text`; the storyboard with `scenes`.",
@@ -689,7 +692,7 @@ pub fn run_tool(
                         "goes_out": kind.has_doors(),
                         "shot_types": kind.shot_types,
                         "scene_blocks": kind.scene_blocks,
-                        "cover_blocks": kind.cover_blocks,
+                        "cover": kind.cover,
                         "frame": kind.frame,
                     })
                 })
@@ -743,14 +746,28 @@ pub fn run_tool(
             )?;
             let scenes = scene::count(conn, &found.id)?;
             let vocabulary = config.vocabulary(&found.kind);
-            let frame = vocabulary.frame.then(|| {
-                let prompts = found.frame.prompts();
-                json!({
-                    "still": prompts.still, "loop": prompts.loop_, "negative": prompts.negative,
+            let frame = if vocabulary.frame {
+                let view = crate::cover::read::frame_view(conn, &found.id)?;
+                Some(json!({
+                    "still": view.prompts.still, "loop": view.prompts.loop_,
+                    "negative": view.prompts.negative, "built_from_cover": view.from_cover,
                     "motion": found.frame.motion, "seconds": found.frame.seconds(),
                     "still_camera": found.frame.still_camera, "seamless": found.frame.seamless,
-                })
-            });
+                }))
+            } else {
+                None
+            };
+            // The cover as a generator gets it - the prompt written from the
+            // concept - beside the concept itself.
+            let cover = if vocabulary.cover || found.cover.holds_anything() {
+                let view = crate::cover::read::view(conn, &found.id, None)?;
+                Some(json!({
+                    "prompt": view.prompts, "format": view.format, "title": view.title,
+                    "concept": found.cover,
+                }))
+            } else {
+                None
+            };
             let publications = if vocabulary.has_doors() {
                 None
             } else {
@@ -770,7 +787,7 @@ pub fn run_tool(
                 "releases": releases,
                 "notes": notes,
                 "scenes": scenes,
-                "cover": found.cover,
+                "cover": cover,
                 "frame": frame,
                 "publications": publications,
                 "sources": links.sources.iter().map(|l| json!({

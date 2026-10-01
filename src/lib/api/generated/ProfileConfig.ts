@@ -19,8 +19,13 @@ import type { WorkKind } from "./WorkKind";
  * *kind* of work, not to the profile. A song and a video are one craft with
  * two vocabularies, and a video judged on "hook" and "lyrics" is nonsense.
  * Format 1 laid all of it flat on the profile; a format 1 document is still
- * read — see [`RawProfileConfig`] — and comes out of the parser in format 2,
- * with the flat vocabulary handed to every kind that declared none of its own.
+ * read — see [`RawProfileConfig`] — and comes out of the parser in the
+ * current format, with the flat vocabulary handed to every kind that
+ * declared none of its own.
+ *
+ * **Format 3** (v0.88): a kind says whether it has a cover (`cover: true`)
+ * rather than naming the parts of its prompt; a format 2 document's
+ * `cover_blocks` is read as the flag.
  */
 export type ProfileConfig = { 
 /**

@@ -604,7 +604,7 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
 
         // A picture's role, like the picture itself, lives with the files the
         // log does not carry: see `asset.attach` below.
-        "asset.setRole" => {}
+        "asset.setRole" | "asset.chooseCover" => {}
 
         "entity.discard" => {
             let entity = trash::Entity::parse(&required(params, "entity")?)?;

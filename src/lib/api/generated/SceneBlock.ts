@@ -7,4 +7,10 @@ import type { Label } from "./Label";
  * template (v0.62) will read; the hint is a line under the box saying what
  * goes in it.
  */
-export type SceneBlock = { key: string, label: Label, hint?: Label | null, };
+export type SceneBlock = { key: string, label: Label, hint?: Label | null, 
+/**
+ * The block that says what the picture shows: a scene's frame, built
+ * in the constructor, is written around it (v0.88). One per kind; a
+ * kind that marks none has scenes without a built frame.
+ */
+picture?: boolean, };

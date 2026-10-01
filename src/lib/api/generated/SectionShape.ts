@@ -8,4 +8,4 @@
  * appearances are not written into at all: the first is the graph of the
  * card's relations, the second is counted from the works.
  */
-export type SectionShape = "facts" | "slots" | "details" | "palette" | "marks" | "styles" | "relations" | "appearances";
+export type SectionShape = "facts" | "slots" | "details" | "palette" | "marks" | "styles" | "bans" | "relations" | "appearances";

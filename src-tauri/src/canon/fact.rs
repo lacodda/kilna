@@ -582,7 +582,10 @@ fn require_work(conn: &Connection, id: &str) -> Result<crate::work::Work> {
 /// told to write.
 pub fn data_keys(shape: SectionShape) -> &'static [&'static str] {
     match shape {
-        SectionShape::Facts | SectionShape::Relations | SectionShape::Appearances => &[],
+        SectionShape::Facts
+        | SectionShape::Bans
+        | SectionShape::Relations
+        | SectionShape::Appearances => &[],
         SectionShape::Slots => &["slot"],
         SectionShape::Details => &["template", "places", "on"],
         SectionShape::Palette => &["color"],
@@ -668,13 +671,16 @@ pub fn checked_data(
             }
             out.insert("styleId".into(), Value::String(style_id));
         }
-        SectionShape::Facts | SectionShape::Relations | SectionShape::Appearances => {}
+        SectionShape::Facts
+        | SectionShape::Bans
+        | SectionShape::Relations
+        | SectionShape::Appearances => {}
     }
     Ok(out)
 }
 
 /// `#RRGGBB`.
-fn is_hex_colour(value: &str) -> bool {
+pub fn is_hex_colour(value: &str) -> bool {
     value.len() == 7 && value.starts_with('#') && value[1..].bytes().all(|b| b.is_ascii_hexdigit())
 }
 

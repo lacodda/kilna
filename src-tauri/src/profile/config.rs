@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 
 /// The version of the document's shape. See [`ProfileConfig::format`].
-pub const FORMAT: u32 = 2;
+pub const FORMAT: u32 = 3;
 
 /// A craft scenario. Everything that differs between music, prose and podcasting
 /// is described here rather than in the schema.
@@ -13,8 +13,13 @@ pub const FORMAT: u32 = 2;
 /// *kind* of work, not to the profile. A song and a video are one craft with
 /// two vocabularies, and a video judged on "hook" and "lyrics" is nonsense.
 /// Format 1 laid all of it flat on the profile; a format 1 document is still
-/// read — see [`RawProfileConfig`] — and comes out of the parser in format 2,
-/// with the flat vocabulary handed to every kind that declared none of its own.
+/// read — see [`RawProfileConfig`] — and comes out of the parser in the
+/// current format, with the flat vocabulary handed to every kind that
+/// declared none of its own.
+///
+/// **Format 3** (v0.88): a kind says whether it has a cover (`cover: true`)
+/// rather than naming the parts of its prompt; a format 2 document's
+/// `cover_blocks` is read as the flag.
 #[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 #[serde(from = "RawProfileConfig")]
 pub struct ProfileConfig {
@@ -163,6 +168,13 @@ impl From<RawProfileConfig> for ProfileConfig {
             || !raw.statuses.is_empty();
 
         let mut work_kinds = raw.work_kinds;
+        // Format 2 named a cover's parts; naming any is having a cover.
+        for kind in &mut work_kinds {
+            if !kind.blocks_before_v088.is_empty() {
+                kind.cover = true;
+                kind.blocks_before_v088.clear();
+            }
+        }
         if flat_present {
             for kind in &mut work_kinds {
                 if kind.declares_nothing() {
@@ -230,15 +242,22 @@ pub struct WorkKind {
     /// negative — each edited and copied on its own.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub scene_blocks: Vec<SceneBlock>,
-    /// The parts of the prompt a work's cover picture is drawn from — what to
-    /// draw, what to keep out, what words go on it. The same shape as
-    /// [`scene_blocks`] and for the same reason: the craft names the parts,
-    /// the code does not know them (ADR 0001). A kind that names none (a song
-    /// whose cover is the album's) has no cover prompt, and the tab that
-    /// edits one does not appear. Added in v0.73 — a document without it is
-    /// the same document.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub cover_blocks: Vec<SceneBlock>,
+    /// Whether a work of this kind goes out under a cover it builds itself - a
+    /// clip, an audio release, a short - and so has the Cover tab. The
+    /// cover's parts are the application's since v0.88 (ADR 0049): the
+    /// constructor writes a picture, a negative and a lettering from what is
+    /// chosen, as the frame writes its loop. A kind that says nothing (a song,
+    /// which goes out as what is made from it) has no cover. Format 2 named
+    /// the parts here as `cover_blocks`; a document that still does is read as
+    /// saying `cover: true`.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub cover: bool,
+    /// Format 2's `cover_blocks`, read so a stored document keeps its covers
+    /// and never written: [`ProfileConfig`]'s parser turns a list that names
+    /// anything into `cover: true`.
+    #[serde(default, rename = "cover_blocks", skip_serializing)]
+    #[ts(skip)]
+    pub(crate) blocks_before_v088: Vec<serde_json::Value>,
     /// Whether a work of this kind plays under one picture for the whole of
     /// its length - a track on a video platform - and so has a frame: the
     /// still, and the loop of what moves in it. Unlike the cover's parts the
@@ -270,7 +289,8 @@ impl WorkKind {
             statuses: Vec::new(),
             shot_types: Vec::new(),
             scene_blocks: Vec::new(),
-            cover_blocks: Vec::new(),
+            cover: false,
+            blocks_before_v088: Vec::new(),
             frame: false,
             made_title: None,
         }
@@ -1149,6 +1169,9 @@ pub enum SectionShape {
     Marks,
     /// House styles: bricks of the style dictionary.
     Styles,
+    /// What must not appear: statements a picture's negative reads through
+    /// the cover's lens, and a public text through the public one (v0.88).
+    Bans,
     /// The card's relations to other cards.
     Relations,
     /// Where the card appears, counted from scenes, texts and sources.
@@ -1167,7 +1190,10 @@ impl SectionShape {
 
     /// Whether its entries are statements a description can be written from.
     pub fn holds_words(self) -> bool {
-        matches!(self, SectionShape::Facts | SectionShape::Slots)
+        matches!(
+            self,
+            SectionShape::Facts | SectionShape::Slots | SectionShape::Bans
+        )
     }
 }
 
@@ -1221,6 +1247,11 @@ pub struct SceneBlock {
     pub label: Label,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hint: Option<Label>,
+    /// The block that says what the picture shows: a scene's frame, built
+    /// in the constructor, is written around it (v0.88). One per kind; a
+    /// kind that marks none has scenes without a built frame.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub picture: bool,
 }
 
 impl SceneBlock {
@@ -1229,6 +1260,7 @@ impl SceneBlock {
             key: key.to_owned(),
             label: Label::from(label),
             hint: None,
+            picture: false,
         }
     }
 }

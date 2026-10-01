@@ -30,6 +30,12 @@ use crate::minted::Minted;
 /// reference goes in the gallery.
 pub const COVER: &str = "cover";
 
+/// A picture a generator gave back for a work's cover and not chosen - or
+/// chosen once and set aside since (v0.88). The Cover tab shows them beside
+/// the final one; the catalogue, the calendar and the header show only the
+/// cover.
+pub const CANDIDATE: &str = "candidate";
+
 /// A file attached to a work, a release, a style brick or a card of the
 /// canon.
 #[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
@@ -339,6 +345,55 @@ pub fn set_role(conn: &Connection, id: &str, role: &str) -> Result<Asset> {
         params![id, role],
     )?;
     get(conn, id)?.ok_or_else(|| Error::not_found("asset", id))
+}
+
+/// Make a picture of a work its cover: it becomes the work's one cover, and
+/// every other cover of the work a candidate again.
+///
+/// One cover, not the newest of several: the final picture is a choice
+/// among the candidates, and a choice that a later attachment silently
+/// overrode would be no choice. Returns each picture whose kind changed
+/// with the kind it had, for the undo.
+pub fn choose_cover(conn: &Connection, id: &str) -> Result<Vec<(String, String)>> {
+    let chosen = get(conn, id)?.ok_or_else(|| Error::not_found("asset", id))?;
+    let Some(work_id) = chosen.work_id.as_deref() else {
+        return Err(Error::refused("asset.coverOnlyOnWorks"));
+    };
+    if chosen.kind != COVER && chosen.kind != CANDIDATE {
+        return Err(Error::refused("asset.notAPicture"));
+    }
+    let mut changed = Vec::new();
+    for other in for_work(conn, work_id)? {
+        let wanted = if other.id == chosen.id {
+            COVER
+        } else if other.kind == COVER {
+            CANDIDATE
+        } else {
+            continue;
+        };
+        if other.kind != wanted {
+            conn.execute(
+                "UPDATE asset SET kind = ?2 WHERE id = ?1",
+                params![other.id, wanted],
+            )?;
+            changed.push((other.id, other.kind));
+        }
+    }
+    Ok(changed)
+}
+
+/// Put pictures back to the kinds they had: the undo of [`choose_cover`].
+pub fn restore_kinds(conn: &Connection, kinds: &[(String, String)]) -> Result<()> {
+    for (id, kind) in kinds {
+        if kind != COVER && kind != CANDIDATE {
+            return Err(Error::refused("asset.notAPicture"));
+        }
+        conn.execute(
+            "UPDATE asset SET kind = ?2 WHERE id = ?1",
+            params![id, kind],
+        )?;
+    }
+    Ok(())
 }
 
 /// Everything attached to a release, oldest first.

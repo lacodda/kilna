@@ -44,7 +44,7 @@ import {
   releaseQueue,
   releasesForWork,
 } from '@/lib/api/releases'
-import { listSceneFrames, listSceneNotes, listScenes } from '@/lib/api/scenes'
+import { listSceneFrames, listSceneNotes, listScenes, sceneFrameView } from '@/lib/api/scenes'
 import { kindVerdicts, latestScore, scoreHistory } from '@/lib/api/scores'
 import { search, worksMatching } from '@/lib/api/search'
 import {
@@ -57,7 +57,15 @@ import {
 import { listDeletions } from '@/lib/api/trash'
 import type { CardFilter, CommentFilter, Lens, NoteFilter, TaskAbout } from '@/lib/api/types'
 import { getVersion, listVersions } from '@/lib/api/versions'
-import { cardCounts, catalogue, framePrompts, getWork, listWorks, workTags } from '@/lib/api/works'
+import {
+  cardCounts,
+  catalogue,
+  coverView,
+  frameView,
+  getWork,
+  listWorks,
+  workTags,
+} from '@/lib/api/works'
 import { getWorkspace, listProfiles, mcpRegistration } from '@/lib/api/workspace'
 import { keys } from '@/lib/query/keys'
 
@@ -84,8 +92,18 @@ export const queries = {
       queryKey: keys.publicationsFor(workId),
       queryFn: () => listPublications(workId),
     }),
-  framePrompts: (workId: string) =>
-    queryOptions({ queryKey: keys.framePromptsFor(workId), queryFn: () => framePrompts(workId) }),
+  coverView: (workId: string, format: string | null) =>
+    queryOptions({
+      queryKey: keys.coverView(workId, format),
+      queryFn: () => coverView(workId, format),
+    }),
+  frameView: (workId: string) =>
+    queryOptions({ queryKey: keys.frameView(workId), queryFn: () => frameView(workId) }),
+  sceneFrameView: (sceneId: string) =>
+    queryOptions({
+      queryKey: keys.sceneFrameView(sceneId),
+      queryFn: () => sceneFrameView(sceneId),
+    }),
   catalogue: () => queryOptions({ queryKey: keys.catalogue, queryFn: catalogue }),
   workTags: () => queryOptions({ queryKey: keys.workTags, queryFn: workTags }),
   collections: () => queryOptions({ queryKey: keys.collections, queryFn: listCollections }),
