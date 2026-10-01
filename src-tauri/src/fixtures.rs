@@ -41,6 +41,19 @@ pub fn workspace_with_media() -> (Connection, String, tempfile::TempDir) {
     (conn, profile_id, media)
 }
 
+/// A workspace on disk, with the shipped profile active - for a gesture that
+/// finds its files beside the database, as the window's workspace has them.
+pub fn workspace_on_disk() -> (Connection, String, tempfile::TempDir) {
+    let dir = tempfile::tempdir().expect("a temporary directory");
+    let conn = db::open(&dir.path().join("kilna.db")).expect("a workspace on disk opens");
+    profile::seed(&conn).expect("the shipped profiles seed");
+    let profile_id = profile::active(&conn)
+        .expect("the active profile reads")
+        .expect("seeding activates a profile")
+        .id;
+    (conn, profile_id, dir)
+}
+
 /// A work of `kind` titled `title`.
 pub fn work(conn: &Connection, profile_id: &str, kind: &str, title: &str) -> Work {
     work::create(

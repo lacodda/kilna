@@ -685,6 +685,31 @@ pub fn render_canon(conn: &Connection, package: &crate::canon::proposal::Package
             }
             out.push('\n');
         }
+        out.push('\n');
+    }
+    if !package.pictures.is_empty() {
+        out.push_str("Pictures:\n");
+        for picture in &package.pictures {
+            let file = std::path::Path::new(&picture.path)
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| picture.path.clone());
+            out.push_str(&format!(
+                "- {} · {}: {file}\n",
+                picture.card_title,
+                picture.role.as_deref().unwrap_or("reference")
+            ));
+        }
+        out.push('\n');
+    }
+    if !package.descriptions.is_empty() {
+        out.push_str("Descriptions for pictures:\n");
+        for description in &package.descriptions {
+            out.push_str(&format!(
+                "- {}: {}\n",
+                description.card_title, description.text
+            ));
+        }
     }
     out.trim_end().to_owned()
 }

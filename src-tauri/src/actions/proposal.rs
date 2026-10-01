@@ -112,6 +112,9 @@ pub struct Outcome {
     /// Relations drawn or redrawn.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub relations: Vec<String>,
+    /// Pictures attached to cards, by asset id.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pictures: Vec<String>,
     /// The fields of a release written, by key.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub release_fields: Vec<String>,
@@ -2573,6 +2576,140 @@ mod tests {
             status_of("Freckles across the nose."),
             Some(crate::canon::FactStatus::Canon),
             "a sharper wording keeps the fact as settled as it was"
+        );
+    }
+
+    /// An agent brings a card its pictures and its description (v0.89.2):
+    /// what is read off the proposal is what the person can keep - a file
+    /// that is not a picture, a role that is not one, a card the canon does
+    /// not have are left out and said.
+    #[test]
+    fn pictures_and_descriptions_are_read_against_the_canon_and_the_disk() {
+        let (conn, profile_id, _) = workspace();
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren");
+        let coat = fixtures::fact(&conn, &wren.id, "outfits", "A long green coat.");
+        let dir = tempfile::tempdir().unwrap();
+        let face = fixtures::file(dir.path(), "wren-face.PNG");
+        let notes = fixtures::file(dir.path(), "notes.txt");
+        let raw = json!({
+            "pictures": [
+                { "card": "wren", "path": face.display().to_string(), "role": "portrait" },
+                { "fact": coat.id, "path": face.display().to_string(), "role": "outfit" },
+                { "card": "Wren", "path": notes.display().to_string() },
+                { "card": "Wren", "path": dir.path().join("gone.jpg").display().to_string() },
+                { "card": "Wren", "path": "wren-face.PNG" },
+                { "card": "Wren", "path": face.display().to_string(), "role": "selfie" },
+                { "card": "Nobody", "path": face.display().to_string() },
+            ],
+            "descriptions": [
+                { "card": "Wren", "text": "A young woman with freckles." },
+                { "card": "Nobody", "text": "Someone." },
+                { "card": "Wren", "text": "  " },
+            ]
+        });
+        let package = crate::canon::proposal::read(
+            &conn,
+            &profile_id,
+            &raw,
+            &crate::canon::proposal::Defaults::default(),
+        )
+        .unwrap();
+
+        assert_eq!(package.pictures.len(), 2);
+        assert_eq!(package.pictures[0].card, wren.id, "named, found by name");
+        assert_eq!(package.pictures[0].card_title, "Wren");
+        assert_eq!(
+            package.pictures[1].card, wren.id,
+            "a picture of a fact is a picture of its card"
+        );
+        assert_eq!(package.descriptions.len(), 1);
+        assert_eq!(package.descriptions[0].card, wren.id);
+        let said: Vec<&str> = package.dropped.iter().map(|r| r.key.as_str()).collect();
+        assert_eq!(
+            said,
+            [
+                "refusal.canon.pictureNotAPicture",
+                "refusal.canon.pictureNotAFile",
+                "refusal.canon.pictureNotAFile",
+                "refusal.canon.pictureRole",
+                "refusal.canon.pictureNamesNoCard",
+                "refusal.canon.descriptionNamesNoCard",
+                "refusal.canon.descriptionEmpty",
+            ]
+        );
+    }
+
+    /// Kept, a picture is the arrival a chosen file takes - copied beside the
+    /// workspace and attached with its role - and a description is written
+    /// with the facts it answers to; an item left out is not touched.
+    #[test]
+    fn kept_pictures_are_copied_in_and_a_description_is_written() {
+        let (conn, profile_id, dir) = fixtures::workspace_on_disk();
+        let work_id = fixtures::song(&conn, &profile_id, "Harbour lights").id;
+        let wren = fixtures::card(&conn, &profile_id, "character", "Wren");
+        fixtures::fact(&conn, &wren.id, "looks", "Freckles.");
+        let coat = fixtures::fact(&conn, &wren.id, "outfits", "A long green coat.");
+        let source = tempfile::tempdir().unwrap();
+        let face = fixtures::file(source.path(), "wren-face.png");
+        let coat_file = fixtures::file(source.path(), "wren-coat.jpg");
+        let raw = json!({
+            "pictures": [
+                { "card": wren.id, "path": face.display().to_string(), "role": "portrait" },
+                { "fact": coat.id, "path": coat_file.display().to_string(), "role": "outfit" },
+                { "card": wren.id, "path": coat_file.display().to_string() },
+            ],
+            "descriptions": [{ "card": wren.id, "text": "A young woman with freckles." }]
+        });
+        let package = crate::canon::proposal::read(
+            &conn,
+            &profile_id,
+            &raw,
+            &crate::canon::proposal::Defaults::default(),
+        )
+        .unwrap();
+        let chat = chat_on(&conn, &profile_id, Some(&work_id));
+        let message = propose(&conn, &chat, "", Proposal::Canon { package });
+
+        let outcome = apply(
+            &conn,
+            &message,
+            Overrides {
+                items: Some(vec![
+                    "picture:0".into(),
+                    "picture:1".into(),
+                    "description:0".into(),
+                ]),
+                ..Overrides::default()
+            },
+        )
+        .unwrap();
+
+        assert_eq!(outcome.pictures.len(), 2, "the one left out stays out");
+        let pictures = crate::asset::for_card(&conn, &wren.id).unwrap();
+        assert_eq!(pictures.len(), 2);
+        let portrait = pictures.iter().find(|p| p.kind == "portrait").unwrap();
+        assert_eq!(portrait.original_name.as_deref(), Some("wren-face.png"));
+        assert!(
+            std::path::Path::new(&portrait.path).starts_with(dir.path().join("media")),
+            "copied beside the workspace: {}",
+            portrait.path
+        );
+        assert!(std::path::Path::new(&portrait.path).is_file());
+        let outfit = pictures.iter().find(|p| p.kind == "outfit").unwrap();
+        assert_eq!(outfit.canon_fact_id.as_deref(), Some(coat.id.as_str()));
+
+        let described = note::get(&conn, &wren.id).unwrap().unwrap();
+        assert_eq!(
+            described.prompt.as_deref(),
+            Some("A young woman with freckles.")
+        );
+        assert!(
+            described.prompt_basis.is_some(),
+            "written with the facts it answers to"
+        );
+        assert!(
+            operation_kinds(&conn).iter().any(|k| k == "asset.attach"),
+            "a picture arrives as a chosen file does"
         );
     }
 

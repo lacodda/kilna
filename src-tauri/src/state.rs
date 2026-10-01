@@ -110,15 +110,7 @@ impl AppState {
     /// An error rather than `None`: a run with no directory can still start
     /// where kilna did, but a file with nowhere to go has nowhere to go.
     pub fn media_dir(&self) -> Result<PathBuf> {
-        let dir = self
-            .path
-            .parent()
-            .ok_or_else(|| {
-                Error::Internal("the workspace has no directory to keep files in".into())
-            })?
-            .join(MEDIA_DIR);
-        std::fs::create_dir_all(&dir)?;
-        Ok(dir)
+        media_dir_beside(&self.path)
     }
 
     /// Where assistant runs start: a directory next to the workspace that is
@@ -171,9 +163,42 @@ impl AppState {
     }
 }
 
+/// The directory of files beside a workspace's database, made when missing.
+pub fn media_dir_beside(database: &Path) -> Result<PathBuf> {
+    let dir = database
+        .parent()
+        .ok_or_else(|| Error::Internal("the workspace has no directory to keep files in".into()))?
+        .join(MEDIA_DIR);
+    std::fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
+/// The directory of files of the workspace a connection is open on - for a
+/// gesture that reaches a file without the window's state in hand, such as
+/// keeping a proposal that brings pictures.
+pub fn media_dir_of(conn: &Connection) -> Result<PathBuf> {
+    match conn.path().filter(|path| !path.is_empty()) {
+        Some(path) => media_dir_beside(Path::new(path)),
+        None => Err(Error::Internal(
+            "a workspace held in memory has no directory to keep files in".into(),
+        )),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_connection_finds_the_files_beside_its_database() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::open(&dir.path().join("workspace.db")).unwrap();
+        let from_conn = media_dir_of(&state.conn()).unwrap();
+        assert_eq!(
+            std::fs::canonicalize(from_conn).unwrap(),
+            std::fs::canonicalize(state.media_dir().unwrap()).unwrap()
+        );
+    }
 
     #[test]
     fn the_assistant_directory_is_created_next_to_the_workspace() {

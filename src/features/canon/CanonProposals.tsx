@@ -45,6 +45,8 @@ function ProposalBox({ proposal }: { proposal: CanonProposal }) {
           cards: inner.package.cards.length,
           facts: inner.package.facts.length,
           relations: inner.package.links.length,
+          pictures: inner.package.pictures.length,
+          descriptions: inner.package.descriptions.length,
         })
       : t('canon.proposalDescribes')
 

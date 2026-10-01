@@ -10,7 +10,8 @@ import { cn } from '@/lib/utils'
 interface Props {
   messageId: string
   pack: CanonPackage
-  /** The items kept - `card:0`, `fact:2`, `relation:1` - or all when absent. */
+  /** The items kept - `card:0`, `fact:2`, `relation:1`, `picture:0`,
+   *  `description:3` - or all when absent. */
   chosen: readonly string[]
   onChosen?: (items: string[]) => void
   /** Answered already: the items are read, not chosen. */
@@ -23,14 +24,23 @@ export function itemsOf(pack: CanonPackage): string[] {
     ...pack.cards.map((_, index) => `card:${String(index)}`),
     ...pack.facts.map((_, index) => `fact:${String(index)}`),
     ...pack.links.map((_, index) => `relation:${String(index)}`),
+    ...pack.pictures.map((_, index) => `picture:${String(index)}`),
+    ...pack.descriptions.map((_, index) => `description:${String(index)}`),
   ]
+}
+
+/** The name of a file, out of its path on this machine. */
+function fileName(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path
 }
 
 /**
  * A proposal for the canon, item by item, read against the canon as it
  * stands now: each new card; each fact with the card and section it lands in,
  * the fact it refines or retires, the facts it contradicts side by side, and
- * a mark when the card already says the same; each relation. A box beside
+ * a mark when the card already says the same; each relation; each picture
+ * with the card it shows and its role; each description for pictures. A box
+ * beside
  * each keeps it or leaves it out - one wrong fact must not cost the right
  * ones.
  */
@@ -148,6 +158,42 @@ export function CanonPackageView({ messageId, pack, chosen, onChosen, answered }
                 {link.label !== undefined && link.label !== null && (
                   <span className="text-faint">: {link.label}</span>
                 )}
+              </span>
+            </label>
+          ))}
+        </section>
+      )}
+
+      {pack.pictures.length > 0 && (
+        <section className="flex flex-col gap-1">
+          <b className="text-2xs tracking-caption text-faint uppercase">{t('canon.pictures')}</b>
+          {pack.pictures.map((picture, index) => (
+            <label key={`${picture.path}-${String(index)}`} className="flex items-start gap-2">
+              {box(`picture:${String(index)}`)}
+              <span className="min-w-0">
+                <b className="font-semibold text-text">{picture.card_title}</b>
+                {' · '}
+                {t(`canon.role.${picture.role ?? 'reference'}`)}
+                <span className="block truncate font-mono text-2xs text-faint" title={picture.path}>
+                  {fileName(picture.path)}
+                </span>
+              </span>
+            </label>
+          ))}
+        </section>
+      )}
+
+      {pack.descriptions.length > 0 && (
+        <section className="flex flex-col gap-1">
+          <b className="text-2xs tracking-caption text-faint uppercase">
+            {t('canon.descriptions')}
+          </b>
+          {pack.descriptions.map((description, index) => (
+            <label key={description.card} className="flex items-start gap-2">
+              {box(`description:${String(index)}`)}
+              <span className="min-w-0">
+                <b className="font-semibold text-text">{description.card_title}</b>
+                <span className="block text-dim">{description.text}</span>
               </span>
             </label>
           ))}

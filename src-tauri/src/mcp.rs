@@ -577,8 +577,10 @@ fn tools() -> Vec<Value> {
              proposed in the same call. `work` is the work the facts were read from: each fact \
              with no other source cites it (quote the line in `line`), and a card with \
              `on_work: true` lives at it. Sections are the kind's keys (see `canon`); an item \
-             the canon has no place for is named and left out. Nothing is written until the \
-             person applies it.",
+             the canon has no place for is named and left out. `pictures` attach files on this \
+             machine to a card - or to one fact of it, an outfit - with a role; `descriptions` \
+             write what a generator is told about a card, in English, from the facts it \
+             holds (read the card first). Nothing is written until the person applies it.",
             json!({
                 "work": text_arg("The work the facts were read from: its id or exact title, optional"),
                 "cards": {
@@ -629,6 +631,24 @@ fn tools() -> Vec<Value> {
                         "back_label": text_arg("What `from` is to `to`"),
                         "layer": text_arg("public, internal or inWorks"),
                     }, "required": ["from", "to"] },
+                },
+                "pictures": {
+                    "type": "array",
+                    "description": "Pictures to attach, copied into the workspace when kept",
+                    "items": { "type": "object", "properties": {
+                        "path": text_arg("The file: an absolute path on this machine, JPEG, PNG, WebP, GIF or AVIF"),
+                        "card": text_arg("The card it shows: an id, name or handle"),
+                        "fact": text_arg("Or: the id of the fact it shows - an outfit; the card is the fact's"),
+                        "role": text_arg("portrait, reference, outfit, mood, still or mark; reference when absent. Portraits and references go to a generator with the card"),
+                    }, "required": ["path"] },
+                },
+                "descriptions": {
+                    "type": "array",
+                    "description": "What a generator is told about a card, replacing what it is told now",
+                    "items": { "type": "object", "properties": {
+                        "card": text_arg("A card id or name"),
+                        "text": text_arg("The description, in English, from the card's appearance facts"),
+                    }, "required": ["card", "text"] },
                 },
             }),
             &[],
@@ -1027,10 +1047,12 @@ pub fn run_tool(
             )?;
             let body = apply::render_canon(conn, &package);
             let summary = format!(
-                "{} card(s), {} fact(s), {} relation(s)",
+                "{} card(s), {} fact(s), {} relation(s), {} picture(s), {} description(s)",
                 package.cards.len(),
                 package.facts.len(),
-                package.links.len()
+                package.links.len(),
+                package.pictures.len(),
+                package.descriptions.len()
             );
             let dropped: Vec<String> = package
                 .dropped
@@ -1794,8 +1816,9 @@ fn deliver(
         (Proposal::Comment { .. } | Proposal::Reply { .. } | Proposal::Description { .. }, _) => {
             return Err(Error::refused("mcp.commentsNotProposable"));
         }
-        // A card's description is written by the action on the card, which
-        // knows the facts it answers to; no tool proposes one.
+        // A card's description alone is the action on the card, which knows
+        // the facts it answers to; an agent proposes one inside a package for
+        // the canon (`propose_canon` descriptions), read with the card.
         (Proposal::CardPrompt { .. }, _) => {
             return Err(Error::refused("mcp.cardPromptNotProposable"));
         }

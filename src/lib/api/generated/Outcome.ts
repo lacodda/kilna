@@ -47,6 +47,10 @@ facts?: Array<string>,
  */
 relations?: Array<string>, 
 /**
+ * Pictures attached to cards, by asset id.
+ */
+pictures?: Array<string>, 
+/**
  * The fields of a release written, by key.
  */
 release_fields?: Array<string>, 

@@ -68,3 +68,27 @@ overrides it for tests and second workspaces.
   own operation, as before.
 - MCP-planned work for 1.x (`v1.13`) becomes a matter of coverage: tools for
   what appears after this version, not a server to build.
+
+## Amendment, v0.89.2: pictures and a card's description
+
+Moving the owner's characters, looks and places from an older tool left two
+things an agent could not bring: the pictures a generator is handed with a
+card, and the card's description for a generator. Both were the window's
+alone - a file picked or pasted, the action on the card - so a migration of
+dozens of cards and a few hundred pictures meant as many gestures by hand.
+
+`propose_canon` now carries `pictures` (a file on this machine, the card or
+the fact it shows, a role) and `descriptions` (a card and the words). They
+are items of the same package, each kept or left out by the person: a
+picture's file is checked when it is proposed and again when it is kept, and
+copied into the workspace only then, as the arrival a chosen file takes
+(`asset.attach`); a description is written as the box writes one, its
+fingerprint taken from the card's facts at that moment. The workspace's
+media directory is found beside the database the connection is open on, the
+same rule the window's state follows.
+
+Rejected: a tool that attaches pictures at once (an agent proposes, the
+person applies - the rule of this ADR); keeping the refusal of a proposed
+description (the reason was that only the action knew the facts it answers
+to; an agent reads the same card first, and the fingerprint is taken when
+the person keeps it either way).

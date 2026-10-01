@@ -113,12 +113,49 @@ pub struct ProposedLink {
     pub layer: Option<Layer>,
 }
 
+/// A picture the proposal would attach to a card, or to one fact of it - a
+/// file on this machine, copied into the workspace when the person keeps it
+/// (v0.89.2).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(optional_fields)]
+pub struct ProposedPicture {
+    /// The file, as a path on this machine.
+    pub path: String,
+    /// The card it shows: an id, or the handle of a card of this proposal.
+    pub card: String,
+    /// The card's name, for the person reading the proposal.
+    #[serde(default)]
+    pub card_title: String,
+    /// The fact of the card it shows - an outfit - when it shows one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fact_id: Option<String>,
+    /// One of the picture roles; `reference` when absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+}
+
+/// The description a generator is given for a card, proposed whole
+/// (v0.89.2). The fingerprint of the facts it answers to is taken when the
+/// person keeps it.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+pub struct ProposedDescription {
+    /// A card id.
+    pub card: String,
+    #[serde(default)]
+    pub card_title: String,
+    pub text: String,
+}
+
 /// A proposal for the canon, read and checked against the profile.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 pub struct Package {
     pub cards: Vec<ProposedCard>,
     pub facts: Vec<ProposedFact>,
     pub links: Vec<ProposedLink>,
+    #[serde(default)]
+    pub pictures: Vec<ProposedPicture>,
+    #[serde(default)]
+    pub descriptions: Vec<ProposedDescription>,
     /// What the answer said that the canon has no place for, and why - shown
     /// rather than applied, and rather than silently dropped.
     pub dropped: Vec<Reason>,
@@ -126,8 +163,29 @@ pub struct Package {
 
 impl Package {
     pub fn is_empty(&self) -> bool {
-        self.cards.is_empty() && self.facts.is_empty() && self.links.is_empty()
+        self.cards.is_empty()
+            && self.facts.is_empty()
+            && self.links.is_empty()
+            && self.pictures.is_empty()
+            && self.descriptions.is_empty()
     }
+}
+
+/// The files a proposed picture may be: what a generator takes as a
+/// reference and the window can show.
+const PICTURE_FILES: [&str; 6] = ["jpg", "jpeg", "png", "webp", "gif", "avif"];
+
+/// Why a proposed picture's file cannot be one, if it cannot.
+pub fn picture_file_problem(path: &str) -> Option<Error> {
+    let file = std::path::Path::new(path);
+    if !file.is_absolute() || !file.is_file() {
+        return Some(Error::refused("canon.pictureNotAFile").param("path", path));
+    }
+    let picture = file
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| PICTURE_FILES.contains(&ext.to_lowercase().as_str()));
+    (!picture).then(|| Error::refused("canon.pictureNotAPicture").param("path", path))
 }
 
 /// What a proposal falls back on where an item says nothing.
@@ -252,6 +310,101 @@ pub fn read(
             layer: text(&item, "layer").and_then(|l| Layer::from_word(&l)),
         });
     }
+
+    // A card a picture or a description names: one of this proposal, by
+    // handle, or one of the canon, with its name for the person.
+    let proposed: Vec<(String, String)> = package
+        .cards
+        .iter()
+        .map(|card| (card.handle.clone(), card.title.clone()))
+        .collect();
+    let card_named = |named: &str| -> Option<(String, String)> {
+        if let Some(card) = proposed.iter().find(|(handle, _)| handle == named) {
+            return Some(card.clone());
+        }
+        cards
+            .find(named)
+            .map(|card| (card.id.clone(), card.title.clone().unwrap_or_default()))
+    };
+
+    let mut pictures = Vec::new();
+    for (index, item) in list(object, "pictures").iter().enumerate() {
+        let place = format!("picture {}", index + 1);
+        let item = item.as_object().cloned().unwrap_or_default();
+        let path = text(&item, "path").unwrap_or_default();
+        if let Some(problem) = picture_file_problem(&path) {
+            package.dropped.push(problem.reason().param("item", place));
+            continue;
+        }
+        let role = text(&item, "role");
+        if let Some(role) = role.as_deref()
+            && !fact::PICTURE_ROLES.contains(&role)
+        {
+            package.dropped.push(
+                Reason::of("refusal.canon.pictureRole")
+                    .param("role", role)
+                    .param("item", place),
+            );
+            continue;
+        }
+        // A picture of a fact is a picture of its card.
+        let fact_id = text(&item, "fact");
+        let named = match fact_id.as_deref() {
+            Some(id) => match fact::get(conn, id)? {
+                Some(found) if found.profile_id == profile_id => Some(found.note_id),
+                _ => {
+                    package.dropped.push(
+                        Reason::of("refusal.canon.pictureNamesNoFact")
+                            .param("fact", id)
+                            .param("item", place),
+                    );
+                    continue;
+                }
+            },
+            None => text(&item, "card"),
+        };
+        let Some((card, card_title)) = named.as_deref().and_then(card_named) else {
+            package
+                .dropped
+                .push(Reason::of("refusal.canon.pictureNamesNoCard").param("item", place));
+            continue;
+        };
+        pictures.push(ProposedPicture {
+            path,
+            card,
+            card_title,
+            fact_id,
+            role,
+        });
+    }
+    package.pictures = pictures;
+
+    let mut descriptions = Vec::new();
+    for (index, item) in list(object, "descriptions").iter().enumerate() {
+        let place = format!("description {}", index + 1);
+        let item = item.as_object().cloned().unwrap_or_default();
+        let Some(said) = text(&item, "text").or_else(|| text(&item, "description")) else {
+            package
+                .dropped
+                .push(Reason::of("refusal.canon.descriptionEmpty").param("item", place));
+            continue;
+        };
+        // A description answers to the facts a card already holds: a card of
+        // this proposal has none to answer to yet.
+        let found = text(&item, "card").and_then(|named| cards.find(&named).cloned());
+        let Some(card) = found else {
+            package
+                .dropped
+                .push(Reason::of("refusal.canon.descriptionNamesNoCard").param("item", place));
+            continue;
+        };
+        descriptions.push(ProposedDescription {
+            card: card.id,
+            card_title: card.title.unwrap_or_default(),
+            text: said,
+        });
+    }
+    package.descriptions = descriptions;
 
     if package.is_empty() {
         return Err(Error::refused("canon.proposalEmpty"));

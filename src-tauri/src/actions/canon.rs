@@ -368,6 +368,29 @@ pub fn check_package(
         note(kind_of(&link.from).map(|_| ()));
         note(kind_of(&link.to).map(|_| ()));
     }
+
+    // A picture's file is read when it is kept: it may have moved since it
+    // was proposed.
+    for (index, picture) in package.pictures.iter().enumerate() {
+        if !kept(items, "picture", index) {
+            continue;
+        }
+        note(kind_of(&picture.card).map(|_| ()));
+        if let Some(fact_id) = picture.fact_id.as_deref()
+            && canon::fact::get(conn, fact_id)?.is_none()
+        {
+            note(Err(Error::not_found("fact", fact_id)));
+        }
+        if let Some(problem) = canon::proposal::picture_file_problem(&picture.path) {
+            note(Err(problem));
+        }
+    }
+    for (index, description) in package.descriptions.iter().enumerate() {
+        if !kept(items, "description", index) {
+            continue;
+        }
+        note(kind_of(&description.card).map(|_| ()));
+    }
     Ok(problems)
 }
 
@@ -493,6 +516,38 @@ pub fn keep_package(
             )?,
         };
         outcome.relations.push(kept_link.id);
+    }
+
+    // The pictures last, the cards they show made by now; each is the
+    // arrival a chosen file takes.
+    let mut media = None;
+    for (index, picture) in package.pictures.into_iter().enumerate() {
+        if !kept(items, "picture", index) {
+            continue;
+        }
+        let dir = match &media {
+            Some(dir) => dir,
+            None => media.insert(crate::state::media_dir_of(conn)?),
+        };
+        let attached = super::asset::attach(
+            conn,
+            dir,
+            &picture.path,
+            crate::asset::NewAsset {
+                note_id: Some(resolve(&picture.card)),
+                canon_fact_id: picture.fact_id,
+                kind: picture.role,
+                ..crate::asset::NewAsset::default()
+            },
+        )?;
+        outcome.pictures.push(attached.id);
+    }
+    for (index, description) in package.descriptions.into_iter().enumerate() {
+        if !kept(items, "description", index) {
+            continue;
+        }
+        let described = describe(conn, &description.card, Some(description.text), None)?;
+        outcome.cards.push(described.id);
     }
     Ok(())
 }

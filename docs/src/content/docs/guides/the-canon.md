@@ -186,6 +186,11 @@ show in its side panel with **Review**.
 
 An agent outside the window reads the canon through the `canon` tool and
 proposes through `propose_canon`; its proposals land in the same review.
+It can also bring a card its **pictures** — files on this machine, each with
+a role, on the card or on one fact of it, such as an outfit — and its
+**description for the generator**. They are items like the rest: a picture
+is copied into the workspace only when you keep it, and a description kept
+replaces the one in the box, its facts taken as they stand at that moment.
 See [the MCP server](/kilna/reference/mcp/).
 
 ## Undo, history and the trash
