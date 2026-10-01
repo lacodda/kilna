@@ -34,6 +34,9 @@ impl AppState {
     pub fn open(path: &Path) -> Result<Self> {
         let mut conn = db::open(path)?;
         profile::seed(&conn)?;
+        // The style dictionary's starter set, after the profiles: a set brick
+        // is of a type the carried-forward document names (ADR 0048).
+        crate::style_set::seed(&conn)?;
         // A song's clip and short releases move onto works of their own, once
         // (ADR 0030). After the seed on purpose: the carry-forward is what
         // brings the kinds they move to into a workspace that predates them.

@@ -16,9 +16,9 @@ brick of it.
 
 A style has four things:
 
-- **A type** — *Image style*, *Character*, *Environment*, *Typography*,
-  *Camera angle*, *Pose*, *Layers*, *Frame composition*, *Look* in the
-  Studio profile. The type is a word of the craft and lives in the profile
+- **A type** — *Image style*, *Typography*, *Dressing*, *Background*,
+  *Character*, *Look*, *Environment*, *Camera angle*, *Pose* in the Studio
+  profile. The type is a word of the craft and lives in the profile
   document, so a craft that works differently names its own.
 - **A name** — what you call it. Two styles of one type may not share a
   name; across types they may, so a character and a look can both be
@@ -35,6 +35,66 @@ to look at when the style is *described* — "only the jacket", "ignore the
 background". It reaches the assistant when it writes the description. It
 never reaches a generator, because it is an instruction about the
 description rather than part of one.
+
+Beside those, a style says **when to take it** - "loud songs with one strong
+figure; light grounds" - for whoever picks styles for a picture. The cover's
+idea generator reads it. It is not the steer: the steer is about how a style
+is described, this is about when it is the right one.
+
+## What a style is made of
+
+A type decides what its styles are made of, and so what their card shows:
+
+- **Pictures** - an image style, a character, a place. The card leads with
+  three references, or with the style's palette while it has none.
+- **Lettering** - typography. The card draws a live sample of the typeface.
+  The sample is for the eye only: on a picture the lettering is drawn by the
+  generator from the description.
+- **A dressing** - the small furniture around a title: labels, numbers,
+  stamps, stickers. Its description names captions as slots - `{brand}`,
+  `{micro}`, `{micro.0}` for the first of several - and the editor says which
+  of them the channel's card fills. A phrase in `[square brackets]` whose
+  caption is empty drops out of the prompt whole: *a tiny line "{brand}"*
+  with no brand is not an instruction to draw an empty label.
+- **A colour** - a background: the colour itself, picked or typed as
+  `#RRGGBB`, and the description that says what the ground is like.
+
+An image style is also filed under a **family** - *Tattoo*, *Classic*,
+*Street*, *Digital*, *Eras* - and the dictionary narrows by it.
+
+The channel's own - its mark, signature details, captions and palette - is
+not a style: it lives on the **Channel** card of the
+[canon](/kilna/guides/the-canon/).
+
+## The starter set
+
+A new workspace does not open on an empty dictionary. Studio ships ninety
+styles - image styles in five families, typography with live samples,
+dressings and backgrounds - with names in English and Russian and
+descriptions in English, the language a prompt is written in.
+
+They are yours from the start: edit, retire or delete them. Each card says
+where its style came from:
+
+- **from the set** - nobody has touched it. A newer kilna may improve its
+  wording at the next start.
+- **changed from the set** - you edited it. It keeps your words; **Restore as
+  in the set** in the open style puts the set's back, and `Ctrl+Z` takes that
+  back too.
+- **your own** - one you made.
+
+A style of the set you delete stays deleted. Narrow the dictionary by where a
+style came from, and by where it stands, with the chips under the types.
+
+## Types the craft no longer builds from
+
+*Layers* and *Frame composition* are retired in Studio: where the hero
+stands, how big, what sits over what and where the title goes is set by the
+cover constructor now. Styles you made of them still read, with their word;
+new ones are not made, and the type's chip says why.
+
+A hero with a card in the canon needs no *Character* style either: the card's
+description is built from its facts. The type stays for heroes without one.
 
 ## Making and editing a style
 

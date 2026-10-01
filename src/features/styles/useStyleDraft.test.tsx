@@ -25,6 +25,13 @@ const BRICK: StyleBrick = {
   created_at: NOW,
   updated_at: NOW,
   reference_count: 1,
+  label: null,
+  family: null,
+  when_to_use: null,
+  colours: [],
+  sample: null,
+  set_key: null,
+  origin: 'own',
 }
 
 const LATER = '2026-09-27T12:00:00.000Z'

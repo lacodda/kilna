@@ -1290,6 +1290,43 @@
     ],
     "style_types": [
       {
+        "families": [
+          {
+            "key": "tattoo",
+            "label": {
+              "en": "Tattoo",
+              "ru": "Тату"
+            }
+          },
+          {
+            "key": "classic",
+            "label": {
+              "en": "Classic",
+              "ru": "Классика"
+            }
+          },
+          {
+            "key": "street",
+            "label": {
+              "en": "Street",
+              "ru": "Улица"
+            }
+          },
+          {
+            "key": "digital",
+            "label": {
+              "en": "Digital",
+              "ru": "Цифра"
+            }
+          },
+          {
+            "key": "era",
+            "label": {
+              "en": "Eras",
+              "ru": "Эпохи"
+            }
+          }
+        ],
         "hint": {
           "en": "Describe the render technique and the look: medium (photograph, illustration, 3D), film stock and grain, palette, light, processing, the moves that recur. Not what is in the picture — only how it looks.",
           "ru": "Опиши технику рендера и вид: медиум (фото, иллюстрация, 3D), плёнка и зерно, палитра, свет, обработка, повторяющиеся приёмы. Не что на картинке — только как это выглядит."
@@ -1302,6 +1339,46 @@
         }
       },
       {
+        "form": "lettering",
+        "hint": {
+          "en": "Describe the lettering: the character of the typeface, weight, the size accents, colour, effects, how the text sits in the frame.",
+          "ru": "Опиши шрифт: характер гарнитуры, начертание, акценты кегля, цвет, эффекты, как текст ложится в кадр."
+        },
+        "icon": "type",
+        "key": "typography",
+        "label": {
+          "en": "Typography",
+          "ru": "Типографика"
+        }
+      },
+      {
+        "form": "dressing",
+        "hint": {
+          "en": "Describe the small furniture around the title: labels, numbers, stamps, rules, stickers. Write each caption as a {slot} and wrap the phrase that needs it in [square brackets], so the phrase drops out when the caption is empty.",
+          "ru": "Опиши мелкую обвязку вокруг заголовка: ярлыки, номера, штампы, линейки, наклейки. Каждую подпись пиши слотом {slot}, а фразу, которой он нужен, бери в [квадратные скобки] — тогда при пустой подписи фраза выпадет."
+        },
+        "icon": "tag",
+        "key": "dressing",
+        "label": {
+          "en": "Dressing",
+          "ru": "Обвязка"
+        }
+      },
+      {
+        "form": "colour",
+        "hint": {
+          "en": "Describe the ground the picture stands on: the colour, its texture, and what is not there.",
+          "ru": "Опиши основу, на которой стоит картинка: цвет, фактуру и чего на ней нет."
+        },
+        "icon": "square",
+        "key": "background",
+        "label": {
+          "en": "Background",
+          "ru": "Фон"
+        }
+      },
+      {
+        "canon_kind": "character",
         "hint": {
           "en": "Describe the person as such: age, build, face, hair, distinguishing marks. No clothing, no surroundings — those are a look and a place.",
           "ru": "Опиши человека как такового: возраст, телосложение, лицо, волосы, приметы. Без одежды и окружения — это образ и место."
@@ -1339,18 +1416,6 @@
       },
       {
         "hint": {
-          "en": "Describe the lettering: the character of the typeface, weight, the size accents, colour, effects, how the text sits in the frame.",
-          "ru": "Опиши шрифт: характер гарнитуры, начертание, акценты кегля, цвет, эффекты, как текст ложится в кадр."
-        },
-        "icon": "type",
-        "key": "typography",
-        "label": {
-          "en": "Typography",
-          "ru": "Типографика"
-        }
-      },
-      {
-        "hint": {
           "en": "Describe the viewpoint: camera height, tilt, focal length and its distortion, how close the shot is.",
           "ru": "Опиши точку съёмки: высота камеры, наклон, фокусное и его дисторсия, крупность плана."
         },
@@ -1383,6 +1448,10 @@
         "label": {
           "en": "Layers",
           "ru": "Слои"
+        },
+        "retired": {
+          "en": "The cover constructor sets what sits over what.",
+          "ru": "Что поверх чего, задаёт конструктор обложки."
         }
       },
       {
@@ -1395,6 +1464,10 @@
         "label": {
           "en": "Frame composition",
           "ru": "Компоновка кадра"
+        },
+        "retired": {
+          "en": "The cover constructor places the hero and the lettering.",
+          "ru": "Где стоит герой и где надпись, задаёт конструктор обложки."
         }
       }
     ],

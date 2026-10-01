@@ -1,4 +1,5 @@
 import type { StyleBrick, StyleBrickPatch, StyleBrickStatus } from '@/lib/api/types'
+import { HEX, styleName } from '@/lib/styleBrick'
 
 /*
  * The rules between a style as it is stored and the style open in its editor,
@@ -23,7 +24,7 @@ import type { StyleBrick, StyleBrickPatch, StyleBrickStatus } from '@/lib/api/ty
  * - **A write the backend would refuse is not sent.** A style needs a name and
  *   may not share one with another of its type; the name and the type are
  *   held back while it breaks either rule, so the description typed beside
- *   them still lands.
+ *   them still lands. A colour is held back until it is `#RRGGBB`.
  */
 
 /** A style as its editor holds it: every field as the box spells it. */
@@ -33,19 +34,45 @@ export interface StyleForm {
   description: string
   hint: string
   status: StyleBrickStatus
+  /** When to reach for it (v0.87). */
+  when_to_use: string
+  /** A key of the type's families, or '' for none. */
+  family: string
+  /** CSS declarations of a lettering brick's sample. */
+  sample: string
+  /** The one colour of a colour brick, as typed. */
+  colour: string
 }
 
 type Field = keyof StyleForm
 
-const FIELDS: readonly Field[] = ['type_key', 'name', 'description', 'hint', 'status']
+const FIELDS: readonly Field[] = [
+  'type_key',
+  'name',
+  'description',
+  'hint',
+  'status',
+  'when_to_use',
+  'family',
+  'sample',
+  'colour',
+]
 
-/** A stored brick, spelled the way its editor's boxes spell it. */
+/**
+ * A stored brick, spelled the way its editor's boxes spell it. The name is
+ * the one the window shows - a set brick's word in the window's language -
+ * so an untouched name is never written back as the English one.
+ */
 export function formOf(brick: StyleBrick): StyleForm {
   return {
     type_key: brick.type_key,
-    name: brick.name,
+    name: styleName(brick),
     description: brick.description ?? '',
     hint: brick.hint ?? '',
+    when_to_use: brick.when_to_use ?? '',
+    family: brick.family ?? '',
+    sample: brick.sample ?? '',
+    colour: brick.colours[0] ?? '',
     // `status` is a plain `string` on the backend (ADR 0003); the editor only
     // ever writes one of the three this form knows, so a stored brick is
     // always one of them in practice.
@@ -66,7 +93,12 @@ function meaning(form: StyleForm, field: Field): string | null {
       return form.name.trim()
     case 'description':
     case 'hint':
+    case 'when_to_use':
+    case 'sample':
+    case 'family':
       return stored(form[field])
+    case 'colour':
+      return stored(form.colour)?.toUpperCase() ?? null
     default:
       return form[field]
   }
@@ -107,6 +139,8 @@ export function patchOf(
   for (const field of FIELDS) {
     if (meaning(form, field) === meaning(base, field)) continue
     if (keyHeld && (field === 'name' || field === 'type_key')) continue
+    // Half a colour is typed, not meant: it waits until it is one.
+    if (field === 'colour' && form.colour.trim() !== '' && !HEX.test(form.colour.trim())) continue
     any = true
     switch (field) {
       case 'type_key':
@@ -124,6 +158,20 @@ export function patchOf(
       case 'status':
         patch.status = form.status
         break
+      case 'when_to_use':
+        patch.when_to_use = stored(form.when_to_use)
+        break
+      case 'family':
+        patch.family = stored(form.family)
+        break
+      case 'sample':
+        patch.sample = stored(form.sample)
+        break
+      case 'colour': {
+        const colour = stored(form.colour)
+        patch.colours = colour === null ? [] : [colour.toUpperCase()]
+        break
+      }
     }
   }
   return any ? patch : null

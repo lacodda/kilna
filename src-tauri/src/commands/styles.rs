@@ -68,3 +68,23 @@ pub fn paste_style_reference(
 pub fn delete_style_brick(state: State<'_, AppState>, id: String) -> Result<String> {
     actions::trash::discard(&state.conn(), Entity::Style, &id)
 }
+
+/// Put a brick back the way the starter set has it: every field the set
+/// speaks for, written as the one edit a person makes, so undo takes it back.
+#[tauri::command]
+pub fn restore_style_brick(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<style_brick::StyleBrick> {
+    actions::style::restore(&state.conn(), &id)
+}
+
+/// The captions the channel's card gives a dressing, by slot - so the editor
+/// can say which of a dressing's slots will be filled and which will drop out.
+#[tauri::command]
+pub fn style_slot_values(
+    state: State<'_, AppState>,
+) -> Result<std::collections::BTreeMap<String, Vec<String>>> {
+    let conn = state.conn();
+    crate::style_set::channel_slots(&conn, &active(&conn)?)
+}

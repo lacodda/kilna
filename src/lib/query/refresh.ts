@@ -66,7 +66,7 @@ export const refresh = {
   style: [keys.styles] as readonly QueryKey[],
   /** The canon: a card's facts, relations, pictures or description. The
    *  notes too - a card is a note - and the search, which finds facts. */
-  canon: [keys.canon, keys.notes, ['search']] as readonly QueryKey[],
+  canon: [keys.canon, keys.notes, ['search'], keys.styleSlots] as readonly QueryKey[],
   focus: [keys.focus] as readonly QueryKey[],
   profile: [keys.workspace, keys.profiles] as readonly QueryKey[],
 }

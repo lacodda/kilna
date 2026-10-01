@@ -1450,6 +1450,7 @@ mod tests {
                 name: "Dusk over water".into(),
                 description: None,
                 hint: None,
+                ..crate::style_brick::NewStyleBrick::default()
             },
         )
         .unwrap();
@@ -1502,6 +1503,7 @@ mod tests {
                 name: "Neon rain".into(),
                 description: None,
                 hint: None,
+                ..crate::style_brick::NewStyleBrick::default()
             },
         )
         .unwrap();

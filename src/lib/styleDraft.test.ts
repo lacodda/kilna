@@ -13,6 +13,13 @@ const BRICK: StyleBrick = {
   created_at: '2026-09-01T00:00:00.000Z',
   updated_at: '2026-09-01T00:00:00.000Z',
   reference_count: 2,
+  label: null,
+  family: null,
+  when_to_use: null,
+  colours: [],
+  sample: null,
+  set_key: null,
+  origin: 'own',
 }
 
 const stored = formOf(BRICK)
@@ -26,6 +33,35 @@ describe('formOf', () => {
       description: '',
       hint: 'only the water',
       status: 'draft',
+      when_to_use: '',
+      family: '',
+      sample: '',
+      colour: '',
+    })
+  })
+
+  it('names a set brick by its word in the window language', () => {
+    const shipped = formOf({ ...BRICK, name: 'Paper', label: { en: 'Paper', ru: 'Бумага' } })
+    expect(shipped.name).toBe('Paper')
+  })
+})
+
+describe('the fields of v0.87', () => {
+  it('writes when to take it, the family and the sample in the stored spelling', () => {
+    expect(
+      patchOf(typed({ when_to_use: ' Loud songs ', family: 'tattoo', sample: '' }), stored),
+    ).toEqual({ when_to_use: 'Loud songs', family: 'tattoo' })
+    expect(patchOf(typed({ family: '' }), { ...stored, family: 'tattoo' })).toEqual({
+      family: null,
+    })
+  })
+
+  it('holds a colour back until it is one, and writes it upper case', () => {
+    expect(patchOf(typed({ colour: '#1e9' }), stored)).toBeNull()
+    expect(patchOf(typed({ colour: '#1e9e95' }), stored)).toEqual({ colours: ['#1E9E95'] })
+    expect(patchOf(typed({ colour: '#1E9E95' }), { ...stored, colour: '#1e9e95' })).toBeNull()
+    expect(patchOf(typed({ colour: '' }), { ...stored, colour: '#1E9E95' })).toEqual({
+      colours: [],
     })
   })
 })

@@ -343,6 +343,13 @@ export function studio(): Studio {
       created_at: EARLIER,
       updated_at: NOW,
       reference_count: 0,
+      label: null,
+      family: null,
+      when_to_use: null,
+      colours: [],
+      sample: null,
+      set_key: null,
+      origin: 'own',
     },
   ]
 
@@ -952,6 +959,7 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_style_bricks: () => studio.bricks,
     style_brick_counts: () => counted(studio.bricks.map((b) => b.type_key)),
     style_brick_references: () => noAssets,
+    style_slot_values: () => ({}),
 
     list_journal: () => studio.journal,
     journal_for_work: ({ workId }) => studio.journal.filter((e) => e.entity_id === workId),

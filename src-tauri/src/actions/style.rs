@@ -21,12 +21,24 @@ pub fn create(conn: &Connection, new: NewStyleBrick) -> Result<StyleBrick> {
 pub fn update(conn: &Connection, id: &str, patch: StyleBrickPatch) -> Result<StyleBrick> {
     gesture(conn, "style.update", |act| {
         let before = style_brick::get(act, id)?;
+        let patch = match &before {
+            Some(brick) => patch.completed(brick),
+            None => patch,
+        };
         act.param("id", id);
         act.json("patch", &patch)?;
         act.before(before.as_ref(), &patch)?;
         act.stamped();
         style_brick::update_at(act, id, patch, act.at())
     })
+}
+
+/// "Restore as in the set": the set's words back on a brick the owner changed,
+/// as one `style.update` carrying every field the set speaks for.
+pub fn restore(conn: &Connection, id: &str) -> Result<StyleBrick> {
+    let brick = style_brick::get(conn, id)?.ok_or_else(|| Error::not_found("style", id))?;
+    let patch = crate::style_set::restoring(conn, &brick)?;
+    update(conn, id, patch)
 }
 
 /// A brick's description, written as the edit a person would make: the same

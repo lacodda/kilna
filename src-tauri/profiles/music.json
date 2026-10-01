@@ -1964,7 +1964,83 @@
           "en": "Describe the render technique and the look: medium (photograph, illustration, 3D), film stock and grain, palette, light, processing, the moves that recur. Not what is in the picture — only how it looks.",
           "ru": "Опиши технику рендера и вид: медиум (фото, иллюстрация, 3D), плёнка и зерно, палитра, свет, обработка, повторяющиеся приёмы. Не что на картинке — только как это выглядит."
         },
-        "icon": "palette"
+        "icon": "palette",
+        "families": [
+          {
+            "key": "tattoo",
+            "label": {
+              "en": "Tattoo",
+              "ru": "Тату"
+            }
+          },
+          {
+            "key": "classic",
+            "label": {
+              "en": "Classic",
+              "ru": "Классика"
+            }
+          },
+          {
+            "key": "street",
+            "label": {
+              "en": "Street",
+              "ru": "Улица"
+            }
+          },
+          {
+            "key": "digital",
+            "label": {
+              "en": "Digital",
+              "ru": "Цифра"
+            }
+          },
+          {
+            "key": "era",
+            "label": {
+              "en": "Eras",
+              "ru": "Эпохи"
+            }
+          }
+        ]
+      },
+      {
+        "key": "typography",
+        "label": {
+          "en": "Typography",
+          "ru": "Типографика"
+        },
+        "hint": {
+          "en": "Describe the lettering: the character of the typeface, weight, the size accents, colour, effects, how the text sits in the frame.",
+          "ru": "Опиши шрифт: характер гарнитуры, начертание, акценты кегля, цвет, эффекты, как текст ложится в кадр."
+        },
+        "icon": "type",
+        "form": "lettering"
+      },
+      {
+        "key": "dressing",
+        "label": {
+          "en": "Dressing",
+          "ru": "Обвязка"
+        },
+        "hint": {
+          "en": "Describe the small furniture around the title: labels, numbers, stamps, rules, stickers. Write each caption as a {slot} and wrap the phrase that needs it in [square brackets], so the phrase drops out when the caption is empty.",
+          "ru": "Опиши мелкую обвязку вокруг заголовка: ярлыки, номера, штампы, линейки, наклейки. Каждую подпись пиши слотом {slot}, а фразу, которой он нужен, бери в [квадратные скобки] — тогда при пустой подписи фраза выпадет."
+        },
+        "icon": "tag",
+        "form": "dressing"
+      },
+      {
+        "key": "background",
+        "label": {
+          "en": "Background",
+          "ru": "Фон"
+        },
+        "hint": {
+          "en": "Describe the ground the picture stands on: the colour, its texture, and what is not there.",
+          "ru": "Опиши основу, на которой стоит картинка: цвет, фактуру и чего на ней нет."
+        },
+        "icon": "square",
+        "form": "colour"
       },
       {
         "key": "character",
@@ -1976,7 +2052,8 @@
           "en": "Describe the person as such: age, build, face, hair, distinguishing marks. No clothing, no surroundings — those are a look and a place.",
           "ru": "Опиши человека как такового: возраст, телосложение, лицо, волосы, приметы. Без одежды и окружения — это образ и место."
         },
-        "icon": "user"
+        "icon": "user",
+        "canon_kind": "character"
       },
       {
         "key": "look",
@@ -2001,18 +2078,6 @@
           "ru": "Опиши место и фон: где это, время суток, погода, что стоит вокруг, воздух пространства."
         },
         "icon": "tree"
-      },
-      {
-        "key": "typography",
-        "label": {
-          "en": "Typography",
-          "ru": "Типографика"
-        },
-        "hint": {
-          "en": "Describe the lettering: the character of the typeface, weight, the size accents, colour, effects, how the text sits in the frame.",
-          "ru": "Опиши шрифт: характер гарнитуры, начертание, акценты кегля, цвет, эффекты, как текст ложится в кадр."
-        },
-        "icon": "type"
       },
       {
         "key": "angle",
@@ -2048,7 +2113,11 @@
           "en": "Describe what sits on top of what: lettering over the figure, the figure in front of the text, an object across both.",
           "ru": "Опиши, что поверх чего: надпись над фигурой, фигура перед текстом, предмет поперёк обоих."
         },
-        "icon": "layers"
+        "icon": "layers",
+        "retired": {
+          "en": "The cover constructor sets what sits over what.",
+          "ru": "Что поверх чего, задаёт конструктор обложки."
+        }
       },
       {
         "key": "composition",
@@ -2060,7 +2129,11 @@
           "en": "Describe the arrangement: where things stand in the frame, the balance, the empty space, the grid it follows.",
           "ru": "Опиши расположение: где что стоит в кадре, баланс, пустое место, сетка, которой это следует."
         },
-        "icon": "grid"
+        "icon": "grid",
+        "retired": {
+          "en": "The cover constructor places the hero and the lettering.",
+          "ru": "Где стоит герой и где надпись, задаёт конструктор обложки."
+        }
       }
     ],
     "collection_kinds": [
@@ -3063,5 +3136,1297 @@
         }
       }
     ]
-  }
+  },
+  "style_set": [
+    {
+      "key": "neo-traditional",
+      "type": "image-style",
+      "label": {
+        "en": "Neo-traditional",
+        "ru": "Нео-трад"
+      },
+      "family": "tattoo",
+      "description": "STYLE: neo-traditional tattoo art rendered as a highly detailed digital painting, like a premium tattoo flash. Bold black ink outlines with varied line weight, rich painterly shading with soft gradients and fine hatching, glossy highlights, jewel-tone colours (deep violet, magenta, teal, warm gold) against deep blacks.",
+      "when": "Heroic or tender songs with one strong central figure; works on light and paper grounds.",
+      "colours": [
+        "#5B2A86",
+        "#C23E88",
+        "#1E7F7A",
+        "#D8A42B"
+      ]
+    },
+    {
+      "key": "black-grey-realism",
+      "type": "image-style",
+      "label": {
+        "en": "Black and grey realism",
+        "ru": "Ч/б реализм"
+      },
+      "family": "tattoo",
+      "description": "STYLE: photorealistic black-and-grey tattoo art, like a masterpiece by a top realism tattoo artist. Smooth grey-wash gradients, deep velvety blacks, crisp white highlights, fine stippling, sculptural lighting, realistic proportions, no cartoon features. Only ONE accent colour in the whole image, used sparingly.[ The one accent colour is {accent}.]",
+      "when": "Serious, weighty songs; when the face must carry the feeling.",
+      "colours": [
+        "#121114",
+        "#6E6A70",
+        "#EFEBE3"
+      ]
+    },
+    {
+      "key": "trash-polka",
+      "type": "image-style",
+      "label": {
+        "en": "Trash polka",
+        "ru": "Трэш-полька"
+      },
+      "family": "tattoo",
+      "description": "STYLE: trash polka tattoo art: a realistic black-and-grey collage combined with bold red brush strokes, smears and splatters, thick red bars and circles, torn geometric shapes, abstract marks that look like torn newspaper print (no readable words), rough ink textures. Strictly black, grey and signal red. Aggressive, graphic, avant-garde.",
+      "when": "Loud, angry or fractured songs; collage-like lyrics; paper and cream grounds.",
+      "colours": [
+        "#121114",
+        "#D7262E",
+        "#EFEBE3"
+      ]
+    },
+    {
+      "key": "old-school",
+      "type": "image-style",
+      "label": {
+        "en": "Old school",
+        "ru": "Олд-скул"
+      },
+      "family": "tattoo",
+      "description": "STYLE: American traditional (old-school) tattoo flash: bold black outlines, a limited solid palette of red, yellow, green and black, simple confident shading, classic motifs like swallows, roses, anchors, daggers and ribbon banners woven into the scene.",
+      "when": "Songs about loyalty, the road, the sea, a keepsake; cream and kraft grounds.",
+      "colours": [
+        "#C8352E",
+        "#E8B830",
+        "#1F7A4A",
+        "#EFE4C8"
+      ]
+    },
+    {
+      "key": "irezumi",
+      "type": "image-style",
+      "label": {
+        "en": "Irezumi",
+        "ru": "Ирэдзуми"
+      },
+      "family": "tattoo",
+      "description": "STYLE: traditional Japanese irezumi tattoo art and ukiyo-e woodblock print: bold confident outlines, flat traditional colours (vermilion, indigo, ochre, jade green) with subtle gradients, stylized waves, swirling clouds, wind bars and falling leaves woven around the hero. Strong graphic poster composition.",
+      "when": "Songs of water, wind, fate and struggle; strong movement around the hero.",
+      "colours": [
+        "#C8352E",
+        "#24406E",
+        "#C79A3B",
+        "#3F7D5B"
+      ]
+    },
+    {
+      "key": "blackwork",
+      "type": "image-style",
+      "label": {
+        "en": "Ornamental blackwork",
+        "ru": "Орнаментальный блэкворк"
+      },
+      "family": "tattoo",
+      "description": "STYLE: ornamental blackwork tattoo: solid black fills, dotwork stippling, a geometric mandala ring and lace filigree around the hero, bold negative space, pure black ink with one small touch of accent colour.[ The one accent colour is {accent}.]",
+      "when": "Ritual, cyclical or meditative songs; light grounds.",
+      "colours": [
+        "#121114",
+        "#EFEBE3"
+      ]
+    },
+    {
+      "key": "engraving",
+      "type": "image-style",
+      "label": {
+        "en": "Engraving",
+        "ru": "Гравюра"
+      },
+      "family": "classic",
+      "description": "STYLE: fine-line engraving and etching, like Gustave Doré's book illustrations or Albrecht Dürer's woodcuts, reinterpreted as blackwork tattoo art. Dense cross-hatching, stippling and contour lines in pure black ink, dramatic chiaroscuro. One flat block of accent colour behind the hero; everything else is black ink.[ The one accent colour is {accent}.]",
+      "when": "Epic, mythic or literary songs; paper, cream and kraft grounds.",
+      "colours": [
+        "#121114",
+        "#E8DCC4",
+        "#7A1F2B"
+      ]
+    },
+    {
+      "key": "dark-oil",
+      "type": "image-style",
+      "label": {
+        "en": "Dark oil",
+        "ru": "Тёмное масло"
+      },
+      "family": "classic",
+      "description": "STYLE: dark fantasy oil painting with baroque chiaroscuro, like an old master painting of a mythological scene: thick visible brushstrokes, rich glazes, one dramatic light source, deep shadows, gilded highlights, museum-quality realism.",
+      "when": "Grave, tragic or sacred songs; dark grounds.",
+      "colours": [
+        "#1A1410",
+        "#5C1622",
+        "#C9A45A",
+        "#5E6337"
+      ]
+    },
+    {
+      "key": "stained-glass",
+      "type": "image-style",
+      "label": {
+        "en": "Stained glass",
+        "ru": "Витраж"
+      },
+      "family": "classic",
+      "description": "STYLE: Gothic stained-glass window: the scene is built from glowing pieces of coloured glass (ruby, cobalt, emerald, amber) joined by thick black lead lines, backlit with luminous light, with fine painted details on the glass.",
+      "when": "Songs of faith, hope and light through darkness.",
+      "colours": [
+        "#9B1B30",
+        "#1F3A93",
+        "#1E7F4F",
+        "#D8A42B"
+      ]
+    },
+    {
+      "key": "art-nouveau",
+      "type": "image-style",
+      "label": {
+        "en": "Art Nouveau",
+        "ru": "Модерн"
+      },
+      "family": "classic",
+      "description": "STYLE: Art Nouveau poster in the manner of Alphonse Mucha: elegant flowing outlines, a large ornamental circular halo behind the hero, decorative floral borders, muted gold, sage, dusty rose and cream, soft flat shading.",
+      "when": "Gentle, romantic or seasonal songs; one graceful figure.",
+      "colours": [
+        "#A7B59B",
+        "#B8954A",
+        "#D9A9A1",
+        "#EDE0B8"
+      ]
+    },
+    {
+      "key": "gold-mosaic",
+      "type": "image-style",
+      "label": {
+        "en": "Gold mosaic",
+        "ru": "Золотая мозаика"
+      },
+      "family": "classic",
+      "description": "STYLE: Gustav Klimt golden period: realistic, delicately painted faces and hands surrounded by flat decorative gold-leaf mosaics, spirals, eye motifs and geometric patterns, shimmering metallic gold with small jewel-coloured accents.",
+      "when": "Love songs, intimacy, two figures close together.",
+      "colours": [
+        "#C9A227",
+        "#6E3F10",
+        "#16203A"
+      ]
+    },
+    {
+      "key": "lacquer-miniature",
+      "type": "image-style",
+      "label": {
+        "en": "Lacquer miniature",
+        "ru": "Лаковая миниатюра"
+      },
+      "family": "classic",
+      "description": "STYLE: Russian lacquer miniature painting: a glossy pitch-black lacquer ground, extremely fine tempera brushwork, elongated elegant figures, a flowing folk-tale landscape, ornate gold-leaf filigree and hair-thin gold highlights, rich vermilion, emerald and ochre.",
+      "when": "Fairy-tale, folk or story songs; a whole little world in one picture.",
+      "colours": [
+        "#0B0A0A",
+        "#D4AF37",
+        "#C8352E",
+        "#2E7D4F"
+      ]
+    },
+    {
+      "key": "lubok",
+      "type": "image-style",
+      "label": {
+        "en": "Folk print",
+        "ru": "Лубок"
+      },
+      "family": "classic",
+      "description": "STYLE: Russian lubok folk print: a naive hand-carved woodcut with bold black lines, hand-coloured in flat patches of red, yellow and green that slightly miss the outlines, decorative borders, playful storytelling composition.",
+      "when": "Ironic, playful or folk songs; a story told in one frame.",
+      "colours": [
+        "#C8352E",
+        "#E8B830",
+        "#3F7D3B",
+        "#EFE4C8"
+      ]
+    },
+    {
+      "key": "woodcut",
+      "type": "image-style",
+      "label": {
+        "en": "Woodcut",
+        "ru": "Ксилография"
+      },
+      "family": "classic",
+      "description": "STYLE: medieval woodcut and linocut relief print: bold gouged lines, rough black ink, carved texture, strong black-and-white shapes with one flat spot colour.[ The one accent colour is {accent}.]",
+      "when": "Raw, earthy or old-sounding songs; cream and kraft grounds.",
+      "colours": [
+        "#121114",
+        "#E8DCC4",
+        "#B8563A"
+      ]
+    },
+    {
+      "key": "illuminated",
+      "type": "image-style",
+      "label": {
+        "en": "Illuminated manuscript",
+        "ru": "Рукописная миниатюра"
+      },
+      "family": "classic",
+      "description": "STYLE: a modern take on an illuminated manuscript: an ornate border, heraldic crests, gargoyles and griffins as marginalia, gold leaf with chrome accents, distressed parchment and halftone texture, one accent colour.[ The one accent colour is {accent}.]",
+      "when": "Songs as legends or chronicles; a title that wants to be a heading on a page.",
+      "colours": [
+        "#E8DCC4",
+        "#C9A227",
+        "#B3202E",
+        "#24406E"
+      ]
+    },
+    {
+      "key": "graffiti",
+      "type": "image-style",
+      "label": {
+        "en": "Street graffiti",
+        "ru": "Стрит-граффити"
+      },
+      "family": "street",
+      "description": "STYLE: streetwear graphic poster art mixing a detailed painted illustration with graffiti: spray-paint mist and drips, stencil shapes, marker scribbles, sticker-bomb doodles (small crowns, stars, X marks), halftone dots, grunge textures. Black and white with two loud spot colours.[ The one accent colour is {accent}.]",
+      "when": "Young, loud, city songs; concrete and mustard grounds.",
+      "colours": [
+        "#121114",
+        "#FF2E63",
+        "#D8A42B",
+        "#9D9A94"
+      ]
+    },
+    {
+      "key": "marble-graffiti",
+      "type": "image-style",
+      "label": {
+        "en": "Marble and graffiti",
+        "ru": "Мрамор и граффити"
+      },
+      "family": "street",
+      "description": "STYLE: gritty streetwear poster art: the hero rendered as a highly detailed greyscale classical marble sculpture (cracked marble, chiselled curls) combined with modern streetwear details, grunge halftone textures, torn paper, bold red spray-paint graffiti tags and splatters, cream dry-brush strokes. Palette: greyscale, off-white and signal red.",
+      "when": "Songs where the old meets the street; pride, rigour, a fall. A popular look - use it for a reason.",
+      "colours": [
+        "#8F8C97",
+        "#EFEBE3",
+        "#D7262E"
+      ]
+    },
+    {
+      "key": "anime-poster",
+      "type": "image-style",
+      "label": {
+        "en": "Anime poster",
+        "ru": "Аниме-постер"
+      },
+      "family": "street",
+      "description": "STYLE: hype anime streetwear poster: sharp manga ink linework with cel shading, an explosive composition, neon hot pink, electric teal and orange on black, graffiti drips, floating debris and geometric shards, HUD crosshairs and small interface marks.",
+      "when": "Fast, energetic, fighting songs; dark grounds.",
+      "colours": [
+        "#121114",
+        "#FF2E63",
+        "#1ECBE1",
+        "#FF8A00"
+      ]
+    },
+    {
+      "key": "zine",
+      "type": "image-style",
+      "label": {
+        "en": "Xerox zine",
+        "ru": "Зин-ксерокс"
+      },
+      "family": "street",
+      "description": "STYLE: punk zine collage: black-and-white photocopied cut-outs, halftone photos, torn paper, tape and staples, xerox noise and streaks, hand-scrawled marks, one spot colour.[ The one accent colour is {accent}.]",
+      "when": "Protest, DIY and underground songs; newsprint grounds.",
+      "colours": [
+        "#121114",
+        "#EFEBE3",
+        "#D9D6CE"
+      ]
+    },
+    {
+      "key": "pop-art",
+      "type": "image-style",
+      "label": {
+        "en": "Pop-art comic",
+        "ru": "Поп-арт комикс"
+      },
+      "family": "street",
+      "description": "STYLE: 1960s pop-art comic panel: bold black outlines, Ben-Day dot shading, flat primary colours (red, yellow, cyan), dramatic comic-book lighting.",
+      "when": "Ironic or bright songs; a single loud moment.",
+      "colours": [
+        "#E23B2E",
+        "#F2C21B",
+        "#2BA7D9",
+        "#121114"
+      ]
+    },
+    {
+      "key": "glitch",
+      "type": "image-style",
+      "label": {
+        "en": "Glitch poster",
+        "ru": "Глитч-плакат"
+      },
+      "family": "digital",
+      "description": "STYLE: glitch-art cyber poster: a highly detailed monochrome render of the hero distorted by digital glitches (horizontal pixel displacement, RGB channel split, scan lines, corrupted pixel blocks), thin HUD frames, crosshairs, barcodes and tiny interface marks around it. Mostly black, white and grey with one electric accent.[ The one accent colour is {accent}.]",
+      "when": "Songs about control, memory, a broken signal; dark or concrete grounds.",
+      "colours": [
+        "#121114",
+        "#EFEBE3",
+        "#9D9A94",
+        "#1ECBE1"
+      ]
+    },
+    {
+      "key": "thermal",
+      "type": "image-style",
+      "label": {
+        "en": "Thermal camera",
+        "ru": "Тепловизор"
+      },
+      "family": "digital",
+      "description": "STYLE: thermal-imaging camera picture: the whole scene rendered in a false-colour heat palette (deep blue and violet for cold, magenta and orange for warm, white-hot for the hottest points), soft heat glow, tiny temperature readouts and a crosshair.",
+      "when": "Songs of fever, closeness, being watched; night scenes.",
+      "colours": [
+        "#1B1464",
+        "#7A2E8C",
+        "#E0508A",
+        "#F7A45C"
+      ]
+    },
+    {
+      "key": "blueprint",
+      "type": "image-style",
+      "label": {
+        "en": "Blueprint",
+        "ru": "Чертёж"
+      },
+      "family": "digital",
+      "description": "STYLE: technical blueprint: precise white line drawing on deep cyanotype blue, cross-sections, exploded views, dimension lines, a grid and small handwritten annotations, like an engineering drawing.",
+      "when": "Songs about plans, machines, how a thing is made or taken apart.",
+      "colours": [
+        "#1F3F8F",
+        "#EFEBE3"
+      ]
+    },
+    {
+      "key": "one-bit",
+      "type": "image-style",
+      "label": {
+        "en": "1-bit dither",
+        "ru": "1-бит"
+      },
+      "family": "digital",
+      "description": "STYLE: 1-bit dithered pixel art: the scene rendered with only two colours, black and one accent, using ordered dithering patterns for shading, crisp visible pixels, like a vintage computer screen.[ The one accent colour is {accent}.]",
+      "when": "Nostalgic, lonely or digital songs; small scenes.",
+      "colours": [
+        "#121114",
+        "#D3F03B"
+      ]
+    },
+    {
+      "key": "chrome",
+      "type": "image-style",
+      "label": {
+        "en": "Y2K chrome",
+        "ru": "Хром Y2K"
+      },
+      "family": "digital",
+      "description": "STYLE: Y2K liquid chrome and cyber-sigilism: glossy mirror-chrome surfaces with iridescent reflections, sharp thorny symmetrical chrome line ornaments, sleek futuristic forms, one accent glow.[ The one accent colour is {accent}.]",
+      "when": "Cold, glossy, future songs. Overused - pick it only when the song is about surfaces.",
+      "colours": [
+        "#0B0B10",
+        "#3A3F4A",
+        "#E9EDF2"
+      ]
+    },
+    {
+      "key": "cctv",
+      "type": "image-style",
+      "label": {
+        "en": "Security camera",
+        "ru": "Камера наблюдения"
+      },
+      "family": "digital",
+      "description": "STYLE: a CCTV security-camera still: face-recognition bounding boxes, a crosshair reticle, a REC timestamp overlay, scan lines, monochrome grain with infrared red accents and small monospace system labels.",
+      "when": "Songs about being watched, a crime, a night street, a stranger.",
+      "colours": [
+        "#2A292E",
+        "#9D9A94",
+        "#D7262E"
+      ]
+    },
+    {
+      "key": "constructivism",
+      "type": "image-style",
+      "label": {
+        "en": "Constructivism",
+        "ru": "Конструктивизм"
+      },
+      "family": "era",
+      "description": "STYLE: 1920s Soviet constructivist photomontage poster: black-and-white halftone photo cut-outs, a bold diagonal composition, geometric blocks of red and black, circles and arrows, paper collage edges, slight print misregistration. Palette: red, black and cream only.",
+      "when": "Songs as a call or a manifesto; crowds, labour, the future.",
+      "colours": [
+        "#D7262E",
+        "#121114",
+        "#E8DCC4"
+      ]
+    },
+    {
+      "key": "space-age",
+      "type": "image-style",
+      "label": {
+        "en": "Space-age poster",
+        "ru": "Космоплакат 60-х"
+      },
+      "family": "era",
+      "description": "STYLE: 1960s space-age poster: bold flat shapes, heroic diagonals, stylized rockets, stars and orbits, a limited palette of red, cream, teal and dark blue, subtle print texture.",
+      "when": "Songs of flight, distance, dreams and old futures.",
+      "colours": [
+        "#C8352E",
+        "#EFE4C8",
+        "#1E9E95",
+        "#16203A"
+      ]
+    },
+    {
+      "key": "art-deco",
+      "type": "image-style",
+      "label": {
+        "en": "Art Deco",
+        "ru": "Ар-деко"
+      },
+      "family": "era",
+      "description": "STYLE: 1930s Art Deco travel poster: streamlined geometric forms, airbrushed gradients, a dramatic low-angle perspective, elegant symmetry, bold flat colours.",
+      "when": "Songs of cities, trains, departures and glamour.",
+      "colours": [
+        "#16203A",
+        "#C9A45A",
+        "#EFE4C8",
+        "#D8A42B"
+      ]
+    },
+    {
+      "key": "black-metal",
+      "type": "image-style",
+      "label": {
+        "en": "Black-metal drawing",
+        "ru": "Блэк-метал"
+      },
+      "family": "era",
+      "description": "STYLE: stark black-and-white dark-art drawing in pencil and ink, like a black-metal album cover: hard contrast, dense hatching, gothic atmosphere, pure black and white with a single touch of accent colour.[ The one accent colour is {accent}.]",
+      "when": "Dark, heavy, winter or funeral songs; ink-black grounds.",
+      "colours": [
+        "#121114",
+        "#EFEBE3"
+      ]
+    },
+    {
+      "key": "horror-manga",
+      "type": "image-style",
+      "label": {
+        "en": "Horror manga",
+        "ru": "Манга-хоррор"
+      },
+      "family": "era",
+      "description": "STYLE: black-and-white horror manga: meticulous ink linework, screentone shading, unsettling spirals and textures, uncanny expressions, deep blacks, one accent colour.[ The one accent colour is {accent}.]",
+      "when": "Uncanny, obsessive or nightmare songs.",
+      "colours": [
+        "#121114",
+        "#F4F1EA",
+        "#B3202E"
+      ]
+    },
+    {
+      "key": "anime-90s",
+      "type": "image-style",
+      "label": {
+        "en": "90s anime",
+        "ru": "Аниме 90-х"
+      },
+      "family": "era",
+      "description": "STYLE: 1990s anime cel: hand-painted cel shading, OVA film grain and VHS softness, dramatic poster composition in the spirit of late-90s science-fiction anime films.[ The one accent colour is {accent}.]",
+      "when": "Melancholic, nostalgic or sci-fi songs; sunsets and cities.",
+      "colours": [
+        "#2B1B5A",
+        "#7A2E8C",
+        "#E0508A",
+        "#F7A45C"
+      ]
+    },
+    {
+      "key": "pulp",
+      "type": "image-style",
+      "label": {
+        "en": "50s pulp",
+        "ru": "Палп 50-х"
+      },
+      "family": "era",
+      "description": "STYLE: 1950s pulp science-fiction magazine cover art: painted gouache illustration, dramatic poses, rayguns-and-rockets era optimism, bold saturated colours, slightly yellowed paper and print texture.",
+      "when": "Adventure, danger and wonder songs; a title that wants to shout.",
+      "colours": [
+        "#F2C21B",
+        "#C8352E",
+        "#2446C4",
+        "#EFE4C8"
+      ]
+    },
+    {
+      "key": "dry-brush",
+      "type": "typography",
+      "label": {
+        "en": "Dry brush",
+        "ru": "Сухая кисть"
+      },
+      "description": "TYPOGRAPHY: huge dry-brush hand lettering with rough bristle texture, fast strokes and ink splatter[, in {ink}].",
+      "when": "Loud, fast songs; one or two words.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Rubik Spray Paint'; transform: rotate(-4deg)"
+    },
+    {
+      "key": "drip-graffiti",
+      "type": "typography",
+      "label": {
+        "en": "Drip graffiti",
+        "ru": "Граффити с потёками"
+      },
+      "description": "TYPOGRAPHY: a bold graffiti piece in spray paint with long paint drips, outlined in black[, filled with {accent}].",
+      "when": "Street and protest songs.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Rubik Wet Paint'; color: #D7262E"
+    },
+    {
+      "key": "metal-halo",
+      "type": "typography",
+      "label": {
+        "en": "Metal halo",
+        "ru": "Метал-нимб"
+      },
+      "description": "TYPOGRAPHY: a symmetrical black-metal band logo: spiky, thorny, interlocking letters with vertical-axis symmetry, fanning out like a halo or crown behind the hero[, in {ink}]; the letters stay recognizable.",
+      "when": "Heavy, dark songs; a hero in the centre.",
+      "colours": [
+        "#121114"
+      ],
+      "sample": "font-family: 'Rubik Beastly'; letter-spacing: .04em"
+    },
+    {
+      "key": "blackletter",
+      "type": "typography",
+      "label": {
+        "en": "Blackletter",
+        "ru": "Готика"
+      },
+      "description": "TYPOGRAPHY: bold tattoo-style blackletter (Old English) letters adapted to Cyrillic, sharp and ornate[, in {ink}].",
+      "when": "Tattoo styles, legends, old-sounding titles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Monomakh'"
+    },
+    {
+      "key": "vyaz",
+      "type": "typography",
+      "label": {
+        "en": "Old Russian vyaz",
+        "ru": "Вязь"
+      },
+      "description": "TYPOGRAPHY: an ornate Old Russian \"vyaz\" ligature lettering crossed with a black-metal band logo: tall interlocking letters with thorny spikes and symmetrical flourishes[, in {ink}].",
+      "when": "Folk, epic or dark Russian titles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Ruslan Display'"
+    },
+    {
+      "key": "roman",
+      "type": "typography",
+      "label": {
+        "en": "Roman capitals",
+        "ru": "Римская антиква"
+      },
+      "description": "TYPOGRAPHY: classical Roman inscription capitals, widely letter-spaced, monumental and thin, as if carved into marble[, in {ink}].",
+      "when": "Grave, classical or mythic songs; short titles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Forum'; letter-spacing: .3em"
+    },
+    {
+      "key": "quill",
+      "type": "typography",
+      "label": {
+        "en": "Quill calligraphy",
+        "ru": "Перо летописца"
+      },
+      "description": "TYPOGRAPHY: flowing ink calligraphy written with a goose quill, like a medieval chronicle, with ink blots and a red drop cap.",
+      "when": "Chronicles, letters, confessions.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Marck Script'; color: #2A2440"
+    },
+    {
+      "key": "paper-tag",
+      "type": "typography",
+      "label": {
+        "en": "Paper tag",
+        "ru": "Бирка с печатью"
+      },
+      "description": "TYPOGRAPHY: written vertically in elegant brush calligraphy on a narrow paper tag hanging on a string, with a small square red seal at the bottom.",
+      "when": "Quiet, literary or East-leaning songs.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Forum'; letter-spacing: .12em; background: #F4EEDF; padding: 4px 10px; border-right: 8px solid #D7262E"
+    },
+    {
+      "key": "rubber-stamp",
+      "type": "typography",
+      "label": {
+        "en": "Rubber stamp",
+        "ru": "Штамп"
+      },
+      "description": "TYPOGRAPHY: bold rubber-stamp and stencil lettering, slightly misprinted, in red ink inside a double-bordered rectangle like an official stamp.",
+      "when": "Songs about rules, refusal, bureaucracy, a verdict.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Rubik Dirt'; color: #D7262E; border: 3px double #D7262E; padding: 0 8px; transform: rotate(-5deg)"
+    },
+    {
+      "key": "redacted",
+      "type": "typography",
+      "label": {
+        "en": "Redacted",
+        "ru": "Цензура"
+      },
+      "description": "TYPOGRAPHY: typewriter letters on a censored document: a few letters are covered by thick black redaction bars while the title stays readable, with a small red \"CLASSIFIED\" mark nearby.",
+      "when": "Songs about secrets, silence and what may not be said.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'JetBrains Mono'; font-weight: 700; background: linear-gradient(90deg, transparent 0 38%, #121114 38% 76%, transparent 76%)"
+    },
+    {
+      "key": "burning",
+      "type": "typography",
+      "label": {
+        "en": "Burning letters",
+        "ru": "Горящие буквы"
+      },
+      "description": "TYPOGRAPHY: letters cut out of old paper that is burning: charred black edges, glowing orange embers and thin smoke, as if the title is on fire.",
+      "when": "Songs of loss, anger, burnt bridges.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Rubik Burned'; color: #3A1D10; text-shadow: 0 0 6px #FF7A1A"
+    },
+    {
+      "key": "ransom",
+      "type": "typography",
+      "label": {
+        "en": "Ransom note",
+        "ru": "Вырезанные буквы"
+      },
+      "description": "TYPOGRAPHY: a ransom-note collage: each letter cut out of a different newspaper or magazine, mixed fonts, colours and sizes, glued slightly crooked.",
+      "when": "Zine and collage styles; threatening or ironic titles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Oswald'; font-weight: 700; letter-spacing: .08em; background: repeating-linear-gradient(90deg, #EFEBE3 0 22px, #F2C21B 22px 40px, #EFEBE3 40px 60px); color: #121114"
+    },
+    {
+      "key": "constructivist",
+      "type": "typography",
+      "label": {
+        "en": "Constructivist blocks",
+        "ru": "Конструктивизм"
+      },
+      "description": "TYPOGRAPHY: heavy geometric block letters set on a steep diagonal, red and black, cut into by circles and bars, like a 1920s Soviet poster.",
+      "when": "Calls, slogans, crowds.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Stalinist One'; color: #D7262E; transform: rotate(-9deg)"
+    },
+    {
+      "key": "glitch-type",
+      "type": "typography",
+      "label": {
+        "en": "Glitch",
+        "ru": "Глитч"
+      },
+      "description": "TYPOGRAPHY: a massive distressed sans-serif title broken by horizontal glitch displacement, scan lines and an RGB split[, in {ink}][ with a {accent} echo].",
+      "when": "Digital styles; songs about a broken signal.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Rubik Glitch'"
+    },
+    {
+      "key": "pixel",
+      "type": "typography",
+      "label": {
+        "en": "Pixel",
+        "ru": "Пиксель"
+      },
+      "description": "TYPOGRAPHY: chunky pixel-font letters (8-bit bitmap) with crisp square pixels[, in {ink}][, one pixel glowing {accent}].",
+      "when": "1-bit and game-like styles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Pixelify Sans'; font-weight: 700"
+    },
+    {
+      "key": "liquid-chrome",
+      "type": "typography",
+      "label": {
+        "en": "Liquid chrome",
+        "ru": "Жидкий хром"
+      },
+      "description": "TYPOGRAPHY: glossy liquid-chrome 3D letters with mirror reflections and sharp highlights, Y2K style.",
+      "when": "Chrome and future styles; dark grounds.",
+      "colours": [
+        "#121114"
+      ],
+      "sample": "font-family: 'Russo One'; background: linear-gradient(180deg, #FDFDFD, #8A8F99 45%, #2B2F36 50%, #C9CED6 70%, #FFF); -webkit-background-clip: text; background-clip: text; color: transparent"
+    },
+    {
+      "key": "cyber-sigil",
+      "type": "typography",
+      "label": {
+        "en": "Cyber-sigilism",
+        "ru": "Кибер-сигилизм"
+      },
+      "description": "TYPOGRAPHY: cyber-sigilism lettering: thin sharp chrome lines with thorny spikes and flowing tribal curves, symmetrical.",
+      "when": "Chrome, tattoo and dark-future styles.",
+      "colours": [
+        "#121114"
+      ],
+      "sample": "font-family: 'Rubik Lines'"
+    },
+    {
+      "key": "neon",
+      "type": "typography",
+      "label": {
+        "en": "Neon sign",
+        "ru": "Неон"
+      },
+      "description": "TYPOGRAPHY: a glowing neon-tube sign with a soft halo, mounted on thin metal brackets[, in {accent}].",
+      "when": "Night, bar and city songs; dark grounds.",
+      "colours": [
+        "#121114"
+      ],
+      "sample": "font-family: 'Russo One'; color: #FFF; text-shadow: 0 0 4px #FF2E63, 0 0 12px #FF2E63"
+    },
+    {
+      "key": "marquee",
+      "type": "typography",
+      "label": {
+        "en": "Circus marquee",
+        "ru": "Цирковая афиша"
+      },
+      "description": "TYPOGRAPHY: a circus marquee sign: bold slab-serif letters framed with glowing light bulbs, gold on deep red.",
+      "when": "Showy, ironic or carnival songs.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Kelly Slab'; color: #F4D06F; background: #3A0D12; border: 3px dotted #F4D06F; padding: 2px 8px"
+    },
+    {
+      "key": "tattoo-banner",
+      "type": "typography",
+      "label": {
+        "en": "Tattoo banner",
+        "ru": "Тату-лента"
+      },
+      "description": "TYPOGRAPHY: an old-school tattoo banner ribbon with the title in bold script lettering, the ribbon folded at both ends.",
+      "when": "Old-school tattoo styles; a name or a date.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Lobster'; color: #FFF; background: #C8352E; padding: 3px 14px"
+    },
+    {
+      "key": "varsity",
+      "type": "typography",
+      "label": {
+        "en": "Varsity",
+        "ru": "Варсити"
+      },
+      "description": "TYPOGRAPHY: varsity college letters: bold slab letters with a double outline, slightly arched, like on a sports jersey, with a black outline[, in {accent}].",
+      "when": "Young, team or pride songs.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Seymour One'; color: #FF2E63; -webkit-text-stroke: 1px #121114; text-shadow: 2px 2px 0 #121114"
+    },
+    {
+      "key": "melting",
+      "type": "typography",
+      "label": {
+        "en": "Melting",
+        "ru": "Плавящиеся"
+      },
+      "description": "TYPOGRAPHY: melting liquid letters dripping like wax or paint and pooling at the bottom[, in {ink}].",
+      "when": "Heat, decay, dream songs.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Rubik Puddles'"
+    },
+    {
+      "key": "extended-grotesk",
+      "type": "typography",
+      "label": {
+        "en": "Extended grotesk",
+        "ru": "Растянутый гротеск"
+      },
+      "description": "TYPOGRAPHY: an ultra-wide extended grotesk set edge to edge, massive and tight, brutalist Swiss poster style[, in {ink}].",
+      "when": "Modern, cold or architectural songs; one short word.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Climate Crisis'"
+    },
+    {
+      "key": "marker",
+      "type": "typography",
+      "label": {
+        "en": "Marker scrawl",
+        "ru": "Маркер от руки"
+      },
+      "description": "TYPOGRAPHY: fast hand-written marker lettering, slightly messy, like a note scrawled across a poster[, in {ink}].",
+      "when": "Personal, diary-like songs.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Caveat'; font-weight: 700; color: #1B2A8C; transform: rotate(-3deg)"
+    },
+    {
+      "key": "stencil",
+      "type": "typography",
+      "label": {
+        "en": "Stencil",
+        "ru": "Трафарет"
+      },
+      "description": "TYPOGRAPHY: industrial spray-painted stencil letters with bridges and overspray[, in {ink}].",
+      "when": "Street, army or factory songs.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Russo One'; -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 9px); mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 9px)"
+    },
+    {
+      "key": "comic-boom",
+      "type": "typography",
+      "label": {
+        "en": "Comic boom",
+        "ru": "Комикс-бум"
+      },
+      "description": "TYPOGRAPHY: 3D comic-book sound-effect lettering bursting out of a jagged speech burst, thick black outline and drop shadow, yellow and red.",
+      "when": "Pop-art styles; one loud word.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Oi'; color: #FFD23F; -webkit-text-stroke: 1.5px #121114; text-shadow: 3px 3px 0 #121114"
+    },
+    {
+      "key": "folk-lettering",
+      "type": "typography",
+      "label": {
+        "en": "Folk lettering",
+        "ru": "Лубочная"
+      },
+      "description": "TYPOGRAPHY: hand-painted Russian folk lettering: naive capitals in red and black with small ornaments between the words.",
+      "when": "Folk print styles; playful titles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Neucha'; color: #8B1E1E"
+    },
+    {
+      "key": "stacked",
+      "type": "typography",
+      "label": {
+        "en": "Stacked word",
+        "ru": "Слово стопкой"
+      },
+      "description": "TYPOGRAPHY: the title repeated in 4-6 stacked rows of tight condensed capitals, cropped by the frame edges, every next row fainter[, in {ink}].",
+      "when": "Obsessive, repetitive songs; a one-word title.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Fira Sans Extra Condensed'; font-weight: 900; text-transform: uppercase; letter-spacing: .02em"
+    },
+    {
+      "key": "calligraffiti",
+      "type": "typography",
+      "label": {
+        "en": "Calligraffiti",
+        "ru": "Каллиграффити"
+      },
+      "description": "TYPOGRAPHY: a flowing calligraffiti ribbon: the title written in fast calligraphic graffiti strokes that spiral around the hero like a ribbon[, in {ink}][ with {accent} highlights].",
+      "when": "Movement, dance, wind songs.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Marck Script'; color: #6B2FA3; transform: rotate(-8deg)"
+    },
+    {
+      "key": "chicano",
+      "type": "typography",
+      "label": {
+        "en": "Chicano script",
+        "ru": "Чикано-скрипт"
+      },
+      "description": "TYPOGRAPHY: Chicano tattoo script lettering: an elegant blackletter-inspired cursive with long swashes and fine hairlines[, in {ink}].",
+      "when": "Tattoo styles; a name, a place, a vow.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Lobster'; color: #121114"
+    },
+    {
+      "key": "captions-only",
+      "type": "typography",
+      "label": {
+        "en": "Captions only",
+        "ru": "Только подписи"
+      },
+      "description": "TYPOGRAPHY: do not add a big title; only small labels.",
+      "when": "When the picture must speak alone.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'JetBrains Mono'; font-size: 11px; letter-spacing: .08em"
+    },
+    {
+      "key": "clean",
+      "type": "dressing",
+      "label": {
+        "en": "Clean",
+        "ru": "Чисто"
+      },
+      "description": "Besides the title add nothing[, only a tiny line \"{brand}\" in a corner].",
+      "when": "Quiet songs; styles that are busy on their own."
+    },
+    {
+      "key": "minimal",
+      "type": "dressing",
+      "label": {
+        "en": "Minimal",
+        "ru": "Минимум"
+      },
+      "description": "Under the title add a small barcode[, a small widely letter-spaced subtitle \"{micro.0}\"][, a tiny line \"{brand}\"][ and the number \"No. {num}\"].",
+      "when": "Most covers: a little order around the title."
+    },
+    {
+      "key": "hype",
+      "type": "dressing",
+      "label": {
+        "en": "Hype poster",
+        "ru": "Хайп-постер"
+      },
+      "description": "Surround everything with dozens of tiny streetwear micro-graphics on an invisible grid:[ a manifesto paragraph \"{micro}\" with one word highlighted in {accent};][ a key-value list \"{kv}\";][ a coordinates box \"{coords}\";] barcodes with digits; hand-circled phrases and arrows; a warning triangle[; a mascot: {mascot}][; a vertical line of text \"{vertical}\"].",
+      "when": "Loud songs with sources, places and dates; street and anime styles."
+    },
+    {
+      "key": "dossier",
+      "type": "dressing",
+      "label": {
+        "en": "Dossier",
+        "ru": "Досье"
+      },
+      "description": "Make it look like a censored case file:[ typewriter lines \"{micro}\",][ a file number \"CASE No. {num}\",] black redaction bars,[ a red rubber stamp \"{brand}\",] a paperclip.",
+      "when": "Songs about secrets, investigations, a verdict."
+    },
+    {
+      "key": "proofreading",
+      "type": "dressing",
+      "label": {
+        "en": "Proofreading",
+        "ru": "Корректура"
+      },
+      "description": "Add a proofreader's handwritten marks in red pencil around the title: circled words, arrows, insertion carets[ and short notes \"{micro}\"].",
+      "when": "Songs about words, letters, what was said wrong."
+    },
+    {
+      "key": "museum-label",
+      "type": "dressing",
+      "label": {
+        "en": "Museum label",
+        "ru": "Музейная этикетка"
+      },
+      "description": "Add a small museum label card with the title[, \"{micro.0}\"][, \"{kv}\"][ and an inventory number \"{num}\"].",
+      "when": "Classical styles; songs about memory and things kept."
+    },
+    {
+      "key": "stickers",
+      "type": "dressing",
+      "label": {
+        "en": "Stickers and labels",
+        "ru": "Стикеры и ярлыки"
+      },
+      "description": "Add a stack of die-cut stickers with peeling corners[: \"{micro.0}\"][, a warning label \"{brand}\"][, a round badge \"{est}\"].",
+      "when": "Street and pop styles; playful songs."
+    },
+    {
+      "key": "swiss-grid",
+      "type": "dressing",
+      "label": {
+        "en": "Swiss grid",
+        "ru": "Швейцарская сетка"
+      },
+      "description": "Organize the small text on a strict Swiss grid: thin rules[, three numbered columns \"{micro}\"], a small figure number.",
+      "when": "Modern, cold, architectural songs; extended grotesk titles."
+    },
+    {
+      "key": "bg-paper",
+      "type": "background",
+      "label": {
+        "en": "Paper",
+        "ru": "Бумага"
+      },
+      "description": "BACKGROUND: perfectly flat solid off-white paper (#EFEBE3) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Light ground: dark ink styles read best on it.",
+      "colours": [
+        "#EFEBE3"
+      ]
+    },
+    {
+      "key": "bg-cream",
+      "type": "background",
+      "label": {
+        "en": "Cream",
+        "ru": "Крем"
+      },
+      "description": "BACKGROUND: perfectly flat solid warm cream parchment (#E8DCC4) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Light ground: dark ink styles read best on it.",
+      "colours": [
+        "#E8DCC4"
+      ]
+    },
+    {
+      "key": "bg-newsprint",
+      "type": "background",
+      "label": {
+        "en": "Newsprint",
+        "ru": "Газетная"
+      },
+      "description": "BACKGROUND: perfectly flat solid pale grey newsprint (#D9D6CE) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Light ground: dark ink styles read best on it.",
+      "colours": [
+        "#D9D6CE"
+      ]
+    },
+    {
+      "key": "bg-kraft",
+      "type": "background",
+      "label": {
+        "en": "Kraft",
+        "ru": "Крафт"
+      },
+      "description": "BACKGROUND: perfectly flat solid brown kraft paper (#B48A5A) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Dark or strong ground: light and neon styles read best on it.",
+      "colours": [
+        "#B48A5A"
+      ]
+    },
+    {
+      "key": "bg-dusty-rose",
+      "type": "background",
+      "label": {
+        "en": "Dusty rose",
+        "ru": "Пыльная роза"
+      },
+      "description": "BACKGROUND: perfectly flat solid dusty rose (#D9A9A1) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Light ground: dark ink styles read best on it.",
+      "colours": [
+        "#D9A9A1"
+      ]
+    },
+    {
+      "key": "bg-lavender",
+      "type": "background",
+      "label": {
+        "en": "Lavender",
+        "ru": "Лаванда"
+      },
+      "description": "BACKGROUND: perfectly flat solid muted lavender (#B7A8D6) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Light ground: dark ink styles read best on it.",
+      "colours": [
+        "#B7A8D6"
+      ]
+    },
+    {
+      "key": "bg-sage",
+      "type": "background",
+      "label": {
+        "en": "Sage",
+        "ru": "Шалфей"
+      },
+      "description": "BACKGROUND: perfectly flat solid muted sage green (#A7B59B) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Light ground: dark ink styles read best on it.",
+      "colours": [
+        "#A7B59B"
+      ]
+    },
+    {
+      "key": "bg-olive",
+      "type": "background",
+      "label": {
+        "en": "Olive",
+        "ru": "Олива"
+      },
+      "description": "BACKGROUND: perfectly flat solid dark olive green (#5E6337) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Dark or strong ground: light and neon styles read best on it.",
+      "colours": [
+        "#5E6337"
+      ]
+    },
+    {
+      "key": "bg-mustard",
+      "type": "background",
+      "label": {
+        "en": "Mustard",
+        "ru": "Горчица"
+      },
+      "description": "BACKGROUND: perfectly flat solid mustard yellow (#D8A42B) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Light ground: dark ink styles read best on it.",
+      "colours": [
+        "#D8A42B"
+      ]
+    },
+    {
+      "key": "bg-acid",
+      "type": "background",
+      "label": {
+        "en": "Acid lime",
+        "ru": "Кислотный"
+      },
+      "description": "BACKGROUND: perfectly flat solid acid lime (#D3F03B) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Light ground: dark ink styles read best on it.",
+      "colours": [
+        "#D3F03B"
+      ]
+    },
+    {
+      "key": "bg-terracotta",
+      "type": "background",
+      "label": {
+        "en": "Terracotta",
+        "ru": "Терракота"
+      },
+      "description": "BACKGROUND: perfectly flat solid terracotta (#B8563A) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Dark or strong ground: light and neon styles read best on it.",
+      "colours": [
+        "#B8563A"
+      ]
+    },
+    {
+      "key": "bg-signal-red",
+      "type": "background",
+      "label": {
+        "en": "Signal red",
+        "ru": "Сигнальный"
+      },
+      "description": "BACKGROUND: perfectly flat solid signal red (#D7262E) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Dark or strong ground: light and neon styles read best on it.",
+      "colours": [
+        "#D7262E"
+      ]
+    },
+    {
+      "key": "bg-oxblood",
+      "type": "background",
+      "label": {
+        "en": "Oxblood",
+        "ru": "Бордо"
+      },
+      "description": "BACKGROUND: perfectly flat solid deep oxblood red (#5C1622) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Dark or strong ground: light and neon styles read best on it.",
+      "colours": [
+        "#5C1622"
+      ]
+    },
+    {
+      "key": "bg-cobalt",
+      "type": "background",
+      "label": {
+        "en": "Cobalt",
+        "ru": "Кобальт"
+      },
+      "description": "BACKGROUND: perfectly flat solid cobalt blue (#2446C4) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Dark or strong ground: light and neon styles read best on it.",
+      "colours": [
+        "#2446C4"
+      ]
+    },
+    {
+      "key": "bg-midnight",
+      "type": "background",
+      "label": {
+        "en": "Midnight",
+        "ru": "Полночь"
+      },
+      "description": "BACKGROUND: perfectly flat solid midnight navy (#16203A) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Dark or strong ground: light and neon styles read best on it.",
+      "colours": [
+        "#16203A"
+      ]
+    },
+    {
+      "key": "bg-concrete",
+      "type": "background",
+      "label": {
+        "en": "Concrete",
+        "ru": "Бетон"
+      },
+      "description": "BACKGROUND: perfectly flat solid concrete grey (#9D9A94) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Dark or strong ground: light and neon styles read best on it.",
+      "colours": [
+        "#9D9A94"
+      ]
+    },
+    {
+      "key": "bg-asphalt",
+      "type": "background",
+      "label": {
+        "en": "Asphalt",
+        "ru": "Асфальт"
+      },
+      "description": "BACKGROUND: perfectly flat solid asphalt grey-black (#2A292E) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Dark or strong ground: light and neon styles read best on it.",
+      "colours": [
+        "#2A292E"
+      ]
+    },
+    {
+      "key": "bg-ink",
+      "type": "background",
+      "label": {
+        "en": "Ink black",
+        "ru": "Чернила"
+      },
+      "description": "BACKGROUND: perfectly flat solid ink black (#0E0D10) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Dark or strong ground: light and neon styles read best on it.",
+      "colours": [
+        "#0E0D10"
+      ]
+    }
+  ]
 }

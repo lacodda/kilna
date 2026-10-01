@@ -1260,6 +1260,26 @@ pub struct StyleType {
     /// question for the screen, as it is for [`Mark`] and [`ReleaseKind`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
+    /// What a brick of this type is made of beside its description, and so
+    /// how its card and its editor are drawn. The application knows the forms,
+    /// never the types: `typography` is the craft's word, `lettering` is ours.
+    #[serde(default, skip_serializing_if = "StyleForm::is_picture")]
+    pub form: StyleForm,
+    /// The families a brick of this type is filed under - "tattoo", "classic"
+    /// for an image style. Empty for a type the craft does not file.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub families: Vec<StyleFamily>,
+    /// Set when bricks of this type are no longer made: what does their work
+    /// now, in a sentence the dictionary shows in their place. The type stays
+    /// in the document so the bricks written under it still read with their
+    /// word; new ones are refused.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retired: Option<Label>,
+    /// A kind of note whose cards stand in for bricks of this type: a hero
+    /// with a card of the canon is described from its facts, and needs no
+    /// character brick. The dictionary says so above the type's bricks.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub canon_kind: Option<String>,
 }
 
 impl StyleType {
@@ -1269,8 +1289,45 @@ impl StyleType {
             label: Label::from(label),
             hint: None,
             icon: None,
+            form: StyleForm::Picture,
+            families: Vec::new(),
+            retired: None,
+            canon_kind: None,
         }
     }
+}
+
+/// What a style brick carries beside its name and its description.
+///
+/// Four shapes, because a brick is shown and edited by what it is made of:
+/// pictures to recognise a look by, a live sample of a typeface, slots filled
+/// with the captions of the work and the channel, one colour.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "lowercase")]
+pub enum StyleForm {
+    /// Reference pictures, and a palette while there are none.
+    #[default]
+    Picture,
+    /// A sample of the lettering drawn with a typeface of the window.
+    Lettering,
+    /// A description with `{slots}`, filled from captions when the brick goes
+    /// into a prompt (see `style_set::fill`).
+    Dressing,
+    /// One colour.
+    Colour,
+}
+
+impl StyleForm {
+    fn is_picture(&self) -> bool {
+        *self == Self::Picture
+    }
+}
+
+/// A family bricks of one type are filed under.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct StyleFamily {
+    pub key: String,
+    pub label: Label,
 }
 
 /// A kind of release, and what a release of it cannot ship without.
@@ -2102,6 +2159,24 @@ impl ProfileConfig {
             "style type",
             self.style_types.iter().map(|t| t.key.clone()),
         );
+        for (index, style) in self.style_types.iter().enumerate() {
+            let place = format!("style type {} (`{}`)", index + 1, style.key);
+            unique(
+                &mut problems,
+                &format!("{place}: family"),
+                style.families.iter().map(|f| f.key.clone()),
+            );
+            if let Some(kind) = &style.canon_kind
+                && !self
+                    .note_kinds
+                    .iter()
+                    .any(|n| n.key == *kind && n.is_card())
+            {
+                problems.push(format!(
+                    "{place} is stood in for by `{kind}`, which is not a kind of card of the canon"
+                ));
+            }
+        }
         if self.work_kinds.is_empty() {
             problems.push("the profile names no work kinds".into());
         }
@@ -2279,7 +2354,7 @@ impl ProfileConfig {
                         ));
                     }
                 }
-                if name == "styles" && self.style_types.is_empty() {
+                if (name == "styles" || name == "style_library") && self.style_types.is_empty() {
                     problems.push(format!(
                         "{place} reads `{{styles}}`, but the profile names no style types"
                     ));

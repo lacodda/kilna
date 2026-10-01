@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowUp, X } from 'lucide-react'
 import { fileSrc } from '@/lib/api/assets'
 import type { StyleBrick } from '@/lib/api/types'
+import { styleName } from '@/lib/styleBrick'
 import { queries } from '@/lib/query/queries'
 import { say as sayLabel, styleTypesOf, useProfile } from '@/lib/useProfile'
 import { styleIconOf } from '@/lib/styleIcon'
@@ -59,7 +60,13 @@ export function StylePickerDialog({
     [types],
   )
 
-  const available = (bricks.data ?? []).filter((one) => !picked.includes(one.id))
+  // A retired type builds nothing any more: its work is the constructor's.
+  const retired = new Set(
+    types.filter((one) => one.retired !== undefined && one.retired !== null).map((one) => one.key),
+  )
+  const available = (bricks.data ?? []).filter(
+    (one) => !picked.includes(one.id) && !retired.has(one.type_key),
+  )
   const chosen = picked
     .map((id) => byId.get(id))
     .filter((one): one is StyleBrick => one !== undefined)
@@ -110,7 +117,7 @@ export function StylePickerDialog({
                     <span className="text-faint">
                       {labelOfType.get(one.type_key) ?? one.type_key} ·{' '}
                     </span>
-                    {one.name}
+                    {styleName(one)}
                   </span>
                   {/* Buttons rather than a drag handle: two or three parts is
                       the usual number, and a drag surface for three rows is
@@ -172,7 +179,7 @@ export function StylePickerDialog({
                     <span className="font-normal text-faint">
                       {labelOfType.get(one.type_key) ?? one.type_key} ·{' '}
                     </span>
-                    {one.name}
+                    {styleName(one)}
                   </RowButton>
                 </li>
               )

@@ -834,7 +834,11 @@ document.
 | `key` | string | Stored on the style as its type. A style can only take a key this list names — the dictionary is grouped and narrowed by it. A style written under a key later dropped from the document still reads, and shows the key. |
 | `label` | string or map | What the chips, the groups and the picker show. Renamable, and bilingual like every other word of the craft. |
 | `hint` | string or map, optional | **What to describe for a style of this type.** Reaches the assistant when it describes one, and never reaches a generator. |
-| `icon` | string, optional | A glyph from the closed set: `palette`, `user`, `shirt`, `tree`, `type`, `camera`, `move`, `layers`, `grid`. A name outside it draws the generic shape. |
+| `icon` | string, optional | A glyph from the closed set: `palette`, `user`, `shirt`, `tree`, `type`, `camera`, `move`, `layers`, `grid`, `tag`, `square`. A name outside it draws the generic shape. |
+| `form` | string, optional | What a style of this type is made of beside its description, and so how its card and editor are drawn: `picture` (the default - reference pictures, and a palette while there are none), `lettering` (a live sample of the typeface), `dressing` (a description with `{slots}`), `colour` (one colour). The application knows the forms, never the types. |
+| `families` | list, optional | `{ "key", "label" }` pairs a style of this type is filed under - *Tattoo*, *Classic* for an image style. The dictionary narrows by them. |
+| `retired` | string or map, optional | Set when styles of this type are no longer made: what does their work now, in a sentence the dictionary shows above them. They still read; a new one, or moving one into the type, is refused. |
+| `canon_kind` | string, optional | A kind of card of the canon that stands in for this type: a hero with a card is described from its facts and needs no style. The dictionary says so above the type. Must name a kind with sections. |
 
 The `hint` is what makes one dictionary richer than several flat ones.
 Given the same photograph, `image-style` asks for the render technique and
@@ -845,8 +849,48 @@ The order of the list is the order the dictionary reads in — the groups on
 the screen, and the chips above them — rather than the alphabet.
 
 A workspace that already exists gains the shipped types at the next start;
-one you renamed or added stays yours, matched by key, and a hint or a glyph
-is filled in only where your stored copy names none.
+one you renamed or added stays yours, matched by key, and a hint, a glyph, a
+form, families, a retirement or a stand-in is filled in only where your
+stored copy names none.
+
+## `style_set`
+
+Not part of the document: a top-level list of a **shipped** profile file,
+beside `config` - the starter set of the style dictionary (ADR 0048). It is
+seeded into the workspace's dictionary at every start; the bricks are then
+yours. A profile you made yourself has none.
+
+```jsonc
+{
+  "key": "music",
+  "config": { /* the document */ },
+  "style_set": [
+    {
+      "key": "woodcut",
+      "type": "image-style",
+      "label": { "en": "Woodcut", "ru": "Ксилография" },
+      "family": "classic",
+      "description": "STYLE: medieval woodcut and linocut relief print ... [ The one accent colour is {accent}.]",
+      "when": "Raw, earthy or old-sounding songs; cream and kraft grounds.",
+      "colours": ["#121114", "#E8DCC4", "#B8563A"]
+    }
+  ]
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `key` | Unique in the set. With the profile's key it makes the style's id in every workspace, so a style you deleted is known and stays deleted. |
+| `type` | A key of `style_types`, not a retired one. |
+| `label` | The name per language. The English one is the style's name. |
+| `family` | A key of its type's `families`, where the type files any. |
+| `description` | What goes into a prompt, in English. A dressing's slots are written inside `[brackets]`. |
+| `when` | When to take it, in English - read by whoever picks styles for a picture (`{style_library}`). |
+| `colours` | `#RRGGBB`: a background's one, an image style's palette. |
+| `sample` | CSS declarations for the live sample of a lettering style. |
+
+A style nobody touched since it was seeded takes a newer wording at the next
+start; one you changed keeps yours and offers **Restore as in the set**.
 
 Studio ships nine: `image-style`, `character`, `look`, `environment`,
 `typography`, `angle`, `pose`, `layering` and `composition`.
@@ -998,7 +1042,14 @@ proposes.
   person. A style with nothing written yet goes in by name, marked as not
   described. The author's steer never does — it is an instruction about
   writing the description, not part of one. A template that reads `{styles}`
-  in a profile naming no style types is refused on save.
+  in a profile naming no style types is refused on save. A description's
+  `{slots}` are filled from the captions of the channel's card; a phrase in
+  `[brackets]` whose caption is empty drops out whole, and a slot outside
+  brackets takes its clause.
+- `{style_library}` — every **ready** style of the dictionary under the label
+  of its type, each with its family and *when to take it*, retired types left
+  out. For an action that picks styles rather than writes with them - the
+  cover's idea generator. Refused on save in a profile naming no style types.
 - `{canon}` — the canon as a work reads it: every card by name and id, then
   in full — through the work's lens — the cards the work is about: its own
   heroes, the cards on its board and the cards its text names.

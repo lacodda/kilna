@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::minted::Minted;
+use crate::profile::config::Label;
 use crate::time::now;
 
 /// A brick of the workspace's style dictionary.
@@ -39,6 +40,85 @@ pub struct StyleBrick {
     /// list of bricks is drawn with their covers, and one query per row is the
     /// shape that made the predecessor's screens slow.
     pub reference_count: i64,
+    /// The name per language while it is the one the set shipped; absent once
+    /// the owner names the brick themselves.
+    pub label: Option<Label>,
+    /// A key of its type's `families`.
+    pub family: Option<String>,
+    /// When to reach for it - read by whoever picks bricks for a picture.
+    pub when_to_use: Option<String>,
+    /// `#RRGGBB` colours: a background's one, an image style's palette.
+    pub colours: Vec<String>,
+    /// CSS declarations for the live sample of a lettering brick.
+    pub sample: Option<String>,
+    /// The entry of the starter set it came from; absent for the owner's own.
+    pub set_key: Option<String>,
+    /// Where it came from and whether it was changed since - see [`Origin`].
+    pub origin: Origin,
+    /// The fingerprint of the set entry last written into it. Bookkeeping of
+    /// the seeding, never shown.
+    #[serde(skip)]
+    #[ts(skip)]
+    pub set_digest: Option<String>,
+}
+
+/// Where a brick came from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "lowercase")]
+#[ts(rename = "StyleOrigin")]
+pub enum Origin {
+    /// From the starter set, untouched: a newer set may rewrite it.
+    Set,
+    /// From the starter set, and changed by the owner since: theirs to keep,
+    /// with the set's version one click away.
+    Changed,
+    /// The owner's own.
+    Own,
+}
+
+/// What a brick says - every field a person writes except its status and the
+/// steer, which are about the brick rather than part of it. The fingerprint
+/// of a set brick is taken over exactly this, so the set entry and the row
+/// are compared on the same terms.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Content<'a> {
+    pub type_key: &'a str,
+    pub name: &'a str,
+    pub label: Option<&'a Label>,
+    pub family: Option<&'a str>,
+    pub description: Option<&'a str>,
+    pub when_to_use: Option<&'a str>,
+    pub colours: &'a [String],
+    pub sample: Option<&'a str>,
+}
+
+impl Content<'_> {
+    /// A stable fingerprint: FNV-1a over the content's JSON. Not a guard
+    /// against anyone - only "is this still what was written".
+    pub fn digest(&self) -> String {
+        let text = serde_json::to_string(self).unwrap_or_default();
+        let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+        for byte in text.as_bytes() {
+            hash ^= u64::from(*byte);
+            hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+        }
+        format!("{hash:016x}")
+    }
+}
+
+impl StyleBrick {
+    pub fn content(&self) -> Content<'_> {
+        Content {
+            type_key: &self.type_key,
+            name: &self.name,
+            label: self.label.as_ref(),
+            family: self.family.as_deref(),
+            description: self.description.as_deref(),
+            when_to_use: self.when_to_use.as_deref(),
+            colours: &self.colours,
+            sample: self.sample.as_deref(),
+        }
+    }
 }
 
 /// A brick is a draft until it carries a description, ready once it does, and
@@ -51,11 +131,12 @@ const STATUSES: [&str; 3] = [DRAFT, READY, DROPPED];
 
 const SELECT: &str = "SELECT b.id, b.profile_id, b.type_key, b.name, b.description, b.hint, \
      b.status, b.created_at, b.updated_at, \
-     (SELECT count(*) FROM asset a WHERE a.style_brick_id = b.id) \
+     (SELECT count(*) FROM asset a WHERE a.style_brick_id = b.id), \
+     b.label, b.family, b.when_to_use, b.colours, b.sample, b.set_key, b.set_digest \
      FROM style_brick b";
 
 /// What to make a brick out of.
-#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
 #[ts(optional_fields)]
 pub struct NewStyleBrick {
     pub type_key: String,
@@ -64,6 +145,14 @@ pub struct NewStyleBrick {
     pub description: Option<String>,
     #[serde(default)]
     pub hint: Option<String>,
+    #[serde(default)]
+    pub family: Option<String>,
+    #[serde(default)]
+    pub when_to_use: Option<String>,
+    #[serde(default)]
+    pub colours: Option<Vec<String>>,
+    #[serde(default)]
+    pub sample: Option<String>,
 }
 
 /// What may be changed about one.
@@ -87,6 +176,73 @@ pub struct StyleBrickPatch {
     pub hint: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub label: Option<Option<Label>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub family: Option<Option<String>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub when_to_use: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub colours: Option<Vec<String>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub sample: Option<Option<String>>,
+    /// The fingerprint of the set entry the brick now matches - written by
+    /// "restore as in the set", so a restored brick reads untouched again.
+    /// Travels in the log like any field; the window never sends it.
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[ts(skip)]
+    pub set_digest: Option<Option<String>>,
+}
+
+impl StyleBrickPatch {
+    /// The patch a person's edit really is, given the brick it lands on.
+    ///
+    /// Renaming a brick makes the name the owner's: the shipped word per
+    /// language goes with it, or the window would go on showing the old one.
+    /// Moving a brick to another type leaves a family that type may not have:
+    /// it goes too. Said in the patch rather than done behind it, so the log
+    /// carries it and undo puts it back.
+    pub fn completed(mut self, before: &StyleBrick) -> Self {
+        if self
+            .name
+            .as_ref()
+            .is_some_and(|name| name.trim() != before.name)
+            && self.label.is_none()
+            && before.label.is_some()
+        {
+            self.label = Some(None);
+        }
+        if self
+            .type_key
+            .as_ref()
+            .is_some_and(|key| *key != before.type_key)
+            && self.family.is_none()
+            && before.family.is_some()
+        {
+            self.family = Some(None);
+        }
+        self
+    }
 }
 
 /// Which bricks to list.
@@ -124,7 +280,10 @@ pub fn create_minted(
     if name.is_empty() {
         return Err(Error::refused("style.needsName"));
     }
-    check_type(conn, profile_id, &new.type_key)?;
+    let config = crate::profile::config_for(conn, profile_id)?;
+    check_new_type(&config, &new.type_key)?;
+    check_family(&config, &new.type_key, new.family.as_deref())?;
+    let colours = checked_colours(new.colours.as_deref().unwrap_or_default())?;
 
     // Born ready when it arrives with its description already written — an
     // imported brick, or one the assistant described in the same breath. Born
@@ -140,8 +299,9 @@ pub fn create_minted(
     };
 
     conn.execute(
-        "INSERT INTO style_brick (id, profile_id, type_key, name, description, hint, status, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)",
+        "INSERT INTO style_brick (id, profile_id, type_key, name, description, hint, status, created_at, updated_at,
+                                  family, when_to_use, colours, sample)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12)",
         params![
             minted.id(),
             profile_id,
@@ -150,7 +310,11 @@ pub fn create_minted(
             new.description,
             new.hint,
             status,
-            minted.at()
+            minted.at(),
+            new.family,
+            new.when_to_use,
+            colours,
+            new.sample
         ],
     )
     .map_err(|error| taken(error, &new.type_key, name))?;
@@ -261,10 +425,44 @@ pub fn update_at(
     let mut name = brick.name.clone();
     let mut type_key = brick.type_key.clone();
 
+    let config = crate::profile::config_for(conn, &brick.profile_id)?;
     if let Some(next) = patch.type_key {
-        check_type(conn, &brick.profile_id, &next)?;
+        // Staying in a retired type is reading what was written; moving into
+        // one is making a new brick of it.
+        if next != brick.type_key {
+            check_new_type(&config, &next)?;
+        }
         type_key = next.clone();
         set(&mut assignments, &mut values, "type_key", Box::new(next));
+    }
+    let family = match &patch.family {
+        Some(next) => next.clone(),
+        None => brick.family.clone(),
+    };
+    if patch.family.is_some() || type_key != brick.type_key {
+        check_family(&config, &type_key, family.as_deref())?;
+    }
+    if let Some(next) = patch.family {
+        set(&mut assignments, &mut values, "family", Box::new(next));
+    }
+    if let Some(next) = patch.label {
+        let text = next
+            .map(|label| serde_json::to_string(&label))
+            .transpose()?;
+        set(&mut assignments, &mut values, "label", Box::new(text));
+    }
+    if let Some(next) = patch.when_to_use {
+        set(&mut assignments, &mut values, "when_to_use", Box::new(next));
+    }
+    if let Some(next) = patch.colours {
+        let text = checked_colours(&next)?;
+        set(&mut assignments, &mut values, "colours", Box::new(text));
+    }
+    if let Some(next) = patch.sample {
+        set(&mut assignments, &mut values, "sample", Box::new(next));
+    }
+    if let Some(next) = patch.set_digest {
+        set(&mut assignments, &mut values, "set_digest", Box::new(next));
     }
     if let Some(next) = patch.name {
         let trimmed = next.trim().to_owned();
@@ -337,14 +535,19 @@ pub fn describe(conn: &Connection, id: &str, description: &str) -> Result<StyleB
     )
 }
 
-/// A brick is of a type the profile names.
+/// A new brick is of a type the profile names, and not one it retired.
 ///
 /// Checked here rather than in the schema, for the reason `scene_note` checks
 /// its kinds there: the vocabulary is the profile's and changes while the
 /// workspace lives. A profile naming no types has not decided yet, and anything
-/// goes.
-fn check_type(conn: &Connection, profile_id: &str, type_key: &str) -> Result<()> {
-    let config = crate::profile::config_for(conn, profile_id)?;
+/// goes. A retired type still reads - its bricks keep their word - but makes no
+/// new ones: what did its work is somewhere else now.
+fn check_new_type(config: &crate::profile::config::ProfileConfig, type_key: &str) -> Result<()> {
+    if let Some(style) = config.style_type(type_key)
+        && style.retired.is_some()
+    {
+        return Err(Error::refused("style.retiredType").param("type", type_key));
+    }
     if config.style_types.is_empty() || config.style_type(type_key).is_some() {
         return Ok(());
     }
@@ -357,6 +560,41 @@ fn check_type(conn: &Connection, profile_id: &str, type_key: &str) -> Result<()>
     Err(Error::refused("style.unknownType")
         .param("type", type_key)
         .param("known", known))
+}
+
+/// A family is one its type files bricks under. A type the profile no longer
+/// names, or one that files nothing, takes none.
+fn check_family(
+    config: &crate::profile::config::ProfileConfig,
+    type_key: &str,
+    family: Option<&str>,
+) -> Result<()> {
+    let Some(family) = family else {
+        return Ok(());
+    };
+    let known = config
+        .style_type(type_key)
+        .is_some_and(|style| style.families.iter().any(|f| f.key == family));
+    if known {
+        return Ok(());
+    }
+    Err(Error::refused("style.unknownFamily")
+        .param("family", family)
+        .param("type", type_key))
+}
+
+/// Colours as the column keeps them: `#RRGGBB`, upper case, as JSON.
+fn checked_colours(colours: &[String]) -> Result<String> {
+    let mut out = Vec::with_capacity(colours.len());
+    for colour in colours {
+        let colour = colour.trim();
+        let hex = colour.strip_prefix('#').unwrap_or("");
+        if hex.len() != 6 || !hex.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(Error::refused("style.badColour").param("value", colour));
+        }
+        out.push(format!("#{}", hex.to_ascii_uppercase()));
+    }
+    Ok(serde_json::to_string(&out)?)
 }
 
 /// The unique index speaking in the craft's words rather than SQLite's.
@@ -376,7 +614,15 @@ fn unknown(id: &str) -> Error {
 }
 
 fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<StyleBrick> {
-    Ok(StyleBrick {
+    let json = |index: usize| -> rusqlite::Result<Option<serde_json::Value>> {
+        let text: Option<String> = row.get(index)?;
+        Ok(text.and_then(|text| serde_json::from_str(&text).ok()))
+    };
+    let label = json(10)?.and_then(|value| serde_json::from_value(value).ok());
+    let colours = json(13)?
+        .and_then(|value| serde_json::from_value(value).ok())
+        .unwrap_or_default();
+    let mut brick = StyleBrick {
         id: row.get(0)?,
         profile_id: row.get(1)?,
         type_key: row.get(2)?,
@@ -387,7 +633,21 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<StyleBrick> {
         created_at: row.get(7)?,
         updated_at: row.get(8)?,
         reference_count: row.get(9)?,
-    })
+        label,
+        family: row.get(11)?,
+        when_to_use: row.get(12)?,
+        colours,
+        sample: row.get(14)?,
+        set_key: row.get(15)?,
+        set_digest: row.get(16)?,
+        origin: Origin::Own,
+    };
+    brick.origin = match (&brick.set_key, &brick.set_digest) {
+        (Some(_), Some(digest)) if *digest == brick.content().digest() => Origin::Set,
+        (Some(_), _) => Origin::Changed,
+        (None, _) => Origin::Own,
+    };
+    Ok(brick)
 }
 
 #[cfg(test)]
@@ -401,8 +661,7 @@ mod tests {
         NewStyleBrick {
             type_key: type_key.to_owned(),
             name: name.to_owned(),
-            description: None,
-            hint: None,
+            ..NewStyleBrick::default()
         }
     }
 

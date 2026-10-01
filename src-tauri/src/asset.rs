@@ -492,6 +492,7 @@ mod tests {
                 name: "Cold north".into(),
                 description: None,
                 hint: None,
+                ..crate::style_brick::NewStyleBrick::default()
             },
         )
         .unwrap();

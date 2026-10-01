@@ -109,6 +109,9 @@ export const keys = {
   /** The ready bricks a prompt may be built from, under a search. */
   readyStyleBricks: (query: string) => ['styles', 'list', 'ready', query] as const,
   styleReferences: (id: string) => ['styles', 'references', id] as const,
+  /** The captions a dressing is filled from - they live on the channel's
+      card, so the canon's prefix refreshes them too (see `refresh.canon`). */
+  styleSlots: ['styles', 'slots'] as const,
   // One coarse prefix over the canon: a fact changes its card, the list's
   // counts, the timeline and where the card appears, and none of them is
   // worth invalidating alone.

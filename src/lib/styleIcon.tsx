@@ -6,6 +6,8 @@ import {
   Palette,
   Shapes,
   Shirt,
+  Square,
+  Tag,
   TreePine,
   Type,
   User,
@@ -35,6 +37,8 @@ const STYLE_ICONS: Record<string, LucideIcon> = {
   move: Move,
   layers: Layers,
   grid: Grid3x3,
+  tag: Tag,
+  square: Square,
 }
 
 export function styleIconOf(type: Pick<StyleType, 'icon'> | undefined): LucideIcon {

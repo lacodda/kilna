@@ -1510,6 +1510,7 @@ mod tests {
                 name: "Cold north".into(),
                 description: None,
                 hint: Some("only the ground floor".into()),
+                ..crate::style_brick::NewStyleBrick::default()
             },
         )
         .unwrap();
@@ -1556,6 +1557,7 @@ mod tests {
                 name: "The keeper".into(),
                 description: None,
                 hint: None,
+                ..crate::style_brick::NewStyleBrick::default()
             },
         )
         .unwrap();

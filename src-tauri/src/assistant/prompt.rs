@@ -240,6 +240,7 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "scene"
             | "donor"
             | "styles"
+            | "style_library"
             | "canon"
             | "selection"
             | "register"
@@ -437,7 +438,22 @@ pub fn for_work(
             }
             bricks.push(brick);
         }
-        values.push(("styles", brick_sheet(&bricks, &config)));
+        let slots = crate::style_set::channel_slots(conn, &work.profile_id)?;
+        values.push(("styles", brick_sheet(&bricks, &config, &slots)));
+    }
+
+    // The whole dictionary, for whoever picks bricks rather than writes with
+    // them: each ready brick with when to take it.
+    if wants("style_library") {
+        let bricks = crate::style_brick::list(
+            conn,
+            &work.profile_id,
+            &crate::style_brick::StyleBrickFilter {
+                ready_only: true,
+                ..Default::default()
+            },
+        )?;
+        values.push(("style_library", library_sheet(&bricks, &config)));
     }
 
     let mut rendered = render(template, &values);
@@ -692,7 +708,14 @@ pub fn canon_through(
 /// The type's `hint` is deliberately absent. It says what to write *about* a
 /// brick, which is a question already answered by the time one is being used;
 /// carrying it here would ask the generator to take notes.
-pub fn brick_sheet(bricks: &[crate::style_brick::StyleBrick], config: &ProfileConfig) -> String {
+///
+/// A description's `{slots}` are filled from `slots` - the captions of the
+/// channel - and a phrase whose caption is empty drops out (`style_set::fill`).
+pub fn brick_sheet(
+    bricks: &[crate::style_brick::StyleBrick],
+    config: &ProfileConfig,
+    slots: &crate::style_set::SlotValues,
+) -> String {
     let mut out = String::new();
     for brick in bricks {
         let label = config
@@ -702,11 +725,55 @@ pub fn brick_sheet(bricks: &[crate::style_brick::StyleBrick], config: &ProfileCo
             });
         out.push_str(&format!("{} — {}", label, brick.name));
         match brick.description.as_deref().map(str::trim) {
-            Some(text) if !text.is_empty() => out.push_str(&format!("\n{text}\n\n")),
+            Some(text) if !text.is_empty() => {
+                let text = crate::style_set::fill(text, slots);
+                out.push_str(&format!("\n{text}\n\n"));
+            }
             _ => out.push_str("\n(not described yet)\n\n"),
         }
     }
     out.trim_end().to_owned()
+}
+
+/// Every ready brick, under its type, with its family and when to take it -
+/// for `{style_library}`. A retired type is left out: nothing is to be built
+/// from it any more. What a brick says is not listed: a picker chooses by
+/// name and occasion, and ninety descriptions would bury both.
+pub fn library_sheet(bricks: &[crate::style_brick::StyleBrick], config: &ProfileConfig) -> String {
+    let mut out = String::new();
+    let mut last_type: Option<&str> = None;
+    for brick in bricks {
+        let style = config.style_type(&brick.type_key);
+        if style.is_some_and(|s| s.retired.is_some()) {
+            continue;
+        }
+        if last_type != Some(brick.type_key.as_str()) {
+            let label = style.map_or(brick.type_key.as_str(), |s| s.label.as_str());
+            out.push_str(&format!("\n## {label}\n"));
+            last_type = Some(&brick.type_key);
+        }
+        out.push_str(&format!("- {} (brick `{}`)", brick.name, brick.id));
+        let family = brick
+            .family
+            .as_deref()
+            .and_then(|key| style.and_then(|s| s.families.iter().find(|f| f.key == key)));
+        if let Some(family) = family {
+            out.push_str(&format!(", {}", family.label.as_str()));
+        }
+        if let Some(when) = brick
+            .when_to_use
+            .as_deref()
+            .map(str::trim)
+            .filter(|w| !w.is_empty())
+        {
+            out.push_str(&format!(": {when}"));
+        }
+        out.push('\n');
+    }
+    if out.is_empty() {
+        return "(the style dictionary is empty)".to_owned();
+    }
+    out.trim().to_owned()
 }
 
 /// A work's filled overview fields, one per line under its word, for
@@ -853,6 +920,7 @@ mod tests {
                 name: "Flooded car park".into(),
                 description: Some("Standing water to the ankles, sodium light.".into()),
                 hint: Some("only the ground floor".into()),
+                ..crate::style_brick::NewStyleBrick::default()
             },
         )
         .unwrap();
@@ -864,6 +932,7 @@ mod tests {
                 name: "The keeper".into(),
                 description: Some("Sixty, weathered, a long grey coat.".into()),
                 hint: None,
+                ..crate::style_brick::NewStyleBrick::default()
             },
         )
         .unwrap();
@@ -927,6 +996,7 @@ mod tests {
                 name: "The keeper".into(),
                 description: None,
                 hint: None,
+                ..crate::style_brick::NewStyleBrick::default()
             },
         )
         .unwrap();

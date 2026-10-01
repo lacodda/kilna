@@ -176,6 +176,11 @@ mod tests {
             NoteKind::new("character", "Character"),
             NoteKind::new("location", "Location"),
         ];
+        // Plain kinds, not cards: nothing in the canon may stand in for a
+        // style type any more.
+        for style in &mut config.style_types {
+            style.canon_kind = None;
+        }
         profile::update_config(conn, profile_id, &config).unwrap();
     }
 

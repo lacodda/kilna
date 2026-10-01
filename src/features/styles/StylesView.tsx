@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
+import type { StyleBrick, StyleOrigin, StyleType } from '@/lib/api/types'
 import { picturesAmong } from '@/lib/drop'
 import { queries } from '@/lib/query/queries'
 import { say } from '@/lib/toast'
 import { useProfile, styleTypesOf, say as sayLabel } from '@/lib/useProfile'
 import { styleIconOf } from '@/lib/styleIcon'
 import { useDebounced } from '@/lib/useDebounced'
+import { livingTypes } from '@/lib/styleBrick'
 import { Button } from '@/components/ui/button'
 import { Chip, ChipGroup } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
@@ -31,6 +33,25 @@ const ALL_TYPES = 'all'
 const chipOf = (type: string | undefined) => (type === undefined ? ALL_TYPES : `type:${type}`)
 const typeOf = (chip: string | undefined) =>
   chip === undefined || chip === ALL_TYPES ? undefined : chip.slice('type:'.length)
+
+const ORIGINS = ['set', 'changed', 'own'] as const satisfies readonly StyleOrigin[]
+const STATUSES = ['draft', 'ready', 'dropped'] as const
+
+/** The narrowing the window does itself: the list is small, and read whole. */
+interface Narrowing {
+  family: string | undefined
+  origin: StyleOrigin | undefined
+  status: string | undefined
+}
+
+function narrowed(rows: StyleBrick[], { family, origin, status }: Narrowing): StyleBrick[] {
+  return rows.filter(
+    (brick) =>
+      (family === undefined || brick.family === family) &&
+      (origin === undefined || brick.origin === origin) &&
+      (status === undefined || brick.status === status),
+  )
+}
 
 /**
  * The workspace's style dictionary: the parts a picture prompt is built from.
@@ -58,6 +79,9 @@ export function StylesView() {
   const types = styleTypesOf(config)
 
   const [typeKey, setTypeKey] = useState<string | undefined>(undefined)
+  const [family, setFamily] = useState<string | undefined>(undefined)
+  const [origin, setOrigin] = useState<StyleOrigin | undefined>(undefined)
+  const [status, setStatus] = useState<string | undefined>(undefined)
   const [text, setText] = useState('')
   // The list is a query; typing into it unthrottled would refetch per letter.
   const query = useDebounced(text, 200)
@@ -78,8 +102,14 @@ export function StylesView() {
     void navigate(id === null ? '/styles' : `/styles/${id}`)
   }
 
+  // A new style is made in the type being looked at, unless that type is
+  // retired: then in the first the craft still makes.
+  const living = livingTypes(types)
+  const current = types.find((one) => one.key === typeKey)
+  const makeIn = current !== undefined && living.includes(current) ? current.key : living[0]?.key
+
   const make = useNewStyle({
-    typeKey: typeKey ?? types[0]?.key ?? '',
+    typeKey: makeIn ?? '',
     bricks: everything.data ?? [],
     onMade: (brick) => {
       // A search would hide what was just made from the dictionary it was
@@ -132,12 +162,20 @@ export function StylesView() {
     )
   }
 
+  const retired = current?.retired ?? null
+  const families = current?.families ?? []
+
   const selected =
     styleId === undefined
       ? undefined
       : ((everything.data ?? []).find((one) => one.id === styleId) ??
         (bricks.data ?? []).find((one) => one.id === styleId))
-  const filtered = typeKey !== undefined || query !== ''
+  const filtered =
+    typeKey !== undefined ||
+    query !== '' ||
+    family !== undefined ||
+    origin !== undefined ||
+    status !== undefined
 
   const dictionary = (
     <Loaded
@@ -145,39 +183,48 @@ export function StylesView() {
       fill
       skeleton={<SkeletonGrid cells={6} columns={3} cellClassName="h-37.5" />}
     >
-      {(rows) => (
-        // A hair of room around the grid, so a card's focus ring is not cut
-        // by the edge of the scrolling box.
-        <Scroll label={t('nav.styles')} contentClassName="flex flex-col gap-2.5 p-0.5">
-          {rows.length === 0 &&
-            (filtered ? (
-              // A search or a type that matched nothing: the way out is the
-              // row above, and the dashed card still makes one of this type.
-              <EmptyState plain variant="filtered" title={t('styles.noMatches')} />
-            ) : (
-              <EmptyState plain title={t('styles.empty')} body={t('styles.emptyBody')} />
-            ))}
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] items-start gap-2.5">
-            {rows.map((brick) => {
-              const type = types.find((one) => one.key === brick.type_key)
-              return (
-                <StyleBrickCard
-                  key={brick.id}
-                  brick={brick}
-                  type={type}
-                  icon={styleIconOf(type)}
-                  open={brick.id === styleId}
-                  onOpen={() => {
-                    setFresh(null)
-                    open(brick.id)
-                  }}
-                />
-              )
-            })}
-            <StyleDropCard onPaths={fromFiles} busy={making} />
-          </ul>
-        </Scroll>
-      )}
+      {(all) => {
+        const rows = narrowed(all, { family, origin, status })
+        return (
+          // A hair of room around the grid, so a card's focus ring is not cut
+          // by the edge of the scrolling box.
+          <Scroll label={t('nav.styles')} contentClassName="flex flex-col gap-2.5 p-0.5">
+            {/* The channel's own is not a style: said once, above the
+                  dictionary, so nobody goes looking for the mark here. */}
+            <p className="text-xs text-faint">{t('styles.brandNote')}</p>
+            {current !== undefined && <TypeNote type={current} />}
+            {rows.length === 0 &&
+              retired === null &&
+              (filtered ? (
+                // A search or a type that matched nothing: the way out is the
+                // row above, and the dashed card still makes one of this type.
+                <EmptyState plain variant="filtered" title={t('styles.noMatches')} />
+              ) : (
+                <EmptyState plain title={t('styles.empty')} body={t('styles.emptyBody')} />
+              ))}
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] items-start gap-2.5">
+              {rows.map((brick) => {
+                const type = types.find((one) => one.key === brick.type_key)
+                return (
+                  <StyleBrickCard
+                    key={brick.id}
+                    brick={brick}
+                    type={type}
+                    icon={styleIconOf(type)}
+                    open={brick.id === styleId}
+                    onOpen={() => {
+                      setFresh(null)
+                      open(brick.id)
+                    }}
+                  />
+                )
+              })}
+              {/* A retired type makes nothing new: no dashed card under it. */}
+              {retired === null && <StyleDropCard onPaths={fromFiles} busy={making} />}
+            </ul>
+          </Scroll>
+        )
+      }}
     </Loaded>
   )
 
@@ -213,21 +260,74 @@ export function StylesView() {
           <ChipGroup
             aria-label={t('styles.type')}
             value={[chipOf(typeKey)]}
-            onValueChange={(next) => setTypeKey(typeOf(next[0]))}
+            onValueChange={(next) => {
+              setTypeKey(typeOf(next[0]))
+              // A family belongs to its type; another type starts unfiled.
+              setFamily(undefined)
+            }}
           >
             <Chip value={chipOf(undefined)} count={total}>
               {t('styles.allTypes')}
             </Chip>
             {types.map((one) => {
               const Icon = styleIconOf(one)
+              const gone = one.retired !== undefined && one.retired !== null
               return (
-                <Chip key={one.key} value={chipOf(one.key)} count={countOf.get(one.key) ?? 0}>
+                <Chip
+                  key={one.key}
+                  value={chipOf(one.key)}
+                  count={countOf.get(one.key) ?? 0}
+                  variant={gone ? 'dashed' : undefined}
+                  title={gone ? sayLabel(one.retired) : undefined}
+                >
                   <Icon aria-hidden className="size-3.5" />
                   {sayLabel(one.label)}
                 </Chip>
               )
             })}
           </ChipGroup>
+          {/* The second row: a type's families, then where a style came from
+              and where it stands. Each group lets go the way the types do -
+              pressing the chip that is on leaves the group empty, which is
+              "any". */}
+          <div className="flex w-full flex-wrap items-center gap-1.5">
+            {families.length > 0 && (
+              <ChipGroup
+                aria-label={t('styles.family')}
+                value={family === undefined ? [] : [family]}
+                onValueChange={(next) => setFamily(next[0])}
+              >
+                {families.map((one) => (
+                  <Chip key={one.key} value={one.key}>
+                    {sayLabel(one.label)}
+                  </Chip>
+                ))}
+              </ChipGroup>
+            )}
+            <ChipGroup
+              aria-label={t('styles.originLabel')}
+              value={origin === undefined ? [] : [origin]}
+              onValueChange={(next) => setOrigin(next[0] as StyleOrigin | undefined)}
+              className="ml-auto"
+            >
+              {ORIGINS.map((one) => (
+                <Chip key={one} value={one}>
+                  {t(`styles.originFilter.${one}`)}
+                </Chip>
+              ))}
+            </ChipGroup>
+            <ChipGroup
+              aria-label={t('styles.statusLabel')}
+              value={status === undefined ? [] : [status]}
+              onValueChange={(next) => setStatus(next[0])}
+            >
+              {STATUSES.map((one) => (
+                <Chip key={one} value={one}>
+                  {t(`styles.statusFilter.${one}`)}
+                </Chip>
+              ))}
+            </ChipGroup>
+          </div>
           <Input
             value={text}
             onChange={(event) => setText(event.target.value)}
@@ -238,7 +338,7 @@ export function StylesView() {
           <Button
             variant="primary"
             onClick={() => make.mutate(null)}
-            disabled={making}
+            disabled={making || makeIn === undefined}
             className="ml-auto"
           >
             <Plus aria-hidden />
@@ -250,4 +350,34 @@ export function StylesView() {
       {styleId === undefined ? dictionary : <ListDetail list={dictionary} detail={detail} />}
     </Frame>
   )
+}
+
+/**
+ * What the dictionary says above a type's bricks, when the craft has something
+ * to say: a retired type's bricks are read but no longer made, and a type the
+ * canon stands in for is not needed for a hero with a card.
+ */
+function TypeNote({ type }: { type: StyleType }) {
+  const { t } = useTranslation()
+  if (type.retired !== undefined && type.retired !== null) {
+    return (
+      <p className="rounded-lg border border-dashed border-line-2 bg-softer px-4 py-3 text-sm text-dim">
+        <span className="font-semibold text-text">
+          {t('styles.retiredTitle', { type: sayLabel(type.label) })}
+        </span>{' '}
+        {sayLabel(type.retired)} {t('styles.retiredBody')}
+      </p>
+    )
+  }
+  if (type.canon_kind !== undefined && type.canon_kind !== null) {
+    return (
+      <p className="rounded-lg border border-dashed border-line-2 bg-softer px-4 py-3 text-sm text-dim">
+        {t('styles.canonStandsIn', { type: sayLabel(type.label) })}{' '}
+        <Link to="/canon" className="text-accent underline-offset-2 hover:underline">
+          {t('styles.openCanon')}
+        </Link>
+      </p>
+    )
+  }
+  return null
 }

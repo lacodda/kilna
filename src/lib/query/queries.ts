@@ -52,6 +52,7 @@ import {
   previewStyleTask,
   styleBrickCounts,
   styleBrickReferences,
+  styleSlotValues,
 } from '@/lib/api/styles'
 import { listDeletions } from '@/lib/api/trash'
 import type { CardFilter, CommentFilter, Lens, NoteFilter, TaskAbout } from '@/lib/api/types'
@@ -236,6 +237,7 @@ export const queries = {
   styleCounts: () => queryOptions({ queryKey: keys.styleCounts, queryFn: styleBrickCounts }),
   styleReferences: (id: string) =>
     queryOptions({ queryKey: keys.styleReferences(id), queryFn: () => styleBrickReferences(id) }),
+  styleSlots: () => queryOptions({ queryKey: keys.styleSlots, queryFn: styleSlotValues }),
 
   journalFeed: () => queryOptions({ queryKey: keys.journalFeed, queryFn: listJournal }),
   journalForWork: (workId: string) =>

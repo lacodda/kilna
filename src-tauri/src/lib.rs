@@ -41,6 +41,7 @@ pub mod score;
 pub mod search;
 pub mod state;
 pub mod style_brick;
+pub mod style_set;
 pub mod time;
 pub mod tombstone;
 pub mod trash;
@@ -208,6 +209,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::styles::update_style_brick,
             commands::styles::paste_style_reference,
             commands::styles::delete_style_brick,
+            commands::styles::restore_style_brick,
+            commands::styles::style_slot_values,
             commands::focus::dismissed_findings,
             commands::focus::dismiss_finding,
             commands::focus::restore_finding,

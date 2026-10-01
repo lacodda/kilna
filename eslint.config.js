@@ -23,10 +23,17 @@ export default tseslint.config(
     rules: { 'dowel/no-arbitrary-scale': 'off' },
   },
   // Where a colour is the subject rather than the styling: the cover gradients
-  // are a palette this app owns, and do not follow the theme. (The mark, the
-  // other such exception, is dowel's ProductMark now and draws itself.)
+  // are a palette this app owns, and do not follow the theme; a background
+  // style is a colour the owner picked, and its editor and rules speak in it.
+  // (The mark, the other such exception, is dowel's ProductMark now and draws
+  // itself.)
   {
-    files: ['src/lib/cover.ts'],
+    files: [
+      'src/lib/cover.ts',
+      'src/lib/styleBrick.ts',
+      'src/lib/styleDraft.test.ts',
+      'src/features/styles/StylesView.test.tsx',
+    ],
     rules: { 'dowel/no-raw-color': 'off' },
   },
   // Where a component is the subject rather than the render: the release-kind

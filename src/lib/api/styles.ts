@@ -20,6 +20,10 @@ export const createStyleBrick = (brick: NewStyleBrick) =>
   invoke<StyleBrick>('create_style_brick', { brick })
 export const updateStyleBrick = (id: string, patch: StyleBrickPatch) =>
   invoke<StyleBrick>('update_style_brick', { id, patch })
+/** Put a brick back the way the starter set has it; one edit, taken back by undo. */
+export const restoreStyleBrick = (id: string) => invoke<StyleBrick>('restore_style_brick', { id })
+/** The captions the channel's card gives a dressing, by slot. */
+export const styleSlotValues = () => invoke<Partial<Record<string, string[]>>>('style_slot_values')
 // Returns the trash entry, which is what the undo on the toast restores.
 export const deleteStyleBrick = (id: string) => invoke<string>('delete_style_brick', { id })
 /** A reference pasted straight onto a brick, the way a frame is. */

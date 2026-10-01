@@ -1074,7 +1074,44 @@
     "nameTaken": "Another style of this type is called “{{name}}”. Until this one is called something else, its last name and type stay.",
     "gone": "This style is not here",
     "goneBody": "It was deleted, or the address is old. The trash may still have it.",
-    "describeNeedsReferences": "Add a picture first: the description is read off the references."
+    "describeNeedsReferences": "Add a picture first: the description is read off the references.",
+    "family": "Family",
+    "originLabel": "Where it came from",
+    "origin": {
+      "set": "from the set",
+      "changed": "changed from the set",
+      "own": "your own"
+    },
+    "originFilter": {
+      "set": "From the set",
+      "changed": "Changed",
+      "own": "Your own"
+    },
+    "statusFilter": {
+      "draft": "Drafts",
+      "ready": "Ready",
+      "dropped": "Retired"
+    },
+    "restore": "Restore as in the set",
+    "restoreFailed": "Couldn't restore the style",
+    "when": "When to take it",
+    "whenHint": "For whoever picks styles for a picture - the idea generator reads it. Not the steer: that is about how it is described.",
+    "sample": "Sample",
+    "sampleHint": "CSS for the sample on the card - for the eye only. On a picture the lettering is drawn from the description.",
+    "sampleWord": "Nightfall",
+    "colour": "Colour",
+    "colourHint": "The one colour of this background, as #RRGGBB.",
+    "pickColour": "Pick the colour",
+    "slots": "Slots",
+    "slotsHint": "Captions of the work and of the channel's card. A slot with nothing to say drops out of the prompt with its phrase in [brackets].",
+    "noSlots": "No {slots} in the description yet",
+    "slotFromChannel": "The channel's card fills this one",
+    "slotFromWork": "Filled from the work's captions - or dropped when it has none",
+    "retiredTitle": "“{{type}}” is no longer made of styles.",
+    "retiredBody": "The styles of this type stay and still read; new ones are not made.",
+    "canonStandsIn": "A hero with a card in the canon needs no “{{type}}” style: the card's description is built from its facts. This type stays for heroes without one.",
+    "openCanon": "Open the canon",
+    "brandNote": "The channel's own - its mark, signature details, captions and palette - lives on the Channel card in the canon, not here."
   },
   "editor": {
     "axes": "Scoring axes",
@@ -1971,7 +2008,11 @@
       "needsName": "A style needs a name.",
       "badStatus": "A style is “draft”, “ready” or “dropped”, not “{{value}}”.",
       "unknownType": "A style is of a type the profile names: {{known}}, not “{{type}}”.",
-      "alreadyExists": "There is already a “{{type}}” style called “{{name}}”."
+      "alreadyExists": "There is already a “{{type}}” style called “{{name}}”.",
+      "retiredType": "No new “{{type}}” styles are made: the constructor does their work now.",
+      "unknownFamily": "A “{{type}}” style is not filed under “{{family}}”.",
+      "badColour": "A colour is written as #RRGGBB, not “{{value}}”.",
+      "notFromTheSet": "“{{name}}” is not from the starter set, so there is nothing to restore it to."
     },
     "cut": {
       "outOfItself": "A work cannot be cut out of itself.",

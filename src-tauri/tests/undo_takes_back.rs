@@ -1207,6 +1207,7 @@ fn undoing_a_description_puts_back_the_draft_it_was() {
             name: "Cold north".into(),
             description: None,
             hint: None,
+            ..NewStyleBrick::default()
         },
     )
     .unwrap();

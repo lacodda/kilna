@@ -1723,6 +1723,7 @@ mod tests {
                 name: "Cold north".into(),
                 description: Some("Grainy monochrome film.".into()),
                 hint: None,
+                ..crate::style_brick::NewStyleBrick::default()
             },
         )
         .unwrap();

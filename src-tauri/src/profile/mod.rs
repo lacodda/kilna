@@ -15,6 +15,11 @@ pub struct BuiltinProfile {
     pub name: String,
     pub description: String,
     pub config: ProfileConfig,
+    /// The starter set of the style dictionary (ADR 0048). Beside the
+    /// document, not in it: the bricks it seeds are the workspace's copy, and
+    /// a second copy inside every stored document would be two truths.
+    #[serde(default)]
+    pub style_set: Vec<crate::style_set::SetBrick>,
 }
 
 /// A profile as the frontend sees it.
@@ -265,7 +270,7 @@ const UPGRADE: &[Step] = &[
         carry: reword_untouched_tiers,
     },
     Step {
-        name: "style types, with their hint and glyph",
+        name: "style types, with their hint, glyph, form, families and retirement",
         carry: style_types,
     },
     Step {
@@ -558,6 +563,26 @@ fn style_types(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
         }
         if style.icon.is_none() && shipped_style.icon.is_some() {
             style.icon = shipped_style.icon.clone();
+            changed = true;
+        }
+        // The form, families, retirement and stand-in arrive on the same
+        // terms (v0.87): where the stored type says nothing. A stored type
+        // still drawn as pictures while the shipped one is lettering has never
+        // been told otherwise - the form did not exist before.
+        if style.form == config::StyleForm::Picture && shipped_style.form != style.form {
+            style.form = shipped_style.form;
+            changed = true;
+        }
+        if style.families.is_empty() && !shipped_style.families.is_empty() {
+            style.families = shipped_style.families.clone();
+            changed = true;
+        }
+        if style.retired.is_none() && shipped_style.retired.is_some() {
+            style.retired = shipped_style.retired.clone();
+            changed = true;
+        }
+        if style.canon_kind.is_none() && shipped_style.canon_kind.is_some() {
+            style.canon_kind = shipped_style.canon_kind.clone();
             changed = true;
         }
     }

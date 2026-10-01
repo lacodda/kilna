@@ -55,6 +55,13 @@ beforeEach(() => {
         created_at: NOW,
         updated_at: NOW,
         reference_count: 0,
+        label: null,
+        family: null,
+        when_to_use: null,
+        colours: [],
+        sample: null,
+        set_key: null,
+        origin: 'own',
       }
       workspace.bricks.push(made)
       return made
@@ -161,5 +168,120 @@ describe('the style dictionary', () => {
       en.styles.untitled,
     )
     expect(backend.unanswered).toEqual([])
+  })
+})
+
+/** A brick of the starter set, as the seeding leaves it. */
+function fromTheSet(change: Partial<StyleBrick> = {}): StyleBrick {
+  return {
+    id: 'b-set',
+    profile_id: IDS.profile,
+    type_key: 'image-style',
+    name: 'Woodcut',
+    description: 'STYLE: woodcut relief print.',
+    hint: null,
+    status: 'ready',
+    created_at: NOW,
+    updated_at: NOW,
+    reference_count: 0,
+    label: { en: 'Woodcut', ru: 'Ксилография' },
+    family: 'classic',
+    when_to_use: 'Raw, earthy songs.',
+    colours: ['#121114', '#E8DCC4'],
+    sample: null,
+    set_key: 'woodcut',
+    origin: 'set',
+    ...change,
+  }
+}
+
+describe('the starter set in the dictionary (v0.87)', () => {
+  it('says where a style came from, and puts a changed one back as the set has it', async () => {
+    workspace.bricks.push(fromTheSet({ origin: 'changed', description: 'My own words.' }))
+    backend.answer('restore_style_brick', ({ id }) => {
+      const brick = workspace.bricks.find((one) => one.id === id)!
+      Object.assign(brick, { origin: 'set', description: 'STYLE: woodcut relief print.' })
+      return brick
+    })
+    const { client } = renderApp('/styles/b-set')
+    await settled(client)
+
+    expect(await screen.findAllByText(en.styles.origin.changed)).not.toHaveLength(0)
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: en.styles.restore })))
+    await settled(client)
+    expect(backend.argsOf('restore_style_brick')).toEqual([{ id: 'b-set' }])
+    expect(await screen.findByRole('textbox', { name: en.styles.description })).toHaveValue(
+      'STYLE: woodcut relief print.',
+    )
+    expect(screen.queryByRole('button', { name: en.styles.restore })).toBeNull()
+    expect(backend.unanswered).toEqual([])
+  })
+
+  it('narrows to the styles of one origin', async () => {
+    workspace.bricks.push(fromTheSet())
+    const { client } = renderApp('/styles')
+    await settled(client)
+    await screen.findByText('Woodcut')
+
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: en.styles.originFilter.own })),
+    )
+    expect(screen.queryByText('Woodcut')).toBeNull()
+    expect(screen.getByText('Dusk over water')).toBeVisible()
+
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: en.styles.originFilter.set })),
+    )
+    expect(screen.getByText('Woodcut')).toBeVisible()
+    expect(screen.queryByText('Dusk over water')).toBeNull()
+  })
+
+  it('reads a retired type and makes nothing new of it', async () => {
+    const { client } = renderApp('/styles')
+    await settled(client)
+    await screen.findByText('Dusk over water')
+
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: /Frame composition/ })),
+    )
+    await settled(client)
+    expect(
+      await screen.findByText(en.styles.retiredTitle.replace('{{type}}', 'Frame composition')),
+    ).toBeVisible()
+    // No dashed card under it, and "New style" makes one in a living type.
+    expect(screen.queryByText(en.styles.dropHint)).toBeNull()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: en.styles.new })))
+    await settled(client)
+    expect(backend.argsOf('create_style_brick')).toEqual([
+      { brick: { type_key: 'image-style', name: en.styles.untitled } },
+    ])
+  })
+
+  it('draws a background by its colour and keeps the colour typed until it is one', async () => {
+    workspace.bricks.push(
+      fromTheSet({
+        id: 'b-bg',
+        type_key: 'background',
+        name: 'Paper',
+        label: { en: 'Paper', ru: 'Бумага' },
+        family: null,
+        colours: ['#EFEBE3'],
+        set_key: 'background-paper',
+      }),
+    )
+    const { client } = renderApp('/styles/b-bg')
+    await settled(client)
+
+    const hex = await screen.findByPlaceholderText('#RRGGBB')
+    expect(hex).toHaveValue('#EFEBE3')
+    fireEvent.change(hex, { target: { value: '#1e9' } })
+    await act(() => new Promise((resolve) => setTimeout(resolve, 700)))
+    expect(backend.argsOf('update_style_brick')).toEqual([])
+    fireEvent.change(hex, { target: { value: '#1e9e95' } })
+    await waitFor(() =>
+      expect(backend.argsOf('update_style_brick')).toEqual([
+        { id: 'b-bg', patch: { colours: ['#1E9E95'] } },
+      ]),
+    )
   })
 })
