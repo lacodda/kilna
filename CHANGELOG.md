@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.89.3] - 2026-10-01
+
+### Bug Fixes
+- Show a package of pictures and descriptions on its cards
+
 ## [0.89.2] - 2026-10-01
 
 ### Features
