@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.88.0] - 2026-10-01
+
+### Bug Fixes
+- Fit the stage's scheme and export the mark for real
+
+### Features
+- Build a publication's cover from a concept
+
 ## [0.87.0] - 2026-10-01
 
 ### Features
