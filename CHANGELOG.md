@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.89.2] - 2026-10-01
+
+### Features
+- Let an agent propose a card's pictures and description
+
 ## [0.89.1] - 2026-10-01
 
 ### Features
