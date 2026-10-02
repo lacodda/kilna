@@ -2,16 +2,17 @@ import { describe, expect, it } from 'vitest'
 import {
   type CardFacts,
   DEFAULT_TAB,
-  DEFAULT_TAB_CHOICES,
   factsOf,
   isTab,
   NOTHING_COUNTED,
+  openingTab,
   type Tab,
   TABS,
   tabCounts,
   tabsOf,
+  tabsOfKind,
 } from '@/features/work/tabs'
-import type { CardCounts, Work } from '@/lib/api/types'
+import type { CardCounts, ProfileConfig, Work } from '@/lib/api/types'
 import { CARD_TABS } from '@/test/places'
 import { answersFor, coverOf, IDS, studio } from '@/test/workspace'
 
@@ -89,14 +90,44 @@ describe("the card's tabs", () => {
     expect(tabsOf(facts({}, { cover: true, files: true }))).not.toContain('frame')
   })
 
-  it("open on a tab a person lives in, never on one of a single kind's making", () => {
-    expect(DEFAULT_TAB_CHOICES).toContain(DEFAULT_TAB)
-    for (const tab of ['scenes', 'cuts', 'cover', 'frame'] as const) {
-      expect(DEFAULT_TAB_CHOICES).not.toContain(tab)
+  it('open on the tab the kind names, and on the overview when it names none it knows', () => {
+    const config = studio().profile.config
+    expect(openingTab(config, 'song')).toBe(DEFAULT_TAB)
+
+    const chose: ProfileConfig = {
+      ...config,
+      work_kinds: config.work_kinds.map((kind) =>
+        kind.key === 'song'
+          ? { ...kind, open_on: 'versions' }
+          : kind.key === 'short'
+            ? { ...kind, open_on: 'lyrics' }
+            : kind,
+      ),
     }
-    // A habit kept across v0.86: a work without the tab opens on the overview.
-    for (const tab of ['versions', 'score', 'files'] as const) {
-      expect(DEFAULT_TAB_CHOICES).toContain(tab)
+    expect(openingTab(chose, 'song')).toBe('versions')
+    // A word this build does not draw, and a kind the profile does not know.
+    expect(openingTab(chose, 'short')).toBe(DEFAULT_TAB)
+    expect(openingTab(chose, 'gone')).toBe(DEFAULT_TAB)
+    // Each kind its own: choosing for songs leaves the clips where they were.
+    expect(openingTab(chose, 'video')).toBe(DEFAULT_TAB)
+  })
+
+  it('offer each kind the tabs every work of it draws, its own making included', () => {
+    const config = studio().profile.config
+    const song = tabsOfKind(config, 'song')
+    expect(song).toContain('versions')
+    expect(song).toContain('score')
+    // A song goes out as what is made from it: no board, cover, frame or files.
+    for (const tab of ['scenes', 'cover', 'frame', 'files'] as const) {
+      expect(song, `a song has no ${tab}`).not.toContain(tab)
+    }
+    // A short is made on its board, and may open there.
+    expect(tabsOfKind(config, 'short')).toContain('scenes')
+    expect(tabsOfKind(config, 'audio')).toContain('frame')
+    // A splice is a fact of one work, never of its kind.
+    for (const kind of config.work_kinds) {
+      expect(tabsOfKind(config, kind.key)).not.toContain('cuts')
+      expect(tabsOfKind(config, kind.key)[0]).toBe(DEFAULT_TAB)
     }
   })
 

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { DEFAULT_TAB, DEFAULT_TAB_CHOICES, type Tab } from '@/features/work/tabs'
 
 /**
  * What the work card shows, as this machine prefers it.
@@ -17,9 +16,6 @@ import { DEFAULT_TAB, DEFAULT_TAB_CHOICES, type Tab } from '@/features/work/tabs
 export interface CardView {
   /** The row of craft fields under the tags: LANGUAGE, MOOD, TEMPO… */
   metaStrip: boolean
-  /** The tab a card opens on when the address names none. Overview by
-   *  default; the owner who lives in Versions sets Versions. */
-  defaultTab: Tab
 }
 
 const STORAGE_KEY = 'kilna.card.view'
@@ -30,11 +26,10 @@ const DEFAULTS: CardView = {
   // values is a poor way to read fields the Overview tab already lays out.
   // Whoever wants it back turns it on and it stays on.
   metaStrip: false,
-  defaultTab: DEFAULT_TAB,
 }
 
 /** What is stored, or the defaults — a broken or absent value is not an error. */
-export function storedCardView(): CardView {
+function storedCardView(): CardView {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw === null) return DEFAULTS
@@ -43,11 +38,6 @@ export function storedCardView(): CardView {
     const held = parsed as Partial<Record<keyof CardView, unknown>>
     return {
       metaStrip: typeof held.metaStrip === 'boolean' ? held.metaStrip : DEFAULTS.metaStrip,
-      // A tab that no longer exists, or one a kind may lack, falls back rather
-      // than opening on nothing.
-      defaultTab: (DEFAULT_TAB_CHOICES as readonly string[]).includes(held.defaultTab as string)
-        ? (held.defaultTab as Tab)
-        : DEFAULTS.defaultTab,
     }
   } catch {
     // A private window, or storage the machine refuses. The card is worth

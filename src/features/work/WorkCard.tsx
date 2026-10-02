@@ -21,10 +21,10 @@ import {
   factsOf,
   isTab,
   NOTHING_COUNTED,
+  openingTab,
   tabCounts,
   tabsOf,
 } from '@/features/work/tabs'
-import { storedCardView } from '@/features/work/cardView'
 import { TabBody } from '@/features/work/TabBody'
 
 interface Props {
@@ -122,14 +122,14 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
     )
   }
 
-  // A URL naming no tab opens on the one this machine prefers; one naming a
+  const current = work.data
+
+  // A URL naming no tab opens on the one the work's kind names; one naming a
   // tab that does not exist is corrected rather than shown empty. `replace`
   // keeps the bad address out of the history either way.
   if (!isTab(tab)) {
-    return <Navigate to={`/works/${workId}/${storedCardView().defaultTab}`} replace />
+    return <Navigate to={`/works/${workId}/${openingTab(profile.config, current.kind)}`} replace />
   }
-
-  const current = work.data
 
   // A tab this work does not have - a storyboard on a song, a splice on a work
   // cut from nothing - goes to the default one, by the same rule the tab bar

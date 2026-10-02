@@ -83,4 +83,15 @@ frame?: boolean,
  * per language. Absent means the source's title as it is. Added in
  * v0.86.
  */
-made_title?: Label | null, };
+made_title?: Label | null, 
+/**
+ * The tab a work of this kind opens on when the address names none:
+ * `versions` for a song lived in through its text, `scenes` for a short
+ * made on its board. The word is the window's tab id and is not checked
+ * against a list here, for the reason a widget id is not: a tab this
+ * build does not draw, or one a work of the kind has not got, opens the
+ * overview instead. Absent is the overview. On the profile rather than
+ * the machine since v0.90.1 - where a card opens is read per kind, and
+ * the kinds are the craft's.
+ */
+open_on?: string | null, };

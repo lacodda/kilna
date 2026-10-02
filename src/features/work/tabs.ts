@@ -107,7 +107,7 @@ const RULES: Readonly<Record<Tab, Rule>> = {
 }
 
 /**
- * The tab a card opens on when the URL does not say.
+ * The tab a card opens on when neither the URL nor the work's kind says.
  *
  * The mockup opens on its Lyrics tab. Here a card opens on Overview: since
  * v0.82 it is the board that says where the work stands - its score, its
@@ -115,6 +115,23 @@ const RULES: Readonly<Record<Tab, Rule>> = {
  * tab that owns it. The title is renamed in the header (since v0.80).
  */
 export const DEFAULT_TAB: Tab = 'overview'
+
+/**
+ * The tab a work opens on when the URL names none: the one its kind names
+ * (`open_on`, v0.90.1), or the overview.
+ *
+ * Per kind, because a song is lived in through its text and a short is made
+ * on its board - one tab for every card sent the owner through a click on
+ * every song or on every short. On the profile, beside the catalogue's
+ * columns by kind, rather than on the machine where one tab for all of them
+ * was kept until now. A word this build does not know opens the overview; a
+ * tab the work has not got is corrected by the card, by the rule the bar
+ * hides it.
+ */
+export function openingTab(config: ProfileConfig, kind: string): Tab {
+  const named = config.work_kinds.find((entry) => entry.key === kind)?.open_on ?? undefined
+  return isTab(named) ? named : DEFAULT_TAB
+}
 
 export function isTab(value: string | undefined): value is Tab {
   return value !== undefined && (TABS as readonly string[]).includes(value)
@@ -163,14 +180,7 @@ export function factsOf(
   const vocabulary = vocabularyOf(config, work.kind)
   const known = counts !== undefined
   return {
-    names: {
-      roles: vocabulary.version_roles.length > 0,
-      axes: vocabulary.axes.length > 0,
-      storyboard: vocabulary.shot_types.length > 0 || vocabulary.scene_blocks.length > 0,
-      doors: vocabulary.release_kinds.length > 0,
-      cover: vocabulary.cover,
-      frame: vocabulary.frame,
-    },
+    names: namesOf(config, work.kind),
     holds: {
       versions: !known || counts.versions > 0,
       scores: !known || counts.scores > 0,
@@ -189,6 +199,44 @@ export function factsOf(
         ),
     },
   }
+}
+
+/** What a kind names, read off its vocabulary. */
+function namesOf(config: ProfileConfig, kind: string): CardFacts['names'] {
+  const vocabulary = vocabularyOf(config, kind)
+  return {
+    roles: vocabulary.version_roles.length > 0,
+    axes: vocabulary.axes.length > 0,
+    storyboard: vocabulary.shot_types.length > 0 || vocabulary.scene_blocks.length > 0,
+    doors: vocabulary.release_kinds.length > 0,
+    cover: vocabulary.cover,
+    frame: vocabulary.frame,
+  }
+}
+
+/**
+ * The tabs every work of a kind draws, by what the kind names alone: what a
+ * person may make the kind's works open on (Settings -> The work card).
+ *
+ * Not what one work holds - a splice exists only for a work cut from
+ * something, and a song whose kind lost its roles keeps its Versions tab only
+ * while it holds versions - so a choice offered here is a tab each new work
+ * of the kind has. The board, the cover and the frame are offered where the
+ * kind has them: a short is made on its board, and opening it there is the
+ * habit the choice is for.
+ */
+export function tabsOfKind(config: ProfileConfig, kind: string): Tab[] {
+  return tabsOf({
+    names: namesOf(config, kind),
+    holds: {
+      versions: false,
+      scores: false,
+      scenes: false,
+      files: false,
+      cover: false,
+      splice: false,
+    },
+  })
 }
 
 /** The number beside a tab. */
@@ -233,18 +281,3 @@ export function tabCounts(counts: CardCounts): Partial<Record<Tab, TabCount>> {
   }
   return shown
 }
-
-/**
- * The tabs a person may make the card open on.
- *
- * Every tab but the ones a single kind's making draws - the board, the
- * cover, the frame, the splice. The rest are what a person lives in whatever
- * the work: one who opens every card on Versions keeps that habit, and a
- * work without the tab - a song has no Releases since v0.86 - opens on the
- * overview instead (`WorkCard`). The choice is a machine setting
- * (`cardView`), because where a card opens is a habit of the person, not a
- * fact of the craft.
- */
-export const DEFAULT_TAB_CHOICES: readonly Tab[] = TABS.filter(
-  (tab) => !(['scenes', 'cover', 'frame', 'cuts'] as readonly Tab[]).includes(tab),
-)

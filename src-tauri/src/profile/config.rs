@@ -343,6 +343,16 @@ pub struct WorkKind {
     /// v0.86.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub made_title: Option<Label>,
+    /// The tab a work of this kind opens on when the address names none:
+    /// `versions` for a song lived in through its text, `scenes` for a short
+    /// made on its board. The word is the window's tab id and is not checked
+    /// against a list here, for the reason a widget id is not: a tab this
+    /// build does not draw, or one a work of the kind has not got, opens the
+    /// overview instead. Absent is the overview. On the profile rather than
+    /// the machine since v0.90.1 - where a card opens is read per kind, and
+    /// the kinds are the craft's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub open_on: Option<String>,
 }
 
 impl WorkKind {
@@ -361,6 +371,7 @@ impl WorkKind {
             blocks_before_v088: Vec::new(),
             frame: false,
             made_title: None,
+            open_on: None,
         }
     }
 
@@ -3720,6 +3731,35 @@ mod tests {
         );
         assert!(is_cover_format("16:9") && is_cover_format("1:1"));
         assert!(!is_cover_format("16:0") && !is_cover_format("16x9") && !is_cover_format(":9"));
+    }
+
+    /// Where a work of a kind opens is a word the document keeps as written:
+    /// absent from a document that never chose, and back as it went out.
+    #[test]
+    fn a_kind_keeps_the_tab_its_works_open_on() {
+        let song = studio().kind("song").unwrap().clone();
+        assert_eq!(
+            song.open_on, None,
+            "a kind that never chose opens the overview"
+        );
+        let written = serde_json::to_value(&song).unwrap();
+        assert!(
+            written.get("open_on").is_none(),
+            "absent stays absent: {written}"
+        );
+
+        let mut chosen = song.clone();
+        chosen.open_on = Some("versions".into());
+        let written = serde_json::to_value(&chosen).unwrap();
+        assert_eq!(written["open_on"], "versions");
+        let read: WorkKind = serde_json::from_value(written).unwrap();
+        assert_eq!(read.open_on.as_deref(), Some("versions"));
+
+        // A tab a later build draws is kept, not refused: the window falls
+        // back from a word it does not know.
+        let mut config = studio();
+        config.work_kinds[0].open_on = Some("a-tab-from-tomorrow".into());
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
     }
 
     #[test]
