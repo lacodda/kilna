@@ -43,6 +43,10 @@ tempfile = "3"
 # Generates src/lib/api/generated/ from the Rust types that cross IPC, so the
 # wire shape has one source instead of a hand-kept TypeScript twin (ADR 0003).
 ts-rs = { version = "12", features = ["serde-json-impl"] }
+# The language pack's dictionaries - the stress of three million Russian word
+# forms, the frequency of their stems - are finite-state maps read where they
+# lie in the binary, with no loading and no second copy in memory (ADR 0053).
+fst = "0.4"
 
 [dev-dependencies]
 tempfile = "3"

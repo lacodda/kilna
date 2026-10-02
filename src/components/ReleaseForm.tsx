@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ScheduledRelease } from '@/lib/api/types'
 import { isWebLink } from '@/lib/link'
-import { draftOf, rebase, sameDraft, type ReleaseDraft } from '@/lib/releaseForm'
+import { draftOf, localZone, rebase, sameDraft, type ReleaseDraft } from '@/lib/releaseForm'
 import { say, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Select } from '@/components/AppSelect'
@@ -85,6 +85,9 @@ export function ReleaseForm({
         className,
       )}
     >
+      {/* The place: chosen when the publication is made, changed until it
+          goes out - what went out on one platform did not go out on another
+          (v0.90). */}
       <FieldGroup label={t('releases.kind')} className={cn(row && 'w-44')}>
         <Select
           aria-label={t('releases.kind')}
@@ -92,6 +95,7 @@ export function ReleaseForm({
           value={value.kind}
           onChange={(kind) => settle({ kind })}
           options={options}
+          disabled={release.status === 'released'}
         />
       </FieldGroup>
 
@@ -129,6 +133,22 @@ export function ReleaseForm({
           </Checkbox>
         )}
       </FieldGroup>
+
+      {/* The hour the platform is told, for the places that ask: in the
+          release's zone, the machine's own for a first time typed. */}
+      <Field
+        label={t('calendar.slotTime')}
+        help={value.time === '' ? undefined : (release.time_zone ?? localZone()).replace(/_/g, ' ')}
+        className={cn(row && 'w-28')}
+      >
+        <Input
+          type="time"
+          value={value.time}
+          onChange={(event) => change({ time: event.target.value })}
+          onBlur={() => onSettle?.(value)}
+          aria-label={t('calendar.slotTime')}
+        />
+      </Field>
 
       <Field
         label={t('calendar.urlPrompt')}

@@ -86,7 +86,7 @@ its shorts `short` works. `collection_kinds` stay on the profile.
 `release_kinds`: a song is the thing - its text, its style, its score - and it
 goes out as what is [made from it](/kilna/guides/made-from/). Its status is
 read from those works' releases (see [Statuses](/kilna/guides/statuses/)), its
-card has no Releases or Files tab, its overview lists its publications, and its
+card has no Files tab and no release, its overview lists its publications, and its
 comments are summed up from theirs. A release planned on a kind with no door is
 refused with that reason.
 
@@ -96,7 +96,7 @@ A work kind may also say:
 | --- | --- | --- |
 | `cover` | boolean, optional | Its works go out under a cover built in the [constructor](/kilna/guides/the-cover/): a picture, a negative and a title written from what is chosen. The card draws a **Cover** tab. Absent is no cover. See [below](#shot_types-scene_blocks-and-cover). |
 | `frame` | boolean, optional | Its works play under one picture for their whole length - an audio release on a video platform - and so have a [frame](/kilna/guides/files-and-covers/#the-frame): a still, a loop of what moves in it, and a negative. The card draws a **Frame** tab. Absent is no frame. |
-| `made_title` | string or map, optional | What a work of this kind is called when it is made from another: `{title}` is the source's title and `{n}` its number among the works of this kind made from the same source - Studio's short is `{ "en": "{title} · short {n}", "ru": "{title} · шортс {n}" }`. A template without `{n}` numbers only the second and later ones ("— clip", "— clip 2"). Written in the window's language when the work is made. Absent means the source's title as it is. |
+| `made_title` | string or map, optional | What a work of this kind is called when it is made from another: `{title}` is the title of what it is all made from - the song, even for a short cut from its clip - and `{n}` its number among the works of this kind made from it. Studio's are one string for every language: `"{title} (video)"`, `"{title} (audio)"`, `"{title} (short)"`. A template without `{n}` numbers only the second and later ones, inside a closing bracket when it ends with one: *Tide (short)*, *Tide (short 2)*. A title one of them already has is skipped. A map per language is still read, in the window's language. Absent means the source's title as it is. |
 
 The window's order of `work_kinds` is the order the **Make…** menu lists
 them in.
@@ -213,6 +213,7 @@ goes out under, the text beneath it, the words it is found by:
 | `template` | What the field is filled with when generated, in the placeholder language [below](#template-placeholders). Absent means the field is only ever typed by hand. |
 | `hint` | A line under the box saying what goes in it. |
 | `limit` | How many characters the destination accepts. Counted beside the box, never enforced — kilna is not the authority on what a platform takes this month. |
+| `suffix` | A tail the value always ends with, whoever writes the rest: Studio's audio YouTube title keeps `" (audio)"`. The release keeps it at every write - typed, generated, proposed, replayed - and takes it off when the release moves to a place that keeps none. An empty value stays empty; within `limit`, the tail is what stays. |
 
 A kind with no `fields` says nothing about itself, and its releases show no
 boxes. That is the state of every profile written before the field existed; a
@@ -400,6 +401,7 @@ any given work:
 | `kinds` | string[], optional | The work kinds that have the field. Absent or empty is every kind. |
 | `options` | kind entries, for `choice` | The answers a choice offers, `{ "key", "label" }`, stored by key. Required for a choice and refused on any other type. |
 | `default` | value, optional | What a new work of a kind that has the field starts with: an option's key for a choice. |
+| `own` | boolean, optional | A fact of the work's own media, never taken from the work it is made from: Studio's `duration` - a short is not as long as the clip it is cut from. Absent is `false`. |
 
 Studio's `variant` is a choice for `audio` alone - the original, the
 instrumental, a slowed or a sped-up version, a remix - starting at the
@@ -416,8 +418,8 @@ original:
 }
 ```
 
-A work made from another takes the source's fields its own kind has, and the
-defaults of the rest.
+A work made from another takes the source's fields its own kind has - except
+the ones marked `own` - and the defaults of the rest.
 
 `multiline` is for a field that runs to paragraphs — a premise, a note on where
 a piece came from. It gets a text area spanning the panel rather than a
@@ -564,6 +566,7 @@ The independent bodies a work carries:
 | `comments_on` | string, optional | The role this one discusses. |
 | `body` | `plain` or `markdown`, optional | How a body in this role is read. Defaults to `plain`. |
 | `counts_as_version` | boolean, optional | Whether a body in this role is a time the work was written. Defaults to "yes, unless it comments on something". |
+| `sung` | boolean, optional | Whether a body in this role is sung: its words are checked for where the stress falls and how you sing them, the stress gesture and "show the stresses" work in it, and a public text made from it has the marks taken off. Studio's `lyrics` is. Absent is `false`. See [Singing a text](/kilna/guides/singing-a-text/). |
 
 `body` says how the text is *shown*, never how it is stored: a `plain` role is
 a monospace column exactly as typed — lyrics, a style prompt — and a `markdown`
@@ -684,6 +687,24 @@ How many ideas for its cover a publication is given when it is made -
 release meta. A number from 0 to 5; 0 asks for none; absent is 3. Set in
 **Settings → Profile**. Added in v0.89: a document without it is the same
 document.
+
+## `guard`
+
+How the [guard of repeats](/kilna/guides/the-guard-of-repeats/) reads its two
+words:
+
+```jsonc
+{ "window_days": 90, "rare_rank": 20000, "rare_in_works": 2 }
+```
+
+| Field | Default | Meaning |
+| --- | --- | --- |
+| `window_days` | 90 | How close another song's day is too close: a rare word it shares is red inside, orange outside. |
+| `rare_rank` | 20000 | From which rank of the language's stems a Russian word is rare, by the language pack's frequency list. A stem the list does not hold is rarer than all of them. A word in another script is rare only when the bank keeps it. |
+| `rare_in_works` | 2 | In how many of your works a word may stand and still be rare; past it the word is your own, and spent only if the register says so. |
+
+Absent means all three defaults. Set in **Settings → Profile**. Added in
+v0.90: a document without it is the same document.
 
 ## `rhythm`
 
@@ -1003,6 +1024,15 @@ a description in English for a picture generator, written from the settled
 public facts of the kind's `describe_from` sections — the answer is kept as
 the card's description). See [The canon](/kilna/guides/the-canon/).
 
+An action with `"produces": "words"` answers with a package of words for
+the record: meanings and the works they are in, words for the bank, ways of
+singing, terms for the register - the same shape an agent's
+`propose_words` gives, kept whole or word by word. kilna appends the shape
+of the json block. Studio ships `meanings` (on a song): the images and
+scenes it shares with the songs that went out, named for the register's
+entries where they are one. See
+[The guard of repeats](/kilna/guides/the-guard-of-repeats/#meanings).
+
 An action with `"scope": "release"` and `"produces": "release"` writes what a
 release goes out under. kilna appends every field of the release's kind with
 its word, its shape, its hint and its limit, and asks for a json block of
@@ -1105,6 +1135,17 @@ proposes.
   style dictionary by place with when to use them and the channel's house
   styles marked, the palette, the variants of the mark with what each means,
   the heroes of the canon, and what the channel bans in a picture.
+- `{origin}` — the title of what the work is all made from: the song, for
+  its clip, its audio and a short cut from the clip; the work's own title
+  when it is made from nothing. What a release's title reads: a
+  publication's own name (*Tide (audio)*) is kilna's word for it, not the
+  audience's.
+- `{released}` — the songs that went out, newest first, each with its day and
+  its words, the song the action is about left out: what the `meanings`
+  action reads a song against.
+- `{words}` — the fresh words of your [bank of words](/kilna/guides/the-bank-of-words/),
+  by block, each with how it is sung; `{words:space}` — one block's, by its
+  name.
 - `{donor}` — the first work this one was [made from](/kilna/guides/made-from/),
   as *“Harbour lights” (song)*; `{donor:lyrics}`, `{donor:style}`, … — the
   latest revision of that role on the donor. A work made from nothing refuses

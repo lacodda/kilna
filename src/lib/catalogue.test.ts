@@ -845,7 +845,6 @@ function release(
   return {
     kind: 'audio',
     status: 'planned',
-    title: null,
     scheduled_at: '2026-09-22',
     released_at: null,
     url: null,

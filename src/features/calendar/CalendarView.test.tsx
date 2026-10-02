@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, screen, within } from '@testing-library/react'
-import type { Release } from '@/lib/api/types'
+import type { Release, RepeatFinding, RepeatMark } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, IDS, NOW, studio } from '@/test/workspace'
+import en from '@/i18n/locales/en.json'
 
 /*
  * Taking a date goes through the contest, never through a plain edit.
@@ -33,7 +34,7 @@ beforeEach(() => {
       const release = workspace.releases.find((r) => r.id === id)!
       return { ...release, scheduled_at: null, status: 'planned' } satisfies Release
     },
-    preview_schedule: () => ({ verdict: 'empty', holder_title: null }),
+    preview_schedule: () => ({ verdict: 'empty', holder_title: null, repeats: [] }),
     update_release: () => {
       throw new Error('a date was written without the contest')
     },
@@ -112,6 +113,102 @@ describe('the calendar', () => {
     })
     await settled(client)
     expect(backend.argsOf('unschedule_release')).toEqual([{ id: IDS.audioRelease }])
+  })
+
+  it('warns before and as a release lands on a day it repeats a song on, and lands it', async () => {
+    // The guard of repeats (ADR 0054): on the 24th the audio release's song
+    // would say a rare word "Tide" said on the 20th. A warning, not a refusal.
+    const repeat = {
+      word: 'пульсар',
+      level: 'red',
+      why: 'rare',
+      neighbour_id: 'w-tide',
+      neighbour_title: 'Tide',
+      day: '2026-09-20',
+      booked: false,
+      also: 0,
+      kept: false,
+    } satisfies RepeatFinding
+    backend.answer('preview_schedule', ({ slot }) => ({
+      verdict: 'empty',
+      holder_title: null,
+      repeats: slot === '2026-09-24' ? [repeat] : [],
+    }))
+    const warning = 'Too close: пульсар — in “Tide”, out Sep 20'
+
+    const { client, container } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+    const chip = await within(main).findByText('Paper Lanterns — audio', { exact: true })
+    const day = container.querySelector<HTMLElement>('[data-day="2026-09-24"]')!
+    Object.defineProperty(document, 'elementFromPoint', { value: () => day, configurable: true })
+    // The chip rests over the day while the dry run answers. jsdom lays
+    // nothing out, so every pointer is past the month's edge and the month
+    // would turn under a chip held long enough; a month laid out wide keeps
+    // the pointer in its middle, as it is in the window.
+    const wide = { left: 0, top: 0, right: 1_000, bottom: 800, width: 1_000, height: 800 }
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      ...wide,
+      x: 0,
+      y: 0,
+      toJSON: () => wide,
+    })
+
+    // Held over the day: the day says it, before anything is written.
+    fireEvent.pointerDown(chip, { button: 0, clientX: 300, clientY: 300 })
+    await act(async () => {
+      fireEvent.pointerMove(window, { clientX: 400, clientY: 400 })
+    })
+    fireEvent.pointerEnter(day)
+    expect(await within(day).findByText(warning)).toBeInTheDocument()
+    expect(backend.argsOf('schedule_release')).toEqual([])
+
+    // Let go: it lands all the same, and the toast says what it repeats.
+    await act(async () => {
+      fireEvent.pointerUp(window, { clientX: 400, clientY: 400 })
+    })
+    await settled(client)
+    expect(backend.argsOf('schedule_release')).toEqual([
+      { id: IDS.audioRelease, slot: '2026-09-24' },
+    ])
+    // Said by the toast now - the day's line went with the chip in the air.
+    expect(within(day).queryByText(warning)).toBeNull()
+    expect(await screen.findByText(warning)).toBeInTheDocument()
+    expect(screen.getByText(en.toast.releaseMoved)).toBeInTheDocument()
+  })
+
+  it("wears its song's mark on the chip and says it in the chip's card", async () => {
+    backend.answer('repeat_marks', () => [
+      {
+        work_id: IDS.audio,
+        song_id: IDS.song,
+        level: 'orange',
+        top: {
+          word: 'кофе',
+          level: 'orange',
+          why: 'register',
+          neighbour_id: 'w-tide',
+          neighbour_title: 'Tide',
+          day: '2026-08-02',
+          booked: false,
+          also: 0,
+          kept: false,
+        },
+        count: 1,
+      } satisfies RepeatMark,
+    ])
+    const { client } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+    const chip = (await within(main).findByText('Paper Lanterns — audio', { exact: true })).closest(
+      'button',
+    )!
+
+    expect(
+      await within(chip).findByRole('img', {
+        name: 'Said before: spent: кофе — in “Tide”, out Aug 2',
+      }),
+    ).toHaveAttribute('data-repeat', 'orange')
   })
 
   it('returns a release to the queue when it is let go over the queue', async () => {

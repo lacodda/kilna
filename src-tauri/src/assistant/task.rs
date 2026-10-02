@@ -324,6 +324,7 @@ pub fn compose(
             );
         }
         Produces::Canon => prompt.push_str(&crate::canon::proposal::instruction(&profile.config)),
+        Produces::Words => prompt.push_str(crate::register::proposal::INSTRUCTION),
         // Only an action about a card describes one.
         Produces::CardPrompt => {
             return Err(
@@ -1556,7 +1557,7 @@ mod tests {
         )
         .unwrap();
         let made =
-            crate::actions::work::derive(&conn, &song.id, "audio", None, Some("en")).unwrap();
+            crate::actions::work::derive(&conn, &song.id, "audio", None, Some("en"), None).unwrap();
         let release_id = made.release_id.unwrap();
         crate::actions::release::set_fields(
             &conn,

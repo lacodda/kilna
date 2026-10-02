@@ -186,7 +186,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 NewRelease {
                     work_id: created.id.clone(),
                     kind: kind.into(),
-                    title: Some(demo.title.into()),
                     scheduled_at: None,
                     meta: None,
                     scheduled_time: None,

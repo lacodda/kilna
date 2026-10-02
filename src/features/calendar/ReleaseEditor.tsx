@@ -12,6 +12,7 @@ import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/AppDialog'
 import { ReleaseForm, useReleaseDraft } from '@/components/ReleaseForm'
+import { RepeatWarning } from '@/features/calendar/RepeatWarning'
 
 interface Props {
   release: ScheduledRelease | null
@@ -23,9 +24,10 @@ interface Props {
   onUnschedule: (releaseId: string) => void
 }
 
-/** What an edit made here disturbs: both sides of the calendar, and the
-    work's own list of releases. */
-const REFRESHED = [keys.calendar, keys.releaseQueue, keys.releases] as const
+/** What an edit made here disturbs: both sides of the calendar, the
+    work's own list of releases, and the guard of repeats, which reads the
+    days songs go out on (ADR 0054). */
+const REFRESHED = [keys.calendar, keys.releaseQueue, keys.releases, keys.register] as const
 
 /**
  * Editing a booking you already hold: its kind, its date and whether the date
@@ -117,6 +119,13 @@ export function ReleaseEditor({
           }}
         >
           <ReleaseForm release={release} value={draft} onChange={setDraft} />
+
+          {/* A day typed in place of the one it holds: what the release
+              would repeat there, before Save (ADR 0054). Only for a new day -
+              the one it holds already wears its mark on the month. */}
+          {draft.date !== (release.scheduled_at ?? '') && (
+            <RepeatWarning releaseId={release.id} day={draft.date} className="text-sm" />
+          )}
 
           {/* The chip's glyphs, in words: what this release still needs. Only
               gaps are worth a line — a ready release says nothing here. */}

@@ -511,21 +511,9 @@ fn neighbours(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<
     Ok(out)
 }
 
-/// What `work` is made from, all the way up: the nearest work up the chain
-/// that never goes out itself, or else the furthest one up.
+/// What `work` is made from, all the way up (`publication::origin`).
 fn song_of(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<Option<Work>> {
-    let mut root = None;
-    for id in crate::link::ancestors(conn, &work.id)? {
-        let Some(found) = crate::work::get(conn, &id)? else {
-            continue;
-        };
-        let doorless = !config.vocabulary(&found.kind).has_doors();
-        root = Some(found);
-        if doorless {
-            break;
-        }
-    }
-    Ok(root)
+    crate::publication::origin(conn, config, &work.id)
 }
 
 /// The board of `work`, drawn in the shape its cover is written for.

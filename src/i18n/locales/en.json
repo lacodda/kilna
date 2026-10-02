@@ -116,7 +116,32 @@
     "copyBody": "Copy the text",
     "bodyCopied": "The text is on the clipboard.",
     "lanes": "Role",
-    "commentary": "Commentary"
+    "commentary": "Commentary",
+    "stress": {
+      "title": "Stresses",
+      "kinds": {
+        "homograph": "two readings",
+        "unknown": "not in the dictionary",
+        "against": "against the dictionary",
+        "yo": "needs ё",
+        "unsung": "you sing it differently"
+      },
+      "hints": {
+        "homograph": "A homograph: the singer may read it either way. Which one is sung?",
+        "unknown": "The dictionary does not know this word, so the singer will guess. Mark the stress: Alt+click its vowel, or Alt+' with the caret in the word.",
+        "against": "The stress is marked where the dictionary never puts it.",
+        "yo": "Written with е where the word has ё - the singer will sing е.",
+        "unsung": "You sing this word another way. Write it the way it is sung."
+      },
+      "find": "Show it in the text",
+      "applyAll": "Apply all ({{count}})",
+      "applyAllHint": "Write in every answer that leaves nothing to choose: the ё spellings, the dictionary stresses, your own respellings. Homographs wait for you.",
+      "show": "Show the stresses: an accent over every stressed vowel, and the words that read two ways underlined",
+      "copyClean": "Copy without the singer's marks",
+      "cleanCopied": "Copied without the singer's marks.",
+      "homographs": "Homographs · {{count}}",
+      "homographsHint": "Words the singer may read either way - usually read right. Open them to choose a reading where it matters."
+    }
   },
   "nav": {
     "catalogue": "Catalogue",
@@ -371,23 +396,22 @@
     "queueAnyKind": "Any kind",
     "queueStage": "Stage reached",
     "queueAnyStage": "Any stage",
-    "queueNoMatch": "Nothing in the queue matches."
+    "queueNoMatch": "Nothing in the queue matches.",
+    "slotTime": "Time"
   },
   "releases": {
-    "kind": "Kind",
+    "kind": "Place",
     "add": "Plan a release",
-    "newKind": "Kind of release to plan",
     "delete": "Delete this release",
     "unscheduled": "not scheduled",
     "releasedOn": "released {{date}}",
-    "edit": "Edit this release",
     "actions": "Release actions",
     "copyLink": "Copy the link",
     "unmarkReleased": "It did not go out",
     "wentOutOn": "Went out on",
     "wentOutOnHint": "The day it shipped, if that is not today.",
     "linkLooksWrong": "That is not a web address, so it will not open.",
-    "none": "Nothing is planned for this work yet. Pick a kind above and add a release.",
+    "none": "This publication is not planned to go out yet. Pick where it goes and plan its release.",
     "meta": {
       "title": "What it goes out as",
       "none": "Nothing is written about a {{kind}} release. The profile decides what a release of each kind says about itself.",
@@ -448,7 +472,8 @@
       "writtenFields": "The release meta for {{kind}} is ready: {{fields}}",
       "open": "Open the release",
       "close": "Close"
-    }
+    },
+    "caption": "Release"
   },
   "score": {
     "history": "Scores · {{count}}",
@@ -725,7 +750,8 @@
       "reply": "A reply was drafted",
       "description": "A style description was written",
       "release": "Release meta was proposed",
-      "coverIdeas": "Ideas for a cover were proposed"
+      "coverIdeas": "Ideas for a cover were proposed",
+      "words": "Words were proposed"
     },
     "keepAsNote": "Keep as a note",
     "keepAsNoteTitle": "Keep as a note",
@@ -747,7 +773,8 @@
     "sendHint": "Send — Enter",
     "nothingAsked": "Nothing asked yet — a question starts in the box below.",
     "proposedCanon": "Proposed for the canon",
-    "proposedCardPrompt": "Proposed description"
+    "proposedCardPrompt": "Proposed description",
+    "proposedWords": "Words, proposed"
   },
   "links": {
     "sources": "Made from",
@@ -1194,7 +1221,17 @@
     "frameLine": "Works of this kind play under a frame for their whole length: a still picture and the loop of what moves in it.",
     "coverLine": "Works of this kind go out under a cover built in the constructor: a picture, a negative and a title, written from what is chosen.",
     "coverIdeas": "Ideas for the cover on “Make…”",
-    "coverIdeasHint": "When a clip, an audio or a short is made, the assistant proposes this many ideas for its cover, beside the release meta. 0 asks for none."
+    "coverIdeasHint": "When a clip, an audio or a short is made, the assistant proposes this many ideas for its cover, beside the release meta. 0 asks for none.",
+    "guard": "Guard of repeats",
+    "guardHint": "A song that has not gone out is held against every song out or booked. A rare word another song says within the window is red; a spent term of the register, or a rare word said long ago, is orange.",
+    "guardWindow": "Window",
+    "guardWindowUnit": "days: closer than this is red",
+    "guardRank": "Rare from rank",
+    "guardRankUnit": "in the language’s word list",
+    "guardWorks": "Rare in at most",
+    "guardWorksUnit": "of your works",
+    "guardDefaults": "Defaults: {{window}} days, rare from rank {{rank}}, in at most {{works}} works.",
+    "guardReset": "Use the defaults"
   },
   "fields": {
     "choiceNone": "Not set"
@@ -1317,7 +1354,8 @@
       "style": "Style",
       "fact": "Fact",
       "term": "Term",
-      "idea": "Idea"
+      "idea": "Idea",
+      "block": "Block of words"
     }
   },
   "journal": {
@@ -1410,7 +1448,6 @@
     "recent": "Recent",
     "seeAll": "See all",
     "nothingRecent": "Nothing has happened yet.",
-    "upgrade.doorsMoved": "{{count}} releases moved onto works of their own: a clip is a video, a short is a short.",
     "note.promoted": "A note became “{{title}}”.",
     "comment.deleted": "Comment “{{label}}” deleted.",
     "style.deleted": "Style “{{label}}” deleted.",
@@ -1421,11 +1458,13 @@
     "proposal.release": "{{client}} proposed what “{{title}}” goes out under.",
     "release.metaWritten_one": "{{count}} field of “{{title}}” written by its action.",
     "release.metaWritten_other": "{{count}} fields of “{{title}}” written by its action.",
-    "upgrade.publicationsMoved_one": "Songs no longer go out themselves: {{count}} release moved onto an audio work ({{created}} made, {{converted}} turned from videos, {{linked}} linked by name).",
-    "upgrade.publicationsMoved_other": "Songs no longer go out themselves: {{count}} releases moved onto audio works ({{created}} made, {{converted}} turned from videos, {{linked}} linked by name).",
-    "upgrade.publicationDisputed": "The audio of “{{title}}” holds more than one release through one door - keep one.",
     "proposal.coverIdeas": "{{client}} proposed ideas for the cover of “{{title}}”.",
-    "idea.deleted": "Idea “{{label}}” taken off the board."
+    "idea.deleted": "Idea “{{label}}” taken off the board.",
+    "upgrade.publicationsRenamed_one": "Publications are named the new way: {{count}} renamed, “Song (video)”, “Song (audio)”, “Song (short 2)”; {{tails}} titles gained their tail.",
+    "upgrade.publicationsRenamed_other": "Publications are named the new way: {{count}} renamed, “Song (video)”, “Song (audio)”, “Song (short 2)”; {{tails}} titles gained their tail.",
+    "upgrade.renameOnPlatform": "Change the title of “{{title}}” where it went out: “{{was}}” → “{{now}}”.",
+    "block.deleted": "Block “{{label}}” taken out of the bank of words.",
+    "proposal.words": "{{client}} proposes words for the bank and the register."
   },
   "card": {
     "tab": {
@@ -1436,7 +1475,6 @@
       "frame": "Frame",
       "cuts": "Cut",
       "score": "Score",
-      "releases": "Releases",
       "files": "Files",
       "links": "Links",
       "notes": "Notes",
@@ -1488,7 +1526,8 @@
     "group": {
       "going": "Going places",
       "moving": "Moving around",
-      "everywhere": "Everywhere"
+      "everywhere": "Everywhere",
+      "sung": "In a sung text, while writing"
     },
     "action": {
       "search": "Find anything",
@@ -1496,9 +1535,12 @@
       "forward": "Forward",
       "help": "This list",
       "close": "Close what is open",
-      "undo": "Take back the last change"
+      "undo": "Take back the last change",
+      "stressVowel": "Mark the stress on the vowel clicked; again takes it off, and е turns to Е, ё and back",
+      "stressCaret": "Mark the stress on the vowel at the caret"
     },
-    "typing": "Letter shortcuts stand aside while you are typing; the ones with a modifier keep working — except Ctrl+Z, which belongs to the field you are in."
+    "typing": "Letter shortcuts stand aside while you are typing; the ones with a modifier keep working — except Ctrl+Z, which belongs to the field you are in.",
+    "click": "Click"
   },
   "undo": {
     "nothing": "Nothing to undo",
@@ -1553,7 +1595,14 @@
     "term.link": "naming a work for a term",
     "term.unlink": "letting a work go from a term",
     "idea.create": "putting an idea on the board",
-    "idea.update": "a verdict on an idea"
+    "idea.update": "a verdict on an idea",
+    "block.create": "making a block",
+    "block.rename": "renaming a block",
+    "block.move": "the order of blocks",
+    "block.add": "putting a word in a block",
+    "block.remove": "taking a word out of a block",
+    "repeat.keep": "keeping a repeat",
+    "repeat.unkeep": "counting a repeat again"
   },
   "stage": {
     "label": "Stage",
@@ -1939,10 +1988,8 @@
     "copy": "Copy",
     "edit": "Edit",
     "compareWith": "Compare with revision {{number}}",
-    "noReleases": "Nothing is planned to go out yet.",
     "more_one": "and {{count}} more",
     "more_other": "and {{count}} more",
-    "releaseWaits": "Waits for a day or a draft",
     "linkOne": "Link or make one",
     "noLinks": "Made from nothing, and nothing made from it yet.",
     "changedSince": "changed since",
@@ -2086,7 +2133,9 @@
       "badTimeZone": "“{{value}}” is not a time zone name — write it as Region/City, like Europe/Lisbon.",
       "noSlotToPin": "A release with no date has no slot to pin.",
       "badDay": "“{{value}}” is not a calendar day.",
-      "noDoors": "A {{kind}} does not go out itself: make an audio, a clip or a short from it, and plan the release there."
+      "noDoors": "A {{kind}} does not go out itself: make an audio, a clip or a short from it, and plan the release there.",
+      "onePerPublication": "“{{title}}” already has its release. A publication goes out once: for another place, make another publication from the same song.",
+      "placeAfterOut": "“{{title}}” already went out; where it went cannot change now."
     },
     "scene": {
       "noStoryboard": "A {{kind}} has no storyboard: the kind names no kinds of shot and no prompt blocks.",
@@ -2233,9 +2282,7 @@
       "cardPromptNotProposable": "A card's description is written by the action on the card, which knows the facts it answers to.",
       "unknownLens": "A lens is cover, work or public, not «{{lens}}».",
       "unknownNoteState": "No note state “{{state}}”: fresh, used, parked or dropped.",
-      "releaseOtherWork": "The release “{{release}}” is not one of this work’s.",
       "workHasNoRelease": "“{{title}}” has no release to write for. A song goes out as what is made from it: propose for its clip, audio or short.",
-      "whichRelease": "“{{title}}” has more than one release; name it by id: {{ids}}.",
       "releaseFieldsUnread": "The fields could not be read: {{why}}.",
       "ideasNotArray": "“ideas” must be a list of at least one idea."
     },
@@ -2365,6 +2412,21 @@
       "tooMany": "One run gives at most {{most}} ideas.",
       "nothingAsked": "Ask for at least one idea, or write your own to be worked out.",
       "noIdeas": "The answer holds no idea with words or a scene."
+    },
+    "block": {
+      "needsName": "A block needs a name.",
+      "exists": "There is a block called “{{name}}” already."
+    },
+    "words": {
+      "noWords": "There are no words in this: give a list of words, or {\"words\": [...]}.",
+      "unknownBlock": "The bank has no block called “{{block}}”.",
+      "unread": "An item that reads as no word: {{why}}.",
+      "noLetters": "“{{word}}” has no letters.",
+      "noSuchWork": "“{{work}}”, named for “{{word}}”, is no work here.",
+      "workGone": "“{{word}}” names “{{title}}”, which is no longer there."
+    },
+    "repeat": {
+      "needsWord": "Say which word is kept."
     }
   },
   "skip": {
@@ -2690,7 +2752,6 @@
     "saveFailed": "Could not save the term.",
     "open": "Open",
     "search": "Search the register",
-    "allStrictness": "All",
     "anyKind": "Any kind",
     "empty": "The register is empty",
     "emptyBody": "Write down what the works have spent — here, or from a text: select a word in a version and press To the register.",
@@ -2715,7 +2776,18 @@
     "inText": "Register",
     "chip": "{{word}}: ×{{count}} here, in {{uses}} works — open it in the register",
     "toRegister": "To the register",
-    "toRegisterHint": "Enter the selected word into the register of repeats"
+    "toRegisterHint": "Enter the selected word into the register of repeats",
+    "facet": "Facet",
+    "facets": {
+      "all": "All",
+      "ban": "Banned",
+      "limit": "Limited",
+      "rare": "Rare",
+      "bank": "In the bank",
+      "sung": "Sung their way"
+    },
+    "notSpent": "Not spent",
+    "notSpentHint": "A word kept for the bank or for how it is sung, not marked in the texts as spent"
   },
   "publications": {
     "caption": "Publications",
@@ -2837,5 +2909,131 @@
       "place": "the title’s place"
     },
     "preview": "What will be sent"
+  },
+  "words": {
+    "bank": "Bank of words",
+    "notBanked": "Not in the bank",
+    "states": {
+      "fresh": "Fresh",
+      "parked": "Set aside",
+      "dropped": "Dropped"
+    },
+    "sung": "How it is sung",
+    "sungHelp": "Where a form is sung otherwise than it is written: the stress as a capital vowel (пульсАр), a respelling as a changed letter (Марсель → МарсЭль). Public text gets the written form back.",
+    "written": "Written",
+    "sungAs": "Sung",
+    "addSung": "How a form is sung",
+    "removeSung": "Remove this way of singing",
+    "view": "Words",
+    "allWords": "All words",
+    "noBlock": "In no block",
+    "blocks": "Blocks",
+    "noBlocks": "No blocks yet",
+    "noBlocksBody": "Name one below, then drag words onto it.",
+    "newBlock": "New block — Enter makes it",
+    "blockName": "Block name",
+    "blockMenu": "What to do with the block",
+    "rename": "Rename",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "moveBlock": "Drag to put it elsewhere in the order",
+    "deleteBlock": "Delete the block",
+    "blockDeleted": "Block “{{name}}” deleted. Its words stay in the bank.",
+    "blockFailed": "Could not change the block.",
+    "add": "Add words: one, or a list by commas — Enter keeps them",
+    "addTo": "Add words to “{{block}}”: one, or a list by commas — Enter keeps them",
+    "bankFailed": "Could not put the words in the bank.",
+    "saveFailed": "Could not save the word.",
+    "known_one": "{{count}} word was in the register already: it is fresh in the bank now.",
+    "known_other": "{{count}} words were in the register already: they are fresh in the bank now.",
+    "empty": "The bank is empty",
+    "emptyBody": "Type a word above and press Enter, or paste a list.",
+    "blockEmpty": "No words in this block",
+    "blockEmptyBody": "Type them above, or drag words onto the block on the left.",
+    "looseEmpty": "Every word is in a block.",
+    "sungIn_one": "sung in {{count}} work",
+    "sungIn_other": "sung in {{count}} works",
+    "sungInHint": "The works whose current text says it",
+    "sungForms": "How it is sung",
+    "stateMenu": "Where it stands in the bank",
+    "takeOut": "Take out of the bank",
+    "carry": "Drag onto a block on the left",
+    "putIn": "Put in a block",
+    "putNowhere": "It is in every block already",
+    "put": "“{{word}}” is in “{{block}}” now.",
+    "removeFromBlock": "Remove from this block",
+    "open": "Open in the register",
+    "fromTexts": "Find in my texts",
+    "fromTextsTitle": "Found in your texts",
+    "fromTextsBody": "Stresses and respellings your sung texts already write, where the dictionary reads the word otherwise. Kept, they tell every text after them how the word is sung.",
+    "fromTextsNone": "Your texts say nothing the dictionary does not already know",
+    "keep": "Keep {{n}}",
+    "keepAll": "Keep all",
+    "keepItem": "Keep “{{word}}”",
+    "kept_one": "{{count}} word kept.",
+    "kept_other": "{{count}} words kept.",
+    "keepFailed": "Could not keep the words.",
+    "toBank": "to the bank",
+    "toBlock": "to the bank, block “{{block}}”",
+    "toNewBlock": "to the bank, a new block “{{block}}”",
+    "toRegister": "to the register: {{strictness}}",
+    "forms": "forms: {{forms}}",
+    "works": "works: {{works}}",
+    "workTitle": "“{{title}}”",
+    "leftOut": "Left out",
+    "keptFromChat": "Words kept.",
+    "keptMark_one": "{{count}} word kept.",
+    "keptMark_other": "{{count}} words kept.",
+    "openBank": "Open the bank",
+    "inBlocks_one": "Block: {{blocks}}",
+    "inBlocks_other": "Blocks: {{blocks}}",
+    "seenIn_one": "Sung this way in {{titles}}",
+    "seenIn_other": "Sung this way in {{titles}} - {{count}} songs in all"
+  },
+  "repeats": {
+    "caption": "Repeats",
+    "captionOf": "Repeats · {{title}}",
+    "level": {
+      "red": "Said lately",
+      "orange": "Said before"
+    },
+    "mark": "{{level}}: {{hint}}",
+    "markMore_one": "{{level}}: {{hint}}, and {{count}} more",
+    "markMore_other": "{{level}}: {{hint}}, and {{count}} more",
+    "hint": {
+      "out": "{{word}} — in “{{title}}”, out {{day}}",
+      "booked": "{{word}} — in “{{title}}”, booked {{day}}",
+      "spent": {
+        "out": "spent: {{word}} — in “{{title}}”, out {{day}}",
+        "booked": "spent: {{word}} — in “{{title}}”, booked {{day}}"
+      }
+    },
+    "count_one": "{{count}} repeat",
+    "count_other": "{{count}} repeats",
+    "why": {
+      "register": "Spent term",
+      "rare": "Rare word"
+    },
+    "whyHint": {
+      "register": "A term of the register: spent, whenever it was said.",
+      "rare": "A rare word: the closer the other song, the louder."
+    },
+    "out": "out {{day}}",
+    "booked": "booked {{day}}",
+    "keep": "I know, keep it",
+    "keepHint": "The word stays marked here and stops counting toward the song’s mark.",
+    "unkeep": "Count it again",
+    "unkeepHint": "The word counts toward the song’s mark again.",
+    "kept": "kept",
+    "keepFailed": "Could not keep the word",
+    "unkeepFailed": "Could not count the word again",
+    "allKept": "Every repeat is kept: the song wears no mark.",
+    "tooClose": "Too close: {{hint}}",
+    "tooCloseMore_one": "Too close: {{hint}}, and {{count}} more",
+    "tooCloseMore_other": "Too close: {{hint}}, and {{count}} more",
+    "also_one": "{{hint}}, and in {{count}} more song",
+    "also_other": "{{hint}}, and in {{count}} more songs",
+    "alsoIn_one": "+{{count}} song",
+    "alsoIn_other": "+{{count}} songs"
   }
 }

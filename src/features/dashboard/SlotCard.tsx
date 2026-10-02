@@ -4,6 +4,7 @@ import { formatDay } from '@/lib/format'
 import { useCovers } from '@/lib/useCovers'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
+import { WorkRepeatMark } from '@/components/RepeatMark'
 
 /**
  * One of the nearest slots: the cover, the work, what goes out and when.
@@ -29,7 +30,7 @@ export function SlotCard({
     <Button
       variant="ghost"
       size={null}
-      onClick={() => onSelect(release.work_id, 'releases')}
+      onClick={() => onSelect(release.work_id, 'overview')}
       className="flex-col items-stretch gap-0 overflow-hidden rounded-lg bg-raise text-left"
     >
       <span
@@ -38,7 +39,14 @@ export function SlotCard({
         style={{ background: coverImageFor(release.work_id, covers.get(release.work_id)) }}
       />
       <span className="block px-3 pt-2 pb-2.5">
-        <span className="block truncate text-sm font-semibold text-text">{release.work_title}</span>
+        {/* The title and the guard's mark of its song (ADR 0054) on one line:
+            the mark is about the work the title names. */}
+        <span className="flex items-center gap-1.5">
+          <span className="min-w-0 truncate text-sm font-semibold text-text">
+            {release.work_title}
+          </span>
+          <WorkRepeatMark workId={release.work_id} />
+        </span>
         <span className="block truncate font-mono text-xs text-faint">
           {labelOf(allOf(profile.config, 'release_kinds'), release.kind)} ·{' '}
           {formatDay(release.scheduled_at as string)}

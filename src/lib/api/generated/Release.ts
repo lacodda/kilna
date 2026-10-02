@@ -5,7 +5,7 @@ import type { JsonValue } from "./serde_json/JsonValue";
  * What ships, where and when. The predecessor spread this across three tables;
  * here it is one row per unit of release.
  */
-export type Release = { id: string, work_id: string, kind: string, status: string, title: string | null, 
+export type Release = { id: string, work_id: string, kind: string, status: string, 
 /**
  * Calendar slot. `None` means queued but unscheduled.
  */

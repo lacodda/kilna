@@ -186,21 +186,18 @@ mod tests {
         lyrics(&mut conn, &song, "one line\ntwo lines");
         lyrics(&mut conn, &other, "not this one");
 
-        for kind in ["youtube", "premiere"] {
-            release::create(
-                &conn,
-                NewRelease {
-                    work_id: video.clone(),
-                    kind: kind.into(),
-                    title: None,
-                    scheduled_at: None,
-                    meta: None,
-                    scheduled_time: None,
-                    time_zone: None,
-                },
-            )
-            .unwrap();
-        }
+        release::create(
+            &conn,
+            NewRelease {
+                work_id: video.clone(),
+                kind: "youtube".into(),
+                scheduled_at: None,
+                meta: None,
+                scheduled_time: None,
+                time_zone: None,
+            },
+        )
+        .unwrap();
 
         // The song is a source of the clip: one link, counted on both cards
         // and in opposite directions.
@@ -279,7 +276,7 @@ mod tests {
         assert_eq!(song_counts.history, before + 1);
 
         let video_counts = counts(&conn, &video).unwrap();
-        assert_eq!(video_counts.releases, 2);
+        assert_eq!(video_counts.releases, 1);
         assert_eq!(video_counts.comments, 2, "the clip's own");
         assert_eq!(video_counts.sources, 1);
         assert_eq!(video_counts.derived, 0);

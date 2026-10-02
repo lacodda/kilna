@@ -87,6 +87,10 @@ pub enum Produces {
     /// Ideas for a publication's cover, each a concept the constructor
     /// shows, in a block the application reads (v0.89, ADR 0050).
     CoverIdeas,
+    /// Words for the record - meanings and the works they are in, words for
+    /// the bank, ways of singing - in a block the application reads (v0.90,
+    /// ADR 0052).
+    Words,
 }
 
 /// What an action is about.
@@ -157,6 +161,7 @@ impl PromptTemplate {
             Some("card-prompt") => Produces::CardPrompt,
             Some("release") => Produces::Release,
             Some(COVER_IDEAS) => Produces::CoverIdeas,
+            Some("words") => Produces::Words,
             Some(value) => {
                 if let Some(role) = value.strip_prefix("version:") {
                     return if role.trim().is_empty() {
@@ -261,12 +266,19 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "neighbours"
             | "fields"
             | "source"
+            | "origin"
+            | "released"
+            | "stress"
             | "release"
             | "releases"
             | "ideas"
             | "choices"
     ) || name.strip_prefix("role:").is_some_and(|r| !r.is_empty())
         || name.strip_prefix("donor:").is_some_and(|r| !r.is_empty())
+        || name == "words"
+        || name
+            .strip_prefix("words:")
+            .is_some_and(|b| !b.trim().is_empty())
         || canon_lens(name).is_some()
 }
 
@@ -419,6 +431,33 @@ pub fn for_work(
         )?;
         values.push(("neighbours", crate::register::sheet::neighbours(&found)));
     }
+    // What a singer could get wrong in the text the action reads (ADR 0053).
+    if wants("stress") {
+        let forms = crate::register::sung_forms(conn, &work.profile_id)?;
+        values.push((
+            "stress",
+            crate::words::sung::sheet(text.unwrap_or_default(), &forms),
+        ));
+    }
+    // The songs that went out, with their words: what a song is held
+    // against for a meaning told in other words (ADR 0054).
+    if wants("released") {
+        values.push((
+            "released",
+            crate::register::guard::released_sheet(conn, &work.profile_id, &work.id)?,
+        ));
+    }
+    // The owner's words for songs to come (ADR 0052): the bank, or one block
+    // of it by name, each word with how it is sung.
+    for name in &wanted {
+        if name == "words" || name.starts_with("words:") {
+            let block = name.strip_prefix("words:").map(str::trim);
+            values.push((
+                name.as_str(),
+                crate::register::sheet::words(conn, &work.profile_id, block)?,
+            ));
+        }
+    }
     if wants("selection") {
         values.push((
             "selection",
@@ -436,6 +475,16 @@ pub fn for_work(
     // write about - which is the difference from `{donor}`.
     if wants("source") {
         values.push(("source", source_sheet(conn, &config, &work.id)?));
+    }
+    // The title of what it is all made from: the song, for its clip, its
+    // audio and a short cut from the clip - what a release's title reads,
+    // where the publication's own name ("Song (audio)") is kilna's word for
+    // it and not the audience's (v0.90).
+    if wants("origin") {
+        values.push((
+            "origin",
+            crate::publication::origin_title(conn, &config, &work)?,
+        ));
     }
 
     // The bricks the person picked, each with the word of the craft that says

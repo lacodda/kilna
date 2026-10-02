@@ -19,7 +19,12 @@ const NEIGHBOUR_TEXT: usize = 1800;
 /// each with how many works carry it and why it is spent - and, when there is
 /// a text, what that text already takes.
 pub fn register(conn: &Connection, profile_id: &str, text: Option<&str>) -> Result<String> {
-    let entries = super::entries(conn, profile_id)?;
+    // The register is what is spent: a word kept for a song to come, or a
+    // way of singing, is no term of it (ADR 0052).
+    let entries: Vec<_> = super::entries(conn, profile_id)?
+        .into_iter()
+        .filter(|e| e.term.strictness.is_some())
+        .collect();
     if entries.is_empty() {
         return Ok("(the register of repeats is empty)".to_owned());
     }
@@ -30,7 +35,7 @@ pub fn register(conn: &Connection, profile_id: &str, text: Option<&str>) -> Resu
     let wording = |strictness: Strictness| {
         entries
             .iter()
-            .filter(move |e| e.term.kind.is_wording() && e.term.strictness == strictness)
+            .filter(move |e| e.term.kind.is_wording() && e.term.strictness == Some(strictness))
     };
     for (strictness, heading) in [
         (Strictness::Ban, "Banned - do not use"),
@@ -51,7 +56,13 @@ pub fn register(conn: &Connection, profile_id: &str, text: Option<&str>) -> Resu
     let meanings: Vec<String> = entries
         .iter()
         .filter(|e| !e.term.kind.is_wording())
-        .map(|e| format!("{} [{}]", line(e), e.term.strictness.as_str()))
+        .map(|e| {
+            format!(
+                "{} [{}]",
+                line(e),
+                e.term.strictness.unwrap_or_default().as_str()
+            )
+        })
         .collect();
     if !meanings.is_empty() {
         out.push_str(&format!(
@@ -61,7 +72,7 @@ pub fn register(conn: &Connection, profile_id: &str, text: Option<&str>) -> Resu
     }
 
     if let Some(text) = text {
-        let checked = super::check::text(conn, profile_id, text)?;
+        let checked = super::check::text(conn, profile_id, text, false)?;
         let taken: Vec<String> = checked
             .terms
             .iter()
@@ -90,6 +101,90 @@ fn line(entry: &RegisterEntry) -> String {
         line.push_str(&format!(" - {}", note.replace('\n', " ")));
     }
     line
+}
+
+/// The words for `{words}` and `{words:<block>}`: the fresh words of the
+/// owner's bank - all of them by block, or one block's - each with how it is
+/// sung where that is not how it is written (ADR 0052). A block nobody has
+/// is said so rather than read as an empty bank: a template that names a
+/// block renamed since is a mistake worth seeing in the prompt.
+pub fn words(conn: &Connection, profile_id: &str, block: Option<&str>) -> Result<String> {
+    use super::{Bank, Term, block as blocks};
+    let said = |term: &Term| -> String {
+        let mut line = format!("- {}", term.word);
+        let sung: Vec<String> = term
+            .sung
+            .iter()
+            .map(|one| {
+                if crate::words::plain(&one.written) == crate::words::plain(&term.word) {
+                    one.sung.clone()
+                } else {
+                    format!("{} → {}", one.written, one.sung)
+                }
+            })
+            .collect();
+        if !sung.is_empty() {
+            line.push_str(&format!(" (sung: {})", sung.join(", ")));
+        }
+        line
+    };
+    let fresh = |term: &Term| term.bank == Some(Bank::Fresh);
+
+    if let Some(named) = block {
+        let Some(found) = blocks::find(conn, profile_id, named)? else {
+            return Ok(format!("(the bank has no block called “{named}”)"));
+        };
+        let lines: Vec<String> = blocks::words(conn, &found.id)?
+            .iter()
+            .filter(|term| fresh(term))
+            .map(said)
+            .collect();
+        if lines.is_empty() {
+            return Ok(format!("(the block “{}” holds no fresh words)", found.name));
+        }
+        return Ok(format!(
+            "Words the author keeps for songs to come - the block “{}”. Use them where they \
+             fit, sung as written here:\n{}",
+            found.name,
+            lines.join("\n")
+        ));
+    }
+
+    let terms = super::list(conn, profile_id)?;
+    let views = blocks::views(conn, profile_id)?;
+    let mut out = String::from(
+        "Words the author keeps for songs to come, by block. Use them where they fit, sung as \
+         written here:\n",
+    );
+    let mut any = false;
+    let mut placed: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
+    for view in &views {
+        let lines: Vec<String> = view
+            .term_ids
+            .iter()
+            .filter_map(|id| terms.iter().find(|term| term.id == *id))
+            .filter(|term| fresh(term))
+            .map(said)
+            .collect();
+        placed.extend(view.term_ids.iter().map(String::as_str));
+        if !lines.is_empty() {
+            any = true;
+            out.push_str(&format!("\n{}:\n{}\n", view.block.name, lines.join("\n")));
+        }
+    }
+    let loose: Vec<String> = terms
+        .iter()
+        .filter(|term| fresh(term) && !placed.contains(term.id.as_str()))
+        .map(said)
+        .collect();
+    if !loose.is_empty() {
+        any = true;
+        out.push_str(&format!("\nIn no block:\n{}\n", loose.join("\n")));
+    }
+    if !any {
+        return Ok("(the bank of words holds no fresh words)".to_owned());
+    }
+    Ok(out.trim_end().to_owned())
 }
 
 /// The neighbours for `{neighbours}`: each work's title, kind, the words it

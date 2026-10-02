@@ -300,7 +300,6 @@ mod tests {
                 crate::release::NewRelease {
                     work_id,
                     kind: "clip".into(),
-                    title: Some(title.into()),
                     scheduled_at: Some(date.into()),
                     meta: None,
                     scheduled_time: None,

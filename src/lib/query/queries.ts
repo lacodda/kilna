@@ -34,7 +34,17 @@ import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
 import { journalForWork, listJournal, unreadJournal } from '@/lib/api/journal'
 import { listLinks, listPublications, resolveLinks } from '@/lib/api/links'
 import { listNotes, listTags } from '@/lib/api/notes'
-import { checkText, listTerms, listTermTopics, previewTerm, termUses } from '@/lib/api/register'
+import {
+  checkText,
+  listBlocks,
+  listTerms,
+  listTermTopics,
+  previewTerm,
+  repeatMarks,
+  termUses,
+  wordsFromTexts,
+  workRepeats,
+} from '@/lib/api/register'
 import { listPlugins } from '@/lib/api/plugins'
 import {
   calendar,
@@ -209,12 +219,22 @@ export const queries = {
       queryKey: keys.termPreview(word, forms),
       queryFn: () => previewTerm(word, [...forms]),
     }),
-  textCheck: (text: string) =>
+  textCheck: (text: string, sung = false) =>
     queryOptions({
-      queryKey: keys.textCheck(text),
-      queryFn: () => checkText(text),
+      queryKey: keys.textCheck(text, sung),
+      queryFn: () => checkText(text, sung),
       // A text is typed past in a moment and never asked about again.
       gcTime: 30_000,
+    }),
+  blocks: () => queryOptions({ queryKey: keys.blocks, queryFn: listBlocks }),
+  wordsFromTexts: () =>
+    queryOptions({ queryKey: keys.wordsFromTexts, queryFn: wordsFromTexts, staleTime: 0 }),
+  repeatMarks: (today: string) =>
+    queryOptions({ queryKey: keys.repeatMarks(today), queryFn: () => repeatMarks(today) }),
+  workRepeats: (workId: string, today: string) =>
+    queryOptions({
+      queryKey: keys.workRepeats(workId, today),
+      queryFn: () => workRepeats(workId, today),
     }),
 
   cardsMatching: (filter: CardFilter) =>

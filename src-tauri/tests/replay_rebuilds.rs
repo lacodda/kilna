@@ -227,7 +227,7 @@ fn a_derived_status_survives_the_rebuild() {
     // Its audio release: a work made from it, with a release planned
     // through its first door (v0.86) - the song itself goes out as what is
     // made from it, so its status is derived one link away.
-    let made = actions::work::derive(&source, &work_id, "audio", None, Some("en")).unwrap();
+    let made = actions::work::derive(&source, &work_id, "audio", None, Some("en"), None).unwrap();
     let audio_id = made.work.id.clone();
     let release_id = made.release_id.expect("an audio work is planned a release");
 

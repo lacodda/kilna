@@ -8,7 +8,6 @@ function release(fields: Partial<Release> = {}): Release {
     work_id: 'w1',
     kind: 'youtube',
     status: 'planned',
-    title: null,
     scheduled_at: '2026-10-02',
     released_at: null,
     url: null,
@@ -27,6 +26,7 @@ describe('draftOf', () => {
     expect(draftOf(release({ scheduled_at: null }))).toEqual({
       kind: 'youtube',
       date: '',
+      time: '',
       url: '',
       pinned: false,
     })

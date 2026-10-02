@@ -5,6 +5,7 @@ import { stageAt } from '@/lib/stages'
 import { useCovers } from '@/lib/useCovers'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { ReadyMarks } from '@/components/ReadyMarks'
+import { WorkRepeatMark } from '@/components/RepeatMark'
 import { StageDial } from '@/components/StageDial'
 import { Badge } from '@/components/ui/badge'
 import { RowButton } from '@/components/ui/list-row'
@@ -52,6 +53,9 @@ export function WeekRow({
             />
           )}
           <ReadyMarks readiness={release.readiness} released={false} daysLeft={daysLeft} />
+          {/* Whether its song repeats one out or booked nearby (ADR 0054):
+              a week about to go out is the last place to notice. */}
+          <WorkRepeatMark workId={release.work_id} />
           {/* The day itself at the end, as the mockup has it: inside a week
               the date is what gets said aloud, and the time when there is
               one - a premiere is booked to the hour. */}

@@ -10,9 +10,11 @@ import {
   unscheduleRelease,
   warnUnreadyReleases,
 } from '@/lib/api/releases'
-import type { NewRelease, Placement } from '@/lib/api/types'
+import type { NewRelease, Placement, RepeatFinding } from '@/lib/api/types'
 import { today } from '@/lib/month'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
+import { landingWarning } from '@/lib/repeats'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
 import { say as sayLabel } from '@/lib/useProfile'
@@ -20,9 +22,10 @@ import { say as sayLabel } from '@/lib/useProfile'
 /**
  * Both sides of this screen move together: taking a slot removes something
  * from the queue, returning one puts it back - what every one of these writes
- * disturbs.
+ * disturbs. And the guard of repeats (ADR 0054), which reads the days songs
+ * go out on: a release moved out of a song's window turns its red to orange.
  */
-const REFRESHED = [keys.calendar, keys.releaseQueue, keys.releases] as const
+const REFRESHED = [keys.calendar, keys.releaseQueue, keys.releases, keys.register] as const
 
 interface Options {
   /** The calendar changed: a previewed plan is now a picture of the past. */
@@ -63,14 +66,45 @@ export function useCalendarActions({ onChanged, onPlanned, onClaimed, onDayFille
     })
   }
 
+  /**
+   * What a release would repeat on `date` (ADR 0054), asked before it is put
+   * there: the dry run the month ran while the chip hovered the day, read
+   * from the cache when it is that fresh. Never in the way of the write - a
+   * day it could not be asked about is a day it lands on without a word.
+   */
+  const repeatsOn = async (id: string, date: string): Promise<RepeatFinding[]> => {
+    try {
+      const preview = await client.fetchQuery({
+        ...queries.slotPreview(id, date),
+        staleTime: 5_000,
+      })
+      return preview.repeats
+    } catch {
+      return []
+    }
+  }
+
+  /** A release placed: said plainly, or - when it repeats a song out or
+   *  booked near that day - as a warning naming the word, the song and its
+   *  day. It is placed either way; the guard warns and does not refuse. */
+  const landed = (message: string, repeats: readonly RepeatFinding[]) => {
+    const warning = landingWarning(repeats)
+    if (warning === null) say.ok(message)
+    else say.warn(message, warning)
+  }
+
   const claim = useAppMutation({
-    mutationFn: ({ id, date }: { id: string; date: string }) => scheduleRelease(id, date),
+    mutationFn: async ({ id, date }: { id: string; date: string }) => {
+      const repeats = await repeatsOn(id, date)
+      await scheduleRelease(id, date)
+      return repeats
+    },
     failure: 'toast.releaseSaveFailed',
     refresh: REFRESHED,
-    onSuccess: () => {
+    onSuccess: (repeats) => {
       onClaimed()
       settle()
-      say.ok(t('toast.releaseScheduled'))
+      landed(t('toast.releaseScheduled'), repeats)
     },
   })
 
@@ -102,14 +136,19 @@ export function useCalendarActions({ onChanged, onPlanned, onClaimed, onDayFille
   // The same call the queue uses. Until v0.44 dragging went through a contest
   // and a weaker release could be evicted by the drop; now a day holds what is
   // put on it, so moving a chip is the plainest thing on the screen - a date
-  // is written, and nothing else happens.
+  // is written, and nothing else happens. What it would repeat there is
+  // asked first and said with the toast (ADR 0054); it refuses nothing.
   const move = useAppMutation({
-    mutationFn: ({ id, date }: { id: string; date: string }) => scheduleRelease(id, date),
+    mutationFn: async ({ id, date }: { id: string; date: string }) => {
+      const repeats = await repeatsOn(id, date)
+      await scheduleRelease(id, date)
+      return repeats
+    },
     failure: 'toast.releaseSaveFailed',
     refresh: REFRESHED,
-    onSuccess: () => {
+    onSuccess: (repeats) => {
       settle()
-      say.ok(t('toast.releaseMoved'))
+      landed(t('toast.releaseMoved'), repeats)
     },
   })
 

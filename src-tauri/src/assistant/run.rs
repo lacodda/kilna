@@ -720,6 +720,24 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
                 Err(error) => Read::Refused(error.to_string()),
             }
         }
+        // Words for the record: meanings and the works they are in, read
+        // against the workspace as it stands (ADR 0052).
+        super::prompt::Produces::Words => {
+            let Some(block) = super::proposal::fenced_json(body) else {
+                return Read::Nothing;
+            };
+            let raw: Value = match serde_json::from_str(&block) {
+                Ok(raw) => raw,
+                Err(error) => {
+                    return Read::Refused(format!("the json block is not a proposal: {error}"));
+                }
+            };
+            match crate::register::proposal::read(conn, &profile.id, &raw) {
+                Ok(package) if package.is_empty() => Read::Nothing,
+                Ok(package) => value(super::proposal::Proposal::Words { package }),
+                Err(error) => Read::Refused(error.to_string()),
+            }
+        }
         // The whole answer is the description; the proposal says of which
         // card, and which facts it answers to as they stand now.
         super::prompt::Produces::CardPrompt => match super::task::card_of_key(task_key) {
@@ -739,7 +757,11 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
                 Ok(fields) => fields,
                 Err(error) => return Read::Refused(error.to_string()),
             };
-            match super::proposal::read_release(body, release_id, &fields) {
+            match super::proposal::read_release(body, release_id, &fields)
+                .map_err(|why| why.to_string())
+                .and_then(|read| {
+                    crate::release_meta::public(conn, read).map_err(|why| why.to_string())
+                }) {
                 Ok(proposal) => value(proposal),
                 Err(why) => Read::Refused(why),
             }

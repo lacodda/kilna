@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
-import type { Work, WorkPatch } from '@/lib/api/types'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import type { RepeatMark, Work, WorkPatch } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, IDS, NOW, studio, type Studio } from '@/test/workspace'
@@ -137,5 +137,39 @@ describe('where a work stands, said in its header', () => {
       expect.arrayContaining(['Make a video', 'Make an audio', 'Make a short']),
     )
     expect(offered).not.toContain('Make a song')
+  })
+
+  it("wears the guard's mark: a song its own, a publication its song's", async () => {
+    // The guard of repeats (ADR 0054) answers every work's mark at once; the
+    // audio made from the song wears the song's.
+    const top = {
+      word: 'пульсар',
+      level: 'red',
+      why: 'rare',
+      neighbour_id: 'w-tide',
+      neighbour_title: 'Tide',
+      day: '2026-09-20',
+      booked: false,
+      also: 0,
+      kept: false,
+    } as const
+    backend.answer('repeat_marks', () =>
+      [IDS.song, IDS.audio].map((workId): RepeatMark => ({
+        work_id: workId,
+        song_id: IDS.song,
+        level: 'red',
+        top,
+        count: 3,
+      })),
+    )
+    const name = 'Said lately: пульсар — in “Tide”, out Sep 20, and 2 more'
+
+    const song = await openCard(IDS.song)
+    const mark = await within(song).findByRole('img', { name })
+    expect(mark).toHaveTextContent('3 repeats')
+    cleanup()
+
+    const audio = await openCard(IDS.audio)
+    expect(await within(audio).findByRole('img', { name })).toBeInTheDocument()
   })
 })

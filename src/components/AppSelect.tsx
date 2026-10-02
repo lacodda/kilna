@@ -46,6 +46,8 @@ interface Props {
   id?: string
   'aria-label'?: string
   'aria-describedby'?: string
+  /** Shown but not changed: a choice that is settled for now. */
+  disabled?: boolean
 }
 
 /** Base UI items may not carry an empty value, so the placeholder entry is
@@ -61,6 +63,7 @@ export function Select({
   id,
   'aria-label': ariaLabel,
   'aria-describedby': ariaDescribedBy,
+  disabled = false,
 }: Props) {
   const entries =
     placeholder === undefined ? options : [{ value: EMPTY, label: placeholder }, ...options]
@@ -73,6 +76,7 @@ export function Select({
     <Base
       items={items}
       value={value === '' ? EMPTY : value}
+      disabled={disabled}
       onValueChange={(next: unknown) => onChange(next === EMPTY ? '' : String(next))}
     >
       <SelectTrigger

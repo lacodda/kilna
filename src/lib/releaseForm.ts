@@ -16,6 +16,8 @@ export interface ReleaseDraft {
   kind: string
   /** `yyyy-mm-dd`, or empty for a release waiting in the queue. */
   date: string
+  /** `HH:MM` the platform is told, or empty when the day is enough (v0.90). */
+  time: string
   url: string
   /** Whether the date is kept: the auto-layout puts nothing over it. */
   pinned: boolean
@@ -26,6 +28,7 @@ export function draftOf(release: Release): ReleaseDraft {
   return {
     kind: release.kind,
     date: release.scheduled_at ?? '',
+    time: release.scheduled_time ?? '',
     url: release.url ?? '',
     pinned: release.slot_pinned_at !== null,
   }
@@ -60,6 +63,14 @@ export function changesOf(release: Release, draft: ReleaseDraft): ReleaseChanges
   const date = draft.date === '' ? null : draft.date
   if (date !== release.scheduled_at) patch.scheduled_at = date
 
+  // A time is a moment in somebody's day: the first one typed is said in the
+  // zone this machine is in, and a zone already there stays.
+  const time = draft.time.trim() === '' ? null : draft.time.trim()
+  if (time !== release.scheduled_time) {
+    patch.scheduled_time = time
+    if (time !== null && release.time_zone === null) patch.time_zone = localZone()
+  }
+
   const url = draft.url.trim() === '' ? null : draft.url.trim()
   if (url !== release.url) patch.url = url
 
@@ -73,7 +84,13 @@ export function changesOf(release: Release, draft: ReleaseDraft): ReleaseChanges
 
 /** Whether two drafts say the same thing about a release. */
 export function sameDraft(a: ReleaseDraft, b: ReleaseDraft): boolean {
-  return a.kind === b.kind && a.date === b.date && a.url === b.url && a.pinned === b.pinned
+  return (
+    a.kind === b.kind &&
+    a.date === b.date &&
+    a.time === b.time &&
+    a.url === b.url &&
+    a.pinned === b.pinned
+  )
 }
 
 /**
@@ -90,7 +107,18 @@ export function rebase(draft: ReleaseDraft, from: ReleaseDraft, to: ReleaseDraft
   return {
     kind: to.kind !== from.kind ? to.kind : draft.kind,
     date: to.date !== from.date ? to.date : draft.date,
+    time: to.time !== from.time ? to.time : draft.time,
     url: to.url !== from.url ? to.url : draft.url,
     pinned: to.pinned !== from.pinned ? to.pinned : draft.pinned,
+  }
+}
+
+/** The zone this machine is in, as an IANA name: the zone a time typed here
+ *  is meant in. UTC when the runtime cannot say. */
+export function localZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
   }
 }

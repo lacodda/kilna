@@ -306,7 +306,7 @@ across a restart. It is about the next click, not a state to keep.
 The `⋯` at the end of a row opens what you can do with just that work:
 
 - **Score it** — opens the work on its Score tab.
-- **Plan a release** — opens it on Releases.
+- **Plan a release** — opens its overview, where its release is planned.
 - **Delete** — to the trash, with the same undo.
 
 Nothing in that menu opens the work by accident: clicks inside it stay inside

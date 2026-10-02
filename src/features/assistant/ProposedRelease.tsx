@@ -80,13 +80,7 @@ export function ProposedRelease({ messageId, proposal, applied, dismissed, workI
       }
       afterApplied={
         workId === undefined ? undefined : (
-          <Button
-            size="sm"
-            variant="link"
-            onClick={() =>
-              void navigate(`/works/${workId}/releases?release=${proposal.release_id}`)
-            }
-          >
+          <Button size="sm" variant="link" onClick={() => void navigate(`/works/${workId}`)}>
             {t('releases.metaStatus.open')}
           </Button>
         )

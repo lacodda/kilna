@@ -114,7 +114,6 @@ pub fn release(conn: &Connection, work_id: &str, kind: &str, date: Option<&str>)
         NewRelease {
             work_id: work_id.into(),
             kind: kind.into(),
-            title: None,
             scheduled_at: date.map(str::to_owned),
             meta: None,
             scheduled_time: None,

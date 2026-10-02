@@ -52,6 +52,10 @@ rather than coded.
   channel itself kept as cards of facts - each with who may hear it, whether
   it is settled, where it came from and when it happened - so a cover, a
   lyric and a release text each read exactly what they may.
+- **Words that know where they were sung.** Keep words for songs to come in
+  blocks, write the stress for the singer and have a lyric checked against
+  three million word forms, and see a song light orange or red before it
+  repeats a song that already went out.
 - **An assistant that proposes, never writes.** kilna talks to Claude through
   your own [Claude Code](https://claude.com/claude-code) CLI - your
   subscription, no API key - and every answer lands as a proposal you apply
@@ -76,7 +80,7 @@ later. See [Getting started](https://lacodda.github.io/kilna/getting-started/).
 
 ## Status
 
-v0.84.0, in daily use. The loop is closed end to end - a work gains versions, a
+v0.90.0, in daily use. The loop is closed end to end - a work gains versions, a
 version earns a score, a score wins a calendar slot, and the slot ends in a
 release you mark by hand - with four craft profiles, a canon of the shared
 world, the assistant panel, an MCP server and a plugin protocol. The interface speaks English and Russian.

@@ -536,7 +536,6 @@ mod tests {
             crate::release::NewRelease {
                 work_id: work_id.clone(),
                 kind: "clip".into(),
-                title: None,
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,

@@ -11,4 +11,8 @@ repeat?: number,
 /**
  * Index into `terms`.
  */
-term?: number, };
+term?: number, 
+/**
+ * Index into `stress`.
+ */
+stress?: number, };

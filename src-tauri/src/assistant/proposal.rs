@@ -137,6 +137,13 @@ pub enum Proposal {
     Canon {
         package: crate::canon::proposal::Package,
     },
+    /// Words for the record (ADR 0052): for the bank and its blocks, ways of
+    /// singing, terms for the register, the works a meaning is in - from an
+    /// agent, an action, or kilna reading the owner's texts. Kept whole or
+    /// word by word.
+    Words {
+        package: crate::register::proposal::WordsPackage,
+    },
     /// The description a picture generator is given for a card; the text is
     /// the message body. `basis` is the fingerprint of the facts it was
     /// written against, so facts changed while it was written show it stale.
@@ -1626,6 +1633,7 @@ mod instruction_tests {
             marks: Vec::new(),
             stages: Vec::new(),
             cover_ideas: None,
+            guard: None,
             prompts: Vec::new(),
             rhythm: None,
             catalogue_columns: None,

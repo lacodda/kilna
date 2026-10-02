@@ -26,7 +26,6 @@ export const TABS = [
   'frame',
   'cuts',
   'score',
-  'releases',
   'files',
   'links',
   'notes',
@@ -70,7 +69,6 @@ export interface CardFacts {
     versions: boolean
     scores: boolean
     scenes: boolean
-    releases: boolean
     files: boolean
     /** Any block of a cover prompt with words in it. */
     cover: boolean
@@ -98,7 +96,6 @@ const RULES: Readonly<Record<Tab, Rule>> = {
   frame: ({ names }) => names.frame,
   cuts: ({ holds }) => holds.splice,
   score: ({ names, holds }) => names.axes || holds.scores,
-  releases: ({ names, holds }) => names.doors || holds.releases,
   // A work's files are its cover and what its releases go out with: a song,
   // which goes out only as what is made from it, has none of its own.
   files: ({ names, holds }) => names.doors || holds.files,
@@ -178,7 +175,6 @@ export function factsOf(
       versions: !known || counts.versions > 0,
       scores: !known || counts.scores > 0,
       scenes: !known || counts.scenes > 0,
-      releases: !known || counts.releases > 0,
       files: !known || counts.files > 0,
       // Read off the work itself, which is already here.
       cover: coverHoldsAnything(work.cover),
@@ -219,7 +215,6 @@ export function tabCounts(counts: CardCounts): Partial<Record<Tab, TabCount>> {
     scenes: counts.scenes,
     cuts: counts.cuts,
     score: counts.scores,
-    releases: counts.releases,
     files: counts.files,
     // Made either way: "Links 2" is how a song shows it has clips without
     // anyone opening the tab.

@@ -12,7 +12,6 @@ pub mod cover;
 pub mod cut;
 pub mod db;
 pub mod device;
-pub mod doors;
 pub mod error;
 pub mod exchange;
 #[doc(hidden)]
@@ -202,6 +201,21 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::register::link_term,
             commands::register::unlink_term,
             commands::register::check_text,
+            commands::register::clean_text,
+            commands::register::list_blocks,
+            commands::register::create_block,
+            commands::register::rename_block,
+            commands::register::move_block,
+            commands::register::delete_block,
+            commands::register::add_to_block,
+            commands::register::remove_from_block,
+            commands::register::bank_words,
+            commands::register::words_from_texts,
+            commands::register::keep_words,
+            commands::register::repeat_marks,
+            commands::register::work_repeats,
+            commands::register::keep_repeat,
+            commands::register::unkeep_repeat,
             commands::comments::list_comments,
             commands::comments::comment_channels,
             commands::comments::create_comment,

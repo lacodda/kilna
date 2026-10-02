@@ -19,6 +19,13 @@ import {
   vocabularyOf,
 } from '@/lib/useProfile'
 
+/** One place a made work can go out, as a menu offers it. */
+interface Place {
+  key: string
+  /** The door and the shape its cover takes: "Streaming · 1:1". */
+  label: string
+}
+
 /** One kind of work that can be made from the source, as a menu offers it. */
 interface Makeable {
   key: string
@@ -27,12 +34,17 @@ interface Makeable {
   /** Where works of the kind go out, and in what shape: "YouTube · 16:9".
    *  Empty for a kind with no door. */
   description: string
+  /** Each place it can go out, to choose from when there are several: a
+   *  publication goes out once (ADR 0051), so where is decided when it is
+   *  made - and may change until it goes. */
+  places: Place[]
 }
 
 export interface MakePublication {
   /** What can be made from the source, in the profile's order. */
   kinds: Makeable[]
-  make: (kind: string) => void
+  /** Make one of `kind`, going out through `door`, or the kind's first. */
+  make: (kind: string, door?: string) => void
   /** The kind being made, while it is. */
   making: string | null
 }
@@ -85,16 +97,18 @@ export function useMakePublication(source: Work): MakePublication {
   const kinds: Makeable[] = offered.map((kind) => {
     const word = wordOf(sayLabel(kind.label), i18n.language)
     const said = { kind: word, context: takesAn(word) ? 'an' : undefined }
+    const doors = vocabularyOf(config, kind.key).release_kinds
     return {
       key: kind.key,
       label: doorless ? t('publications.make', said) : t('publications.makeFrom', said),
-      description: doorsOf(vocabularyOf(config, kind.key).release_kinds, sayLabel),
+      description: doorsOf(doors, sayLabel),
+      places: doors.map((door) => ({ key: door.key, label: doorsOf([door], sayLabel) })),
     }
   })
 
   const mutation = useAppMutation({
-    mutationFn: async (kind: string): Promise<Outcome> => {
-      const made = await deriveWork(source.id, kind, i18n.language)
+    mutationFn: async ({ kind, door }: { kind: string; door?: string }): Promise<Outcome> => {
+      const made = await deriveWork(source.id, kind, i18n.language, { door })
       const outcome: Outcome = { made, started: false, refused: null, ideas: 0, ideasRefused: null }
       const action = releaseActionOf(config, kind)
       if (made.release_id !== null && action !== undefined) {
@@ -134,7 +148,8 @@ export function useMakePublication(source: Work): MakePublication {
     ],
     onSuccess: ({ made, started, refused, ideas, ideasRefused }) => {
       const vocabulary = vocabularyOf(config, made.work.kind)
-      const door = vocabulary.release_kinds[0]
+      const door =
+        vocabulary.release_kinds.find((one) => one.key === made.door) ?? vocabulary.release_kinds[0]
       const said =
         made.release_id === null || door === undefined
           ? t('publications.madeLinked')
@@ -162,7 +177,7 @@ export function useMakePublication(source: Work): MakePublication {
 
   return {
     kinds,
-    make: (kind) => mutation.mutate(kind),
-    making: mutation.isPending ? (mutation.variables ?? null) : null,
+    make: (kind, door) => mutation.mutate({ kind, door }),
+    making: mutation.isPending ? (mutation.variables?.kind ?? null) : null,
   }
 }

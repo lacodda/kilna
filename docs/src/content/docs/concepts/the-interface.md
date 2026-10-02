@@ -127,8 +127,10 @@ can point at a tab directly.
 ## A work's card
 
 Opening a work gives you a card with a cover, a header and its tabs —
-Overview, Versions, Scenes, Cut, Score, Releases, Files, Links, Notes,
-Assistant, History; Scenes and Cut only where the work has them.
+Overview, Versions, Scenes, Cover, Frame, Cut, Score, Files, Links, Notes,
+Comments, Assistant, History; each only where the work has what it is for. A
+publication's release - where, when, under what words - is in the lead of its
+Overview: a publication goes out once.
 
 **The cover** is a gradient derived from the work's id. It is not decoration
 you chose; it is there so one card is distinguishable from another before you
@@ -197,7 +199,6 @@ with the first part a link back.
 | Overview | The title, status, kind, the fields your profile defines, and its AI actions |
 | Versions | Every draft, by role, the editor, and comparison |
 | Score | The axes, and what this work has scored before |
-| Releases | What ships, where and when — with a count on the tab |
 | Notes | Notes attached to this work |
 | Assistant | The AI panel for this work — see [The assistant](/kilna/guides/the-assistant/) |
 | History | Everything that happened to it |

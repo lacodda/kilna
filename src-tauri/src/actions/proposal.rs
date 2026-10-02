@@ -121,6 +121,9 @@ pub struct Outcome {
     /// Ideas put on a cover's board.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ideas: Vec<String>,
+    /// Words of the record written: made, or given a facet (ADR 0052).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub terms: Vec<String>,
 }
 
 /// Keep the proposal a message carries, and mark the message - as one unit.
@@ -371,6 +374,13 @@ pub fn check(
             if crate::style_brick::get(conn, style_id)?.is_none() {
                 note(Err(Error::not_found("style", style_id)));
             }
+        }
+        Proposal::Words { package } => {
+            problems.extend(crate::register::proposal::check(
+                conn,
+                package,
+                overrides.items.as_deref(),
+            )?);
         }
         Proposal::Canon { package } => {
             for problem in
@@ -658,6 +668,11 @@ fn keep(
             super::canon::keep_package(conn, package, overrides.items.as_deref(), outcome)?;
         }
 
+        Proposal::Words { package } => {
+            outcome.terms =
+                crate::register::proposal::keep(conn, package, overrides.items.as_deref())?;
+        }
+
         Proposal::CardPrompt { note_id, basis } => {
             super::canon::describe(conn, &note_id, Some(body.to_owned()), basis)?;
             outcome.cards.push(note_id);
@@ -843,7 +858,6 @@ fn release(conn: &Connection, work_id: &str, packaged: PackagedRelease) -> Resul
         crate::release::NewRelease {
             work_id: work_id.to_owned(),
             kind: packaged.kind,
-            title: None,
             scheduled_at: packaged.scheduled_at,
             meta: Some(packaged.fields),
             scheduled_time: None,

@@ -39,7 +39,7 @@ export const WIDGETS = [
   'fields',
   'axes',
   'hook',
-  'releases',
+  'release',
   'links',
   'recent',
   'storyboard',
@@ -47,6 +47,7 @@ export const WIDGETS = [
   'findings',
   'trend',
   'publications',
+  'repeats',
 ] as const
 
 export type WidgetId = (typeof WIDGETS)[number]
@@ -86,12 +87,22 @@ export interface Placed {
  * read; it is only drawn while there is something to say (`applies`). A
  * song's publications come next and across the lead (v0.86): a song goes
  * out as what is made from it, and where those stand is where the song
- * stands - the first thing a song's card is opened to check.
+ * stands - the first thing a song's card is opened to check. A publication's
+ * release stands in the same place on its own card (v0.90): it goes out
+ * once, and the release - where, when, under what words - is what its card
+ * is opened to write.
+ *
+ * The guard's findings stand first of all, beside "Needs attention" (v0.90,
+ * ADR 0054): two across, so the two pair up in the lead column - both ask
+ * for a decision - and either takes the width alone when it is the only one
+ * with something to say.
  */
 export const DEFAULT_PLACEMENT: readonly WidgetPlacement[] = (
   [
+    ['repeats', 'm'],
     ['findings', 'm'],
     ['publications', 'l'],
+    ['release', 'l'],
     ['text', 'l'],
     ['score', 's'],
     ['axes', 's'],
@@ -99,7 +110,6 @@ export const DEFAULT_PLACEMENT: readonly WidgetPlacement[] = (
     ['style', 'm'],
     ['fields', 'm'],
     ['hook', 'm'],
-    ['releases', 's'],
     ['links', 's'],
     ['recent', 's'],
     ['storyboard', 'm'],
@@ -172,6 +182,10 @@ export interface WidgetFacts {
   cover: boolean
   /** Something about this work is waiting for a decision. */
   findings: boolean
+  /** The guard of repeats has findings about the work's song, kept or not
+   *  (ADR 0054): a song held against the songs out or booked, or the song a
+   *  publication is made from. */
+  repeats: boolean
 }
 
 /**
@@ -195,7 +209,7 @@ export function applies(id: WidgetId, facts: WidgetFacts): boolean {
       return facts.style
     case 'hook':
       return facts.prose
-    case 'releases':
+    case 'release':
       return facts.releases
     case 'publications':
       return facts.publications
@@ -203,6 +217,8 @@ export function applies(id: WidgetId, facts: WidgetFacts): boolean {
       return facts.scenes
     case 'findings':
       return facts.findings
+    case 'repeats':
+      return facts.repeats
     case 'cover':
       return facts.cover
     case 'stage':
@@ -369,26 +385,29 @@ export function previewOf(body: string, lines: number): { text: string; more: bo
 
 /**
  * What a publication's chip says about it: out, with the day it went out;
- * booked, with the day it holds - late when that day has passed and nothing
- * went out; otherwise its status word, and nothing to date.
- *
- * Out wins over booked: a clip that went out on the 2nd and has another
- * release booked for the 30th is a clip that is out, and that is what the
- * song's card is opened to check.
+ * booked, with the day it holds and the hour when one is set - late when
+ * that day has passed and nothing went out; otherwise its status word, and
+ * nothing to date. A publication goes out once (ADR 0051), so its one
+ * release says it.
  */
 export type PublicationFact =
-  { said: 'out' | 'booked' | 'late'; day: string } | { said: 'status'; day: null }
+  | { said: 'out' | 'booked' | 'late'; day: string; time: string | null }
+  | { said: 'status'; day: null; time: null }
 
 export function publicationFact(
-  publication: Pick<Publication, 'released' | 'last_released_at' | 'next_scheduled_at'>,
+  publication: Pick<Publication, 'release'>,
   today: string,
 ): PublicationFact {
-  if (publication.released > 0 && publication.last_released_at !== null) {
-    return { said: 'out', day: publication.last_released_at }
+  const going = publication.release
+  if (going === null) return { said: 'status', day: null, time: null }
+  if (going.status === 'released' && going.released_at !== null) {
+    return { said: 'out', day: going.released_at, time: null }
   }
-  const next = publication.next_scheduled_at
-  if (next !== null) return { said: next < today ? 'late' : 'booked', day: next }
-  return { said: 'status', day: null }
+  const next = going.scheduled_at
+  if (next !== null) {
+    return { said: next < today ? 'late' : 'booked', day: next, time: going.scheduled_time }
+  }
+  return { said: 'status', day: null, time: null }
 }
 
 /** The colour each of those facts wears; the status word wears its own. */

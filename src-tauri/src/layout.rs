@@ -43,18 +43,21 @@ struct Queued {
 /// * **Spacing**: a placement keeps at least `every_days` from every release
 ///   that has a date — existing or placed here, planned or already out. The
 ///   rhythm is the pace of the whole output, not of one work.
-/// * **Scatter**: two releases of the same work never sit on neighbouring
-///   days, and neither do two works cut from the same video. Spacing already
-///   guarantees this for a rhythm of two days or more; a daily rhythm is
-///   where it earns its keep.
+/// * **Scatter**: two works made from the same thing never go out on
+///   neighbouring days - the clip and the audio of one song, two shorts cut
+///   from one video. Spacing already guarantees this for a rhythm of two
+///   days or more; a daily rhythm is where it earns its keep.
 ///
-///   The second half is the shorts rule (v0.73), and it is the same rule
-///   rather than a second mechanism: two shorts cut from one video on
+///   It began as the shorts rule (v0.73): two shorts cut from one video on
 ///   consecutive days are the same video twice to anyone watching, whatever
-///   the two shorts are called. A short with no donor — one shot for itself —
-///   has no source to clash on and is scattered by its work alone. There is
-///   no separate queue and no shuffle (decision of 2026-09-11): a rule that
-///   holds every day beats an order that happens to look spread out.
+///   the two shorts are called. Since a publication goes out once (ADR
+///   0051), what used to be two releases of one work - a song's clip and its
+///   audio - are two works made from one song, and the same rule keeps them
+///   apart: what they are made from, through the links and the cuts, is the
+///   key. A work made from nothing has no key to clash on and is scattered
+///   by itself alone. There is no separate queue and no shuffle (decision
+///   of 2026-09-11): a rule that holds every day beats an order that happens
+///   to look spread out.
 /// * **Order**: the queue is walked strongest-first, each release taking the
 ///   earliest day the rules allow. Everything queued is placed — the preview
 ///   is where a person decides whether they meant that.
@@ -75,10 +78,19 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
     let spacing = Duration::days(i64::from(rhythm.every_days) - 1);
     let today = parse_date(today)?;
 
-    // Which videos each work is cut from, read once for the whole workspace.
-    // Asking per release would repeat the query on every day the scan walks
-    // past, and the scan walks past a lot of days.
-    let sources = crate::cut::sources_by_work(conn, profile_id)?;
+    // What each work is made from - the videos it is cut from, and every
+    // work up its chain - read once for the whole workspace. Asking per
+    // release would repeat the query on every day the scan walks past, and
+    // the scan walks past a lot of days.
+    let mut sources = crate::cut::sources_by_work(conn, profile_id)?;
+    for (work_id, ancestors) in crate::link::ancestors_by_work(conn, profile_id)? {
+        let known = sources.entry(work_id).or_default();
+        for ancestor in ancestors {
+            if !known.contains(&ancestor) {
+                known.push(ancestor);
+            }
+        }
+    }
 
     // The ground: every date any release sits on, each work's own dates, and
     // each donor's. Released entries count too — something that went out
@@ -288,7 +300,10 @@ mod tests {
         profile::update_config(conn, profile_id, &config).unwrap();
     }
 
-    /// A work with a score, and one queued clip release per `releases`.
+    /// A song with a score, and `releases` audio publications made from it,
+    /// each with its one queued release - weighed, like any work nobody
+    /// judges, by the song's score. All of them bear the song's title, so a
+    /// test can tell the songs apart by it.
     fn queued(
         conn: &Connection,
         profile_id: &str,
@@ -296,7 +311,7 @@ mod tests {
         hook: f64,
         releases: usize,
     ) -> Vec<String> {
-        let work = work::create(
+        let song = work::create(
             conn,
             profile_id,
             NewWork {
@@ -308,7 +323,7 @@ mod tests {
         .unwrap();
         score::create(
             conn,
-            &work.id,
+            &song.id,
             NewScore {
                 axes: json!({ "hook": hook }).as_object().cloned().unwrap(),
                 version_id: None,
@@ -320,12 +335,32 @@ mod tests {
 
         (0..releases)
             .map(|_| {
+                let made = work::create(
+                    conn,
+                    profile_id,
+                    NewWork {
+                        kind: "audio".into(),
+                        title: title.into(),
+                        ..NewWork::default()
+                    },
+                )
+                .unwrap();
+                crate::link::create(
+                    conn,
+                    profile_id,
+                    crate::link::NewLink {
+                        work_id: made.id.clone(),
+                        source_id: song.id.clone(),
+                        role: None,
+                        source_version_id: None,
+                    },
+                )
+                .unwrap();
                 release::create(
                     conn,
                     NewRelease {
-                        work_id: work.id.clone(),
-                        kind: "clip".into(),
-                        title: Some(title.into()),
+                        work_id: made.id,
+                        kind: "youtube".into(),
                         scheduled_at: None,
                         meta: None,
                         scheduled_time: None,
@@ -387,9 +422,10 @@ mod tests {
     }
 
     /// With a daily rhythm the spacing rule says nothing, and scatter is what
-    /// keeps one work from occupying a run of consecutive days.
+    /// keeps one song's publications from occupying a run of consecutive
+    /// days.
     #[test]
-    fn a_daily_rhythm_scatters_one_works_releases_across_alternate_days() {
+    fn a_daily_rhythm_scatters_one_songs_publications_across_alternate_days() {
         let (conn, profile_id) = workspace(1);
         queued(&conn, &profile_id, "Only", 7.0, 3);
 
@@ -398,8 +434,8 @@ mod tests {
         assert_eq!(dates(&plan), ["2026-09-02", "2026-09-04", "2026-09-06"]);
     }
 
-    /// Two works on a daily rhythm interleave: the day between two releases of
-    /// one work is not wasted when another work can take it.
+    /// Two songs on a daily rhythm interleave: the day between two
+    /// publications of one song is not wasted when another song can take it.
     #[test]
     fn a_daily_rhythm_interleaves_works() {
         let (conn, profile_id) = workspace(1);
@@ -530,7 +566,6 @@ mod tests {
             NewRelease {
                 work_id: work.id,
                 kind: "short".into(),
-                title: Some(title.into()),
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,

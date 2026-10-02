@@ -97,7 +97,7 @@ export function usePaletteCommands(shell: ShellCommands): {
             id: 'release',
             label: t('search.action.release', { title }),
             icon: CalendarPlus,
-            run: () => navigate(`/works/${workId}/releases`),
+            run: () => navigate(`/works/${workId}`),
           },
         ]
 

@@ -96,7 +96,10 @@ export function MonthGrid({
 
   // What the day under the pointer already holds. It was the dry run of a
   // contest until v0.44 and predicted a refusal; nothing is refused now, so it
-  // says what is there and the drop happens either way.
+  // says what is there and the drop happens either way. Since v0.90 it also
+  // says what the release would repeat there (ADR 0054) - a rare word its
+  // song shares with a song out or booked near that day - with the same
+  // footing: a warning before it lands, never a refusal.
   const moving = dragging?.id ?? claimingId
   const onDay = over !== null && days.some((day) => day.date === over)
   const preview = useQuery({
@@ -105,7 +108,9 @@ export function MonthGrid({
     staleTime: 5_000,
   })
   const verdictFor = (date: string) =>
-    over === date && preview.data !== undefined && preview.data.verdict !== 'empty'
+    over === date &&
+    preview.data !== undefined &&
+    (preview.data.verdict !== 'empty' || preview.data.repeats.length > 0)
       ? preview.data
       : null
 

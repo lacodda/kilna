@@ -33,6 +33,7 @@ import { Copyable } from '@/components/ui/copyable'
 import { CopyButton } from '@/components/ui/copy-button'
 import { Input } from '@/components/ui/input'
 import { RowMenu } from '@/components/RowMenu'
+import { WorkRepeatMark } from '@/components/RepeatMark'
 import { StagePicker } from '@/components/StagePicker'
 import { TabBar } from '@/features/work/TabBar'
 import type { Tab, TabCount } from '@/features/work/tabs'
@@ -179,6 +180,11 @@ function Standing({ work }: { work: Work }) {
               day: formatDay(standsOn.day),
             })}
       </Chip>
+
+      {/* The guard's mark beside where the work stands (ADR 0054): a song
+          its own, a publication its song's - a clip repeats what its song
+          says. The findings themselves are on the overview. */}
+      <WorkRepeatMark workId={work.id} look="badge" />
 
       {donor !== undefined && (
         <Link

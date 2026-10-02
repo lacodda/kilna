@@ -360,7 +360,7 @@ fn register_page(conn: &Connection, profile_id: &str) -> Result<Option<String>> 
     for strictness in Strictness::ALL {
         let group: Vec<_> = entries
             .iter()
-            .filter(|entry| entry.term.strictness == strictness)
+            .filter(|entry| entry.term.strictness == Some(strictness))
             .collect();
         if group.is_empty() {
             continue;
@@ -393,6 +393,34 @@ fn register_page(conn: &Connection, profile_id: &str) -> Result<Option<String>> 
             }
             page.push('\n');
         }
+    }
+    // The words that are not spent: kept in the bank, or there only for how
+    // they are sung (ADR 0052) - the record of them is this page too.
+    let kept: Vec<_> = entries
+        .iter()
+        .filter(|entry| entry.term.strictness.is_none())
+        .collect();
+    if !kept.is_empty() {
+        page.push_str("\n## words\n\n");
+        for entry in kept {
+            let term = &entry.term;
+            page.push_str(&format!("- **{}**", term.word));
+            if let Some(bank) = term.bank {
+                page.push_str(&format!(" — {}", bank.as_str()));
+            }
+            if entry.uses > 0 {
+                page.push_str(&format!(" · sung in {} works", entry.uses));
+            }
+            page.push('\n');
+        }
+    }
+    let sung: Vec<String> = entries
+        .iter()
+        .flat_map(|entry| entry.term.sung.iter())
+        .map(|one| format!("- {} → {}", one.written, one.sung))
+        .collect();
+    if !sung.is_empty() {
+        page.push_str(&format!("\n## sung\n\n{}\n", sung.join("\n")));
     }
     Ok(Some(page))
 }
@@ -918,7 +946,6 @@ mod tests {
             release::NewRelease {
                 work_id: created.id.clone(),
                 kind: "clip".into(),
-                title: None,
                 scheduled_at: Some("2026-10-01".into()),
                 meta: None,
                 scheduled_time: Some("18:30".into()),

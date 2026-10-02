@@ -42,12 +42,14 @@ pub enum Entity {
     Term,
     /// An idea on a cover's board (ADR 0050).
     Idea,
+    /// A block of the bank of words, with the words put in it (ADR 0052).
+    Block,
 }
 
 impl Entity {
     /// Every kind of thing the trash holds. What a gate iterates rather than
     /// a list of its own that someone has to remember to extend.
-    pub const ALL: [Entity; 13] = [
+    pub const ALL: [Entity; 14] = [
         Entity::Work,
         Entity::Version,
         Entity::Score,
@@ -61,6 +63,7 @@ impl Entity {
         Entity::Fact,
         Entity::Term,
         Entity::Idea,
+        Entity::Block,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -78,6 +81,7 @@ impl Entity {
             Self::Fact => "fact",
             Self::Term => "term",
             Self::Idea => "idea",
+            Self::Block => "block",
         }
     }
 
@@ -98,6 +102,7 @@ impl Entity {
             "fact" => Ok(Self::Fact),
             "term" => Ok(Self::Term),
             "idea" => Ok(Self::Idea),
+            "block" => Ok(Self::Block),
             other => Err(Error::Internal(format!("unknown trash entity `{other}`"))),
         }
     }
@@ -118,6 +123,7 @@ impl Entity {
             Self::Fact => "canon_fact",
             Self::Term => "term",
             Self::Idea => "cover_idea",
+            Self::Block => "term_block",
         }
     }
 }
@@ -328,7 +334,8 @@ fn cascade(entity: Entity) -> &'static [Capture] {
             },
         ],
         // A term and the works named as carrying it: a meaning is known by
-        // them, so they come back with it.
+        // them, so they come back with it - and the blocks of the bank it
+        // stood in (ADR 0052).
         Entity::Term => &[
             Capture {
                 table: "term",
@@ -337,6 +344,22 @@ fn cascade(entity: Entity) -> &'static [Capture] {
             Capture {
                 table: "term_work",
                 key: "term_id",
+            },
+            Capture {
+                table: "term_block_word",
+                key: "term_id",
+            },
+        ],
+        // A block and the words put in it; the words themselves stay in the
+        // bank.
+        Entity::Block => &[
+            Capture {
+                table: "term_block",
+                key: "id",
+            },
+            Capture {
+                table: "term_block_word",
+                key: "block_id",
             },
         ],
         // A stretch of a splice is one row and hangs nothing off itself.
@@ -988,7 +1011,9 @@ fn missing_parent(
     let parents: &[(&str, &str)] = match entity {
         // These stand on their own; the profile they need is checked by the
         // insert itself.
-        Entity::Work | Entity::Collection | Entity::Style | Entity::Term => return Ok(None),
+        Entity::Work | Entity::Collection | Entity::Style | Entity::Term | Entity::Block => {
+            return Ok(None);
+        }
         Entity::Version
         | Entity::Score
         | Entity::Release
@@ -1069,7 +1094,7 @@ fn describe(
             .optional()?,
         Entity::Release => conn
             .query_row(
-                "SELECT coalesce(r.title, r.kind), w.title, w.profile_id
+                "SELECT r.kind, w.title, w.profile_id
                  FROM release r JOIN work w ON w.id = r.work_id WHERE r.id = ?1",
                 params![id],
                 describe_row,
@@ -1138,6 +1163,14 @@ fn describe(
                 describe_row,
             )
             .optional()?,
+        // Named by its name, as the bank shows it.
+        Entity::Block => conn
+            .query_row(
+                "SELECT name, NULL, profile_id FROM term_block WHERE id = ?1",
+                params![id],
+                describe_row,
+            )
+            .optional()?,
         // Named as the register reads it: by its word.
         Entity::Term => conn
             .query_row(
@@ -1195,6 +1228,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Fact => "fact",
         Entity::Term => "term",
         Entity::Idea => "idea",
+        Entity::Block => "block",
     }
 }
 

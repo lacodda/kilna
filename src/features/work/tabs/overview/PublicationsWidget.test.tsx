@@ -73,7 +73,7 @@ function answerDerive() {
     workspace.works.push(work)
     workspace.links.push(link)
     workspace.releases.push(release)
-    const made: Made = { work, release_id: MADE_RELEASE }
+    const made: Made = { work, release_id: MADE_RELEASE, door: release.kind }
     return made
   })
 }
@@ -87,15 +87,14 @@ describe("a song's publications", () => {
     // Nothing out and nothing dated: the status word says where it stands.
     expect(within(clip).getByText('Video')).toBeInTheDocument()
     expect(within(clip).getByText('Draft')).toBeInTheDocument()
-    expect(
-      within(clip).getByText('YouTube · 16:9, Premiere · 16:9 · 1 comment'),
-    ).toBeInTheDocument()
+    // Its release's own door, not every door the kind has.
+    expect(within(clip).getByText('YouTube · 16:9 · 1 comment')).toBeInTheDocument()
 
     const audio = within(widget).getByRole('link', { name: /^Paper Lanterns — audio/ })
     expect(audio).toHaveAttribute('href', `/works/${IDS.audio}`)
     expect(within(audio).getByText('Audio')).toBeInTheDocument()
     expect(within(audio).getByText('Booked for Sep 22')).toBeInTheDocument()
-    expect(within(audio).getByText('YouTube · 16:9, Streaming · 1:1')).toBeInTheDocument()
+    expect(within(audio).getByText('YouTube · 16:9')).toBeInTheDocument()
 
     // Under the list: what the song stands on, and what was said under all of it.
     expect(
@@ -126,15 +125,21 @@ describe("a song's publications", () => {
     expect(within(widget).getByText(en.publications.none)).toBeInTheDocument()
     fireEvent.click(within(widget).getByRole('button', { name: en.publications.makeMenu }))
     const menu = await screen.findByRole('menu')
+    // A kind with several places is a group of one item per place; one with a
+    // single place is one item.
     expect(
       within(menu)
         .getAllByRole('menuitem')
         .map((item) => item.textContent),
     ).toEqual([
-      'Make a videoYouTube · 16:9, Premiere · 16:9',
-      'Make an audioYouTube · 16:9, Streaming · 1:1',
+      'YouTube · 16:9',
+      'Premiere · 16:9',
+      'YouTube · 16:9',
+      'Streaming · 1:1',
       'Make a shortShort · 9:16',
     ])
+    expect(within(menu).getByRole('group', { name: 'Make a video' })).toBeInTheDocument()
+    expect(within(menu).getByRole('group', { name: 'Make an audio' })).toBeInTheDocument()
   })
 })
 
@@ -152,7 +157,8 @@ describe('making a publication', () => {
 
     fireEvent.click(within(widget).getByRole('button', { name: en.publications.makeMenu }))
     const menu = await screen.findByRole('menu')
-    fireEvent.click(within(menu).getByRole('menuitem', { name: /^Make an audio/ }))
+    const audio = within(menu).getByRole('group', { name: 'Make an audio' })
+    fireEvent.click(within(audio).getByRole('menuitem', { name: /^YouTube/ }))
 
     await waitFor(() =>
       expect(backend.argsOf('start_release_task')).toEqual([
@@ -160,7 +166,7 @@ describe('making a publication', () => {
       ]),
     )
     expect(backend.argsOf('derive_work')).toEqual([
-      { sourceId: IDS.song, kind: 'audio', title: null, locale: 'en' },
+      { sourceId: IDS.song, kind: 'audio', title: null, locale: 'en', door: 'youtube' },
     ])
 
     // The new work's card, open on its cover: the next decision is there.
@@ -187,12 +193,37 @@ describe('making a publication', () => {
 
     fireEvent.click(within(widget).getByRole('button', { name: en.publications.makeMenu }))
     const menu = await screen.findByRole('menu')
-    fireEvent.click(within(menu).getByRole('menuitem', { name: /^Make an audio/ }))
+    const audio = within(menu).getByRole('group', { name: 'Make an audio' })
+    fireEvent.click(within(audio).getByRole('menuitem', { name: /^YouTube/ }))
 
     expect(await screen.findByText(en.publications.metaNotStarted)).toBeInTheDocument()
     expect(
       screen.getByText('Linked, with a YouTube release that has no day yet.'),
     ).toBeInTheDocument()
     await screen.findByRole('heading', { level: 1, name: /^Paper Lanterns — audio 2/ })
+  })
+})
+
+describe('the places of a kind', () => {
+  it('offers the audio its two places, and makes it for the one picked', async () => {
+    answerDerive()
+    backend.answer('start_release_task', () => Promise.reject(new Error('no assistant here')))
+    const widget = await openPublications(IDS.song)
+
+    fireEvent.click(within(widget).getByRole('button', { name: en.publications.makeMenu }))
+    const menu = await screen.findByRole('menu')
+    const audio = within(menu).getByRole('group', { name: 'Make an audio' })
+    expect(
+      within(audio)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent),
+    ).toEqual(['YouTube · 16:9', 'Streaming · 1:1'])
+    fireEvent.click(within(audio).getByRole('menuitem', { name: /^Streaming/ }))
+
+    await waitFor(() =>
+      expect(backend.argsOf('derive_work')).toEqual([
+        { sourceId: IDS.song, kind: 'audio', title: null, locale: 'en', door: 'streaming' },
+      ]),
+    )
   })
 })

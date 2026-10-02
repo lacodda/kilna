@@ -94,6 +94,14 @@ export function KeyboardSheet({ open, onOpenChange }: Props) {
                 <Row keys={['?']}>{t('keys.action.help')}</Row>
                 <Row keys={['Escape']}>{t('keys.action.close')}</Row>
               </Group>
+
+              {/* The stress gesture of a sung text (ADR 0053): on a vowel
+                  under the pointer, or at the caret - the same key on a
+                  Cyrillic layout, where it types э. */}
+              <Group title={t('keys.group.sung')}>
+                <Row keys={['Alt', t('keys.click')]}>{t('keys.action.stressVowel')}</Row>
+                <Row keys={['Alt', "'"]}>{t('keys.action.stressCaret')}</Row>
+              </Group>
             </div>
           </div>
 

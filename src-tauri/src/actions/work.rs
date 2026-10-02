@@ -286,6 +286,8 @@ pub fn clone(conn: &Connection, work_id: &str, title: &str) -> Result<crate::clo
 pub struct Made {
     pub work: Work,
     pub release_id: Option<String>,
+    /// Where that release goes out: the door asked for, or the kind's first.
+    pub door: Option<String>,
 }
 
 /// Make a work from another: a clip, an audio release or a short from a song.
@@ -293,13 +295,16 @@ pub struct Made {
 /// The new work takes the source's overview fields that its own kind has -
 /// the inputs flow once, at creation, and never again (decision of
 /// 2026-09-10): what the source does afterwards is a fact the link reports,
-/// not a change pushed into the work. Its text is not copied: a video's roles
-/// are its own. Its title is the kind's `made_title` in the window's
-/// language - "Harbour lights — clip", "Harbour lights · short 5", numbered
-/// among the works of that kind already made from the source - unless one is
-/// given. A kind that goes out somewhere is planned one release through its
-/// first door, with no day: "make an audio" means "I am going to put this
-/// out", and the release is where what it goes out under is written (v0.86).
+/// not a change pushed into the work. A field that is a fact of the work's
+/// own media - a length - is not taken (v0.90): a short is not as long as
+/// the clip it is cut from. Its text is not copied: a video's roles are its
+/// own. Its title is the kind's `made_title` - "Harbour lights (video)",
+/// "Harbour lights (short 5)", numbered among the works of that kind made
+/// from the same song (`publication::made_title`) - unless one is given. A
+/// kind that goes out somewhere is planned its one release (ADR 0051)
+/// through the door asked for, or else its first, with no day: "make an
+/// audio" means "I am going to put this out", and the release is where what
+/// it goes out under is written (v0.86).
 ///
 /// Gestures as a hand would make them - the work, the link, the release - in
 /// one unit, so none lands without the others.
@@ -309,6 +314,7 @@ pub fn derive(
     kind: &str,
     title: Option<&str>,
     locale: Option<&str>,
+    door: Option<&str>,
 ) -> Result<Made> {
     atomically(conn, |conn| {
         let source =
@@ -324,31 +330,30 @@ pub fn derive(
                 config
                     .fields_of(kind)
                     .iter()
-                    .any(|field| field.key == **key)
+                    .any(|field| field.key == **key && !field.own)
             })
             .map(|(key, value)| (key.clone(), value.clone()))
             .collect();
-        let made_before: i64 = conn.query_row(
-            "SELECT count(*) FROM work_link l JOIN work w ON w.id = l.work_id
-              WHERE l.source_id = ?1 AND w.kind = ?2",
-            rusqlite::params![source_id, kind],
-            |row| row.get(0),
-        )?;
-        let number = usize::try_from(made_before).unwrap_or(0) + 1;
-        let title = title
-            .map(|title| title.trim().to_owned())
-            .filter(|title| !title.is_empty())
-            .unwrap_or_else(|| {
-                vocabulary.title_made_from(
-                    &source.title,
-                    locale.unwrap_or(crate::profile::config::SOURCE_LOCALE),
-                    number,
-                )
-            });
-        let door = vocabulary
-            .release_kinds
-            .first()
-            .map(|door| door.key.clone());
+        let title = match title.map(str::trim).filter(|title| !title.is_empty()) {
+            Some(title) => title.to_owned(),
+            None => crate::publication::made_title(
+                conn,
+                &config,
+                kind,
+                &source,
+                locale.unwrap_or(crate::profile::config::SOURCE_LOCALE),
+            )?,
+        };
+        let door = match door {
+            Some(asked) => {
+                config.require_release_kind(kind, asked)?;
+                Some(asked.to_owned())
+            }
+            None => vocabulary
+                .release_kinds
+                .first()
+                .map(|door| door.key.clone()),
+        };
         let created = create(
             conn,
             NewWork {
@@ -367,14 +372,13 @@ pub fn derive(
                 source_version_id: None,
             },
         )?;
-        let release_id = match door {
+        let release_id = match door.clone() {
             Some(door) => Some(
                 super::release::create(
                     conn,
                     crate::release::NewRelease {
                         work_id: created.id.clone(),
                         kind: door,
-                        title: None,
                         scheduled_at: None,
                         meta: None,
                         scheduled_time: None,
@@ -386,7 +390,11 @@ pub fn derive(
             None => None,
         };
         let work = work::get(conn, &created.id)?.unwrap_or(created);
-        Ok(Made { work, release_id })
+        Ok(Made {
+            work,
+            release_id,
+            door,
+        })
     })
 }
 
@@ -540,9 +548,9 @@ mod tests {
         let (conn, profile_id) = fixtures::workspace();
         let song = fixtures::song(&conn, &profile_id, "Harbour lights");
 
-        let made = derive(&conn, &song.id, "video", None, Some("en")).unwrap();
+        let made = derive(&conn, &song.id, "video", None, Some("en"), None).unwrap();
 
-        assert_eq!(made.work.title, "Harbour lights — clip");
+        assert_eq!(made.work.title, "Harbour lights (video)");
         let links = crate::link::for_work(&conn, &made.work.id).unwrap();
         assert_eq!(links.sources.len(), 1);
         let release = crate::release::get(&conn, made.release_id.as_deref().unwrap())
@@ -573,7 +581,7 @@ mod tests {
             &conn,
             &song.id,
             WorkPatch {
-                meta: serde_json::json!({ "bpm": 96, "stray": "no field" })
+                meta: serde_json::json!({ "bpm": 96, "duration": 214, "stray": "no field" })
                     .as_object()
                     .cloned(),
                 ..WorkPatch::default()
@@ -581,18 +589,29 @@ mod tests {
         )
         .unwrap();
 
-        let first = derive(&conn, &song.id, "short", None, Some("ru")).unwrap();
-        let second = derive(&conn, &song.id, "short", None, Some("ru")).unwrap();
-        let clip = derive(&conn, &song.id, "video", None, Some("ru")).unwrap();
-        let again = derive(&conn, &song.id, "video", None, Some("en")).unwrap();
-        let audio = derive(&conn, &song.id, "audio", None, None).unwrap();
-        let named = derive(&conn, &song.id, "short", Some("  The hook  "), Some("ru")).unwrap();
+        let first = derive(&conn, &song.id, "short", None, Some("ru"), None).unwrap();
+        let second = derive(&conn, &song.id, "short", None, Some("ru"), None).unwrap();
+        let clip = derive(&conn, &song.id, "video", None, Some("ru"), None).unwrap();
+        let again = derive(&conn, &song.id, "video", None, Some("en"), None).unwrap();
+        let audio = derive(&conn, &song.id, "audio", None, None, None).unwrap();
+        let named = derive(
+            &conn,
+            &song.id,
+            "short",
+            Some("  The hook  "),
+            Some("ru"),
+            None,
+        )
+        .unwrap();
 
-        assert_eq!(first.work.title, "Harbour lights · шортс 1");
-        assert_eq!(second.work.title, "Harbour lights · шортс 2");
-        assert_eq!(clip.work.title, "Harbour lights — клип");
-        assert_eq!(again.work.title, "Harbour lights — clip 2");
-        assert_eq!(audio.work.title, "Harbour lights — audio");
+        assert_eq!(first.work.title, "Harbour lights (short)");
+        assert_eq!(second.work.title, "Harbour lights (short 2)");
+        assert_eq!(
+            clip.work.title, "Harbour lights (video)",
+            "one name in every language"
+        );
+        assert_eq!(again.work.title, "Harbour lights (video 2)");
+        assert_eq!(audio.work.title, "Harbour lights (audio)");
         assert_eq!(named.work.title, "The hook", "a title given wins");
         assert_eq!(
             audio.work.meta,
@@ -602,6 +621,11 @@ mod tests {
                 .unwrap()
         );
         assert_eq!(clip.work.meta.get("variant"), None, "a clip has no variant");
+        assert_eq!(
+            first.work.meta.get("duration"),
+            None,
+            "a short is not as long as the song it is cut from"
+        );
         let door = crate::release::get(&conn, audio.release_id.as_deref().unwrap())
             .unwrap()
             .unwrap();
@@ -611,13 +635,36 @@ mod tests {
         );
     }
 
+    /// The place is chosen when the publication is made: an audio for the
+    /// streaming services is planned there, and a door the kind does not
+    /// have is refused before anything is written.
+    #[test]
+    fn a_made_work_goes_out_through_the_door_asked_for() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+
+        let audio = derive(&conn, &song.id, "audio", None, None, Some("streaming")).unwrap();
+        let door = crate::release::get(&conn, audio.release_id.as_deref().unwrap())
+            .unwrap()
+            .unwrap();
+        assert_eq!(door.kind, "streaming");
+
+        let before = operation::count(&conn).unwrap();
+        let refused = derive(&conn, &song.id, "audio", None, None, Some("premiere")).unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("release.unknownKind")
+        );
+        assert_eq!(operation::count(&conn).unwrap(), before);
+    }
+
     /// A work that goes out nowhere is made with no release to plan.
     #[test]
     fn a_made_work_of_a_kind_without_doors_plans_nothing() {
         let (conn, profile_id) = fixtures::workspace();
         let clip = fixtures::video(&conn, &profile_id, "Harbour lights — clip");
 
-        let song = derive(&conn, &clip.id, "song", None, Some("en")).unwrap();
+        let song = derive(&conn, &clip.id, "song", None, Some("en"), None).unwrap();
 
         assert_eq!(song.release_id, None);
         assert_eq!(song.work.title, "Harbour lights — clip");
@@ -629,7 +676,7 @@ mod tests {
         let song = fixtures::song(&conn, &profile_id, "Harbour lights");
         let before = operation::count(&conn).unwrap();
 
-        let refused = derive(&conn, &song.id, "opera", None, None).unwrap_err();
+        let refused = derive(&conn, &song.id, "opera", None, None, None).unwrap_err();
 
         assert_eq!(refused.refusal().map(|r| r.code), Some("work.unknownKind"));
         assert_eq!(operation::count(&conn).unwrap(), before);

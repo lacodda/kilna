@@ -284,6 +284,36 @@ pub fn ancestors(conn: &Connection, work_id: &str) -> Result<Vec<String>> {
     Ok(rows)
 }
 
+/// Every work of a profile that is made from something, with every work up
+/// its chain - for the questions asked of the whole workspace at once, as
+/// the auto-layout asks which publications are made from the same song.
+pub fn ancestors_by_work(
+    conn: &Connection,
+    profile_id: &str,
+) -> Result<std::collections::BTreeMap<String, Vec<String>>> {
+    let mut statement = conn.prepare(
+        "WITH RECURSIVE up(work_id, source_id, depth) AS (
+             SELECT work_id, source_id, 1 FROM work_link WHERE profile_id = ?1
+             UNION
+             SELECT up.work_id, l.source_id, up.depth + 1
+               FROM work_link l JOIN up ON l.work_id = up.source_id
+              WHERE up.depth < 16
+         )
+         SELECT work_id, source_id, min(depth) FROM up
+          WHERE work_id <> source_id
+          GROUP BY work_id, source_id ORDER BY work_id, min(depth), source_id",
+    )?;
+    let mut map: std::collections::BTreeMap<String, Vec<String>> = Default::default();
+    let rows = statement.query_map(params![profile_id], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })?;
+    for row in rows {
+        let (work_id, source_id) = row?;
+        map.entry(work_id).or_default().push(source_id);
+    }
+    Ok(map)
+}
+
 /// Both directions at once, for the card.
 pub fn for_work(conn: &Connection, work_id: &str) -> Result<Links> {
     Ok(Links {
@@ -397,7 +427,6 @@ mod tests {
             crate::release::NewRelease {
                 work_id: work_id.into(),
                 kind: kind.into(),
-                title: None,
                 scheduled_at: day.map(Into::into),
                 meta: None,
                 scheduled_time: None,
@@ -430,28 +459,40 @@ mod tests {
         assert_eq!(fresh.last_released_at, None);
         assert_eq!(fresh.next_scheduled_at, None, "nothing is planned yet");
 
-        // Two out, on days of their own; two waiting, one of them with no
-        // day at all; and a release of the song itself, which is not the
-        // video's to report.
-        for (kind, day) in [("youtube", "2026-09-02"), ("shorts", "2026-09-12")] {
-            let id = release(&conn, &video, kind, Some(day));
-            crate::release::mark_released(&conn, &id, None, Some(day.into())).unwrap();
-        }
-        release(&conn, &video, "reels", Some("2026-10-03"));
-        release(&conn, &video, "tiktok", Some("2026-10-20"));
-        release(&conn, &video, "vk", None);
+        // One out, one waiting for its day, and a release of the song
+        // itself, which is no video's to report. A publication goes out once
+        // (ADR 0051), so each says its own.
+        let id = release(&conn, &video, "youtube", Some("2026-09-12"));
+        crate::release::mark_released(&conn, &id, None, Some("2026-09-12".into())).unwrap();
+        let waiting = work(&conn, &profile_id, "video", "W");
+        create(
+            &conn,
+            &profile_id,
+            NewLink {
+                work_id: waiting.clone(),
+                source_id: song.clone(),
+                role: None,
+                source_version_id: None,
+            },
+        )
+        .unwrap();
+        release(&conn, &waiting, "youtube", Some("2026-10-03"));
         release(&conn, &song, "audio", Some("2026-09-20"));
 
-        let read = &derived(&conn, &song).unwrap()[0];
-        assert_eq!(read.released, 2);
+        let read = derived(&conn, &song).unwrap();
+        let out = read.iter().find(|one| one.work_id == video).unwrap();
+        assert_eq!(out.released, 1);
         assert!(
-            read.last_released_at
+            out.last_released_at
                 .as_deref()
                 .is_some_and(|at| at.starts_with("2026-09-12")),
-            "the latest release, not the first: {:?}",
-            read.last_released_at
+            "{:?}",
+            out.last_released_at
         );
-        assert_eq!(read.next_scheduled_at.as_deref(), Some("2026-10-03"));
+        assert_eq!(out.next_scheduled_at, None);
+        let next = read.iter().find(|one| one.work_id == waiting).unwrap();
+        assert_eq!(next.released, 0);
+        assert_eq!(next.next_scheduled_at.as_deref(), Some("2026-10-03"));
     }
 
     #[test]

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, screen, within } from '@testing-library/react'
+import type { RepeatMark } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, IDS, NOW, studio } from '@/test/workspace'
@@ -133,5 +134,40 @@ describe('the catalogue', () => {
     expect(backend.argsOf('unschedule_works')).toEqual([{ workIds: [IDS.draft] }])
     // Done with: the ticks go, and the bar with them.
     expect(bar()).toBeNull()
+  })
+
+  it("marks a song the guard holds against one booked, and names why in the mark's words", async () => {
+    // The guard of repeats (ADR 0054): Harbour Lights has not gone out, and
+    // says a rare word Paper Lanterns says on the 22nd - and one more.
+    backend.answer('repeat_marks', () => [
+      {
+        work_id: IDS.draft,
+        song_id: IDS.draft,
+        level: 'red',
+        top: {
+          word: 'пульсар',
+          level: 'red',
+          why: 'rare',
+          neighbour_id: IDS.song,
+          neighbour_title: 'Paper Lanterns',
+          day: '2026-09-22',
+          booked: true,
+          also: 0,
+          kept: false,
+        },
+        count: 2,
+      } satisfies RepeatMark,
+    ])
+    const { rowOf } = await open()
+
+    // The hint is the mark's name: the level, the word, the other song and
+    // its day, and how many more - what a reader who cannot see red hears.
+    const mark = await within(rowOf('Harbour Lights')).findByRole('img', {
+      name: 'Said lately: пульсар — in “Paper Lanterns”, booked Sep 22, and 1 more',
+    })
+    expect(mark).toHaveAttribute('data-repeat', 'red')
+    expect(mark).toHaveTextContent('2')
+    // A song nothing is held against wears no mark.
+    expect(within(rowOf('Paper Lanterns')).queryByRole('img', { name: /Said/ })).toBeNull()
   })
 })

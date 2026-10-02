@@ -123,7 +123,12 @@ function Contents({ onOpenChange, word: initial = '' }: Omit<Props, 'open'>) {
         )}
         <div className="flex flex-wrap items-center gap-3">
           <KindPicker value={shownKind} onChange={setKind} />
-          <StrictnessPicker value={strictness} onChange={setStrictness} />
+          <StrictnessPicker
+            value={strictness}
+            onChange={(next) => {
+              if (next !== null) setStrictness(next)
+            }}
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <span className="caption">{t('register.topic')}</span>

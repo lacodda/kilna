@@ -13,9 +13,10 @@ import { answersFor, IDS, NOW, studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
 
 /*
- * The Releases tab (v0.80): a release is edited where it stands.
+ * The release block (v0.80, moved to the overview in v0.90): a release is
+ * edited where it stands.
  *
- * Its row unrolls in place - the date, the link, what it goes out as, the
+ * It is open in place - the date, the link, what it goes out as, the
  * files that go with it - and saves as it goes, one field at a time. Text the
  * work would write over what someone typed is shown before it lands, and what
  * is kept is exactly what was shown.
@@ -85,25 +86,24 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** The clip's Releases tab, with its one release unrolled. */
-async function unrolled() {
-  const { client } = renderApp(`/works/${IDS.video}/releases`)
+/** The clip's overview, where its one release stands open. */
+async function opened() {
+  const { client } = renderApp(`/works/${IDS.video}`)
   await settled(client)
   const main = await screen.findByRole('main')
-  const row = await within(main).findByRole('button', { name: 'YouTube' })
-  expect(row).toHaveAttribute('aria-expanded', 'false')
-
-  fireEvent.click(row)
+  await within(main).findByRole('combobox', { name: en.releases.kind })
   await settled(client)
-  expect(row).toHaveAttribute('aria-expanded', 'true')
   return { client, main }
 }
 
-describe('the releases tab', () => {
-  it('unrolls a release in place: its date, its link, its fields and its files', async () => {
-    const { main } = await unrolled()
+describe('the release block', () => {
+  it('stands open in place: its date, its link, its fields and its files', async () => {
+    const { main } = await opened()
 
-    // No dialog: the form is in the row.
+    // No dialog: the form is in the block, and the place is its own door.
+    expect(within(main).getByRole('combobox', { name: en.releases.kind })).toHaveTextContent(
+      'YouTube',
+    )
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(within(main).getByRole('button', { name: en.calendar.slotDate })).toBeInTheDocument()
     expect(within(main).getByRole('textbox', { name: en.calendar.urlPrompt })).toHaveValue('')
@@ -113,7 +113,7 @@ describe('the releases tab', () => {
   })
 
   it('saves a link when it is left, and nothing else with it', async () => {
-    const { client, main } = await unrolled()
+    const { client, main } = await opened()
 
     const link = within(main).getByRole('textbox', { name: en.calendar.urlPrompt })
     fireEvent.change(link, { target: { value: '  https://example.com/watch  ' } })
@@ -135,7 +135,7 @@ describe('the releases tab', () => {
   })
 
   it('offers only the kinds its own work goes out as', async () => {
-    const { main } = await unrolled()
+    const { main } = await opened()
 
     fireEvent.click(within(main).getByRole('combobox', { name: en.releases.kind }))
     const offered = (await screen.findAllByRole('option')).map((option) => option.textContent)
@@ -144,7 +144,7 @@ describe('the releases tab', () => {
   })
 
   it('shows what the work would write before it replaces what was typed', async () => {
-    const { client, main } = await unrolled()
+    const { client, main } = await opened()
 
     await act(async () => {
       fireEvent.click(within(main).getByRole('button', { name: en.releases.meta.regenerate }))
@@ -172,7 +172,7 @@ describe('the releases tab', () => {
   })
 
   it('keeps what was typed when the preview is turned down', async () => {
-    const { client, main } = await unrolled()
+    const { client, main } = await opened()
 
     await act(async () => {
       fireEvent.click(within(main).getByRole('button', { name: en.releases.meta.regenerate }))
@@ -182,5 +182,37 @@ describe('the releases tab', () => {
 
     expect(within(main).queryByText('Written from the lyrics.')).toBeNull()
     expect(backend.argsOf('set_release_fields')).toEqual([])
+  })
+
+  it('saves a time when the field is left, with the zone it is said in', async () => {
+    const { client, main } = await opened()
+
+    const time = within(main).getByLabelText(en.calendar.slotTime)
+    fireEvent.change(time, { target: { value: '18:30' } })
+    await act(async () => {
+      fireEvent.blur(time)
+    })
+    await settled(client)
+
+    const [sent] = backend.argsOf('update_release') as { id: string; patch: ReleasePatch }[]
+    expect(sent?.id).toBe(IDS.youtube)
+    expect(sent?.patch.scheduled_time).toBe('18:30')
+    // The release had no zone: the first time typed says which one it is in.
+    expect(typeof sent?.patch.time_zone).toBe('string')
+    expect(sent?.patch.time_zone).not.toBe('')
+  })
+
+  it('keeps the place of a release that went out', async () => {
+    const workspace = studio()
+    const release = workspace.releases.find((r) => r.id === IDS.youtube)!
+    release.status = 'released'
+    release.released_at = release.scheduled_at ?? '2026-03-01'
+    backend = mockBackend({ ...answersFor(workspace), release_fields: () => FIELDS })
+
+    const { client } = renderApp(`/works/${IDS.video}`)
+    await settled(client)
+    const main = await screen.findByRole('main')
+    const place = await within(main).findByRole('combobox', { name: en.releases.kind })
+    expect(place).toBeDisabled()
   })
 })

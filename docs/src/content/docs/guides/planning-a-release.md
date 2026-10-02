@@ -3,10 +3,16 @@ title: Planning a release
 description: Queue, slots and the auto-layout — how a release gets a date, how a month is read at a glance, and how one click paces the whole queue to your rhythm.
 ---
 
-A **release** is a plan to ship a specific work as some kind — an audio
-release, a newsletter send, a feed release — on some date, or with no date
-yet at all. Creating a release doesn't schedule it; scheduling is a separate
-step, and it's the one where kilna pushes back.
+A **release** is a plan to ship a specific work through some place — YouTube,
+the streaming services, a newsletter send, a feed — on some date, or with no
+date yet at all. Creating a release doesn't schedule it; scheduling is a
+separate step, and it's the one where kilna pushes back.
+
+**A publication goes out once.** A work has one release: the clip on
+YouTube is one publication, the same clip as a premiere is another, each with
+its own title, cover, comments and numbers. Where it goes out is chosen when
+it is made (**Make… → Audio → Streaming**) and can change until it goes;
+once it went out, it went out there.
 
 **A door belongs to the work that goes through it.** In Studio a song has no
 door at all: it goes out as what is [made from it](/kilna/guides/made-from/).
@@ -26,6 +32,16 @@ No date, link or text was lost: the release kept its slot, its pin, the day
 it went out, its link and everything written under it — only the work it
 hangs on and the door it goes through changed. History says how many moved.
 See [ADR 0030](https://github.com/lacodda/kilna/blob/main/docs/adr/0030-a-door-belongs-to-the-work-that-goes-through-it.md).
+:::
+
+:::note[And in v0.90]
+A work that held two releases was split the first time v0.90 opened it: the
+work kept its first release, and each other one became a publication of its
+own — the same kind, fields, cover and frame, made from the same song, its
+files with it. A release's own title, which no screen showed any more, moved
+into its title field where that was empty, and was kept beside it as
+`former_title` where the field already said something else. See
+[ADR 0051](https://github.com/lacodda/kilna/blob/main/docs/adr/0051-a-publication-goes-out-once.md).
 :::
 
 :::note[And again in v0.86]
@@ -256,8 +272,8 @@ Marking a release without a link a second time keeps whatever link was
 already recorded rather than clearing it.
 
 **The day is yours to name.** Marking — from the calendar or from the
-work's Releases tab, the same dialog either way — asks for the day it went
-out, which starts from the day it was planned for and can be changed. Marks are often made after the fact — days later, or while entering
+**Release** block of the work's overview, the same dialog either way — asks
+for the day it went out, which starts from the day it was planned for and can be changed. Marks are often made after the fact — days later, or while entering
 something that shipped long ago — and a mark that could only ever say "now"
 made every late one quietly wrong.
 
@@ -277,10 +293,33 @@ two, and a kind that names no fields simply shows none. The list is the
 release kind's `fields` — see
 [the profile document](/kilna/reference/profile-document/).
 
-Open a release on the Releases tab of its work and the boxes are underneath
-it. They save as you leave each one, and each can be copied on its own, which
-is what you are doing with them: pasting them into the place the thing is
-actually being published.
+The boxes are in the **Release** block of the publication's overview, under
+its place, day and hour. They save as you leave each one, and each can be
+copied on its own, which is what you are doing with them: pasting them into
+the place the thing is actually being published.
+
+### A title for the audience, and its tail
+
+A publication's own name is kilna's word for it — *Harbour lights (audio)* —
+and the audience never sees it: Studio's title fields read **`{origin}`**,
+the title of the song the publication is made from, even for a short cut
+from the clip.
+
+A field may keep a **tail**: the title of an audio's YouTube release always
+ends with *" (audio)"*, a clip's has none. The release keeps it whoever writes
+the rest — you typing, the template, the assistant, an agent — and takes it
+off again when the release moves to a place that keeps no tail. An empty
+title stays empty. The tail is the field's `suffix` in
+[the profile document](/kilna/reference/profile-document/).
+
+### Without the singer's marks
+
+A description that quotes the lyric — the audio's `{donor:lyrics}` — reads it
+as the public does: the capital vowels that mark stresses for the singer are
+lowered and every respelling you keep is put back (*МарсЭль* becomes
+*Марсель*). The same goes for what the assistant or an agent proposes for a
+field. What you type into a field yourself is left as you typed it. See
+[Singing a text](/kilna/guides/singing-a-text/).
 
 ### Writing them from the work
 
@@ -351,12 +390,17 @@ you type rather than failing silently later.
 
 ## Editing a release
 
-Clicking a chip opens the release: its kind, its date and the link. The same
-three fields are behind **Edit this release** on the Releases tab of the work
-it belongs to, which also carries the rest of the actions on this page: marking
-it released, taking that mark back, returning it to the queue, copying the
-link, and deleting it. What the calendar can do to a release and what its work
-can do to it are the same list, minus the drag that only a grid can offer. Changing
+Clicking a chip opens the release: its place, its date, its hour and the
+link. The same fields stand in the **Release** block at the top of the
+publication's overview, whose menu carries the rest of the actions on this
+page: marking it released, taking that mark back, returning it to the queue,
+copying the link, and deleting it. What the calendar can do to a release and
+what its work can do to it are the same list, minus the drag that only a grid
+can offer.
+
+**The hour** is for the places that ask for one. The first time you set it,
+it is said in the zone this computer is in, and the zone is kept with it, so
+the release still means one moment when it is read elsewhere. Changing
 the date here **moves** the booking rather than bidding for a new one — a date
 typed into a form is a correction, and the app pushing back mid-edit would be
 answering a question nobody asked. Clearing the date returns it to the queue,

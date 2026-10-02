@@ -97,9 +97,7 @@ describe('the release meta bar', () => {
       await screen.findByText('Release meta for YouTube: 2 fields wait for you'),
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: en.releases.metaStatus.open }))
-    expect(screen.getByRole('status', { name: 'address' })).toHaveTextContent(
-      `/works/${IDS.audio}/releases?release=${IDS.audioRelease}`,
-    )
+    expect(screen.getByRole('status', { name: 'address' })).toHaveTextContent(`/works/${IDS.audio}`)
   })
 
   it('says what was written when the run it watched finishes', async () => {

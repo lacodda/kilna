@@ -200,6 +200,85 @@ textarea,
 }
 
 /*
+ * A word of a sung text the singer may get wrong (ADR 0053).
+ *
+ * A dashed rule along the foot of the word, drawn as a background rather
+ * than as a text decoration: a run can carry a term of the register and a
+ * stress note at once, and two classes setting `text-decoration-line` keep
+ * only one of them. The rule sits at the bottom of the letters' box, below
+ * a term's line, in a colour that says what is wrong: the information hue
+ * for a choice the dictionary cannot make (a homograph, a word it does not
+ * know), the warning hue for a mark against it or a missing ё, the accent
+ * for a word the owner sings another way. After the tints, so the wash a
+ * repeat puts under the same letters keeps its colour and gains the rule.
+ */
+.stress-homograph,
+.stress-unknown,
+.stress-against,
+.stress-yo,
+.stress-unsung {
+  background-image: linear-gradient(to right, var(--stress-ink) 60%, transparent 0);
+  background-size: 5px 1.5px;
+  background-repeat: repeat-x;
+  background-position: 0 100%;
+}
+.stress-homograph,
+.stress-unknown {
+  --stress-ink: var(--info);
+}
+.stress-against,
+.stress-yo {
+  --stress-ink: var(--warn);
+}
+.stress-unsung {
+  --stress-ink: var(--accent);
+}
+
+/*
+ * "Show the stresses": an acute over a stressed vowel, drawn over the letter
+ * and never into the text (ADR 0053).
+ *
+ * The editor's mirror has to keep exactly the textarea's metrics or every
+ * mark after this one slides off its word, so the accent takes no room: an
+ * absolutely placed pseudo-element over the letter's own box. Its line
+ * height is the font's own, so the spacing acute sits where the font puts
+ * an accent over a lowercase letter; over a capital it is lifted by the
+ * difference between the two heights. Its own colour, because on the
+ * mirror the letters are transparent.
+ */
+.stress-accent {
+  position: relative;
+}
+.stress-accent::after {
+  content: '\00B4';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  line-height: normal;
+  text-align: center;
+  color: var(--accent);
+  pointer-events: none;
+}
+.stress-accent-cap::after {
+  transform: translateY(-0.22em);
+}
+
+/*
+ * A marked run cut in pieces - a word split around the vowel an accent sits
+ * over - keeps square corners where the pieces meet, so its wash reads as
+ * one word and not three rounded chips.
+ */
+.mark-open-start {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.mark-open-end {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/*
  * Base UI's one stylesheet, supplied from the bundle.
  *
  * Base UI hides a scroll area's own bars - and a select's, while it shows its

@@ -11,9 +11,11 @@ import { StageDial } from '@/components/StageDial'
 import { stageAt } from '@/lib/stages'
 import { Button } from '@/components/ui/button'
 import { PreviewCard, PreviewCardPopup, PreviewCardTrigger } from '@/components/ui/preview-card'
+import { RepeatMark } from '@/components/RepeatMark'
 import { ReadyMark } from '@/features/calendar/ReadyMark'
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/format'
+import { markLabel, useRepeatMark } from '@/lib/repeats'
 
 interface Props {
   slot: ScheduledRelease
@@ -67,6 +69,9 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
   const released = slot.status === 'released'
   const gaps = missing(slot.readiness)
   const stage = stageAt(profile.config, slot.work_stage)
+  // The guard's mark of the song this release is made from (ADR 0054): a
+  // month is where a song is placed, so it is where a repeat is seen.
+  const repeat = useRepeatMark(slot.work_id)
 
   // What the work is, beside what kind of release this is. Two kinds of work
   // may ship the same kind of release under the same glyph - a video's
@@ -128,6 +133,10 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
           date is kept, how far along the work is (where there is room), and
           the kind, last - the glyph its profile names. */}
       <span className="flex shrink-0 items-center gap-0.5">
+        {/* First among the marks: whether it could go out at all is about
+            this release; whether it repeats a song is about where it is. No
+            tooltip of its own - the chip's card below says it in words. */}
+        <RepeatMark mark={repeat} tooltip={false} />
         <ReadyMark
           readiness={slot.readiness}
           released={released}
@@ -187,6 +196,14 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
               {stage === undefined ? t('stage.unset') : sayLabel(stage.label)}
             </dd>
           </div>
+          {repeat !== undefined && (
+            <div className="flex justify-between gap-3">
+              <dt className="text-faint">{t('repeats.caption')}</dt>
+              <dd className={cn('text-right', repeat.level === 'red' ? 'text-bad' : 'text-warn')}>
+                {markLabel(repeat)}
+              </dd>
+            </div>
+          )}
           <div className="flex justify-between gap-3">
             <dt className="text-faint">{t('calendar.previewState')}</dt>
             <dd className={cn(released || gaps.length === 0 ? 'text-good' : 'text-warn')}>

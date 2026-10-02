@@ -27,4 +27,9 @@ describe('writesOf', () => {
       writesOf({ message_id: 'm', at: 't', work_id: 'w', fields: ['tagline'], notes: ['n'] }),
     ).toBe(2)
   })
+
+  it('never offers the single undo for a word kept, which may be several writes', () => {
+    // Keeping one word can make it, make its block and put it there (ADR 0052).
+    expect(writesOf({ message_id: 'm', at: 't', terms: ['t1'] })).toBe(0)
+  })
 })

@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { Badge, type BadgeProps } from '@/components/ui/badge'
 import { TableCell } from '@/components/ui/table'
 import { StagePicker } from '@/components/StagePicker'
+import { WorkRepeatMark } from '@/components/RepeatMark'
 import { RowStar } from './RowStar'
 import { STUCK_LEFT_TITLE, TITLE_HOLD } from './columns'
 
@@ -77,6 +78,11 @@ export function CatalogueCell({
             <span className="min-w-0 truncate font-semibold" title={row.title}>
               {row.title}
             </span>
+            {/* The guard's mark right after the name it is about (ADR 0054):
+                a catalogue is read down its titles when a song is being
+                picked for the next slot, and that is where a repeat has to
+                be seen. */}
+            <WorkRepeatMark workId={row.work_id} />
             {/* Where it stands is said once. The Status column says it since
                 v0.79; a table whose columns were chosen before that column
                 existed has no Status column, and the title keeps saying it

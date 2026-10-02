@@ -48,7 +48,6 @@ function release(over: Partial<ScheduledRelease> = {}): ScheduledRelease {
     work_stage: null,
     kind: 'single',
     status: 'planned',
-    title: null,
     scheduled_at: '2026-08-29',
     released_at: null,
     url: null,
@@ -253,8 +252,8 @@ describe('decide', () => {
     ])
 
     expect(decisions.map((d) => [d.workId, d.move, d.tab])).toEqual([
-      ['strong', 'schedule', 'releases'],
-      ['weak', 'schedule', 'releases'],
+      ['strong', 'schedule', 'overview'],
+      ['weak', 'schedule', 'overview'],
     ])
     expect(decisions[0]?.kind === 'finding' && decisions[0].total).toBe(80)
   })

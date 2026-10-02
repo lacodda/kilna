@@ -14,7 +14,14 @@ import { labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/usePro
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
 import { RowButton } from '@/components/ui/list-row'
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import {
+  Menu,
+  MenuGroup,
+  MenuGroupLabel,
+  MenuItem,
+  MenuPopup,
+  MenuTrigger,
+} from '@/components/ui/menu'
 import { Loaded } from '@/components/Loaded'
 import { Invite, useLook, Widget, WidgetSkeleton } from '@/features/work/tabs/overview/Widget'
 import { useMakePublication, type MakePublication } from '@/features/work/useMakePublication'
@@ -112,18 +119,35 @@ function MakeMenu({ make }: { make: MakePublication }) {
         <ChevronDown aria-hidden className="size-3 opacity-70" />
       </MenuTrigger>
       <MenuPopup align="end" size="lg">
-        {make.kinds.map((kind) => (
-          <MenuItem
-            key={kind.key}
-            onClick={() => make.make(kind.key)}
-            className="flex-col items-start gap-0"
-          >
-            <span className="text-text">{kind.label}</span>
-            {kind.description !== '' && (
-              <span className="text-xs text-faint">{kind.description}</span>
-            )}
-          </MenuItem>
-        ))}
+        {make.kinds.map((kind) =>
+          // Where it goes out is chosen here when there is a choice (v0.90):
+          // the kind as a heading, a line per place under it.
+          kind.places.length > 1 ? (
+            <MenuGroup key={kind.key}>
+              <MenuGroupLabel>{kind.label}</MenuGroupLabel>
+              {kind.places.map((place) => (
+                <MenuItem
+                  key={place.key}
+                  onClick={() => make.make(kind.key, place.key)}
+                  className="pl-5"
+                >
+                  {place.label}
+                </MenuItem>
+              ))}
+            </MenuGroup>
+          ) : (
+            <MenuItem
+              key={kind.key}
+              onClick={() => make.make(kind.key)}
+              className="flex-col items-start gap-0"
+            >
+              <span className="text-text">{kind.label}</span>
+              {kind.description !== '' && (
+                <span className="text-xs text-faint">{kind.description}</span>
+              )}
+            </MenuItem>
+          ),
+        )}
       </MenuPopup>
     </Menu>
   )
@@ -155,8 +179,11 @@ function PublicationRow({ publication }: { publication: Publication }) {
   const fact = publicationFact(publication, today())
   const status = vocabulary.statuses.find((known) => known.key === publication.status)
 
+  // Where it goes out: its one release's door (ADR 0051), or - with none
+  // planned - every place its kind could go.
+  const door = vocabulary.release_kinds.find((one) => one.key === publication.release?.kind)
   const about = [
-    doorsOf(vocabulary.release_kinds, sayLabel),
+    door === undefined ? doorsOf(vocabulary.release_kinds, sayLabel) : doorsOf([door], sayLabel),
     publication.comments > 0 ? t('publications.commentCount', { count: publication.comments }) : '',
     publication.depth > 1 && publication.via !== null
       ? t('publications.via', { title: publication.via })
@@ -181,7 +208,12 @@ function PublicationRow({ publication }: { publication: Publication }) {
               </Chip>
             ) : (
               <Chip variant={FACT_TONE[fact.said]}>
-                {t(`publications.${fact.said}`, { day: formatDay(fact.day) })}
+                {t(`publications.${fact.said}`, {
+                  day:
+                    fact.time === null
+                      ? formatDay(fact.day)
+                      : `${formatDay(fact.day)} · ${fact.time}`,
+                })}
               </Chip>
             )}
           </>

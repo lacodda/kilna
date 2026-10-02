@@ -6,4 +6,4 @@
  * The strings are stored in the database and travel to the frontend, so they
  * are part of the format rather than an implementation detail.
  */
-export type Entity = "work" | "version" | "score" | "release" | "note" | "collection" | "scene" | "cut" | "comment" | "style" | "fact" | "term" | "idea";
+export type Entity = "work" | "version" | "score" | "release" | "note" | "collection" | "scene" | "cut" | "comment" | "style" | "fact" | "term" | "idea" | "block";

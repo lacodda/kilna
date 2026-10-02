@@ -42,4 +42,12 @@ body?: string | null,
  * every role meant before the field existed: a profile that never sets
  * it counts exactly what it counted before.
  */
-counts_as_version?: boolean | null, };
+counts_as_version?: boolean | null, 
+/**
+ * Whether a body in this role is sung (v0.90, ADR 0053): its words are
+ * checked for where the stress falls and how the owner sings them, the
+ * stress is marked for the singer with a capital vowel, and a public
+ * text made from it has the marks taken off. A lyric is; a style
+ * prompt, a plot, a review are not. Absent is not sung.
+ */
+sung?: boolean, };

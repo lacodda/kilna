@@ -159,8 +159,11 @@ fn initialize() -> Value {
     reads the board of ideas for a publication's cover and everything an idea is built from, \
     and `propose_cover` proposes ideas onto it. `canon` \
     reads the world the works share - cards of people, places and the channel, with facts in \
-    layers - and `propose_canon` proposes cards, facts and relations for it. Name works by id \
-    when you have one; an exact title works too.",
+    layers - and `propose_canon` proposes cards, facts and relations for it. `words` reads the \
+    owner's bank of words by block, with how each is sung (the stress as a capital vowel), and \
+    `propose_words` proposes words for the bank, ways of singing, terms for the register and the \
+    works a meaning is in - one record per word. Name works by id when you have one; an exact \
+    title works too.",
     })
 }
 
@@ -306,18 +309,57 @@ fn tools() -> Vec<Value> {
         tool(
             "register",
             "The register of repeats: what this body of work has already spent. Without \
-             arguments: every term — its word and forms, its kind (noun, adjective, verb and \
-             phrase are wording, found in a text by stem; image, scene and pattern are \
+             arguments: every word of the record — its word and forms, its kind (noun, adjective, \
+             verb and phrase are wording, found in a text by stem; image, scene and pattern are \
              meanings, tied to the works that carry them by name), its strictness (ban, limit, \
-             rare), topic and note, and `uses`: how many works carry it now. With `text` or \
+             rare; null for a word that is not spent - kept in the bank, or only sung its own \
+             way), its bank state, how it is sung, topic and note, and `uses`: how many works \
+             carry it now. With `text` or \
              `work`: that text checked against it — the terms it takes word for word and how \
-             often, and the words it leans on within itself. Read it before writing or judging \
-             a text; a meaning told in other words is yours to catch.",
+             often, and the words it leans on within itself; with `work`, also `guard`: the songs \
+             out or booked that the work's song shares a spent term (orange) or a rare word \
+             (red within 90 days, orange before) with, and the words kept on purpose. Read it \
+             before writing or judging a text; a meaning told in other words is yours to catch.",
             json!({
                 "text": text_arg("A text to check against the register"),
                 "work": text_arg("A work whose current text to check: its id, or its exact title"),
             }),
             &[],
+        ),
+        tool(
+            "words",
+            "The owner's bank of words, kept for songs to come, sorted into blocks: each block in \
+             the owner's order with its words, then the words in no block. A word carries its \
+             state in the bank (fresh, parked - set aside, dropped - given up on), `sung_in` - how \
+             many works already say it - and `sung`: how its forms are sung where that is not how \
+             they are written, the stress as a capital vowel (\"пульсАр\") and a respelling as a \
+             changed letter (\"Марсель\" sung \"МарсЭль\"). Write a lyric with these spellings \
+             where the word is sung, and the plain ones in public text. With `block`: that block \
+             only.",
+            json!({ "block": text_arg("A block, by id or by name") }),
+            &[],
+        ),
+        tool(
+            "propose_words",
+            "Propose words for the owner's record, applied in one click: for the bank (`bank`: \
+             true; a `block` by name - made when there is none), how a word is sung (`sung`: \
+             [{written, sung}] - the stress as a capital vowel, a respelling as a changed letter; \
+             for a homograph, the reading the song means), a term for the register \
+             (`strictness`: ban, limit or rare), and the works a meaning is in (`works`: ids or \
+             exact titles, for an image or a scene the texts say in other words). A plain string \
+             is a word for the bank. A word the record already keeps gains what is proposed and \
+             loses nothing. It waits in the chat on `work` when one is named, or in the chat \
+             named after you.",
+            json!({
+                "words": {
+                    "type": "array",
+                    "description": "The words: a string for the bank, or {word, forms?, kind?, bank?, block?, sung?, strictness?, works?, note?}",
+                    "items": {}
+                },
+                "work": text_arg("The work the words come from, by id or exact title; optional"),
+                "note": text_arg("One sentence on what was proposed and why, optional"),
+            }),
+            &["words"],
         ),
         tool(
             "scenes",
@@ -428,13 +470,12 @@ fn tools() -> Vec<Value> {
              clip or a short goes out for a song, and its text and fields are the song's. Read \
              the root card of `canon` through the `public` lens for the channel's voice, \
              signature and rules, and the `calendar` for what went out lately - a new \
-             description does not sign off or ask the way the last few did. `release` names the \
-             release by id; it may be left out when the work has one. The fields land in the \
-             chat on the work, each beside what is written now; the person takes them one by \
-             one or all at once. Nothing is written until they do.",
+             description does not sign off or ask the way the last few did. A publication goes \
+             out once, so the work names the release. The fields land in the chat on the work, \
+             each beside what is written now; the person takes them one by one or all at once. \
+             Nothing is written until they do.",
             json!({
                 "work": work_arg(),
-                "release": text_arg("The release, by id, as `work` lists it; optional when the work has one"),
                 "fields": { "type": "object", "description": "What it goes out under, by field key of its kind of release", "additionalProperties": { "type": "string" } },
                 "note": text_arg("One sentence on the choices made, optional"),
             }),
@@ -799,6 +840,14 @@ pub fn run_tool(
             let kind = arg(args, "kind");
             let status = arg(args, "status");
             let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(200) as usize;
+            // The guard's mark, by work (ADR 0054): what a song that has not
+            // gone out shares with songs that have.
+            let today = crate::time::now();
+            let marks: std::collections::HashMap<String, crate::register::guard::RepeatMark> =
+                crate::register::guard::marks(conn, &profile.id, &today[..10])?
+                    .into_iter()
+                    .map(|mark| (mark.work_id.clone(), mark))
+                    .collect();
             let rows: Vec<Value> = score::catalogue(conn, &profile.id)?
                 .into_iter()
                 .filter(|row| query.as_ref().is_none_or(|q| row.title.to_lowercase().contains(q)))
@@ -810,6 +859,10 @@ pub fn run_tool(
                     "total": row.total, "tier": row.tier, "tier_pinned": row.tier_pinned,
                     "stale": row.stale, "released": row.released, "scheduled": row.scheduled,
                     "scored_at": row.scored_at, "updated_at": row.updated_at,
+                    "repeats": marks.get(&row.work_id).map(|mark| json!({
+                        "level": mark.level, "count": mark.count, "word": mark.top.word,
+                        "with": mark.top.neighbour_title, "day": mark.top.day,
+                    })),
                 }))
                 .collect();
             pretty(&rows)
@@ -1013,8 +1066,22 @@ pub fn run_tool(
             };
             match text {
                 Some(text) => {
-                    let checked = crate::register::check::text(conn, &profile.id, &text)?;
-                    pretty(&json!({ "terms": checked.terms, "repeats": checked.repeats }))
+                    let checked = crate::register::check::text(conn, &profile.id, &text, false)?;
+                    // For a work, what the guard says too: the songs out or
+                    // booked it shares a spent term or a rare word with.
+                    let guard = match arg(args, "work") {
+                        Some(named) => {
+                            let found = find_work(conn, &profile.id, named)?;
+                            let today = crate::time::now();
+                            crate::register::guard::of_work(conn, &found.id, &today[..10])?
+                        }
+                        None => None,
+                    };
+                    pretty(&json!({
+                        "terms": checked.terms,
+                        "repeats": checked.repeats,
+                        "guard": guard,
+                    }))
                 }
                 None => pretty(&crate::register::entries(conn, &profile.id)?),
             }
@@ -1023,6 +1090,48 @@ pub fn run_tool(
         "scenes" => {
             let found = find_work(conn, &profile.id, required(args, "work")?)?;
             pretty(&scene::for_work(conn, &found.id)?)
+        }
+
+        "words" => read_words(conn, &profile.id, arg(args, "block")),
+
+        "propose_words" => {
+            let found = match arg(args, "work") {
+                Some(named) => Some(find_work(conn, &profile.id, named)?),
+                None => None,
+            };
+            let raw = args
+                .get("words")
+                .cloned()
+                .ok_or_else(|| Error::refused("mcp.missingArg").param("key", "words"))?;
+            let package = crate::register::proposal::read(conn, &profile.id, &raw)?;
+            if package.is_empty() {
+                return Err(Error::refused("words.noWords"));
+            }
+            let body = crate::register::proposal::render(&package);
+            let count = package.words.len();
+            let dropped = package.dropped.len();
+            deliver(
+                conn,
+                &profile.id,
+                session,
+                found.as_ref(),
+                Proposal::Words { package },
+                &body,
+                arg(args, "note"),
+            )?;
+            let mut answer = format!(
+                "Proposed {count} word{} for the record. It waits in the chat {}; the person keeps it whole or word by word.",
+                if count == 1 { "" } else { "s" },
+                if found.is_some() {
+                    "on the work"
+                } else {
+                    "named after you"
+                }
+            );
+            if dropped > 0 {
+                answer.push_str(&format!(" {dropped} item(s) were left out: read the chat."));
+            }
+            Ok(answer)
         }
 
         "search" => pretty(&search::find(conn, &profile.id, required(args, "query")?)?),
@@ -1495,35 +1604,11 @@ pub fn run_tool(
 
         "propose_release" => {
             let found = find_work(conn, &profile.id, required(args, "work")?)?;
-            let releases: Vec<release::Release> = release::for_work(conn, &profile.id, &found.id)?
-                .into_iter()
-                .map(|scheduled| scheduled.release)
-                .collect();
-            let chosen = match arg(args, "release") {
-                Some(id) => releases
-                    .iter()
-                    .find(|r| r.id == id)
-                    .ok_or_else(|| Error::refused("mcp.releaseOtherWork").param("release", id))?,
-                None => match releases.as_slice() {
-                    [only] => only,
-                    [] => {
-                        return Err(Error::refused("mcp.workHasNoRelease")
-                            .param("title", found.title.clone()));
-                    }
-                    _ => {
-                        return Err(Error::refused("mcp.whichRelease")
-                            .param("title", found.title.clone())
-                            .param(
-                                "ids",
-                                releases
-                                    .iter()
-                                    .map(|r| format!("{} ({})", r.id, r.kind))
-                                    .collect::<Vec<_>>()
-                                    .join(", "),
-                            ));
-                    }
-                },
-            };
+            // A publication goes out once (ADR 0051): the work names its
+            // release.
+            let chosen = release::of_work(conn, &found.id)?.ok_or_else(|| {
+                Error::refused("mcp.workHasNoRelease").param("title", found.title.clone())
+            })?;
             let declared = crate::release_meta::declared(conn, &chosen.id)?;
             let raw = args
                 .get("fields")
@@ -1532,6 +1617,7 @@ pub fn run_tool(
             let proposal =
                 proposal::release_from_value(&json!({ "fields": raw }), &chosen.id, &declared)
                     .map_err(|why| Error::refused("mcp.releaseFieldsUnread").param("why", why))?;
+            let proposal = crate::release_meta::public(conn, proposal)?;
             let Proposal::Release {
                 fields, unknown, ..
             } = &proposal
@@ -1601,6 +1687,63 @@ pub fn run_tool(
 
         other => Err(Error::refused("mcp.unknownTool").param("name", other)),
     }
+}
+
+/// The `words` tool: the bank by block, in the owner's order, and the words in
+/// no block - each with where it stands, how it is sung and how many works
+/// already say it.
+fn read_words(conn: &Connection, profile_id: &str, block: Option<&str>) -> Result<String> {
+    use crate::register::{self, block as blocks};
+    let entries = register::entries(conn, profile_id)?;
+    let shown = |term_id: &str| -> Option<Value> {
+        let entry = entries.iter().find(|entry| entry.term.id == term_id)?;
+        Some(json!({
+            "word": entry.term.word,
+            "forms": entry.term.forms,
+            "bank": entry.term.bank,
+            "strictness": entry.term.strictness,
+            "sung": entry.term.sung,
+            "sung_in": entry.uses,
+        }))
+    };
+    let views = blocks::views(conn, profile_id)?;
+    if let Some(named) = block {
+        let found = blocks::find(conn, profile_id, named)?
+            .ok_or_else(|| Error::refused("words.unknownBlock").param("block", named))?;
+        let view = views
+            .iter()
+            .find(|view| view.block.id == found.id)
+            .ok_or_else(|| Error::refused("words.unknownBlock").param("block", named))?;
+        return pretty(&json!({
+            "block": view.block.name,
+            "words": view.term_ids.iter().filter_map(|id| shown(id)).collect::<Vec<_>>(),
+        }));
+    }
+    let in_blocks: std::collections::BTreeSet<&str> = views
+        .iter()
+        .flat_map(|view| view.term_ids.iter().map(String::as_str))
+        .collect();
+    let unsorted: Vec<Value> = entries
+        .iter()
+        .filter(|entry| entry.term.bank.is_some() && !in_blocks.contains(entry.term.id.as_str()))
+        .filter_map(|entry| shown(&entry.term.id))
+        .collect();
+    let sung: Vec<Value> = entries
+        .iter()
+        .filter(|entry| entry.term.bank.is_none() && !entry.term.sung.is_empty())
+        .map(|entry| json!({ "word": entry.term.word, "sung": entry.term.sung }))
+        .collect();
+    pretty(&json!({
+        "blocks": views
+            .iter()
+            .map(|view| json!({
+                "block": view.block.name,
+                "words": view.term_ids.iter().filter_map(|id| shown(id)).collect::<Vec<_>>(),
+            }))
+            .collect::<Vec<_>>(),
+        "unsorted": unsorted,
+        "sung_elsewhere": sung,
+    }))
 }
 
 /// The `canon` tool: the list of cards, one card through a lens, a search of
@@ -1810,6 +1953,7 @@ fn deliver(
         (Proposal::Work { title, .. }, None) => {
             Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
         }
+        (Proposal::Words { .. }, _) => Record::new("proposal.words"),
         (Proposal::Canon { .. }, Some(_)) => Record::new("proposal.canon"),
         (Proposal::Canon { .. }, None) => Record::new("proposal.freeCanon"),
         // Refused at the top of this function.
@@ -2090,21 +2234,9 @@ mod tests {
     /// A work with two releases needs the one named; a work with none, and a
     /// song, which never goes out itself, have nothing to propose for.
     #[test]
-    fn a_release_proposal_names_its_release_when_there_is_a_choice() {
+    fn a_release_proposal_needs_a_work_that_goes_out() {
         let (conn, song) = workspace();
-        let video_id = video(&conn);
-        fixtures::release(&conn, &video_id, "youtube", None);
-        fixtures::release(&conn, &video_id, "premiere", None);
         let fields = json!({ "title": "Harbour lights" });
-
-        let which = run_tool(
-            &conn,
-            &claude(),
-            "propose_release",
-            &args(json!({ "work": video_id, "fields": fields })),
-        )
-        .unwrap_err();
-        assert_eq!(which.refusal().map(|r| r.code), Some("mcp.whichRelease"));
 
         let none = run_tool(
             &conn,

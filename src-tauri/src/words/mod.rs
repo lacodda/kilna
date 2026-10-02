@@ -6,8 +6,10 @@
 //! window marks it by offsets into a JavaScript string and a Cyrillic letter is
 //! two bytes here and one unit there.
 
+pub mod pack;
 pub mod repeats;
 pub mod stem;
+pub mod sung;
 
 pub use stem::stem;
 
@@ -43,7 +45,7 @@ impl Word<'_> {
 }
 
 /// A combining mark: the stress a lyric writes over a vowel ("замо́к").
-fn is_mark(letter: char) -> bool {
+pub(crate) fn is_mark(letter: char) -> bool {
     matches!(letter, '\u{0300}'..='\u{036F}')
 }
 

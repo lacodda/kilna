@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type {
+  Going,
   MetaField,
   ProfileConfig,
   ScheduledRelease,
@@ -96,6 +97,7 @@ describe('applies', () => {
     scenes: false,
     cover: false,
     findings: false,
+    repeats: false,
   }
 
   it('draws only what the work always has when the kind names nothing', () => {
@@ -125,11 +127,16 @@ describe('applies', () => {
     expect(applies('findings', { ...none, findings: true })).toBe(true)
   })
 
-  it("draws a song's publications where a clip draws its releases", () => {
+  it("draws the guard's findings only while the song has one", () => {
+    expect(applies('repeats', none)).toBe(false)
+    expect(applies('repeats', { ...none, repeats: true })).toBe(true)
+  })
+
+  it("draws a song's publications where a clip draws its release", () => {
     const song = { ...none, publications: true }
     const clip = { ...none, releases: true }
-    expect([applies('publications', song), applies('releases', song)]).toEqual([true, false])
-    expect([applies('publications', clip), applies('releases', clip)]).toEqual([false, true])
+    expect([applies('publications', song), applies('release', song)]).toEqual([true, false])
+    expect([applies('publications', clip), applies('release', clip)]).toEqual([false, true])
   })
 })
 
@@ -139,6 +146,29 @@ describe('the shipped placement', () => {
     const ids = board.widgets.map((widget) => widget.id)
     expect(ids.indexOf('publications')).toBe(ids.indexOf('findings') + 1)
     expect(board.widgets.find((widget) => widget.id === 'publications')?.size).toBe('l')
+  })
+
+  it("pairs the guard's findings with what needs attention, first in the lead column", () => {
+    const board = boardOf({ overview: null })
+    const ids = board.widgets.map((widget) => widget.id)
+    expect(ids.slice(0, 2)).toEqual(['repeats', 'findings'])
+    const { lead } = leadOf(board.widgets.slice(0, 2))
+    expect(lead).toEqual([
+      {
+        kind: 'pair',
+        widgets: [
+          { id: 'repeats', size: 'm' },
+          { id: 'findings', size: 'm' },
+        ],
+      },
+    ])
+  })
+
+  it("leads a publication's board with its release, where a song's leads with its publications", () => {
+    const board = boardOf({ overview: null })
+    const ids = board.widgets.map((widget) => widget.id)
+    expect(ids.indexOf('release')).toBe(ids.indexOf('publications') + 1)
+    expect(board.widgets.find((widget) => widget.id === 'release')?.size).toBe('l')
   })
 })
 
@@ -152,14 +182,14 @@ describe('leadOf', () => {
       w('stage', 's'),
       w('style', 'm'),
       w('fields', 'm'),
-      w('releases', 's'),
+      w('links', 's'),
       w('recent', 's'),
     ])
     expect(lead).toEqual([
       { kind: 'one', widget: w('text', 'l') },
       { kind: 'pair', widgets: [w('style', 'm'), w('fields', 'm')] },
     ])
-    expect(rail.map((x) => x.id)).toEqual(['score', 'stage', 'releases', 'recent'])
+    expect(rail.map((x) => x.id)).toEqual(['score', 'stage', 'links', 'recent'])
   })
 
   it('gives a two-across widget with no partner the whole width', () => {
@@ -324,32 +354,52 @@ describe('previewOf', () => {
 
 describe('publicationFact', () => {
   const TODAY = '2026-09-15'
-  const nothing = { released: 0, last_released_at: null, next_scheduled_at: null }
-
-  it('says it is out, with the day it went out, even with another release booked', () => {
-    const out = {
-      released: 1,
-      last_released_at: '2026-09-02T09:00:00Z',
-      next_scheduled_at: '2026-09-30',
-    }
-    expect(publicationFact(out, TODAY)).toEqual({ said: 'out', day: '2026-09-02T09:00:00Z' })
+  const going = (fields: Partial<Going>): { release: Going } => ({
+    release: {
+      id: 'r',
+      kind: 'youtube',
+      status: 'planned',
+      scheduled_at: null,
+      scheduled_time: null,
+      released_at: null,
+      url: null,
+      ...fields,
+    },
   })
 
-  it('says it is booked for its day, and late once that day has passed', () => {
-    expect(publicationFact({ ...nothing, next_scheduled_at: '2026-09-22' }, TODAY)).toEqual({
-      said: 'booked',
-      day: '2026-09-22',
+  it('says it is out, with the day it went out', () => {
+    const out = going({
+      status: 'released',
+      released_at: '2026-09-02T09:00:00Z',
+      scheduled_at: '2026-09-02',
     })
-    expect(publicationFact({ ...nothing, next_scheduled_at: '2026-09-10' }, TODAY)).toEqual({
+    expect(publicationFact(out, TODAY)).toEqual({
+      said: 'out',
+      day: '2026-09-02T09:00:00Z',
+      time: null,
+    })
+  })
+
+  it('says it is booked for its day and hour, and late once that day has passed', () => {
+    expect(
+      publicationFact(going({ scheduled_at: '2026-09-22', scheduled_time: '18:00' }), TODAY),
+    ).toEqual({ said: 'booked', day: '2026-09-22', time: '18:00' })
+    expect(publicationFact(going({ scheduled_at: '2026-09-10' }), TODAY)).toEqual({
       said: 'late',
       day: '2026-09-10',
+      time: null,
     })
     // Today is not late: the day has not passed yet.
-    expect(publicationFact({ ...nothing, next_scheduled_at: TODAY }, TODAY).said).toBe('booked')
+    expect(publicationFact(going({ scheduled_at: TODAY }), TODAY).said).toBe('booked')
   })
 
   it('leaves the status word to say it when nothing is out or booked', () => {
-    expect(publicationFact(nothing, TODAY)).toEqual({ said: 'status', day: null })
+    expect(publicationFact({ release: null }, TODAY)).toEqual({
+      said: 'status',
+      day: null,
+      time: null,
+    })
+    expect(publicationFact(going({}), TODAY).said).toBe('status')
   })
 })
 

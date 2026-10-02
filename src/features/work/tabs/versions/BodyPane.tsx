@@ -1,12 +1,31 @@
-import { useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Copy, Eye, Maximize2, Minimize2, PenLine } from 'lucide-react'
-import type { TextCheck } from '@/lib/api/types'
+import { Copy, Eye, Maximize2, MicVocal, Minimize2, PenLine, RemoveFormatting } from 'lucide-react'
+import { cleanText } from '@/lib/api/register'
+import type { StressNote, TextCheck } from '@/lib/api/types'
 import { typing } from '@/lib/keys'
 import { queries } from '@/lib/query/queries'
 import { strictnessStatus, termMark } from '@/lib/register'
+import {
+  answerEach,
+  answerAll,
+  carryCaret,
+  stressMark,
+  toggleStress,
+  vowelAt,
+  vowelNear,
+  withAccents,
+  type Replaced,
+} from '@/lib/stress'
 import { say } from '@/lib/toast'
 import { useTextCheck } from '@/lib/useTextCheck'
 import type { useBodyEditing } from '@/lib/useBodyEditing'
@@ -18,8 +37,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { StatusDot } from '@/components/ui/status-dot'
 import { CompareColumn } from '@/features/work/tabs/versions/CompareColumn'
 import { ReadingText } from '@/features/work/tabs/versions/ReadingText'
+import { StressStrip } from '@/features/work/tabs/versions/StressStrip'
 import { TextScroll } from '@/features/work/tabs/versions/TextScroll'
 import { REPEAT_TINTS, textMetrics } from '@/features/work/tabs/versions/metrics'
+import { charUnderPointer, revealIndex } from '@/features/work/tabs/versions/pointer'
+import { useShowStresses } from '@/features/work/tabs/versions/stressView'
 import { useLineDiff } from '@/features/work/tabs/versions/useLineDiff'
 
 /**
@@ -51,6 +73,10 @@ interface Props {
   /** Whether the text is checked: its repeated words marked while it is
    *  written, the register's terms marked always. */
   repeats?: boolean
+  /** Whether the text is sung - its role says (`VersionRole.sung`). A sung
+   *  text is checked for its stresses too, takes the stress gesture, and can
+   *  be copied without the singer's marks (ADR 0053). */
+  sung?: boolean
   editing: ReturnType<typeof useBodyEditing>
   /** Whether it is over the whole window rather than on the card. */
   staged: boolean
@@ -78,6 +104,7 @@ export function BodyPane({
   onReading,
   against = null,
   repeats = false,
+  sung = false,
   editing,
   staged,
   onStage,
@@ -91,12 +118,34 @@ export function BodyPane({
   const text = reading === 'edit' ? editing.text : (body ?? '')
   const diff = useLineDiff(against?.body ?? null, text)
   // A markdown body is drawn by the renderer, where an offset into the text
-  // names no letter on screen: it is not marked (ADR 0044).
-  const { check, current } = useTextCheck(repeats && body !== null && !markdown ? text : null)
-  const marks = useMemo(
-    () => (current && check !== undefined ? marksOf(check, reading === 'edit') : []),
-    [check, current, reading],
+  // names no letter on screen: it is not marked (ADR 0044) - nor is a stress
+  // on it, which would have no letter to sit over either.
+  const singing = sung && !markdown
+  const { check, current } = useTextCheck(
+    repeats && body !== null && !markdown ? text : null,
+    singing,
   )
+  const [accents, setAccents] = useShowStresses()
+  const marks = useMemo(() => {
+    if (!current || check === undefined) return []
+    const runs = marksOf(check, reading === 'edit', accents)
+    return singing && accents ? withAccents(runs, check.accents, text) : runs
+  }, [check, current, reading, singing, accents, text])
+
+  // The editor, for the edits made to it from outside the keyboard: the
+  // stress gesture, an answer chosen in the strip. A controlled textarea
+  // whose value is replaced puts its caret at the end, so where the caret
+  // belongs is held here and put back once the new text is on screen.
+  const box = useRef<HTMLTextAreaElement>(null)
+  const placing = useRef<{ start: number; end: number } | null>(null)
+  useLayoutEffect(() => {
+    const field = box.current
+    const pending = placing.current
+    if (field === null || pending === null) return
+    placing.current = null
+    field.setSelectionRange(pending.start, pending.end)
+    revealIndex(field, field.value, pending.start)
+  }, [editing.text, reading])
 
   // When the text being read takes the focus: after the pen is put down by
   // the keyboard, so the next `E` lands where the last Escape did, and on
@@ -114,6 +163,76 @@ export function BodyPane({
   const read = () => {
     void editing.flush()
     onReading('view')
+  }
+
+  // The stress on one vowel put on or taken off (ADR 0053), the caret kept
+  // beside the letter it was at.
+  const stressAt = (at: number | null, caret: number) => {
+    if (at === null) return
+    const edited = toggleStress(editing.text, at, caret)
+    if (edited === null) return
+    placing.current = { start: edited.caret, end: edited.caret }
+    editing.setText(edited.text)
+  }
+
+  // Alt and a click on a vowel. The click has already put the caret beside
+  // the letter; the mirror says which side of it the pointer was on, and
+  // where it cannot be measured the vowel before the caret is taken first.
+  const onStressClick = (event: MouseEvent<HTMLTextAreaElement>) => {
+    if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+    const field = event.currentTarget
+    const caret = field.selectionStart
+    if (caret !== field.selectionEnd) return
+    const hit = charUnderPointer(field, editing.text, caret, event.clientX, event.clientY)
+    stressAt(
+      hit === null
+        ? (vowelAt(editing.text, caret - 1) ?? vowelAt(editing.text, caret))
+        : vowelAt(editing.text, hit),
+      caret,
+    )
+  }
+
+  // A sung text rewritten from the strip. In the editor, as if typed, the
+  // caret carried over what changed before it. While reading, saved the way
+  // the editor saves - into the revision of the sitting - and reading stays
+  // reading, as it does for every press on the text that is not the pencil.
+  const rewrite = (next: string, replaced: readonly Replaced[]) => {
+    if (reading === 'edit') {
+      const field = box.current
+      if (field !== null) {
+        const caret = carryCaret(field.selectionStart, replaced)
+        placing.current = { start: caret, end: caret }
+      }
+      editing.setText(next)
+      return
+    }
+    editing.setText(next)
+    void editing.flush()
+  }
+
+  const answerNotes = (notes: readonly StressNote[], option: string) => {
+    const { text: next, replaced } = answerEach(text, notes, () => option)
+    if (replaced.length > 0) rewrite(next, replaced)
+  }
+
+  const answerEvery = () => {
+    if (check === undefined) return
+    const { text: next, replaced } = answerAll(text, check.stress)
+    if (replaced.length > 0) rewrite(next, replaced)
+  }
+
+  // The word a note is about, selected in the editor - opened for it while
+  // the text is read - so the vowel to mark is right there.
+  const find = (note: StressNote) => {
+    placing.current = { start: note.start, end: note.end }
+    const field = box.current
+    if (reading === 'edit' && field !== null) {
+      placing.current = null
+      field.setSelectionRange(note.start, note.end)
+      revealIndex(field, field.value, note.start)
+      return
+    }
+    write()
   }
 
   // `E`, anywhere in the panel but a field, starts writing; so does Enter,
@@ -139,16 +258,34 @@ export function BodyPane({
       </div>
     ) : reading === 'edit' ? (
       <MarkedTextarea
+        ref={box}
         autoFocus
         value={editing.text}
         onChange={editing.setText}
         onBlur={() => void editing.flush()}
+        onClick={singing ? onStressClick : undefined}
         onKeyDown={(event) => {
           // The key everyone presses anyway. The text is already saving
           // itself; this writes it now rather than after the pause.
           if ((event.ctrlKey || event.metaKey) && event.key === 's') {
             event.preventDefault()
             void editing.flush()
+          }
+          // Alt+' puts the stress on the word at the caret, on the vowel just
+          // typed (ADR 0053). By the key's place rather than its character:
+          // on a Cyrillic layout that key types "э". Alt alone types nothing
+          // on Windows, and AltGr arrives as Ctrl+Alt, which this leaves be.
+          if (
+            singing &&
+            event.altKey &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.shiftKey &&
+            event.code === 'Quote'
+          ) {
+            event.preventDefault()
+            const caret = event.currentTarget.selectionEnd
+            stressAt(vowelNear(editing.text, caret), caret)
           }
           // Escape puts the pen down, the way it leaves every editor here -
           // and only that: a stage around the text is the next press.
@@ -217,6 +354,22 @@ export function BodyPane({
             <Icon aria-hidden />
           </Button>
         ))}
+        {/* The stresses drawn over a sung text, to read it the way the
+            singer will: an accent over every stressed vowel, the marked ones
+            and the ones the dictionary is sure of. Drawn, never written in. */}
+        {singing && (
+          <Button
+            variant={accents ? 'soft' : 'icon'}
+            size="icon-sm"
+            aria-pressed={accents}
+            title={t('versions.stress.show')}
+            aria-label={t('versions.stress.show')}
+            disabled={body === null}
+            onClick={() => setAccents(!accents)}
+          >
+            <MicVocal aria-hidden />
+          </Button>
+        )}
         {/* The body, on the clipboard. A style prompt exists to be pasted
             into something else, and this is one press where selecting it
             all is three. */}
@@ -239,6 +392,32 @@ export function BodyPane({
         >
           <Copy aria-hidden />
         </Button>
+        {/* A sung text as the public reads it: the capitals that mark a
+            stress lowered, the acutes dropped, the owner's respellings put
+            back - by the backend, with the same reading of a mark the check
+            uses (ADR 0053). The text on screen, which while it is written is
+            a pause ahead of the one on disk. */}
+        {singing && (
+          <Button
+            variant="icon"
+            size="icon-sm"
+            title={t('versions.stress.copyClean')}
+            aria-label={t('versions.stress.copyClean')}
+            disabled={body === null || text === ''}
+            onClick={() => {
+              // The tick only once the clipboard confirms, as for the copy
+              // beside it.
+              cleanText(text)
+                .then((clean) => navigator.clipboard.writeText(clean))
+                .then(
+                  () => say.ok(t('versions.stress.cleanCopied')),
+                  (cause: unknown) => say.failedTo(t('versions.stress.copyClean'), cause),
+                )
+            }}
+          >
+            <RemoveFormatting aria-hidden />
+          </Button>
+        )}
         <Button
           variant={staged ? 'soft' : 'icon'}
           size="icon-sm"
@@ -254,6 +433,18 @@ export function BodyPane({
       {/* What the register says of this text, read or written: the spent
           terms it takes, strictest first. */}
       {check !== undefined && check.terms.length > 0 && <RegisterStrip check={check} />}
+
+      {/* What a sung text says about its stresses, read or written: the
+          words the singer may get wrong, each with its answers. */}
+      {singing && check !== undefined && check.stress.length > 0 && (
+        <StressStrip
+          notes={check.stress}
+          onAnswer={answerNotes}
+          onAnswerAll={answerEvery}
+          onFind={find}
+          returnTo={box}
+        />
+      )}
 
       {/* The words this text leans on, while it is being written. Nothing is
           drawn when there are none: a strip saying "no repeats" would be a
@@ -294,18 +485,29 @@ export function BodyPane({
 
 /**
  * The runs of a checked text as marks: a repeated word tinted while the text
- * is written, a term of the register marked by its strictness always. The
- * backend cut the runs so that one never sits inside another.
+ * is written, a term of the register marked by its strictness always, and in
+ * a sung text a word the singer may get wrong marked by what is wrong with it
+ * (ADR 0053). The backend cut the runs so that one never sits inside another.
+ *
+ * A homograph is marked only while the stresses are shown. There are about
+ * ten in a song, nearly all read right, and a line under each would hide the
+ * missing ё and the stress against the dictionary - one a song, and almost
+ * always a mistake - which are marked always.
  */
-function marksOf(check: TextCheck, writing: boolean): Mark[] {
+function marksOf(check: TextCheck, writing: boolean, stresses: boolean): Mark[] {
   const out: Mark[] = []
   for (const mark of check.marks) {
     const tint =
       writing && mark.repeat !== undefined ? `repeat-${mark.repeat % REPEAT_TINTS}` : undefined
     const hit = mark.term === undefined ? undefined : check.terms[mark.term]
     const term = hit === undefined ? undefined : termMark(hit.strictness)
-    if (tint === undefined && term === undefined) continue
-    out.push({ start: mark.start, end: mark.end, className: cn(tint, term) })
+    const note = mark.stress === undefined ? undefined : check.stress[mark.stress]
+    const stress =
+      note === undefined || (note.kind === 'homograph' && !stresses)
+        ? undefined
+        : stressMark(note.kind)
+    if (tint === undefined && term === undefined && stress === undefined) continue
+    out.push({ start: mark.start, end: mark.end, className: cn(tint, term, stress) })
   }
   return out
 }

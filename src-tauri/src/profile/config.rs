@@ -111,6 +111,59 @@ pub struct ProfileConfig {
     /// in v0.89 - a document without it is the same document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cover_ideas: Option<u8>,
+    /// How the guard of repeats reads "recent" and "rare" (v0.90, ADR 0054).
+    /// Absent means its defaults: 90 days, past the 20 000th stem of the
+    /// language, in no more than two works of the owner's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub guard: Option<Guard>,
+}
+
+/// How the guard of repeats reads its two words (ADR 0054).
+///
+/// A song that has not gone out is held against the songs that have, and
+/// against the ones booked: a term of the register they share is spent
+/// (orange); a rare word they share is red when the other song went out -
+/// or goes out - within the window, orange when longer ago.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct Guard {
+    /// How close, in days, a song sharing a rare word is too close: red
+    /// inside, orange outside.
+    #[serde(default = "Guard::default_window")]
+    pub window_days: u32,
+    /// From which rank of the language's stems a word is rare: the stems
+    /// past it, and the ones the list does not hold at all.
+    #[serde(default = "Guard::default_rank")]
+    pub rare_rank: u32,
+    /// In how many of the owner's works a word may stand and still be
+    /// rare: past it, the word is the owner's own and spent only if the
+    /// register says so.
+    #[serde(default = "Guard::default_works")]
+    pub rare_in_works: u32,
+}
+
+impl Guard {
+    fn default_window() -> u32 {
+        90
+    }
+    /// Past it: "пульсар" (57 460), "сухогруз" (25 796) - words a listener
+    /// carries from one song to the next. A word met more often than the
+    /// 20 000th stem of the language passes unnoticed the second time.
+    fn default_rank() -> u32 {
+        20_000
+    }
+    fn default_works() -> u32 {
+        2
+    }
+}
+
+impl Default for Guard {
+    fn default() -> Self {
+        Self {
+            window_days: Self::default_window(),
+            rare_rank: Self::default_rank(),
+            rare_in_works: Self::default_works(),
+        }
+    }
 }
 
 /// A profile document as it is written, in either format.
@@ -153,6 +206,8 @@ pub struct RawProfileConfig {
     pub overview: Option<OverviewConfig>,
     #[serde(default)]
     pub cover_ideas: Option<u8>,
+    #[serde(default)]
+    pub guard: Option<Guard>,
     // Format 1: the vocabulary, flat on the profile.
     #[serde(default)]
     pub release_kinds: Vec<ReleaseKind>,
@@ -210,6 +265,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             style_types: raw.style_types,
             overview: raw.overview,
             cover_ideas: raw.cover_ideas,
+            guard: raw.guard,
         }
     }
 }
@@ -276,11 +332,15 @@ pub struct WorkKind {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub frame: bool,
     /// What a work of this kind is called when it is made from another:
-    /// `{title}` is the source's title and `{n}` the new work's number among
-    /// the works of this kind made from the same source - "{title} · short
-    /// {n}". A template without `{n}` numbers only the second and later ones,
-    /// so the first clip of a song is "the clip" and the next "the clip 2".
-    /// Absent means the source's title as it is. Added in v0.86.
+    /// `{title}` is the title of what it is all made from - the song, for a
+    /// short cut from its clip - and `{n}` the new work's number among the
+    /// works of this kind made from it. A template without `{n}` numbers only
+    /// the second and later ones, inside a closing bracket when it ends with
+    /// one: the first short of a song is "Song (short)" and the next "Song
+    /// (short 2)". One string for every language since v0.90 - "(video)" is
+    /// a name, not a word to translate - though a document may still give one
+    /// per language. Absent means the source's title as it is. Added in
+    /// v0.86.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub made_title: Option<Label>,
 }
@@ -323,7 +383,10 @@ impl WorkKind {
         if template.contains("{n}") {
             title = title.replace("{n}", &number.to_string());
         } else if number > 1 {
-            title = format!("{title} {number}");
+            title = match title.trim_end().strip_suffix(')') {
+                Some(open) if template.trim_end().ends_with(')') => format!("{open} {number})"),
+                _ => format!("{title} {number}"),
+            };
         }
         title.trim().to_owned()
     }
@@ -618,6 +681,13 @@ impl WorkKind {
                 if field.limit == Some(0) {
                     problems.push(format!(
                         "{at} is limited to no characters at all; leave the limit out instead"
+                    ));
+                }
+                if let (Some(tail), Some(limit)) = (field.suffix(), field.limit)
+                    && tail.chars().count() >= limit as usize
+                {
+                    problems.push(format!(
+                        "{at} keeps the tail `{tail}`, which leaves no room within its limit of {limit}"
                     ));
                 }
                 let Some(template) = field.template() else {
@@ -1469,6 +1539,13 @@ pub struct ReleaseField {
     /// month, and a field it refuses to hold is a field typed somewhere else.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
+    /// A tail the value always ends with, whoever writes the rest: an audio
+    /// track's title on a video platform ends with " (audio)" when it is
+    /// typed, generated or proposed, and a clip's has none (v0.90). Kept by
+    /// the release itself (`release_meta::keep_suffixes`), so a title written
+    /// by hand cannot lose it. Absent is no tail.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub suffix: Option<String>,
 }
 
 /// The shape of a release field's box.
@@ -1494,7 +1571,46 @@ impl ReleaseField {
             template: None,
             hint: None,
             limit: None,
+            suffix: None,
         }
+    }
+
+    /// The tail the field keeps, when it names one worth keeping: blank is
+    /// none.
+    pub fn suffix(&self) -> Option<&str> {
+        self.suffix
+            .as_deref()
+            .filter(|tail| !tail.trim().is_empty())
+    }
+
+    /// `value` ending with the field's tail: added where the value is written
+    /// and does not end with it yet, never to an empty value - a title nobody
+    /// wrote is not " (audio)". Within the limit, the tail is what stays: the
+    /// words before it are cut to make room.
+    pub fn with_suffix(&self, value: &str) -> String {
+        let Some(tail) = self.suffix() else {
+            return value.to_owned();
+        };
+        let body = value.trim_end();
+        if body.trim().is_empty() {
+            return value.to_owned();
+        }
+        if body.ends_with(tail) {
+            return body.to_owned();
+        }
+        let mut body = body.to_owned();
+        if let Some(limit) = self.limit {
+            let room = (limit as usize).saturating_sub(tail.chars().count());
+            if body.chars().count() > room {
+                body = body
+                    .chars()
+                    .take(room)
+                    .collect::<String>()
+                    .trim_end()
+                    .to_owned();
+            }
+        }
+        format!("{body}{tail}")
     }
 
     /// The same field, filled from a template.
@@ -1737,6 +1853,13 @@ pub struct VersionRole {
     /// it counts exactly what it counted before.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub counts_as_version: Option<bool>,
+    /// Whether a body in this role is sung (v0.90, ADR 0053): its words are
+    /// checked for where the stress falls and how the owner sings them, the
+    /// stress is marked for the singer with a capital vowel, and a public
+    /// text made from it has the marks taken off. A lyric is; a style
+    /// prompt, a plot, a review are not. Absent is not sung.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub sung: bool,
 }
 
 /// The two ways a body is read. See [`VersionRole::body`].
@@ -1750,6 +1873,7 @@ impl VersionRole {
             comments_on: None,
             body: None,
             counts_as_version: None,
+            sung: false,
         }
     }
 
@@ -1890,6 +2014,12 @@ pub struct MetaField {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(type = "unknown")]
     pub default: Option<serde_json::Value>,
+    /// Whether the field is a fact of the work's own media, never taken from
+    /// the work it is made from: a short cut from a clip is not as long as
+    /// the clip (v0.90). Absent is false - a mood, a tempo, an idea flow into
+    /// what is made from them once, at creation.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub own: bool,
 }
 
 impl MetaField {
@@ -1901,6 +2031,7 @@ impl MetaField {
             kinds: Vec::new(),
             options: Vec::new(),
             default: None,
+            own: false,
         }
     }
 
@@ -2512,6 +2643,11 @@ impl ProfileConfig {
                         "{place} produces `cover-ideas`, which only an action about a cover can: give it `\"scope\": \"cover\"`"
                     ));
                 }
+                Produces::Words if prompt.scope() != Scope::Work => {
+                    problems.push(format!(
+                        "{place} produces `words`, which an action about a work can"
+                    ));
+                }
                 Produces::Score
                 | Produces::Prose
                 | Produces::Comment
@@ -2520,7 +2656,8 @@ impl ProfileConfig {
                 | Produces::Canon
                 | Produces::CardPrompt
                 | Produces::Release
-                | Produces::CoverIdeas => {}
+                | Produces::CoverIdeas
+                | Produces::Words => {}
             }
             // An action about a release writes what it goes out under, and is
             // offered only where there is a release: on a kind that goes out.
@@ -3090,6 +3227,7 @@ mod tests {
             comments_on: Some("prose".into()),
             body: None,
             counts_as_version: None,
+            sung: false,
         });
         config.rhythm = Some(Rhythm {
             every_days: 0,
@@ -3540,14 +3678,27 @@ mod tests {
     #[test]
     fn a_made_title_and_a_cover_shape_are_checked() {
         let short = studio().kind("short").unwrap().clone();
-        assert_eq!(short.title_made_from("Tide", "ru", 3), "Tide · шортс 3");
-        assert_eq!(short.title_made_from("Tide", "de", 1), "Tide · short 1");
+        assert_eq!(short.title_made_from("Tide", "ru", 1), "Tide (short)");
+        assert_eq!(
+            short.title_made_from("Tide", "de", 3),
+            "Tide (short 3)",
+            "one name in every language, the number inside its bracket"
+        );
         let clip = studio().kind("video").unwrap().clone();
-        assert_eq!(clip.title_made_from("Tide", "en", 1), "Tide — clip");
+        assert_eq!(clip.title_made_from("Tide", "en", 1), "Tide (video)");
         assert_eq!(
             clip.title_made_from("Tide", "en", 2),
-            "Tide — clip 2",
+            "Tide (video 2)",
             "a template without a number numbers the second one on"
+        );
+        let mut numbered = clip.clone();
+        numbered.made_title = Some("{title} · take {n}".into());
+        assert_eq!(numbered.title_made_from("Tide", "en", 1), "Tide · take 1");
+        numbered.made_title = Some("{title} cut".into());
+        assert_eq!(
+            numbered.title_made_from("Tide", "en", 2),
+            "Tide cut 2",
+            "with no bracket to go in, the number follows"
         );
 
         let mut config = studio();
@@ -3683,6 +3834,7 @@ mod tests {
             template: None,
             hint: None,
             limit: Some(0),
+            suffix: None,
         }]);
 
         let problems = config.validate();

@@ -326,7 +326,6 @@ mod tests {
             NewRelease {
                 work_id: work_id.to_owned(),
                 kind: "clip".into(),
-                title: None,
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,
@@ -407,9 +406,26 @@ mod tests {
     fn going_out_outranks_being_booked() {
         let (conn, profile_id, config) = workspace();
         let work_id = a_work(&conn, &profile_id, "Subject");
-        let gone = a_release(&conn, &work_id);
+        // A publication goes out once (ADR 0051): what went out and what is
+        // booked are two works made from the song.
+        let made = |title: &str| {
+            let made = fixtures::work(&conn, &profile_id, "audio", title);
+            crate::link::create(
+                &conn,
+                &profile_id,
+                crate::link::NewLink {
+                    work_id: made.id.clone(),
+                    source_id: work_id.clone(),
+                    role: None,
+                    source_version_id: None,
+                },
+            )
+            .unwrap();
+            made.id
+        };
+        let gone = a_release(&conn, &made("Subject (audio)"));
         releases::mark_released(&conn, &gone, None, None).unwrap();
-        let booked = a_release(&conn, &work_id);
+        let booked = a_release(&conn, &made("Subject (audio 2)"));
         releases::schedule(&conn, &booked, "2026-09-01").unwrap();
 
         refresh(&conn, &config, &work_id).unwrap();

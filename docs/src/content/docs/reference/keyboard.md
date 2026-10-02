@@ -99,7 +99,12 @@ focus, and several things want them:
 - a **frame opened full screen** walks scene to scene with `←` and `→`,
   skipping scenes that have no picture yet, and `Esc` closes it;
 - an open **scene row** takes `Ctrl+V` to paste a picture from the clipboard
-  straight onto that scene.
+  straight onto that scene;
+- a **sung text** being written takes `Alt` + click on a vowel to mark its
+  stress, and `Alt+'` to mark the vowel at the caret - again takes the mark
+  off, and on *е* it goes *е* → *Е* → *ё* → *е*. The key is found by its
+  place, so it is the same key on a Cyrillic layout. See
+  [Singing a text](/kilna/guides/singing-a-text/#marking-a-stress).
 
 ## A menu on every row
 

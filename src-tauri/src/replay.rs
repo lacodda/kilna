@@ -576,6 +576,68 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             crate::register::unlink(conn, &term_id, &work_id)?;
         }
 
+        // The bank's blocks (ADR 0052): made, renamed, moved, and the words
+        // put in them and taken out.
+        "block.create" => {
+            let profile_id = workspace_profile(conn, params)?;
+            let name = required(params, "name")?;
+            crate::register::block::create_minted(conn, &profile_id, &name, minted(params)?)?;
+        }
+
+        "block.rename" => {
+            let id = required(params, "id")?;
+            let name = required(params, "name")?;
+            let at = required(params, "at")?;
+            crate::register::block::rename_at(conn, &id, &name, &at)?;
+        }
+
+        "block.move" => {
+            let id = required(params, "id")?;
+            let index = params
+                .get("index")
+                .and_then(Value::as_u64)
+                .ok_or_else(|| Error::Internal("the operation carries no `index`".into()))?;
+            let at = required(params, "at")?;
+            crate::register::block::move_to_at(
+                conn,
+                &id,
+                usize::try_from(index).unwrap_or(usize::MAX),
+                &at,
+            )?;
+        }
+
+        "block.add" => {
+            let block_id = required(params, "blockId")?;
+            let term_id = required(params, "termId")?;
+            crate::register::block::add_minted(conn, &block_id, &term_id, minted(params)?)?;
+        }
+
+        "block.remove" => {
+            let block_id = required(params, "blockId")?;
+            let term_id = required(params, "termId")?;
+            crate::register::block::remove(conn, &block_id, &term_id)?;
+        }
+
+        // What the person said about a finding of the guard (ADR 0054).
+        "repeat.keep" => {
+            let profile_id = workspace_profile(conn, params)?;
+            let work_id = required(params, "workId")?;
+            let word = required(params, "word")?;
+            crate::register::guard::keep_minted(
+                conn,
+                &profile_id,
+                &work_id,
+                &word,
+                minted(params)?,
+            )?;
+        }
+
+        "repeat.unkeep" => {
+            let work_id = required(params, "workId")?;
+            let word = required(params, "word")?;
+            crate::register::guard::unkeep(conn, &work_id, &word)?;
+        }
+
         // The canon (ADR 0043): facts, their order, and the relations
         // between cards. A card itself is a note and replays as one.
         "fact.create" => {

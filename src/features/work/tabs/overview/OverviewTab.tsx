@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import type { VersionRole, Work } from '@/lib/api/types'
+import { today } from '@/lib/month'
 import {
   applies,
   boardOf,
@@ -11,6 +13,7 @@ import {
   type WidgetFacts,
   type WidgetId,
 } from '@/lib/overview'
+import { queries } from '@/lib/query/queries'
 import { useCovers } from '@/lib/useCovers'
 import { fieldsFor, hasDoors, hasScenes, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Frame, Scroll } from '@/components/frame'
@@ -25,7 +28,8 @@ import { HookWidget } from '@/features/work/tabs/overview/HookWidget'
 import { LinksWidget } from '@/features/work/tabs/overview/LinksWidget'
 import { PublicationsWidget } from '@/features/work/tabs/overview/PublicationsWidget'
 import { RecentWidget } from '@/features/work/tabs/overview/RecentWidget'
-import { ReleasesWidget } from '@/features/work/tabs/overview/ReleasesWidget'
+import { RepeatsWidget } from '@/features/work/tabs/overview/RepeatsWidget'
+import { ReleaseWidget } from '@/features/work/tabs/overview/ReleaseWidget'
 import { ScoreWidget } from '@/features/work/tabs/overview/ScoreWidget'
 import { StageWidget } from '@/features/work/tabs/overview/StageWidget'
 import { StoryboardWidget } from '@/features/work/tabs/overview/StoryboardWidget'
@@ -57,7 +61,7 @@ const WIDGET_BODIES: Readonly<Record<WidgetId, (drawn: Drawn) => ReactNode>> = {
   fields: ({ work }) => <FieldsWidget work={work} />,
   axes: ({ work }) => <AxesWidget work={work} />,
   hook: ({ work }) => <HookWidget work={work} />,
-  releases: ({ work }) => <ReleasesWidget work={work} />,
+  release: ({ work }) => <ReleaseWidget work={work} />,
   links: ({ work }) => <LinksWidget work={work} />,
   recent: ({ work }) => <RecentWidget work={work} />,
   storyboard: ({ work }) => <StoryboardWidget work={work} />,
@@ -65,6 +69,7 @@ const WIDGET_BODIES: Readonly<Record<WidgetId, (drawn: Drawn) => ReactNode>> = {
   findings: ({ work }) => <FindingsWidget work={work} />,
   trend: ({ work }) => <TrendWidget work={work} />,
   publications: ({ work }) => <PublicationsWidget work={work} />,
+  repeats: ({ work }) => <RepeatsWidget work={work} />,
 }
 
 /**
@@ -91,6 +96,10 @@ export function OverviewTab({ work }: Props) {
   const vocabulary = vocabularyOf(profile.config, work.kind)
   const standing = useWorkFindings(work.id)
   const covers = useCovers()
+  // What the guard of repeats says about the work's song (ADR 0054); asked
+  // here as well as in its widget, which shares the answer, to know whether
+  // the widget is drawn at all.
+  const repeats = useQuery(queries.workRepeats(work.id, today()))
 
   const board = boardOf(profile.config)
   const drawn: Drawn = {
@@ -113,6 +122,7 @@ export function OverviewTab({ work }: Props) {
     // before v0.86, or an import - is still shown.
     cover: hasDoors(profile.config, work.kind) || covers.has(work.id),
     findings: standing.length > 0,
+    repeats: (repeats.data?.findings.length ?? 0) > 0,
   }
   const widgets = board.widgets.filter((widget) => applies(widget.id, facts))
 

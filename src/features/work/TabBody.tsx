@@ -11,7 +11,6 @@ import { FrameTab } from '@/features/work/tabs/frame/FrameTab'
 import { LinksTab } from '@/features/work/tabs/links/LinksTab'
 import { NotePanel } from '@/features/work/tabs/notes/NotePanel'
 import { OverviewTab } from '@/features/work/tabs/overview/OverviewTab'
-import { ReleasePanel } from '@/features/work/tabs/releases/ReleasePanel'
 import { ScenesTab } from '@/features/work/tabs/scenes/ScenesTab'
 import { ScorePanel } from '@/features/work/tabs/score/ScorePanel'
 import { VersionPanel } from '@/features/work/tabs/versions/VersionPanel'
@@ -38,7 +37,6 @@ const BODIES: Readonly<Record<Tab, (props: Props) => ReactNode>> = {
   frame: ({ work }) => <FrameTab work={work} />,
   cuts: ({ work }) => <CutsTab work={work} />,
   score: ({ workId }) => <ScorePanel workId={workId} />,
-  releases: ({ workId, work }) => <ReleasePanel workId={workId} workTitle={work.title} />,
   files: ({ work }) => <FilesTab work={work} />,
   links: ({ work }) => <LinksTab work={work} />,
   notes: ({ workId }) => <NotePanel workId={workId} />,

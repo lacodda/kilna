@@ -396,7 +396,6 @@ mod tests {
             NewRelease {
                 work_id: work_id.clone(),
                 kind: "youtube".into(),
-                title: None,
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,
@@ -423,7 +422,6 @@ mod tests {
             NewRelease {
                 work_id: work_id.clone(),
                 kind: "youtube".into(),
-                title: None,
                 scheduled_at: Some("2026-10-02".into()),
                 meta: None,
                 scheduled_time: None,

@@ -136,7 +136,7 @@ interface DecisionBase {
   title: string
   move: Move
   /** The tab of the work the move is made on. */
-  tab: 'score' | 'versions' | 'releases'
+  tab: 'score' | 'versions' | 'overview'
 }
 
 /**
@@ -205,7 +205,7 @@ export function decide(
     workId: finding.workId,
     title: finding.title,
     move,
-    tab: move === 'rescore' ? 'score' : 'releases',
+    tab: move === 'rescore' ? 'score' : 'overview',
     finding,
     total: totals.get(finding.workId) ?? null,
   })

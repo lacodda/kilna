@@ -66,7 +66,6 @@ function release(over: Partial<ScheduledRelease> = {}): ScheduledRelease {
     work_stage: null,
     kind: 'single',
     status: 'planned',
-    title: null,
     scheduled_at: '2026-09-05',
     released_at: null,
     url: null,
@@ -406,6 +405,6 @@ describe('answeredOn', () => {
       ['unscored', 'stale-score', 'ready-unscheduled', 'weak-scheduled', 'stale-draft'] as const
     ).map(answeredOn)
 
-    expect(tabs).toEqual(['score', 'score', 'releases', 'releases', undefined])
+    expect(tabs).toEqual(['score', 'score', 'overview', 'overview', undefined])
   })
 })

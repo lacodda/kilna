@@ -11,6 +11,7 @@ import { Select } from '@/components/AppSelect'
 import { DatePicker } from '@/components/DatePicker'
 import { Loaded } from '@/components/Loaded'
 import { ReadyMarks } from '@/components/ReadyMarks'
+import { WorkRepeatMark } from '@/components/RepeatMark'
 import { Pane } from '@/components/frame'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -18,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { RowButton } from '@/components/ui/list-row'
 import { SkeletonList } from '@/components/ui/skeleton'
 import { QueueDrop } from '@/features/calendar/QueueDrop'
+import { RepeatWarning } from '@/features/calendar/RepeatWarning'
 import type { DropTarget } from '@/features/calendar/useCalendarDrag'
 import { cn } from '@/lib/utils'
 
@@ -167,23 +169,29 @@ export function QueuePane({
           // A pick waiting for a typed date takes the foot; a chip in the air
           // takes it back, since that is what the foot is for.
           picked !== null && !carrying ? (
-            <form
-              className="flex w-full gap-2"
-              onSubmit={(event) => {
-                event.preventDefault()
-                if (slot !== '') onClaim(picked, slot)
-              }}
-            >
-              <DatePicker
-                value={slot}
-                onChange={setSlot}
-                placeholder={t('calendar.slotDate')}
-                aria-label={t('calendar.slotDate')}
-              />
-              <Button type="submit" variant="primary" disabled={slot === '' || claiming}>
-                {t('calendar.claim')}
-              </Button>
-            </form>
+            <div className="flex w-full flex-col gap-1.5">
+              {/* What the typed day would repeat, before Claim is pressed:
+                  the month says it while a chip hovers a day, and a day
+                  typed here is the same gesture by other means. */}
+              <RepeatWarning releaseId={picked} day={slot} />
+              <form
+                className="flex w-full gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  if (slot !== '') onClaim(picked, slot)
+                }}
+              >
+                <DatePicker
+                  value={slot}
+                  onChange={setSlot}
+                  placeholder={t('calendar.slotDate')}
+                  aria-label={t('calendar.slotDate')}
+                />
+                <Button type="submit" variant="primary" disabled={slot === '' || claiming}>
+                  {t('calendar.claim')}
+                </Button>
+              </form>
+            </div>
           ) : (
             <QueueDrop active={carrying} over={over} />
           )
@@ -236,6 +244,10 @@ export function QueuePane({
                         .join(' · ')}
                       end={
                         <>
+                          {/* Whether its song repeats one out or booked
+                              (ADR 0054): picking what goes out next is
+                              where a repeat is worth knowing. */}
+                          <WorkRepeatMark workId={entry.work_id} />
                           {/* No date yet, so no deadline: the gaps show, calmly. */}
                           <ReadyMarks
                             readiness={entry.readiness}

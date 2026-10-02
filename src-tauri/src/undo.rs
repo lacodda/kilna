@@ -135,6 +135,13 @@ pub fn reversible(kind: &str) -> bool {
             | "term.update"
             | "term.link"
             | "term.unlink"
+            | "block.create"
+            | "block.rename"
+            | "block.move"
+            | "block.add"
+            | "block.remove"
+            | "repeat.keep"
+            | "repeat.unkeep"
             | "idea.create"
             | "idea.update"
     )
@@ -322,6 +329,66 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
                 crate::minted::Minted::of(required(params, "id")?, required(params, "createdAt")?);
             apply(conn, |tx| {
                 crate::register::link_minted(tx, &term_id, &work_id, minted)
+            })?;
+        }
+        // A block goes back to the name it had and the place it stood.
+        "block.rename" => {
+            let id = required(params, "id")?;
+            let before = required(params, "before")?;
+            apply(conn, |tx| {
+                crate::register::block::rename_at(tx, &id, &before, &at).map(|_| ())
+            })?;
+        }
+        "block.move" => {
+            let id = required(params, "id")?;
+            let from = params
+                .get("from")
+                .and_then(Value::as_u64)
+                .ok_or_else(|| Error::Internal("the operation carries no `from`".into()))?;
+            apply(conn, |tx| {
+                crate::register::block::move_to_at(tx, &id, usize::try_from(from).unwrap_or(0), &at)
+                    .map(|_| ())
+            })?;
+        }
+        // A word put in a block has no drawer in the trash, like a work named
+        // for a term: undoing it takes the row out, undoing its removal puts
+        // the same row back under the same id and moment.
+        "block.add" => {
+            let block_id = required(params, "blockId")?;
+            let term_id = required(params, "termId")?;
+            apply(conn, |tx| {
+                crate::register::block::remove(tx, &block_id, &term_id).map(|_| ())
+            })?;
+        }
+        "block.remove" => {
+            let block_id = required(params, "blockId")?;
+            let term_id = required(params, "termId")?;
+            let minted =
+                crate::minted::Minted::of(required(params, "id")?, required(params, "createdAt")?);
+            apply(conn, |tx| {
+                crate::register::block::add_minted(tx, &block_id, &term_id, minted)
+            })?;
+        }
+        // A word kept in a song is a decision, not a thing: undoing it takes
+        // the row out, undoing its taking back puts the same row back.
+        "repeat.keep" => {
+            let work_id = required(params, "workId")?;
+            let word = required(params, "word")?;
+            apply(conn, |tx| {
+                crate::register::guard::unkeep(tx, &work_id, &word).map(|_| ())
+            })?;
+        }
+        "repeat.unkeep" => {
+            let work_id = required(params, "workId")?;
+            let word = required(params, "word")?;
+            let minted =
+                crate::minted::Minted::of(required(params, "id")?, required(params, "createdAt")?);
+            let profile_id = entry
+                .profile_id
+                .clone()
+                .ok_or_else(|| Error::Internal("the operation names no profile".into()))?;
+            apply(conn, |tx| {
+                crate::register::guard::keep_minted(tx, &profile_id, &work_id, &word, minted)
             })?;
         }
         // A picture's role goes back to the one it had; the file is not
@@ -521,7 +588,7 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
         // an undo would be gone in a way nothing else in kilna is.
         "work.create" | "work.clone" | "note.create" | "collection.create" | "release.create"
         | "version.create" | "scene.create" | "cut.create" | "comment.create" | "style.create"
-        | "fact.create" | "term.create" | "idea.create" => {
+        | "fact.create" | "term.create" | "idea.create" | "block.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -651,6 +718,7 @@ fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
         "fact.create" => crate::trash::Entity::Fact,
         "term.create" => crate::trash::Entity::Term,
         "idea.create" => crate::trash::Entity::Idea,
+        "block.create" => crate::trash::Entity::Block,
         other => return Err(Error::Internal(format!("`{other}` creates nothing"))),
     };
     Ok((entity, required(&entry.params, "id")?))

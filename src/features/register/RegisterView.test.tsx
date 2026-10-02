@@ -24,6 +24,8 @@ function entry(id: string, word: string, extra: Partial<RegisterEntry>): Registe
     forms: [],
     kind: 'noun',
     strictness: 'limit',
+    bank: null,
+    sung: [],
     topic: null,
     note: null,
     created_at: NOW,
@@ -53,6 +55,8 @@ beforeEach(() => {
     repeats: [],
     terms: [{ term_id: 't-lantern', word: 'lantern', kind: 'noun', strictness: 'ban', count: 1 }],
     marks: [{ start: at, end: at + 'Lanterns'.length, term: 0 }],
+    stress: [],
+    accents: [],
   }
   backend = mockBackend({
     ...answersFor(studio()),

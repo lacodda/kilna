@@ -7,11 +7,22 @@ export const listLinks = (workId: string) => invoke<Links>('list_links', { workI
 export const createLink = (link: NewLink) => invoke<Link>('create_link', { link })
 export const deleteLink = (id: string) => invoke<void>('delete_link', { id })
 /** Make a work of `kind` from another: its title from the kind's `made_title`
- *  in `locale` (the window's language) unless one is given, the overview fields
- *  its kind has, a donor link, and - for a kind that goes out - one release
- *  through its first door, with no day yet. */
-export const deriveWork = (sourceId: string, kind: string, locale: string, title?: string) =>
-  invoke<Made>('derive_work', { sourceId, kind, title: title ?? null, locale })
+ *  unless one is given, the overview fields its kind has but its own media's,
+ *  a donor link, and - for a kind that goes out - its one release through
+ *  `door`, or its first, with no day yet. */
+export const deriveWork = (
+  sourceId: string,
+  kind: string,
+  locale: string,
+  options: { title?: string; door?: string } = {},
+) =>
+  invoke<Made>('derive_work', {
+    sourceId,
+    kind,
+    title: options.title ?? null,
+    locale,
+    door: options.door ?? null,
+  })
 /** Everything made from a work, down the links, and the release its status
  *  stands on (v0.86): a song's publications. */
 export const listPublications = (workId: string) =>

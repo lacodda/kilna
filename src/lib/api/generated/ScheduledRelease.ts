@@ -26,7 +26,7 @@ readiness: Readiness,
  * a work can have every role filled and still be three verses of
  * placeholder, and only the author knows that.
  */
-work_stage: number | null, id: string, work_id: string, kind: string, status: string, title: string | null, 
+work_stage: number | null, id: string, work_id: string, kind: string, status: string, 
 /**
  * Calendar slot. `None` means queued but unscheduled.
  */

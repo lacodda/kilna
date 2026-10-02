@@ -285,6 +285,10 @@ const UPGRADE: &[Step] = &[
         name: "publications: a door's cover shape, a kind's cover, frame and the title of what is made from it, a field's kinds, options and start",
         carry: publication_vocabulary,
     },
+    Step {
+        name: "what a release goes out under: a title reading the origin where it still read the work's own, a field's tail, a field of the work's own media",
+        carry: going_out_words,
+    },
 ];
 
 /// Prompt templates whose key is missing. A user who reworded an action keeps
@@ -446,6 +450,12 @@ fn version_roles(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
             };
             if role.body.is_none() && shipped.body.is_some() {
                 role.body = shipped.body.clone();
+                changed = true;
+            }
+            // A lyric is sung (v0.90): the stored role learns it where it
+            // says nothing, and a role the owner marked keeps the mark.
+            if !role.sung && shipped.sung {
+                role.sung = true;
                 changed = true;
             }
         }
@@ -816,6 +826,66 @@ fn publication_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -
         }
         if field.default.is_none() && shipped_field.default.is_some() {
             field.default = shipped_field.default.clone();
+            changed = true;
+        }
+    }
+    changed
+}
+
+/// What a release goes out under, as v0.90 says it, where the stored copy
+/// says nothing or still says what shipped before (ADR 0051). A field's
+/// template still reading `{title}`, or nothing, where the shipped one now
+/// reads `{origin}`: since v0.90 a publication's own name is "Song (audio)",
+/// kilna's word for it, and the audience sees the song's. A field's tail,
+/// where the stored field keeps none. And a field of the work's own media -
+/// a length - where the stored one is still carried into what is made from
+/// it. Matched by key; a template the owner reworded stays theirs.
+fn going_out_words(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    const TEMPLATE_BEFORE_V090: &str = "{title}";
+    let mut changed = false;
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        for door in &mut kind.release_kinds {
+            let Some(shipped_door) = shipped_kind
+                .release_kinds
+                .iter()
+                .find(|candidate| candidate.key == door.key)
+            else {
+                continue;
+            };
+            for field in &mut door.fields {
+                let Some(shipped_field) = shipped_door
+                    .fields
+                    .iter()
+                    .find(|candidate| candidate.key == field.key)
+                else {
+                    continue;
+                };
+                let untouched = field
+                    .template
+                    .as_deref()
+                    .is_none_or(|template| template.trim() == TEMPLATE_BEFORE_V090);
+                let reads_origin = shipped_field
+                    .template
+                    .as_deref()
+                    .is_some_and(|template| template.contains("{origin}"));
+                if untouched && reads_origin {
+                    field.template = shipped_field.template.clone();
+                    changed = true;
+                }
+                if field.suffix.is_none() && shipped_field.suffix.is_some() {
+                    field.suffix = shipped_field.suffix.clone();
+                    changed = true;
+                }
+            }
+        }
+    }
+    for field in &mut config.work_meta_fields {
+        let own = shipped
+            .work_meta_fields
+            .iter()
+            .any(|candidate| candidate.key == field.key && candidate.own);
+        if own && !field.own {
+            field.own = true;
             changed = true;
         }
     }
@@ -1337,6 +1407,72 @@ mod tests {
         );
     }
 
+    /// A Studio copy as v0.89 stored it: titles reading the publication's
+    /// own name, no tail on the audio's title, a length carried into what is
+    /// made. A title the owner reworded stays theirs.
+    #[test]
+    fn a_title_comes_to_read_the_origin_and_keep_its_tail() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == "music")
+            .unwrap()
+            .config;
+        let mut old = shipped.clone();
+        for kind in &mut old.work_kinds {
+            for door in &mut kind.release_kinds {
+                for field in &mut door.fields {
+                    if field.template.as_deref() == Some("{origin}") {
+                        field.template = Some("{title}".into());
+                    }
+                    field.suffix = None;
+                }
+            }
+        }
+        for field in &mut old.work_meta_fields {
+            field.own = false;
+        }
+        let reworded = "{title} #shorts";
+        old.work_kinds
+            .iter_mut()
+            .find(|kind| kind.key == "short")
+            .unwrap()
+            .release_kinds[0]
+            .fields[0]
+            .template = Some(reworded.into());
+
+        assert!(going_out_words(&mut old, &shipped));
+
+        let title = |kind: &str, door: &str| {
+            old.kind(kind)
+                .unwrap()
+                .release_kinds
+                .iter()
+                .find(|candidate| candidate.key == door)
+                .unwrap()
+                .fields
+                .iter()
+                .find(|field| field.key == "title")
+                .unwrap()
+                .clone()
+        };
+        assert_eq!(
+            title("video", "youtube").template.as_deref(),
+            Some("{origin}")
+        );
+        assert_eq!(
+            title("audio", "youtube").suffix.as_deref(),
+            Some(" (audio)")
+        );
+        assert_eq!(title("audio", "streaming").suffix, None);
+        assert_eq!(title("short", "short").template.as_deref(), Some(reworded));
+        assert!(
+            old.work_meta_fields
+                .iter()
+                .any(|field| field.key == "duration" && field.own)
+        );
+    }
+
     #[test]
     fn upgrade_steps_have_names_of_their_own() {
         let names: std::collections::BTreeSet<&str> =
@@ -1600,7 +1736,7 @@ mod tests {
         );
         assert_eq!(
             config.vocabulary("video").title_made_from("Tide", "en", 1),
-            "Tide — clip"
+            "Tide (video)"
         );
         assert_eq!(
             config.vocabulary("short").title_made_from("Tide", "en", 2),

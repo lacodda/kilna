@@ -344,17 +344,7 @@ struct Resolved {
 /// that never goes out itself (a kind with no doors), or else the furthest
 /// one up, or else the work's own.
 fn source_title(conn: &Connection, config: &ProfileConfig, work: &Work) -> Result<String> {
-    let mut furthest = None;
-    for id in crate::link::ancestors(conn, &work.id)? {
-        let Some(source) = crate::work::get(conn, &id)? else {
-            continue;
-        };
-        if !config.vocabulary(&source.kind).has_doors() {
-            return Ok(source.title);
-        }
-        furthest = Some(source.title);
-    }
-    Ok(furthest.unwrap_or_else(|| work.title.clone()))
+    crate::publication::origin_title(conn, config, work)
 }
 
 /// Read what `cover` names, for `target`.

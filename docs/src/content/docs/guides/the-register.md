@@ -29,6 +29,17 @@ Each entry is a **term**:
 - **Topic** — your own grouping: *the kitchen*, *physics and space*.
 - **Note** — why it is spent, or what to reach for instead.
 
+## One word, one record
+
+A term is also how the record keeps a word that is **not** spent: a word of
+the [bank of words](/kilna/guides/the-bank-of-words/), or a word kept only for
+[how it is sung](/kilna/guides/singing-a-text/#ways-of-singing). Its
+strictness is then **Not spent**, and it is never marked in a text. The chips
+along the top read the same list by facet: **All**, each strictness, **In the
+bank**, **Sung their way**. Open a word to set where it stands in the bank
+and how its forms are sung. See
+[ADR 0052](https://github.com/lacodda/kilna/blob/main/docs/adr/0052-one-word-one-record.md).
+
 ## How many works
 
 Beside every term the register says how many works carry it **now**. The
@@ -79,6 +90,13 @@ closest to it (shared words weighed by how rare each one is), and answers
 with the lines that say a spent image in other words and the works this one
 says the same thing as. Its answer is kept as a **Neighbours** version beside
 the text, like a critique.
+
+**Meanings**, Studio's other action on a song, reads it against the songs
+that already went out (`{released}`) and answers with links instead of
+prose: each image or scene the song shares with them, named for the
+register's entry when it is one, with the songs that carry it - a package
+of words you keep in one click. The links it keeps feed the
+[guard of repeats](/kilna/guides/the-guard-of-repeats/).
 
 Any action can read the register: `{register}` in a template is the whole
 register grouped by strictness, meanings last, with what the text already

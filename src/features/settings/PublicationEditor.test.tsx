@@ -62,7 +62,7 @@ const door = (kind: WorkKind, key: string) => kind.release_kinds!.find((d) => d.
 describe('the title of a made work', () => {
   it('is written into the draft as one word, and refused without {title}', async () => {
     const { client, madeTitle } = await openProfile()
-    expect(madeTitle).toHaveValue('{title} — audio')
+    expect(madeTitle).toHaveValue('{title} (audio)')
 
     fireEvent.change(madeTitle, { target: { value: 'Lanterns' } })
     expect(screen.getByText(en.editor.madeTitleNoTitle)).toBeInTheDocument()

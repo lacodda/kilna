@@ -1,4 +1,4 @@
-import type { Strictness, TermKind } from '@/lib/api/types'
+import type { Bank, Strictness, Term, TermKind } from '@/lib/api/types'
 import type { Status } from '@/components/ui/status-dot'
 
 /*
@@ -55,4 +55,31 @@ export function splitForms(text: string): string[] {
     .split(',')
     .map((form) => form.trim())
     .filter((form) => form !== '')
+}
+
+/** Where a word stands in the bank, in the order the bank reads them. */
+export const BANK: readonly Bank[] = ['fresh', 'parked', 'dropped']
+
+/**
+ * The facets a word of the record can be read under on the register's screen
+ * (ADR 0052): one record per word, and a word can be spent, kept in the bank
+ * and sung its own way at once.
+ */
+export type Facet = 'all' | Strictness | 'bank' | 'sung'
+
+/** The facets the screen filters by, in the order its chips stand. */
+export const FACETS: readonly Facet[] = ['all', 'ban', 'limit', 'rare', 'bank', 'sung']
+
+/** Whether a word is read under a facet. */
+export function inFacet(word: Pick<Term, 'strictness' | 'bank' | 'sung'>, facet: Facet): boolean {
+  switch (facet) {
+    case 'all':
+      return true
+    case 'bank':
+      return word.bank !== null
+    case 'sung':
+      return word.sung.length > 0
+    default:
+      return word.strictness === facet
+  }
 }

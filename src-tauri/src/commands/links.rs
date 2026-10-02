@@ -23,8 +23,9 @@ pub fn delete_link(state: State<'_, AppState>, id: String) -> Result<()> {
 }
 
 /// Make a work from another: a clip, an audio release or a short from a
-/// song. `locale` is the window's language, which the new work's title is
-/// written in when none is given.
+/// song. `locale` is the window's language, for a profile that names what it
+/// makes per language; `door` is where it goes out, the kind's first when
+/// none is asked for.
 #[tauri::command]
 pub fn derive_work(
     state: State<'_, AppState>,
@@ -32,6 +33,7 @@ pub fn derive_work(
     kind: String,
     title: Option<String>,
     locale: Option<String>,
+    door: Option<String>,
 ) -> Result<actions::work::Made> {
     actions::work::derive(
         &state.conn(),
@@ -39,6 +41,7 @@ pub fn derive_work(
         &kind,
         title.as_deref(),
         locale.as_deref(),
+        door.as_deref(),
     )
 }
 

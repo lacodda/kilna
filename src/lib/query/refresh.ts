@@ -53,6 +53,8 @@ export const refresh = {
     keys.catalogue,
     keys.works,
     keys.pictures,
+    // The guard of repeats reads the days songs go out (ADR 0054).
+    keys.register,
   ] as readonly QueryKey[],
   note: [keys.notes, keys.tags] as readonly QueryKey[],
   /** A term of the register: the list, its works, and every text checked

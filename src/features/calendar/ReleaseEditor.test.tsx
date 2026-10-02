@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, screen, within } from '@testing-library/react'
-import type { Release, ReleasePatch } from '@/lib/api/types'
+import type { Release, ReleasePatch, RepeatFinding } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, IDS, NOW, studio } from '@/test/workspace'
@@ -102,5 +102,46 @@ describe("the calendar's release dialog", () => {
       { id: IDS.audioRelease, patch: { url: 'https://example.com/listen' } },
     ])
     expect(backend.argsOf('unschedule_release')).toEqual([{ id: IDS.audioRelease }])
+  })
+
+  it('says what a new day would repeat before it is saved, and saves it all the same', async () => {
+    // The guard of repeats (ADR 0054): on the 24th the release's song would
+    // say a rare word "Tide" said on the 20th.
+    backend.answer('preview_schedule', ({ slot }) => ({
+      verdict: 'empty',
+      holder_title: null,
+      repeats:
+        slot === '2026-09-24'
+          ? [
+              {
+                word: 'пульсар',
+                level: 'red',
+                why: 'rare',
+                neighbour_id: 'w-tide',
+                neighbour_title: 'Tide',
+                day: '2026-09-20',
+                booked: false,
+                also: 0,
+                kept: false,
+              } satisfies RepeatFinding,
+            ]
+          : [],
+    }))
+    const { client, dialog } = await editing()
+    const warning = 'Too close: пульсар — in “Tide”, out Sep 20'
+    // The day it holds says nothing here: the month wears that mark.
+    expect(within(dialog).queryByText(warning)).toBeNull()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: en.calendar.slotDate }))
+    fireEvent.click(await screen.findByRole('button', { name: /September 24/ }))
+    expect(await within(dialog).findByText(warning)).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByRole('button', { name: en.dialog.save }))
+    })
+    await settled(client)
+    expect(backend.argsOf('update_release')).toEqual([
+      { id: IDS.audioRelease, patch: { scheduled_at: '2026-09-24' } },
+    ])
   })
 })

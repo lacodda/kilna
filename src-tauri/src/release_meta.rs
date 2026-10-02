@@ -20,6 +20,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::assistant::prompt;
+use crate::assistant::proposal::Proposal;
 use crate::error::{Error, Result};
 use crate::profile::config::{Label, ReleaseField, ReleaseFieldType};
 use crate::release;
@@ -45,6 +46,12 @@ pub struct Field {
     pub limit: Option<u32>,
     /// Whether the profile can fill this field on its own.
     pub has_template: bool,
+    /// The tail the value always ends with: " (audio)" on an audio track's
+    /// title on a video platform. Kept by the release whoever writes the
+    /// field, so a screen only shows it.
+    #[ts(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub suffix: Option<String>,
 }
 
 /// Every field of a release, in the order the profile lists them.
@@ -64,8 +71,68 @@ pub fn fields(conn: &Connection, release_id: &str) -> Result<Vec<Field>> {
             hint: field.hint.clone(),
             limit: field.limit,
             has_template: field.template().is_some(),
+            suffix: field.suffix().map(str::to_owned),
         })
         .collect())
+}
+
+/// `meta` as a release through `door` keeps it: every field of the door that
+/// keeps a tail ends with it (v0.90). And when the release moves to `door`
+/// from another place before it went out, the tails of the old door that the
+/// new one does not keep come off: a tail belongs to the place - a track's
+/// title on the streaming services is not "(audio)" there.
+///
+/// Called by the release itself on every write of its fields or its door
+/// (`release::create_minted`, `release::update_at`), so a title typed by
+/// hand, generated, proposed by an agent or replayed from the log ends the
+/// same way.
+pub fn keep_suffixes(
+    conn: &Connection,
+    work_id: &str,
+    from: Option<&str>,
+    door: &str,
+    meta: &mut Map<String, Value>,
+) -> Result<()> {
+    let Some(work) = work::get(conn, work_id)? else {
+        return Ok(());
+    };
+    let config = crate::profile::config_for(conn, &work.profile_id)?;
+    let doors = &config.vocabulary(&work.kind).release_kinds;
+    let fields_of = |key: &str| {
+        doors
+            .iter()
+            .find(|candidate| candidate.key == key)
+            .map(|found| found.fields.as_slice())
+            .unwrap_or_default()
+    };
+    let now = fields_of(door);
+    if let Some(from) = from.filter(|from| *from != door) {
+        for field in fields_of(from) {
+            let Some(tail) = field.suffix() else {
+                continue;
+            };
+            let kept_here = now
+                .iter()
+                .any(|other| other.key == field.key && other.suffix() == Some(tail));
+            if kept_here {
+                continue;
+            }
+            if let Some(Value::String(text)) = meta.get_mut(&field.key)
+                && let Some(bare) = text.strip_suffix(tail)
+            {
+                *text = bare.to_owned();
+            }
+        }
+    }
+    for field in now {
+        if field.suffix().is_none() {
+            continue;
+        }
+        if let Some(Value::String(text)) = meta.get_mut(&field.key) {
+            *text = field.with_suffix(text);
+        }
+    }
+    Ok(())
 }
 
 /// The release, and the fields its kind declares.
@@ -147,6 +214,7 @@ pub fn generate(conn: &Connection, release_id: &str) -> Result<Generated> {
     let (release, defined) = definition(conn, release_id)?;
     let mut values = Map::new();
     let mut refused = Vec::new();
+    let forms = sung_forms_of(conn, &release.work_id)?;
 
     for field in &defined {
         let Some(template) = field.template() else {
@@ -154,7 +222,10 @@ pub fn generate(conn: &Connection, release_id: &str) -> Result<Generated> {
         };
         match prompt::for_work(conn, &release.work_id, template, prompt::Context::default()) {
             Ok(rendered) => {
-                values.insert(field.key.clone(), Value::String(tidy(&rendered, field)));
+                // A public text: the lyric a description reads is the one
+                // the audience reads, without the singer's marks (ADR 0053).
+                let public = crate::words::sung::clean(&rendered, &forms);
+                values.insert(field.key.clone(), Value::String(tidy(&public, field)));
             }
             Err(cause) => refused.push(Refusal {
                 key: field.key.clone(),
@@ -165,6 +236,47 @@ pub fn generate(conn: &Connection, release_id: &str) -> Result<Generated> {
     }
 
     Ok(Generated { values, refused })
+}
+
+/// The owner's ways of singing, for the workspace a work is in: what a public
+/// text made from a sung one is cleaned by.
+fn sung_forms_of(conn: &Connection, work_id: &str) -> Result<Vec<crate::register::Sung>> {
+    let profile_id: String = conn.query_row(
+        "SELECT profile_id FROM work WHERE id = ?1",
+        rusqlite::params![work_id],
+        |row| row.get(0),
+    )?;
+    crate::register::sung_forms(conn, &profile_id)
+}
+
+/// A proposal of what a release goes out under, as the public reads it: an
+/// answer or an agent that quoted the lyric quoted it with the singer's
+/// marks, and those come off before a person sees what would be written
+/// (ADR 0053). Any other proposal is returned as it is.
+pub fn public(conn: &Connection, proposal: Proposal) -> Result<Proposal> {
+    let Proposal::Release {
+        release_id,
+        fields,
+        unknown,
+    } = proposal
+    else {
+        return Ok(proposal);
+    };
+    let release =
+        release::get(conn, &release_id)?.ok_or_else(|| Error::not_found("release", &release_id))?;
+    let forms = sung_forms_of(conn, &release.work_id)?;
+    let fields = fields
+        .into_iter()
+        .map(|(key, value)| match value {
+            Value::String(text) => (key, Value::String(crate::words::sung::clean(&text, &forms))),
+            other => (key, other),
+        })
+        .collect();
+    Ok(Proposal::Release {
+        release_id,
+        fields,
+        unknown,
+    })
 }
 
 /// The rendered text as the field's shape wants it.
@@ -453,6 +565,38 @@ mod tests {
     use crate::work::{self, NewWork, version};
     use serde_json::json;
 
+    /// The lyric an audio's description reads is the public's: the singer's
+    /// marks come off and the owner's respellings go back (ADR 0053). The
+    /// title reads the song's name, not the publication's (v0.90).
+    #[test]
+    fn a_generated_field_reads_the_song_without_the_singers_marks() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Tide");
+        fixtures::version(&conn, &song.id, "lyrics", "В МарсЭль, где пульсАр");
+        crate::register::create(
+            &conn,
+            &profile_id,
+            crate::register::NewTerm {
+                sung: vec![crate::register::Sung {
+                    written: "Марсель".into(),
+                    sung: "МарсЭль".into(),
+                }],
+                ..crate::register::NewTerm::banked("Марсель")
+            },
+        )
+        .unwrap();
+        let made =
+            crate::actions::work::derive(&conn, &song.id, "audio", None, None, None).unwrap();
+
+        let generated = generate(&conn, made.release_id.as_deref().unwrap()).unwrap();
+
+        assert_eq!(generated.values["description"], "В Марсель, где пульсар");
+        assert_eq!(
+            generated.values["title"], "Tide",
+            "the song's name, not \"Tide (audio)\""
+        );
+    }
+
     /// A video with a YouTube release planned for it, and the plot its
     /// description template reads.
     fn video_with_release(conn: &mut Connection, profile_id: &str, plot: Option<&str>) -> String {
@@ -488,7 +632,6 @@ mod tests {
             NewRelease {
                 work_id: work.id,
                 kind: "youtube".into(),
-                title: Some("Harbour lights".into()),
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,

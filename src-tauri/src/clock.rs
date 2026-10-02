@@ -146,7 +146,6 @@ mod tests {
             release::NewRelease {
                 work_id: id.clone(),
                 kind: "clip".into(),
-                title: None,
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,

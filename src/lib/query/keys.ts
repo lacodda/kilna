@@ -149,8 +149,18 @@ export const keys = {
   termTopics: ['register', 'topics'] as const,
   termPreview: (word: string, forms: readonly string[]) =>
     ['register', 'preview', word, forms] as const,
-  /** A text checked against itself and the register, keyed by the text. */
-  textCheck: (text: string) => ['register', 'check', text] as const,
+  /** A text checked against itself and the register, keyed by the text and
+   *  by whether it is sung (ADR 0053). */
+  textCheck: (text: string, sung: boolean) => ['register', 'check', sung, text] as const,
+  /** The bank's blocks, each with its words (ADR 0052). */
+  blocks: ['register', 'blocks'] as const,
+  /** What the owner's sung texts already say about singing, proposed. */
+  wordsFromTexts: ['register', 'fromTexts'] as const,
+  /** The guard of repeats (ADR 0054), by the day it is read on: every
+   *  work's mark, and one song's findings. Under the register's prefix, so a
+   *  term, a version and a release all refresh it. */
+  repeatMarks: (today: string) => ['register', 'repeats', today] as const,
+  workRepeats: (workId: string, today: string) => ['register', 'repeats', today, workId] as const,
   workTags: ['workTags'] as const,
   deletions: ['deletions'] as const,
   search: (query: string) => ['search', query] as const,

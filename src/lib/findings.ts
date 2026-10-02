@@ -253,14 +253,14 @@ export function dismissalKey(finding: Finding) {
  * version to write into is the person's call, so it opens the work where a
  * work opens.
  */
-export function answeredOn(kind: FindingKind): 'score' | 'releases' | undefined {
+export function answeredOn(kind: FindingKind): 'score' | 'overview' | undefined {
   switch (kind) {
     case 'unscored':
     case 'stale-score':
       return 'score'
     case 'ready-unscheduled':
     case 'weak-scheduled':
-      return 'releases'
+      return 'overview'
     case 'stale-draft':
       return undefined
   }

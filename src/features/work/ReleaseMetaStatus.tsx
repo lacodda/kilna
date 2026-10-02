@@ -53,9 +53,10 @@ export function ReleaseMetaStatus({ work }: { work: Work }) {
   if (!wanted) return null
 
   const kindOf = (release: ScheduledRelease) => labelOf(kinds, release.kind)
-  const open = (releaseId: string) => {
+  // The release's home is the publication's overview (v0.90).
+  const open = () => {
     setWritten(null)
-    void navigate(`/works/${work.id}/releases?release=${releaseId}`)
+    void navigate(`/works/${work.id}`)
   }
 
   const running = mine.find((release) => writing(release.id))
@@ -86,12 +87,7 @@ export function ReleaseMetaStatus({ work }: { work: Work }) {
             ? t('releases.metaStatus.waiting', { count, kind: kindOf(first.release) })
             : t('releases.metaStatus.waitingMany', { count })}
         </span>
-        <Button
-          size="xs"
-          variant="ghost"
-          className="ml-auto"
-          onClick={() => open(first.release.id)}
-        >
+        <Button size="xs" variant="ghost" className="ml-auto" onClick={open}>
           {t('releases.metaStatus.open')}
         </Button>
       </Bar>
@@ -114,7 +110,7 @@ export function ReleaseMetaStatus({ work }: { work: Work }) {
                 fields: filled.join(', '),
               })}
         </span>
-        <Button size="xs" variant="ghost" className="ml-auto" onClick={() => open(done.id)}>
+        <Button size="xs" variant="ghost" className="ml-auto" onClick={open}>
           {t('releases.metaStatus.open')}
         </Button>
         <Button

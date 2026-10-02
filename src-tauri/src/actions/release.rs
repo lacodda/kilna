@@ -50,6 +50,21 @@ pub fn create(conn: &Connection, new: NewRelease) -> Result<Release> {
 pub fn update(conn: &Connection, id: &str, patch: ReleasePatch) -> Result<Release> {
     gesture(conn, "release.update", |act| {
         let before = release::get(act, id)?;
+        // The place is chosen when the publication is made and may change
+        // until it goes out (v0.90): to a door its kind has, and never once
+        // it went - what went out on YouTube did not go out anywhere else.
+        if let (Some(before), Some(door)) = (before.as_ref(), patch.kind.as_deref())
+            && door != before.kind
+        {
+            let work = crate::work::get(act, &before.work_id)?
+                .ok_or_else(|| Error::not_found("work", &before.work_id))?;
+            crate::profile::config_for(act, act.profile_id())?
+                .require_release_kind(&work.kind, door)?;
+            if before.status == release::RELEASED {
+                return Err(Error::refused("release.placeAfterOut")
+                    .param("title", act.title_of(&before.work_id)));
+            }
+        }
         act.param("id", id);
         act.json("patch", &patch)?;
         act.before(before.as_ref(), &patch)?;
@@ -634,7 +649,6 @@ mod tests {
             NewRelease {
                 work_id: work.id.clone(),
                 kind,
-                title: None,
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,
@@ -661,7 +675,6 @@ mod tests {
             NewRelease {
                 work_id: work.id,
                 kind: "podcast-episode".into(),
-                title: None,
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,
@@ -802,7 +815,8 @@ mod tests {
         let message = crate::assistant::message(&conn, &whole).unwrap().unwrap();
         assert!(message.meta.contains_key("applied"));
 
-        let started = fixtures::release(&conn, &clip.id, "premiere", None);
+        let premiere = fixtures::video(&conn, &profile_id, "Harbour lights (premiere)");
+        let started = fixtures::release(&conn, &premiere.id, "premiere", None);
         set_fields(
             &conn,
             &started.id,
@@ -844,7 +858,6 @@ mod tests {
             NewRelease {
                 work_id: song.id,
                 kind: "youtube".into(),
-                title: None,
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,
@@ -854,5 +867,35 @@ mod tests {
         .unwrap_err();
 
         assert_eq!(refused.refusal().map(|r| r.code), Some("release.noDoors"));
+    }
+
+    /// The place is the publication's until it goes out: changed to a door
+    /// its kind has, refused for one it has not, and refused once it went.
+    #[test]
+    fn the_place_changes_until_it_goes_out() {
+        let (conn, profile_id) = fixtures::workspace();
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Tide (audio)");
+        let planned = fixtures::release(&conn, &audio.id, "youtube", None);
+        let to = |door: &str| {
+            update(
+                &conn,
+                &planned.id,
+                ReleasePatch {
+                    kind: Some(door.into()),
+                    ..ReleasePatch::default()
+                },
+            )
+        };
+
+        assert_eq!(to("streaming").unwrap().kind, "streaming");
+        assert_eq!(
+            to("premiere").unwrap_err().refusal().map(|r| r.code),
+            Some("release.unknownKind")
+        );
+        mark_released(&conn, &planned.id, None, None).unwrap();
+        assert_eq!(
+            to("youtube").unwrap_err().refusal().map(|r| r.code),
+            Some("release.placeAfterOut")
+        );
     }
 }

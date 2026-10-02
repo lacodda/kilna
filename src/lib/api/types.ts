@@ -121,6 +121,7 @@ export type { IdeaDropped } from './generated/IdeaDropped'
 export type { PackagedIdea } from './generated/PackagedIdea'
 export type { SiblingCover } from './generated/SiblingCover'
 export type { Publication } from './generated/Publication'
+export type { Going } from './generated/Going'
 export type { Publications } from './generated/Publications'
 export type { Basis as PublicationBasis } from './generated/Basis'
 export type { Cloned } from './generated/Cloned'
@@ -152,6 +153,26 @@ export type { TextCheck } from './generated/TextCheck'
 export type { TextMark } from './generated/TextMark'
 export type { TermHit } from './generated/TermHit'
 export type { RepeatGroup } from './generated/RepeatGroup'
+// The word's other facets, the bank's blocks, and words proposed for the
+// record (ADR 0052).
+export type { Bank } from './generated/Bank'
+export type { Sung } from './generated/Sung'
+export type { TermBlock } from './generated/TermBlock'
+export type { BlockView } from './generated/BlockView'
+export type { Banked } from './generated/Banked'
+export type { WordsPackage } from './generated/WordsPackage'
+export type { ProposedWord } from './generated/ProposedWord'
+export type { NamedWork } from './generated/NamedWork'
+// A sung text: its stresses and respellings (ADR 0053).
+export type { StressKind } from './generated/StressKind'
+export type { StressNote } from './generated/StressNote'
+// The guard of repeats (ADR 0054).
+export type { RepeatLevel } from './generated/RepeatLevel'
+export type { RepeatWhy } from './generated/RepeatWhy'
+export type { RepeatFinding } from './generated/RepeatFinding'
+export type { RepeatMark } from './generated/RepeatMark'
+export type { Repeats } from './generated/Repeats'
+export type { Guard } from './generated/Guard'
 
 // The canon: cards (notes of a kind with sections), their facts and
 // relations (ADR 0043).
@@ -323,6 +344,7 @@ export type DescriptionProposal = Extract<Proposal, { kind: 'description' }>
 export type CanonProposalKind = Extract<Proposal, { kind: 'canon' }>
 export type CardPromptProposal = Extract<Proposal, { kind: 'cardPrompt' }>
 export type CoverIdeasProposal = Extract<Proposal, { kind: 'coverIdeas' }>
+export type WordsProposal = Extract<Proposal, { kind: 'words' }>
 
 // Data in and out.
 export type { ExportReport } from './generated/ExportReport'

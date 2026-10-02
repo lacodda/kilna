@@ -71,7 +71,7 @@ describe('the overview', () => {
     expect(names).toContain('Style prompt · Revision 1')
     expect(names).toContain(en.card.tab.score)
     expect(names).not.toContain(en.card.tab.scenes)
-    expect(names).not.toContain(en.card.tab.releases)
+    expect(names).not.toContain(en.releases.caption)
   })
 
   it('draws a storyboard on a clip, and no style prompt where the kind keeps none', async () => {
@@ -80,8 +80,9 @@ describe('the overview', () => {
     const names = widgetsIn(main)
     expect(names).toContain(en.card.tab.scenes)
     expect(names.some((name) => name.startsWith('Style prompt'))).toBe(false)
-    // A clip goes out itself: its releases, not publications of its own.
-    expect(names).toContain(en.card.tab.releases)
+    // A clip goes out itself: its release stands on the board (there is no
+    // Releases tab since v0.90), not publications of its own.
+    expect(names).toContain(en.releases.caption)
     expect(names).not.toContain(en.publications.caption)
     const board = within(main).getByRole('group', { name: en.card.tab.scenes })
     expect(within(board).getByText('2')).toBeInTheDocument()

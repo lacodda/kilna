@@ -14,7 +14,6 @@ pub struct Release {
     pub work_id: String,
     pub kind: String,
     pub status: String,
-    pub title: Option<String>,
     /// Calendar slot. `None` means queued but unscheduled.
     pub scheduled_at: Option<String>,
     pub released_at: Option<String>,
@@ -61,8 +60,6 @@ pub struct NewRelease {
     pub work_id: String,
     pub kind: String,
     #[serde(default)]
-    pub title: Option<String>,
-    #[serde(default)]
     pub scheduled_at: Option<String>,
     #[serde(default)]
     pub meta: Option<Map<String, Value>>,
@@ -78,12 +75,6 @@ pub struct ReleasePatch {
     pub kind: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
-    #[serde(
-        default,
-        deserialize_with = "crate::reversal::nullable",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub title: Option<Option<String>>,
     #[serde(
         default,
         deserialize_with = "crate::reversal::nullable",
@@ -168,6 +159,10 @@ pub struct SlotPreview {
     pub verdict: Verdict,
     /// Who is on the day, when anything is.
     pub holder_title: Option<String>,
+    /// The rare words the release's song would say within the guard's window
+    /// of a song out or booked near that day (ADR 0054): what the calendar
+    /// warns about before the release lands.
+    pub repeats: Vec<crate::register::guard::RepeatFinding>,
 }
 
 /// What a look at a day found: who is on it, and in what state.
@@ -181,7 +176,7 @@ struct Contest {
 pub const PLANNED: &str = "planned";
 pub const RELEASED: &str = "released";
 
-const SELECT_RELEASE: &str = "SELECT id, work_id, kind, status, title, scheduled_at, released_at, \
+const SELECT_RELEASE: &str = "SELECT id, work_id, kind, status, scheduled_at, released_at, \
      url, slot_pinned_at, meta, created_at, updated_at, scheduled_time, time_zone FROM release";
 
 pub fn create(conn: &Connection, new: NewRelease) -> Result<Release> {
@@ -194,34 +189,40 @@ pub fn create(conn: &Connection, new: NewRelease) -> Result<Release> {
 /// the log supplies what the first run generated, so the release lands under
 /// the id everything else already names. See ADR 0014.
 pub fn create_minted(conn: &Connection, new: NewRelease, minted: Minted) -> Result<Release> {
-    let exists: bool = conn
+    let title: Option<String> = conn
         .query_row(
-            "SELECT 1 FROM work WHERE id = ?1",
+            "SELECT title FROM work WHERE id = ?1",
             params![new.work_id],
-            |_| Ok(true),
+            |row| row.get(0),
         )
-        .optional()?
-        .unwrap_or(false);
-    if !exists {
+        .optional()?;
+    let Some(title) = title else {
         return Err(Error::not_found("work", new.work_id.clone()));
+    };
+    // A publication goes out once (ADR 0051): another place is another
+    // publication, made from the same thing. Said in words rather than left
+    // to the index, which would say it as a broken constraint.
+    if of_work(conn, &new.work_id)?.is_some() {
+        return Err(Error::refused("release.onePerPublication").param("title", title));
     }
 
     let id = minted.id().to_owned();
     check_when(new.scheduled_time.as_deref(), new.time_zone.as_deref())?;
     let timestamp = minted.at().to_owned();
+    let mut meta = new.meta.unwrap_or_default();
+    crate::release_meta::keep_suffixes(conn, &new.work_id, None, &new.kind, &mut meta)?;
 
     conn.execute(
-        "INSERT INTO release (id, work_id, kind, status, title, scheduled_at, meta, created_at, updated_at,
+        "INSERT INTO release (id, work_id, kind, status, scheduled_at, meta, created_at, updated_at,
                               scheduled_time, time_zone)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10)",
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7, ?8, ?9)",
         params![
             id,
             new.work_id,
             new.kind,
             PLANNED,
-            new.title,
             new.scheduled_at,
-            Value::Object(new.meta.unwrap_or_default()).to_string(),
+            Value::Object(meta).to_string(),
             timestamp,
             new.scheduled_time,
             new.time_zone,
@@ -229,6 +230,19 @@ pub fn create_minted(conn: &Connection, new: NewRelease, minted: Minted) -> Resu
     )?;
 
     get(conn, &id)?.ok_or_else(|| Error::Internal("the release vanished after insert".into()))
+}
+
+/// The release a work goes out as, when it has one: a work has at most one
+/// (ADR 0051).
+pub fn of_work(conn: &Connection, work_id: &str) -> Result<Option<Release>> {
+    let raw = conn
+        .query_row(
+            &format!("{SELECT_RELEASE} WHERE work_id = ?1"),
+            params![work_id],
+            read_row,
+        )
+        .optional()?;
+    raw.map(RawRelease::into_release).transpose()
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Release>> {
@@ -285,15 +299,21 @@ pub fn schedule_at(conn: &Connection, id: &str, slot: &str, at: &str) -> Result<
 pub fn preview(conn: &Connection, id: &str, slot: &str) -> Result<SlotPreview> {
     let judged = judge(conn, id, slot)?;
 
-    let holder_title = judged.occupant.as_ref().map(|occupant| {
-        occupant.title.clone().unwrap_or_else(|| {
-            crate::journal::work_title(conn, &occupant.work_id).unwrap_or_default()
-        })
-    });
+    let holder_title = judged
+        .occupant
+        .as_ref()
+        .map(|occupant| crate::journal::work_title(conn, &occupant.work_id).unwrap_or_default());
 
+    let work_id: String = conn.query_row(
+        "SELECT work_id FROM release WHERE id = ?1",
+        params![id],
+        |row| row.get(0),
+    )?;
+    let repeats = crate::register::guard::at_slot(conn, &work_id, slot)?;
     Ok(SlotPreview {
         verdict: judged.verdict,
         holder_title,
+        repeats,
     })
 }
 
@@ -535,6 +555,25 @@ pub fn update(conn: &Connection, id: &str, patch: ReleasePatch) -> Result<Releas
 /// The seam a replay comes back through: live, `update` stamps `now()`;
 /// replaying, the log supplies the moment the first run recorded. See ADR 0014.
 pub fn update_at(conn: &Connection, id: &str, patch: ReleasePatch, at: &str) -> Result<Release> {
+    let mut patch = patch;
+    // The fields keep the tails their door keeps, whoever wrote them and
+    // whichever door the release moves to (v0.90): normalised here, where
+    // every writer passes, rather than by each screen.
+    if patch.meta.is_some() || patch.kind.is_some() {
+        let found = get(conn, id)?.ok_or_else(|| unknown_release(id))?;
+        let door = patch.kind.clone().unwrap_or_else(|| found.kind.clone());
+        let mut meta = patch.meta.clone().unwrap_or_else(|| found.meta.clone());
+        crate::release_meta::keep_suffixes(
+            conn,
+            &found.work_id,
+            Some(&found.kind),
+            &door,
+            &mut meta,
+        )?;
+        if patch.meta.is_some() || meta != found.meta {
+            patch.meta = Some(meta);
+        }
+    }
     let mut assignments: Vec<String> = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
@@ -553,9 +592,6 @@ pub fn update_at(conn: &Connection, id: &str, patch: ReleasePatch, at: &str) -> 
     }
     if let Some(status) = patch.status {
         set(&mut assignments, &mut values, "status", Box::new(status));
-    }
-    if let Some(title) = patch.title {
-        set(&mut assignments, &mut values, "title", Box::new(title));
     }
     check_when(
         patch.scheduled_time.as_ref().and_then(|t| t.as_deref()),
@@ -636,7 +672,7 @@ pub fn delete(conn: &Connection, id: &str) -> Result<()> {
     Ok(())
 }
 
-const SELECT_SCHEDULED_TEMPLATE: &str = "SELECT r.id, r.work_id, r.kind, r.status, r.title, r.scheduled_at, \
+const SELECT_SCHEDULED_TEMPLATE: &str = "SELECT r.id, r.work_id, r.kind, r.status, r.scheduled_at, \
      r.released_at, r.url, r.slot_pinned_at, r.meta, r.created_at, r.updated_at, \
      w.title, s.total, s.tier, r.scheduled_time, r.time_zone \
      FROM release r \
@@ -760,20 +796,19 @@ fn read_scheduled_where(
                     work_id: row.get(1)?,
                     kind: row.get(2)?,
                     status: row.get(3)?,
-                    title: row.get(4)?,
-                    scheduled_at: row.get(5)?,
-                    released_at: row.get(6)?,
-                    url: row.get(7)?,
-                    slot_pinned_at: row.get(8)?,
-                    meta: row.get(9)?,
-                    created_at: row.get(10)?,
-                    updated_at: row.get(11)?,
-                    scheduled_time: row.get(15)?,
-                    time_zone: row.get(16)?,
+                    scheduled_at: row.get(4)?,
+                    released_at: row.get(5)?,
+                    url: row.get(6)?,
+                    slot_pinned_at: row.get(7)?,
+                    meta: row.get(8)?,
+                    created_at: row.get(9)?,
+                    updated_at: row.get(10)?,
+                    scheduled_time: row.get(14)?,
+                    time_zone: row.get(15)?,
                 },
-                row.get::<_, String>(12)?,
-                row.get::<_, Option<f64>>(13)?,
-                row.get::<_, Option<String>>(14)?,
+                row.get::<_, String>(11)?,
+                row.get::<_, Option<f64>>(12)?,
+                row.get::<_, Option<String>>(13)?,
             ))
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -827,7 +862,6 @@ struct RawRelease {
     work_id: String,
     kind: String,
     status: String,
-    title: Option<String>,
     scheduled_at: Option<String>,
     released_at: Option<String>,
     url: Option<String>,
@@ -845,16 +879,15 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawRelease> {
         work_id: row.get(1)?,
         kind: row.get(2)?,
         status: row.get(3)?,
-        title: row.get(4)?,
-        scheduled_at: row.get(5)?,
-        released_at: row.get(6)?,
-        url: row.get(7)?,
-        slot_pinned_at: row.get(8)?,
-        meta: row.get(9)?,
-        created_at: row.get(10)?,
-        updated_at: row.get(11)?,
-        scheduled_time: row.get(12)?,
-        time_zone: row.get(13)?,
+        scheduled_at: row.get(4)?,
+        released_at: row.get(5)?,
+        url: row.get(6)?,
+        slot_pinned_at: row.get(7)?,
+        meta: row.get(8)?,
+        created_at: row.get(9)?,
+        updated_at: row.get(10)?,
+        scheduled_time: row.get(11)?,
+        time_zone: row.get(12)?,
     })
 }
 
@@ -866,7 +899,6 @@ impl RawRelease {
             work_id: self.work_id,
             kind: self.kind,
             status: self.status,
-            title: self.title,
             scheduled_at: self.scheduled_at,
             released_at: self.released_at,
             url: self.url,
@@ -919,7 +951,6 @@ mod tests {
             NewRelease {
                 work_id: work.id,
                 kind: "audio".into(),
-                title: Some(title.into()),
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,
@@ -1524,7 +1555,6 @@ mod tests {
             NewRelease {
                 work_id: work.id,
                 kind: "youtube".into(),
-                title: None,
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,
@@ -1592,7 +1622,7 @@ mod tests {
         let song = fixtures::song(&conn, &profile_id, "Harbour lights");
         fixtures::score(&conn, &song.id, json!({ "hook": 9.0 }));
         let made =
-            crate::actions::work::derive(&conn, &song.id, "audio", None, Some("en")).unwrap();
+            crate::actions::work::derive(&conn, &song.id, "audio", None, Some("en"), None).unwrap();
         let release_id = made.release_id.unwrap();
         let clip = fixtures::video(&conn, &profile_id, "Harbour lights — clip");
         crate::link::create(
@@ -1651,7 +1681,6 @@ mod tests {
             NewRelease {
                 work_id: "nope".into(),
                 kind: "audio".into(),
-                title: None,
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: None,
@@ -1726,9 +1755,8 @@ mod tests {
         let created = create(
             &conn,
             NewRelease {
-                work_id: release.work_id.clone(),
-                kind: "audio".into(),
-                title: None,
+                work_id: fixtures::video(&conn, &profile_id, "Another").id,
+                kind: "youtube".into(),
                 scheduled_at: None,
                 meta: None,
                 scheduled_time: Some("07:05".into()),
@@ -1738,6 +1766,102 @@ mod tests {
         .unwrap();
         assert_eq!(created.scheduled_time.as_deref(), Some("07:05"));
         assert_eq!(created.time_zone.as_deref(), Some("UTC"));
+    }
+
+    /// A publication goes out once (ADR 0051): a second release is refused
+    /// in words, before the index would refuse it as a constraint.
+    #[test]
+    fn a_publication_goes_out_once() {
+        let (conn, profile_id) = fixtures::workspace();
+        let video = fixtures::video(&conn, &profile_id, "Harbour lights (video)");
+        let first = fixtures::release(&conn, &video.id, "youtube", None);
+
+        let refused = create(
+            &conn,
+            NewRelease {
+                work_id: video.id.clone(),
+                kind: "premiere".into(),
+                scheduled_at: None,
+                meta: None,
+                scheduled_time: None,
+                time_zone: None,
+            },
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("release.onePerPublication")
+        );
+        assert_eq!(
+            of_work(&conn, &video.id).unwrap().map(|r| r.id),
+            Some(first.id)
+        );
+    }
+
+    /// The tail a door keeps is the release's to keep: typed without it, the
+    /// title ends with it; moved to a door that keeps none, the title loses
+    /// it; a title nobody wrote stays empty.
+    #[test]
+    fn a_field_keeps_the_tail_its_door_keeps() {
+        let (conn, profile_id) = fixtures::workspace();
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Tide (audio)");
+        let release = create(
+            &conn,
+            NewRelease {
+                work_id: audio.id.clone(),
+                kind: "youtube".into(),
+                scheduled_at: None,
+                meta: json!({ "title": "Tide - one line" }).as_object().cloned(),
+                scheduled_time: None,
+                time_zone: None,
+            },
+        )
+        .unwrap();
+        assert_eq!(release.meta["title"], "Tide - one line (audio)");
+
+        let typed = update(
+            &conn,
+            &release.id,
+            ReleasePatch {
+                meta: json!({ "title": "Tide - another line", "description": "" })
+                    .as_object()
+                    .cloned(),
+                ..ReleasePatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(typed.meta["title"], "Tide - another line (audio)");
+        assert_eq!(
+            typed.meta["description"], "",
+            "a field with no tail is left as typed"
+        );
+
+        let moved = update(
+            &conn,
+            &release.id,
+            ReleasePatch {
+                kind: Some("streaming".into()),
+                ..ReleasePatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(moved.meta["title"], "Tide - another line");
+
+        let back = update(
+            &conn,
+            &release.id,
+            ReleasePatch {
+                kind: Some("youtube".into()),
+                meta: json!({ "title": "" }).as_object().cloned(),
+                ..ReleasePatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            back.meta["title"], "",
+            "a title nobody wrote is not \" (audio)\""
+        );
     }
 
     #[test]

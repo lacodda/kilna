@@ -415,6 +415,9 @@ export function VersionPanel({ workId }: Props) {
             : null
         }
         repeats={!commentaryLane}
+        // The role says whether its text is sung (ADR 0053): a lyric is, a
+        // style prompt in the lane beside it is not.
+        sung={roles.find((r) => r.key === shown.role)?.sung === true}
         editing={editing}
         staged={staged === 'text'}
         onStage={(on) => setStaged(on ? 'text' : null)}

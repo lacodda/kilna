@@ -149,6 +149,7 @@ pub fn register(conn: &Connection, legacy: &Connection, profile_id: &str) -> Res
                 strictness: Some(legacy_strictness(&severity)),
                 topic,
                 note,
+                ..NewTerm::default()
             },
         ) {
             Ok(made) => made,

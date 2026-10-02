@@ -181,7 +181,6 @@ fn import(conn: &Connection, source: &Path, profile_id: &str) -> Result<ImportRe
                 NewRelease {
                     work_id: created.id.clone(),
                     kind: "audio".into(),
-                    title: Some(song.title.clone()),
                     scheduled_at: None,
                     meta: None,
                     scheduled_time: None,
@@ -553,7 +552,7 @@ mod tests {
         let terms = crate::register::list(&conn, &profile_id).unwrap();
         let crane = terms.iter().find(|t| t.word == "crane").unwrap();
         assert_eq!(crane.forms, ["cranes"]);
-        assert_eq!(crane.strictness, crate::register::Strictness::Ban);
+        assert_eq!(crane.strictness, Some(crate::register::Strictness::Ban));
         assert_eq!(crane.topic.as_deref(), Some("the harbour"));
         let image = terms.iter().find(|t| t.kind.as_str() == "image").unwrap();
         let uses = crate::register::uses(&conn, &image.id).unwrap();

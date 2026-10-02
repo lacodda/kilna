@@ -50,7 +50,6 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.video, 'cover', en.ideas.own],
   [IDS.video, 'cuts', 'Paper Lanterns'],
   [IDS.video, 'score', 'Paper Lanterns (clip)'],
-  [IDS.video, 'releases', 'Paper Lanterns (clip)'],
   [IDS.video, 'files', 'Paper Lanterns (clip)'],
   [IDS.video, 'links', 'soundtrack'],
   [IDS.video, 'notes', 'An old man who sells lanterns by the bridge.'],
@@ -65,7 +64,8 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.audio, 'cover', '16:9 · YouTube'],
   // The loop's prompt, written by the backend from the frame's settings.
   [IDS.audio, 'frame', 'the lantern turns slowly on the current'],
-  [IDS.audio, 'releases', 'Sep 22'],
+  // Its release, on its overview since v0.90: a publication goes out once.
+  [IDS.audio, 'overview', 'Sep 22'],
   [IDS.audio, 'files', 'Paper Lanterns — audio'],
   [IDS.audio, 'links', 'Paper Lanterns'],
 ]

@@ -12,7 +12,8 @@ export interface CheckedText {
 }
 
 /**
- * A text checked against itself and the register (ADR 0044), as it is typed.
+ * A text checked against itself and the register (ADR 0044), as it is typed
+ * - and, when its role is `sung`, for where its stresses fall (ADR 0053).
  *
  * The backend reads every text through one analyser, so the window asks
  * rather than counting on its own. The question trails the typing a little,
@@ -21,10 +22,13 @@ export interface CheckedText {
  * wait - an offset computed on the text before the keystroke would land on
  * the wrong word after it.
  */
-export function useTextCheck(text: string | null): CheckedText {
+export function useTextCheck(text: string | null, sung = false): CheckedText {
   const settled = useDebounced(text, 120)
   const query = useQuery({
-    ...queries.textCheck(settled ?? ''),
+    // Whether the text is sung is the role's, never the text's: the same
+    // words are a lyric in one role and a style prompt in another, and only
+    // the lyric has a singer to be told where the stress goes.
+    ...queries.textCheck(settled ?? '', sung),
     enabled: settled !== null,
     placeholderData: keepPreviousData,
   })

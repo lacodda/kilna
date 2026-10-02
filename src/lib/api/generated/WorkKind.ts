@@ -73,10 +73,14 @@ cover?: boolean,
 frame?: boolean, 
 /**
  * What a work of this kind is called when it is made from another:
- * `{title}` is the source's title and `{n}` the new work's number among
- * the works of this kind made from the same source - "{title} · short
- * {n}". A template without `{n}` numbers only the second and later ones,
- * so the first clip of a song is "the clip" and the next "the clip 2".
- * Absent means the source's title as it is. Added in v0.86.
+ * `{title}` is the title of what it is all made from - the song, for a
+ * short cut from its clip - and `{n}` the new work's number among the
+ * works of this kind made from it. A template without `{n}` numbers only
+ * the second and later ones, inside a closing bracket when it ends with
+ * one: the first short of a song is "Song (short)" and the next "Song
+ * (short 2)". One string for every language since v0.90 - "(video)" is
+ * a name, not a word to translate - though a document may still give one
+ * per language. Absent means the source's title as it is. Added in
+ * v0.86.
  */
 made_title?: Label | null, };

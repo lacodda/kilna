@@ -90,6 +90,12 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::register::TermPatch,
         kilna_lib::register::TermUse,
         kilna_lib::register::check::TextCheck,
+        kilna_lib::register::block::TermBlock,
+        kilna_lib::register::block::BlockView,
+        kilna_lib::actions::register::Banked,
+        kilna_lib::register::proposal::WordsPackage,
+        kilna_lib::register::guard::RepeatMark,
+        kilna_lib::register::guard::Repeats,
         // canon.rs
         kilna_lib::canon::view::CardFilter,
         kilna_lib::canon::view::CardSummary,

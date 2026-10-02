@@ -19,7 +19,11 @@ interface Options {
 
 /** How many operations applying wrote: the work, each version, the score, each note, the
  * fields, each scene written, each scene a replaced board sent to the trash, a style's
- * description, each card, fact and relation of the canon, and each idea put on a board. */
+ * description, each card, fact and relation of the canon, and each idea put on a board.
+ *
+ * A word of the record kept (`terms`, ADR 0052) is not counted: keeping one can make the
+ * word, make its block and put it there - several operations behind one id - and an offer
+ * to take back the last of them would leave the rest standing. */
 export function writesOf(applied: Applied): number {
   return (
     (applied.created_work === true ? 1 : 0) +

@@ -34,7 +34,6 @@ function facts(
       versions: false,
       scores: false,
       scenes: false,
-      releases: false,
       files: false,
       cover: false,
       splice: false,
@@ -63,7 +62,7 @@ describe("the card's tabs", () => {
       ['roles', 'versions'],
       ['axes', 'score'],
       ['storyboard', 'scenes'],
-      ['doors', 'releases', 'files'],
+      ['doors', 'files'],
       ['cover', 'cover'],
       ['frame', 'frame'],
     ]
@@ -79,7 +78,6 @@ describe("the card's tabs", () => {
       ['versions', 'versions'],
       ['scores', 'score'],
       ['scenes', 'scenes'],
-      ['releases', 'releases'],
       ['files', 'files'],
       ['cover', 'cover'],
       ['splice', 'cuts'],
@@ -88,7 +86,7 @@ describe("the card's tabs", () => {
       expect(tabsOf(facts({}, { [held]: true })), `holding ${held}`).toContain(tab)
     }
     // Nothing is held in a frame a kind does not name: the backend refuses one.
-    expect(tabsOf(facts({}, { cover: true, releases: true }))).not.toContain('frame')
+    expect(tabsOf(facts({}, { cover: true, files: true }))).not.toContain('frame')
   })
 
   it("open on a tab a person lives in, never on one of a single kind's making", () => {
@@ -97,7 +95,7 @@ describe("the card's tabs", () => {
       expect(DEFAULT_TAB_CHOICES).not.toContain(tab)
     }
     // A habit kept across v0.86: a work without the tab opens on the overview.
-    for (const tab of ['versions', 'score', 'releases', 'files'] as const) {
+    for (const tab of ['versions', 'score', 'files'] as const) {
       expect(DEFAULT_TAB_CHOICES).toContain(tab)
     }
   })
@@ -139,7 +137,7 @@ describe("the card's tabs", () => {
 
     it('give an audio release its cover, its frame and its doors, and no board or score', () => {
       const audio = drawn(IDS.audio)
-      for (const tab of ['cover', 'frame', 'releases', 'files'] as const) {
+      for (const tab of ['cover', 'frame', 'files'] as const) {
         expect(audio).toContain(tab)
       }
       // Its kind names roles - a concept, a context - so its versions stand.
@@ -152,7 +150,7 @@ describe("the card's tabs", () => {
 
     it('give a video its board and its cover, and no frame', () => {
       const video = drawn(IDS.video)
-      for (const tab of ['versions', 'scenes', 'cover', 'cuts', 'score', 'releases'] as const) {
+      for (const tab of ['versions', 'scenes', 'cover', 'cuts', 'score', 'files'] as const) {
         expect(video).toContain(tab)
       }
       expect(video).not.toContain('frame')
@@ -160,7 +158,6 @@ describe("the card's tabs", () => {
 
     it('keep a tab a song holds rows for, though its kind no longer names it', () => {
       const song = countsOf(IDS.song)
-      expect(drawn(IDS.song, { ...song, releases: 1 })).toContain('releases')
       expect(drawn(IDS.song, { ...song, files: 2 })).toContain('files')
       expect(drawn(IDS.song, { ...song, scenes: 3 })).toContain('scenes')
       const covered: Work = { ...workOf(IDS.song), cover: coverOf({ picture: 'a lantern' }) }
@@ -173,7 +170,7 @@ describe("the card's tabs", () => {
     it('trust an address until the counts are in', () => {
       // No counts at all - `drawn` would count them.
       const unknown = tabsOf(factsOf(config, workOf(IDS.song)))
-      for (const tab of ['releases', 'files', 'scenes', 'cuts'] as const) {
+      for (const tab of ['files', 'scenes', 'cuts'] as const) {
         expect(unknown).toContain(tab)
       }
       // What the kind and the work say is known already.

@@ -14,7 +14,7 @@ import { answersFor, IDS, NOW, studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
 
 /*
- * The release meta on the Releases tab (v0.86): the profile's action writes
+ * The release meta on the overview's release block (v0.86): the profile's action writes
  * what a release goes out under in the background, from a button on the
  * release. The fields nobody had written are filled when the answer lands;
  * the started ones wait under the fields as a proposal, read field by field
@@ -91,13 +91,12 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** The clip's Releases tab, with its one release unrolled. */
+/** The clip's overview, where its one release stands open. */
 async function unrolled() {
-  const { client } = renderApp(`/works/${IDS.video}/releases`)
+  const { client } = renderApp(`/works/${IDS.video}`)
   await settled(client)
   const main = await screen.findByRole('main')
-  const row = await within(main).findByRole('button', { name: 'YouTube' })
-  fireEvent.click(row)
+  await within(main).findByRole('combobox', { name: en.releases.kind })
   await settled(client)
   return { client, main }
 }
@@ -156,16 +155,6 @@ describe('the release meta button', () => {
     await settled(client)
     expect(backend.argsOf('start_release_task')).toEqual([{ id: IDS.youtube, action: ACTION }])
   })
-
-  it('opens the release the address names', async () => {
-    const { client } = renderApp(`/works/${IDS.video}/releases?release=${IDS.youtube}`)
-    await settled(client)
-    const main = await screen.findByRole('main')
-    expect(await within(main).findByRole('button', { name: 'YouTube' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    )
-  })
 })
 
 describe('a proposal waiting on a release', () => {
@@ -173,16 +162,12 @@ describe('a proposal waiting on a release', () => {
     waiting = [PROPOSAL]
   })
 
-  it('is counted on the folded line, and read field by field once unrolled', async () => {
-    const { client } = renderApp(`/works/${IDS.video}/releases`)
-    await settled(client)
-    const main = await screen.findByRole('main')
+  it('is counted on the head line, and read field by field under the fields', async () => {
+    const { main } = await unrolled()
     expect(
       await within(main).findByText(en.releases.proposals.waiting_other.replace('{{count}}', '2')),
     ).toBeInTheDocument()
 
-    fireEvent.click(within(main).getByRole('button', { name: 'YouTube' }))
-    await settled(client)
     const panel = within(main).getByRole('region', { name: en.releases.proposals.label })
 
     expect(within(panel).getByText(en.releases.proposals.byAssistant)).toBeInTheDocument()

@@ -26,4 +26,11 @@ options?: Array<Kind>,
  * an option for a choice, the value itself otherwise. Absent means the
  * field starts empty.
  */
-default?: unknown, };
+default?: unknown, 
+/**
+ * Whether the field is a fact of the work's own media, never taken from
+ * the work it is made from: a short cut from a clip is not as long as
+ * the clip (v0.90). Absent is false - a mood, a tempo, an idea flow into
+ * what is made from them once, at creation.
+ */
+own?: boolean, };

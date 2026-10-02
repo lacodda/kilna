@@ -37,13 +37,10 @@ impl AppState {
         // The style dictionary's starter set, after the profiles: a set brick
         // is of a type the carried-forward document names (ADR 0048).
         crate::style_set::seed(&conn)?;
-        // A song's clip and short releases move onto works of their own, once
-        // (ADR 0030). After the seed on purpose: the carry-forward is what
-        // brings the kinds they move to into a workspace that predates them.
-        crate::doors::upgrade(&mut conn)?;
-        // And their audio releases move onto audio works of their own, the
-        // song keeping no door at all (v0.86). After the door move above, so
-        // a workspace that skipped v0.74 arrives through both in order.
+        // Publications named the way v0.90 names them, once, and the fields
+        // of their releases given the tails their doors keep (ADR 0051).
+        // After the seed on purpose: the carry-forward is what gives a stored
+        // field its tail.
         crate::publication::upgrade(&mut conn)?;
 
         // Old, already-read journal entries go at startup rather than on a
@@ -64,6 +61,14 @@ impl AppState {
             crate::log::warn(
                 "focus",
                 &format!("could not sweep dismissals for deleted works: {cause}"),
+            );
+        }
+
+        // What the person said about repeats in songs that are gone for good.
+        if let Err(cause) = crate::register::guard::sweep(&conn) {
+            crate::log::warn(
+                "register",
+                &format!("could not sweep kept repeats of deleted works: {cause}"),
             );
         }
 

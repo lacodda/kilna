@@ -95,8 +95,9 @@ Each work's page includes:
 - The storyboard, for a work that has one: the scenes as a table — number,
   section, seconds, kind of shot, description — then each scene's prompt
   blocks in full.
-- Every release tied to the work: kind, date (scheduled or released), time of
-  day and zone when set, and the link if one was recorded.
+- The work's release - a publication goes out once: its place, date
+  (scheduled or released), time of day and zone when set, and the link if one
+  was recorded.
 - Notes attached to the work, with their tags — and for an idea or a
   phrase, its kind and where it stands: *phrase used*.
 - Comments on the work, archived ones included: who wrote them, where and
@@ -112,7 +113,10 @@ idea or a phrase with its state under it, and comments about no work to
 `comments.md`, rather than lost. The [register of repeats](/kilna/guides/the-register/)
 goes to `register.md`: every term by strictness, with its forms, kind, topic
 and note, how many works carry it at the moment of the export, and for an
-image or a scene the works named for it. File names are derived from each work's title with unsafe
+image or a scene the works named for it; then the words that are not spent -
+the [bank's](/kilna/guides/the-bank-of-words/), each with its state and how
+many works already sing it - and every way of singing you keep, written →
+sung. File names are derived from each work's title with unsafe
 characters replaced and a short id suffix appended, so two works sharing a
 title never overwrite one another — and non-ASCII titles are kept as-is,
 since a title in Cyrillic or any other script should stay readable in the

@@ -36,4 +36,12 @@ hint?: Label | null,
  * enforced: kilna is not the authority on what YouTube accepts this
  * month, and a field it refuses to hold is a field typed somewhere else.
  */
-limit?: number | null, };
+limit?: number | null, 
+/**
+ * A tail the value always ends with, whoever writes the rest: an audio
+ * track's title on a video platform ends with " (audio)" when it is
+ * typed, generated or proposed, and a clip's has none (v0.90). Kept by
+ * the release itself (`release_meta::keep_suffixes`), so a title written
+ * by hand cannot lose it. Absent is no tail.
+ */
+suffix?: string | null, };

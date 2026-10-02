@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ListChecks, Plus } from 'lucide-react'
@@ -25,6 +25,7 @@ import { Frame, ListDetail, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
 import { LineBank } from '@/features/notes/LineBank'
 import { NoteDetail } from '@/features/notes/NoteDetail'
+import { WordBank } from '@/features/words/WordBank'
 
 /*
  * What a kind chip is called in its group. "All" is a chip of its own, and the
@@ -32,9 +33,13 @@ import { NoteDetail } from '@/features/notes/NoteDetail'
  * it.
  */
 const ALL_KINDS = 'all'
+/** The chip of the bank of words: a view of its own, not a kind of note. */
+const WORDS = 'words'
 const chipOf = (kind: string | undefined) => (kind === undefined ? ALL_KINDS : `kind:${kind}`)
 const kindOf = (chip: string | undefined) =>
-  chip === undefined || chip === ALL_KINDS ? undefined : chip.slice('kind:'.length)
+  chip === undefined || chip === ALL_KINDS || chip === WORDS
+    ? undefined
+    : chip.slice('kind:'.length)
 
 /** The state filter's "every state", beside the four states. */
 const ANY_STATE = 'any'
@@ -56,12 +61,19 @@ const ANY_STATE = 'any'
  * opens the bank of lines instead, a row each, and "All" leaves it out, so a
  * thousand phrases never bury the notes (ADR 0045). A kind that is material -
  * an idea, a phrase - is read by its state, fresh first.
+ *
+ * The bank of words has a chip of its own beside the kinds, though a word is
+ * no note: it is a word of the record (ADR 0052), kept here because this is
+ * where the material for songs to come is. It is in the address (`?words`),
+ * the way the canon's timeline is, so a proposal of words can open on it.
  */
 export function NotesView() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { config } = useProfile()
   const { noteId } = useParams()
+  const [params] = useSearchParams()
+  const words = params.has(WORDS)
   // A card of the canon is a note too, but it lives on the Canon screen
   // (ADR 0043): this list is the plain notes, and so are its kinds.
   const kinds = plainNoteKindsOf(config)
@@ -86,7 +98,7 @@ export function NotesView() {
     line: kind === undefined ? false : undefined,
     state: material && state !== ANY_STATE ? state : undefined,
   }
-  const notes = useQuery({ ...queries.notesMatching(filter), enabled: !line })
+  const notes = useQuery({ ...queries.notesMatching(filter), enabled: !line && !words })
   // Every tag in use, most used first: the filter's choices, and what the
   // tag field of the open note completes from.
   const tags = useQuery(queries.tags())
@@ -98,6 +110,9 @@ export function NotesView() {
     for (const note of everything.data ?? []) map.set(note.kind, (map.get(note.kind) ?? 0) + 1)
     return map
   }, [everything.data])
+  // The bank's chip counts the words in it, as a kind's counts its notes.
+  const terms = useQuery(queries.terms())
+  const banked = (terms.data ?? []).filter((term) => term.bank !== null).length
 
   const open = (id: string | null) => {
     void navigate(id === null ? '/notes' : `/notes/${id}`)
@@ -136,26 +151,35 @@ export function NotesView() {
           {/* The kinds as chips, the way the style dictionary narrows to a type:
               "every character" is one click, and the chip that is on turns off -
               letting go of one leaves the group empty, which is every kind.
-              Only when the craft names kinds — one that names none has one. */}
-          {kinds.length > 0 && (
-            <ChipGroup
-              aria-label={t('notes.kind')}
-              value={[chipOf(kind)]}
-              onValueChange={(next) => setKind(kindOf(next[0]))}
-            >
-              <Chip value={chipOf(undefined)} count={total}>
-                {t('notes.allKinds')}
+              A craft that names no kinds still has "All" and the bank of
+              words to choose between. */}
+          <ChipGroup
+            aria-label={t('notes.kind')}
+            value={[words ? WORDS : chipOf(kind)]}
+            onValueChange={(next) => {
+              if (next[0] === WORDS) {
+                void navigate(`/notes?${WORDS}`)
+                return
+              }
+              if (words) void navigate('/notes')
+              setKind(kindOf(next[0]))
+            }}
+          >
+            <Chip value={chipOf(undefined)} count={total}>
+              {t('notes.allKinds')}
+            </Chip>
+            {kinds.map((one) => (
+              <Chip key={one.key} value={chipOf(one.key)} count={counts.get(one.key) ?? 0}>
+                {labelOf(kinds, one.key)}
               </Chip>
-              {kinds.map((one) => (
-                <Chip key={one.key} value={chipOf(one.key)} count={counts.get(one.key) ?? 0}>
-                  {labelOf(kinds, one.key)}
-                </Chip>
-              ))}
-            </ChipGroup>
-          )}
+            ))}
+            <Chip value={WORDS} count={banked}>
+              {t('words.view')}
+            </Chip>
+          </ChipGroup>
           {/* Where the material stands: fresh first, because what is still
               there to use is what a bank is opened for. */}
-          {material && (
+          {material && !words && (
             <Select
               value={state}
               onChange={(next) =>
@@ -169,14 +193,16 @@ export function NotesView() {
               className="w-44"
             />
           )}
-          <Input
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            placeholder={t('notes.search')}
-            aria-label={t('notes.search')}
-            className="w-56"
-          />
-          {(tags.data ?? []).length > 0 && (
+          {!words && (
+            <Input
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              placeholder={t('notes.search')}
+              aria-label={t('notes.search')}
+              className="w-56"
+            />
+          )}
+          {!words && (tags.data ?? []).length > 0 && (
             <Select
               value={tag}
               onChange={setTag}
@@ -189,7 +215,7 @@ export function NotesView() {
               className="w-44"
             />
           )}
-          {!line && (
+          {!line && !words && (
             <Button
               variant="primary"
               className="ml-auto"
@@ -203,7 +229,9 @@ export function NotesView() {
         </>
       }
     >
-      {line && kind !== undefined ? (
+      {words ? (
+        <WordBank />
+      ) : line && kind !== undefined ? (
         <LineBank kind={kind} filter={filter} tag={tag} filtered={filtered} />
       ) : (
         <ListDetail

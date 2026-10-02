@@ -14,10 +14,11 @@ song's **publications**.
 
 ## A song's publications
 
-A song's **Overview** leads with its publications: each with its kind, where
-it stands - *Out 22.07*, *Booked for 03.10*, a draft - its comments, and, for
-a short cut from the clip, which clip. Under the list, what the song's status
-stands on (*Out as "Harbour lights — audio" on 22.07*) and how many comments
+A song's **Overview** leads with its publications: each with its kind, the
+place it goes out (*YouTube · 16:9*), where it stands - *Out 22.07*, *Booked
+for 03.10 · 18:00*, a draft - its comments, and, for a short cut from the
+clip, which clip. Under the list, what the song's status stands on (*Out as
+"Harbour lights (audio)" on 22.07*) and how many comments
 its publications gathered. The song's own status is read from them: it is out
 when any of them went out, booked when any holds a day. See
 [Statuses](/kilna/guides/statuses/).
@@ -25,15 +26,19 @@ when any of them went out, booked when any holds a day. See
 **Make…** above the list makes one - a clip, an audio release, a short - in
 one step:
 
-- the new work is named the way its kind names what is made from a song, in
-  the language the window is in: *Harbour lights — clip*, *Harbour lights —
-  audio*, *Harbour lights · short 5* - numbered among the works of that kind
-  already made from the song;
-- it takes the song's overview fields its kind has, and the ones its kind
-  starts with (an audio release starts as the *original* variant);
+- the new work is named the way its kind names what is made from a song,
+  one name in every language: *Harbour lights (video)*, *Harbour lights
+  (audio)*, *Harbour lights (short)* - and from the second of a kind made
+  from the same song, numbered inside the bracket: *Harbour lights (short
+  5)*, counted across the shorts cut from the clip and from the audio alike;
+- it takes the song's overview fields its kind has - not the ones that are a
+  fact of its own media, like the duration - and the ones its kind starts
+  with (an audio release starts as the *original* variant);
 - it is linked to the song at the version the song is on;
-- it is planned one release through its first door - YouTube for a clip or an
-  audio - with no day yet: making it means you are going to put it out;
+- it is planned its one release - where it goes out is the choice in the
+  menu: a kind with several places lists them under its name (*Make an audio
+  → YouTube · 16:9, Streaming · 1:1*) - with no day yet: making it means you
+  are going to put it out;
 - when the profile has a **Release meta** action, it starts in the background
   on that release and writes what it goes out under - the title, the
   description, the tags, the pinned comment - in the channel's voice (see
@@ -49,7 +54,9 @@ header menu offers the same. The new work opens at once, with:
 - a **title** from its kind's `made_title` - or the source's title, when the
   kind names none - to rename if you like;
 - the source's **overview fields** that the new work's kind has — mood,
-  duration, language, premise — copied **once**, now, and never again;
+  language, premise — copied **once**, now, and never again; a field that is
+  a fact of the work's own media (the profile marks it `own`: a duration) is
+  not copied;
 - a link to the source in the **donor** role, remembering which version of
   the source it was taken at;
 - for a kind that goes out somewhere, one release with no day yet.

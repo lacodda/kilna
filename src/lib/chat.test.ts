@@ -256,6 +256,22 @@ describe('a proposal on an answer', () => {
     ])
   })
 
+  it('reads words proposed for the record, and only with their list', () => {
+    // An action that produces words, and `propose_words` (v0.90, ADR 0052).
+    const items = conversation(
+      [
+        message('assistant', 'words', 't1', {
+          proposal: { kind: 'words', package: { words: [{ word: 'пульсар', bank: true }] } },
+        }),
+        message('assistant', 'broken', 't2', { proposal: { kind: 'words', package: {} } }),
+        message('assistant', 'broken', 't3', { proposal: { kind: 'words', package: null } }),
+      ],
+      [],
+    )
+
+    expect(items.map((item) => item.answer?.proposal?.kind ?? null)).toEqual(['words', null, null])
+  })
+
   it('is absent on an ordinary answer', () => {
     const items = conversation(
       [message('user', 'ask', 't1'), message('assistant', 'prose', 't2')],

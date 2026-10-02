@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import type { RegisterEntry, Strictness, TermKind } from '@/lib/api/types'
+import type { RegisterEntry, TermKind } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
-import { STRICTNESS, strictnessStatus, TERM_KINDS } from '@/lib/register'
+import { FACETS, inFacet, strictnessStatus, TERM_KINDS, type Facet } from '@/lib/register'
 import { Button } from '@/components/ui/button'
 import { Chip, ChipGroup } from '@/components/ui/chip'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -19,11 +19,11 @@ import { Loaded } from '@/components/Loaded'
 import { NewTermDialog } from '@/features/register/NewTermDialog'
 import { TermDetail } from '@/features/register/TermDetail'
 
-const ALL = 'all'
-
 /**
  * The register of repeats (ADR 0044): what the works have spent, strictest
- * first, each term with how many works carry it now.
+ * first, each term with how many works carry it now - and, since one word is
+ * one record (ADR 0052), the same list read by its other facets: the words
+ * kept in the bank, the words sung their own way.
  *
  * The count is the register's reason to be read by eye, so it stands at the
  * end of every row and the list can be ordered by it. It is read off the
@@ -39,15 +39,15 @@ export function RegisterView() {
   const { termId } = useParams()
   const terms = useQuery(queries.terms())
 
-  const [strictness, setStrictness] = useState<Strictness | typeof ALL>(ALL)
+  const [facet, setFacet] = useState<Facet>('all')
   const [kind, setKind] = useState<TermKind | ''>('')
   const [text, setText] = useState('')
   const [adding, setAdding] = useState(false)
 
   const all = useMemo(() => terms.data ?? [], [terms.data])
   const counts = useMemo(() => {
-    const map = new Map<Strictness, number>()
-    for (const entry of all) map.set(entry.strictness, (map.get(entry.strictness) ?? 0) + 1)
+    const map = new Map<Facet, number>()
+    for (const one of FACETS) map.set(one, all.filter((entry) => inFacet(entry, one)).length)
     return map
   }, [all])
 
@@ -58,32 +58,29 @@ export function RegisterView() {
     return all
       .filter(
         (entry) =>
-          (strictness === ALL || entry.strictness === strictness) &&
+          inFacet(entry, facet) &&
           (kind === '' || entry.kind === kind) &&
           (needle === '' || matches(entry, needle)),
       )
       .sort((a, b) => b.uses - a.uses || a.word.localeCompare(b.word))
-  }, [all, strictness, kind, text])
+  }, [all, facet, kind, text])
 
   const open = (id: string | null) => void navigate(id === null ? '/register' : `/register/${id}`)
   const selected = all.find((entry) => entry.id === termId)
-  const filtered = strictness !== ALL || kind !== '' || text.trim() !== ''
+  const filtered = facet !== 'all' || kind !== '' || text.trim() !== ''
 
   return (
     <Frame
       head={
         <>
           <ChipGroup
-            aria-label={t('register.strictness')}
-            value={[strictness]}
-            onValueChange={(next) => setStrictness((next[0] as Strictness | undefined) ?? ALL)}
+            aria-label={t('register.facet')}
+            value={[facet]}
+            onValueChange={(next) => setFacet((next[0] as Facet | undefined) ?? 'all')}
           >
-            <Chip value={ALL} count={all.length}>
-              {t('register.allStrictness')}
-            </Chip>
-            {STRICTNESS.map((one) => (
+            {FACETS.map((one) => (
               <Chip key={one} value={one} count={counts.get(one) ?? 0}>
-                {t(`register.strictnesses.${one}`)}
+                {t(`register.facets.${one}`)}
               </Chip>
             ))}
           </ChipGroup>
@@ -134,10 +131,14 @@ export function RegisterView() {
                         selected={entry.id === termId}
                         onClick={() => open(entry.id)}
                         start={
-                          <StatusDot
-                            status={strictnessStatus(entry.strictness)}
-                            label={t(`register.strictnesses.${entry.strictness}`)}
-                          />
+                          entry.strictness === null ? (
+                            <StatusDot status="neutral" label={t('register.notSpent')} />
+                          ) : (
+                            <StatusDot
+                              status={strictnessStatus(entry.strictness)}
+                              label={t(`register.strictnesses.${entry.strictness}`)}
+                            />
+                          )
                         }
                         description={describe(entry, t)}
                         end={

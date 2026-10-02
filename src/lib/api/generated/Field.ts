@@ -16,4 +16,10 @@ value: string, hint?: Label, limit?: number,
 /**
  * Whether the profile can fill this field on its own.
  */
-has_template: boolean, };
+has_template: boolean, 
+/**
+ * The tail the value always ends with: " (audio)" on an audio track's
+ * title on a video platform. Kept by the release whoever writes the
+ * field, so a screen only shows it.
+ */
+suffix?: string, };

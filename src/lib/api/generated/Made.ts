@@ -5,4 +5,8 @@ import type { Work } from "./Work";
  * What making a work from another made: the work, and the release it was
  * given to go out through when its kind has a door - planned for no day yet.
  */
-export type Made = { work: Work, release_id: string | null, };
+export type Made = { work: Work, release_id: string | null, 
+/**
+ * Where that release goes out: the door asked for, or the kind's first.
+ */
+door: string | null, };

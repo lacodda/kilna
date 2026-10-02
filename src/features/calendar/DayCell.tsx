@@ -5,6 +5,7 @@ import type { Ghost } from '@/lib/layout'
 import type { Day } from '@/lib/month'
 import { foldDay } from '@/lib/calendarDay'
 import { formatDay } from '@/lib/format'
+import { landingWarning } from '@/lib/repeats'
 import { RowContextMenu } from '@/components/RowMenu'
 import { Button } from '@/components/ui/button'
 import { Scroll } from '@/components/frame'
@@ -37,7 +38,8 @@ interface Props {
   over: boolean
   /** The handlers that light the day up under a chip or a pick, when either is live. */
   target?: DropTarget
-  /** What the day already holds, said while something is over it. */
+  /** What the day already holds, and what the release would repeat on it,
+   *  said while something is over it. */
   verdict: SlotPreview | null
   /** Where the day sits in the grid, for which of its hairlines to draw. */
   lastColumn: boolean
@@ -74,6 +76,7 @@ export function DayCell({
 }: Props) {
   const { t } = useTranslation()
   const isToday = day.date === now
+  const repeats = verdict === null ? null : landingWarning(verdict.repeats)
 
   // Booked chips first, then the plan's: a booking is a fact, a ghost is the
   // question the bar above the month is asking.
@@ -192,16 +195,31 @@ export function DayCell({
       )}
 
       {/* Laid over the foot of the day rather than under its chips: the day
-          does not grow, and the verdict is only up while something hovers. */}
+          does not grow, and the verdict is only up while something hovers.
+          Who is there, and what the release would repeat there (ADR 0054),
+          a line each - the repeat last, nearest the foot, in the guard's
+          red: it is the one that may change where the release goes. */}
       {verdict !== null && (
-        <p
-          className={cn(
-            'pointer-events-none absolute inset-x-1 bottom-1 rounded-sm px-1 py-0.5 text-2xs leading-tight shadow-lift',
-            VERDICT_TONE[verdict.verdict],
+        <div className="pointer-events-none absolute inset-x-1 bottom-1 flex flex-col gap-0.5">
+          {verdict.verdict !== 'empty' && (
+            <p
+              className={cn(
+                'rounded-sm px-1 py-0.5 text-2xs leading-tight shadow-lift',
+                VERDICT_TONE[verdict.verdict],
+              )}
+            >
+              {t(`calendar.preview.${verdict.verdict}`, { title: verdict.holder_title ?? '' })}
+            </p>
           )}
-        >
-          {t(`calendar.preview.${verdict.verdict}`, { title: verdict.holder_title ?? '' })}
-        </p>
+          {repeats !== null && (
+            <p
+              role="status"
+              className="rounded-sm bg-raise px-1 py-0.5 text-2xs leading-tight text-bad shadow-lift"
+            >
+              {repeats}
+            </p>
+          )}
+        </div>
       )}
     </RowContextMenu>
   )

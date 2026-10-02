@@ -13,6 +13,7 @@ import type {
   Cover,
   CoverView,
   FrameView,
+  Going,
   Publication,
   Publications,
   JournalEntry,
@@ -168,7 +169,6 @@ function version(
 function release(fields: Partial<Release> & Pick<Release, 'id' | 'work_id' | 'kind'>): Release {
   return {
     status: 'planned',
-    title: null,
     scheduled_at: null,
     released_at: null,
     url: null,
@@ -709,6 +709,21 @@ function releasesOf(
   }
 }
 
+/** A publication's one release, as `publication::of` reads it (ADR 0051). */
+function goingOf(studio: Studio, workId: string): Going | null {
+  const found = studio.releases.find((r) => r.work_id === workId)
+  if (found === undefined) return null
+  return {
+    id: found.id,
+    kind: found.kind,
+    status: found.status,
+    scheduled_at: found.scheduled_at,
+    scheduled_time: found.scheduled_time,
+    released_at: found.released_at,
+    url: found.url,
+  }
+}
+
 /** What was made from a work, read off the studio as `publication::of` would:
  *  directly made works only - the studio has no second step down. */
 function publicationsOf(studio: Studio, workId: string): Publications {
@@ -727,16 +742,15 @@ function publicationsOf(studio: Studio, workId: string): Publications {
         stage: made.stage,
         depth: 1,
         via: null,
-        releases: studio.releases.filter((r) => r.work_id === made.id).length,
-        ...releasesOf(studio, made.id),
+        release: goingOf(studio, made.id),
         comments: comments.length,
         comments_waiting: comments.filter((c) => c.state === 'open').length,
         created_at: made.created_at,
       }
     })
   const booked = items
-    .filter((item) => item.next_scheduled_at !== null)
-    .sort((a, b) => a.next_scheduled_at!.localeCompare(b.next_scheduled_at!))[0]
+    .filter((item) => item.release?.status !== 'released' && item.release?.scheduled_at != null)
+    .sort((a, b) => a.release!.scheduled_at!.localeCompare(b.release!.scheduled_at!))[0]
   return {
     items,
     basis:
@@ -747,7 +761,7 @@ function publicationsOf(studio: Studio, workId: string): Publications {
             title: booked.title,
             kind: booked.kind,
             released: false,
-            day: booked.next_scheduled_at!,
+            day: booked.release!.scheduled_at!,
           },
   }
 }
@@ -1002,7 +1016,14 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_term_topics: () => [],
     term_uses: () => [],
     preview_term: () => 0,
-    check_text: () => ({ repeats: [], terms: [], marks: [] }),
+    check_text: () => ({ repeats: [], terms: [], marks: [], stress: [], accents: [] }),
+    clean_text: ({ text }) => text,
+    // The bank of words and the guard of repeats (v0.90): empty until a
+    // test says otherwise.
+    list_blocks: () => [],
+    words_from_texts: () => ({ words: [] }),
+    repeat_marks: () => [],
+    work_repeats: () => null,
 
     list_cards: () =>
       studio.notes.filter((note) => isCard(studio, note.kind)).map((note) => cardOf(studio, note)),

@@ -270,7 +270,7 @@
                   "ru": "Заголовок"
                 },
                 "type": "line",
-                "template": "{title}",
+                "template": "{origin}",
                 "hint": {
                   "en": "What the video is listed under.",
                   "ru": "Под каким названием видео стоит в списке."
@@ -336,7 +336,7 @@
                   "ru": "Заголовок"
                 },
                 "type": "line",
-                "template": "{title}",
+                "template": "{origin}",
                 "limit": 205
               },
               {
@@ -480,10 +480,7 @@
           }
         ],
         "cover": true,
-        "made_title": {
-          "en": "{title} — clip",
-          "ru": "{title} — клип"
-        }
+        "made_title": "{title} (video)"
       },
       {
         "key": "audio",
@@ -526,11 +523,13 @@
                   "ru": "Заголовок"
                 },
                 "type": "line",
+                "template": "{origin}",
                 "hint": {
                   "en": "What the track is listed under.",
                   "ru": "Под каким названием трек стоит в списке."
                 },
-                "limit": 205
+                "limit": 205,
+                "suffix": " (audio)"
               },
               {
                 "key": "description",
@@ -589,6 +588,7 @@
                   "ru": "Заголовок"
                 },
                 "type": "line",
+                "template": "{origin}",
                 "hint": {
                   "en": "What the track is called on the services.",
                   "ru": "Как трек называется на площадках."
@@ -646,10 +646,7 @@
         ],
         "cover": true,
         "frame": true,
-        "made_title": {
-          "en": "{title} — audio",
-          "ru": "{title} — аудио"
-        }
+        "made_title": "{title} (audio)"
       },
       {
         "key": "short",
@@ -910,7 +907,7 @@
                   "ru": "Заголовок"
                 },
                 "type": "line",
-                "template": "{title}",
+                "template": "{origin}",
                 "hint": {
                   "en": "Short enough to read on a phone.",
                   "ru": "Достаточно короткий, чтобы прочесть с телефона."
@@ -936,6 +933,18 @@
                 "hint": {
                   "en": "Comma separated.",
                   "ru": "Через запятую."
+                }
+              },
+              {
+                "key": "pinned",
+                "label": {
+                  "en": "Pinned comment",
+                  "ru": "Закреплённый комментарий"
+                },
+                "type": "text",
+                "hint": {
+                  "en": "The comment left under it, pinned to the top.",
+                  "ru": "Комментарий под видео, закреплённый сверху."
                 }
               }
             ],
@@ -1069,10 +1078,7 @@
           }
         ],
         "cover": true,
-        "made_title": {
-          "en": "{title} · short {n}",
-          "ru": "{title} · шортс {n}"
-        }
+        "made_title": "{title} (short)"
       }
     ],
     "note_kinds": [
@@ -2100,7 +2106,8 @@
           "en": "Lyrics",
           "ru": "Текст"
         },
-        "body": "plain"
+        "body": "plain",
+        "sung": true
       },
       {
         "key": "style",
@@ -2460,7 +2467,8 @@
           "en": "Duration",
           "ru": "Длительность"
         },
-        "type": "number"
+        "type": "number",
+        "own": true
       },
       {
         "key": "language",
@@ -2715,6 +2723,42 @@
         "icon": "orbit",
         "produces": "version:neighbours",
         "method": "# Neighbours in meaning\n\n## Role\n\nYou read one song against everything its author has already written, and find the repetition an eye misses: the same image, scene or thought told in other words. The register of repeats already catches words - the author sees those marked in the text. You catch meanings.\n\n## What you are given\n\n- The song.\n- The register: the banned, limited and rare words, and the spent images, scenes and devices, each with how many works carry it and what the text already takes word for word.\n- The works whose words stand closest to this one, with their texts. They are where to look, not a verdict: two songs can share every word and mean different things, and share none and say the same thing.\n\n## What to find\n\n1. **Spent meanings in other words.** For each image, scene or device of the register the song uses without its words: quote the line, name the entry, and say how close it is - the same image, a variation, or only an echo.\n2. **Works that say the same thing.** For each given work that tells the same situation, takes the same turn or lands on the same resolution: name it, quote the pair of lines, say what is shared.\n3. **What only this song says.** One or two lines no other work has said. If there are none, say so.\n\n## Output\n\n```\n## NEIGHBOURS: [title]\n\n### Spent meanings\n[line] → [register entry] → [same image / variation / echo]\n\n### Works that say the same thing\n[work] — [line here] / [line there] — [what is shared]\n\n### What only this song says\n[line]\n\n### Verdict\nOne sentence: how much of this song is its author repeating themselves.\n```\n\n## Never\n\nDo not list the word repeats the register already marks. Do not praise. Do not name a work you were not given.\n",
+        "kinds": [
+          "song"
+        ]
+      },
+      {
+        "key": "meanings",
+        "label": {
+          "en": "Meanings",
+          "ru": "Смыслы"
+        },
+        "description": {
+          "en": "Images and scenes this song shares with the songs already out, proposed as links in the register",
+          "ru": "Образы и сцены, которые песня делит с уже вышедшими, — предложением связей в реестре"
+        },
+        "icon": "orbit",
+        "template": "The lyrics of a song called \"{title}\":\n\n{role:lyrics}\n\n{register}\n\n{released}\n\nFind the meanings this song shares with the songs that went out.",
+        "produces": "words",
+        "method": "# Meanings\n\n## Role\n\nYou read one song against the songs its author has already put out, and find the images, scenes and devices it shares with them that no word-for-word match can see: the same lighthouse with nobody in it, told in other words. The guard of repeats already catches shared words and spent terms; you catch meanings, and say which songs carry them.\n\n## What you are given\n\n- The song.\n- The register: the spent words, and the spent images, scenes and devices, each with how many works carry it.\n- The songs that went out, newest first, each with its day and its words.\n\n## What to find\n\n1. **A spent meaning of the register this song tells again.** Use the register's own words for it, so the song is named for that entry.\n2. **A meaning this song shares with a song that went out**, which the register does not name yet: the same image, the same situation, the same turn or resolution - not a shared word.\n3. For each, the songs it is in: this one, and every song that went out that carries it - by their exact titles.\n\nPropose only what a listener would hear as the author repeating themselves. Two songs that both mention the night are not repeating a meaning; two songs that both end with the narrator alone at a window are.\n\n## Never\n\nDo not propose a shared word the guard already marks. Do not name a song you were not given. Do not propose more than eight.",
+        "kinds": [
+          "song"
+        ]
+      },
+      {
+        "key": "stresses",
+        "label": {
+          "en": "Stresses for the singer",
+          "ru": "Ударения для исполнителя"
+        },
+        "description": {
+          "en": "The homographs and unknown words of the lyric, stressed as this song means them - proposed as a new version",
+          "ru": "Омографы и незнакомые слова текста с ударениями по смыслу этой песни — предложением новой версии"
+        },
+        "icon": "spell-check",
+        "template": "The lyrics of a song called \"{title}\":\n\n{role:lyrics}\n\n{stress}\n\nMark the stress of each of these words in the lyric.",
+        "produces": "version:lyrics",
+        "method": "# Stresses for the singer\n\n## Role\n\nYou mark a lyric for a singer that reads letters, not intentions. A homograph is sung whichever way it guesses, a name it has never seen is guessed at. You decide, from the song's own sense, how each word that could go wrong is meant, and write the stress into the text the way the author does.\n\n## The author's way of marking\n\n- The stressed vowel is written as a capital: \"сЕти\", \"пульсАр\", \"замОк\".\n- When the stressed vowel is the first letter of the word, put an acute accent (U+0301) after it and keep the letter's case: \"о́блако\", and \"О́блако\" at the start of a line.\n- One mark per word. A word the author already marked keeps the author's mark.\n- Never mark a word of one vowel.\n\n## What to mark\n\nOnly the words you are given below - the homographs, the words the dictionary does not know, and the stresses marked against the dictionary. For a homograph choose the reading this line means. For an unknown word - a name, a borrowing, an invented word - mark where a native speaker would stress it. For a stress against the dictionary keep the author's choice unless it is plainly a slip.\n\n## Output\n\nThe whole lyric, every line, exactly as it is but for the marks you add. No commentary, no headings, nothing before or after the text.",
         "kinds": [
           "song"
         ]

@@ -12,10 +12,18 @@
 //! What a text of the work being written already takes from the register is
 //! [`check`]; what the assistant is handed is [`sheet`]; the works whose words
 //! stand closest to a text are [`neighbours`].
+//!
+//! A term is also a word the owner keeps (v0.90, ADR 0052): one record holds
+//! a word of the bank, a term of the register and how the word is sung, each
+//! a facet that may be absent - [`Term::strictness`], [`Term::bank`],
+//! [`Term::sung`]. The bank sorts its words into [`block`]s.
 
+pub mod block;
 pub mod check;
+pub mod guard;
 pub mod matching;
 pub mod neighbours;
+pub mod proposal;
 pub mod sheet;
 
 use std::collections::{BTreeSet, HashMap};
@@ -144,7 +152,80 @@ impl TermKind {
     }
 }
 
-/// One entry of the register.
+/// Where a word stands in the bank of words the owner keeps for songs to
+/// come. Where it was sung is not here: it is found in the texts, as the
+/// register's counts are (ADR 0044).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
+pub enum Bank {
+    /// Kept, and waiting for a song.
+    Fresh,
+    /// Set aside: not now, not thrown away.
+    Parked,
+    /// Given up on, and kept so it is not collected again.
+    Dropped,
+}
+
+impl Bank {
+    pub const ALL: [Bank; 3] = [Bank::Fresh, Bank::Parked, Bank::Dropped];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Bank::Fresh => "fresh",
+            Bank::Parked => "parked",
+            Bank::Dropped => "dropped",
+        }
+    }
+
+    fn parse(raw: &str) -> Result<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|one| one.as_str() == raw)
+            .ok_or_else(|| Error::Internal(format!("a stored bank state reads `{raw}`")))
+    }
+}
+
+/// How one written form of a word is sung, where that is not how it is
+/// written: "Марсель" sung "МарсЭль", "пульсар" sung "пульсАр". The capital
+/// vowel is the stress, the way the owner writes it for the singer; a
+/// changed letter is a respelling.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct Sung {
+    pub written: String,
+    pub sung: String,
+}
+
+/// The ways of singing kept as a list is kept: trimmed, the empty ones and
+/// the ones that change nothing dropped, each written form once whatever its
+/// case - the last word on it wins.
+pub fn clean_sung(sung: Vec<Sung>) -> Vec<Sung> {
+    let mut kept: Vec<Sung> = Vec::new();
+    for one in sung {
+        let written = one.written.trim().to_owned();
+        let said = one.sung.trim().to_owned();
+        if written.is_empty() || said.is_empty() || said == written {
+            continue;
+        }
+        let key = crate::words::plain(&written);
+        kept.retain(|other| crate::words::plain(&other.written) != key);
+        kept.push(Sung {
+            written,
+            sung: said,
+        });
+    }
+    kept
+}
+
+/// The strictness a term is created with when the caller says nothing: a
+/// limit, as the register always made it. Said apart from "not spent" - an
+/// explicit `null` - so the operations logged before the bank existed read
+/// back as what they meant.
+fn a_limit() -> Option<Strictness> {
+    Some(Strictness::Limit)
+}
+
+/// One word the owner keeps: a term of the register, a word of the bank, a
+/// way of singing - or several of those at once.
 #[derive(Debug, Clone, PartialEq, Serialize, ts_rs::TS)]
 pub struct Term {
     pub id: String,
@@ -156,7 +237,12 @@ pub struct Term {
     /// compared by their stems.
     pub forms: Vec<String>,
     pub kind: TermKind,
-    pub strictness: Strictness,
+    /// In the register, and how strictly; none for a word that is not spent.
+    pub strictness: Option<Strictness>,
+    /// In the bank, and where it stands there; none for a word not collected.
+    pub bank: Option<Bank>,
+    /// How its forms are sung where that is not how they are written.
+    pub sung: Vec<Sung>,
     /// The register's own grouping: "the kitchen", "physics and space".
     pub topic: Option<String>,
     /// Why it is spent, or what to reach for instead.
@@ -165,7 +251,7 @@ pub struct Term {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
 #[ts(optional_fields)]
 pub struct NewTerm {
     pub word: String,
@@ -175,13 +261,47 @@ pub struct NewTerm {
     /// Guessed from the words when absent: see [`TermKind::guess`].
     #[serde(default)]
     pub kind: Option<TermKind>,
-    /// A limit when absent.
-    #[serde(default)]
+    /// A limit when absent; `null` for a word that is not spent - a word of
+    /// the bank, a way of singing.
+    #[serde(default = "a_limit")]
     pub strictness: Option<Strictness>,
+    /// In the bank, and where; absent is not collected.
+    #[serde(default)]
+    pub bank: Option<Bank>,
+    #[serde(default)]
+    #[ts(optional = nullable)]
+    pub sung: Vec<Sung>,
     #[serde(default)]
     pub topic: Option<String>,
     #[serde(default)]
     pub note: Option<String>,
+}
+
+impl Default for NewTerm {
+    fn default() -> Self {
+        Self {
+            word: String::new(),
+            forms: Vec::new(),
+            kind: None,
+            strictness: a_limit(),
+            bank: None,
+            sung: Vec::new(),
+            topic: None,
+            note: None,
+        }
+    }
+}
+
+impl NewTerm {
+    /// A word for the bank: fresh, not spent.
+    pub fn banked(word: &str) -> Self {
+        Self {
+            word: word.to_owned(),
+            strictness: None,
+            bank: Some(Bank::Fresh),
+            ..Self::default()
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, ts_rs::TS)]
@@ -192,8 +312,20 @@ pub struct TermPatch {
     pub forms: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<TermKind>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub strictness: Option<Option<Strictness>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub bank: Option<Option<Bank>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub strictness: Option<Strictness>,
+    pub sung: Option<Vec<Sung>>,
     #[serde(
         default,
         deserialize_with = "crate::reversal::nullable",
@@ -231,8 +363,8 @@ pub struct TermUse {
     pub named: bool,
 }
 
-const SELECT_TERM: &str = "SELECT id, profile_id, word, forms, kind, strictness, topic, note, \
-     created_at, updated_at FROM term";
+const SELECT_TERM: &str = "SELECT id, profile_id, word, forms, kind, strictness, bank, sung, \
+     topic, note, created_at, updated_at FROM term";
 
 /// The words a term's forms are kept as: trimmed, the empty ones and the term's
 /// own word dropped, each once whatever its case.
@@ -277,17 +409,21 @@ pub fn create_minted(
     }
     let kind = new.kind.unwrap_or_else(|| TermKind::guess(&word));
     let forms = clean_forms(&word, new.forms);
+    let sung = clean_sung(new.sung);
 
     conn.execute(
-        "INSERT INTO term (id, profile_id, word, forms, kind, strictness, topic, note, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9)",
+        "INSERT INTO term (id, profile_id, word, forms, kind, strictness, bank, sung, topic, note,
+                           created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)",
         params![
             minted.id(),
             profile_id,
             word,
             serde_json::to_string(&forms)?,
             kind.as_str(),
-            new.strictness.unwrap_or_default().as_str(),
+            new.strictness.map(Strictness::as_str),
+            new.bank.map(Bank::as_str),
+            serde_json::to_string(&sung)?,
             blank_is_none(new.topic),
             blank_is_none(new.note),
             minted.at(),
@@ -298,7 +434,7 @@ pub fn create_minted(
 
 /// The term of a profile written with these words, whatever their case - the
 /// register keeps a word once. `except` is the term being renamed.
-fn find_word(
+pub fn find_word(
     conn: &Connection,
     profile_id: &str,
     word: &str,
@@ -321,8 +457,8 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<Term>> {
     raw.map(RawTerm::into_term).transpose()
 }
 
-/// Every term of a profile, in the order the register reads: strictest first,
-/// then by word.
+/// Every term of a profile, in the order the register reads: the spent ones
+/// strictest first, then the words that are not spent, each by word.
 pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Term>> {
     let mut statement = conn.prepare(&format!("{SELECT_TERM} WHERE profile_id = ?1"))?;
     let raw = statement
@@ -334,10 +470,30 @@ pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Term>> {
         .collect::<Result<Vec<_>>>()?;
     terms.sort_by(|a, b| {
         a.strictness
-            .cmp(&b.strictness)
+            .is_none()
+            .cmp(&b.strictness.is_none())
+            .then_with(|| a.strictness.cmp(&b.strictness))
             .then_with(|| crate::words::plain(&a.word).cmp(&crate::words::plain(&b.word)))
     });
     Ok(terms)
+}
+
+/// Every way of singing the owner keeps, across every word of a profile:
+/// what a sung text is checked against and a public text cleaned by.
+pub fn sung_forms(conn: &Connection, profile_id: &str) -> Result<Vec<Sung>> {
+    Ok(list(conn, profile_id)?
+        .into_iter()
+        .flat_map(|term| term.sung)
+        .collect())
+}
+
+/// The terms of the register: the words that are spent, strictest first.
+/// What a text is checked against and what the assistant is told is spent.
+pub fn spent(conn: &Connection, profile_id: &str) -> Result<Vec<Term>> {
+    Ok(list(conn, profile_id)?
+        .into_iter()
+        .filter(|term| term.strictness.is_some())
+        .collect())
 }
 
 pub fn update(conn: &Connection, id: &str, patch: TermPatch) -> Result<Term> {
@@ -383,7 +539,13 @@ pub fn update_at(conn: &Connection, id: &str, patch: TermPatch, at: &str) -> Res
         set("kind", Box::new(kind.as_str().to_owned()));
     }
     if let Some(strictness) = patch.strictness {
-        set("strictness", Box::new(strictness.as_str().to_owned()));
+        set("strictness", Box::new(strictness.map(Strictness::as_str)));
+    }
+    if let Some(bank) = patch.bank {
+        set("bank", Box::new(bank.map(Bank::as_str)));
+    }
+    if let Some(sung) = patch.sung {
+        set("sung", Box::new(serde_json::to_string(&clean_sung(sung))?));
     }
     if let Some(topic) = patch.topic {
         set("topic", Box::new(blank_is_none(topic)));
@@ -536,7 +698,9 @@ pub fn preview(conn: &Connection, profile_id: &str, word: &str, forms: &[String]
         word: word.trim().to_owned(),
         forms: forms.to_vec(),
         kind: TermKind::guess(word),
-        strictness: Strictness::default(),
+        strictness: Some(Strictness::default()),
+        bank: None,
+        sung: Vec::new(),
         topic: None,
         note: None,
         created_at: String::new(),
@@ -559,7 +723,9 @@ struct RawTerm {
     word: String,
     forms: String,
     kind: String,
-    strictness: String,
+    strictness: Option<String>,
+    bank: Option<String>,
+    sung: String,
     topic: Option<String>,
     note: Option<String>,
     created_at: String,
@@ -574,10 +740,12 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawTerm> {
         forms: row.get(3)?,
         kind: row.get(4)?,
         strictness: row.get(5)?,
-        topic: row.get(6)?,
-        note: row.get(7)?,
-        created_at: row.get(8)?,
-        updated_at: row.get(9)?,
+        bank: row.get(6)?,
+        sung: row.get(7)?,
+        topic: row.get(8)?,
+        note: row.get(9)?,
+        created_at: row.get(10)?,
+        updated_at: row.get(11)?,
     })
 }
 
@@ -586,7 +754,13 @@ impl RawTerm {
         Ok(Term {
             forms: serde_json::from_str(&self.forms)?,
             kind: TermKind::parse(&self.kind)?,
-            strictness: Strictness::parse(&self.strictness)?,
+            strictness: self
+                .strictness
+                .as_deref()
+                .map(Strictness::parse)
+                .transpose()?,
+            bank: self.bank.as_deref().map(Bank::parse).transpose()?,
+            sung: serde_json::from_str(&self.sung)?,
             id: self.id,
             profile_id: self.profile_id,
             word: self.word,
@@ -656,7 +830,76 @@ pub(crate) mod tests {
 
         assert_eq!(one.kind, TermKind::Noun);
         assert_eq!(two.kind, TermKind::Phrase);
-        assert_eq!(one.strictness, Strictness::Limit);
+        assert_eq!(one.strictness, Some(Strictness::Limit));
+    }
+
+    /// One word, one record (ADR 0052): a word of the bank is not spent,
+    /// and its ways of singing are kept once per written form.
+    #[test]
+    fn a_word_of_the_bank_is_not_spent_and_keeps_how_it_is_sung() {
+        let (conn, profile_id) = fixtures::workspace();
+        let made = create(
+            &conn,
+            &profile_id,
+            NewTerm {
+                sung: vec![
+                    Sung {
+                        written: " Марсель ".into(),
+                        sung: "МарсЭль".into(),
+                    },
+                    Sung {
+                        written: "марсель".into(),
+                        sung: "МАрсель".into(),
+                    },
+                    Sung {
+                        written: "Марселя".into(),
+                        sung: "Марселя".into(),
+                    },
+                ],
+                ..NewTerm::banked("Марсель")
+            },
+        )
+        .unwrap();
+
+        assert_eq!(made.strictness, None);
+        assert_eq!(made.bank, Some(Bank::Fresh));
+        assert_eq!(
+            made.sung,
+            vec![Sung {
+                written: "марсель".into(),
+                sung: "МАрсель".into(),
+            }],
+            "one way per form, the last word wins, and one that changes nothing is none"
+        );
+        assert!(spent(&conn, &profile_id).unwrap().is_empty());
+
+        let spent_now = update(
+            &conn,
+            &made.id,
+            TermPatch {
+                strictness: Some(Some(Strictness::Rare)),
+                bank: Some(None),
+                ..TermPatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            (spent_now.strictness, spent_now.bank),
+            (Some(Strictness::Rare), None)
+        );
+        assert_eq!(spent(&conn, &profile_id).unwrap().len(), 1);
+    }
+
+    /// An operation logged before the bank existed said nothing about
+    /// strictness and meant a limit; it still reads that way.
+    #[test]
+    fn a_new_term_without_a_word_on_strictness_is_a_limit() {
+        let old: NewTerm = serde_json::from_value(serde_json::json!({ "word": "окно" })).unwrap();
+        assert_eq!(old.strictness, Some(Strictness::Limit));
+        let banked: NewTerm =
+            serde_json::from_value(serde_json::json!({ "word": "окно", "strictness": null }))
+                .unwrap();
+        assert_eq!(banked.strictness, None);
     }
 
     #[test]

@@ -199,7 +199,7 @@ export function CatalogueTable({
     {
       key: 'schedule',
       label: t('catalogue.action.schedule'),
-      onSelect: () => onSelect(row.work_id, 'releases'),
+      onSelect: () => onSelect(row.work_id, 'overview'),
     },
     {
       key: 'delete',
