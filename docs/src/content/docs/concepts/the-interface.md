@@ -179,8 +179,10 @@ the same as judging it a bare idea; clicking the stop it already stands on, or
 was set to finished when the workspace gained the dial.
 
 **Under the name: marks and tags.** Marks are the flags your profile
-offers — *Working on it*, *Not sure*, *The good one* — each with its glyph
-and colour, raised and lowered with a click. Tags are your own words for
+offers — *Working on it*, *Not sure*, *The good one* — drawn as small round
+tiles, each its glyph in its colour, its name a hover away. Pressing them opens
+the profile's marks, each ticked or not: a press raises or lowers one. While
+none is raised, *+ Mark* stands in for them. Tags are your own words for
 what the work is; the box completes from what the workspace already says, so
 a vocabulary converges instead of scattering into near-misses. Neither moves
 the work: the status above is worked out from what happened, and these are

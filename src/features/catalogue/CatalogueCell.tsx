@@ -4,7 +4,7 @@ import type { ScheduledRelease } from '@/lib/api/types'
 import type { CatalogueRow, ColumnId } from '@/lib/catalogue'
 import { coverImageFor } from '@/lib/cover'
 import { formatDay, formatDelta, formatNumber } from '@/lib/format'
-import { badgeVariantOf, markIconOf } from '@/lib/markIcon'
+import { badgeVariantOf } from '@/lib/markIcon'
 import { today } from '@/lib/month'
 import { daysBetween, missing, urgency } from '@/lib/readiness'
 import { nextTier } from '@/lib/scoring'
@@ -13,6 +13,7 @@ import { allOf, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib
 import { cn } from '@/lib/utils'
 import { Badge, type BadgeProps } from '@/components/ui/badge'
 import { TableCell } from '@/components/ui/table'
+import { MarkAvatars } from '@/components/MarkAvatars'
 import { StagePicker } from '@/components/StagePicker'
 import { WorkRepeatMark } from '@/components/RepeatMark'
 import { RowStar } from './RowStar'
@@ -105,30 +106,14 @@ export function CatalogueCell({
       // card follows, so the two screens never disagree about what a work says.
       // A profile written before marks existed has none at all, and every mark
       // on every work is then unknown, which is the correct reading.
-      const defined = profile.config.marks ?? []
-      const shown = row.marks.filter((key) => defined.some((mark) => mark.key === key))
+      // In the profile's order, the order the card draws them in.
+      const shown = (profile.config.marks ?? []).filter((mark) => row.marks.includes(mark.key))
       return (
         <TableCell className="overflow-hidden whitespace-nowrap">
           {shown.length === 0 ? (
             <span className="text-faint">{'—'}</span>
           ) : (
-            <span className="inline-flex gap-1">
-              {shown.map((key) => {
-                const mark = defined.find((m) => m.key === key)
-                const Icon = markIconOf(mark ?? {})
-                return (
-                  <Badge
-                    key={key}
-                    variant={badgeVariantOf(mark?.colour ?? 'plain')}
-                    className="gap-1 px-2"
-                    title={mark === undefined ? key : sayLabel(mark.label)}
-                  >
-                    <Icon aria-hidden className="size-3" />
-                    {mark === undefined ? key : sayLabel(mark.label)}
-                  </Badge>
-                )
-              })}
-            </span>
+            <MarkAvatars marks={shown} className="align-middle" />
           )}
         </TableCell>
       )

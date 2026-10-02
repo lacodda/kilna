@@ -146,8 +146,9 @@ name your own.
 colour — *Scored*, *Scheduled*, *Released* — and what it is in outline
 until the catalogue is narrowed to a kind. The colours are the profile's
 ([`statuses[].colour`](/kilna/reference/profile-document/#statuses)); a
-status without one reads in outline. Marks in their column carry their
-glyph and colour the same way the card's chips do.
+status without one reads in outline. Marks in their column are small round
+tiles, as on the card: each its glyph in its colour, its name on hover. Two
+marks take the width of two icons rather than of two phrases.
 
 ### Narrowing from the box
 

@@ -49,27 +49,57 @@ async function openCard(workId: string): Promise<HTMLElement> {
 }
 
 describe("the card's header", () => {
-  it('draws only the marks that are raised, each with a way to take it off', async () => {
+  it('draws the raised marks as their icons, each named by its mark, none of the rest', async () => {
     const header = await openCard(IDS.song)
 
-    expect(within(header).getByText('Working on it')).toBeInTheDocument()
-    expect(within(header).queryByText('Not sure')).toBeNull()
-    expect(within(header).queryByText('The good one')).toBeNull()
+    // An image named by the mark, not its word on the row (v0.90.1).
+    expect(within(header).getByRole('img', { name: 'Working on it' })).toBeInTheDocument()
+    expect(within(header).queryByText('Working on it')).toBeNull()
+    expect(within(header).queryByRole('img', { name: 'Not sure' })).toBeNull()
+    expect(within(header).queryByRole('img', { name: 'The good one' })).toBeNull()
+  })
 
-    fireEvent.click(within(header).getByRole('button', { name: 'Take off "Working on it"' }))
+  it('takes a mark off from the menu behind its tile', async () => {
+    const header = await openCard(IDS.song)
+
+    fireEvent.click(
+      within(header).getByRole('button', {
+        name: en.work.marksRaised.replace('{{marks}}', 'Working on it'),
+      }),
+    )
+    const menu = await screen.findByRole('menu')
+    const working = within(menu).getByRole('menuitemcheckbox', { name: 'Working on it' })
+    expect(working).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(working)
+
     await waitFor(() => expect(written).toEqual([{ marks: [] }]))
   })
 
-  it('raises a mark from the menu beside the tags, keeping the ones already up', async () => {
+  it('raises a mark from the same menu, keeping the ones already up', async () => {
+    const header = await openCard(IDS.song)
+
+    fireEvent.click(
+      within(header).getByRole('button', {
+        name: en.work.marksRaised.replace('{{marks}}', 'Working on it'),
+      }),
+    )
+    const menu = await screen.findByRole('menu')
+    const unsure = within(menu).getByRole('menuitemcheckbox', { name: 'Not sure' })
+    expect(unsure).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(unsure)
+
+    await waitFor(() => expect(written).toEqual([{ marks: ['working', 'unsure'] }]))
+  })
+
+  it('stands in for the marks with "+ Mark" while none is raised', async () => {
+    workspace.works.find((w) => w.id === IDS.song)!.marks = []
     const header = await openCard(IDS.song)
 
     fireEvent.click(within(header).getByRole('button', { name: en.work.addMark }))
     const menu = await screen.findByRole('menu')
-    // Only what is not raised yet is offered.
-    expect(within(menu).queryByText('Working on it')).toBeNull()
-    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Not sure' }))
+    fireEvent.click(within(menu).getByRole('menuitemcheckbox', { name: 'The good one' }))
 
-    await waitFor(() => expect(written).toEqual([{ marks: ['working', 'unsure'] }]))
+    await waitFor(() => expect(written).toEqual([{ marks: ['favourite'] }]))
   })
 
   it('numbers every tab from one answer, and marks the comments that wait', async () => {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Check, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
 import {
@@ -12,29 +12,38 @@ import {
   ComboboxList,
   ComboboxPopup,
 } from '@/components/ui/combobox'
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
+import {
+  Menu,
+  MenuCheckboxIndicator,
+  MenuCheckboxItem,
+  MenuPopup,
+  MenuTrigger,
+} from '@/components/ui/menu'
+import { MarkAvatars } from '@/components/MarkAvatars'
 import type { Mark, Work } from '@/lib/api/types'
 import { updateWork } from '@/lib/api/works'
 import { announceEdited } from '@/lib/edited'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { badgeVariantOf, markIconOf } from '@/lib/markIcon'
+import { markIconOf } from '@/lib/markIcon'
 import { say as sayLabel, useProfile } from '@/lib/useProfile'
 
 /**
  * The work's own words, and the flags raised on it.
  *
  * Two lists side by side rather than one: a tag says what the work *is* and
- * stays with it, a mark says something about this week and comes off. They look
- * alike on purpose — both are chips with a cross that takes them away — but a
- * mark comes from the profile's short list and a tag is whatever the author
- * types.
+ * stays with it, a mark says something about this week and comes off. A tag
+ * is whatever the author types, a chip with a cross that takes it away; a
+ * mark comes from the profile's short list and is drawn as the catalogue
+ * draws it since v0.90.1 - its icon on a round tile in its hue, its name on
+ * hover (`MarkAvatars`).
  *
  * Only the marks that are raised are drawn. Every mark the profile knows stood
  * here as an empty outline until v0.80, three switches before the first word
- * of what the work is; raising one is now the menu behind "+ Mark", beside
- * "+ Tag".
+ * of what the work is. The raised ones are the way into the profile's list -
+ * each ticked or not, a press raises or lowers one - and "+ Mark" stands in
+ * for them while none is raised.
  *
  * Neither derives anything. The status beside them already answers "where is
  * this in the process", and a second thing that quietly moved a work would be
@@ -72,7 +81,6 @@ export function TagBar({ work }: { work: Work }) {
   // too - but it stays on the work: raising or lowering another one sends the
   // whole set back with it untouched.
   const raised = marks.filter((mark) => work.marks.includes(mark.key))
-  const lowered = marks.filter((mark) => !work.marks.includes(mark.key))
 
   const addTag = (tag: string) => {
     const value = tag.trim()
@@ -96,24 +104,6 @@ export function TagBar({ work }: { work: Work }) {
 
   return (
     <>
-      {raised.map((mark) => {
-        const Icon = markIconOf(mark)
-        const label = sayLabel(mark.label)
-        return (
-          // The mark wears the colour its profile gave it, so a warning
-          // still reads as one.
-          <Chip
-            key={mark.key}
-            variant={badgeVariantOf(mark.colour ?? 'plain')}
-            removeLabel={t('work.markOff', { mark: label })}
-            onRemove={() => patch.mutate({ marks: work.marks.filter((key) => key !== mark.key) })}
-          >
-            <Icon aria-hidden className="size-3" />
-            {label}
-          </Chip>
-        )
-      })}
-
       {work.tags.map((tag) => (
         <Chip
           key={tag}
@@ -192,36 +182,68 @@ export function TagBar({ work }: { work: Work }) {
         </Button>
       )}
 
-      {/* Only while there is a mark left to raise: a menu of nothing is a
-          button that lies about what it holds. */}
-      {lowered.length > 0 && (
+      {/* Only where the profile has marks: a menu of nothing is a button
+          that lies about what it holds. */}
+      {marks.length > 0 && (
         <Menu>
-          {/* Named in full for a reader: "Mark" alone, beside chips that are
-              marks, does not say that it raises one. */}
           <MenuTrigger
             render={
-              <Button
-                size="xs"
-                title={t('work.addMark')}
-                aria-label={t('work.addMark')}
-                className={ADD}
-              />
+              raised.length === 0 ? (
+                // Named in full for a reader: "Mark" alone does not say that
+                // it raises one.
+                <Button
+                  size="xs"
+                  title={t('work.addMark')}
+                  aria-label={t('work.addMark')}
+                  className={ADD}
+                />
+              ) : (
+                // The tiles themselves, named by every mark they show: inside
+                // a button its tiles are drawn, not read, so the button's
+                // name is what a reader hears.
+                <Button
+                  variant="icon"
+                  size="xs"
+                  aria-label={t('work.marksRaised', {
+                    marks: raised.map((mark) => sayLabel(mark.label)).join(', '),
+                  })}
+                  className="rounded-full px-1"
+                />
+              )
             }
           >
-            <Plus aria-hidden />
-            {t('work.mark')}
+            {raised.length === 0 ? (
+              <>
+                <Plus aria-hidden />
+                {t('work.mark')}
+              </>
+            ) : (
+              <MarkAvatars marks={raised} />
+            )}
           </MenuTrigger>
           <MenuPopup align="start">
-            {lowered.map((mark) => {
+            {marks.map((mark) => {
               const Icon = markIconOf(mark)
               return (
-                <MenuItem
+                <MenuCheckboxItem
                   key={mark.key}
-                  onClick={() => patch.mutate({ marks: [...work.marks, mark.key] })}
+                  checked={work.marks.includes(mark.key)}
+                  // Sent over the work as it stands: a mark the profile no
+                  // longer defines stays on it, untouched.
+                  onCheckedChange={(next) =>
+                    patch.mutate({
+                      marks: next
+                        ? [...work.marks, mark.key]
+                        : work.marks.filter((key) => key !== mark.key),
+                    })
+                  }
                 >
                   <Icon aria-hidden className={MARK_INK[mark.colour ?? 'plain']} />
-                  {sayLabel(mark.label)}
-                </MenuItem>
+                  <span className="flex-1">{sayLabel(mark.label)}</span>
+                  <MenuCheckboxIndicator>
+                    <Check aria-hidden className="size-3.5" />
+                  </MenuCheckboxIndicator>
+                </MenuCheckboxItem>
               )
             })}
           </MenuPopup>
@@ -238,9 +260,9 @@ export function TagBar({ work }: { work: Work }) {
  */
 const ADD = 'h-auto rounded-full border-dashed border-line-2 py-0.5 pr-2.5 pl-2'
 
-/** A mark's icon colour in the menu that raises it, by the palette role its
-    profile named - the colour it wears once raised. Plain and accent take the
-    item's own ink. */
+/** A mark's icon colour in the menu that raises and lowers it, by the palette
+    role its profile named - the colour its tile wears once raised. Plain and
+    accent take the item's own ink. */
 const MARK_INK: Record<string, string> = {
   plain: '',
   accent: '',

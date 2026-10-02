@@ -84,6 +84,17 @@ describe('the catalogue', () => {
     expect(draft.getByText('Draft')).toBeInTheDocument()
   })
 
+  it("draws a work's marks as their icons, each named by its mark", async () => {
+    const { rowOf } = await open()
+
+    // The words went to the tooltip and the name (v0.90.1): two marks took a
+    // column as wide as a title.
+    const song = within(rowOf('Paper Lanterns'))
+    const marks = song.getByRole('group', { name: en.catalogue.column.marks })
+    expect(within(marks).getByRole('img', { name: 'Working on it' })).toBeInTheDocument()
+    expect(song.queryByText('Working on it')).toBeNull()
+  })
+
   it('says which value the profile lacks, in place of the count', async () => {
     const { main } = await open()
     const box = within(main).getByRole('textbox', { name: en.works.search })
