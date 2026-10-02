@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.90.1] - 2026-10-02
+
+### Bug Fixes
+- Let every widget scroll itself and the wheel reach every list
+
+### Features
+- Open each kind of work on its own tab
+- Draw marks as icon tiles named on hover
+
 ## [0.90.0] - 2026-10-02
 
 ### Features
