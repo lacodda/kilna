@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.90.0] - 2026-10-02
+
+### Features
+- Release a publication once and keep its words in check
+
+### Testing
+- Compare the media directory by its real path
+
 ## [0.89.3] - 2026-10-01
 
 ### Bug Fixes
