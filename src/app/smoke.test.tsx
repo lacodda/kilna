@@ -3,6 +3,7 @@ import { screen, within } from '@testing-library/react'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
 import { CARD_TABS, SCREENS } from '@/test/places'
+import { regionsHaveHeight } from '@/test/regions'
 import { answersFor, IDS, NOW, studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
 
@@ -113,7 +114,12 @@ function takesTheHeight(box: HTMLElement, what: string) {
 }
 
 describe('every screen opens', () => {
-  for (const [path, shows] of SCREENS) test(path, () => open(path, shows))
+  for (const [path, shows] of SCREENS) {
+    test(path, async () => {
+      const { screen: main } = await open(path, shows)
+      regionsHaveHeight(main, path)
+    })
+  }
 
   test('a note is read in text that can be copied', async () => {
     // Selection is off across the shell and handed back to text; the prose
@@ -145,6 +151,7 @@ describe('every tab of a card opens', () => {
       expect(body, 'the tab body scrolls as a whole again').toHaveClass('overflow-hidden')
       expect(body).not.toHaveClass('overflow-y-auto')
       takesTheHeight(body!, `the ${tab} tab`)
+      regionsHaveHeight(body!, `the ${tab} tab`)
 
       const header = main.querySelector('header')
       expect(header, 'the card has no header').not.toBeNull()

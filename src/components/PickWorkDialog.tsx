@@ -139,25 +139,25 @@ function Contents({ onOpenChange, onPick, title, kinds }: Omit<Props, 'open'>) {
           </ChipGroup>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto py-1.5">
-          <CommandPaletteEmpty className="px-4 py-6 text-center text-xs text-faint">
-            {nothing}
-          </CommandPaletteEmpty>
+        <CommandPaletteEmpty className="px-4 py-6 text-center text-xs text-faint">
+          {nothing}
+        </CommandPaletteEmpty>
 
-          <CommandPaletteList>
-            {(group: { items: ScoredWork[] }) => (
-              <CommandPaletteGroup items={group.items}>
-                <ComboboxGroupLabel className="px-3.5 pt-2 pb-1 tracking-caption">
-                  {t('pick.group', { count: group.items.length })}
-                </ComboboxGroupLabel>
+        {/* The list is the one box that scrolls, as in the palette: inside a
+            scrolling column of its own it stopped the wheel (v0.90.1). */}
+        <CommandPaletteList className="min-h-0 flex-1 py-2.5">
+          {(group: { items: ScoredWork[] }) => (
+            <CommandPaletteGroup items={group.items}>
+              <ComboboxGroupLabel className="px-3.5 pt-2 pb-1 tracking-caption">
+                {t('pick.group', { count: group.items.length })}
+              </ComboboxGroupLabel>
 
-                {group.items.map((row) => (
-                  <Row key={row.work_id} row={row} />
-                ))}
-              </CommandPaletteGroup>
-            )}
-          </CommandPaletteList>
-        </div>
+              {group.items.map((row) => (
+                <Row key={row.work_id} row={row} />
+              ))}
+            </CommandPaletteGroup>
+          )}
+        </CommandPaletteList>
       </CommandPalettePopup>
     </Palette>
   )

@@ -75,7 +75,7 @@ export function CoverTab({ work }: Props) {
         </div>
 
         {view === 'ideas' ? (
-          <Loaded query={board} skeleton={<SkeletonList rows={3} secondary={false} />} plain>
+          <Loaded query={board} skeleton={<SkeletonList rows={3} secondary={false} />} plain fill>
             {(data) => <IdeaBoard work={work} board={data} onTaken={() => show('constructor')} />}
           </Loaded>
         ) : (
@@ -89,8 +89,12 @@ export function CoverTab({ work }: Props) {
                 onAllIdeas={() => show('ideas')}
               />
             </div>
+            {/* Bound: the prompt runs to thousands of characters, and its
+                panel scrolls inside rather than taking the preview above it
+                off the screen (`CoverPrompts`). */}
             <Scroll
               label={t('cover.made')}
+              bound
               className="min-w-0 flex-1"
               contentClassName="flex flex-col gap-2.5"
             >

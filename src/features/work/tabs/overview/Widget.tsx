@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
 import { Skeleton } from '@/components/ui/skeleton'
+import { BOUND, Scroll } from '@/components/frame'
 
 /*
  * One widget of the overview: the mockup's `.w`, and the one object every
@@ -23,6 +24,12 @@ import { Skeleton } from '@/components/ui/skeleton'
  * and the sheet as a line of one document. The layout says which through
  * `WidgetLook`, and says how large the widget stands, so a text given two
  * cells by two reads longer than one given a single cell.
+ *
+ * A card or a band is never taller than the board shows (`BOUND`): what it
+ * says past that scrolls inside it, under a caption that stands. A list of
+ * ten repeats beside the stage and the links scrolled the whole board until
+ * v0.90.1, and the rail went up with it; now the board scrolls only when its
+ * widgets together do not fit.
  */
 
 /** How a layout draws its widgets: as cards, as bands across, as lines of a sheet. */
@@ -77,6 +84,8 @@ function leaveAlone(event: MouseEvent<HTMLElement>): boolean {
   if (target.closest('a, button, input, textarea, label, [role="button"], [role="slider"]')) {
     return true
   }
+  // The bar of the body's own scroll: dragged, not pressed.
+  if (target.closest('[data-id$="-scrollbar"]')) return true
   return (window.getSelection()?.toString() ?? '') !== ''
 }
 
@@ -95,6 +104,12 @@ export function Widget({
   const { presentation, place } = useLook()
   const id = useId()
   const way = go ?? t('overview.open')
+  // What the body's scroll region is called, for the tab stop it becomes when
+  // it overflows: the widget in full - the widget itself is already a group
+  // named by its caption, and two groups of one name read as one twice.
+  const label = t('overview.inFull', {
+    caption: typeof caption === 'string' ? caption : t('card.tab.overview'),
+  })
 
   // A click on the widget goes to the tab that owns it, not to a modal (the
   // owner's rule): the text lives on Versions, and a copy of the editor here
@@ -127,8 +142,14 @@ export function Widget({
         role="group"
         aria-labelledby={id}
         onClick={onClick}
+        // A grid rather than a column: the caption, the body in what is left
+        // of the widget's height, the actions. The body's row is what gives
+        // its scroll region a height to scroll against once the widget meets
+        // its bound; short of that it is as tall as what it says. The sides
+        // are padded row by row, so the body's bar runs down the border.
         className={cn(
-          'group/widget flex min-w-0 flex-col gap-2 px-3 py-2.5 transition-colors hover:border-line-2',
+          'group/widget grid min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2 py-2.5 transition-colors hover:border-line-2',
+          BOUND,
           to !== undefined && 'cursor-pointer',
           tone === 'empty' && 'border-dashed bg-softer',
           tone === 'attention' && 'border-warn/45 hover:border-warn/70',
@@ -136,7 +157,7 @@ export function Widget({
           className,
         )}
       >
-        <header className="flex min-w-0 items-center gap-2">
+        <header className="flex min-w-0 items-center gap-2 px-3">
           {heading}
           {aside}
           {to !== undefined && (
@@ -152,9 +173,11 @@ export function Widget({
             </Link>
           )}
         </header>
-        {children}
+        <Scroll label={label} contentClassName="flex min-w-0 flex-col gap-2 px-3">
+          {children}
+        </Scroll>
         {actions !== undefined && (
-          <div className="mt-auto flex flex-wrap items-center gap-1.5">{actions}</div>
+          <div className="flex flex-wrap items-center gap-1.5 px-3">{actions}</div>
         )}
       </Panel>
     )
@@ -185,7 +208,17 @@ export function Widget({
         )}
       >
         {heading}
-        <div className="min-w-0">{children}</div>
+        {/* The fact in its column, as tall as the board less the band's own
+            padding at most: a long one scrolls there, and the caption and the
+            actions stand beside it. */}
+        <Scroll
+          label={label}
+          fit
+          className="max-h-[calc(100cqh-var(--bound-inset,0px)-1.25rem)]"
+          contentClassName="min-w-0"
+        >
+          {children}
+        </Scroll>
         <div className="flex shrink-0 flex-wrap items-center gap-1.5">
           {aside}
           {actions}

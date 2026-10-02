@@ -205,7 +205,11 @@ export function FrameTab({ work }: Props) {
           </div>
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <Loaded query={view} skeleton={<SkeletonList rows={3} secondary={false} />} plain>
+            {/* `fill`: the prompts are a pane that scrolls against the
+                column's height, and a bare wrapper between them hands it none -
+                the pane grew with three long prompts and was cut off at the
+                card's edge with no bar (v0.90.1). */}
+            <Loaded query={view} skeleton={<SkeletonList rows={3} secondary={false} />} plain fill>
               {(data) => <FramePanel view={data} />}
             </Loaded>
           </div>

@@ -29,6 +29,7 @@ export function SinceWidget() {
   return (
     <Widget
       title={t('dashboard.since')}
+      scroll={t('dashboard.since')}
       aside={
         <span className="text-xs">
           <Button variant="link" onClick={() => navigate('/journal')}>

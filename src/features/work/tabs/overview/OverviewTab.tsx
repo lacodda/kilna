@@ -135,7 +135,15 @@ export function OverviewTab({ work }: Props) {
         </>
       }
     >
-      <Scroll label={t('card.tab.overview')} contentClassName="@container pb-1">
+      {/* Bound: no widget stands taller than the board shows (`Widget`).
+          The inset is the content's padding, which a widget at its bound
+          would otherwise push past the edge. */}
+      <Scroll
+        label={t('card.tab.overview')}
+        bound
+        className="[--bound-inset:calc(var(--spacing)*1)]"
+        contentClassName="@container pb-1"
+      >
         <BoardLayout
           layout={board.layout}
           widgets={widgets}

@@ -35,11 +35,12 @@ export function NotesWidget({ onSelect }: Props) {
   const notes = useQuery(queries.focusNotes())
 
   return (
-    <Widget title={t('focus.title')}>
+    // The field stands under the lines: a long list scrolls, the way to add
+    // one more does not go with it.
+    <Widget title={t('focus.title')} scroll={t('focus.title')} foot={<AddNote />}>
       <Loaded query={notes} plain skeleton={<Skeleton className="h-4 w-full" />}>
         {(lines) => <NoteList notes={lines} onSelect={onSelect} />}
       </Loaded>
-      <AddNote />
     </Widget>
   )
 }

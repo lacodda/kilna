@@ -2084,6 +2084,7 @@
     "discarded": "Правки профиля отброшены."
   },
   "overview": {
+    "inFull": "{{caption}} целиком",
     "open": "Открыть",
     "toVersions": "К версиям",
     "scoreIt": "Оценить",

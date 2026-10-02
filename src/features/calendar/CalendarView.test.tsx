@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, screen, within } from '@testing-library/react'
 import type { Release, RepeatFinding, RepeatMark } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
+import { noScrollerInAnother } from '@/test/regions'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, IDS, NOW, studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
@@ -72,6 +73,24 @@ async function carryTo(selector: string) {
 }
 
 describe('the calendar', () => {
+  it('asks which work goes out on a day in a list the wheel reaches', async () => {
+    // The day's plus opens the choice of a work - the dialog every other
+    // "which work" question shares. Its list stood in a scrolling column of
+    // its own until v0.90.1, too short to scroll inside it, and the wheel
+    // stopped on it.
+    const { client } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+    const [plus] = await within(main).findAllByRole('button', { name: en.calendar.addOnDay })
+    fireEvent.click(plus!)
+
+    const dialog = await screen.findByRole('dialog', {
+      name: (name) => name.startsWith(en.calendar.fillDay.split('{{')[0]!),
+    })
+    await within(dialog).findByText('Harbour Lights')
+    noScrollerInAnother(dialog, 'the choice of a work')
+  })
+
   it('claims the day a release is dropped on through the contest', async () => {
     await carryTo('[data-day="2026-09-24"]')
 

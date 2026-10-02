@@ -56,6 +56,7 @@ export function FindingsWidget({
   return (
     <Widget
       title={t('findings.title')}
+      scroll={t('findings.title')}
       attention={findings.length > 0}
       aside={
         <span className="shrink-0 text-xs text-faint" title={t('findings.readOnly')}>

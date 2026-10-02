@@ -1970,6 +1970,7 @@
     "discarded": "Changes to the profile discarded."
   },
   "overview": {
+    "inFull": "{{caption}}, in full",
     "open": "Open",
     "toVersions": "To versions",
     "scoreIt": "Score it",

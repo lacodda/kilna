@@ -10,6 +10,13 @@ answers that — but what is waiting.
 Nothing on this screen changes anything. Every row is a way into somewhere
 else.
 
+The screen is two columns, each scrolling on its own. In the side column —
+the catalogue in figures, what is running, what the workspace noticed, your
+own lines, what happened since you last looked — every list scrolls inside its
+own panel: a short one stands whole, a long one takes the height that is left.
+Forty findings no longer push the figures off the top. The column itself
+scrolls only on a window too low to show a few lines of each.
+
 ## Needs a decision
 
 Releases whose date is close and whose work is not ready for it: a missing

@@ -213,7 +213,17 @@ function Summary({
         )}
       </Pane>
 
-      <Scroll label={t('dashboard.side')} contentClassName="flex flex-col gap-2.5">
+      {/* The column is the window's height, and its lists share it: a row
+          each, as tall as its list up to an equal share of what is left -
+          a short list stands whole, a long one takes the rest and scrolls
+          inside (`Widget`'s `scroll`). The figures take what they need. The
+          column scrolls only below the height where every list still shows
+          a few lines. */}
+      <Scroll
+        label={t('dashboard.side')}
+        bound
+        contentClassName="grid h-[100cqh] min-h-136 grid-rows-[auto] auto-rows-[minmax(0,max-content)] content-start gap-2.5"
+      >
         <WorksWidget works={works} />
         <RunningWidget works={works} onSelect={onSelect} />
         <FindingsWidget

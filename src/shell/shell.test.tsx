@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { mockBackend } from '@/test/backend'
+import { noScrollerInAnother } from '@/test/regions'
 import { renderApp, settled } from '@/test/render'
 import { answersFor, IDS, NOW, studio } from '@/test/workspace'
 import en from '@/i18n/locales/en.json'
@@ -85,6 +86,13 @@ describe('the palette', () => {
     expect(within(box).getByText(en.search.group.screen)).toBeInTheDocument()
     expect(within(box).getByRole('option', { name: en.works.newTitle })).toBeInTheDocument()
     expect(within(box).getByRole('option', { name: en.nav.trash })).toBeInTheDocument()
+  })
+
+  it('scrolls its hits in one box, so the wheel reaches them', async () => {
+    // A list too short to scroll, inside a column that did, took the wheel
+    // and moved nothing until v0.90.1; only the bar moved the hits.
+    await open('/dashboard')
+    noScrollerInAnother(await palette(), 'the palette')
   })
 
   it('opens a screen found by its name', async () => {

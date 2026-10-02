@@ -33,7 +33,7 @@ export function RunningWidget({ works, onSelect }: Props) {
   const queue = useQuery({ ...queries.taskQueue(), staleTime: 0 })
 
   return (
-    <Widget title={t('dashboard.running')}>
+    <Widget title={t('dashboard.running')} scroll={t('dashboard.running')}>
       <Loaded query={queue} plain skeleton={<Skeleton className="h-4 w-full" />}>
         {({ running, waiting }) => (
           <>

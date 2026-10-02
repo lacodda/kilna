@@ -203,42 +203,45 @@ function Contents({
           hint={['Escape']}
         />
 
-        <div className="min-h-0 flex-1 overflow-y-auto py-1.5">
-          <CommandPaletteEmpty className="px-4 py-6 text-center text-xs text-faint">
-            {nothing}
-          </CommandPaletteEmpty>
+        <CommandPaletteEmpty className="px-4 py-6 text-center text-xs text-faint">
+          {nothing}
+        </CommandPaletteEmpty>
 
-          <CommandPaletteList>
-            {(group: Group) => (
-              <CommandPaletteGroup key={group.id} items={group.items}>
-                <CommandPaletteGroupLabel className="caption px-3.5 pt-2 pb-1">
-                  {group.label}
-                </CommandPaletteGroupLabel>
+        {/* The list is the one box that scrolls. It stood in a scrolling
+            column of its own until v0.90.1, too short to scroll inside it:
+            the theme keeps every such box from passing the wheel on
+            (`styles.css`), so the wheel stopped on it and only the bar moved
+            the hits. */}
+        <CommandPaletteList className="min-h-0 flex-1 py-2.5">
+          {(group: Group) => (
+            <CommandPaletteGroup key={group.id} items={group.items}>
+              <CommandPaletteGroupLabel className="caption px-3.5 pt-2 pb-1">
+                {group.label}
+              </CommandPaletteGroupLabel>
 
-                {/* Mapped by hand rather than through a second List: a List
-                    is the `role="listbox"`, and there is one of those per
-                    palette. Each row's place in the walk order is resolved by
-                    the component from `value` and `isItemEqualToValue`. */}
-                {group.items.map((entry) => (
-                  <CommandPaletteItem
-                    key={entry.id}
-                    value={entry}
-                    className={cn(
-                      commandPaletteItemVariants(),
-                      'mx-1.5 pr-3 data-[highlighted]:bg-accent-soft',
-                    )}
-                  >
-                    {entry.type === 'hit' ? (
-                      <HitRow hit={entry.hit} cover={covers.get(entry.hit.work_id ?? '')} />
-                    ) : (
-                      <CommandRow command={entry.command} />
-                    )}
-                  </CommandPaletteItem>
-                ))}
-              </CommandPaletteGroup>
-            )}
-          </CommandPaletteList>
-        </div>
+              {/* Mapped by hand rather than through a second List: a List
+                  is the `role="listbox"`, and there is one of those per
+                  palette. Each row's place in the walk order is resolved by
+                  the component from `value` and `isItemEqualToValue`. */}
+              {group.items.map((entry) => (
+                <CommandPaletteItem
+                  key={entry.id}
+                  value={entry}
+                  className={cn(
+                    commandPaletteItemVariants(),
+                    'mx-1.5 pr-3 data-[highlighted]:bg-accent-soft',
+                  )}
+                >
+                  {entry.type === 'hit' ? (
+                    <HitRow hit={entry.hit} cover={covers.get(entry.hit.work_id ?? '')} />
+                  ) : (
+                    <CommandRow command={entry.command} />
+                  )}
+                </CommandPaletteItem>
+              ))}
+            </CommandPaletteGroup>
+          )}
+        </CommandPaletteList>
 
         <div className="flex gap-3.5 border-t border-line px-4 py-2 font-mono text-xs text-faint">
           <span>{t('search.navigate')}</span>

@@ -2,11 +2,13 @@ import { useTranslation } from 'react-i18next'
 import { AlertTriangle } from 'lucide-react'
 import type { Cover, CoverPrompts as Prompts, CoverView } from '@/lib/api/types'
 import { formatStamp } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/ui/copy-button'
 import { Panel } from '@/components/ui/panel'
 import { Switch } from '@/components/ui/switch'
+import { BOUND, Scroll } from '@/components/frame'
 import { DraftText } from '@/features/cover/Section'
 
 type Part = 'picture' | 'negative' | 'typography'
@@ -63,7 +65,11 @@ export function CoverPrompts({ cover, view, disabled, change }: Props) {
     .join('\n\n---\n\n')
 
   return (
-    <Panel className="flex flex-col">
+    // As tall as the column at most (`BOUND`): the blocks scroll between a
+    // head and a foot that stand, so "Copy all" is at hand whatever the length
+    // of the prompt - it ran to a thousand pixels on a cover with five
+    // lettering variants, and the preview above went off the screen with it.
+    <Panel className={cn('grid min-w-0 grid-rows-[auto_minmax(0,1fr)_auto]', BOUND)}>
       <header className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
         <b className="text-sm font-semibold">{t('cover.prompt.title')}</b>
         <span className="text-2xs text-faint">{t('cover.prompt.hint')}</span>
@@ -81,7 +87,7 @@ export function CoverPrompts({ cover, view, disabled, change }: Props) {
         )}
       </header>
 
-      <div className="flex flex-col gap-3 p-3">
+      <Scroll label={t('cover.prompt.title')} contentClassName="flex flex-col gap-3 p-3">
         {!view.built && <p className="text-xs text-dim">{t('cover.prompt.byHand')}</p>}
         {parts.map((part) => {
           const text = prompts[part] ?? ''
@@ -130,7 +136,7 @@ export function CoverPrompts({ cover, view, disabled, change }: Props) {
             onCommit={(typography) => change((c) => ({ ...c, typography }))}
           />
         )}
-      </div>
+      </Scroll>
 
       <footer className="flex flex-wrap items-center gap-2 border-t border-line px-3 py-2">
         <Button

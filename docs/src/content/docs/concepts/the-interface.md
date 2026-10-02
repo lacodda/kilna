@@ -14,6 +14,13 @@ and the frame around it stays put. A desktop window has a bottom edge, and a
 page that runs past it the way a web page does hides the fact that there is
 more.
 
+**A widget scrolls itself.** Where a screen is a set of widgets — the
+dashboard's side column, a work's Overview, the cover's prompt beside its
+preview — no widget stands taller than what the screen shows: a long list or a
+long prompt scrolls inside its own panel, under a caption that stays, and the
+widgets beside it stay put. The column as a whole scrolls only when its widgets
+together do not fit. The mouse wheel moves whatever box it is over.
+
 The window opens on a splash — the mark, the name, the version — for the
 moment it takes to open the workspace, and it comes back the size and place
 it was closed at: maximised if it was maximised, 1200×1200 if it was that.
