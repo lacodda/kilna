@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.90.3] - 2026-10-07
+
+### Features
+- Add accents and gradient grounds, lettering from references
+
 ## [0.90.2] - 2026-10-07
 
 ### Features
