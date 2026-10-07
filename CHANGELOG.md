@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.90.2] - 2026-10-07
+
+### Features
+- Ship eastern, folk, ancient and trending styles
+
 ## [0.90.1] - 2026-10-02
 
 ### Bug Fixes
