@@ -28,6 +28,33 @@ SIL Open Font License, Version 1.1, reproduced below, and was taken from Google 
 - **Oi** - Copyright 2019 The Oi! Project Authors (https://github.com/kosbarts/Oi)
 - **Neucha** - Copyright (c) 2008-2010 by Jovanny Lemonad (http://www.jovanny.ru)
 - **Fira Sans Extra Condensed** - Copyright (c) 2012-2015, The Mozilla Foundation and Telefonica S.A.
+- **Zen Kurenaido** - Copyright 2021 The Zen Kurenaido Project Authors (https://github.com/googlefonts/zen-kurenaido)
+- **Dela Gothic One** - Copyright 2020 The Dela Gothic Project Authors (https://github.com/syakuzen/DelaGothic)
+- **Zen Antique** - Copyright 2021 The Zen Antique Project Authors (https://github.com/googlefonts/zen-antique)
+- **LXGW WenKai TC** - Copyright 2024 The LXGW WenKai Project Authors (https://github.com/lxgw/LxgwWenkaiTC)
+- **Cactus Classical Serif** - Copyright 2024 The Caactus Classical Serif Project Authors (https://github.com/MoonlitOwen/CactusSerif)
+- **Pattaya** - Copyright (c) 2015, Cadson Demak (info@cadsondemak.com), Copyright (c) 2010, Pablo Impallari (www.impallari.com|impallari@gmail.com), Copyright (c) 2010, 2011, Alexei Vanyashin (www.cyreal.org|a@cyreal.org), with Reserved Font Name Lobster.
+- **Kurale** - Copyright 2013 The Kurale Project Authors (edu@tipo.net.ar)
+- **El Messiri** - Copyright 2015 The El Messiri Project Authors (https://github.com/Gue3bara/El-Messiri)
+- **Viaoda Libre** - Copyright 2020 The Viaodalibre Project Authors (https://github.com/bettergui/ViaodaLibre)
+- **Rubik Gemstones** - Copyright 2020 The Rubik Filtered Project Authors (https://https://github.com/NaN-xyz/Rubik-Filtered)
+- **Ponomar** - Copyright 2025 The Ponomar Project Authors (https://github.com/slavonic/Ponomar.git)
+- **Cormorant Unicase** - Copyright 2015 the Cormorant Project Authors (github.com/CatharsisFonts/Cormorant)
+- **Tektur** - Copyright 2023 The Tektur Project Authors (https://www.github.com/hyvyys/Tektur)
+- **Pacifico** - Copyright 2018 The Pacifico Project Authors (https://github.com/googlefonts/Pacifico)
+- **Poiret One** - Copyright 2011 The Poiret One Project Authors (https://github.com/alexeiva/poiretone)
+- **Old Standard TT** - Copyright 2011 The Old Standard Project Authors (amkryukov@gmail.com)
+- **Great Vibes** - Copyright 2015 The Great Vibes Pro Project Authors (https://github.com/googlefonts/great-vibes)
+- **Comfortaa** - Copyright 2011 The Comfortaa Project Authors (https://github.com/alexeiva/comfortaa), with Reserved Font Name "Comfortaa".
+- **Prosto One** - Copyright (c) 2012, Jovanny Lemonad (http://www.jovanny.ru)
+- **Oranienbaum** - Copyright (c) 2012, Oleg Pospelov (oleg@pospelov.com), Jovanny Lemonad (lemonad@jovanny.ru), with Reserved Font Name 'Oranienbaum'
+- **Rubik Vinyl** - Copyright 2020 The Rubik Filtered Project Authors (https://https://github.com/NaN-xyz/Rubik-Filtered)
+- **Kablammo** - Copyright 2023 The Kablammo Project Authors (https://github.com/Vectro-Type-Foundry/kablammo)
+- **Rubik Bubbles** - Copyright 2020 The Rubik Filtered Project Authors (https://https://github.com/NaN-xyz/Rubik-Filtered)
+- **Rubik 80s Fade** - Copyright 2020 The Rubik Filtered Project Authors (https://https://github.com/NaN-xyz/Rubik-Filtered)
+- **Rubik Doodle Shadow** - Copyright 2020 The Rubik Filtered Project Authors (https://https://github.com/NaN-xyz/Rubik-Filtered)
+- **Amatic SC** - Copyright 2015 The Amatic SC Project Authors (https://github.com/googlefonts/AmaticSC)
+- **Bellota** - Copyright 2019 The Bellota Project Authors (https://github.com/kemie/Bellota-Font)
 
 ---
 

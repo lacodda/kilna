@@ -1416,6 +1416,55 @@
               "en": "Eras",
               "ru": "Эпохи"
             }
+          },
+          {
+            "key": "japan",
+            "label": {
+              "en": "Japan",
+              "ru": "Япония"
+            }
+          },
+          {
+            "key": "china",
+            "label": {
+              "en": "China",
+              "ru": "Китай"
+            }
+          },
+          {
+            "key": "india",
+            "label": {
+              "en": "India",
+              "ru": "Индия"
+            }
+          },
+          {
+            "key": "orient",
+            "label": {
+              "en": "Eastern tales",
+              "ru": "Восточные сказки"
+            }
+          },
+          {
+            "key": "folk",
+            "label": {
+              "en": "World folk",
+              "ru": "Народы мира"
+            }
+          },
+          {
+            "key": "ancient",
+            "label": {
+              "en": "Antiquity",
+              "ru": "Древность"
+            }
+          },
+          {
+            "key": "trend",
+            "label": {
+              "en": "Trends",
+              "ru": "Тренды"
+            }
           }
         ],
         "hint": {

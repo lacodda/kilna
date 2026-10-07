@@ -73,3 +73,23 @@ Seeding is not a gesture and writes no log entry: no person made it.
   number of anyone's.
 - A brick of the owner's own that already has a set entry's name in its type
   keeps the name; the set entry stays out, and is logged.
+
+## Amendment, v0.90.2: a set that grows families
+
+The set grew to two hundred and five bricks, and image styles gained seven
+families - Japan, China, India, Eastern tales, World folk, Antiquity, Trends.
+A family is part of the type in the stored document, and the carry-forward
+filled a type's families only where the stored type had none: every
+workspace seeded since v0.87 already files image styles under five, so the
+new ones would never have arrived, and their bricks would have been filed
+under a family the dictionary cannot name.
+
+- **Families arrive by key**, as every keyed word of the profile does, and
+  take their place after the family they follow in the shipped list, not at
+  the end. A family the owner relabelled keeps their word; one they added
+  stays where they put it. Style types arrive the same way.
+- **A sample's typeface ships with the window.** A lettering entry names a
+  family in `sample`; one the window does not carry falls back to the system
+  font without a word. A test holds every named family to a face in
+  `src/assets/fonts/samples.css`, every face to a file beside it, and every
+  file to a face.

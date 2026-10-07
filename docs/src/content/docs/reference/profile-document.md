@@ -873,8 +873,10 @@ the screen, and the chips above them — rather than the alphabet.
 
 A workspace that already exists gains the shipped types at the next start;
 one you renamed or added stays yours, matched by key, and a hint, a glyph, a
-form, families, a retirement or a stand-in is filled in only where your
-stored copy names none.
+form, a retirement or a stand-in is filled in only where your stored copy
+names none. Types and families arrive by key, each after the one it follows
+in the shipped list: a family you relabelled keeps your word, and one you
+added stays where you put it.
 
 ## `style_set`
 

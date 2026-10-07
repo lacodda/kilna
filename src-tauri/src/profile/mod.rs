@@ -566,9 +566,10 @@ fn stages(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
 /// The types a style brick can be (0.75), and a type's hint and glyph where
 /// the stored copy names none: the hint is what the assistant is told to
 /// describe, so a shipped one filling a gap is a gain; one the owner wrote is
-/// theirs (ADR 0031).
+/// theirs (ADR 0031). A type and a family newly shipped take their place
+/// after the one they follow in the shipped list.
 fn style_types(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
-    let mut changed = add_new_keys(&mut config.style_types, &shipped.style_types, |style| {
+    let mut changed = insert_new_keys(&mut config.style_types, &shipped.style_types, |style| {
         &style.key
     });
     for style in &mut config.style_types {
@@ -583,18 +584,20 @@ fn style_types(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
             style.icon = shipped_style.icon.clone();
             changed = true;
         }
-        // The form, families, retirement and stand-in arrive on the same
-        // terms (v0.87): where the stored type says nothing. A stored type
-        // still drawn as pictures while the shipped one is lettering has never
-        // been told otherwise - the form did not exist before.
+        // The form, retirement and stand-in arrive on the same terms (v0.87):
+        // where the stored type says nothing. A stored type still drawn as
+        // pictures while the shipped one is lettering has never been told
+        // otherwise - the form did not exist before.
         if style.form == config::StyleForm::Picture && shipped_style.form != style.form {
             style.form = shipped_style.form;
             changed = true;
         }
-        if style.families.is_empty() && !shipped_style.families.is_empty() {
-            style.families = shipped_style.families.clone();
-            changed = true;
-        }
+        // Families arrive by key (v0.90.2), as every keyed word does: a set
+        // that grows a family files its new styles under it, and a stored
+        // type that already has families would otherwise never learn it.
+        changed |= insert_new_keys(&mut style.families, &shipped_style.families, |family| {
+            &family.key
+        });
         if style.retired.is_none() && shipped_style.retired.is_some() {
             style.retired = shipped_style.retired.clone();
             changed = true;
@@ -1068,6 +1071,34 @@ fn add_new_keys<T: Clone>(stored: &mut Vec<T>, shipped: &[T], key: impl Fn(&T) -
     true
 }
 
+/// [`add_new_keys`], each newcomer put where the shipped list puts it: after
+/// the nearest entry before it there that the stored list has, and at the end
+/// when it has none - so a dictionary read in its list's order does not grow
+/// a tail of whatever shipped last.
+fn insert_new_keys<T: Clone>(
+    stored: &mut Vec<T>,
+    shipped: &[T],
+    key: impl Fn(&T) -> &String,
+) -> bool {
+    let mut changed = false;
+    for (index, candidate) in shipped.iter().enumerate() {
+        if stored
+            .iter()
+            .any(|existing| key(existing) == key(candidate))
+        {
+            continue;
+        }
+        let after = shipped[..index]
+            .iter()
+            .rev()
+            .find_map(|before| stored.iter().position(|e| key(e) == key(before)));
+        let at = after.map_or(stored.len(), |position| position + 1);
+        stored.insert(at, candidate.clone());
+        changed = true;
+    }
+    changed
+}
+
 /// Make sure a profile is active — a workspace is never without one.
 ///
 /// The default is the first profile in `builtin()`, not the first by key or by
@@ -1471,6 +1502,51 @@ mod tests {
                 .iter()
                 .any(|field| field.key == "duration" && field.own)
         );
+    }
+
+    /// A Studio copy as v0.87 stored it: the image style filed under its
+    /// first five families, one the owner relabelled, and one of their own
+    /// put first. The families shipped since arrive, each after the one it
+    /// follows in the shipped list; the owner's word and family stay.
+    #[test]
+    fn a_family_shipped_later_reaches_a_type_that_already_files() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == "music")
+            .unwrap()
+            .config;
+        let shipped_families = shipped.style_type("image-style").unwrap().families.clone();
+        assert!(
+            shipped_families.len() > 5,
+            "the set files image styles under more than the first five families"
+        );
+
+        let mut old = shipped.clone();
+        let image = old
+            .style_types
+            .iter_mut()
+            .find(|style| style.key == "image-style")
+            .unwrap();
+        image.families.truncate(5);
+        image.families[1].label = Label::from("Old masters");
+        image.families.insert(
+            0,
+            config::StyleFamily {
+                key: "mine".into(),
+                label: Label::from("Mine"),
+            },
+        );
+
+        assert!(style_types(&mut old, &shipped));
+
+        let families = &old.style_type("image-style").unwrap().families;
+        let keys: Vec<&str> = families.iter().map(|f| f.key.as_str()).collect();
+        let mut expected = vec!["mine"];
+        expected.extend(shipped_families.iter().map(|f| f.key.as_str()));
+        assert_eq!(keys, expected);
+        assert_eq!(families[2].label, Label::from("Old masters"));
+        assert!(!style_types(&mut old, &shipped), "once is enough");
     }
 
     #[test]

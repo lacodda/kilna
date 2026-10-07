@@ -900,6 +900,76 @@ mod tests {
         }
     }
 
+    /// The quoted words after each `marker` in `text`: the family names of
+    /// `font-family: 'A'` and the file of `url('./a.woff2')`.
+    fn quoted_after<'a>(text: &'a str, marker: &str) -> Vec<&'a str> {
+        text.match_indices(marker)
+            .filter_map(|(at, _)| {
+                let rest = text[at + marker.len()..].trim_start();
+                let quote = rest.chars().next().filter(|c| *c == '\'' || *c == '"')?;
+                let inner = &rest[1..];
+                inner.find(quote).map(|end| &inner[..end])
+            })
+            .collect()
+    }
+
+    /// A lettering sample is drawn with a typeface the window carries. One it
+    /// names and the window lacks falls back to the system font, and the card
+    /// shows nothing of the style - without a word, which is how it would go
+    /// unnoticed. Every file the faces point at ships, and none ships unused.
+    #[test]
+    fn every_sample_is_drawn_with_a_typeface_the_window_ships() {
+        let fonts = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../src/assets/fonts");
+        let css = std::fs::read_to_string(fonts.join("samples.css")).unwrap();
+        let declared = quoted_after(&css, "font-family:");
+        let files = quoted_after(&css, "url(");
+        assert!(
+            !declared.is_empty() && !files.is_empty(),
+            "the faces are read"
+        );
+
+        for file in &files {
+            assert!(
+                fonts.join(file).is_file(),
+                "samples.css points at {file}, which is not there"
+            );
+        }
+        for found in std::fs::read_dir(&fonts).unwrap() {
+            let name = found.unwrap().file_name().to_string_lossy().into_owned();
+            if name.ends_with(".woff2") {
+                assert!(
+                    files
+                        .iter()
+                        .any(|file| file.trim_start_matches("./") == name),
+                    "{name} ships but no face uses it"
+                );
+            }
+        }
+
+        for profile in crate::profile::builtin().unwrap() {
+            for entry in &profile.style_set {
+                let Some(sample) = &entry.sample else {
+                    continue;
+                };
+                let families = quoted_after(sample, "font-family:");
+                assert!(
+                    !families.is_empty(),
+                    "`{}` set entry `{}` names no typeface",
+                    profile.key,
+                    entry.key
+                );
+                for family in families {
+                    assert!(
+                        declared.contains(&family),
+                        "`{}` set entry `{}` is drawn with '{family}', which the window does not ship",
+                        profile.key,
+                        entry.key
+                    );
+                }
+            }
+        }
+    }
+
     #[test]
     fn the_shipped_set_seeds_whole_into_a_new_workspace() {
         let (conn, profile_id) = fixtures::workspace();

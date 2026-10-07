@@ -1940,6 +1940,55 @@
               "en": "Eras",
               "ru": "Эпохи"
             }
+          },
+          {
+            "key": "japan",
+            "label": {
+              "en": "Japan",
+              "ru": "Япония"
+            }
+          },
+          {
+            "key": "china",
+            "label": {
+              "en": "China",
+              "ru": "Китай"
+            }
+          },
+          {
+            "key": "india",
+            "label": {
+              "en": "India",
+              "ru": "Индия"
+            }
+          },
+          {
+            "key": "orient",
+            "label": {
+              "en": "Eastern tales",
+              "ru": "Восточные сказки"
+            }
+          },
+          {
+            "key": "folk",
+            "label": {
+              "en": "World folk",
+              "ru": "Народы мира"
+            }
+          },
+          {
+            "key": "ancient",
+            "label": {
+              "en": "Antiquity",
+              "ru": "Древность"
+            }
+          },
+          {
+            "key": "trend",
+            "label": {
+              "en": "Trends",
+              "ru": "Тренды"
+            }
           }
         ]
       },
@@ -3680,6 +3729,1460 @@
       ]
     },
     {
+      "key": "ukiyo-e",
+      "type": "image-style",
+      "label": {
+        "en": "Ukiyo-e print",
+        "ru": "Укиё-э"
+      },
+      "family": "japan",
+      "description": "STYLE: Edo-period ukiyo-e woodblock print in the manner of Hokusai and Hiroshige: crisp carved key lines, flat areas of colour printed from separate blocks, soft bokashi gradients in the sky and the water, Prussian blue, vermilion and pale ochre on warm washi paper with visible fibres and a slight registration shift. Stylized waves, slanting rain lines, distant mountains and a high horizon.",
+      "when": "Songs of journeys, weather and the sea; a small figure in a big landscape; cream and paper grounds.",
+      "colours": [
+        "#24406E",
+        "#C8352E",
+        "#E8D3A8",
+        "#6E8B74"
+      ]
+    },
+    {
+      "key": "shin-hanga",
+      "type": "image-style",
+      "label": {
+        "en": "Shin-hanga",
+        "ru": "Син-ханга"
+      },
+      "family": "japan",
+      "description": "STYLE: 1920s Japanese shin-hanga woodblock print in the manner of Kawase Hasui: a quiet scene of snow, rain or dusk, soft layered gradients, glowing lanterns and lit windows, deep indigo night skies, wood grain showing through the colour, poetic stillness.",
+      "when": "Nocturnes, rain, snow and longing; evening and winter songs; midnight and cream grounds.",
+      "colours": [
+        "#1E2A4A",
+        "#3E5C8A",
+        "#F2B65A",
+        "#E9E4D8"
+      ]
+    },
+    {
+      "key": "sumi-e",
+      "type": "image-style",
+      "label": {
+        "en": "Sumi-e ink",
+        "ru": "Суми-э"
+      },
+      "family": "japan",
+      "description": "STYLE: Japanese sumi-e ink painting: black sumi ink on white rice paper, a few confident brushstrokes, wet washes bleeding into the fibres, dry-brush edges, vast empty space, the hero suggested rather than drawn. One small red seal stamp in a corner and no other colour.",
+      "when": "Sparse, meditative or grieving songs; when silence says more; paper grounds.",
+      "colours": [
+        "#121114",
+        "#8A8885",
+        "#F4F1EA",
+        "#B3202E"
+      ]
+    },
+    {
+      "key": "rinpa",
+      "type": "image-style",
+      "label": {
+        "en": "Rinpa gold screen",
+        "ru": "Ринпа, золотая ширма"
+      },
+      "family": "japan",
+      "description": "STYLE: Rinpa-school folding screen in the manner of Ogata Korin: a flat burnished gold-leaf ground, bold simplified irises, waves, plum branches and wind spirits, mineral green and ultramarine laid flat, rhythmic decorative repetition, the faint seams of the screen's panels visible.",
+      "when": "Festive, seasonal or ceremonial songs; luxury, nature, wind; dark and ink grounds bring out the gold.",
+      "colours": [
+        "#C9A227",
+        "#1F5F3A",
+        "#24406E",
+        "#121114"
+      ]
+    },
+    {
+      "key": "emaki",
+      "type": "image-style",
+      "label": {
+        "en": "Emaki scroll",
+        "ru": "Свиток эмаки"
+      },
+      "family": "japan",
+      "description": "STYLE: Heian-era emaki narrative hand scroll in the yamato-e manner: a bird's-eye view into rooms with the roofs blown away, figures with simple line-and-hook faces, drifting bands of golden cloud dividing the scenes, soft mineral pigments on aged paper, the story unrolling from right to left.",
+      "when": "Story songs, court intrigue, love letters; several moments in one picture; cream grounds.",
+      "colours": [
+        "#D9B44A",
+        "#9B3B2E",
+        "#4F7A5A",
+        "#E8DCC4"
+      ]
+    },
+    {
+      "key": "yokai-scroll",
+      "type": "image-style",
+      "label": {
+        "en": "Yokai scroll",
+        "ru": "Свиток ёкаев"
+      },
+      "family": "japan",
+      "description": "STYLE: Edo-period yokai picture scroll, a night parade of a hundred demons: ink outlines with pale washes of colour, mischievous spirits, household objects come alive, long-necked ghosts and fox fires, playful and eerie at once, aged paper with stains and creases.",
+      "when": "Folk-horror, night and trickster songs; spirits, dreams, superstitions; cream and kraft grounds.",
+      "colours": [
+        "#2A2440",
+        "#7A1F2B",
+        "#6E8B74",
+        "#E3D5B5"
+      ]
+    },
+    {
+      "key": "showa-poster",
+      "type": "image-style",
+      "label": {
+        "en": "Showa film poster",
+        "ru": "Афиша Сёва"
+      },
+      "family": "japan",
+      "description": "STYLE: 1960s Japanese film poster of the Showa era: painted monster-movie or gangster-film key art, dramatic perspective, an explosive composition, saturated red and yellow with deep shadows, vintage offset printing with halftone dots, slight fading and paper creases.",
+      "when": "Big, cinematic, catastrophic or tough songs; a hero against a giant; mustard and paper grounds.",
+      "colours": [
+        "#D7262E",
+        "#F2C21B",
+        "#121114",
+        "#EFE4C8"
+      ]
+    },
+    {
+      "key": "city-pop",
+      "type": "image-style",
+      "label": {
+        "en": "City pop",
+        "ru": "Сити-поп"
+      },
+      "family": "japan",
+      "description": "STYLE: 1980s Japanese city-pop record sleeve illustration: clean airbrushed flat colour, a swimming pool, palm trees, a convertible or a seaside hotel under a cloudless sky, crisp hard shadows of a summer afternoon, pastel blue, pink and white, a glossy print finish, deliberately empty and nostalgic.",
+      "when": "Summer, nostalgia, night drives and light love songs; dusty rose and lavender grounds.",
+      "colours": [
+        "#4FB3E8",
+        "#F49AC1",
+        "#FDF6EC",
+        "#1E9E95"
+      ]
+    },
+    {
+      "key": "anime-backdrop",
+      "type": "image-style",
+      "label": {
+        "en": "Anime backdrop",
+        "ru": "Аниме-пейзаж"
+      },
+      "family": "japan",
+      "description": "STYLE: a hand-painted background of a classic Japanese animated feature: lush watercolour and gouache landscapes, towering cumulus clouds, meadows and old houses, soft afternoon light, a small cel-shaded hero with clean outlines against the painterly world, warm and tender.",
+      "when": "Gentle, nostalgic, childhood and summer songs; sage and cream grounds.",
+      "colours": [
+        "#6FA8DC",
+        "#7BAE5A",
+        "#F6E7C1",
+        "#D96C4A"
+      ]
+    },
+    {
+      "key": "shan-shui",
+      "type": "image-style",
+      "label": {
+        "en": "Shan shui ink",
+        "ru": "Шань-шуй"
+      },
+      "family": "china",
+      "description": "STYLE: Chinese shan shui ink landscape on silk: towering misty mountains, waterfalls, pines clinging to cliffs, tiny travellers and a pavilion, layered ink washes from deep black to pale grey, texture strokes on the rocks, soft blue-green mineral tints, generous empty mist, a tall hanging-scroll composition with one red seal.",
+      "when": "Epic, philosophical or wandering songs; a small person and a great world; paper and cream grounds.",
+      "colours": [
+        "#2B2B2B",
+        "#6F8F86",
+        "#F2EDE0",
+        "#B3202E"
+      ]
+    },
+    {
+      "key": "gongbi",
+      "type": "image-style",
+      "label": {
+        "en": "Gongbi silk painting",
+        "ru": "Гунби"
+      },
+      "family": "china",
+      "description": "STYLE: Chinese gongbi fine-brush painting on aged silk: meticulous hair-thin outlines, layer upon layer of translucent mineral colour, peonies, cranes and golden pheasants, figures in flowing robes, delicate and precise, a warm silk-toned ground with faint craquelure.",
+      "when": "Tender, courtly, love and beauty songs; one graceful figure among flowers; cream and dusty rose grounds.",
+      "colours": [
+        "#C2414B",
+        "#3F7D6E",
+        "#D9B44A",
+        "#E8D8B8"
+      ]
+    },
+    {
+      "key": "jianzhi",
+      "type": "image-style",
+      "label": {
+        "en": "Red paper-cut",
+        "ru": "Цзяньчжи"
+      },
+      "family": "china",
+      "description": "STYLE: Chinese jianzhi paper-cut: the whole scene cut from a single sheet of red paper, lace-like symmetrical patterns, crescent and sawtooth cuts, flowers, fish, birds and clouds interlocking with the hero, crisp edges casting a slight shadow on the ground behind.",
+      "when": "Festive, folk and good-luck songs; family, spring, the new year; paper and cream grounds.",
+      "colours": [
+        "#C8102E",
+        "#F4EEDF"
+      ]
+    },
+    {
+      "key": "nianhua",
+      "type": "image-style",
+      "label": {
+        "en": "New Year print",
+        "ru": "Няньхуа"
+      },
+      "family": "china",
+      "description": "STYLE: Chinese nianhua New Year woodblock print: bold black key lines, flat bright colours (peach pink, emerald, yellow, vermilion) printed slightly off register, chubby lucky children, door guardians, carp and lotus, a symmetrical festive composition with an ornate border.",
+      "when": "Joyful, folk or ironic songs about luck and wishes; mustard and paper grounds.",
+      "colours": [
+        "#E23B5A",
+        "#1E8F5A",
+        "#F2C21B",
+        "#121114"
+      ]
+    },
+    {
+      "key": "porcelain",
+      "type": "image-style",
+      "label": {
+        "en": "Blue-and-white porcelain",
+        "ru": "Сине-белый фарфор"
+      },
+      "family": "china",
+      "description": "STYLE: Ming blue-and-white porcelain painting: the scene painted in cobalt underglaze on glossy white porcelain, washes from deep to pale blue, scrolling lotus borders and cloud collars, fine lines slightly blurred by the glaze, a subtle curved sheen as if painted on a vase.",
+      "when": "Cool, delicate, fragile songs; memory and inheritance; paper and cobalt grounds.",
+      "colours": [
+        "#1F3F8F",
+        "#6C8CC7",
+        "#F7F7F2"
+      ]
+    },
+    {
+      "key": "dunhuang",
+      "type": "image-style",
+      "label": {
+        "en": "Dunhuang mural",
+        "ru": "Фрески Дуньхуана"
+      },
+      "family": "china",
+      "description": "STYLE: Dunhuang cave mural: flying celestial dancers with long ribbons, malachite green, lapis blue and ochre-red mineral pigments, faded and flaking plaster, darkened outlines, halos and floating flowers, weightless flight on an ancient wall.",
+      "when": "Songs of flight, freedom, dance and the sacred; terracotta and cream grounds.",
+      "colours": [
+        "#3E8C7A",
+        "#2E5E9E",
+        "#B8563A",
+        "#E3C892"
+      ]
+    },
+    {
+      "key": "shanghai-poster",
+      "type": "image-style",
+      "label": {
+        "en": "Shanghai calendar poster",
+        "ru": "Шанхайский плакат 30-х"
+      },
+      "family": "china",
+      "description": "STYLE: 1930s Shanghai calendar poster: a soft rubbed-charcoal and watercolour portrait, glamorous figures in qipao, Art Deco ornaments and frames, gentle pastel tones and rosy cheeks, a slightly faded commercial lithograph.",
+      "when": "Glamour, jazz, nostalgia and city romance songs; cream and dusty rose grounds.",
+      "colours": [
+        "#D98A8A",
+        "#5F8F8A",
+        "#E8D3A8",
+        "#2F3B4A"
+      ]
+    },
+    {
+      "key": "wuxia",
+      "type": "image-style",
+      "label": {
+        "en": "Wuxia painting",
+        "ru": "Уся"
+      },
+      "family": "china",
+      "description": "STYLE: modern wuxia digital painting in the guofeng manner: a swordsman or a wandering heroine in flowing robes mid-leap, bamboo forests, rain and mist, dynamic ink splashes blended with painterly realism, desaturated jade and ink-black with one vivid red.",
+      "when": "Duel, loyalty, exile and honour songs; fast movement; concrete and paper grounds.",
+      "colours": [
+        "#1C1E1D",
+        "#6F8F86",
+        "#DAD6CC",
+        "#B3202E"
+      ]
+    },
+    {
+      "key": "piying",
+      "type": "image-style",
+      "label": {
+        "en": "Shadow puppets",
+        "ru": "Теневой театр"
+      },
+      "family": "china",
+      "description": "STYLE: Chinese piying shadow-puppet theatre: flat jointed figures cut from translucent dyed leather, intricate perforated patterns, rich red, green and amber glowing through a backlit paper screen, thin control rods, warm lamp light around the edges.",
+      "when": "Fairy tales, legends and stories told at night; ink and oxblood grounds.",
+      "colours": [
+        "#B3202E",
+        "#2E7D4F",
+        "#E0A43A",
+        "#F3DFB0"
+      ]
+    },
+    {
+      "key": "mughal",
+      "type": "image-style",
+      "label": {
+        "en": "Mughal miniature",
+        "ru": "Могольская миниатюра"
+      },
+      "family": "india",
+      "description": "STYLE: Mughal court miniature painting: opaque watercolour and gold on burnished paper, exquisitely fine detail, figures in profile, palace terraces, gardens and hunting scenes in flattened perspective, an ornamental border of gold flowers on a coloured margin.",
+      "when": "Royal, romantic or story songs; a whole court in one picture; cream grounds.",
+      "colours": [
+        "#2E5E3E",
+        "#C9A227",
+        "#9B2D30",
+        "#E8DCC4"
+      ]
+    },
+    {
+      "key": "pahari",
+      "type": "image-style",
+      "label": {
+        "en": "Pahari miniature",
+        "ru": "Пахари"
+      },
+      "family": "india",
+      "description": "STYLE: Pahari (Kangra) miniature painting: lyrical lovers in a moonlit landscape, delicate graceful figures, soft rolling hills, flowering trees, lightning in monsoon clouds, cool greens and pale blues with touches of rose and gold, a red frame border.",
+      "when": "Love, waiting and monsoon songs; tender and longing; sage and cream grounds.",
+      "colours": [
+        "#6F9C6A",
+        "#A9C4D8",
+        "#D98A8A",
+        "#B3202E"
+      ]
+    },
+    {
+      "key": "madhubani",
+      "type": "image-style",
+      "label": {
+        "en": "Madhubani",
+        "ru": "Мадхубани"
+      },
+      "family": "india",
+      "description": "STYLE: Madhubani (Mithila) folk painting: double black outlines filled with fine parallel hatching, every gap packed with pattern, fish, peacocks, suns and trees of life, stylized figures with large eyes in profile, bright natural colours (turmeric yellow, red, indigo, green) on handmade paper, a patterned border.",
+      "when": "Festive, family, fertility and folk songs; mustard and paper grounds.",
+      "colours": [
+        "#E2A31B",
+        "#C8352E",
+        "#24406E",
+        "#2E7D4F"
+      ]
+    },
+    {
+      "key": "kalamkari",
+      "type": "image-style",
+      "label": {
+        "en": "Kalamkari",
+        "ru": "Каламкари"
+      },
+      "family": "india",
+      "description": "STYLE: Kalamkari hand-painted textile: pen-drawn black outlines on cotton, natural dyes of madder red, indigo and myrobalan yellow slightly bleeding into the cloth, dense floral borders, a tree of life and storytelling panels, the weave of the fabric visible.",
+      "when": "Epic, storytelling and earthy songs; kraft and cream grounds.",
+      "colours": [
+        "#8E2B1E",
+        "#2B3F6B",
+        "#C99A3A",
+        "#E8D8B8"
+      ]
+    },
+    {
+      "key": "gond",
+      "type": "image-style",
+      "label": {
+        "en": "Gond art",
+        "ru": "Гонд"
+      },
+      "family": "india",
+      "description": "STYLE: Gond tribal painting: animals, birds and trees built from dense patterns of dots, dashes and fine lines, bold flat silhouettes filled with intricate texture, vivid colours on a plain ground, a living spirit in every leaf.",
+      "when": "Songs of nature, animals, the forest and the soul of things; paper and terracotta grounds.",
+      "colours": [
+        "#E07A1F",
+        "#1E7F7A",
+        "#D7262E",
+        "#F2C21B"
+      ]
+    },
+    {
+      "key": "pattachitra",
+      "type": "image-style",
+      "label": {
+        "en": "Pattachitra",
+        "ru": "Паттачитра"
+      },
+      "family": "india",
+      "description": "STYLE: Pattachitra scroll painting from Odisha: crisp outlines on cloth, figures with large almond eyes, bold red, yellow and white on black, elaborate floral borders framing the scene, a lacquered finish with fine crackle.",
+      "when": "Myth, legend and dance songs; ink and oxblood grounds.",
+      "colours": [
+        "#C8352E",
+        "#F2C21B",
+        "#EFEBE3",
+        "#121114"
+      ]
+    },
+    {
+      "key": "tanjore",
+      "type": "image-style",
+      "label": {
+        "en": "Tanjore gold",
+        "ru": "Танджор"
+      },
+      "family": "india",
+      "description": "STYLE: Tanjore (Thanjavur) painting: rich flat colours, a figure framed by an arched ornamental niche, raised gesso relief covered in gold foil, embedded glass gems glinting, deep red and green, the look of a dark wooden frame.",
+      "when": "Solemn, ceremonial or grand songs; one central figure; oxblood and ink grounds.",
+      "colours": [
+        "#9B1B30",
+        "#1E5E3A",
+        "#D4AF37",
+        "#1A1410"
+      ]
+    },
+    {
+      "key": "bollywood-poster",
+      "type": "image-style",
+      "label": {
+        "en": "Bollywood poster",
+        "ru": "Болливуд-афиша"
+      },
+      "family": "india",
+      "description": "STYLE: hand-painted 1970s Bollywood film poster: a montage of huge emotional faces and small action scenes, painted in bold saturated gouache, hot pink, orange, turquoise and yellow, dramatic rim light, rough painted edges and slight print wear.",
+      "when": "Melodrama, passion and over-the-top songs; a love triangle or a revenge; mustard and acid grounds.",
+      "colours": [
+        "#E5397E",
+        "#F28C28",
+        "#1EB6B0",
+        "#F2D13B"
+      ]
+    },
+    {
+      "key": "truck-art",
+      "type": "image-style",
+      "label": {
+        "en": "Truck art",
+        "ru": "Трак-арт"
+      },
+      "family": "india",
+      "description": "STYLE: South Asian truck art: every surface covered in hand-painted ornament, peacocks, eyes, flowers and little landscapes, glossy enamel paint in blazing colours, reflective mirror and chrome trims, scalloped borders, chains and tassels, joyful excess.",
+      "when": "Road, celebration, luck and loud joyful songs; signal red and mustard grounds.",
+      "colours": [
+        "#E23B2E",
+        "#F2C21B",
+        "#1E9E95",
+        "#2446C4"
+      ]
+    },
+    {
+      "key": "persian-miniature",
+      "type": "image-style",
+      "label": {
+        "en": "Persian miniature",
+        "ru": "Персидская миниатюра"
+      },
+      "family": "orient",
+      "description": "STYLE: Persian manuscript miniature of the Safavid school: a jewel-like scene seen from above and from the front at once, tiled palaces, flowering gardens and golden skies, slender figures in turbans and patterned robes, lapis blue, turquoise, vermilion and gold, panels of illumination in the margins, opaque watercolour on burnished paper.",
+      "when": "Fairy tales, poems of love and longing, wise old stories; cream and midnight grounds.",
+      "colours": [
+        "#1F3F8F",
+        "#2BA8A0",
+        "#C8352E",
+        "#C9A227"
+      ]
+    },
+    {
+      "key": "arabian-nights",
+      "type": "image-style",
+      "label": {
+        "en": "Arabian Nights",
+        "ru": "Тысяча и одна ночь"
+      },
+      "family": "orient",
+      "description": "STYLE: golden-age fairy-tale illustration of the Arabian Nights in the manner of Edmund Dulac: a luminous night of deep blue and violet, glowing lamps, domes and minarets, flying carpets, a genie in smoke, rich jewel colours and gold, delicate watercolour with a soft glow, intricately patterned fabrics.",
+      "when": "Magic, wishes, treasure and night-time tales; midnight and ink grounds.",
+      "colours": [
+        "#1B2457",
+        "#4B2A7A",
+        "#D8A42B",
+        "#2BA8A0"
+      ]
+    },
+    {
+      "key": "ottoman-miniature",
+      "type": "image-style",
+      "label": {
+        "en": "Ottoman miniature",
+        "ru": "Османская миниатюра"
+      },
+      "family": "orient",
+      "description": "STYLE: Ottoman court miniature of the sixteenth-century workshops: flat bright colours, crowds and processions arranged in clear rows, tents, ships and city walls in map-like perspective, little stylized trees, gold outlines, plain coloured backgrounds without shadows.",
+      "when": "Songs about crowds, journeys, sieges and festivities; a story of many people; cream grounds.",
+      "colours": [
+        "#C8352E",
+        "#2E7D4F",
+        "#2446C4",
+        "#E8C46A"
+      ]
+    },
+    {
+      "key": "iznik",
+      "type": "image-style",
+      "label": {
+        "en": "Iznik tiles",
+        "ru": "Изник"
+      },
+      "family": "orient",
+      "description": "STYLE: Iznik ceramic tile painting: cobalt blue, turquoise and raised tomato red with emerald green on a brilliant white glaze, stylized tulips, carnations, hyacinths and saz leaves, symmetrical scrolling arabesques, the glossy surface and slight crazing of fired tiles.",
+      "when": "Bright, spring, garden and love songs; paper and cobalt grounds.",
+      "colours": [
+        "#1F3F8F",
+        "#2BA8A0",
+        "#C8352E",
+        "#F7F7F2"
+      ]
+    },
+    {
+      "key": "zellige",
+      "type": "image-style",
+      "label": {
+        "en": "Moorish geometry",
+        "ru": "Мавританский орнамент"
+      },
+      "family": "orient",
+      "description": "STYLE: Moorish geometric ornament of the Alhambra: endlessly interlacing star patterns in zellige mosaic tile, carved stucco honeycomb vaults, horseshoe arches framing the hero, cool courtyard light and reflections in water, emerald, ochre, cobalt and white.",
+      "when": "Songs of palaces, gardens, the geometry of fate, quiet splendour; terracotta and cream grounds.",
+      "colours": [
+        "#1E7F5A",
+        "#C99A3A",
+        "#2446C4",
+        "#F2EBDD"
+      ]
+    },
+    {
+      "key": "persian-carpet",
+      "type": "image-style",
+      "label": {
+        "en": "Persian carpet",
+        "ru": "Персидский ковёр"
+      },
+      "family": "orient",
+      "description": "STYLE: the scene woven into a Persian carpet: a central medallion, borders within borders, stylized flowers, birds and vines knotted in wool, madder red, indigo and ivory with saffron, visible knots and a soft pile, a fringe at the edges.",
+      "when": "Songs of home, heritage and patterns that repeat; oxblood and cream grounds.",
+      "colours": [
+        "#8E1B22",
+        "#233A6B",
+        "#EDE3CC",
+        "#D49A2A"
+      ]
+    },
+    {
+      "key": "suzani",
+      "type": "image-style",
+      "label": {
+        "en": "Suzani embroidery",
+        "ru": "Сюзане"
+      },
+      "family": "orient",
+      "description": "STYLE: Central Asian suzani embroidery: big round sun and moon medallions, pomegranates, tulips and vines stitched in silk on unbleached cotton, chain-stitch texture, crimson, plum, saffron and green, slightly irregular hand-drawn shapes.",
+      "when": "Warm, folk, wedding and dowry songs; Silk Road tales; cream and kraft grounds.",
+      "colours": [
+        "#A3202E",
+        "#5B2A5A",
+        "#D9A33A",
+        "#4F7A3A"
+      ]
+    },
+    {
+      "key": "qajar",
+      "type": "image-style",
+      "label": {
+        "en": "Qajar portrait",
+        "ru": "Каджарский портрет"
+      },
+      "family": "orient",
+      "description": "STYLE: Qajar-era Persian oil painting: languid figures with almond eyes and joined brows, rich brocades, pearls and roses, flat decorative backgrounds with arched windows, deep reds, black and gold, a slightly naive royal portrait.",
+      "when": "Love, beauty, vanity and portrait songs; oxblood and ink grounds.",
+      "colours": [
+        "#7A1220",
+        "#121114",
+        "#C9A227",
+        "#E8D3B0"
+      ]
+    },
+    {
+      "key": "bilibin",
+      "type": "image-style",
+      "label": {
+        "en": "Bilibin fairy tale",
+        "ru": "Сказка Билибина"
+      },
+      "family": "folk",
+      "description": "STYLE: Russian fairy-tale book illustration in the manner of Ivan Bilibin: clean black contour lines, flat watercolour fills, intricate folk-ornament borders framing the scene, carved wooden towers, birch forests, firebirds and bogatyrs, patterned kaftans and kokoshniks, stylized trees and clouds.",
+      "when": "Russian fairy tales, epics and folk-story songs; cream and paper grounds.",
+      "colours": [
+        "#B3202E",
+        "#2E5E3E",
+        "#D9A33A",
+        "#EDE3CC"
+      ]
+    },
+    {
+      "key": "khokhloma",
+      "type": "image-style",
+      "label": {
+        "en": "Khokhloma",
+        "ru": "Хохлома"
+      },
+      "family": "folk",
+      "description": "STYLE: Russian Khokhloma painting on lacquered wood: swirling grasses, rowan berries, strawberries and curling leaves in scarlet and gold on glossy black, fine brush flourishes, the warm metallic gleam of gold under lacquer.",
+      "when": "Folk, feast and bright songs with a dark heart; ink and oxblood grounds.",
+      "colours": [
+        "#121114",
+        "#C8102E",
+        "#D4A537",
+        "#2E5E3E"
+      ]
+    },
+    {
+      "key": "gzhel",
+      "type": "image-style",
+      "label": {
+        "en": "Gzhel",
+        "ru": "Гжель"
+      },
+      "family": "folk",
+      "description": "STYLE: Russian Gzhel porcelain painting: cobalt blue on white, bold single brushstrokes that shade from deep to pale within one stroke, big blue roses, scrolls and little scenes, a glossy glaze.",
+      "when": "Cold, clear, winter or tender songs; paper grounds.",
+      "colours": [
+        "#1E3FA0",
+        "#6E8BD6",
+        "#F7F7F2"
+      ]
+    },
+    {
+      "key": "petrykivka",
+      "type": "image-style",
+      "label": {
+        "en": "Petrykivka",
+        "ru": "Петриковская роспись"
+      },
+      "family": "folk",
+      "description": "STYLE: Ukrainian Petrykivka decorative painting: lush fantastic flowers, berries, wheat ears and firebirds painted with single curling brushstrokes and fingertip dots, bright red, orange, yellow and green on white or black, rhythmic and joyful.",
+      "when": "Spring, love and gardens; joyful folk songs; paper and ink grounds.",
+      "colours": [
+        "#D7262E",
+        "#F28C28",
+        "#F2C21B",
+        "#2E7D4F"
+      ]
+    },
+    {
+      "key": "wycinanki",
+      "type": "image-style",
+      "label": {
+        "en": "Wycinanki",
+        "ru": "Польская вырезанка"
+      },
+      "family": "folk",
+      "description": "STYLE: Polish wycinanki paper-cut in the Lowicz manner: layered cut-outs of bright coloured paper, symmetrical roosters, flowers and leaves, colour stacked on colour, crisp scissor edges, a flat and joyful folk composition.",
+      "when": "Folk-dance, village and celebration songs; ink and paper grounds.",
+      "colours": [
+        "#D7262E",
+        "#2E7D4F",
+        "#F2C21B",
+        "#2446C4"
+      ]
+    },
+    {
+      "key": "norse",
+      "type": "image-style",
+      "label": {
+        "en": "Viking carving",
+        "ru": "Скандинавская резьба"
+      },
+      "family": "folk",
+      "description": "STYLE: Viking-age Norse ornament in the Urnes and Ringerike manner: gripping beasts and serpents interlaced in long ribbon-like curves, carved in weathered wood and runestone, faded red and black pigment in the grooves, tight knotwork borders, an iron and amber accent.",
+      "when": "Saga, war, sea and northern songs; concrete and kraft grounds.",
+      "colours": [
+        "#4A3B2C",
+        "#9B2D20",
+        "#121114",
+        "#C98A2E"
+      ]
+    },
+    {
+      "key": "celtic",
+      "type": "image-style",
+      "label": {
+        "en": "Celtic illumination",
+        "ru": "Кельтская книжность"
+      },
+      "family": "folk",
+      "description": "STYLE: Insular Celtic illumination in the manner of the Book of Kells: endless knotwork, spirals and triskeles, interlaced beasts biting their own tails, stylized figures with large almond eyes and patterned robes, verdigris, orpiment yellow, lapis and red lead on calfskin vellum.",
+      "when": "Mystic, pagan, sea-crossing and old-island songs; cream grounds.",
+      "colours": [
+        "#2E7D6B",
+        "#E2B43A",
+        "#24406E",
+        "#B8563A"
+      ]
+    },
+    {
+      "key": "azulejo",
+      "type": "image-style",
+      "label": {
+        "en": "Azulejo",
+        "ru": "Азулежу"
+      },
+      "family": "folk",
+      "description": "STYLE: Portuguese azulejo tile panel: the scene painted in cobalt blue on glossy white tin-glazed tiles, the grid of square tiles with slightly uneven joints, baroque scroll frames around it, softly crackled glaze, a few chipped corners.",
+      "when": "Sea, city, saudade and memory songs; cobalt and paper grounds.",
+      "colours": [
+        "#1F4FA0",
+        "#8FA9D9",
+        "#F5F3EC"
+      ]
+    },
+    {
+      "key": "otomi",
+      "type": "image-style",
+      "label": {
+        "en": "Otomi embroidery",
+        "ru": "Вышивка отоми"
+      },
+      "family": "folk",
+      "description": "STYLE: Mexican Tenango (Otomi) embroidery: flat silhouettes of deer, roosters, rabbits, flowers and fantastic creatures in dense satin stitch on white cotton, one or several vivid colours (magenta, turquoise, orange), a naive symmetrical composition, the thread texture visible.",
+      "when": "Joyful, animal, fertile and folk songs; paper grounds.",
+      "colours": [
+        "#D6246E",
+        "#1EA5A0",
+        "#F28C28",
+        "#F5F2EA"
+      ]
+    },
+    {
+      "key": "calavera",
+      "type": "image-style",
+      "label": {
+        "en": "Calavera print",
+        "ru": "Калавера"
+      },
+      "family": "folk",
+      "description": "STYLE: Mexican calavera print in the manner of José Guadalupe Posada: dancing, elegantly dressed skeletons, bold black relief-etching lines, cross-hatched shading, a broadside on cheap paper, with marigold orange and magenta paper-banner accents.",
+      "when": "Songs that laugh at death, carnival and satire; paper and mustard grounds.",
+      "colours": [
+        "#121114",
+        "#F2A23A",
+        "#D6246E",
+        "#EFE4C8"
+      ]
+    },
+    {
+      "key": "alebrije",
+      "type": "image-style",
+      "label": {
+        "en": "Alebrije",
+        "ru": "Алебрихе"
+      },
+      "family": "folk",
+      "description": "STYLE: Oaxacan alebrije: a fantastic hybrid creature, part jaguar, part bird, part dragon, carved from wood and painted in neon patterns - dots, stripes, zigzags and flames in hot pink, lime, turquoise and orange, glossy and wildly detailed.",
+      "when": "Dream, spirit-guide and wild-imagination songs; ink and midnight grounds.",
+      "colours": [
+        "#FF2E8A",
+        "#A6E22E",
+        "#1ECBE1",
+        "#FF8A00"
+      ]
+    },
+    {
+      "key": "ndebele",
+      "type": "image-style",
+      "label": {
+        "en": "Ndebele painting",
+        "ru": "Ндебеле"
+      },
+      "family": "folk",
+      "description": "STYLE: South African Ndebele house painting: bold geometric patterns outlined in thick black, flat fields of bright blue, red, yellow and green on white, stepped shapes, chevrons and stylized architecture framing the hero, hand-painted with a slight wobble.",
+      "when": "Bright, proud and rhythmic songs; home, ancestry, identity; paper grounds.",
+      "colours": [
+        "#121114",
+        "#2446C4",
+        "#D7262E",
+        "#F2C21B"
+      ]
+    },
+    {
+      "key": "tingatinga",
+      "type": "image-style",
+      "label": {
+        "en": "Tingatinga",
+        "ru": "Тингатинга"
+      },
+      "family": "folk",
+      "description": "STYLE: Tanzanian Tingatinga painting: glossy enamel paint on board, animals and birds with exaggerated shapes and big eyes, dense decorative dots and stripes, saturated colours on a one-colour background, playful and naive.",
+      "when": "Animal, children's and joyful songs; acid and mustard grounds.",
+      "colours": [
+        "#F2C21B",
+        "#1E9E95",
+        "#E23B2E",
+        "#121114"
+      ]
+    },
+    {
+      "key": "minhwa",
+      "type": "image-style",
+      "label": {
+        "en": "Minhwa",
+        "ru": "Минхва"
+      },
+      "family": "folk",
+      "description": "STYLE: Korean minhwa folk painting: a grinning tiger and magpies under a pine, peonies and cranes, bookshelves in odd perspective, soft earthy mineral colours, humorous naive drawing on aged mulberry paper.",
+      "when": "Humorous, lucky and folk songs; wishes, protection, play; cream grounds.",
+      "colours": [
+        "#D9822B",
+        "#3F6E5A",
+        "#C2414B",
+        "#E8DCC4"
+      ]
+    },
+    {
+      "key": "wayang",
+      "type": "image-style",
+      "label": {
+        "en": "Wayang kulit",
+        "ru": "Ваянг"
+      },
+      "family": "folk",
+      "description": "STYLE: Javanese wayang kulit shadow puppets: elongated stylized figures with long noses and thin arms, intricately perforated buffalo-hide filigree painted gold, red and black, standing against a glowing screen beside a leaf-shaped tree of life.",
+      "when": "Epic, myth and night-tale songs; ink and midnight grounds.",
+      "colours": [
+        "#D4A537",
+        "#9B1B30",
+        "#121114",
+        "#F2C47A"
+      ]
+    },
+    {
+      "key": "thai-gold",
+      "type": "image-style",
+      "label": {
+        "en": "Thai gold painting",
+        "ru": "Тайская золотая роспись"
+      },
+      "family": "folk",
+      "description": "STYLE: Thai lai thai painting: graceful figures with curling fingers and flame-like crowns, flowing gold-leaf patterns of flames and vines, deep red and black grounds, zigzag mountain motifs, delicate gold outlines.",
+      "when": "Epic, ceremonial and dreamlike songs; oxblood and ink grounds.",
+      "colours": [
+        "#8E1B22",
+        "#121114",
+        "#D4AF37",
+        "#2E5E3E"
+      ]
+    },
+    {
+      "key": "egyptian",
+      "type": "image-style",
+      "label": {
+        "en": "Egyptian tomb painting",
+        "ru": "Египетская роспись"
+      },
+      "family": "ancient",
+      "description": "STYLE: Ancient Egyptian tomb wall painting: figures in strict profile with frontal eyes and shoulders, flat mineral colours (Egyptian blue, ochre, malachite green, carbon black) on plastered limestone, registers of scenes separated by bands, lotus, papyrus and sacred animals, fine cracks and faded areas, ornamental bands of hieroglyph-like signs that read as nothing.",
+      "when": "Songs of eternity, death, power and rite; terracotta and cream grounds.",
+      "colours": [
+        "#1F5FA8",
+        "#C98A2E",
+        "#3F8F6A",
+        "#E8D3A8"
+      ]
+    },
+    {
+      "key": "greek-vase",
+      "type": "image-style",
+      "label": {
+        "en": "Greek vase",
+        "ru": "Греческая ваза"
+      },
+      "family": "ancient",
+      "description": "STYLE: Ancient Greek red-figure vase painting: the figures left in the warm orange of the terracotta, fine black glaze lines for muscles and drapery, a gleaming black background, a meander border above and below, the slight curve of the vase's body.",
+      "when": "Myth, heroes, wine and tragedy songs; ink and terracotta grounds.",
+      "colours": [
+        "#C8622E",
+        "#121114",
+        "#E8B48A"
+      ]
+    },
+    {
+      "key": "pompeii",
+      "type": "image-style",
+      "label": {
+        "en": "Pompeian fresco",
+        "ru": "Помпейская фреска"
+      },
+      "family": "ancient",
+      "description": "STYLE: Roman Pompeian fresco: a scene on a wall of deep Pompeian red and black panels, painted columns and garlands, soft painterly figures, cracked and flaking plaster, faded edges, the warm patina of two thousand years.",
+      "when": "Feast, desire, ruin and last-days songs; oxblood grounds.",
+      "colours": [
+        "#9B2D20",
+        "#121114",
+        "#D9B44A",
+        "#E3D0B0"
+      ]
+    },
+    {
+      "key": "roman-mosaic",
+      "type": "image-style",
+      "label": {
+        "en": "Roman mosaic",
+        "ru": "Римская мозаика"
+      },
+      "family": "ancient",
+      "description": "STYLE: Roman floor mosaic: the scene built from small square stone tesserae in ochre, terracotta, black, cream and muted green, visible grout lines, guilloche and wave borders, slightly worn and uneven, figures with outlined shapes.",
+      "when": "Games, gods, the arena and ancient-world songs; cream and terracotta grounds.",
+      "colours": [
+        "#B8563A",
+        "#C9A45A",
+        "#121114",
+        "#E8DCC4"
+      ]
+    },
+    {
+      "key": "cave-art",
+      "type": "image-style",
+      "label": {
+        "en": "Cave painting",
+        "ru": "Наскальная живопись"
+      },
+      "family": "ancient",
+      "description": "STYLE: Palaeolithic cave painting: animals and hunters drawn in red ochre, charcoal and yellow earth on rough limestone, blown-pigment hand stencils, figures following the bulges of the rock, flickering firelight.",
+      "when": "Primal, ancestral, hunt and fire songs; kraft and terracotta grounds.",
+      "colours": [
+        "#A0442A",
+        "#2A2420",
+        "#C99A55",
+        "#D8C3A0"
+      ]
+    },
+    {
+      "key": "maya-codex",
+      "type": "image-style",
+      "label": {
+        "en": "Maya codex",
+        "ru": "Кодекс майя"
+      },
+      "family": "ancient",
+      "description": "STYLE: Maya codex painting on bark paper: figures in profile with elaborate feathered headdresses, thick red outlines, flat turquoise, ochre and black, ornamental glyph-like blocks that read as nothing, folding-screen page edges, a stucco-coated paper texture.",
+      "when": "Ritual, time, prophecy and sun songs; cream and terracotta grounds.",
+      "colours": [
+        "#B3202E",
+        "#2BA8A0",
+        "#D9A33A",
+        "#EAD9B5"
+      ]
+    },
+    {
+      "key": "scythian",
+      "type": "image-style",
+      "label": {
+        "en": "Scythian gold",
+        "ru": "Скифское золото"
+      },
+      "family": "ancient",
+      "description": "STYLE: Scythian animal-style goldwork: stags, griffins and panthers curled into tight twisting forms, hammered and chased gold relief with granulation, glowing against dark leather and felt, the weight and shine of ancient treasure.",
+      "when": "Steppe, nomad, warrior and treasure songs; ink and oxblood grounds.",
+      "colours": [
+        "#D4A537",
+        "#8A5A1E",
+        "#1A1410"
+      ]
+    },
+    {
+      "key": "claymation",
+      "type": "image-style",
+      "label": {
+        "en": "Claymation",
+        "ru": "Пластилин"
+      },
+      "family": "trend",
+      "description": "STYLE: stop-motion claymation: every figure and object sculpted from plasticine, visible fingerprints and tool marks, soft rounded forms, slightly imperfect proportions, a miniature handmade set lit with warm studio lights and soft shadows, shallow depth of field.",
+      "when": "Funny, tender, childlike or absurd songs; light grounds.",
+      "colours": [
+        "#F28C28",
+        "#4FA3D9",
+        "#F5D04A",
+        "#E86A6A"
+      ]
+    },
+    {
+      "key": "felt",
+      "type": "image-style",
+      "label": {
+        "en": "Needle felt",
+        "ru": "Валяние"
+      },
+      "family": "trend",
+      "description": "STYLE: needle-felted and knitted miniature: figures made of fuzzy wool with stray fibres, knitted stitches on clothes and landscapes, button eyes, a cosy handmade diorama in soft daylight, a macro photograph with shallow depth of field.",
+      "when": "Cosy, warm, winter and childhood songs; sage, cream and dusty rose grounds.",
+      "colours": [
+        "#D9A9A1",
+        "#A7B59B",
+        "#F2E3C6",
+        "#7A5C4A"
+      ]
+    },
+    {
+      "key": "paper-diorama",
+      "type": "image-style",
+      "label": {
+        "en": "Paper diorama",
+        "ru": "Бумажная диорама"
+      },
+      "family": "trend",
+      "description": "STYLE: layered paper-cut shadow box: the scene built from many layers of cut paper stacked in depth, each layer a shade lighter towards the back, soft shadows between the layers, light glowing from behind, crisp handmade edges.",
+      "when": "Dreamy, fairy-tale and night songs; depth, distance, layers of memory; midnight and lavender grounds.",
+      "colours": [
+        "#1B2457",
+        "#4B5FA8",
+        "#9FB3E0",
+        "#F2D7A0"
+      ]
+    },
+    {
+      "key": "risograph",
+      "type": "image-style",
+      "label": {
+        "en": "Risograph",
+        "ru": "Ризограф"
+      },
+      "family": "trend",
+      "description": "STYLE: risograph print: two or three bright spot inks (fluorescent pink, blue, yellow) overprinted with visible misregistration, grainy halftones, slightly uneven ink coverage and paper speckle, bold simplified shapes.",
+      "when": "Indie, zine-like and lightly ironic songs; paper and newsprint grounds.",
+      "colours": [
+        "#FF48B0",
+        "#0078BF",
+        "#FFE800",
+        "#F4F1EA"
+      ]
+    },
+    {
+      "key": "double-exposure",
+      "type": "image-style",
+      "label": {
+        "en": "Double exposure",
+        "ru": "Двойная экспозиция"
+      },
+      "family": "trend",
+      "description": "STYLE: double-exposure photograph: the silhouette of the hero filled with a second image - a forest, a city, a stormy sea - the two blended in soft monochrome with one tint, clean empty space around the silhouette, film grain.[ The one accent colour is {accent}.]",
+      "when": "Inner-world, memory and identity songs; paper and concrete grounds.",
+      "colours": [
+        "#2A292E",
+        "#9D9A94",
+        "#EFEBE3",
+        "#5F8F8A"
+      ]
+    },
+    {
+      "key": "film-35mm",
+      "type": "image-style",
+      "label": {
+        "en": "35 mm film",
+        "ru": "Плёнка 35 мм"
+      },
+      "family": "trend",
+      "description": "STYLE: candid 35 mm film photograph: warm natural colours of a portrait film stock, soft daylight, real film grain, slight halation around the highlights, imperfect framing, an honest snapshot with shallow depth of field and no date stamp.",
+      "when": "Honest, everyday, youth and friendship songs; any grounds.",
+      "colours": [
+        "#D9A26B",
+        "#6F8F86",
+        "#E8D3B5",
+        "#3A3530"
+      ]
+    },
+    {
+      "key": "frutiger-aero",
+      "type": "image-style",
+      "label": {
+        "en": "Frutiger Aero",
+        "ru": "Фрутигер-аэро"
+      },
+      "family": "trend",
+      "description": "STYLE: Frutiger Aero, the glossy optimism of the late 2000s: glassy bubbles, aqua water and bright green grass, blue skies with white clouds, translucent rounded shapes, lens flares, fish and butterflies, clean and shiny.",
+      "when": "Optimistic, nostalgic-tech and summer songs; cobalt and sage grounds.",
+      "colours": [
+        "#2FA8E0",
+        "#8BD346",
+        "#E9F7FF",
+        "#0F6FB8"
+      ]
+    },
+    {
+      "key": "ps1",
+      "type": "image-style",
+      "label": {
+        "en": "PS1 low-poly",
+        "ru": "Лоу-поли PS1"
+      },
+      "family": "trend",
+      "description": "STYLE: late-1990s console 3D graphics: low-polygon models, blurry low-resolution textures that warp and jitter, snapping vertices, a foggy draw distance, dithered colour and a CRT haze, eerie and nostalgic.",
+      "when": "Lonely, uncanny, nostalgic and game-like songs; asphalt and midnight grounds.",
+      "colours": [
+        "#3B4A5A",
+        "#8A9A6A",
+        "#C4B8A0",
+        "#1B1D24"
+      ]
+    },
+    {
+      "key": "dreamcore",
+      "type": "image-style",
+      "label": {
+        "en": "Dreamcore",
+        "ru": "Дримкор"
+      },
+      "family": "trend",
+      "description": "STYLE: dreamcore liminal photograph: an empty familiar place - a pool, a corridor, a playground, a field at dusk - in hazy pastel light, soft focus and blown highlights, one slightly wrong detail, nostalgic and uncanny like a half-remembered dream.",
+      "when": "Dream, nostalgia, anxiety and memory songs; lavender and dusty rose grounds.",
+      "colours": [
+        "#B7A8D6",
+        "#F2C6D6",
+        "#CFE8E0",
+        "#F7F1D8"
+      ]
+    },
+    {
+      "key": "inflated",
+      "type": "image-style",
+      "label": {
+        "en": "Inflated 3D",
+        "ru": "Надувной 3D"
+      },
+      "family": "trend",
+      "description": "STYLE: inflated 3D render: every form puffy and balloon-like, glossy soft plastic or vinyl, rounded seams, bright candy colours, soft studio light with gentle reflections, playful and tactile.",
+      "when": "Playful, pop and light songs; one object or one word as the hero; acid and dusty rose grounds.",
+      "colours": [
+        "#FF7AB6",
+        "#7A5CFF",
+        "#3AD1C8",
+        "#FFD23F"
+      ]
+    },
+    {
+      "key": "surreal-collage",
+      "type": "image-style",
+      "label": {
+        "en": "Surreal collage",
+        "ru": "Сюрреалистичный коллаж"
+      },
+      "family": "trend",
+      "description": "STYLE: surreal vintage collage: cut-outs from old engravings and photographs combined against scale - a giant hand, a moon in a teacup, a head opened like a box - clean scissor edges, aged paper tones with one flat modern block of colour, soft shadows under the cut-outs.",
+      "when": "Absurd, ironic and dreamlike songs; paper and cream grounds.",
+      "colours": [
+        "#E8DCC4",
+        "#2A292E",
+        "#E2553A",
+        "#6E8B74"
+      ]
+    },
+    {
+      "key": "bauhaus",
+      "type": "image-style",
+      "label": {
+        "en": "Bauhaus",
+        "ru": "Баухаус"
+      },
+      "family": "era",
+      "description": "STYLE: 1920s Bauhaus poster: the hero reduced to circles, squares and triangles, primary red, yellow and blue with black on off-white, a strict asymmetric balance, thick bars and lines, flat colour, a subtle letterpress texture.",
+      "when": "Rational, constructive and rhythmic songs; paper grounds.",
+      "colours": [
+        "#D7262E",
+        "#F2C21B",
+        "#2446C4",
+        "#121114"
+      ]
+    },
+    {
+      "key": "polish-poster",
+      "type": "image-style",
+      "label": {
+        "en": "Polish poster school",
+        "ru": "Польская школа плаката"
+      },
+      "family": "era",
+      "description": "STYLE: 1960s Polish School of Posters: a single bold painted metaphor - a face made of a landscape, a bird turned into a hand - loose expressive brushwork and collage, unexpected flat colour, a hand-painted feel, surreal wit, generous empty space.",
+      "when": "Theatrical, metaphorical and bittersweet songs; one strong idea; any grounds.",
+      "colours": [
+        "#D7262E",
+        "#121114",
+        "#F2C21B",
+        "#EFEBE3"
+      ]
+    },
+    {
+      "key": "psychedelic",
+      "type": "image-style",
+      "label": {
+        "en": "Psychedelic poster",
+        "ru": "Психоделический плакат"
+      },
+      "family": "era",
+      "description": "STYLE: 1960s psychedelic concert poster: swirling melting forms, vibrating complementary colours (orange on blue, magenta on green), Art Nouveau curves stretched to the limit, op-art patterns, a hand-drawn silkscreen look.",
+      "when": "Trip, love, festival and altered-state songs; acid and lavender grounds.",
+      "colours": [
+        "#FF8A00",
+        "#2446C4",
+        "#D6246E",
+        "#3BB143"
+      ]
+    },
+    {
+      "key": "soviet-mosaic",
+      "type": "image-style",
+      "label": {
+        "en": "Soviet mosaic",
+        "ru": "Советская мозаика"
+      },
+      "family": "era",
+      "description": "STYLE: 1960s-70s Soviet modernist mosaic panel: monumental stylized cosmonauts, scientists and workers built from smalt and stone tesserae, bold geometric planes, glinting gold and deep blue, the sunlit concrete wall of a public building.",
+      "when": "Space, labour and the future that did not come; grand and nostalgic songs; concrete grounds.",
+      "colours": [
+        "#1F3F8F",
+        "#D4A537",
+        "#C8352E",
+        "#9D9A94"
+      ]
+    },
+    {
+      "key": "park-poster",
+      "type": "image-style",
+      "label": {
+        "en": "National park poster",
+        "ru": "Плакат нацпарков"
+      },
+      "family": "era",
+      "description": "STYLE: 1930s national-park silkscreen poster: big simple shapes of mountains, lakes and forests, a few flat colours layered with soft gradients, warm sunset tones, strong silhouettes, crisp screen-printed edges.",
+      "when": "Road, nature, freedom and journey songs; cream and sage grounds.",
+      "colours": [
+        "#E07A1F",
+        "#2E5E5A",
+        "#F2C66A",
+        "#4B2A3A"
+      ]
+    },
+    {
+      "key": "synthwave",
+      "type": "image-style",
+      "label": {
+        "en": "Synthwave",
+        "ru": "Синтвейв"
+      },
+      "family": "era",
+      "description": "STYLE: 1980s synthwave and outrun: a chrome-and-neon night, a glowing striped sun sinking behind a magenta wireframe grid, palm silhouettes, a sports car or a lone figure, a purple-to-orange sky, scan lines and VHS glow.",
+      "when": "Night-drive, nostalgia and retro-future songs; midnight and ink grounds.",
+      "colours": [
+        "#FF2E8A",
+        "#7A2E8C",
+        "#1B1464",
+        "#FF8A00"
+      ]
+    },
+    {
+      "key": "vaporwave",
+      "type": "image-style",
+      "label": {
+        "en": "Vaporwave",
+        "ru": "Вейпорвейв"
+      },
+      "family": "era",
+      "description": "STYLE: vaporwave collage: classical marble busts, early-internet windows and gradients, checkerboard floors, palm trees and dolphins, pastel pink and teal, low-resolution 3D, glitched old operating-system dialogs, ironic and dreamy.",
+      "when": "Ironic, melancholic, consumer and internet-age songs; dusty rose and lavender grounds.",
+      "colours": [
+        "#FF9ED8",
+        "#7FE7E0",
+        "#9B7CFF",
+        "#F7F1F7"
+      ]
+    },
+    {
+      "key": "memphis",
+      "type": "image-style",
+      "label": {
+        "en": "Memphis design",
+        "ru": "Мемфис"
+      },
+      "family": "era",
+      "description": "STYLE: 1980s Memphis design: playful clashing geometry, squiggles, confetti dots, zigzags and terrazzo, bold primaries and pastels, flat shapes with black outlines and hard shadows.",
+      "when": "Party, playful and ironic pop songs; acid and dusty rose grounds.",
+      "colours": [
+        "#FF5FA2",
+        "#23C1E0",
+        "#FFD23F",
+        "#121114"
+      ]
+    },
+    {
+      "key": "film-noir",
+      "type": "image-style",
+      "label": {
+        "en": "Film noir",
+        "ru": "Нуар"
+      },
+      "family": "era",
+      "description": "STYLE: 1940s film-noir still: high-contrast black and white, hard key light through venetian blinds, long shadows, cigarette smoke, rain-slick streets, a figure in a fedora or a silk dress, grainy film.",
+      "when": "Crime, betrayal, night and fatal-love songs; ink and asphalt grounds.",
+      "colours": [
+        "#0E0D10",
+        "#5A5860",
+        "#E8E6E1"
+      ]
+    },
+    {
+      "key": "soviet-animation",
+      "type": "image-style",
+      "label": {
+        "en": "Soviet animation",
+        "ru": "Советская мультипликация"
+      },
+      "family": "era",
+      "description": "STYLE: 1970s Soviet animated film: hand-painted cels with soft gouache backgrounds, gentle round characters, cut-out paper textures, a muted warm palette, slight film grain and dust, tender and a little melancholic.",
+      "when": "Childhood, kindness, winter and fairy-tale songs; cream and sage grounds.",
+      "colours": [
+        "#D98A5A",
+        "#6F9C8A",
+        "#F2E3C6",
+        "#3A4A6A"
+      ]
+    },
+    {
+      "key": "fresco",
+      "type": "image-style",
+      "label": {
+        "en": "Renaissance fresco",
+        "ru": "Ренессансная фреска"
+      },
+      "family": "classic",
+      "description": "STYLE: Italian Renaissance fresco: calm idealized figures in ultramarine and rose robes, soft sfumato modelling, an architectural perspective with arches and a distant landscape, matte lime-plaster texture, gentle fading and fine cracks.",
+      "when": "Solemn, harmonious and timeless songs; cream grounds.",
+      "colours": [
+        "#2E4A8F",
+        "#C97A6A",
+        "#D9C29A",
+        "#8A9A7A"
+      ]
+    },
+    {
+      "key": "tapestry",
+      "type": "image-style",
+      "label": {
+        "en": "Medieval tapestry",
+        "ru": "Средневековый гобелен"
+      },
+      "family": "classic",
+      "description": "STYLE: medieval millefleur tapestry: figures and animals on a deep red or blue ground strewn with countless tiny flowers, woven wool and silk with visible threads, flattened perspective, faded natural dyes.",
+      "when": "Legends, courtly love and hunts; mysteries with a unicorn in them; oxblood and midnight grounds.",
+      "colours": [
+        "#8E1B22",
+        "#233A6B",
+        "#D9B44A",
+        "#4F7A3A"
+      ]
+    },
+    {
+      "key": "pre-raphaelite",
+      "type": "image-style",
+      "label": {
+        "en": "Pre-Raphaelite",
+        "ru": "Прерафаэлиты"
+      },
+      "family": "classic",
+      "description": "STYLE: Pre-Raphaelite oil painting: a romantic figure with flowing auburn hair in a medieval dress, jewel-bright colours, botanical precision in every flower and leaf, luminous skin, a dreamy literary moment from an old legend or a play.",
+      "when": "Tragic love, poetry and literary ballads; sage and oxblood grounds.",
+      "colours": [
+        "#2E5E3E",
+        "#A63A2A",
+        "#C9A45A",
+        "#E8D3B5"
+      ]
+    },
+    {
+      "key": "romanticism",
+      "type": "image-style",
+      "label": {
+        "en": "Romantic sublime",
+        "ru": "Романтизм"
+      },
+      "family": "classic",
+      "description": "STYLE: Romantic sublime oil painting in the manner of Caspar David Friedrich and Ivan Aivazovsky: a lone figure seen from behind before an immense sea, fog or mountains, a dramatic luminous sky, storm or moonlight, deep atmospheric perspective.",
+      "when": "Solitude, awe, storm and destiny songs; midnight and concrete grounds.",
+      "colours": [
+        "#2B3A55",
+        "#8FA3B8",
+        "#E6C68A",
+        "#1A1E26"
+      ]
+    },
+    {
+      "key": "vanitas",
+      "type": "image-style",
+      "label": {
+        "en": "Vanitas still life",
+        "ru": "Ванитас"
+      },
+      "family": "classic",
+      "description": "STYLE: Dutch Golden Age vanitas still life: a dark background and a single raking light, a skull, a snuffed candle, an hourglass, wilting flowers, a half-peeled lemon and a silver goblet, hyperreal oil textures, deep browns and blacks with glowing highlights.",
+      "when": "Songs about time, transience and death; ink and olive grounds.",
+      "colours": [
+        "#1A1410",
+        "#5E4630",
+        "#C9A45A",
+        "#E3D6B8"
+      ]
+    },
+    {
+      "key": "rococo",
+      "type": "image-style",
+      "label": {
+        "en": "Rococo",
+        "ru": "Рококо"
+      },
+      "family": "classic",
+      "description": "STYLE: Rococo painting in the manner of Fragonard: frothy pastel pinks, baby blues and creams, airy feathery brushwork, swings, gardens and silk gowns, gilded shell-shaped frames and flowers, flirtatious and light.",
+      "when": "Flirtation, frivolity and ironic-luxury songs; dusty rose and lavender grounds.",
+      "colours": [
+        "#F2C6C2",
+        "#A9C4DE",
+        "#F5EBD8",
+        "#C9A45A"
+      ]
+    },
+    {
+      "key": "storybook",
+      "type": "image-style",
+      "label": {
+        "en": "Storybook fairy tale",
+        "ru": "Книжная сказка"
+      },
+      "family": "classic",
+      "description": "STYLE: golden-age fairy-tale book illustration in the manner of Arthur Rackham: sepia ink lines with muted watercolour washes, gnarled trees with faces, goblins and fairies, twisting roots and mist, a slightly sinister enchantment.",
+      "when": "Fairy tales, forests and lullabies with a shadow in them; cream and kraft grounds.",
+      "colours": [
+        "#6B5A3E",
+        "#9AA27A",
+        "#D8C7A0",
+        "#3A2E26"
+      ]
+    },
+    {
       "key": "dry-brush",
       "type": "typography",
       "label": {
@@ -4112,6 +5615,412 @@
         "#EFEBE3"
       ],
       "sample": "font-family: 'JetBrains Mono'; font-size: 11px; letter-spacing: .08em"
+    },
+    {
+      "key": "sumi-brush",
+      "type": "typography",
+      "label": {
+        "en": "Japanese brush",
+        "ru": "Японская кисть"
+      },
+      "description": "TYPOGRAPHY: bold Japanese brush calligraphy shaped to the title's own letters: thick sumi-ink strokes with dry-brush tails and splashes, written in one breath, with a small square red seal stamp beside it[, in {ink}].",
+      "when": "Sumi-e, ukiyo-e and other Eastern styles; one or two words.",
+      "colours": [
+        "#F4F1EA"
+      ],
+      "sample": "font-family: 'Zen Kurenaido'; padding-right: 6px; border-right: 10px solid #B3202E"
+    },
+    {
+      "key": "manga-sfx",
+      "type": "typography",
+      "label": {
+        "en": "Manga sound effect",
+        "ru": "Манга-звук"
+      },
+      "description": "TYPOGRAPHY: hand-drawn manga sound-effect lettering: jagged heavy letters bursting outwards with speed lines, a white fill with a thick black outline over screentone dots, slanted for impact[, with a {accent} shadow].",
+      "when": "Anime, manga and fight styles; one loud word.",
+      "colours": [
+        "#D9D6CE"
+      ],
+      "sample": "font-family: 'Dela Gothic One'; color: #FFF; -webkit-text-stroke: 1.5px #121114; transform: skewX(-12deg) rotate(-4deg)"
+    },
+    {
+      "key": "meiji-label",
+      "type": "typography",
+      "label": {
+        "en": "Meiji label",
+        "ru": "Этикетка Мэйдзи"
+      },
+      "description": "TYPOGRAPHY: lettering of a Meiji-era Japanese label or matchbox: antique high-contrast serif letters in a neat cartouche between thin double rules, printed in vermilion and indigo on yellowed paper.",
+      "when": "Old-Japan, nostalgic and shop-sign styles; short titles.",
+      "colours": [
+        "#EFE4C8"
+      ],
+      "sample": "font-family: 'Zen Antique'; color: #24406E; border-top: 3px double #C8352E; border-bottom: 3px double #C8352E"
+    },
+    {
+      "key": "kaishu",
+      "type": "typography",
+      "label": {
+        "en": "Chinese brush",
+        "ru": "Китайская кисть"
+      },
+      "description": "TYPOGRAPHY: Chinese regular-script brush calligraphy shaped to the title's own letters: balanced firm strokes with pressed starts and lifted ends, black ink soaking into rice paper, one or two red seal stamps beside the title[, in {ink}].",
+      "when": "Shan shui, gongbi and porcelain styles; calm, wise titles.",
+      "colours": [
+        "#F2EDE0"
+      ],
+      "sample": "font-family: 'LXGW WenKai TC'; font-weight: 700; padding-right: 6px; border-right: 9px solid #B3202E"
+    },
+    {
+      "key": "spring-couplet",
+      "type": "typography",
+      "label": {
+        "en": "Spring couplet",
+        "ru": "Чуньлянь"
+      },
+      "description": "TYPOGRAPHY: gold calligraphy on a long strip of red paper like a Chinese spring couplet: shimmering gold-foil letters, a paper-cut ornament border, festive and symmetrical.",
+      "when": "Festive, lucky and new-year songs; paper-cut and New Year print styles.",
+      "colours": [
+        "#B3202E"
+      ],
+      "sample": "font-family: 'Cactus Classical Serif'; color: #E6B94A; letter-spacing: .1em"
+    },
+    {
+      "key": "seal-stamp",
+      "type": "typography",
+      "label": {
+        "en": "Seal stamp",
+        "ru": "Печать"
+      },
+      "description": "TYPOGRAPHY: the title carved into a square red seal stamp in an archaic seal-script manner: white letters cut into a solid vermilion square with chipped edges, stamped slightly unevenly with the ink's texture.",
+      "when": "Eastern styles; a signature, a name or a short title; light grounds.",
+      "colours": [
+        "#F2EDE0"
+      ],
+      "sample": "font-family: 'Cactus Classical Serif'; color: #F4EEDF; background: #B3202E; padding: 2px 10px; border-radius: 3px; box-shadow: inset 0 0 0 2px #F4EEDF"
+    },
+    {
+      "key": "bollywood-title",
+      "type": "typography",
+      "label": {
+        "en": "Bollywood title",
+        "ru": "Болливуд-титр"
+      },
+      "description": "TYPOGRAPHY: a hand-painted Bollywood film title: fat swashy 3D letters with a gradient fill from yellow to orange, a thick dark outline and a long drop shadow, sparkles and flourishes around them.",
+      "when": "Bollywood and truck-art styles; melodrama and joy.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Pattaya'; color: #F28C28; text-shadow: 2px 2px 0 #C2185B, 4px 4px 0 #121114"
+    },
+    {
+      "key": "headline-bar",
+      "type": "typography",
+      "label": {
+        "en": "Headline bar",
+        "ru": "Строка-широрекха"
+      },
+      "description": "TYPOGRAPHY: letters hanging from one continuous thick headline bar in the manner of Devanagari script, with curling tails and a calm rhythm, in saffron and deep red[, in {ink}].",
+      "when": "Indian styles; short, warm, sung titles.",
+      "colours": [
+        "#F4EEDF"
+      ],
+      "sample": "font-family: 'Kurale'; color: #8E1B22; border-top: 3px solid #E07A1F; line-height: 1.1"
+    },
+    {
+      "key": "arabesque",
+      "type": "typography",
+      "label": {
+        "en": "Arabesque",
+        "ru": "Арабеска"
+      },
+      "description": "TYPOGRAPHY: lettering inspired by Arabic calligraphy: flowing horizontal strokes, tall elegant verticals and sweeping curves, gold on deep blue, set inside an ornate pointed arch with arabesque scrolls[, in {ink}].",
+      "when": "Eastern-tale, Persian and Moorish styles; magic and night titles.",
+      "colours": [
+        "#16203A"
+      ],
+      "sample": "font-family: 'El Messiri'; font-weight: 700; color: #D8A42B; border: 2px solid #D8A42B; border-radius: 40px 40px 4px 4px; padding: 2px 12px"
+    },
+    {
+      "key": "storybook-gilt",
+      "type": "typography",
+      "label": {
+        "en": "Storybook gilt",
+        "ru": "Сказочная позолота"
+      },
+      "description": "TYPOGRAPHY: an old storybook title of the Arabian Nights: elegant high-contrast serif letters in burnished gold leaf, swirling flourishes, tiny stars and crescent moons between the words, a soft glow.",
+      "when": "Eastern tales, fairy tales and night songs; midnight and ink grounds.",
+      "colours": [
+        "#2B1B5A"
+      ],
+      "sample": "font-family: 'Viaoda Libre'; color: #E6B94A; text-shadow: 0 0 6px #D8A42B"
+    },
+    {
+      "key": "gemstone",
+      "type": "typography",
+      "label": {
+        "en": "Jewelled letters",
+        "ru": "Самоцветы"
+      },
+      "description": "TYPOGRAPHY: letters made of faceted gemstones - ruby, emerald, sapphire - set in gold claws and glinting with light, like treasure from a magic cave.",
+      "when": "Treasure, wealth and wishes; Eastern-tale and Indian styles.",
+      "colours": [
+        "#121114"
+      ],
+      "sample": "font-family: 'Rubik Gemstones'; color: #C2185B"
+    },
+    {
+      "key": "church-ustav",
+      "type": "typography",
+      "label": {
+        "en": "Church ustav",
+        "ru": "Церковный устав"
+      },
+      "description": "TYPOGRAPHY: Old Church Slavonic ustav letters, upright and solemn, in black iron-gall ink with a large cinnabar-red initial and small titlo marks above, as in a medieval Slavic manuscript[, in {ink}].",
+      "when": "Old-Russian, sacred and chronicle songs; cream and paper grounds.",
+      "colours": [
+        "#EFE4C8"
+      ],
+      "sample": "font-family: 'Ponomar'; color: #121114; border-left: 6px solid #B3202E; padding-left: 6px"
+    },
+    {
+      "key": "uncial",
+      "type": "typography",
+      "label": {
+        "en": "Insular uncial",
+        "ru": "Унциал"
+      },
+      "description": "TYPOGRAPHY: Insular uncial letters as in an Irish gospel book: rounded capitals with wedge-shaped serifs, a large knotwork initial ringed with red dots, dark ink on vellum[, in {ink}].",
+      "when": "Celtic, Norse and mystic styles; old-island titles.",
+      "colours": [
+        "#E8DCC4"
+      ],
+      "sample": "font-family: 'Cormorant Unicase'; font-weight: 700; color: #1F4A3A"
+    },
+    {
+      "key": "cartouche",
+      "type": "typography",
+      "label": {
+        "en": "Cartouche",
+        "ru": "Картуш"
+      },
+      "description": "TYPOGRAPHY: the title carved inside an ancient Egyptian cartouche: an elongated oval ring with a bar at one end, letters cut into sandstone and painted in Egyptian blue and ochre, a weathered surface.",
+      "when": "Egyptian and ancient styles; names and titles of power.",
+      "colours": [
+        "#E3C892"
+      ],
+      "sample": "font-family: 'Forum'; letter-spacing: .18em; color: #1F5FA8; border: 2px solid #8C5A1E; border-radius: 999px; padding: 0 14px"
+    },
+    {
+      "key": "runic",
+      "type": "typography",
+      "label": {
+        "en": "Runic carving",
+        "ru": "Рунная резьба"
+      },
+      "description": "TYPOGRAPHY: angular rune-like letters made of straight cuts only, carved into weathered wood or stone with red pigment rubbed into the grooves, set along a serpent band[, in {ink}].",
+      "when": "Norse, saga and northern styles.",
+      "colours": [
+        "#4A3B2C"
+      ],
+      "sample": "font-family: 'Tektur'; font-weight: 800; color: #E8DCC4; letter-spacing: .1em; text-transform: uppercase"
+    },
+    {
+      "key": "rotulo",
+      "type": "typography",
+      "label": {
+        "en": "Mexican sign painting",
+        "ru": "Мексиканская вывеска"
+      },
+      "description": "TYPOGRAPHY: hand-painted Mexican rotulo sign lettering: plump brush-script letters with bright shading and a contrasting outline, little stars and flourishes, painted on a wall in sunny colours.",
+      "when": "Mexican folk, calavera and alebrije styles; joyful street titles.",
+      "colours": [
+        "#F2C21B"
+      ],
+      "sample": "font-family: 'Pacifico'; color: #D6246E; text-shadow: 2px 2px 0 #1E9E95"
+    },
+    {
+      "key": "art-deco-type",
+      "type": "typography",
+      "label": {
+        "en": "Art Deco letters",
+        "ru": "Буквы ар-деко"
+      },
+      "description": "TYPOGRAPHY: Art Deco lettering: tall geometric capitals of thin and thick strokes, sunburst lines and stepped ornaments, in gold metal leaf.",
+      "when": "Art Deco, Shanghai and glamour styles; cities and nights.",
+      "colours": [
+        "#16203A"
+      ],
+      "sample": "font-family: 'Poiret One'; color: #C9A45A; letter-spacing: .14em; text-transform: uppercase"
+    },
+    {
+      "key": "playbill",
+      "type": "typography",
+      "label": {
+        "en": "Victorian playbill",
+        "ru": "Викторианская афиша"
+      },
+      "description": "TYPOGRAPHY: a Victorian playbill: the title in big condensed wood-type capitals between rules and ornaments, mixed with smaller ornate typefaces, letterpress ink on aged paper[, in {ink}].",
+      "when": "Theatre, circus, crime and old-city songs; paper and cream grounds.",
+      "colours": [
+        "#EFE4C8"
+      ],
+      "sample": "font-family: 'Old Standard TT'; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; border-top: 3px double #121114; border-bottom: 3px double #121114"
+    },
+    {
+      "key": "copperplate",
+      "type": "typography",
+      "label": {
+        "en": "Copperplate script",
+        "ru": "Копперплейт"
+      },
+      "description": "TYPOGRAPHY: elegant copperplate script written with a pointed nib: hairline upstrokes, swelling downstrokes, long looping flourishes, sepia ink on fine paper[, in {ink}].",
+      "when": "Letters, vows, romance and old-world songs; cream and dusty rose grounds.",
+      "colours": [
+        "#F4EEDF"
+      ],
+      "sample": "font-family: 'Great Vibes'; color: #4A2E1E"
+    },
+    {
+      "key": "bauhaus-type",
+      "type": "typography",
+      "label": {
+        "en": "Bauhaus letters",
+        "ru": "Буквы Баухауса"
+      },
+      "description": "TYPOGRAPHY: Bauhaus geometric lettering in lower case only: letters built from circles and straight lines, set with thick bars and a red circle, in primary colours[, in {ink}].",
+      "when": "Bauhaus, constructive and modern styles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Comfortaa'; font-weight: 700; text-transform: lowercase; color: #121114; border-bottom: 6px solid #D7262E"
+    },
+    {
+      "key": "thaw-modern",
+      "type": "typography",
+      "label": {
+        "en": "Sixties modernism",
+        "ru": "Оттепель"
+      },
+      "description": "TYPOGRAPHY: lettering of the 1960s Soviet thaw: clean rounded sans-serif letters as on a cinema, a cafe sign or a space-exhibition stand, with a light outline and a small star or orbit[, in {ink}].",
+      "when": "Space-age, Soviet mosaic and nostalgic styles.",
+      "colours": [
+        "#E8DCC4"
+      ],
+      "sample": "font-family: 'Prosto One'; color: #1E9E95; letter-spacing: .04em"
+    },
+    {
+      "key": "didone",
+      "type": "typography",
+      "label": {
+        "en": "Fashion Didone",
+        "ru": "Глянцевая антиква"
+      },
+      "description": "TYPOGRAPHY: a fashion-magazine masthead: huge high-contrast Didone capitals with hairline serifs, tightly set and partly hidden behind the hero's head[, in {ink}].",
+      "when": "Glamour, beauty and editorial songs; light grounds.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Oranienbaum'; text-transform: uppercase; letter-spacing: -.01em"
+    },
+    {
+      "key": "groovy",
+      "type": "typography",
+      "label": {
+        "en": "Groovy 70s",
+        "ru": "Грув 70-х"
+      },
+      "description": "TYPOGRAPHY: groovy 1970s lettering: fat rounded bouncing letters echoed by two or three outline stripes in orange, mustard and brown, slightly wavy.",
+      "when": "Funk, disco, sun and good-mood songs; mustard and cream grounds.",
+      "colours": [
+        "#F2E3C6"
+      ],
+      "sample": "font-family: 'Rubik Vinyl'; color: #C8552A"
+    },
+    {
+      "key": "psychedelic-type",
+      "type": "typography",
+      "label": {
+        "en": "Psychedelic letters",
+        "ru": "Психоделические буквы"
+      },
+      "description": "TYPOGRAPHY: 1960s psychedelic poster lettering: wobbly swelling letters stretched to fill the shape they sit in while staying readable, in vibrating complementary colours[, in {ink}][ against {accent}].",
+      "when": "Psychedelic, festival and trip songs.",
+      "colours": [
+        "#2446C4"
+      ],
+      "sample": "font-family: 'Kablammo'; color: #FF8A00"
+    },
+    {
+      "key": "inflated-type",
+      "type": "typography",
+      "label": {
+        "en": "Inflated letters",
+        "ru": "Надувные буквы"
+      },
+      "description": "TYPOGRAPHY: puffy inflated 3D letters like balloons or vinyl toys, glossy highlights, soft rounded seams, candy colours[, in {ink}].",
+      "when": "Inflated, pop and playful styles; one short word.",
+      "colours": [
+        "#F7E1EC"
+      ],
+      "sample": "font-family: 'Rubik Bubbles'; color: #7A5CFF"
+    },
+    {
+      "key": "outrun",
+      "type": "typography",
+      "label": {
+        "en": "Outrun chrome",
+        "ru": "Аутран"
+      },
+      "description": "TYPOGRAPHY: a 1980s outrun title: a chrome italic word with a sunset gradient from yellow to magenta and horizontal scan stripes, a glowing neon script word overlapping it, against the night.",
+      "when": "Synthwave, night-drive and retro-future styles; dark grounds.",
+      "colours": [
+        "#1B1464"
+      ],
+      "sample": "font-family: 'Rubik 80s Fade'; color: #FF8A00; text-shadow: 0 0 8px #FF2E8A"
+    },
+    {
+      "key": "doodle",
+      "type": "typography",
+      "label": {
+        "en": "Doodle letters",
+        "ru": "Каракули"
+      },
+      "description": "TYPOGRAPHY: playful letters doodled by hand with a ballpoint or a felt pen, an offset shadow, little stars, hearts and squiggles around them[, in {ink}].",
+      "when": "Childhood, school, diary and funny songs.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Rubik Doodle Shadow'; color: #2446C4"
+    },
+    {
+      "key": "chalk",
+      "type": "typography",
+      "label": {
+        "en": "Chalkboard",
+        "ru": "Мел на доске"
+      },
+      "description": "TYPOGRAPHY: hand-lettered chalk on a blackboard: condensed capitals with chalk dust and smudges, small hand-drawn underlines and arrows, like a cafe menu board[, in {ink}].",
+      "when": "Cosy, everyday and school songs; dark grounds.",
+      "colours": [
+        "#2F3B33"
+      ],
+      "sample": "font-family: 'Amatic SC'; font-weight: 700; color: #F4F1EA; letter-spacing: .04em"
+    },
+    {
+      "key": "floral",
+      "type": "typography",
+      "label": {
+        "en": "Floral letters",
+        "ru": "Цветочные буквы"
+      },
+      "description": "TYPOGRAPHY: letters entwined with flowering vines, leaves and small blossoms growing out of the strokes, delicate and romantic[, in {ink}][ with {accent} flowers].",
+      "when": "Spring, love, garden and cottage songs; sage and dusty rose grounds.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Bellota'; font-weight: 700; color: #8E3B5A"
     },
     {
       "key": "clean",

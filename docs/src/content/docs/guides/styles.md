@@ -68,10 +68,16 @@ not a style: it lives on the **Channel** card of the
 
 ## The starter set
 
-A new workspace does not open on an empty dictionary. Studio ships ninety
-styles - image styles in five families, typography with live samples,
-dressings and backgrounds - with names in English and Russian and
-descriptions in English, the language a prompt is written in.
+A new workspace does not open on an empty dictionary. Studio ships two
+hundred and five styles - image styles in twelve families, typography with
+live samples, dressings and backgrounds - with names in English and Russian
+and descriptions in English, the language a prompt is written in. The
+families run from tattoo and the old masters through the street, the digital
+and the eras to Japan, China, India, Eastern tales, world folk, antiquity
+and what is in fashion now.
+
+A newer kilna may bring more of them. They reach a workspace that already
+exists at the next start, and so do the families they are filed under.
 
 They are yours from the start: edit, retire or delete them. Each card says
 where its style came from:
