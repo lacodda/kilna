@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.91.0] - 2026-10-07
+
+### Features
+- Draw the tree of versions and the history on one axis
+
 ## [0.90.3] - 2026-10-07
 
 ### Features
