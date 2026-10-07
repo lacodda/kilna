@@ -212,7 +212,7 @@ export interface SoonSpec {
 }
 
 /** Screens promised by the plan, drawn as dimmed doors in the rail. */
-export const SOON: readonly SoonSpec[] = [{ nav: 'nav.collections', icon: Disc, version: '0.91' }]
+export const SOON: readonly SoonSpec[] = [{ nav: 'nav.collections', icon: Disc, version: '0.92' }]
 
 /** The screens this build draws: development ones only in development. */
 export const drawn = (dev: boolean): readonly ScreenSpec[] =>

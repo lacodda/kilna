@@ -23,10 +23,10 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 
 /** Commands with no caller yet, each with the version whose screen calls it. */
 const AWAITING: Record<string, { version: string; screen: string }> = {
-  create_collection: { version: '0.91.0', screen: 'the collections screen' },
-  delete_collection: { version: '0.91.0', screen: 'the collections screen' },
-  set_collection_contents: { version: '0.91.0', screen: 'the collections screen' },
-  update_collection: { version: '0.91.0', screen: 'the collections screen' },
+  create_collection: { version: '0.92.0', screen: 'the collections screen' },
+  delete_collection: { version: '0.92.0', screen: 'the collections screen' },
+  set_collection_contents: { version: '0.92.0', screen: 'the collections screen' },
+  update_collection: { version: '0.92.0', screen: 'the collections screen' },
 }
 
 function* files(dir: string, extension: RegExp): Generator<string> {
