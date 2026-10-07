@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.91.1] - 2026-10-07
+
+### Bug Fixes
+- Promise the collections screen to v0.92
+
 ## [0.91.0] - 2026-10-07
 
 ### Features
