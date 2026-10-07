@@ -1,6 +1,6 @@
 ---
 title: History
-description: The record kilna keeps of what you did — the feed, the bell, a work's own history, and what gets swept away.
+description: The record kilna keeps of what you did — the feed, the bell, a work's history on one axis, and what gets swept away.
 ---
 
 kilna writes down what happens to your work. Adding a work, renaming one,
@@ -66,11 +66,33 @@ line instead of adding another. The line moves to the top with a count under
 it — `3 times` — so a recurring problem reads as one recurring problem rather
 than filling the feed with copies of itself.
 
-## A work's own history
+## A work's history on one axis
 
-Every work's card has a **History** tab: the same lines, filtered to that work.
-Deleting a score or a version of it appears there too, because what was taken
-out of a work is part of that work's story.
+Every work's card has a **History** tab: the whole story of that work on one
+axis, latest first. When it was begun; every version, and the one it was
+written from (`Lyrics v4 · from v2`); every score and the version it read;
+every publication made from it — the clip, the audio, a short — and the day
+each went out, or is booked to. What is booked for a day after today stands
+above today, under **Ahead**. The days are headed where you are: an evening
+in another time zone falls on the day you lived it.
+
+The axis is read off the work itself — its versions, its scores, its
+releases — not off this feed. That matters twice. A work brought into kilna
+from elsewhere arrives with its versions and scores and not one line about
+them, and its axis is whole anyway. And a line of the feed you have read is
+swept a week later (below), while a version is kept as long as the work is.
+
+The feed adds what the work itself does not remember: a rename, a status that
+moved, scenes put on the board, a proposal that arrived, a score or a version
+deleted — what was taken out of a work is part of its story too. A line the
+work already says — *version saved*, *scored*, *went out* — is shown once,
+from the work.
+
+Every moment leads to where it can be read whole: a version opens on the
+Versions tab, a score on the Score tab, a publication on its own card. The
+chips at the top take versions, scores, releases or the feed's lines off the
+axis and back; the beginning stays. The overview's **Recent** widget shows
+the latest of the same moments.
 
 Entries survive what they describe. A line about a work you later deleted still
 names it — the title is copied into the entry when it is written, not looked up

@@ -70,6 +70,7 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::actions::BulkOutcome,
         kilna_lib::score::ScoredWork,
         kilna_lib::card::Counts,
+        kilna_lib::work::timeline::Moment,
         kilna_lib::clone::Cloned,
         // versions.rs
         kilna_lib::work::version::VersionSummary,

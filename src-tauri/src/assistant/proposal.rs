@@ -44,6 +44,11 @@ pub enum Proposal {
         role: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         label: Option<String>,
+        /// The version the text was written from, when the agent rewrote one
+        /// (ADR 0055): kept as the new version's parent if it is still a
+        /// version of the work in the role the text lands in.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        from: Option<String>,
     },
     /// A note, on the chat's work or on nothing in particular; the body is
     /// the message body. Made by an agent outside the window.
@@ -248,6 +253,10 @@ pub struct PackagedVersion {
     pub body: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
+    /// The version of the work this text was written from, as on a single
+    /// version proposal (ADR 0055).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from: Option<String>,
 }
 
 /// A release inside a package: the kind it ships as, when, and what it says
@@ -1385,6 +1394,7 @@ mod tests {
                 role: "lyrics".into(),
                 body: "one line".into(),
                 label: None,
+                from: None,
             }],
             score: None,
             notes: Vec::new(),

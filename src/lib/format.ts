@@ -138,6 +138,14 @@ export function formatMoment(timestamp: string, language = current(), now = new 
     : formatDay(timestamp, language, now)
 }
 
+/** The time of day of a timestamp, where the window is: "14:12". For a line
+ *  under a heading that already says the day. */
+export function formatTime(timestamp: string, language = current()): string {
+  const at = new Date(timestamp)
+  if (Number.isNaN(at.getTime())) return timestamp
+  return dates(language, { hour: '2-digit', minute: '2-digit' }).format(at)
+}
+
 /** "today" and "yesterday" in each language, which `Intl` already knows. */
 const relatives = new Map<string, Intl.RelativeTimeFormat>()
 

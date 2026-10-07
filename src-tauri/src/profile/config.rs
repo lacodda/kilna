@@ -1881,6 +1881,14 @@ pub struct VersionRole {
     /// prompt, a plot, a review are not. Absent is not sung.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub sung: bool,
+    /// The text a version written from nothing in this role starts from
+    /// (v0.91): a lyric's parts in the markers its generator reads, a
+    /// chapter's plan and draft. The craft knows how its texts are laid out;
+    /// the code does not (ADR 0001). A word or a map per locale, like a
+    /// label - a lyric's markers stay in the language the generator reads,
+    /// whatever the window says. Absent, a new version starts empty.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skeleton: Option<Label>,
 }
 
 /// The two ways a body is read. See [`VersionRole::body`].
@@ -1895,6 +1903,7 @@ impl VersionRole {
             body: None,
             counts_as_version: None,
             sung: false,
+            skeleton: None,
         }
     }
 
@@ -3249,6 +3258,7 @@ mod tests {
             body: None,
             counts_as_version: None,
             sung: false,
+            skeleton: None,
         });
         config.rhythm = Some(Rhythm {
             every_days: 0,

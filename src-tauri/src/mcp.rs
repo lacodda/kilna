@@ -254,7 +254,8 @@ fn tools() -> Vec<Value> {
         tool(
             "work",
             "One work as its card shows it: the fields and meta, tags, every version by role \
-             (id, revision, label, length, which is current), the latest score with its axes, \
+             (id, revision, label, length, which is current, `parent` - the id of the version \
+             it was written from, when that is known), the latest score with its axes, \
              the releases, how many notes and scenes, the cover (the prompt written from its \
              concept - picture, negative and, when the title goes apart, typography - with the \
              concept itself), the frame (for a kind that plays under one: the still, built from \
@@ -403,6 +404,7 @@ fn tools() -> Vec<Value> {
                         "role": text_arg("The version role key, as `workspace` lists them"),
                         "body": text_arg("The whole text of the version"),
                         "label": text_arg("A short name for the version, optional"),
+                        "from": text_arg("The id of the work's version in the same role this text rewrites, optional; it becomes the new version's parent"),
                     }, "required": ["role", "body"] },
                 },
                 "score": {
@@ -559,6 +561,7 @@ fn tools() -> Vec<Value> {
                 "role": text_arg("The version role key, as `workspace` lists them"),
                 "body": text_arg("The whole text of the proposed version, exactly as it should be stored"),
                 "label": text_arg("A short name for the version, optional"),
+                "from": text_arg("The id of the version in the same role this text rewrites, as `work` lists them, optional; it becomes the new version's parent, so the history shows what it came from"),
                 "note": text_arg("One or two sentences on what changed and why, optional"),
             }),
             &["work", "role", "body"],
@@ -876,6 +879,7 @@ pub fn run_tool(
                 by_role.entry(v.role.clone()).or_default().push(json!({
                     "id": v.id, "revision": v.revision, "label": v.label, "length": v.length,
                     "is_current": v.is_current, "created_at": v.created_at,
+                    "parent": v.parent_version_id,
                 }));
             }
             let latest = score::latest(conn, &found.id)?;
@@ -1208,9 +1212,16 @@ pub fn run_tool(
                     .param("kind", found.kind.clone()));
             }
             let body = required(args, "body")?;
+            // The version rewritten, said now rather than lost at apply time:
+            // lineage stays inside a work and a role (ADR 0055).
+            let from = arg(args, "from").map(str::to_owned);
+            if let Some(from) = &from {
+                version::check_line(conn, &found.id, role, from)?;
+            }
             let proposal = Proposal::Version {
                 role: role.to_owned(),
                 label: arg(args, "label").map(str::to_owned),
+                from,
             };
             deliver(
                 conn,
@@ -1333,10 +1344,24 @@ pub fn run_tool(
                         .param("role", role)
                         .param("kind", kind.clone()));
                 }
+                // Only a work that exists has versions to have been written
+                // from; a new work's text is written from nothing.
+                let from = arg(&item, "from").map(str::to_owned);
+                if let Some(from) = &from {
+                    match &found {
+                        Some(work) => version::check_line(conn, &work.id, role, from)?,
+                        None => {
+                            return Err(Error::refused("version.parentNotSameRole")
+                                .param("parent", from.clone())
+                                .param("role", role));
+                        }
+                    }
+                }
                 versions.push(PackagedVersion {
                     role: role.to_owned(),
                     body: required(&item, "body")?.to_owned(),
                     label: arg(&item, "label").map(str::to_owned),
+                    from,
                 });
             }
 
@@ -2730,6 +2755,50 @@ mod tests {
         assert_eq!(message.meta["proposal"]["role"], "lyrics");
         assert_eq!(message.meta["note"], "added a third");
         assert_eq!(message.meta["source"], "mcp");
+    }
+
+    /// The version an agent says it rewrote travels with the proposal, and
+    /// the work's card names each version's parent; a version of another
+    /// role is refused now, in words, rather than dropped at apply time.
+    #[test]
+    fn a_proposed_version_names_what_it_was_written_from() {
+        let (conn, work_id) = workspace();
+        let lyric = version::latest(&conn, &work_id, "lyrics")
+            .unwrap()
+            .unwrap()
+            .id;
+
+        run_tool(
+            &conn,
+            &claude(),
+            "propose_version",
+            &args(json!({ "work": work_id, "role": "lyrics", "body": "sharper", "from": lyric })),
+        )
+        .unwrap();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let chats = assistant::summaries(&conn, &profile_id, Some(&work_id)).unwrap();
+        let transcript = assistant::transcript(&conn, &chats[0].id).unwrap().unwrap();
+        assert_eq!(
+            transcript.messages[0].meta["proposal"]["from"],
+            lyric.as_str()
+        );
+
+        let refused = run_tool(
+            &conn,
+            &claude(),
+            "propose_version",
+            &args(json!({ "work": work_id, "role": "style", "body": "warm", "from": lyric })),
+        )
+        .unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("version.parentNotSameRole"),
+            "{refused}"
+        );
+
+        let card = run_tool(&conn, &claude(), "work", &args(json!({ "work": work_id }))).unwrap();
+        let card: Value = serde_json::from_str(&card).unwrap();
+        assert!(card["versions"]["lyrics"][0]["parent"].is_null());
     }
 
     #[test]

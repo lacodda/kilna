@@ -53,7 +53,7 @@
       { "key": "roundup", "label": "Roundup" }
     ],
     "version_roles": [
-      { "key": "draft", "label": "Draft", "body": "markdown" },
+      { "key": "draft", "label": "Draft", "body": "markdown", "skeleton": "## Hook\n\n\n## The point\n\n\n## Takeaway\n\n" },
       { "key": "angle", "label": "Angle", "body": "plain" }
     ],
     "statuses": [

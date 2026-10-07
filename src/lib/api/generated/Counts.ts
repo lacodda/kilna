@@ -39,6 +39,7 @@ cuts: number,
  */
 cut_from: number, 
 /**
- * Lines of the work's own history, as many as its tab shows.
+ * Moments on the work's axis, as its History tab lists them, its
+ * beginning aside (`work::timeline::count`).
  */
 history: number, };

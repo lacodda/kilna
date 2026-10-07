@@ -143,7 +143,7 @@
       { "key": "miniseries", "label": "Miniseries" }
     ],
     "version_roles": [
-      { "key": "script", "label": "Script", "body": "plain" },
+      { "key": "script", "label": "Script", "body": "plain", "skeleton": "[Cold open]\n\n[Intro]\n\n[Segment 1]\n\n[Segment 2]\n\n[Outro]\n" },
       { "key": "notes", "label": "Show notes", "body": "markdown" },
       { "key": "outline", "label": "Research outline", "body": "markdown" }
     ],

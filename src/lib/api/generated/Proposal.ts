@@ -28,7 +28,13 @@ note?: string | null,
  * the profile the answer skipped. Shown rather than hidden: a
  * proposal that only half fits is worth applying, but not silently.
  */
-unknown?: Array<string>, missing?: Array<string>, } | { "kind": "version", role: string, label?: string | null, } | { "kind": "note", title?: string | null, } | { "kind": "work", title?: string | null, 
+unknown?: Array<string>, missing?: Array<string>, } | { "kind": "version", role: string, label?: string | null, 
+/**
+ * The version the text was written from, when the agent rewrote one
+ * (ADR 0055): kept as the new version's parent if it is still a
+ * version of the work in the role the text lands in.
+ */
+from?: string | null, } | { "kind": "note", title?: string | null, } | { "kind": "work", title?: string | null, 
 /**
  * The kind of the new work. Not `kind`: that name is the tag that
  * says which variant this is.

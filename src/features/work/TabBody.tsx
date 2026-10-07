@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react'
 import type { Work } from '@/lib/api/types'
 import type { Tab } from '@/features/work/tabs'
-import { WorkHistory } from '@/features/journal/JournalFeed'
 import { AssistantPanel } from '@/features/work/tabs/assistant/AssistantPanel'
 import { CommentsPanel } from '@/features/work/tabs/comments/CommentsPanel'
 import { CoverTab } from '@/features/work/tabs/cover/CoverTab'
 import { CutsTab } from '@/features/work/tabs/cuts/CutsTab'
 import { FilesTab } from '@/features/work/tabs/files/FilesTab'
 import { FrameTab } from '@/features/work/tabs/frame/FrameTab'
+import { HistoryTab } from '@/features/work/tabs/history/HistoryTab'
 import { LinksTab } from '@/features/work/tabs/links/LinksTab'
 import { NotePanel } from '@/features/work/tabs/notes/NotePanel'
 import { OverviewTab } from '@/features/work/tabs/overview/OverviewTab'
@@ -44,7 +44,8 @@ const BODIES: Readonly<Record<Tab, (props: Props) => ReactNode>> = {
   // The work's own conversation. The drawer from the window's bar holds every
   // chat; this tab holds this work's, as the mockup draws it (#p-asst).
   assistant: ({ workId }) => <AssistantPanel workId={workId} />,
-  history: ({ workId }) => <WorkHistory workId={workId} />,
+  // The work's history on one axis (ADR 0056).
+  history: ({ workId }) => <HistoryTab workId={workId} />,
 }
 
 /** The one tab that is open. Everything else is not mounted at all. */

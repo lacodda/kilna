@@ -13,6 +13,9 @@ interface Options {
   role: string
   /** The version the draft became. */
   onSaved: (version: Version) => void
+  /** What a version written from nothing in this role starts from: the
+   *  role's skeleton in the profile (v0.91), or nothing. */
+  skeleton?: string
 }
 
 /**
@@ -28,21 +31,27 @@ interface Options {
  * the window (`lib/drafts`): putting the form away, opening another version
  * or switching roles loses nothing, and the form comes back with the text.
  */
-export function useVersionDraft({ workId, role, onSaved }: Options) {
+export function useVersionDraft({ workId, role, onSaved, skeleton = '' }: Options) {
   const { t } = useTranslation()
 
   const [composing, setComposing] = useState(false)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
-  const draft = drafts[role] ?? readDraft(workId, role)
+  // The version the draft was copied from, when it was; recorded on the saved
+  // version as its parent, and shown beside the draft while it is written.
+  const [derivedFrom, setDerivedFrom] = useState<string | null>(null)
+  const typed = drafts[role] ?? readDraft(workId, role)
+  // A version from nothing starts from the role's skeleton - a lyric's parts,
+  // a chapter's plan - until something is typed. Not kept as a draft until it
+  // is changed: an untouched skeleton is the form, not the person's words,
+  // and clearing it leaves it cleared rather than bringing it back.
+  const fromSkeleton = drafts[role] === undefined && typed === '' && derivedFrom === null
+  const draft = fromSkeleton ? skeleton : typed
   const setDraftOf = (key: string, body: string) => {
     setDrafts((all) => ({ ...all, [key]: body }))
     writeDraft(workId, key, body)
   }
   const [label, setLabel] = useState('')
   const [makeCurrent, setMakeCurrent] = useState(true)
-  // The version the draft was copied from, when it was; recorded on the saved
-  // version as its parent, and shown beside the draft while it is written.
-  const [derivedFrom, setDerivedFrom] = useState<string | null>(null)
 
   const save = useAppMutation({
     mutationFn: () =>
@@ -75,14 +84,20 @@ export function useVersionDraft({ workId, role, onSaved }: Options) {
     makeCurrent,
     setMakeCurrent,
     derivedFrom,
+    /** Whether what the form shows is the role's skeleton, untouched. */
+    fromSkeleton: fromSkeleton && skeleton !== '',
     saving: save.isPending,
     save: () => {
       if (draft.trim() !== '') save.mutate()
     },
 
-    /** A version from nothing: the form, with whatever was kept. */
+    /** A version from nothing: the form, with whatever was kept - or, with
+     *  nothing kept, the role's skeleton again. */
     begin: () => {
       setDerivedFrom(null)
+      if (readDraft(workId, role) === '') {
+        setDrafts((all) => Object.fromEntries(Object.entries(all).filter(([key]) => key !== role)))
+      }
       setComposing(true)
     },
 

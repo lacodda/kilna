@@ -695,12 +695,14 @@
           {
             "body": "markdown",
             "key": "text",
-            "label": "Text"
+            "label": "Text",
+            "skeleton": "## Plan\n\n\n## Draft\n\n"
           },
           {
             "body": "markdown",
             "key": "outline",
-            "label": "Outline"
+            "label": "Outline",
+            "skeleton": "## Premise\n\n\n## Beats\n\n\n## Ending\n\n"
           },
           {
             "body": "markdown",
@@ -926,12 +928,14 @@
           {
             "body": "markdown",
             "key": "text",
-            "label": "Text"
+            "label": "Text",
+            "skeleton": "## Plan\n\n\n## Draft\n\n"
           },
           {
             "body": "markdown",
             "key": "outline",
-            "label": "Outline"
+            "label": "Outline",
+            "skeleton": "## Premise\n\n\n## Beats\n\n\n## Ending\n\n"
           },
           {
             "body": "markdown",
@@ -1157,12 +1161,14 @@
           {
             "body": "markdown",
             "key": "text",
-            "label": "Text"
+            "label": "Text",
+            "skeleton": "## Plan\n\n\n## Draft\n\n"
           },
           {
             "body": "markdown",
             "key": "outline",
-            "label": "Outline"
+            "label": "Outline",
+            "skeleton": "## Premise\n\n\n## Beats\n\n\n## Ending\n\n"
           },
           {
             "body": "markdown",

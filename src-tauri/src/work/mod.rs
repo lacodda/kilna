@@ -1,5 +1,6 @@
 pub mod frame;
 pub mod status;
+pub mod timeline;
 pub mod version;
 
 use rusqlite::{Connection, OptionalExtension, params};

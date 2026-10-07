@@ -13,6 +13,7 @@ import type {
   WidgetPlacement,
   WidgetSize,
 } from '@/lib/api/types'
+import { predecessor } from '@/lib/history'
 import { stageAt, stagesOf } from '@/lib/stages'
 
 /*
@@ -308,20 +309,17 @@ export function currentIn(
 }
 
 /**
- * The version `version` would be compared with: the one it was written from,
- * when that is still there and in the same role, and the revision before it
+ * The version `version` would be compared with, by the one rule the Versions
+ * tab compares by (`lib/history`'s `predecessor`): the one it was written
+ * from, when that is still there in the same role, and the revision before it
  * otherwise.
  */
 export function previousOf(
   versions: readonly VersionSummary[],
   version: VersionSummary,
 ): VersionSummary | undefined {
-  const own = versions.filter((other) => other.role === version.role && other.id !== version.id)
-  const parent = own.find((other) => other.id === version.parent_version_id)
-  if (parent !== undefined) return parent
-  return own
-    .filter((other) => other.revision < version.revision)
-    .sort((a, b) => b.revision - a.revision)[0]
+  const own = versions.filter((other) => other.role === version.role)
+  return predecessor(own, version.id) ?? undefined
 }
 
 /**

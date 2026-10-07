@@ -135,19 +135,7 @@ fn create_in(tx: &Connection, work_id: &str, new: NewVersion, minted: &Minted) -
     // roles. Checked here rather than left to the foreign key, which only
     // knows that the row exists.
     if let Some(parent) = &new.parent_version_id {
-        let same_line: bool = tx
-            .query_row(
-                "SELECT 1 FROM work_version WHERE id = ?1 AND work_id = ?2 AND role = ?3",
-                params![parent, work_id, new.role],
-                |_| Ok(true),
-            )
-            .optional()?
-            .unwrap_or(false);
-        if !same_line {
-            return Err(Error::refused("version.parentNotSameRole")
-                .param("parent", parent.clone())
-                .param("role", new.role.clone()));
-        }
+        check_line(tx, work_id, &new.role, parent)?;
     }
 
     let id = minted.id().to_owned();
@@ -184,6 +172,30 @@ fn create_in(tx: &Connection, work_id: &str, new: NewVersion, minted: &Minted) -
     }
 
     Ok(id)
+}
+
+/// Whether `id` is a version of `work_id` in `role` - one a new version in
+/// that role may be written from (ADR 0055).
+pub fn in_line(conn: &Connection, work_id: &str, role: &str, id: &str) -> Result<bool> {
+    Ok(conn
+        .query_row(
+            "SELECT 1 FROM work_version WHERE id = ?1 AND work_id = ?2 AND role = ?3",
+            params![id, work_id, role],
+            |_| Ok(true),
+        )
+        .optional()?
+        .unwrap_or(false))
+}
+
+/// Refuse a parent that is not a version of `work_id` in `role`, in the
+/// words a person and an agent both read.
+pub fn check_line(conn: &Connection, work_id: &str, role: &str, parent: &str) -> Result<()> {
+    if in_line(conn, work_id, role, parent)? {
+        return Ok(());
+    }
+    Err(Error::refused("version.parentNotSameRole")
+        .param("parent", parent)
+        .param("role", role))
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Version>> {

@@ -39,7 +39,7 @@ import { CompareColumn } from '@/features/work/tabs/versions/CompareColumn'
 import { ReadingText } from '@/features/work/tabs/versions/ReadingText'
 import { StressStrip } from '@/features/work/tabs/versions/StressStrip'
 import { TextScroll } from '@/features/work/tabs/versions/TextScroll'
-import { REPEAT_TINTS, textMetrics } from '@/features/work/tabs/versions/metrics'
+import { CHANGED_LINE, REPEAT_TINTS, textMetrics } from '@/features/work/tabs/versions/metrics'
 import { charUnderPointer, revealIndex } from '@/features/work/tabs/versions/pointer'
 import { useShowStresses } from '@/features/work/tabs/versions/stressView'
 import { useLineDiff } from '@/features/work/tabs/versions/useLineDiff'
@@ -70,6 +70,11 @@ interface Props {
   onReading: (mode: Reading) => void
   /** The version standing beside this one, when one was picked. */
   against?: { label: string; body: string; onClose: () => void } | null
+  /** The version this one is compared with by default - the one it was
+   *  written from, or the revision below it (`lib/history`). While nothing
+   *  stands beside the text, the lines changed since it are marked in the
+   *  margin, and one press puts it beside the text. */
+  previous?: { label: string; body: string; onCompare: () => void } | null
   /** Whether the text is checked: its repeated words marked while it is
    *  written, the register's terms marked always. */
   repeats?: boolean
@@ -103,6 +108,7 @@ export function BodyPane({
   reading,
   onReading,
   against = null,
+  previous = null,
   repeats = false,
   sung = false,
   editing,
@@ -117,6 +123,19 @@ export function BodyPane({
   // follow the keystrokes.
   const text = reading === 'edit' ? editing.text : (body ?? '')
   const diff = useLineDiff(against?.body ?? null, text)
+  // What changed since the predecessor, drawn quietly while nothing stands
+  // beside the text: a bar in the margin of each line that is new since it.
+  // The comparison, once open, says it louder and this steps aside. A
+  // markdown body read is drawn by the renderer, where no line can be
+  // marked; written, it is plain text and is marked like any other.
+  const since = useLineDiff(against === null ? (previous?.body ?? null) : null, text)
+  const added = useMemo(
+    () =>
+      against !== null
+        ? diff.added
+        : since.added.map((mark) => ({ line: mark.line, className: CHANGED_LINE })),
+    [against, diff.added, since.added],
+  )
   // A markdown body is drawn by the renderer, where an offset into the text
   // names no letter on screen: it is not marked (ADR 0044) - nor is a stress
   // on it, which would have no letter to sit over either.
@@ -298,7 +317,7 @@ export function BodyPane({
         }}
         aria-label={t('versions.edit')}
         marks={marks}
-        lineMarks={diff.added}
+        lineMarks={added}
         className={cn('block w-full', metrics)}
       />
     ) : (
@@ -306,7 +325,7 @@ export function BodyPane({
         ref={takeFocus}
         body={body}
         markdown={markdown}
-        added={diff.added}
+        added={added}
         marks={marks}
         metrics={metrics}
       />
@@ -337,6 +356,22 @@ export function BodyPane({
             status={editing.status}
             className="shrink-0"
           />
+          {/* How far this text moved from the one it is compared with by
+              default - the count the margin marks - and the way to see it
+              side by side. */}
+          {previous !== null && since.counts !== null && (
+            <Button
+              variant="ghost"
+              size="xs"
+              className="shrink-0 font-mono"
+              title={t('versions.sinceHint', { name: previous.label })}
+              onClick={previous.onCompare}
+            >
+              <span className="text-good">+{since.counts.added}</span>
+              <span className="text-bad">−{since.counts.removed}</span>
+              <span className="text-faint">{t('versions.since', { name: previous.label })}</span>
+            </Button>
+          )}
         </div>
         {tools}
         <span aria-hidden className="mx-0.5 h-4 w-px shrink-0 bg-line" />

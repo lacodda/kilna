@@ -111,7 +111,7 @@
     "diffRemoved_few": "{{count}} строки убрано",
     "diffRemoved_many": "{{count}} строк убрано",
     "diffRemoved_other": "{{count}} строки убрано",
-    "deriveFrom": "Новая версия на основе этой",
+    "deriveFrom": "Новая версия из {{name}}",
     "restoreDraft": "Вернуть черновик",
     "compareWith": "Сравнить с {{name}}",
     "compareMenu": "Сравнить с…",
@@ -146,7 +146,19 @@
       "cleanCopied": "Скопировано без пометок для исполнителя.",
       "homographs": "Омографы · {{count}}",
       "homographsHint": "Слова, которые можно прочесть двояко, - обычно их читают верно. Раскройте, чтобы выбрать прочтение там, где это важно."
-    }
+    },
+    "words_one": "{{count}} слово",
+    "words_few": "{{count}} слова",
+    "words_many": "{{count}} слов",
+    "words_other": "{{count}} слова",
+    "lines_one": "{{count}} строка",
+    "lines_few": "{{count}} строки",
+    "lines_many": "{{count}} строк",
+    "lines_other": "{{count}} строки",
+    "writtenFrom": "Начата с {{name}}",
+    "parent": "исходная",
+    "since": "с {{name}}",
+    "sinceHint": "Строки пришли и ушли с {{name}} - полосы на полях. Нажми, чтобы поставить {{name}} рядом с текстом."
   },
   "nav": {
     "catalogue": "Каталог",
@@ -3221,5 +3233,30 @@
     "alsoIn_few": "+{{count}} песни",
     "alsoIn_many": "+{{count}} песен",
     "alsoIn_other": "+{{count}} песни"
+  },
+  "timeline": {
+    "hint": "Версии, оценки, выпуски и журнал на одной оси",
+    "filter": "Что показывает ось",
+    "filters": {
+      "versions": "Версии",
+      "scores": "Оценки",
+      "releases": "Выпуски",
+      "journal": "Журнал"
+    },
+    "kinds": {
+      "version": "Версия",
+      "score": "Оценка"
+    },
+    "ahead": "Впереди",
+    "today": "Сегодня",
+    "yesterday": "Вчера",
+    "begun": "Начата",
+    "from": "из v{{revision}}",
+    "scored": "Оценка {{total}}",
+    "by": "судит {{rater}}",
+    "made": "Сделано «{{title}}»",
+    "madeVia": "Сделано «{{title}}» из публикации",
+    "released": "«{{title}}» вышло на {{door}}",
+    "booked": "«{{title}}» выйдет на {{door}}"
   }
 }

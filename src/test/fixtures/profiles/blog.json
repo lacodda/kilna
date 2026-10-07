@@ -286,7 +286,8 @@
           {
             "body": "markdown",
             "key": "draft",
-            "label": "Draft"
+            "label": "Draft",
+            "skeleton": "## Hook\n\n\n## The point\n\n\n## Takeaway\n\n"
           },
           {
             "body": "plain",
@@ -481,7 +482,8 @@
           {
             "body": "markdown",
             "key": "draft",
-            "label": "Draft"
+            "label": "Draft",
+            "skeleton": "## Hook\n\n\n## The point\n\n\n## Takeaway\n\n"
           },
           {
             "body": "plain",
@@ -676,7 +678,8 @@
           {
             "body": "markdown",
             "key": "draft",
-            "label": "Draft"
+            "label": "Draft",
+            "skeleton": "## Hook\n\n\n## The point\n\n\n## Takeaway\n\n"
           },
           {
             "body": "plain",

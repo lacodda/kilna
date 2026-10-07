@@ -6,6 +6,7 @@ import type {
   CoverView,
   FrameView,
   Discarded,
+  Moment,
   NewWork,
   ScoredWork,
   StatusChange,
@@ -42,6 +43,9 @@ export const workTags = () => invoke<[string, number][]>('work_tags')
 export const catalogue = () => invoke<ScoredWork[]>('catalogue')
 /** The number beside each of a work's tabs, in one answer. */
 export const cardCounts = (workId: string) => invoke<CardCounts>('card_counts', { workId })
+/** A work's history on one axis: versions, scores, what was made from it and
+ *  when it went out, and the journal's lines no row holds (ADR 0056). */
+export const workTimeline = (workId: string) => invoke<Moment[]>('work_timeline', { workId })
 /** The Cover tab: the prompt written from the work's cover for one of its
  *  doors' shapes, the scheme drawn from the same settings, and what the
  *  channel's card offers - written once, on the Rust side. */

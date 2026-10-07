@@ -3,4 +3,9 @@
 /**
  * A version inside a package: the text travels with it.
  */
-export type PackagedVersion = { role: string, body: string, label?: string | null, };
+export type PackagedVersion = { role: string, body: string, label?: string | null, 
+/**
+ * The version of the work this text was written from, as on a single
+ * version proposal (ADR 0055).
+ */
+from?: string | null, };

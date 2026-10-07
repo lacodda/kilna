@@ -1,6 +1,6 @@
 ---
 title: Writing a version
-description: The editor — click into the text and it is the next revision, one version per sitting, the whole screen for writing, how each role reads, naming a version, and comparing two drafts side by side.
+description: The editor — click into the text and it is the next revision, one version per sitting, the tree of which version was written from which, what each row of the list says, a skeleton to start from, and comparing two drafts side by side.
 ---
 
 Every draft of a work is kept whole. Nothing is stored as a diff — so going
@@ -46,16 +46,22 @@ score judged stays as the score saw it.
 
 ## Reading
 
-Each pane has three ways of showing the text, as icons in its corner:
+Each pane has two ways of showing the text, as icons in its corner:
 
 - **Read** shows the body the way its role reads (below). This is the
   default, and clicking into it is how you start writing.
 - **Edit** is the same text in a box, in place, for the small fix that does
   not need the room.
-- **Changes** compares the open version with the revision before it, without
-  your having to find that revision first. On the first revision of a role
-  there is nothing before it, and kilna says so rather than comparing it
-  with itself.
+
+### What changed, without a press
+
+Every version shows what it changed since the version it was written from —
+or, where kilna does not know that, since the revision before it. Each line
+that is new carries a thin green bar in the left margin, read or edited, and
+the bar follows your keystrokes while you write. Beside the version's name
+the bar's count says it in figures, `+4 −1 since v2`; press it and v2 stands
+beside the text as a [comparison](#comparing-two-versions). The first
+revision of a role has nothing before it, and nothing is marked.
 
 ### How a role reads
 
@@ -96,17 +102,27 @@ Two moments need a decision before the text, and they open the form:
 
 - **There is no version in this role yet.** The form is there because there
   is nothing to click into.
-- **You want a copy to work on.** The **new version from this one** button
-  on any row copies that version's text into the form — for a rewrite that
-  keeps the original open beside it, or for a version that wants a name.
-  **New version** at the top of the tab opens the same form empty.
+- **You want a copy to work on.** **New version from v3** in the menu of any
+  row copies that version's text into the form — for a rewrite that keeps the
+  original open beside it, or for a version that wants a name. The version
+  you save remembers v3 as the one it was written from.
+  **New version** at the foot of the list opens the same form from nothing.
+
+A version from nothing starts from the role's **skeleton**, when the profile
+gives it one: a lyric opens on its parts — `[Intro]`, `[Verse 1]`,
+`[Chorus]` … — and a chapter on its plan and its draft, so the structure is
+there to write into. The skeleton is not a draft until you change it, and
+clearing it leaves the form empty rather than bringing it back. The
+[profile document](/kilna/reference/profile-document/#version_roles) is where
+a role's skeleton is set; a role without one starts empty.
 
 The form is the only place a version is **named**. `tightened chorus` says
 more in the list a month later than `Revision 4`; unnamed versions are listed
 by number, so there is no penalty for skipping it. **Make this the current
 version** is ticked by default; untick it to record an experiment without
 promoting it — scores and exports keep reading the version the work pointed
-at before, and the star beside any row promotes it later.
+at before, and *Make this the current version* in any row's menu promotes it
+later.
 
 Text in the form is kept as you type, and is still there after you close
 kilna and open it again — a small *Draft kept* note says so. The draft
@@ -121,12 +137,13 @@ same: the tab opens on it, so a version is never only a toast.
 
 ## Comparing two versions
 
-The **±** button beside *Read* and *Edit* puts another version of the same
-role on the right of the text. With one other version to choose from it opens
-at once; with several it lists them by name, the revision immediately before
-the open one first — *what moved since last time* is the question asked most
-often of a history, and it should not cost a hunt through the list. The **±**
-on any row of the list does the same for that row.
+**Compare with v2** in the version's bar puts another version of the same
+role on the right of the text — by default the version the open one was
+written from, or, where that is not known, the revision immediately before
+it: *what moved since last time* is the question asked most often of a
+history, and it should not cost a hunt through the list. The arrow beside it
+lists every other version by name, that one first, marked *written from* or
+*previous*. The **±** on any row of the list does the same for that row.
 
 The comparison is a second column, not a third way of reading. On the left
 the open text stays as it was — read as its role reads, or edited — with the
@@ -164,15 +181,41 @@ underlined where it stands, by how strictly it is spent. Both come from one
 analyser, so a word the strip counts is the word the register counts.
 **To the register** in the toolbar enters the selected word as a term.
 
+## The tree of versions
+
+A version remembers the one it was written from: the version you clicked into
+to start it, the one you copied into the form, the one the assistant rewrote.
+So a role's history is a tree, not a line — v5 may have been written from v2,
+beside v3 and v4 — and the list draws it in a narrow gutter on its left, the
+way a git client draws its graph: a dot per row, a line from each version down
+to the one it came from, a second column where two versions came from the same
+one. The current version's dot is in the accent. Hover a dot to read where it
+came from.
+
+kilna never guesses a parent. A version made before kilna kept track of this,
+or written from nothing, has none, and a role where no version names one has
+no gutter at all: dots that only say *unknown* twenty times are not a tree.
+
+## What a row says
+
+Each row of the list says how long its text is, in the units a writer counts
+in — words and lines, a part's header like `[Chorus]` and blank lines aside —
+and how many lines came in and went out since the version it is compared with
+by default: `142 words · 24 lines · +12 −4`. The figures are the comparison's
+own, so the row and the column beside the text never disagree. A review is
+not compared with the review before it, so its row says only how long it is.
+
 ## Walking the history
 
 With the version list focused, the arrow keys step through it: **↓** to the
 next revision back, **↑** toward the newest, **Home** and **End** to either
-end. Reading through six revisions is six presses rather than six aimed
-clicks. A comparison with the previous revision follows the step — each
-revision against its own predecessor in turn — while a comparison with a
-version you picked by hand stays pointed at it, so an original can be kept
-beside a history being walked.
+end. **←** goes up the tree, to the version the open one was written from, and
+**→** back down it, to the newest version written from the open one. Reading
+through six revisions is six presses rather than six aimed clicks. A
+comparison with the default follows the step — each version against the one
+it came from in turn — while a comparison with a version you picked by hand
+stays pointed at it, so an original can be kept beside a history being
+walked.
 
 The tab is two columns, each scrolling on its own: the list of revisions on
 the left, the open one on the right. Scrolling back through twenty revisions

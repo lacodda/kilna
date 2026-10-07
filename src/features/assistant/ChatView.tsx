@@ -230,6 +230,7 @@ export function ChatView({ chatId, workId, onChatCreated }: Props) {
           role={inserting.role}
           label={inserting.label}
           messageId={inserting.messageId}
+          from={transcript.data?.chat.version_id ?? null}
         />
       )}
     </>

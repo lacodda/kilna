@@ -139,6 +139,16 @@ pub fn card_counts(state: State<'_, AppState>, work_id: String) -> Result<card::
     card::counts(&state.conn(), &work_id)
 }
 
+/// A work's history on one axis - versions, scores, what was made from it
+/// and when it went out, and the journal's lines no row holds (ADR 0056).
+#[tauri::command]
+pub fn work_timeline(
+    state: State<'_, AppState>,
+    work_id: String,
+) -> Result<Vec<work::timeline::Moment>> {
+    work::timeline::of(&state.conn(), &work_id)
+}
+
 #[tauri::command]
 pub fn clone_work(
     state: State<'_, AppState>,

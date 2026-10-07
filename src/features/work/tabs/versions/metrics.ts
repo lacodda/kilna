@@ -28,6 +28,16 @@ export function textMetrics(markdown: boolean): string {
 /** How many tints a repeated word may be drawn in before they cycle. */
 export const REPEAT_TINTS = 6
 
+/**
+ * A line new since the version the text is compared with by default (#24):
+ * a thin bar in the left margin, the way an editor marks a changed line in
+ * its gutter. Quieter than the comparison's tint, because it is always on -
+ * every draft shows what it changed without a press - and drawn in the
+ * padding, so it sits beside the letters rather than under them.
+ */
+export const CHANGED_LINE =
+  'relative before:absolute before:inset-y-0 before:-left-3 before:w-0.5 before:rounded-full before:bg-good'
+
 /** The mockup's `.lyrics .sec`: a section header in the accent. */
 const SECTION = 'text-accent-2'
 

@@ -243,7 +243,8 @@ pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Entry>> {
     )
 }
 
-/// One thing's own history, newest first — the card's History tab.
+/// One thing's own history, newest first - the journal's part of a work's
+/// axis (`work::timeline`).
 pub fn for_entity(conn: &Connection, entity: &str, entity_id: &str) -> Result<Vec<Entry>> {
     query(
         conn,
@@ -254,18 +255,6 @@ pub fn for_entity(conn: &Connection, entity: &str, entity_id: &str) -> Result<Ve
           LIMIT ?3",
         params![entity, entity_id, PAGE],
     )
-}
-
-/// How many lines one thing's own history shows: the number beside the
-/// card's History tab. It stops where [`for_entity`] stops, so the tab never
-/// promises more lines than it lists.
-pub fn count_for_entity(conn: &Connection, entity: &str, entity_id: &str) -> Result<i64> {
-    let count: i64 = conn.query_row(
-        "SELECT count(*) FROM journal WHERE entity = ?1 AND entity_id = ?2",
-        params![entity, entity_id],
-        |row| row.get(0),
-    )?;
-    Ok(count.min(PAGE))
 }
 
 /// How many entries are asking to be looked at.

@@ -465,13 +465,27 @@ fn keep(
     outcome: &mut Outcome,
 ) -> Result<()> {
     match proposal {
-        Proposal::Version { role, label } => {
+        Proposal::Version { role, label, from } => {
             let work_id = on_work(chat)?;
+            let role = overrides.role.unwrap_or(role);
+            let read = about_version(conn, chat, &work_id);
+            // Written from the version the agent named, or from the one the
+            // chat was started on when the text lands in its role: a rewrite
+            // of revision 2 is revision 2's child (ADR 0055). A text the
+            // person moved to another role has no parent there - lineage
+            // does not cross roles.
+            let mut parent = None;
+            for candidate in [from.as_deref(), read.as_deref()].into_iter().flatten() {
+                if version::in_line(conn, &work_id, &role, candidate)? {
+                    parent = Some(candidate.to_owned());
+                    break;
+                }
+            }
             // A commentary is about the version its chat was started on: the
             // critique of revision 2 says so, and the versions tab shows it
             // beside revision 2 rather than beside whichever revision shares
-            // its number.
-            let meta = about_version(conn, chat, &work_id).map(|about| {
+            // its number. A rewrite in the same role is its child instead.
+            let meta = read.filter(|_| parent.is_none()).map(|about| {
                 let mut meta = Map::new();
                 meta.insert("about".into(), Value::String(about));
                 meta
@@ -480,7 +494,7 @@ fn keep(
                 conn,
                 &work_id,
                 NewVersion {
-                    role: overrides.role.unwrap_or(role),
+                    role,
                     body: body.to_owned(),
                     label: overrides
                         .label
@@ -490,7 +504,7 @@ fn keep(
                     // Not current unless the person said so: an answer worth
                     // keeping is not yet an answer worth standing behind.
                     make_current: overrides.make_current.unwrap_or(false),
-                    parent_version_id: None,
+                    parent_version_id: parent,
                 },
             )?;
             outcome.versions.push(version.id);
@@ -590,7 +604,16 @@ fn keep(
                 })
                 .flatten();
             for (index, packaged) in versions.into_iter().enumerate() {
-                let version = super::version::create(
+                // The version it was written from, while that is still a
+                // version of this work in this role (ADR 0055); a new work
+                // has none to name.
+                let parent = match packaged.from {
+                    Some(from) if version::in_line(conn, &work_id, &packaged.role, &from)? => {
+                        Some(from)
+                    }
+                    _ => None,
+                };
+                let created = super::version::create(
                     conn,
                     &work_id,
                     NewVersion {
@@ -599,10 +622,10 @@ fn keep(
                         label: packaged.label,
                         meta: None,
                         make_current: leading == Some(index),
-                        parent_version_id: None,
+                        parent_version_id: parent,
                     },
                 )?;
-                outcome.versions.push(version.id);
+                outcome.versions.push(created.id);
             }
             if let Some(marks) = marks {
                 outcome.score = Some(score(conn, &work_id, None, marks, client)?);
@@ -1044,11 +1067,13 @@ mod tests {
                     role: "lyrics".into(),
                     body: "snow on the road\nnobody home".into(),
                     label: Some("first pass".into()),
+                    from: None,
                 },
                 PackagedVersion {
                     role: "style".into(),
                     body: "slow, brushed drums".into(),
                     label: None,
+                    from: None,
                 },
             ],
             score: Some(Marks {
@@ -1338,6 +1363,7 @@ mod tests {
             Proposal::Version {
                 role: "lyrics".into(),
                 label: Some("longer".into()),
+                from: None,
             },
         );
 
@@ -1621,6 +1647,7 @@ mod tests {
             Proposal::Version {
                 role: "lyrics".into(),
                 label: None,
+                from: None,
             },
         );
 
@@ -1653,6 +1680,7 @@ mod tests {
             Proposal::Version {
                 role: "storyboard".into(),
                 label: None,
+                from: None,
             },
         );
         let before = operation_kinds(&conn).len();
@@ -1816,6 +1844,7 @@ mod tests {
             role: "storyboard".into(),
             body: "no such role for a song".into(),
             label: None,
+            from: None,
         });
         let message = propose(
             &conn,
@@ -1881,6 +1910,7 @@ mod tests {
                     role: "plot".into(),
                     body: "a keeper, a lamp, a storm".into(),
                     label: None,
+                    from: None,
                 }],
                 score: None,
                 notes: vec![PackagedNote {
@@ -2010,6 +2040,7 @@ mod tests {
             Proposal::Version {
                 role: "lyrics".into(),
                 label: None,
+                from: None,
             },
         );
         let newer = propose(&conn, &second, "a note", Proposal::Note { title: None });
@@ -2046,6 +2077,7 @@ mod tests {
             Proposal::Version {
                 role: "lyrics".into(),
                 label: None,
+                from: None,
             },
         );
 
@@ -2083,6 +2115,7 @@ mod tests {
             Proposal::Version {
                 role: "lyrics".into(),
                 label: None,
+                from: None,
             },
         );
         let wanted = propose(
@@ -2092,6 +2125,7 @@ mod tests {
             Proposal::Version {
                 role: "lyrics".into(),
                 label: None,
+                from: None,
             },
         );
 
@@ -2115,6 +2149,7 @@ mod tests {
             Proposal::Version {
                 role: "lyrics".into(),
                 label: None,
+                from: None,
             },
         );
         apply(&conn, &message, Overrides::default()).unwrap();
@@ -2133,6 +2168,7 @@ mod tests {
             Proposal::Version {
                 role: "lyrics".into(),
                 label: None,
+                from: None,
             },
         );
         apply(&conn, &first, Overrides::default()).unwrap();
@@ -2143,6 +2179,7 @@ mod tests {
             Proposal::Version {
                 role: "lyrics".into(),
                 label: None,
+                from: None,
             },
         );
         propose(&conn, &chat, "a thought", Proposal::Note { title: None });
@@ -2173,6 +2210,7 @@ mod tests {
             Proposal::Version {
                 role: "lyrics".into(),
                 label: None,
+                from: None,
             },
         );
         propose(
@@ -2182,6 +2220,7 @@ mod tests {
             Proposal::Version {
                 role: "storyboard".into(),
                 label: None,
+                from: None,
             },
         );
 
@@ -2232,6 +2271,7 @@ mod tests {
                 role: "lyrics".into(),
                 body: "a line with ``` in it".into(),
                 label: None,
+                from: None,
             }],
             score: None,
             notes: Vec::new(),
@@ -2947,6 +2987,7 @@ mod bound_to_a_version_tests {
             &Proposal::Version {
                 role: "critique".into(),
                 label: None,
+                from: None,
             },
             None,
         )
@@ -2964,6 +3005,82 @@ mod bound_to_a_version_tests {
             .unwrap();
         assert_eq!(summary.about_version_id.as_deref(), Some(first.as_str()));
         assert_eq!(summary.role, "critique");
+    }
+
+    /// A rewrite in the role of the version the chat is about is that
+    /// version's child (ADR 0055): revision 1 rewritten is written from
+    /// revision 1, although revision 2 is the newest - and it is a draft, not
+    /// a commentary about revision 1.
+    #[test]
+    fn a_rewrite_is_the_child_of_the_version_the_chat_is_about() {
+        let (conn, profile_id, work_id, first) = two_revisions();
+        let chat_id = chat_about(&conn, &profile_id, &work_id, &first);
+        let meta = proposal_meta(
+            "Claude Code",
+            &Proposal::Version {
+                role: "lyrics".into(),
+                label: None,
+                from: None,
+            },
+            None,
+        )
+        .unwrap();
+        let message_id = assistant::append(&conn, &chat_id, ASSISTANT, "one, sharper", meta)
+            .unwrap()
+            .id;
+        let outcome = apply(&conn, &message_id, Overrides::default()).unwrap();
+
+        let made = version::get(&conn, &outcome.versions[0]).unwrap().unwrap();
+        assert_eq!(made.parent_version_id.as_deref(), Some(first.as_str()));
+        assert!(
+            !made.meta.contains_key("about"),
+            "a draft written from a revision is not a commentary on it"
+        );
+    }
+
+    /// The version an agent says it rewrote is the parent, over the one the
+    /// chat is about; moved by the person into another role, the text has no
+    /// parent there - lineage does not cross roles.
+    #[test]
+    fn the_version_an_agent_rewrote_is_the_parent_while_the_role_holds() {
+        let (conn, profile_id, work_id, first) = two_revisions();
+        let newest = version::latest(&conn, &work_id, "lyrics")
+            .unwrap()
+            .unwrap()
+            .id;
+        let chat_id = chat_about(&conn, &profile_id, &work_id, &first);
+        let proposed = |body: &str| {
+            let meta = proposal_meta(
+                "Claude Code",
+                &Proposal::Version {
+                    role: "lyrics".into(),
+                    label: None,
+                    from: Some(newest.clone()),
+                },
+                None,
+            )
+            .unwrap();
+            assistant::append(&conn, &chat_id, ASSISTANT, body, meta)
+                .unwrap()
+                .id
+        };
+
+        let kept = apply(&conn, &proposed("two, sharper"), Overrides::default()).unwrap();
+        let made = version::get(&conn, &kept.versions[0]).unwrap().unwrap();
+        assert_eq!(made.parent_version_id.as_deref(), Some(newest.as_str()));
+
+        let moved = apply(
+            &conn,
+            &proposed("now a style"),
+            Overrides {
+                role: Some("style".into()),
+                ..Overrides::default()
+            },
+        )
+        .unwrap();
+        let made = version::get(&conn, &moved.versions[0]).unwrap().unwrap();
+        assert_eq!(made.role, "style");
+        assert_eq!(made.parent_version_id, None);
     }
 
     /// The version the chat was about is gone: the proposal still applies,

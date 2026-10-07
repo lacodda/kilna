@@ -106,7 +106,7 @@
     "diffAdded_other": "{{count}} lines in",
     "diffRemoved_one": "{{count}} line out",
     "diffRemoved_other": "{{count}} lines out",
-    "deriveFrom": "Start a new version from this one",
+    "deriveFrom": "New version from {{name}}",
     "restoreDraft": "Bring the draft back",
     "compareWith": "Compare with {{name}}",
     "compareMenu": "Compare with…",
@@ -141,7 +141,15 @@
       "cleanCopied": "Copied without the singer's marks.",
       "homographs": "Homographs · {{count}}",
       "homographsHint": "Words the singer may read either way - usually read right. Open them to choose a reading where it matters."
-    }
+    },
+    "words_one": "{{count}} word",
+    "words_other": "{{count}} words",
+    "lines_one": "{{count}} line",
+    "lines_other": "{{count}} lines",
+    "writtenFrom": "Written from {{name}}",
+    "parent": "written from",
+    "since": "since {{name}}",
+    "sinceHint": "Lines in and out since {{name}} - the bars in the margin. Press to put {{name}} beside the text."
   },
   "nav": {
     "catalogue": "Catalogue",
@@ -3048,5 +3056,30 @@
     "also_other": "{{hint}}, and in {{count}} more songs",
     "alsoIn_one": "+{{count}} song",
     "alsoIn_other": "+{{count}} songs"
+  },
+  "timeline": {
+    "hint": "Versions, scores, releases and the journal on one axis",
+    "filter": "What the axis shows",
+    "filters": {
+      "versions": "Versions",
+      "scores": "Scores",
+      "releases": "Releases",
+      "journal": "Journal"
+    },
+    "kinds": {
+      "version": "Version",
+      "score": "Score"
+    },
+    "ahead": "Ahead",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "begun": "Begun",
+    "from": "from v{{revision}}",
+    "scored": "Scored {{total}}",
+    "by": "judged by {{rater}}",
+    "made": "Made “{{title}}”",
+    "madeVia": "Made “{{title}}”, from a publication",
+    "released": "“{{title}}” went out on {{door}}",
+    "booked": "“{{title}}” goes out on {{door}}"
   }
 }

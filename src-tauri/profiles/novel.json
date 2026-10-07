@@ -421,8 +421,8 @@
       { "key": "collection", "label": "Collection" }
     ],
     "version_roles": [
-      { "key": "text", "label": "Text", "body": "markdown" },
-      { "key": "outline", "label": "Outline", "body": "markdown" },
+      { "key": "text", "label": "Text", "body": "markdown", "skeleton": "## Plan\n\n\n## Draft\n\n" },
+      { "key": "outline", "label": "Outline", "body": "markdown", "skeleton": "## Premise\n\n\n## Beats\n\n\n## Ending\n\n" },
       { "key": "notes", "label": "Working notes", "body": "markdown" }
     ],
     "statuses": [

@@ -392,7 +392,8 @@
           {
             "body": "plain",
             "key": "script",
-            "label": "Script"
+            "label": "Script",
+            "skeleton": "[Cold open]\n\n[Intro]\n\n[Segment 1]\n\n[Segment 2]\n\n[Outro]\n"
           },
           {
             "body": "markdown",
@@ -618,7 +619,8 @@
           {
             "body": "plain",
             "key": "script",
-            "label": "Script"
+            "label": "Script",
+            "skeleton": "[Cold open]\n\n[Intro]\n\n[Segment 1]\n\n[Segment 2]\n\n[Outro]\n"
           },
           {
             "body": "markdown",
@@ -844,7 +846,8 @@
           {
             "body": "plain",
             "key": "script",
-            "label": "Script"
+            "label": "Script",
+            "skeleton": "[Cold open]\n\n[Intro]\n\n[Segment 1]\n\n[Segment 2]\n\n[Outro]\n"
           },
           {
             "body": "markdown",

@@ -31,7 +31,7 @@ import {
 import { cutShotList, listCuts, listCutsFrom } from '@/lib/api/cuts'
 import { canExportPackage, logPath, workspacePath } from '@/lib/api/data'
 import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
-import { journalForWork, listJournal, unreadJournal } from '@/lib/api/journal'
+import { listJournal, unreadJournal } from '@/lib/api/journal'
 import { listLinks, listPublications, resolveLinks } from '@/lib/api/links'
 import { listNotes, listTags } from '@/lib/api/notes'
 import {
@@ -76,6 +76,7 @@ import {
   getWork,
   listWorks,
   workTags,
+  workTimeline,
 } from '@/lib/api/works'
 import { getWorkspace, listProfiles, mcpRegistration } from '@/lib/api/workspace'
 import { keys } from '@/lib/query/keys'
@@ -98,6 +99,8 @@ export const queries = {
   work: (id: string) => queryOptions({ queryKey: keys.work(id), queryFn: () => getWork(id) }),
   cardCounts: (workId: string) =>
     queryOptions({ queryKey: keys.cardCounts(workId), queryFn: () => cardCounts(workId) }),
+  timeline: (workId: string) =>
+    queryOptions({ queryKey: keys.timeline(workId), queryFn: () => workTimeline(workId) }),
   publications: (workId: string) =>
     queryOptions({
       queryKey: keys.publicationsFor(workId),
@@ -281,8 +284,6 @@ export const queries = {
   styleSlots: () => queryOptions({ queryKey: keys.styleSlots, queryFn: styleSlotValues }),
 
   journalFeed: () => queryOptions({ queryKey: keys.journalFeed, queryFn: listJournal }),
-  journalForWork: (workId: string) =>
-    queryOptions({ queryKey: keys.journalForWork(workId), queryFn: () => journalForWork(workId) }),
   journalUnread: () => queryOptions({ queryKey: keys.journalUnread, queryFn: unreadJournal }),
   deletions: () => queryOptions({ queryKey: keys.deletions, queryFn: listDeletions }),
 

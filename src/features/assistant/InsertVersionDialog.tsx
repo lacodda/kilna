@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { applyProposal } from '@/lib/api/assistant'
 import { createVersion } from '@/lib/api/versions'
 import { keys } from '@/lib/query/keys'
+import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say } from '@/lib/toast'
@@ -27,6 +29,9 @@ interface Props {
   /** The message carrying the proposal, when the answer is one: inserting
    * then goes through the proposal so the message is marked applied. */
   messageId?: string
+  /** The version the chat was started on, when it was: an answer kept in
+   *  that version's role is written from it (ADR 0055). */
+  from?: string | null
 }
 
 /**
@@ -45,9 +50,11 @@ export function InsertVersionDialog({
   role: proposedRole,
   label: proposedLabel,
   messageId,
+  from = null,
 }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const client = useQueryClient()
 
   const roles = useVocabulary(workId).version_roles
   const [role, setRole] = useState(
@@ -71,11 +78,17 @@ export function InsertVersionDialog({
         })
         return applied.versions?.[0] ?? ''
       }
+      // Written from the version the chat is about while it lands in that
+      // version's role; lineage does not cross roles. A proposal works this
+      // out on the backend, from the same chat.
+      const source = from === null ? null : await client.fetchQuery(queries.version(from))
+      const parent = source != null && source.work_id === workId && source.role === role
       const version = await createVersion(workId, {
         role,
         body,
         label: trimmed ?? undefined,
         make_current: makeCurrent,
+        parent_version_id: parent ? source.id : undefined,
       })
       return version.id
     },

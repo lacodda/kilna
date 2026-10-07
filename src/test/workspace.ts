@@ -19,6 +19,7 @@ import type {
   JournalEntry,
   Link,
   Links,
+  Moment,
   Note,
   Profile,
   ProfileConfig,
@@ -726,6 +727,83 @@ function goingOf(studio: Studio, workId: string): Going | null {
 
 /** What was made from a work, read off the studio as `publication::of` would:
  *  directly made works only - the studio has no second step down. */
+/**
+ * A work's axis read off the studio the way `work::timeline` reads the
+ * database: its beginning, its versions and scores, what was made from it and
+ * the day each goes out, and the journal's lines no row holds - latest first.
+ */
+function timelineOf(studio: Studio, workId: string): Moment[] {
+  const owner = studio.works.find((w) => w.id === workId)
+  if (owner === undefined) return []
+  const versions = studio.versions.filter((v) => v.work_id === workId)
+  const revisionOf = (id: string | null) => versions.find((v) => v.id === id)
+  const moments: Moment[] = [{ type: 'begun', at: owner.created_at }]
+  for (const v of versions) {
+    moments.push({
+      type: 'version',
+      at: v.created_at,
+      id: v.id,
+      role: v.role,
+      revision: v.revision,
+      label: v.label,
+      parent: revisionOf(v.parent_version_id)?.revision ?? null,
+    })
+  }
+  for (const score of studio.scores.filter((one) => one.work_id === workId)) {
+    const read = revisionOf(score.version_id)
+    moments.push({
+      type: 'score',
+      at: score.scored_at,
+      id: score.id,
+      total: score.total,
+      tier: score.tier,
+      rater: score.rater,
+      version_id: score.version_id,
+      role: read?.role ?? null,
+      revision: read?.revision ?? null,
+    })
+  }
+  const going = (release: Release, title: string) => {
+    const released = release.status === 'released'
+    const at = released ? release.released_at : release.scheduled_at
+    if (at === null) return
+    moments.push({
+      type: 'release',
+      at,
+      id: release.id,
+      work_id: release.work_id,
+      title,
+      kind: release.kind,
+      released,
+      time: release.scheduled_time,
+      url: release.url,
+    })
+  }
+  for (const own of studio.releases.filter((r) => r.work_id === workId)) going(own, owner.title)
+  for (const link of studio.links.filter((one) => one.source_id === workId)) {
+    const made = studio.works.find((w) => w.id === link.work_id)
+    if (made === undefined) continue
+    moments.push({
+      type: 'made',
+      at: made.created_at,
+      work_id: made.id,
+      title: made.title,
+      kind: made.kind,
+      depth: 1,
+    })
+    for (const release of studio.releases.filter((r) => r.work_id === made.id)) {
+      going(release, made.title)
+    }
+  }
+  const said = new Set(['work.created', 'version.created', 'score.added', 'release.released'])
+  for (const entry of studio.journal) {
+    if (entry.entity_id === workId && !said.has(entry.action)) {
+      moments.push({ type: 'entry', at: entry.created_at, entry })
+    }
+  }
+  return moments.sort((a, b) => b.at.localeCompare(a.at))
+}
+
 function publicationsOf(studio: Studio, workId: string): Publications {
   const items: Publication[] = studio.links
     .filter((link) => link.source_id === workId)
@@ -858,7 +936,8 @@ function countsOf(studio: Studio, workId: string): CardCounts {
     scenes: mine(studio.scenes),
     cuts: mine(studio.cuts),
     cut_from: studio.cuts.filter((cut) => cut.source_id === workId).length,
-    history: studio.journal.filter((e) => e.entity === 'work' && e.entity_id === workId).length,
+    // The axis without its beginning, as `work::timeline::count` counts it.
+    history: Math.max(timelineOf(studio, workId).length - 1, 0),
   }
 }
 
@@ -947,6 +1026,7 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_works: () => studio.works,
     get_work: ({ id }) => studio.works.find((w) => w.id === id) ?? null,
     card_counts: ({ workId }) => countsOf(studio, workId as string),
+    work_timeline: ({ workId }) => timelineOf(studio, workId as string),
     work_tags: () => counted(studio.works.flatMap((w) => w.tags)),
     works_matching: () => [],
     search: () => [],
@@ -954,8 +1034,13 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_collections: () => studio.collections,
     list_covers: () => [],
 
+    // Ordered as `version::list` orders them: by role, newest first within
+    // one - the order the list is drawn in and the tree is laid out over.
     list_versions: ({ workId }) =>
-      studio.versions.filter((v) => v.work_id === workId).map((v) => summary(studio, v)),
+      studio.versions
+        .filter((v) => v.work_id === workId)
+        .sort((a, b) => a.role.localeCompare(b.role) || b.revision - a.revision)
+        .map((v) => summary(studio, v)),
     get_version: ({ id }) => studio.versions.find((v) => v.id === id) ?? null,
     resolve_links: () => [],
 
@@ -1069,7 +1154,6 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     style_slot_values: () => ({}),
 
     list_journal: () => studio.journal,
-    journal_for_work: ({ workId }) => studio.journal.filter((e) => e.entity_id === workId),
     unread_journal: () => studio.journal.filter((e) => e.read_at === null).length,
     list_deletions: () => studio.deletions,
 

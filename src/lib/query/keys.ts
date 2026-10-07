@@ -172,7 +172,10 @@ export const keys = {
   // ever worth invalidating alone.
   journal: ['journal'] as const,
   journalFeed: ['journal', 'feed'] as const,
-  journalForWork: (workId: string) => ['journal', 'work', workId] as const,
+  // A work's axis (ADR 0056) is read off its rows as much as off the
+  // journal, and every write that moves a row writes an entry too - so it
+  // rides the journal's prefix and is refreshed by the same writes.
+  timeline: (workId: string) => ['journal', 'timeline', workId] as const,
   journalUnread: ['journal', 'unread'] as const,
   // The numbers beside a card's tabs, under the journal's prefix on purpose.
   // Each counts rows that only a write makes or takes away, every write is an

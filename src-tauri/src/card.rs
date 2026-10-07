@@ -8,7 +8,8 @@
 //! the tab that draws them.
 //!
 //! Each number counts what its tab lists, by the tab's own rule: comments
-//! without the archived ones, history no further than a page of it.
+//! without the archived ones, history as the axis draws it - no further into
+//! the journal than a page of it.
 
 use rusqlite::{Connection, params};
 use serde::Serialize;
@@ -43,7 +44,8 @@ pub struct Counts {
     /// names what was taken from it, so a work only ever cut from still has
     /// the tab.
     pub cut_from: i64,
-    /// Lines of the work's own history, as many as its tab shows.
+    /// Moments on the work's axis, as its History tab lists them, its
+    /// beginning aside (`work::timeline::count`).
     pub history: i64,
 }
 
@@ -73,7 +75,7 @@ pub fn counts(conn: &Connection, work_id: &str) -> Result<Counts> {
         comments += listed;
         comments_waiting += waiting;
     }
-    let history = crate::journal::count_for_entity(conn, "work", work_id)?;
+    let history = crate::work::timeline::count(conn, work_id)?;
 
     Ok(conn.query_row(
         "SELECT (SELECT count(*) FROM work_version WHERE work_id = ?1),

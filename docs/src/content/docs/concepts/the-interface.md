@@ -208,11 +208,11 @@ with the first part a link back.
 | Tab | What is there |
 | --- | --- |
 | Overview | The title, status, kind, the fields your profile defines, and its AI actions |
-| Versions | Every draft, by role, the editor, and comparison |
+| Versions | Every draft, by role, with the tree of which was written from which, the editor, and comparison |
 | Score | The axes, and what this work has scored before |
 | Notes | Notes attached to this work |
 | Assistant | The AI panel for this work — see [The assistant](/kilna/guides/the-assistant/) |
-| History | Everything that happened to it |
+| History | Its versions, scores, publications and their days, and the journal's lines, on one axis |
 
 Only the open tab is loaded. Opening a card no longer fetches every version,
 score, release, note and chat a work has ever had.

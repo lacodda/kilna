@@ -2169,7 +2169,8 @@
           "ru": "Текст"
         },
         "body": "plain",
-        "sung": true
+        "sung": true,
+        "skeleton": "[Intro]\n\n[Verse 1]\n\n[Pre-Chorus]\n\n[Chorus]\n\n[Verse 2]\n\n[Pre-Chorus]\n\n[Chorus]\n\n[Bridge]\n\n[Chorus]\n\n[Outro]\n"
       },
       {
         "key": "style",

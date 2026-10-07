@@ -648,9 +648,11 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
         // The whole answer is the version; the proposal only says where it
         // goes. Bound to the version the chat is about by `apply`, which
         // reads the chat.
-        super::prompt::Produces::Version(role) => {
-            value(super::proposal::Proposal::Version { role, label: None })
-        }
+        super::prompt::Produces::Version(role) => value(super::proposal::Proposal::Version {
+            role,
+            label: None,
+            from: None,
+        }),
         super::prompt::Produces::Score => {
             // The answer is handed in rather than read off the run: `run` is
             // the snapshot taken when the run started, and its event list is

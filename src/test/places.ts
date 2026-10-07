@@ -40,7 +40,8 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   // comment, read under the song.
   [IDS.song, 'comments', 'The shot on the bridge is beautiful.'],
   [IDS.song, 'assistant', 'Tighten the chorus'],
-  [IDS.song, 'history', '“Paper Lanterns” scored 7.5.'],
+  // The work's axis (v0.91): a version and the one it was written from.
+  [IDS.song, 'history', 'Lyrics v2 · Second pass · from v1'],
   [IDS.video, 'overview', 'Paper Lanterns (clip)'],
   [IDS.video, 'versions', 'A girl lets a paper lantern go at dusk'],
   // A heading of the board, drawn only once its scenes have arrived: since

@@ -568,6 +568,7 @@ The independent bodies a work carries:
 | `body` | `plain` or `markdown`, optional | How a body in this role is read. Defaults to `plain`. |
 | `counts_as_version` | boolean, optional | Whether a body in this role is a time the work was written. Defaults to "yes, unless it comments on something". |
 | `sung` | boolean, optional | Whether a body in this role is sung: its words are checked for where the stress falls and how you sing them, the stress gesture and "show the stresses" work in it, and a public text made from it has the marks taken off. Studio's `lyrics` is. Absent is `false`. See [Singing a text](/kilna/guides/singing-a-text/). |
+| `skeleton` | label, optional | The text a version written from nothing in this role starts from — a lyric's parts, a chapter's plan. A string, or a map per language like any label. Studio's `lyrics` ships `[Intro]`, `[Verse 1]`, `[Pre-Chorus]`, `[Chorus]` … in English whatever the window says, because those are the markers a generator reads. Absent, a new version starts empty. See [Writing a version](/kilna/guides/writing-a-version/#writing-a-version-from-nothing-or-from-a-copy). |
 
 `body` says how the text is *shown*, never how it is stored: a `plain` role is
 a monospace column exactly as typed — lyrics, a style prompt — and a `markdown`

@@ -107,15 +107,76 @@ describe('the Versions tab', () => {
     const { main } = await openVersions()
     fireEvent.click(within(main).getByRole('button', { name: en.versions.new }))
 
-    expect(
-      await within(main).findByRole('textbox', { name: en.versions.draftPlaceholder }),
-    ).toBeInTheDocument()
+    const form = await within(main).findByRole('textbox', { name: en.versions.draftPlaceholder })
+    expect(form).toBeInTheDocument()
     // Not under the text: the text is not on screen while the form is.
-    expect(within(main).queryByText('[Chorus]')).toBeNull()
+    expect(within(main).queryByText('Paper, paper, carry the light')).toBeNull()
 
     fireEvent.click(within(main).getByRole('button', { name: en.versions.cancel }))
     expect(await within(main).findByText('[Chorus]')).toBeInTheDocument()
     expect(within(main).queryByRole('textbox', { name: en.versions.draftPlaceholder })).toBeNull()
+  })
+
+  it('starts a version from nothing at the skeleton its role ships, not as a kept draft', async () => {
+    const { main } = await openVersions()
+    fireEvent.click(within(main).getByRole('button', { name: en.versions.new }))
+
+    const form = await within(main).findByRole('textbox', { name: en.versions.draftPlaceholder })
+    expect((form as HTMLTextAreaElement).value.startsWith('[Intro]\n\n[Verse 1]')).toBe(true)
+    expect(within(main).queryByText(en.versions.kept)).toBeNull()
+  })
+
+  it('draws the tree beside the list where a version was written from another', async () => {
+    const { main } = await openVersions()
+    const list = within(main).getByRole('listbox', { name: en.versions.title })
+    // The second lyric was written from the first: a dot per row, joined.
+    const cells = list.querySelectorAll('[data-graph-column]')
+    expect(cells).toHaveLength(2)
+    expect(cells[0]).toHaveAttribute('title', 'Written from v1')
+  })
+
+  it('steps to the version the open one was written from, and back to it', async () => {
+    const { main } = await openVersions()
+    const open = within(main).getByRole('option', { name: /Second pass/ })
+    open.focus()
+    fireEvent.keyDown(open, { key: 'ArrowLeft' })
+    // The first lyric has no part headers.
+    expect(
+      await within(main).findByRole('option', { name: /^v1/, selected: true }),
+    ).toBeInTheDocument()
+    expect(within(main).queryByText('[Chorus]')).toBeNull()
+
+    fireEvent.keyDown(within(main).getByRole('option', { name: /^v1/ }), {
+      key: 'ArrowRight',
+    })
+    expect(await within(main).findByText('[Chorus]')).toBeInTheDocument()
+  })
+
+  it('says the words, the lines and how far a row moved from the one it came from', async () => {
+    const { main } = await openVersions()
+    const row = within(main).getByRole('option', { name: /Second pass/ })
+    // Headers are not words; four lines came in since the first lyric.
+    expect(await within(row).findByText(/13 words · 3 lines/)).toBeInTheDocument()
+    expect(within(row).getByText('+4')).toBeInTheDocument()
+    expect(within(row).getByText('−0')).toBeInTheDocument()
+  })
+
+  it('marks what changed since the version it came from, and puts that one beside it on a press', async () => {
+    const { main, header } = await openVersions()
+    // The chorus came in with the second pass: a bar in its margin.
+    expect(header.closest('[data-line]')?.className).toContain('before:bg-good')
+    expect(
+      screen.getByText('Lanterns on the water').closest('[data-line]')?.className ?? '',
+    ).not.toContain('before:bg-good')
+
+    const since = within(main).getByRole('button', { name: /since v1/ })
+    fireEvent.click(since)
+    // The first lyric stands beside the text, and the margin steps aside
+    // for the comparison's own marks.
+    expect(
+      await within(main).findAllByRole('button', { name: en.versions.stopComparing }),
+    ).not.toHaveLength(0)
+    expect(within(main).queryByRole('button', { name: /since v1/ })).toBeNull()
   })
 
   it('keeps the lane a link opened when a version in it is clicked', async () => {
@@ -133,7 +194,7 @@ describe('the Versions tab', () => {
       'true',
     )
 
-    fireEvent.click(within(main).getByRole('option', { name: /Revision 1/ }))
+    fireEvent.click(within(main).getByRole('option', { name: /^v1/ }))
     expect(await within(main).findByText(prompt)).toBeInTheDocument()
     expect(within(lanes).getByRole('button', { name: /^Style prompt/ })).toHaveAttribute(
       'aria-pressed',

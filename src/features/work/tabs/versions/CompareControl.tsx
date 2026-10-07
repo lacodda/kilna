@@ -10,8 +10,11 @@ export interface Candidate {
   /** Its name, as the list gives it. */
   label: string
   revision: number
-  /** Whether it is the revision directly before the open one. */
+  /** Whether it is the one the open version is compared with by default:
+   *  the version it was written from, or the revision below it. */
   previous: boolean
+  /** Whether that default is the version it was written from (ADR 0055). */
+  parent?: boolean
 }
 
 interface Props {
@@ -25,8 +28,9 @@ interface Props {
  * "Compare with v9" - the mockup's one button in the version's bar.
  *
  * The question asked most often of a history is "what did this revision
- * change", so one press puts the revision before it beside the text, and the
- * same press takes it away again. Any other version is in the list behind the
+ * change", so one press puts the version it was written from - or, with no
+ * lineage recorded, the revision before it - beside the text, and the same
+ * press takes it away again. Any other version is in the list behind the
  * arrow, the predecessor first; the ± on a row of the list does the same from
  * the other side. A version with nothing else in its role has nothing to be
  * compared with, and the button is not drawn.
@@ -89,7 +93,9 @@ export function CompareControl({ againstId, candidates, onPick }: Props) {
               <MenuItem key={candidate.id} onClick={() => onPick(candidate.id)}>
                 <span className="truncate">{candidate.label}</span>
                 {candidate.previous && (
-                  <span className="ml-auto pl-3 text-xs text-faint">{t('versions.previous')}</span>
+                  <span className="ml-auto pl-3 text-xs text-faint">
+                    {t(candidate.parent === true ? 'versions.parent' : 'versions.previous')}
+                  </span>
                 )}
               </MenuItem>
             ))}

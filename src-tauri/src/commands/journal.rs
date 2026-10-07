@@ -14,12 +14,6 @@ pub fn list_journal(state: State<'_, AppState>) -> Result<Vec<Entry>> {
     journal::list(&conn, &active(&conn)?)
 }
 
-/// One work's own history — the card's History tab.
-#[tauri::command]
-pub fn journal_for_work(state: State<'_, AppState>, work_id: String) -> Result<Vec<Entry>> {
-    journal::for_entity(&state.conn(), "work", &work_id)
-}
-
 /// How many entries are asking to be looked at.
 #[tauri::command]
 pub fn unread_journal(state: State<'_, AppState>) -> Result<i64> {

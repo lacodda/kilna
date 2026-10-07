@@ -88,8 +88,10 @@ A shortcut must never cost you a sentence:
 Bare arrow keys are never taken by the shell. They belong to whatever has
 focus, and several things want them:
 
-- the **version list** walks through revisions with `↑` and `↓`, keeping one
-  tab stop for the whole history;
+- the **version list** walks through revisions with `↑` and `↓`, and up and
+  down the tree of versions with `←` (to the version the open one was written
+  from) and `→` (to the newest written from it), keeping one tab stop for the
+  whole history;
 - the **search box** and every menu move their highlight with the arrows, with
   `Home` and `End` jumping to the ends and type-ahead finding an item by its
   first letters;

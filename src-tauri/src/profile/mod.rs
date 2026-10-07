@@ -458,6 +458,12 @@ fn version_roles(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
                 role.sung = true;
                 changed = true;
             }
+            // What a version from nothing starts from (v0.91), where the
+            // stored role names no skeleton of its own.
+            if role.skeleton.is_none() && shipped.skeleton.is_some() {
+                role.skeleton = shipped.skeleton.clone();
+                changed = true;
+            }
         }
     }
     changed
@@ -2224,6 +2230,44 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(sorted.len(), keys.len(), "no role appears twice: {keys:?}");
+    }
+
+    /// A skeleton (v0.91) reaches a workspace made before it shipped, and a
+    /// skeleton the owner wrote for a role is theirs.
+    #[test]
+    fn seed_carries_a_skeleton_where_the_role_has_none() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let id: String = conn
+            .query_row("SELECT id FROM profile WHERE key = 'music'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let mut config = config_for(&conn, &id).unwrap();
+        let shipped = config.vocabulary("song").version_roles[0].skeleton.clone();
+        assert!(shipped.is_some(), "the lyric ships with its parts");
+        for role in &mut config.work_kinds[0].version_roles {
+            role.skeleton = (role.key == "style").then(|| "[Mine]".into());
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let roles = config_for(&conn, &id).unwrap().work_kinds[0]
+            .version_roles
+            .clone();
+        let skeleton_of = |key: &str| {
+            roles
+                .iter()
+                .find(|role| role.key == key)
+                .and_then(|role| role.skeleton.clone())
+        };
+        assert_eq!(skeleton_of("lyrics"), shipped);
+        assert_eq!(skeleton_of("style"), Some("[Mine]".into()));
     }
 
     #[test]

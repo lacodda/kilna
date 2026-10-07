@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -7,13 +7,14 @@ import type { VersionSummary } from '@/lib/api/types'
 import { deleteVersion, setCurrentVersion } from '@/lib/api/versions'
 import { commentaryOn, isCommentary, subjectOf } from '@/lib/commentary'
 import { formatDay } from '@/lib/format'
-import { predecessor } from '@/lib/history'
+import { parentIn, predecessor } from '@/lib/history'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
 import { useBodyEditing } from '@/lib/useBodyEditing'
-import { labelOf, useVocabulary } from '@/lib/useProfile'
+import { labelOf, say, useVocabulary } from '@/lib/useProfile'
+import { graphOf } from '@/lib/versionTree'
 import { formatTotal } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -30,6 +31,7 @@ import { LaneChips } from '@/features/work/tabs/versions/LaneChips'
 import { Stage } from '@/features/work/tabs/versions/Stage'
 import { VersionEditor } from '@/features/work/tabs/versions/VersionEditor'
 import { VersionList } from '@/features/work/tabs/versions/VersionList'
+import { useLaneStats } from '@/features/work/tabs/versions/useLaneStats'
 import { useVersionDraft } from '@/features/work/tabs/versions/useVersionDraft'
 
 interface Props {
@@ -67,6 +69,20 @@ export function VersionPanel({ workId }: Props) {
   // source moved on points here with both - the version taken and the one
   // it is on now - and the diff is open on arrival.
   const [comparedId, setComparedId] = useState<string | null>(() => params.get('compare'))
+  // A new address wins again over what was picked by hand before it came: a
+  // link to a version or a lane followed while the tab is open - from search,
+  // from a note - opened the lane picked earlier instead. Only an address
+  // that names something: picking a lane clears the address, and that is the
+  // pick winning, not a new link arriving.
+  const address = `${asked ?? ''}|${params.get('role') ?? ''}`
+  const [seenAddress, setSeenAddress] = useState(address)
+  if (address !== seenAddress) {
+    setSeenAddress(address)
+    if (address !== '|') {
+      setPickedRole(null)
+      setSelectedId(null)
+    }
+  }
   const [reading, setReading] = useState<Reading>('view')
   const [staged, setStaged] = useState<'text' | 'comment' | null>(null)
   // Whether the commentary on the open revision stands beside it. On by
@@ -104,7 +120,20 @@ export function VersionPanel({ workId }: Props) {
     roles[0]?.key ??
     ''
   const commentaryLane = isCommentary(roles, lane)
-  const summaries = all.filter((version) => version.role === lane)
+  // One list per lane while the answer stands, so what is worked out from
+  // it - the tree, the figures of each row - is not worked out again on
+  // every keystroke of the text beside it.
+  const summaries = useMemo(
+    () => (versions.data ?? []).filter((version) => version.role === lane),
+    [versions.data, lane],
+  )
+  // Which version was written from which, beside the list (ADR 0055). A
+  // review is written about a revision, not from another review.
+  const graph = useMemo(
+    () => (commentaryLane ? null : graphOf(summaries)),
+    [commentaryLane, summaries],
+  )
+  const stats = useLaneStats(summaries, !commentaryLane)
 
   // Open the newest of this lane by default, so the panel is never blank; an
   // explicit choice wins until it disappears.
@@ -133,7 +162,17 @@ export function VersionPanel({ workId }: Props) {
 
   // The version beside the open one, when one was picked. A pick that no
   // longer names a version of this lane, or names the open one, is no pick.
+  // `before` is the one compared by default: the version the open one was
+  // written from, or the revision below it (`lib/history`).
   const before = predecessor(summaries, openId)
+  const beforeIsParent = before !== null && parentIn(summaries, openId)?.id === before.id
+  // Its text, for the marks on the open one: what changed since it is drawn
+  // in the margin of every draft without a press (#24). A review is not a
+  // draft of the review before it.
+  const previous = useQuery({
+    ...queries.version(before?.id ?? ''),
+    enabled: before !== null && !commentaryLane,
+  })
   const againstId =
     comparedId !== null && comparedId !== openId && summaries.some((v) => v.id === comparedId)
       ? comparedId
@@ -171,9 +210,11 @@ export function VersionPanel({ workId }: Props) {
     current: !commentaryLane,
   })
 
+  const skeleton = roles.find((role) => role.key === lane)?.skeleton
   const form = useVersionDraft({
     workId,
     role: lane,
+    skeleton: skeleton == null ? '' : say(skeleton),
     // The new version shows itself: opened, in the list, read.
     onSaved: (version) => {
       show(version.id)
@@ -279,6 +320,8 @@ export function VersionPanel({ workId }: Props) {
         {() => (
           <VersionList
             versions={summaries}
+            graph={graph}
+            stats={stats}
             empty={
               <EmptyState
                 plain
@@ -352,6 +395,7 @@ export function VersionPanel({ workId }: Props) {
                   label: nameOf(version),
                   revision: version.revision,
                   previous: version.id === before?.id,
+                  parent: version.id === before?.id && beforeIsParent,
                 }))}
               onPick={setComparedId}
             />
@@ -414,6 +458,15 @@ export function VersionPanel({ workId }: Props) {
               }
             : null
         }
+        previous={
+          !commentaryLane && before !== null && previous.data?.id === before.id
+            ? {
+                label: `v${before.revision}`,
+                body: previous.data.body,
+                onCompare: () => setComparedId(before.id),
+              }
+            : null
+        }
         repeats={!commentaryLane}
         // The role says whether its text is sung (ADR 0053): a lyric is, a
         // style prompt in the lane beside it is not.
@@ -436,7 +489,7 @@ export function VersionPanel({ workId }: Props) {
       onSave={form.save}
       onCancel={form.composing && summaries.length > 0 ? form.close : undefined}
       saving={form.saving}
-      kept={form.draft.trim() !== ''}
+      kept={form.draft.trim() !== '' && !form.fromSkeleton}
       markdown={roles.find((r) => r.key === lane)?.body === 'markdown'}
       source={
         form.derivedFrom === null
