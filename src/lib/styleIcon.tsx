@@ -1,5 +1,6 @@
 import {
   Camera,
+  Droplet,
   Grid3x3,
   Layers,
   Move,
@@ -39,6 +40,7 @@ const STYLE_ICONS: Record<string, LucideIcon> = {
   grid: Grid3x3,
   tag: Tag,
   square: Square,
+  droplet: Droplet,
 }
 
 export function styleIconOf(type: Pick<StyleType, 'icon'> | undefined): LucideIcon {

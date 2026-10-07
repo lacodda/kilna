@@ -857,8 +857,8 @@ document.
 | `key` | string | Stored on the style as its type. A style can only take a key this list names — the dictionary is grouped and narrowed by it. A style written under a key later dropped from the document still reads, and shows the key. |
 | `label` | string or map | What the chips, the groups and the picker show. Renamable, and bilingual like every other word of the craft. |
 | `hint` | string or map, optional | **What to describe for a style of this type.** Reaches the assistant when it describes one, and never reaches a generator. |
-| `icon` | string, optional | A glyph from the closed set: `palette`, `user`, `shirt`, `tree`, `type`, `camera`, `move`, `layers`, `grid`, `tag`, `square`. A name outside it draws the generic shape. |
-| `form` | string, optional | What a style of this type is made of beside its description, and so how its card and editor are drawn: `picture` (the default - reference pictures, and a palette while there are none), `lettering` (a live sample of the typeface), `dressing` (a description with `{slots}`), `colour` (one colour). The application knows the forms, never the types. |
+| `icon` | string, optional | A glyph from the closed set: `palette`, `user`, `shirt`, `tree`, `type`, `camera`, `move`, `layers`, `grid`, `tag`, `square`, `droplet`. A name outside it draws the generic shape. |
+| `form` | string, optional | What a style of this type is made of beside its description, and so how its card and editor are drawn: `picture` (the default - reference pictures, and a palette while there are none), `lettering` (a live sample of the typeface), `dressing` (a description with `{slots}`), `colour` (a ground: one colour, or a gradient of up to four), `accent` (a colour the cover leans on, one or a gradient - offered as the cover's accent, never as its ground). The application knows the forms, never the types. |
 | `families` | list, optional | `{ "key", "label" }` pairs a style of this type is filed under - *Tattoo*, *Classic* for an image style. The dictionary narrows by them. |
 | `retired` | string or map, optional | Set when styles of this type are no longer made: what does their work now, in a sentence the dictionary shows above them. They still read; a new one, or moving one into the type, is refused. |
 | `canon_kind` | string, optional | A kind of card of the canon that stands in for this type: a hero with a card is described from its facts and needs no style. The dictionary says so above the type. Must name a kind with sections. |
@@ -911,7 +911,7 @@ yours. A profile you made yourself has none.
 | `family` | A key of its type's `families`, where the type files any. |
 | `description` | What goes into a prompt, in English. A dressing's slots are written inside `[brackets]`. |
 | `when` | When to take it, in English - read by whoever picks styles for a picture (`{style_library}`). |
-| `colours` | `#RRGGBB`: a background's one, an image style's palette. |
+| `colours` | `#RRGGBB`: a background's or an accent's one, or the stops of its gradient in order (up to four); an image style's palette; the ground of a lettering sample. |
 | `sample` | CSS declarations for the live sample of a lettering style. |
 
 A style nobody touched since it was seeded takes a newer wording at the next

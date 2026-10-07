@@ -135,9 +135,12 @@ each is filled with the cover's own lines first and the channel's card
 second. A slot with nothing in either drops out of the prompt with the
 phrase around it, and the tab says which.
 
-**Accent.** One colour the composition and the lettering lean on, from the
-channel's palette or written by hand, with the words a generator is given for
-it.
+**Accent.** The colour the composition and the lettering lean on, with the
+words a generator is given for it: from the channel's palette, from the
+**Accent** styles of the dictionary, or written by hand. An accent of the
+dictionary may be a gradient - *Sunset gradient*, *Gold foil*, *Chrome* - and
+the prompt then names every stop in order. A colour typed by hand is one
+colour.
 
 **Mark.** A variant of the channel's mark - the status whose meaning fits the
 song - where it goes (a corner, hidden in the picture, none) and how it gets

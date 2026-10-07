@@ -10,8 +10,8 @@ import { useAppMutation } from '@/lib/query/useAppMutation'
 import { nameProblem, type StyleForm } from '@/lib/styleDraft'
 import { cn } from '@/lib/utils'
 import {
-  HEX,
-  NO_COLOUR,
+  MAX_STOPS,
+  isColourForm,
   livingTypes,
   sampleGround,
   sampleStyle,
@@ -31,6 +31,7 @@ import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { Textarea } from '@/components/ui/textarea'
 import { Pane } from '@/components/frame'
 import { TaskPreviewDialog } from '@/features/assistant/TaskPreviewDialog'
+import { ColoursField } from '@/features/styles/ColoursField'
 import { StyleReferences } from '@/features/styles/StyleReferences'
 import { useStyleDraft } from '@/features/styles/useStyleDraft'
 import { ORIGIN_TONE } from '@/features/styles/StyleBrickCard'
@@ -39,6 +40,9 @@ import { ORIGIN_TONE } from '@/features/styles/StyleBrickCard'
 const DESCRIBE = 'describe-style'
 
 const STATUSES = ['draft', 'ready', 'dropped'] as const satisfies readonly StyleBrickStatus[]
+
+/** The most colours an image style's palette shows. */
+const PALETTE = 6
 
 interface Props {
   brick: StyleBrick
@@ -259,14 +263,14 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
         {/* The pictures first: a style is recognised by what it looks like,
             and they are what the description is read from. A colour is
             recognised by itself. */}
-        {form_ !== 'colour' && <StyleReferences brickId={brick.id} zone={zone} />}
+        {!isColourForm(form_) && <StyleReferences brickId={brick.id} zone={zone} />}
 
         {form_ === 'lettering' && (
           <Field label={t('styles.sample')} help={t('styles.sampleHint')}>
             <div className="flex flex-col gap-2">
               <div
                 className="flex h-16 items-center justify-center overflow-hidden rounded-md px-3 text-3xl whitespace-nowrap"
-                style={sampleGround(brick.colours)}
+                style={sampleGround(form.colours)}
               >
                 <span style={sampleStyle(form.sample)}>{t('styles.sampleWord')}</span>
               </div>
@@ -279,25 +283,38 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
           </Field>
         )}
 
-        {form_ === 'colour' && (
-          <Field label={t('styles.colour')} help={t('styles.colourHint')}>
-            <div className="flex items-center gap-2">
-              <Input
-                type="color"
-                aria-label={t('styles.pickColour')}
-                value={HEX.test(form.colour) ? form.colour : NO_COLOUR}
-                onChange={(event) => edit({ colour: event.target.value.toUpperCase() }, true)}
-                className="h-9 w-14 p-0.5"
-              />
-              <Input
-                value={form.colour}
-                onChange={(event) => edit({ colour: event.target.value })}
-                aria-invalid={form.colour.trim() !== '' && !HEX.test(form.colour.trim())}
-                placeholder="#RRGGBB"
-                className="max-w-32 font-mono"
-              />
-            </div>
-          </Field>
+        {form_ === 'lettering' && (
+          <ColoursField
+            label={t('styles.sampleGround')}
+            help={t('styles.sampleGroundHint')}
+            colours={form.colours}
+            min={1}
+            max={1}
+            onChange={(colours, now) => edit({ colours }, now)}
+          />
+        )}
+
+        {isColourForm(form_) && (
+          <ColoursField
+            label={t('styles.colours')}
+            help={t('styles.coloursHint')}
+            colours={form.colours}
+            min={1}
+            max={MAX_STOPS}
+            gradient
+            onChange={(colours, now) => edit({ colours }, now)}
+          />
+        )}
+
+        {form_ === 'picture' && (
+          <ColoursField
+            label={t('styles.palette')}
+            help={t('styles.paletteHint')}
+            colours={form.colours}
+            min={0}
+            max={PALETTE}
+            onChange={(colours, now) => edit({ colours }, now)}
+          />
         )}
 
         {/* The type decides which question the description answers. A group,
@@ -349,7 +366,7 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
               className="leading-relaxed"
             />
           </Field>
-          {form_ !== 'colour' && (
+          {!isColourForm(form_) && (
             <Button
               variant="soft"
               size="sm"

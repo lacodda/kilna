@@ -85,10 +85,9 @@ export function useStyleDraft(brick: StyleBrick, { holdKey, failure }: Options) 
       // the box spelled them: a field typed back to what it was while the
       // write was out is then an edit of its own, not the answer's to undo.
       const wrote: StyleForm = { ...base.current }
-      // A patch key is a form field by the same name, but for the colours:
-      // the form holds the one colour a colour brick has.
+      // A patch key is the form field by the same name.
       for (const key of Object.keys(patch)) {
-        const field = (key === 'colours' ? 'colour' : key) as keyof StyleForm
+        const field = key as keyof StyleForm
         Object.assign(wrote, { [field]: snapshot[field] })
       }
       takeIn(written, wrote)

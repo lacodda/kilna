@@ -36,7 +36,7 @@ describe('formOf', () => {
       when_to_use: '',
       family: '',
       sample: '',
-      colour: '',
+      colours: [],
     })
   })
 
@@ -57,11 +57,30 @@ describe('the fields of v0.87', () => {
   })
 
   it('holds a colour back until it is one, and writes it upper case', () => {
-    expect(patchOf(typed({ colour: '#1e9' }), stored)).toBeNull()
-    expect(patchOf(typed({ colour: '#1e9e95' }), stored)).toEqual({ colours: ['#1E9E95'] })
-    expect(patchOf(typed({ colour: '#1E9E95' }), { ...stored, colour: '#1e9e95' })).toBeNull()
-    expect(patchOf(typed({ colour: '' }), { ...stored, colour: '#1E9E95' })).toEqual({
+    expect(patchOf(typed({ colours: ['#1e9'] }), stored)).toBeNull()
+    expect(patchOf(typed({ colours: ['#1e9e95'] }), stored)).toEqual({ colours: ['#1E9E95'] })
+    expect(patchOf(typed({ colours: ['#1E9E95'] }), { ...stored, colours: ['#1e9e95'] })).toBeNull()
+    expect(patchOf(typed({ colours: [''] }), { ...stored, colours: ['#1E9E95'] })).toEqual({
       colours: [],
+    })
+  })
+
+  // v0.90.3: a ground or an accent may be a gradient, and a palette is
+  // edited at last - one box per colour.
+  it('writes the stops of a gradient in their order, and none while one is half typed', () => {
+    const ground = { ...stored, colours: ['#FA8072'] }
+    expect(patchOf({ ...ground, colours: ['#FA8072', '#f4a261'] }, ground)).toEqual({
+      colours: ['#FA8072', '#F4A261'],
+    })
+    expect(patchOf({ ...ground, colours: ['#FA8072', '#f4a'] }, ground)).toBeNull()
+    expect(patchOf({ ...ground, colours: ['#FA8072', ''] }, ground)).toBeNull()
+    expect(
+      patchOf(
+        { ...ground, colours: ['#F4A261', '#FA8072'] },
+        { ...ground, colours: ['#FA8072', '#F4A261'] },
+      ),
+    ).toEqual({
+      colours: ['#F4A261', '#FA8072'],
     })
   })
 })

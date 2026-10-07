@@ -2025,11 +2025,24 @@
           "ru": "Фон"
         },
         "hint": {
-          "en": "Describe the ground the picture stands on: the colour, its texture, and what is not there.",
-          "ru": "Опиши основу, на которой стоит картинка: цвет, фактуру и чего на ней нет."
+          "en": "Describe the ground the picture stands on: the colour or the gradient, its texture, and what is not there.",
+          "ru": "Опиши основу, на которой стоит картинка: цвет или градиент, фактуру и чего на ней нет."
         },
         "icon": "square",
         "form": "colour"
+      },
+      {
+        "key": "accent",
+        "label": {
+          "en": "Accent",
+          "ru": "Акцент"
+        },
+        "hint": {
+          "en": "Name the colour the picture and the lettering lean on and give it as #RRGGBB. Several colours are a gradient, in their order.",
+          "ru": "Назови цвет, на который опираются картинка и надпись, и дай его как #RRGGBB. Несколько цветов — градиент, по порядку."
+        },
+        "icon": "droplet",
+        "form": "accent"
       },
       {
         "key": "character",
@@ -6023,6 +6036,244 @@
       "sample": "font-family: 'Bellota'; font-weight: 700; color: #8E3B5A"
     },
     {
+      "key": "streetwear-badge",
+      "type": "typography",
+      "label": {
+        "en": "Streetwear badge",
+        "ru": "Стритвир-эмблема"
+      },
+      "description": "TYPOGRAPHY: a streetwear badge: the title in bold condensed block capitals stacked into a compact emblem - a shield, a starburst or a rounded tab - with a thick outline, a small tagline in spaced capitals beneath, lightning bolts or stars as punctuation, printed in one ink like a screen-printed tee[, in {ink}].",
+      "when": "Street, skate and loud songs; a title of two short words; tattoo and graffiti styles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Fira Sans Extra Condensed'; font-weight: 900; text-transform: uppercase; color: #EFEBE3; background: #121114; padding: 0 12px; border-radius: 10px; box-shadow: 0 0 0 3px #EFEBE3, 0 0 0 5px #121114"
+    },
+    {
+      "key": "kustom-script",
+      "type": "typography",
+      "label": {
+        "en": "Kustom script",
+        "ru": "Кастом-скрипт"
+      },
+      "description": "TYPOGRAPHY: West Coast kustom lettering: a bold brush script with a long underline swash, shaded in chrome or two-tone grey and outlined in black, with pinstripe flourishes and a small block-letter subtitle on a ribbon, like a hot-rod or lowrider decal[, in {ink}].",
+      "when": "Road, cars, summer and swagger songs; Chicano and old-school styles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Lobster'; color: transparent; background: linear-gradient(180deg, #FDFDFD, #8A8F99 50%, #3A3F4A 52%, #C9CED6); -webkit-background-clip: text; background-clip: text; -webkit-text-stroke: 1px #121114"
+    },
+    {
+      "key": "lucha-poster",
+      "type": "typography",
+      "label": {
+        "en": "Lucha libre poster",
+        "ru": "Афиша луча либре"
+      },
+      "description": "TYPOGRAPHY: Mexican wrestling poster lettering: heavy 3D block capitals with a deep extrusion and a bevel, arched over a script word, framed by banners and ornamental scrolls, loud and theatrical[, in {ink}][ with a {accent} extrusion].",
+      "when": "Fight, show and carnival songs; calavera and Mexican sign styles.",
+      "colours": [
+        "#D7262E"
+      ],
+      "sample": "font-family: 'Dela Gothic One'; color: #F2C21B; text-shadow: 1px 1px 0 #121114, 2px 2px 0 #121114, 3px 3px 0 #121114, 4px 4px 0 #121114"
+    },
+    {
+      "key": "signature",
+      "type": "typography",
+      "label": {
+        "en": "Signature",
+        "ru": "Автограф"
+      },
+      "description": "TYPOGRAPHY: a fast hand-signed signature: a monoline pen script with tall loops, one long underline swoosh crossing the name, slightly slanted and loose, with a tiny line of spaced capitals beneath like a title on a business card[, in {ink}].",
+      "when": "Personal, confessional and intimate songs; a name or one word; minimal and photographic styles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Bad Script'; color: #121114; border-bottom: 1px solid #121114; transform: rotate(-5deg)"
+    },
+    {
+      "key": "dj-logo",
+      "type": "typography",
+      "label": {
+        "en": "DJ logo",
+        "ru": "Логотип диджея"
+      },
+      "description": "TYPOGRAPHY: an electronic-music logotype: geometric capitals cut by sharp diagonals, letters sharing strokes and missing their bars, a slash through the name, set wide and clean, white on black[, in {ink}].",
+      "when": "Electronic, club and dark-future songs; a name or one word.",
+      "colours": [
+        "#121114"
+      ],
+      "sample": "font-family: 'Tektur'; font-weight: 800; color: #EFEBE3; letter-spacing: .02em; transform: skewX(-10deg)"
+    },
+    {
+      "key": "tattoo-lockup",
+      "type": "typography",
+      "label": {
+        "en": "Tattoo lockup",
+        "ru": "Тату-композиция"
+      },
+      "description": "TYPOGRAPHY: a hand-drawn tattoo lettering piece: two to four words of ornate blackletter and script locked together into one shape - a block, a diamond or an arch - letters interlocking, long hairline swashes and curls filling every gap, sharp spurs, a heavy black fill with a thin white inline[, in {ink}].",
+      "when": "Mottos, vows and defiant songs; a short phrase; tattoo and Chicano styles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Monomakh'; color: #121114; text-shadow: 2px 2px 0 #9D9A94; transform: rotate(-4deg)"
+    },
+    {
+      "key": "sticker-script",
+      "type": "typography",
+      "label": {
+        "en": "Sticker script",
+        "ru": "Стикер-скрипт"
+      },
+      "description": "TYPOGRAPHY: a bold slanted brush script with a fat white outline and a hard offset shadow, like a die-cut streetwear sticker, a swoosh under the word and a few paint dots around it[, in {ink}].",
+      "when": "Young, bright, street and sport songs; one or two words.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Pattaya'; color: #FFF; -webkit-text-stroke: 1.5px #121114; text-shadow: 3px 3px 0 #121114; transform: rotate(-6deg)"
+    },
+    {
+      "key": "drift-decal",
+      "type": "typography",
+      "label": {
+        "en": "Drift decal",
+        "ru": "Дрифт-наклейка"
+      },
+      "description": "TYPOGRAPHY: a motorsport decal: heavy italic letters slanted forward with speed cuts sliced through them, racing stripes and a small chequered flag, a cut-vinyl look in one or two colours like on a drift car's windscreen[, in {ink}].",
+      "when": "Speed, cars, night-city and adrenaline songs.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Russo One'; color: #121114; transform: skewX(-14deg); border-bottom: 4px solid #D7262E"
+    },
+    {
+      "key": "gradient-brush",
+      "type": "typography",
+      "label": {
+        "en": "Gradient brush lettering",
+        "ru": "Градиентная кисть"
+      },
+      "description": "TYPOGRAPHY: modern brush-pen calligraphy with thick downstrokes and thin upstrokes, filled with a smooth colour gradient, a soft 3D drop shadow and a few loose flourishes[ - the gradient runs into {accent}].",
+      "when": "Bright, warm, pop and summer songs; one word or a name.",
+      "colours": [
+        "#F4F1EA"
+      ],
+      "sample": "font-family: 'Marck Script'; color: transparent; background: linear-gradient(90deg, #FF5F6D, #FFC371); -webkit-background-clip: text; background-clip: text"
+    },
+    {
+      "key": "freestyle-calligraphy",
+      "type": "typography",
+      "label": {
+        "en": "Freestyle calligraphy",
+        "ru": "Фристайл-каллиграфия"
+      },
+      "description": "TYPOGRAPHY: dramatic freestyle calligraphy: tall gothic-cursive letters written with a broad nib, hairline strokes sweeping far above and below the line, crossing loops, a small four-point sparkle, white on black[, in {ink}].",
+      "when": "Grand, nocturnal and fateful songs; a short phrase in a tall frame.",
+      "colours": [
+        "#121114"
+      ],
+      "sample": "font-family: 'Comforter'; color: #F4F1EA"
+    },
+    {
+      "key": "neo-tribal",
+      "type": "typography",
+      "label": {
+        "en": "Neo-tribal letters",
+        "ru": "Нео-трайбл"
+      },
+      "description": "TYPOGRAPHY: neo-tribal display lettering of the 2020s: sharp blade-like letters with stretched spikes and flowing tribal curves, tilted serifs, small stars and sparkles around, in glossy black or chrome[, in {ink}].",
+      "when": "Dark-pop, rave and cyber songs; one word; chrome and tattoo styles.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Rubik Beastly'; color: #121114; transform: skewX(-10deg)"
+    },
+    {
+      "key": "merch-lettering",
+      "type": "typography",
+      "label": {
+        "en": "Merch lettering",
+        "ru": "Мерч-леттеринг"
+      },
+      "description": "TYPOGRAPHY: indie band merch lettering: chunky custom display letters drawn by hand - bubbly, melting or spiky - printed in cream ink on a black tee, with tiny stars and squiggles around and a screen-print texture[, in {ink}].",
+      "when": "Indie, emo, garage and lo-fi songs; one or two words.",
+      "colours": [
+        "#121114"
+      ],
+      "sample": "font-family: 'Rubik Puddles'; color: #F3EAD3"
+    },
+    {
+      "key": "neo-gothic",
+      "type": "typography",
+      "label": {
+        "en": "Neo-gothic",
+        "ru": "Нео-готика"
+      },
+      "description": "TYPOGRAPHY: a modern gothic display face: sharp blackletter crossed with sci-fi cuts, horn-like spikes and hairline extensions, tall and symmetrical, in hot pink or white on a dark grunge poster[, in {ink}].",
+      "when": "Dark, ritual and nightlife songs; posters with a skull or a beast.",
+      "colours": [
+        "#121114"
+      ],
+      "sample": "font-family: 'Monomakh'; color: #FF3D8B; letter-spacing: .06em; text-transform: uppercase"
+    },
+    {
+      "key": "blade-calligraphy",
+      "type": "typography",
+      "label": {
+        "en": "Blade calligraphy",
+        "ru": "Каллиграфия-клинок"
+      },
+      "description": "TYPOGRAPHY: aggressive broad-brush calligraphy: letters built from fast strokes that end in blade-sharp points, dry-brush streaks and ink spikes flying off them, white on black, strokes cutting across each other[, in {ink}].",
+      "when": "Fight, anger and street-poetry songs; one word.",
+      "colours": [
+        "#121114"
+      ],
+      "sample": "font-family: 'Comforter Brush'; color: #F4F1EA; transform: rotate(-6deg)"
+    },
+    {
+      "key": "brush-logotype",
+      "type": "typography",
+      "label": {
+        "en": "Running brush logotype",
+        "ru": "Каллиграфический логотип"
+      },
+      "description": "TYPOGRAPHY: a logotype in fast running-script brush calligraphy in the East Asian manner: heavy wet strokes with streaks of flying white where the brush runs dry, one sweeping flourish, a small Latin signature written across it and a tiny red seal[, in {ink}].",
+      "when": "Martial, wuxia and other Eastern styles; a name or a two-word title.",
+      "colours": [
+        "#121114"
+      ],
+      "sample": "font-family: 'Zen Kurenaido'; color: #F4F1EA; border-bottom: 2px solid #D4A537; transform: rotate(-4deg)"
+    },
+    {
+      "key": "letter-wreath",
+      "type": "typography",
+      "label": {
+        "en": "Letter wreath",
+        "ru": "Венок из букв"
+      },
+      "description": "TYPOGRAPHY: the title written around a circle like a wreath or a halo: sharp calligraphic letters radiating outwards, their spikes pointing out, a small flame or symbol in the empty middle[, in {ink}].",
+      "when": "Ritual, rebirth and cyclic songs; a hero or an object in the centre.",
+      "colours": [
+        "#2A292E"
+      ],
+      "sample": "font-family: 'Ponomar'; color: #EFEBE3; border: 2px solid #EFEBE3; border-radius: 999px; padding: 4px 16px"
+    },
+    {
+      "key": "swash-stack",
+      "type": "typography",
+      "label": {
+        "en": "Swash stack",
+        "ru": "Колонна с росчерками"
+      },
+      "description": "TYPOGRAPHY: a vintage stacked lockup: words set in a narrow column of heavy high-contrast letters with ball terminals and long curling swashes tucked into each other, a small numero and a tagline beneath[, in {ink}].",
+      "when": "Bar, sea, old-city and story songs; a title of three words.",
+      "colours": [
+        "#EFEBE3"
+      ],
+      "sample": "font-family: 'Yeseva One'; color: #121114"
+    },
+    {
       "key": "clean",
       "type": "dressing",
       "label": {
@@ -6334,6 +6585,1103 @@
       "when": "Dark or strong ground: light and neon styles read best on it.",
       "colours": [
         "#0E0D10"
+      ]
+    },
+    {
+      "key": "bg-salmon",
+      "type": "background",
+      "label": {
+        "en": "Salmon",
+        "ru": "Лосось"
+      },
+      "description": "BACKGROUND: perfectly flat solid salmon pink (#FA8072) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Warm, tender and summer songs; under ink, Art Nouveau and city-pop styles.",
+      "colours": [
+        "#FA8072"
+      ]
+    },
+    {
+      "key": "bg-peach",
+      "type": "background",
+      "label": {
+        "en": "Peach",
+        "ru": "Персик"
+      },
+      "description": "BACKGROUND: perfectly flat solid soft peach (#F6B89A) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Gentle, nostalgic and morning songs; under engraving and paper-cut styles.",
+      "colours": [
+        "#F6B89A"
+      ]
+    },
+    {
+      "key": "bg-apricot",
+      "type": "background",
+      "label": {
+        "en": "Apricot",
+        "ru": "Абрикос"
+      },
+      "description": "BACKGROUND: perfectly flat solid apricot orange (#F4A261) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Warm, sunny and road songs; under woodcut, poster and folk styles.",
+      "colours": [
+        "#F4A261"
+      ]
+    },
+    {
+      "key": "bg-coral",
+      "type": "background",
+      "label": {
+        "en": "Coral",
+        "ru": "Коралл"
+      },
+      "description": "BACKGROUND: perfectly flat solid living coral (#FF6F61) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Bright, playful and summer songs; under pop-art and claymation styles.",
+      "colours": [
+        "#FF6F61"
+      ]
+    },
+    {
+      "key": "bg-blush",
+      "type": "background",
+      "label": {
+        "en": "Blush",
+        "ru": "Румяна"
+      },
+      "description": "BACKGROUND: perfectly flat solid pale blush pink (#F2C4C0) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Tender, romantic and quiet songs; under fine-line and copperplate.",
+      "colours": [
+        "#F2C4C0"
+      ]
+    },
+    {
+      "key": "bg-butter",
+      "type": "background",
+      "label": {
+        "en": "Butter",
+        "ru": "Сливочное масло"
+      },
+      "description": "BACKGROUND: perfectly flat solid soft butter yellow (#F5E3A3) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Light, sunny and kind songs; under ink, nianhua and storybook styles.",
+      "colours": [
+        "#F5E3A3"
+      ]
+    },
+    {
+      "key": "bg-pistachio",
+      "type": "background",
+      "label": {
+        "en": "Pistachio",
+        "ru": "Фисташка"
+      },
+      "description": "BACKGROUND: perfectly flat solid pale pistachio green (#B9D5A0) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Fresh, spring and garden songs; under botanical and folk styles.",
+      "colours": [
+        "#B9D5A0"
+      ]
+    },
+    {
+      "key": "bg-mint",
+      "type": "background",
+      "label": {
+        "en": "Mint",
+        "ru": "Мята"
+      },
+      "description": "BACKGROUND: perfectly flat solid pale mint (#BFE3D0) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Cool, fresh and dreamy songs; under 1-bit, porcelain and pastel styles.",
+      "colours": [
+        "#BFE3D0"
+      ]
+    },
+    {
+      "key": "bg-powder-blue",
+      "type": "background",
+      "label": {
+        "en": "Powder blue",
+        "ru": "Пудрово-голубой"
+      },
+      "description": "BACKGROUND: perfectly flat solid powder blue (#B8D4E8) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Airy, calm and longing songs; under engraving, sumi-e and dreamcore.",
+      "colours": [
+        "#B8D4E8"
+      ]
+    },
+    {
+      "key": "bg-periwinkle",
+      "type": "background",
+      "label": {
+        "en": "Periwinkle",
+        "ru": "Барвинок"
+      },
+      "description": "BACKGROUND: perfectly flat solid periwinkle blue (#A9B4F0) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Dreamy, night-soft and nostalgic songs; under anime and paper diorama styles.",
+      "colours": [
+        "#A9B4F0"
+      ]
+    },
+    {
+      "key": "bg-lilac",
+      "type": "background",
+      "label": {
+        "en": "Lilac",
+        "ru": "Сирень"
+      },
+      "description": "BACKGROUND: perfectly flat solid soft lilac (#C8A2C8) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Romantic, wistful and spring songs; under Art Nouveau and Rococo.",
+      "colours": [
+        "#C8A2C8"
+      ]
+    },
+    {
+      "key": "bg-mauve",
+      "type": "background",
+      "label": {
+        "en": "Mauve",
+        "ru": "Мов"
+      },
+      "description": "BACKGROUND: perfectly flat solid dusty mauve (#B78C9B) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Melancholic, vintage and intimate songs; under oil and fresco styles.",
+      "colours": [
+        "#B78C9B"
+      ]
+    },
+    {
+      "key": "bg-sand",
+      "type": "background",
+      "label": {
+        "en": "Sand",
+        "ru": "Песок"
+      },
+      "description": "BACKGROUND: perfectly flat solid warm sand beige (#D9C3A0) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Desert, road and ancient-world songs; under Egyptian and cave styles.",
+      "colours": [
+        "#D9C3A0"
+      ]
+    },
+    {
+      "key": "bg-mocha",
+      "type": "background",
+      "label": {
+        "en": "Mocha mousse",
+        "ru": "Мокко-мусс"
+      },
+      "description": "BACKGROUND: perfectly flat solid mocha mousse brown (#A47864) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Warm, earthy and grown-up songs; a fashion colour of the mid-2020s.",
+      "colours": [
+        "#A47864"
+      ]
+    },
+    {
+      "key": "bg-cloud",
+      "type": "background",
+      "label": {
+        "en": "Cloud white",
+        "ru": "Облачный белый"
+      },
+      "description": "BACKGROUND: perfectly flat solid soft cloud white (#F0EEE9) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Clean, minimal and editorial songs; under fine-line and Didone lettering.",
+      "colours": [
+        "#F0EEE9"
+      ]
+    },
+    {
+      "key": "bg-ivory",
+      "type": "background",
+      "label": {
+        "en": "Ivory",
+        "ru": "Слоновая кость"
+      },
+      "description": "BACKGROUND: perfectly flat solid warm ivory (#F3EEDC) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Classic, literary and solemn songs; under engraving and illumination.",
+      "colours": [
+        "#F3EEDC"
+      ]
+    },
+    {
+      "key": "bg-ochre",
+      "type": "background",
+      "label": {
+        "en": "Ochre",
+        "ru": "Охра"
+      },
+      "description": "BACKGROUND: perfectly flat solid yellow ochre (#C88B2C) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Earthy, folk and ancient songs; under woodcut, Gond and mosaic styles.",
+      "colours": [
+        "#C88B2C"
+      ]
+    },
+    {
+      "key": "bg-tangerine",
+      "type": "background",
+      "label": {
+        "en": "Tangerine",
+        "ru": "Мандарин"
+      },
+      "description": "BACKGROUND: perfectly flat solid tangerine orange (#F28500) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Loud, hot and festive songs; under graffiti and 70s styles.",
+      "colours": [
+        "#F28500"
+      ]
+    },
+    {
+      "key": "bg-shocking-pink",
+      "type": "background",
+      "label": {
+        "en": "Shocking pink",
+        "ru": "Шокирующий розовый"
+      },
+      "description": "BACKGROUND: perfectly flat solid shocking pink (#E4007C) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Provocative, pop and club songs; under black ink and chrome.",
+      "colours": [
+        "#E4007C"
+      ]
+    },
+    {
+      "key": "bg-cherry",
+      "type": "background",
+      "label": {
+        "en": "Cherry",
+        "ru": "Вишня"
+      },
+      "description": "BACKGROUND: perfectly flat solid deep cherry red (#9E1B32) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Passion, desire and danger songs; under black-and-grey and gold styles.",
+      "colours": [
+        "#9E1B32"
+      ]
+    },
+    {
+      "key": "bg-teal",
+      "type": "background",
+      "label": {
+        "en": "Deep teal",
+        "ru": "Глубокий бирюзовый"
+      },
+      "description": "BACKGROUND: perfectly flat solid deep teal (#1F6F6B) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Calm, deep and sea songs; under gold, cream and Iznik styles.",
+      "colours": [
+        "#1F6F6B"
+      ]
+    },
+    {
+      "key": "bg-emerald",
+      "type": "background",
+      "label": {
+        "en": "Emerald",
+        "ru": "Изумруд"
+      },
+      "description": "BACKGROUND: perfectly flat solid emerald green (#0F7B5A) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Rich, magic and forest songs; under gold, Mughal and Art Deco styles.",
+      "colours": [
+        "#0F7B5A"
+      ]
+    },
+    {
+      "key": "bg-forest",
+      "type": "background",
+      "label": {
+        "en": "Forest green",
+        "ru": "Лесной"
+      },
+      "description": "BACKGROUND: perfectly flat solid dark forest green (#1F3D2B) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Folk-horror, forest and northern songs; under engraving and Norse styles.",
+      "colours": [
+        "#1F3D2B"
+      ]
+    },
+    {
+      "key": "bg-klein",
+      "type": "background",
+      "label": {
+        "en": "Klein blue",
+        "ru": "Синий Кляйна"
+      },
+      "description": "BACKGROUND: perfectly flat solid ultramarine Klein blue (#002FA7) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Bold, artistic and deep songs; under white line, Bauhaus and cut-outs.",
+      "colours": [
+        "#002FA7"
+      ]
+    },
+    {
+      "key": "bg-plum",
+      "type": "background",
+      "label": {
+        "en": "Plum",
+        "ru": "Слива"
+      },
+      "description": "BACKGROUND: perfectly flat solid deep plum (#5B2A4E) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Nocturnal, sensual and mystical songs; under gold and neon.",
+      "colours": [
+        "#5B2A4E"
+      ]
+    },
+    {
+      "key": "bg-chocolate",
+      "type": "background",
+      "label": {
+        "en": "Chocolate",
+        "ru": "Шоколад"
+      },
+      "description": "BACKGROUND: perfectly flat solid dark chocolate brown (#4A2C21) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Warm, soul and vintage songs; under cream lettering and gold.",
+      "colours": [
+        "#4A2C21"
+      ]
+    },
+    {
+      "key": "bg-charcoal",
+      "type": "background",
+      "label": {
+        "en": "Charcoal",
+        "ru": "Уголь"
+      },
+      "description": "BACKGROUND: perfectly flat solid soft charcoal grey (#36363A) with a subtle paper grain, no gradient, no scenery.",
+      "when": "Serious, urban and minimal songs; under chalk and neon lettering.",
+      "colours": [
+        "#36363A"
+      ]
+    },
+    {
+      "key": "bg-sunset",
+      "type": "background",
+      "label": {
+        "en": "Sunset",
+        "ru": "Закат"
+      },
+      "description": "BACKGROUND: a smooth vertical gradient from salmon (#FA8072) through apricot (#F4A261) to butter yellow (#F5E3A3), with a subtle paper grain, no scenery.",
+      "when": "Summer, road and goodbye songs; under silhouettes, city pop and synthwave.",
+      "colours": [
+        "#FA8072",
+        "#F4A261",
+        "#F5E3A3"
+      ]
+    },
+    {
+      "key": "bg-peach-sky",
+      "type": "background",
+      "label": {
+        "en": "Peach sky",
+        "ru": "Персиковое небо"
+      },
+      "description": "BACKGROUND: a smooth vertical gradient from soft peach (#F6B89A) to lilac (#C8A2C8), with a subtle paper grain, no scenery.",
+      "when": "Dreamy, tender and evening songs; under anime, paper and line styles.",
+      "colours": [
+        "#F6B89A",
+        "#C8A2C8"
+      ]
+    },
+    {
+      "key": "bg-dawn",
+      "type": "background",
+      "label": {
+        "en": "Dawn",
+        "ru": "Рассвет"
+      },
+      "description": "BACKGROUND: a smooth vertical gradient from powder blue (#B8D4E8) through pale blush (#F2C4C0) to butter yellow (#F5E3A3), with a subtle paper grain, no scenery.",
+      "when": "Hope, morning and new-beginning songs; under ink and engraving.",
+      "colours": [
+        "#B8D4E8",
+        "#F2C4C0",
+        "#F5E3A3"
+      ]
+    },
+    {
+      "key": "bg-dusk",
+      "type": "background",
+      "label": {
+        "en": "Dusk",
+        "ru": "Сумерки"
+      },
+      "description": "BACKGROUND: a smooth vertical gradient from salmon pink (#F28B82) through violet (#6A4C93) to midnight navy (#16203A), with a subtle paper grain, no scenery.",
+      "when": "Evening, longing and nightfall songs; under silhouettes and neon.",
+      "colours": [
+        "#F28B82",
+        "#6A4C93",
+        "#16203A"
+      ]
+    },
+    {
+      "key": "bg-aurora",
+      "type": "background",
+      "label": {
+        "en": "Aurora",
+        "ru": "Северное сияние"
+      },
+      "description": "BACKGROUND: a soft diagonal gradient like northern lights from deep night blue (#0B1E3A) through teal (#1E9E95) to pale green (#A6E3A1), with a subtle paper grain, no scenery.",
+      "when": "Northern, cosmic and quiet-wonder songs; under white line and Norse styles.",
+      "colours": [
+        "#0B1E3A",
+        "#1E9E95",
+        "#A6E3A1"
+      ]
+    },
+    {
+      "key": "bg-lagoon",
+      "type": "background",
+      "label": {
+        "en": "Lagoon",
+        "ru": "Лагуна"
+      },
+      "description": "BACKGROUND: a smooth vertical gradient from deep sea blue (#0F3B5F) to turquoise (#1E9E95), with a subtle paper grain, no scenery.",
+      "when": "Sea, depth and calm songs; under porcelain, azulejo and ink styles.",
+      "colours": [
+        "#0F3B5F",
+        "#1E9E95"
+      ]
+    },
+    {
+      "key": "bg-mint-lemonade",
+      "type": "background",
+      "label": {
+        "en": "Mint lemonade",
+        "ru": "Мятный лимонад"
+      },
+      "description": "BACKGROUND: a smooth diagonal gradient from pale mint (#BFE3D0) to butter yellow (#F5E3A3), with a subtle paper grain, no scenery.",
+      "when": "Fresh, light and summer-day songs; under pastel and claymation styles.",
+      "colours": [
+        "#BFE3D0",
+        "#F5E3A3"
+      ]
+    },
+    {
+      "key": "bg-rose-gold",
+      "type": "background",
+      "label": {
+        "en": "Rose gold",
+        "ru": "Розовое золото"
+      },
+      "description": "BACKGROUND: a soft metallic diagonal gradient from pale blush (#F2C4C0) to rose gold (#D4A373), with a subtle paper grain, no scenery.",
+      "when": "Glamour, love and luxury songs; under Didone, copperplate and gold styles.",
+      "colours": [
+        "#F2C4C0",
+        "#D4A373"
+      ]
+    },
+    {
+      "key": "bg-aura",
+      "type": "background",
+      "label": {
+        "en": "Aura",
+        "ru": "Аура"
+      },
+      "description": "BACKGROUND: a soft blurred aura gradient, a glowing centre fading outwards like a mesh gradient, from pink (#F49AC1) through periwinkle (#A9B4F0) to cream (#FDF6EC), with a subtle paper grain, no scenery.",
+      "when": "Dreamy, spiritual and soft-pop songs; under fine line and inflated letters.",
+      "colours": [
+        "#F49AC1",
+        "#A9B4F0",
+        "#FDF6EC"
+      ]
+    },
+    {
+      "key": "bg-embers",
+      "type": "background",
+      "label": {
+        "en": "Embers",
+        "ru": "Угли"
+      },
+      "description": "BACKGROUND: a smooth vertical gradient from near black (#121114) through cherry red (#9E1B32) to tangerine (#F28500), with a subtle paper grain, no scenery.",
+      "when": "Fire, anger and burning-bridges songs; under black ink and gothic lettering.",
+      "colours": [
+        "#121114",
+        "#9E1B32",
+        "#F28500"
+      ]
+    },
+    {
+      "key": "bg-smoke",
+      "type": "background",
+      "label": {
+        "en": "Smoke",
+        "ru": "Дым"
+      },
+      "description": "BACKGROUND: a smooth vertical gradient from ink black (#0E0D10) to smoky grey (#5A5860), with a subtle paper grain, no scenery.",
+      "when": "Noir, night and serious songs; under white line, chrome and chalk.",
+      "colours": [
+        "#0E0D10",
+        "#5A5860"
+      ]
+    },
+    {
+      "key": "bg-lavender-haze",
+      "type": "background",
+      "label": {
+        "en": "Lavender haze",
+        "ru": "Лавандовая дымка"
+      },
+      "description": "BACKGROUND: a smooth vertical gradient from lavender (#B7A8D6) to pale pink (#F2C6D6), with a subtle paper grain, no scenery.",
+      "when": "Dream, love and haze songs; under anime, dreamcore and script lettering.",
+      "colours": [
+        "#B7A8D6",
+        "#F2C6D6"
+      ]
+    },
+    {
+      "key": "bg-sage-mist",
+      "type": "background",
+      "label": {
+        "en": "Sage mist",
+        "ru": "Шалфейный туман"
+      },
+      "description": "BACKGROUND: a smooth vertical gradient from muted sage (#A7B59B) to off-white (#EFEBE3), with a subtle paper grain, no scenery.",
+      "when": "Quiet, natural and healing songs; under botanical, sumi-e and line styles.",
+      "colours": [
+        "#A7B59B",
+        "#EFEBE3"
+      ]
+    },
+    {
+      "key": "bg-neon-night",
+      "type": "background",
+      "label": {
+        "en": "Neon night",
+        "ru": "Неоновая ночь"
+      },
+      "description": "BACKGROUND: a smooth vertical gradient from deep indigo (#1B1464) to hot magenta (#FF2E8A), with a subtle paper grain, no scenery.",
+      "when": "Club, night-drive and retro-future songs; under chrome and outrun lettering.",
+      "colours": [
+        "#1B1464",
+        "#FF2E8A"
+      ]
+    },
+    {
+      "key": "bg-desert",
+      "type": "background",
+      "label": {
+        "en": "Desert",
+        "ru": "Пустыня"
+      },
+      "description": "BACKGROUND: a smooth vertical gradient from sand (#D9C3A0) to terracotta (#B8563A), with a subtle paper grain, no scenery.",
+      "when": "Desert, journey and heat songs; under Egyptian, western and woodcut styles.",
+      "colours": [
+        "#D9C3A0",
+        "#B8563A"
+      ]
+    },
+    {
+      "key": "bg-holographic",
+      "type": "background",
+      "label": {
+        "en": "Holographic",
+        "ru": "Голография"
+      },
+      "description": "BACKGROUND: a soft iridescent holographic gradient from pale violet (#E0C3FC) through sky blue (#8EC5FC), mint (#C2FFD8) to cream (#FDF6EC), with a subtle paper grain, no scenery.",
+      "when": "Y2K, pop, future and shiny songs; under chrome and inflated letters.",
+      "colours": [
+        "#E0C3FC",
+        "#8EC5FC",
+        "#C2FFD8",
+        "#FDF6EC"
+      ]
+    },
+    {
+      "key": "accent-salmon",
+      "type": "accent",
+      "label": {
+        "en": "Salmon",
+        "ru": "Лосось"
+      },
+      "description": "ACCENT: salmon pink (#FA8072).",
+      "when": "Warm and tender songs; on ink, navy, cream and sage grounds.",
+      "colours": [
+        "#FA8072"
+      ]
+    },
+    {
+      "key": "accent-coral",
+      "type": "accent",
+      "label": {
+        "en": "Coral",
+        "ru": "Коралл"
+      },
+      "description": "ACCENT: living coral (#FF6F61).",
+      "when": "Bright and playful songs; on teal, navy and cream grounds.",
+      "colours": [
+        "#FF6F61"
+      ]
+    },
+    {
+      "key": "accent-peach",
+      "type": "accent",
+      "label": {
+        "en": "Peach",
+        "ru": "Персик"
+      },
+      "description": "ACCENT: soft peach (#FFB38A).",
+      "when": "Gentle and nostalgic songs; on dark brown, plum and navy grounds.",
+      "colours": [
+        "#FFB38A"
+      ]
+    },
+    {
+      "key": "accent-tangerine",
+      "type": "accent",
+      "label": {
+        "en": "Tangerine",
+        "ru": "Мандарин"
+      },
+      "description": "ACCENT: tangerine orange (#F28500).",
+      "when": "Hot, loud and festive songs; on cobalt, black and cream grounds.",
+      "colours": [
+        "#F28500"
+      ]
+    },
+    {
+      "key": "accent-marigold",
+      "type": "accent",
+      "label": {
+        "en": "Marigold",
+        "ru": "Бархатцы"
+      },
+      "description": "ACCENT: marigold yellow (#F2A900).",
+      "when": "Warm, folk and festive songs; on black, plum and teal grounds.",
+      "colours": [
+        "#F2A900"
+      ]
+    },
+    {
+      "key": "accent-lemon",
+      "type": "accent",
+      "label": {
+        "en": "Lemon",
+        "ru": "Лимон"
+      },
+      "description": "ACCENT: lemon yellow (#F7E733).",
+      "when": "Sharp, pop and electric songs; on black, cobalt and grey grounds.",
+      "colours": [
+        "#F7E733"
+      ]
+    },
+    {
+      "key": "accent-acid",
+      "type": "accent",
+      "label": {
+        "en": "Acid lime",
+        "ru": "Кислотный лайм"
+      },
+      "description": "ACCENT: acid lime (#D3F03B).",
+      "when": "Rave, digital and toxic songs; on black and concrete grounds.",
+      "colours": [
+        "#D3F03B"
+      ]
+    },
+    {
+      "key": "accent-mint",
+      "type": "accent",
+      "label": {
+        "en": "Mint",
+        "ru": "Мята"
+      },
+      "description": "ACCENT: mint green (#3EB489).",
+      "when": "Fresh, cool and calm songs; on black, navy and blush grounds.",
+      "colours": [
+        "#3EB489"
+      ]
+    },
+    {
+      "key": "accent-teal",
+      "type": "accent",
+      "label": {
+        "en": "Teal",
+        "ru": "Бирюза"
+      },
+      "description": "ACCENT: teal (#1E9E95).",
+      "when": "Cold, deep and sea songs; on cream, salmon and black grounds.",
+      "colours": [
+        "#1E9E95"
+      ]
+    },
+    {
+      "key": "accent-turquoise",
+      "type": "accent",
+      "label": {
+        "en": "Turquoise",
+        "ru": "Яркая бирюза"
+      },
+      "description": "ACCENT: bright turquoise (#1ECBE1).",
+      "when": "Electric, digital and summer songs; on black and navy grounds.",
+      "colours": [
+        "#1ECBE1"
+      ]
+    },
+    {
+      "key": "accent-sky",
+      "type": "accent",
+      "label": {
+        "en": "Sky blue",
+        "ru": "Небесно-голубой"
+      },
+      "description": "ACCENT: sky blue (#4FB3E8).",
+      "when": "Light, free and flying songs; on cream, peach and navy grounds.",
+      "colours": [
+        "#4FB3E8"
+      ]
+    },
+    {
+      "key": "accent-klein",
+      "type": "accent",
+      "label": {
+        "en": "Klein blue",
+        "ru": "Синий Кляйна"
+      },
+      "description": "ACCENT: ultramarine Klein blue (#002FA7).",
+      "when": "Bold and artistic songs; on cream, white and orange grounds.",
+      "colours": [
+        "#002FA7"
+      ]
+    },
+    {
+      "key": "accent-periwinkle",
+      "type": "accent",
+      "label": {
+        "en": "Periwinkle",
+        "ru": "Барвинок"
+      },
+      "description": "ACCENT: periwinkle (#8C9EFF).",
+      "when": "Dreamy and nocturnal songs; on black, plum and cream grounds.",
+      "colours": [
+        "#8C9EFF"
+      ]
+    },
+    {
+      "key": "accent-violet",
+      "type": "accent",
+      "label": {
+        "en": "Electric violet",
+        "ru": "Электрик-фиолетовый"
+      },
+      "description": "ACCENT: electric violet (#7A5CFF).",
+      "when": "Cyber, club and night songs; on black and acid grounds.",
+      "colours": [
+        "#7A5CFF"
+      ]
+    },
+    {
+      "key": "accent-lilac",
+      "type": "accent",
+      "label": {
+        "en": "Lilac",
+        "ru": "Сирень"
+      },
+      "description": "ACCENT: soft lilac (#C8A2C8).",
+      "when": "Romantic and wistful songs; on black, sage and navy grounds.",
+      "colours": [
+        "#C8A2C8"
+      ]
+    },
+    {
+      "key": "accent-hot-pink",
+      "type": "accent",
+      "label": {
+        "en": "Hot pink",
+        "ru": "Горячий розовый"
+      },
+      "description": "ACCENT: hot pink (#FF2E63).",
+      "when": "Loud, young and rebellious songs; on black, concrete and cream grounds.",
+      "colours": [
+        "#FF2E63"
+      ]
+    },
+    {
+      "key": "accent-bubblegum",
+      "type": "accent",
+      "label": {
+        "en": "Bubblegum",
+        "ru": "Жвачка"
+      },
+      "description": "ACCENT: bubblegum pink (#FF8FC7).",
+      "when": "Playful, pop and ironic songs; on black, mint and blue grounds.",
+      "colours": [
+        "#FF8FC7"
+      ]
+    },
+    {
+      "key": "accent-blush",
+      "type": "accent",
+      "label": {
+        "en": "Blush",
+        "ru": "Румяна"
+      },
+      "description": "ACCENT: pale blush pink (#F2C4C0).",
+      "when": "Tender and quiet songs; on charcoal, plum and forest grounds.",
+      "colours": [
+        "#F2C4C0"
+      ]
+    },
+    {
+      "key": "accent-signal-red",
+      "type": "accent",
+      "label": {
+        "en": "Signal red",
+        "ru": "Сигнальный красный"
+      },
+      "description": "ACCENT: signal red (#D7262E).",
+      "when": "Alarm, passion and protest songs; on cream, black and grey grounds.",
+      "colours": [
+        "#D7262E"
+      ]
+    },
+    {
+      "key": "accent-cherry",
+      "type": "accent",
+      "label": {
+        "en": "Cherry",
+        "ru": "Вишня"
+      },
+      "description": "ACCENT: deep cherry red (#9E1B32).",
+      "when": "Desire and danger songs; on cream, blush and black grounds.",
+      "colours": [
+        "#9E1B32"
+      ]
+    },
+    {
+      "key": "accent-emerald",
+      "type": "accent",
+      "label": {
+        "en": "Emerald",
+        "ru": "Изумруд"
+      },
+      "description": "ACCENT: emerald green (#0F7B5A).",
+      "when": "Rich, magic and forest songs; on cream, gold and black grounds.",
+      "colours": [
+        "#0F7B5A"
+      ]
+    },
+    {
+      "key": "accent-gold",
+      "type": "accent",
+      "label": {
+        "en": "Gold",
+        "ru": "Золото"
+      },
+      "description": "ACCENT: warm gold (#D4A537).",
+      "when": "Sacred, royal and triumphant songs; on black, navy and oxblood grounds.",
+      "colours": [
+        "#D4A537"
+      ]
+    },
+    {
+      "key": "accent-silver",
+      "type": "accent",
+      "label": {
+        "en": "Silver",
+        "ru": "Серебро"
+      },
+      "description": "ACCENT: cool silver (#C0C4CC).",
+      "when": "Cold, future and winter songs; on black and navy grounds.",
+      "colours": [
+        "#C0C4CC"
+      ]
+    },
+    {
+      "key": "accent-copper",
+      "type": "accent",
+      "label": {
+        "en": "Copper",
+        "ru": "Медь"
+      },
+      "description": "ACCENT: burnished copper (#B87333).",
+      "when": "Warm, industrial and autumn songs; on black, teal and cream grounds.",
+      "colours": [
+        "#B87333"
+      ]
+    },
+    {
+      "key": "accent-cream",
+      "type": "accent",
+      "label": {
+        "en": "Cream",
+        "ru": "Сливки"
+      },
+      "description": "ACCENT: warm cream (#F3EEDC).",
+      "when": "Quiet accents on dark grounds; vintage and merch-like covers.",
+      "colours": [
+        "#F3EEDC"
+      ]
+    },
+    {
+      "key": "accent-mocha",
+      "type": "accent",
+      "label": {
+        "en": "Mocha mousse",
+        "ru": "Мокко-мусс"
+      },
+      "description": "ACCENT: mocha mousse brown (#A47864).",
+      "when": "Earthy, warm and grown-up songs; on cream and blush grounds.",
+      "colours": [
+        "#A47864"
+      ]
+    },
+    {
+      "key": "accent-grad-sunset",
+      "type": "accent",
+      "label": {
+        "en": "Sunset gradient",
+        "ru": "Закатный градиент"
+      },
+      "description": "ACCENT: a sunset gradient from coral (#FF5F6D) to amber (#FFC371), for gradient lettering and glows.",
+      "when": "Summer, road and goodbye songs; on black, navy and cream grounds.",
+      "colours": [
+        "#FF5F6D",
+        "#FFC371"
+      ]
+    },
+    {
+      "key": "accent-grad-peach-lilac",
+      "type": "accent",
+      "label": {
+        "en": "Peach to lilac",
+        "ru": "Персик в сирень"
+      },
+      "description": "ACCENT: a soft gradient from peach (#FFB38A) to lilac (#C8A2C8).",
+      "when": "Dreamy and tender songs; on black, plum and navy grounds.",
+      "colours": [
+        "#FFB38A",
+        "#C8A2C8"
+      ]
+    },
+    {
+      "key": "accent-grad-neon",
+      "type": "accent",
+      "label": {
+        "en": "Neon gradient",
+        "ru": "Неоновый градиент"
+      },
+      "description": "ACCENT: a neon gradient from hot magenta (#FF2E8A) through electric violet (#7A5CFF) to turquoise (#1ECBE1).",
+      "when": "Club, cyber and night-drive songs; on black and indigo grounds.",
+      "colours": [
+        "#FF2E8A",
+        "#7A5CFF",
+        "#1ECBE1"
+      ]
+    },
+    {
+      "key": "accent-grad-fire",
+      "type": "accent",
+      "label": {
+        "en": "Fire gradient",
+        "ru": "Огненный градиент"
+      },
+      "description": "ACCENT: a fire gradient from red (#D7262E) through orange (#F28500) to yellow (#F7E733).",
+      "when": "Rage, heat and burning songs; on black and charcoal grounds.",
+      "colours": [
+        "#D7262E",
+        "#F28500",
+        "#F7E733"
+      ]
+    },
+    {
+      "key": "accent-grad-lagoon",
+      "type": "accent",
+      "label": {
+        "en": "Lagoon gradient",
+        "ru": "Лагуна"
+      },
+      "description": "ACCENT: a cool gradient from turquoise (#1ECBE1) to mint (#3EB489).",
+      "when": "Sea, summer and fresh songs; on navy, black and white grounds.",
+      "colours": [
+        "#1ECBE1",
+        "#3EB489"
+      ]
+    },
+    {
+      "key": "accent-grad-holographic",
+      "type": "accent",
+      "label": {
+        "en": "Holographic",
+        "ru": "Голографический"
+      },
+      "description": "ACCENT: an iridescent holographic gradient of pink (#FF8FC7), periwinkle (#8C9EFF), aqua (#7FE7E0) and butter (#F5E3A3), shifting like foil.",
+      "when": "Y2K, pop and shiny-future songs; on black, silver and white grounds.",
+      "colours": [
+        "#FF8FC7",
+        "#8C9EFF",
+        "#7FE7E0",
+        "#F5E3A3"
+      ]
+    },
+    {
+      "key": "accent-grad-gold-foil",
+      "type": "accent",
+      "label": {
+        "en": "Gold foil",
+        "ru": "Золотая фольга"
+      },
+      "description": "ACCENT: metallic gold foil: bronze (#8A5A1E), gold (#D4A537), pale gold (#F7E7A6) and gold (#B8862B) again, with bright reflections.",
+      "when": "Luxury, sacred and triumphant songs; on black, navy and oxblood grounds.",
+      "colours": [
+        "#8A5A1E",
+        "#D4A537",
+        "#F7E7A6",
+        "#B8862B"
+      ]
+    },
+    {
+      "key": "accent-grad-chrome",
+      "type": "accent",
+      "label": {
+        "en": "Chrome",
+        "ru": "Хром"
+      },
+      "description": "ACCENT: polished chrome: white (#FDFDFD), steel grey (#8A8F99), near black (#2B2F36) and silver (#C9CED6), with a hard horizon reflection.",
+      "when": "Cold, future, Y2K and car songs; on black and blue grounds.",
+      "colours": [
+        "#FDFDFD",
+        "#8A8F99",
+        "#2B2F36",
+        "#C9CED6"
+      ]
+    },
+    {
+      "key": "accent-grad-rose-gold",
+      "type": "accent",
+      "label": {
+        "en": "Rose gold gradient",
+        "ru": "Розовое золото"
+      },
+      "description": "ACCENT: a metallic rose-gold gradient from pale rose (#E8B4A6) to dusky rose (#B76E79).",
+      "when": "Glamour, love and soft-luxury songs; on cream, black and plum grounds.",
+      "colours": [
+        "#E8B4A6",
+        "#B76E79"
+      ]
+    },
+    {
+      "key": "accent-grad-toxic",
+      "type": "accent",
+      "label": {
+        "en": "Toxic gradient",
+        "ru": "Токсичный градиент"
+      },
+      "description": "ACCENT: a toxic gradient from acid lime (#D3F03B) to teal (#1E9E95).",
+      "when": "Rave, digital and poison songs; on black and concrete grounds.",
+      "colours": [
+        "#D3F03B",
+        "#1E9E95"
+      ]
+    },
+    {
+      "key": "accent-grad-candy",
+      "type": "accent",
+      "label": {
+        "en": "Candy gradient",
+        "ru": "Леденец"
+      },
+      "description": "ACCENT: a candy gradient from bubblegum pink (#FF8FC7) to sunny yellow (#FFD23F).",
+      "when": "Playful, pop and sweet songs; on black, blue and mint grounds.",
+      "colours": [
+        "#FF8FC7",
+        "#FFD23F"
+      ]
+    },
+    {
+      "key": "accent-grad-twilight",
+      "type": "accent",
+      "label": {
+        "en": "Twilight gradient",
+        "ru": "Сумеречный градиент"
+      },
+      "description": "ACCENT: a twilight gradient from violet (#7A5CFF) to coral (#FF6F61).",
+      "when": "Evening, longing and dreamy songs; on navy, black and cream grounds.",
+      "colours": [
+        "#7A5CFF",
+        "#FF6F61"
       ]
     }
   ]

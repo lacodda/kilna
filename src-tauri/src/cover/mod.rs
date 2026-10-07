@@ -143,18 +143,43 @@ impl Bricks {
 pub struct Accent {
     /// "hot pink". May be empty: the colour alone is then said.
     pub name: String,
-    /// `#RRGGBB`.
+    /// `#RRGGBB`; the first stop of a gradient, which is what a swatch or a
+    /// scheme that can hold one colour shows.
     pub color: String,
+    /// A gradient's colours in their order, from an accent of the dictionary
+    /// (v0.90.3). Empty, or one colour, for a flat accent.
+    pub stops: Vec<String>,
 }
 
 impl Accent {
-    /// As a prompt says it: "hot pink (#FF2E63)", or the colour alone.
+    /// An accent of the dictionary, as a cover keeps it: its name and its
+    /// colours, copied, the way a colour of the channel's palette is.
+    pub fn of_brick(brick: &crate::style_brick::StyleBrick) -> Option<Self> {
+        let color = brick.colours.first()?.clone();
+        Some(Self {
+            name: brick.name.clone(),
+            color,
+            stops: if brick.colours.len() > 1 {
+                brick.colours.clone()
+            } else {
+                Vec::new()
+            },
+        })
+    }
+
+    /// As a prompt says it: "hot pink (#FF2E63)", "Sunset (a gradient of
+    /// #FA8072 to #7A5CFF)", or the colour alone.
     pub fn said(&self) -> String {
+        let colour = if self.stops.len() > 1 {
+            format!("a gradient of {}", self.stops.join(" to "))
+        } else {
+            self.color.clone()
+        };
         let name = self.name.trim();
         if name.is_empty() {
-            self.color.clone()
+            colour
         } else {
-            format!("{name} ({})", self.color)
+            format!("{name} ({colour})")
         }
     }
 }

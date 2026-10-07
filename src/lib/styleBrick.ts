@@ -23,6 +23,26 @@ export const HEX = /^#[0-9a-f]{6}$/i
 /** What a colour picker shows while the brick has no colour yet. */
 export const NO_COLOUR = '#000000'
 
+/** The forms whose bricks are their colours: a ground and an accent (v0.90.3). */
+export function isColourForm(form: StyleType['form'] | undefined): boolean {
+  return form === 'colour' || form === 'accent'
+}
+
+/**
+ * How a ground or an accent is painted: its one colour, or the gradient its
+ * colours make in their order - the way the prompt says it. Only colours
+ * spelt as the backend keeps them; `undefined` when none is.
+ */
+export function colourFill(colours: readonly string[]): string | undefined {
+  const kept = colours.filter((colour) => HEX.test(colour))
+  if (kept.length === 0) return undefined
+  if (kept.length === 1) return kept[0]
+  return `linear-gradient(135deg, ${kept.join(', ')})`
+}
+
+/** The most stops a ground or an accent holds: a gradient of four. */
+export const MAX_STOPS = 4
+
 /** Paper, the ground a lettering sample is drawn on unless it names one. */
 const PAPER = '#EFEBE3'
 const INK = '#121114'

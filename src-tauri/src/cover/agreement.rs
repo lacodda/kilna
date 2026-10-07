@@ -217,6 +217,7 @@ fn cover_with(framing: Framing, accent: bool) -> Cover {
         accent: accent.then(|| Accent {
             name: "hot pink".into(),
             color: "#FF2E63".into(),
+            ..Accent::default()
         }),
         ..Cover::default()
     }

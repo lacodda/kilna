@@ -284,4 +284,39 @@ describe('the starter set in the dictionary (v0.87)', () => {
       ]),
     )
   })
+
+  // v0.90.3: a ground may be a gradient, drawn as one and grown a stop at a time.
+  it('draws a gradient ground as its gradient and writes a new stop in order', async () => {
+    workspace.bricks.push(
+      fromTheSet({
+        id: 'b-sunset',
+        type_key: 'background',
+        name: 'Sunset',
+        label: { en: 'Sunset', ru: 'Закат' },
+        family: null,
+        colours: ['#FA8072', '#F4A261'],
+        set_key: 'background-sunset',
+      }),
+    )
+    const { client } = renderApp('/styles/b-sunset')
+    await settled(client)
+
+    const card = (await screen.findAllByText('Sunset')).find((node) => node.closest('li') !== null)
+    const swatch = card?.closest('li')?.querySelector<HTMLElement>('[style*="gradient"]')
+    expect(swatch?.style.background).toContain('linear-gradient')
+
+    expect(
+      screen.getAllByPlaceholderText('#RRGGBB').map((box) => (box as HTMLInputElement).value),
+    ).toEqual(['#FA8072', '#F4A261'])
+    fireEvent.click(screen.getByRole('button', { name: en.styles.addStop }))
+    const boxes = screen.getAllByPlaceholderText('#RRGGBB')
+    expect(boxes).toHaveLength(3)
+    fireEvent.change(boxes[2]!, { target: { value: '#f5e3a3' } })
+    await waitFor(() =>
+      expect(backend.argsOf('update_style_brick').at(-1)).toEqual({
+        id: 'b-sunset',
+        patch: { colours: ['#FA8072', '#F4A261', '#F5E3A3'] },
+      }),
+    )
+  })
 })

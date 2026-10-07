@@ -3,8 +3,9 @@
 /**
  * What a style brick carries beside its name and its description.
  *
- * Four shapes, because a brick is shown and edited by what it is made of:
+ * Five shapes, because a brick is shown and edited by what it is made of:
  * pictures to recognise a look by, a live sample of a typeface, slots filled
- * with the captions of the work and the channel, one colour.
+ * with the captions of the work and the channel, and colours - a ground's
+ * or an accent's, one or a gradient.
  */
-export type StyleForm = "picture" | "lettering" | "dressing" | "colour";
+export type StyleForm = "picture" | "lettering" | "dressing" | "colour" | "accent";

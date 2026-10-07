@@ -1060,6 +1060,7 @@ mod tests {
             accent: Some(Accent {
                 name: "hot pink".into(),
                 color: "#FF2E63".into(),
+                ..Accent::default()
             }),
             mark: MarkChoice {
                 variant: Some(stage.mark.clone()),

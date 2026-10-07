@@ -33,6 +33,7 @@ export default tseslint.config(
     files: [
       'src/lib/cover.ts',
       'src/lib/styleBrick.ts',
+      'src/lib/styleBrick.test.ts',
       'src/lib/styleDraft.test.ts',
       'src/features/styles/StylesView.test.tsx',
       'src/features/work/tabs/cover/CoverTab.test.tsx',

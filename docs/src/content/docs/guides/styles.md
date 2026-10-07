@@ -56,8 +56,15 @@ A type decides what its styles are made of, and so what their card shows:
   of them the channel's card fills. A phrase in `[square brackets]` whose
   caption is empty drops out of the prompt whole: *a tiny line "{brand}"*
   with no brand is not an instruction to draw an empty label.
-- **A colour** - a background: the colour itself, picked or typed as
-  `#RRGGBB`, and the description that says what the ground is like.
+- **Colours** - a background, and an accent: one colour picked or typed as
+  `#RRGGBB`, or up to four in order, which make a gradient. The card paints
+  the gradient, and the description says it in words, stop by stop, since
+  that is what the generator reads. A background is the ground a cover stands
+  on; an accent is offered as the cover's accent, beside the channel's
+  palette.
+
+An image style's palette and the ground of a lettering sample are edited the
+same way, one box per colour.
 
 An image style is also filed under a **family** - *Tattoo*, *Classic*,
 *Street*, *Digital*, *Eras* - and the dictionary narrows by it.
@@ -68,10 +75,11 @@ not a style: it lives on the **Channel** card of the
 
 ## The starter set
 
-A new workspace does not open on an empty dictionary. Studio ships two
-hundred and five styles - image styles in twelve families, typography with
-live samples, dressings and backgrounds - with names in English and Russian
-and descriptions in English, the language a prompt is written in. The
+A new workspace does not open on an empty dictionary. Studio ships three
+hundred and three styles - image styles in twelve families, typography with
+live samples, dressings, backgrounds and accents, flat and in gradients -
+with names in English and Russian and descriptions in English, the language
+a prompt is written in. The
 families run from tattoo and the old masters through the street, the digital
 and the eras to Japan, China, India, Eastern tales, world folk, antiquity
 and what is in fashion now.

@@ -93,3 +93,29 @@ under a family the dictionary cannot name.
   font without a word. A test holds every named family to a face in
   `src/assets/fonts/samples.css`, every face to a file beside it, and every
   file to a face.
+
+## Amendment, v0.90.3: accents, and colours as gradients
+
+The owner asked for more grounds and accents, gradients among them. A
+cover's accent came only from the palette on the channel's card - the
+owner's own words, one colour each - so there was nowhere for a craft to ship
+accents, and a ground was one colour by the rule of its form.
+
+- **A form of its own for an accent.** `accent` is a fifth form beside
+  `colour`: both are their colours, drawn and edited alike, but the cover
+  constructor knows its places by form, and a ground and an accent are
+  different places. An accent of a type sharing the ground's form would have
+  been offered as a ground, with a description that says nothing of one.
+  Studio ships the type *Accent* with thirty-eight of them.
+- **Colours as a gradient.** A brick of either form holds one to four
+  colours; more than one is a gradient in their order. The card paints it,
+  and the set's description names every stop, which a test holds it to - the
+  prompt reads the words, not the swatch.
+- **The accent stays a value of the cover.** Picked from the dictionary, its
+  name and colours are copied onto the cover - `stops` beside `color`, which
+  stays the first stop for what can hold one colour - as a colour of the
+  palette is copied. An idea may name a dictionary accent by id or name and
+  gets it whole. A colour typed by hand is one colour.
+- **One editor for every colour.** The background's single colour box became
+  a list, and the same list edits an image style's palette and a lettering
+  sample's ground, which until now could only be shown.

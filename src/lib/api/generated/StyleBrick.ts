@@ -39,7 +39,9 @@ family: string | null,
  */
 when_to_use: string | null, 
 /**
- * `#RRGGBB` colours: a background's one, an image style's palette.
+ * `#RRGGBB` colours: a background's or an accent's one, or the stops of
+ * its gradient in order; an image style's palette; a lettering sample's
+ * ground.
  */
 colours: Array<string>, 
 /**

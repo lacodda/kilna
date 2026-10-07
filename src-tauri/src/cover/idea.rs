@@ -914,13 +914,16 @@ pub fn read(
                 leave(key, &named);
                 continue;
             };
-            let id = Some(brick.id.clone());
-            match form {
-                StyleForm::Picture => concept.bricks.style = id,
-                StyleForm::Lettering => concept.bricks.typography = id,
-                StyleForm::Dressing => concept.bricks.dressing = id,
-                StyleForm::Colour => concept.bricks.background = id,
-            }
+            let place = match form {
+                StyleForm::Picture => &mut concept.bricks.style,
+                StyleForm::Lettering => &mut concept.bricks.typography,
+                StyleForm::Dressing => &mut concept.bricks.dressing,
+                StyleForm::Colour => &mut concept.bricks.background,
+                // An accent is a value the cover keeps, not a brick it is
+                // built from: it is read below.
+                StyleForm::Accent => continue,
+            };
+            *place = Some(brick.id.clone());
         }
 
         match object.get("accent") {
@@ -987,7 +990,8 @@ pub fn read(
     Ok(out)
 }
 
-/// An accent named by its colour, or by a colour of the channel's palette.
+/// An accent named by its colour, by a colour of the channel's palette, or
+/// by an accent of the dictionary - its id or its name, a gradient whole.
 fn accent_of(raw: &str, name: Option<&str>, names: &Names) -> Option<Accent> {
     let raw = raw.trim();
     if crate::canon::fact::is_hex_colour(raw) {
@@ -1004,6 +1008,7 @@ fn accent_of(raw: &str, name: Option<&str>, names: &Names) -> Option<Accent> {
         return Some(Accent {
             name,
             color: raw.to_uppercase(),
+            stops: Vec::new(),
         });
     }
     names
@@ -1013,6 +1018,12 @@ fn accent_of(raw: &str, name: Option<&str>, names: &Names) -> Option<Accent> {
         .map(|colour| Accent {
             name: colour.name.clone(),
             color: colour.color.clone(),
+            stops: Vec::new(),
+        })
+        .or_else(|| {
+            names
+                .brick(raw, StyleForm::Accent)
+                .and_then(Accent::of_brick)
         })
 }
 
@@ -1245,6 +1256,11 @@ pub fn choices_sheet(conn: &Connection, work: &Work) -> Result<String> {
             "Dressing of small captions around the title (`dressing`) - its {slots} are filled from `captions`",
         ),
         ("background", StyleForm::Colour, "Grounds (`background`)"),
+        (
+            "accent",
+            StyleForm::Accent,
+            "Accents (`accent`) - an id here, or a colour of the channel's palette below; several colours are a gradient",
+        ),
     ] {
         let mut bricks: Vec<&StyleBrick> = names
             .bricks
@@ -1262,10 +1278,8 @@ pub fn choices_sheet(conn: &Connection, work: &Work) -> Result<String> {
             if house.contains(&brick.id) {
                 line.push_str(" ★");
             }
-            if form == StyleForm::Colour
-                && let Some(colour) = brick.colours.first()
-            {
-                line.push_str(&format!(" {colour}"));
+            if form.is_colour() && !brick.colours.is_empty() {
+                line.push_str(&format!(" {}", brick.colours.join(" to ")));
             }
             if let Some(when) = brick
                 .when_to_use
@@ -1382,7 +1396,7 @@ pub fn instruction(request: &IdeaRequest) -> String {
     format!(
         "\n\nEnd your answer with one fenced ```json block holding exactly {total} idea{plural}:\n\n\
 ```json\n\
-{{\"ideas\": [\n  {{\n    \"source\": \"ai\",\n    \"angle\": \"what sets this one apart, a few words\",\n    \"headline\": \"what the card is called\",\n    \"idea\": \"what the cover says, one or two sentences in the language of the work\",\n    \"scene\": \"what the picture shows, in English, for the generator: the hero, what they do, the objects around\",\n    \"avoid\": \"what this scene must keep out beyond the channel's bans, in English, or leave it out\",\n    \"hero\":\"a card id from the heroes, or leave it out\",\n    \"layout\": \"one of the layouts\",\n    \"size\": \"optional, moves the layout's frame; so do column, row, crop and place\",\n    \"style\": \"a style id\",\n    \"typography\": \"a lettering id\",\n    \"dressing\": \"a dressing id\",\n    \"background\": \"a ground id\",\n    \"accent\": \"#RRGGBB\",\n    \"mark\": \"a variant id of the mark\",\n    \"captions\": {{\"slot\": [\"a line\"]}}\n  }}\n]}}\n```\n\n\
+{{\"ideas\": [\n  {{\n    \"source\": \"ai\",\n    \"angle\": \"what sets this one apart, a few words\",\n    \"headline\": \"what the card is called\",\n    \"idea\": \"what the cover says, one or two sentences in the language of the work\",\n    \"scene\": \"what the picture shows, in English, for the generator: the hero, what they do, the objects around\",\n    \"avoid\": \"what this scene must keep out beyond the channel's bans, in English, or leave it out\",\n    \"hero\":\"a card id from the heroes, or leave it out\",\n    \"layout\": \"one of the layouts\",\n    \"size\": \"optional, moves the layout's frame; so do column, row, crop and place\",\n    \"style\": \"a style id\",\n    \"typography\": \"a lettering id\",\n    \"dressing\": \"a dressing id\",\n    \"background\": \"a ground id\",\n    \"accent\": \"an accent id, or #RRGGBB\",\n    \"mark\": \"a variant id of the mark\",\n    \"captions\": {{\"slot\": [\"a line\"]}}\n  }}\n]}}\n```\n\n\
 - Use the ids from the lists exactly; a name that is not in a list is left out of the idea.\n\
 - `idea` and `scene` are required; every other key may be left out.{refined}",
         plural = if total == 1 { "" } else { "s" },
@@ -1423,6 +1437,7 @@ mod tests {
             accent: Some(Accent {
                 name: "teal".into(),
                 color: "#1E9E95".into(),
+                ..Accent::default()
             }),
             mark: MarkChoice {
                 variant: Some("variant".into()),
@@ -1647,6 +1662,70 @@ mod tests {
                 (2, "idea"),
                 (3, "layout"),
             ]
+        );
+    }
+
+    /// An accent of the dictionary is named by its name or its id and lands
+    /// the way the cover keeps it - a gradient with every stop, said as one -
+    /// and an accent offered as the ground is not taken for one.
+    #[test]
+    fn an_accent_of_the_dictionary_lands_whole_and_is_no_ground() {
+        let (conn, profile_id) = studio();
+        let config = crate::profile::config_for(&conn, &profile_id).unwrap();
+        let bricks = crate::style_brick::list(&conn, &profile_id, &Default::default()).unwrap();
+        let gradient = bricks
+            .iter()
+            .find(|b| b.type_key == "accent" && b.colours.len() > 2)
+            .expect("the set has a gradient accent of three stops");
+        let flat = bricks
+            .iter()
+            .find(|b| b.type_key == "accent" && b.colours.len() == 1)
+            .expect("the set has a flat accent");
+
+        let raw = serde_json::json!({ "ideas": [
+            { "idea": "one", "accent": gradient.name.to_uppercase() },
+            { "idea": "two", "accent": { "name": flat.id } },
+            { "idea": "three", "background": gradient.id },
+        ]});
+        let read = read(&conn, &profile_id, &config, &raw, None).unwrap();
+
+        let first = read.ideas[0].concept.accent.clone().unwrap();
+        assert_eq!(first.stops, gradient.colours);
+        assert_eq!(first.color, gradient.colours[0]);
+        assert_eq!(
+            first.said(),
+            format!(
+                "{} (a gradient of {})",
+                gradient.name,
+                gradient.colours.join(" to ")
+            )
+        );
+        let second = read.ideas[1].concept.accent.clone().unwrap();
+        assert_eq!(second.color, flat.colours[0]);
+        assert!(second.stops.is_empty(), "a flat accent has no stops");
+        assert_eq!(
+            second.said(),
+            format!("{} ({})", flat.name, flat.colours[0])
+        );
+        assert_eq!(read.ideas[2].concept.bricks.background, None);
+        assert!(
+            read.dropped
+                .iter()
+                .any(|dropped| dropped.idea == 3 && dropped.part == "background"),
+            "an accent is no ground"
+        );
+
+        let work = fixtures::video(&conn, &profile_id, "Tide");
+        let sheet = choices_sheet(&conn, &work).unwrap();
+        assert!(sheet.contains("Accents (`accent`)"), "{sheet}");
+        assert!(
+            sheet.contains(&format!(
+                "`{}` {} {}",
+                gradient.id,
+                gradient.name,
+                gradient.colours.join(" to ")
+            )),
+            "a gradient accent is offered with its stops: {sheet}"
         );
     }
 

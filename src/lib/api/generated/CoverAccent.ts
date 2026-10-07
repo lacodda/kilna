@@ -9,6 +9,12 @@ export type CoverAccent = {
  */
 name: string, 
 /**
- * `#RRGGBB`.
+ * `#RRGGBB`; the first stop of a gradient, which is what a swatch or a
+ * scheme that can hold one colour shows.
  */
-color: string, };
+color: string, 
+/**
+ * A gradient's colours in their order, from an accent of the dictionary
+ * (v0.90.3). Empty, or one colour, for a flat accent.
+ */
+stops: Array<string>, };

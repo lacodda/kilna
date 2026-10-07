@@ -167,6 +167,49 @@ describe('the constructor', () => {
     expect(await screen.findByText(en.cover.formatNotHeld)).toBeInTheDocument()
   })
 
+  // v0.90.3: accents of the dictionary sit beside the channel's palette, and
+  // a gradient one lands on the cover with every stop.
+  it('offers the accents of the dictionary beside the palette, and keeps a gradient whole', async () => {
+    workspace.bricks.push({
+      id: 'accent-sunset',
+      profile_id: IDS.profile,
+      type_key: 'accent',
+      name: 'Sunset gradient',
+      description: 'ACCENT: a gradient from coral (#FF5F6D) to amber (#FFC371).',
+      hint: null,
+      status: 'ready',
+      created_at: NOW,
+      updated_at: NOW,
+      reference_count: 0,
+      label: { en: 'Sunset gradient', ru: 'Закатный градиент' },
+      family: null,
+      when_to_use: null,
+      colours: ['#FF5F6D', '#FFC371'],
+      sample: null,
+      set_key: 'accent-grad-sunset',
+      origin: 'set',
+    })
+    backend.answer('cover_view', () =>
+      builtView({ palette: [{ id: 'fact-pink', name: 'Hot pink', color: '#FF2E63' }] }),
+    )
+    await openCover(IDS.audio)
+
+    expect(screen.getByRole('list', { name: en.cover.accent.fromChannel })).toBeInTheDocument()
+    fireEvent.click(
+      within(screen.getByRole('list', { name: en.cover.accent.fromDictionary })).getByRole(
+        'button',
+        { name: 'Sunset gradient · #FF5F6D → #FFC371' },
+      ),
+    )
+
+    await waitFor(() => expect(sent()).toHaveLength(1))
+    expect(sent()[0]?.accent).toEqual({
+      name: 'Sunset gradient',
+      color: '#FF5F6D',
+      stops: ['#FF5F6D', '#FFC371'],
+    })
+  })
+
   it('remembers a detail switched off on this cover, the channel keeping its own', async () => {
     backend.answer('cover_view', () => builtView())
     await openCover(IDS.audio)

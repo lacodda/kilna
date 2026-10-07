@@ -24,7 +24,7 @@ import { HEX, styleName } from '@/lib/styleBrick'
  * - **A write the backend would refuse is not sent.** A style needs a name and
  *   may not share one with another of its type; the name and the type are
  *   held back while it breaks either rule, so the description typed beside
- *   them still lands. A colour is held back until it is `#RRGGBB`.
+ *   them still lands. The colours are held back until each is `#RRGGBB`.
  */
 
 /** A style as its editor holds it: every field as the box spells it. */
@@ -40,8 +40,12 @@ export interface StyleForm {
   family: string
   /** CSS declarations of a lettering brick's sample. */
   sample: string
-  /** The one colour of a colour brick, as typed. */
-  colour: string
+  /**
+   * The colours, one box each, as typed: a ground's or an accent's - one, or
+   * the stops of a gradient - an image style's palette, the ground of a
+   * lettering sample.
+   */
+  colours: string[]
 }
 
 type Field = keyof StyleForm
@@ -55,7 +59,7 @@ const FIELDS: readonly Field[] = [
   'when_to_use',
   'family',
   'sample',
-  'colour',
+  'colours',
 ]
 
 /**
@@ -72,12 +76,17 @@ export function formOf(brick: StyleBrick): StyleForm {
     when_to_use: brick.when_to_use ?? '',
     family: brick.family ?? '',
     sample: brick.sample ?? '',
-    colour: brick.colours[0] ?? '',
+    colours: [...brick.colours],
     // `status` is a plain `string` on the backend (ADR 0003); the editor only
     // ever writes one of the three this form knows, so a stored brick is
     // always one of them in practice.
     status: brick.status as StyleBrickStatus,
   }
+}
+
+/** Colours as they would be stored: trimmed, upper case, the empty boxes left out. */
+function colourList(colours: readonly string[]): string[] {
+  return colours.map((colour) => colour.trim().toUpperCase()).filter((colour) => colour !== '')
 }
 
 /** A text field as it would be stored: trimmed, and nothing when blank. */
@@ -97,8 +106,8 @@ function meaning(form: StyleForm, field: Field): string | null {
     case 'sample':
     case 'family':
       return stored(form[field])
-    case 'colour':
-      return stored(form.colour)?.toUpperCase() ?? null
+    case 'colours':
+      return colourList(form.colours).join(' ') || null
     default:
       return form[field]
   }
@@ -139,8 +148,9 @@ export function patchOf(
   for (const field of FIELDS) {
     if (meaning(form, field) === meaning(base, field)) continue
     if (keyHeld && (field === 'name' || field === 'type_key')) continue
-    // Half a colour is typed, not meant: it waits until it is one.
-    if (field === 'colour' && form.colour.trim() !== '' && !HEX.test(form.colour.trim())) continue
+    // Half a colour is typed, not meant: the list waits until each is one.
+    if (field === 'colours' && colourList(form.colours).some((colour) => !HEX.test(colour)))
+      continue
     any = true
     switch (field) {
       case 'type_key':
@@ -167,11 +177,9 @@ export function patchOf(
       case 'sample':
         patch.sample = stored(form.sample)
         break
-      case 'colour': {
-        const colour = stored(form.colour)
-        patch.colours = colour === null ? [] : [colour.toUpperCase()]
+      case 'colours':
+        patch.colours = colourList(form.colours)
         break
-      }
     }
   }
   return any ? patch : null

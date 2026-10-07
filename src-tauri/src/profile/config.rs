@@ -1420,9 +1420,10 @@ impl StyleType {
 
 /// What a style brick carries beside its name and its description.
 ///
-/// Four shapes, because a brick is shown and edited by what it is made of:
+/// Five shapes, because a brick is shown and edited by what it is made of:
 /// pictures to recognise a look by, a live sample of a typeface, slots filled
-/// with the captions of the work and the channel, one colour.
+/// with the captions of the work and the channel, and colours - a ground's
+/// or an accent's, one or a gradient.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(rename_all = "lowercase")]
 pub enum StyleForm {
@@ -1434,13 +1435,22 @@ pub enum StyleForm {
     /// A description with `{slots}`, filled from captions when the brick goes
     /// into a prompt (see `style_set::fill`).
     Dressing,
-    /// One colour.
+    /// A ground: one colour, or a gradient of up to four in their order.
     Colour,
+    /// A colour the picture leans on - one, or a gradient of up to four.
+    /// Drawn and edited as a colour; a cover takes it as its accent, never
+    /// as its ground (v0.90.3).
+    Accent,
 }
 
 impl StyleForm {
     fn is_picture(&self) -> bool {
         *self == Self::Picture
+    }
+
+    /// Whether a brick of this form is its colours: a ground or an accent.
+    pub fn is_colour(&self) -> bool {
+        matches!(self, Self::Colour | Self::Accent)
     }
 }
 

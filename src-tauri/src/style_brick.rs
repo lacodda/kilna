@@ -47,7 +47,9 @@ pub struct StyleBrick {
     pub family: Option<String>,
     /// When to reach for it - read by whoever picks bricks for a picture.
     pub when_to_use: Option<String>,
-    /// `#RRGGBB` colours: a background's one, an image style's palette.
+    /// `#RRGGBB` colours: a background's or an accent's one, or the stops of
+    /// its gradient in order; an image style's palette; a lettering sample's
+    /// ground.
     pub colours: Vec<String>,
     /// CSS declarations for the live sample of a lettering brick.
     pub sample: Option<String>,

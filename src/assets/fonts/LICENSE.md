@@ -55,6 +55,10 @@ SIL Open Font License, Version 1.1, reproduced below, and was taken from Google 
 - **Rubik Doodle Shadow** - Copyright 2020 The Rubik Filtered Project Authors (https://https://github.com/NaN-xyz/Rubik-Filtered)
 - **Amatic SC** - Copyright 2015 The Amatic SC Project Authors (https://github.com/googlefonts/AmaticSC)
 - **Bellota** - Copyright 2019 The Bellota Project Authors (https://github.com/kemie/Bellota-Font)
+- **Bad Script** - Copyright 2011 The Bad Script Project Authors (https://github.com/alexeiva/badscript)
+- **Comforter** - Copyright 2015 The Comforter Project Authors (https://github.com/googlefonts/comforter)
+- **Comforter Brush** - Copyright 2015 The Comforter Brush Project Authors (https://github.com/googlefonts/comforter-brush)
+- **Yeseva One** - Copyright 2012 The Yeseva One Project Authors (lemonad@jovanny.ru), with Reserved Font Name "Yeseva".
 
 ---
 

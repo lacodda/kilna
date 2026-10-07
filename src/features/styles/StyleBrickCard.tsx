@@ -5,7 +5,14 @@ import { ImageOff, type LucideIcon } from 'lucide-react'
 import { fileSrc } from '@/lib/api/assets'
 import type { StyleBrick, StyleBrickStatus, StyleType } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
-import { sampleGround, sampleStyle, slotsOf, styleName } from '@/lib/styleBrick'
+import {
+  colourFill,
+  isColourForm,
+  sampleGround,
+  sampleStyle,
+  slotsOf,
+  styleName,
+} from '@/lib/styleBrick'
 import { say as sayLabel } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -172,13 +179,14 @@ export function BrickFace({
       </span>
     )
   }
-  if (form === 'colour') {
-    const colour = brick.colours[0]
-    return colour === undefined ? (
+  if (isColourForm(form)) {
+    const fill = colourFill(brick.colours)
+    return fill === undefined ? (
       <Empty className={className} />
     ) : (
-      // The colour is the subject here, not the styling: it is the brick's own.
-      <span className={cn('block h-18.5', className)} style={{ background: colour }} />
+      // The colour is the subject here, not the styling: it is the brick's
+      // own - one, or the gradient its colours make.
+      <span className={cn('block h-18.5', className)} style={{ background: fill }} />
     )
   }
   if (form === 'dressing') {

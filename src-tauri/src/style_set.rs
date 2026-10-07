@@ -887,7 +887,21 @@ mod tests {
                             "{at} names the ground of its sample"
                         );
                     }
-                    StyleForm::Colour => assert_eq!(entry.colours.len(), 1, "{at} is one colour"),
+                    // One colour, or the stops of a gradient (v0.90.3) - and
+                    // the words name every one, so the prompt says what the
+                    // swatch shows.
+                    StyleForm::Colour | StyleForm::Accent => {
+                        assert!(
+                            (1..=4).contains(&entry.colours.len()),
+                            "{at} is one colour or a gradient of up to four"
+                        );
+                        for colour in &entry.colours {
+                            assert!(
+                                entry.description.contains(colour.as_str()),
+                                "{at} does not say {colour} in its words"
+                            );
+                        }
+                    }
                     StyleForm::Picture => {
                         assert!(!entry.colours.is_empty(), "{at} has no palette to show");
                     }

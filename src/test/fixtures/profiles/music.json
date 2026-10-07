@@ -1507,14 +1507,27 @@
       {
         "form": "colour",
         "hint": {
-          "en": "Describe the ground the picture stands on: the colour, its texture, and what is not there.",
-          "ru": "Опиши основу, на которой стоит картинка: цвет, фактуру и чего на ней нет."
+          "en": "Describe the ground the picture stands on: the colour or the gradient, its texture, and what is not there.",
+          "ru": "Опиши основу, на которой стоит картинка: цвет или градиент, фактуру и чего на ней нет."
         },
         "icon": "square",
         "key": "background",
         "label": {
           "en": "Background",
           "ru": "Фон"
+        }
+      },
+      {
+        "form": "accent",
+        "hint": {
+          "en": "Name the colour the picture and the lettering lean on and give it as #RRGGBB. Several colours are a gradient, in their order.",
+          "ru": "Назови цвет, на который опираются картинка и надпись, и дай его как #RRGGBB. Несколько цветов — градиент, по порядку."
+        },
+        "icon": "droplet",
+        "key": "accent",
+        "label": {
+          "en": "Accent",
+          "ru": "Акцент"
         }
       },
       {

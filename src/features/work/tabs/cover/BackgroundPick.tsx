@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { queries } from '@/lib/query/queries'
-import { styleName } from '@/lib/styleBrick'
+import { colourFill, styleName } from '@/lib/styleBrick'
 import { styleTypesOf, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -18,7 +18,9 @@ interface Props {
  *
  * A row of swatches rather than a list, the mockup's way: a ground is picked
  * by the eye against the rest of the cover, and its name is the tooltip.
- * The swatch is the brick's own colour - the subject here, not the styling.
+ * The swatch is the brick's own colour - the subject here, not the styling -
+ * or the gradient its colours make. Only grounds: an accent is a colour form
+ * too, and is picked as the accent.
  */
 export function BackgroundPick({ brickId, disabled, onChange }: Props) {
   const { t } = useTranslation()
@@ -40,7 +42,7 @@ export function BackgroundPick({ brickId, disabled, onChange }: Props) {
       <ul aria-label={t('cover.ground.title')} className="flex flex-wrap gap-1.5">
         {grounds.map((brick) => {
           const on = brick.id === brickId
-          const name = `${styleName(brick)} · ${brick.colours[0]}`
+          const name = `${styleName(brick)} · ${brick.colours.join(' → ')}`
           return (
             <li key={brick.id}>
               <Button
@@ -55,7 +57,7 @@ export function BackgroundPick({ brickId, disabled, onChange }: Props) {
                   'size-6 rounded-md ring-1 ring-line-2',
                   on && 'ring-2 ring-accent ring-offset-2 ring-offset-raise',
                 )}
-                style={{ background: brick.colours[0] }}
+                style={{ background: colourFill(brick.colours) }}
               />
             </li>
           )
@@ -66,7 +68,7 @@ export function BackgroundPick({ brickId, disabled, onChange }: Props) {
           ? brickId === null
             ? t('cover.ground.none')
             : t('cover.brick.gone')
-          : `${styleName(chosen)} · ${chosen.colours[0]}`}
+          : `${styleName(chosen)} · ${chosen.colours.join(' → ')}`}
       </span>
     </div>
   )
