@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.92.0] - 2026-10-08
+
+### Features
+- Give collections a screen, a goal and a verdict
+
 ## [0.91.1] - 2026-10-07
 
 ### Bug Fixes
