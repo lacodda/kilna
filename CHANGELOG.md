@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.93.0] - 2026-10-08
+
+### Features
+- See a work's folder on disk, play its sounds, paste pictures into notes
+
 ## [0.92.0] - 2026-10-08
 
 ### Features
