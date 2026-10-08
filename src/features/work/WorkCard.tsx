@@ -26,6 +26,7 @@ import {
   tabsOf,
 } from '@/features/work/tabs'
 import { TabBody } from '@/features/work/TabBody'
+import { WorkPlayerProvider } from '@/features/work/player'
 
 interface Props {
   workId: string
@@ -143,27 +144,32 @@ export function WorkCard({ workId, tab, onDeleted, onUndone }: Props) {
 
   return (
     <BlindJudgingContext value={{ blind, revealed, setBlind, setRevealed }}>
-      <div className="flex min-h-0 flex-1 flex-col">
-        <CardHeader
-          work={current}
-          tabs={tabsOf(factsOf(profile.config, current, counts.data ?? NOTHING_COUNTED))}
-          counts={counts.data === undefined ? {} : tabCounts(counts.data)}
-          onDelete={() => remove.mutate()}
-        />
+      {/* The player belongs to the card, not to a tab: a song keeps playing
+          while its text is read or its score given, and a file's tile on the
+          Files tab starts it here. */}
+      <WorkPlayerProvider>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <CardHeader
+            work={current}
+            tabs={tabsOf(factsOf(profile.config, current, counts.data ?? NOTHING_COUNTED))}
+            counts={counts.data === undefined ? {} : tabCounts(counts.data)}
+            onDelete={() => remove.mutate()}
+          />
 
-        {/* The header stands and the open tab takes the rest. No tab is a
+          {/* The header stands and the open tab takes the rest. No tab is a
             page that scrolls within this box: each lays itself out against
             its height on `components/frame` and scrolls inside, so the card
             itself never scrolls - which is what let the header stop being
             sticky, and what keeps a tab's own head and foot on screen.
             `data-tab-body` is how the smoke test holds every tab to it. */}
-        <div
-          data-tab-body
-          className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-b-xl border border-line p-3"
-        >
-          <TabBody tab={tab} workId={workId} work={current} />
+          <div
+            data-tab-body
+            className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-b-xl border border-line p-3"
+          >
+            <TabBody tab={tab} workId={workId} work={current} />
+          </div>
         </div>
-      </div>
+      </WorkPlayerProvider>
     </BlindJudgingContext>
   )
 }

@@ -1850,6 +1850,7 @@
             "weight": 1.0
           }
         ],
+        "folder": "songs/{origin.title}",
         "key": "song",
         "label": {
           "en": "Song",
@@ -2173,6 +2174,7 @@
           }
         ],
         "cover": true,
+        "folder": "songs/{origin.title}",
         "key": "video",
         "label": {
           "en": "Video",
@@ -2462,6 +2464,7 @@
       },
       {
         "cover": true,
+        "folder": "songs/{origin.title}",
         "frame": true,
         "key": "audio",
         "label": {
@@ -2815,6 +2818,7 @@
           }
         ],
         "cover": true,
+        "folder": "songs/{origin.title}",
         "key": "short",
         "label": {
           "en": "Short",

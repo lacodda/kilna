@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import type { WorkKind } from '@/lib/api/types'
+import { folderProblem } from '@/lib/folder'
 import { say as sayLabel } from '@/lib/useProfile'
 import { AxesEditor } from '@/features/settings/AxesEditor'
+import { CheckedInput } from '@/features/settings/CheckedInput'
 import { PublicationEditor } from '@/features/settings/PublicationEditor'
 import { ReleaseFieldsEditor } from '@/features/settings/ReleaseFieldsEditor'
 import { TiersEditor } from '@/features/settings/TiersEditor'
@@ -52,6 +54,18 @@ export function KindVocabulary({
       {/* After the doors, since a cover's shape is a door's: the place
           decides the shape of the picture a release goes out with. */}
       <PublicationEditor kind={kind} onChange={onChange} />
+      {/* Where a work of the kind keeps its files on disk, under the media
+          folder this machine names (v0.93, ADR 0057). Checked as it is
+          typed, by the rules the profile is saved under. */}
+      <CheckedInput
+        label={t('editor.folder')}
+        help={t('editor.folderHint')}
+        className="font-mono"
+        placeholder="songs/{title}"
+        value={kind.folder ?? ''}
+        check={(text) => folderProblem(text, t)}
+        onCommit={(text) => onChange({ folder: text.trim() === '' ? null : text.trim() })}
+      />
       {/* The storyboard's words, for a kind that has any: a song lists none
           and shows nothing here. Keys, as everywhere on this screen, come
           from the document; the labels are what is renamed. */}

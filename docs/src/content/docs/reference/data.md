@@ -105,8 +105,11 @@ Each work's page includes:
 
 The `format` line is for a reader written against these pages: it says which
 shape the page takes, and moves when a field changes meaning or a section
-changes shape — not when a field is added. Pages written by v0.50 and later
-say `format: 2`; earlier exports carried no line, which reads as format 1.
+changes shape — not when a field is added. Pages written by v0.93 and later
+say `format: 3`: a note's text may show pictures, and the export carries them
+in a `media` folder beside the pages - `![](media/<name>)` in `notes.md`,
+`![](../media/<name>)` on a page one folder down. v0.50 to v0.92 wrote
+`format: 2`; earlier exports carried no line, which reads as format 1.
 
 Notes not attached to any work are written to a separate `notes.md`, an
 idea or a phrase with its state under it, and comments about no work to

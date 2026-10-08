@@ -132,7 +132,7 @@ fn the_scan_finds_every_registered_command() {
 /// the same name does not count. Listed rather than inferred because "writes"
 /// is not visible in a name: `score::catalogue` reads, `work::pin_tier_at`
 /// writes.
-const WRITERS: [&str; 65] = [
+const WRITERS: [&str; 66] = [
     "::create(",
     "::create_minted(",
     "::update(",
@@ -158,6 +158,9 @@ const WRITERS: [&str; 65] = [
     "::reorder(",
     "::reorder_notes(",
     "::set_contents(",
+    // A machine's own record, written past the log on purpose - and seen
+    // here so that the exemption saying so is held to a write.
+    "::set_root(",
     "::set_contents_at(",
     "::set_current(",
     "::resync(",
@@ -233,7 +236,7 @@ fn through_an_action(path: &str) -> bool {
 /// Each entry is a promise that replaying the log without its write still
 /// produces the right database, and says why. Anything not on this list that
 /// writes has to hand the write to an action.
-const WRITES_PAST_THE_ACTIONS: [(&str, &str); 7] = [
+const WRITES_PAST_THE_ACTIONS: [(&str, &str); 9] = [
     (
         "activate_profile",
         "which profile is open is a fact about this machine; ADR 0012 keeps it off the wire \
@@ -251,6 +254,14 @@ const WRITES_PAST_THE_ACTIONS: [(&str, &str); 7] = [
         "dismiss_proposal",
         "marks one chat message as turned down and writes nothing else; a chat is this \
          device's conversation",
+    ),
+    (
+        "set_media_root",
+        "where a workspace keeps its media is a place on this machine, kept off the wire as          the open profile is (ADR 0057): on the next device it would name nothing",
+    ),
+    (
+        "create_work_folder",
+        "makes a directory under the person's media folder and writes no row: the folder is          found by its name, never recorded (ADR 0057), so there is nothing in the workspace          for an operation to describe or a replay to rebuild",
     ),
     (
         "import_legacy",

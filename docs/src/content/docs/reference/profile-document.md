@@ -98,6 +98,7 @@ A work kind may also say:
 | `frame` | boolean, optional | Its works play under one picture for their whole length - an audio release on a video platform - and so have a [frame](/kilna/guides/files-and-covers/#the-frame): a still, a loop of what moves in it, and a negative. The card draws a **Frame** tab. Absent is no frame. |
 | `made_title` | string or map, optional | What a work of this kind is called when it is made from another: `{title}` is the title of what it is all made from - the song, even for a short cut from its clip - and `{n}` its number among the works of this kind made from it. Studio's are one string for every language: `"{title} (video)"`, `"{title} (audio)"`, `"{title} (short)"`. A template without `{n}` numbers only the second and later ones, inside a closing bracket when it ends with one: *Tide (short)*, *Tide (short 2)*. A title one of them already has is skipped. A map per language is still read, in the window's language. Absent means the source's title as it is. |
 | `open_on` | string, optional | The tab a work of this kind opens on when the address names none - from the catalogue, the calendar, a search hit: `versions`, `score`, `scenes`, `cover`, `frame`, `files`, `links`, `notes`, `comments`, `assistant`, `history` or `overview`. Studio's song could open on `versions`, its short on `scenes`. kilna writes it when you choose in **Settings › The work card**. A tab the kind's works do not have, or a word this build does not know, opens the Overview; absent is the Overview. Added in v0.90.1 - before, one tab for every card was kept on the machine. |
+| `folder` | string, optional | Where a work of this kind keeps its files on disk, under the media folder this machine names for the workspace (**Settings › Data**): `songs/{origin.title}`. See [A work's folder on disk](#a-works-folder-on-disk). Absent is no folder. Added in v0.93. |
 
 The window's order of `work_kinds` is the order the **Make…** menu lists
 them in.
@@ -106,6 +107,30 @@ them in.
 | --- | --- | --- |
 | `key` | string | Stable value stored on the row. Never shown directly. |
 | `label` | string or object | What the screen displays. Renamable at any time. See [Labels in more than one language](#labels-in-more-than-one-language). |
+
+### A work's folder on disk
+
+`folder` names, under the media folder, the folder a work of the kind keeps
+its files in - found by that name and looked at, never attached or owned (see
+[Files and covers](/kilna/guides/files-and-covers/#the-works-folder-on-disk)).
+
+- `{title}` reads the work's title, `{key}` the field of that key from
+  `work_meta_fields` - or any field the work carries.
+- `{origin.title}` and `{origin.key}` read the same off what the work is all
+  made from - the song, for its clip and a short cut from the clip - and off
+  the work itself when it is made from nothing.
+- `/` (or `\`) separates the folders. A template is refused when it is a
+  place on a disk (`C:/…`, `/…`), steps out with `.` or `..`, has an empty
+  step, writes a character no folder may hold, or a placeholder that is none
+  of the above.
+
+A title or field is made safe for a folder's name: the characters
+`< > : " / \ | ? *` are left out, spaces run together, trailing dots dropped.
+A field the template reads and the work leaves empty - or a list, or a yes-or-no - names
+no folder, and the Files tab says which.
+
+The media folder itself is not in the profile: it is a place on one machine,
+kept out of exports and of the profile you might share.
 
 ### Labels in more than one language
 

@@ -353,6 +353,17 @@ pub struct WorkKind {
     /// the kinds are the craft's.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub open_on: Option<String>,
+    /// Where a work of this kind keeps its files on disk, under the media
+    /// folder this machine names for the workspace: `songs/{title}`.
+    /// `{title}` reads the work's title and `{key}` one of its fields;
+    /// `{origin.title}` and `{origin.key}` read the same of what it is all
+    /// made from, so a clip can look into its song's folder (ADR 0057).
+    /// The folder is found by this name, never recorded: kilna looks at it
+    /// and writes nothing there but the folder itself, when asked. Absent is
+    /// no folder. Added in v0.93 - a document without it is the same
+    /// document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder: Option<String>,
 }
 
 impl WorkKind {
@@ -372,6 +383,7 @@ impl WorkKind {
             frame: false,
             made_title: None,
             open_on: None,
+            folder: None,
         }
     }
 
@@ -597,6 +609,17 @@ impl WorkKind {
                     }
                 }
             }
+        }
+
+        // A folder template names a place under the media folder and nothing
+        // else: one that climbs out of it, or names no folder at all, would
+        // list somebody's home in a work's Files tab.
+        if let Some(template) = &self.folder
+            && let Some(problem) = crate::folder::problem(template)
+        {
+            problems.push(format!(
+                "{place}: the folder of a work, `{template}`, {problem}"
+            ));
         }
 
         for (index, kind) in self.release_kinds.iter().enumerate() {

@@ -36,6 +36,17 @@ pub const COVER: &str = "cover";
 /// cover.
 pub const CANDIDATE: &str = "candidate";
 
+/// A picture written into a note's body - pasted into the text, and named
+/// there by the file it was stored as: `![](media/<id>.png)` (v0.93, ADR
+/// 0058). It belongs to the note, goes to the trash with it, and is not one
+/// of a card's pictures: the gallery of a card shows what the card *is*, the
+/// body shows what was written about it.
+pub const INLINE: &str = "inline";
+
+/// How a note's body names a file of the workspace: the folder the files are
+/// kept in, relative to the workspace, before the stored name.
+pub const BODY_PREFIX: &str = "media/";
+
 /// A file attached to a work, a release, a style brick or a card of the
 /// canon.
 #[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
@@ -159,8 +170,15 @@ pub fn attach_minted(
             .filter(|role| !role.is_empty())
             .unwrap_or(REFERENCE)
             .to_owned();
-        check_role(&role)?;
+        // A picture in the body of any note, a card's included, is the
+        // note's own; a role is what a picture of a card has.
+        if role != INLINE {
+            check_role(&role)?;
+        }
         new.kind = Some(role);
+    } else if new.kind.as_deref().map(str::trim) == Some(INLINE) {
+        // Written into a body, and only a note has one that shows it.
+        return Err(Error::refused("asset.inlineNeedsNote"));
     }
     if let Some(work_id) = new.work_id.as_deref() {
         let work =
@@ -272,6 +290,37 @@ pub fn attach_bytes(
     attach(conn, profile_id, media_dir, &source, new)
 }
 
+/// How a note's body names this file: `media/<stored name>` - relative to
+/// the workspace, so the text reads the same in an export that carries the
+/// `media/` folder beside it.
+pub fn body_link(asset: &Asset) -> String {
+    let stored = Path::new(&asset.path)
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    format!("{BODY_PREFIX}{stored}")
+}
+
+/// The stored names a body links to with `media/<name>`: what an export has
+/// to carry beside the text. Only a bare name counts - one that would step
+/// out of `media/` names nothing the workspace keeps.
+pub fn linked_from(body: &str) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut rest = body;
+    let opening = format!("]({BODY_PREFIX}");
+    while let Some(at) = rest.find(&opening) {
+        rest = &rest[at + opening.len()..];
+        let end = rest.find([')', ' ', '\n']).unwrap_or(rest.len());
+        let name = &rest[..end];
+        let bare = !name.is_empty() && !name.contains(['/', '\\']) && name != "." && name != "..";
+        if bare && !found.iter().any(|have| have == name) {
+            found.push(name.to_owned());
+        }
+        rest = &rest[end..];
+    }
+    found
+}
+
 /// The name a file takes inside `media/`: the asset's id, and the extension
 /// it arrived with so that anything reading the directory still knows what it
 /// is holding.
@@ -311,13 +360,15 @@ pub fn for_style_brick(conn: &Connection, style_brick_id: &str) -> Result<Vec<As
     Ok(rows)
 }
 
-/// The pictures of a card of the canon, its facts' included, oldest first.
+/// The pictures of a card of the canon, its facts' included, oldest first -
+/// not the ones pasted into its body, which the body shows where they were
+/// written.
 pub fn for_card(conn: &Connection, note_id: &str) -> Result<Vec<Asset>> {
     let mut statement = conn.prepare(&format!(
-        "{SELECT} WHERE note_id = ?1 ORDER BY created_at, rowid"
+        "{SELECT} WHERE note_id = ?1 AND kind <> ?2 ORDER BY created_at, rowid"
     ))?;
     let rows = statement
-        .query_map(params![note_id], read)?
+        .query_map(params![note_id, INLINE], read)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(rows)
 }
@@ -800,6 +851,62 @@ mod tests {
             "and the file the first one copied in still stands"
         );
         assert_eq!(for_work(&conn, &work_id).unwrap().len(), 1);
+    }
+
+    /// A picture pasted into a note's body hangs on the note whatever its
+    /// kind, is named in the text by the file it was stored as, and stays out
+    /// of a card's gallery; a body picture on no note is refused.
+    #[test]
+    fn a_picture_in_a_body_belongs_to_its_note_and_not_to_a_gallery() {
+        let (conn, profile_id, media) = workspace();
+        let card = fixtures::card(&conn, &profile_id, "character", "The keeper");
+        let inline = attach_bytes(
+            &conn,
+            &profile_id,
+            media.path(),
+            b"png",
+            "Screenshot 1.PNG",
+            NewAsset {
+                note_id: Some(card.id.clone()),
+                kind: Some(INLINE.into()),
+                ..NewAsset::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(inline.kind, INLINE, "no role is asked of a body's picture");
+        assert_eq!(body_link(&inline), format!("media/{}.png", inline.id));
+        assert!(
+            for_card(&conn, &card.id).unwrap().is_empty(),
+            "the gallery shows what the card is, not what was written about it"
+        );
+
+        let orphan = attach_bytes(
+            &conn,
+            &profile_id,
+            media.path(),
+            b"png",
+            "x.png",
+            NewAsset {
+                work_id: Some(a_work(&conn, &profile_id)),
+                kind: Some(INLINE.into()),
+                ..NewAsset::default()
+            },
+        )
+        .unwrap_err();
+        assert_eq!(
+            orphan.refusal().map(|r| r.code),
+            Some("asset.inlineNeedsNote")
+        );
+    }
+
+    /// What an export carries for a body: each bare name once, and nothing
+    /// that would step out of the folder.
+    #[test]
+    fn a_body_names_its_pictures_by_their_stored_names() {
+        let body = "Look ![one](media/a1.png) and ![](media/b2.jpg)\n\
+                    again ![one](media/a1.png), not ![x](media/../db.sqlite) \
+                    nor [link](https://example.com/media/c3.png) nor ![](media/)";
+        assert_eq!(linked_from(body), ["a1.png", "b2.jpg"]);
     }
 
     /// Forgetting an asset takes its file with it.

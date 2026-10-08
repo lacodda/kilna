@@ -1,8 +1,10 @@
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
 use serde::Serialize;
 
+use crate::asset;
 use crate::comment::{self, CommentFilter};
 use crate::error::Result;
 use crate::note::{self, NoteFilter};
@@ -18,7 +20,10 @@ use crate::work::{self, WorkFilter, version};
 /// 2 — v0.50: a page may carry a pinned tier and its reason, and a bookmark;
 ///     a revision names the revision it was written from; a score names who
 ///     gave it; a release carries its time of day and zone.
-pub const FORMAT: u32 = 2;
+/// 3 — v0.93: a note's body may show pictures, `![](media/<name>)` in
+///     `notes.md` and `![](../media/<name>)` on a page one folder down, and
+///     the export carries each of them in `media/` beside the pages.
+pub const FORMAT: u32 = 3;
 
 /// What an export produced, so the user can be told rather than guess.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
@@ -43,6 +48,9 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
 
     let works = work::list(conn, &profile.id, &WorkFilter::default())?;
     let mut files = 0;
+    // The pictures the exported notes show, by the name they are stored
+    // under: copied into `media/` once every page is written (format 3).
+    let mut pictures = BTreeSet::new();
 
     // Every comment of the profile in every state, read once and handed out
     // by work below: a listing leaves the archived ones out unless asked.
@@ -245,7 +253,11 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         if !notes.is_empty() {
             page.push_str("\n## Notes\n\n");
             for note in &notes {
-                page.push_str(&format!("- {}", note.body.replace('\n', "\n  ")));
+                pictures.extend(asset::linked_from(&note.body));
+                page.push_str(&format!(
+                    "- {}",
+                    one_folder_down(&note.body).replace('\n', "\n  ")
+                ));
                 if !note.tags.is_empty() {
                     page.push_str(&format!(" _({})_", note.tags.join(", ")));
                 }
@@ -294,6 +306,7 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             if let Some(title) = &note.title {
                 page.push_str(&format!("## {title}\n\n"));
             }
+            pictures.extend(asset::linked_from(&note.body));
             page.push_str(&format!("{}\n", note.body));
             if !note.tags.is_empty() {
                 page.push_str(&format!("\n_{}_\n", note.tags.join(", ")));
@@ -327,7 +340,10 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
 
     // The canon, a page per card: the facts by section with their layer,
     // status, source and time, the relations, and the free note.
-    files += canon_pages(conn, &profile.id, &profile.config, directory)?;
+    files += canon_pages(conn, &profile.id, &profile.config, directory, &mut pictures)?;
+
+    // The pictures last, so that every page has said which it shows.
+    files += carry_pictures(conn, &pictures, directory)?;
 
     // The profile itself, so the vocabulary the export speaks in is legible.
     std::fs::write(
@@ -425,12 +441,48 @@ fn register_page(conn: &Connection, profile_id: &str) -> Result<Option<String>> 
     Ok(Some(page))
 }
 
+/// A body as a page one folder below the export's root reads it: its
+/// pictures are in the root's `media/`, one step up.
+fn one_folder_down(body: &str) -> String {
+    body.replace(
+        &format!("]({}", asset::BODY_PREFIX),
+        &format!("](../{}", asset::BODY_PREFIX),
+    )
+}
+
+/// Copy the pictures the pages show into the export's `media/`, and say how
+/// many. A name whose file the workspace no longer has is said in the log
+/// and skipped: the page still names it, as the note does.
+fn carry_pictures(conn: &Connection, names: &BTreeSet<String>, directory: &Path) -> Result<usize> {
+    if names.is_empty() {
+        return Ok(0);
+    }
+    let media = crate::state::media_dir_of(conn)?;
+    let target = directory.join(asset::BODY_PREFIX.trim_end_matches('/'));
+    std::fs::create_dir_all(&target)?;
+    let mut copied = 0;
+    for name in names {
+        let source = media.join(name);
+        if !source.is_file() {
+            crate::log::warn(
+                "export",
+                &format!("a note shows {name}, and the workspace has no such file"),
+            );
+            continue;
+        }
+        std::fs::copy(&source, target.join(name))?;
+        copied += 1;
+    }
+    Ok(copied)
+}
+
 /// Write a page per card of the canon into `canon/`, and say how many.
 fn canon_pages(
     conn: &Connection,
     profile_id: &str,
     config: &crate::profile::config::ProfileConfig,
     directory: &Path,
+    pictures: &mut BTreeSet<String>,
 ) -> Result<usize> {
     let cards =
         crate::canon::view::cards(conn, profile_id, &crate::canon::view::CardFilter::default())?;
@@ -512,7 +564,11 @@ fn canon_pages(
             page.push('\n');
         }
         if !card.card.body.trim().is_empty() {
-            page.push_str(&format!("## Note\n\n{}\n", card.card.body.trim()));
+            pictures.extend(asset::linked_from(&card.card.body));
+            page.push_str(&format!(
+                "## Note\n\n{}\n",
+                one_folder_down(card.card.body.trim())
+            ));
         }
         std::fs::write(
             canon_dir.join(format!("{}.md", slug(&title, &card.card.id))),
@@ -654,6 +710,91 @@ mod tests {
             .filter_map(std::result::Result::ok)
             .collect();
         assert_eq!(works.len(), 1);
+    }
+
+    /// A picture pasted into a note goes out with the export: the file in
+    /// `media/`, and each page linking it from where the page stands.
+    #[test]
+    fn a_note_takes_its_pictures_into_the_export() {
+        let (conn, profile_id, _workspace) = fixtures::workspace_on_disk();
+        let media = crate::state::media_dir_of(&conn).unwrap();
+        let work = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let loose = note::create(
+            &conn,
+            &profile_id,
+            note::NewNote {
+                body: "the board".into(),
+                ..note::NewNote::default()
+            },
+        )
+        .unwrap();
+        let attached = note::create(
+            &conn,
+            &profile_id,
+            note::NewNote {
+                body: "the mix".into(),
+                work_id: Some(work.id.clone()),
+                ..note::NewNote::default()
+            },
+        )
+        .unwrap();
+        let picture = |note_id: &str| {
+            asset::attach_bytes(
+                &conn,
+                &profile_id,
+                &media,
+                b"png",
+                "pasted.png",
+                asset::NewAsset {
+                    note_id: Some(note_id.to_owned()),
+                    kind: Some(asset::INLINE.into()),
+                    ..asset::NewAsset::default()
+                },
+            )
+            .unwrap()
+        };
+        let on_loose = picture(&loose.id);
+        let on_work = picture(&attached.id);
+        for (note, shown) in [(&loose, &on_loose), (&attached, &on_work)] {
+            note::update(
+                &conn,
+                &note.id,
+                note::NotePatch {
+                    body: Some(format!("see ![]({})", asset::body_link(shown))),
+                    ..note::NotePatch::default()
+                },
+            )
+            .unwrap();
+        }
+
+        let dir = tempfile::tempdir().unwrap();
+        to_markdown(&conn, dir.path()).unwrap();
+
+        let stored = |asset: &asset::Asset| {
+            PathBuf::from(&asset.path)
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()
+        };
+        for shown in [&on_loose, &on_work] {
+            assert!(
+                dir.path().join("media").join(stored(shown)).is_file(),
+                "the picture travels with the text"
+            );
+        }
+        let notes = std::fs::read_to_string(dir.path().join("notes.md")).unwrap();
+        assert!(notes.contains(&format!("![](media/{})", stored(&on_loose))));
+        let page = std::fs::read_dir(dir.path().join("works"))
+            .unwrap()
+            .flatten()
+            .map(|entry| std::fs::read_to_string(entry.path()).unwrap())
+            .find(|page| page.contains("Harbour lights"))
+            .unwrap();
+        assert!(
+            page.contains(&format!("![](../media/{})", stored(&on_work))),
+            "a page one folder down reaches up for it: {page}"
+        );
     }
 
     #[test]

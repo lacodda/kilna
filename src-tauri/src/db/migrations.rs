@@ -228,6 +228,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0035_word_and_release.sql"),
         rebuilds: true,
     },
+    Migration {
+        version: 36,
+        name: "media_root",
+        sql: include_str!("../../migrations/0036_media_root.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The newest schema this build understands.

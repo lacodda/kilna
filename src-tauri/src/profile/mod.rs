@@ -289,6 +289,10 @@ const UPGRADE: &[Step] = &[
         name: "what a release goes out under: a title reading the origin where it still read the work's own, a field's tail, a field of the work's own media",
         carry: going_out_words,
     },
+    Step {
+        name: "the folder a kind keeps its files in on disk",
+        carry: kind_folders,
+    },
 ];
 
 /// Prompt templates whose key is missing. A user who reworded an action keeps
@@ -541,6 +545,30 @@ fn rhythm(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
         return true;
     }
     false
+}
+
+/// The folder a kind keeps its files in on disk (v0.93, ADR 0057), where the
+/// stored kind names none. A template changes nothing until the workspace has
+/// a media folder on this machine, so a workspace that never sets one never
+/// sees it; a template the owner rewrote stays theirs.
+fn kind_folders(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for kind in &mut config.work_kinds {
+        if kind.folder.is_some() {
+            continue;
+        }
+        let Some(folder) = shipped
+            .work_kinds
+            .iter()
+            .find(|candidate| candidate.key == kind.key)
+            .and_then(|candidate| candidate.folder.clone())
+        else {
+            continue;
+        };
+        kind.folder = Some(folder);
+        changed = true;
+    }
+    changed
 }
 
 /// Everything else the owner keys by name - overview fields, marks, the kinds

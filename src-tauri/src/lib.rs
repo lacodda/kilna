@@ -17,6 +17,7 @@ pub mod exchange;
 #[doc(hidden)]
 pub mod fixtures;
 pub mod focus;
+pub mod folder;
 pub mod journal;
 pub mod layout;
 pub mod link;
@@ -108,6 +109,17 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
                 // Said, not fatal: everything but the pictures still works,
                 // and refusing to start over a directory would be worse.
                 Err(cause) => log::error("assets", &format!("no directory for files: {cause}")),
+            }
+            // And the media folders this machine keeps for the workspace's
+            // profiles: a work's folder on disk is looked at where it lies
+            // (ADR 0057), so the window has to be let in there too.
+            match folder::roots(&state.conn()) {
+                Ok(roots) => {
+                    for root in roots {
+                        commands::folders::allow(app.handle(), &root);
+                    }
+                }
+                Err(cause) => log::error("folder", &format!("no media folders read: {cause}")),
             }
 
             app.manage(state);
@@ -317,6 +329,12 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::assets::choose_cover,
             commands::assets::asset_bytes,
             commands::assets::save_picture,
+            commands::folders::media_root,
+            commands::folders::set_media_root,
+            commands::folders::work_folder,
+            commands::folders::create_work_folder,
+            commands::folders::media_directory,
+            commands::folders::open_media,
             commands::search::search,
             commands::search::works_matching,
             commands::journal::list_journal,

@@ -1074,6 +1074,11 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_cuts_from: ({ sourceId }) => studio.cuts.filter((c) => c.source_id === sourceId),
     cut_shot_list: () => [],
     list_work_assets: () => noAssets,
+    // No media folder is set in this studio, so every work's folder says so.
+    // A test that wants files lays a folder over this answer.
+    media_root: () => null,
+    work_folder: () => ({ state: 'noRoot', files: [], truncated: false }),
+    media_directory: () => 'C:\\Users\\someone\\AppData\\Roaming\\kilna\\media',
 
     list_notes: ({ filter }) => {
       const wanted = (filter ?? {}) as {

@@ -13,6 +13,7 @@ import { say } from '@/lib/toast'
 import { groupMaterials } from '@/lib/materials'
 import { PICTURES } from '@/lib/media'
 import { cn } from '@/lib/utils'
+import { hasDoors, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { ConfirmAction } from '@/components/ConfirmAction'
 import { MediaPreview } from '@/components/MediaPreview'
@@ -20,6 +21,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Frame, Scroll } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
+import { FolderSection } from '@/features/work/tabs/files/FolderSection'
 
 interface Props {
   work: Work
@@ -29,16 +31,24 @@ interface Props {
 const COVER = 'cover'
 
 /**
- * The files attached to a work: covers and references.
+ * The files of a work: the ones attached to it, and the ones in its folder on
+ * disk.
  *
- * A file is *copied* into the workspace rather than pointed at where it
- * lies, so a cover keeps working the day its source folder is tidied away,
- * and a backup carries the pictures with the database. What the person sees
- * is the name the file arrived under; what the workspace stores is a name of
- * its own, which nothing outside can collide with.
+ * An attached file is *copied* into the workspace rather than pointed at
+ * where it lies, so a cover keeps working the day its source folder is tidied
+ * away, and a backup carries the pictures with the database. What the person
+ * sees is the name the file arrived under; what the workspace stores is a
+ * name of its own, which nothing outside can collide with.
+ *
+ * The folder on disk is the other arrangement (v0.93, ADR 0057): found by the
+ * name the kind gives it, looked at and never owned - see `FolderSection`.
  */
 export function FilesTab({ work }: Props) {
   const { t } = useTranslation()
+  const { config } = useProfile()
+  // A cover is what a work going out wears; a song, which goes out only as
+  // what is made from it, has its folder here and no cover to set.
+  const covered = hasDoors(config, work.kind) || vocabularyOf(config, work.kind).cover
   const [busy, setBusy] = useState(false)
   // The file whose removal is being asked about.
   const [leaving, setLeaving] = useState<Asset | null>(null)
@@ -122,10 +132,12 @@ export function FilesTab({ work }: Props) {
         // The cover's prompt has a tab of its own since v0.86 (`tabs/cover`);
         // what stands here is what adds a file, over the gallery.
         <div className="flex w-full flex-wrap items-center gap-2">
-          <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick(COVER)}>
-            <ImageIcon aria-hidden />
-            {cover === undefined ? t('files.setCover') : t('files.changeCover')}
-          </Button>
+          {covered && (
+            <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick(COVER)}>
+              <ImageIcon aria-hidden />
+              {cover === undefined ? t('files.setCover') : t('files.changeCover')}
+            </Button>
+          )}
           <Button size="sm" disabled={busy || attach.isPending} onClick={() => void pick()}>
             <Paperclip aria-hidden />
             {t('files.attach')}
@@ -142,7 +154,9 @@ export function FilesTab({ work }: Props) {
           skeleton={<Skeleton className="h-32 w-full" />}
           isEmpty={(data) => data.length === 0}
           // Plain: the way out - attaching one - is right above it.
-          emptyState={<EmptyState plain title={t('files.empty')} />}
+          emptyState={
+            <EmptyState plain title={covered ? t('files.empty') : t('files.emptyNoCover')} />
+          }
           plain
         >
           {(data) => (
@@ -171,6 +185,7 @@ export function FilesTab({ work }: Props) {
             </div>
           )}
         </Loaded>
+        <FolderSection work={work} />
       </Scroll>
 
       {/* Asked, because nothing brings it back: the file leaves the workspace

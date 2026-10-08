@@ -1,10 +1,12 @@
 ---
 title: Files and covers
-description: Attaching pictures to a work — a cover that shows everywhere, references kept beside it, and why a file is copied into the workspace rather than pointed at.
+description: Attaching pictures to a work — a cover that shows everywhere, references kept beside it, why a file is copied into the workspace rather than pointed at, the work's folder on disk, and the player on the card.
 ---
 
 A work can carry files: a cover, a reference, a picture of the thing. They
-live on the card's **Files** tab.
+live on the card's **Files** tab - beside the files kilna finds in the work's
+[folder on disk](#the-works-folder-on-disk), which it looks at and never
+takes over.
 
 ## Attaching a file
 
@@ -115,3 +117,73 @@ A file may belong to more than one work: copying a board points the copy at
 the same pictures rather than duplicating them. Removing it from one work
 leaves the other looking at it, and the bytes go only when the last work
 using them lets go.
+
+## The work's folder on disk
+
+Most of what you make for a work never needs to be inside kilna: the renders,
+the takes, the stills a generator gave back, the mix you exported last night.
+They live in a folder of your own, written by other programs. Since v0.93 the
+**Files** tab shows that folder under **On disk** - found by its name, with
+nothing to attach by hand.
+
+Two things say where it is:
+
+- **The media folder** - where this workspace keeps its media on this
+  machine. Choose it in **Settings → Data**. It is a fact about the machine,
+  like which profile is open: it stays out of exports and the profile,
+  because on the next computer the same media lives somewhere else. The files
+  in it stay yours - a backup or an export does not copy them.
+- **The kind's folder** - how a work of the kind names its folder under the
+  media folder, set per kind in the profile editor (**Folder on disk**), or as
+  `folder` in the [profile document](/kilna/reference/profile-document/#a-works-folder-on-disk).
+  `{title}` reads the work's title, `{key}` one of its fields, and
+  `{origin.title}` or `{origin.key}` the same of what it is made from - the
+  song, for its clip and its shorts.
+
+Studio ships `songs/{origin.title}` for every kind, so a song and everything
+made from it share one folder. A layout of your own is one template away:
+
+| Kind | Folder | A song with the field `code` = `h042` |
+| --- | --- | --- |
+| Song | `songs/{code}` | `songs/h042` |
+| Video | `songs/{origin.code}/clip` | `songs/h042/clip` |
+| Audio | `songs/{origin.code}/audio` | `songs/h042/audio` |
+| Short | `songs/{origin.code}/shorts` | `songs/h042/shorts` |
+
+A field that a template reads and a work leaves empty is said by name rather
+than guessed around. A title is made safe for a folder's name - the
+characters no folder may hold are left out - so `AC/DC: Live?` looks in
+`ACDC Live`.
+
+**Looked at, never owned.** kilna does not move, rename or delete a file in
+the folder. It lists what is there - sorted, grouped by the folder each file
+lies in - and offers four things per file:
+
+- **open** it in the program your system opens it with (a picture, a clip, a
+  sound or a document - never a program);
+- **show where it lies** in the file manager;
+- **play** it on the card, when it is a sound;
+- **copy it into the workspace**, which is how a file of the folder becomes
+  the work's own - a cover, a reference - with everything
+  [above](#where-the-file-goes) that a copy brings.
+
+The one thing kilna writes there is the folder itself: a work whose folder is
+not there yet offers **Make the folder**. The list is read again whenever you
+come back to the window, so a render finished in another program is there
+when you return.
+
+See [ADR 0057](https://github.com/lacodda/kilna/blob/main/docs/adr/0057-a-works-folder-on-disk-is-found-and-looked-at.md).
+
+## The player
+
+A work with a sound - attached, or in its folder - gets a player at the top of
+its card, under the title: play and pause, the file's name, a bar to move
+along, and the time. It stays while you switch tabs, so a song plays while
+you read its text or give it a score.
+
+The newest sound comes first: the take finished last is usually the one you
+opened the card to hear. When there are several, the name opens a list of all
+of them, each with the folder it lies in. A sound's tile on the **Files** tab
+plays in the same player.
+
+kilna plays MP3, WAV, FLAC, M4A/AAC, Ogg and Opus.

@@ -94,4 +94,16 @@ made_title?: Label | null,
  * the machine since v0.90.1 - where a card opens is read per kind, and
  * the kinds are the craft's.
  */
-open_on?: string | null, };
+open_on?: string | null, 
+/**
+ * Where a work of this kind keeps its files on disk, under the media
+ * folder this machine names for the workspace: `songs/{title}`.
+ * `{title}` reads the work's title and `{key}` one of its fields;
+ * `{origin.title}` and `{origin.key}` read the same of what it is all
+ * made from, so a clip can look into its song's folder (ADR 0057).
+ * The folder is found by this name, never recorded: kilna looks at it
+ * and writes nothing there but the folder itself, when asked. Absent is
+ * no folder. Added in v0.93 - a document without it is the same
+ * document.
+ */
+folder?: string | null, };

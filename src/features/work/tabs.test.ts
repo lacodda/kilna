@@ -29,6 +29,7 @@ function facts(
       doors: false,
       cover: false,
       frame: false,
+      folder: false,
       ...names,
     },
     holds: {
@@ -64,6 +65,7 @@ describe("the card's tabs", () => {
       ['axes', 'score'],
       ['storyboard', 'scenes'],
       ['doors', 'files'],
+      ['folder', 'files'],
       ['cover', 'cover'],
       ['frame', 'frame'],
     ]
@@ -117,10 +119,12 @@ describe("the card's tabs", () => {
     const song = tabsOfKind(config, 'song')
     expect(song).toContain('versions')
     expect(song).toContain('score')
-    // A song goes out as what is made from it: no board, cover, frame or files.
-    for (const tab of ['scenes', 'cover', 'frame', 'files'] as const) {
+    // A song goes out as what is made from it: no board, cover or frame.
+    for (const tab of ['scenes', 'cover', 'frame'] as const) {
       expect(song, `a song has no ${tab}`).not.toContain(tab)
     }
+    // Its files are the ones in its folder on disk (v0.93).
+    expect(song).toContain('files')
     // A short is made on its board, and may open there.
     expect(tabsOfKind(config, 'short')).toContain('scenes')
     expect(tabsOfKind(config, 'audio')).toContain('frame')
@@ -152,12 +156,14 @@ describe("the card's tabs", () => {
     const drawn = (id: string, counts: CardCounts = countsOf(id)) =>
       tabsOf(factsOf(config, workOf(id), counts))
 
-    it('give a song its text and its score, and nothing it goes out with', () => {
-      // A song goes out only as what is made from it (ADR 0047).
+    it('give a song its text, its score and its folder, and nothing it goes out with', () => {
+      // A song goes out only as what is made from it (ADR 0047); its files
+      // are the ones in its folder on disk (v0.93, ADR 0057).
       expect(drawn(IDS.song)).toEqual([
         'overview',
         'versions',
         'score',
+        'files',
         'links',
         'notes',
         'comments',
@@ -189,7 +195,14 @@ describe("the card's tabs", () => {
 
     it('keep a tab a song holds rows for, though its kind no longer names it', () => {
       const song = countsOf(IDS.song)
-      expect(drawn(IDS.song, { ...song, files: 2 })).toContain('files')
+      const unfoldered: ProfileConfig = {
+        ...config,
+        work_kinds: config.work_kinds.map((kind) => ({ ...kind, folder: null })),
+      }
+      expect(tabsOf(factsOf(unfoldered, workOf(IDS.song), song))).not.toContain('files')
+      expect(tabsOf(factsOf(unfoldered, workOf(IDS.song), { ...song, files: 2 }))).toContain(
+        'files',
+      )
       expect(drawn(IDS.song, { ...song, scenes: 3 })).toContain('scenes')
       const covered: Work = { ...workOf(IDS.song), cover: coverOf({ picture: 'a lantern' }) }
       expect(tabsOf(factsOf(config, covered, song))).toContain('cover')

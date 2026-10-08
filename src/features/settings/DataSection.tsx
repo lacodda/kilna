@@ -8,6 +8,7 @@ import { say } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
+import { MediaFolderField } from '@/features/settings/MediaFolderField'
 
 // Getting data out and in. The export is the "you are not locked in" promise
 // made checkable; the backup is the whole workspace in one file.
@@ -121,6 +122,10 @@ export function DataSection() {
           <code className="selectable font-mono text-xs break-all text-text">{log.data}</code>
         </FieldGroup>
       )}
+
+      {/* Where the work's media lives outside the workspace: a place on this
+          machine, beside the place the workspace itself lives. */}
+      <MediaFolderField />
 
       <FieldGroup label={t('data.import')} help={t('data.importHint')}>
         <Button className="self-start" disabled={busy} onClick={doImport}>

@@ -36,6 +36,7 @@ import { RowMenu } from '@/components/RowMenu'
 import { WorkRepeatMark } from '@/components/RepeatMark'
 import { StagePicker } from '@/components/StagePicker'
 import { CollectionPicker } from '@/features/collections/CollectionPicker'
+import { WorkPlayer } from '@/features/work/player'
 import { TabBar } from '@/features/work/TabBar'
 import type { Tab, TabCount } from '@/features/work/tabs'
 import { TagBar } from '@/features/work/TagBar'
@@ -105,6 +106,7 @@ export function CardHeader({ work, tabs, counts, onDelete }: Props) {
         </div>
 
         <MetaStrip work={work} />
+        <WorkPlayer workId={work.id} />
       </div>
 
       <TabBar workId={work.id} tabs={tabs} counts={counts} />

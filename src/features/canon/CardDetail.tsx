@@ -18,7 +18,6 @@ import { Button } from '@/components/ui/button'
 import { Chip, ChipGroup } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
 import { SaveState } from '@/components/ui/save-state'
-import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/AppSelect'
 import { Markdown } from '@/components/Markdown'
 import { RowMenu, type RowAction } from '@/components/RowMenu'
@@ -27,6 +26,7 @@ import { CardAvatar } from '@/features/canon/CardAvatar'
 import { ChannelView } from '@/features/canon/ChannelView'
 import { PromptBox } from '@/features/canon/PromptBox'
 import { SectionBlock } from '@/features/canon/SectionBlock'
+import { NoteBodyEditor } from '@/features/notes/NoteBodyEditor'
 import { useNoteBody } from '@/features/notes/useNoteBody'
 
 interface Props {
@@ -312,12 +312,13 @@ export function CardDetail({ view, lens, onOpen, onGone }: Props) {
             </Button>
           </header>
           {editingNote ? (
-            <Textarea
+            <NoteBodyEditor
+              noteId={card.id}
               autoFocus
               autoResize
               rows={4}
               value={body.text}
-              onChange={(event) => body.setText(event.target.value)}
+              onText={(text) => body.setText(text)}
               onKeyDown={(event) => {
                 if (event.key === 'Escape') {
                   void body.flush()

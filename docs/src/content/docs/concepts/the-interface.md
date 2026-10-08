@@ -157,7 +157,9 @@ The name comes first and the craft's numbers under it: BPM and key are
 reference you consult, not what you identify the card by. The fields there are
 read-only, and long ones are cut short with the whole value a hover away — you
 edit them on **Overview**, because a header you can type into is a header that
-shifts under the cursor while it saves. **The row of craft fields is off unless
+shifts under the cursor while it saves. **A work with a sound** - attached, or in its
+folder on disk - has a player under its name, which keeps playing while you
+switch tabs (see [The player](/kilna/guides/files-and-covers/#the-player)). **The row of craft fields is off unless
 you ask for it** — Settings has the switch, under *The work card* — because a
 row of eight truncated values is a poor way to read fields Overview lays out in
 full. Turning it off hides the row and nothing else: the values stay, Overview

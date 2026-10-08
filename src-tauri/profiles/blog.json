@@ -4,9 +4,9 @@
   "description": "Posts with draft and angle kept separately, judged on whether a stranger reads past the first paragraph, scheduled into a calendar and shipped as a publish.",
   "config": {
     "work_kinds": [
-      { "key": "post", "label": "Post" },
-      { "key": "newsletter", "label": "Newsletter issue" },
-      { "key": "guide", "label": "Guide" }
+      { "key": "post", "label": "Post", "folder": "posts/{title}" },
+      { "key": "newsletter", "label": "Newsletter issue", "folder": "newsletters/{title}" },
+      { "key": "guide", "label": "Guide", "folder": "guides/{title}" }
     ],
     "release_kinds": [
       {

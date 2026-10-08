@@ -4,9 +4,9 @@
   "description": "Episodes with script and show notes drafted separately, judged on whether a listener stays past the first two minutes, scheduled into a feed and shipped as a release.",
   "config": {
     "work_kinds": [
-      { "key": "episode", "label": "Episode" },
-      { "key": "segment", "label": "Segment" },
-      { "key": "trailer", "label": "Trailer" }
+      { "key": "episode", "label": "Episode", "folder": "episodes/{title}" },
+      { "key": "segment", "label": "Segment", "folder": "segments/{title}" },
+      { "key": "trailer", "label": "Trailer", "folder": "trailers/{title}" }
     ],
     "release_kinds": [
       {

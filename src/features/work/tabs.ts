@@ -63,6 +63,8 @@ export interface CardFacts {
     cover: boolean
     /** A still and a loop it plays under (v0.86). */
     frame: boolean
+    /** A folder on disk its files are found in (v0.93, ADR 0057). */
+    folder: boolean
   }
   /** What the work holds, whatever its kind says now. */
   holds: {
@@ -96,9 +98,10 @@ const RULES: Readonly<Record<Tab, Rule>> = {
   frame: ({ names }) => names.frame,
   cuts: ({ holds }) => holds.splice,
   score: ({ names, holds }) => names.axes || holds.scores,
-  // A work's files are its cover and what its releases go out with: a song,
-  // which goes out only as what is made from it, has none of its own.
-  files: ({ names, holds }) => names.doors || holds.files,
+  // A work's files are its cover, what its releases go out with, and what
+  // lies in its folder on disk - which a song has too (v0.93), though it
+  // goes out only as what is made from it.
+  files: ({ names, holds }) => names.doors || names.folder || holds.files,
   links: null,
   notes: null,
   comments: null,
@@ -211,6 +214,7 @@ function namesOf(config: ProfileConfig, kind: string): CardFacts['names'] {
     doors: vocabulary.release_kinds.length > 0,
     cover: vocabulary.cover,
     frame: vocabulary.frame,
+    folder: (config.work_kinds.find((entry) => entry.key === kind)?.folder ?? null) !== null,
   }
 }
 

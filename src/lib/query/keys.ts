@@ -91,6 +91,16 @@ export const keys = {
   // the card, the calendar and the dashboard at once.
   covers: ['covers'] as const,
   assetsFor: (workId: string) => ['assets', workId] as const,
+  /** A work's folder on disk and its files (ADR 0057). Under the assets'
+   *  prefix: what refreshes a work's files refreshes the folder beside them,
+   *  and a new media folder refreshes every work's at once. */
+  folderFor: (workId: string) => ['assets', 'folder', workId] as const,
+  folders: ['assets', 'folder'] as const,
+  /** The media folder of the open workspace on this machine. */
+  mediaRoot: ['assets', 'mediaRoot'] as const,
+  /** Where the workspace keeps its own files - what a note's `media/<name>`
+   *  is read against. */
+  mediaDirectory: ['mediaDirectory'] as const,
   notes: ['notes'] as const,
   /** A work's own notes, as its Notes tab lists them. */
   notesFor: (workId: string) => ['notes', workId] as const,

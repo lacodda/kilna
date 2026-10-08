@@ -20,8 +20,8 @@ import { Input } from '@/components/ui/input'
 import { Markdown } from '@/components/Markdown'
 import { Select } from '@/components/AppSelect'
 import { SaveState, type SaveStatus } from '@/components/ui/save-state'
-import { Textarea } from '@/components/ui/textarea'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
+import { NoteBodyEditor } from '@/features/notes/NoteBodyEditor'
 import { NoteTagAdder } from '@/features/notes/NoteTagAdder'
 import { PromoteNoteDialog } from '@/features/notes/PromoteNoteDialog'
 import { useNoteBody } from '@/features/notes/useNoteBody'
@@ -230,10 +230,12 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {editing ? (
-          <Textarea
+          // A picture pasted or dropped goes into the text (v0.93).
+          <NoteBodyEditor
+            noteId={note.id}
             autoFocus
             value={body.text}
-            onChange={(event) => body.setText(event.target.value)}
+            onText={(text) => body.setText(text)}
             onKeyDown={(event) => {
               // Escape leaves the text the way it leaves any editor here.
               if (event.key === 'Escape') {

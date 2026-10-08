@@ -16,6 +16,7 @@ pub mod comments;
 pub mod cuts;
 pub mod data;
 pub mod focus;
+pub mod folders;
 pub mod ideas;
 pub mod journal;
 pub mod links;

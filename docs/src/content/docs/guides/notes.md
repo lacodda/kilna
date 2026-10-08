@@ -47,6 +47,26 @@ to press save.
 - **Links** to a work or a version — `[[work:…]]`, `[[version:…]]` — open
   that work when clicked.
 
+### Pictures in a note
+
+Paste a picture while writing - a screenshot, a picture copied from a page -
+or drop a picture file onto the window, and it goes into the text where the
+caret stood, on a line of its own:
+
+```markdown
+![board](media/5f1c….png)
+```
+
+The picture is copied into the workspace like any [attached file](/kilna/guides/files-and-covers/#where-the-file-goes)
+and belongs to the note: a backup takes it along, and it goes to the trash with
+the note. The text names it by the file it was stored as, relative to the
+workspace, so it reads the same in an [export](/kilna/reference/data/), which
+carries the pictures in a `media` folder beside the pages. A card of the canon
+takes pictures in its note the same way; they stay out of the card's gallery,
+which shows what the card *is*.
+
+See [ADR 0058](https://github.com/lacodda/kilna/blob/main/docs/adr/0058-a-picture-in-a-note-is-named-by-the-file-it-was-stored-as.md).
+
 ### Checklists
 
 A line written as `- [ ] check the thickness of the layer` is drawn as a

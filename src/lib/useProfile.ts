@@ -119,7 +119,7 @@ export function vocabularyOf(config: ProfileConfig, kind: string | undefined): V
  * Whether works of `kind` go out themselves - name a kind of release - or
  * only as what is made from them. A song goes out as its clip, its audio and
  * its shorts, never as the song (v0.86, ADR 0047): its card has no Releases
- * or Files tab, and its overview lists its publications instead.
+ * tab and no cover to set, and its overview lists its publications instead.
  */
 export function hasDoors(config: ProfileConfig, kind: string | undefined): boolean {
   return vocabularyOf(config, kind).release_kinds.length > 0

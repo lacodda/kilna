@@ -211,6 +211,18 @@
     "iconsNote": "Icons come from lucide — never from text glyphs."
   },
   "data": {
+    "mediaFolder": "Media folder",
+    "mediaFolderHint": "Where this workspace keeps its media on this machine: renders, takes, stills. kilna looks into each work's folder under it and never changes a file there. Its files stay yours: a backup and an export do not copy them. The place itself belongs to this machine and stays out of the profile.",
+    "mediaFolderNone": "Not chosen yet.",
+    "mediaFolderChoose": "Choose a folder…",
+    "mediaFolderChange": "Change…",
+    "mediaFolderForget": "Forget",
+    "mediaFolderTitle": "The folder this workspace keeps its media in",
+    "mediaFolderSet": "Media folder: {{path}}",
+    "mediaFolderForgotten": "The media folder is forgotten. Nothing on disk was touched.",
+    "mediaFolderFailed": "Could not set the media folder.",
+    "mediaFolderKinds": "Each kind names its folder under it in the profile:",
+    "mediaFolderNoKind": "no folder",
     "statusTitle": "Statuses",
     "statusHint": "Statuses follow what has happened — a score, a slot, a release. This shows where the words have fallen behind the facts, without changing anything. Works whose status you set by hand are left out.",
     "statusCheck": "Check",
@@ -987,6 +999,7 @@
     "pictures": "Pictures",
     "copiedIn": "A file is copied into the workspace, so a backup carries it.",
     "empty": "No files yet. A cover shows on the card, in the catalogue and in the calendar.",
+    "emptyNoCover": "No files attached.",
     "dropHere": "Drop the files here.",
     "group": {
       "cover": "Cover",
@@ -996,7 +1009,41 @@
       "candidate": "Cover candidates"
     }
   },
+  "folder": {
+    "heading": "On disk",
+    "show": "Show on disk",
+    "refresh": "Look again",
+    "loadFailed": "Could not read the folder.",
+    "noRoot": "This workspace has no media folder on this machine yet. Choose one, and each work's files on disk show here.",
+    "chooseRoot": "Choose a media folder",
+    "rootMissing": "The media folder {{path}} is not there. Is the drive connected?",
+    "noTemplate": "Works of this kind keep no folder on disk.",
+    "nameIt": "Name one in the profile",
+    "unfilled": "The folder is named {{template}}, and this work leaves {{placeholder}} empty. Fill it in on the overview.",
+    "absent": "This work's folder is not there yet.",
+    "create": "Make the folder",
+    "created": "Folder made.",
+    "createFailed": "Could not make the folder.",
+    "empty": "The folder is empty. Files put there show here.",
+    "top": "In the folder itself",
+    "truncated": "Showing the first {{count}} files.",
+    "open": "Open “{{name}}”",
+    "reveal": "Show where it lies",
+    "copyIn": "Copy into the workspace"
+  },
+  "player": {
+    "play": "Play “{{name}}”",
+    "pause": "Pause",
+    "choose": "Choose what plays",
+    "broken": "This file cannot be played here.",
+    "position": "Position",
+    "at": "{{time}} of {{length}}",
+    "attached": "attached"
+  },
   "notes": {
+    "pictureAdding": "Adding the picture…",
+    "pictureFailed": "Could not add the picture.",
+    "pictureHint": "Paste a picture, or drop one here, and it goes into the text.",
     "add": "Add",
     "delete": "Delete this note",
     "placeholder": "A thought about this work",
@@ -1170,6 +1217,14 @@
     "brandNote": "The channel's own - its mark, signature details, captions and palette - lives on the Channel card in the canon, not here."
   },
   "editor": {
+    "folder": "Folder on disk",
+    "folderHint": "Where a work of this kind keeps its files, under the media folder: {title} is its title, {key} one of its fields, {origin.title} the title of what it is made from. Empty keeps no folder.",
+    "folderAbsolute": "Name a folder under the media folder, as songs/{title}, not a place on a disk.",
+    "folderEmptyStep": "There is an empty step between two slashes.",
+    "folderClimbs": "A work's folder lies under the media folder, and . and .. step out of it.",
+    "folderBraces": "A brace is opened and never closed, or closed and never opened.",
+    "folderForbidden": "“{{text}}” holds a character no folder name may hold.",
+    "folderPlaceholder": "{{name}} is not a placeholder: one is {title}, a field's key, or either after origin.",
     "axes": "Scoring axes",
     "axesHint": "Label and weight. Keys are fixed — past scores are stored under them, and renaming one would orphan its history.",
     "tiers": "Tiers",
@@ -2236,7 +2291,19 @@
     "assistant": {
       "unknownAction": "The profile has no action “{{action}}”."
     },
+    "folder": {
+      "notOpenable": "kilna opens pictures, clips, sounds and documents under the media folder, and “{{path}}” is not one of them.",
+      "openFailed": "Could not open “{{path}}”: {{cause}}",
+      "rootNotAbsolute": "“{{path}}” is not a whole path to a folder; choose the folder itself.",
+      "rootMissing": "There is no folder at “{{path}}”. Is the drive connected?",
+      "badTemplate": "The folder of a work, “{{template}}”, {{problem}}.",
+      "createFailed": "Could not make the folder “{{path}}”: {{cause}}",
+      "noRoot": "No media folder is set for this workspace on this machine.",
+      "noTemplate": "Works of this kind keep no folder on disk.",
+      "unfilled": "The folder's name reads “{{placeholder}}”, and this work leaves it empty."
+    },
     "asset": {
+      "inlineNeedsNote": "A picture in a text belongs to a note.",
       "needsOwner": "A file must be attached to a work, a release or a style.",
       "workOtherWorkspace": "“{{title}}” is not in this workspace.",
       "styleOtherWorkspace": "“{{name}}” is not in this workspace.",

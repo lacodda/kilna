@@ -7,6 +7,7 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import type { ResolvedLink } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
+import { BODY_PREFIX, urlOf } from '@/lib/notePictures'
 import { hrefOf, replaceWikiLinks, wikiLinks } from '@/lib/wikilink'
 import { cn } from '@/lib/utils'
 import { CopyButton } from '@/components/ui/copy-button'
@@ -66,6 +67,12 @@ export function Markdown({
     enabled: links.length > 0,
   })
 
+  // A picture written into a note names the file it was stored as,
+  // `media/<id>.png` (v0.93, ADR 0058): read against the workspace's own
+  // folder, which is asked for only by a body that shows one.
+  const showsPictures = body.includes(`](${BODY_PREFIX}`)
+  const media = useQuery({ ...queries.mediaDirectory(), enabled: showsPictures })
+
   const html = useMemo(() => {
     const found = new Map<string, ResolvedLink>(
       (resolved.data ?? []).map((one) => [`${one.target}:${one.id}`, one]),
@@ -86,8 +93,17 @@ export function Markdown({
             return href === undefined ? text : `[${text}](${href})`
           })
     const parsed = marked.parse(source, { async: false, breaks: true })
-    return DOMPurify.sanitize(parsed)
-  }, [body, links, resolved.data])
+    const clean = DOMPurify.sanitize(parsed)
+    // After the sanitiser, which keeps a relative `src` as it is: only a bare
+    // name inside `media/` becomes the workspace's file, and anything else
+    // stays the link it was written as.
+    const directory = media.data
+    if (directory === undefined || !clean.includes(`src="${BODY_PREFIX}`)) return clean
+    return clean.replace(/src="(media\/[^"]*)"/g, (whole, link: string) => {
+      const url = urlOf(directory, link)
+      return url === null ? whole : `src="${url}"`
+    })
+  }, [body, links, resolved.data, media.data])
 
   // Copy buttons stay out of the markdown pipeline: the sanitiser would strip
   // them, and rightly so — they are ours, not the text's. Each code block gets

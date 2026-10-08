@@ -122,6 +122,10 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::style_brick::NewStyleBrick,
         kilna_lib::style_brick::StyleBrickPatch,
         kilna_lib::asset::Asset,
+        // folders.rs
+        kilna_lib::folder::WorkFolder,
+        kilna_lib::folder::FolderFile,
+        kilna_lib::folder::FolderState,
         // focus.rs
         kilna_lib::focus::Dismissal,
         kilna_lib::focus::DismissalKey,

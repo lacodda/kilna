@@ -4,9 +4,9 @@
   "description": "Chapters with text and outline kept separately, judged on what makes a reader turn the page, gathered into books and shipped a chapter or a draft at a time.",
   "config": {
     "work_kinds": [
-      { "key": "chapter", "label": "Chapter" },
-      { "key": "scene", "label": "Scene" },
-      { "key": "story", "label": "Short story" }
+      { "key": "chapter", "label": "Chapter", "folder": "chapters/{title}" },
+      { "key": "scene", "label": "Scene", "folder": "scenes/{title}" },
+      { "key": "story", "label": "Short story", "folder": "stories/{title}" }
     ],
     "release_kinds": [
       {

@@ -286,6 +286,9 @@ export type { Shot } from './generated/Shot'
 // Files.
 export type { Asset } from './generated/Asset'
 export type { NewAsset } from './generated/NewAsset'
+export type { WorkFolder } from './generated/WorkFolder'
+export type { FolderFile } from './generated/FolderFile'
+export type { FolderState } from './generated/FolderState'
 
 // Undo and the trash.
 export type { Undoable } from './generated/Undoable'

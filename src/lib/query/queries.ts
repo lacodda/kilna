@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query'
 import { listReleaseAssets, listWorkAssets, listCovers } from '@/lib/api/assets'
+import { mediaDirectory, mediaRoot, workFolder } from '@/lib/api/folders'
 import {
   activeRuns,
   activeTasks,
@@ -126,6 +127,20 @@ export const queries = {
   covers: () => queryOptions({ queryKey: keys.covers, queryFn: listCovers }),
   assets: (workId: string) =>
     queryOptions({ queryKey: keys.assetsFor(workId), queryFn: () => listWorkAssets(workId) }),
+  /** A work's folder on disk. Looked at again whenever the window comes
+      back into focus: the files in it are written by other programs - a
+      render finishing, a take exported - and returning to kilna is the
+      moment a person expects to see them. */
+  folder: (workId: string) =>
+    queryOptions({
+      queryKey: keys.folderFor(workId),
+      queryFn: () => workFolder(workId),
+      refetchOnWindowFocus: 'always',
+    }),
+  mediaRoot: () => queryOptions({ queryKey: keys.mediaRoot, queryFn: mediaRoot }),
+  /** Never changes while the app runs. */
+  mediaDirectory: () =>
+    queryOptions({ queryKey: keys.mediaDirectory, queryFn: mediaDirectory, staleTime: Infinity }),
 
   search: (query: string) =>
     queryOptions({ queryKey: keys.search(query), queryFn: () => search(query) }),
