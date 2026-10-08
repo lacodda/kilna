@@ -21,6 +21,7 @@ import { styleTypesOf } from '@/lib/useProfile'
 import { Catalogue } from '@/features/catalogue/Catalogue'
 import { CalendarView } from '@/features/calendar/CalendarView'
 import { CanonView } from '@/features/canon/CanonView'
+import { CollectionsView } from '@/features/collections/CollectionsView'
 import { CommentsView } from '@/features/comments/CommentsView'
 import { DashboardView } from '@/features/dashboard/DashboardView'
 import { JournalView } from '@/features/journal/JournalView'
@@ -111,6 +112,16 @@ export const SCREENS: readonly ScreenSpec[] = [
     rail: { group: 'work', icon: Calendar },
     jump: 'k',
     render: (open) => <CalendarView onSelect={open} />,
+  },
+  {
+    // The albums, books and seasons, first of the library as the mockup has
+    // them: a grid of cards, the open one a panel beside it. The open
+    // collection is in the address, so back walks between collections.
+    key: 'collections',
+    path: '/collections/:collectionId?',
+    nav: 'nav.collections',
+    rail: { group: 'library', icon: Disc },
+    render: () => <CollectionsView />,
   },
   {
     // The list and the open note each scroll inside their own column, and
@@ -211,8 +222,9 @@ export interface SoonSpec {
   version: string
 }
 
-/** Screens promised by the plan, drawn as dimmed doors in the rail. */
-export const SOON: readonly SoonSpec[] = [{ nav: 'nav.collections', icon: Disc, version: '0.92' }]
+/** Screens promised by the plan, drawn as dimmed doors in the rail. None is
+ * waiting since the collections arrived in v0.92. */
+export const SOON: readonly SoonSpec[] = []
 
 /** The screens this build draws: development ones only in development. */
 export const drawn = (dev: boolean): readonly ScreenSpec[] =>

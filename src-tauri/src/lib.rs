@@ -277,6 +277,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::collections::update_collection,
             commands::collections::delete_collection,
             commands::collections::set_collection_contents,
+            commands::collections::add_to_collection,
             commands::links::list_links,
             commands::links::create_link,
             commands::links::delete_link,

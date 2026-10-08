@@ -478,7 +478,7 @@ export function studio(): Studio {
       due_on: null,
       created_at: EARLIER,
       updated_at: NOW,
-      works: 1,
+      work_ids: [IDS.song],
     },
   ]
 

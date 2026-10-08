@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { formatQuery, parseQuery, type Vocabulary } from './searchQuery'
+import { FIELDS, formatQuery, parseQuery, type Vocabulary } from './searchQuery'
 import type { CatalogueFilter } from '@/lib/catalogue'
+import en from '@/i18n/locales/en.json'
+import ru from '@/i18n/locales/ru.json'
 
 const vocabulary: Vocabulary = {
   statuses: [
@@ -15,6 +17,10 @@ const vocabulary: Vocabulary = {
   tiers: [
     { key: 'clip', label: 'Clip' },
     { key: 'pic', label: 'Picture' },
+  ],
+  collections: [
+    { key: 'col-deep', label: 'Deep time' },
+    { key: 'col-winter', label: 'Winter' },
   ],
 }
 
@@ -58,8 +64,17 @@ describe('parseQuery', () => {
       kinds: [],
       tiers: [],
       stages: [],
+      collections: [],
     }
     expect(parseQuery('status:ЧЕРНОВИК', russian).filter.status).toBe('draft')
+  })
+
+  it('reads a collection by the name a person sees, and holds its id', () => {
+    expect(parseQuery('collection:"deep time"', vocabulary).filter.collection).toBe('col-deep')
+    expect(parseQuery('collection:col-winter', vocabulary).filter.collection).toBe('col-winter')
+    const missing = parseQuery('collection:Summer', vocabulary)
+    expect(missing.filter.collection).toBeUndefined()
+    expect(missing.unknown).toEqual([{ field: 'collection', value: 'Summer' }])
   })
 
   it('reads a stage by its key, its label or its number', () => {
@@ -137,6 +152,18 @@ describe('parseQuery', () => {
   })
 })
 
+// The box's tooltip is the only place its fields are listed. It named four
+// while the box read five - `stage:` arrived without it - and `collection:`
+// would have been the sixth it kept quiet about.
+describe('the hint over the box', () => {
+  it.each([
+    ['en', en.catalogue.queryHint],
+    ['ru', ru.catalogue.queryHint],
+  ])('names every field the box reads, in %s', (_, hint) => {
+    for (const field of FIELDS) expect(hint, field).toContain(`${field}:`)
+  })
+})
+
 describe('formatQuery', () => {
   it('writes a filter back as a line the parser reads the same way', () => {
     const filter: CatalogueFilter = {
@@ -177,5 +204,32 @@ describe('formatQuery', () => {
   // thing that disagree.
   it('leaves the gap out of the line', () => {
     expect(formatQuery({ gap: 'unscored' })).toBe('')
+  })
+
+  it('writes a collection by its name, and reads the name back to the same one', () => {
+    const line = formatQuery({ collection: 'col-deep' }, vocabulary)
+    expect(line).toBe('collection:"Deep time"')
+    expect(parseQuery(line, vocabulary).filter.collection).toBe('col-deep')
+  })
+
+  // A name that would not come back to the same collection is no name to
+  // write: the line must parse to the filter it was written from.
+  it('writes the id when the name would find another collection or none', () => {
+    expect(formatQuery({ collection: 'col-deep' })).toBe('collection:col-deep')
+    const twins: Vocabulary = {
+      ...vocabulary,
+      collections: [
+        { key: 'col-a', label: 'Untitled' },
+        { key: 'col-b', label: 'Untitled' },
+      ],
+    }
+    const line = formatQuery({ collection: 'col-b' }, twins)
+    expect(line).toBe('collection:col-b')
+    expect(parseQuery(line, twins).filter.collection).toBe('col-b')
+    const quoted: Vocabulary = {
+      ...vocabulary,
+      collections: [{ key: 'col-q', label: 'The "B" side' }],
+    }
+    expect(formatQuery({ collection: 'col-q' }, quoted)).toBe('collection:col-q')
   })
 })

@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronRight } from 'lucide-react'
 import {
   groupRows,
@@ -13,6 +14,7 @@ import {
   type Sort,
   type SortColumn,
 } from '@/lib/catalogue'
+import { queries } from '@/lib/query/queries'
 import { allOf, labelOf, useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import type { Tab } from '@/features/work/tabs'
@@ -56,6 +58,18 @@ interface Props {
   onSelect: (workId: string, tab?: Tab) => void
   onDelete: (workIds: readonly string[]) => void
   onClearFilters: () => void
+  /** The press on a row that may become a carry into a collection. */
+  onGrab: (event: React.PointerEvent<HTMLElement>, workId: string) => void
+  /** The rows in the air, dimmed where they stood. */
+  carrying: ReadonlySet<string>
+  /** While rows are carried, a collection's band takes them too - the
+   *  handlers it wears and the one the pointer is over. */
+  drop: { over: string | null; target: (key: string) => DropHandlers } | null
+}
+
+interface DropHandlers {
+  onPointerEnter: () => void
+  onPointerLeave: () => void
 }
 
 /**
@@ -87,9 +101,14 @@ export function CatalogueTable({
   onSelect,
   onDelete,
   onClearFilters,
+  onGrab,
+  carrying,
+  drop,
 }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
+  // The names of the collections' blocks; only asked while grouped by them.
+  const collections = useQuery({ ...queries.collections(), enabled: groupBy === 'collection' })
 
   // Where the last plain tick landed, so a shift-click has something to reach
   // back to. A ref rather than state: it changes what the *next* click means
@@ -144,10 +163,17 @@ export function CatalogueTable({
   // still names its block by its bare key rather than vanishing — the works are
   // real even when the vocabulary moved on.
   const groupLabel = (key: string | null) => {
-    if (key === null) return t('catalogue.groupNone')
-    return groupBy === 'status'
-      ? labelOf(allOf(profile.config, 'statuses'), key)
-      : labelOf(allOf(profile.config, 'tiers'), key)
+    if (key === null) {
+      return groupBy === 'collection' ? t('catalogue.groupLoose') : t('catalogue.groupNone')
+    }
+    switch (groupBy) {
+      case 'status':
+        return labelOf(allOf(profile.config, 'statuses'), key)
+      case 'tier':
+        return labelOf(allOf(profile.config, 'tiers'), key)
+      default:
+        return collections.data?.find((collection) => collection.id === key)?.title ?? key
+    }
   }
 
   // Only what is on screen can be ticked by the header box: filtering something
@@ -321,11 +347,23 @@ export function CatalogueTable({
             blocks.map((block) => {
               const key = block.key ?? GROUPLESS
               const folded = groupBy !== 'none' && collapsed.has(key)
+              // A collection's band is a place the carried rows can land, as
+              // its chip on the shelf below is: the album is right there.
+              const landing =
+                drop !== null && groupBy === 'collection' && block.key !== null ? block.key : null
 
               return (
                 <TableBody key={key}>
                   {groupBy !== 'none' && (
-                    <tr className="border-b border-line bg-softer">
+                    <tr
+                      className={cn(
+                        'border-b border-line bg-softer',
+                        landing !== null && drop?.over === landing && 'bg-accent-soft',
+                      )}
+                      {...(landing === null
+                        ? {}
+                        : { 'data-collection-drop': landing, ...drop?.target(landing) })}
+                    >
                       {/* The whole band folds its block, not only its words: the
                           heading of a block is a row, and a row is pressed
                           anywhere along it. The count stays beside the words
@@ -363,7 +401,9 @@ export function CatalogueTable({
                         key={row.work_id}
                         actions={actionsFor(row)}
                         selected={selected.has(row.work_id)}
+                        carried={carrying.has(row.work_id)}
                         onOpen={() => onSelect(row.work_id)}
+                        onGrab={(event) => onGrab(event, row.work_id)}
                       >
                         <TableCell
                           className={cn('pr-2 pl-3', STUCK_LEFT_TICK)}

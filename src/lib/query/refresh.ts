@@ -56,6 +56,10 @@ export const refresh = {
     // The guard of repeats reads the days songs go out (ADR 0054).
     keys.register,
   ] as readonly QueryKey[],
+  /** A collection, or what it holds: the collections, and every list that
+   *  says which collection a work is in - the catalogue's rows, a card's
+   *  header. */
+  collection: [keys.collections, keys.catalogue, keys.works] as readonly QueryKey[],
   note: [keys.notes, keys.tags] as readonly QueryKey[],
   /** A term of the register: the list, its works, and every text checked
    *  against it. */

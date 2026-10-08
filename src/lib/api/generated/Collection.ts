@@ -17,6 +17,9 @@ target_size: number | null,
  */
 due_on: string | null, created_at: string, updated_at: string, 
 /**
- * How many works sit in it.
+ * The works it holds, in their order: track one first. The order and
+ * the count are one fact, so the collection carries the list rather than
+ * a number beside it - a screen that drew the count from one answer and
+ * the order from another could show twelve and list eleven.
  */
-works: number, };
+work_ids: Array<string>, };

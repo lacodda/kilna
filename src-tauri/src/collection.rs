@@ -26,8 +26,24 @@ pub struct Collection {
     pub due_on: Option<String>,
     pub created_at: String,
     pub updated_at: String,
-    /// How many works sit in it.
-    pub works: i64,
+    /// The works it holds, in their order: track one first. The order and
+    /// the count are one fact, so the collection carries the list rather than
+    /// a number beside it - a screen that drew the count from one answer and
+    /// the order from another could show twelve and list eleven.
+    pub work_ids: Vec<String>,
+}
+
+/// Where a work stood: in which collection, and at which place in it.
+///
+/// What a change to a collection's contents records about every work it
+/// touches, so that taking the change back puts each one where it was - in
+/// the collection it was taken from, at its old place - rather than only out
+/// of the one it was put in.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Placement {
+    pub id: String,
+    pub collection_id: Option<String>,
+    pub position: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
@@ -74,10 +90,78 @@ pub struct CollectionPatch {
 }
 
 const SELECT_COLLECTION: &str = "SELECT c.id, c.profile_id, c.kind, c.title, c.description, c.position, c.meta, \
-     c.created_at, c.updated_at, \
-     (SELECT count(*) FROM work WHERE work.collection_id = c.id) AS works, \
-     c.target_size, c.due_on \
+     c.created_at, c.updated_at, c.target_size, c.due_on \
      FROM collection c";
+
+/// The works in a collection, in its order.
+///
+/// Ties - two works a patch put at the same place before v0.92 - are broken
+/// by when the work was made, then by the row, never by the id: an id is a
+/// UUID, and ordering by one is ordering at random.
+pub fn members(conn: &Connection, id: &str) -> Result<Vec<String>> {
+    let mut statement = conn.prepare(
+        "SELECT id FROM work WHERE collection_id = ?1 ORDER BY position, created_at, rowid",
+    )?;
+    let ids = statement
+        .query_map(params![id], |row| row.get(0))?
+        .collect::<rusqlite::Result<Vec<String>>>()?;
+    Ok(ids)
+}
+
+/// Where each of these works stands now. A work the profile does not hold is
+/// left out: it is not there to place, and a caller that asked about it is
+/// told so by its absence.
+pub fn placements<'a>(
+    conn: &Connection,
+    profile_id: &str,
+    work_ids: impl IntoIterator<Item = &'a String>,
+) -> Result<Vec<Placement>> {
+    let mut statement = conn.prepare(
+        "SELECT id, collection_id, position FROM work WHERE id = ?1 AND profile_id = ?2",
+    )?;
+    let mut found = Vec::new();
+    for work_id in work_ids {
+        let placement = statement
+            .query_row(params![work_id, profile_id], |row| {
+                Ok(Placement {
+                    id: row.get(0)?,
+                    collection_id: row.get(1)?,
+                    position: row.get(2)?,
+                })
+            })
+            .optional()?;
+        found.extend(placement);
+    }
+    Ok(found)
+}
+
+/// Put every work back where a [`Placement`] says it stood. One unit: works
+/// half put back are an arrangement nobody made.
+pub fn restore_at(conn: &Connection, placements: &[Placement], at: &str) -> Result<()> {
+    atomically(conn, |tx| {
+        for placement in placements {
+            tx.execute(
+                "UPDATE work SET collection_id = ?1, position = ?2, updated_at = ?3 WHERE id = ?4",
+                params![
+                    placement.collection_id,
+                    placement.position,
+                    at,
+                    placement.id
+                ],
+            )?;
+        }
+        Ok(())
+    })
+}
+
+/// The place after the last work of a collection.
+pub fn next_position(conn: &Connection, id: &str) -> Result<i64> {
+    Ok(conn.query_row(
+        "SELECT coalesce(max(position), -1) + 1 FROM work WHERE collection_id = ?1",
+        params![id],
+        |row| row.get(0),
+    )?)
+}
 
 /// Refuse a goal that could not be read back as one.
 fn check_goal(target_size: Option<i64>, due_on: Option<&str>) -> Result<()> {
@@ -149,7 +233,7 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<Collection>> {
         )
         .optional()?;
 
-    raw.map(RawCollection::into_collection).transpose()
+    raw.map(|raw| raw.into_collection(conn)).transpose()
 }
 
 pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Collection>> {
@@ -161,7 +245,7 @@ pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<Collection>> {
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
     raw.into_iter()
-        .map(RawCollection::into_collection)
+        .map(|raw| raw.into_collection(conn))
         .collect()
 }
 
@@ -307,6 +391,28 @@ pub fn set_contents_at(conn: &Connection, id: &str, work_ids: &[String], at: &st
     })
 }
 
+/// Put works at the end of a collection, in the order given, taking each out
+/// of whatever collection held it: a work belongs to one at most (ADR 0001).
+///
+/// The caller decides which works go in - one already in this collection is
+/// left out by the action, which says so, rather than sent to the end here.
+pub fn append_at(conn: &Connection, id: &str, work_ids: &[String], at: &str) -> Result<()> {
+    if get(conn, id)?.is_none() {
+        return Err(unknown(id));
+    }
+
+    atomically(conn, |tx| {
+        let first = next_position(tx, id)?;
+        for (position, work_id) in (first..).zip(work_ids) {
+            tx.execute(
+                "UPDATE work SET collection_id = ?1, position = ?2, updated_at = ?3 WHERE id = ?4",
+                params![id, position, at, work_id],
+            )?;
+        }
+        Ok(())
+    })
+}
+
 fn unknown(id: &str) -> Error {
     Error::not_found("collection", id)
 }
@@ -321,7 +427,6 @@ struct RawCollection {
     meta: String,
     created_at: String,
     updated_at: String,
-    works: i64,
     target_size: Option<i64>,
     due_on: Option<String>,
 }
@@ -337,15 +442,15 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawCollection> {
         meta: row.get(6)?,
         created_at: row.get(7)?,
         updated_at: row.get(8)?,
-        works: row.get(9)?,
-        target_size: row.get(10)?,
-        due_on: row.get(11)?,
+        target_size: row.get(9)?,
+        due_on: row.get(10)?,
     })
 }
 
 impl RawCollection {
-    fn into_collection(self) -> Result<Collection> {
+    fn into_collection(self, conn: &Connection) -> Result<Collection> {
         Ok(Collection {
+            work_ids: members(conn, &self.id)?,
             meta: serde_json::from_str(&self.meta)?,
             id: self.id,
             profile_id: self.profile_id,
@@ -357,7 +462,6 @@ impl RawCollection {
             due_on: self.due_on,
             created_at: self.created_at,
             updated_at: self.updated_at,
-            works: self.works,
         })
     }
 }
@@ -395,7 +499,7 @@ mod tests {
         let first = album(&conn, &profile_id, "First");
         let second = album(&conn, &profile_id, "Second");
 
-        assert_eq!(first.works, 0);
+        assert!(first.work_ids.is_empty());
         assert_eq!(first.position, 0);
         assert_eq!(second.position, 1);
     }
@@ -410,7 +514,11 @@ mod tests {
         set_contents(&conn, &collection.id, &[two.clone(), one.clone()]).unwrap();
 
         let reloaded = get(&conn, &collection.id).unwrap().unwrap();
-        assert_eq!(reloaded.works, 2);
+        assert_eq!(
+            reloaded.work_ids,
+            vec![two.clone(), one.clone()],
+            "the collection lists its works in the order given"
+        );
 
         let inside = work::list(
             &conn,
@@ -437,9 +545,12 @@ mod tests {
         let leaves = a_work(&conn, &profile_id, "Leaves");
         set_contents(&conn, &collection.id, &[stays.clone(), leaves.clone()]).unwrap();
 
-        set_contents(&conn, &collection.id, &[stays]).unwrap();
+        set_contents(&conn, &collection.id, std::slice::from_ref(&stays)).unwrap();
 
-        assert_eq!(get(&conn, &collection.id).unwrap().unwrap().works, 1);
+        assert_eq!(
+            get(&conn, &collection.id).unwrap().unwrap().work_ids,
+            vec![stays]
+        );
         let loose = work::get(&conn, &leaves).unwrap().unwrap();
         assert!(loose.collection_id.is_none(), "the work survives, loose");
     }
@@ -473,6 +584,65 @@ mod tests {
 
         assert_eq!(mine.len(), 1);
         assert_eq!(mine[0].title, "Mine");
+    }
+
+    #[test]
+    fn appended_works_follow_the_last_one_and_leave_their_old_collection() {
+        let (conn, profile_id) = fixtures::workspace();
+        let target = album(&conn, &profile_id, "Album");
+        let other = album(&conn, &profile_id, "Other");
+        let first = a_work(&conn, &profile_id, "First");
+        let moved = a_work(&conn, &profile_id, "Moved");
+        let fresh = a_work(&conn, &profile_id, "Fresh");
+        set_contents(&conn, &target.id, std::slice::from_ref(&first)).unwrap();
+        set_contents(&conn, &other.id, std::slice::from_ref(&moved)).unwrap();
+
+        append_at(&conn, &target.id, &[fresh.clone(), moved.clone()], &now()).unwrap();
+
+        assert_eq!(
+            get(&conn, &target.id).unwrap().unwrap().work_ids,
+            vec![first, fresh, moved.clone()],
+            "after the last one, in the order given"
+        );
+        assert!(
+            get(&conn, &other.id).unwrap().unwrap().work_ids.is_empty(),
+            "a work is in one collection at most"
+        );
+        assert!(append_at(&conn, "nope", &[moved], &now()).is_err());
+    }
+
+    #[test]
+    fn placements_put_back_exactly_where_works_stood() {
+        let (conn, profile_id) = fixtures::workspace();
+        let kept = album(&conn, &profile_id, "Album");
+        let other = album(&conn, &profile_id, "Other");
+        let one = a_work(&conn, &profile_id, "One");
+        let two = a_work(&conn, &profile_id, "Two");
+        let loose = a_work(&conn, &profile_id, "Loose");
+        set_contents(&conn, &kept.id, &[one.clone(), two.clone()]).unwrap();
+        let ids = [one.clone(), two.clone(), loose.clone(), "gone".to_owned()];
+        let before = placements(&conn, &profile_id, &ids).unwrap();
+        assert_eq!(
+            before.len(),
+            3,
+            "a work the profile does not hold has no place"
+        );
+
+        set_contents(&conn, &other.id, &[loose.clone(), two.clone(), one.clone()]).unwrap();
+        restore_at(&conn, &before, &now()).unwrap();
+
+        assert_eq!(
+            get(&conn, &kept.id).unwrap().unwrap().work_ids,
+            vec![one, two]
+        );
+        assert!(get(&conn, &other.id).unwrap().unwrap().work_ids.is_empty());
+        assert!(
+            work::get(&conn, &loose)
+                .unwrap()
+                .unwrap()
+                .collection_id
+                .is_none()
+        );
     }
 
     #[test]

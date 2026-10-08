@@ -195,12 +195,16 @@ pub fn create_minted(
     let tags = serde_json::to_string(&new.tags)?;
     let marks = serde_json::to_string(&new.marks)?;
 
-    // New works go to the end of the profile's list.
-    let position: i64 = conn.query_row(
-        "SELECT coalesce(max(position), -1) + 1 FROM work WHERE profile_id = ?1",
-        params![profile_id],
-        |row| row.get(0),
-    )?;
+    // New works go to the end of the profile's list - or of the collection
+    // they are made in, whose order is the one `position` is read as there.
+    let position: i64 = match &new.collection_id {
+        Some(collection_id) => crate::collection::next_position(conn, collection_id)?,
+        None => conn.query_row(
+            "SELECT coalesce(max(position), -1) + 1 FROM work WHERE profile_id = ?1",
+            params![profile_id],
+            |row| row.get(0),
+        )?,
+    };
 
     conn.execute(
         "INSERT INTO work (id, profile_id, collection_id, kind, title, status, meta, tags, marks, position, created_at, updated_at)
@@ -350,6 +354,28 @@ pub fn update_at(conn: &Connection, id: &str, patch: WorkPatch, at: &str) -> Res
         set(&mut assignments, &mut values, "kind", Box::new(kind));
     }
     if let Some(collection_id) = patch.collection_id {
+        // A work that joins a collection goes after its last work. The place
+        // it held belonged to another list - the order works were made in, or
+        // another album - and carried over it would land anywhere in this one.
+        if let Some(joining) = &collection_id {
+            let held: Option<String> = conn
+                .query_row(
+                    "SELECT collection_id FROM work WHERE id = ?1",
+                    params![id],
+                    |row| row.get(0),
+                )
+                .optional()?
+                .flatten();
+            if held.as_deref() != Some(joining.as_str()) {
+                let position = crate::collection::next_position(conn, joining)?;
+                set(
+                    &mut assignments,
+                    &mut values,
+                    "position",
+                    Box::new(position),
+                );
+            }
+        }
         set(
             &mut assignments,
             &mut values,
@@ -1145,6 +1171,45 @@ mod tests {
         .unwrap();
 
         assert!(updated.collection_id.is_none());
+    }
+
+    #[test]
+    fn a_work_that_joins_a_collection_goes_after_its_last_work() {
+        let (conn, profile_id) = fixtures::workspace();
+        let album = crate::collection::create(
+            &conn,
+            &profile_id,
+            crate::collection::NewCollection {
+                kind: "album".into(),
+                title: "Album".into(),
+                description: None,
+                meta: None,
+                target_size: None,
+                due_on: None,
+            },
+        )
+        .unwrap();
+        // Made first, so its place in the order of making is the lowest.
+        let late = create(&conn, &profile_id, song("Late")).unwrap();
+        let mut inside = song("Inside");
+        inside.collection_id = Some(album.id.clone());
+        let inside = create(&conn, &profile_id, inside).unwrap();
+        let mut second = song("Second");
+        second.collection_id = Some(album.id.clone());
+        let second = create(&conn, &profile_id, second).unwrap();
+
+        let joined = WorkPatch {
+            collection_id: Some(Some(album.id.clone())),
+            ..Default::default()
+        };
+        update(&conn, &late.id, joined.clone()).unwrap();
+        // Saying so again is no move: it stays where it went.
+        update(&conn, &late.id, joined).unwrap();
+
+        assert_eq!(
+            crate::collection::members(&conn, &album.id).unwrap(),
+            vec![inside.id, second.id, late.id]
+        );
     }
 
     #[test]

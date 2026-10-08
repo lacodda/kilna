@@ -14,6 +14,8 @@ export const SCREENS: [path: string, shows: string][] = [
   ['/dashboard', 'Harbour Lights'],
   ['/catalogue', 'Harbour Lights'],
   ['/calendar', 'Paper Lanterns (clip)'],
+  ['/collections', 'Riverside'],
+  [`/collections/${IDS.collection}`, en.collections.works],
   ['/notes', 'A song about tides'],
   [`/notes/${IDS.note}`, 'Something about the tide going out and taking the day with it.'],
   ['/comments', 'The shot on the bridge is beautiful.'],

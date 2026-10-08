@@ -102,6 +102,8 @@ pub fn reversible(kind: &str) -> bool {
             | "version.edit"
             | "collection.create"
             | "collection.update"
+            | "collection.setContents"
+            | "collection.add"
             | "release.create"
             | "release.update"
             | "release.markReleased"
@@ -553,6 +555,12 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             apply(conn, |tx| {
                 crate::collection::update_at(tx, &id, patch, &at).map(|_| ())
             })?;
+        }
+        // Every work the change touched goes back where it stood: into the
+        // collection it was taken from, at its old place, or out of any.
+        "collection.setContents" | "collection.add" => {
+            let before: Vec<crate::collection::Placement> = from_params(params, "before")?;
+            apply(conn, |tx| crate::collection::restore_at(tx, &before, &at))?;
         }
         // A body goes back to what it was, whole. Refused the same way the
         // edit would be if the version has been scored since: the score read

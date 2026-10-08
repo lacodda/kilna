@@ -3,7 +3,7 @@
 use tauri::State;
 
 use super::active;
-use crate::actions;
+use crate::actions::{self, BulkOutcome};
 use crate::collection::{self, Collection, CollectionPatch, NewCollection};
 use crate::error::Result;
 use crate::state::AppState;
@@ -44,4 +44,15 @@ pub fn set_collection_contents(
     work_ids: Vec<String>,
 ) -> Result<()> {
     actions::collection::set_contents(&state.conn(), &id, &work_ids)
+}
+
+/// Put works at the end of a collection - from the catalogue's bar, a drag
+/// onto a collection, or a work's own header.
+#[tauri::command]
+pub fn add_to_collection(
+    state: State<'_, AppState>,
+    id: String,
+    work_ids: Vec<String>,
+) -> Result<BulkOutcome> {
+    actions::collection::add(&state.conn(), &id, &work_ids)
 }

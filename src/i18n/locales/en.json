@@ -543,7 +543,7 @@
     "starred": "Starred",
     "starredHint": "Only the works you starred to come back to",
     "queryPlaceholder": "Search, or narrow: tier:clip status:draft",
-    "queryHint": "Narrow with status:, kind:, tier:, tag: — or type words to search titles. Quote a phrase: \"paper boats\".",
+    "queryHint": "Narrow with status:, kind:, tier:, tag:, stage:, collection: — or type words to search everything a work says. Quote a phrase: \"paper boats\".",
     "queryUnknown": "This profile has no {{field}} called \"{{value}}\".",
     "views": "Views",
     "viewSaveCurrent": "Save this view",
@@ -609,7 +609,8 @@
       "statusSet_one": "{{count}} work moved",
       "statusSet_other": "{{count}} works moved",
       "unscheduled_one": "{{count}} release taken off the calendar",
-      "unscheduled_other": "{{count}} releases taken off the calendar"
+      "unscheduled_other": "{{count}} releases taken off the calendar",
+      "toCollection": "To collection"
     },
     "toNextTier": "{{gap}} more to reach {{tier}}",
     "tierPinned": "Tier held by hand",
@@ -618,7 +619,9 @@
     "moveColumn": "Drag to move {{column}}",
     "moveHint": "Drag the grip, or press Alt with an arrow key, to move the column",
     "filterColumn": "Filter by {{column}}",
-    "filterTitlePlaceholder": "Part of the title"
+    "filterTitlePlaceholder": "Part of the title",
+    "groupCollection": "Collection",
+    "groupLoose": "In no collection"
   },
   "assistant": {
     "title": "Assistant",
@@ -1335,7 +1338,8 @@
     "stageCleared": "Stage cleared",
     "sweepFailed": "Could not check this week's releases.",
     "cardSaveFailed": "Could not save the card.",
-    "factSaveFailed": "Could not save the fact."
+    "factSaveFailed": "Could not save the fact.",
+    "collectionSaveFailed": "Could not save the collection."
   },
   "trash": {
     "hint": "Nothing leaves for good until you say so.",
@@ -1480,7 +1484,12 @@
     "upgrade.publicationsRenamed_other": "Publications are named the new way: {{count}} renamed, “Song (video)”, “Song (audio)”, “Song (short 2)”; {{tails}} titles gained their tail.",
     "upgrade.renameOnPlatform": "Change the title of “{{title}}” where it went out: “{{was}}” → “{{now}}”.",
     "block.deleted": "Block “{{label}}” taken out of the bank of words.",
-    "proposal.words": "{{client}} proposes words for the bank and the register."
+    "proposal.words": "{{client}} proposes words for the bank and the register.",
+    "collection.created": "Collection “{{title}}” made.",
+    "collection.added_one": "{{count}} work added to “{{title}}”.",
+    "collection.added_other": "{{count}} works added to “{{title}}”.",
+    "collection.removed_one": "{{count}} work taken out of “{{title}}”.",
+    "collection.removed_other": "{{count}} works taken out of “{{title}}”."
   },
   "card": {
     "tab": {
@@ -1618,7 +1627,9 @@
     "block.add": "putting a word in a block",
     "block.remove": "taking a word out of a block",
     "repeat.keep": "keeping a repeat",
-    "repeat.unkeep": "counting a repeat again"
+    "repeat.unkeep": "counting a repeat again",
+    "collection.setContents": "a change to a collection's works",
+    "collection.add": "adding works to a collection"
   },
   "stage": {
     "label": "Stage",
@@ -3081,5 +3092,77 @@
     "madeVia": "Made “{{title}}”, from a publication",
     "released": "“{{title}}” went out on {{door}}",
     "booked": "“{{title}}” goes out on {{door}}"
+  },
+  "collections": {
+    "added_one": "{{count}} work added to “{{title}}”",
+    "added_other": "{{count}} works added to “{{title}}”",
+    "created": "Collection “{{title}}” made",
+    "newTitle": "New collection",
+    "newFor_one": "The work you chose goes in it as soon as it is made.",
+    "newFor_other": "The {{count}} works you chose go in it as soon as it is made.",
+    "make": "Make",
+    "name": "Name",
+    "namePlaceholder": "Songs for the long winter",
+    "noKinds": "This profile names no kinds of collection. Add one in Settings first.",
+    "kind": "Kind",
+    "ofTarget": "{{held}} of {{target}}",
+    "progressLabel": "How full “{{title}}” is",
+    "average": "Average",
+    "weakest": "Weakest: “{{title}}”",
+    "unjudged_one": "{{count}} not scored",
+    "unjudged_other": "{{count}} not scored",
+    "goal": {
+      "none": "No goal yet",
+      "due": "Due {{day}}",
+      "late": "Was due {{day}}",
+      "met": "full",
+      "left_one": "{{count}} to go",
+      "left_other": "{{count}} to go"
+    },
+    "deleted": "Collection “{{title}}” deleted",
+    "reordered": "Order changed",
+    "showInCatalogue": "Show in the catalogue",
+    "delete": "Delete collection",
+    "addWork": "Add a work",
+    "held_one": "{{count}} work",
+    "held_other": "{{count}} works",
+    "goalTitle": "Goal",
+    "target": "Meant to hold",
+    "targetNone": "No target",
+    "due": "Done by",
+    "dueNone": "No date",
+    "dueClear": "Clear the date",
+    "verdictTitle": "By the scores",
+    "noVerdict": "Nothing in it has been scored yet.",
+    "averageOf_one": "average of {{count}} scored, of {{total}}",
+    "averageOf_other": "average of {{count}} scored, of {{total}}",
+    "weakestWord": "Weakest",
+    "strongestWord": "Strongest",
+    "description": "Description",
+    "descriptionNone": "What holds it together, in a line",
+    "works": "Works, in order",
+    "emptyTitle": "Nothing in it yet",
+    "emptyBody": "Tick works in the catalogue and choose “To collection”, or carry rows onto it at the foot of the catalogue. One at a time: “Add a work” below.",
+    "move": "Drag to move, or Alt and an arrow",
+    "unknownWork": "A work the catalogue does not hold",
+    "unjudgedOne": "not scored",
+    "takeOut": "Take out",
+    "takeOutWork": "Take “{{title}}” out",
+    "takeOutOf": "Take out of “{{title}}”",
+    "takenOut": "“{{title}}” taken out",
+    "addTo": "Add to “{{title}}”",
+    "none": "No collections yet",
+    "noneBody": "An album, a book, a season: a collection holds works in their order, with a goal to fill and a day to aim at.",
+    "new": "New collection",
+    "newHint": "Name it, then fill it from the catalogue.",
+    "gone": "This collection is not here",
+    "goneBody": "It may have been deleted. If so, it is in the trash.",
+    "putIn": "Put in",
+    "newEllipsis": "New collection…",
+    "dropInto_one": "Put {{count}} work in",
+    "dropInto_other": "Put {{count}} works in",
+    "pickHint": "The collection this work is in",
+    "pickNone": "No collection",
+    "open": "Open “{{title}}”"
   }
 }

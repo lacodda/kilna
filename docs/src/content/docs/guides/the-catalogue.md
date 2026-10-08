@@ -69,9 +69,9 @@ window, and the column headings stay put as you scroll down.
 
 ## Grouping
 
-The **group** dropdown folds the table into blocks by status or by tier. Click a
-block's heading to collapse it; the count beside the heading says how many rows
-are inside.
+The **group** dropdown folds the table into blocks by status, by tier or by
+[collection](/kilna/guides/collections/). Click a block's heading to collapse
+it; the count beside the heading says how many rows are inside.
 
 The sort still decides the order, so a catalogue grouped by tier and sorted by
 score opens on the tier holding your best work. Works with no value — no tier
@@ -81,9 +81,9 @@ works sort last.
 **Grouping is forgotten when you close kilna**, like the filters. It is a way of
 interrogating the list today.
 
-Grouping by collection is deliberately not offered yet: collections have no
-screen of their own until a later version, and grouping by something you cannot
-open or edit would promise the feature twice.
+Grouped by collection, the works in none gather under *In no collection*, and
+a collection's heading is a place to carry rows into it - see
+[carrying rows into a collection](#carrying-rows-into-a-collection).
 
 ## Sorting
 
@@ -166,6 +166,7 @@ tier:clip status:draft winter
 | `tier:` | Your profile's tiers |
 | `tag:` | A tag you put on the work yourself |
 | `stage:` | How far along the work is — a stop's name, or its number |
+| `collection:` | A [collection](/kilna/guides/collections/), by its name |
 
 Anything that is not an operator searches the full text. **Quote a phrase** to
 keep it together: `"paper boats" tier:clip`.
@@ -180,6 +181,10 @@ A few things about how it reads what you type:
 - **A stage is named or numbered.** `stage:polish`, `stage:Polishing` and
   `stage:80` all mean the same stop. The line is written back as the number, so
   a saved view keeps meaning the same thing if you rename the stop later.
+- **A collection is named, and held by what it is.** `collection:"Deep time"`
+  finds the album; the box shows the name back, so renaming the album later
+  keeps a saved view pointing at it. Two collections with the same name are
+  told apart by an id in the line instead.
 - **A colon you did not intend as an operator stays in the search.** A work
   called *Ratio: a love song* is found by typing its title, because `Ratio` is
   not a field kilna knows.
@@ -281,6 +286,10 @@ A bar appears above the table with your profile's AI actions, and an
 - **Take off the calendar** — returns every booked release in the selection to
   the queue. Anything already released is left alone; its date is a record of
   what happened, not a booking.
+- **To collection** — puts the selection at the end of the collection you
+  pick, in the order the table shows it, or in a new one made for it. A work
+  already in that collection is passed over; one in another collection
+  leaves that one. One undo takes the lot back, each work to where it stood.
 - **Delete** — apart, below a separator. Takes the whole batch to the
   [trash](/kilna/guides/the-trash/) and offers one undo for all of it, not one
   toast per work.
@@ -301,6 +310,21 @@ once](/kilna/guides/the-assistant/#asking-for-many-at-once).
 
 **The selection is forgotten as soon as you act on it**, and is not remembered
 across a restart. It is about the next click, not a state to keep.
+
+### Carrying rows into a collection
+
+Press on a row and move the pointer: the row is picked up, and the bar at
+the foot gives way to a **shelf** of your collections, each with how many it
+holds, and a dashed **New collection**. Let go over one and the row goes in
+at its end; let go over *New collection* and you name a new one with the row
+already inside. Picked up by a ticked row, every ticked row on show goes
+with it. While the catalogue is grouped by collection, a collection's
+heading takes the rows too.
+
+A press that does not travel is still a click, and opens the work. **Escape**
+puts the rows back. The controls inside a row - the tick, the stage dial, the
+row menu - answer their own presses and pick nothing up. The keyboard's way to
+the same place is **To collection** in the bar.
 
 ## The row menu
 

@@ -66,9 +66,16 @@ describe('loadViews', () => {
 
   it('refuses a grouping this build does not draw', () => {
     const held = store({
-      'kilna.catalogue.views': JSON.stringify([view({ groupBy: 'collection' as never })]),
+      'kilna.catalogue.views': JSON.stringify([view({ groupBy: 'month' as never })]),
     })
     expect(loadViews(held)).toEqual([])
+  })
+
+  // Grouping by collection arrived in v0.92, and a view kept with it is a view.
+  it('keeps a view grouped by collection', () => {
+    const grouped = view({ groupBy: 'collection' })
+    const held = store({ 'kilna.catalogue.views': JSON.stringify([grouped]) })
+    expect(loadViews(held)).toEqual([grouped])
   })
 
   it('does not break when storage throws', () => {
@@ -176,6 +183,18 @@ describe('matchesView', () => {
       matchesView(held, { filter: { tag: 'winter' }, sort: held.sort, groupBy: held.groupBy }),
     ).toBe(false)
   })
+
+  // Each field of the filter apart, so that dropping one from the comparison
+  // fails here by name: the star and the stage were left out until v0.92.
+  it.each([{ bookmarked: true as const }, { stage: 80 }, { collection: 'col-deep' }])(
+    'sees %o, which the saved view does not carry',
+    (narrowed) => {
+      const held = view({ filter: {} })
+      expect(matchesView(held, { filter: narrowed, sort: held.sort, groupBy: held.groupBy })).toBe(
+        false,
+      )
+    },
+  )
 })
 
 describe('viewOf', () => {

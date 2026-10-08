@@ -22,12 +22,7 @@ import { version } from '../../package.json'
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 
 /** Commands with no caller yet, each with the version whose screen calls it. */
-const AWAITING: Record<string, { version: string; screen: string }> = {
-  create_collection: { version: '0.92.0', screen: 'the collections screen' },
-  delete_collection: { version: '0.92.0', screen: 'the collections screen' },
-  set_collection_contents: { version: '0.92.0', screen: 'the collections screen' },
-  update_collection: { version: '0.92.0', screen: 'the collections screen' },
-}
+const AWAITING: Record<string, { version: string; screen: string }> = {}
 
 function* files(dir: string, extension: RegExp): Generator<string> {
   for (const name of readdirSync(dir)) {

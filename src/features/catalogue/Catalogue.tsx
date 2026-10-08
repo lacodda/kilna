@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import type { Collection } from '@/lib/api/types'
 import { unscheduleWorks } from '@/lib/api/releases'
 import { deleteWorks, setWorksStatus } from '@/lib/api/works'
 import { updateProfileConfig } from '@/lib/api/workspace'
@@ -35,6 +36,7 @@ import { formatQuery, parseQuery, type Vocabulary } from '@/lib/searchQuery'
 import { stagesOf } from '@/lib/stages'
 import { say } from '@/lib/toast'
 import { announceDeleted } from '@/lib/trash'
+import { useChipDrag } from '@/lib/useChipDrag'
 import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import {
   addView,
@@ -52,7 +54,10 @@ import { SkeletonList } from '@/components/ui/skeleton'
 import { Frame } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
 import { NewWorkDialog } from '@/components/NewWorkDialog'
+import { NewCollectionDialog } from '@/features/collections/NewCollectionDialog'
+import { useCollectionGestures } from '@/features/collections/useCollectionGestures'
 import { BulkBar } from './BulkBar'
+import { CarriedRows, CollectionShelf, NEW_COLLECTION } from './CollectionShelf'
 import { CatalogueTable } from './CatalogueTable'
 import { CatalogueToolbar } from './CatalogueToolbar'
 import { useShownRows } from './useShownRows'
@@ -150,6 +155,11 @@ export function Catalogue({ onSelect }: Props) {
   // Not waited for: the table draws without them and fills the two columns in.
   const releases = useQuery(queries.calendar())
   const shown = useShownRows(rows.data, releases.data, filter, columnFilters, sort)
+  // What works can be put in, and the names `collection:` reads and writes.
+  const collections = useQuery(queries.collections())
+  const gestures = useCollectionGestures()
+  // The works a new collection is being made for, while its dialog is open.
+  const [makingFor, setMakingFor] = useState<string[] | null>(null)
 
   const kindCounts = new Map<string, number>()
   for (const row of rows.data ?? []) kindCounts.set(row.kind, (kindCounts.get(row.kind) ?? 0) + 1)
@@ -163,6 +173,54 @@ export function Catalogue({ onSelect }: Props) {
   // reach a work nobody can see.
   const chosen = (shown?.visible ?? []).map((row) => row.work_id).filter((id) => selected.has(id))
   const clearSelection = () => setSelected(new Set())
+
+  // Rows carried onto a collection (#110): the ticked ones when the row
+  // picked up is one of them, that row alone otherwise - the way a file
+  // manager carries a selection. The collection is the shelf's chip or, while
+  // grouped by collection, the album's band.
+  const [over, setOver] = useState<string | null>(null)
+  // A carry let go where it began still ends in a click on the row, and that
+  // click must not open the work that was only being moved.
+  const carried = useRef(false)
+  const carryOf = (workId: string): string[] => (chosen.includes(workId) ? chosen : [workId])
+  const putIn = (collection: Collection, workIds: string[]) =>
+    gestures.add.mutate({ collection, workIds }, { onSuccess: clearSelection })
+  const carry = useChipDrag({
+    onDrop: (workId, target) => {
+      setOver(null)
+      carried.current = true
+      window.setTimeout(() => {
+        carried.current = false
+      }, 0)
+      const place = target?.closest<HTMLElement>('[data-collection-drop]')?.dataset.collectionDrop
+      if (place === undefined) return
+      if (place === NEW_COLLECTION) {
+        setMakingFor(carryOf(workId))
+        return
+      }
+      const collection = collections.data?.find((one) => one.id === place)
+      if (collection !== undefined) putIn(collection, carryOf(workId))
+    },
+  })
+  const carrying = new Set(carry.dragging === null ? [] : carryOf(carry.dragging.id))
+  // A craft with no kind of collection and no collection has nowhere to carry
+  // a row to, and a press there stays a click.
+  const canCarry = (collections.data?.length ?? 0) > 0 || profile.config.collection_kinds.length > 0
+  const grab = (event: React.PointerEvent<HTMLElement>, workId: string) => {
+    // The controls inside a row answer their own presses: a tick, the stage,
+    // the row's menu.
+    const inside = (event.target as Element).closest(
+      'button, a, input, [role="checkbox"], [role="slider"]',
+    )
+    if (canCarry && inside === null) carry.begin(event, workId)
+  }
+  const dropTarget = (key: string) => ({
+    onPointerEnter: () => setOver(key),
+    onPointerLeave: () => setOver((current) => (current === key ? null : current)),
+  })
+  const open: Props['onSelect'] = (workId, tab) => {
+    if (!carried.current) onSelect(workId, tab)
+  }
 
   const remove = useAppMutation({
     // One call, not one per work: a loop here left the journal with a line
@@ -226,13 +284,25 @@ export function Catalogue({ onSelect }: Props) {
       label: sayLabel(entry.label),
     })),
     stages: stagesOf(profile.config).map((entry) => ({ ...entry, label: sayLabel(entry.label) })),
+    collections: (collections.data ?? []).map((one) => ({ key: one.id, label: one.title })),
   }
 
   // What the box shows. Held apart from the filter rather than derived from it,
   // because a half-typed `tier:cl` has no filter to be derived from and must
   // still stay on screen while it is being typed.
-  const [query, setQuery] = useState(() => formatQuery(filter))
+  const [query, setQuery] = useState(() => formatQuery(filter, vocabulary))
   const [unknown, setUnknown] = useState<{ field: string; value: string }[]>([])
+  // A collection is written by its name, and the names may arrive after the
+  // line was first written - opening the catalogue from a collection's page
+  // on a cold start. The line written with the id is then said again with
+  // the name, once, unless it has been typed over since.
+  const [named, setNamed] = useState(collections.data !== undefined)
+  if (!named && collections.data !== undefined) {
+    setNamed(true)
+    if (filter.collection !== undefined && query === formatQuery(filter)) {
+      setQuery(formatQuery(filter, vocabulary))
+    }
+  }
 
   const runQuery = (line: string) => {
     setQuery(line)
@@ -252,7 +322,7 @@ export function Catalogue({ onSelect }: Props) {
   const setFromControl = (change: Partial<CatalogueFilter>) => {
     const next = { ...filter, ...change }
     setFilter(next)
-    setQuery(formatQuery(next))
+    setQuery(formatQuery(next, vocabulary))
     setUnknown([])
   }
 
@@ -267,7 +337,7 @@ export function Catalogue({ onSelect }: Props) {
 
   const openView = (view: SavedView) => {
     setFilter(view.filter)
-    setQuery(formatQuery(view.filter))
+    setQuery(formatQuery(view.filter, vocabulary))
     setUnknown([])
     setSort(view.sort)
     saveSort(view.sort)
@@ -316,12 +386,22 @@ export function Catalogue({ onSelect }: Props) {
         />
       }
       foot={
-        chosen.length === 0 ? undefined : (
+        carry.dragging !== null ? (
+          <CollectionShelf
+            collections={collections.data ?? []}
+            count={carrying.size}
+            over={over}
+            target={dropTarget}
+          />
+        ) : chosen.length === 0 ? undefined : (
           <BulkBar
             workIds={chosen}
             busy={busy}
+            collections={collections.data ?? []}
             onSetStatus={(status) => restatus.mutate({ workIds: chosen, status })}
             onUnschedule={() => unschedule.mutate(chosen)}
+            onToCollection={(collection) => putIn(collection, chosen)}
+            onToNewCollection={() => setMakingFor(chosen)}
             onDelete={() => remove.mutate(chosen)}
             onClear={clearSelection}
           />
@@ -373,13 +453,36 @@ export function Catalogue({ onSelect }: Props) {
               kindNarrowed={filter.kind !== undefined}
               selected={selected}
               onSelectionChange={setSelected}
-              onSelect={onSelect}
+              onSelect={open}
               onDelete={(workIds) => remove.mutate(workIds)}
               onClearFilters={clearFilters}
+              onGrab={grab}
+              carrying={carrying}
+              drop={carry.dragging === null ? null : { over, target: dropTarget }}
             />
           )
         }
       </Loaded>
+
+      {carry.dragging !== null && (
+        <CarriedRows
+          pointer={carry.dragging.pointer}
+          label={
+            carrying.size === 1
+              ? (rows.data?.find((row) => row.work_id === carry.dragging?.id)?.title ?? '')
+              : t('catalogue.chosen', { count: carrying.size })
+          }
+        />
+      )}
+
+      <NewCollectionDialog
+        open={makingFor !== null}
+        onOpenChange={(next) => {
+          if (!next) setMakingFor(null)
+        }}
+        workIds={makingFor ?? []}
+        onMade={clearSelection}
+      />
 
       {/* The empty catalogue's way out: the same dialog the title bar's New
           opens, on the first kind, with the kind a field inside it. */}

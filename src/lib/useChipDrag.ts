@@ -9,13 +9,17 @@ export interface Dragging {
   ghost: { left: number; top: number }
   /** The size the ghost should be — the chip's own, so it does not resize. */
   size: { width: number; height: number }
+  /** Where the pointer is, for a ghost drawn beside it rather than over the
+   *  place it was picked up from - a catalogue row is the width of the table. */
+  pointer: { x: number; y: number }
 }
 
 interface Options {
-  /** The grid, for working out when the pointer is near an edge. */
-  gridRef: React.RefObject<HTMLElement | null>
+  /** The grid, for working out when the pointer is near an edge. Without one
+   *  nothing turns: a list carried onto a shelf has no months to turn. */
+  gridRef?: React.RefObject<HTMLElement | null>
   /** Turn the month while the pointer rests in an edge strip. */
-  onEdge: (step: -1 | 1) => void
+  onEdge?: (step: -1 | 1) => void
   /** The release was let go over this element, or over nothing. */
   onDrop: (id: string, target: Element | null) => void
 }
@@ -67,7 +71,7 @@ export function useChipDrag({ gridRef, onEdge, onDrop }: Options) {
   /** Start, stop or leave the month turning, following the pointer's side. */
   const followEdge = useCallback(
     (x: number) => {
-      const bounds = gridRef.current?.getBoundingClientRect()
+      const bounds = gridRef?.current?.getBoundingClientRect()
       const side = bounds === undefined ? 0 : edgeOf(x, bounds)
       if (side === edge.current.side) return
 
@@ -78,7 +82,7 @@ export function useChipDrag({ gridRef, onEdge, onDrop }: Options) {
       // on the way to a day near the edge must not set anything off.
       edge.current = {
         side,
-        timer: window.setInterval(() => handlers.current.onEdge(side), EDGE_DELAY),
+        timer: window.setInterval(() => handlers.current.onEdge?.(side), EDGE_DELAY),
       }
     },
     [gridRef, stopEdge],
@@ -118,7 +122,7 @@ export function useChipDrag({ gridRef, onEdge, onDrop }: Options) {
 
       // Once carrying, the page must not also select text or scroll under it.
       event.preventDefault()
-      setDragging({ id: held.id, ghost: ghostAt(at, held.grab), size: held.size })
+      setDragging({ id: held.id, ghost: ghostAt(at, held.grab), size: held.size, pointer: at })
       followEdge(at.x)
     }
 

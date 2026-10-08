@@ -25,7 +25,13 @@
  * Moving it there later reads this key and writes the new field, the same path
  * the columns already have marked out for them.
  */
-import type { CatalogueFilter, GroupBy, Sort, SortStore } from '@/lib/catalogue'
+import {
+  GROUPINGS,
+  type CatalogueFilter,
+  type GroupBy,
+  type Sort,
+  type SortStore,
+} from '@/lib/catalogue'
 
 export interface SavedView {
   /** Stable across renames, so the active view survives being retitled. */
@@ -83,8 +89,7 @@ function isView(value: unknown): value is SavedView {
   if (typeof candidate.filter !== 'object' || candidate.filter === null) return false
   if (Array.isArray(candidate.filter)) return false
 
-  const groupBy = candidate.groupBy
-  if (groupBy !== 'none' && groupBy !== 'status' && groupBy !== 'tier') return false
+  if (!GROUPINGS.includes(candidate.groupBy as GroupBy)) return false
 
   // The sort is checked loosely on purpose: `sortRows` falls back on an unknown
   // column rather than throwing, and a view is worth keeping for its filter
@@ -138,7 +143,20 @@ export function matchesView(view: SavedView, shape: ViewShape): boolean {
   )
 }
 
-const FILTER_FIELDS = ['search', 'status', 'kind', 'tier', 'tag', 'gap'] as const
+// Every field of the filter. The star and the stage were missing until v0.92,
+// so a view opened and then narrowed by either still lit up as the one on
+// screen.
+const FILTER_FIELDS = [
+  'search',
+  'status',
+  'kind',
+  'tier',
+  'tag',
+  'gap',
+  'bookmarked',
+  'stage',
+  'collection',
+] as const satisfies readonly (keyof CatalogueFilter)[]
 
 function sameFilter(a: CatalogueFilter, b: CatalogueFilter): boolean {
   // An empty search and an absent one are the same question. Comparing the raw

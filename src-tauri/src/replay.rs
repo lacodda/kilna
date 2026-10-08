@@ -404,6 +404,15 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             collection::set_contents_at(conn, &id, &work_ids, &at)?;
         }
 
+        // The log carries only the works that went in: those already there
+        // were passed over, and appending them again would reorder the album.
+        "collection.add" => {
+            let id = required(params, "id")?;
+            let work_ids: Vec<String> = from_params(params, "workIds")?;
+            let at = required(params, "at")?;
+            collection::append_at(conn, &id, &work_ids, &at)?;
+        }
+
         "link.create" => {
             let profile_id = workspace_profile(conn, params)?;
             let new = from_params(params, "link")?;

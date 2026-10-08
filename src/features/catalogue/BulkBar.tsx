@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
+import type { Collection } from '@/lib/api/types'
 import { allOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { BulkActions } from '@/features/assistant/BulkActions'
+import { CollectionMenuItems } from '@/features/collections/CollectionMenuItems'
 import { ActionBar, ActionBarButton } from '@/components/ui/action-bar'
 import { Button } from '@/components/ui/button'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
@@ -11,8 +13,12 @@ interface Props {
   workIds: readonly string[]
   /** A write is on its way; the bar waits for it rather than stacking a second. */
   busy: boolean
+  /** The collections the works can be put in. */
+  collections: readonly Collection[]
   onSetStatus: (status: string) => void
   onUnschedule: () => void
+  onToCollection: (collection: Collection) => void
+  onToNewCollection: () => void
   onDelete: () => void
   onClear: () => void
 }
@@ -36,7 +42,17 @@ interface Props {
  * A toolbar, so the whole bar is one stop on the Tab key and the arrows walk
  * its buttons.
  */
-export function BulkBar({ workIds, busy, onSetStatus, onUnschedule, onDelete, onClear }: Props) {
+export function BulkBar({
+  workIds,
+  busy,
+  collections,
+  onSetStatus,
+  onUnschedule,
+  onToCollection,
+  onToNewCollection,
+  onDelete,
+  onClear,
+}: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
   const statuses = allOf(profile.config, 'statuses')
@@ -74,6 +90,25 @@ export function BulkBar({ workIds, busy, onSetStatus, onUnschedule, onDelete, on
       >
         {t('catalogue.bulk.unschedule')}
       </ActionBarButton>
+
+      {/* The batch the collections screen waited for: tick the album's
+          tracks here, where they are found, and send them in at once. */}
+      <Menu>
+        <ActionBarButton
+          disabled={busy}
+          render={<MenuTrigger render={<Button size="sm" variant="ghost" />} />}
+        >
+          {t('catalogue.bulk.toCollection')}
+          <ChevronDown aria-hidden />
+        </ActionBarButton>
+        <MenuPopup align="start" side="top">
+          <CollectionMenuItems
+            collections={collections}
+            onPick={onToCollection}
+            onNew={onToNewCollection}
+          />
+        </MenuPopup>
+      </Menu>
 
       <BulkActions workIds={workIds} onStarted={onClear} />
 

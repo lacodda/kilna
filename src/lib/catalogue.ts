@@ -17,6 +17,8 @@ export interface CatalogueFilter {
       The percentage and not the key, because a row carries the number and the
       keys live in the profile: this module stays about rows. */
   stage?: number
+  /** A collection, by id: the works it holds. */
+  collection?: string
 }
 
 /** A column the table can be ordered by. */
@@ -137,6 +139,7 @@ export function narrow<Row extends ScoredWork>(
     if (filter.gap !== undefined && !hasGap(row, filter.gap)) return false
     if (filter.bookmarked === true && row.bookmarked_at === null) return false
     if (filter.stage !== undefined && row.stage !== filter.stage) return false
+    if (filter.collection !== undefined && row.collection_id !== filter.collection) return false
     if (needle !== '') {
       // Either way of matching is enough: the index knows the bodies, and the
       // title check keeps a partly typed name narrowing before the search
@@ -210,6 +213,7 @@ export function isNarrowed(filter: CatalogueFilter, columns?: ColumnFilters): bo
     // Left out when the stage filter arrived, so a catalogue narrowed to one
     // stop showed no count and no "clear" — and an empty result blamed nothing.
     filter.stage !== undefined ||
+    filter.collection !== undefined ||
     isNarrowedByColumns(columns)
   )
 }
@@ -546,7 +550,7 @@ function isFilter(value: unknown): value is CatalogueFilter {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   const candidate = value as Record<string, unknown>
 
-  for (const field of ['search', 'status', 'kind', 'tier', 'tag'] as const) {
+  for (const field of ['search', 'status', 'kind', 'tier', 'tag', 'collection'] as const) {
     const held = candidate[field]
     if (held !== undefined && typeof held !== 'string') return false
   }
@@ -837,8 +841,9 @@ function sanitizeWidths(parsed: unknown): ColumnWidths {
   return widths
 }
 
-/** How the rows are gathered into blocks. */
-export type GroupBy = 'none' | 'status' | 'tier'
+/** How the rows are gathered into blocks, in the order the menu offers them. */
+export const GROUPINGS = ['none', 'status', 'tier', 'collection'] as const
+export type GroupBy = (typeof GROUPINGS)[number]
 
 export interface Group<Row extends ScoredWork = ScoredWork> {
   /** The value shared by the rows, or null for the block holding those without one. */
@@ -849,9 +854,9 @@ export interface Group<Row extends ScoredWork = ScoredWork> {
 /**
  * Gather the rows into blocks, keeping the sort inside each.
  *
- * Grouping by collection is deliberately absent. The column exists, but the
- * screen that gives collections meaning does not yet, and offering to group by
- * something a person cannot yet see or edit promises a feature twice.
+ * By collection since v0.92, when the screen that makes collections arrived;
+ * until then the column existed and grouping by it was held back, because
+ * offering to group by something nobody could see or make promised it twice.
  *
  * Blocks come out in the order the rows already had, so the sort still decides
  * which block leads — a catalogue grouped by tier and sorted by score opens on
@@ -865,7 +870,7 @@ export function groupRows<Row extends ScoredWork>(rows: Row[], by: GroupBy): Gro
   const without: Row[] = []
 
   for (const row of rows) {
-    const key = by === 'status' ? row.status : row.tier
+    const key = by === 'status' ? row.status : by === 'tier' ? row.tier : row.collection_id
     if (key === null || key === '') {
       without.push(row)
       continue

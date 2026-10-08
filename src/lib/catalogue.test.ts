@@ -214,6 +214,43 @@ describe('isNarrowed', () => {
     expect(isNarrowed({ stage: 80 })).toBe(true)
     expect(isNarrowed({ stage: 0 })).toBe(true)
   })
+
+  it('counts a collection as narrowing', () => {
+    expect(isNarrowed({ collection: 'col-deep' })).toBe(true)
+  })
+})
+
+describe('a collection in the catalogue', () => {
+  const rows = [
+    row({ work_id: 'a', collection_id: 'col-deep' }),
+    row({ work_id: 'b', collection_id: null }),
+    row({ work_id: 'c', collection_id: 'col-winter' }),
+    row({ work_id: 'd', collection_id: 'col-deep' }),
+  ]
+
+  it('narrows to the works it holds', () => {
+    expect(narrow(rows, { collection: 'col-deep' }).map((r) => r.work_id)).toEqual(['a', 'd'])
+  })
+
+  it('gathers the rows into a block per collection, the loose ones last', () => {
+    const blocks = groupRows(rows, 'collection')
+    expect(blocks.map((block) => [block.key, block.rows.map((r) => r.work_id)])).toEqual([
+      ['col-deep', ['a', 'd']],
+      ['col-winter', ['c']],
+      [null, ['b']],
+    ])
+  })
+
+  // Kept for the session like every other narrowing, and read back as one.
+  it('survives a visit to a card and back', () => {
+    const held = new Map<string, string>()
+    const kept: SortStore = {
+      getItem: (key) => held.get(key) ?? null,
+      setItem: (key, value) => void held.set(key, value),
+    }
+    saveFilter({ collection: 'col-deep' }, kept)
+    expect(loadFilter(kept)).toEqual({ collection: 'col-deep' })
+  })
 })
 
 describe('gap filters', () => {

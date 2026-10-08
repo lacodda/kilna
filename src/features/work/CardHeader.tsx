@@ -35,6 +35,7 @@ import { Input } from '@/components/ui/input'
 import { RowMenu } from '@/components/RowMenu'
 import { WorkRepeatMark } from '@/components/RepeatMark'
 import { StagePicker } from '@/components/StagePicker'
+import { CollectionPicker } from '@/features/collections/CollectionPicker'
 import { TabBar } from '@/features/work/TabBar'
 import type { Tab, TabCount } from '@/features/work/tabs'
 import { TagBar } from '@/features/work/TagBar'
@@ -113,9 +114,10 @@ export function CardHeader({ work, tabs, counts, onDelete }: Props) {
 
 /**
  * What the work is and where it stands: its kind, its status, the verdict of
- * its last score, and the collection it belongs to - chips that say, rather
- * than chips that do. Each is changed where it is decided: the status by what
- * happens to the work, the verdict on the Score tab.
+ * its last score, and the collection it belongs to. The first three are chips
+ * that say rather than chips that do - each is changed where it is decided:
+ * the status by what happens to the work, the verdict on the Score tab. The
+ * collection is decided here as well, so its chip is a picker (v0.92).
  */
 function Standing({ work }: { work: Work }) {
   const { t, i18n } = useTranslation()
@@ -127,11 +129,6 @@ function Standing({ work }: { work: Work }) {
   // The tier and total belong here rather than only on the Score tab: they are
   // the verdict, and the verdict is what someone opens a card to check.
   const score = useQuery(queries.latestScore(work.id))
-  const collections = useQuery({
-    ...queries.collections(),
-    // Only fetched when the work is actually in one.
-    enabled: work.collection_id !== null,
-  })
   // A song's status is its publications' fact (ADR 0047), so the chip says
   // which one: asked only of a work that goes out through what is made from it.
   const publications = useQuery({ ...queries.publications(work.id), enabled: doorless })
@@ -140,7 +137,6 @@ function Standing({ work }: { work: Work }) {
   const links = useQuery({ ...queries.links(work.id), enabled: !doorless })
   const donor = links.data?.sources[0]
 
-  const collection = collections.data?.find((item) => item.id === work.collection_id)
   const latest = score.data ?? null
   const status = vocabulary.statuses.find((s) => s.key === work.status)
   const said = status === undefined ? work.status : sayLabel(status.label)
@@ -204,7 +200,7 @@ function Standing({ work }: { work: Work }) {
         </Chip>
       )}
 
-      {collection !== undefined && <Chip>{collection.title}</Chip>}
+      <CollectionPicker work={work} />
     </>
   )
 }

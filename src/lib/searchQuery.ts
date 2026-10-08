@@ -37,6 +37,9 @@ export interface Vocabulary {
   tiers: Term[]
   /** The stage stops, each carrying the percentage the filter is written in. */
   stages: (Term & { percent: number })[]
+  /** The collections, keyed by id and named by title. The filter holds the
+   *  id; a person types the name, and the line shows the name back. */
+  collections: Term[]
 }
 
 /**
@@ -46,8 +49,11 @@ export interface Vocabulary {
  * vocabulary and is what they would think to search by; a mark is about this
  * week and is read off the row at a glance, not hunted for. Adding `mark:`
  * later costs one entry in this list.
+ *
+ * `collection:` arrived with the collections screen (v0.92) and not before:
+ * narrowing by a thing nobody could see or make would have promised it twice.
  */
-export const FIELDS = ['status', 'kind', 'tier', 'tag', 'stage'] as const
+export const FIELDS = ['status', 'kind', 'tier', 'tag', 'stage', 'collection'] as const
 export type Field = (typeof FIELDS)[number]
 
 const IS_FIELD = new Set<string>(FIELDS)
@@ -100,7 +106,7 @@ function resolve(terms: Term[], value: string): string | undefined {
 /** What a parsed line asks for. */
 export interface ParsedQuery {
   /** The filter fields the operators set. Absent fields were not mentioned. */
-  filter: Pick<CatalogueFilter, 'status' | 'kind' | 'tier' | 'tag' | 'stage'>
+  filter: Pick<CatalogueFilter, 'status' | 'kind' | 'tier' | 'tag' | 'stage' | 'collection'>
   /** Everything that was not an operator, joined back into one phrase. */
   text: string
   /** Operators naming something this profile does not have, for telling the person. */
@@ -171,7 +177,7 @@ export function parseQuery(query: string, vocabulary: Vocabulary): ParsedQuery {
       continue
     }
 
-    filter[field as 'status' | 'kind' | 'tier'] = resolved
+    filter[field as 'status' | 'kind' | 'tier' | 'collection'] = resolved
   }
 
   return { filter, text: free.join(' '), unknown }
@@ -185,6 +191,8 @@ function vocabularyFor(vocabulary: Vocabulary, field: Field): Term[] {
       return vocabulary.kinds
     case 'tier':
       return vocabulary.tiers
+    case 'collection':
+      return vocabulary.collections
     // Tags and stages are resolved by the caller - a tag against nothing, a
     // stage into a number rather than a key - and return before reaching here.
     // Listed so the switch stays exhaustive.
@@ -200,13 +208,21 @@ function vocabularyFor(vocabulary: Vocabulary, field: Field): Term[] {
  * The round trip has to hold: parsing what this produces must give the filter
  * back. That is what lets the two ways of narrowing share one state instead of
  * fighting over it.
+ *
+ * A collection is held by id and written by its name, which is what a person
+ * reads and would type - `collection:"Deep time"`, not a UUID. Its id stands
+ * in only when the name would not come back to the same collection: before
+ * the collections have arrived, or when two share a name.
  */
-export function formatQuery(filter: CatalogueFilter): string {
+export function formatQuery(
+  filter: CatalogueFilter,
+  names: Pick<Vocabulary, 'collections'> = { collections: [] },
+): string {
   const parts: string[] = []
 
   for (const field of FIELDS) {
     if (field === 'stage') continue
-    const value = filter[field]
+    const value = field === 'collection' ? collectionWord(filter.collection, names) : filter[field]
     if (value === undefined || value === '') continue
     parts.push(`${field}:${quote(value)}`)
   }
@@ -219,6 +235,20 @@ export function formatQuery(filter: CatalogueFilter): string {
   if (text !== '') parts.push(quote(text))
 
   return parts.join(' ')
+}
+
+/** The word a collection is written by: its name when the name finds it
+ *  again, its id otherwise. */
+function collectionWord(
+  id: string | undefined,
+  names: Pick<Vocabulary, 'collections'>,
+): string | undefined {
+  if (id === undefined) return undefined
+  const named = names.collections.find((term) => term.key === id)
+  // A quote cannot be written inside a quoted value, so a name that holds one
+  // would come back as another name.
+  if (named === undefined || named.label.includes('"')) return id
+  return resolve(names.collections, named.label) === id ? named.label : id
 }
 
 /** A value with a space in it needs quoting, or it comes back as two terms. */
