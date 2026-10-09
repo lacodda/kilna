@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.95.1] - 2026-10-09
+
+### Bug Fixes
+- Keep an anchor by its words in any order
+
 ## [0.95.0] - 2026-10-09
 
 ### Bug Fixes

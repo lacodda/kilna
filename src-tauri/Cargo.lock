@@ -1941,7 +1941,7 @@ dependencies = [
 
 [[package]]
 name = "kilna"
-version = "0.95.0"
+version = "0.95.1"
 dependencies = [
  "fst",
  "rusqlite",
