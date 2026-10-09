@@ -622,6 +622,10 @@
       "statusSet_other": "{{count}} works moved",
       "unscheduled_one": "{{count}} release taken off the calendar",
       "unscheduled_other": "{{count}} releases taken off the calendar",
+      "number": "Fill “{{field}}”",
+      "numberHint": "Give the chosen works that have none the next codes, in the order they were made",
+      "numbered_one": "{{count}} work given a code",
+      "numbered_other": "{{count}} works given codes",
       "toCollection": "To collection"
     },
     "toNextTier": "{{gap}} more to reach {{tier}}",
@@ -1308,7 +1312,9 @@
     "guardReset": "Use the defaults"
   },
   "fields": {
-    "choiceNone": "Not set"
+    "choiceNone": "Not set",
+    "giveCode": "Next code",
+    "giveCodeHint": "Give this work the next code of “{{field}}”"
   },
   "plugins": {
     "title": "Plugins"
@@ -1513,6 +1519,8 @@
     "assistant.batchStarted_other": "{{action}} asked of {{count}} works.",
     "work.statusBatch_one": "{{count}} work moved to {{to}}.",
     "work.statusBatch_other": "{{count}} works moved to {{to}}.",
+    "work.numbered_one": "{{count}} work given the code {{first}}.",
+    "work.numbered_other": "{{count}} works given codes {{first}} to {{last}}.",
     "work.deletedBatch_one": "{{count}} work deleted.",
     "work.deletedBatch_other": "{{count}} works deleted.",
     "release.unscheduledBatch_one": "{{count}} release taken off the calendar.",
@@ -1628,6 +1636,7 @@
     "failed": "take that back",
     "work.create": "adding a work",
     "work.update": "an edit to a work",
+    "work.number": "giving codes",
     "work.pinTier": "holding a work at a tier",
     "note.create": "adding a note",
     "note.update": "an edit to a note",
@@ -2202,6 +2211,7 @@
     "work": {
       "unknownKind": "The profile has no kind of work “{{kind}}”. Its kinds are: {{known}}.",
       "unknownStatus": "The profile has no status “{{status}}”.",
+      "notNumbered": "“{{field}}” is not a field works are numbered by.",
       "kindNoStatuses": "The kind “{{kind}}” defines no statuses.",
       "unknownTier": "“{{tier}}” is not a tier of “{{kind}}”.",
       "pinNeedsReason": "A pinned tier needs a reason — say what the score does not know.",
@@ -2532,6 +2542,7 @@
     "alreadyThere": "already that way",
     "nothingBooked": "nothing booked",
     "nothingToFill": "no field to fill",
+    "hasCode": "already has one",
     "alreadyAsked": "already running or waiting",
     "queueFull": "the queue is full"
   },

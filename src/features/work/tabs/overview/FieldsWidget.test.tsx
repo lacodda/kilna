@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import type { WorkPatch } from '@/lib/api/types'
 import { mockBackend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
@@ -38,6 +38,16 @@ function choose(option: HTMLElement) {
 async function openFields(workId: string, kind: string) {
   mockBackend({
     ...answersFor(workspace),
+    // Given the way the backend gives it: the next code, to the works named
+    // that have none.
+    number_works: ({ field, workIds }) => {
+      for (const id of workIds as string[]) {
+        const index = workspace.works.findIndex((w) => w.id === id)
+        const work = workspace.works[index]!
+        workspace.works[index] = { ...work, meta: { ...work.meta, [field as string]: 'CAT-001' } }
+      }
+      return { changed: (workIds as string[]).length, skipped: [] }
+    },
     // Kept the way the backend keeps it - fields merged by key, `null`
     // emptying one - so the reads after the write see it.
     update_work: ({ id, patch }) => {
@@ -97,6 +107,34 @@ describe('the fields of a kind', () => {
     choose(await screen.findByRole('option', { name: en.fields.choiceNone }))
 
     await waitFor(() => expect(written).toEqual([{ meta: { variant: null } }]))
+  })
+
+  it('offers the next code under a numbered field nobody filled, and only there', async () => {
+    // A profile that numbers its songs (ADR 0059): one song has its code,
+    // the other was made before the numbering started.
+    workspace.profile.config.work_meta_fields.unshift({
+      key: 'code',
+      label: 'Code',
+      type: 'text',
+      kinds: ['song'],
+      numbered_from: 'CAT-001',
+    })
+    const song = workspace.works.find((w) => w.id === IDS.song)!
+    song.meta = { ...song.meta, code: 'CAT-007' }
+
+    const coded = await openFields(IDS.song, 'Song')
+    expect(within(coded).getByRole('textbox', { name: 'Code' })).toHaveValue('CAT-007')
+    expect(within(coded).queryByRole('button', { name: en.fields.giveCode })).toBeNull()
+    cleanup()
+
+    const widget = await openFields(IDS.draft, 'Song')
+    fireEvent.click(within(widget).getByRole('button', { name: en.fields.giveCode }))
+
+    await waitFor(() =>
+      expect(within(widget).getByRole('textbox', { name: 'Code' })).toHaveValue('CAT-001'),
+    )
+    expect(within(widget).queryByRole('button', { name: en.fields.giveCode })).toBeNull()
+    expect(written, 'given by the backend, not typed in').toEqual([])
   })
 
   it("draws no box for a field another kind's alone", async () => {

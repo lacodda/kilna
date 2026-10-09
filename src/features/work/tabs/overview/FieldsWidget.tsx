@@ -1,11 +1,12 @@
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Work } from '@/lib/api/types'
-import { unpinStatus } from '@/lib/api/works'
+import { numberWorks, unpinStatus } from '@/lib/api/works'
 import { fieldsOf } from '@/lib/overview'
 import { keys } from '@/lib/query/keys'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
+import { say } from '@/lib/toast'
 import { fieldsFor, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -37,6 +38,14 @@ export function FieldsWidget({ work }: { work: Work }) {
   const { presentation } = useLook()
   const { patch, setField } = useWorkEdit(work)
   const saveStatus = useSaveStatus(patch.isPending, patch.isError)
+  // The next code of a numbered field (ADR 0059). The work's folder may be
+  // named after it, so the folder is asked again.
+  const number = useAppMutation({
+    mutationFn: (field: string) => numberWorks(field, [work.id]),
+    failure: 'toast.workSaveFailed',
+    refresh: [...refresh.work, keys.folders],
+    onSuccess: (outcome) => say.skipped(outcome.skipped),
+  })
 
   const { short } = fieldsOf(fieldsFor(profile.config, work.kind))
   const line = presentation === 'line'
@@ -85,6 +94,8 @@ export function FieldsWidget({ work }: { work: Work }) {
             value={work.meta[field.key] ?? null}
             onChange={(value) => setField(field.key, value)}
             inline={line}
+            onNumber={() => number.mutate(field.key)}
+            numbering={number.isPending}
           />
         ))}
       </div>

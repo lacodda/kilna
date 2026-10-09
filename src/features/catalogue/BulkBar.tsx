@@ -16,6 +16,8 @@ interface Props {
   /** The collections the works can be put in. */
   collections: readonly Collection[]
   onSetStatus: (status: string) => void
+  /** Give the works without a code in this numbered field their codes. */
+  onNumber: (field: string) => void
   onUnschedule: () => void
   onToCollection: (collection: Collection) => void
   onToNewCollection: () => void
@@ -47,6 +49,7 @@ export function BulkBar({
   busy,
   collections,
   onSetStatus,
+  onNumber,
   onUnschedule,
   onToCollection,
   onToNewCollection,
@@ -56,6 +59,9 @@ export function BulkBar({
   const { t } = useTranslation()
   const profile = useProfile()
   const statuses = allOf(profile.config, 'statuses')
+  // A profile that numbers its works offers to fill the codes in: the works
+  // made before it started numbering have none (ADR 0059).
+  const numbered = profile.config.work_meta_fields.filter((field) => field.numbered_from != null)
 
   return (
     <ActionBar
@@ -82,6 +88,18 @@ export function BulkBar({
           ))}
         </MenuPopup>
       </Menu>
+
+      {numbered.map((field) => (
+        <ActionBarButton
+          key={field.key}
+          disabled={busy}
+          render={<Button size="sm" variant="ghost" />}
+          title={t('catalogue.bulk.numberHint')}
+          onClick={() => onNumber(field.key)}
+        >
+          {t('catalogue.bulk.number', { field: sayLabel(field.label) })}
+        </ActionBarButton>
+      ))}
 
       <ActionBarButton
         disabled={busy}

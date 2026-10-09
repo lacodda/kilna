@@ -277,12 +277,17 @@ another, and the run between them follows the first row's state: dragging out
 of a ticked row fills the span, dragging out of an unticked one clears it. The
 run is what you see, in the order the table is showing it.
 
-A bar appears above the table with your profile's AI actions, and an
-**Actions** menu holding the ordinary ones:
+A bar appears at the foot of the table, under the rows, so ticking the first
+one moves nothing you were aiming at. Each act is its own button:
 
-- **Move to status** — a submenu of your statuses; sends the whole selection to
+- **Move to status** — a menu of your statuses; sends the whole selection to
   the one you pick. Chosen by hand, so each one holds there: the automation
   leaves a hand-set status alone until you unpin it.
+- **Fill "Code"** — for a profile with a
+  [numbered field](/kilna/reference/profile-document/#numbered-fields), one
+  button per such field: the chosen works that have no code are given the next
+  codes, in the order they were made. A work with a code, or of a kind without
+  the field, is passed over. One undo takes the codes back.
 - **Take off the calendar** — returns every booked release in the selection to
   the queue. Anything already released is left alone; its date is a record of
   what happened, not a booking.
@@ -290,7 +295,7 @@ A bar appears above the table with your profile's AI actions, and an
   pick, in the order the table shows it, or in a new one made for it. A work
   already in that collection is passed over; one in another collection
   leaves that one. One undo takes the lot back, each work to where it stood.
-- **Delete** — apart, below a separator. Takes the whole batch to the
+- **Delete** — apart, at the end. Takes the whole batch to the
   [trash](/kilna/guides/the-trash/) and offers one undo for all of it, not one
   toast per work.
 
@@ -300,7 +305,7 @@ selection changed with nothing to say where it stopped. If a work was already in
 that status, or had nothing booked, it is passed over rather than reported as
 an error — that is why the number can be smaller than what you ticked — and a
 second note under the result names each work passed over and why: "already
-that way", "nothing booked", or what refused it.
+that way", "nothing booked", "already has one", or what refused it.
 
 The same bar carries your profile's **AI actions**. A click asks that action of
 every chosen work — each gets its own chat and its own answer, exactly as a

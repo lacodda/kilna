@@ -358,6 +358,62 @@ fn field_edits_rebuild_whether_logged_whole_or_by_key() {
     );
 }
 
+/// Codes rebuild as they were given - one as a song was made, the rest by a
+/// batch - read from the log, not counted again (ADR 0059).
+#[test]
+fn codes_rebuild_as_they_were_given() {
+    let source = workspace();
+    let song = |title: &str| {
+        actions::work::create(
+            &source,
+            work::NewWork {
+                kind: "song".into(),
+                title: title.into(),
+                ..work::NewWork::default()
+            },
+        )
+        .unwrap()
+        .id
+    };
+    let before = [song("Harbour lights"), song("Winter road")];
+
+    // The songs start being numbered here. Set on both sides as the ground
+    // the test stands on rather than replayed: a profile edit replays by the
+    // profile's id, which each seeded workspace mints for itself.
+    let numbered = |conn: &Connection| {
+        let profile_id = profile::active(conn).unwrap().unwrap().id;
+        let mut config = profile::config_for(conn, &profile_id).unwrap();
+        let mut code =
+            profile::config::MetaField::new("code", "Code", profile::config::MetaFieldType::Text);
+        code.kinds = vec!["song".into()];
+        code.numbered_from = Some("CAT-001".into());
+        config.work_meta_fields.push(code);
+        profile::update_config(conn, &profile_id, &config).unwrap();
+    };
+    numbered(&source);
+    let after = song("The long way round");
+
+    actions::work::number(&source, "code", &before).unwrap();
+    let codes: Vec<Value> = [&before[0], &before[1], &after]
+        .iter()
+        .map(|id| work::get(&source, id).unwrap().unwrap().meta["code"].clone())
+        .collect();
+    assert_eq!(
+        codes,
+        [json!("CAT-002"), json!("CAT-003"), json!("CAT-001")]
+    );
+
+    let mut rebuilt = workspace();
+    numbered(&rebuilt);
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+    assert!(report.unknown.is_empty(), "{:?}", report.unknown);
+    assert_eq!(
+        contents(&rebuilt),
+        contents(&source),
+        "the rebuilt codes are not the codes given"
+    );
+}
+
 /// A note promoted to a work rebuilds as the work, its version and the note
 /// gone — three rows from one operation, under the ids the first run minted.
 #[test]

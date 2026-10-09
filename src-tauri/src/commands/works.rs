@@ -118,6 +118,17 @@ pub fn set_works_status(
     actions::work::set_status(&state.conn(), &work_ids, &status)
 }
 
+/// Give the chosen works that have no code in `field` the next codes, in the
+/// order they were made (ADR 0059).
+#[tauri::command]
+pub fn number_works(
+    state: State<'_, AppState>,
+    field: String,
+    work_ids: Vec<String>,
+) -> Result<BulkOutcome> {
+    actions::work::number(&state.conn(), &field, &work_ids)
+}
+
 /// Tags in use on works, for completing the next one. Separate from a note's
 /// tags: offering "reference" while tagging a song would be the app guessing
 /// at a connection nobody made.

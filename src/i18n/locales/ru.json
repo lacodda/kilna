@@ -678,6 +678,12 @@
       "unscheduled_few": "Снято {{count}} выпуска",
       "unscheduled_many": "Снято {{count}} выпусков",
       "unscheduled_other": "Снято {{count}} выпуска",
+      "number": "Заполнить «{{field}}»",
+      "numberHint": "Выдать выбранным произведениям без кода следующие коды - в порядке, в котором их заводили",
+      "numbered_one": "Код выдан {{count}} произведению",
+      "numbered_few": "Коды выданы {{count}} произведениям",
+      "numbered_many": "Коды выданы {{count}} произведениям",
+      "numbered_other": "Коды выданы {{count}} произведениям",
       "toCollection": "В коллекцию"
     },
     "toNextTier": "ещё {{gap}} до тира «{{tier}}»",
@@ -1398,7 +1404,9 @@
     "guardReset": "Вернуть умолчания"
   },
   "fields": {
-    "choiceNone": "Не задано"
+    "choiceNone": "Не задано",
+    "giveCode": "Следующий код",
+    "giveCodeHint": "Дать произведению следующий код поля «{{field}}»"
   },
   "plugins": {
     "title": "Плагины"
@@ -1615,6 +1623,10 @@
     "work.statusBatch_few": "{{count}} произведения переведены в «{{to}}».",
     "work.statusBatch_many": "{{count}} произведений переведены в «{{to}}».",
     "work.statusBatch_other": "{{count}} произведения переведены в «{{to}}».",
+    "work.numbered_one": "{{count}} произведению выдан код {{first}}.",
+    "work.numbered_few": "{{count}} произведениям выданы коды с {{first}} по {{last}}.",
+    "work.numbered_many": "{{count}} произведениям выданы коды с {{first}} по {{last}}.",
+    "work.numbered_other": "{{count}} произведениям выданы коды с {{first}} по {{last}}.",
     "work.deletedBatch_one": "Удалено {{count}} произведение.",
     "work.deletedBatch_few": "Удалено {{count}} произведения.",
     "work.deletedBatch_many": "Удалено {{count}} произведений.",
@@ -1744,6 +1756,7 @@
     "failed": "отменить это",
     "work.create": "добавление произведения",
     "work.update": "правку произведения",
+    "work.number": "выдачу кодов",
     "work.pinTier": "закрепление тира",
     "note.create": "добавление заметки",
     "note.update": "правку заметки",
@@ -2335,6 +2348,7 @@
     "work": {
       "unknownKind": "В профиле нет вида произведения «{{kind}}». Есть: {{known}}.",
       "unknownStatus": "В профиле нет статуса «{{status}}».",
+      "notNumbered": "«{{field}}» — не поле, по которому нумеруются произведения.",
       "kindNoStatuses": "Вид «{{kind}}» не задаёт статусов.",
       "unknownTier": "«{{tier}}» — не уровень «{{kind}}».",
       "pinNeedsReason": "Закреплённому уровню нужна причина — скажите то, чего не знает оценка.",
@@ -2665,6 +2679,7 @@
     "alreadyThere": "уже так",
     "nothingBooked": "ничего не запланировано",
     "nothingToFill": "нечего заполнять",
+    "hasCode": "код уже есть",
     "alreadyAsked": "уже выполняется или ждёт",
     "queueFull": "очередь заполнена"
   },

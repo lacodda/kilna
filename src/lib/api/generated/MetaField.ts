@@ -33,4 +33,15 @@ default?: unknown,
  * the clip (v0.90). Absent is false - a mood, a tempo, an idea flow into
  * what is made from them once, at creation.
  */
-own?: boolean, };
+own?: boolean, 
+/**
+ * The first code a work is numbered by, as an example of them all:
+ * `CAT-001` gives a new work of a kind that has the field CAT-001, then
+ * CAT-002, CAT-003 - the next after the greatest code of that shape the
+ * workspace has given, its trash included, padded to the example's
+ * width. Written into the work when it is made, so a code stays what it
+ * was whatever happens to the works around it, and one once given is not
+ * given again (ADR 0059). Only a text field is numbered, and only by an
+ * example that ends in digits. Added in v0.93.1.
+ */
+numbered_from?: string | null, };

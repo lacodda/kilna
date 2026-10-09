@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Collection } from '@/lib/api/types'
 import { unscheduleWorks } from '@/lib/api/releases'
-import { deleteWorks, setWorksStatus } from '@/lib/api/works'
+import { deleteWorks, numberWorks, setWorksStatus } from '@/lib/api/works'
 import { updateProfileConfig } from '@/lib/api/workspace'
 import {
   columnsForKind,
@@ -254,6 +254,20 @@ export function Catalogue({ onSelect }: Props) {
     },
   })
 
+  // Codes for the ticked works that have none (ADR 0059): the folder each
+  // is found by is named after its code, so the folders are asked again.
+  const renumber = useAppMutation({
+    mutationFn: ({ workIds, field }: { workIds: readonly string[]; field: string }) =>
+      numberWorks(field, [...workIds]),
+    failure: 'toast.workSaveFailed',
+    refresh: [keys.works, keys.catalogue, keys.workspace, keys.folders],
+    onSuccess: (outcome) => {
+      clearSelection()
+      say.ok(t('catalogue.bulk.numbered', { count: outcome.changed }))
+      say.skipped(outcome.skipped)
+    },
+  })
+
   const unschedule = useAppMutation({
     mutationFn: (workIds: readonly string[]) => unscheduleWorks([...workIds]),
     failure: 'toast.workSaveFailed',
@@ -354,7 +368,7 @@ export function Catalogue({ onSelect }: Props) {
     setUnknown([])
   }
 
-  const busy = restatus.isPending || unschedule.isPending || remove.isPending
+  const busy = restatus.isPending || renumber.isPending || unschedule.isPending || remove.isPending
 
   return (
     <Frame
@@ -399,6 +413,7 @@ export function Catalogue({ onSelect }: Props) {
             busy={busy}
             collections={collections.data ?? []}
             onSetStatus={(status) => restatus.mutate({ workIds: chosen, status })}
+            onNumber={(field) => renumber.mutate({ workIds: chosen, field })}
             onUnschedule={() => unschedule.mutate(chosen)}
             onToCollection={(collection) => putIn(collection, chosen)}
             onToNewCollection={() => setMakingFor(chosen)}

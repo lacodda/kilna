@@ -150,6 +150,13 @@ made from it share one folder. A layout of your own is one template away:
 | Audio | `songs/{origin.code}/audio` | `songs/h042/audio` |
 | Short | `songs/{origin.code}/shorts` | `songs/h042/shorts` |
 
+The code can be one kilna gives by itself. A
+[numbered field](/kilna/reference/profile-document/#numbered-fields) -
+`"numbered_from": "h001"` - gives each new song the next code as it is made,
+so its folder has a name before the first file is rendered; the songs made
+before the field was numbered get theirs from **Next code** on the overview,
+or all at once from **Fill "Code"** on the catalogue's bar.
+
 A field that a template reads and a work leaves empty is said by name rather
 than guessed around. A title is made safe for a folder's name - the
 characters no folder may hold are left out - so `AC/DC: Live?` looks in

@@ -2073,6 +2073,16 @@ pub struct MetaField {
     /// what is made from them once, at creation.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub own: bool,
+    /// The first code a work is numbered by, as an example of them all:
+    /// `CAT-001` gives a new work of a kind that has the field CAT-001, then
+    /// CAT-002, CAT-003 - the next after the greatest code of that shape the
+    /// workspace has given, its trash included, padded to the example's
+    /// width. Written into the work when it is made, so a code stays what it
+    /// was whatever happens to the works around it, and one once given is not
+    /// given again (ADR 0059). Only a text field is numbered, and only by an
+    /// example that ends in digits. Added in v0.93.1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub numbered_from: Option<String>,
 }
 
 impl MetaField {
@@ -2085,6 +2095,7 @@ impl MetaField {
             options: Vec::new(),
             default: None,
             own: false,
+            numbered_from: None,
         }
     }
 
@@ -2227,6 +2238,15 @@ impl ProfileConfig {
         self.fields_of(kind)
             .into_iter()
             .filter_map(|field| Some((field.key.clone(), field.default.clone()?)))
+            .collect()
+    }
+
+    /// The fields a work of `kind` is numbered by: a new one is given the
+    /// next code of each (ADR 0059).
+    pub fn numbered_of(&self, kind: &str) -> Vec<&MetaField> {
+        self.fields_of(kind)
+            .into_iter()
+            .filter(|field| field.numbered_from.is_some())
             .collect()
     }
 
@@ -2443,6 +2463,25 @@ impl ProfileConfig {
                 problems.push(format!(
                     "{place} lists options but is not a choice; set `type` to `choice` or drop them"
                 ));
+            }
+            if let Some(first) = &field.numbered_from {
+                if field.field_type != MetaFieldType::Text {
+                    problems.push(format!(
+                        "{place} is numbered, which only a `text` field can be"
+                    ));
+                }
+                if crate::work::numbering::Pattern::of(first).is_none() {
+                    problems.push(format!(
+                        "{place} is numbered from `{first}`, which does not end in digits to count on"
+                    ));
+                }
+                // Two answers to "what does a new work start with" - one of
+                // them would be quietly ignored.
+                if field.default.is_some() {
+                    problems.push(format!(
+                        "{place} both starts at a default and is numbered; keep one"
+                    ));
+                }
             }
         }
 
@@ -3725,6 +3764,45 @@ mod tests {
             problems.contains("lists options but is not a choice"),
             "{problems}"
         );
+    }
+
+    /// A text field may be numbered, by an example that ends in digits; a
+    /// field of another type, an example with nothing to count, and a default
+    /// beside the numbering are each named.
+    #[test]
+    fn a_numbered_field_is_text_counted_from_an_example() {
+        let mut config = studio();
+        let mut code = MetaField::new("code", "Code", MetaFieldType::Text);
+        code.kinds = vec!["song".into()];
+        code.numbered_from = Some("CAT-001".into());
+        config.work_meta_fields.push(code.clone());
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
+        assert_eq!(
+            config
+                .numbered_of("song")
+                .iter()
+                .map(|field| field.key.as_str())
+                .collect::<Vec<_>>(),
+            ["code"]
+        );
+        assert!(config.numbered_of("video").is_empty());
+
+        let mut counted = MetaField::new("counted", "Counted", MetaFieldType::Number);
+        counted.numbered_from = Some("1".into());
+        let mut nothing = code.clone();
+        nothing.key = "nothing".into();
+        nothing.numbered_from = Some("CAT".into());
+        let mut both = code.clone();
+        both.key = "both".into();
+        both.default = Some(serde_json::json!("CAT-000"));
+        config.work_meta_fields = vec![counted, nothing, both];
+        let problems = config.validate().join("\n");
+        assert!(
+            problems.contains("only a `text` field can be"),
+            "{problems}"
+        );
+        assert!(problems.contains("does not end in digits"), "{problems}");
+        assert!(problems.contains("keep one"), "{problems}");
     }
 
     /// The title of a work made from another reads the source's title and a

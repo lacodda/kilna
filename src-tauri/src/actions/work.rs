@@ -8,6 +8,7 @@ use crate::db::unit::atomically;
 use crate::error::{Error, Reason, Result};
 use crate::journal::Record;
 use crate::link::NewLink;
+use crate::work::numbering::{self, Numbering};
 use crate::work::{self, NewWork, Work, WorkPatch};
 
 /// Make a work.
@@ -21,11 +22,25 @@ pub fn create(conn: &Connection, mut new: NewWork) -> Result<Work> {
         // the original unless someone says otherwise - filled in before the
         // work is logged, so a replay makes the work the log names rather
         // than asking a profile that may have changed since.
-        let defaults = crate::profile::config_for(act, act.profile_id())?.defaults_of(&new.kind);
+        let config = crate::profile::config_for(act, act.profile_id())?;
+        let defaults = config.defaults_of(&new.kind);
         if !defaults.is_empty() {
             let meta = new.meta.get_or_insert_with(serde_json::Map::new);
             for (key, value) in defaults {
                 meta.entry(key).or_insert(value);
+            }
+        }
+        // The code a work of this kind is numbered by, given at the same
+        // moment for the same reason: the log keeps the code, so a replay
+        // does not count again over a workspace that has moved on (ADR 0059).
+        // A code the work arrives with - carried by an import, named by an
+        // agent - is its own.
+        for field in config.numbered_of(&new.kind) {
+            let meta = new.meta.get_or_insert_with(serde_json::Map::new);
+            if numbering::lacks(meta, &field.key)
+                && let Some(mut codes) = Numbering::of(act, act.profile_id(), field)?
+            {
+                meta.insert(field.key.clone(), serde_json::Value::String(codes.take()));
             }
         }
         act.json("work", &new)?;
@@ -251,6 +266,115 @@ pub fn set_status(conn: &Connection, work_ids: &[String], status: &str) -> Resul
 
         Ok(BulkOutcome {
             changed: moved.len(),
+            skipped,
+        })
+    })
+}
+
+/// Give the works that have no code in `field` the next codes, in the order
+/// they were made (ADR 0059).
+///
+/// A new work is numbered as it is made; this is for the ones made before:
+/// a profile that starts numbering its songs halfway has a catalogue of them
+/// without a code, and a person may clear one. One gesture for the batch,
+/// with the codes in the log, so a replay hands out the codes it gave rather
+/// than counting again - and an undo takes them back as one.
+pub fn number(conn: &Connection, field: &str, work_ids: &[String]) -> Result<BulkOutcome> {
+    gesture(conn, "work.number", |act| {
+        let config = crate::profile::config_for(act, act.profile_id())?;
+        let known = config
+            .work_meta_fields
+            .iter()
+            .find(|known| known.key == field);
+        let numbered = match known {
+            Some(known) => Numbering::of(act, act.profile_id(), known)?.map(|codes| (known, codes)),
+            None => None,
+        };
+        let Some((numbered, mut codes)) = numbered else {
+            return Err(Error::refused("work.notNumbered").param("field", field));
+        };
+
+        let mut waiting: Vec<Work> = Vec::new();
+        let mut skipped: Vec<Skipped> = Vec::new();
+        for work_id in work_ids {
+            let Some(found) = work::get(act, work_id)? else {
+                skipped.push(Skipped {
+                    id: work_id.clone(),
+                    title: None,
+                    reason: Error::not_found("work", work_id).reason(),
+                });
+                continue;
+            };
+            let passed = if !numbered.applies_to(&found.kind) {
+                Some(Reason::of("skip.nothingToFill"))
+            } else if !numbering::lacks(&found.meta, field) {
+                Some(Reason::of("skip.hasCode"))
+            } else {
+                None
+            };
+            match passed {
+                Some(reason) => skipped.push(Skipped {
+                    id: found.id.clone(),
+                    title: Some(found.title.clone()),
+                    reason,
+                }),
+                None => waiting.push(found),
+            }
+        }
+        // In the order they were made, so the codes read as the catalogue's
+        // history; the title settles works made at the same moment, since an
+        // id is no order at all.
+        waiting.sort_by(|a, b| {
+            (a.created_at.as_str(), a.title.as_str(), a.id.as_str()).cmp(&(
+                b.created_at.as_str(),
+                b.title.as_str(),
+                b.id.as_str(),
+            ))
+        });
+        waiting.dedup_by(|a, b| a.id == b.id);
+
+        let mut given: Vec<numbering::Given> = Vec::new();
+        for found in waiting {
+            // A code is counted off only once it landed: a work that failed
+            // leaves no hole in the numbers.
+            let mut attempt = codes.clone();
+            let code = attempt.take();
+            let patch = WorkPatch {
+                meta: Some(serde_json::Map::from_iter([(
+                    field.to_owned(),
+                    serde_json::Value::String(code.clone()),
+                )])),
+                ..WorkPatch::default()
+            };
+            match atomically(act, |tx| work::update_at(tx, &found.id, patch, act.at())) {
+                Ok(_) => {
+                    codes = attempt;
+                    given.push(numbering::Given { id: found.id, code });
+                }
+                Err(cause) => skipped.push(Skipped {
+                    id: found.id,
+                    title: Some(found.title),
+                    reason: cause.reason(),
+                }),
+            }
+        }
+
+        if let (Some(first), Some(last)) = (given.first(), given.last()) {
+            act.journal(
+                Record::new("work.numbered")
+                    .param("count", count(given.len()))
+                    .param("first", first.code.clone())
+                    .param("last", last.code.clone()),
+            );
+            act.param("field", field);
+            act.json("given", &given)?;
+            act.stamped();
+        } else {
+            act.unchanged();
+        }
+
+        Ok(BulkOutcome {
+            changed: given.len(),
             skipped,
         })
     })
@@ -679,6 +803,160 @@ mod tests {
         let refused = derive(&conn, &song.id, "opera", None, None, None).unwrap_err();
 
         assert_eq!(refused.refusal().map(|r| r.code), Some("work.unknownKind"));
+        assert_eq!(operation::count(&conn).unwrap(), before);
+    }
+
+    /// The workspace's songs numbered by a catalogue code, from `CAT-001`.
+    fn numbered(conn: &Connection, profile_id: &str) {
+        let mut config = crate::profile::config_for(conn, profile_id).unwrap();
+        let mut code = crate::profile::config::MetaField::new(
+            "code",
+            "Code",
+            crate::profile::config::MetaFieldType::Text,
+        );
+        code.kinds = vec!["song".into()];
+        code.numbered_from = Some("CAT-001".into());
+        config.work_meta_fields.insert(0, code);
+        crate::profile::update_config(conn, profile_id, &config).unwrap();
+    }
+
+    fn a_song(conn: &Connection, title: &str, code: Option<&str>) -> Work {
+        create(
+            conn,
+            NewWork {
+                kind: "song".into(),
+                title: title.into(),
+                meta: code.map(|code| {
+                    serde_json::Map::from_iter([("code".to_owned(), serde_json::json!(code))])
+                }),
+                ..NewWork::default()
+            },
+        )
+        .unwrap()
+    }
+
+    fn code_of(work: &Work) -> Option<&str> {
+        work.meta.get("code").and_then(serde_json::Value::as_str)
+    }
+
+    /// A new song is given the next code as it is made; one that arrives
+    /// with a code keeps it, and counting goes on past it; a code in the
+    /// trash is not given again; a kind without the field gets nothing.
+    #[test]
+    fn a_new_work_is_given_the_next_code() {
+        let (conn, profile_id) = fixtures::workspace();
+        numbered(&conn, &profile_id);
+
+        let first = a_song(&conn, "First", None);
+        let second = a_song(&conn, "Second", Some("  "));
+        let typed = a_song(&conn, "Typed", Some("CAT-050"));
+        let after = a_song(&conn, "After", None);
+        discard(&conn, std::slice::from_ref(&after.id)).unwrap();
+        let past_the_trash = a_song(&conn, "Past the trash", None);
+        let clip = create(
+            &conn,
+            NewWork {
+                kind: "video".into(),
+                title: "Clip".into(),
+                ..NewWork::default()
+            },
+        )
+        .unwrap();
+
+        assert_eq!(code_of(&first), Some("CAT-001"));
+        assert_eq!(code_of(&second), Some("CAT-002"), "a blank is no code");
+        assert_eq!(
+            code_of(&typed),
+            Some("CAT-050"),
+            "a code given by hand stays"
+        );
+        assert_eq!(code_of(&after), Some("CAT-051"), "counting goes on past it");
+        assert_eq!(
+            code_of(&past_the_trash),
+            Some("CAT-052"),
+            "a work in the trash keeps its code from being given again"
+        );
+        assert_eq!(code_of(&clip), None, "a clip has no code to be given");
+
+        // The log holds the code, so a replay does not count again.
+        let logged = operation::latest(&conn, 10).unwrap();
+        let made = logged
+            .iter()
+            .find(|op| op.kind == "work.create" && op.params["work"]["title"] == "Past the trash")
+            .unwrap();
+        assert_eq!(made.params["work"]["meta"]["code"], "CAT-052");
+    }
+
+    /// The songs made before the field was numbered are given codes in the
+    /// order they were made, in one gesture that one undo takes back; a work
+    /// with a code and a kind without the field are passed over, and said.
+    #[test]
+    fn a_batch_gives_codes_in_the_order_works_were_made() {
+        let (conn, profile_id) = fixtures::workspace();
+        let later = fixtures::song(&conn, &profile_id, "Later");
+        let earlier = fixtures::song(&conn, &profile_id, "Earlier");
+        let clip = fixtures::video(&conn, &profile_id, "Clip");
+        for (work, at) in [
+            (&later, "2026-02-01T00:00:00.000Z"),
+            (&earlier, "2026-01-01T00:00:00.000Z"),
+        ] {
+            conn.execute(
+                "UPDATE work SET created_at = ?2 WHERE id = ?1",
+                rusqlite::params![work.id, at],
+            )
+            .unwrap();
+        }
+        numbered(&conn, &profile_id);
+        let coded = a_song(&conn, "Coded", None);
+
+        let outcome = number(
+            &conn,
+            "code",
+            &[
+                later.id.clone(),
+                clip.id.clone(),
+                coded.id.clone(),
+                earlier.id.clone(),
+                later.id.clone(),
+            ],
+        )
+        .unwrap();
+
+        assert_eq!(outcome.changed, 2, "a work named twice is given one code");
+        let reasons: Vec<(&str, &str)> = outcome
+            .skipped
+            .iter()
+            .map(|skip| (skip.id.as_str(), skip.reason.key.as_str()))
+            .collect();
+        assert_eq!(
+            reasons,
+            [
+                (clip.id.as_str(), "skip.nothingToFill"),
+                (coded.id.as_str(), "skip.hasCode"),
+            ]
+        );
+        let read = |id: &str| work::get(&conn, id).unwrap().unwrap();
+        assert_eq!(code_of(&read(&earlier.id)), Some("CAT-002"));
+        assert_eq!(code_of(&read(&later.id)), Some("CAT-003"));
+
+        let offer = crate::undo::last(&conn).unwrap().unwrap();
+        assert_eq!(offer.action, "undo.work.number");
+        crate::undo::undo(&conn, &offer.operation_id).unwrap();
+        assert_eq!(code_of(&read(&earlier.id)), None);
+        assert_eq!(code_of(&read(&later.id)), None);
+        assert_eq!(code_of(&read(&coded.id)), Some("CAT-001"), "untouched");
+    }
+
+    /// A field nobody numbers is refused before anything is written.
+    #[test]
+    fn a_batch_on_a_field_that_is_not_numbered_is_refused() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Song");
+        let before = operation::count(&conn).unwrap();
+
+        let refused = number(&conn, "bpm", &[song.id]).unwrap_err();
+
+        assert_eq!(refused.refusal().map(|r| r.code), Some("work.notNumbered"));
         assert_eq!(operation::count(&conn).unwrap(), before);
     }
 }

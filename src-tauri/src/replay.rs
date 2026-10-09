@@ -187,6 +187,15 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             }
         }
 
+        // The codes the batch gave, given again: counting again over a
+        // workspace that has moved on would hand out others (ADR 0059).
+        "work.number" => {
+            let field = required(params, "field")?;
+            let given: Vec<work::numbering::Given> = from_params(params, "given")?;
+            let at = required(params, "at")?;
+            work::numbering::give_at(conn, &field, &given, &at)?;
+        }
+
         "status.resync" => {
             let profile_id = workspace_profile(conn, params)?;
             let config = profile::config_for(conn, &profile_id)?;

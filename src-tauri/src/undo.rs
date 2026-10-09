@@ -90,6 +90,7 @@ pub fn reversible(kind: &str) -> bool {
         "work.create"
             | "work.clone"
             | "work.update"
+            | "work.number"
             | "work.pinTier"
             | "note.create"
             | "note.update"
@@ -218,6 +219,15 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             }
             apply(conn, |tx| {
                 crate::work::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // The codes a batch gave come off the works it gave them to, in one
+        // change: one gesture gave them (ADR 0059).
+        "work.number" => {
+            let field = required(params, "field")?;
+            let given: Vec<crate::work::numbering::Given> = from_params(params, "given")?;
+            apply(conn, |tx| {
+                crate::work::numbering::take_back_at(tx, &field, &given, &at)
             })?;
         }
         "note.update" => {

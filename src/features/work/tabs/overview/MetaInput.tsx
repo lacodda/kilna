@@ -4,6 +4,7 @@ import { say as sayLabel } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Select } from '@/components/AppSelect'
 import { DatePicker } from '@/components/DatePicker'
+import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useFieldDraft } from '@/components/ui/field-draft'
@@ -16,6 +17,11 @@ interface Props {
   onChange: (value: Meta[string]) => void
   /** The caption beside the value rather than over it: a line of the sheet. */
   inline?: boolean
+  /** Give the work the field's next code - offered while a numbered field
+   *  is empty (ADR 0059). */
+  onNumber?: () => void
+  /** A code is on its way; the offer waits for it. */
+  numbering?: boolean
 }
 
 /**
@@ -35,7 +41,14 @@ interface Props {
  * invitation, and one field of twelve with nothing in it is a fact, not a
  * call to action.
  */
-export function MetaInput({ field, value, onChange, inline = false }: Props) {
+export function MetaInput({
+  field,
+  value,
+  onChange,
+  inline = false,
+  onNumber,
+  numbering = false,
+}: Props) {
   const { t } = useTranslation()
   const label = sayLabel(field.label)
 
@@ -129,7 +142,7 @@ export function MetaInput({ field, value, onChange, inline = false }: Props) {
     )
   }
 
-  return (
+  const box = (
     <InlineField
       label={label}
       placeholder="—"
@@ -137,6 +150,31 @@ export function MetaInput({ field, value, onChange, inline = false }: Props) {
       onCommit={(next) => onChange(next ?? '')}
       className={cn(beside)}
     />
+  )
+  // A numbered field nobody has filled offers its next code under the box,
+  // the way a pinned status offers the way back: typed by hand, a code is
+  // the one the person remembered rather than the next one free.
+  if (
+    onNumber === undefined ||
+    field.numbered_from == null ||
+    (textOf(value) ?? '').trim() !== ''
+  ) {
+    return box
+  }
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      {box}
+      <span className="text-xs">
+        <Button
+          variant="link"
+          disabled={numbering}
+          title={t('fields.giveCodeHint', { field: label })}
+          onClick={onNumber}
+        >
+          {t('fields.giveCode')}
+        </Button>
+      </span>
+    </div>
   )
 }
 

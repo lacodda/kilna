@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import type { RepeatMark } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { renderApp, settled } from '@/test/render'
@@ -145,6 +145,47 @@ describe('the catalogue', () => {
     expect(backend.argsOf('unschedule_works')).toEqual([{ workIds: [IDS.draft] }])
     // Done with: the ticks go, and the bar with them.
     expect(bar()).toBeNull()
+  })
+
+  it('fills a numbered field for what was ticked, and only offers it when the profile numbers one', async () => {
+    const first = await open()
+    await act(async () => {
+      fireEvent.click(
+        within(first.rowOf('Harbour Lights')).getByRole('checkbox', {
+          name: 'Select Harbour Lights',
+        }),
+      )
+    })
+    const fill = en.catalogue.bulk.number.replace('{{field}}', 'Code')
+    const bar = () => screen.getByRole('toolbar', { name: en.catalogue.bulk.label })
+    expect(within(bar()).queryByRole('button', { name: fill }), 'nothing numbered').toBeNull()
+    cleanup()
+
+    // A profile that numbers its songs (ADR 0059).
+    const numbered = studio()
+    numbered.profile.config.work_meta_fields.unshift({
+      key: 'code',
+      label: 'Code',
+      type: 'text',
+      kinds: ['song'],
+      numbered_from: 'CAT-001',
+    })
+    backend = mockBackend({
+      ...answersFor(numbered),
+      number_works: ({ workIds }) => ({ changed: (workIds as string[]).length, skipped: [] }),
+    })
+    const { client, rowOf } = await open()
+    await act(async () => {
+      fireEvent.click(
+        within(rowOf('Harbour Lights')).getByRole('checkbox', { name: 'Select Harbour Lights' }),
+      )
+    })
+    await act(async () => {
+      fireEvent.click(within(bar()).getByRole('button', { name: fill }))
+    })
+    await settled(client)
+
+    expect(backend.argsOf('number_works')).toEqual([{ field: 'code', workIds: [IDS.draft] }])
   })
 
   it("marks a song the guard holds against one booked, and names why in the mark's words", async () => {

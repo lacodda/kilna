@@ -428,6 +428,7 @@ any given work:
 | `options` | kind entries, for `choice` | The answers a choice offers, `{ "key", "label" }`, stored by key. Required for a choice and refused on any other type. |
 | `default` | value, optional | What a new work of a kind that has the field starts with: an option's key for a choice. |
 | `own` | boolean, optional | A fact of the work's own media, never taken from the work it is made from: Studio's `duration` - a short is not as long as the clip it is cut from. Absent is `false`. |
+| `numbered_from` | string, optional | The first code of a field works are numbered by, as an example of them all - see [Numbered fields](#numbered-fields). Only on `text`, and not beside a `default`. |
 
 Studio's `variant` is a choice for `audio` alone - the original, the
 instrumental, a slowed or a sped-up version, a remix - starting at the
@@ -451,6 +452,37 @@ the ones marked `own` - and the defaults of the rest.
 a piece came from. It gets a text area spanning the panel rather than a
 single-line box, and it is left out of the card header: the header is the line
 you glance at, and a paragraph printed there pushes the work off screen.
+
+### Numbered fields
+
+A `text` field with `numbered_from` is a code kilna gives each new work of a
+kind that has it - a catalogue number, the name of the work's folder on disk:
+
+```jsonc
+{ "key": "code", "label": "Code", "type": "text", "kinds": ["song"], "numbered_from": "CAT-001" }
+```
+
+The example says the letters before the number (`CAT-`), how many digits it
+is written with (three) and where counting starts (1). A new song is given
+the next code after the greatest of that shape the workspace holds -
+`CAT-008` after `CAT-007`, past a gap rather than into it, and `CAT-1000`
+once three digits run out. The works in the trash count too, so a work put
+back never finds its code handed to another.
+
+- A code is given when the work is made and stays: deleting the work before
+  it does not move it. It is the work's to change by hand, like any field.
+- A work made with a code - carried by an import, proposed by an agent -
+  keeps it, and counting goes on past it.
+- The works made before the field was numbered have none. The field offers
+  **Next code** on the overview, and the catalogue's bar **Fill "Code"** for
+  the ticked works: those without one are given codes in the order they were
+  made, in one step the undo takes back.
+- Two devices that make a work offline may give the same code; kilna does not
+  yet notice.
+
+A folder template can then name the work's folder by it -
+`"folder": "songs/{code}"` - and a clip made from the song can look into it
+with `{origin.code}` ([A work's folder on disk](#a-works-folder-on-disk)).
 
 ## `note_kinds`
 

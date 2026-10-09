@@ -795,10 +795,16 @@ pub fn run_tool(
                 .work_meta_fields
                 .iter()
                 .map(|f| {
-                    json!({
+                    let mut field = json!({
                         "key": f.key, "label": f.label, "type": f.field_type,
                         "kinds": f.kinds, "options": f.options,
-                    })
+                    });
+                    // A numbered field is given by kilna when a work is made:
+                    // an agent that proposes a work leaves it out.
+                    if let Some(first) = &f.numbered_from {
+                        field["numbered_from"] = json!(first);
+                    }
+                    field
                 })
                 .collect();
             let kinds: Vec<Value> = config

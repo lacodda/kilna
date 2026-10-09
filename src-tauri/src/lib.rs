@@ -162,6 +162,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::works::delete_work,
             commands::works::delete_works,
             commands::works::set_works_status,
+            commands::works::number_works,
             commands::works::work_tags,
             commands::works::catalogue,
             commands::works::card_counts,
