@@ -445,19 +445,82 @@ pub fn anchors_of(lab: &Lab, work: &Work) -> Vec<String> {
         .collect()
 }
 
-/// The anchors a text has lost: each looked for word by word, as the
-/// dictionary compares phrases - case, hyphens and the punctuation at a
-/// phrase's ends do not count.
+/// The anchors a text has lost.
+///
+/// An anchor is a concept the trials keep, and a trial says it its own way:
+/// `fuzz bass` as *distorted fuzz bass* or *overdriven bass fuzz*, `galloping
+/// toms` as *galloping tom-heavy drums* (found on the owner's own files, where
+/// a phrase compared whole marked nearly every trial as lost). So an anchor is
+/// kept when each of its words stands somewhere in the text, in any order -
+/// a plural or a longer form of a word counting as the word, the little words
+/// of a phrase (`in the`, `of a`) not counting at all - and what an anchor
+/// line holds in brackets is a note on it, not part of it.
 pub fn lost_anchors(anchors: &[String], body: &str) -> Vec<String> {
-    let text = format!(" {} ", crate::phrase::key_of(body));
+    let words: Vec<String> = crate::phrase::key_of(body)
+        .split(' ')
+        .map(stem)
+        .filter(|word| !word.is_empty())
+        .collect();
     anchors
         .iter()
         .filter(|anchor| {
-            let key = crate::phrase::key_of(anchor);
-            !key.is_empty() && !text.contains(&format!(" {key} "))
+            let wanted = anchor_words(anchor);
+            !wanted.is_empty()
+                && !wanted
+                    .iter()
+                    .all(|word| words.iter().any(|said| same_word(said, word)))
         })
         .cloned()
         .collect()
+}
+
+/// Words too small to carry an anchor.
+const LITTLE_WORDS: [&str; 12] = [
+    "a", "an", "the", "of", "in", "on", "at", "to", "by", "for", "with", "and",
+];
+
+/// The words an anchor is kept by: its own, outside brackets, the little
+/// ones left out - unless they are all it has.
+fn anchor_words(anchor: &str) -> Vec<String> {
+    let mut plain = String::new();
+    let mut depth = 0usize;
+    for ch in anchor.chars() {
+        match ch {
+            '(' | '[' => depth += 1,
+            ')' | ']' => depth = depth.saturating_sub(1),
+            _ if depth == 0 => plain.push(ch),
+            _ => {}
+        }
+    }
+    let all: Vec<String> = crate::phrase::key_of(&plain)
+        .split(' ')
+        .filter(|word| !word.is_empty())
+        .map(stem)
+        .collect();
+    let big: Vec<String> = all
+        .iter()
+        .filter(|word| !LITTLE_WORDS.contains(&word.as_str()))
+        .cloned()
+        .collect();
+    if big.is_empty() { all } else { big }
+}
+
+/// A word without the plural it may carry: `toms` and `tom` are one word.
+fn stem(word: &str) -> String {
+    let word = word.to_lowercase();
+    match word.strip_suffix('s') {
+        Some(rest) if rest.chars().count() >= 3 && !rest.ends_with('s') => rest.to_owned(),
+        _ => word,
+    }
+}
+
+/// Whether a word of the text says a word of the anchor: the same word, or
+/// a longer form of it (`fuzzy` says `fuzz`), or - for a word of four
+/// letters or more - the start of it (`break` says `breakbeat`).
+fn same_word(said: &str, wanted: &str) -> bool {
+    said == wanted
+        || said.starts_with(wanted)
+        || (said.chars().count() >= 4 && wanted.starts_with(said))
 }
 
 // ---------------------------------------------------------------------------
@@ -692,13 +755,34 @@ mod tests {
     use super::*;
 
     #[test]
-    fn an_anchor_is_found_word_by_word() {
-        let anchors = vec!["fuzz bass".to_owned(), "Amen break".to_owned()];
-        assert!(lost_anchors(&anchors, "chopped amen-break, FUZZ bass, 170 bpm").is_empty());
+    fn an_anchor_is_kept_by_its_words_in_any_order() {
+        let anchors = vec![
+            "fuzz bass".to_owned(),
+            "galloping toms".to_owned(),
+            "in the red".to_owned(),
+            "Tambourine (frame drum with jingles)".to_owned(),
+        ];
+        // The owner's own trials say their anchors their own way.
+        assert!(
+            lost_anchors(
+                &anchors,
+                "post-punk revival, overdriven bass fuzz, galloping tom-heavy drums, \
+                 everything in the red, riq tambourine"
+            )
+            .is_empty()
+        );
         assert_eq!(
-            lost_anchors(&anchors, "fuzzy bass, amen break"),
-            vec!["fuzz bass".to_owned()],
-            "a word that only begins like the anchor is not the anchor"
+            lost_anchors(
+                &anchors,
+                "deep sub bass, galloping drums, red lights, tambourine"
+            ),
+            vec!["fuzz bass".to_owned(), "galloping toms".to_owned()],
+            "a word the text never says loses its anchor"
+        );
+        assert_eq!(
+            lost_anchors(&anchors, "fuzz bass, galloping toms, tambourine"),
+            vec!["in the red".to_owned()],
+            "the little words never stand for an anchor on their own"
         );
     }
 }

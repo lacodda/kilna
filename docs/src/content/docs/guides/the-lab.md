@@ -53,8 +53,12 @@ above the list narrow it to the kept ones, the ones not judged yet, or the
 dropped ones; a dropped trial stays under *All*, stepped back - it is still an
 example of what does not work.
 
-The anchors of the experiment stand above the list. A trial whose text has
-lost one says so, by name: *Lost the anchors: `fuzz bass`*.
+The anchors of the experiment stand above the list. A trial keeps an anchor
+when each of its words stands somewhere in the trial's text, in any order -
+*overdriven bass fuzz* keeps `fuzz bass`, *galloping tom-heavy drums* keeps
+`galloping toms`; the little words (`in the`) do not count, and what an
+anchor line holds in brackets is a note. A trial that lost one says so, by
+name: *Lost the anchors: `fuzz bass`*.
 
 ### A trial
 

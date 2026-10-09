@@ -1009,7 +1009,7 @@ outside kilna, heard, and kept or dropped. See [The lab](/kilna/guides/the-lab/)
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `harvest` | string, optional | The version role a kept trial goes into, in a work of any other kind that has it - Studio's `style`, which a song has. It also says how a trial is read and written: the [composition](#compose) that writes that role reads a trial's text against the dictionary and writes one from it. Absent: a kept trial goes only into the dictionary. Refused on save when no other kind has the role. |
-| `anchors` | string, optional | The key of the experiment's [field](#work_meta_fields) that holds what every trial keeps, one phrase to a line - a text or multiline field the kind carries. A trial whose text has lost one is marked on the board. |
+| `anchors` | string, optional | The key of the experiment's [field](#work_meta_fields) that holds what every trial keeps, one phrase to a line - a text or multiline field the kind carries. A trial keeps an anchor when each of its words stands in its text, in any order, a plural or a longer form counting (the little words and anything in brackets do not); one that lost an anchor is marked on the board. |
 
 A lab is a kind like any other: it names its own version roles and statuses.
 It is never scored, booked or released, so of the derived meanings only
