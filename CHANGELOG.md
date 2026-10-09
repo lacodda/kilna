@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.94.1] - 2026-10-09
+
+### Bug Fixes
+- Carry the House sound section into a stored channel card
+
 ## [0.94.0] - 2026-10-09
 
 ### Features
