@@ -2,6 +2,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
@@ -9,9 +10,19 @@ import {
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Copy, Eye, Maximize2, MicVocal, Minimize2, PenLine, RemoveFormatting } from 'lucide-react'
+import {
+  BookOpen,
+  Copy,
+  Eye,
+  Maximize2,
+  MicVocal,
+  Minimize2,
+  PenLine,
+  RemoveFormatting,
+} from 'lucide-react'
 import { cleanText } from '@/lib/api/register'
-import type { StressNote, TextCheck } from '@/lib/api/types'
+import type { Composition, StressNote, TextCheck } from '@/lib/api/types'
+import { PHRASE_MARK, insertPhrase, phraseAt } from '@/lib/phrases'
 import { typing } from '@/lib/keys'
 import { queries } from '@/lib/query/queries'
 import { strictnessStatus, termMark } from '@/lib/register'
@@ -38,6 +49,9 @@ import { StatusDot } from '@/components/ui/status-dot'
 import { CompareColumn } from '@/features/work/tabs/versions/CompareColumn'
 import { ReadingText } from '@/features/work/tabs/versions/ReadingText'
 import { StressStrip } from '@/features/work/tabs/versions/StressStrip'
+import { DictionaryPanel } from '@/features/work/tabs/versions/DictionaryPanel'
+import { PhraseStrip } from '@/features/work/tabs/versions/PhraseStrip'
+import { PhraseTip } from '@/features/work/tabs/versions/PhraseTip'
 import { TextScroll } from '@/features/work/tabs/versions/TextScroll'
 import { CHANGED_LINE, REPEAT_TINTS, textMetrics } from '@/features/work/tabs/versions/metrics'
 import { charUnderPointer, revealIndex } from '@/features/work/tabs/versions/pointer'
@@ -82,6 +96,13 @@ interface Props {
    *  text is checked for its stresses too, takes the stress gesture, and can
    *  be copied without the singer's marks (ADR 0053). */
   sung?: boolean
+  /** The composition the text is written by, when its role is one a
+   *  composition writes (v0.94): the text is read against the dictionary -
+   *  its phrases marked with what they mean, the unknown ones offered to
+   *  it - and the dictionary stands beside it to write from. */
+  composition?: Composition | null
+  /** The version's work and role, which the check reads the text by. */
+  about?: { workId: string; role: string } | null
   editing: ReturnType<typeof useBodyEditing>
   /** Whether it is over the whole window rather than on the card. */
   staged: boolean
@@ -111,6 +132,8 @@ export function BodyPane({
   previous = null,
   repeats = false,
   sung = false,
+  composition = null,
+  about = null,
   editing,
   staged,
   onStage,
@@ -141,9 +164,14 @@ export function BodyPane({
   // on it, which would have no letter to sit over either.
   const singing = sung && !markdown
   const { check, current } = useTextCheck(
-    repeats && body !== null && !markdown ? text : null,
+    (repeats || composition !== null) && body !== null && !markdown ? text : null,
     singing,
+    about,
   )
+  // The dictionary beside the text, for a text written out of it.
+  const [dictionaryShown, setDictionaryShown] = useState(false)
+  // The phrase under the pointer while the text is read, with where it is.
+  const [hovered, setHovered] = useState<{ index: number; box: DOMRect } | null>(null)
   const [accents, setAccents] = useShowStresses()
   const marks = useMemo(() => {
     if (!current || check === undefined) return []
@@ -179,6 +207,17 @@ export function BodyPane({
   }
 
   const write = () => onReading('edit')
+
+  // A phrase of the dictionary, into the text at the caret - or at its end,
+  // when the text was being read: the pen is picked up for it.
+  const pickPhrase = (phrase: string) => {
+    const field = box.current
+    const caret = reading === 'edit' && field !== null ? field.selectionStart : editing.text.length
+    const next = insertPhrase(editing.text, caret, phrase, composition?.separator ?? ', ')
+    placing.current = { start: next.caret, end: next.caret }
+    editing.setText(next.text)
+    if (reading !== 'edit') write()
+  }
   const read = () => {
     void editing.flush()
     onReading('view')
@@ -321,14 +360,27 @@ export function BodyPane({
         className={cn('block w-full', metrics)}
       />
     ) : (
-      <ReadingText
-        ref={takeFocus}
-        body={body}
-        markdown={markdown}
-        added={added}
-        marks={marks}
-        metrics={metrics}
-      />
+      // A phrase is explained where it stands: the pointer over one names
+      // it, and the tip says what it is and what it does.
+      <div
+        onMouseOver={(event) => {
+          const index = phraseAt(event.target, check)
+          const mark = event.target instanceof Element ? event.target.closest('mark') : null
+          setHovered(
+            index === null || mark === null ? null : { index, box: mark.getBoundingClientRect() },
+          )
+        }}
+        onMouseLeave={() => setHovered(null)}
+      >
+        <ReadingText
+          ref={takeFocus}
+          body={body}
+          markdown={markdown}
+          added={added}
+          marks={marks}
+          metrics={metrics}
+        />
+      </div>
     )
 
   const modes: { mode: Reading; icon: typeof Eye; label: string }[] = [
@@ -389,6 +441,21 @@ export function BodyPane({
             <Icon aria-hidden />
           </Button>
         ))}
+        {/* The dictionary beside a text written out of it: phrases to put in
+            at the caret, each with what it does. */}
+        {composition !== null && (
+          <Button
+            variant={dictionaryShown ? 'soft' : 'icon'}
+            size="icon-sm"
+            aria-pressed={dictionaryShown}
+            title={t('phrases.dictionary')}
+            aria-label={t('phrases.dictionary')}
+            disabled={body === null}
+            onClick={() => setDictionaryShown((on) => !on)}
+          >
+            <BookOpen aria-hidden />
+          </Button>
+        )}
         {/* The stresses drawn over a sung text, to read it the way the
             singer will: an accent over every stressed vowel, the marked ones
             and the ones the dictionary is sure of. Drawn, never written in. */}
@@ -469,6 +536,12 @@ export function BodyPane({
           terms it takes, strictest first. */}
       {check !== undefined && check.terms.length > 0 && <RegisterStrip check={check} />}
 
+      {/* What the dictionary says of a text written out of it (v0.94): the
+          phrases it knows, and the tags to explain. */}
+      {composition !== null && check !== undefined && (
+        <PhraseStrip check={check} composition={composition} />
+      )}
+
       {/* What a sung text says about its stresses, read or written: the
           words the singer may get wrong, each with its answers. */}
       {singing && check !== undefined && check.stress.length > 0 && (
@@ -498,22 +571,31 @@ export function BodyPane({
         </div>
       )}
 
-      {/* One scroller for both columns, so the two texts move together. */}
-      <TextScroll label={label}>
-        <div className="flex min-w-0 flex-1">
-          <div className="flex min-w-0 flex-1 flex-col *:flex-1">{content}</div>
-          {against !== null && (
-            <CompareColumn
-              label={against.label}
-              body={against.body}
-              removed={diff.removed}
-              counts={diff.counts}
-              metrics={metrics}
-              onClose={against.onClose}
-            />
-          )}
-        </div>
-      </TextScroll>
+      {/* One scroller for both columns, so the two texts move together. The
+          dictionary stands outside it, scrolling on its own. */}
+      <div className="flex min-h-0 min-w-0 flex-1">
+        <TextScroll label={label}>
+          <div className="flex min-w-0 flex-1">
+            <div className="flex min-w-0 flex-1 flex-col *:flex-1">{content}</div>
+            {against !== null && (
+              <CompareColumn
+                label={against.label}
+                body={against.body}
+                removed={diff.removed}
+                counts={diff.counts}
+                metrics={metrics}
+                onClose={against.onClose}
+              />
+            )}
+          </div>
+        </TextScroll>
+        {composition !== null && dictionaryShown && (
+          <DictionaryPanel composition={composition} onPick={pickPhrase} />
+        )}
+      </div>
+      {reading === 'view' && hovered !== null && check?.phrases[hovered.index] !== undefined && (
+        <PhraseTip hit={check.phrases[hovered.index]!} box={hovered.box} />
+      )}
     </section>
   )
 }
@@ -541,8 +623,24 @@ function marksOf(check: TextCheck, writing: boolean, stresses: boolean): Mark[] 
       note === undefined || (note.kind === 'homograph' && !stresses)
         ? undefined
         : stressMark(note.kind)
-    if (tint === undefined && term === undefined && stress === undefined) continue
-    out.push({ start: mark.start, end: mark.end, className: cn(tint, term, stress) })
+    // A phrase of the dictionary, numbered so the pointer over it finds it
+    // (`phraseAt`); a tag it does not know, dotted.
+    const phrase =
+      mark.phrase === undefined ? undefined : `${PHRASE_MARK} phrase-${String(mark.phrase)}`
+    const unknown = mark.unknown === undefined ? undefined : 'phrase-unknown'
+    if (
+      tint === undefined &&
+      term === undefined &&
+      stress === undefined &&
+      phrase === undefined &&
+      unknown === undefined
+    )
+      continue
+    out.push({
+      start: mark.start,
+      end: mark.end,
+      className: cn(tint, term, stress, phrase, unknown),
+    })
   }
   return out
 }

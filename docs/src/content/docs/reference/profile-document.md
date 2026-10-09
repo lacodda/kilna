@@ -915,8 +915,8 @@ document.
 | `key` | string | Stored on the style as its type. A style can only take a key this list names — the dictionary is grouped and narrowed by it. A style written under a key later dropped from the document still reads, and shows the key. |
 | `label` | string or map | What the chips, the groups and the picker show. Renamable, and bilingual like every other word of the craft. |
 | `hint` | string or map, optional | **What to describe for a style of this type.** Reaches the assistant when it describes one, and never reaches a generator. |
-| `icon` | string, optional | A glyph from the closed set: `palette`, `user`, `shirt`, `tree`, `type`, `camera`, `move`, `layers`, `grid`, `tag`, `square`, `droplet`. A name outside it draws the generic shape. |
-| `form` | string, optional | What a style of this type is made of beside its description, and so how its card and editor are drawn: `picture` (the default - reference pictures, and a palette while there are none), `lettering` (a live sample of the typeface), `dressing` (a description with `{slots}`), `colour` (a ground: one colour, or a gradient of up to four), `accent` (a colour the cover leans on, one or a gradient - offered as the cover's accent, never as its ground). The application knows the forms, never the types. |
+| `icon` | string, optional | A glyph from the closed set: `palette`, `user`, `shirt`, `tree`, `type`, `camera`, `move`, `layers`, `grid`, `tag`, `square`, `droplet`, and for sound `disc`, `mic`, `drum`, `guitar`, `waves`, `cloud`, `waveform`, `gauge`, `trending`, `sliders`. A name outside it draws the generic shape. |
+| `form` | string, optional | What a style of this type is made of beside its description, and so how its card and editor are drawn: `picture` (the default - reference pictures, and a palette while there are none), `lettering` (a live sample of the typeface), `dressing` (a description with `{slots}`), `colour` (a ground: one colour, or a gradient of up to four), `accent` (a colour the cover leans on, one or a gradient - offered as the cover's accent, never as its ground), `phrase` (a phrase written into a text word for word - a style prompt's `noise guitar bursts` - with what it means beside it and nothing else; a type of phrase must stand in a composition, see `compose`). The application knows the forms, never the types. |
 | `families` | list, optional | `{ "key", "label" }` pairs a style of this type is filed under - *Tattoo*, *Classic* for an image style. The dictionary narrows by them. |
 | `retired` | string or map, optional | Set when styles of this type are no longer made: what does their work now, in a sentence the dictionary shows above them. They still read; a new one, or moving one into the type, is refused. |
 | `canon_kind` | string, optional | A kind of card of the canon that stands in for this type: a hero with a card is described from its facts and needs no style. The dictionary says so above the type. Must name a kind with sections. |
@@ -971,12 +971,66 @@ yours. A profile you made yourself has none.
 | `when` | When to take it, in English - read by whoever picks styles for a picture (`{style_library}`). |
 | `colours` | `#RRGGBB`: a background's or an accent's one, or the stops of its gradient in order (up to four); an image style's palette; the ground of a lettering sample. |
 | `sample` | CSS declarations for the live sample of a lettering style. |
+| `explanation` | What it is and what it gives, per language - what a person reads, never part of a prompt. Every phrase of sound carries one in English and Russian, and its name is its phrase. |
 
 A style nobody touched since it was seeded takes a newer wording at the next
 start; one you changed keeps yours and offers **Restore as in the set**.
 
-Studio ships nine: `image-style`, `character`, `look`, `environment`,
-`typography`, `angle`, `pose`, `layering` and `composition`.
+Studio ships twelve types for pictures - `image-style`, `typography`,
+`dressing`, `background`, `accent`, `character`, `look`, `environment`,
+`angle`, `pose`, `layering` and `composition` - and ten types of sound, all
+of the form `phrase`: `genre`, `vocal`, `groove`, `instrument`, `bass`,
+`mood`, `texture`, `tempo`, `dynamics` and `knob`.
+
+## `compose`
+
+An optional list on the **profile**: the texts a version role is written out
+of the dictionary (v0.94). Studio's one is a song's style prompt, picked from
+the ten types of sound - see
+[The dictionary of sound](/kilna/guides/the-sound/). A composition says two
+things at once: how the text is **written** - the picks in the order they
+were picked, then the work's fields - and how it is **read**: a version of
+`role` is checked against the phrases of its types, each known one marked
+with what it means and each unknown tag offered to the dictionary.
+
+```jsonc
+{
+  "compose": [
+    {
+      "key": "sound",
+      "label": { "en": "Sound", "ru": "Звук" },
+      "role": "style",
+      "kinds": ["song"],
+      "parts": [
+        { "type": "genre", "min": 1, "max": 3, "rule": { "en": "Two or three tags: the foundation, changed rarely.", "ru": "…" } },
+        { "type": "groove", "min": 1, "max": 1, "rule": { "en": "One groove: the strongest lever against songs that sound the same.", "ru": "…" } }
+      ],
+      "fields": [
+        { "field": "bpm", "template": "{value} bpm" },
+        { "field": "key", "template": "{value}" }
+      ],
+      "limit": 1000
+    }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `key` | string | Identifies the composition; the dictionary's half and MCP name it. |
+| `label` | string or map | The half of the dictionary its types stand in - *Sound*. |
+| `role` | string | The version role the text is a version of. Every kind in `kinds` must have it. |
+| `kinds` | list of strings | The work kinds it writes for. One role of one kind is written by one composition. |
+| `parts` | list | The blocks a text is picked from, in the order they are offered: `type` (a style type of the form `phrase`), `min` and `max` (how many a text takes - outside them is said, never refused), `rule` (the block's rule in a sentence, shown where it is picked). |
+| `fields` | list, optional | The work's fields the text closes with: `field` (a key of `work_meta_fields` every kind carries) and `template` with `{value}` where the value goes. A number field's tag (`100 bpm`) is never called unknown, whatever the number; any other field's is the work's own value. |
+| `separator` | string, optional | What stands between two phrases. Absent: a comma and a space. |
+| `limit` | number, optional | How many characters the generator reads. A longer text is written all the same, and said to be longer. |
+
+Every type of the form `phrase` that is not retired must stand in a
+composition: a phrase is written into a text, and a type no composition reads
+would be a shelf nothing is built from. A workspace that already exists gains
+a shipped composition at the next start once it has its types; one you
+reshaped stays yours.
 
 ## `prompts`
 
@@ -1003,9 +1057,9 @@ specifically.
 | `icon` | string, optional | The glyph on the button, from the list below. A name kilna does not know draws the generic spark. |
 | `template` | string | The message sent to Claude, with placeholders filled per work. Keep it short: the method carries the how. |
 | `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
-| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`; `"cover-ideas"` — ideas for a publication's cover, each a concept, only in an action with `"scope": "cover"`. Anything else loads as prose and is refused when the profile is saved. |
+| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`; `"cover-ideas"` — ideas for a publication's cover, each a concept, only in an action with `"scope": "cover"`; `"words"` — words for the record; `"bricks"` — bricks for the dictionary, each a phrase with its type and what it means, only in an action with `"scope": "phrases"`. Anything else loads as prose and is refused when the profile is saved. |
 | `kinds` | list of strings, optional | The work kinds the action is offered on. Absent or empty is every kind. An action that reads `{role:lyrics}` is for the kinds that have lyrics — Studio's song actions say `["song"]` — because a button for it on a video would send a prompt with a hole in it. |
-| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. `"cover"` for one about a publication's [board of ideas](/kilna/guides/the-cover/#the-board-of-ideas): it reads `{ideas}` and `{choices}`, is offered on the board (and started by **Make…**), must produce `cover-ideas`, and may only name kinds with a cover. Absent is the work. |
+| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. `"cover"` for one about a publication's [board of ideas](/kilna/guides/the-cover/#the-board-of-ideas): it reads `{ideas}` and `{choices}`, is offered on the board (and started by **Make…**), must produce `cover-ideas`, and may only name kinds with a cover. `"phrases"` for one about phrases a text says that the dictionary does not know (v0.94): it reads them as `{phrases}` - each with how often it is written - and the composition's types with their hints and families as `{types}`, is offered where the phrases are found (a style's strip, **From your texts**), and must produce `bricks`. Absent is the work. |
 
 **Keep the label to a word or two.** The button carries a glyph and that label;
 what the action does belongs in `description`, which is the tooltip. A row of
@@ -1151,6 +1205,8 @@ proposes.
   `{slots}` are filled from the captions of the channel's card; a phrase in
   `[brackets]` whose caption is empty drops out whole, and a slot outside
   brackets takes its clause.
+  A phrase of sound goes in as written, in quotes, with what it means - the
+  generator reads the phrase, the writer needs the meaning (v0.94).
 - `{style_library}` — every **ready** style of the dictionary under the label
   of its type, each with its family and *when to take it*, retired types left
   out. For an action that picks styles rather than writes with them - the
@@ -1168,6 +1224,10 @@ proposes.
   is saved, as `{selection}` in a release field is.
 - `{selection}` — the lines selected in the text, word for word. Only in an
   action with `"scope": "selection"`, which must read it.
+- `{phrases}` and `{types}` — only in an action with `"scope": "phrases"`
+  (v0.94): the phrases to explain, one a line with how often the texts write
+  each, and the types of the composition they can be filed under, each with
+  its label, hint and families. At most forty phrases go into one task.
 - `{register}` — the [register of repeats](/kilna/guides/the-register/):
   wording grouped by strictness, then the spent images, scenes and devices,
   each with how many works carry it now and its note, and what the text the

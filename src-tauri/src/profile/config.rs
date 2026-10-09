@@ -97,6 +97,12 @@ pub struct ProfileConfig {
     /// is the same document.
     #[serde(default)]
     pub style_types: Vec<StyleType>,
+    /// The texts a role is written from the dictionary: a song's style
+    /// prompt picked from the types of sound, block by block (v0.94). A role
+    /// no composition names is written by hand only. Added in v0.94 - a
+    /// document without it is the same document.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub compose: Vec<Composition>,
     /// How a work's overview is laid out, and where each widget stands on it.
     /// Absent means the owner's choice - the lead layout with the placement
     /// the window ships - which is why nothing here spells a default out: a
@@ -203,6 +209,8 @@ pub struct RawProfileConfig {
     #[serde(default)]
     pub style_types: Vec<StyleType>,
     #[serde(default)]
+    pub compose: Vec<Composition>,
+    #[serde(default)]
     pub overview: Option<OverviewConfig>,
     #[serde(default)]
     pub cover_ideas: Option<u8>,
@@ -263,6 +271,7 @@ impl From<RawProfileConfig> for ProfileConfig {
             note_kinds: raw.note_kinds,
             relation_kinds: raw.relation_kinds,
             style_types: raw.style_types,
+            compose: raw.compose,
             overview: raw.overview,
             cover_ideas: raw.cover_ideas,
             guard: raw.guard,
@@ -1464,6 +1473,11 @@ pub enum StyleForm {
     /// Drawn and edited as a colour; a cover takes it as its accent, never
     /// as its ground (v0.90.3).
     Accent,
+    /// A phrase written into a text word for word - `noise guitar bursts` in
+    /// a style prompt - with nothing to show beside it but what it means
+    /// (v0.94). A text is read against the phrases of the types a
+    /// composition names, and assembled out of them.
+    Phrase,
 }
 
 impl StyleForm {
@@ -1482,6 +1496,91 @@ impl StyleForm {
 pub struct StyleFamily {
     pub key: String,
     pub label: Label,
+}
+
+/// A text a role is written out of the dictionary (v0.94): a song's style
+/// prompt, picked block by block from the types of sound.
+///
+/// The craft says what the text is made of and kilna writes it: the picked
+/// phrases in the order they were picked - a generator that weighs its words
+/// from the left reads the first as the most important - and then the work's
+/// own fields as the templates write them. The same composition says which
+/// texts are read against which phrases: a version of `role` is checked
+/// against the bricks of `parts`, and a phrase it does not know is said to be
+/// unknown.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct Composition {
+    pub key: String,
+    /// What the dictionary calls the half these types stand in: "Sound".
+    pub label: Label,
+    /// The version role the text is a version of.
+    pub role: String,
+    /// The kinds of work it writes for; every one has `role`.
+    pub kinds: Vec<String>,
+    /// The blocks a text is picked from, in the order they are offered.
+    pub parts: Vec<CompositionPart>,
+    /// The work's own fields the text closes with.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fields: Vec<CompositionField>,
+    /// What stands between two phrases. Absent: a comma and a space.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub separator: Option<String>,
+    /// How many characters the generator reads. A longer text is written
+    /// all the same, and said to be longer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+}
+
+impl Composition {
+    /// What stands between two phrases of the text.
+    pub fn separator(&self) -> &str {
+        self.separator.as_deref().unwrap_or(", ")
+    }
+
+    /// Whether the text of a work of `kind` in `role` is this one.
+    pub fn writes(&self, kind: &str, role: &str) -> bool {
+        self.role == role && self.kinds.iter().any(|k| k == kind)
+    }
+
+    /// The types it is picked from, in their order.
+    pub fn types(&self) -> impl Iterator<Item = &str> {
+        self.parts.iter().map(|part| part.type_key.as_str())
+    }
+}
+
+/// One block of a composition: a type of brick, and how many of it a text
+/// takes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct CompositionPart {
+    /// A key of `style_types`, of the form `phrase`.
+    #[serde(rename = "type")]
+    pub type_key: String,
+    /// How many a text needs; fewer is said, not refused.
+    #[serde(default)]
+    pub min: u8,
+    /// How many a text takes at most; more is said, not refused. Absent: any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max: Option<u8>,
+    /// The rule of the block in a sentence - "one mode of delivery", "the
+    /// first is the lead" - shown where it is picked from.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rule: Option<Label>,
+}
+
+/// A field of the work a composition closes with: "92 bpm" from `bpm`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct CompositionField {
+    /// A key of `work_meta_fields`.
+    pub field: String,
+    /// How the value is written into the text: `{value} bpm`.
+    pub template: String,
+}
+
+impl CompositionField {
+    /// The value as the text says it.
+    pub fn write(&self, value: &str) -> String {
+        self.template.replace("{value}", value)
+    }
 }
 
 /// A kind of release, and what a release of it cannot ship without.
@@ -2250,6 +2349,17 @@ impl ProfileConfig {
             .collect()
     }
 
+    /// The composition a version of `role` of a work of `kind` is written
+    /// and read by, if the craft names one.
+    pub fn composition_for(&self, kind: &str, role: &str) -> Option<&Composition> {
+        self.compose.iter().find(|c| c.writes(kind, role))
+    }
+
+    /// The composition by its key.
+    pub fn composition(&self, key: &str) -> Option<&Composition> {
+        self.compose.iter().find(|c| c.key == key)
+    }
+
     /// The type a style brick is of, by key. Absent when the craft does not
     /// name it — a brick written under a type later dropped from the document
     /// still reads, and shows its key (ADR 0031).
@@ -2431,6 +2541,7 @@ impl ProfileConfig {
         if self.work_kinds.is_empty() {
             problems.push("the profile names no work kinds".into());
         }
+        self.validate_compose(&mut problems);
 
         for (index, field) in self.work_meta_fields.iter().enumerate() {
             let place = format!("meta field {} (`{}`)", index + 1, field.key);
@@ -2549,6 +2660,128 @@ impl ProfileConfig {
         problems
     }
 
+    /// The compositions, checked against the vocabulary they name: a role a
+    /// kind does not have, a type that is not a phrase, a field the kind does
+    /// not carry. And every type of phrase stands in one: a phrase is written
+    /// into a text, and a type no composition reads would be a shelf of the
+    /// dictionary nothing is ever built from.
+    fn validate_compose(&self, problems: &mut Vec<String>) {
+        unique(
+            problems,
+            "composition",
+            self.compose.iter().map(|c| c.key.clone()),
+        );
+        for (index, composition) in self.compose.iter().enumerate() {
+            let place = format!("composition {} (`{}`)", index + 1, composition.key);
+            if composition.kinds.is_empty() {
+                problems.push(format!("{place} writes for no kind of work"));
+            }
+            for kind in &composition.kinds {
+                match self.kind(kind) {
+                    None => problems.push(format!(
+                        "{place} names a work kind `{kind}` the profile does not have"
+                    )),
+                    Some(found) => {
+                        if !found
+                            .version_roles
+                            .iter()
+                            .any(|role| role.key == composition.role)
+                        {
+                            problems.push(format!(
+                                "{place} writes the `{}` role, which `{kind}` does not have",
+                                composition.role
+                            ));
+                        }
+                    }
+                }
+            }
+            if composition.parts.is_empty() {
+                problems.push(format!("{place} is picked from no type"));
+            }
+            unique(
+                problems,
+                &format!("{place}: type"),
+                composition.parts.iter().map(|p| p.type_key.clone()),
+            );
+            for part in &composition.parts {
+                match self.style_type(&part.type_key) {
+                    None => problems.push(format!(
+                        "{place} is picked from `{}`, which is not a style type",
+                        part.type_key
+                    )),
+                    Some(style) if style.form != StyleForm::Phrase => problems.push(format!(
+                        "{place} is picked from `{}`, which is not a type of phrase",
+                        part.type_key
+                    )),
+                    Some(_) => {}
+                }
+                if let Some(max) = part.max
+                    && (max == 0 || part.min > max)
+                {
+                    problems.push(format!(
+                        "{place}: `{}` takes at least {} and at most {max}",
+                        part.type_key, part.min
+                    ));
+                }
+            }
+            for field in &composition.fields {
+                match self.work_meta_fields.iter().find(|f| f.key == field.field) {
+                    None => problems.push(format!(
+                        "{place} closes with `{}`, which is not a field of the profile",
+                        field.field
+                    )),
+                    Some(found) => {
+                        for kind in &composition.kinds {
+                            if !found.applies_to(kind) {
+                                problems.push(format!(
+                                    "{place} closes with `{}`, which `{kind}` does not carry",
+                                    field.field
+                                ));
+                            }
+                        }
+                    }
+                }
+                if !field.template.contains("{value}") {
+                    problems.push(format!(
+                        "{place}: the template of `{}` does not say where `{{value}}` goes",
+                        field.field
+                    ));
+                }
+            }
+            if composition.limit == Some(0) {
+                problems.push(format!("{place} has a limit of no characters"));
+            }
+        }
+        for style in &self.style_types {
+            if style.form == StyleForm::Phrase
+                && style.retired.is_none()
+                && !self
+                    .compose
+                    .iter()
+                    .any(|c| c.parts.iter().any(|p| p.type_key == style.key))
+            {
+                problems.push(format!(
+                    "style type `{}` is a type of phrase no composition is picked from",
+                    style.key
+                ));
+            }
+        }
+        // One text is written one way: two compositions of one role for one
+        // kind would be two answers to which phrases it is read against.
+        for (index, composition) in self.compose.iter().enumerate() {
+            for later in &self.compose[index + 1..] {
+                if later.role == composition.role
+                    && let Some(kind) = later.kinds.iter().find(|k| composition.kinds.contains(k))
+                {
+                    problems.push(format!(
+                        "compositions `{}` and `{}` both write the `{}` role of `{kind}`",
+                        composition.key, later.key, later.role
+                    ));
+                }
+            }
+        }
+    }
+
     /// The actions, checked against the vocabulary they read: a placeholder
     /// no kind of the action fills, a role the answer cannot be kept in, a
     /// storyboard a kind does not have. Refused at save rather than found
@@ -2556,8 +2789,8 @@ impl ProfileConfig {
     /// its text placeholder and sent critiques of nothing for a month.
     fn validate_prompts(&self, problems: &mut Vec<String>) {
         use crate::assistant::prompt::{
-            CANON_SCOPE, COMMENT_SCOPE, COVER_SCOPE, Produces, RELEASE_SCOPE, SCENE_SCOPE,
-            SELECTION_SCOPE, STYLE_SCOPE, Scope, is_known_placeholder,
+            CANON_SCOPE, COMMENT_SCOPE, COVER_SCOPE, PHRASES_SCOPE, Produces, RELEASE_SCOPE,
+            SCENE_SCOPE, SELECTION_SCOPE, STYLE_SCOPE, Scope, is_known_placeholder,
         };
 
         unique(
@@ -2586,15 +2819,16 @@ impl ProfileConfig {
                 && scope != SELECTION_SCOPE
                 && scope != RELEASE_SCOPE
                 && scope != COVER_SCOPE
+                && scope != PHRASES_SCOPE
                 && scope != "work"
             {
                 problems.push(format!(
-                        "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment`, `canon`, `release` or `cover`, not `{scope}`"
+                        "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment`, `canon`, `release`, `cover` or `phrases`, not `{scope}`"
                     ));
             }
             if !prompt.produces_is_known() {
                 problems.push(format!(
-                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment`, `reply`, `description`, `canon`, `card-prompt`, `release` or `cover-ideas`, not `{}`",
+                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment`, `reply`, `description`, `canon`, `card-prompt`, `release`, `cover-ideas`, `words` or `bricks`, not `{}`",
                     prompt.produces.as_deref().unwrap_or_default().trim()
                 ));
             }
@@ -2740,6 +2974,11 @@ impl ProfileConfig {
                         "{place} produces `words`, which an action about a work can"
                     ));
                 }
+                Produces::Bricks if prompt.scope() != Scope::Phrases => {
+                    problems.push(format!(
+                        "{place} produces `bricks`, which only an action about phrases can: give it `\"scope\": \"phrases\"`"
+                    ));
+                }
                 Produces::Score
                 | Produces::Prose
                 | Produces::Comment
@@ -2749,7 +2988,8 @@ impl ProfileConfig {
                 | Produces::CardPrompt
                 | Produces::Release
                 | Produces::CoverIdeas
-                | Produces::Words => {}
+                | Produces::Words
+                | Produces::Bricks => {}
             }
             // An action about a release writes what it goes out under, and is
             // offered only where there is a release: on a kind that goes out.
@@ -2835,6 +3075,28 @@ impl ProfileConfig {
             if prompt.scope() == Scope::Style && prompt.produces() != Produces::Description {
                 problems.push(format!(
                     "{place} is about a style and must produce `description`"
+                ));
+            }
+            // An action about phrases proposes bricks for them, and reads
+            // them; `{phrases}` and `{types}` are filled for it alone.
+            let reads_phrases = placeholders.iter().any(|name| name == "phrases");
+            if prompt.scope() == Scope::Phrases {
+                if prompt.produces() != Produces::Bricks {
+                    problems.push(format!(
+                        "{place} is about phrases and must produce `bricks`"
+                    ));
+                }
+                if !reads_phrases {
+                    problems.push(format!(
+                        "{place} is about phrases but never reads `{{phrases}}`"
+                    ));
+                }
+            } else if let Some(name) = placeholders
+                .iter()
+                .find(|name| *name == "phrases" || *name == "types")
+            {
+                problems.push(format!(
+                    "{place} reads `{{{name}}}` but is not about phrases: give it `\"scope\": \"phrases\"`"
                 ));
             }
             // An action about a comment either reads one off a screenshot or
@@ -4285,6 +4547,87 @@ mod tests {
         );
         assert!(
             problems.contains("`card-by-title`) is about a card, which it is given whole"),
+            "{problems}"
+        );
+    }
+    /// The shipped sound is one composition the document can hold: Studio's
+    /// style prompt picked from the ten types of sound, closing with the BPM
+    /// and the key.
+    #[test]
+    fn the_studio_writes_a_songs_style_out_of_its_sound() {
+        let config = studio();
+        assert!(config.validate().is_empty(), "{:?}", config.validate());
+        let sound = config
+            .composition_for("song", "style")
+            .expect("a song's style is composed");
+        assert_eq!(sound.key, "sound");
+        assert!(
+            sound.types().all(|key| config
+                .style_type(key)
+                .is_some_and(|t| t.form == StyleForm::Phrase)),
+            "every block is a type of phrase"
+        );
+        assert_eq!(
+            sound
+                .fields
+                .iter()
+                .map(|f| f.field.as_str())
+                .collect::<Vec<_>>(),
+            ["bpm", "key"]
+        );
+        assert!(
+            config.composition_for("video", "style").is_none(),
+            "a clip has no style prompt"
+        );
+    }
+
+    #[test]
+    fn a_composition_the_vocabulary_cannot_hold_is_refused_with_its_place() {
+        let mut config = studio();
+        let mut broken = config.compose[0].clone();
+        broken.key = "broken".into();
+        broken.kinds = vec!["video".into(), "nowhere".into()];
+        broken.parts.push(CompositionPart {
+            type_key: "image-style".into(),
+            min: 3,
+            max: Some(1),
+            rule: None,
+        });
+        broken.fields.push(CompositionField {
+            field: "bpm".into(),
+            template: "fast".into(),
+        });
+        config.compose.push(broken);
+        let mut orphan = StyleType::new("orphan", "Orphan");
+        orphan.form = StyleForm::Phrase;
+        config.style_types.push(orphan);
+
+        let problems = config.validate().join("\n");
+        for expected in [
+            "composition 2 (`broken`) names a work kind `nowhere`",
+            "writes the `style` role, which `video` does not have",
+            "is picked from `image-style`, which is not a type of phrase",
+            "`image-style` takes at least 3 and at most 1",
+            "the template of `bpm` does not say where `{value}` goes",
+            "style type `orphan` is a type of phrase no composition is picked from",
+        ] {
+            assert!(
+                problems.contains(expected),
+                "missing {expected:?} in:\n{problems}"
+            );
+        }
+    }
+
+    #[test]
+    fn two_compositions_of_one_role_and_kind_are_two_answers_and_refused() {
+        let mut config = studio();
+        let mut twin = config.compose[0].clone();
+        twin.key = "twin".into();
+        config.compose.push(twin);
+        let problems = config.validate().join("\n");
+        assert!(
+            problems
+                .contains("compositions `sound` and `twin` both write the `style` role of `song`"),
             "{problems}"
         );
     }

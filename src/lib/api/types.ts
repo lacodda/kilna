@@ -36,6 +36,9 @@ export type { Rhythm } from './generated/Rhythm'
 export type { SceneBlock } from './generated/SceneBlock'
 export type { StyleType } from './generated/StyleType'
 export type { StyleForm } from './generated/StyleForm'
+export type { Composition } from './generated/Composition'
+export type { CompositionPart } from './generated/CompositionPart'
+export type { CompositionField } from './generated/CompositionField'
 export type { StyleFamily } from './generated/StyleFamily'
 export type { StyleOrigin } from './generated/StyleOrigin'
 export type { WorkKind } from './generated/WorkKind'
@@ -162,6 +165,11 @@ export type { TermBlock } from './generated/TermBlock'
 export type { BlockView } from './generated/BlockView'
 export type { Banked } from './generated/Banked'
 export type { WordsPackage } from './generated/WordsPackage'
+export type { PhraseHit } from './generated/PhraseHit'
+export type { UnknownPhrase } from './generated/UnknownPhrase'
+export type { FoundPhrase } from './generated/FoundPhrase'
+export type { BricksPackage } from './generated/BricksPackage'
+export type { ProposedBrick } from './generated/ProposedBrick'
 export type { ProposedWord } from './generated/ProposedWord'
 export type { NamedWork } from './generated/NamedWork'
 // A sung text: its stresses and respellings (ADR 0053).
@@ -221,6 +229,9 @@ export type CommentState = 'open' | 'posted' | 'archived'
 // The style dictionary.
 export type { StyleBrick } from './generated/StyleBrick'
 export type { NewStyleBrick } from './generated/NewStyleBrick'
+export type { ComposeRequest } from './generated/ComposeRequest'
+export type { ComposedText } from './generated/ComposedText'
+export type { ComposeProblem } from './generated/ComposeProblem'
 export type { StyleBrickPatch } from './generated/StyleBrickPatch'
 export type { StyleBrickFilter } from './generated/StyleBrickFilter'
 
@@ -326,6 +337,7 @@ export type { Outcome as Applied } from './generated/Outcome'
 export type { Pending as PendingProposal } from './generated/Pending'
 export type { CommentProposal as PendingCommentProposal } from './generated/CommentProposal'
 export type { Composed as ComposedTask } from './generated/Composed'
+export type { PhraseAsked } from './generated/PhraseAsked'
 export type { TaskAbout } from './generated/TaskAbout'
 export type { StartedTask } from './generated/StartedTask'
 export type { StartedBatch } from './generated/StartedBatch'
@@ -349,6 +361,7 @@ export type CanonProposalKind = Extract<Proposal, { kind: 'canon' }>
 export type CardPromptProposal = Extract<Proposal, { kind: 'cardPrompt' }>
 export type CoverIdeasProposal = Extract<Proposal, { kind: 'coverIdeas' }>
 export type WordsProposal = Extract<Proposal, { kind: 'words' }>
+export type BricksProposal = Extract<Proposal, { kind: 'bricks' }>
 
 // Data in and out.
 export type { ExportReport } from './generated/ExportReport'

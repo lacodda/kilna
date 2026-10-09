@@ -22,13 +22,19 @@ export interface CheckedText {
  * wait - an offset computed on the text before the keystroke would land on
  * the wrong word after it.
  */
-export function useTextCheck(text: string | null, sung = false): CheckedText {
+export function useTextCheck(
+  text: string | null,
+  sung = false,
+  /** The version's work and role, so a role a composition writes is read
+   *  against the dictionary (v0.94). */
+  about: { workId: string; role: string } | null = null,
+): CheckedText {
   const settled = useDebounced(text, 120)
   const query = useQuery({
     // Whether the text is sung is the role's, never the text's: the same
     // words are a lyric in one role and a style prompt in another, and only
     // the lyric has a singer to be told where the stress goes.
-    ...queries.textCheck(settled ?? '', sung),
+    ...queries.textCheck(settled ?? '', sung, about?.workId ?? null, about?.role ?? null),
     enabled: settled !== null,
     placeholderData: keepPreviousData,
   })

@@ -64,6 +64,9 @@ import {
   styleBrickCounts,
   styleBrickReferences,
   styleSlotValues,
+  houseStyles,
+  composeText,
+  phrasesFromTexts,
 } from '@/lib/api/styles'
 import { coverBoard } from '@/lib/api/ideas'
 import { listDeletions } from '@/lib/api/trash'
@@ -237,10 +240,15 @@ export const queries = {
       queryKey: keys.termPreview(word, forms),
       queryFn: () => previewTerm(word, [...forms]),
     }),
-  textCheck: (text: string, sung = false) =>
+  textCheck: (
+    text: string,
+    sung = false,
+    workId: string | null = null,
+    role: string | null = null,
+  ) =>
     queryOptions({
-      queryKey: keys.textCheck(text, sung),
-      queryFn: () => checkText(text, sung),
+      queryKey: keys.textCheck(text, sung, workId, role),
+      queryFn: () => checkText(text, sung, workId ?? undefined, role ?? undefined),
       // A text is typed past in a moment and never asked about again.
       gcTime: 30_000,
     }),
@@ -297,6 +305,21 @@ export const queries = {
   styleReferences: (id: string) =>
     queryOptions({ queryKey: keys.styleReferences(id), queryFn: () => styleBrickReferences(id) }),
   styleSlots: () => queryOptions({ queryKey: keys.styleSlots, queryFn: styleSlotValues }),
+  houseStyles: () => queryOptions({ queryKey: keys.houseStyles, queryFn: houseStyles }),
+  composedText: (composition: string, bricks: readonly string[], workId: string | null) =>
+    queryOptions({
+      queryKey: keys.composedText(composition, bricks, workId),
+      queryFn: () =>
+        composeText({ composition, bricks: [...bricks], work_id: workId ?? undefined }),
+    }),
+  phrasesFromTexts: (composition: string) =>
+    queryOptions({
+      queryKey: keys.phrasesFromTexts(composition),
+      queryFn: () => phrasesFromTexts(composition),
+      // Read afresh on every opening: a style written a minute ago is what
+      // the person opened it to see.
+      staleTime: 0,
+    }),
 
   journalFeed: () => queryOptions({ queryKey: keys.journalFeed, queryFn: listJournal }),
   journalUnread: () => queryOptions({ queryKey: keys.journalUnread, queryFn: unreadJournal }),

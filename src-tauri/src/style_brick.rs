@@ -47,6 +47,11 @@ pub struct StyleBrick {
     pub family: Option<String>,
     /// When to reach for it - read by whoever picks bricks for a picture.
     pub when_to_use: Option<String>,
+    /// What it is and what it gives, for the person reading it - per language
+    /// while it is the set's, one string once a person writes it. Never part
+    /// of a prompt: for a phrase of a sound the description is the generator's
+    /// own English, and this is what it means.
+    pub explanation: Option<Label>,
     /// `#RRGGBB` colours: a background's or an accent's one, or the stops of
     /// its gradient in order; an image style's palette; a lettering sample's
     /// ground.
@@ -92,6 +97,10 @@ pub struct Content<'a> {
     pub when_to_use: Option<&'a str>,
     pub colours: &'a [String],
     pub sample: Option<&'a str>,
+    /// Left out of the fingerprint while there is none, so every brick
+    /// fingerprinted before explanations existed still reads untouched.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub explanation: Option<&'a Label>,
 }
 
 impl Content<'_> {
@@ -119,6 +128,7 @@ impl StyleBrick {
             when_to_use: self.when_to_use.as_deref(),
             colours: &self.colours,
             sample: self.sample.as_deref(),
+            explanation: self.explanation.as_ref(),
         }
     }
 }
@@ -134,7 +144,8 @@ const STATUSES: [&str; 3] = [DRAFT, READY, DROPPED];
 const SELECT: &str = "SELECT b.id, b.profile_id, b.type_key, b.name, b.description, b.hint, \
      b.status, b.created_at, b.updated_at, \
      (SELECT count(*) FROM asset a WHERE a.style_brick_id = b.id), \
-     b.label, b.family, b.when_to_use, b.colours, b.sample, b.set_key, b.set_digest \
+     b.label, b.family, b.when_to_use, b.colours, b.sample, b.set_key, b.set_digest, \
+     b.explanation \
      FROM style_brick b";
 
 /// What to make a brick out of.
@@ -155,6 +166,8 @@ pub struct NewStyleBrick {
     pub colours: Option<Vec<String>>,
     #[serde(default)]
     pub sample: Option<String>,
+    #[serde(default)]
+    pub explanation: Option<Label>,
 }
 
 /// What may be changed about one.
@@ -204,6 +217,12 @@ pub struct StyleBrickPatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub sample: Option<Option<String>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub explanation: Option<Option<Label>>,
     /// The fingerprint of the set entry the brick now matches - written by
     /// "restore as in the set", so a restored brick reads untouched again.
     /// Travels in the log like any field; the window never sends it.
@@ -300,10 +319,15 @@ pub fn create_minted(
         DRAFT
     };
 
+    let explanation = new
+        .explanation
+        .as_ref()
+        .map(serde_json::to_string)
+        .transpose()?;
     conn.execute(
         "INSERT INTO style_brick (id, profile_id, type_key, name, description, hint, status, created_at, updated_at,
-                                  family, when_to_use, colours, sample)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12)",
+                                  family, when_to_use, colours, sample, explanation)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12, ?13)",
         params![
             minted.id(),
             profile_id,
@@ -316,7 +340,8 @@ pub fn create_minted(
             new.family,
             new.when_to_use,
             colours,
-            new.sample
+            new.sample,
+            explanation
         ],
     )
     .map_err(|error| taken(error, &new.type_key, name))?;
@@ -455,6 +480,12 @@ pub fn update_at(
     }
     if let Some(next) = patch.when_to_use {
         set(&mut assignments, &mut values, "when_to_use", Box::new(next));
+    }
+    if let Some(next) = patch.explanation {
+        let text = next
+            .map(|label| serde_json::to_string(&label))
+            .transpose()?;
+        set(&mut assignments, &mut values, "explanation", Box::new(text));
     }
     if let Some(next) = patch.colours {
         let text = checked_colours(&next)?;
@@ -624,6 +655,7 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<StyleBrick> {
     let colours = json(13)?
         .and_then(|value| serde_json::from_value(value).ok())
         .unwrap_or_default();
+    let explanation = json(17)?.and_then(|value| serde_json::from_value(value).ok());
     let mut brick = StyleBrick {
         id: row.get(0)?,
         profile_id: row.get(1)?,
@@ -642,6 +674,7 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<StyleBrick> {
         sample: row.get(14)?,
         set_key: row.get(15)?,
         set_digest: row.get(16)?,
+        explanation,
         origin: Origin::Own,
     };
     brick.origin = match (&brick.set_key, &brick.set_digest) {
@@ -817,6 +850,8 @@ mod tests {
         let (conn, profile_id) = fixtures::workspace();
         let mut config = profile::config_for(&conn, &profile_id).unwrap();
         config.style_types.clear();
+        // So do the compositions picked from its phrases.
+        config.compose.clear();
         // The actions that read `{styles}` go with the dictionary: a craft
         // with no types has no prompt to build out of them, and the profile
         // refuses the pair — which is the check this test leans on elsewhere.
@@ -837,6 +872,7 @@ mod tests {
             StyleType::new("zebra", "Zebra"),
             StyleType::new("alpha", "Alpha"),
         ];
+        config.compose.clear();
         profile::update_config(&conn, &profile_id, &config).unwrap();
 
         create(&conn, &profile_id, brick("alpha", "An alpha one")).unwrap();

@@ -71,15 +71,28 @@ pub fn unlink_term(state: State<'_, AppState>, term_id: String, work_id: String)
 
 /// A text checked against itself and the register: the words it leans on,
 /// the terms it takes, and where to mark both - and, for a text that is
-/// `sung`, where its stresses fall (ADR 0053).
+/// `sung`, where its stresses fall (ADR 0053). A version's text names its
+/// work and role: a role a composition writes is read against the
+/// dictionary instead (v0.94).
 #[tauri::command]
 pub fn check_text(
     state: State<'_, AppState>,
     text: String,
     sung: Option<bool>,
+    work_id: Option<String>,
+    role: Option<String>,
 ) -> Result<TextCheck> {
     let conn = state.conn();
-    check::text(&conn, &active(&conn)?, &text, sung.unwrap_or(false))
+    let profile_id = active(&conn)?;
+    let sung = sung.unwrap_or(false);
+    match (work_id, role) {
+        (Some(work_id), Some(role)) => {
+            let work = crate::work::get(&conn, &work_id)?
+                .ok_or_else(|| crate::error::Error::not_found("work", work_id))?;
+            check::version_text(&conn, &profile_id, &text, sung, &work, &role)
+        }
+        _ => check::text(&conn, &profile_id, &text, sung),
+    }
 }
 
 /// A sung text as the public reads it: the stress marks taken off and the

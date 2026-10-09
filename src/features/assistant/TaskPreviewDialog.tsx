@@ -7,8 +7,8 @@ import { startCardTask } from '@/lib/api/canon'
 import { startCommentTask } from '@/lib/api/comments'
 import { previewCoverTask, startCoverTask } from '@/lib/api/ideas'
 import { previewReleaseTask, startReleaseTask } from '@/lib/api/releases'
-import { startStyleTask } from '@/lib/api/styles'
-import type { IdeaRequest, PromptTemplate, StartedTask } from '@/lib/api/types'
+import { previewPhrasesTask, startPhrasesTask, startStyleTask } from '@/lib/api/styles'
+import type { IdeaRequest, PhraseAsked, PromptTemplate, StartedTask } from '@/lib/api/types'
 import { humanError } from '@/lib/errors'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
@@ -42,6 +42,8 @@ export type TaskTarget =
   | { on: 'release'; id: string }
   /** A publication's board: ideas for its cover, as asked (v0.89). */
   | { on: 'cover'; workId: string; request: IdeaRequest }
+  /** Phrases the dictionary does not know, to be explained (v0.94). */
+  | { on: 'phrases'; composition: string; phrases: PhraseAsked[] }
 
 interface Props {
   open: boolean
@@ -112,7 +114,18 @@ export function TaskPreviewDialog({
                   queryKey: keys.taskPreview(['cover', target.workId, action.key, target.request]),
                   queryFn: () => previewCoverTask(target.workId, action.key, target.request),
                 }
-              : queries.commentTaskPreview(target.id, action.key)
+              : target.on === 'phrases'
+                ? {
+                    queryKey: keys.taskPreview([
+                      'phrases',
+                      target.composition,
+                      action.key,
+                      target.phrases,
+                    ]),
+                    queryFn: () =>
+                      previewPhrasesTask(target.composition, target.phrases, action.key),
+                  }
+                : queries.commentTaskPreview(target.id, action.key)
   const preview = useQuery({ ...read, enabled: isOpen, staleTime: 0, retry: false })
 
   const start = useAppMutation({
@@ -136,6 +149,8 @@ export function TaskPreviewDialog({
           return startReleaseTask(target.id, action.key)
         case 'cover':
           return startCoverTask(target.workId, action.key, target.request)
+        case 'phrases':
+          return startPhrasesTask(target.composition, target.phrases, action.key)
       }
     },
     refresh: [keys.activeTasks, keys.allChats],

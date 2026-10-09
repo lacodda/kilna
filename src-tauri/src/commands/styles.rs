@@ -88,3 +88,37 @@ pub fn style_slot_values(
     let conn = state.conn();
     crate::style_set::channel_slots(&conn, &active(&conn)?)
 }
+
+/// The channel's house bricks, by id: the house styles of a picture and the
+/// house sound, every brick a root card names in a section of styles.
+#[tauri::command]
+pub fn house_styles(state: State<'_, AppState>) -> Result<Vec<String>> {
+    let conn = state.conn();
+    Ok(crate::phrase::house(&conn, &active(&conn)?)?
+        .into_iter()
+        .collect())
+}
+
+/// A text written out of the dictionary: the picked bricks in their order,
+/// then the work's fields, and what the composition says of the picks
+/// (v0.94).
+#[tauri::command]
+pub fn compose_text(
+    state: State<'_, AppState>,
+    request: crate::phrase::compose::ComposeRequest,
+) -> Result<crate::phrase::compose::ComposedText> {
+    let conn = state.conn();
+    crate::phrase::compose::write(&conn, &active(&conn)?, &request)
+}
+
+/// Every phrase the texts of a composition's role say that the dictionary
+/// does not know, most widely written first: the owner's own words, to be
+/// explained and kept (v0.94).
+#[tauri::command]
+pub fn phrases_from_texts(
+    state: State<'_, AppState>,
+    composition: String,
+) -> Result<Vec<crate::phrase::FoundPhrase>> {
+    let conn = state.conn();
+    crate::phrase::unknown_in_texts(&conn, &active(&conn)?, &composition)
+}

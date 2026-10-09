@@ -317,6 +317,38 @@ pub fn start_style_task(
     launch(&app, state, prepared)
 }
 
+/// What explaining phrases would send, without sending it.
+#[tauri::command]
+pub fn preview_phrases_task(
+    state: State<'_, AppState>,
+    composition: String,
+    phrases: Vec<assistant::task::PhraseAsked>,
+    action: String,
+) -> Result<assistant::task::Composed> {
+    assistant::task::compose_for_phrases(&state.conn(), &composition, &phrases, &action)
+        .map(|(composed, _)| composed)
+}
+
+/// Explain phrases the dictionary does not know: an action about phrases,
+/// answered with bricks to keep (v0.94).
+#[tauri::command]
+pub fn start_phrases_task(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    composition: String,
+    phrases: Vec<assistant::task::PhraseAsked>,
+    action: String,
+) -> Result<StartedTask> {
+    let state = state.inner();
+    let key = assistant::task::phrases_key(&action, &composition, &phrases);
+    if state.runs().task_running(&key) {
+        return Err(Error::AlreadyRunning);
+    }
+    let prepared =
+        assistant::task::prepare_for_phrases(&state.conn(), &composition, &phrases, &action)?;
+    launch(&app, state, prepared)
+}
+
 /// What an action on a card of the canon would send, without sending it.
 #[tauri::command]
 pub fn preview_card_task(

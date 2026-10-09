@@ -22,7 +22,15 @@ const LYRIC = '[Verse]\nСтарый замок у воды\nеще горит'
 /** What the backend would say of `text`: "замок" reads two ways, "еще"
  *  is written without its ё. Offsets follow the text, as the real check's do. */
 function checkOf(text: string, sung: boolean): TextCheck {
-  const empty: TextCheck = { repeats: [], terms: [], marks: [], stress: [], accents: [] }
+  const empty: TextCheck = {
+    repeats: [],
+    terms: [],
+    marks: [],
+    stress: [],
+    accents: [],
+    phrases: [],
+    unknown: [],
+  }
   if (!sung) return empty
   const stress: StressNote[] = []
   const castle = text.indexOf('замок')
@@ -97,7 +105,9 @@ describe('a sung text', () => {
   it('is checked as sung, and marks the words the singer may get wrong', async () => {
     const main = await openLyric()
     await waitFor(() =>
-      expect(backend.argsOf('check_text')).toContainEqual({ text: LYRIC, sung: true }),
+      expect(backend.argsOf('check_text')).toContainEqual(
+        expect.objectContaining({ text: LYRIC, sung: true }),
+      ),
     )
     // A missing ё is marked always; a homograph - ten a song, nearly all
     // read right - only while the stresses are shown.

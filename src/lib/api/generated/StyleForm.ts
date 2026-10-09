@@ -8,4 +8,4 @@
  * with the captions of the work and the channel, and colours - a ground's
  * or an accent's, one or a gradient.
  */
-export type StyleForm = "picture" | "lettering" | "dressing" | "colour" | "accent";
+export type StyleForm = "picture" | "lettering" | "dressing" | "colour" | "accent" | "phrase";

@@ -124,6 +124,9 @@ pub struct Outcome {
     /// Words of the record written: made, or given a facet (ADR 0052).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub terms: Vec<String>,
+    /// Bricks of the dictionary made (v0.94).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub style_bricks: Vec<String>,
 }
 
 /// Keep the proposal a message carries, and mark the message - as one unit.
@@ -377,6 +380,13 @@ pub fn check(
         }
         Proposal::Words { package } => {
             problems.extend(crate::register::proposal::check(
+                conn,
+                package,
+                overrides.items.as_deref(),
+            )?);
+        }
+        Proposal::Bricks { package } => {
+            problems.extend(crate::phrase::proposal::check(
                 conn,
                 package,
                 overrides.items.as_deref(),
@@ -694,6 +704,11 @@ fn keep(
         Proposal::Words { package } => {
             outcome.terms =
                 crate::register::proposal::keep(conn, package, overrides.items.as_deref())?;
+        }
+
+        Proposal::Bricks { package } => {
+            outcome.style_bricks =
+                crate::phrase::proposal::keep(conn, package, overrides.items.as_deref())?;
         }
 
         Proposal::CardPrompt { note_id, basis } => {

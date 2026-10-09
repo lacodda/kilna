@@ -64,8 +64,11 @@ export function StylePickerDialog({
   const retired = new Set(
     types.filter((one) => one.retired !== undefined && one.retired !== null).map((one) => one.key),
   )
+  // A phrase is written into a text, never built into a picture: its types
+  // are the dictionary's other half (v0.94).
+  const phrases = new Set(types.filter((one) => one.form === 'phrase').map((one) => one.key))
   const available = (bricks.data ?? []).filter(
-    (one) => !picked.includes(one.id) && !retired.has(one.type_key),
+    (one) => !picked.includes(one.id) && !retired.has(one.type_key) && !phrases.has(one.type_key),
   )
   const chosen = picked
     .map((id) => byId.get(id))

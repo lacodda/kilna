@@ -234,7 +234,11 @@ fn tools() -> Vec<Value> {
              no kind of release never goes out itself - its works go out as what is made from \
              them. Plus the overview fields, each with the kinds it belongs to, and how many \
              works there are. Read this first: a work is judged and versioned in its own kind's \
-             keys, and the other tools speak in those keys.",
+             keys, and the other tools speak in those keys. Also the style types of the \
+             dictionary (`style_types`: key, label, form, families) and the compositions \
+             (`compose`): a role a composition writes - a song's style prompt - is picked from \
+             phrases of the dictionary, block by block, each block with how many it takes and \
+             its rule, and closes with the work's fields as the templates write them.",
             json!({}),
             &[],
         ),
@@ -338,6 +342,24 @@ fn tools() -> Vec<Value> {
              where the word is sung, and the plain ones in public text. With `block`: that block \
              only.",
             json!({ "block": text_arg("A block, by id or by name") }),
+            &[],
+        ),
+        tool(
+            "styles",
+            "The style dictionary: the bricks a prompt is built from. A brick of a type of \
+             phrase (`form: phrase` in `workspace`) is one phrase the generator reads word for \
+             word - `phrase` - with what it means for a person, `explanation` per language, and \
+             when to take it. Each brick has its id, type, family, whether it is one of the \
+             channel's house bricks, where it came from (the starter set, changed, or the \
+             owner's own) and its status (only `ready` ones are offered for a prompt). Narrow by \
+             `type`, by `composition` (its types, in its order) or by `query` (a substring of \
+             the name, the phrase or the explanation, in any language). Without any of them: \
+             each type with how many bricks it has.",
+            json!({
+                "type": text_arg("A style type key, as `workspace` lists them"),
+                "composition": text_arg("A composition key, as `workspace` lists them"),
+                "query": text_arg("A case-insensitive substring of the name, the phrase or the explanation"),
+            }),
             &[],
         ),
         tool(
@@ -555,16 +577,21 @@ fn tools() -> Vec<Value> {
             "Propose a new version of a work in a role — a rewritten lyric, a style prompt. The \
              text lands in a chat on the work with an *insert as version* button; the person \
              decides. Nothing is written to the work until they do. Say in `note` what you \
-             changed and why, briefly: it is shown beside the text.",
+             changed and why, briefly: it is shown beside the text. For a role a composition \
+             writes (`compose` in `workspace`), give `bricks` instead of `body`: the phrases \
+             picked from the dictionary, by id or exact name, in the order they should be \
+             written - kilna writes the text from them as its own constructor does, the work's \
+             fields closing it.",
             json!({
                 "work": work_arg(),
                 "role": text_arg("The version role key, as `workspace` lists them"),
-                "body": text_arg("The whole text of the proposed version, exactly as it should be stored"),
+                "body": text_arg("The whole text of the proposed version, exactly as it should be stored; leave it out when `bricks` are given"),
+                "bricks": { "type": "array", "items": { "type": "string" }, "description": "For a role a composition writes: the bricks the text is written from, by id or exact name, in order" },
                 "label": text_arg("A short name for the version, optional"),
                 "from": text_arg("The id of the version in the same role this text rewrites, as `work` lists them, optional; it becomes the new version's parent, so the history shows what it came from"),
                 "note": text_arg("One or two sentences on what changed and why, optional"),
             }),
-            &["work", "role", "body"],
+            &["work", "role"],
         ),
         tool(
             "propose_score",
@@ -769,6 +796,126 @@ fn find_work(conn: &Connection, profile_id: &str, named: &str) -> Result<work::W
     }
 }
 
+/// The bricks an agent named for a composed text, by id or exact name - a
+/// phrase is also its name - each of the composition's types. A name two
+/// bricks share is refused with their ids, as a title is.
+fn brick_ids(
+    conn: &Connection,
+    profile_id: &str,
+    composition: &crate::profile::config::Composition,
+    named: &[String],
+) -> Result<Vec<String>> {
+    let bricks: Vec<crate::style_brick::StyleBrick> =
+        crate::style_brick::list(conn, profile_id, &Default::default())?
+            .into_iter()
+            .filter(|brick| composition.types().any(|key| key == brick.type_key))
+            .collect();
+    let mut ids = Vec::with_capacity(named.len());
+    for name in named {
+        if let Some(brick) = bricks.iter().find(|b| b.id == *name) {
+            ids.push(brick.id.clone());
+            continue;
+        }
+        let key = crate::phrase::key_of(name);
+        let matching: Vec<&crate::style_brick::StyleBrick> = bricks
+            .iter()
+            .filter(|b| {
+                crate::phrase::key_of(&b.name) == key
+                    || b.description
+                        .as_deref()
+                        .is_some_and(|d| crate::phrase::key_of(d) == key)
+            })
+            .collect();
+        match matching.as_slice() {
+            [one] => ids.push(one.id.clone()),
+            [] => return Err(Error::refused("mcp.unknownBrick").param("named", name.clone())),
+            many => {
+                return Err(Error::refused("mcp.ambiguousBrick")
+                    .param("named", name.clone())
+                    .param(
+                        "ids",
+                        many.iter()
+                            .map(|b| b.id.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                    ));
+            }
+        }
+    }
+    Ok(ids)
+}
+
+/// The dictionary as `styles` reads it.
+fn read_styles(
+    conn: &Connection,
+    profile_id: &str,
+    config: &crate::profile::config::ProfileConfig,
+    args: &Map<String, Value>,
+) -> Result<String> {
+    let all = crate::style_brick::list(conn, profile_id, &Default::default())?;
+    let type_key = arg(args, "type");
+    let composition = match arg(args, "composition") {
+        Some(key) => Some(
+            config
+                .composition(key)
+                .ok_or_else(|| Error::not_found("composition", key))?,
+        ),
+        None => None,
+    };
+    let query = arg(args, "query").map(str::to_lowercase);
+    if type_key.is_none() && composition.is_none() && query.is_none() {
+        let types: Vec<Value> = config
+            .style_types
+            .iter()
+            .map(|style| {
+                json!({
+                    "type": style.key, "label": style.label, "form": style.form,
+                    "retired": style.retired.is_some(),
+                    "bricks": all.iter().filter(|b| b.type_key == style.key).count(),
+                })
+            })
+            .collect();
+        return pretty(&json!({ "types": types, "compose": config.compose }));
+    }
+    let house = crate::phrase::house(conn, profile_id)?;
+    let mut rows: Vec<&crate::style_brick::StyleBrick> = all
+        .iter()
+        .filter(|b| type_key.is_none_or(|key| b.type_key == key))
+        .filter(|b| composition.is_none_or(|c| c.types().any(|key| key == b.type_key)))
+        .filter(|b| {
+            query.as_ref().is_none_or(|q| {
+                b.name.to_lowercase().contains(q)
+                    || b.description
+                        .as_deref()
+                        .is_some_and(|d| d.to_lowercase().contains(q))
+                    || b.explanation
+                        .as_ref()
+                        .is_some_and(|l| l.words().iter().any(|w| w.to_lowercase().contains(q)))
+            })
+        })
+        .collect();
+    if let Some(composition) = composition {
+        let place = |key: &str| {
+            composition
+                .types()
+                .position(|t| t == key)
+                .unwrap_or(usize::MAX)
+        };
+        rows.sort_by_key(|b| place(&b.type_key));
+    }
+    let out: Vec<Value> = rows
+        .into_iter()
+        .map(|b| {
+            json!({
+                "id": b.id, "type": b.type_key, "name": b.name, "family": b.family,
+                "phrase": b.description, "explanation": b.explanation, "when": b.when_to_use,
+                "house": house.contains(&b.id), "origin": b.origin, "status": b.status,
+            })
+        })
+        .collect();
+    pretty(&out)
+}
+
 fn pretty(value: &impl serde::Serialize) -> Result<String> {
     Ok(serde_json::to_string_pretty(value)?)
 }
@@ -836,11 +983,25 @@ pub fn run_tool(
                     })
                 })
                 .collect();
+            let style_types: Vec<Value> = config
+                .style_types
+                .iter()
+                .filter(|style| style.retired.is_none())
+                .map(|style| {
+                    json!({
+                        "key": style.key, "label": style.label, "form": style.form,
+                        "hint": style.hint,
+                        "families": style.families.iter().map(|f| json!({ "key": f.key, "label": f.label })).collect::<Vec<_>>(),
+                    })
+                })
+                .collect();
             pretty(&json!({
                 "profile": { "key": profile.key, "name": profile.name, "description": profile.description },
                 "works": works,
                 "fields": fields,
                 "work_kinds": kinds,
+                "style_types": style_types,
+                "compose": config.compose,
             }))
         }
 
@@ -1104,6 +1265,8 @@ pub fn run_tool(
 
         "words" => read_words(conn, &profile.id, arg(args, "block")),
 
+        "styles" => read_styles(conn, &profile.id, &config, args),
+
         "propose_words" => {
             let found = match arg(args, "work") {
                 Some(named) => Some(find_work(conn, &profile.id, named)?),
@@ -1217,7 +1380,65 @@ pub fn run_tool(
                     .param("role", role)
                     .param("kind", found.kind.clone()));
             }
-            let body = required(args, "body")?;
+            // A text written out of the dictionary is written by kilna, from
+            // the bricks named - the same function the constructor uses - so
+            // an agent and a person picking the same phrases get one text.
+            let named: Vec<String> = args
+                .get("bricks")
+                .and_then(Value::as_array)
+                .map(|list| {
+                    list.iter()
+                        .filter_map(Value::as_str)
+                        .map(str::to_owned)
+                        .collect()
+                })
+                .unwrap_or_default();
+            let written;
+            let mut said = String::new();
+            let body = if named.is_empty() {
+                required(args, "body")?
+            } else {
+                if arg(args, "body").is_some() {
+                    return Err(Error::refused("mcp.bodyAndBricks"));
+                }
+                let composition = config.composition_for(&found.kind, role).ok_or_else(|| {
+                    Error::refused("mcp.roleNotComposed")
+                        .param("role", role)
+                        .param("kind", found.kind.clone())
+                })?;
+                let bricks = brick_ids(conn, &profile.id, composition, &named)?;
+                let composed = crate::phrase::compose::write(
+                    conn,
+                    &profile.id,
+                    &crate::phrase::compose::ComposeRequest {
+                        composition: composition.key.clone(),
+                        bricks,
+                        work_id: Some(found.id.clone()),
+                    },
+                )?;
+                for problem in &composed.problems {
+                    said.push_str(&format!(
+                        " `{}`: {} picked, the composition takes {}{}.",
+                        problem.type_key,
+                        problem.picked,
+                        problem.min,
+                        problem
+                            .max
+                            .map(|max| format!("-{max}"))
+                            .unwrap_or_else(|| "+".into())
+                    ));
+                }
+                if let Some(limit) = composed.limit
+                    && composed.length > limit as usize
+                {
+                    said.push_str(&format!(
+                        " The text is {} characters, past the limit of {limit}.",
+                        composed.length
+                    ));
+                }
+                written = composed.text;
+                written.as_str()
+            };
             // The version rewritten, said now rather than lost at apply time:
             // lineage stays inside a work and a role (ADR 0055).
             let from = arg(args, "from").map(str::to_owned);
@@ -1239,7 +1460,7 @@ pub fn run_tool(
                 arg(args, "note"),
             )?;
             Ok(format!(
-                "Proposed a `{role}` version for “{}”. It is in the chat on the work, waiting to be inserted — or not.",
+                "Proposed a `{role}` version for “{}”. It is in the chat on the work, waiting to be inserted — or not.{said}",
                 found.title
             ))
         }
@@ -1996,6 +2217,11 @@ fn deliver(
         // the canon (`propose_canon` descriptions), read with the card.
         (Proposal::CardPrompt { .. }, _) => {
             return Err(Error::refused("mcp.cardPromptNotProposable"));
+        }
+        // Bricks are proposed by the dictionary's own "Explain", which read
+        // the phrases against it; no tool sends a package of them.
+        (Proposal::Bricks { .. }, _) => {
+            return Err(Error::refused("mcp.bricksNotProposable"));
         }
     };
     let mut record = record.param("client", client);
@@ -2761,6 +2987,149 @@ mod tests {
         assert_eq!(message.meta["proposal"]["role"], "lyrics");
         assert_eq!(message.meta["note"], "added a third");
         assert_eq!(message.meta["source"], "mcp");
+    }
+
+    /// A style named by its bricks is written by kilna, as the constructor
+    /// writes it: the phrases in the order named, the song's fields closing
+    /// the line - and a body beside the bricks is two answers, refused.
+    #[test]
+    fn a_style_proposed_by_its_bricks_is_written_by_kilna() {
+        let (conn, work_id) = workspace();
+        crate::style_set::seed(&conn).unwrap();
+        let mut meta = serde_json::Map::new();
+        meta.insert("bpm".into(), json!(84));
+        crate::work::update(
+            &conn,
+            &work_id,
+            crate::work::WorkPatch {
+                meta: Some(meta),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        let said = run_tool(
+            &conn,
+            &claude(),
+            "propose_version",
+            &args(json!({
+                "work": work_id,
+                "role": "style",
+                "bricks": ["Breathy whisper vocal", "dream pop", "chopped amen break"],
+            })),
+        )
+        .unwrap();
+        assert!(said.contains("Proposed a `style` version"), "{said}");
+        assert!(
+            said.contains("`instrument`: 0 picked"),
+            "a block short is said: {said}"
+        );
+
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let chats = assistant::summaries(&conn, &profile_id, Some(&work_id)).unwrap();
+        let transcript = assistant::transcript(&conn, &chats[0].id).unwrap().unwrap();
+        assert_eq!(
+            transcript.messages[0].body,
+            "breathy whisper vocal, dream pop, chopped amen break, 84 bpm"
+        );
+
+        let both = run_tool(
+            &conn,
+            &claude(),
+            "propose_version",
+            &args(
+                json!({ "work": work_id, "role": "style", "body": "x", "bricks": ["dream pop"] }),
+            ),
+        )
+        .unwrap_err();
+        assert_eq!(both.refusal().map(|r| r.code), Some("mcp.bodyAndBricks"));
+        let lyric = run_tool(
+            &conn,
+            &claude(),
+            "propose_version",
+            &args(json!({ "work": work_id, "role": "lyrics", "bricks": ["dream pop"] })),
+        )
+        .unwrap_err();
+        assert_eq!(lyric.refusal().map(|r| r.code), Some("mcp.roleNotComposed"));
+        let unknown = run_tool(
+            &conn,
+            &claude(),
+            "propose_version",
+            &args(json!({ "work": work_id, "role": "style", "bricks": ["a sound nobody named"] })),
+        )
+        .unwrap_err();
+        assert_eq!(unknown.refusal().map(|r| r.code), Some("mcp.unknownBrick"));
+    }
+
+    #[test]
+    fn the_dictionary_is_read_by_type_by_composition_and_by_meaning() {
+        let (conn, _) = workspace();
+        crate::style_set::seed(&conn).unwrap();
+
+        let summary: Value =
+            serde_json::from_str(&run_tool(&conn, &claude(), "styles", &args(json!({}))).unwrap())
+                .unwrap();
+        assert!(
+            summary["types"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|t| t["type"] == "groove"
+                    && t["form"] == "phrase"
+                    && t["bricks"].as_u64().unwrap() > 20)
+        );
+        assert_eq!(summary["compose"][0]["key"], "sound");
+
+        let found: Value = serde_json::from_str(
+            &run_tool(
+                &conn,
+                &claude(),
+                "styles",
+                &args(json!({ "query": "барабан" })),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let found = found.as_array().unwrap();
+        assert!(
+            !found.is_empty(),
+            "a Russian word finds the phrases it explains"
+        );
+        assert!(found.iter().all(|b| {
+            b["explanation"]["ru"]
+                .as_str()
+                .unwrap_or_default()
+                .to_lowercase()
+                .contains("барабан")
+                || b["name"].as_str().unwrap_or_default().contains("барабан")
+        }));
+
+        let sound: Value = serde_json::from_str(
+            &run_tool(
+                &conn,
+                &claude(),
+                "styles",
+                &args(json!({ "composition": "sound" })),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let sound = sound.as_array().unwrap();
+        assert_eq!(sound[0]["type"], "genre", "in the composition's order");
+        assert!(sound.iter().all(|b| b["phrase"].is_string()));
+
+        let workspace: Value = serde_json::from_str(
+            &run_tool(&conn, &claude(), "workspace", &args(json!({}))).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(workspace["compose"][0]["role"], "style");
+        assert!(
+            workspace["style_types"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|t| t["key"] == "knob" && t["form"] == "phrase")
+        );
     }
 
     /// The version an agent says it rewrote travels with the proposal, and

@@ -1,0 +1,15 @@
+-- What a brick is and what it gives, for the person reading it (v0.94).
+--
+-- A brick's `description` is what goes into a prompt word for word. For a
+-- picture that is a paragraph a person can read; for a sound it is a phrase in
+-- the generator's own English - `noise guitar bursts`, `everything clipping` -
+-- and the person writing a style has to know what it will do to the track
+-- before they reach for it. That is the explanation: per language, as a
+-- shipped name is ({"en": .., "ru": ..}), or one string a person typed. Never
+-- part of a prompt; the phrase is.
+--
+-- A column of the brick rather than a glossary of its own: the phrase the
+-- editor underlines, the one the constructor offers and the one the assistant
+-- is told about are the same row, and a second table would say something else
+-- about it within a week.
+ALTER TABLE style_brick ADD COLUMN explanation TEXT;

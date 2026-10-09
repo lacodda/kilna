@@ -26,6 +26,7 @@ pub mod mcp;
 pub mod minted;
 pub mod note;
 pub mod operation;
+pub mod phrase;
 pub mod plugin;
 pub mod profile;
 pub mod publication;
@@ -251,6 +252,9 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::styles::delete_style_brick,
             commands::styles::restore_style_brick,
             commands::styles::style_slot_values,
+            commands::styles::house_styles,
+            commands::styles::compose_text,
+            commands::styles::phrases_from_texts,
             commands::focus::dismissed_findings,
             commands::focus::dismiss_finding,
             commands::focus::restore_finding,
@@ -367,6 +371,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::assistant::preview_task,
             commands::assistant::preview_style_task,
             commands::assistant::start_style_task,
+            commands::assistant::preview_phrases_task,
+            commands::assistant::start_phrases_task,
             commands::assistant::preview_comment_task,
             commands::assistant::start_comment_task,
             commands::assistant::preview_release_task,

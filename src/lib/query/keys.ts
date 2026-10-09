@@ -135,6 +135,15 @@ export const keys = {
   /** The captions a dressing is filled from - they live on the channel's
       card, so the canon's prefix refreshes them too (see `refresh.canon`). */
   styleSlots: ['styles', 'slots'] as const,
+  /** The channel's house bricks - named on its card, so the canon's prefix
+      refreshes them too. */
+  houseStyles: ['styles', 'house'] as const,
+  /** A text written from picks: under the dictionary's prefix, since a brick
+      reworded changes it. */
+  composedText: (composition: string, bricks: readonly string[], workId: string | null) =>
+    ['styles', 'compose', composition, workId, ...bricks] as const,
+  /** The phrases the owner's texts say that the dictionary lacks. */
+  phrasesFromTexts: (composition: string) => ['styles', 'fromTexts', composition] as const,
   // One coarse prefix over the canon: a fact changes its card, the list's
   // counts, the timeline and where the card appears, and none of them is
   // worth invalidating alone.
@@ -161,7 +170,8 @@ export const keys = {
     ['register', 'preview', word, forms] as const,
   /** A text checked against itself and the register, keyed by the text and
    *  by whether it is sung (ADR 0053). */
-  textCheck: (text: string, sung: boolean) => ['register', 'check', sung, text] as const,
+  textCheck: (text: string, sung: boolean, workId: string | null, role: string | null) =>
+    ['register', 'check', sung, workId, role, text] as const,
   /** The bank's blocks, each with its words (ADR 0052). */
   blocks: ['register', 'blocks'] as const,
   /** What the owner's sung texts already say about singing, proposed. */

@@ -122,6 +122,9 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::style_brick::NewStyleBrick,
         kilna_lib::style_brick::StyleBrickPatch,
         kilna_lib::asset::Asset,
+        kilna_lib::phrase::compose::ComposeRequest,
+        kilna_lib::phrase::compose::ComposedText,
+        kilna_lib::phrase::FoundPhrase,
         // folders.rs
         kilna_lib::folder::WorkFolder,
         kilna_lib::folder::FolderFile,
@@ -191,6 +194,7 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::assistant::run::Run,
         kilna_lib::assistant::run::Emission,
         kilna_lib::assistant::task::Composed,
+        kilna_lib::assistant::task::PhraseAsked,
         kilna_lib::commands::assistant::TaskAbout,
         kilna_lib::commands::assistant::StartedTask,
         kilna_lib::commands::assistant::TaskQueue,

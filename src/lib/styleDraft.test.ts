@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { StyleBrick } from '@/lib/api/types'
-import { adopt, formOf, nameProblem, patchOf, untitledName, type StyleForm } from '@/lib/styleDraft'
+import {
+  adopt,
+  explanationIn,
+  formOf,
+  nameProblem,
+  patchOf,
+  untitledName,
+  withExplanation,
+  type StyleForm,
+} from '@/lib/styleDraft'
 
 const BRICK: StyleBrick = {
   id: 'b1',
@@ -16,6 +25,7 @@ const BRICK: StyleBrick = {
   label: null,
   family: null,
   when_to_use: null,
+  explanation: null,
   colours: [],
   sample: null,
   set_key: null,
@@ -37,6 +47,8 @@ describe('formOf', () => {
       family: '',
       sample: '',
       colours: [],
+      explanation: '',
+      explanationStored: null,
     })
   })
 
@@ -169,5 +181,31 @@ describe('untitledName', () => {
     expect(untitledName('Untitled style', ['Untitled style', 'Untitled style 2'])).toBe(
       'Untitled style 3',
     )
+  })
+})
+
+describe('the explanation', () => {
+  it('is edited in one language and keeps the others a shipped brick carries', () => {
+    const stored = { en: 'Grit between the phrases.', ru: 'Грязь между фразами.' }
+    const shipped = { ...BRICK, explanation: stored }
+    expect(explanationIn(stored, 'ru')).toBe('Грязь между фразами.')
+    const base = formOf(shipped)
+    const patch = patchOf({ ...base, explanation: 'Короткие всплески шума.' }, base)
+    // The window speaks English in the tests: the English sentence is the
+    // one rewritten, the Russian kept.
+    expect(patch).toEqual({
+      explanation: { en: 'Короткие всплески шума.', ru: 'Грязь между фразами.' },
+    })
+  })
+
+  it('is never seeded with another language, and a blank one goes', () => {
+    expect(explanationIn({ en: 'Grit.' }, 'ru')).toBe('')
+    expect(withExplanation({ en: 'Grit.', ru: 'Грязь.' }, '  ', 'ru')).toEqual({ en: 'Grit.' })
+    expect(withExplanation({ ru: 'Грязь.' }, '', 'ru')).toBeNull()
+  })
+
+  it('is one string when a person writes it for a brick of their own', () => {
+    expect(withExplanation(null, ' Grit. ', 'ru')).toBe('Grit.')
+    expect(withExplanation('Old words.', 'New words.', 'en')).toBe('New words.')
   })
 })

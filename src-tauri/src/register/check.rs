@@ -31,6 +31,11 @@ pub struct TextCheck {
     /// Where each word's stressed vowel stands, in UTF-16 units: what "show
     /// the stresses" draws. Empty for a text that is not sung.
     pub accents: Vec<usize>,
+    /// The phrases of the dictionary a text of a composed role says, in the
+    /// order first said (v0.94). Empty for any other text.
+    pub phrases: Vec<crate::phrase::PhraseHit>,
+    /// The tags it says that the dictionary does not know.
+    pub unknown: Vec<crate::phrase::UnknownPhrase>,
 }
 
 /// A term of the register a text takes.
@@ -61,6 +66,14 @@ pub struct TextMark {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub stress: Option<usize>,
+    /// Index into `phrases`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub phrase: Option<usize>,
+    /// Index into `unknown`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub unknown: Option<usize>,
 }
 
 /// Check `text` against itself and the register of `profile_id`; a text that
@@ -132,6 +145,67 @@ pub fn text(
         marks,
         stress: stressed.notes,
         accents: stressed.accents,
+        phrases: Vec::new(),
+        unknown: Vec::new(),
+    })
+}
+
+/// Check a version's text the way its role reads (v0.94): a role a
+/// composition writes is a line of phrases, read against the dictionary -
+/// not a lyric, so neither its repeated words nor the register's terms are
+/// looked for in it. Any other role is checked as [`text`] checks it.
+pub fn version_text(
+    conn: &rusqlite::Connection,
+    profile_id: &str,
+    text: &str,
+    sung: bool,
+    work: &crate::work::Work,
+    role: &str,
+) -> Result<TextCheck> {
+    let config = crate::profile::config_for(conn, profile_id)?;
+    let Some(composition) = config.composition_for(&work.kind, role) else {
+        return self::text(conn, profile_id, text, sung);
+    };
+    let dictionary = crate::phrase::Dictionary::of(conn, profile_id, composition)?;
+    let fields = crate::phrase::Fields::of(
+        &config,
+        composition,
+        &serde_json::Value::Object(work.meta.clone()),
+    );
+    let reading = crate::phrase::read(text, &dictionary, &fields);
+    let mut marks: Vec<TextMark> = reading
+        .phrase_places
+        .iter()
+        .map(|&(start, end, index)| TextMark {
+            start,
+            end,
+            repeat: None,
+            term: None,
+            stress: None,
+            phrase: Some(index),
+            unknown: None,
+        })
+        .chain(
+            reading
+                .unknown_places
+                .iter()
+                .map(|&(start, end, index)| TextMark {
+                    start,
+                    end,
+                    repeat: None,
+                    term: None,
+                    stress: None,
+                    phrase: None,
+                    unknown: Some(index),
+                }),
+        )
+        .collect();
+    marks.sort_by_key(|mark| mark.start);
+    Ok(TextCheck {
+        phrases: reading.phrases,
+        unknown: reading.unknown,
+        marks,
+        ..TextCheck::default()
     })
 }
 
@@ -191,6 +265,8 @@ fn cut(
                 repeat,
                 term,
                 stress,
+                phrase: None,
+                unknown: None,
             }),
         }
     }

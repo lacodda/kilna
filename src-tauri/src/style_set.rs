@@ -48,6 +48,10 @@ pub struct SetBrick {
     pub colours: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sample: Option<String>,
+    /// What it is and what it gives, per language: what the person reads,
+    /// never part of a prompt. Every phrase of a sound carries one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub explanation: Option<Label>,
 }
 
 impl SetBrick {
@@ -66,6 +70,7 @@ impl SetBrick {
             when_to_use: self.when.as_deref(),
             colours: &self.colours,
             sample: self.sample.as_deref(),
+            explanation: self.explanation.as_ref(),
         }
     }
 
@@ -154,8 +159,8 @@ pub fn seed_profile(conn: &Connection, profile_key: &str, set: &[SetBrick]) -> R
         }
         let inserted = conn.execute(
             "INSERT INTO style_brick (id, profile_id, type_key, name, description, status, created_at, updated_at,
-                                      label, family, when_to_use, colours, sample, set_key, set_digest)
-             VALUES (?1, ?2, ?3, ?4, ?5, 'ready', ?6, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+                                      label, family, when_to_use, colours, sample, set_key, set_digest, explanation)
+             VALUES (?1, ?2, ?3, ?4, ?5, 'ready', ?6, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
              ON CONFLICT DO NOTHING",
             params![
                 id,
@@ -171,6 +176,7 @@ pub fn seed_profile(conn: &Connection, profile_key: &str, set: &[SetBrick]) -> R
                 entry.sample,
                 entry.key,
                 digest,
+                explanation_of(entry)?,
             ],
         )?;
         if inserted == 1 {
@@ -193,7 +199,8 @@ fn write_entry(
 ) -> Result<()> {
     let result = conn.execute(
         "UPDATE style_brick SET type_key = ?2, name = ?3, description = ?4, label = ?5, family = ?6,
-                when_to_use = ?7, colours = ?8, sample = ?9, set_digest = ?10, updated_at = ?11
+                when_to_use = ?7, colours = ?8, sample = ?9, set_digest = ?10, updated_at = ?11,
+                explanation = ?12
          WHERE id = ?1",
         params![
             id,
@@ -207,6 +214,7 @@ fn write_entry(
             entry.sample,
             digest,
             at,
+            explanation_of(entry)?,
         ],
     );
     match result {
@@ -220,6 +228,15 @@ fn write_entry(
         }
         Err(error) => Err(error.into()),
     }
+}
+
+/// An entry's explanation as the column keeps it.
+fn explanation_of(entry: &SetBrick) -> Result<Option<String>> {
+    Ok(entry
+        .explanation
+        .as_ref()
+        .map(serde_json::to_string)
+        .transpose()?)
 }
 
 /// The entry of the shipped set a brick came from, if it still ships.
@@ -263,6 +280,7 @@ pub fn restoring_from(entry: &SetBrick) -> StyleBrickPatch {
         when_to_use: Some(entry.when.clone()),
         colours: Some(entry.colours.clone()),
         sample: Some(entry.sample.clone()),
+        explanation: Some(entry.explanation.clone()),
         set_digest: Some(Some(entry.content().digest())),
         ..StyleBrickPatch::default()
     }
@@ -909,6 +927,42 @@ mod tests {
                         !slots(&entry.description).is_empty(),
                         "{at} is a dressing with no slot"
                     ),
+                    // A phrase is the generator's own words and nothing
+                    // else: a short line, written as it is read, with what
+                    // it means beside it in every language the window speaks
+                    // - and the name is the phrase, so the card and the text
+                    // say one thing.
+                    StyleForm::Phrase => {
+                        assert!(entry.colours.is_empty(), "{at} is a phrase with colours");
+                        assert!(entry.sample.is_none(), "{at} is a phrase with a sample");
+                        assert_eq!(
+                            entry.name(),
+                            entry.description,
+                            "{at} is named otherwise than it is written"
+                        );
+                        assert!(
+                            !entry.description.contains(['\n', ',']),
+                            "{at} is more than one phrase: {}",
+                            entry.description
+                        );
+                        let explained = matches!(&entry.explanation, Some(Label::PerLocale(words))
+                        if ["en", "ru"].iter().all(|locale| {
+                            words.get(*locale).is_some_and(|w| !w.trim().is_empty())
+                        }));
+                        assert!(explained, "{at} is not explained in English and Russian");
+                    }
+                }
+                // Read by a person, so in the window's languages - and the
+                // English one is English.
+                if let Some(Label::PerLocale(words)) = &entry.explanation
+                    && let Some(english) = words.get("en")
+                {
+                    assert!(
+                        !english
+                            .chars()
+                            .any(|c| ('\u{0400}'..='\u{04FF}').contains(&c)),
+                        "{at} explains itself in English with Cyrillic in it"
+                    );
                 }
             }
         }

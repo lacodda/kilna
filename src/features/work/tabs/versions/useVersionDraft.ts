@@ -108,6 +108,23 @@ export function useVersionDraft({ workId, role, onSaved, skeleton = '' }: Option
     },
 
     /**
+     * A text written out of the dictionary (v0.94), in the form under its
+     * label: from here it is a draft like any other, kept as a version when
+     * saved. A draft already in the form is displaced, one click from back.
+     */
+    compose: (body: string, name: string) => {
+      const displaced = drafts[role] ?? readDraft(workId, role)
+      setDraftOf(role, body)
+      setDerivedFrom(null)
+      setLabel(name)
+      setComposing(true)
+      if (displaced.trim() !== '' && displaced !== body)
+        say.undoable(t('compose.placed'), t('versions.restoreDraft'), () =>
+          setDraftOf(role, displaced),
+        )
+    },
+
+    /**
      * A copy of `source` in the form, to be worked on as the next version -
      * for a rewrite that should not start from the open text as it is. A
      * draft already in the form is displaced rather than guarded by a

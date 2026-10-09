@@ -274,6 +274,10 @@ const UPGRADE: &[Step] = &[
         carry: style_types,
     },
     Step {
+        name: "the compositions a role is written out of the dictionary by",
+        carry: compositions,
+    },
+    Step {
         name: "a mark's glyph",
         carry: mark_icons,
     },
@@ -602,6 +606,40 @@ fn stages(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
 /// describe, so a shipped one filling a gap is a gain; one the owner wrote is
 /// theirs (ADR 0031). A type and a family newly shipped take their place
 /// after the one they follow in the shipped list.
+/// The compositions (v0.94) arrive by key, whole: a stored copy written
+/// before them has none, and one the owner reshaped keeps their parts and
+/// rules. One is carried only where the stored copy can hold it - its kinds
+/// with the role, its types and fields named - so the upgrade never writes
+/// a document that does not validate.
+fn compositions(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for composition in &shipped.compose {
+        if config.compose.iter().any(|c| c.key == composition.key) {
+            continue;
+        }
+        let holds = composition.kinds.iter().all(|kind| {
+            config.kind(kind).is_some_and(|found| {
+                found
+                    .version_roles
+                    .iter()
+                    .any(|role| role.key == composition.role)
+            })
+        }) && composition.parts.iter().all(|part| {
+            config
+                .style_type(&part.type_key)
+                .is_some_and(|style| style.form == config::StyleForm::Phrase)
+        }) && composition
+            .fields
+            .iter()
+            .all(|field| config.work_meta_fields.iter().any(|f| f.key == field.field));
+        if holds {
+            config.compose.push(composition.clone());
+            changed = true;
+        }
+    }
+    changed
+}
+
 fn style_types(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
     let mut changed = insert_new_keys(&mut config.style_types, &shipped.style_types, |style| {
         &style.key
@@ -3426,5 +3464,50 @@ mod tests {
             })
             .unwrap();
         assert_eq!(before, after);
+    }
+
+    /// A workspace made before compositions existed takes the shipped sound
+    /// with the types it is picked from - and keeps a composition the owner
+    /// reshaped as they left it.
+    #[test]
+    fn a_stored_profile_gains_the_compositions_it_can_hold() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|p| p.key == "music")
+            .unwrap()
+            .config;
+        let mut old = shipped.clone();
+        old.compose.clear();
+        old.style_types
+            .retain(|t| t.form != config::StyleForm::Phrase);
+
+        let mut stored = old.clone();
+        assert!(
+            style_types(&mut stored, &shipped),
+            "the types of sound arrive"
+        );
+        assert!(
+            compositions(&mut stored, &shipped),
+            "and the sound with them"
+        );
+        assert_eq!(stored.compose, shipped.compose);
+        assert!(stored.validate().is_empty(), "{:?}", stored.validate());
+        assert!(
+            !compositions(&mut stored, &shipped),
+            "a second run changes nothing"
+        );
+
+        // Without its types the sound would not validate: it waits for them.
+        let mut bare = old.clone();
+        assert!(!compositions(&mut bare, &shipped));
+        assert!(bare.compose.is_empty());
+
+        // The owner's own reading of the sound stays theirs.
+        let mut reshaped = stored.clone();
+        reshaped.compose[0].parts.truncate(2);
+        let mine = reshaped.compose[0].clone();
+        assert!(!compositions(&mut reshaped, &shipped));
+        assert_eq!(reshaped.compose[0], mine);
     }
 }

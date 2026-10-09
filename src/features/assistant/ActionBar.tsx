@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button'
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from '@/components/ui/menu'
 import { TaskPreviewDialog } from '@/features/assistant/TaskPreviewDialog'
 import { StylePickerDialog } from '@/features/styles/StylePickerDialog'
+import { ComposeDialog } from '@/features/styles/ComposeDialog'
+import { compositionFor } from '@/lib/phrases'
 
 interface Props {
   workId: string
@@ -123,6 +125,16 @@ export function ActionBar({
   // once the backend answers, the list of running tasks is what the buttons
   // read, and this goes back to null whether the start succeeded or failed.
   const pending = start.isPending ? start.variables.action : null
+
+  /** The composition the action's answer is a text of, when the dictionary
+      writes that role for this kind: its picks are phrases, not parts of a
+      picture. */
+  const composedBy = (action: PromptTemplate) => {
+    const role = action.produces?.trim().replace(/^version:/, '')
+    return role === undefined || role === action.produces?.trim()
+      ? undefined
+      : compositionFor(profile.config, kind, role)
+  }
 
   /** The action's own words, or nothing when the profile gave it none. */
   const describe = (action: PromptTemplate) => sayLabel(action.description)
@@ -269,7 +281,26 @@ export function ActionBar({
           {buttons}
         </section>
       )}
-      {picking !== null && (
+      {/* A text the dictionary writes is picked block by block, as the
+          constructor picks it (v0.94); the action writes the picks up. */}
+      {picking !== null && composedBy(picking) !== undefined && (
+        <ComposeDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setPicking(null)
+          }}
+          composition={composedBy(picking)!}
+          workId={workId}
+          prose={{
+            label: sayLabel(picking.label),
+            onStart: (styleBrickIds) => {
+              start.mutate({ action: picking.key, styleBrickIds })
+              setPicking(null)
+            },
+          }}
+        />
+      )}
+      {picking !== null && composedBy(picking) === undefined && (
         <StylePickerDialog
           open
           onOpenChange={(open) => {

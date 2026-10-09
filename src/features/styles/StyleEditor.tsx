@@ -263,7 +263,9 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
         {/* The pictures first: a style is recognised by what it looks like,
             and they are what the description is read from. A colour is
             recognised by itself. */}
-        {!isColourForm(form_) && <StyleReferences brickId={brick.id} zone={zone} />}
+        {!isColourForm(form_) && form_ !== 'phrase' && (
+          <StyleReferences brickId={brick.id} zone={zone} />
+        )}
 
         {form_ === 'lettering' && (
           <Field label={t('styles.sample')} help={t('styles.sampleHint')}>
@@ -357,16 +359,21 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
         )}
 
         <div className="flex flex-col gap-2">
-          <Field label={t('styles.description')} help={t('styles.descriptionHint')}>
+          {/* A phrase is the generator's own words, written into a text as
+              they stand: one line, set as it will be read. */}
+          <Field
+            label={form_ === 'phrase' ? t('styles.phrase') : t('styles.description')}
+            help={form_ === 'phrase' ? t('styles.phraseHint') : t('styles.descriptionHint')}
+          >
             <Textarea
               autoResize
-              rows={6}
+              rows={form_ === 'phrase' ? 1 : 6}
               value={form.description}
               onChange={(event) => edit({ description: event.target.value })}
-              className="leading-relaxed"
+              className={form_ === 'phrase' ? 'font-mono' : 'leading-relaxed'}
             />
           </Field>
-          {!isColourForm(form_) && (
+          {!isColourForm(form_) && form_ !== 'phrase' && (
             <Button
               variant="soft"
               size="sm"
@@ -379,7 +386,7 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
               {t('styles.describe')}
             </Button>
           )}
-          {describeAction !== undefined && hasReferences && (
+          {describeAction !== undefined && hasReferences && form_ !== 'phrase' && (
             <Button
               variant="icon"
               size="icon-sm"
@@ -409,6 +416,19 @@ export function StyleEditor({ brick, types, bricks, naming, onClose }: Props) {
         </div>
 
         {form_ === 'dressing' && <DressingSlots description={form.description} />}
+
+        {/* What it means, for the person reading it - in the window's
+            language, the other languages a shipped brick carries kept as
+            they are. Never part of a prompt. */}
+        <Field label={t('styles.explanation')} help={t('styles.explanationHint')}>
+          <Textarea
+            autoResize
+            rows={2}
+            value={form.explanation}
+            placeholder={form.explanation === '' ? sayLabel(form.explanationStored) : undefined}
+            onChange={(event) => edit({ explanation: event.target.value })}
+          />
+        </Field>
 
         <Field label={t('styles.when')} help={t('styles.whenHint')}>
           <Textarea

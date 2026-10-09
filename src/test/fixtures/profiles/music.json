@@ -23,6 +23,122 @@
         }
       }
     ],
+    "compose": [
+      {
+        "fields": [
+          {
+            "field": "bpm",
+            "template": "{value} bpm"
+          },
+          {
+            "field": "key",
+            "template": "{value}"
+          }
+        ],
+        "key": "sound",
+        "kinds": [
+          "song"
+        ],
+        "label": {
+          "en": "Sound",
+          "ru": "Звук"
+        },
+        "limit": 1000,
+        "parts": [
+          {
+            "max": 3,
+            "min": 1,
+            "rule": {
+              "en": "Two or three tags: the foundation, changed rarely.",
+              "ru": "Два-три тега: фундамент, его меняют редко."
+            },
+            "type": "genre"
+          },
+          {
+            "max": 2,
+            "min": 1,
+            "rule": {
+              "en": "One mode of delivery; a second only to say where the backing comes in.",
+              "ru": "Один режим подачи; второй - только чтобы сказать, где вступают подпевки."
+            },
+            "type": "vocal"
+          },
+          {
+            "max": 1,
+            "min": 1,
+            "rule": {
+              "en": "One groove: the strongest lever against songs that sound the same.",
+              "ru": "Один грув: самый сильный рычаг против песен, звучащих одинаково."
+            },
+            "type": "groove"
+          },
+          {
+            "max": 4,
+            "min": 1,
+            "rule": {
+              "en": "Up to four, and the first is the lead: the generator weighs tags from the left.",
+              "ru": "До четырёх, и первый - ведущий: генератор взвешивает теги слева направо."
+            },
+            "type": "instrument"
+          },
+          {
+            "max": 1,
+            "min": 0,
+            "rule": {
+              "en": "One, or none: it holds the character more than it seems.",
+              "ru": "Один или ни одного: он держит характер сильнее, чем кажется."
+            },
+            "type": "bass"
+          },
+          {
+            "max": 3,
+            "min": 1,
+            "rule": {
+              "en": "Two or three words of feeling.",
+              "ru": "Два-три слова о чувстве."
+            },
+            "type": "mood"
+          },
+          {
+            "max": 2,
+            "min": 0,
+            "rule": {
+              "en": "One or two, never the whole set at once.",
+              "ru": "Одна-две, никогда не всё сразу."
+            },
+            "type": "texture"
+          },
+          {
+            "max": 1,
+            "min": 0,
+            "rule": {
+              "en": "One; the BPM of the song is added on its own.",
+              "ru": "Один; BPM песни допишется сам."
+            },
+            "type": "tempo"
+          },
+          {
+            "max": 1,
+            "min": 0,
+            "rule": {
+              "en": "One; without it the track runs flat from start to end.",
+              "ru": "Одна; без неё трек ровный от начала до конца."
+            },
+            "type": "dynamics"
+          },
+          {
+            "max": 1,
+            "min": 0,
+            "rule": {
+              "en": "One at a time, or it cannot be heard what moved.",
+              "ru": "По одному, иначе не слышно, что сдвинулось."
+            },
+            "type": "knob"
+          }
+        ],
+        "role": "style"
+      }
+    ],
     "format": 3,
     "marks": [
       {
@@ -210,6 +326,21 @@
             },
             "lenses": [
               "cover"
+            ],
+            "shape": "styles"
+          },
+          {
+            "hint": {
+              "en": "→ marked in the dictionary of sound and offered first",
+              "ru": "→ помечены в словаре звука и предлагаются первыми"
+            },
+            "key": "sound",
+            "label": {
+              "en": "House sound",
+              "ru": "Домашний звук"
+            },
+            "lenses": [
+              "work"
             ],
             "shape": "styles"
           }
@@ -972,6 +1103,24 @@
       },
       {
         "description": {
+          "en": "The phrases picked for the sound, written up as one style prompt in sentences.",
+          "ru": "Выбранные фразы звука, сведённые в один промпт стиля предложениями."
+        },
+        "icon": "music",
+        "key": "compose-sound",
+        "kinds": [
+          "song"
+        ],
+        "label": {
+          "en": "Write the style as prose",
+          "ru": "Написать стиль прозой"
+        },
+        "method": "# Style in prose\n\n## Role\n\nYou write the style prompt a music generator reads, out of phrases the person picked from their own dictionary of sound. Each phrase arrives under the word for what it contributes - genre, vocal delivery, groove, instrument, bass, mood, texture, tempo, dynamics, a knob - with what it means.\n\n## How to write it\n\n- **Prose, not a list.** Three to six sentences that describe one track: what it stands on, how the voice is delivered, what the drums do, which instrument leads, how it moves from start to end.\n- **Keep the phrases.** The generator knows them as they are written; keep each picked phrase word for word where it fits a sentence, and do not trade it for a synonym.\n- **The order is the weight.** The first phrase is the spine of the sound and comes first; the last is a detail.\n- **Resolve, do not stack.** Where two phrases pull against each other, say how they meet - a half-time guitar over a fast break - rather than naming both and leaving it to chance.\n- Put the tempo and the key from the fields in where they belong.\n- Under 1000 characters, in English.\n\n## Never\n\nNo artist, band or song names - the generator ignores them or refuses. No lyrics, no section tags, no words about the song's story.\n\n## Output\n\nThe prompt alone, nothing before it. Then, if a phrase had to be left out or bent, one line beginning \"Note:\".",
+        "produces": "version:style",
+        "template": "A song called \"{title}\".\n\nIts fields:\n\n{fields}\n\nThe phrases picked for its sound, in the order they were picked, each with what it means:\n\n{styles}\n\nWrite the style prompt."
+      },
+      {
+        "description": {
           "en": "Other ways to name it.",
           "ru": "Как это можно назвать иначе."
         },
@@ -1092,6 +1241,22 @@
         "produces": "description",
         "scope": "style",
         "template": "Write the description for this style brick."
+      },
+      {
+        "description": {
+          "en": "Phrases the dictionary does not know, proposed as bricks with what they mean in every language.",
+          "ru": "Фразы, которых нет в словаре, - предложением кирпичиков с пояснением на всех языках."
+        },
+        "icon": "book",
+        "key": "explain-phrases",
+        "label": {
+          "en": "Explain",
+          "ru": "Пояснить"
+        },
+        "method": "# Phrase explainer\n\n## Role\n\nYou keep a dictionary of the phrases a person writes into a music generator's style prompt. Each brick is one phrase, exactly as it is written, and what it means for someone who has not met it: what it is, and what it gives the track.\n\n## What to write for each phrase\n\n- **type**: the one type it belongs to, from the list given, by its key. A genre tag is a genre; a line that pushes one thing on top of any core is a knob.\n- **phrase**: the phrase exactly as given. Do not correct, translate or shorten it - the text it came from says it this way.\n- **explanation**: in English and in Russian, one or two sentences each: what it is, and what it does to the sound - its texture, energy, space, feeling. Concrete; no \"beautiful\", no \"amazing\". In Russian, natural Russian, not a word-for-word translation.\n- **when**: in English, one sentence - when to reach for it.\n- **family**: only where the type has families, the key that fits.\n\n## Never\n\nDo not propose a phrase that is not a sound - a section tag, a lyric, a number, a stray word. Leave it out and say in one line why. No artist or band names in an explanation.\n\n## Output\n\nOne line on what you left out, if anything, then the block.",
+        "produces": "bricks",
+        "scope": "phrases",
+        "template": "The phrases to explain, each with how often it is written:\n\n{phrases}\n\nThe types a phrase can be filed under:\n\n{types}\n\nPropose a brick for each phrase that is one."
       },
       {
         "description": {
@@ -1621,6 +1786,254 @@
         "retired": {
           "en": "The cover constructor places the hero and the lettering.",
           "ru": "Где стоит герой и где надпись, задаёт конструктор обложки."
+        }
+      },
+      {
+        "families": [
+          {
+            "key": "rock",
+            "label": {
+              "en": "Rock and alternative",
+              "ru": "Рок и альтернатива"
+            }
+          },
+          {
+            "key": "dream",
+            "label": {
+              "en": "Dream and gaze",
+              "ru": "Дрим и гейз"
+            }
+          },
+          {
+            "key": "electronic",
+            "label": {
+              "en": "Electronic and beats",
+              "ru": "Электроника и биты"
+            }
+          },
+          {
+            "key": "folk",
+            "label": {
+              "en": "Folk and chamber",
+              "ru": "Фолк и камерное"
+            }
+          },
+          {
+            "key": "pop",
+            "label": {
+              "en": "Pop and art",
+              "ru": "Поп и арт"
+            }
+          },
+          {
+            "key": "scene",
+            "label": {
+              "en": "Scenes and regions",
+              "ru": "Сцены и регионы"
+            }
+          },
+          {
+            "key": "hybrid",
+            "label": {
+              "en": "Hybrids",
+              "ru": "Гибриды"
+            }
+          }
+        ],
+        "form": "phrase",
+        "hint": {
+          "en": "A genre tag the generator knows, one per brick. Explain what the genre sounds like - its guitars, its drums, its air - and what it gives a track it stands under.",
+          "ru": "Жанровый тег, который знает генератор, - один на кирпичик. Поясни, как жанр звучит - гитары, барабаны, воздух - и что он даёт треку, под которым стоит."
+        },
+        "icon": "disc",
+        "key": "genre",
+        "label": {
+          "en": "Genre core",
+          "ru": "Ядро жанра"
+        }
+      },
+      {
+        "form": "phrase",
+        "hint": {
+          "en": "How the voice is delivered: close or distant, whispered or belted, doubled or bare, with or without backing. Explain what the delivery does to the song.",
+          "ru": "Как подаётся голос: близко или издалека, шёпотом или на разрыв, удвоенно или голо, с подпевками или без. Поясни, что подача делает с песней."
+        },
+        "icon": "mic",
+        "key": "vocal",
+        "label": {
+          "en": "Vocal delivery",
+          "ru": "Подача вокала"
+        }
+      },
+      {
+        "families": [
+          {
+            "key": "breaks",
+            "label": {
+              "en": "Breaks",
+              "ru": "Брейки"
+            }
+          },
+          {
+            "key": "kit",
+            "label": {
+              "en": "Live kit",
+              "ru": "Живая установка"
+            }
+          },
+          {
+            "key": "machine",
+            "label": {
+              "en": "Machines",
+              "ru": "Машины"
+            }
+          },
+          {
+            "key": "sparse",
+            "label": {
+              "en": "Sparse and none",
+              "ru": "Разреженно и без"
+            }
+          }
+        ],
+        "form": "phrase",
+        "hint": {
+          "en": "What the drums play and how it moves: the pattern, the feel, the tempo range it lives in. Explain how it pushes or rocks the track.",
+          "ru": "Что играют барабаны и как это движется: рисунок, ощущение, темп, в котором он живёт. Поясни, как он толкает или раскачивает трек."
+        },
+        "icon": "drum",
+        "key": "groove",
+        "label": {
+          "en": "Groove",
+          "ru": "Грув"
+        }
+      },
+      {
+        "families": [
+          {
+            "key": "guitar",
+            "label": {
+              "en": "Guitars",
+              "ru": "Гитары"
+            }
+          },
+          {
+            "key": "keys",
+            "label": {
+              "en": "Keys",
+              "ru": "Клавишные"
+            }
+          },
+          {
+            "key": "synth",
+            "label": {
+              "en": "Synths",
+              "ru": "Синтезаторы"
+            }
+          },
+          {
+            "key": "orchestra",
+            "label": {
+              "en": "Strings and winds",
+              "ru": "Струнные и духовые"
+            }
+          },
+          {
+            "key": "colour",
+            "label": {
+              "en": "Colour",
+              "ru": "Краски"
+            }
+          }
+        ],
+        "form": "phrase",
+        "hint": {
+          "en": "One instrument and how it is played. Explain its colour and the place it takes in the arrangement.",
+          "ru": "Один инструмент и как на нём играют. Поясни его краску и место, которое он занимает в аранжировке."
+        },
+        "icon": "guitar",
+        "key": "instrument",
+        "label": {
+          "en": "Instrument",
+          "ru": "Инструмент"
+        }
+      },
+      {
+        "form": "phrase",
+        "hint": {
+          "en": "The low end: which bass and how it sits. Explain the weight and the character it gives.",
+          "ru": "Низ: какой бас и как он сидит. Поясни, какой вес и характер он даёт."
+        },
+        "icon": "waves",
+        "key": "bass",
+        "label": {
+          "en": "Bass",
+          "ru": "Бас"
+        }
+      },
+      {
+        "form": "phrase",
+        "hint": {
+          "en": "The feeling of the track in a word or two. Explain what a listener should feel and what it pulls the arrangement towards.",
+          "ru": "Чувство трека в одном-двух словах. Поясни, что должен почувствовать слушатель и куда это тянет аранжировку."
+        },
+        "icon": "cloud",
+        "key": "mood",
+        "label": {
+          "en": "Mood",
+          "ru": "Атмосфера"
+        }
+      },
+      {
+        "form": "phrase",
+        "hint": {
+          "en": "The surface of the recording: grain, noise, space, how polished or raw. Explain what it does to the sound.",
+          "ru": "Поверхность записи: зерно, шум, пространство, насколько гладко или сыро. Поясни, что это делает со звуком."
+        },
+        "icon": "waveform",
+        "key": "texture",
+        "label": {
+          "en": "Texture",
+          "ru": "Фактура"
+        }
+      },
+      {
+        "form": "phrase",
+        "hint": {
+          "en": "The tempo or the feel of it in words. Explain how fast it feels and why.",
+          "ru": "Темп или его ощущение словами. Поясни, насколько быстро это ощущается и почему."
+        },
+        "icon": "gauge",
+        "key": "tempo",
+        "label": {
+          "en": "Tempo",
+          "ru": "Темп"
+        }
+      },
+      {
+        "form": "phrase",
+        "hint": {
+          "en": "How the arrangement moves from start to end: builds, drops, contrasts. Explain the path it gives the track.",
+          "ru": "Как аранжировка движется от начала к концу: нарастания, обрывы, контрасты. Поясни, какой путь она даёт треку."
+        },
+        "icon": "trending",
+        "key": "dynamics",
+        "label": {
+          "en": "Dynamics",
+          "ru": "Динамика"
+        }
+      },
+      {
+        "form": "phrase",
+        "hint": {
+          "en": "One line appended to any core to push one thing - one at a time, so it is heard what moved. Explain what it pushes and how far.",
+          "ru": "Одна строка, которую дописывают к любому ядру, чтобы сдвинуть одно, - по одной за раз, чтобы было слышно, что сдвинулось. Поясни, что она двигает и насколько."
+        },
+        "icon": "sliders",
+        "key": "knob",
+        "label": {
+          "en": "Knob",
+          "ru": "Приём"
         }
       }
     ],

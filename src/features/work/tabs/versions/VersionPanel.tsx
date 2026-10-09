@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BadgeCheck, CornerUpLeft, MessageSquareText, Plus } from 'lucide-react'
+import { BadgeCheck, BookOpen, CornerUpLeft, MessageSquareText, Plus } from 'lucide-react'
 import type { VersionSummary } from '@/lib/api/types'
 import { deleteVersion, setCurrentVersion } from '@/lib/api/versions'
 import { commentaryOn, isCommentary, subjectOf } from '@/lib/commentary'
@@ -13,7 +13,12 @@ import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
 import { useBodyEditing } from '@/lib/useBodyEditing'
-import { labelOf, say, useVocabulary } from '@/lib/useProfile'
+import { labelOf, say, useProfile, useVocabulary, useWorkKind } from '@/lib/useProfile'
+import { compositionFor } from '@/lib/phrases'
+import { proseActionFor } from '@/lib/actions'
+import { startTask } from '@/lib/api/assistant'
+import { keys } from '@/lib/query/keys'
+import { say as toast } from '@/lib/toast'
 import { graphOf } from '@/lib/versionTree'
 import { formatTotal } from '@/lib/format'
 import { Button } from '@/components/ui/button'
@@ -24,6 +29,7 @@ import { Loaded } from '@/components/Loaded'
 import { ActionBar } from '@/features/assistant/ActionBar'
 import { ToCanonButton } from '@/features/canon/ToCanonButton'
 import { ToRegisterButton } from '@/features/register/ToRegisterButton'
+import { ComposeDialog } from '@/features/styles/ComposeDialog'
 import { BodyPane, type Reading } from '@/features/work/tabs/versions/BodyPane'
 import { Commentary } from '@/features/work/tabs/versions/Commentary'
 import { CompareControl } from '@/features/work/tabs/versions/CompareControl'
@@ -53,6 +59,10 @@ export function VersionPanel({ workId }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
   const roles = useVocabulary(workId).version_roles
+  const { config } = useProfile()
+  const kind = useWorkKind(workId)
+  // The dictionary the open lane is written out of, if it is (v0.94).
+  const [composing, setComposing] = useState(false)
 
   const [params, setParams] = useSearchParams()
   // A version named in the address wins until something else is picked. That
@@ -120,6 +130,18 @@ export function VersionPanel({ workId }: Props) {
     roles[0]?.key ??
     ''
   const commentaryLane = isCommentary(roles, lane)
+  const composition = commentaryLane ? undefined : compositionFor(config, kind, lane)
+  // The profile's action that writes the picks up as prose for this role.
+  const prose = composition === undefined ? undefined : proseActionFor(config, kind, lane)
+  const writeProse = useAppMutation({
+    mutationFn: ({ action, bricks }: { action: string; bricks: string[] }) =>
+      startTask(workId, action, { styleBrickIds: bricks }),
+    refresh: [keys.activeTasks, keys.allChats],
+    onSuccess: (started) => {
+      setComposing(false)
+      toast.info(t('assistant.taskStarted', { title: started.title }))
+    },
+  })
   // One list per lane while the answer stands, so what is worked out from
   // it - the tree, the figures of each row - is not worked out again on
   // every keystroke of the text beside it.
@@ -302,17 +324,33 @@ export function VersionPanel({ workId }: Props) {
       // At the foot of the list it adds to, where the next row will appear.
       foot={
         commentaryLane ? undefined : (
-          <Button
-            variant={showForm ? 'soft' : 'ghost'}
-            size="sm"
-            className="w-full justify-center"
-            aria-pressed={showForm}
-            onClick={form.begin}
-            title={t('versions.newHint')}
-          >
-            <Plus aria-hidden />
-            {t('versions.new')}
-          </Button>
+          <div className="flex gap-1">
+            <Button
+              variant={showForm ? 'soft' : 'ghost'}
+              size="sm"
+              className="flex-1 justify-center"
+              aria-pressed={showForm}
+              onClick={form.begin}
+              title={t('versions.newHint')}
+            >
+              <Plus aria-hidden />
+              {t('versions.new')}
+            </Button>
+            {/* A text of a role the dictionary writes: picked block by
+                block, then a draft like any other (v0.94). */}
+            {composition !== undefined && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 justify-center"
+                onClick={() => setComposing(true)}
+                title={t('compose.hint')}
+              >
+                <BookOpen aria-hidden />
+                {t('compose.open')}
+              </Button>
+            )}
+          </div>
         )
       }
     >
@@ -471,6 +509,8 @@ export function VersionPanel({ workId }: Props) {
         // The role says whether its text is sung (ADR 0053): a lyric is, a
         // style prompt in the lane beside it is not.
         sung={roles.find((r) => r.key === shown.role)?.sung === true}
+        composition={composition ?? null}
+        about={{ workId, role: shown.role }}
         editing={editing}
         staged={staged === 'text'}
         onStage={(on) => setStaged(on ? 'text' : null)}
@@ -540,5 +580,29 @@ export function VersionPanel({ workId }: Props) {
   // The list keeps its width at every window width, as in the mockup: a list
   // stacked above the text on a narrow window was a second layout for the
   // same tab.
-  return <ListDetail list={list} detail={detail} />
+  return (
+    <>
+      <ListDetail list={list} detail={detail} />
+      {composing && composition !== undefined && (
+        <ComposeDialog
+          open
+          onOpenChange={setComposing}
+          composition={composition}
+          workId={workId}
+          onUse={(text) => {
+            setComposing(false)
+            form.compose(text, t('compose.versionLabel'))
+          }}
+          prose={
+            prose === undefined
+              ? undefined
+              : {
+                  label: say(prose.label),
+                  onStart: (bricks) => writeProse.mutate({ action: prose.key, bricks }),
+                }
+          }
+        />
+      )}
+    </>
+  )
 }

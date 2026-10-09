@@ -235,6 +235,33 @@ textarea,
 }
 
 /*
+ * A phrase of the dictionary in a style text (v0.94).
+ *
+ * A known phrase has a quiet wash in the accent - it is the dictionary's,
+ * and a hover says what it means - and its line in the strip above wears the
+ * same wash, so the two are matched by colour. A tag the dictionary does not
+ * know is underlined with a dotted warning line: something to explain, not
+ * an error. Lines rather than borders, so the mirror under a textarea draws
+ * them on its transparent letters.
+ */
+.phrase-mark,
+.phrase-known {
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+}
+.phrase-mark {
+  cursor: help;
+}
+.phrase-unknown,
+.phrase-unknown-chip {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: var(--warn);
+  text-underline-offset: 0.2em;
+  text-decoration-skip-ink: none;
+}
+
+/*
  * "Show the stresses": an acute over a stressed vowel, drawn over the letter
  * and never into the text (ADR 0053).
  *

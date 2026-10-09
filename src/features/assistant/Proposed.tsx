@@ -10,6 +10,7 @@ import { ProposedScore } from '@/features/assistant/ProposedScore'
 import { ProposedVersion } from '@/features/assistant/ProposedVersion'
 import { ProposedWork } from '@/features/assistant/ProposedWork'
 import { ProposedWords } from '@/features/assistant/ProposedWords'
+import { ProposedBricks } from '@/features/assistant/ProposedBricks'
 
 interface Props {
   /** The settled answer that carries the proposal. */
@@ -126,6 +127,15 @@ export function Proposed({ answer, workId, onChooseVersion }: Props) {
     case 'words':
       return (
         <ProposedWords
+          messageId={messageId}
+          proposal={proposal}
+          applied={applied}
+          dismissed={dismissed}
+        />
+      )
+    case 'bricks':
+      return (
+        <ProposedBricks
           messageId={messageId}
           proposal={proposal}
           applied={applied}

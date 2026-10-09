@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { BookPlus, Plus } from 'lucide-react'
 import type { StyleBrick, StyleOrigin, StyleType } from '@/lib/api/types'
 import { picturesAmong } from '@/lib/drop'
 import { queries } from '@/lib/query/queries'
@@ -11,9 +11,11 @@ import { useProfile, styleTypesOf, say as sayLabel } from '@/lib/useProfile'
 import { styleIconOf } from '@/lib/styleIcon'
 import { useDebounced } from '@/lib/useDebounced'
 import { livingTypes } from '@/lib/styleBrick'
+import { PICTURE, halfOfType, halvesOf } from '@/lib/phrases'
 import { Button } from '@/components/ui/button'
 import { Chip, ChipGroup } from '@/components/ui/chip'
 import { Input } from '@/components/ui/input'
+import { Segment, SegmentedControl } from '@/components/ui/segmented-control'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton, SkeletonGrid } from '@/components/ui/skeleton'
 import { Frame, ListDetail, Scroll } from '@/components/frame'
@@ -22,6 +24,7 @@ import { pictureIn, readPicture } from '@/features/styles/pastedPicture'
 import { StyleBrickCard } from '@/features/styles/StyleBrickCard'
 import { StyleDropCard } from '@/features/styles/StyleDropCard'
 import { StyleEditor } from '@/features/styles/StyleEditor'
+import { FromStylesDialog } from '@/features/styles/FromStylesDialog'
 import { useNewStyle } from '@/features/styles/useNewStyle'
 
 /*
@@ -76,7 +79,11 @@ export function StylesView() {
   const navigate = useNavigate()
   const { styleId } = useParams()
   const { config } = useProfile()
-  const types = styleTypesOf(config)
+  const allTypes = styleTypesOf(config)
+  // The dictionary in its halves (v0.94): what a picture is built from, and
+  // what each composition writes a text out of - the sound of a song.
+  const halves = halvesOf(config, allTypes)
+  const [halfKey, setHalfKey] = useState<string>(PICTURE)
 
   const [typeKey, setTypeKey] = useState<string | undefined>(undefined)
   const [family, setFamily] = useState<string | undefined>(undefined)
@@ -89,14 +96,31 @@ export function StylesView() {
   const [fresh, setFresh] = useState<string | null>(null)
 
   const bricks = useQuery(queries.styleBricksMatching(typeKey ?? null, query))
+  const house = useQuery(queries.houseStyles())
+  const houseSet = new Set(house.data ?? [])
+  const [fromTexts, setFromTexts] = useState(false)
   // Every style, whatever the filters: the open one is found here, so
   // narrowing the dictionary never closes the style being edited, and a new
   // style's name is kept apart from every other of its type.
   const everything = useQuery(queries.styleBricksMatching(null, ''))
   const counts = useQuery(queries.styleCounts())
 
+  // The open style's half is the half shown: a link to a phrase opens the
+  // sound, a link to an image style the picture.
+  const openHalf =
+    styleId === undefined
+      ? undefined
+      : halfOfType(halves, (everything.data ?? []).find((one) => one.id === styleId)?.type_key)
+  const half = openHalf ?? halves.find((one) => one.key === halfKey) ?? halves[0]
+  const types = half?.types ?? allTypes
+  const inHalf = new Set(types.map((one) => one.key))
+  // Only the picture's half is made of pictures dropped or pasted on it.
+  const pastesPictures = half?.composition == null
+
   const countOf = useMemo(() => new Map(counts.data ?? []), [counts.data])
-  const total = useMemo(() => (counts.data ?? []).reduce((sum, [, n]) => sum + n, 0), [counts.data])
+  const total = (counts.data ?? [])
+    .filter(([key]) => inHalf.has(key))
+    .reduce((sum, [, n]) => sum + n, 0)
 
   const open = (id: string | null) => {
     void navigate(id === null ? '/styles' : `/styles/${id}`)
@@ -136,7 +160,8 @@ export function StylesView() {
   // dashed card's promise. With one open the paste is that style's
   // reference instead (see StyleReferences), so this listens only without.
   useEffect(() => {
-    if (styleId !== undefined || types.length === 0 || making) return
+    // A phrase is no picture: pasting one makes nothing in the sound.
+    if (styleId !== undefined || types.length === 0 || making || pastesPictures === false) return
     const onPaste = (event: ClipboardEvent) => {
       const file = pictureIn(event)
       if (file === undefined) return
@@ -148,7 +173,7 @@ export function StylesView() {
     }
     window.addEventListener('paste', onPaste)
     return () => window.removeEventListener('paste', onPaste)
-  }, [styleId, types.length, making, makeMutate])
+  }, [styleId, types.length, making, makeMutate, pastesPictures])
 
   if (types.length === 0) {
     return (
@@ -184,7 +209,10 @@ export function StylesView() {
       skeleton={<SkeletonGrid cells={6} columns={3} cellClassName="h-37.5" />}
     >
       {(all) => {
-        const rows = narrowed(all, { family, origin, status })
+        const rows = narrowed(
+          all.filter((brick) => inHalf.has(brick.type_key)),
+          { family, origin, status },
+        )
         return (
           // A hair of room around the grid, so a card's focus ring is not cut
           // by the edge of the scrolling box.
@@ -212,6 +240,7 @@ export function StylesView() {
                     type={type}
                     icon={styleIconOf(type)}
                     open={brick.id === styleId}
+                    house={houseSet.has(brick.id)}
                     onOpen={() => {
                       setFresh(null)
                       open(brick.id)
@@ -219,8 +248,11 @@ export function StylesView() {
                   />
                 )
               })}
-              {/* A retired type makes nothing new: no dashed card under it. */}
-              {retired === null && <StyleDropCard onPaths={fromFiles} busy={making} />}
+              {/* A retired type makes nothing new: no dashed card under it -
+                  nor does a phrase, which is no picture to drop. */}
+              {retired === null && half?.composition === null && (
+                <StyleDropCard onPaths={fromFiles} busy={making} />
+              )}
             </ul>
           </Scroll>
         )
@@ -233,7 +265,7 @@ export function StylesView() {
       <StyleEditor
         key={selected.id}
         brick={selected}
-        types={types}
+        types={allTypes}
         bricks={everything.data ?? []}
         naming={fresh === selected.id}
         onClose={() => {
@@ -253,6 +285,26 @@ export function StylesView() {
     <Frame
       head={
         <>
+          {/* The halves, when the craft writes texts out of the dictionary
+              too: a picture's parts and a song's sound are not one list. */}
+          {halves.length > 1 && (
+            <SegmentedControl
+              aria-label={t('styles.half')}
+              value={half?.key ?? PICTURE}
+              onValueChange={(next) => {
+                setHalfKey(next)
+                setTypeKey(undefined)
+                setFamily(undefined)
+                if (styleId !== undefined) open(null)
+              }}
+            >
+              {halves.map((one) => (
+                <Segment key={one.key} value={one.key}>
+                  {one.composition === null ? t('styles.picture') : sayLabel(one.composition.label)}
+                </Segment>
+              ))}
+            </SegmentedControl>
+          )}
           {/* The types as a row of chips, the way the storyboard narrows to a kind
               of shot: "show me every environment" is one click, and the chip that
               is on turns off - letting go of one leaves the group empty, which is
@@ -335,6 +387,14 @@ export function StylesView() {
             aria-label={t('styles.search')}
             className="max-w-60"
           />
+          {/* The owner's own phrases, read out of their texts and offered
+              to the dictionary (v0.94). */}
+          {half?.composition != null && (
+            <Button variant="soft" onClick={() => setFromTexts(true)} className="ml-auto">
+              <BookPlus aria-hidden />
+              {t('phrases.fromTexts')}
+            </Button>
+          )}
           <Button
             variant="primary"
             onClick={() => make.mutate(null)}
@@ -348,6 +408,9 @@ export function StylesView() {
       }
     >
       {styleId === undefined ? dictionary : <ListDetail list={dictionary} detail={detail} />}
+      {fromTexts && half?.composition != null && (
+        <FromStylesDialog open onOpenChange={setFromTexts} composition={half.composition} />
+      )}
     </Frame>
   )
 }

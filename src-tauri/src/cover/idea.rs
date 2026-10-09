@@ -920,8 +920,9 @@ pub fn read(
                 StyleForm::Dressing => &mut concept.bricks.dressing,
                 StyleForm::Colour => &mut concept.bricks.background,
                 // An accent is a value the cover keeps, not a brick it is
-                // built from: it is read below.
-                StyleForm::Accent => continue,
+                // built from: it is read below. A phrase is never a part of
+                // a picture: it is written into a text.
+                StyleForm::Accent | StyleForm::Phrase => continue,
             };
             *place = Some(brick.id.clone());
         }

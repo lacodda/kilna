@@ -39,6 +39,13 @@ family: string | null,
  */
 when_to_use: string | null, 
 /**
+ * What it is and what it gives, for the person reading it - per language
+ * while it is the set's, one string once a person writes it. Never part
+ * of a prompt: for a phrase of a sound the description is the generator's
+ * own English, and this is what it means.
+ */
+explanation: Label | null, 
+/**
  * `#RRGGBB` colours: a background's or an accent's one, or the stops of
  * its gradient in order; an image style's palette; a lettering sample's
  * ground.

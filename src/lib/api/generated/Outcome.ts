@@ -61,4 +61,8 @@ ideas?: Array<string>,
 /**
  * Words of the record written: made, or given a facet (ADR 0052).
  */
-terms?: Array<string>, };
+terms?: Array<string>, 
+/**
+ * Bricks of the dictionary made (v0.94).
+ */
+style_bricks?: Array<string>, };

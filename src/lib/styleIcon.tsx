@@ -1,5 +1,15 @@
 import {
+  AudioWaveform,
   Camera,
+  Cloud,
+  Disc3,
+  Drum,
+  Gauge,
+  Guitar,
+  MicVocal,
+  SlidersHorizontal,
+  TrendingUp,
+  WavesHorizontal,
   Droplet,
   Grid3x3,
   Layers,
@@ -13,7 +23,9 @@ import {
   Type,
   User,
   type LucideIcon,
+  type LucideProps,
 } from 'lucide-react'
+import { createElement } from 'react'
 import type { StyleType } from '@/lib/api/types'
 
 /**
@@ -41,9 +53,29 @@ const STYLE_ICONS: Record<string, LucideIcon> = {
   tag: Tag,
   square: Square,
   droplet: Droplet,
+  // The types of sound (v0.94).
+  disc: Disc3,
+  mic: MicVocal,
+  drum: Drum,
+  guitar: Guitar,
+  waves: WavesHorizontal,
+  cloud: Cloud,
+  waveform: AudioWaveform,
+  gauge: Gauge,
+  trending: TrendingUp,
+  sliders: SlidersHorizontal,
 }
 
 export function styleIconOf(type: Pick<StyleType, 'icon'> | undefined): LucideIcon {
   const name = type?.icon
   return (name !== undefined && name !== null ? STYLE_ICONS[name] : undefined) ?? Shapes
+}
+
+/** A type's glyph, drawn: for a component that shows one type rather than a
+ *  list of them, where the glyph is looked up once per render. */
+export function StyleIcon({
+  of,
+  ...props
+}: { of: Pick<StyleType, 'icon'> | undefined } & LucideProps) {
+  return createElement(styleIconOf(of), props)
 }

@@ -1,8 +1,12 @@
 import { invoke } from '@tauri-apps/api/core'
 import type {
   Asset,
+  ComposeRequest,
+  ComposedText,
+  FoundPhrase,
   NewStyleBrick,
   ComposedTask,
+  PhraseAsked,
   StartedTask,
   StyleBrick,
   StyleBrickFilter,
@@ -35,3 +39,18 @@ export const startStyleTask = (id: string, action: string) =>
 /** What describing a brick would send, without sending it. */
 export const previewStyleTask = (id: string, action: string) =>
   invoke<ComposedTask>('preview_style_task', { id, action })
+/** The channel's house bricks, by id: house styles and house sound alike. */
+export const houseStyles = () => invoke<string[]>('house_styles')
+/** A text written out of the dictionary: the picks in order, then the work's
+ *  fields - the one writer the window and MCP share (v0.94). */
+export const composeText = (request: ComposeRequest) =>
+  invoke<ComposedText>('compose_text', { request })
+/** Every phrase a composition's texts say that the dictionary lacks. */
+export const phrasesFromTexts = (composition: string) =>
+  invoke<FoundPhrase[]>('phrases_from_texts', { composition })
+/** Explain phrases the dictionary lacks: the answer is bricks to keep. */
+export const startPhrasesTask = (composition: string, phrases: PhraseAsked[], action: string) =>
+  invoke<StartedTask>('start_phrases_task', { composition, phrases, action })
+/** What explaining phrases would send, without sending it. */
+export const previewPhrasesTask = (composition: string, phrases: PhraseAsked[], action: string) =>
+  invoke<ComposedTask>('preview_phrases_task', { composition, phrases, action })

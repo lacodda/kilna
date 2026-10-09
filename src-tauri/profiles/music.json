@@ -1244,6 +1244,21 @@
             "lenses": [
               "cover"
             ]
+          },
+          {
+            "key": "sound",
+            "label": {
+              "en": "House sound",
+              "ru": "Домашний звук"
+            },
+            "hint": {
+              "en": "→ marked in the dictionary of sound and offered first",
+              "ru": "→ помечены в словаре звука и предлагаются первыми"
+            },
+            "shape": "styles",
+            "lenses": [
+              "work"
+            ]
           }
         ]
       },
@@ -2140,6 +2155,254 @@
           "en": "The cover constructor places the hero and the lettering.",
           "ru": "Где стоит герой и где надпись, задаёт конструктор обложки."
         }
+      },
+      {
+        "key": "genre",
+        "label": {
+          "en": "Genre core",
+          "ru": "Ядро жанра"
+        },
+        "hint": {
+          "en": "A genre tag the generator knows, one per brick. Explain what the genre sounds like - its guitars, its drums, its air - and what it gives a track it stands under.",
+          "ru": "Жанровый тег, который знает генератор, - один на кирпичик. Поясни, как жанр звучит - гитары, барабаны, воздух - и что он даёт треку, под которым стоит."
+        },
+        "icon": "disc",
+        "form": "phrase",
+        "families": [
+          {
+            "key": "rock",
+            "label": {
+              "en": "Rock and alternative",
+              "ru": "Рок и альтернатива"
+            }
+          },
+          {
+            "key": "dream",
+            "label": {
+              "en": "Dream and gaze",
+              "ru": "Дрим и гейз"
+            }
+          },
+          {
+            "key": "electronic",
+            "label": {
+              "en": "Electronic and beats",
+              "ru": "Электроника и биты"
+            }
+          },
+          {
+            "key": "folk",
+            "label": {
+              "en": "Folk and chamber",
+              "ru": "Фолк и камерное"
+            }
+          },
+          {
+            "key": "pop",
+            "label": {
+              "en": "Pop and art",
+              "ru": "Поп и арт"
+            }
+          },
+          {
+            "key": "scene",
+            "label": {
+              "en": "Scenes and regions",
+              "ru": "Сцены и регионы"
+            }
+          },
+          {
+            "key": "hybrid",
+            "label": {
+              "en": "Hybrids",
+              "ru": "Гибриды"
+            }
+          }
+        ]
+      },
+      {
+        "key": "vocal",
+        "label": {
+          "en": "Vocal delivery",
+          "ru": "Подача вокала"
+        },
+        "hint": {
+          "en": "How the voice is delivered: close or distant, whispered or belted, doubled or bare, with or without backing. Explain what the delivery does to the song.",
+          "ru": "Как подаётся голос: близко или издалека, шёпотом или на разрыв, удвоенно или голо, с подпевками или без. Поясни, что подача делает с песней."
+        },
+        "icon": "mic",
+        "form": "phrase"
+      },
+      {
+        "key": "groove",
+        "label": {
+          "en": "Groove",
+          "ru": "Грув"
+        },
+        "hint": {
+          "en": "What the drums play and how it moves: the pattern, the feel, the tempo range it lives in. Explain how it pushes or rocks the track.",
+          "ru": "Что играют барабаны и как это движется: рисунок, ощущение, темп, в котором он живёт. Поясни, как он толкает или раскачивает трек."
+        },
+        "icon": "drum",
+        "form": "phrase",
+        "families": [
+          {
+            "key": "breaks",
+            "label": {
+              "en": "Breaks",
+              "ru": "Брейки"
+            }
+          },
+          {
+            "key": "kit",
+            "label": {
+              "en": "Live kit",
+              "ru": "Живая установка"
+            }
+          },
+          {
+            "key": "machine",
+            "label": {
+              "en": "Machines",
+              "ru": "Машины"
+            }
+          },
+          {
+            "key": "sparse",
+            "label": {
+              "en": "Sparse and none",
+              "ru": "Разреженно и без"
+            }
+          }
+        ]
+      },
+      {
+        "key": "instrument",
+        "label": {
+          "en": "Instrument",
+          "ru": "Инструмент"
+        },
+        "hint": {
+          "en": "One instrument and how it is played. Explain its colour and the place it takes in the arrangement.",
+          "ru": "Один инструмент и как на нём играют. Поясни его краску и место, которое он занимает в аранжировке."
+        },
+        "icon": "guitar",
+        "form": "phrase",
+        "families": [
+          {
+            "key": "guitar",
+            "label": {
+              "en": "Guitars",
+              "ru": "Гитары"
+            }
+          },
+          {
+            "key": "keys",
+            "label": {
+              "en": "Keys",
+              "ru": "Клавишные"
+            }
+          },
+          {
+            "key": "synth",
+            "label": {
+              "en": "Synths",
+              "ru": "Синтезаторы"
+            }
+          },
+          {
+            "key": "orchestra",
+            "label": {
+              "en": "Strings and winds",
+              "ru": "Струнные и духовые"
+            }
+          },
+          {
+            "key": "colour",
+            "label": {
+              "en": "Colour",
+              "ru": "Краски"
+            }
+          }
+        ]
+      },
+      {
+        "key": "bass",
+        "label": {
+          "en": "Bass",
+          "ru": "Бас"
+        },
+        "hint": {
+          "en": "The low end: which bass and how it sits. Explain the weight and the character it gives.",
+          "ru": "Низ: какой бас и как он сидит. Поясни, какой вес и характер он даёт."
+        },
+        "icon": "waves",
+        "form": "phrase"
+      },
+      {
+        "key": "mood",
+        "label": {
+          "en": "Mood",
+          "ru": "Атмосфера"
+        },
+        "hint": {
+          "en": "The feeling of the track in a word or two. Explain what a listener should feel and what it pulls the arrangement towards.",
+          "ru": "Чувство трека в одном-двух словах. Поясни, что должен почувствовать слушатель и куда это тянет аранжировку."
+        },
+        "icon": "cloud",
+        "form": "phrase"
+      },
+      {
+        "key": "texture",
+        "label": {
+          "en": "Texture",
+          "ru": "Фактура"
+        },
+        "hint": {
+          "en": "The surface of the recording: grain, noise, space, how polished or raw. Explain what it does to the sound.",
+          "ru": "Поверхность записи: зерно, шум, пространство, насколько гладко или сыро. Поясни, что это делает со звуком."
+        },
+        "icon": "waveform",
+        "form": "phrase"
+      },
+      {
+        "key": "tempo",
+        "label": {
+          "en": "Tempo",
+          "ru": "Темп"
+        },
+        "hint": {
+          "en": "The tempo or the feel of it in words. Explain how fast it feels and why.",
+          "ru": "Темп или его ощущение словами. Поясни, насколько быстро это ощущается и почему."
+        },
+        "icon": "gauge",
+        "form": "phrase"
+      },
+      {
+        "key": "dynamics",
+        "label": {
+          "en": "Dynamics",
+          "ru": "Динамика"
+        },
+        "hint": {
+          "en": "How the arrangement moves from start to end: builds, drops, contrasts. Explain the path it gives the track.",
+          "ru": "Как аранжировка движется от начала к концу: нарастания, обрывы, контрасты. Поясни, какой путь она даёт треку."
+        },
+        "icon": "trending",
+        "form": "phrase"
+      },
+      {
+        "key": "knob",
+        "label": {
+          "en": "Knob",
+          "ru": "Приём"
+        },
+        "hint": {
+          "en": "One line appended to any core to push one thing - one at a time, so it is heard what moved. Explain what it pushes and how far.",
+          "ru": "Одна строка, которую дописывают к любому ядру, чтобы сдвинуть одно, - по одной за раз, чтобы было слышно, что сдвинулось. Поясни, что она двигает и насколько."
+        },
+        "icon": "sliders",
+        "form": "phrase"
       }
     ],
     "collection_kinds": [
@@ -2863,6 +3126,24 @@
         ]
       },
       {
+        "key": "compose-sound",
+        "label": {
+          "en": "Write the style as prose",
+          "ru": "Написать стиль прозой"
+        },
+        "description": {
+          "en": "The phrases picked for the sound, written up as one style prompt in sentences.",
+          "ru": "Выбранные фразы звука, сведённые в один промпт стиля предложениями."
+        },
+        "icon": "music",
+        "template": "A song called \"{title}\".\n\nIts fields:\n\n{fields}\n\nThe phrases picked for its sound, in the order they were picked, each with what it means:\n\n{styles}\n\nWrite the style prompt.",
+        "produces": "version:style",
+        "method": "# Style in prose\n\n## Role\n\nYou write the style prompt a music generator reads, out of phrases the person picked from their own dictionary of sound. Each phrase arrives under the word for what it contributes - genre, vocal delivery, groove, instrument, bass, mood, texture, tempo, dynamics, a knob - with what it means.\n\n## How to write it\n\n- **Prose, not a list.** Three to six sentences that describe one track: what it stands on, how the voice is delivered, what the drums do, which instrument leads, how it moves from start to end.\n- **Keep the phrases.** The generator knows them as they are written; keep each picked phrase word for word where it fits a sentence, and do not trade it for a synonym.\n- **The order is the weight.** The first phrase is the spine of the sound and comes first; the last is a detail.\n- **Resolve, do not stack.** Where two phrases pull against each other, say how they meet - a half-time guitar over a fast break - rather than naming both and leaving it to chance.\n- Put the tempo and the key from the fields in where they belong.\n- Under 1000 characters, in English.\n\n## Never\n\nNo artist, band or song names - the generator ignores them or refuses. No lyrics, no section tags, no words about the song's story.\n\n## Output\n\nThe prompt alone, nothing before it. Then, if a phrase had to be left out or bent, one line beginning \"Note:\".",
+        "kinds": [
+          "song"
+        ]
+      },
+      {
         "key": "titles",
         "label": {
           "en": "Alternative titles",
@@ -2984,6 +3265,22 @@
         "method": "# Style reader\n\n## Role\n\nYou are looking at reference pictures and writing the description a style brick will carry. That description goes into future prompts word for word, so it is written to be *used*, not to be admired.\n\n## What to write\n\n- Stay strictly inside what the brick's type asks for. The type's instruction is given with the task; it decides which question these pictures answer. The same photograph is a render recipe under one type and a person under another — describing both is the mistake this dictionary exists to prevent.\n- Describe only what recurs across the references. A detail in one picture and not the others is that picture's, not the style's.\n- Be concrete and countable: named colours, named materials, the quality of the light, the lens, the grain. No adjectives that could mean anything — \"beautiful\", \"striking\", \"moody\" say nothing to a generator.\n- Follow the author's steer when one is given; it narrows what to look at, it is not itself part of the description.\n- Six to twelve lines. Long enough to reproduce the look, short enough to sit inside a prompt beside five other parts.\n\n## Output\n\nThe description alone. No preamble, no heading, no list of the files, nothing after it.\n",
         "scope": "style",
         "produces": "description"
+      },
+      {
+        "key": "explain-phrases",
+        "label": {
+          "en": "Explain",
+          "ru": "Пояснить"
+        },
+        "description": {
+          "en": "Phrases the dictionary does not know, proposed as bricks with what they mean in every language.",
+          "ru": "Фразы, которых нет в словаре, - предложением кирпичиков с пояснением на всех языках."
+        },
+        "icon": "book",
+        "template": "The phrases to explain, each with how often it is written:\n\n{phrases}\n\nThe types a phrase can be filed under:\n\n{types}\n\nPropose a brick for each phrase that is one.",
+        "produces": "bricks",
+        "scope": "phrases",
+        "method": "# Phrase explainer\n\n## Role\n\nYou keep a dictionary of the phrases a person writes into a music generator's style prompt. Each brick is one phrase, exactly as it is written, and what it means for someone who has not met it: what it is, and what it gives the track.\n\n## What to write for each phrase\n\n- **type**: the one type it belongs to, from the list given, by its key. A genre tag is a genre; a line that pushes one thing on top of any core is a knob.\n- **phrase**: the phrase exactly as given. Do not correct, translate or shorten it - the text it came from says it this way.\n- **explanation**: in English and in Russian, one or two sentences each: what it is, and what it does to the sound - its texture, energy, space, feeling. Concrete; no \"beautiful\", no \"amazing\". In Russian, natural Russian, not a word-for-word translation.\n- **when**: in English, one sentence - when to reach for it.\n- **family**: only where the type has families, the key that fits.\n\n## Never\n\nDo not propose a phrase that is not a sound - a section tag, a lyric, a number, a stray word. Leave it out and say in one line why. No artist or band names in an explanation.\n\n## Output\n\nOne line on what you left out, if anything, then the block."
       },
       {
         "key": "read-comment",
@@ -3200,6 +3497,122 @@
           "en": "Other",
           "ru": "Другое"
         }
+      }
+    ],
+    "compose": [
+      {
+        "key": "sound",
+        "label": {
+          "en": "Sound",
+          "ru": "Звук"
+        },
+        "role": "style",
+        "kinds": [
+          "song"
+        ],
+        "parts": [
+          {
+            "type": "genre",
+            "min": 1,
+            "max": 3,
+            "rule": {
+              "en": "Two or three tags: the foundation, changed rarely.",
+              "ru": "Два-три тега: фундамент, его меняют редко."
+            }
+          },
+          {
+            "type": "vocal",
+            "min": 1,
+            "max": 2,
+            "rule": {
+              "en": "One mode of delivery; a second only to say where the backing comes in.",
+              "ru": "Один режим подачи; второй - только чтобы сказать, где вступают подпевки."
+            }
+          },
+          {
+            "type": "groove",
+            "min": 1,
+            "max": 1,
+            "rule": {
+              "en": "One groove: the strongest lever against songs that sound the same.",
+              "ru": "Один грув: самый сильный рычаг против песен, звучащих одинаково."
+            }
+          },
+          {
+            "type": "instrument",
+            "min": 1,
+            "max": 4,
+            "rule": {
+              "en": "Up to four, and the first is the lead: the generator weighs tags from the left.",
+              "ru": "До четырёх, и первый - ведущий: генератор взвешивает теги слева направо."
+            }
+          },
+          {
+            "type": "bass",
+            "min": 0,
+            "max": 1,
+            "rule": {
+              "en": "One, or none: it holds the character more than it seems.",
+              "ru": "Один или ни одного: он держит характер сильнее, чем кажется."
+            }
+          },
+          {
+            "type": "mood",
+            "min": 1,
+            "max": 3,
+            "rule": {
+              "en": "Two or three words of feeling.",
+              "ru": "Два-три слова о чувстве."
+            }
+          },
+          {
+            "type": "texture",
+            "min": 0,
+            "max": 2,
+            "rule": {
+              "en": "One or two, never the whole set at once.",
+              "ru": "Одна-две, никогда не всё сразу."
+            }
+          },
+          {
+            "type": "tempo",
+            "min": 0,
+            "max": 1,
+            "rule": {
+              "en": "One; the BPM of the song is added on its own.",
+              "ru": "Один; BPM песни допишется сам."
+            }
+          },
+          {
+            "type": "dynamics",
+            "min": 0,
+            "max": 1,
+            "rule": {
+              "en": "One; without it the track runs flat from start to end.",
+              "ru": "Одна; без неё трек ровный от начала до конца."
+            }
+          },
+          {
+            "type": "knob",
+            "min": 0,
+            "max": 1,
+            "rule": {
+              "en": "One at a time, or it cannot be heard what moved.",
+              "ru": "По одному, иначе не слышно, что сдвинулось."
+            }
+          }
+        ],
+        "fields": [
+          {
+            "field": "bpm",
+            "template": "{value} bpm"
+          },
+          {
+            "field": "key",
+            "template": "{value}"
+          }
+        ],
+        "limit": 1000
       }
     ]
   },
@@ -7688,6 +8101,3069 @@
         "#7A5CFF",
         "#FF6F61"
       ]
+    },
+    {
+      "key": "sound-alt-rock-90s",
+      "type": "genre",
+      "label": {
+        "en": "alt-rock 90s",
+        "ru": "альт-рок 90-х"
+      },
+      "family": "rock",
+      "description": "alt-rock 90s",
+      "explanation": {
+        "en": "Nineties alternative rock: quiet-loud dynamics and honest, unglossy guitar drive that favours feeling over polish.",
+        "ru": "Альтернативный рок 90-х: динамика «тихо-громко» и честный негладкий гитарный драйв, где чувство важнее лоска."
+      },
+      "when": "As the backbone of a guitar song with a loud chorus."
+    },
+    {
+      "key": "sound-lo-fi-grunge",
+      "type": "genre",
+      "label": {
+        "en": "lo-fi grunge",
+        "ru": "лоу-фай гранж"
+      },
+      "family": "rock",
+      "description": "lo-fi grunge",
+      "explanation": {
+        "en": "Grunge recorded roughly: gritty guitars, dirty texture and a deliberately anti-heroic attitude.",
+        "ru": "Грунж с грубой записью: шершавые гитары, грязноватая фактура и намеренный антипафос."
+      },
+      "when": "When the track should feel scruffy and unpolished rather than big."
+    },
+    {
+      "key": "sound-post-punk",
+      "type": "genre",
+      "label": {
+        "en": "post-punk",
+        "ru": "пост-панк"
+      },
+      "family": "rock",
+      "description": "post-punk",
+      "explanation": {
+        "en": "Dry, nervous guitars over a cold rhythm, with angular and slightly gothic tension.",
+        "ru": "Сухие нервные гитары поверх холодного ритма, угловатость и лёгкая готическая напряжённость."
+      },
+      "when": "For tense, detached songs that move forward without warmth."
+    },
+    {
+      "key": "sound-post-rock",
+      "type": "genre",
+      "label": {
+        "en": "post-rock",
+        "ru": "пост-рок"
+      },
+      "family": "rock",
+      "description": "post-rock",
+      "explanation": {
+        "en": "Instrumental-leaning rock built on slow crescendos, delayed guitar motifs and long dynamic arcs instead of verses and choruses.",
+        "ru": "Рок с уклоном в инструментал: медленные нарастания, гитарные мотивы с задержкой и длинные дуги вместо куплетов и припевов."
+      },
+      "when": "When the song is a journey rather than a hook."
+    },
+    {
+      "key": "sound-indie-rock",
+      "type": "genre",
+      "label": {
+        "en": "indie rock",
+        "ru": "инди-рок"
+      },
+      "family": "rock",
+      "description": "indie rock",
+      "explanation": {
+        "en": "Guitar rock with a home-made, personal feel: melodic, slightly off-centre and free of stadium gloss.",
+        "ru": "Гитарный рок с домашним личным звучанием: мелодичный, чуть неровный, без стадионного глянца."
+      },
+      "when": "As a neutral, melodic guitar base for personal songs."
+    },
+    {
+      "key": "sound-dream-pop",
+      "type": "genre",
+      "label": {
+        "en": "dream pop",
+        "ru": "дрим-поп"
+      },
+      "family": "dream",
+      "description": "dream pop",
+      "explanation": {
+        "en": "Blurred, reverberant and dreamy pop; softer and more floating than grunge.",
+        "ru": "Размытый, реверберированный, мечтательный поп - мягче и воздушнее грунжа."
+      },
+      "when": "When the song should drift rather than hit."
+    },
+    {
+      "key": "sound-shoegaze",
+      "type": "genre",
+      "label": {
+        "en": "shoegaze",
+        "ru": "шугейз"
+      },
+      "family": "dream",
+      "description": "shoegaze",
+      "explanation": {
+        "en": "A wall of effected guitars in a haze, with the vocal sitting inside the sound and an ethereal glow.",
+        "ru": "Стена гитар с эффектами в дымке, вокал растворён внутри звука, эфирное свечение."
+      },
+      "when": "For songs that should wash over the listener."
+    },
+    {
+      "key": "sound-ethereal-wave",
+      "type": "genre",
+      "label": {
+        "en": "ethereal wave",
+        "ru": "этереал-вейв"
+      },
+      "family": "dream",
+      "description": "ethereal wave",
+      "explanation": {
+        "en": "Ghostly, otherworldly and gothic-beautiful: reverbed voices and slow, hollow textures.",
+        "ru": "Призрачное, неземное и готически красивое звучание: голоса в реверберации и медленные полые фактуры."
+      },
+      "when": "For fragile, spectral ballads."
+    },
+    {
+      "key": "sound-slowcore",
+      "type": "genre",
+      "label": {
+        "en": "slowcore",
+        "ru": "слоукор"
+      },
+      "family": "dream",
+      "description": "slowcore",
+      "explanation": {
+        "en": "Very slow, sparse music with quiet intensity and a lot of air between the notes.",
+        "ru": "Очень медленная разреженная музыка с тихой интенсивностью и большим количеством воздуха между нотами."
+      },
+      "when": "When restraint and silence should carry the weight."
+    },
+    {
+      "key": "sound-trip-hop",
+      "type": "genre",
+      "label": {
+        "en": "trip-hop",
+        "ru": "трип-хоп"
+      },
+      "family": "electronic",
+      "description": "trip-hop",
+      "explanation": {
+        "en": "Slow, heavy sampled beats with deep bass, smoky atmosphere and a nocturnal, cinematic mood.",
+        "ru": "Медленные тяжёлые сэмплированные биты, глубокий бас, дымная ночная кинематографичная атмосфера."
+      },
+      "when": "For brooding songs built on a groove and a low end."
+    },
+    {
+      "key": "sound-big-beat",
+      "type": "genre",
+      "label": {
+        "en": "big beat",
+        "ru": "биг-бит"
+      },
+      "family": "electronic",
+      "description": "big beat",
+      "explanation": {
+        "en": "Fat, over-compressed breakbeats with a gunshot snare and rock attitude, usually around 120-140 BPM.",
+        "ru": "Жирные пережатые брейки со снэйром-«выстрелом» и рок-характером, обычно 120-140 ударов в минуту."
+      },
+      "when": "When drums should be the loud centrepiece with rock swagger."
+    },
+    {
+      "key": "sound-jungle",
+      "type": "genre",
+      "label": {
+        "en": "jungle",
+        "ru": "джангл"
+      },
+      "family": "electronic",
+      "description": "jungle",
+      "explanation": {
+        "en": "Fast chopped breakbeats at roughly 160-175 BPM with deep sub bass; nervous, rolling and dark.",
+        "ru": "Быстрые рубленые брейки примерно 160-175 BPM и глубокий саб-бас: нервно, катится вперёд, тёмно."
+      },
+      "when": "For urgent, rushing energy with a heavy low end."
+    },
+    {
+      "key": "sound-drum-and-bass",
+      "type": "genre",
+      "label": {
+        "en": "drum and bass",
+        "ru": "драм-н-бейс"
+      },
+      "family": "electronic",
+      "description": "drum and bass",
+      "explanation": {
+        "en": "A fast two-step beat around 170-176 BPM with rolling bass; driving, clean and energetic.",
+        "ru": "Быстрый двухшаговый бит около 170-176 BPM и катящийся бас: ровный, чистый, энергичный."
+      },
+      "when": "When the track should run at speed under slower melodies."
+    },
+    {
+      "key": "sound-industrial",
+      "type": "genre",
+      "label": {
+        "en": "industrial",
+        "ru": "индастриал"
+      },
+      "family": "electronic",
+      "description": "industrial",
+      "explanation": {
+        "en": "Mechanical, metallic and distorted: machine rhythms, clanging percussion and a cold, factory-floor menace.",
+        "ru": "Механическое, металлическое, искажённое звучание: машинные ритмы, лязгающая перкуссия и холодная заводская угроза."
+      },
+      "when": "For harsh, cold and confrontational tracks."
+    },
+    {
+      "key": "sound-indie-folk",
+      "type": "genre",
+      "label": {
+        "en": "indie folk",
+        "ru": "инди-фолк"
+      },
+      "family": "folk",
+      "description": "indie folk",
+      "explanation": {
+        "en": "Warmer, acoustic and closer to a confessional song, with fingerpicked strings and a natural voice.",
+        "ru": "Более тёплый акустический вариант, ближе к песне-исповеди: перебор струн и естественный голос."
+      },
+      "when": "When the song should feel intimate and unplugged."
+    },
+    {
+      "key": "sound-chamber-pop",
+      "type": "genre",
+      "label": {
+        "en": "chamber pop",
+        "ru": "камерный поп"
+      },
+      "family": "folk",
+      "description": "chamber pop",
+      "explanation": {
+        "en": "Pop songs dressed in chamber orchestration, where strings and winds carry the arrangement.",
+        "ru": "Поп-песни в камерной оркестровке: струнные и духовые несут аранжировку."
+      },
+      "when": "For songs that need a delicate, orchestral frame."
+    },
+    {
+      "key": "sound-baroque-pop",
+      "type": "genre",
+      "label": {
+        "en": "baroque pop",
+        "ru": "барочный поп"
+      },
+      "family": "folk",
+      "description": "baroque pop",
+      "explanation": {
+        "en": "Pop with harpsichord-like keys, strings and a vintage, theatrical sense of drama.",
+        "ru": "Поп с клавесинными клавишами, струнными и винтажной театральной драматургией."
+      },
+      "when": "When the arrangement should feel ornate and old-fashioned."
+    },
+    {
+      "key": "sound-art-pop",
+      "type": "genre",
+      "label": {
+        "en": "art pop",
+        "ru": "арт-поп"
+      },
+      "family": "pop",
+      "description": "art pop",
+      "explanation": {
+        "en": "Pop with freedom of form, unusual arrangements and a clear authorial signature.",
+        "ru": "Поп со свободной формой, нестандартными аранжировками и ясным авторским почерком."
+      },
+      "when": "When the song should bend the rules of pop."
+    },
+    {
+      "key": "sound-synth-pop",
+      "type": "genre",
+      "label": {
+        "en": "synth-pop",
+        "ru": "синти-поп"
+      },
+      "family": "pop",
+      "description": "synth-pop",
+      "explanation": {
+        "en": "Pop driven by synthesizers, with clean hooks, an electronic pulse and a polished, sometimes wistful sheen.",
+        "ru": "Поп на синтезаторах: чистые хуки, электронный пульс и отполированный, порой грустный блеск."
+      },
+      "when": "For melodic songs led by electronic sounds."
+    },
+    {
+      "key": "sound-bedroom-pop",
+      "type": "genre",
+      "label": {
+        "en": "bedroom pop",
+        "ru": "бедрум-поп"
+      },
+      "family": "pop",
+      "description": "bedroom pop",
+      "explanation": {
+        "en": "Home-recorded, soft and intimate pop with a lo-fi charm and a close, casual voice.",
+        "ru": "Домашний мягкий и интимный поп с лоу-фай обаянием и близким непринуждённым голосом."
+      },
+      "when": "For small, personal songs that sound made at home."
+    },
+    {
+      "key": "sound-russian-indie-rock",
+      "type": "genre",
+      "label": {
+        "en": "russian indie rock",
+        "ru": "русский инди-рок"
+      },
+      "family": "scene",
+      "description": "russian indie rock",
+      "explanation": {
+        "en": "Guitar indie aesthetics with a Russian-language vocal and a sincere, unforced register.",
+        "ru": "Гитарная инди-эстетика с русскоязычным вокалом и искренним негромким регистром."
+      },
+      "when": "When the vocal should carry a Russian-language indie feel."
+    },
+    {
+      "key": "sound-britpop",
+      "type": "genre",
+      "label": {
+        "en": "britpop",
+        "ru": "бритпоп"
+      },
+      "family": "scene",
+      "description": "britpop",
+      "explanation": {
+        "en": "Bright, melodic British guitar pop with big sing-along choruses and a cheeky, working-class swagger.",
+        "ru": "Яркий мелодичный британский гитарный поп с большими припевами для подпевания и дерзкой уличной уверенностью."
+      },
+      "when": "For catchy, anthemic guitar songs."
+    },
+    {
+      "key": "sound-french-chanson",
+      "type": "genre",
+      "label": {
+        "en": "french chanson",
+        "ru": "французский шансон"
+      },
+      "family": "scene",
+      "description": "french chanson",
+      "explanation": {
+        "en": "Sung storytelling in a French tradition, with an expressive voice, accordion or piano and a theatrical, wistful tone.",
+        "ru": "Песенный рассказ во французской традиции: выразительный голос, аккордеон или пианино, театральная задумчивость."
+      },
+      "when": "When the song should feel like a smoky cafe story."
+    },
+    {
+      "key": "sound-nordic-folk",
+      "type": "genre",
+      "label": {
+        "en": "nordic folk",
+        "ru": "северный фолк"
+      },
+      "family": "scene",
+      "description": "nordic folk",
+      "explanation": {
+        "en": "Folk from the north: sparse, ritualistic and cold, with droning strings and open landscapes.",
+        "ru": "Фолк севера: разреженный, ритуальный и холодный, с гудящими струнами и открытыми просторами."
+      },
+      "when": "For austere, wintry, landscape-like songs."
+    },
+    {
+      "key": "sound-latin-alternative",
+      "type": "genre",
+      "label": {
+        "en": "latin alternative",
+        "ru": "латино-альтернатива"
+      },
+      "family": "scene",
+      "description": "latin alternative",
+      "explanation": {
+        "en": "Alternative music with Latin rhythms, nylon-string guitars and a warm, rhythmic pulse.",
+        "ru": "Альтернативная музыка с латиноамериканскими ритмами, нейлоновыми гитарами и тёплым ритмичным пульсом."
+      },
+      "when": "When an indie song needs a warmer, more rhythmic accent."
+    },
+    {
+      "key": "sound-j-rock",
+      "type": "genre",
+      "label": {
+        "en": "j-rock",
+        "ru": "джей-рок"
+      },
+      "family": "scene",
+      "description": "j-rock",
+      "explanation": {
+        "en": "Japanese rock with tight, melodic guitar arrangements, dramatic chord changes and energetic, pop-leaning choruses.",
+        "ru": "Японский рок: собранные мелодичные гитарные аранжировки, драматичные смены аккордов и энергичные припевы с поп-уклоном."
+      },
+      "when": "For bright, dramatic guitar songs with a strong melodic hook."
+    },
+    {
+      "key": "sound-celtic-folk",
+      "type": "genre",
+      "label": {
+        "en": "celtic folk",
+        "ru": "кельтский фолк"
+      },
+      "family": "scene",
+      "description": "celtic folk",
+      "explanation": {
+        "en": "Folk with Celtic modal melodies, fiddle-like lines and a lilting, dance-like pulse.",
+        "ru": "Фолк с кельтскими ладовыми мелодиями, скрипичными линиями и пружинистым танцевальным пульсом."
+      },
+      "when": "When the melody should sound ancient and wistful."
+    },
+    {
+      "key": "sound-jungle-grunge",
+      "type": "genre",
+      "label": {
+        "en": "jungle grunge",
+        "ru": "джангл-гранж"
+      },
+      "family": "hybrid",
+      "description": "jungle grunge",
+      "explanation": {
+        "en": "Grunge guitars played in half-time over a fast chopped jungle break; dark, feverish and heavy.",
+        "ru": "Гранжевые гитары вполовину темпа поверх быстрого рубленого джангл-брейка: тёмно, лихорадочно, тяжело."
+      },
+      "when": "As the opening tag when the drums should lead and the guitars slow down."
+    },
+    {
+      "key": "sound-big-beat-punk",
+      "type": "genre",
+      "label": {
+        "en": "big beat punk",
+        "ru": "биг-бит-панк"
+      },
+      "family": "hybrid",
+      "description": "big beat punk",
+      "explanation": {
+        "en": "A fat big beat break with looped punk guitar and a shouted hook; swaggering and menacing.",
+        "ru": "Жирный биг-бит-брейк с зацикленной панк-гитарой и выкрикнутым хуком: наглость и угроза."
+      },
+      "when": "When the break should hit like a rave and the vocal should sing like a punk song."
+    },
+    {
+      "key": "sound-breakbeat-rock",
+      "type": "genre",
+      "label": {
+        "en": "breakbeat rock",
+        "ru": "брейкбит-рок"
+      },
+      "family": "hybrid",
+      "description": "breakbeat rock",
+      "explanation": {
+        "en": "Rock built over rolling breakbeats, with riffs that loop like samples and a relentless build.",
+        "ru": "Рок на катящихся брейках: риффы зациклены, как сэмплы, и нагнетание не отпускает."
+      },
+      "when": "For frantic, hypnotic tracks where the riff behaves like a loop."
+    },
+    {
+      "key": "sound-drum-gaze",
+      "type": "genre",
+      "label": {
+        "en": "drum-gaze",
+        "ru": "драм-гейз"
+      },
+      "family": "hybrid",
+      "description": "drum-gaze",
+      "explanation": {
+        "en": "Shoegaze guitars hanging in long chords over a fast chopped break, so the song stays slow while the break runs.",
+        "ru": "Шугейз-гитары длинными аккордами над быстрым рубленым брейком: песня остаётся медленной, пока брейк бежит."
+      },
+      "when": "For sad, slow songs with something anxious running underneath."
+    },
+    {
+      "key": "sound-grungegaze",
+      "type": "genre",
+      "label": {
+        "en": "grungegaze",
+        "ru": "грунжгейз"
+      },
+      "family": "hybrid",
+      "description": "grungegaze",
+      "explanation": {
+        "en": "Soft grunge melodies drowned in shoegaze haze: bending droning riffs, fuzz swells and heavy half-time drums.",
+        "ru": "Мелодии мягкого грунжа, утопленные в шугейз-дымке: гнущиеся гудящие риффы, волны фузза и тяжёлые барабаны в половинном темпе."
+      },
+      "when": "For warm, sleepy heaviness with quiet haze and sudden fuzz peaks."
+    },
+    {
+      "key": "sound-nu-gaze",
+      "type": "genre",
+      "label": {
+        "en": "nu-gaze",
+        "ru": "ню-гейз"
+      },
+      "family": "hybrid",
+      "description": "nu-gaze",
+      "explanation": {
+        "en": "Shoegaze haze over nu-metal weight: downtuned groove riffs, a hip-hop beat on a live kit and whispers snapping into screams.",
+        "ru": "Шугейз-дымка поверх ню-метал-тяжести: гитары в низком строе, хип-хоп-грув на живых барабанах, шёпот, срывающийся в крик."
+      },
+      "when": "When the song should be heavy and beautiful at once."
+    },
+    {
+      "key": "sound-breakcore-punk",
+      "type": "genre",
+      "label": {
+        "en": "breakcore punk",
+        "ru": "брейккор-панк"
+      },
+      "family": "hybrid",
+      "description": "breakcore punk",
+      "explanation": {
+        "en": "Shredded breakcore edits under a wall of overdriven punk guitars; feral, clipped and riotous.",
+        "ru": "Рубленые брейккор-нарезки под стеной перегруженных панк-гитар: дико, пережато, мятежно."
+      },
+      "when": "For short, furious tracks where nothing is polished."
+    },
+    {
+      "key": "sound-halftime-grunge",
+      "type": "genre",
+      "label": {
+        "en": "halftime grunge",
+        "ru": "халфтайм-гранж"
+      },
+      "family": "hybrid",
+      "description": "halftime grunge",
+      "explanation": {
+        "en": "Sludgy downtuned fuzz guitars dragging behind a half-time drum and bass groove; crushing and slow.",
+        "ru": "Вязкие фузз-гитары в низком строе, тянущиеся за халфтайм-драм-н-бейсом: давяще и медленно."
+      },
+      "when": "When the weight should feel enormous but the pulse stays slow."
+    },
+    {
+      "key": "sound-female-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "female vocal",
+        "ru": "женский вокал"
+      },
+      "description": "female vocal",
+      "explanation": {
+        "en": "A female lead voice as the base of the track, around which the rest of the arrangement is built.",
+        "ru": "Женский ведущий голос как основа трека, вокруг которого строится остальная аранжировка."
+      },
+      "when": "As the starting point of almost any song with a female lead."
+    },
+    {
+      "key": "sound-male-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "male vocal",
+        "ru": "мужской вокал"
+      },
+      "description": "male vocal",
+      "explanation": {
+        "en": "A male lead voice as the base of the track, around which the rest of the arrangement is built.",
+        "ru": "Мужской ведущий голос как основа трека, вокруг которого строится остальная аранжировка."
+      },
+      "when": "As the starting point of a song with a male lead."
+    },
+    {
+      "key": "sound-constant-female-backing-vocals",
+      "type": "vocal",
+      "label": {
+        "en": "constant female backing vocals",
+        "ru": "постоянные женские подпевки"
+      },
+      "description": "constant female backing vocals",
+      "explanation": {
+        "en": "Dense backing vocals throughout the song; instantly recognisable, but they fill up the air.",
+        "ru": "Плотные подпевки на протяжении всей песни: узнаваемо, но они забивают воздух."
+      },
+      "when": "When the voice should feel like a choir around the lead."
+    },
+    {
+      "key": "sound-intimate-close-mic-female-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "intimate close-mic female vocal",
+        "ru": "близкий интимный женский вокал"
+      },
+      "description": "intimate close-mic female vocal",
+      "explanation": {
+        "en": "A voice recorded very close, almost whispered into the ear, with the breath audible.",
+        "ru": "Голос, записанный совсем близко, почти шёпотом в ухо, со слышимым дыханием."
+      },
+      "when": "Verses that should feel close and confessional."
+    },
+    {
+      "key": "sound-breathy-whisper-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "breathy whisper vocal",
+        "ru": "дыхание и шёпот"
+      },
+      "description": "breathy whisper vocal",
+      "explanation": {
+        "en": "A breathy, whispered delivery that sounds fragile and exposed.",
+        "ru": "Придыхательная шепчущая подача: хрупко и беззащитно."
+      },
+      "when": "When vulnerability matters more than power."
+    },
+    {
+      "key": "sound-double-tracked-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "double-tracked vocal",
+        "ru": "дабл-трек вокала"
+      },
+      "description": "double-tracked vocal",
+      "explanation": {
+        "en": "The same vocal recorded twice and layered, for a thicker, more confident sound without a choir.",
+        "ru": "Один и тот же вокал, записанный дважды и наложенный: плотнее и увереннее без хора."
+      },
+      "when": "When the lead needs weight but no backing singers."
+    },
+    {
+      "key": "sound-layered-vocal-harmonies",
+      "type": "vocal",
+      "label": {
+        "en": "layered vocal harmonies",
+        "ru": "многослойные гармонии"
+      },
+      "description": "layered vocal harmonies",
+      "explanation": {
+        "en": "Stacked harmony lines instead of unison backing, giving a wider and more musical vocal space.",
+        "ru": "Многоголосые гармонии вместо унисонных подпевок: объёмнее и музыкальнее."
+      },
+      "when": "For choruses that should bloom."
+    },
+    {
+      "key": "sound-sparse-backing-vocals",
+      "type": "vocal",
+      "label": {
+        "en": "sparse backing vocals",
+        "ru": "редкие подпевки"
+      },
+      "description": "sparse backing vocals",
+      "explanation": {
+        "en": "Backing vocals only in the chorus, which leaves the verses open and uncluttered.",
+        "ru": "Подпевки только в припеве, куплеты остаются свободными."
+      },
+      "when": "When the verses need space and the chorus needs a lift."
+    },
+    {
+      "key": "sound-spoken-word-verses",
+      "type": "vocal",
+      "label": {
+        "en": "spoken word verses",
+        "ru": "куплеты речитативом"
+      },
+      "description": "spoken word verses",
+      "explanation": {
+        "en": "Verses delivered as near-speech, in contrast with a sung chorus.",
+        "ru": "Куплеты почти речью, в контраст распевному припеву."
+      },
+      "when": "When the verses should read like a story."
+    },
+    {
+      "key": "sound-belted-emotional-chorus",
+      "type": "vocal",
+      "label": {
+        "en": "belted emotional chorus",
+        "ru": "припев на разрыв"
+      },
+      "description": "belted emotional chorus",
+      "explanation": {
+        "en": "A chorus sung at full voice, nearly breaking, which contrasts strongly with quiet verses.",
+        "ru": "Припев полным голосом, на грани срыва, - резкий контраст с тихими куплетами."
+      },
+      "when": "For a payoff after hushed verses."
+    },
+    {
+      "key": "sound-wordless-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "wordless vocal",
+        "ru": "вокализ без слов"
+      },
+      "description": "wordless vocal",
+      "explanation": {
+        "en": "Sung syllables such as ah and oo with no lyrics, used as a coloured instrument.",
+        "ru": "Распевы на слогах вроде «а» и «у» без слов, как инструмент-краска."
+      },
+      "when": "When a melody should be carried by voice without lyrics."
+    },
+    {
+      "key": "sound-vocal-chops",
+      "type": "vocal",
+      "label": {
+        "en": "vocal chops",
+        "ru": "нарезка вокала"
+      },
+      "description": "vocal chops",
+      "explanation": {
+        "en": "Sliced vocal samples used as rhythmic texture, a classic trip-hop habit.",
+        "ru": "Нарезанные вокальные сэмплы как ритмическая текстура, классический приём трип-хопа."
+      },
+      "when": "To add a ghostly rhythmic layer around the lead."
+    },
+    {
+      "key": "sound-deadpan-flat-delivery",
+      "type": "vocal",
+      "label": {
+        "en": "deadpan flat delivery",
+        "ru": "бесстрастная подача"
+      },
+      "description": "deadpan flat delivery",
+      "explanation": {
+        "en": "A deliberately emotionless delivery that heightens the feeling of detachment.",
+        "ru": "Намеренно бесстрастная подача, усиливающая ощущение отстранённости."
+      },
+      "when": "For cold, ironic or numb songs."
+    },
+    {
+      "key": "sound-no-backing-vocals",
+      "type": "vocal",
+      "label": {
+        "en": "no backing vocals",
+        "ru": "без подпевок"
+      },
+      "description": "no backing vocals",
+      "explanation": {
+        "en": "A solo lead vocal with nothing around it, giving maximum exposure.",
+        "ru": "Только ведущий голос, ничего вокруг: максимальная обнажённость."
+      },
+      "when": "When the song should feel bare and personal."
+    },
+    {
+      "key": "sound-detached-baritone-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "detached baritone vocal",
+        "ru": "отстранённый баритон"
+      },
+      "description": "detached baritone vocal",
+      "explanation": {
+        "en": "A low male voice with no vibrato, flat and observational in tone.",
+        "ru": "Низкий мужской голос без вибрато, ровный и наблюдающий."
+      },
+      "when": "For cold, nocturnal post-punk songs."
+    },
+    {
+      "key": "sound-raspy-conversational-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "raspy conversational vocal",
+        "ru": "хрипловатая разговорная манера"
+      },
+      "description": "raspy conversational vocal",
+      "explanation": {
+        "en": "A slightly hoarse voice that sings as if talking, with irony and warmth.",
+        "ru": "Слегка хрипловатый голос, поющий как будто в разговоре, с иронией и теплом."
+      },
+      "when": "For wry, down-to-earth storytelling."
+    },
+    {
+      "key": "sound-snarled-punk-vocal",
+      "type": "vocal",
+      "label": {
+        "en": "snarled punk vocal",
+        "ru": "рычащий панк-вокал"
+      },
+      "description": "snarled punk vocal",
+      "explanation": {
+        "en": "A sneering, shouted vocal with no vibrato and a hard attack.",
+        "ru": "Насмешливый выкрикиваемый вокал без вибрато и с жёсткой атакой."
+      },
+      "when": "When the delivery should be confrontational."
+    },
+    {
+      "key": "sound-chanted-mantra-hook",
+      "type": "vocal",
+      "label": {
+        "en": "chanted mantra hook",
+        "ru": "хук-мантра"
+      },
+      "description": "chanted mantra hook",
+      "explanation": {
+        "en": "One short phrase chanted again and again like a mantra instead of a melodic chorus.",
+        "ru": "Одна короткая фраза, повторяемая как мантра, вместо мелодичного припева."
+      },
+      "when": "For hypnotic, aggressive repetition over a break."
+    },
+    {
+      "key": "sound-pitched-up-vocal-double",
+      "type": "vocal",
+      "label": {
+        "en": "pitched-up vocal double",
+        "ru": "дубль вокала с повышенным питчем"
+      },
+      "description": "pitched-up vocal double",
+      "explanation": {
+        "en": "A second copy of the vocal pitched upward and layered under the lead, adding a glassy, digital edge.",
+        "ru": "Копия вокала с повышенным питчем под основным голосом: стеклянный цифровой оттенок."
+      },
+      "when": "For modern, bedroom-style vocals."
+    },
+    {
+      "key": "sound-long-slow-vocal-notes",
+      "type": "vocal",
+      "label": {
+        "en": "long slow vocal notes",
+        "ru": "долгие медленные ноты"
+      },
+      "description": "long slow vocal notes",
+      "explanation": {
+        "en": "A close vocal singing sustained notes at half the pace of the music beneath it.",
+        "ru": "Близкий голос, тянущий долгие ноты вдвое медленнее музыки под ним."
+      },
+      "when": "When the voice should stay calm above a fast beat."
+    },
+    {
+      "key": "sound-breakbeat",
+      "type": "groove",
+      "label": {
+        "en": "breakbeat",
+        "ru": "брейкбит"
+      },
+      "family": "breaks",
+      "description": "breakbeat",
+      "explanation": {
+        "en": "A chopped, syncopated drum break with nervous, uneven energy; it works at roughly 90-180 BPM depending on style.",
+        "ru": "Рубленый синкопированный барабанный брейк: нервная неровная энергия, звучит примерно от 90 до 180 BPM в зависимости от стиля."
+      },
+      "when": "When the beat should be broken and restless rather than straight."
+    },
+    {
+      "key": "sound-loose-funky-soul-breakbeat",
+      "type": "groove",
+      "label": {
+        "en": "loose funky soul breakbeat",
+        "ru": "расслабленный соул-брейк"
+      },
+      "family": "breaks",
+      "description": "loose funky soul breakbeat",
+      "explanation": {
+        "en": "A swaying soul-style break with shuffling hi-hats and a lazy kick, at around 96-118 BPM.",
+        "ru": "Покачивающийся брейк в соул-духе с шаркающим хэтом и ленивой бочкой, около 96-118 BPM."
+      },
+      "when": "For a groove that sways instead of hitting."
+    },
+    {
+      "key": "sound-fat-compressed-breakbeat",
+      "type": "groove",
+      "label": {
+        "en": "fat compressed breakbeat",
+        "ru": "жирный пережатый брейк"
+      },
+      "family": "breaks",
+      "description": "fat compressed breakbeat",
+      "explanation": {
+        "en": "A big, heavily compressed break with a gunshot snare, at around 120-140 BPM.",
+        "ru": "Большой сильно сжатый брейк со снэйром-«выстрелом», около 120-140 BPM."
+      },
+      "when": "When the drums should sound huge and aggressive."
+    },
+    {
+      "key": "sound-chopped-amen-break",
+      "type": "groove",
+      "label": {
+        "en": "chopped amen break",
+        "ru": "рубленый амен-брейк"
+      },
+      "family": "breaks",
+      "description": "chopped amen break",
+      "explanation": {
+        "en": "A sliced classic break with the snare scattering across the toms, at roughly 160-175 BPM.",
+        "ru": "Нарезанный классический брейк, где снэйр рассыпается по томам, примерно 160-175 BPM."
+      },
+      "when": "For fast, nervous jungle energy."
+    },
+    {
+      "key": "sound-rolling-two-step-drum-and-bass-beat",
+      "type": "groove",
+      "label": {
+        "en": "rolling two-step drum and bass beat",
+        "ru": "ровный двухшаговый драм-н-бейс"
+      },
+      "family": "breaks",
+      "description": "rolling two-step drum and bass beat",
+      "explanation": {
+        "en": "An even two-step pattern at about 170-176 BPM that keeps rolling forward without pause.",
+        "ru": "Ровный двухшаговый рисунок около 170-176 BPM, который непрерывно катится вперёд."
+      },
+      "when": "For driving speed with a clean, steady pulse."
+    },
+    {
+      "key": "sound-halftime-drum-and-bass",
+      "type": "groove",
+      "label": {
+        "en": "halftime drum and bass",
+        "ru": "халфтайм драм-н-бейс"
+      },
+      "family": "breaks",
+      "description": "halftime drum and bass",
+      "explanation": {
+        "en": "A drum and bass pattern at about 170-176 BPM that feels like 85-88, with the snare on the three and hats at double speed.",
+        "ru": "Драм-н-бейс около 170 BPM с ощущением 85: снэйр на третьей доле, хэты вдвое быстрее."
+      },
+      "when": "When the beat should feel heavy and slow but busy on top."
+    },
+    {
+      "key": "sound-breakcore",
+      "type": "groove",
+      "label": {
+        "en": "breakcore",
+        "ru": "брейккор"
+      },
+      "family": "breaks",
+      "description": "breakcore",
+      "explanation": {
+        "en": "Shredded, frantic breaks at roughly 180-250 BPM, clipped, chaotic and violent.",
+        "ru": "Рубленые лихорадочные брейки от 180 до 250 BPM, пережатые и хаотичные."
+      },
+      "when": "For chaos and speed in a short, violent burst."
+    },
+    {
+      "key": "sound-industrial-breakbeat",
+      "type": "groove",
+      "label": {
+        "en": "industrial breakbeat",
+        "ru": "индастриал-брейк"
+      },
+      "family": "breaks",
+      "description": "industrial breakbeat",
+      "explanation": {
+        "en": "A metallic, gated break at around 100-140 BPM with a cold, mechanical edge.",
+        "ru": "Металлический гейтованный брейк около 100-140 BPM с холодным механическим оттенком."
+      },
+      "when": "When the drums should sound like a factory."
+    },
+    {
+      "key": "sound-breakbeat-hardcore",
+      "type": "groove",
+      "label": {
+        "en": "breakbeat hardcore",
+        "ru": "брейкбит-хардкор"
+      },
+      "family": "breaks",
+      "description": "breakbeat hardcore",
+      "explanation": {
+        "en": "Early-nineties rave break at about 140-150 BPM with pitched-up samples, piano stabs and hoover synths.",
+        "ru": "Рейв-брейк начала 90-х около 140-150 BPM с ускоренными сэмплами, пианино-стабами и хувер-синтом."
+      },
+      "when": "For euphoric, nostalgic warehouse energy."
+    },
+    {
+      "key": "sound-live-drummer-playing-breakbeat-patterns-by-hand",
+      "type": "groove",
+      "label": {
+        "en": "live drummer playing breakbeat patterns by hand",
+        "ru": "живой барабанщик играет брейк"
+      },
+      "family": "breaks",
+      "description": "live drummer playing breakbeat patterns by hand",
+      "explanation": {
+        "en": "A drummer plays break patterns by hand with ghost notes and open hats, at any tempo, with no sampler involved.",
+        "ru": "Барабанщик играет брейки руками: гоуст-ноты, открытый хэт, любой темп, без сэмплера."
+      },
+      "when": "When the song should sound like a band in a room."
+    },
+    {
+      "key": "sound-shuffling-2-step-garage-beat",
+      "type": "groove",
+      "label": {
+        "en": "shuffling 2-step garage beat",
+        "ru": "шаффл 2-степ гэридж"
+      },
+      "family": "breaks",
+      "description": "shuffling 2-step garage beat",
+      "explanation": {
+        "en": "A skipping garage rhythm with crisp rimshots at about 130-140 BPM; swaying and nocturnal.",
+        "ru": "Подскакивающий гэридж-ритм с чёткими римшотами около 130-140 BPM: качает и звучит ночью."
+      },
+      "when": "For cold guitars on a bouncy urban shuffle."
+    },
+    {
+      "key": "sound-punchy-drums",
+      "type": "groove",
+      "label": {
+        "en": "punchy drums",
+        "ru": "бьющие барабаны"
+      },
+      "family": "kit",
+      "description": "punchy drums",
+      "explanation": {
+        "en": "Clear, hard-hitting drums with rock drive and a tight attack.",
+        "ru": "Чёткие, бьющие барабаны с рок-драйвом и собранной атакой."
+      },
+      "when": "When the band should hit with confidence."
+    },
+    {
+      "key": "sound-brushed-drums",
+      "type": "groove",
+      "label": {
+        "en": "brushed drums",
+        "ru": "щётки на барабанах"
+      },
+      "family": "kit",
+      "description": "brushed drums",
+      "explanation": {
+        "en": "Brushes on snare and cymbals instead of sticks, giving a soft, jazz-like intimacy.",
+        "ru": "Щётки по малому барабану и тарелкам вместо палок: мягкость и камерность в духе джаза."
+      },
+      "when": "For quiet, chamber-sized songs."
+    },
+    {
+      "key": "sound-loose-live-drum-kit",
+      "type": "groove",
+      "label": {
+        "en": "loose live drum kit",
+        "ru": "живые барабаны с плывущим ритмом"
+      },
+      "family": "kit",
+      "description": "loose live drum kit",
+      "explanation": {
+        "en": "A real drum kit with a human, slightly drifting timing that feels played rather than gridded.",
+        "ru": "Живая ударная установка с человеческим, слегка плывущим таймингом."
+      },
+      "when": "When the feel should be organic, not rigid."
+    },
+    {
+      "key": "sound-half-time-drums",
+      "type": "groove",
+      "label": {
+        "en": "half-time drums",
+        "ru": "барабаны в половинном темпе"
+      },
+      "family": "kit",
+      "description": "half-time drums",
+      "explanation": {
+        "en": "The backbeat falls half as often, so the groove feels bigger, heavier and slower.",
+        "ru": "Бэкбит падает вдвое реже: грув ощущается больше, тяжелее и медленнее."
+      },
+      "when": "When the track should feel massive without speeding up."
+    },
+    {
+      "key": "sound-shuffle-groove",
+      "type": "groove",
+      "label": {
+        "en": "shuffle groove",
+        "ru": "шаффл-грув"
+      },
+      "family": "kit",
+      "description": "shuffle groove",
+      "explanation": {
+        "en": "A swung, rocking triplet feel with a lively, bouncing pulse.",
+        "ru": "Свинговая качающаяся триольная доля с живым подскоком."
+      },
+      "when": "For a warm, dancing swing."
+    },
+    {
+      "key": "sound-tom-heavy-tribal-groove",
+      "type": "groove",
+      "label": {
+        "en": "tom-heavy tribal groove",
+        "ru": "томовый ритуальный грув"
+      },
+      "family": "kit",
+      "description": "tom-heavy tribal groove",
+      "explanation": {
+        "en": "Booming toms in a ritual pattern that builds steadily and sounds primal.",
+        "ru": "Гулкие томы в ритуальном рисунке с постоянным нарастанием."
+      },
+      "when": "For a primal, building pulse."
+    },
+    {
+      "key": "sound-motorik-krautrock-beat",
+      "type": "groove",
+      "label": {
+        "en": "motorik krautrock beat",
+        "ru": "моторик-бит"
+      },
+      "family": "kit",
+      "description": "motorik krautrock beat",
+      "explanation": {
+        "en": "A steady hypnotic 4/4 drive that pushes forward without swinging, like a train.",
+        "ru": "Ровный гипнотический ритм 4/4, который двигает вперёд, не раскачивая."
+      },
+      "when": "For propulsive, trance-like songs on the road."
+    },
+    {
+      "key": "sound-hip-hop-groove-played-on-a-live-kit",
+      "type": "groove",
+      "label": {
+        "en": "hip-hop groove played on a live kit",
+        "ru": "хип-хоп-грув на живых барабанах"
+      },
+      "family": "kit",
+      "description": "hip-hop groove played on a live kit",
+      "explanation": {
+        "en": "A syncopated hip-hop beat with a late kick and a fat, dry snare, played by a real drummer.",
+        "ru": "Синкопированный хип-хоп-бит с запаздывающей бочкой и жирным сухим снэйром в исполнении живого барабанщика."
+      },
+      "when": "For heavy, nodding grooves with a human feel."
+    },
+    {
+      "key": "sound-galloping-toms",
+      "type": "groove",
+      "label": {
+        "en": "galloping toms",
+        "ru": "галоп на томах"
+      },
+      "family": "kit",
+      "description": "galloping toms",
+      "explanation": {
+        "en": "A fast, running pattern across the toms, close in spirit to a chopped break and full of urgency.",
+        "ru": "Быстрый бегущий рисунок по томам, по духу близкий к рубленому брейку."
+      },
+      "when": "For urgent, chase-like energy."
+    },
+    {
+      "key": "sound-tight-drum-machine",
+      "type": "groove",
+      "label": {
+        "en": "tight drum machine",
+        "ru": "драм-машина, чёткая"
+      },
+      "family": "machine",
+      "description": "tight drum machine",
+      "explanation": {
+        "en": "A dry, mechanical rhythm box that keeps cold, exact timing with no human drift.",
+        "ru": "Сухой механический ритм-бокс с холодной точностью и без человеческого плавания."
+      },
+      "when": "When the beat should feel cold and exact."
+    },
+    {
+      "key": "sound-trip-hop-downtempo-beat",
+      "type": "groove",
+      "label": {
+        "en": "trip-hop downtempo beat",
+        "ru": "трип-хоп даунтемпо бит"
+      },
+      "family": "machine",
+      "description": "trip-hop downtempo beat",
+      "explanation": {
+        "en": "A slow, grounded, head-nodding beat with a lazy swing and a heavy snare.",
+        "ru": "Медленный приземлённый бит, под который кивает голова, с ленивым свингом и тяжёлым снэйром."
+      },
+      "when": "For moody, nodding grooves at a slow pace."
+    },
+    {
+      "key": "sound-boom-bap-drums",
+      "type": "groove",
+      "label": {
+        "en": "boom-bap drums",
+        "ru": "бум-бэп барабаны"
+      },
+      "family": "machine",
+      "description": "boom-bap drums",
+      "explanation": {
+        "en": "Sampled hip-hop drums with dusty grit that swing differently from trip-hop.",
+        "ru": "Сэмплированные хип-хоп-барабаны с пыльной шероховатостью, качающие иначе, чем трип-хоп."
+      },
+      "when": "When the groove should feel crate-dug and gritty."
+    },
+    {
+      "key": "sound-four-on-the-floor-soft-kick",
+      "type": "groove",
+      "label": {
+        "en": "four-on-the-floor soft kick",
+        "ru": "мягкая бочка на каждую долю"
+      },
+      "family": "machine",
+      "description": "four-on-the-floor soft kick",
+      "explanation": {
+        "en": "An even, gentle kick on every beat for a fluid, lightly driving pulse.",
+        "ru": "Ровная мягкая бочка на каждую долю: текучий, слегка подталкивающий пульс."
+      },
+      "when": "For a smooth forward pull without aggression."
+    },
+    {
+      "key": "sound-808-drums",
+      "type": "groove",
+      "label": {
+        "en": "808 drums",
+        "ru": "барабаны 808"
+      },
+      "family": "machine",
+      "description": "808 drums",
+      "explanation": {
+        "en": "Classic drum machine sounds with a booming kick, snappy clap and ticking hi-hats.",
+        "ru": "Классические звуки драм-машины: гулкая бочка, звонкий клэп и тикающие хэты."
+      },
+      "when": "For modern, bass-heavy rhythms."
+    },
+    {
+      "key": "sound-programmed-drums",
+      "type": "groove",
+      "label": {
+        "en": "programmed drums",
+        "ru": "программные барабаны"
+      },
+      "family": "machine",
+      "description": "programmed drums",
+      "explanation": {
+        "en": "Drums built in software, steady and often with sudden glitchy bursts at transitions.",
+        "ru": "Барабаны, собранные в программе: ровные, нередко с внезапными глитч-вспышками на переходах."
+      },
+      "when": "For bedroom-made, digital rhythms."
+    },
+    {
+      "key": "sound-sparse-percussion",
+      "type": "groove",
+      "label": {
+        "en": "sparse percussion",
+        "ru": "редкая перкуссия"
+      },
+      "family": "sparse",
+      "description": "sparse percussion",
+      "explanation": {
+        "en": "Almost no drums, only occasional accents, which creates air and fragility.",
+        "ru": "Почти без барабанов, только акценты: воздух и хрупкость."
+      },
+      "when": "When silence should be part of the groove."
+    },
+    {
+      "key": "sound-no-drums",
+      "type": "groove",
+      "label": {
+        "en": "no drums",
+        "ru": "без барабанов"
+      },
+      "family": "sparse",
+      "description": "no drums",
+      "explanation": {
+        "en": "No percussion at all, so the song becomes a ballad, a drift or an ambient wash.",
+        "ru": "Совсем без ударных: песня становится балладой, дрейфом или эмбиент-потоком."
+      },
+      "when": "For floating, rhythm-free songs."
+    },
+    {
+      "key": "sound-syncopated-rhythm",
+      "type": "groove",
+      "label": {
+        "en": "syncopated rhythm",
+        "ru": "синкопированный ритм"
+      },
+      "family": "sparse",
+      "description": "syncopated rhythm",
+      "explanation": {
+        "en": "Off-beat accents make the rhythm stumble in a way that catches the ear.",
+        "ru": "Смещённые акценты заставляют ритм «спотыкаться», и это цепляет слух."
+      },
+      "when": "When the beat needs a hook of its own."
+    },
+    {
+      "key": "sound-clean-reverb-electric-guitar",
+      "type": "instrument",
+      "label": {
+        "en": "clean reverb electric guitar",
+        "ru": "чистая гитара с ревербом"
+      },
+      "family": "guitar",
+      "description": "clean reverb electric guitar",
+      "explanation": {
+        "en": "An undistorted electric guitar bathed in reverb, giving spacious, sad and slightly distant lines.",
+        "ru": "Электрогитара без дисторшна в реверберации: простор, грусть и лёгкая дистанция."
+      },
+      "when": "When the guitar should shimmer rather than crunch."
+    },
+    {
+      "key": "sound-jangly-guitar",
+      "type": "instrument",
+      "label": {
+        "en": "jangly guitar",
+        "ru": "звонкая гитара"
+      },
+      "family": "guitar",
+      "description": "jangly guitar",
+      "explanation": {
+        "en": "A bright, chiming strummed or arpeggiated guitar in the classic indie style.",
+        "ru": "Яркая звенящая гитара с боем или арпеджио в духе классического инди."
+      },
+      "when": "For light, bright rhythm parts."
+    },
+    {
+      "key": "sound-fingerpicked-acoustic-guitar",
+      "type": "instrument",
+      "label": {
+        "en": "fingerpicked acoustic guitar",
+        "ru": "акустика перебором"
+      },
+      "family": "guitar",
+      "description": "fingerpicked acoustic guitar",
+      "explanation": {
+        "en": "An acoustic guitar picked note by note, which sounds warm and confessional.",
+        "ru": "Акустическая гитара, играемая перебором: тепло и исповедальность."
+      },
+      "when": "For intimate songs with the guitar leading."
+    },
+    {
+      "key": "sound-tremolo-guitar",
+      "type": "instrument",
+      "label": {
+        "en": "tremolo guitar",
+        "ru": "тремоло-гитара"
+      },
+      "family": "guitar",
+      "description": "tremolo guitar",
+      "explanation": {
+        "en": "A guitar with rapidly pulsing volume that sounds anxious and cinematic.",
+        "ru": "Гитара с быстро пульсирующей громкостью: тревожно и кинематографично."
+      },
+      "when": "For suspense or a slow tremolo-picked climb."
+    },
+    {
+      "key": "sound-fuzzy-distorted-guitar",
+      "type": "instrument",
+      "label": {
+        "en": "fuzzy distorted guitar",
+        "ru": "грязная перегруженная гитара"
+      },
+      "family": "guitar",
+      "description": "fuzzy distorted guitar",
+      "explanation": {
+        "en": "A heavily overdriven guitar with fuzzy edges, giving dirty grunge drive.",
+        "ru": "Сильно перегруженная гитара с фузз-кромкой и грязным грунжевым драйвом."
+      },
+      "when": "When guitars should be loud and dirty."
+    },
+    {
+      "key": "sound-wah-wah-guitar",
+      "type": "instrument",
+      "label": {
+        "en": "wah-wah guitar",
+        "ru": "вау-вау гитара"
+      },
+      "family": "guitar",
+      "description": "wah-wah guitar",
+      "explanation": {
+        "en": "A guitar scratching out sixteenth notes through a wah pedal, funky and rhythmic.",
+        "ru": "Гитара со скребущими шестнадцатыми через вау-педаль: фанково и ритмично."
+      },
+      "when": "For groovy, swaying rhythm guitar."
+    },
+    {
+      "key": "sound-chorused-clean-guitar",
+      "type": "instrument",
+      "label": {
+        "en": "chorused clean guitar",
+        "ru": "чистая гитара с хорусом"
+      },
+      "family": "guitar",
+      "description": "chorused clean guitar",
+      "explanation": {
+        "en": "A clean guitar with chorus that doubles the tone into a soft, glassy shimmer.",
+        "ru": "Чистая гитара с хорусом, который удваивает тон в мягкое стеклянное мерцание."
+      },
+      "when": "For glassy, repeating figures."
+    },
+    {
+      "key": "sound-downtuned-guitar",
+      "type": "instrument",
+      "label": {
+        "en": "downtuned guitar",
+        "ru": "гитара в низком строе"
+      },
+      "family": "guitar",
+      "description": "downtuned guitar",
+      "explanation": {
+        "en": "A guitar tuned below standard pitch for heavy, thick, low riffs.",
+        "ru": "Гитара в строе ниже стандартного: тяжёлые плотные низкие риффы."
+      },
+      "when": "For heavy, chugging weight."
+    },
+    {
+      "key": "sound-bowed-guitar",
+      "type": "instrument",
+      "label": {
+        "en": "bowed guitar",
+        "ru": "смычковая гитара"
+      },
+      "family": "guitar",
+      "description": "bowed guitar",
+      "explanation": {
+        "en": "A guitar played with a bow or an ebow, producing endless drone-like sustained notes.",
+        "ru": "Гитара, играемая смычком или ибоу, с бесконечными дроновыми нотами."
+      },
+      "when": "For long, singing sustained lines."
+    },
+    {
+      "key": "sound-prominent-slow-felt-piano",
+      "type": "instrument",
+      "label": {
+        "en": "prominent slow felt piano",
+        "ru": "заметное медленное войлочное пианино"
+      },
+      "family": "keys",
+      "description": "prominent slow felt piano",
+      "explanation": {
+        "en": "A muted felt piano playing slowly in the foreground, soft and melancholic.",
+        "ru": "Приглушённое войлочное пианино, медленно играющее на переднем плане: мягко и меланхолично."
+      },
+      "when": "When the piano should lead the song softly."
+    },
+    {
+      "key": "sound-piano",
+      "type": "instrument",
+      "label": {
+        "en": "piano",
+        "ru": "пианино"
+      },
+      "family": "keys",
+      "description": "piano",
+      "explanation": {
+        "en": "A regular acoustic piano used as a steady harmonic support for the song.",
+        "ru": "Обычное акустическое фортепиано как ровная гармоническая опора песни."
+      },
+      "when": "As a plain harmonic anchor."
+    },
+    {
+      "key": "sound-rhodes-electric-piano",
+      "type": "instrument",
+      "label": {
+        "en": "Rhodes electric piano",
+        "ru": "электропиано Rhodes"
+      },
+      "family": "keys",
+      "description": "Rhodes electric piano",
+      "explanation": {
+        "en": "A warm, bell-like electric piano that gives retro comfort with a soul feel.",
+        "ru": "Тёплое колокольчатое электропиано: ретро-уют и соул."
+      },
+      "when": "For cosy, vintage warmth."
+    },
+    {
+      "key": "sound-warm-organ",
+      "type": "instrument",
+      "label": {
+        "en": "warm organ",
+        "ru": "тёплый орган"
+      },
+      "family": "keys",
+      "description": "warm organ",
+      "explanation": {
+        "en": "A soft organ that answers the voice with long, glowing notes in the background.",
+        "ru": "Мягкий орган, отвечающий голосу долгими светящимися нотами на заднем плане."
+      },
+      "when": "For gentle counter-melodies."
+    },
+    {
+      "key": "sound-rave-piano-stabs",
+      "type": "instrument",
+      "label": {
+        "en": "rave piano stabs",
+        "ru": "рейв-пианино"
+      },
+      "family": "keys",
+      "description": "rave piano stabs",
+      "explanation": {
+        "en": "Short piano chord hits in classic rave style, usually landing on the offbeat.",
+        "ru": "Короткие аккордовые удары пианино в духе рейва, обычно на слабую долю."
+      },
+      "when": "To add a nostalgic dance accent."
+    },
+    {
+      "key": "sound-glitchy-synthesizer",
+      "type": "instrument",
+      "label": {
+        "en": "glitchy synthesizer",
+        "ru": "глитч-синтезатор"
+      },
+      "family": "synth",
+      "description": "glitchy synthesizer",
+      "explanation": {
+        "en": "A synth that stutters and cuts out, adding digital nervousness and texture.",
+        "ru": "Синтезатор, заикающийся и обрывающийся: цифровая нервность и фактура."
+      },
+      "when": "For a restless electronic layer."
+    },
+    {
+      "key": "sound-warm-analog-synth-pad",
+      "type": "instrument",
+      "label": {
+        "en": "warm analog synth pad",
+        "ru": "тёплый аналоговый пэд"
+      },
+      "family": "synth",
+      "description": "warm analog synth pad",
+      "explanation": {
+        "en": "A soft sustained synth cushion that sounds nostalgic and enveloping.",
+        "ru": "Мягкая тянущаяся синтезаторная подушка: ностальгия и обволакивание."
+      },
+      "when": "When the background should feel soft."
+    },
+    {
+      "key": "sound-cold-synth-pad",
+      "type": "instrument",
+      "label": {
+        "en": "cold synth pad",
+        "ru": "холодный синтезаторный пэд"
+      },
+      "family": "synth",
+      "description": "cold synth pad",
+      "explanation": {
+        "en": "A distant, icy pad that evokes detachment and open space.",
+        "ru": "Далёкий ледяной пэд, дающий отстранённость и ощущение космоса."
+      },
+      "when": "For chilly, wide backdrops."
+    },
+    {
+      "key": "sound-hoover-synth",
+      "type": "instrument",
+      "label": {
+        "en": "hoover synth",
+        "ru": "хувер-синтезатор"
+      },
+      "family": "synth",
+      "description": "hoover synth",
+      "explanation": {
+        "en": "A buzzing, swooping rave synth sound from early nineties hardcore.",
+        "ru": "Гудящий, пикирующий рейв-синтезатор из хардкора начала 90-х."
+      },
+      "when": "For one sharp rave accent."
+    },
+    {
+      "key": "sound-chiptune-synth",
+      "type": "instrument",
+      "label": {
+        "en": "chiptune synth",
+        "ru": "чиптюн-синтезатор"
+      },
+      "family": "synth",
+      "description": "chiptune synth",
+      "explanation": {
+        "en": "A bitcrushed, video-game-like synth riff with a hard digital edge.",
+        "ru": "Битовый синтезаторный рифф в духе видеоигр с жёсткой цифровой кромкой."
+      },
+      "when": "For abrasive, playful electronic leads."
+    },
+    {
+      "key": "sound-mellotron-strings",
+      "type": "instrument",
+      "label": {
+        "en": "Mellotron strings",
+        "ru": "струнные Mellotron"
+      },
+      "family": "orchestra",
+      "description": "Mellotron strings",
+      "explanation": {
+        "en": "Vintage tape-based strings that sound ghostly and balance the old with the new.",
+        "ru": "Винтажные плёночные струнные: призрачный звук, соединяющий старое и новое."
+      },
+      "when": "For a haunting, retro string layer."
+    },
+    {
+      "key": "sound-string-section",
+      "type": "instrument",
+      "label": {
+        "en": "string section",
+        "ru": "струнная секция"
+      },
+      "family": "orchestra",
+      "description": "string section",
+      "explanation": {
+        "en": "Live strings that add drama and a cinematic sweep to the arrangement.",
+        "ru": "Живые струнные, добавляющие аранжировке драму и кинематографичный размах."
+      },
+      "when": "For swelling emotional moments."
+    },
+    {
+      "key": "sound-solo-cello",
+      "type": "instrument",
+      "label": {
+        "en": "solo cello",
+        "ru": "виолончель соло"
+      },
+      "family": "orchestra",
+      "description": "solo cello",
+      "explanation": {
+        "en": "A single cello with a deep, human, longing tone, like a second voice.",
+        "ru": "Одна виолончель с глубоким, почти человеческим тоскливым тембром."
+      },
+      "when": "When the melody needs a deep, voice-like line."
+    },
+    {
+      "key": "sound-muted-trumpet",
+      "type": "instrument",
+      "label": {
+        "en": "muted trumpet",
+        "ru": "труба с сурдиной"
+      },
+      "family": "orchestra",
+      "description": "muted trumpet",
+      "explanation": {
+        "en": "A trumpet with a mute inserted, giving a lonely, noir colour.",
+        "ru": "Труба с сурдиной: одинокая нуарная краска."
+      },
+      "when": "For a late-night accent between phrases."
+    },
+    {
+      "key": "sound-brass-section",
+      "type": "instrument",
+      "label": {
+        "en": "brass section",
+        "ru": "медная секция"
+      },
+      "family": "orchestra",
+      "description": "brass section",
+      "explanation": {
+        "en": "A group of horns that swells late in the song for a sombre, grand lift.",
+        "ru": "Группа медных духовых, нарастающая в конце песни для мрачного величественного подъёма."
+      },
+      "when": "For a late, grand swell."
+    },
+    {
+      "key": "sound-flute",
+      "type": "instrument",
+      "label": {
+        "en": "flute",
+        "ru": "флейта"
+      },
+      "family": "orchestra",
+      "description": "flute",
+      "explanation": {
+        "en": "A breathy flute fragment, often with an eastern or pastoral flavour.",
+        "ru": "Воздушный флейтовый фрагмент, часто с восточным или пасторальным оттенком."
+      },
+      "when": "To add a short lyrical colour between loops."
+    },
+    {
+      "key": "sound-vibraphone",
+      "type": "instrument",
+      "label": {
+        "en": "vibraphone",
+        "ru": "вибрафон"
+      },
+      "family": "colour",
+      "description": "vibraphone",
+      "explanation": {
+        "en": "A shimmering metallic bell tone that sounds cool and dreamlike.",
+        "ru": "Мерцающий металлический звон: прохладно и сновидчески."
+      },
+      "when": "For a cool, sleepy shimmer."
+    },
+    {
+      "key": "sound-music-box",
+      "type": "instrument",
+      "label": {
+        "en": "music box",
+        "ru": "музыкальная шкатулка"
+      },
+      "family": "colour",
+      "description": "music box",
+      "explanation": {
+        "en": "A tinkling toy-like melody that sounds childlike, fragile and a bit eerie.",
+        "ru": "Звенящая игрушечная мелодия: детская, хрупкая и немного жуткая."
+      },
+      "when": "For fragile, unsettling lullaby moments."
+    },
+    {
+      "key": "sound-hammered-dulcimer",
+      "type": "instrument",
+      "label": {
+        "en": "hammered dulcimer",
+        "ru": "цимбалы"
+      },
+      "family": "colour",
+      "description": "hammered dulcimer",
+      "explanation": {
+        "en": "A struck-string instrument with a folk-like, shimmering cascade of notes.",
+        "ru": "Ударно-струнный инструмент с фолковым мерцающим переливом нот."
+      },
+      "when": "For a sparkling folk texture."
+    },
+    {
+      "key": "sound-harmonium",
+      "type": "instrument",
+      "label": {
+        "en": "harmonium",
+        "ru": "фисгармония"
+      },
+      "family": "colour",
+      "description": "harmonium",
+      "explanation": {
+        "en": "A reed organ with a wistful, courtyard-like warmth and a gentle breathing drone.",
+        "ru": "Язычковый орган с тоскливой «дворовой» теплотой и мягким дышащим гулом."
+      },
+      "when": "For humble, aching accompaniment."
+    },
+    {
+      "key": "sound-kalimba",
+      "type": "instrument",
+      "label": {
+        "en": "kalimba",
+        "ru": "калимба"
+      },
+      "family": "colour",
+      "description": "kalimba",
+      "explanation": {
+        "en": "A thumb piano with soft, plucked, music-box-like tones.",
+        "ru": "Ручное пианино с мягкими щипковыми звуками, похожими на шкатулку."
+      },
+      "when": "For a gentle, tender melodic accent."
+    },
+    {
+      "key": "sound-sitar-like-drone",
+      "type": "instrument",
+      "label": {
+        "en": "sitar-like drone",
+        "ru": "ситарный дрон"
+      },
+      "family": "colour",
+      "description": "sitar-like drone",
+      "explanation": {
+        "en": "A droning, raga-style string layer that hovers beneath the whole track.",
+        "ru": "Гудящий слой струн в духе раги, парящий под всем треком."
+      },
+      "when": "For psychedelic, swirling backgrounds."
+    },
+    {
+      "key": "sound-deep-sub-bass",
+      "type": "bass",
+      "label": {
+        "en": "deep sub bass",
+        "ru": "глубокий саб-бас"
+      },
+      "description": "deep sub bass",
+      "explanation": {
+        "en": "Very low synth bass you feel more than hear, adding weight and a trip-hop foundation.",
+        "ru": "Очень низкий синтезаторный бас, который скорее ощущаешь, чем слышишь: вес и трип-хоп-фундамент."
+      },
+      "when": "When the low end should be a floor."
+    },
+    {
+      "key": "sound-warm-round-bass-guitar",
+      "type": "bass",
+      "label": {
+        "en": "warm round bass guitar",
+        "ru": "тёплый округлый бас"
+      },
+      "description": "warm round bass guitar",
+      "explanation": {
+        "en": "A rounded, valve-style bass guitar with organic warmth and a melodic feel.",
+        "ru": "Округлая ламповая бас-гитара с органичным теплом и мелодичностью."
+      },
+      "when": "For natural, melodic low end."
+    },
+    {
+      "key": "sound-upright-bass",
+      "type": "bass",
+      "label": {
+        "en": "upright bass",
+        "ru": "контрабас"
+      },
+      "description": "upright bass",
+      "explanation": {
+        "en": "An acoustic double bass with a woody, jazz-like tone and a chamber feel.",
+        "ru": "Акустический контрабас с деревянным джазовым тоном и камерным характером."
+      },
+      "when": "For chamber and jazz-leaning arrangements."
+    },
+    {
+      "key": "sound-fuzzy-bass",
+      "type": "bass",
+      "label": {
+        "en": "fuzzy bass",
+        "ru": "грязный бас"
+      },
+      "description": "fuzzy bass",
+      "explanation": {
+        "en": "A heavily overdriven bass that adds dirt and a grunge growl.",
+        "ru": "Сильно перегруженный бас, добавляющий грязи и грунжевого рыка."
+      },
+      "when": "When the bass should growl."
+    },
+    {
+      "key": "sound-dub-bass",
+      "type": "bass",
+      "label": {
+        "en": "dub bass",
+        "ru": "даб-бас"
+      },
+      "description": "dub bass",
+      "explanation": {
+        "en": "A long, resonant bass full of space and echo, stretching each note out.",
+        "ru": "Длинный гулкий бас, полный пространства и эха, растягивающий каждую ноту."
+      },
+      "when": "For stretched, spacious low end."
+    },
+    {
+      "key": "sound-minimal-bass",
+      "type": "bass",
+      "label": {
+        "en": "minimal bass",
+        "ru": "минимальный бас"
+      },
+      "description": "minimal bass",
+      "explanation": {
+        "en": "A sparse bass on a single repeating note, hypnotic and static.",
+        "ru": "Скупой бас на одной повторяющейся ноте: гипноз и статика."
+      },
+      "when": "For trance-like stillness."
+    },
+    {
+      "key": "sound-no-bass",
+      "type": "bass",
+      "label": {
+        "en": "no bass",
+        "ru": "без баса"
+      },
+      "description": "no bass",
+      "explanation": {
+        "en": "No low end at all, which makes everything light, transparent and eerily empty.",
+        "ru": "Совсем без низа: всё становится лёгким, прозрачным и тревожно пустым."
+      },
+      "when": "When the track should feel weightless."
+    },
+    {
+      "key": "sound-reese-bass",
+      "type": "bass",
+      "label": {
+        "en": "reese bass",
+        "ru": "риис-бас"
+      },
+      "description": "reese bass",
+      "explanation": {
+        "en": "A thick, phasing drum and bass bass tone, often doubled with a guitar.",
+        "ru": "Густой фазирующий бас из драм-н-бейса, нередко в унисон с гитарой."
+      },
+      "when": "For a growling bass in the fast styles."
+    },
+    {
+      "key": "sound-acid-303-bassline",
+      "type": "bass",
+      "label": {
+        "en": "acid 303 bassline",
+        "ru": "эйсид-бас 303"
+      },
+      "description": "acid 303 bassline",
+      "explanation": {
+        "en": "A squelching, resonant synth line with a sweeping filter that opens toward the chorus.",
+        "ru": "Квакающая резонансная синтезаторная линия с плавающим фильтром, открывающимся к припеву."
+      },
+      "when": "For a funky, tense bass layer."
+    },
+    {
+      "key": "sound-fuzz-bass-with-an-octave-pedal",
+      "type": "bass",
+      "label": {
+        "en": "fuzz bass with an octave pedal",
+        "ru": "фузз-бас с октавером"
+      },
+      "description": "fuzz bass with an octave pedal",
+      "explanation": {
+        "en": "A bass with fuzz and an octave pedal that carries the main riff in place of the guitar.",
+        "ru": "Бас с фуззом и октавером, который ведёт главный рифф вместо гитары."
+      },
+      "when": "When the bass, not the guitar, should be the riff."
+    },
+    {
+      "key": "sound-melancholic",
+      "type": "mood",
+      "label": {
+        "en": "melancholic",
+        "ru": "меланхоличное"
+      },
+      "description": "melancholic",
+      "explanation": {
+        "en": "A bright sadness that sits at the centre of the sound and colours every part.",
+        "ru": "Светлая грусть, лежащая в центре звучания и окрашивающая каждую партию."
+      },
+      "when": "As the basic emotional colour of a quiet song."
+    },
+    {
+      "key": "sound-cold-atmosphere",
+      "type": "mood",
+      "label": {
+        "en": "cold atmosphere",
+        "ru": "холодная атмосфера"
+      },
+      "description": "cold atmosphere",
+      "explanation": {
+        "en": "Chill, distance and a wintry feel running through the whole sound.",
+        "ru": "Холод, дистанция и зимнее ощущение, пронизывающие весь звук."
+      },
+      "when": "When the song should keep the listener at arm's length."
+    },
+    {
+      "key": "sound-nostalgic",
+      "type": "mood",
+      "label": {
+        "en": "nostalgic",
+        "ru": "ностальгическое"
+      },
+      "description": "nostalgic",
+      "explanation": {
+        "en": "A feeling of something that was and has passed, seen from a distance.",
+        "ru": "Ощущение того, что было и прошло, увиденное издалека."
+      },
+      "when": "For memories and looking back."
+    },
+    {
+      "key": "sound-emotional-detachment",
+      "type": "mood",
+      "label": {
+        "en": "emotional detachment",
+        "ru": "эмоциональная отстранённость"
+      },
+      "description": "emotional detachment",
+      "explanation": {
+        "en": "Feeling kept at a distance, without outbursts or visible effort.",
+        "ru": "Чувство держится на расстоянии, без всплесков и видимого усилия."
+      },
+      "when": "For numb or ironic songs."
+    },
+    {
+      "key": "sound-surreal",
+      "type": "mood",
+      "label": {
+        "en": "surreal",
+        "ru": "сюрреалистичное"
+      },
+      "description": "surreal",
+      "explanation": {
+        "en": "A distorted, dream-like version of reality where details feel slightly wrong.",
+        "ru": "Искажённая сновидческая версия реальности, где детали чуть-чуть не на месте."
+      },
+      "when": "When the world of the song should feel off."
+    },
+    {
+      "key": "sound-bittersweet",
+      "type": "mood",
+      "label": {
+        "en": "bittersweet",
+        "ru": "горько-сладкое"
+      },
+      "description": "bittersweet",
+      "explanation": {
+        "en": "Sadness mixed with warmth, which feels softer than pure cold.",
+        "ru": "Грусть с теплом, которая ощущается мягче чистого холода."
+      },
+      "when": "For endings with some kindness in them."
+    },
+    {
+      "key": "sound-wistful-longing",
+      "type": "mood",
+      "label": {
+        "en": "wistful longing",
+        "ru": "томление"
+      },
+      "description": "wistful longing",
+      "explanation": {
+        "en": "A yearning for something out of reach, gentle but persistent.",
+        "ru": "Тоска по недостижимому, нежная, но настойчивая."
+      },
+      "when": "For songs about distance and wanting."
+    },
+    {
+      "key": "sound-eerie",
+      "type": "mood",
+      "label": {
+        "en": "eerie",
+        "ru": "жутковатое"
+      },
+      "description": "eerie",
+      "explanation": {
+        "en": "Spectral, uncanny and goosebump-inducing, a ghostly unease that never needs to be loud.",
+        "ru": "Призрачное, жутковатое, вызывающее мурашки, но без громкости."
+      },
+      "when": "When a little dread should creep in."
+    },
+    {
+      "key": "sound-hopeful-melancholy",
+      "type": "mood",
+      "label": {
+        "en": "hopeful melancholy",
+        "ru": "грусть с надеждой"
+      },
+      "description": "hopeful melancholy",
+      "explanation": {
+        "en": "Sadness with a glint of hope in it, leaving the door slightly open.",
+        "ru": "Грусть с проблеском надежды, оставляющая дверь приоткрытой."
+      },
+      "when": "For brighter endings."
+    },
+    {
+      "key": "sound-numb",
+      "type": "mood",
+      "label": {
+        "en": "numb",
+        "ru": "оцепенение"
+      },
+      "description": "numb",
+      "explanation": {
+        "en": "A dissociative, unfocused mood, as if everything is heard through cotton wool.",
+        "ru": "Диссоциативное расфокусированное состояние, как будто всё слышно сквозь вату."
+      },
+      "when": "For shock, exhaustion or emptiness."
+    },
+    {
+      "key": "sound-tender-intimate",
+      "type": "mood",
+      "label": {
+        "en": "tender intimate",
+        "ru": "нежное и близкое"
+      },
+      "description": "tender intimate",
+      "explanation": {
+        "en": "A gentle, close and trusting mood, as if spoken to one person.",
+        "ru": "Нежное, близкое и доверительное настроение, как будто обращённое к одному человеку."
+      },
+      "when": "For quiet love songs and confessions."
+    },
+    {
+      "key": "sound-anxious-tension",
+      "type": "mood",
+      "label": {
+        "en": "anxious tension",
+        "ru": "тревожное напряжение"
+      },
+      "description": "anxious tension",
+      "explanation": {
+        "en": "A sense that something is about to happen, kept just short of release.",
+        "ru": "Ощущение, что вот-вот что-то случится, удерживаемое на грани разрядки."
+      },
+      "when": "For nervous, building songs."
+    },
+    {
+      "key": "sound-warm-comforting",
+      "type": "mood",
+      "label": {
+        "en": "warm comforting",
+        "ru": "тёплое и утешающее"
+      },
+      "description": "warm comforting",
+      "explanation": {
+        "en": "A warm, embracing mood that contrasts with cold sounds around it.",
+        "ru": "Тёплое обнимающее настроение, контрастирующее с холодными звуками вокруг."
+      },
+      "when": "When the song should comfort."
+    },
+    {
+      "key": "sound-dreamlike-hazy",
+      "type": "mood",
+      "label": {
+        "en": "dreamlike hazy",
+        "ru": "дымка сна"
+      },
+      "description": "dreamlike hazy",
+      "explanation": {
+        "en": "A blurred, soft-focus feeling like the edge of sleep.",
+        "ru": "Размытое мягкофокусное ощущение, как на грани сна."
+      },
+      "when": "For floating, indistinct songs."
+    },
+    {
+      "key": "sound-quiet-desperation",
+      "type": "mood",
+      "label": {
+        "en": "quiet desperation",
+        "ru": "тихое отчаяние"
+      },
+      "description": "quiet desperation",
+      "explanation": {
+        "en": "Restrained pain that is held back rather than shouted.",
+        "ru": "Сдержанная боль, которую держат в себе, а не выкрикивают."
+      },
+      "when": "For aching songs that never raise their voice."
+    },
+    {
+      "key": "sound-cinematic",
+      "type": "mood",
+      "label": {
+        "en": "cinematic",
+        "ru": "кинематографичное"
+      },
+      "description": "cinematic",
+      "explanation": {
+        "en": "A wide, story-like feel, like a soundtrack to an unwritten film.",
+        "ru": "Широкое повествовательное звучание, как саундтрек к ненаписанному фильму."
+      },
+      "when": "For expansive, scene-setting songs."
+    },
+    {
+      "key": "sound-menacing",
+      "type": "mood",
+      "label": {
+        "en": "menacing",
+        "ru": "угрожающее"
+      },
+      "description": "menacing",
+      "explanation": {
+        "en": "A heavy, threatening mood with a swaggering edge.",
+        "ru": "Тяжёлое, угрожающее настроение с оттенком наглости."
+      },
+      "when": "For aggressive, stomping tracks."
+    },
+    {
+      "key": "sound-euphoric",
+      "type": "mood",
+      "label": {
+        "en": "euphoric",
+        "ru": "эйфоричное"
+      },
+      "description": "euphoric",
+      "explanation": {
+        "en": "A rush of joy and release, often tinged with sadness underneath.",
+        "ru": "Прилив радости и освобождения, нередко с грустью под поверхностью."
+      },
+      "when": "For soaring, almost painful brightness."
+    },
+    {
+      "key": "sound-defiant",
+      "type": "mood",
+      "label": {
+        "en": "defiant",
+        "ru": "вызывающее"
+      },
+      "description": "defiant",
+      "explanation": {
+        "en": "A stubborn, confrontational mood that apologises for nothing.",
+        "ru": "Упрямое, дерзкое настроение, которое ни за что не извиняется."
+      },
+      "when": "For protest and attitude."
+    },
+    {
+      "key": "sound-mournful",
+      "type": "mood",
+      "label": {
+        "en": "mournful",
+        "ru": "скорбное"
+      },
+      "description": "mournful",
+      "explanation": {
+        "en": "A slow, grieving, gliding sorrow that moves like a lament.",
+        "ru": "Медленная скорбь, плавное горевание, движущееся как плач."
+      },
+      "when": "For laments and farewells."
+    },
+    {
+      "key": "sound-vinyl-crackle",
+      "type": "texture",
+      "label": {
+        "en": "vinyl crackle",
+        "ru": "треск винила"
+      },
+      "description": "vinyl crackle",
+      "explanation": {
+        "en": "Surface noise of an old record that adds vintage warmth and a sense of age.",
+        "ru": "Поверхностный шум старой пластинки, добавляющий винтажное тепло и ощущение возраста."
+      },
+      "when": "To make the track sound like an old recording."
+    },
+    {
+      "key": "sound-lo-fi",
+      "type": "texture",
+      "label": {
+        "en": "lo-fi",
+        "ru": "лоу-фай"
+      },
+      "description": "lo-fi",
+      "explanation": {
+        "en": "General low-fidelity grime that tones down polish and gloss across the mix.",
+        "ru": "Общая лоу-фай-шероховатость, приглушающая лоск и глянец по всему миксу."
+      },
+      "when": "When imperfection is part of the charm."
+    },
+    {
+      "key": "sound-no-live-recording",
+      "type": "texture",
+      "label": {
+        "en": "no live recording",
+        "ru": "студийная запись"
+      },
+      "description": "no live recording",
+      "explanation": {
+        "en": "A studio-made sound rather than a live-in-the-room or concert performance.",
+        "ru": "Студийное звучание, а не живая запись в комнате или на концерте."
+      },
+      "when": "To avoid crowd noise and live ambience."
+    },
+    {
+      "key": "sound-balanced-radio-friendly-indie-production",
+      "type": "texture",
+      "label": {
+        "en": "balanced radio-friendly indie production",
+        "ru": "сбалансированный радио-инди микс"
+      },
+      "description": "balanced radio-friendly indie production",
+      "explanation": {
+        "en": "A clean, even mix that stays tidy, balanced and approachable.",
+        "ru": "Чистый ровный микс: аккуратный, сбалансированный и доступный."
+      },
+      "when": "When the result should sound finished and polished."
+    },
+    {
+      "key": "sound-tape-saturation",
+      "type": "texture",
+      "label": {
+        "en": "tape saturation",
+        "ru": "плёночное насыщение"
+      },
+      "description": "tape saturation",
+      "explanation": {
+        "en": "Soft compression and hiss of magnetic tape, giving organic warmth and glue.",
+        "ru": "Мягкое сжатие и шорох магнитной ленты: органичное тепло и склейка микса."
+      },
+      "when": "To glue the mix together and warm it up."
+    },
+    {
+      "key": "sound-cassette-warble",
+      "type": "texture",
+      "label": {
+        "en": "cassette warble",
+        "ru": "плавающий питч кассеты"
+      },
+      "description": "cassette warble",
+      "explanation": {
+        "en": "The wobbling pitch of a worn cassette, which sounds unstable and nostalgic.",
+        "ru": "Плавающий питч изношенной кассеты: нестабильность и ностальгия."
+      },
+      "when": "For a degraded, remembered sound."
+    },
+    {
+      "key": "sound-heavy-reverb",
+      "type": "texture",
+      "label": {
+        "en": "heavy reverb",
+        "ru": "тяжёлая реверберация"
+      },
+      "description": "heavy reverb",
+      "explanation": {
+        "en": "Large reverb that spreads sound into a big, lonely space.",
+        "ru": "Большая реверберация, растягивающая звук в огромное одинокое пространство."
+      },
+      "when": "When the room should feel huge and empty."
+    },
+    {
+      "key": "sound-spring-reverb",
+      "type": "texture",
+      "label": {
+        "en": "spring reverb",
+        "ru": "пружинная реверберация"
+      },
+      "description": "spring reverb",
+      "explanation": {
+        "en": "A slightly tinny, vintage reverb that comes from a spring tank.",
+        "ru": "Чуть жестяная винтажная реверберация пружинного ревербератора."
+      },
+      "when": "For retro, surf-tinged guitars."
+    },
+    {
+      "key": "sound-tape-delay",
+      "type": "texture",
+      "label": {
+        "en": "tape delay",
+        "ru": "плёночное эхо"
+      },
+      "description": "tape delay",
+      "explanation": {
+        "en": "Echo made on tape that gives hypnotic depth and softly smearing repeats.",
+        "ru": "Эхо с ленты, дающее гипнотическую глубину и мягко размазанные повторы."
+      },
+      "when": "For depth that smears gently."
+    },
+    {
+      "key": "sound-sidechained-pumping",
+      "type": "texture",
+      "label": {
+        "en": "sidechained pumping",
+        "ru": "дышащая компрессия"
+      },
+      "description": "sidechained pumping",
+      "explanation": {
+        "en": "Compression that ducks and releases in time with the beat, creating a pulse.",
+        "ru": "Компрессия, проседающая и возвращающаяся в такт, создаёт пульсацию."
+      },
+      "when": "For breathing electronic movement."
+    },
+    {
+      "key": "sound-bit-crushed-textures",
+      "type": "texture",
+      "label": {
+        "en": "bit-crushed textures",
+        "ru": "бит-краш фактуры"
+      },
+      "description": "bit-crushed textures",
+      "explanation": {
+        "en": "Digital crumbling and degradation of the sound, like a damaged file.",
+        "ru": "Цифровая крошка и разрушение звука, как у повреждённого файла."
+      },
+      "when": "To add digital damage."
+    },
+    {
+      "key": "sound-field-recording-ambience",
+      "type": "texture",
+      "label": {
+        "en": "field recording ambience",
+        "ru": "полевые записи"
+      },
+      "description": "field recording ambience",
+      "explanation": {
+        "en": "Real recorded ambience such as rain, street or a room, for realism and intimacy.",
+        "ru": "Реальные записи среды - дождь, улица, комната - для реализма и близости."
+      },
+      "when": "To ground the track in a place."
+    },
+    {
+      "key": "sound-analog-warmth",
+      "type": "texture",
+      "label": {
+        "en": "analog warmth",
+        "ru": "аналоговое тепло"
+      },
+      "description": "analog warmth",
+      "explanation": {
+        "en": "The rounded warmth of valve and tape gear across the whole mix.",
+        "ru": "Округлое тепло ламповой и ленточной техники во всём миксе."
+      },
+      "when": "For a soft, human sound."
+    },
+    {
+      "key": "sound-distant-muffled-mix",
+      "type": "texture",
+      "label": {
+        "en": "distant muffled mix",
+        "ru": "приглушённый далёкий микс"
+      },
+      "description": "distant muffled mix",
+      "explanation": {
+        "en": "A dull sound as if heard through a wall, which feels detached.",
+        "ru": "Глухой звук, как будто из-за стены, ощущается отстранённо."
+      },
+      "when": "When the song should feel far away."
+    },
+    {
+      "key": "sound-airy-spacious-mix",
+      "type": "texture",
+      "label": {
+        "en": "airy spacious mix",
+        "ru": "воздушный просторный микс"
+      },
+      "description": "airy spacious mix",
+      "explanation": {
+        "en": "An open mix with plenty of air and space between the parts.",
+        "ru": "Открытый микс с большим количеством воздуха и пространства между партиями."
+      },
+      "when": "For light, expansive tracks."
+    },
+    {
+      "key": "sound-raw-unpolished",
+      "type": "texture",
+      "label": {
+        "en": "raw unpolished",
+        "ru": "сырое звучание"
+      },
+      "description": "raw unpolished",
+      "explanation": {
+        "en": "A deliberately rough, demo-like sound with the edges left in.",
+        "ru": "Намеренно грубое звучание в духе демо, с оставленными шероховатостями."
+      },
+      "when": "To keep the performance unfiltered."
+    },
+    {
+      "key": "sound-dense-wall-of-sound",
+      "type": "texture",
+      "label": {
+        "en": "dense wall of sound",
+        "ru": "плотная стена звука"
+      },
+      "description": "dense wall of sound",
+      "explanation": {
+        "en": "Thick layers filling the whole spectrum, creating shoegaze-like catharsis.",
+        "ru": "Плотные слои, заполняющие весь спектр: шугейз-катарсис."
+      },
+      "when": "For overwhelming, immersive moments."
+    },
+    {
+      "key": "sound-sustained-wall-of-fuzz-guitars",
+      "type": "texture",
+      "label": {
+        "en": "sustained wall of fuzz guitars",
+        "ru": "стена гудящего фуззом"
+      },
+      "description": "sustained wall of fuzz guitars",
+      "explanation": {
+        "en": "Long held fuzz guitars that hum like a drone instead of playing a riff.",
+        "ru": "Длинные протяжённые фузз-гитары, которые гудят, как дрон, вместо риффа."
+      },
+      "when": "When guitars should be atmosphere rather than melody."
+    },
+    {
+      "key": "sound-digital-clipping",
+      "type": "texture",
+      "label": {
+        "en": "digital clipping",
+        "ru": "цифровой клиппинг"
+      },
+      "description": "digital clipping",
+      "explanation": {
+        "en": "Hard-clipped peaks used as colour, making the sound loud and crushed.",
+        "ru": "Жёстко обрезанные пики как краска: громкий и пережатый звук."
+      },
+      "when": "For a crushed, overloaded sound."
+    },
+    {
+      "key": "sound-dry-live-room-sound",
+      "type": "texture",
+      "label": {
+        "en": "dry live-room sound",
+        "ru": "сухой звук живой комнаты"
+      },
+      "description": "dry live-room sound",
+      "explanation": {
+        "en": "A close, unreverbed room sound of a band playing together.",
+        "ru": "Близкий звук комнаты без реверберации, где группа играет вместе."
+      },
+      "when": "For a played, not programmed feel."
+    },
+    {
+      "key": "sound-long-feedback-tails",
+      "type": "texture",
+      "label": {
+        "en": "long feedback tails",
+        "ru": "длинные хвосты фидбэка"
+      },
+      "description": "long feedback tails",
+      "explanation": {
+        "en": "Guitar feedback ringing out and slowly decaying in the gaps between the phrases.",
+        "ru": "Гитарная обратная связь, звенящая между фразами."
+      },
+      "when": "To fill pauses with tension."
+    },
+    {
+      "key": "sound-backwards-tape-guitars",
+      "type": "texture",
+      "label": {
+        "en": "backwards tape guitars",
+        "ru": "гитары с обратной лентой"
+      },
+      "description": "backwards tape guitars",
+      "explanation": {
+        "en": "Guitar parts reversed like a tape played backwards, swirling and psychedelic.",
+        "ru": "Гитарные партии, проигранные в обратном направлении: завихрения и психоделия."
+      },
+      "when": "For a woozy, psychedelic wash."
+    },
+    {
+      "key": "sound-slow-tempo",
+      "type": "tempo",
+      "label": {
+        "en": "slow tempo",
+        "ru": "медленный темп"
+      },
+      "description": "slow tempo",
+      "explanation": {
+        "en": "A slow pace that is the base for patient, heavy-hearted songs.",
+        "ru": "Медленный темп - основа неторопливых песен с тяжестью на сердце."
+      },
+      "when": "When the song should take its time."
+    },
+    {
+      "key": "sound-mid-tempo",
+      "type": "tempo",
+      "label": {
+        "en": "mid tempo",
+        "ru": "средний темп"
+      },
+      "description": "mid tempo",
+      "explanation": {
+        "en": "A moderate pace that adds drive against a constant slowness.",
+        "ru": "Умеренный темп, добавляющий драйва после вечной медлительности."
+      },
+      "when": "To lift the energy a notch without rushing."
+    },
+    {
+      "key": "sound-ballad-tempo",
+      "type": "tempo",
+      "label": {
+        "en": "ballad tempo",
+        "ru": "темп баллады"
+      },
+      "description": "ballad tempo",
+      "explanation": {
+        "en": "A very slow, ballad-like pace that leaves room for every note.",
+        "ru": "Совсем медленный балладный темп, оставляющий место каждой ноте."
+      },
+      "when": "For tender or grieving songs."
+    },
+    {
+      "key": "sound-building-tempo",
+      "type": "tempo",
+      "label": {
+        "en": "building tempo",
+        "ru": "нарастающий темп"
+      },
+      "description": "building tempo",
+      "explanation": {
+        "en": "The pace speeds up gradually as the song goes on.",
+        "ru": "Темп постепенно ускоряется по ходу песни."
+      },
+      "when": "For rising urgency."
+    },
+    {
+      "key": "sound-downtempo",
+      "type": "tempo",
+      "label": {
+        "en": "downtempo",
+        "ru": "даунтемпо"
+      },
+      "description": "downtempo",
+      "explanation": {
+        "en": "A relaxed, unhurried pulse with a laid-back feel.",
+        "ru": "Расслабленный неспешный пульс с непринуждённым ощущением."
+      },
+      "when": "For smoky, lounging moods."
+    },
+    {
+      "key": "sound-uptempo",
+      "type": "tempo",
+      "label": {
+        "en": "uptempo",
+        "ru": "быстрый темп"
+      },
+      "description": "uptempo",
+      "explanation": {
+        "en": "A fast, energetic pace that pushes the song forward.",
+        "ru": "Быстрый энергичный темп, подталкивающий песню вперёд."
+      },
+      "when": "For driving, danceable songs."
+    },
+    {
+      "key": "sound-double-time-feel",
+      "type": "tempo",
+      "label": {
+        "en": "double-time feel",
+        "ru": "ощущение двойного темпа"
+      },
+      "description": "double-time feel",
+      "explanation": {
+        "en": "The rhythm runs twice as fast while the harmony and melody stay slow.",
+        "ru": "Ритм бежит вдвое быстрее, пока гармония и мелодия остаются медленными."
+      },
+      "when": "When a slow song should have a restless beat underneath."
+    },
+    {
+      "key": "sound-half-time-feel",
+      "type": "tempo",
+      "label": {
+        "en": "half-time feel",
+        "ru": "ощущение половинного темпа"
+      },
+      "description": "half-time feel",
+      "explanation": {
+        "en": "The tempo feels half as fast, which makes everything heavier and wider.",
+        "ru": "Темп ощущается вдвое медленнее, и всё становится тяжелее и шире."
+      },
+      "when": "For slow, crushing weight."
+    },
+    {
+      "key": "sound-quiet-loud-dynamics",
+      "type": "dynamics",
+      "label": {
+        "en": "quiet-loud dynamics",
+        "ru": "динамика тихо-громко"
+      },
+      "description": "quiet-loud dynamics",
+      "explanation": {
+        "en": "Quiet verses open into a loud chorus, the classic alt-rock contrast.",
+        "ru": "Тихие куплеты раскрываются в громкий припев - классический контраст альт-рока."
+      },
+      "when": "For classic alt-rock contrast."
+    },
+    {
+      "key": "sound-slow-build-to-cathartic-peak",
+      "type": "dynamics",
+      "label": {
+        "en": "slow build to cathartic peak",
+        "ru": "медленный рост к катарсису"
+      },
+      "description": "slow build to cathartic peak",
+      "explanation": {
+        "en": "Gradual intensification toward a climax late in the song.",
+        "ru": "Постепенное усиление к кульминации ближе к концу песни."
+      },
+      "when": "For songs that should release at the end."
+    },
+    {
+      "key": "sound-stripped-intro-to-full-outro",
+      "type": "dynamics",
+      "label": {
+        "en": "stripped intro to full outro",
+        "ru": "голое начало, плотный финал"
+      },
+      "description": "stripped intro to full outro",
+      "explanation": {
+        "en": "A bare start that grows into a full, dense ending.",
+        "ru": "Голый старт, перерастающий в плотный финал."
+      },
+      "when": "To give a sense of arrival."
+    },
+    {
+      "key": "sound-sudden-drop-to-silence",
+      "type": "dynamics",
+      "label": {
+        "en": "sudden drop to silence",
+        "ru": "резкий обрыв в тишину"
+      },
+      "description": "sudden drop to silence",
+      "explanation": {
+        "en": "A sudden stop that creates drama and leaves a gap.",
+        "ru": "Резкая остановка, создающая драму и пустоту."
+      },
+      "when": "For a shock before the final section."
+    },
+    {
+      "key": "sound-sparse-verse-and-dense-chorus",
+      "type": "dynamics",
+      "label": {
+        "en": "sparse verse and dense chorus",
+        "ru": "разреженный куплет, плотный припев"
+      },
+      "description": "sparse verse and dense chorus",
+      "explanation": {
+        "en": "Thin verses followed by a thick chorus that feels like a lift.",
+        "ru": "Тонкие куплеты и густой припев, ощущающийся как подъём."
+      },
+      "when": "To lift the chorus."
+    },
+    {
+      "key": "sound-one-take-intimate-feel",
+      "type": "dynamics",
+      "label": {
+        "en": "one-take intimate feel",
+        "ru": "ощущение одного дубля"
+      },
+      "description": "one-take intimate feel",
+      "explanation": {
+        "en": "A cohesive, live-take intimacy, as if recorded in one go.",
+        "ru": "Цельность и близость живого дубля, как будто записано за один раз."
+      },
+      "when": "For a played-together vibe."
+    },
+    {
+      "key": "sound-repetitive-hypnotic-loop",
+      "type": "dynamics",
+      "label": {
+        "en": "repetitive hypnotic loop",
+        "ru": "гипнотический повтор"
+      },
+      "description": "repetitive hypnotic loop",
+      "explanation": {
+        "en": "A repeating loop that builds trance and tension through repetition.",
+        "ru": "Повторяющаяся петля, нагнетающая транс и напряжение повтором."
+      },
+      "when": "For a mesmerising, circling groove."
+    },
+    {
+      "key": "sound-outro-instrumental-jam",
+      "type": "dynamics",
+      "label": {
+        "en": "outro instrumental jam",
+        "ru": "инструментальный финал"
+      },
+      "description": "outro instrumental jam",
+      "explanation": {
+        "en": "A long instrumental ending where the band keeps playing after the vocal ends.",
+        "ru": "Длинное инструментальное завершение, где группа играет дальше после конца вокала."
+      },
+      "when": "When the song should drift into a jam."
+    },
+    {
+      "key": "sound-build-and-collapse-structure",
+      "type": "dynamics",
+      "label": {
+        "en": "build-and-collapse structure",
+        "ru": "нагнетание и срыв"
+      },
+      "description": "build-and-collapse structure",
+      "explanation": {
+        "en": "Tension rises, then everything cuts out and returns twice as strong.",
+        "ru": "Напряжение растёт, затем всё обрывается и возвращается вдвое сильнее."
+      },
+      "when": "For rave-like arrangements without a regular chorus."
+    },
+    {
+      "key": "sound-break-fading-in-late",
+      "type": "dynamics",
+      "label": {
+        "en": "break fading in late",
+        "ru": "брейк проступает поздно"
+      },
+      "description": "break fading in late",
+      "explanation": {
+        "en": "The drums stay out at first, then arrive slowly from far away.",
+        "ru": "Барабаны сначала отсутствуют, а затем медленно проступают издалека."
+      },
+      "when": "For slow songs that gradually gain a pulse."
+    },
+    {
+      "key": "sound-final-chorus-switching-to-double-time",
+      "type": "dynamics",
+      "label": {
+        "en": "final chorus switching to double-time",
+        "ru": "последний припев вдвое быстрее"
+      },
+      "description": "final chorus switching to double-time",
+      "explanation": {
+        "en": "The last chorus doubles its rhythm under the same melody.",
+        "ru": "Последний припев удваивает ритм под той же мелодией."
+      },
+      "when": "For a finale that rushes forward."
+    },
+    {
+      "key": "sound-straight-beat-verses-with-a-breakbeat-chorus",
+      "type": "dynamics",
+      "label": {
+        "en": "straight-beat verses with a breakbeat chorus",
+        "ru": "куплеты на ровном бите, припев на брейке"
+      },
+      "description": "straight-beat verses with a breakbeat chorus",
+      "explanation": {
+        "en": "Verses use a plain beat while the chorus switches to a chopped break.",
+        "ru": "Куплеты идут на ровном бите, а припев переходит на рубленый брейк."
+      },
+      "when": "When the form should come from contrast between beats."
+    },
+    {
+      "key": "sound-chopped-breakbeat-instead-of-a-rock-beat",
+      "type": "knob",
+      "label": {
+        "en": "chopped breakbeat instead of a rock beat",
+        "ru": "брейк вместо рок-бита"
+      },
+      "description": "chopped breakbeat instead of a rock beat",
+      "explanation": {
+        "en": "Forces the drums to play a chopped break rather than a standard rock beat.",
+        "ru": "Заставляет барабаны играть рубленый брейк вместо обычного рок-бита."
+      },
+      "when": "When the drums keep collapsing into a plain rock beat."
+    },
+    {
+      "key": "sound-half-time-guitar-over-the-break",
+      "type": "knob",
+      "label": {
+        "en": "half-time guitar over the break",
+        "ru": "гитара вдвое медленнее брейка"
+      },
+      "description": "half-time guitar over the break",
+      "explanation": {
+        "en": "The guitar plays long, heavy chords at half the pace of the break.",
+        "ru": "Гитара играет длинные тяжёлые аккорды вдвое медленнее брейка."
+      },
+      "when": "When guitar and break fight for the lead."
+    },
+    {
+      "key": "sound-real-distorted-guitars-stay-in-front",
+      "type": "knob",
+      "label": {
+        "en": "real distorted guitars stay in front",
+        "ru": "живые гитары остаются впереди"
+      },
+      "description": "real distorted guitars stay in front",
+      "explanation": {
+        "en": "Keeps live-sounding distorted guitars at the front of the mix.",
+        "ru": "Держит живые гитары с дисторшном на переднем плане микса."
+      },
+      "when": "When the guitars slip into the background."
+    },
+    {
+      "key": "sound-everything-in-the-red",
+      "type": "knob",
+      "label": {
+        "en": "everything in the red",
+        "ru": "всё в красной зоне"
+      },
+      "description": "everything in the red",
+      "explanation": {
+        "en": "Pushes the whole mix into hard, loud saturation.",
+        "ru": "Загоняет весь микс в жёсткое громкое насыщение."
+      },
+      "when": "To make the result loud and aggressive."
+    },
+    {
+      "key": "sound-everything-clipping",
+      "type": "knob",
+      "label": {
+        "en": "everything clipping",
+        "ru": "всё клиппует"
+      },
+      "description": "everything clipping",
+      "explanation": {
+        "en": "Pushes every channel to clip for a crushed, riotous sound.",
+        "ru": "Каждый канал уходит в клиппинг: пережатый мятежный звук."
+      },
+      "when": "For noisy, abrasive results."
+    },
+    {
+      "key": "sound-dusty-vinyl-sampled-break",
+      "type": "knob",
+      "label": {
+        "en": "dusty vinyl-sampled break",
+        "ru": "пыльный сэмпл с винила"
+      },
+      "description": "dusty vinyl-sampled break",
+      "explanation": {
+        "en": "A crackly, slightly detuned sampled break with the grit of an old sampler.",
+        "ru": "Потрескивающий слегка расстроенный сэмплированный брейк с шероховатостью старого семплера."
+      },
+      "when": "For a worn, sampled feel."
+    },
+    {
+      "key": "sound-breakbeat-run-through-a-fuzz-pedal",
+      "type": "knob",
+      "label": {
+        "en": "breakbeat run through a fuzz pedal",
+        "ru": "брейк через фузз"
+      },
+      "description": "breakbeat run through a fuzz pedal",
+      "explanation": {
+        "en": "The drums are distorted through a fuzz pedal until they clip.",
+        "ru": "Барабаны пропущены через фузз-педаль до клиппинга."
+      },
+      "when": "To make the break filthy."
+    },
+    {
+      "key": "sound-break-played-in-a-big-live-room",
+      "type": "knob",
+      "label": {
+        "en": "break played in a big live room",
+        "ru": "брейк в большой комнате"
+      },
+      "description": "break played in a big live room",
+      "explanation": {
+        "en": "Drums recorded in a large room with roaring mics and heavy compression.",
+        "ru": "Барабаны, записанные в большой комнате с гудящими микрофонами и сильной компрессией."
+      },
+      "when": "For huge, roomy drums."
+    },
+    {
+      "key": "sound-gated-reverb-on-the-break-snare",
+      "type": "knob",
+      "label": {
+        "en": "gated reverb on the break snare",
+        "ru": "гейтовая реверберация на снэйре"
+      },
+      "description": "gated reverb on the break snare",
+      "explanation": {
+        "en": "A huge cannon-like snare with a reverb tail cut off abruptly.",
+        "ru": "Огромный пушечный снэйр с резко обрезанным хвостом реверберации."
+      },
+      "when": "For an eighties thunder snare."
+    },
+    {
+      "key": "sound-pitched-up-break-with-fast-chipmunk-snares",
+      "type": "knob",
+      "label": {
+        "en": "pitched-up break with fast chipmunk snares",
+        "ru": "ускоренный брейк"
+      },
+      "description": "pitched-up break with fast chipmunk snares",
+      "explanation": {
+        "en": "A sped-up break with high, quick snares and early nineties rave energy.",
+        "ru": "Ускоренный брейк с высокими быстрыми снэйрами и рейв-энергией начала 90-х."
+      },
+      "when": "For a euphoric rush."
+    },
+    {
+      "key": "sound-slow-enormous-pitched-down-break",
+      "type": "knob",
+      "label": {
+        "en": "slow enormous pitched-down break",
+        "ru": "замедленный брейк"
+      },
+      "description": "slow enormous pitched-down break",
+      "explanation": {
+        "en": "A slowed-down break where every hit lands like a door slamming.",
+        "ru": "Замедленный брейк, где каждый удар звучит как хлопок двери."
+      },
+      "when": "For crushing weight."
+    },
+    {
+      "key": "sound-stuttered-snare-rolls-before-every-chorus",
+      "type": "knob",
+      "label": {
+        "en": "stuttered snare rolls before every chorus",
+        "ru": "заикающиеся снэйр-роллы перед припевом"
+      },
+      "description": "stuttered snare rolls before every chorus",
+      "explanation": {
+        "en": "Snare rolls build up into each chorus and mark its entrance.",
+        "ru": "Снэйр-роллы подводят к каждому припеву и отмечают его вход."
+      },
+      "when": "To mark chorus entrances clearly."
+    },
+    {
+      "key": "sound-reversed-snare-rising-into-each-section",
+      "type": "knob",
+      "label": {
+        "en": "reversed snare rising into each section",
+        "ru": "реверсный снэйр перед секцией"
+      },
+      "description": "reversed snare rising into each section",
+      "explanation": {
+        "en": "A backwards snare swells into each new section like a ramp.",
+        "ru": "Обращённый снэйр нарастает перед каждой новой секцией, как рампа."
+      },
+      "when": "For smooth, lifting transitions."
+    },
+    {
+      "key": "sound-tape-stop-at-the-end-of-the-bridge",
+      "type": "knob",
+      "label": {
+        "en": "tape stop at the end of the bridge",
+        "ru": "остановка ленты в конце бриджа"
+      },
+      "description": "tape stop at the end of the bridge",
+      "explanation": {
+        "en": "The sound slows to a halt like a tape machine being switched off.",
+        "ru": "Звук замедляется до остановки, как у выключаемого магнитофона."
+      },
+      "when": "For a dramatic pivot between sections."
+    },
+    {
+      "key": "sound-break-filtered-thin-in-the-intro",
+      "type": "knob",
+      "label": {
+        "en": "break filtered thin in the intro",
+        "ru": "тонкий брейк в начале"
+      },
+      "description": "break filtered thin in the intro",
+      "explanation": {
+        "en": "The break starts filtered and thin, then opens to full width when the guitars enter.",
+        "ru": "Брейк начинается тонким через фильтр и раскрывается на полную ширину со входом гитар."
+      },
+      "when": "For a gradual reveal of the drums."
+    },
+    {
+      "key": "sound-drums-drop-out-for-two-bars-before-the-last-chorus",
+      "type": "knob",
+      "label": {
+        "en": "drums drop out for two bars before the last chorus",
+        "ru": "барабаны пропадают перед последним припевом"
+      },
+      "description": "drums drop out for two bars before the last chorus",
+      "explanation": {
+        "en": "The drums vanish for two bars, then return with the full band.",
+        "ru": "Барабаны пропадают на два такта, потом возвращаются вместе со всей группой."
+      },
+      "when": "For a big return in the last chorus."
+    },
+    {
+      "key": "sound-chopped-amen-drum-break-alone-for-eight-bars",
+      "type": "knob",
+      "label": {
+        "en": "chopped amen drum break alone for eight bars",
+        "ru": "соло амен-брейка"
+      },
+      "description": "chopped amen drum break alone for eight bars",
+      "explanation": {
+        "en": "A break-only solo section in the middle, with guitars feeding back underneath.",
+        "ru": "Соло одного брейка в середине, с гитарной обратной связью под ним."
+      },
+      "when": "For a drum showcase in the middle."
+    },
+    {
+      "key": "sound-reese-bass-doubled-by-a-downtuned-distorted-guitar",
+      "type": "knob",
+      "label": {
+        "en": "reese bass doubled by a downtuned distorted guitar",
+        "ru": "риис-бас в унисон с гитарой"
+      },
+      "description": "reese bass doubled by a downtuned distorted guitar",
+      "explanation": {
+        "en": "Bass and guitar play one riff together, so two instruments sound as one.",
+        "ru": "Бас и гитара играют один рифф вместе, и два инструмента звучат как один."
+      },
+      "when": "To fuse bass and guitar into one weight."
+    },
+    {
+      "key": "sound-one-hoover-synth-stab-answering-the-guitar-riff",
+      "type": "knob",
+      "label": {
+        "en": "one hoover synth stab answering the guitar riff",
+        "ru": "хувер-удар в ответ риффу"
+      },
+      "description": "one hoover synth stab answering the guitar riff",
+      "explanation": {
+        "en": "A single hoover hit replies to the guitar riff and adds one rave colour.",
+        "ru": "Одиночный хувер-удар отвечает на гитарный рифф и добавляет одну рейв-краску."
+      },
+      "when": "For one rave colour only, not a full rave."
+    },
+    {
+      "key": "sound-rave-siren-rising-through-the-build",
+      "type": "knob",
+      "label": {
+        "en": "rave siren rising through the build",
+        "ru": "рейв-сирена в нарастании"
+      },
+      "description": "rave siren rising through the build",
+      "explanation": {
+        "en": "A siren climbs through the build and is cut dead at the downbeat.",
+        "ru": "Сирена поднимается в нарастании и обрывается на сильной доле."
+      },
+      "when": "For tension before a hit."
+    },
+    {
+      "key": "sound-noise-guitar-bursts-between-phrases",
+      "type": "knob",
+      "label": {
+        "en": "noise guitar bursts between phrases",
+        "ru": "шумовые вспышки гитары между фразами"
+      },
+      "description": "noise guitar bursts between phrases",
+      "explanation": {
+        "en": "Short bursts of guitar noise fill the gaps between vocal phrases.",
+        "ru": "Короткие вспышки гитарного шума заполняют паузы между вокальными фразами."
+      },
+      "when": "To fill gaps with grit."
+    },
+    {
+      "key": "sound-palm-muted-guitar-stabs-locked-to-the-kick-pattern",
+      "type": "knob",
+      "label": {
+        "en": "palm-muted guitar stabs locked to the kick pattern",
+        "ru": "приглушённые гитарные удары по бочке"
+      },
+      "description": "palm-muted guitar stabs locked to the kick pattern",
+      "explanation": {
+        "en": "Guitar stabs hit the same pattern as the kick, so riff and break become one figure.",
+        "ru": "Гитарные удары повторяют рисунок бочки, и рифф с брейком становятся одной фигурой."
+      },
+      "when": "To tie riff and break into one figure."
+    },
+    {
+      "key": "sound-the-break-supplies-all-the-motion",
+      "type": "knob",
+      "label": {
+        "en": "the break supplies all the motion",
+        "ru": "всё движение даёт брейк"
+      },
+      "description": "the break supplies all the motion",
+      "explanation": {
+        "en": "Guitars hold long notes while the break provides every bit of movement.",
+        "ru": "Гитары держат долгие ноты, а все движение даёт брейк."
+      },
+      "when": "For a wall of guitars hovering over busy drums."
+    },
+    {
+      "key": "sound-no-drop-and-no-build-up",
+      "type": "knob",
+      "label": {
+        "en": "no drop and no build-up",
+        "ru": "без дропа и нарастания"
+      },
+      "description": "no drop and no build-up",
+      "explanation": {
+        "en": "Prevents EDM-style build-ups and drops from appearing in the arrangement.",
+        "ru": "Не даёт появиться нарастаниям и дропам в духе EDM."
+      },
+      "when": "When the track keeps turning into a dance track."
+    },
+    {
+      "key": "sound-soft-distant-break-running-at-double-time",
+      "type": "knob",
+      "label": {
+        "en": "soft distant break running at double time",
+        "ru": "мягкий далёкий брейк вдвое быстрее"
+      },
+      "description": "soft distant break running at double time",
+      "explanation": {
+        "en": "A quiet break runs at double speed far in the back, like rain on glass.",
+        "ru": "Тихий брейк идёт вдвое быстрее далеко на заднем плане, как дождь по стеклу."
+      },
+      "when": "For slow sad songs that need a quiet pulse."
     }
   ]
 }

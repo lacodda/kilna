@@ -34,9 +34,11 @@ export const linkTerm = (termId: string, workId: string) =>
 export const unlinkTerm = (termId: string, workId: string) =>
   invoke<null>('unlink_term', { termId, workId })
 /** The words a text leans on, the terms it takes, and where to mark both -
- *  and, for a text that is `sung`, where its stresses fall (ADR 0053). */
-export const checkText = (text: string, sung = false) =>
-  invoke<TextCheck>('check_text', { text, sung })
+ *  and, for a text that is `sung`, where its stresses fall (ADR 0053). A
+ *  version's text names its work and role: a role a composition writes is
+ *  read against the dictionary instead (v0.94). */
+export const checkText = (text: string, sung = false, workId?: string, role?: string) =>
+  invoke<TextCheck>('check_text', { text, sung, workId, role })
 /** A sung text as the public reads it: the stress marks off, the respellings
  *  back (ADR 0053). */
 export const cleanText = (text: string) => invoke<string>('clean_text', { text })

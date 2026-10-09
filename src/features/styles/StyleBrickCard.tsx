@@ -59,6 +59,8 @@ interface Props {
   icon: LucideIcon
   /** It is the one open beside the dictionary. */
   open: boolean
+  /** One of the channel's house bricks, named on its card. */
+  house?: boolean
   onOpen: () => void
 }
 
@@ -73,7 +75,7 @@ interface Props {
  * dressing, the colour itself for a background. A style is recognised by
  * what it looks like long before it is recognised by its name.
  */
-export function StyleBrickCard({ brick, type, icon: Icon, open, onOpen }: Props) {
+export function StyleBrickCard({ brick, type, icon: Icon, open, house = false, onOpen }: Props) {
   const { t } = useTranslation()
   const card = useRef<HTMLLIElement>(null)
 
@@ -84,6 +86,9 @@ export function StyleBrickCard({ brick, type, icon: Icon, open, onOpen }: Props)
   }, [open])
 
   const family = type?.families?.find((one) => one.key === brick.family)
+  // A phrase is its own face; what the card says under it is what it means.
+  const phrase = type?.form === 'phrase'
+  const said = phrase ? sayLabel(brick.explanation) : (brick.description ?? '')
 
   return (
     <li ref={card} className="flex">
@@ -114,10 +119,8 @@ export function StyleBrickCard({ brick, type, icon: Icon, open, onOpen }: Props)
           </span>
           {/* The opening of the description, not the author's steer: the
               steer is bookkeeping about how the description was written. */}
-          {brick.description !== null && (
-            <span className="line-clamp-2 text-sm leading-relaxed text-dim">
-              {brick.description}
-            </span>
+          {said !== '' && (
+            <span className="line-clamp-2 text-sm leading-relaxed text-dim">{said}</span>
           )}
           <span className="flex flex-wrap items-center gap-1.5">
             <Chip>
@@ -125,6 +128,7 @@ export function StyleBrickCard({ brick, type, icon: Icon, open, onOpen }: Props)
               {type === undefined ? brick.type_key : sayLabel(type.label)}
             </Chip>
             {family !== undefined && <Chip variant="soft">{sayLabel(family.label)}</Chip>}
+            {house && <Chip variant="accent">{t('styles.house')}</Chip>}
             {brick.description === null ? (
               <Chip variant="dashed">{t('styles.notDescribed')}</Chip>
             ) : (
@@ -187,6 +191,21 @@ export function BrickFace({
       // The colour is the subject here, not the styling: it is the brick's
       // own - one, or the gradient its colours make.
       <span className={cn('block h-18.5', className)} style={{ background: fill }} />
+    )
+  }
+  if (form === 'phrase') {
+    // The words the generator reads, set as they will be written.
+    return brick.description === null ? (
+      <Empty className={className} />
+    ) : (
+      <span
+        className={cn(
+          'flex h-18.5 items-center justify-center overflow-hidden bg-soft px-3 text-center font-mono text-sm text-text',
+          className,
+        )}
+      >
+        <span className="line-clamp-2">{brick.description}</span>
+      </span>
     )
   }
   if (form === 'dressing') {

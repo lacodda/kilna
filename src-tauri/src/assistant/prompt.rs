@@ -91,6 +91,9 @@ pub enum Produces {
     /// the bank, ways of singing - in a block the application reads (v0.90,
     /// ADR 0052).
     Words,
+    /// Bricks for the dictionary - a phrase, its type, what it means - in a
+    /// block the application reads (v0.94).
+    Bricks,
 }
 
 /// What an action is about.
@@ -119,6 +122,10 @@ pub enum Scope {
     /// The board of ideas for a publication's cover, read as `{ideas}` and
     /// `{choices}`: offered on the board and nowhere else (v0.89).
     Cover,
+    /// Phrases a text says that the dictionary does not know, read as
+    /// `{phrases}`, with the types they may be filed under as `{types}`:
+    /// offered where the phrases are found and nowhere else (v0.94).
+    Phrases,
 }
 
 /// The value of `scope` that names a scene action.
@@ -145,6 +152,12 @@ pub const COVER_SCOPE: &str = "cover";
 /// The value of `produces` that names ideas for a cover.
 pub const COVER_IDEAS: &str = "cover-ideas";
 
+/// The value of `scope` that names an action about unknown phrases.
+pub const PHRASES_SCOPE: &str = "phrases";
+
+/// The value of `produces` that names bricks for the dictionary.
+pub const BRICKS: &str = "bricks";
+
 impl PromptTemplate {
     /// `produces` as the application understands it. An unknown value reads
     /// as prose rather than failing: a profile written for a later kilna
@@ -162,6 +175,7 @@ impl PromptTemplate {
             Some("release") => Produces::Release,
             Some(COVER_IDEAS) => Produces::CoverIdeas,
             Some("words") => Produces::Words,
+            Some(BRICKS) => Produces::Bricks,
             Some(value) => {
                 if let Some(role) = value.strip_prefix("version:") {
                     return if role.trim().is_empty() {
@@ -205,6 +219,7 @@ impl PromptTemplate {
             Some(SELECTION_SCOPE) => Scope::Selection,
             Some(RELEASE_SCOPE) => Scope::Release,
             Some(COVER_SCOPE) => Scope::Cover,
+            Some(PHRASES_SCOPE) => Scope::Phrases,
             _ => Scope::Work,
         }
     }
@@ -273,6 +288,8 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "releases"
             | "ideas"
             | "choices"
+            | "phrases"
+            | "types"
     ) || name.strip_prefix("role:").is_some_and(|r| !r.is_empty())
         || name.strip_prefix("donor:").is_some_and(|r| !r.is_empty())
         || name == "words"
@@ -788,6 +805,19 @@ pub fn brick_sheet(
             .map_or(brick.type_key.clone(), |kind| {
                 kind.label.as_str().to_owned()
             });
+        // A phrase is its own words: given as written, with what it means -
+        // the generator reads the phrase, the writer needs the meaning.
+        let phrase = config
+            .style_type(&brick.type_key)
+            .is_some_and(|kind| kind.form == crate::profile::config::StyleForm::Phrase);
+        if phrase && let Some(text) = brick.description.as_deref().map(str::trim) {
+            out.push_str(&format!("{label} — “{text}”\n"));
+            if let Some(meaning) = &brick.explanation {
+                out.push_str(&format!("What it gives: {}\n", meaning.as_str().trim()));
+            }
+            out.push('\n');
+            continue;
+        }
         out.push_str(&format!("{} — {}", label, brick.name));
         match brick.description.as_deref().map(str::trim) {
             Some(text) if !text.is_empty() => {

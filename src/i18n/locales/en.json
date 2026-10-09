@@ -801,7 +801,8 @@
     "nothingAsked": "Nothing asked yet — a question starts in the box below.",
     "proposedCanon": "Proposed for the canon",
     "proposedCardPrompt": "Proposed description",
-    "proposedWords": "Words, proposed"
+    "proposedWords": "Words, proposed",
+    "proposedBricks": "Bricks for the dictionary"
   },
   "links": {
     "sources": "Made from",
@@ -1218,7 +1219,14 @@
     "retiredBody": "The styles of this type stay and still read; new ones are not made.",
     "canonStandsIn": "A hero with a card in the canon needs no “{{type}}” style: the card's description is built from its facts. This type stays for heroes without one.",
     "openCanon": "Open the canon",
-    "brandNote": "The channel's own - its mark, signature details, captions and palette - lives on the Channel card in the canon, not here."
+    "brandNote": "The channel's own - its mark, signature details, captions and palette - lives on the Channel card in the canon, not here.",
+    "phrase": "Phrase",
+    "phraseHint": "Written into a text word for word, as the generator reads it.",
+    "explanation": "What it means",
+    "explanationHint": "What it is and what it gives - for whoever reads it, in this window's language. Never part of a prompt.",
+    "house": "House",
+    "half": "Half of the dictionary",
+    "picture": "Picture"
   },
   "editor": {
     "folder": "Folder on disk",
@@ -2393,7 +2401,12 @@
       "unknownNoteState": "No note state “{{state}}”: fresh, used, parked or dropped.",
       "workHasNoRelease": "“{{title}}” has no release to write for. A song goes out as what is made from it: propose for its clip, audio or short.",
       "releaseFieldsUnread": "The fields could not be read: {{why}}.",
-      "ideasNotArray": "“ideas” must be a list of at least one idea."
+      "ideasNotArray": "“ideas” must be a list of at least one idea.",
+      "bricksNotProposable": "Bricks are proposed by the dictionary's own “Explain”, not by a tool.",
+      "bodyAndBricks": "Give either `body` or `bricks`: the bricks are what the text is written from.",
+      "roleNotComposed": "The `{{role}}` role of a {{kind}} is not written out of the dictionary; give `body`.",
+      "unknownBrick": "No brick of this text's types is called “{{named}}”; `styles` lists them.",
+      "ambiguousBrick": "More than one brick is called “{{named}}”; name one by id: {{ids}}."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
@@ -2432,7 +2445,11 @@
       "releaseHasNoFields": "A “{{releaseKind}}” release has no fields to write.",
       "isCoverAction": "“{{action}}” is about a cover’s board: start it on the Cover tab.",
       "actionAnswersCover": "“{{action}}” proposes ideas for a cover: start it on the Cover tab.",
-      "notCoverAction": "“{{action}}” is not an action about a cover."
+      "notCoverAction": "“{{action}}” is not an action about a cover.",
+      "isPhrasesAction": "“{{action}}” is about phrases, not a work: start it where the phrases are.",
+      "actionAnswersPhrases": "“{{action}}” answers with bricks, which only an action about phrases can.",
+      "notAboutPhrases": "“{{action}}” is not an action about phrases.",
+      "needsPhrases": "“{{action}}” needs at least one phrase to explain."
     },
     "style": {
       "needsName": "A style needs a name.",
@@ -2536,6 +2553,18 @@
     },
     "repeat": {
       "needsWord": "Say which word is kept."
+    },
+    "compose": {
+      "wrongKind": "“{{title}}” is a {{kind}}, which this composition does not write for.",
+      "notOfComposition": "“{{name}}” is a {{type}}, which this text is not picked from.",
+      "saysNothing": "“{{name}}” has no phrase yet: write one before it goes into a text."
+    },
+    "bricks": {
+      "noBricks": "There are no bricks in this: give a list, or {\"bricks\": [...]}.",
+      "unread": "An item that reads as no brick: {{why}}.",
+      "noPhrase": "An item with no phrase.",
+      "unknownType": "“{{phrase}}” is filed as {{type}}, which is not a type of phrase here.",
+      "known": "“{{phrase}}” is already in the dictionary."
     }
   },
   "skip": {
@@ -3242,5 +3271,59 @@
     "pickHint": "The collection this work is in",
     "pickNone": "No collection",
     "open": "Open “{{title}}”"
+  },
+  "phrases": {
+    "known_one": "In the dictionary: {{count}}",
+    "known_other": "In the dictionary: {{count}}",
+    "unknown_one": "Not in the dictionary: {{count}}",
+    "unknown_other": "Not in the dictionary: {{count}}",
+    "unknownHint": "The dictionary does not know this one: keep it by hand, or have it explained.",
+    "addByHand": "Add to the dictionary…",
+    "addByHandOf": "Add “{{phrase}}” to the dictionary",
+    "explainAll": "{{label}} all",
+    "explainN_one": "{{label}} {{count}} phrase",
+    "explainN_other": "{{label}} {{count}} phrases",
+    "dictionary": "Dictionary",
+    "search": "Search in any language",
+    "insert": "Put it in at the caret",
+    "addTitle": "A phrase for the dictionary",
+    "addBody": "Kept as one of your own bricks, ready at once: the phrase is what goes into a text.",
+    "add": "Add to the dictionary",
+    "added": "“{{phrase}}” is in the dictionary.",
+    "addFailed": "Couldn't add the phrase",
+    "whenHint": "For whoever picks phrases: when this is the one to reach for.",
+    "keepItem": "Keep “{{phrase}}”",
+    "keepAll": "Keep all",
+    "keep": "Keep {{n}}",
+    "keptMark_one": "{{count}} brick kept",
+    "keptMark_other": "{{count}} bricks kept",
+    "keptFromChat": "Kept in the dictionary.",
+    "openKept": "Open in the dictionary",
+    "fromTexts": "From your texts",
+    "fromTextsTitle": "Your own words · {{name}}",
+    "fromTextsBody": "The phrases your texts say that the dictionary does not know yet, the most widely written first. Tick the ones to explain - the answer comes back as bricks to keep one by one.",
+    "fromTextsNone": "Every phrase your texts say is in the dictionary.",
+    "pick": "Explain “{{phrase}}”",
+    "writtenIn": "{{works}} works, {{versions}} versions"
+  },
+  "compose": {
+    "open": "From the dictionary",
+    "hint": "Pick the phrases block by block; the text is written in the order you pick them.",
+    "title": "From the dictionary · {{name}}",
+    "body": "Pick by blocks, in the order a text is built. The order you pick in is the order of the words: the generator weighs them from the left. The song's own fields close the line.",
+    "search": "Search the phrases in any language",
+    "count": "{{count}} of {{min}}-{{max}}",
+    "countOpen": "{{count}}, at least {{min}}",
+    "noneHere": "Nothing here matches.",
+    "line": "The line",
+    "empty": "Nothing picked yet.",
+    "earlier": "Earlier in the line",
+    "later": "Later in the line",
+    "length_one": "{{count}} character",
+    "length_other": "{{count}} characters",
+    "lengthOf": "{{count}} of {{limit}} characters",
+    "use": "Use as a new version",
+    "versionLabel": "From the dictionary",
+    "placed": "The text from the dictionary is in the form."
   }
 }

@@ -236,6 +236,12 @@ pub fn compose(
                 Error::refused("task.isCoverAction").param("action", template.label.as_str())
             );
         }
+        // Composed by `compose_for_phrases`, against phrases a text says.
+        (Scope::Phrases, _) => {
+            return Err(
+                Error::refused("task.isPhrasesAction").param("action", template.label.as_str())
+            );
+        }
     };
 
     // One block of that scene, when the action is aimed at one. Refused
@@ -341,6 +347,11 @@ pub fn compose(
             return Err(
                 Error::refused("task.actionAnswersCover").param("action", template.label.as_str())
             );
+        }
+        // Only an action about phrases proposes bricks for them.
+        Produces::Bricks => {
+            return Err(Error::refused("task.actionAnswersPhrases")
+                .param("action", template.label.as_str()));
         }
     }
 
@@ -1208,6 +1219,155 @@ pub fn prepare_for_cover(
     )
 }
 
+/// What a task about phrases is, as a key: this action, on these phrases
+/// of this composition. The phrases go in as a fingerprint - there may be
+/// dozens - so the same list asked twice is the same task.
+/// Read as the composer reads them: the blank ones left out, the first
+/// [`PHRASES_AT_ONCE`] taken.
+pub fn phrases_key(action: &str, composition: &str, phrases: &[PhraseAsked]) -> String {
+    let text = phrases
+        .iter()
+        .filter(|p| !p.phrase.trim().is_empty())
+        .take(PHRASES_AT_ONCE)
+        .map(|p| crate::phrase::key_of(&p.phrase))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in text.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    format!("{action}:phrases:{composition}:{hash:016x}")
+}
+
+/// The composition a task about phrases was started for - the other half of
+/// [`phrases_key`].
+pub fn phrases_of_key(key: &str) -> Option<&str> {
+    let mut parts = key.splitn(4, ':');
+    parts.next()?;
+    (parts.next()? == "phrases").then(|| parts.next()).flatten()
+}
+
+/// A phrase to be explained, and how often the texts write it.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+pub struct PhraseAsked {
+    pub phrase: String,
+    #[serde(default)]
+    pub count: usize,
+}
+
+/// The most phrases one task explains: past it the answer is a page of
+/// bricks nobody reads one by one.
+pub const PHRASES_AT_ONCE: usize = 40;
+
+/// Compose `action` against phrases a composition's texts say and the
+/// dictionary does not know (v0.94).
+///
+/// Not about a work: the phrases may come from one style or from all of
+/// them. The prompt is given the phrases, `{phrases}`, and the types they can
+/// be filed under with what each asks to be described, `{types}` - the
+/// composition's types, in its order, with their families.
+pub fn compose_for_phrases(
+    conn: &Connection,
+    composition_key: &str,
+    phrases: &[PhraseAsked],
+    action: &str,
+) -> Result<(Composed, String)> {
+    let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
+    let template = profile
+        .config
+        .prompts
+        .iter()
+        .find(|prompt| prompt.key == action)
+        .ok_or_else(|| Error::not_found("prompt", action))?;
+    if template.scope() != Scope::Phrases {
+        return Err(Error::refused("task.notAboutPhrases").param("action", template.label.as_str()));
+    }
+    let composition = profile
+        .config
+        .composition(composition_key)
+        .ok_or_else(|| Error::not_found("composition", composition_key))?;
+    let phrases: Vec<&PhraseAsked> = phrases
+        .iter()
+        .filter(|p| !p.phrase.trim().is_empty())
+        .take(PHRASES_AT_ONCE)
+        .collect();
+    if phrases.is_empty() {
+        return Err(Error::refused("task.needsPhrases").param("action", template.label.as_str()));
+    }
+
+    let listed = phrases
+        .iter()
+        .map(|p| {
+            if p.count > 1 {
+                format!("- {} (written {} times)", p.phrase.trim(), p.count)
+            } else {
+                format!("- {}", p.phrase.trim())
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    let mut types = String::new();
+    for part in &composition.parts {
+        let Some(style) = profile.config.style_type(&part.type_key) else {
+            continue;
+        };
+        types.push_str(&format!("- `{}` - {}", style.key, style.label.as_str()));
+        if let Some(hint) = &style.hint {
+            types.push_str(&format!(": {}", hint.as_str()));
+        }
+        if !style.families.is_empty() {
+            let families = style
+                .families
+                .iter()
+                .map(|f| format!("`{}` ({})", f.key, f.label.as_str()))
+                .collect::<Vec<_>>()
+                .join(", ");
+            types.push_str(&format!(" Families: {families}."));
+        }
+        types.push('\n');
+    }
+    let mut prompt = super::prompt::render(
+        &template.template,
+        &[("phrases", listed), ("types", types.trim_end().to_owned())],
+    );
+    prompt.push_str(crate::phrase::proposal::INSTRUCTION);
+    let prompt = super::waiting::instruct(&prompt);
+
+    let asked: Vec<PhraseAsked> = phrases.iter().map(|p| (*p).clone()).collect();
+    Ok((
+        Composed {
+            prompt,
+            method: template.method().map(str::to_owned),
+            key: phrases_key(action, composition_key, &asked),
+            title: format!(
+                "{} · {}",
+                template.label.as_str(),
+                asked
+                    .iter()
+                    .take(3)
+                    .map(|p| p.phrase.trim())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            attachments: Vec::new(),
+        },
+        profile.id,
+    ))
+}
+
+/// [`compose_for_phrases`] with the chat it will be answered in: on no work,
+/// as a brick's is.
+pub fn prepare_for_phrases(
+    conn: &Connection,
+    composition_key: &str,
+    phrases: &[PhraseAsked],
+    action: &str,
+) -> Result<Prepared> {
+    let (composed, profile_id) = compose_for_phrases(conn, composition_key, phrases, action)?;
+    prepared(conn, &profile_id, composed, None, action)
+}
+
 /// A composed task with a new chat of its own.
 fn prepared(
     conn: &Connection,
@@ -1697,6 +1857,58 @@ mod tests {
 
     /// The type's own instruction reaches the model, the author's steer is
     /// kept apart and labelled, and neither is left to be guessed at.
+    #[test]
+    fn explaining_phrases_names_them_and_the_types_they_can_be() {
+        let (conn, _) = fixtures::workspace();
+        let asked = vec![
+            PhraseAsked {
+                phrase: "noise guitar bursts".into(),
+                count: 3,
+            },
+            PhraseAsked {
+                phrase: "  ".into(),
+                count: 1,
+            },
+            PhraseAsked {
+                phrase: "tape-warped choir".into(),
+                count: 1,
+            },
+        ];
+        let (composed, _) = compose_for_phrases(&conn, "sound", &asked, "explain-phrases").unwrap();
+        assert!(
+            composed
+                .prompt
+                .contains("- noise guitar bursts (written 3 times)\n- tape-warped choir"),
+            "the phrases, with how often, the blank one left out: {}",
+            composed.prompt
+        );
+        assert!(
+            composed.prompt.contains("`groove` - Groove")
+                && composed.prompt.contains("`breaks` (Breaks)"),
+            "the types with their families: {}",
+            composed.prompt
+        );
+        assert!(
+            composed.prompt.contains("{\"bricks\":"),
+            "the answer's shape is said"
+        );
+        assert!(!composed.prompt.contains("{phrases}") && !composed.prompt.contains("{types}"));
+        assert_eq!(
+            composed.key,
+            phrases_key("explain-phrases", "sound", &asked),
+            "the key the start checks for a duplicate is the composer's"
+        );
+        assert_eq!(phrases_of_key(&composed.key), Some("sound"));
+
+        let none = compose_for_phrases(&conn, "sound", &[], "explain-phrases").unwrap_err();
+        assert_eq!(none.refusal().map(|r| r.code), Some("task.needsPhrases"));
+        let wrong = compose_for_phrases(&conn, "sound", &asked, "critique").unwrap_err();
+        assert_eq!(
+            wrong.refusal().map(|r| r.code),
+            Some("task.notAboutPhrases")
+        );
+    }
+
     #[test]
     fn describing_a_brick_carries_the_types_question_and_the_authors_steer() {
         let (conn, profile_id) = fixtures::workspace();

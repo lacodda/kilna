@@ -57,6 +57,8 @@ beforeEach(() => {
     marks: [{ start: at, end: at + 'Lanterns'.length, term: 0 }],
     stress: [],
     accents: [],
+    phrases: [],
+    unknown: [],
   }
   backend = mockBackend({
     ...answersFor(studio()),

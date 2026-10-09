@@ -184,6 +184,7 @@ describe('the constructor', () => {
       label: { en: 'Sunset gradient', ru: 'Закатный градиент' },
       family: null,
       when_to_use: null,
+      explanation: null,
       colours: ['#FF5F6D', '#FFC371'],
       sample: null,
       set_key: 'accent-grad-sunset',

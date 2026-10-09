@@ -149,6 +149,12 @@ pub enum Proposal {
     Words {
         package: crate::register::proposal::WordsPackage,
     },
+    /// Bricks for the dictionary (v0.94): phrases a text says that the
+    /// dictionary did not know, each with its type and what it means - from
+    /// "Explain". Kept whole or brick by brick.
+    Bricks {
+        package: crate::phrase::proposal::BricksPackage,
+    },
     /// The description a picture generator is given for a card; the text is
     /// the message body. `basis` is the fingerprint of the facts it was
     /// written against, so facts changed while it was written show it stale.
@@ -1644,6 +1650,7 @@ mod instruction_tests {
             stages: Vec::new(),
             cover_ideas: None,
             guard: None,
+            compose: Vec::new(),
             prompts: Vec::new(),
             rhythm: None,
             catalogue_columns: None,

@@ -70,7 +70,9 @@ export const refresh = {
   scene: [keys.scenes, keys.pictures] as readonly QueryKey[],
   cut: [keys.cuts] as readonly QueryKey[],
   link: [keys.links, keys.works] as readonly QueryKey[],
-  style: [keys.styles, keys.pictures] as readonly QueryKey[],
+  /** A brick: the dictionary, and every text read against it (v0.94) - a
+   *  phrase kept or reworded changes what a style prompt is marked with. */
+  style: [keys.styles, keys.pictures, ['register', 'check']] as readonly QueryKey[],
   /** The canon: a card's facts, relations, pictures or description. The
    *  notes too - a card is a note - and the search, which finds facts. */
   canon: [
@@ -78,6 +80,7 @@ export const refresh = {
     keys.notes,
     ['search'],
     keys.styleSlots,
+    keys.houseStyles,
     keys.pictures,
   ] as readonly QueryKey[],
   focus: [keys.focus] as readonly QueryKey[],

@@ -28,6 +28,7 @@ const BRICK: StyleBrick = {
   label: null,
   family: null,
   when_to_use: null,
+  explanation: null,
   colours: [],
   sample: null,
   set_key: null,

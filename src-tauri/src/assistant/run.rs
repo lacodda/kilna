@@ -794,6 +794,32 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
                 Err(error) => Read::Refused(error.to_string()),
             }
         }
+        // Bricks for the dictionary, read against the types of the
+        // composition the key names and the dictionary as it stands.
+        super::prompt::Produces::Bricks => {
+            let Some(key) = super::task::phrases_of_key(task_key) else {
+                return Read::Nothing;
+            };
+            let types: Vec<String> = profile
+                .config
+                .composition(key)
+                .map(|c| c.types().map(str::to_owned).collect())
+                .unwrap_or_default();
+            let Some(block) = super::proposal::fenced_json(body) else {
+                return Read::Refused("the answer holds no ```json block of bricks".into());
+            };
+            let raw: Value = match serde_json::from_str(&block) {
+                Ok(raw) => raw,
+                Err(error) => {
+                    return Read::Refused(format!("the json block is not a proposal: {error}"));
+                }
+            };
+            match crate::phrase::proposal::read(conn, &profile.id, &profile.config, &types, &raw) {
+                Ok(package) if package.is_empty() && package.dropped.is_empty() => Read::Nothing,
+                Ok(package) => value(super::proposal::Proposal::Bricks { package }),
+                Err(error) => Read::Refused(error.to_string()),
+            }
+        }
         super::prompt::Produces::Scenes(change) => {
             let Some(work) = work_of_chat(conn, &run.chat_id) else {
                 return Read::Nothing;
@@ -2167,6 +2193,61 @@ The second verse is the weak one."
                 .as_str()
                 .or(proposal["style_id"].as_str()),
             Some("b-7")
+        );
+        drop(dir);
+    }
+
+    /// "Explain" answers with bricks for the dictionary: the block is read
+    /// against the composition's types and the dictionary as it stands, and
+    /// the message carries the package to keep.
+    #[test]
+    fn a_phrases_task_proposes_bricks_for_the_dictionary() {
+        let (dir, path, conn, profile_id) = on_disk();
+        let chat_id = chat(&conn, &profile_id);
+        let runs = Arc::new(Runs::new());
+
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        let asked = [crate::assistant::task::PhraseAsked {
+            phrase: "noise guitar bursts".into(),
+            count: 3,
+        }];
+        run.task = Some(crate::assistant::task::phrases_key(
+            "explain-phrases",
+            "sound",
+            &asked,
+        ));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let body = "Nothing left out.\n\n```json\n{\"bricks\": [{\"type\": \"knob\", \"phrase\": \"noise guitar bursts\", \"explanation\": {\"en\": \"Grit.\", \"ru\": \"Грязь.\"}, \"family\": null}, {\"type\": \"image-style\", \"phrase\": \"grain\", \"explanation\": {\"en\": \"Grain.\", \"ru\": \"Зерно.\"}}]}\n```";
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: body.into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap();
+        let proposal = answer.meta.get("proposal").expect("bricks are proposed");
+        assert_eq!(proposal["kind"], "bricks");
+        let bricks = proposal["package"]["bricks"].as_array().unwrap();
+        assert_eq!(bricks.len(), 1, "a picture's type is no type of sound");
+        assert_eq!(bricks[0]["phrase"], "noise guitar bursts");
+        assert_eq!(
+            proposal["package"]["dropped"].as_array().map(Vec::len),
+            Some(1),
+            "what was left out is said"
         );
         drop(dir);
     }

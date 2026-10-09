@@ -12,6 +12,12 @@ So kilna keeps them as **styles**: one dictionary, owned by the workspace
 rather than by any work, that a prompt is built out of. Each style is a
 brick of it.
 
+The dictionary has two halves. **Picture** holds what a cover, a frame and a
+scene are built from, and is what this page is about. **Sound** holds the
+phrases a song's style prompt is written from - see
+[The dictionary of sound](/kilna/guides/the-sound/). The switch at the top of
+the screen moves between them.
+
 ## What a style is
 
 A style has four things:
@@ -76,10 +82,11 @@ not a style: it lives on the **Channel** card of the
 ## The starter set
 
 A new workspace does not open on an empty dictionary. Studio ships three
-hundred and three styles - image styles in twelve families, typography with
-live samples, dressings, backgrounds and accents, flat and in gradients -
-with names in English and Russian and descriptions in English, the language
-a prompt is written in. The
+hundred and three styles for pictures - image styles in twelve families,
+typography with live samples, dressings, backgrounds and accents, flat and
+in gradients - and two hundred and twelve phrases of sound, with names in
+English and Russian and descriptions in English, the language a prompt is
+written in. The
 families run from tattoo and the old masters through the street, the digital
 and the eras to Japan, China, India, Eastern tales, world folk, antiquity
 and what is in fashion now.
@@ -219,10 +226,11 @@ picked it on purpose.
 
 ## A style is not a style prompt
 
-The `style` **version role** on a song — the production paragraph kept
-beside its lyrics — is unchanged and is not the same thing. That is a
-finished prompt for one work. A style is a part that finished prompts get
-built from. The constructor turns the second into the first.
+The `style` **version role** on a song — the production line kept beside its
+lyrics — is a finished prompt for one work. A brick is a part that finished
+prompts get built from: a song's style is written out of the phrases of
+[the dictionary of sound](/kilna/guides/the-sound/), and read back against
+them.
 
 ## Where the dictionary lives
 

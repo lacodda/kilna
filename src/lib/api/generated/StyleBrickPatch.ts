@@ -4,4 +4,4 @@ import type { Label } from "./Label";
 /**
  * What may be changed about one.
  */
-export type StyleBrickPatch = { type_key?: string | null, name?: string | null, description?: string | null | null, hint?: string | null | null, status?: string | null, label?: Label | null | null, family?: string | null | null, when_to_use?: string | null | null, colours?: Array<string> | null, sample?: string | null | null, };
+export type StyleBrickPatch = { type_key?: string | null, name?: string | null, description?: string | null | null, hint?: string | null | null, status?: string | null, label?: Label | null | null, family?: string | null | null, when_to_use?: string | null | null, colours?: Array<string> | null, sample?: string | null | null, explanation?: Label | null | null, };

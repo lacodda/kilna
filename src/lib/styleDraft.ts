@@ -1,4 +1,5 @@
-import type { StyleBrick, StyleBrickPatch, StyleBrickStatus } from '@/lib/api/types'
+import i18n from '@/i18n'
+import type { Label, StyleBrick, StyleBrickPatch, StyleBrickStatus } from '@/lib/api/types'
 import { HEX, styleName } from '@/lib/styleBrick'
 
 /*
@@ -46,9 +47,16 @@ export interface StyleForm {
    * lettering sample.
    */
   colours: string[]
+  /** What it means, in the window's language: the one language the box
+   *  edits (v0.94). The others the brick carries are kept as they are. */
+  explanation: string
+  /** The explanation as stored, every language: what an edit of one
+   *  language is merged into. Not a field of its own - it follows what is
+   *  stored and is never typed. */
+  explanationStored: Label | null
 }
 
-type Field = keyof StyleForm
+type Field = Exclude<keyof StyleForm, 'explanationStored'>
 
 const FIELDS: readonly Field[] = [
   'type_key',
@@ -60,7 +68,43 @@ const FIELDS: readonly Field[] = [
   'family',
   'sample',
   'colours',
+  'explanation',
 ]
+
+/** The language the window shows, as a label's key. */
+function language(): string {
+  return (i18n.resolvedLanguage ?? 'en').split('-')[0] ?? 'en'
+}
+
+/**
+ * The explanation a brick gives in `lang` - exactly that language, so a box
+ * the person types into is never seeded with another language's words. A
+ * plain string is one a person typed, in whatever language: it is theirs in
+ * every window.
+ */
+export function explanationIn(label: Label | null, lang: string = language()): string {
+  if (label === null) return ''
+  if (typeof label === 'string') return label
+  return label[lang] ?? ''
+}
+
+/**
+ * The stored explanation with `lang` rewritten as `text`: the other
+ * languages a shipped brick carries stay, a blank one goes, and nothing left
+ * is nothing.
+ */
+export function withExplanation(
+  stored: Label | null,
+  text: string,
+  lang: string = language(),
+): Label | null {
+  const typed = text.trim()
+  if (stored === null || typeof stored === 'string') return typed === '' ? null : typed
+  const next: Record<string, string> = { ...stored }
+  if (typed === '') delete next[lang]
+  else next[lang] = typed
+  return Object.keys(next).length === 0 ? null : next
+}
 
 /**
  * A stored brick, spelled the way its editor's boxes spell it. The name is
@@ -77,6 +121,8 @@ export function formOf(brick: StyleBrick): StyleForm {
     family: brick.family ?? '',
     sample: brick.sample ?? '',
     colours: [...brick.colours],
+    explanation: explanationIn(brick.explanation ?? null),
+    explanationStored: brick.explanation ?? null,
     // `status` is a plain `string` on the backend (ADR 0003); the editor only
     // ever writes one of the three this form knows, so a stored brick is
     // always one of them in practice.
@@ -105,6 +151,7 @@ function meaning(form: StyleForm, field: Field): string | null {
     case 'when_to_use':
     case 'sample':
     case 'family':
+    case 'explanation':
       return stored(form[field])
     case 'colours':
       return colourList(form.colours).join(' ') || null
@@ -180,6 +227,9 @@ export function patchOf(
       case 'colours':
         patch.colours = colourList(form.colours)
         break
+      case 'explanation':
+        patch.explanation = withExplanation(base.explanationStored, form.explanation)
+        break
     }
   }
   return any ? patch : null
@@ -206,6 +256,9 @@ export function adopt(
       Object.assign(next, { [field]: incoming[field] })
     }
   }
+  // What is stored follows what is stored, typed into or not: an edit of
+  // one language is merged into the languages as they are now.
+  next.explanationStored = incoming.explanationStored
   return { form: next, base: { ...incoming } }
 }
 

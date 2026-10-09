@@ -15,4 +15,12 @@ term?: number,
 /**
  * Index into `stress`.
  */
-stress?: number, };
+stress?: number, 
+/**
+ * Index into `phrases`.
+ */
+phrase?: number, 
+/**
+ * Index into `unknown`.
+ */
+unknown?: number, };

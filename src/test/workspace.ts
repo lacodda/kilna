@@ -375,6 +375,7 @@ export function studio(): Studio {
       label: null,
       family: null,
       when_to_use: null,
+      explanation: null,
       colours: [],
       sample: null,
       set_key: null,
@@ -1106,7 +1107,15 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     list_term_topics: () => [],
     term_uses: () => [],
     preview_term: () => 0,
-    check_text: () => ({ repeats: [], terms: [], marks: [], stress: [], accents: [] }),
+    check_text: () => ({
+      repeats: [],
+      terms: [],
+      marks: [],
+      stress: [],
+      accents: [],
+      phrases: [],
+      unknown: [],
+    }),
     clean_text: ({ text }) => text,
     // The bank of words and the guard of repeats (v0.90): empty until a
     // test says otherwise.
@@ -1157,6 +1166,17 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     style_brick_counts: () => counted(studio.bricks.map((b) => b.type_key)),
     style_brick_references: () => noAssets,
     style_slot_values: () => ({}),
+    house_styles: () => [],
+    phrases_from_texts: () => [],
+    // The text the dictionary writes: the picks' phrases in order, as the
+    // backend's one writer does - the fields are the backend's to add.
+    compose_text: (args) => {
+      const { request } = args as { request: { bricks: string[] } }
+      const text = request.bricks
+        .map((id) => studio.bricks.find((brick) => brick.id === id)?.description ?? id)
+        .join(', ')
+      return { text, length: text.length, limit: 1000, problems: [] }
+    },
 
     list_journal: () => studio.journal,
     unread_journal: () => studio.journal.filter((e) => e.read_at === null).length,
