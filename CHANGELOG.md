@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.95.0] - 2026-10-09
+
+### Bug Fixes
+- Take the first match of a typed name with Enter
+
+### Features
+- Experiments with a board of trials
+
 ## [0.94.1] - 2026-10-09
 
 ### Bug Fixes
