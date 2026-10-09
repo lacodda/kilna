@@ -11,7 +11,7 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { ProductMark } from '@/components/ui/product-mark'
-import { useShortcut } from '@/components/ui/shortcut'
+import { useCommand } from '@/components/ui/commands'
 import { TitleBar } from '@/components/ui/window-frame'
 import { NewWorkDialog } from '@/components/NewWorkDialog'
 import { AssistantButton } from '@/features/assistant/AssistantDrawer'
@@ -167,7 +167,13 @@ export function Titlebar({ works, compact, onToggleRail, onShowKeys }: Props) {
   // and drawn from the same `['Mod', 'K']`, so the key on the button and the
   // key that works cannot drift apart.
   const openPalette = useCallback(() => setSearching(true), [])
-  useShortcut(['Mod', 'K'], openPalette, { whileTyping: true })
+  useCommand({
+    id: 'search',
+    label: t('keys.action.search'),
+    keys: 'Mod+K',
+    whileTyping: true,
+    run: openPalette,
+  })
 
   return (
     <>
@@ -197,7 +203,7 @@ export function Titlebar({ works, compact, onToggleRail, onShowKeys }: Props) {
           >
             <Search aria-hidden />
             <span className="truncate">{t('search.placeholder')}</span>
-            <Kbd keys={['Mod', 'K']} aria-hidden className="ml-auto" />
+            <Kbd keys="Mod+K" aria-hidden className="ml-auto" />
           </Button>
         }
         actions={

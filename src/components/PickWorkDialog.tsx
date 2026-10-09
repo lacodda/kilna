@@ -112,7 +112,7 @@ function Contents({ onOpenChange, onPick, title, kinds }: Omit<Props, 'open'>) {
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t('pick.placeholder')}
           aria-label={title}
-          hint={['Escape']}
+          hint="Escape"
         />
 
         {/* The kinds as chips rather than a dropdown: there are four of them,

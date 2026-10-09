@@ -1,13 +1,12 @@
 import { useMemo, useState, type KeyboardEvent } from 'react'
 import { cn, useLocale } from 'dowel-ui'
 import {
-  addDays,
   addMonths,
   firstDayOfWeek,
+  keyStep,
   monthGrid,
   parts,
   today,
-  weekday,
   weekdayNames,
   type IsoDate,
 } from './calendar-math'
@@ -104,21 +103,10 @@ export function Calendar({
   }
 
   const onKeyDown = (event: KeyboardEvent) => {
-    const jump: Record<string, () => IsoDate> = {
-      ArrowRight: () => addDays(focused, 1),
-      ArrowLeft: () => addDays(focused, -1),
-      ArrowDown: () => addDays(focused, 7),
-      ArrowUp: () => addDays(focused, -7),
-      PageDown: () => addMonths(focused, 1),
-      PageUp: () => addMonths(focused, -1),
-      Home: () => addDays(focused, -((weekday(focused) - start + 7) % 7)),
-      End: () => addDays(focused, 6 - ((weekday(focused) - start + 7) % 7)),
-    }
-
-    const move = jump[event.key]
-    if (move) {
+    const next = keyStep(event.key, focused, start)
+    if (next !== undefined) {
       event.preventDefault()
-      moveFocus(move())
+      moveFocus(next)
       return
     }
 

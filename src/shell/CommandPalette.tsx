@@ -200,7 +200,7 @@ function Contents({
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t('search.placeholder')}
           aria-label={t('search.title')}
-          hint={['Escape']}
+          hint="Escape"
         />
 
         <CommandPaletteEmpty className="px-4 py-6 text-center text-xs text-faint">

@@ -12,18 +12,36 @@ import {
   DialogPopup,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Kbd } from '@/components/ui/kbd'
+import { Kbd, keyLabel } from '@/components/ui/kbd'
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-/** One line of the sheet: what the keys are, and what they do. */
-function Row({ keys, children }: { keys: string[]; children: string }) {
+/**
+ * One line of the sheet: what the keys are, and what they do. A press of the
+ * pointer is no key the notation can name, so a gesture with one gives the
+ * modifier held (`hold`) and the press (`then`) as caps of their own.
+ */
+function Row({
+  keys,
+  hold,
+  then,
+  children,
+}: {
+  keys?: string
+  hold?: string
+  then?: string
+  children: string
+}) {
   return (
     <div className="flex items-baseline gap-3 py-1">
-      <Kbd keys={keys} className="shrink-0" />
+      <span className="inline-flex shrink-0 items-center gap-0.5">
+        {keys !== undefined && <Kbd keys={keys} />}
+        {hold !== undefined && <Kbd>{keyLabel(hold)}</Kbd>}
+        {then !== undefined && <Kbd>{then}</Kbd>}
+      </span>
       <span className="min-w-0 text-sm text-dim">{children}</span>
     </div>
   )
@@ -76,7 +94,7 @@ export function KeyboardSheet({ open, onOpenChange }: Props) {
           <div className="grid gap-4 sm:grid-cols-2">
             <Group title={t('keys.group.going')}>
               {SCREENS.filter((screen) => screen.jump !== undefined).map((screen) => (
-                <Row key={screen.key} keys={['G', screen.jump!.toUpperCase()]}>
+                <Row key={screen.key} keys={`G ${screen.jump!.toUpperCase()}`}>
                   {t(screen.nav)}
                 </Row>
               ))}
@@ -84,23 +102,25 @@ export function KeyboardSheet({ open, onOpenChange }: Props) {
 
             <div className="grid gap-4">
               <Group title={t('keys.group.moving')}>
-                <Row keys={['Mod', 'K']}>{t('keys.action.search')}</Row>
-                <Row keys={['Alt', 'ArrowLeft']}>{t('keys.action.back')}</Row>
-                <Row keys={['Alt', 'ArrowRight']}>{t('keys.action.forward')}</Row>
+                <Row keys="Mod+K">{t('keys.action.search')}</Row>
+                <Row keys="Alt+ArrowLeft">{t('keys.action.back')}</Row>
+                <Row keys="Alt+ArrowRight">{t('keys.action.forward')}</Row>
               </Group>
 
               <Group title={t('keys.group.everywhere')}>
-                <Row keys={['Mod', 'Z']}>{t('keys.action.undo')}</Row>
-                <Row keys={['?']}>{t('keys.action.help')}</Row>
-                <Row keys={['Escape']}>{t('keys.action.close')}</Row>
+                <Row keys="Mod+Z">{t('keys.action.undo')}</Row>
+                <Row keys="?">{t('keys.action.help')}</Row>
+                <Row keys="Escape">{t('keys.action.close')}</Row>
               </Group>
 
               {/* The stress gesture of a sung text (ADR 0053): on a vowel
                   under the pointer, or at the caret - the same key on a
                   Cyrillic layout, where it types э. */}
               <Group title={t('keys.group.sung')}>
-                <Row keys={['Alt', t('keys.click')]}>{t('keys.action.stressVowel')}</Row>
-                <Row keys={['Alt', "'"]}>{t('keys.action.stressCaret')}</Row>
+                <Row hold="Alt" then={t('keys.click')}>
+                  {t('keys.action.stressVowel')}
+                </Row>
+                <Row keys="Alt+'">{t('keys.action.stressCaret')}</Row>
               </Group>
             </div>
           </div>

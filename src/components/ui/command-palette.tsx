@@ -24,6 +24,9 @@ import { LayerProvider } from './layer'
  * `items` is deliberately `unknown[]` - a palette lists commands, works,
  * settings and recent files in the same box, and a type that admitted only
  * strings would push every product into the same stringly-typed workaround.
+ *
+ * The commands themselves come from `commands`: the list the keyboard and the
+ * sheet of shortcuts read too, so a row's key hint is the key that works.
  */
 
 export const commandPalettePopupVariants = cva(
@@ -174,8 +177,8 @@ export function CommandPalettePopup({
 }
 
 export interface CommandPaletteInputProps extends Base.Input.Props {
-  /** Shown at the right of the field, as `['Esc']`. Decorative. */
-  hint?: string[]
+  /** Shown at the right of the field, as `Escape`. Decorative. */
+  hint?: string
 }
 
 /** The field. Sits inside the popup, which is what makes the popup a dialog

@@ -33,7 +33,7 @@ export interface Command {
   icon: LucideIcon
   /** The keys that do the same from anywhere, shown at the end of the row -
    *  a palette is also where shortcuts are learned. */
-  keys?: string[]
+  keys?: string
   run: () => void
 }
 
@@ -110,7 +110,7 @@ export function usePaletteCommands(shell: ShellCommands): {
       icon: MessageSquare,
       run: () => assistant.open(),
     },
-    { id: 'undo', label: t('keys.action.undo'), icon: Undo2, keys: ['Mod', 'Z'], run: undo },
+    { id: 'undo', label: t('keys.action.undo'), icon: Undo2, keys: 'Mod+Z', run: undo },
     // Every theme and language but the one in use, rather than the rail's
     // "next in turn": typed into a palette, "dark" should find the dark theme
     // whichever one happens to follow the current.
@@ -132,14 +132,14 @@ export function usePaletteCommands(shell: ShellCommands): {
       icon: shell.compact ? PanelLeftOpen : PanelLeftClose,
       run: shell.toggleRail,
     },
-    { id: 'keys', label: t('keys.title'), icon: Keyboard, keys: ['?'], run: shell.showKeys },
+    { id: 'keys', label: t('keys.title'), icon: Keyboard, keys: '?', run: shell.showKeys },
   ]
 
   const screens = onRail(import.meta.env.DEV, config).map((screen): Command => ({
     id: `screen-${screen.key}`,
     label: t(screen.nav),
     icon: screen.rail!.icon,
-    keys: screen.jump === undefined ? undefined : ['G', screen.jump.toUpperCase()],
+    keys: screen.jump === undefined ? undefined : `G ${screen.jump.toUpperCase()}`,
     run: () => navigate(`/${screen.key}`),
   }))
 

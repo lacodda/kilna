@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from 'react'
+import type { CSSProperties, ReactNode, Ref } from 'react'
 import { ScrollArea as Base } from '@base-ui/react/scroll-area'
 import { cva } from 'class-variance-authority'
 import { cn } from 'dowel-ui'
@@ -37,7 +37,30 @@ import { cn } from 'dowel-ui'
  * overflow distances, so an edge that is already at its end is left sharp -
  * a fade on both ends of a list scrolled to the top would say there is
  * something above when there is not.
+ *
+ * `orientation` says which way the content may move. Base UI sizes its content
+ * box to `fit-content`, which is right for a table that scrolls sideways and
+ * wrong for a list: a row that should truncate to the column instead widens
+ * the box, and the list scrolls sideways by the length of its longest title.
+ * `vertical` holds the content to the viewport's width; `horizontal` holds it
+ * to the viewport's height.
  */
+
+type Orientation = NonNullable<ScrollAreaProps['orientation']>
+
+/* Inline, because the style Base UI writes is inline too - `min-width:
+ * fit-content` on the content and `overflow: scroll` on the viewport - and a
+ * class loses to it. */
+const contentStyle: Record<Orientation, CSSProperties | undefined> = {
+  both: undefined,
+  vertical: { minWidth: 0 },
+  horizontal: undefined,
+}
+const viewportStyle: Record<Orientation, CSSProperties | undefined> = {
+  both: undefined,
+  vertical: { overflowX: 'hidden' },
+  horizontal: { overflowY: 'hidden' },
+}
 
 export const scrollAreaViewportVariants = cva(
   cn(
@@ -89,6 +112,9 @@ export interface ScrollAreaProps {
   label: string
   /** Fade the edges that have more content past them. */
   fade?: boolean
+  /** Which way the content may move. `vertical` for a list whose rows
+   * truncate to the column; `both` for a table or a picture. */
+  orientation?: 'both' | 'vertical' | 'horizontal'
   /** The scrolling element itself, for a product that sets or reads its
    * position - a virtual list, a scroll-to-latest. */
   viewportRef?: Ref<HTMLDivElement>
@@ -101,6 +127,7 @@ export interface ScrollAreaProps {
 export function ScrollArea({
   label,
   fade = false,
+  orientation = 'both',
   viewportRef,
   className,
   viewportClassName,
@@ -116,18 +143,23 @@ export function ScrollArea({
         role="group"
         aria-label={label}
         className={cn(scrollAreaViewportVariants({ fade }), viewportClassName)}
+        style={viewportStyle[orientation]}
       >
         {/* The content box is what the horizontal overflow is measured on:
           * without it a wide child is squeezed to the viewport's width and
           * nothing ever overflows sideways. */}
-        <Base.Content>{children}</Base.Content>
+        <Base.Content style={contentStyle[orientation]}>{children}</Base.Content>
       </Base.Viewport>
-      <Base.Scrollbar orientation="vertical" className={scrollbar}>
-        <Base.Thumb className={thumb} />
-      </Base.Scrollbar>
-      <Base.Scrollbar orientation="horizontal" className={scrollbar}>
-        <Base.Thumb className={thumb} />
-      </Base.Scrollbar>
+      {orientation === 'horizontal' ? null : (
+        <Base.Scrollbar orientation="vertical" className={scrollbar}>
+          <Base.Thumb className={thumb} />
+        </Base.Scrollbar>
+      )}
+      {orientation === 'vertical' ? null : (
+        <Base.Scrollbar orientation="horizontal" className={scrollbar}>
+          <Base.Thumb className={thumb} />
+        </Base.Scrollbar>
+      )}
     </Base.Root>
   )
 }
