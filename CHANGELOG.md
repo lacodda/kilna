@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.94.0] - 2026-10-09
+
+### Features
+- Write a song's style from a dictionary of sound
+
 ## [0.93.1] - 2026-10-09
 
 ### Features
