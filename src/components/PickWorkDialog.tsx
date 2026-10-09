@@ -95,6 +95,10 @@ function Contents({ onOpenChange, onPick, title, kinds }: Omit<Props, 'open'>) {
       // alone and undo the kind.
       filter={null}
       open
+      // The first match stands highlighted as the name is typed, so Enter
+      // takes it: typing a title and pressing Enter closed the palette with
+      // nothing picked (found by the live run of v0.95).
+      autoHighlight
       onOpenChange={(next) => {
         if (!next) onOpenChange(false)
       }}
