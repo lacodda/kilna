@@ -776,9 +776,11 @@ const SECTIONS_BEFORE: [(&str, &str, &[config::Lens], Option<(&str, &str)>); 2] 
 /// section - a card kind the canon gave its sections - and never in one whose
 /// sections the owner wrote: appending shipped sections there would put two
 /// of one thing on a card under two names.
-const SECTIONS_ARRIVED: [(&str, &str, &str); 2] = [
+const SECTIONS_ARRIVED: [(&str, &str, &str); 3] = [
     ("channel", "picture_bans", "bans"),
     ("character", "picture_bans", "bans"),
+    // v0.94: the channel's own phrases of sound, after its house styles.
+    ("channel", "sound", "styles"),
 ];
 
 /// A card kind's sections the stored copy already has, brought forward
@@ -3350,6 +3352,45 @@ mod tests {
     /// cover, the still is the picture, the bans are bans read by public
     /// texts, and the bans of a picture have a section of their own beside
     /// them. A section the owner re-read keeps its lenses.
+    /// v0.94: a workspace whose channel card kind was stored before the
+    /// house sound gains its section after the house styles - the owner's
+    /// own sections and their order untouched - and the composition with it.
+    #[test]
+    fn a_stored_channel_card_gains_the_house_sound_after_its_styles() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let (id, raw): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut stored: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        for kind in stored["note_kinds"].as_array_mut().unwrap() {
+            if let Some(sections) = kind.get_mut("sections").and_then(|v| v.as_array_mut()) {
+                sections.retain(|section| section["key"] != "sound");
+            }
+        }
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, stored.to_string()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let carried = config_for(&conn, &id).unwrap();
+        let channel = carried.card_kind("channel").unwrap();
+        let keys: Vec<&str> = channel.sections.iter().map(|s| s.key.as_str()).collect();
+        let styles = keys.iter().position(|k| *k == "styles").unwrap();
+        assert_eq!(keys.get(styles + 1), Some(&"sound"), "{keys:?}");
+        let sound = &channel.sections[styles + 1];
+        assert_eq!(sound.shape, config::SectionShape::Styles);
+        assert_eq!(sound.lenses, vec![config::Lens::Work]);
+        assert!(carried.validate().is_empty(), "{:?}", carried.validate());
+    }
+
     #[test]
     fn a_workspace_from_before_the_constructor_gains_covers_and_picture_bans() {
         let conn = db::open_in_memory().unwrap();
