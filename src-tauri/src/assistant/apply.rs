@@ -222,6 +222,7 @@ pub fn render_package(
         notes,
         scenes,
         releases,
+        trials,
         ..
     } = proposal
     else {
@@ -308,6 +309,12 @@ pub fn render_package(
                 None => out.push_str(&format!("{}\n\n", packaged.body.trim_end())),
             }
         }
+    }
+
+    if !trials.is_empty() {
+        out.push_str("### Trials\n\n");
+        out.push_str(&render_trials(trials, &[]));
+        out.push('\n');
     }
 
     if !scenes.is_empty() {
@@ -450,6 +457,56 @@ fn longest_backtick_run(text: &str) -> usize {
         }
     }
     longest
+}
+
+/// Trials as a person reads them before putting them on the board: by
+/// series, each with what it moves, its text in a fence and who to listen
+/// to; then what was left out, and why.
+pub fn render_trials(
+    trials: &[crate::lab::answer::Packaged],
+    dropped: &[crate::lab::answer::Dropped],
+) -> String {
+    let mut out = String::new();
+    let mut series: Option<&str> = None;
+    for (index, trial) in trials.iter().enumerate() {
+        if series != Some(trial.series.as_str()) {
+            series = Some(trial.series.as_str());
+            if !trial.series.is_empty() {
+                out.push_str(&format!("**{}**\n\n", trial.series));
+            }
+        }
+        let mut head = format!("{}.", index + 1);
+        if !trial.angle.is_empty() {
+            head.push_str(&format!(" _{}_", trial.angle));
+        }
+        if let Some(crate::lab::answer::Parent::Earlier(earlier)) = &trial.parent {
+            head.push_str(&format!(" (varies {})", earlier + 1));
+        }
+        if let Some(verdict) = trial.verdict {
+            head.push_str(&format!(" · {}", verdict.as_str()));
+        }
+        out.push_str(&head);
+        out.push('\n');
+        let fence = "`".repeat(longest_backtick_run(&trial.body).max(2) + 1);
+        out.push_str(&format!("{fence}\n{}\n{fence}\n", trial.body.trim_end()));
+        if !trial.reference.is_empty() {
+            out.push_str(&format!("Listen to: {}\n", trial.reference));
+        }
+        if !trial.outcome.is_empty() {
+            out.push_str(&format!("Heard: {}\n", trial.outcome));
+        }
+        out.push('\n');
+    }
+    if !dropped.is_empty() {
+        out.push_str("Left out, not in the workspace:\n");
+        for one in dropped {
+            out.push_str(&format!(
+                "- trial {}: {} “{}”\n",
+                one.trial, one.part, one.value
+            ));
+        }
+    }
+    out.trim_end().to_owned()
 }
 
 /// Ideas for a cover as a person reads them before putting them on the

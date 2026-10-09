@@ -67,6 +67,9 @@ pub struct StyleBrick {
     #[serde(skip)]
     #[ts(skip)]
     pub set_digest: Option<String>,
+    /// The trial of an experiment it was cut from, while the trial is there
+    /// (ADR 0061).
+    pub trial_id: Option<String>,
 }
 
 /// Where a brick came from.
@@ -145,7 +148,7 @@ const SELECT: &str = "SELECT b.id, b.profile_id, b.type_key, b.name, b.descripti
      b.status, b.created_at, b.updated_at, \
      (SELECT count(*) FROM asset a WHERE a.style_brick_id = b.id), \
      b.label, b.family, b.when_to_use, b.colours, b.sample, b.set_key, b.set_digest, \
-     b.explanation \
+     b.explanation, b.trial_id \
      FROM style_brick b";
 
 /// What to make a brick out of.
@@ -168,6 +171,9 @@ pub struct NewStyleBrick {
     pub sample: Option<String>,
     #[serde(default)]
     pub explanation: Option<Label>,
+    /// The trial of an experiment the phrase was cut from: a kept one.
+    #[serde(default)]
+    pub trial_id: Option<String>,
 }
 
 /// What may be changed about one.
@@ -305,6 +311,9 @@ pub fn create_minted(
     check_new_type(&config, &new.type_key)?;
     check_family(&config, &new.type_key, new.family.as_deref())?;
     let colours = checked_colours(new.colours.as_deref().unwrap_or_default())?;
+    if let Some(trial) = new.trial_id.as_deref() {
+        crate::lab::harvest::check_phrase(conn, profile_id, &config, trial, &new.type_key)?;
+    }
 
     // Born ready when it arrives with its description already written — an
     // imported brick, or one the assistant described in the same breath. Born
@@ -326,8 +335,8 @@ pub fn create_minted(
         .transpose()?;
     conn.execute(
         "INSERT INTO style_brick (id, profile_id, type_key, name, description, hint, status, created_at, updated_at,
-                                  family, when_to_use, colours, sample, explanation)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12, ?13)",
+                                  family, when_to_use, colours, sample, explanation, trial_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
         params![
             minted.id(),
             profile_id,
@@ -341,7 +350,8 @@ pub fn create_minted(
             new.when_to_use,
             colours,
             new.sample,
-            explanation
+            explanation,
+            new.trial_id
         ],
     )
     .map_err(|error| taken(error, &new.type_key, name))?;
@@ -676,6 +686,7 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<StyleBrick> {
         set_digest: row.get(16)?,
         explanation,
         origin: Origin::Own,
+        trial_id: row.get(18)?,
     };
     brick.origin = match (&brick.set_key, &brick.set_digest) {
         (Some(_), Some(digest)) if *digest == brick.content().digest() => Origin::Set,

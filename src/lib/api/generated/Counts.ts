@@ -42,4 +42,8 @@ cut_from: number,
  * Moments on the work's axis, as its History tab lists them, its
  * beginning aside (`work::timeline::count`).
  */
-history: number, };
+history: number, 
+/**
+ * The trials on an experiment's board (ADR 0061).
+ */
+trials: number, };

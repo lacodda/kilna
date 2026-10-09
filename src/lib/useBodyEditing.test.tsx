@@ -8,6 +8,7 @@ import { renderHookWithin } from '@/test/render'
 import { NOW } from '@/test/workspace'
 
 const OPEN: Version = {
+  trial_id: null,
   id: 'v1',
   work_id: 'w1',
   role: 'lyrics',

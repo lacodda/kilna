@@ -13,6 +13,7 @@ import en from '@/i18n/locales/en.json'
  */
 
 const COVER: Asset = {
+  trial_id: null,
   id: 'a-cover',
   profile_id: IDS.profile,
   work_id: IDS.video,

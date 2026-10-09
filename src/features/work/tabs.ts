@@ -16,11 +16,13 @@ import { coverHoldsAnything } from '@/features/work/tabs/cover/useCoverEdit'
  *
  * The cover and the frame stand between the storyboard and the splice since
  * v0.86: what a publication looks like is written after its board and before
- * it is cut and sent out.
+ * it is cut and sent out. An experiment's trials stand beside its brief
+ * (v0.95): the board is where it is worked.
  */
 export const TABS = [
   'overview',
   'versions',
+  'trials',
   'scenes',
   'cover',
   'frame',
@@ -65,6 +67,8 @@ export interface CardFacts {
     frame: boolean
     /** A folder on disk its files are found in (v0.93, ADR 0057). */
     folder: boolean
+    /** A board of trials: the kind is a lab (v0.95, ADR 0061). */
+    lab: boolean
   }
   /** What the work holds, whatever its kind says now. */
   holds: {
@@ -72,6 +76,8 @@ export interface CardFacts {
     scores: boolean
     scenes: boolean
     files: boolean
+    /** Trials on a board, whatever the kind says now. */
+    trials: boolean
     /** Any block of a cover prompt with words in it. */
     cover: boolean
     /** Stretches, a donor to take them from, or stretches taken from it
@@ -91,6 +97,7 @@ type Rule = ((facts: CardFacts) => boolean) | null
 const RULES: Readonly<Record<Tab, Rule>> = {
   overview: null,
   versions: ({ names, holds }) => names.roles || holds.versions,
+  trials: ({ names, holds }) => names.lab || holds.trials,
   scenes: ({ names, holds }) => names.storyboard || holds.scenes,
   cover: ({ names, holds }) => names.cover || holds.cover,
   // Nothing is held here that another kind could strand: the backend refuses
@@ -165,6 +172,7 @@ export const NOTHING_COUNTED: CardCounts = {
   cuts: 0,
   cut_from: 0,
   history: 0,
+  trials: 0,
 }
 
 /**
@@ -189,6 +197,7 @@ export function factsOf(
       scores: !known || counts.scores > 0,
       scenes: !known || counts.scenes > 0,
       files: !known || counts.files > 0,
+      trials: !known || counts.trials > 0,
       // Read off the work itself, which is already here.
       cover: coverHoldsAnything(work.cover),
       splice:
@@ -215,6 +224,7 @@ function namesOf(config: ProfileConfig, kind: string): CardFacts['names'] {
     cover: vocabulary.cover,
     frame: vocabulary.frame,
     folder: (config.work_kinds.find((entry) => entry.key === kind)?.folder ?? null) !== null,
+    lab: (config.work_kinds.find((entry) => entry.key === kind)?.lab ?? null) !== null,
   }
 }
 
@@ -237,6 +247,7 @@ export function tabsOfKind(config: ProfileConfig, kind: string): Tab[] {
       scores: false,
       scenes: false,
       files: false,
+      trials: false,
       cover: false,
       splice: false,
     },
@@ -264,6 +275,7 @@ export interface TabCount {
 export function tabCounts(counts: CardCounts): Partial<Record<Tab, TabCount>> {
   const plain: Partial<Record<Tab, number>> = {
     versions: counts.versions,
+    trials: counts.trials,
     scenes: counts.scenes,
     cuts: counts.cuts,
     score: counts.scores,

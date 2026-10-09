@@ -593,6 +593,7 @@ fn promote_in(
             meta: None,
             make_current: true,
             parent_version_id: None,
+            trial_id: None,
         },
         ids.version.clone(),
     )?

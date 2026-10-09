@@ -29,6 +29,7 @@ pub mod scores;
 pub mod search;
 pub mod styles;
 pub mod trash;
+pub mod trials;
 pub mod versions;
 pub mod works;
 pub mod workspace;

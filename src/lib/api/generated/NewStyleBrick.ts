@@ -4,4 +4,8 @@ import type { Label } from "./Label";
 /**
  * What to make a brick out of.
  */
-export type NewStyleBrick = { type_key: string, name: string, description?: string, hint?: string, family?: string, when_to_use?: string, colours?: Array<string>, sample?: string, explanation?: Label, };
+export type NewStyleBrick = { type_key: string, name: string, description?: string, hint?: string, family?: string, when_to_use?: string, colours?: Array<string>, sample?: string, explanation?: Label, 
+/**
+ * The trial of an experiment the phrase was cut from: a kept one.
+ */
+trial_id?: string, };

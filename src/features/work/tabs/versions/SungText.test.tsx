@@ -69,6 +69,7 @@ beforeEach(() => {
   backend.answer('create_version', ({ workId, version }) => {
     const asked = version as NewVersion
     const made: Version = {
+      trial_id: null,
       id: `v-made-${place.versions.length}`,
       work_id: workId as string,
       role: asked.role,

@@ -443,7 +443,8 @@ pub fn house(conn: &Connection, profile_id: &str) -> Result<BTreeSet<String>> {
 pub struct FoundPhrase {
     /// As the texts write it most often.
     pub phrase: String,
-    /// How many versions say it.
+    /// How many texts say it: versions, and the trials of experiments read
+    /// by the same composition (v0.95).
     pub versions: usize,
     /// How many works say it.
     pub works: usize,
@@ -456,7 +457,9 @@ const SEEN_IN: usize = 3;
 
 /// Every tag the texts of a composition's role say that the dictionary does
 /// not know, most widely written first: every version, not the current one -
-/// a phrase tried once in a draft and dropped is still the owner's word.
+/// a phrase tried once in a draft and dropped is still the owner's word - and
+/// every trial of an experiment whose trials the composition reads (v0.95):
+/// a sweep of the field is where most new phrases are first written.
 pub fn unknown_in_texts(
     conn: &Connection,
     profile_id: &str,
@@ -502,6 +505,36 @@ pub fn unknown_in_texts(
             },
         )?
         .collect::<rusqlite::Result<Vec<_>>>()?;
+    let mut rows = rows;
+    let labs: Vec<String> = config
+        .work_kinds
+        .iter()
+        .filter(|kind| {
+            config
+                .trial_composition(&kind.key)
+                .is_some_and(|read| read.key == composition.key)
+        })
+        .map(|kind| kind.key.clone())
+        .collect();
+    for lab in &labs {
+        let mut trials = conn.prepare(
+            "SELECT t.body, w.id, w.title, w.meta FROM trial t
+             JOIN work w ON w.id = t.work_id
+             WHERE t.profile_id = ?1 AND w.kind = ?2
+             ORDER BY w.title COLLATE NOCASE, t.created_at, t.rowid",
+        )?;
+        let found = trials
+            .query_map(rusqlite::params![profile_id, lab], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        rows.extend(found);
+    }
 
     struct Tally {
         spellings: BTreeMap<String, usize>,
@@ -583,6 +616,7 @@ mod tests {
             set_key: None,
             origin: Origin::Own,
             set_digest: None,
+            trial_id: None,
         }
     }
 
@@ -720,6 +754,23 @@ mod tests {
             "a phrase the dictionary knows is not the owner's to explain"
         );
         assert!(found.iter().any(|one| one.phrase == "tape-warped choir"));
+
+        // A trial of an experiment is the owner's word too (v0.95).
+        let lab = crate::fixtures::work(&conn, &profile_id, "experiment", "Breaks");
+        crate::lab::trial::create_minted(
+            &conn,
+            &profile_id,
+            crate::lab::NewTrial {
+                work_id: lab.id.clone(),
+                body: Some("glass harmonica drones, rusted spring reverb".into()),
+                ..crate::lab::NewTrial::default()
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+        let found = unknown_in_texts(&conn, &profile_id, "sound").unwrap();
+        assert_eq!((found[0].works, found[0].versions), (3, 4));
+        assert!(found.iter().any(|one| one.phrase == "rusted spring reverb"));
     }
 
     fn dictionary(phrases: &[&str]) -> Dictionary {

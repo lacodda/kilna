@@ -15,6 +15,7 @@ import { NOW } from '@/test/workspace'
  */
 
 const BRICK: StyleBrick = {
+  trial_id: null,
   id: 'b1',
   profile_id: 'p1',
   type_key: 'look',

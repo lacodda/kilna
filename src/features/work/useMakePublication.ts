@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { deriveWork } from '@/lib/api/links'
 import { startCoverTask } from '@/lib/api/ideas'
 import { startReleaseTask } from '@/lib/api/releases'
+import { makeExperiment } from '@/lib/api/trials'
 import type { Made, Work } from '@/lib/api/types'
 import { humanError } from '@/lib/errors'
 import { coverActionOf, ideasOnMake } from '@/lib/ideas'
@@ -10,6 +11,7 @@ import { doorsOf, takesAn, wordOf } from '@/lib/overview'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { say, toastManager } from '@/lib/toast'
+import { labKindsFor, labOf } from '@/lib/trials'
 import {
   hasDoors,
   publicationKinds,
@@ -38,6 +40,9 @@ interface Makeable {
    *  publication goes out once (ADR 0051), so where is decided when it is
    *  made - and may change until it goes. */
   places: Place[]
+  /** An experiment that reworks the source (v0.95), not a publication of it:
+   *  offered where anything may be made, left out where publications are. */
+  lab: boolean
 }
 
 export interface MakePublication {
@@ -89,10 +94,19 @@ export function useMakePublication(source: Work): MakePublication {
   // A song speaks through its publications, so its menu lists exactly those
   // - "Make an audio". Anything else offers every other kind, said as made
   // from it - "Make a song from this": a video can be where a song starts.
+  // An experiment makes nothing this way: what it finds is taken from its
+  // trials (v0.95), and nothing else is made of a board. Nor is an
+  // experiment made this way: one that reworks a work is offered below.
   const doorless = !hasDoors(config, source.kind)
-  const offered = (doorless ? publicationKinds(config) : config.work_kinds).filter(
-    (kind) => kind.key !== source.kind,
-  )
+  const isLab = labOf(config, source.kind) !== null
+  const offered = isLab
+    ? []
+    : (doorless ? publicationKinds(config) : config.work_kinds).filter(
+        (kind) => kind.key !== source.kind && labOf(config, kind.key) === null,
+      )
+  // The experiments that rework a work of this kind: a song's style
+  // reworked on a board of its own (ADR 0061).
+  const labs = labKindsFor(config, source.kind)
 
   const kinds: Makeable[] = offered.map((kind) => {
     const word = wordOf(sayLabel(kind.label), i18n.language)
@@ -103,7 +117,28 @@ export function useMakePublication(source: Work): MakePublication {
       label: doorless ? t('publications.make', said) : t('publications.makeFrom', said),
       description: doorsOf(doors, sayLabel),
       places: doors.map((door) => ({ key: door.key, label: doorsOf([door], sayLabel) })),
+      lab: false,
     }
+  })
+  for (const key of labs) {
+    const kind = config.work_kinds.find((entry) => entry.key === key)
+    if (kind === undefined) continue
+    const word = wordOf(sayLabel(kind.label), i18n.language)
+    kinds.push({
+      key,
+      label: t('publications.makeFrom', { kind: word, context: takesAn(word) ? 'an' : undefined }),
+      description: t('trials.makeExperimentHint'),
+      places: [],
+      lab: true,
+    })
+  }
+
+  const experiment = useAppMutation({
+    mutationFn: () =>
+      makeExperiment(source.id, '', t('trials.series.rework', { title: source.title })),
+    failure: 'trials.makeExperimentFailed',
+    refresh: [keys.works, keys.catalogue, keys.links],
+    onSuccess: (made) => void navigate(`/works/${made.work.id}/trials`),
   })
 
   const mutation = useAppMutation({
@@ -177,7 +212,14 @@ export function useMakePublication(source: Work): MakePublication {
 
   return {
     kinds,
-    make: (kind, door) => mutation.mutate({ kind, door }),
-    making: mutation.isPending ? (mutation.variables?.kind ?? null) : null,
+    make: (kind, door) => {
+      if (labs.includes(kind)) experiment.mutate(undefined)
+      else mutation.mutate({ kind, door })
+    },
+    making: experiment.isPending
+      ? (labs[0] ?? null)
+      : mutation.isPending
+        ? (mutation.variables?.kind ?? null)
+        : null,
   }
 }

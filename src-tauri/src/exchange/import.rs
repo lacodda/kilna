@@ -139,6 +139,7 @@ fn import(conn: &Connection, source: &Path, profile_id: &str) -> Result<ImportRe
                     meta: None,
                     make_current: true,
                     parent_version_id: None,
+                    trial_id: None,
                 },
             )?;
             report.versions += 1;
@@ -154,6 +155,7 @@ fn import(conn: &Connection, source: &Path, profile_id: &str) -> Result<ImportRe
                     meta: None,
                     make_current: false,
                     parent_version_id: None,
+                    trial_id: None,
                 },
             )?;
             report.versions += 1;

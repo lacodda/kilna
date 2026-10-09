@@ -24,7 +24,7 @@ use kilna_lib::{actions, fixtures, operation, profile, release, replay, work};
 
 /// Tables a rebuilt workspace has to match on. Everything the person's work
 /// lives in; nothing about this machine or this conversation.
-const COMPARED: [&str; 14] = [
+const COMPARED: [&str; 15] = [
     "canon_fact",
     "canon_link",
     "work",
@@ -38,6 +38,7 @@ const COMPARED: [&str; 14] = [
     "focus_note",
     "comment",
     "cover_idea",
+    "trial",
     "tombstone",
 ];
 
@@ -619,4 +620,71 @@ fn a_canon_rebuilds_card_by_card_and_fact_by_fact() {
     assert_eq!(got, want, "the rebuilt canon is not the same canon");
     assert_eq!(got["canon_fact"].as_array().unwrap().len(), 4);
     assert_eq!(got["canon_link"].as_array().unwrap().len(), 1);
+}
+
+/// An experiment's board rebuilds trial by trial: a trial put on it, varied,
+/// judged, its words changed, and one taken to the trash and back; a kept
+/// one taken into a song as a version that remembers it (ADR 0061).
+#[test]
+fn a_board_of_trials_rebuilds_with_its_harvest() {
+    use kilna_lib::lab::{NewTrial, TrialPatch, Verdict};
+    use kilna_lib::trash::Entity;
+
+    let source = workspace();
+    let experiment = actions::work::create(
+        &source,
+        work::NewWork {
+            kind: "experiment".into(),
+            title: "Breaks under guitars".into(),
+            ..work::NewWork::default()
+        },
+    )
+    .unwrap();
+    let song = actions::work::create(
+        &source,
+        work::NewWork {
+            kind: "song".into(),
+            title: "Harbour lights".into(),
+            ..work::NewWork::default()
+        },
+    )
+    .unwrap();
+
+    let core = actions::trial::create(
+        &source,
+        NewTrial {
+            work_id: experiment.id.clone(),
+            series: Some("sweep".into()),
+            body: Some("amen break, fuzz bass".into()),
+            ..NewTrial::default()
+        },
+    )
+    .unwrap();
+    let child = actions::trial::vary(&source, &core.id, "slower", None).unwrap();
+    actions::trial::update(
+        &source,
+        &child.id,
+        TrialPatch {
+            body: Some("amen break, fuzz bass, 80 bpm".into()),
+            outcome: Some("heavier, good".into()),
+            ..TrialPatch::default()
+        },
+    )
+    .unwrap();
+    actions::trial::judge(&source, &child.id, Some(Verdict::Keep)).unwrap();
+    let entry = actions::trash::discard(&source, Entity::Trial, &core.id).unwrap();
+    actions::trash::restore(&source, &entry).unwrap();
+    actions::trial::harvest_into(&source, &child.id, &song.id, None, false).unwrap();
+
+    let mut rebuilt = workspace();
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+    assert!(report.unknown.is_empty(), "unknown: {:?}", report.unknown);
+    // The trash's trip leaves a tombstone stamped by each machine at its own
+    // moment; the rows are what has to match.
+    let mut want = contents(&source);
+    let mut got = contents(&rebuilt);
+    want.remove("tombstone");
+    got.remove("tombstone");
+    assert_eq!(got, want, "the rebuilt board is not the same board");
+    assert_eq!(got["trial"].as_array().unwrap().len(), 2);
 }

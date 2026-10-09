@@ -83,6 +83,10 @@ export const keys = {
   /** A publication's board of ideas for its cover: its schemes and names
    *  are drawn from the same bricks and cards the cover is. */
   coverBoard: (workId: string) => ['pictures', 'board', workId] as const,
+  /** An experiment's board of trials. Under the works' prefix: what a kept
+   *  trial becomes is a song's version, and a song's version changed is
+   *  what the board shows as the trial's harvest. */
+  trialBoard: (workId: string) => ['works', 'trials', workId] as const,
   /** The Frame tab: the still, the loop, the scheme. */
   frameView: (workId: string) => ['pictures', 'frame', workId] as const,
   /** A scene's built frame. */

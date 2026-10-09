@@ -1078,6 +1078,7 @@ fn a_framed_board_is_taken_back_whole() {
             meta: None,
             make_current: true,
             parent_version_id: None,
+            trial_id: None,
         },
     )
     .unwrap();

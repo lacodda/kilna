@@ -52,6 +52,10 @@ rather than coded.
   channel itself kept as cards of facts - each with who may hear it, whether
   it is settled, where it came from and when it happened - so a cover, a
   lyric and a release text each read exactly what they may.
+- **A lab for what is found by trying.** An experiment holds a board of
+  trials - a sweep of the field, variations that move one thing at a time -
+  each heard, kept or dropped; a kept one goes into a song's style or the
+  dictionary and remembers where it came from.
 - **Words that know where they were sung.** Keep words for songs to come in
   blocks, write the stress for the singer and have a lyric checked against
   three million word forms, and see a song light orange or red before it
@@ -85,7 +89,8 @@ version earns a score, a score wins a calendar slot, and the slot ends in a
 release you mark by hand - with four craft profiles, a canon of the shared
 world, the assistant panel, an MCP server and a plugin protocol. A song's
 style is written from a dictionary of sound that says what every phrase
-does. The interface speaks English and Russian.
+does, and found on a board of trials in the lab. The interface speaks English
+and Russian.
 What landed in each version:
 [CHANGELOG](https://github.com/lacodda/kilna/blob/main/CHANGELOG.md).
 

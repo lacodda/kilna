@@ -171,6 +171,7 @@ describe('the constructor', () => {
   // a gradient one lands on the cover with every stop.
   it('offers the accents of the dictionary beside the palette, and keeps a gradient whole', async () => {
     workspace.bricks.push({
+      trial_id: null,
       id: 'accent-sunset',
       profile_id: IDS.profile,
       type_key: 'accent',
@@ -244,6 +245,7 @@ describe('the constructor', () => {
 describe('the result', () => {
   it('shows the cover apart from the candidates, and makes a candidate the cover', async () => {
     const picture = (id: string, kind: string, created_at: string): Asset => ({
+      trial_id: null,
       id,
       profile_id: IDS.profile,
       work_id: IDS.audio,

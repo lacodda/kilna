@@ -127,6 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     meta: None,
                     make_current: true,
                     parent_version_id: None,
+                    trial_id: None,
                 },
             )?;
 
@@ -162,6 +163,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // parallel body, not a replacement.
                 make_current: false,
                 parent_version_id: None,
+                trial_id: None,
             },
         )?;
 

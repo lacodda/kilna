@@ -248,6 +248,19 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             crate::cover::idea::update_at(conn, &id, patch, &at)?;
         }
 
+        "trial.create" => {
+            let profile_id = workspace_profile(conn, params)?;
+            let new = from_params(params, "trial")?;
+            crate::lab::trial::create_minted(conn, &profile_id, new, minted(params)?)?;
+        }
+
+        "trial.update" => {
+            let id = required(params, "id")?;
+            let patch = from_params(params, "patch")?;
+            let at = required(params, "at")?;
+            crate::lab::trial::update_at(conn, &id, patch, &at)?;
+        }
+
         "note.promote" => {
             let profile_id = workspace_profile(conn, params)?;
             let id = required(params, "id")?;

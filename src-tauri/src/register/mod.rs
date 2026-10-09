@@ -799,6 +799,7 @@ pub(crate) mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -940,6 +941,7 @@ pub(crate) mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();

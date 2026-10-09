@@ -121,6 +121,9 @@ pub struct Outcome {
     /// Ideas put on a cover's board.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ideas: Vec<String>,
+    /// Trials put on an experiment's board.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub trials: Vec<String>,
     /// Words of the record written: made, or given a facet (ADR 0052).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub terms: Vec<String>,
@@ -311,6 +314,7 @@ pub fn check(
             versions,
             scenes,
             releases,
+            trials,
             ..
         } => {
             // A package on a work adds to it; one in a chat on nothing is a
@@ -347,6 +351,9 @@ pub fn check(
                         }
                         for packaged in releases {
                             note(config.require_release_kind(&kind, &packaged.kind));
+                        }
+                        if !trials.is_empty() && config.lab(&kind).is_none() {
+                            note(Err(Error::refused("trial.noLabKind").param("kind", kind)));
                         }
                     }
                     Err(cause) => note(Err(cause)),
@@ -449,6 +456,21 @@ pub fn check(
                 }
             }
         },
+        Proposal::Trials {
+            work_id, trials, ..
+        } => match work::get(conn, work_id)? {
+            None => note(Err(Error::not_found("work", work_id))),
+            Some(found) => {
+                if config.lab(&found.kind).is_none() {
+                    note(Err(
+                        Error::refused("trial.noLab").param("title", found.title.clone())
+                    ));
+                }
+                if overrides.items.as_ref().is_some_and(Vec::is_empty) || trials.is_empty() {
+                    note(Err(Error::refused("proposal.nothingTaken")));
+                }
+            }
+        },
     }
     Ok(problems)
 }
@@ -515,6 +537,7 @@ fn keep(
                     // keeping is not yet an answer worth standing behind.
                     make_current: overrides.make_current.unwrap_or(false),
                     parent_version_id: parent,
+                    trial_id: None,
                 },
             )?;
             outcome.versions.push(version.id);
@@ -559,6 +582,7 @@ fn keep(
             notes,
             scenes,
             releases,
+            trials,
             ..
         } => {
             let (work_id, kind, fresh) = match &chat.work_id {
@@ -633,6 +657,7 @@ fn keep(
                         meta: None,
                         make_current: leading == Some(index),
                         parent_version_id: parent,
+                        trial_id: None,
                     },
                 )?;
                 outcome.versions.push(created.id);
@@ -656,6 +681,11 @@ fn keep(
             // the work before it makes sense to plan shipping it.
             for packaged in releases {
                 outcome.releases.push(release(conn, &work_id, packaged)?);
+            }
+            if !trials.is_empty() {
+                outcome
+                    .trials
+                    .extend(super::trial::put(conn, &work_id, trials, |_| true)?);
             }
             outcome.created_work = fresh;
             outcome.work_id = Some(work_id);
@@ -756,6 +786,18 @@ fn keep(
                 )?;
                 outcome.ideas.push(made.id);
             }
+            outcome.work_id = Some(work_id);
+        }
+
+        Proposal::Trials {
+            work_id, trials, ..
+        } => {
+            outcome.trials = super::trial::put(conn, &work_id, trials, |index| {
+                overrides
+                    .items
+                    .as_ref()
+                    .is_none_or(|items| items.iter().any(|item| *item == format!("trial:{index}")))
+            })?;
             outcome.work_id = Some(work_id);
         }
     }
@@ -1103,6 +1145,7 @@ mod tests {
             }],
             scenes: Vec::new(),
             releases: Vec::new(),
+            trials: Vec::new(),
         }
     }
 
@@ -1309,6 +1352,7 @@ mod tests {
                 notes: Vec::new(),
                 scenes: vec![packaged("the road"), packaged("the car")],
                 releases: Vec::new(),
+                trials: Vec::new(),
             },
         );
 
@@ -1833,6 +1877,7 @@ mod tests {
                 notes: Vec::new(),
                 scenes: Vec::new(),
                 releases: Vec::new(),
+                trials: Vec::new(),
             },
         );
 
@@ -1880,6 +1925,7 @@ mod tests {
                     fields: Map::new(),
                     unknown_fields: Vec::new(),
                 }],
+                trials: Vec::new(),
             },
         );
 
@@ -1934,6 +1980,7 @@ mod tests {
                 }],
                 scenes: vec![packaged("fine"), backwards],
                 releases: Vec::new(),
+                trials: Vec::new(),
             },
         );
         let works_before = work::list(&conn, &profile_id, &Default::default())
@@ -2010,6 +2057,7 @@ mod tests {
                 notes,
                 scenes: Vec::new(),
                 releases: Vec::new(),
+                trials: Vec::new(),
             },
         );
 
@@ -2292,6 +2340,7 @@ mod tests {
             notes: Vec::new(),
             scenes: Vec::new(),
             releases: Vec::new(),
+            trials: Vec::new(),
         };
 
         let body = render_package(&proposal, &config, "song");
@@ -2934,6 +2983,7 @@ mod bound_to_a_version_tests {
                     meta: None,
                     make_current: true,
                     parent_version_id: None,
+                    trial_id: None,
                 },
             )
             .unwrap()

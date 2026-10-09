@@ -59,6 +59,10 @@ release_fields?: Array<string>,
  */
 ideas?: Array<string>, 
 /**
+ * Trials put on an experiment's board.
+ */
+trials?: Array<string>, 
+/**
  * Words of the record written: made, or given a facet (ADR 0052).
  */
 terms?: Array<string>, 

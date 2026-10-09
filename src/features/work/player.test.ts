@@ -4,6 +4,7 @@ import { clock } from '@/components/AudioPlayer'
 import { soundsOf } from '@/features/work/player'
 
 const ASSET: Asset = {
+  trial_id: null,
   id: 'a1',
   profile_id: 'p',
   work_id: 'w',

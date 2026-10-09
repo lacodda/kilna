@@ -242,6 +242,10 @@ pub fn compose(
                 Error::refused("task.isPhrasesAction").param("action", template.label.as_str())
             );
         }
+        // Composed by `compose_for_lab`, against an experiment's board.
+        (Scope::Lab, _) => {
+            return Err(Error::refused("task.isLabAction").param("action", template.label.as_str()));
+        }
     };
 
     // One block of that scene, when the action is aimed at one. Refused
@@ -352,6 +356,12 @@ pub fn compose(
         Produces::Bricks => {
             return Err(Error::refused("task.actionAnswersPhrases")
                 .param("action", template.label.as_str()));
+        }
+        // Only an action about an experiment's board proposes trials for it.
+        Produces::Trials => {
+            return Err(
+                Error::refused("task.actionAnswersLab").param("action", template.label.as_str())
+            );
         }
     }
 
@@ -1219,6 +1229,117 @@ pub fn prepare_for_cover(
     )
 }
 
+/// The key of a task about an experiment's board: this action, on this
+/// board, asked this. What was asked travels in the key - the trial asked
+/// about, whether it is a fix, the series - because the answer is read by
+/// it: a variation is the child of the trial it varies, whatever the answer
+/// says. The series comes last and may hold anything, colons included.
+pub fn lab_key(action: &str, work_id: &str, request: &crate::lab::answer::TrialRequest) -> String {
+    format!(
+        "{action}:lab:{work_id}:{}:{}:{}",
+        request.around.as_deref().unwrap_or("-"),
+        if request.fix { "fix" } else { "vary" },
+        request.series.trim()
+    )
+}
+
+/// The board a task key names, with what it asked, when it names one.
+pub fn lab_of_key(key: &str) -> Option<(String, crate::lab::answer::TrialRequest)> {
+    let mut parts = key.splitn(7, ':');
+    parts.next()?;
+    if parts.next()? != "lab" {
+        return None;
+    }
+    let work_id = parts.next()?.to_owned();
+    let around = parts.next()?;
+    let fix = parts.next()? == "fix";
+    let series = parts.next().unwrap_or_default().to_owned();
+    Some((
+        work_id,
+        crate::lab::answer::TrialRequest {
+            count: 0,
+            series,
+            around: (around != "-").then(|| around.to_owned()),
+            fix,
+        },
+    ))
+}
+
+/// Compose `action` against an experiment's board of trials (v0.95, ADR
+/// 0061): the template is rendered against the work, the way any action is,
+/// and two placeholders only a board has - `{trials}`, what is asked and
+/// what stands on the board, and `{choices}`, the phrases a trial is written
+/// from with the ids to name them by. The answer is asked for as a block of
+/// trials, the same shape an agent's `propose_trials` takes.
+pub fn compose_for_lab(
+    conn: &Connection,
+    work_id: &str,
+    action: &str,
+    request: &crate::lab::answer::TrialRequest,
+) -> Result<(Composed, String)> {
+    let profile = profile::active(conn)?.ok_or_else(|| Error::refused("profile.noneActive"))?;
+    let template = profile
+        .config
+        .prompts
+        .iter()
+        .find(|prompt| prompt.key == action)
+        .ok_or_else(|| Error::not_found("prompt", action))?;
+    if template.scope() != Scope::Lab || template.produces() != Produces::Trials {
+        return Err(Error::refused("task.notLabAction").param("action", template.label.as_str()));
+    }
+    let work = work::get(conn, work_id)?.ok_or_else(|| Error::not_found("work", work_id))?;
+    if !template.applies_to(&work.kind) || profile.config.lab(&work.kind).is_none() {
+        return Err(Error::refused("task.wrongKindForAction")
+            .param("action", template.label.as_str())
+            .param("kind", work.kind.clone()));
+    }
+    request.check()?;
+
+    let rendered = super::prompt::for_work(conn, &work.id, &template.template, Context::default())?;
+    // After the work's own placeholders, so the words already on the board -
+    // which may hold braces of their own - are not rendered a second time.
+    let mut prompt = rendered
+        .replace(
+            "{trials}",
+            &crate::lab::answer::request_sheet(conn, &work, request)?,
+        )
+        .replace(
+            "{choices}",
+            &crate::lab::answer::choices_sheet(conn, &work)?,
+        );
+    prompt.push_str(&crate::lab::answer::instruction(request));
+    let prompt = super::waiting::instruct(&prompt);
+
+    Ok((
+        Composed {
+            prompt,
+            method: template.method().map(str::to_owned),
+            key: lab_key(action, &work.id, request),
+            title: format!("{} · {}", template.label, work.title),
+            attachments: Vec::new(),
+        },
+        profile.id,
+    ))
+}
+
+/// [`compose_for_lab`] with the chat it will be answered in: on the
+/// experiment.
+pub fn prepare_for_lab(
+    conn: &Connection,
+    work_id: &str,
+    action: &str,
+    request: &crate::lab::answer::TrialRequest,
+) -> Result<Prepared> {
+    let (composed, profile_id) = compose_for_lab(conn, work_id, action, request)?;
+    prepared(
+        conn,
+        &profile_id,
+        composed,
+        Some(work_id.to_owned()),
+        action,
+    )
+}
+
 /// What a task about phrases is, as a key: this action, on these phrases
 /// of this composition. The phrases go in as a fingerprint - there may be
 /// dozens - so the same list asked twice is the same task.
@@ -1525,6 +1646,110 @@ mod tests {
         assert!(!prompt.contains("{ideas}") && !prompt.contains("{choices}"));
     }
 
+    /// Asking a board for trials reads what is asked, the anchors, the board
+    /// as it stands - kept trials as examples, dropped ones as anti-examples -
+    /// and the phrases a trial is written from; the key carries what was
+    /// asked, so the answer can be read by it.
+    #[test]
+    fn a_lab_task_reads_the_board_the_anchors_and_the_phrases() {
+        let (conn, profile_id) = fixtures::workspace();
+        crate::style_set::seed(&conn).unwrap();
+        let lab = fixtures::work(&conn, &profile_id, "experiment", "Breaks under guitars");
+        crate::actions::work::update(
+            &conn,
+            &lab.id,
+            crate::work::WorkPatch {
+                meta: Some(
+                    serde_json::json!({ "anchors": "fuzz bass" })
+                        .as_object()
+                        .unwrap()
+                        .clone(),
+                ),
+                ..crate::work::WorkPatch::default()
+            },
+        )
+        .unwrap();
+        let put = |body: &str, verdict: Option<crate::lab::Verdict>| {
+            crate::actions::trial::create(
+                &conn,
+                crate::lab::NewTrial {
+                    work_id: lab.id.clone(),
+                    series: Some("sweep".into()),
+                    body: Some(body.into()),
+                    verdict,
+                    ..crate::lab::NewTrial::default()
+                },
+            )
+            .unwrap()
+        };
+        let core = put("amen break, fuzz bass", Some(crate::lab::Verdict::Keep));
+        put("eurodance, fuzz bass", Some(crate::lab::Verdict::Drop));
+
+        let request = crate::lab::answer::TrialRequest {
+            count: 3,
+            series: "around the core".into(),
+            around: Some(core.id.clone()),
+            fix: false,
+        };
+        let (composed, _) = compose_for_lab(&conn, &lab.id, "propose-trials", &request).unwrap();
+        let (board, asked) = lab_of_key(&composed.key).unwrap();
+        assert_eq!(board, lab.id);
+        assert_eq!(asked.around.as_deref(), Some(core.id.as_str()));
+        assert_eq!(asked.series, "around the core");
+        assert!(composed.method.is_some());
+        let prompt = &composed.prompt;
+        assert!(prompt.contains("3 variations around a core"), "{prompt}");
+        assert!(prompt.contains("- fuzz bass"), "the anchors are listed");
+        assert!(
+            prompt.contains("eurodance, fuzz bass"),
+            "a dropped trial is an anti-example"
+        );
+        assert!(
+            prompt.contains("chopped amen break"),
+            "the phrases a trial is written from are listed"
+        );
+        assert!(prompt.contains("exactly 3 trials"));
+        assert!(!prompt.contains("{trials}") && !prompt.contains("{choices}"));
+    }
+
+    #[test]
+    fn a_lab_task_is_refused_off_a_board_or_for_nothing() {
+        let (conn, profile_id) = fixtures::workspace();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let lab = fixtures::work(&conn, &profile_id, "experiment", "Breaks under guitars");
+        let six = crate::lab::answer::TrialRequest {
+            count: 6,
+            ..Default::default()
+        };
+        let code = |result: Result<(Composed, String)>| {
+            result.unwrap_err().refusal().map(|refusal| refusal.code)
+        };
+        assert_eq!(
+            code(compose_for_lab(&conn, &song.id, "propose-trials", &six)),
+            Some("task.wrongKindForAction")
+        );
+        assert_eq!(
+            code(compose_for_lab(
+                &conn,
+                &lab.id,
+                "propose-trials",
+                &crate::lab::answer::TrialRequest::default()
+            )),
+            Some("trial.nothingAsked")
+        );
+        assert_eq!(
+            code(compose_for_lab(&conn, &lab.id, "cover-ideas", &six)),
+            Some("task.notLabAction")
+        );
+        assert_eq!(
+            compose(&conn, &lab.id, "propose-trials", About::default())
+                .unwrap_err()
+                .refusal()
+                .map(|refusal| refusal.code),
+            Some("task.isLabAction")
+        );
+    }
+
     #[test]
     fn a_cover_task_is_refused_where_there_is_no_board_or_nothing_is_asked() {
         let (conn, profile_id) = fixtures::workspace();
@@ -1637,6 +1862,7 @@ mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -2026,6 +2252,7 @@ mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -2188,6 +2415,7 @@ mod tests {
                 meta: None,
                 make_current: false,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -2540,6 +2768,7 @@ mod version_tests {
                     meta: None,
                     make_current: true,
                     parent_version_id: None,
+                    trial_id: None,
                 },
             )
             .unwrap()
@@ -2602,6 +2831,7 @@ mod version_tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();

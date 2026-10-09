@@ -88,13 +88,22 @@ Each work's page includes:
   the bookmark when set, the stage as a percentage when the work has been
   judged, and every craft-specific `meta` field.
 - Every version, grouped by role, newest revision first, with the current one
-  marked, the revision it was written from named, and the **body in full** —
-  not a summary.
+  marked, the revision it was written from named - and the experiment, for a
+  version taken from a trial - and the **body in full** — not a summary.
 - A table of score history: date, total, tier, who gave it, and the axis
   values behind each snapshot.
 - The storyboard, for a work that has one: the scenes as a table — number,
   section, seconds, kind of shot, description — then each scene's prompt
   blocks in full.
+- The cover, for a publication that has one: the idea, the scene and what it
+  keeps out in words, what it is built from by name - the layout, the hero,
+  the style, the lettering, the dressing, the ground, the accent, the mark,
+  the title - the prompt as it was last copied, and the ideas on its board
+  with their verdicts.
+- The trials, for an [experiment](/kilna/guides/the-lab/): series by series,
+  each numbered with what it moves, its verdict, whether a run starts there
+  and the trial it varies, its text in full, who to listen to, what came out,
+  and where a kept one went.
 - The work's release - a publication goes out once: its place, date
   (scheduled or released), time of day and zone when set, and the link if one
   was recorded.
@@ -105,11 +114,14 @@ Each work's page includes:
 
 The `format` line is for a reader written against these pages: it says which
 shape the page takes, and moves when a field changes meaning or a section
-changes shape — not when a field is added. Pages written by v0.93 and later
-say `format: 3`: a note's text may show pictures, and the export carries them
-in a `media` folder beside the pages - `![](media/<name>)` in `notes.md`,
-`![](../media/<name>)` on a page one folder down. v0.50 to v0.92 wrote
-`format: 2`; earlier exports carried no line, which reads as format 1.
+changes shape — not when a field is added. Pages written by v0.95 and later
+say `format: 4`: a publication's page carries its cover and its board of
+ideas, an experiment's its trials, and a version taken from a trial says so.
+v0.93 and v0.94 wrote `format: 3`: a note's text may show pictures, and the
+export carries them in a `media` folder beside the pages - `![](media/<name>)`
+in `notes.md`, `![](../media/<name>)` on a page one folder down. v0.50 to
+v0.92 wrote `format: 2`; earlier exports carried no line, which reads as
+format 1.
 
 Notes not attached to any work are written to a separate `notes.md`, an
 idea or a phrase with its state under it, and comments about no work to

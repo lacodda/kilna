@@ -8,7 +8,14 @@ import { startCommentTask } from '@/lib/api/comments'
 import { previewCoverTask, startCoverTask } from '@/lib/api/ideas'
 import { previewReleaseTask, startReleaseTask } from '@/lib/api/releases'
 import { previewPhrasesTask, startPhrasesTask, startStyleTask } from '@/lib/api/styles'
-import type { IdeaRequest, PhraseAsked, PromptTemplate, StartedTask } from '@/lib/api/types'
+import { previewLabTask, startLabTask } from '@/lib/api/trials'
+import type {
+  IdeaRequest,
+  PhraseAsked,
+  PromptTemplate,
+  StartedTask,
+  TrialRequest,
+} from '@/lib/api/types'
 import { humanError } from '@/lib/errors'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
@@ -44,6 +51,8 @@ export type TaskTarget =
   | { on: 'cover'; workId: string; request: IdeaRequest }
   /** Phrases the dictionary does not know, to be explained (v0.94). */
   | { on: 'phrases'; composition: string; phrases: PhraseAsked[] }
+  /** An experiment's board: trials, as asked (v0.95). */
+  | { on: 'lab'; workId: string; request: TrialRequest }
 
 interface Props {
   open: boolean
@@ -125,7 +134,17 @@ export function TaskPreviewDialog({
                     queryFn: () =>
                       previewPhrasesTask(target.composition, target.phrases, action.key),
                   }
-                : queries.commentTaskPreview(target.id, action.key)
+                : target.on === 'lab'
+                  ? {
+                      queryKey: keys.taskPreview([
+                        'lab',
+                        target.workId,
+                        action.key,
+                        target.request,
+                      ]),
+                      queryFn: () => previewLabTask(target.workId, action.key, target.request),
+                    }
+                  : queries.commentTaskPreview(target.id, action.key)
   const preview = useQuery({ ...read, enabled: isOpen, staleTime: 0, retry: false })
 
   const start = useAppMutation({
@@ -151,6 +170,8 @@ export function TaskPreviewDialog({
           return startCoverTask(target.workId, action.key, target.request)
         case 'phrases':
           return startPhrasesTask(target.composition, target.phrases, action.key)
+        case 'lab':
+          return startLabTask(target.workId, action.key, target.request)
       }
     },
     refresh: [keys.activeTasks, keys.allChats],

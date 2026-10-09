@@ -94,6 +94,9 @@ pub enum Produces {
     /// Bricks for the dictionary - a phrase, its type, what it means - in a
     /// block the application reads (v0.94).
     Bricks,
+    /// Trials for an experiment's board - a series, what each moves, its
+    /// text - in a block the application reads (v0.95, ADR 0061).
+    Trials,
 }
 
 /// What an action is about.
@@ -126,6 +129,9 @@ pub enum Scope {
     /// `{phrases}`, with the types they may be filed under as `{types}`:
     /// offered where the phrases are found and nowhere else (v0.94).
     Phrases,
+    /// The board of trials of an experiment, read as `{trials}` and
+    /// `{choices}`: offered on the board and nowhere else (v0.95).
+    Lab,
 }
 
 /// The value of `scope` that names a scene action.
@@ -158,6 +164,12 @@ pub const PHRASES_SCOPE: &str = "phrases";
 /// The value of `produces` that names bricks for the dictionary.
 pub const BRICKS: &str = "bricks";
 
+/// The value of `scope` that names an action about an experiment's board.
+pub const LAB_SCOPE: &str = "lab";
+
+/// The value of `produces` that names trials for an experiment's board.
+pub const TRIALS: &str = "trials";
+
 impl PromptTemplate {
     /// `produces` as the application understands it. An unknown value reads
     /// as prose rather than failing: a profile written for a later kilna
@@ -176,6 +188,7 @@ impl PromptTemplate {
             Some(COVER_IDEAS) => Produces::CoverIdeas,
             Some("words") => Produces::Words,
             Some(BRICKS) => Produces::Bricks,
+            Some(TRIALS) => Produces::Trials,
             Some(value) => {
                 if let Some(role) = value.strip_prefix("version:") {
                     return if role.trim().is_empty() {
@@ -220,6 +233,7 @@ impl PromptTemplate {
             Some(RELEASE_SCOPE) => Scope::Release,
             Some(COVER_SCOPE) => Scope::Cover,
             Some(PHRASES_SCOPE) => Scope::Phrases,
+            Some(LAB_SCOPE) => Scope::Lab,
             _ => Scope::Work,
         }
     }
@@ -290,6 +304,7 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "choices"
             | "phrases"
             | "types"
+            | "trials"
     ) || name.strip_prefix("role:").is_some_and(|r| !r.is_empty())
         || name.strip_prefix("donor:").is_some_and(|r| !r.is_empty())
         || name == "words"
@@ -1197,6 +1212,7 @@ mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1235,6 +1251,7 @@ mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1248,6 +1265,7 @@ mod tests {
                 meta: None,
                 make_current: false,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1454,6 +1472,7 @@ mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1537,6 +1556,7 @@ mod version_tests {
                     meta: None,
                     make_current: true,
                     parent_version_id: None,
+                    trial_id: None,
                 },
             )
             .unwrap()

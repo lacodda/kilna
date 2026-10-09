@@ -63,6 +63,7 @@ beforeEach(() => {
       releaseId === IDS.youtube
         ? ([
             {
+              trial_id: null,
               id: 'a-thumb',
               profile_id: IDS.profile,
               work_id: null,

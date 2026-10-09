@@ -23,7 +23,12 @@ use crate::work::{self, WorkFilter, version};
 /// 3 — v0.93: a note's body may show pictures, `![](media/<name>)` in
 ///     `notes.md` and `![](../media/<name>)` on a page one folder down, and
 ///     the export carries each of them in `media/` beside the pages.
-pub const FORMAT: u32 = 3;
+/// 4 — v0.95: a publication's page carries its cover - the concept in words,
+///     what it is built from by name, the prompt as last copied - and the
+///     ideas on its board; an experiment's page its trials, series by series,
+///     each with its verdict, what came out and where it went; a version
+///     taken from a trial says so.
+pub const FORMAT: u32 = 4;
 
 /// What an export produced, so the user can be told rather than guess.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
@@ -124,6 +129,20 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
                 .and_then(|parent| versions.iter().find(|v| v.id == parent))
                 .map(|parent| format!(" (from revision {})", parent.revision))
                 .unwrap_or_default();
+            // Taken from a trial of an experiment (ADR 0061): named by the
+            // experiment, as the reader finds it among the pages.
+            let parent = match full.trial_id.as_deref() {
+                Some(trial) => match crate::lab::trial::get(conn, trial)? {
+                    Some(found) => match work::get(conn, &found.work_id)? {
+                        Some(experiment) => {
+                            format!("{parent} (from a trial of “{}”)", experiment.title)
+                        }
+                        None => parent,
+                    },
+                    None => parent,
+                },
+                None => parent,
+            };
             page.push_str(&format!(
                 "\n### Revision {}{}{}\n\n{}\n",
                 full.revision,
@@ -188,6 +207,9 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
                 }
             }
         }
+
+        push_cover(conn, &mut page, work)?;
+        push_trials(conn, &mut page, &work.id)?;
 
         let sources = crate::link::sources(conn, &work.id)?;
         if !sources.is_empty() {
@@ -580,6 +602,194 @@ fn canon_pages(
 
 /// One fact as a list item: the layer, the words, and what stands beside
 /// them - its status, when it happened, where it came from.
+/// A brick's name, or its id when it is gone.
+fn brick_name(conn: &Connection, id: &str) -> Result<String> {
+    Ok(crate::style_brick::get(conn, id)?.map_or_else(|| id.to_owned(), |brick| brick.name))
+}
+
+/// What a publication's cover is (ADR 0049): the idea and the scene in
+/// words, what it is built from by name, the prompt as last copied - and the
+/// ideas on its board with their verdicts (ADR 0050). Nothing for a work
+/// whose cover holds nothing and whose board is empty.
+fn push_cover(conn: &Connection, page: &mut String, work: &work::Work) -> Result<()> {
+    let cover = &work.cover;
+    let ideas = crate::cover::idea::for_work(conn, &work.id)?;
+    if !cover.holds_anything() && ideas.is_empty() {
+        return Ok(());
+    }
+    page.push_str("\n## Cover\n\n");
+    if !cover.idea.trim().is_empty() {
+        page.push_str(&format!("**Idea**\n\n{}\n\n", cover.idea.trim()));
+    }
+    if !cover.scene.trim().is_empty() {
+        page.push_str(&format!("**Scene**\n\n{}\n\n", cover.scene.trim()));
+    }
+    if !cover.avoid.trim().is_empty() {
+        page.push_str(&format!("**Keep out**\n\n{}\n\n", cover.avoid.trim()));
+    }
+    let mut built = Vec::new();
+    if let Some(framing) = cover.framing {
+        let layout = serde_json::to_value(framing.layout)
+            .ok()
+            .and_then(|value| value.as_str().map(str::to_owned))
+            .unwrap_or_default();
+        built.push(format!("- layout: {layout}"));
+    }
+    if let Some(hero) = &cover.hero {
+        let name = crate::note::get(conn, &hero.card)?
+            .and_then(|card| card.title)
+            .unwrap_or_else(|| hero.card.clone());
+        built.push(format!("- hero: {name}"));
+    }
+    for (place, id) in [
+        ("style", &cover.bricks.style),
+        ("typography", &cover.bricks.typography),
+        ("dressing", &cover.bricks.dressing),
+        ("background", &cover.bricks.background),
+    ] {
+        if let Some(id) = id {
+            built.push(format!("- {place}: {}", brick_name(conn, id)?));
+        }
+    }
+    if let Some(accent) = &cover.accent {
+        built.push(format!("- accent: {}", accent.said()));
+    }
+    if let Some(variant) = &cover.mark.variant {
+        let fact = crate::canon::fact::get(conn, variant)?
+            .map_or_else(|| variant.clone(), |fact| fact.body);
+        built.push(format!(
+            "- mark: {}",
+            fact.lines().next().unwrap_or_default()
+        ));
+    }
+    if let Some(title) = &cover.lettering.title {
+        built.push(format!("- title: {title}"));
+    }
+    if !built.is_empty() {
+        page.push_str(&built.join("\n"));
+        page.push_str("\n\n");
+    }
+    if let Some(sent) = &cover.sent {
+        page.push_str(&format!(
+            "**Prompt, as copied {}**\n\n```\n{}\n```\n\n",
+            sent.at,
+            sent.picture.trim()
+        ));
+        if !sent.negative.trim().is_empty() {
+            page.push_str(&format!(
+                "**Negative**\n\n```\n{}\n```\n\n",
+                sent.negative.trim()
+            ));
+        }
+        if let Some(typography) = sent
+            .typography
+            .as_deref()
+            .filter(|text| !text.trim().is_empty())
+        {
+            page.push_str(&format!(
+                "**Lettering**\n\n```\n{}\n```\n\n",
+                typography.trim()
+            ));
+        }
+    }
+    if !ideas.is_empty() {
+        page.push_str("### Ideas\n\n");
+        for idea in &ideas {
+            let verdict = match idea.verdict {
+                Some(crate::cover::idea::Verdict::Star) => " ★",
+                Some(crate::cover::idea::Verdict::Rejected) => " ✗",
+                None => "",
+            };
+            let head = [idea.headline.trim(), idea.angle.trim()]
+                .into_iter()
+                .filter(|part| !part.is_empty())
+                .collect::<Vec<_>>()
+                .join(" — ");
+            let said = idea.concept.idea.trim().replace('\n', " ");
+            page.push_str(&format!(
+                "- {}{verdict} ({}){}\n",
+                if head.is_empty() { &said } else { &head },
+                idea.source.as_str(),
+                if head.is_empty() || said.is_empty() {
+                    String::new()
+                } else {
+                    format!(": {said}")
+                }
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// An experiment's board (ADR 0061): series by series, each trial with what
+/// it moves, its text, who to listen to, what came out, its verdict, and
+/// where a kept one went. Nothing for a work with no trials.
+fn push_trials(conn: &Connection, page: &mut String, work_id: &str) -> Result<()> {
+    let trials = crate::lab::trial::for_work(conn, work_id)?;
+    if trials.is_empty() {
+        return Ok(());
+    }
+    // Numbered in the order the page lists them, so a variation names its
+    // parent by the number a reader sees.
+    let number = |id: &str| {
+        trials
+            .iter()
+            .position(|trial| trial.id == id)
+            .map(|at| at + 1)
+    };
+    page.push_str("\n## Trials\n");
+    let mut series: Option<&str> = None;
+    for (index, trial) in trials.iter().enumerate() {
+        if series != Some(trial.series.as_str()) {
+            series = Some(trial.series.as_str());
+            let name = if trial.series.is_empty() {
+                "(no series)"
+            } else {
+                trial.series.as_str()
+            };
+            page.push_str(&format!("\n### {name}\n"));
+        }
+        let verdict = match trial.verdict {
+            Some(crate::lab::Verdict::Keep) => " · kept",
+            Some(crate::lab::Verdict::Drop) => " · dropped",
+            None => "",
+        };
+        let mut head = format!("\n#### {}", index + 1);
+        if !trial.angle.is_empty() {
+            head.push_str(&format!(" {}", trial.angle));
+        }
+        head.push_str(verdict);
+        if trial.run_first {
+            head.push_str(" · run first");
+        }
+        if let Some(parent) = trial.parent_id.as_deref().and_then(number) {
+            head.push_str(&format!(" (varies {parent})"));
+        }
+        page.push_str(&head);
+        page.push_str(&format!("\n\n```\n{}\n```\n", trial.body.trim()));
+        if !trial.reference.is_empty() {
+            page.push_str(&format!("\nListen to: {}\n", trial.reference));
+        }
+        if !trial.outcome.trim().is_empty() {
+            page.push_str(&format!("\n{}\n", trial.outcome.trim()));
+        }
+        for went in crate::lab::trial::harvest_of(conn, &trial.id)? {
+            match went {
+                crate::lab::trial::Harvest::Version {
+                    title,
+                    role,
+                    revision,
+                    ..
+                } => page.push_str(&format!("\n→ {title}, {role} revision {revision}\n")),
+                crate::lab::trial::Harvest::Brick { name, .. } => {
+                    page.push_str(&format!("\n→ the dictionary: {name}\n"));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn push_fact(page: &mut String, fact: &crate::canon::Fact) {
     page.push_str(&format!("- [{}] {}", fact.layer.as_str(), fact.body));
     let mut beside = Vec::new();
@@ -824,6 +1034,7 @@ mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1051,6 +1262,7 @@ mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1064,6 +1276,7 @@ mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: Some(first.id.clone()),
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1123,5 +1336,63 @@ mod tests {
         );
         assert!(page.contains("| the producer |"), "{page}");
         assert!(page.contains("2026-10-01 18:30 Europe/Lisbon"), "{page}");
+    }
+    /// Format 4: an experiment's page carries its trials series by series,
+    /// a variation naming its parent's number and a kept one where it went;
+    /// a song's version taken from a trial says so; a publication's page
+    /// carries its cover in words and the ideas on its board.
+    #[test]
+    fn a_page_carries_the_trials_and_the_cover() {
+        let (conn, profile_id) = fixtures::workspace();
+        let dir = tempfile::tempdir().unwrap();
+        let song = fixtures::song(&conn, &profile_id, "Harbour lights");
+        let lab = fixtures::work(&conn, &profile_id, "experiment", "Breaks under guitars");
+        let core = crate::actions::trial::create(
+            &conn,
+            crate::lab::NewTrial {
+                work_id: lab.id.clone(),
+                series: Some("sweep".into()),
+                angle: Some("core".into()),
+                body: Some("amen break, fuzz bass".into()),
+                ..crate::lab::NewTrial::default()
+            },
+        )
+        .unwrap();
+        let slower = crate::actions::trial::vary(&conn, &core.id, "slower", None).unwrap();
+        crate::actions::trial::judge(&conn, &slower.id, Some(crate::lab::Verdict::Keep)).unwrap();
+        crate::actions::trial::harvest_into(&conn, &slower.id, &song.id, None, false).unwrap();
+
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Harbour lights (audio)");
+        crate::actions::idea::add_own(&conn, &audio.id, "the harbour at dawn").unwrap();
+
+        to_markdown(&conn, dir.path()).unwrap();
+        let read = |title: &str| {
+            std::fs::read_dir(dir.path().join("works"))
+                .unwrap()
+                .filter_map(std::result::Result::ok)
+                .map(|entry| std::fs::read_to_string(entry.path()).unwrap())
+                .find(|page| page.contains(&format!("# {title}\n")))
+                .unwrap()
+        };
+        let page = read("Breaks under guitars");
+        assert!(page.starts_with("---\nformat: 4\n"), "{page}");
+        assert!(page.contains("## Trials"), "{page}");
+        assert!(page.contains("### sweep"), "{page}");
+        assert!(page.contains("#### 2 slower · kept (varies 1)"), "{page}");
+        assert!(
+            page.contains("→ Harbour lights, style revision 1"),
+            "{page}"
+        );
+
+        let page = read("Harbour lights");
+        assert!(
+            page.contains("(from a trial of “Breaks under guitars”)"),
+            "{page}"
+        );
+
+        let page = read("Harbour lights (audio)");
+        assert!(page.contains("## Cover"), "{page}");
+        assert!(page.contains("### Ideas"), "{page}");
+        assert!(page.contains("the harbour at dawn (own)"), "{page}");
     }
 }

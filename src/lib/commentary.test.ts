@@ -13,6 +13,7 @@ function version(
   fields: Partial<VersionSummary> & Pick<VersionSummary, 'id' | 'role'>,
 ): VersionSummary {
   return {
+    trial_id: null,
     work_id: 'w',
     revision: 1,
     label: null,

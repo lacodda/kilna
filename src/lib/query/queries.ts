@@ -69,6 +69,7 @@ import {
   phrasesFromTexts,
 } from '@/lib/api/styles'
 import { coverBoard } from '@/lib/api/ideas'
+import { trialBoard } from '@/lib/api/trials'
 import { listDeletions } from '@/lib/api/trash'
 import type { CardFilter, CommentFilter, Lens, NoteFilter, TaskAbout } from '@/lib/api/types'
 import { getVersion, listVersions } from '@/lib/api/versions'
@@ -117,6 +118,8 @@ export const queries = {
     }),
   coverBoard: (workId: string) =>
     queryOptions({ queryKey: keys.coverBoard(workId), queryFn: () => coverBoard(workId) }),
+  trialBoard: (workId: string) =>
+    queryOptions({ queryKey: keys.trialBoard(workId), queryFn: () => trialBoard(workId) }),
   frameView: (workId: string) =>
     queryOptions({ queryKey: keys.frameView(workId), queryFn: () => frameView(workId) }),
   sceneFrameView: (sceneId: string) =>

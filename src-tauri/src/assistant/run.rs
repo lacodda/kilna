@@ -471,7 +471,7 @@ pub fn pump<S, F>(
                     .and_then(Value::as_str)
                     .map(str::to_owned);
                 let fills = kind.as_deref() == Some("release");
-                let lands = kind.as_deref() == Some("coverIdeas");
+                let lands = matches!(kind.as_deref(), Some("coverIdeas" | "trials"));
                 let appended = super::append(&conn, &run.chat_id, super::ASSISTANT, body, meta);
 
                 // What a release goes out under, asked for by the person from
@@ -789,6 +789,42 @@ fn proposed(conn: &Connection, run: &Run, body: &str) -> Read {
                 Ok(read) => value(super::proposal::Proposal::CoverIdeas {
                     work_id: work_id.to_owned(),
                     ideas: read.ideas,
+                    dropped: read.dropped,
+                }),
+                Err(error) => Read::Refused(error.to_string()),
+            }
+        }
+        // Trials for the board of the experiment the key names, read against
+        // the workspace and held to what was asked: a variation or a fix is
+        // the child of the trial asked about, whatever the answer says.
+        super::prompt::Produces::Trials => {
+            let Some((work_id, request)) = super::task::lab_of_key(task_key) else {
+                return Read::Nothing;
+            };
+            let Some(work) = crate::work::get(conn, &work_id).ok().flatten() else {
+                return Read::Nothing;
+            };
+            let Some(block) = super::proposal::fenced_json(body) else {
+                return Read::Refused("the answer holds no ```json block of trials".into());
+            };
+            let raw: Value = match serde_json::from_str(&block) {
+                Ok(raw) => raw,
+                Err(error) => {
+                    return Read::Refused(format!(
+                        "the json block is not a list of trials: {error}"
+                    ));
+                }
+            };
+            match crate::lab::answer::read(
+                conn,
+                &profile.config,
+                crate::lab::answer::For::work(&work),
+                &raw,
+                Some(&request),
+            ) {
+                Ok(read) => value(super::proposal::Proposal::Trials {
+                    work_id,
+                    trials: read.trials,
                     dropped: read.dropped,
                 }),
                 Err(error) => Read::Refused(error.to_string()),
@@ -2309,6 +2345,98 @@ The second verse is the weak one."
                 .all(|idea| idea.source == crate::cover::idea::Source::Ai)
         );
         assert_eq!(board[1].concept.bricks.style, None);
+        drop(dir);
+    }
+
+    /// Variations asked for around a trial land on its board as its
+    /// children, whatever the answer says of parents; a brick named by its
+    /// phrase is found, one the dictionary lacks is left out and said.
+    #[test]
+    fn a_lab_task_puts_its_trials_on_the_board_as_children() {
+        let (dir, path, conn, profile_id) = on_disk();
+        crate::style_set::seed(&conn).unwrap();
+        let lab = fixtures::work(&conn, &profile_id, "experiment", "Breaks under guitars");
+        let core = crate::actions::trial::create(
+            &conn,
+            crate::lab::NewTrial {
+                work_id: lab.id.clone(),
+                series: Some("sweep".into()),
+                body: Some("amen break, fuzz bass".into()),
+                ..crate::lab::NewTrial::default()
+            },
+        )
+        .unwrap();
+        let chat_id = super::super::create(
+            &conn,
+            &profile_id,
+            NewChat {
+                work_id: Some(lab.id.clone()),
+                ..NewChat::default()
+            },
+        )
+        .unwrap()
+        .id;
+        let runs = Arc::new(Runs::new());
+        let run_id = record(&conn, &chat_id, "running");
+        let mut run = get(&conn, &run_id).unwrap().unwrap();
+        let request = crate::lab::answer::TrialRequest {
+            count: 2,
+            series: "around the core".into(),
+            around: Some(core.id.clone()),
+            fix: false,
+        };
+        run.task = Some(crate::assistant::task::lab_key(
+            "propose-trials",
+            &lab.id,
+            &request,
+        ));
+        runs.insert(run_id, chat_id.clone(), Arc::new(|| {}), run.task.clone());
+
+        let body = "Two moves.
+
+```json
+{\"trials\": [
+  {\"angle\": \"denser\", \"body\": \"amen break, fuzz bass, wall of sound\", \"bricks\": [\"chopped amen break\", \"no such phrase\"], \"parent\": 7},
+  {\"angle\": \"slower\", \"body\": \"amen break, fuzz bass, 80 bpm\"}
+]}
+```";
+        let collector: Arc<Collector> = Arc::new(Collector::default());
+        let sink: Arc<dyn Sink> = collector.clone();
+        let source = Arc::new(Mutex::new(Script(
+            vec![Event::Finished {
+                body: body.into(),
+                cost_usd: None,
+                duration_ms: None,
+            }]
+            .into_iter(),
+        )));
+        pump(&runs, &sink, &run, &source, || Connection::open(&path).ok());
+
+        let transcript = super::super::transcript(&conn, &chat_id).unwrap().unwrap();
+        let answer = transcript
+            .messages
+            .iter()
+            .find(|message| message.role == super::super::ASSISTANT)
+            .unwrap();
+        assert_eq!(answer.meta["proposal"]["kind"], "trials");
+        assert_eq!(answer.meta["proposal"]["dropped"][0]["part"], "brick");
+        assert_eq!(
+            answer.meta["applied"]["trials"].as_array().map(Vec::len),
+            Some(2),
+            "the trials landed and the message says so"
+        );
+        let board = crate::lab::trial::for_work(&conn, &lab.id).unwrap();
+        let children: Vec<_> = board
+            .iter()
+            .filter(|trial| trial.parent_id.as_deref() == Some(core.id.as_str()))
+            .collect();
+        assert_eq!(children.len(), 2);
+        assert!(
+            children
+                .iter()
+                .all(|trial| trial.series == "around the core")
+        );
+        assert_eq!(children[0].bricks.len(), 1, "the phrase it named is found");
         drop(dir);
     }
 

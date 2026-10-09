@@ -7,7 +7,11 @@ export type VersionSummary = { id: string, work_id: string, role: string, revisi
 /**
  * Characters in the body; the list shows growth without loading it.
  */
-length: number, parent_version_id: string | null, created_at: string, is_current: boolean, 
+length: number, parent_version_id: string | null, 
+/**
+ * The trial it was taken from, when it was.
+ */
+trial_id: string | null, created_at: string, is_current: boolean, 
 /**
  * For a version in a commenting role: the version it comments on, when
  * it was written about one (`meta.about`). The versions tab pairs by

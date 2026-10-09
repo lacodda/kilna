@@ -157,7 +157,10 @@ fn initialize() -> Value {
     each a work made from it with releases of its own, and `propose_release` proposes what one \
     of those releases goes out under - its title, description, tags, pinned comment. `cover` \
     reads the board of ideas for a publication's cover and everything an idea is built from, \
-    and `propose_cover` proposes ideas onto it. `canon` \
+    and `propose_cover` proposes ideas onto it. An experiment is a work whose kind is a lab: \
+    `trials` reads its board - trials by series, each with what it moves, its text, what came \
+    out and the verdict - and `propose_trials` proposes trials onto it; a kept trial becomes a \
+    version of a song's style in the window. `canon` \
     reads the world the works share - cards of people, places and the channel, with facts in \
     layers - and `propose_canon` proposes cards, facts and relations for it. `words` reads the \
     owner's bank of words by block, with how each is sung (the stress as a capital vowel), and \
@@ -268,6 +271,19 @@ fn tools() -> Vec<Value> {
              since) and what was made from it (`derived`); for a work that never goes out \
              itself, its `publications` - everything made from it, with where each stands. \
              Bodies are not included — read one with `text`; the storyboard with `scenes`.",
+            json!({ "work": work_arg() }),
+            &["work"],
+        ),
+        tool(
+            "trials",
+            "The board of an experiment - a work whose kind is a lab (see `workspace`: `lab`): \
+             its anchors (what every trial keeps, word for word), and every trial by series, in \
+             order - its id, `parent` (the trial it varies), `angle` (what it moves), `body` (the \
+             text tried out), the bricks it was picked from, `reference` (who to listen to), \
+             `outcome` (what came out once heard), `verdict` (keep, drop, or null - not judged), \
+             `source` (the song's style it reworks), the anchors it has lost, how many takes it \
+             has, and where a kept one went. Plus `choices`: the phrases of the dictionary a \
+             trial is written from, with their ids.",
             json!({ "work": work_arg() }),
             &["work"],
         ),
@@ -451,6 +467,11 @@ fn tools() -> Vec<Value> {
                      existing one's board; only for a kind with a storyboard (see `workspace`: \
                      `shot_types`, `scene_blocks`)"
                 ),
+                "trials": {
+                    "type": "array",
+                    "description": "Trials for the board of an experiment (a kind with `lab`), in the shape `propose_trials` takes",
+                    "items": { "type": "object" },
+                },
                 "releases": {
                     "type": "array",
                     "description": "Releases to plan for the work, each with what it goes out as",
@@ -462,6 +483,39 @@ fn tools() -> Vec<Value> {
                 },
             }),
             &[],
+        ),
+        tool(
+            "propose_trials",
+            "Propose trials for an experiment's board, put on it with one click. Each trial is \
+             its text (`body` - the line the generator reads, the most important phrase first), \
+             `angle` (what it moves, or where on the field it stands), `series` (the group it \
+             stands in), `bricks` (ids or exact phrases of the dictionary it uses), `reference` \
+             (who to listen to - never in the body), and optionally `parent` (the id of a trial on \
+             the board, or the number of an earlier trial in this list, that it varies), `source` \
+             (the id of a song's style version it reworks), `outcome` and `verdict` (keep or drop) \
+             for a trial already heard, and `run_first`. Every anchor of the experiment belongs \
+             in every body. What is not in the workspace is left out and said.",
+            json!({
+                "work": work_arg(),
+                "trials": {
+                    "type": "array",
+                    "description": "The trials, in order",
+                    "items": { "type": "object", "properties": {
+                        "body": text_arg("The text tried out"),
+                        "angle": text_arg("What it moves, a few words"),
+                        "series": text_arg("The series it stands in"),
+                        "bricks": { "type": "array", "items": { "type": "string" }, "description": "Ids or exact phrases of the dictionary it uses" },
+                        "reference": text_arg("Who to listen to; never part of the body"),
+                        "parent": { "description": "The trial it varies: an id on the board, or the number (from 1) of an earlier trial in this list" },
+                        "source": text_arg("The id of a song's style version it reworks"),
+                        "outcome": text_arg("What came out, for a trial already heard"),
+                        "verdict": text_arg("keep or drop, for a trial already judged"),
+                        "run_first": { "type": "boolean", "description": "Where a run starts" },
+                    }, "required": ["body"] },
+                },
+                "note": text_arg("One sentence on what was proposed and why, optional"),
+            }),
+            &["work", "trials"],
         ),
         tool(
             "propose_scenes",
@@ -980,6 +1034,7 @@ pub fn run_tool(
                         "scene_blocks": kind.scene_blocks,
                         "cover": kind.cover,
                         "frame": kind.frame,
+                        "lab": kind.lab,
                     })
                 })
                 .collect();
@@ -1081,10 +1136,16 @@ pub fn run_tool(
             } else {
                 None
             };
-            let publications = if vocabulary.has_doors() {
+            let lab = config.lab(&found.kind).is_some();
+            let publications = if vocabulary.has_doors() || lab {
                 None
             } else {
                 Some(crate::publication::of(conn, &config, &found.id)?)
+            };
+            let trials = if lab {
+                Some(crate::lab::trial::counts(conn, &found.id)?)
+            } else {
+                None
             };
             pretty(&json!({
                 "id": found.id, "title": found.title, "kind": found.kind, "status": found.status,
@@ -1103,6 +1164,7 @@ pub fn run_tool(
                 "cover": cover,
                 "frame": frame,
                 "publications": publications,
+                "trials": trials,
                 "sources": links.sources.iter().map(|l| json!({
                     "work": l.source_id, "title": l.source_title, "kind": l.source_kind, "role": l.role,
                     "taken_at_version": l.source_version_id, "drifted": l.drifted,
@@ -1672,6 +1734,33 @@ pub fn run_tool(
                 });
             }
 
+            let mut trials_left_out = Vec::new();
+            let trials = match args.get("trials") {
+                Some(raw) if raw.as_array().is_some_and(|list| !list.is_empty()) => {
+                    if config.lab(&kind).is_none() {
+                        return Err(Error::refused("trial.noLabKind").param("kind", kind.clone()));
+                    }
+                    let read = crate::lab::answer::read(
+                        conn,
+                        &config,
+                        crate::lab::answer::For {
+                            profile_id: &profile.id,
+                            kind: &kind,
+                            work_id: found.as_ref().map(|w| w.id.as_str()),
+                        },
+                        raw,
+                        None,
+                    )?;
+                    trials_left_out = read
+                        .dropped
+                        .iter()
+                        .map(|one| format!("trial {}: {} “{}”", one.trial, one.part, one.value))
+                        .collect();
+                    read.trials
+                }
+                _ => Vec::new(),
+            };
+
             if found.is_some()
                 && fields.is_empty()
                 && versions.is_empty()
@@ -1679,6 +1768,7 @@ pub fn run_tool(
                 && notes.is_empty()
                 && scenes.is_empty()
                 && releases.is_empty()
+                && trials.is_empty()
             {
                 return Err(Error::refused("mcp.emptyPackage"));
             }
@@ -1693,9 +1783,16 @@ pub fn run_tool(
                 notes,
                 scenes,
                 releases,
+                trials,
             };
             let body = apply::render_package(&proposal, &config, &kind);
-            let summary = package_summary(&proposal);
+            let mut summary = package_summary(&proposal);
+            if !trials_left_out.is_empty() {
+                summary.push_str(&format!(
+                    ", left out of trials (not in the workspace): {}",
+                    trials_left_out.join("; ")
+                ));
+            }
             deliver(
                 conn,
                 &profile.id,
@@ -1794,6 +1891,97 @@ pub fn run_tool(
             let plural = if count == 1 { "" } else { "s" };
             let mut said = format!(
                 "Proposed {count} idea{plural} for the cover of “{}”. They wait in the chat on the work and above its board; one click puts them on the board.",
+                found.title
+            );
+            if !left_out.is_empty() {
+                said.push_str(&format!(
+                    " Left out, not in the workspace: {}.",
+                    left_out.join("; ")
+                ));
+            }
+            Ok(said)
+        }
+
+        "trials" => {
+            let found = find_work(conn, &profile.id, required(args, "work")?)?;
+            let board = crate::lab::trial::board(conn, &found.id)?;
+            let trials: Vec<Value> = board
+                .trials
+                .iter()
+                .map(|card| {
+                    json!({
+                        "id": card.trial.id,
+                        "series": card.trial.series,
+                        "parent": card.trial.parent_id,
+                        "angle": card.trial.angle,
+                        "body": card.trial.body,
+                        "bricks": card.trial.bricks,
+                        "reference": card.trial.reference,
+                        "outcome": card.trial.outcome,
+                        "verdict": card.trial.verdict,
+                        "run_first": card.trial.run_first,
+                        "source": card.source.as_ref().map(|source| json!({
+                            "work": source.work_id, "title": source.title,
+                            "version": source.version_id, "revision": source.revision,
+                        })),
+                        "lost_anchors": card.lost_anchors,
+                        "takes": card.takes.len(),
+                        "harvest": card.harvest,
+                    })
+                })
+                .collect();
+            pretty(&json!({
+                "work": found.id,
+                "title": found.title,
+                "anchors": board.anchors,
+                "harvest_role": board.harvest_role,
+                "harvest_kinds": board.harvest_kinds,
+                "series": board.series,
+                "trials": trials,
+                "choices": crate::lab::answer::choices_sheet(conn, &found)?,
+            }))
+        }
+
+        "propose_trials" => {
+            let found = find_work(conn, &profile.id, required(args, "work")?)?;
+            if config.lab(&found.kind).is_none() {
+                return Err(Error::refused("trial.noLab").param("title", found.title.clone()));
+            }
+            let raw = args
+                .get("trials")
+                .filter(|raw| raw.as_array().is_some_and(|list| !list.is_empty()))
+                .ok_or_else(|| Error::refused("mcp.trialsNotArray"))?;
+            let read = crate::lab::answer::read(
+                conn,
+                &config,
+                crate::lab::answer::For::work(&found),
+                raw,
+                None,
+            )?;
+            let count = read.trials.len();
+            let left_out: Vec<String> = read
+                .dropped
+                .iter()
+                .map(|one| format!("trial {}: {} “{}”", one.trial, one.part, one.value))
+                .collect();
+            let body = apply::render_trials(&read.trials, &read.dropped);
+            let proposal = Proposal::Trials {
+                work_id: found.id.clone(),
+                trials: read.trials,
+                dropped: read.dropped,
+            };
+            deliver(
+                conn,
+                &profile.id,
+                session,
+                Some(&found),
+                proposal,
+                &body,
+                arg(args, "note"),
+            )?;
+            let plural = if count == 1 { "" } else { "s" };
+            let mut said = format!(
+                "Proposed {count} trial{plural} for the board of “{}”. They wait in the chat on the work and above its board; one click puts them on the board.",
                 found.title
             );
             if !left_out.is_empty() {
@@ -2202,6 +2390,7 @@ fn deliver(
         (Proposal::Scenes { .. }, _) => Record::new("proposal.scenes"),
         (Proposal::Release { .. }, _) => Record::new("proposal.release"),
         (Proposal::CoverIdeas { .. }, _) => Record::new("proposal.coverIdeas"),
+        (Proposal::Trials { .. }, _) => Record::new("proposal.trials"),
         (Proposal::Work { title, .. }, None) => {
             Record::new("proposal.work").param("title", title.clone().unwrap_or_default())
         }
@@ -2246,6 +2435,7 @@ fn package_summary(proposal: &Proposal) -> String {
         notes,
         scenes,
         releases,
+        trials,
         ..
     } = proposal
     else {
@@ -2291,6 +2481,13 @@ fn package_summary(proposal: &Proposal) -> String {
             "{} scene{}",
             scenes.len(),
             if scenes.len() == 1 { "" } else { "s" }
+        ));
+    }
+    if !trials.is_empty() {
+        parts.push(format!(
+            "{} trial{}",
+            trials.len(),
+            if trials.len() == 1 { "" } else { "s" }
         ));
     }
     if !releases.is_empty() {
@@ -2446,6 +2643,115 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(refused.refusal().map(|r| r.code), Some("idea.noCover"));
+    }
+
+    /// An agent reads an experiment's board and proposes trials onto it:
+    /// they wait until the person puts them on the board, a later trial
+    /// varying an earlier one of the same proposal lands as its child, and a
+    /// work that is no experiment takes none.
+    #[test]
+    fn proposed_trials_wait_and_land_as_a_tree() {
+        let (conn, song) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        crate::style_set::seed(&conn).unwrap();
+        let lab = fixtures::work(&conn, &profile_id, "experiment", "Breaks under guitars");
+
+        let read = run_tool(&conn, &claude(), "trials", &args(json!({ "work": lab.id }))).unwrap();
+        let read: Value = serde_json::from_str(&read).unwrap();
+        assert_eq!(read["trials"], json!([]));
+        assert!(
+            read["choices"]
+                .as_str()
+                .unwrap()
+                .contains("chopped amen break"),
+            "the choices name the phrases of sound"
+        );
+
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_trials",
+            &args(json!({
+                "work": lab.id,
+                "trials": [
+                    { "body": "chopped amen break, fuzz bass", "angle": "core", "series": "sweep", "bricks": ["chopped amen break", "no such phrase"] },
+                    { "body": "chopped amen break, fuzz bass, 80 bpm", "angle": "slower", "series": "sweep", "parent": 1, "verdict": "keep", "outcome": "heavier" }
+                ],
+            })),
+        )
+        .unwrap();
+        assert!(answer.contains("Proposed 2 trials"), "{answer}");
+        assert!(answer.contains("no such phrase"), "{answer}");
+        assert!(
+            crate::lab::trial::for_work(&conn, &lab.id)
+                .unwrap()
+                .is_empty()
+        );
+
+        let message = first_message(&conn, &lab.id);
+        assert_eq!(message.meta["proposal"]["kind"], "trials");
+        crate::actions::proposal::apply(&conn, &message.id, Default::default()).unwrap();
+        let board = crate::lab::trial::for_work(&conn, &lab.id).unwrap();
+        assert_eq!(board.len(), 2);
+        assert_eq!(board[1].parent_id.as_deref(), Some(board[0].id.as_str()));
+        assert_eq!(board[1].verdict, Some(crate::lab::Verdict::Keep));
+        assert_eq!(board[0].bricks.len(), 1);
+
+        let refused = run_tool(
+            &conn,
+            &claude(),
+            "propose_trials",
+            &args(json!({ "work": song, "trials": [{ "body": "x" }] })),
+        )
+        .unwrap_err();
+        assert_eq!(refused.refusal().map(|r| r.code), Some("trial.noLab"));
+    }
+
+    /// A whole experiment proposed at once - its brief, its anchors and its
+    /// trials by series - is made in one click, the board and all.
+    #[test]
+    fn a_proposed_experiment_arrives_with_its_board() {
+        let (conn, _) = workspace();
+        let answer = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({
+                "title": "Breaks under guitars",
+                "kind": "experiment",
+                "fields": { "anchors": "fuzz bass\namen break" },
+                "versions": [{ "role": "brief", "body": "## Direction\n\nbreaks under guitars" }],
+                "trials": [
+                    { "body": "amen break, fuzz bass", "series": "sweep" },
+                    { "body": "amen break, sub bass", "series": "sweep" }
+                ],
+            })),
+        )
+        .unwrap();
+        assert!(answer.contains("2 trials"), "{answer}");
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let chats = assistant::summaries(&conn, &profile_id, None).unwrap();
+        let message = assistant::transcript(&conn, &chats[0].id)
+            .unwrap()
+            .unwrap()
+            .messages
+            .remove(0);
+        let outcome =
+            crate::actions::proposal::apply(&conn, &message.id, Default::default()).unwrap();
+        let work_id = outcome.work_id.unwrap();
+        let board = crate::lab::trial::board(&conn, &work_id).unwrap();
+        assert_eq!(board.trials.len(), 2);
+        assert_eq!(board.anchors, vec!["fuzz bass", "amen break"]);
+        assert_eq!(board.trials[1].lost_anchors, vec!["fuzz bass"]);
+
+        let refused = run_tool(
+            &conn,
+            &claude(),
+            "propose_work",
+            &args(json!({ "title": "A song", "kind": "song", "trials": [{ "body": "x" }] })),
+        )
+        .unwrap_err();
+        assert_eq!(refused.refusal().map(|r| r.code), Some("trial.noLabKind"));
     }
 
     /// What a release goes out under, proposed by an agent: it waits in the

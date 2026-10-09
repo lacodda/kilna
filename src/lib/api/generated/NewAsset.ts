@@ -18,6 +18,10 @@ note_id?: string,
  */
 canon_fact_id?: string, 
 /**
+ * The trial this is a take of.
+ */
+trial_id?: string, 
+/**
  * `attachment` when omitted; on a card, one of its picture roles
  * (`reference` when omitted).
  */

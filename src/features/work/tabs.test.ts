@@ -30,6 +30,7 @@ function facts(
       cover: false,
       frame: false,
       folder: false,
+      lab: false,
       ...names,
     },
     holds: {
@@ -37,6 +38,7 @@ function facts(
       scores: false,
       scenes: false,
       files: false,
+      trials: false,
       cover: false,
       splice: false,
       ...holds,
@@ -53,7 +55,15 @@ describe("the card's tabs", () => {
     expect(tabsOf(facts({}, { splice: true }))).toContain('cuts')
     // In the list's order, whatever is left out.
     const everything = facts(
-      { roles: true, axes: true, storyboard: true, doors: true, cover: true, frame: true },
+      {
+        roles: true,
+        axes: true,
+        storyboard: true,
+        doors: true,
+        cover: true,
+        frame: true,
+        lab: true,
+      },
       { splice: true },
     )
     expect(tabsOf(everything)).toEqual([...TABS])

@@ -90,6 +90,7 @@ const KIND_KEYS = {
   canon: 'journal.kind.canon',
   register: 'journal.kind.register',
   cover: 'journal.kind.cover',
+  lab: 'journal.kind.lab',
   assistant: 'journal.kind.assistant',
   trash: 'journal.kind.trash',
   undo: 'journal.kind.undo',
@@ -125,6 +126,7 @@ const KIND_OF_PREFIX: Readonly<Record<string, Kind>> = {
   block: 'register',
   repeat: 'register',
   idea: 'cover',
+  trial: 'lab',
   proposal: 'assistant',
   assistant: 'assistant',
   trash: 'trash',
@@ -198,6 +200,7 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'term.deleted': ['dim', Trash2],
   'block.deleted': ['dim', Trash2],
   'idea.deleted': ['dim', Trash2],
+  'trial.deleted': ['dim', Trash2],
 
   'proposal.work': ['accent', Sparkles],
   'proposal.version': ['accent', Sparkles],
@@ -211,6 +214,7 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'proposal.freeCanon': ['accent', Sparkles],
   'proposal.release': ['accent', Sparkles],
   'proposal.coverIdeas': ['accent', Sparkles],
+  'proposal.trials': ['accent', Sparkles],
   'assistant.batchStarted': ['accent', Sparkles],
 
   'trash.restored': ['dim', RotateCcw],

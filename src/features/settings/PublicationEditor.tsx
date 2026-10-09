@@ -82,6 +82,13 @@ export function PublicationEditor({
 
       {kind.cover === true && <p className="text-xs text-dim">{t('editor.coverLine')}</p>}
       {kind.frame === true && <p className="text-xs text-dim">{t('editor.frameLine')}</p>}
+      {kind.lab != null && (
+        <p className="text-xs text-dim">
+          {kind.lab.harvest == null
+            ? t('editor.labLine')
+            : t('editor.labHarvestLine', { role: kind.lab.harvest })}
+        </p>
+      )}
     </>
   )
 }

@@ -77,6 +77,8 @@ export const IDS = {
   link: 'l-clip-from-song',
   audioLink: 'l-audio-from-song',
   collection: 'col-first',
+  /** An experiment with sound, its board empty (v0.95). */
+  lab: 'w-lab',
 } as const
 
 export interface Studio {
@@ -158,6 +160,7 @@ function version(
   fields: Partial<Version> & Pick<Version, 'id' | 'work_id' | 'role' | 'body'>,
 ): Version {
   return {
+    trial_id: null,
     revision: 1,
     label: null,
     meta: {},
@@ -244,6 +247,7 @@ export function studio(): Studio {
       },
       position: 4,
     }),
+    work({ id: IDS.lab, kind: 'experiment', title: 'Breaks under guitars', position: 5 }),
   ]
 
   const versions = [
@@ -362,6 +366,7 @@ export function studio(): Studio {
 
   const bricks: StyleBrick[] = [
     {
+      trial_id: null,
       id: IDS.brick,
       profile_id: IDS.profile,
       type_key: 'look',
@@ -618,6 +623,7 @@ function scheduled(studio: Studio, release: Release): ScheduledRelease {
 function summary(studio: Studio, row: Version): VersionSummary {
   const owner = studio.works.find((w) => w.id === row.work_id)
   return {
+    trial_id: null,
     id: row.id,
     work_id: row.work_id,
     role: row.role,
@@ -939,6 +945,8 @@ function countsOf(studio: Studio, workId: string): CardCounts {
     cut_from: studio.cuts.filter((cut) => cut.source_id === workId).length,
     // The axis without its beginning, as `work::timeline::count` counts it.
     history: Math.max(timelineOf(studio, workId).length - 1, 0),
+    // No experiment in this studio has trials until a test puts them there.
+    trials: 0,
   }
 }
 
@@ -1065,6 +1073,17 @@ export function answersFor(studio: Studio): Record<string, Handler> {
     // A board with nothing on it yet: the smoke opens the Cover tab on its
     // ideas, and a cover's own tests give it the cards they need.
     cover_board: () => ({ format: '16:9', ideas: [], siblings: [] }),
+    // An experiment's board with nothing on it yet (v0.95): a test of the
+    // board answers it with the trials it needs.
+    trial_board: ({ id }) => ({
+      work_id: id,
+      anchors: [],
+      harvest_role: 'style',
+      harvest_kinds: ['song'],
+      composition: 'sound',
+      series: [],
+      trials: [],
+    }),
     cover_view: ({ id, format }) =>
       coverViewOf(studio, id as string, (format as string | null | undefined) ?? null),
     release_proposals: () => [],

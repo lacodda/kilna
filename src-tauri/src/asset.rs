@@ -71,6 +71,9 @@ pub struct Asset {
     pub note_id: Option<String>,
     /// The one fact of that card it shows: an outfit, a variant of a mark.
     pub canon_fact_id: Option<String>,
+    /// The trial of an experiment it is a take of: what a generator gave
+    /// when the trial was run, heard to judge it (ADR 0061).
+    pub trial_id: Option<String>,
     pub created_at: String,
 }
 
@@ -92,6 +95,9 @@ pub struct NewAsset {
     /// an outfit is a picture of the person wearing it.
     #[serde(default)]
     pub canon_fact_id: Option<String>,
+    /// The trial this is a take of.
+    #[serde(default)]
+    pub trial_id: Option<String>,
     /// `attachment` when omitted; on a card, one of its picture roles
     /// (`reference` when omitted).
     #[serde(default)]
@@ -108,7 +114,7 @@ const ATTACHMENT: &str = "attachment";
 const REFERENCE: &str = "reference";
 
 const SELECT: &str = "SELECT id, profile_id, work_id, release_id, kind, path, label, \
-     original_name, style_brick_id, note_id, canon_fact_id, created_at FROM asset";
+     original_name, style_brick_id, note_id, canon_fact_id, created_at, trial_id FROM asset";
 
 /// Copy a file into the workspace and record it.
 pub fn attach(
@@ -153,6 +159,7 @@ pub fn attach_minted(
         && new.release_id.is_none()
         && new.style_brick_id.is_none()
         && new.note_id.is_none()
+        && new.trial_id.is_none()
     {
         return Err(Error::refused("asset.needsOwner"));
     }
@@ -194,6 +201,11 @@ pub fn attach_minted(
             return Err(Error::refused("asset.styleOtherWorkspace").param("name", brick.name));
         }
     }
+    if let Some(trial_id) = new.trial_id.as_deref() {
+        crate::lab::trial::get(conn, trial_id)?
+            .filter(|trial| trial.profile_id == profile_id)
+            .ok_or_else(|| Error::not_found("trial", trial_id))?;
+    }
 
     if !source.is_file() {
         return Err(Error::refused("asset.fileMissing").param("path", source.display().to_string()));
@@ -231,8 +243,8 @@ pub fn attach_minted(
 
     let written = conn.execute(
         "INSERT INTO asset (id, profile_id, work_id, release_id, kind, path, label, original_name,
-             style_brick_id, note_id, canon_fact_id, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+             style_brick_id, note_id, canon_fact_id, created_at, trial_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
         params![
             minted.id(),
             profile_id,
@@ -245,7 +257,8 @@ pub fn attach_minted(
             new.style_brick_id,
             new.note_id,
             new.canon_fact_id,
-            minted.at()
+            minted.at(),
+            new.trial_id
         ],
     );
     if let Err(cause) = written {
@@ -350,6 +363,17 @@ pub fn for_work(conn: &Connection, work_id: &str) -> Result<Vec<Asset>> {
 
 /// The references of a style brick, oldest first — the pictures its
 /// description was written from, and the ones handed to a generator with it.
+/// The takes of a trial, oldest first: the order they came back in.
+pub fn for_trial(conn: &Connection, trial_id: &str) -> Result<Vec<Asset>> {
+    let mut statement = conn.prepare(&format!(
+        "{SELECT} WHERE trial_id = ?1 ORDER BY created_at, rowid"
+    ))?;
+    let rows = statement
+        .query_map(params![trial_id], read)?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(rows)
+}
+
 pub fn for_style_brick(conn: &Connection, style_brick_id: &str) -> Result<Vec<Asset>> {
     let mut statement = conn.prepare(&format!(
         "{SELECT} WHERE style_brick_id = ?1 ORDER BY created_at, rowid"
@@ -561,6 +585,7 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Asset> {
         note_id: row.get(9)?,
         canon_fact_id: row.get(10)?,
         created_at: row.get(11)?,
+        trial_id: row.get(12)?,
     })
 }
 

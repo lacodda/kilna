@@ -22,6 +22,9 @@ pub struct Version {
     /// the line. `None` after the parent is deleted — a pruned branch keeps
     /// its leaves.
     pub parent_version_id: Option<String>,
+    /// The trial of an experiment this text was taken from, while the trial
+    /// is there (ADR 0061).
+    pub trial_id: Option<String>,
     pub created_at: String,
 }
 
@@ -36,6 +39,8 @@ pub struct VersionSummary {
     /// Characters in the body; the list shows growth without loading it.
     pub length: i64,
     pub parent_version_id: Option<String>,
+    /// The trial it was taken from, when it was.
+    pub trial_id: Option<String>,
     pub created_at: String,
     pub is_current: bool,
     /// For a version in a commenting role: the version it comments on, when
@@ -63,6 +68,10 @@ pub struct NewVersion {
     /// and the same role: a draft is not written from a style prompt.
     #[serde(default)]
     pub parent_version_id: Option<String>,
+    /// The trial of an experiment the text was taken from (ADR 0061): kept
+    /// so the trial can show where it went. Must be a kept trial.
+    #[serde(default)]
+    pub trial_id: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -80,12 +89,13 @@ impl Default for NewVersion {
             meta: None,
             make_current: true,
             parent_version_id: None,
+            trial_id: None,
         }
     }
 }
 
 const SELECT_VERSION: &str = "SELECT id, work_id, role, revision, label, body, meta, created_at, \
-     parent_version_id FROM work_version";
+     parent_version_id, trial_id FROM work_version";
 
 /// Add a version to a work.
 ///
@@ -137,14 +147,19 @@ fn create_in(tx: &Connection, work_id: &str, new: NewVersion, minted: &Minted) -
     if let Some(parent) = &new.parent_version_id {
         check_line(tx, work_id, &new.role, parent)?;
     }
+    // Taken from a trial: one that was kept, and only into the role its lab
+    // keeps trials in - what "the trial went there" has to mean.
+    if let Some(trial) = &new.trial_id {
+        crate::lab::harvest::check_into(tx, trial, work_id, &new.role)?;
+    }
 
     let id = minted.id().to_owned();
     let timestamp = minted.at().to_owned();
 
     tx.execute(
         "INSERT INTO work_version (id, work_id, role, revision, label, body, meta, created_at,
-                                   parent_version_id)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                                   parent_version_id, trial_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         params![
             id,
             work_id,
@@ -155,6 +170,7 @@ fn create_in(tx: &Connection, work_id: &str, new: NewVersion, minted: &Minted) -
             Value::Object(new.meta.unwrap_or_default()).to_string(),
             timestamp,
             new.parent_version_id,
+            new.trial_id,
         ],
     )?;
 
@@ -215,7 +231,7 @@ pub fn list(conn: &Connection, work_id: &str) -> Result<Vec<VersionSummary>> {
     let mut statement = conn.prepare(
         "SELECT v.id, v.work_id, v.role, v.revision, v.label, length(v.body), v.created_at,
                 v.id = coalesce(w.current_version_id, '') AS is_current, v.parent_version_id,
-                json_extract(v.meta, '$.about')
+                json_extract(v.meta, '$.about'), v.trial_id
          FROM work_version v
          JOIN work w ON w.id = v.work_id
          WHERE v.work_id = ?1
@@ -234,6 +250,7 @@ pub fn list(conn: &Connection, work_id: &str) -> Result<Vec<VersionSummary>> {
             is_current: row.get::<_, i64>(7)? == 1,
             parent_version_id: row.get(8)?,
             about_version_id: row.get(9)?,
+            trial_id: row.get(10)?,
         })
     })?;
 
@@ -476,6 +493,7 @@ struct RawVersion {
     meta: String,
     created_at: String,
     parent_version_id: Option<String>,
+    trial_id: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawVersion> {
@@ -489,6 +507,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawVersion> {
         meta: row.get(6)?,
         created_at: row.get(7)?,
         parent_version_id: row.get(8)?,
+        trial_id: row.get(9)?,
     })
 }
 
@@ -503,6 +522,7 @@ impl RawVersion {
             label: self.label,
             body: self.body,
             parent_version_id: self.parent_version_id,
+            trial_id: self.trial_id,
             created_at: self.created_at,
         })
     }
@@ -634,6 +654,7 @@ with no markers at all
             meta: None,
             make_current: true,
             parent_version_id: None,
+            trial_id: None,
         }
     }
 

@@ -147,6 +147,8 @@ pub fn reversible(kind: &str) -> bool {
             | "repeat.unkeep"
             | "idea.create"
             | "idea.update"
+            | "trial.create"
+            | "trial.update"
     )
 }
 
@@ -251,6 +253,15 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             let patch: crate::cover::idea::IdeaPatch = from_params(params, "before")?;
             apply(conn, |tx| {
                 crate::cover::idea::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // A trial goes back to what the fields its edit named held: the
+        // verdict, the words, the place on the board.
+        "trial.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::lab::TrialPatch = from_params(params, "before")?;
+            apply(conn, |tx| {
+                crate::lab::trial::update_at(tx, &id, patch, &at).map(|_| ())
             })?;
         }
         // The written description goes back to what stood there, blank
@@ -606,7 +617,7 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
         // an undo would be gone in a way nothing else in kilna is.
         "work.create" | "work.clone" | "note.create" | "collection.create" | "release.create"
         | "version.create" | "scene.create" | "cut.create" | "comment.create" | "style.create"
-        | "fact.create" | "term.create" | "idea.create" | "block.create" => {
+        | "fact.create" | "term.create" | "idea.create" | "block.create" | "trial.create" => {
             let (entity, id) = created(entry)?;
             crate::trash::discard_minted(
                 conn,
@@ -737,6 +748,7 @@ fn created(entry: &Operation) -> Result<(crate::trash::Entity, String)> {
         "term.create" => crate::trash::Entity::Term,
         "idea.create" => crate::trash::Entity::Idea,
         "block.create" => crate::trash::Entity::Block,
+        "trial.create" => crate::trash::Entity::Trial,
         other => return Err(Error::Internal(format!("`{other}` creates nothing"))),
     };
     Ok((entity, required(&entry.params, "id")?))

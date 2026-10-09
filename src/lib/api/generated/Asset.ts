@@ -34,4 +34,9 @@ note_id: string | null,
 /**
  * The one fact of that card it shows: an outfit, a variant of a mark.
  */
-canon_fact_id: string | null, created_at: string, };
+canon_fact_id: string | null, 
+/**
+ * The trial of an experiment it is a take of: what a generator gave
+ * when the trial was run, heard to judge it (ADR 0061).
+ */
+trial_id: string | null, created_at: string, };

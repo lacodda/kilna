@@ -15,6 +15,7 @@ import en from '@/i18n/locales/en.json'
 const MEDIA = 'C:\\Users\\someone\\AppData\\Roaming\\kilna\\media'
 
 const PASTED: Asset = {
+  trial_id: null,
   id: 'a-pasted',
   profile_id: IDS.profile,
   work_id: null,

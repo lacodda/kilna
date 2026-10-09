@@ -106,7 +106,13 @@ describe('what can be made from this', () => {
   }
 
   it("offers a song's publications - a song goes out as what is made from it", async () => {
-    expect(await makeButtons(IDS.song)).toEqual(['Make a video', 'Make an audio', 'Make a short'])
+    expect(await makeButtons(IDS.song)).toEqual([
+      'Make a video',
+      'Make an audio',
+      'Make a short',
+      // Not a publication: a board that reworks the song's style (v0.95).
+      'Make an experiment from this',
+    ])
   })
 
   it('offers every other kind from a work that goes out itself', async () => {

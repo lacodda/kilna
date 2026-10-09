@@ -373,6 +373,36 @@ pub struct WorkKind {
     /// document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<String>,
+    /// Whether a work of this kind is an experiment - a board of trials,
+    /// each tried out somewhere outside, heard, and kept or thrown away -
+    /// and where what is kept goes (v0.95, ADR 0061). A cover gives a
+    /// publication its constructor; a lab gives an experiment its board. The
+    /// craft's word for it is the kind's own: Studio calls it an experiment
+    /// with sound. Absent is no board. Added in v0.95 - a document without
+    /// it is the same document.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lab: Option<Lab>,
+}
+
+/// What a kind's board of trials is for (v0.95, ADR 0061).
+///
+/// A trial is a text. What a kept one becomes is a version of the role named
+/// here, in a work of any kind that has the role - a song's style, a
+/// chapter's text - written beside the work's current version rather than
+/// over it; or a brick of the dictionary. The role says how a trial is read
+/// too: a role a composition writes (`compose`) is picked from the
+/// dictionary, and its trials are read against it, phrase by phrase.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct Lab {
+    /// The version role a kept trial goes into. Absent: a kept trial goes
+    /// only into the dictionary.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub harvest: Option<String>,
+    /// The field of the experiment that holds its anchors, one to a line:
+    /// what every trial must keep, word for word. A trial whose text has
+    /// lost one is marked on the board. Absent: an experiment has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anchors: Option<String>,
 }
 
 impl WorkKind {
@@ -393,6 +423,7 @@ impl WorkKind {
             made_title: None,
             open_on: None,
             folder: None,
+            lab: None,
         }
     }
 
@@ -2360,6 +2391,32 @@ impl ProfileConfig {
         self.compose.iter().find(|c| c.key == key)
     }
 
+    /// The lab of a kind, when its works are experiments (ADR 0061).
+    pub fn lab(&self, kind: &str) -> Option<&Lab> {
+        self.kind(kind).and_then(|found| found.lab.as_ref())
+    }
+
+    /// The kinds a kept trial of `lab_kind` may go into: every other kind
+    /// that has the `role` it keeps its trials in.
+    pub fn harvest_kinds<'a>(
+        &'a self,
+        role: &'a str,
+        lab_kind: &'a str,
+    ) -> impl Iterator<Item = &'a WorkKind> + 'a {
+        self.work_kinds.iter().filter(move |kind| {
+            kind.key != lab_kind && kind.version_roles.iter().any(|r| r.key == role)
+        })
+    }
+
+    /// The composition a trial of an experiment of `lab_kind` is written and
+    /// read by: the one that writes the role its trials are kept in, for any
+    /// kind that keeps them. A trial is a text of that role before it lands.
+    pub fn trial_composition(&self, lab_kind: &str) -> Option<&Composition> {
+        let role = self.lab(lab_kind)?.harvest.as_deref()?;
+        self.harvest_kinds(role, lab_kind)
+            .find_map(|kind| self.composition_for(&kind.key, role))
+    }
+
     /// The type a style brick is of, by key. Absent when the craft does not
     /// name it — a brick written under a type later dropped from the document
     /// still reads, and shows its key (ADR 0031).
@@ -2601,6 +2658,44 @@ impl ProfileConfig {
             kind.validate_into(&mut problems, &place);
         }
 
+        // A kept trial goes into a role of another kind's works: one no other
+        // kind has would make "Into a work…" a menu of nothing. The anchors
+        // are a field of the experiment, read line by line.
+        for (index, kind) in self.work_kinds.iter().enumerate() {
+            let Some(lab) = &kind.lab else {
+                continue;
+            };
+            let place = format!("work kind {} (`{}`)", index + 1, kind.key);
+            if let Some(role) = lab.harvest.as_deref()
+                && self.harvest_kinds(role, &kind.key).next().is_none()
+            {
+                problems.push(format!(
+                    "{place} keeps its trials in `{role}`, which no other kind of work has"
+                ));
+            }
+            if let Some(field) = lab.anchors.as_deref() {
+                match self.work_meta_fields.iter().find(|f| f.key == field) {
+                    None => problems.push(format!(
+                        "{place} reads its anchors from `{field}`, which is not a field of the profile"
+                    )),
+                    Some(found) if !found.applies_to(&kind.key) => problems.push(format!(
+                        "{place} reads its anchors from `{field}`, which it does not carry"
+                    )),
+                    Some(found)
+                        if !matches!(
+                            found.field_type,
+                            MetaFieldType::Text | MetaFieldType::Multiline
+                        ) =>
+                    {
+                        problems.push(format!(
+                            "{place} reads its anchors from `{field}`, which is not a text"
+                        ));
+                    }
+                    Some(_) => {}
+                }
+            }
+        }
+
         unique(
             &mut problems,
             "note kind",
@@ -2789,8 +2884,8 @@ impl ProfileConfig {
     /// its text placeholder and sent critiques of nothing for a month.
     fn validate_prompts(&self, problems: &mut Vec<String>) {
         use crate::assistant::prompt::{
-            CANON_SCOPE, COMMENT_SCOPE, COVER_SCOPE, PHRASES_SCOPE, Produces, RELEASE_SCOPE,
-            SCENE_SCOPE, SELECTION_SCOPE, STYLE_SCOPE, Scope, is_known_placeholder,
+            CANON_SCOPE, COMMENT_SCOPE, COVER_SCOPE, LAB_SCOPE, PHRASES_SCOPE, Produces,
+            RELEASE_SCOPE, SCENE_SCOPE, SELECTION_SCOPE, STYLE_SCOPE, Scope, is_known_placeholder,
         };
 
         unique(
@@ -2820,15 +2915,16 @@ impl ProfileConfig {
                 && scope != RELEASE_SCOPE
                 && scope != COVER_SCOPE
                 && scope != PHRASES_SCOPE
+                && scope != LAB_SCOPE
                 && scope != "work"
             {
                 problems.push(format!(
-                        "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment`, `canon`, `release`, `cover` or `phrases`, not `{scope}`"
+                        "{place}: `scope` is `work`, `scene`, `selection`, `style`, `comment`, `canon`, `release`, `cover`, `phrases` or `lab`, not `{scope}`"
                     ));
             }
             if !prompt.produces_is_known() {
                 problems.push(format!(
-                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment`, `reply`, `description`, `canon`, `card-prompt`, `release`, `cover-ideas`, `words` or `bricks`, not `{}`",
+                    "{place}: `produces` is `score`, `version:<role>`, `scenes`, `scenes:add`, `scenes:revise`, `comment`, `reply`, `description`, `canon`, `card-prompt`, `release`, `cover-ideas`, `words`, `bricks` or `trials`, not `{}`",
                     prompt.produces.as_deref().unwrap_or_default().trim()
                 ));
             }
@@ -2979,6 +3075,11 @@ impl ProfileConfig {
                         "{place} produces `bricks`, which only an action about phrases can: give it `\"scope\": \"phrases\"`"
                     ));
                 }
+                Produces::Trials if prompt.scope() != Scope::Lab => {
+                    problems.push(format!(
+                        "{place} produces `trials`, which only an action about an experiment's board can: give it `\"scope\": \"lab\"`"
+                    ));
+                }
                 Produces::Score
                 | Produces::Prose
                 | Produces::Comment
@@ -2989,7 +3090,8 @@ impl ProfileConfig {
                 | Produces::Release
                 | Produces::CoverIdeas
                 | Produces::Words
-                | Produces::Bricks => {}
+                | Produces::Bricks
+                | Produces::Trials => {}
             }
             // An action about a release writes what it goes out under, and is
             // offered only where there is a release: on a kind that goes out.
@@ -3036,15 +3138,44 @@ impl ProfileConfig {
                     ));
                 }
             }
-            // `{ideas}` and `{choices}` are filled only for an action about a
-            // cover; anywhere else they would be sent as written.
+            // `{ideas}` is filled only for an action about a cover, and
+            // `{choices}` for one about a cover or an experiment's board;
+            // anywhere else they would be sent as written.
             if prompt.scope() != Scope::Cover
-                && let Some(name) = placeholders
-                    .iter()
-                    .find(|name| *name == "ideas" || *name == "choices")
+                && let Some(name) = placeholders.iter().find(|name| {
+                    *name == "ideas" || (*name == "choices" && prompt.scope() != Scope::Lab)
+                })
             {
                 problems.push(format!(
                     "{place} reads `{{{name}}}` but is not about a cover: give it `\"scope\": \"cover\"`"
+                ));
+            }
+            // An action about an experiment's board proposes trials for it,
+            // reads the board, and is offered only where there is one: on a
+            // kind that is a lab.
+            let reads_trials = placeholders.iter().any(|name| name == "trials");
+            if prompt.scope() == Scope::Lab {
+                if prompt.produces() != Produces::Trials {
+                    problems.push(format!(
+                        "{place} is about an experiment's board and must produce `trials`"
+                    ));
+                }
+                if !reads_trials {
+                    problems.push(format!(
+                        "{place} is about an experiment's board but never reads `{{trials}}`"
+                    ));
+                }
+                let missing = lacking(&|kind: &WorkKind| kind.lab.is_some());
+                if !missing.is_empty() {
+                    problems.push(format!(
+                        "{place} is about an experiment's board, but {} {} no board of trials",
+                        missing.join(", "),
+                        if missing.len() == 1 { "has" } else { "have" }
+                    ));
+                }
+            } else if reads_trials {
+                problems.push(format!(
+                    "{place} reads `{{trials}}` but is not about an experiment's board: give it `\"scope\": \"lab\"`"
                 ));
             }
             // An action about a card gathers facts or describes it; anything
@@ -4305,7 +4436,7 @@ mod tests {
         let problems = config.validate();
         assert!(
             problems.iter().any(|p| p.contains(
-                "reads `{role:lyrics}`, but `video`, `audio`, `short` have no `lyrics` role"
+                "reads `{role:lyrics}`, but `video`, `audio`, `short`, `experiment` have no `lyrics` role"
             )),
             "{problems:?}"
         );

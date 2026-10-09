@@ -11,4 +11,9 @@ export type Version = { id: string, work_id: string, role: string, revision: num
  * the line. `None` after the parent is deleted — a pruned branch keeps
  * its leaves.
  */
-parent_version_id: string | null, created_at: string, };
+parent_version_id: string | null, 
+/**
+ * The trial of an experiment this text was taken from, while the trial
+ * is there (ADR 0061).
+ */
+trial_id: string | null, created_at: string, };

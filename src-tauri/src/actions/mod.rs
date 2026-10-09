@@ -37,6 +37,7 @@ pub mod scene;
 pub mod score;
 pub mod style;
 pub mod trash;
+pub mod trial;
 pub mod version;
 pub mod work;
 

@@ -8,7 +8,9 @@ import type { PackagedIdea } from "./PackagedIdea";
 import type { PackagedNote } from "./PackagedNote";
 import type { PackagedRelease } from "./PackagedRelease";
 import type { PackagedScene } from "./PackagedScene";
+import type { PackagedTrial } from "./PackagedTrial";
 import type { PackagedVersion } from "./PackagedVersion";
+import type { TrialDropped } from "./TrialDropped";
 import type { WordsPackage } from "./WordsPackage";
 import type { JsonValue } from "./serde_json/JsonValue";
 
@@ -61,7 +63,12 @@ scenes?: Array<PackagedScene>,
  * separately would mean a second round trip for one half of one
  * thought.
  */
-releases?: Array<PackagedRelease>, } | { "kind": "scenes", scenes: Array<PackagedScene>, 
+releases?: Array<PackagedRelease>, 
+/**
+ * Trials for an experiment's board, by series, each naming the one
+ * it varies (v0.95, ADR 0061). Only for a kind that is a lab.
+ */
+trials?: Array<PackagedTrial>, } | { "kind": "scenes", scenes: Array<PackagedScene>, 
 /**
  * What the proposal does to the board that is there.
  */
@@ -84,4 +91,9 @@ unknown?: Array<string>, } | { "kind": "coverIdeas", work_id: string, ideas: Arr
  * What the answer named that the workspace does not have, left out
  * of its idea and said rather than dropped silently.
  */
-dropped?: Array<IdeaDropped>, };
+dropped?: Array<IdeaDropped>, } | { "kind": "trials", work_id: string, trials: Array<PackagedTrial>, 
+/**
+ * What the answer named that the workspace does not have, left out
+ * of its trial and said rather than dropped silently.
+ */
+dropped?: Array<TrialDropped>, };

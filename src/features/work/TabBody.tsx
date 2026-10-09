@@ -13,6 +13,7 @@ import { NotePanel } from '@/features/work/tabs/notes/NotePanel'
 import { OverviewTab } from '@/features/work/tabs/overview/OverviewTab'
 import { ScenesTab } from '@/features/work/tabs/scenes/ScenesTab'
 import { ScorePanel } from '@/features/work/tabs/score/ScorePanel'
+import { TrialsTab } from '@/features/work/tabs/trials/TrialsTab'
 import { VersionPanel } from '@/features/work/tabs/versions/VersionPanel'
 
 interface Props {
@@ -30,6 +31,8 @@ const BODIES: Readonly<Record<Tab, (props: Props) => ReactNode>> = {
   // beside the fields they change rather than beside its releases.
   overview: ({ work }) => <OverviewTab work={work} />,
   versions: ({ workId }) => <VersionPanel workId={workId} />,
+  // An experiment's board of trials (v0.95, ADR 0061).
+  trials: ({ work }) => <TrialsTab work={work} />,
   scenes: ({ work }) => <ScenesTab work={work} />,
   // What a publication looks like where it goes out (v0.86): the cover's
   // prompt, and the still and the loop an audio release plays under.

@@ -124,6 +124,21 @@ export type { IdeaRequest } from './generated/IdeaRequest'
 export type { IdeaDropped } from './generated/IdeaDropped'
 export type { PackagedIdea } from './generated/PackagedIdea'
 export type { SiblingCover } from './generated/SiblingCover'
+// The board of trials of an experiment (v0.95, ADR 0061).
+export type { Lab } from './generated/Lab'
+export type { TrialBoard } from './generated/TrialBoard'
+export type { TrialCard } from './generated/TrialCard'
+export type { Trial } from './generated/Trial'
+export type { NewTrial } from './generated/NewTrial'
+export type { TrialPatch } from './generated/TrialPatch'
+export type { TrialVerdict } from './generated/TrialVerdict'
+export type { TrialHarvest } from './generated/TrialHarvest'
+export type { TrialSource } from './generated/TrialSource'
+export type { TrialRequest } from './generated/TrialRequest'
+export type { TrialParent } from './generated/TrialParent'
+export type { TrialDropped } from './generated/TrialDropped'
+export type { PackagedTrial } from './generated/PackagedTrial'
+export type { MadeExperiment } from './generated/MadeExperiment'
 export type { Publication } from './generated/Publication'
 export type { Going } from './generated/Going'
 export type { Publications } from './generated/Publications'
@@ -360,6 +375,7 @@ export type DescriptionProposal = Extract<Proposal, { kind: 'description' }>
 export type CanonProposalKind = Extract<Proposal, { kind: 'canon' }>
 export type CardPromptProposal = Extract<Proposal, { kind: 'cardPrompt' }>
 export type CoverIdeasProposal = Extract<Proposal, { kind: 'coverIdeas' }>
+export type TrialsProposal = Extract<Proposal, { kind: 'trials' }>
 export type WordsProposal = Extract<Proposal, { kind: 'words' }>
 export type BricksProposal = Extract<Proposal, { kind: 'bricks' }>
 

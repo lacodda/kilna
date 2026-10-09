@@ -1317,7 +1317,9 @@
     "guardWorks": "Rare in at most",
     "guardWorksUnit": "of your works",
     "guardDefaults": "Defaults: {{window}} days, rare from rank {{rank}}, in at most {{works}} works.",
-    "guardReset": "Use the defaults"
+    "guardReset": "Use the defaults",
+    "labLine": "Works of this kind are experiments: a board of trials, each heard and kept or dropped.",
+    "labHarvestLine": "Works of this kind are experiments: a board of trials, each heard and kept or dropped. A kept trial goes into the “{{role}}” of a work."
   },
   "fields": {
     "choiceNone": "Not set",
@@ -1444,7 +1446,8 @@
       "fact": "Fact",
       "term": "Term",
       "idea": "Idea",
-      "block": "Block of words"
+      "block": "Block of words",
+      "trial": "Trial"
     }
   },
   "journal": {
@@ -1476,7 +1479,8 @@
       "undo": "Undo",
       "canon": "Canon",
       "register": "Register",
-      "cover": "Cover"
+      "cover": "Cover",
+      "lab": "Lab"
     },
     "work.created": "“{{title}}” added.",
     "work.cloned": "“{{title}}” started as a second attempt, with {{scenes}} scenes copied.",
@@ -1560,7 +1564,9 @@
     "collection.added_one": "{{count}} work added to “{{title}}”.",
     "collection.added_other": "{{count}} works added to “{{title}}”.",
     "collection.removed_one": "{{count}} work taken out of “{{title}}”.",
-    "collection.removed_other": "{{count}} works taken out of “{{title}}”."
+    "collection.removed_other": "{{count}} works taken out of “{{title}}”.",
+    "proposal.trials": "{{client}} proposed trials for the board of “{{title}}”.",
+    "trial.deleted": "Trial “{{label}}” taken off the board."
   },
   "card": {
     "tab": {
@@ -1576,7 +1582,8 @@
       "notes": "Notes",
       "assistant": "Assistant",
       "history": "History",
-      "comments": "Comments"
+      "comments": "Comments",
+      "trials": "Trials"
     },
     "tabs": "The card's tabs",
     "tabsBack": "Earlier tabs",
@@ -1701,7 +1708,9 @@
     "repeat.keep": "keeping a repeat",
     "repeat.unkeep": "counting a repeat again",
     "collection.setContents": "a change to a collection's works",
-    "collection.add": "adding works to a collection"
+    "collection.add": "adding works to a collection",
+    "trial.create": "putting a trial on the board",
+    "trial.update": "an edit to a trial"
   },
   "stage": {
     "label": "Stage",
@@ -2406,7 +2415,8 @@
       "bodyAndBricks": "Give either `body` or `bricks`: the bricks are what the text is written from.",
       "roleNotComposed": "The `{{role}}` role of a {{kind}} is not written out of the dictionary; give `body`.",
       "unknownBrick": "No brick of this text's types is called “{{named}}”; `styles` lists them.",
-      "ambiguousBrick": "More than one brick is called “{{named}}”; name one by id: {{ids}}."
+      "ambiguousBrick": "More than one brick is called “{{named}}”; name one by id: {{ids}}.",
+      "trialsNotArray": "`trials` has to be a list with at least one trial in it."
     },
     "note": {
       "promoteNeedsTitle": "A work needs a title.",
@@ -2449,7 +2459,10 @@
       "isPhrasesAction": "“{{action}}” is about phrases, not a work: start it where the phrases are.",
       "actionAnswersPhrases": "“{{action}}” answers with bricks, which only an action about phrases can.",
       "notAboutPhrases": "“{{action}}” is not an action about phrases.",
-      "needsPhrases": "“{{action}}” needs at least one phrase to explain."
+      "needsPhrases": "“{{action}}” needs at least one phrase to explain.",
+      "isLabAction": "“{{action}}” is about an experiment’s board: start it from the board.",
+      "actionAnswersLab": "“{{action}}” proposes trials, which only an action about an experiment’s board can.",
+      "notLabAction": "“{{action}}” does not propose trials for a board."
     },
     "style": {
       "needsName": "A style needs a name.",
@@ -2565,6 +2578,26 @@
       "noPhrase": "An item with no phrase.",
       "unknownType": "“{{phrase}}” is filed as {{type}}, which is not a type of phrase here.",
       "known": "“{{phrase}}” is already in the dictionary."
+    },
+    "trial": {
+      "noLab": "“{{title}}” is not an experiment: it has no board of trials.",
+      "parentNotOnBoard": "The trial it varies is not on this board.",
+      "parentIsDescendant": "A trial cannot vary one of its own variations.",
+      "sourceNotHarvested": "A trial reworks a text in “{{role}}”, and that is not one of “{{title}}”.",
+      "unknownBrick": "The dictionary has no brick “{{brick}}”.",
+      "notKept": "Only a kept trial goes anywhere: keep it first.",
+      "notIntoItself": "A trial goes into another work, not into its own experiment.",
+      "wrongRole": "This experiment keeps its trials in “{{harvest}}”, not in “{{role}}”.",
+      "notAPhraseType": "A trial’s phrase goes under a type of sound its trials are read against, not “{{type}}”.",
+      "noHarvest": "This experiment names no text its trials go into.",
+      "wrongKind": "A kept trial goes into a work that has “{{role}}”, and “{{kind}}” has none.",
+      "noLabFor": "No kind of experiment reworks a “{{kind}}”.",
+      "noLabKind": "“{{kind}}” is not an experiment: it takes no trials.",
+      "needsTitle": "A new work needs a title.",
+      "tooMany": "One run gives at most {{most}} trials.",
+      "nothingAsked": "Ask for at least one trial.",
+      "fixOfNothing": "Say which trial went wrong.",
+      "noTrials": "The answer holds no trial with a text."
     }
   },
   "skip": {
@@ -3325,5 +3358,129 @@
     "use": "Use as a new version",
     "versionLabel": "From the dictionary",
     "placed": "The text from the dictionary is in the form."
+  },
+  "trials": {
+    "askFailed": "ask for trials",
+    "stopFailed": "stop the run",
+    "saveFailed": "save the trial",
+    "judgeFailed": "judge the trial",
+    "takeFailed": "add the takes",
+    "createFailed": "put the trial on the board",
+    "varyFailed": "vary the trial",
+    "deleteFailed": "take the trial off the board",
+    "harvestFailed": "take the trial anywhere",
+    "putFailed": "put the trials on the board",
+    "makeExperimentFailed": "make the experiment",
+    "makeExperimentHint": "A board of trials that reworks this one’s style, starting from it.",
+    "noSeries": "No series",
+    "empty": "An empty trial",
+    "fresh": "new",
+    "runFirst": "Run it first",
+    "runFirstHint": "Marks where a run starts",
+    "lostAnchors": "Lost: {{anchors}}",
+    "takes_one": "{{count}} take",
+    "takes_other": "{{count}} takes",
+    "harvested_one": "Went into {{count}} place",
+    "harvested_other": "Went into {{count}} places",
+    "verdict": {
+      "label": "Verdict",
+      "keep": "Keep",
+      "open": "Not judged",
+      "drop": "Drop"
+    },
+    "open": "The open trial",
+    "angle": "What it moves",
+    "anglePlaceholder": "What this trial moves, or where on the field it stands",
+    "copy": "Copy",
+    "copyHint": "Copy the text, to run it in the generator",
+    "copied": "The trial’s text is on the clipboard.",
+    "copyFailed": "copy the text",
+    "more": "More about the trial",
+    "vary": "Vary",
+    "around": "Variations around this",
+    "fix": "What went wrong",
+    "delete": "Take off the board",
+    "fixing": "Writing the fix…",
+    "varying": "Writing variations…",
+    "stop": "Stop",
+    "lost": "Lost the anchors:",
+    "body": "The trial’s text",
+    "bodyPlaceholder": "The line the generator reads, the most important phrase first",
+    "reference": "Listen to",
+    "referencePlaceholder": "Who to listen to - never part of the text",
+    "reworks": "Reworks",
+    "takesTitle": "Takes",
+    "addTakes": "Add takes",
+    "sounds": "Sounds",
+    "noTakes": "No takes yet: add what the generator gave, to hear it here.",
+    "outcome": "What came out",
+    "outcomePlaceholder": "What you heard, and the generator’s links",
+    "harvestTitle": "Where it goes",
+    "intoWork": "Into a work…",
+    "intoDictionary": "Into the dictionary…",
+    "makeWork": "Make a work",
+    "take": "Take {{n}}",
+    "attached": "attached",
+    "harvestedInto": "Put beside the work’s current text - make it current there when it wins.",
+    "series": {
+      "first": "Trials",
+      "sweep": "A sweep of the field",
+      "rework": "Rework: {{title}}",
+      "around": "Around: {{name}}"
+    },
+    "new": "New trial",
+    "newEmpty": "Empty",
+    "newFromDictionary": "From the dictionary…",
+    "newVariation": "A variation of the open one…",
+    "newFromSong": "From a song’s style…",
+    "sweep": "Sweep the field",
+    "sweepCount": "How many trials",
+    "sweepHint": "Trials as far apart as the direction allows, held to the anchors",
+    "sweepGo": "Propose",
+    "preview": "What will be sent",
+    "filter": "Show trials",
+    "filters": {
+      "all": "All",
+      "keep": "Kept",
+      "open": "Not judged",
+      "drop": "Dropped"
+    },
+    "anchors": "Every trial keeps:",
+    "writing_one": "{{count}} run is writing trials",
+    "writing_other": "{{count}} runs are writing trials",
+    "list": "Trials",
+    "emptyFilter": "No trial here under this filter.",
+    "pick": "Pick a trial on the left.",
+    "putOnBoard": "Put on the board",
+    "pickSong": "Which song’s style to rework",
+    "intoWorkTitle": "Which work the trial goes into",
+    "emptyBoard": "No trials yet. Sweep the field to map it, or write the first one yourself.",
+    "varyTitle": "A variation",
+    "varyBody": "A copy of the trial under it, to change one thing in. Say what moves - otherwise nobody hears what did.",
+    "varyPlaceholder": "denser, slower, the voice further back…",
+    "versionTitle": "Which style of “{{title}}”",
+    "versionBody": "The trial starts as this text and remembers it: a kept rework goes back beside it.",
+    "noVersions": "This song has no style yet.",
+    "current": "current",
+    "makeWorkTitle": "A work from the trial",
+    "makeWorkBody": "A new work whose first text is this trial’s, linked to the experiment it was found in.",
+    "workTitle": "Title",
+    "agent": "{{client}} proposed trials",
+    "anAgent": "An agent",
+    "putProposed": "Put on the board",
+    "putDone_one": "On the board: {{count}} trial",
+    "putDone_other": "On the board: {{count}} trials",
+    "proposed_one": "{{count}} trial for the board",
+    "proposed_other": "{{count}} trials for the board",
+    "dropped": "Trial {{trial}}: {{part}} “{{value}}” is not in the workspace and was left out.",
+    "part": {
+      "brick": "the phrase",
+      "parent": "the trial it varies",
+      "source": "the text it reworks",
+      "verdict": "the verdict",
+      "trial": "a trial with no text"
+    },
+    "putMark": "On the board",
+    "openBoard": "Open the board"
   }
 }

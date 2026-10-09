@@ -982,6 +982,41 @@ Studio ships twelve types for pictures - `image-style`, `typography`,
 of the form `phrase`: `genre`, `vocal`, `groove`, `instrument`, `bass`,
 `mood`, `texture`, `tempo`, `dynamics` and `knob`.
 
+## `lab`
+
+An optional object on a **work kind** (v0.95, ADR 0061): its works are
+**experiments**, each with a board of trials - texts tried out somewhere
+outside kilna, heard, and kept or dropped. See [The lab](/kilna/guides/the-lab/).
+
+```jsonc
+{
+  "key": "experiment",
+  "label": { "en": "Experiment", "ru": "Эксперимент" },
+  "version_roles": [
+    { "key": "brief", "label": "Brief", "body": "markdown" },
+    { "key": "findings", "label": "Findings", "body": "markdown", "counts_as_version": false }
+  ],
+  "statuses": [
+    { "key": "draft", "label": "Draft", "derive": "draft" },
+    { "key": "running", "label": "Running", "derive": "manual" },
+    { "key": "finished", "label": "Finished", "derive": "manual" }
+  ],
+  "open_on": "trials",
+  "lab": { "harvest": "style", "anchors": "anchors" }
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `harvest` | string, optional | The version role a kept trial goes into, in a work of any other kind that has it - Studio's `style`, which a song has. It also says how a trial is read and written: the [composition](#compose) that writes that role reads a trial's text against the dictionary and writes one from it. Absent: a kept trial goes only into the dictionary. Refused on save when no other kind has the role. |
+| `anchors` | string, optional | The key of the experiment's [field](#work_meta_fields) that holds what every trial keeps, one phrase to a line - a text or multiline field the kind carries. A trial whose text has lost one is marked on the board. |
+
+A lab is a kind like any other: it names its own version roles and statuses.
+It is never scored, booked or released, so of the derived meanings only
+`draft` belongs to it. A workspace made before v0.95 gains Studio's
+experiment kind, its fields and its action at the next start; an
+`experiment` kind of your own gains the lab where it has none.
+
 ## `compose`
 
 An optional list on the **profile**: the texts a version role is written out
@@ -1057,9 +1092,9 @@ specifically.
 | `icon` | string, optional | The glyph on the button, from the list below. A name kilna does not know draws the generic spark. |
 | `template` | string | The message sent to Claude, with placeholders filled per work. Keep it short: the method carries the how. |
 | `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
-| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`; `"cover-ideas"` — ideas for a publication's cover, each a concept, only in an action with `"scope": "cover"`; `"words"` — words for the record; `"bricks"` — bricks for the dictionary, each a phrase with its type and what it means, only in an action with `"scope": "phrases"`. Anything else loads as prose and is refused when the profile is saved. |
+| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`; `"cover-ideas"` — ideas for a publication's cover, each a concept, only in an action with `"scope": "cover"`; `"words"` — words for the record; `"bricks"` — bricks for the dictionary, each a phrase with its type and what it means, only in an action with `"scope": "phrases"`; `"trials"` — trials for an experiment's board, only in an action with `"scope": "lab"`. Anything else loads as prose and is refused when the profile is saved. |
 | `kinds` | list of strings, optional | The work kinds the action is offered on. Absent or empty is every kind. An action that reads `{role:lyrics}` is for the kinds that have lyrics — Studio's song actions say `["song"]` — because a button for it on a video would send a prompt with a hole in it. |
-| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. `"cover"` for one about a publication's [board of ideas](/kilna/guides/the-cover/#the-board-of-ideas): it reads `{ideas}` and `{choices}`, is offered on the board (and started by **Make…**), must produce `cover-ideas`, and may only name kinds with a cover. `"phrases"` for one about phrases a text says that the dictionary does not know (v0.94): it reads them as `{phrases}` - each with how often it is written - and the composition's types with their hints and families as `{types}`, is offered where the phrases are found (a style's strip, **From your texts**), and must produce `bricks`. Absent is the work. |
+| `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. `"cover"` for one about a publication's [board of ideas](/kilna/guides/the-cover/#the-board-of-ideas): it reads `{ideas}` and `{choices}`, is offered on the board (and started by **Make…**), must produce `cover-ideas`, and may only name kinds with a cover. `"phrases"` for one about phrases a text says that the dictionary does not know (v0.94): it reads them as `{phrases}` - each with how often it is written - and the composition's types with their hints and families as `{types}`, is offered where the phrases are found (a style's strip, **From your texts**), and must produce `bricks`. `"lab"` for one about an [experiment's board](/kilna/guides/the-lab/) (v0.95): it reads `{trials}` - what is asked and what stands on the board - and may read `{choices}`, is offered on the board, must produce `trials`, and may only name kinds that are a lab. Absent is the work. |
 
 **Keep the label to a word or two.** The button carries a glyph and that label;
 what the action does belongs in `description`, which is the tooltip. A row of
@@ -1069,7 +1104,7 @@ buttons like that are neither read nor remembered.
 
 The names `icon` accepts: `sparkles`, `wand`, `pen`, `spell-check`, `scroll`,
 `tags`, `gauge`, `music`, `film`, `clapperboard`, `image`, `list`, `lightbulb`,
-`palette`, `eye`, `reply`, `book`, `quote`, `orbit`.
+`palette`, `eye`, `reply`, `book`, `quote`, `orbit`, `flask`.
 
 The same prompt is offered in three places: in the panel it fills the composer
 for you to read and send, typing `/` reaches the same list from the keyboard,
@@ -1172,6 +1207,22 @@ cover: one moment through one hero, ideas that differ by angle, the mark's
 status by the song's meaning, the house styles more often, the channel's bans
 never.
 
+An action with `"scope": "lab"` and `"produces": "trials"` proposes trials
+for an experiment's board (v0.95, ADR 0061). The board asks it for one of
+three things, and the request says which: a sweep of the field (trials as far
+apart as the direction allows), variations around a trial (each moving one
+thing of it), or the fix of a trial that was heard. `{trials}` reads what is
+asked, the anchors, the board - kept trials as examples, dropped ones as
+anti-examples, the rest as what not to repeat - and the experiment's own
+texts, its brief and findings; `{choices}` the phrases of the composition its
+trials are read against, with their ids. kilna appends the block to answer
+with and reads it against the workspace: a brick it cannot find is left out
+of its trial and said, and a variation or a fix is the child of the trial it
+was asked about, whatever the answer says. The trials **land on the board** as
+the answer comes. Studio ships `propose-trials` for the experiment, with a
+method that holds the craft: one thing moved at a time, every anchor in every
+trial, the most important phrase first, no band names in the text.
+
 Every shipped profile carries a `score` action. Anything else declaring
 `produces` gets the same treatment; an unrecognised value is ignored when the
 profile loads, so a profile written for a future kilna still opens — and named
@@ -1224,6 +1275,12 @@ proposes.
   is saved, as `{selection}` in a release field is.
 - `{selection}` — the lines selected in the text, word for word. Only in an
   action with `"scope": "selection"`, which must read it.
+- `{trials}` — only in an action with `"scope": "lab"` (v0.95): what the board
+  asks for, the experiment's anchors, its trials by verdict and its own texts.
+- `{choices}` — in an action with `"scope": "cover"`, everything an idea is
+  built from; in one with `"scope": "lab"`, the phrases a trial is written
+  from, block by block, with their ids, what each means and when to take it,
+  and the fields that close a trial.
 - `{phrases}` and `{types}` — only in an action with `"scope": "phrases"`
   (v0.94): the phrases to explain, one a line with how often the texts write
   each, and the types of the composition they can be filed under, each with

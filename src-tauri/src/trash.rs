@@ -44,12 +44,14 @@ pub enum Entity {
     Idea,
     /// A block of the bank of words, with the words put in it (ADR 0052).
     Block,
+    /// A trial on an experiment's board, with its takes (ADR 0061).
+    Trial,
 }
 
 impl Entity {
     /// Every kind of thing the trash holds. What a gate iterates rather than
     /// a list of its own that someone has to remember to extend.
-    pub const ALL: [Entity; 14] = [
+    pub const ALL: [Entity; 15] = [
         Entity::Work,
         Entity::Version,
         Entity::Score,
@@ -64,6 +66,7 @@ impl Entity {
         Entity::Term,
         Entity::Idea,
         Entity::Block,
+        Entity::Trial,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -82,6 +85,7 @@ impl Entity {
             Self::Term => "term",
             Self::Idea => "idea",
             Self::Block => "block",
+            Self::Trial => "trial",
         }
     }
 
@@ -103,6 +107,7 @@ impl Entity {
             "term" => Ok(Self::Term),
             "idea" => Ok(Self::Idea),
             "block" => Ok(Self::Block),
+            "trial" => Ok(Self::Trial),
             other => Err(Error::Internal(format!("unknown trash entity `{other}`"))),
         }
     }
@@ -124,6 +129,7 @@ impl Entity {
             Self::Term => "term",
             Self::Idea => "cover_idea",
             Self::Block => "term_block",
+            Self::Trial => "trial",
         }
     }
 }
@@ -254,6 +260,16 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "cover_idea",
                 key: "work_id",
             },
+            // The trials on an experiment's board, and the takes they were
+            // judged by - the trials first: a take names its trial.
+            Capture {
+                table: "trial",
+                key: "work_id",
+            },
+            Capture {
+                table: "asset",
+                key: "trial_id IN (SELECT id FROM trial WHERE work_id = ?)",
+            },
             // The terms of the register that named it. The schema's cascade
             // takes the rows down with the work; captured so a song restored
             // carries its images again.
@@ -377,6 +393,18 @@ fn cascade(entity: Entity) -> &'static [Capture] {
             table: "cover_idea",
             key: "id",
         }],
+        // A trial and the takes it was judged by: they are what it is
+        // remembered by, as a brick's pictures are.
+        Entity::Trial => &[
+            Capture {
+                table: "trial",
+                key: "id",
+            },
+            Capture {
+                table: "asset",
+                key: "trial_id",
+            },
+        ],
         // A brick and the pictures it was described from. The pictures are
         // what the brick is recognised by, so they come back with it; their
         // files stay on disk while the entry is in the trash and go when it
@@ -407,6 +435,32 @@ fn cascade(entity: Entity) -> &'static [Capture] {
 /// the link is gone. Restoring puts each id back, skipping works that have since
 /// been moved elsewhere or deleted.
 const MEMBERS: &str = "members";
+
+/// Snapshot key holding what the trials going to the trash became: the
+/// versions and the bricks outside the entry that remember one (ADR 0061).
+///
+/// The memory is a column of theirs, set to nothing when the trial goes, so
+/// the generic capture cannot see it. Restoring points each back at its
+/// trial, unless it has since been pointed somewhere, or is gone.
+const SPENT: &str = "spent";
+
+/// The tables a harvest is remembered in, by the column naming the trial.
+const SPENT_IN: [&str; 2] = ["work_version", "style_brick"];
+
+/// Columns that name another row only to say where this one came from - its
+/// parent, the trial it was taken from, the version it reworks - and are set
+/// to nothing when that row goes (`ON DELETE SET NULL`). A row restored while
+/// the one it names is still gone comes back naming nothing, rather than
+/// failing on the foreign key; one that comes back in the same entry is named
+/// again once both are in.
+const SOFT: [(&str, &str, &str); 6] = [
+    ("work_version", "parent_version_id", "work_version"),
+    ("work_version", "trial_id", "trial"),
+    ("style_brick", "trial_id", "trial"),
+    ("trial", "parent_id", "trial"),
+    ("trial", "source_version_id", "work_version"),
+    ("cover_idea", "from_work_id", "work"),
+];
 
 /// One table to snapshot, and the column that ties it to the entity being
 /// deleted.
@@ -491,6 +545,19 @@ fn discard_in(tx: &Connection, entity: Entity, id: &str, minted: &Minted) -> Res
 
     if entity == Entity::Collection {
         snapshot.insert(MEMBERS.to_owned(), Value::Array(members(tx, id)?));
+    }
+    let trials: Vec<String> = match snapshot.get("trial") {
+        Some(Value::Array(rows)) => rows
+            .iter()
+            .filter_map(|row| row.get("id").and_then(Value::as_str).map(str::to_owned))
+            .collect(),
+        _ => Vec::new(),
+    };
+    if !trials.is_empty() {
+        let spent = spent(tx, &trials, &snapshot)?;
+        if !spent.is_empty() {
+            snapshot.insert(SPENT.to_owned(), Value::Array(spent));
+        }
     }
 
     let deletion_id = minted.id().to_owned();
@@ -584,6 +651,8 @@ fn restore_in(tx: &Connection, deletion_id: &str) -> Result<()> {
     }
 
     let mut restored: std::collections::HashSet<&str> = std::collections::HashSet::new();
+    // What a row named that is not back yet: named again once everything is.
+    let mut renamed: Vec<(&str, &str, &str, String, Value)> = Vec::new();
     for capture in cascade(entity) {
         // A table captured from two sides was snapshotted once; it is put
         // back once.
@@ -633,7 +702,56 @@ fn restore_in(tx: &Connection, deletion_id: &str) -> Result<()> {
                 )?;
                 continue;
             }
-            insert_row(tx, capture.table, row)?;
+            let mut row = row.clone();
+            for (table, column, target) in SOFT {
+                if table != capture.table {
+                    continue;
+                }
+                let named = row.get(column).cloned().unwrap_or(Value::Null);
+                if named.is_string() && !alive(tx, target, Some(&named))? {
+                    let id = row
+                        .get("id")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_owned();
+                    renamed.push((table, column, target, id, named));
+                    row.insert(column.to_owned(), Value::Null);
+                }
+            }
+            insert_row(tx, capture.table, &row)?;
+        }
+    }
+
+    for (table, column, target, id, named) in renamed {
+        if alive(tx, target, Some(&named))? {
+            // `table` and `column` come from `SOFT`, never from input.
+            tx.execute(
+                &format!("UPDATE {table} SET {column} = ?1 WHERE id = ?2 AND {column} IS NULL"),
+                params![json_to_sql(&named)?, id],
+            )?;
+        }
+    }
+
+    if let Some(Value::Array(spent)) = snapshot.get(SPENT) {
+        for entry in spent {
+            let (Some(table), Some(id), Some(trial)) = (
+                entry.get("table").and_then(Value::as_str),
+                entry.get("id").and_then(Value::as_str),
+                entry.get("trial_id").and_then(Value::as_str),
+            ) else {
+                continue;
+            };
+            if !SPENT_IN.contains(&table) {
+                continue;
+            }
+            // `table` is one of `SPENT_IN`, checked just above.
+            tx.execute(
+                &format!(
+                    "UPDATE {table} SET trial_id = ?1 WHERE id = ?2 AND trial_id IS NULL
+                       AND EXISTS (SELECT 1 FROM trial WHERE id = ?1)"
+                ),
+                params![trial, id],
+            )?;
         }
     }
 
@@ -763,6 +881,36 @@ fn link_has_both_sides(conn: &Connection, row: &Map<String, Value>) -> Result<bo
     Ok(true)
 }
 
+/// The versions and bricks outside `snapshot` that remember one of `trials`:
+/// what the trials became, to be pointed back when they come back.
+fn spent(
+    conn: &Connection,
+    trials: &[String],
+    snapshot: &Map<String, Value>,
+) -> Result<Vec<Value>> {
+    let mut out = Vec::new();
+    for table in SPENT_IN {
+        let inside: Vec<&Value> = match snapshot.get(table) {
+            Some(Value::Array(rows)) => rows.iter().filter_map(|row| row.get("id")).collect(),
+            _ => Vec::new(),
+        };
+        // `table` is one of `SPENT_IN`, never input.
+        let mut statement = conn.prepare(&format!("SELECT id FROM {table} WHERE trial_id = ?1"))?;
+        for trial in trials {
+            let ids = statement
+                .query_map(params![trial], |row| row.get::<_, String>(0))?
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+            for id in ids {
+                if inside.iter().any(|kept| kept.as_str() == Some(id.as_str())) {
+                    continue;
+                }
+                out.push(serde_json::json!({ "table": table, "id": id, "trial_id": trial }));
+            }
+        }
+    }
+    Ok(out)
+}
+
 /// Ids of the works currently in a collection.
 fn members(conn: &Connection, collection_id: &str) -> Result<Vec<Value>> {
     let mut statement = conn.prepare("SELECT id FROM work WHERE collection_id = ?1")?;
@@ -826,7 +974,7 @@ const CHILDREN_OF_NOTE: &str = "deletion.entity = 'fact'
 /// into it, so they go with it. Qualified by table, because it is also read
 /// beside `json_each`, whose own columns include an `id`.
 const CHILDREN_OF_WORK: &str =
-    "deletion.entity IN ('version', 'score', 'release', 'note', 'comment', 'idea')
+    "deletion.entity IN ('version', 'score', 'release', 'note', 'comment', 'idea', 'trial')
      AND json_extract(deletion.snapshot, '$.' || (
          CASE deletion.entity
              WHEN 'version' THEN 'work_version'
@@ -834,6 +982,7 @@ const CHILDREN_OF_WORK: &str =
              WHEN 'release' THEN 'release'
              WHEN 'comment' THEN 'comment'
              WHEN 'idea' THEN 'cover_idea'
+             WHEN 'trial' THEN 'trial'
              ELSE 'note'
          END
      ) || '[0].work_id') = ?1";
@@ -1020,7 +1169,8 @@ fn missing_parent(
         | Entity::Note
         | Entity::Scene
         | Entity::Comment
-        | Entity::Idea => &[("work_id", "work")],
+        | Entity::Idea
+        | Entity::Trial => &[("work_id", "work")],
         // A stretch of a splice names two works and needs both: without the
         // short it belongs to nothing, and without the video it is seconds of
         // nowhere. Either being gone is the same refusal.
@@ -1201,6 +1351,17 @@ fn describe(
                 describe_row,
             )
             .optional()?,
+        // Named by what it moves, or by its text when it says nothing of
+        // that, and placed by the experiment whose board it was on.
+        Entity::Trial => conn
+            .query_row(
+                "SELECT substr(coalesce(nullif(trim(t.angle), ''), t.body), 1, 80),
+                        w.title, t.profile_id
+                 FROM trial t JOIN work w ON w.id = t.work_id WHERE t.id = ?1",
+                params![id],
+                describe_row,
+            )
+            .optional()?,
     };
 
     found.ok_or_else(|| Error::not_found(entity_label(entity), id))
@@ -1229,6 +1390,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Term => "term",
         Entity::Idea => "idea",
         Entity::Block => "block",
+        Entity::Trial => "trial",
     }
 }
 
@@ -1349,6 +1511,7 @@ mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1424,6 +1587,7 @@ mod tests {
                 meta: None,
                 make_current: false,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1467,6 +1631,7 @@ mod tests {
                 meta: None,
                 make_current: false,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1495,6 +1660,7 @@ mod tests {
                 meta: None,
                 make_current: false,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1559,6 +1725,7 @@ mod tests {
                 meta: None,
                 make_current: false,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();
@@ -1621,6 +1788,7 @@ mod tests {
                 meta: None,
                 make_current: false,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();

@@ -1083,6 +1083,78 @@
         ],
         "cover": true,
         "made_title": "{title} (short)"
+      },
+      {
+        "key": "experiment",
+        "label": {
+          "en": "Experiment",
+          "ru": "Эксперимент"
+        },
+        "version_roles": [
+          {
+            "key": "brief",
+            "label": {
+              "en": "Brief",
+              "ru": "Бриф"
+            },
+            "body": "markdown",
+            "skeleton": {
+              "en": "## Direction\n\n## Hold on to\n\n## Listen to\n\n## Vocabulary\n\n## Schemes\n\n## If it goes wrong\n",
+              "ru": "## Направление\n\n## За что держаться\n\n## Кого слушать\n\n## Словарь\n\n## Схемы\n\n## Если пошло не так\n"
+            }
+          },
+          {
+            "key": "findings",
+            "label": {
+              "en": "Findings",
+              "ru": "Выводы"
+            },
+            "body": "markdown",
+            "counts_as_version": false
+          }
+        ],
+        "statuses": [
+          {
+            "key": "draft",
+            "label": {
+              "en": "Draft",
+              "ru": "Черновик"
+            },
+            "derive": "draft"
+          },
+          {
+            "key": "running",
+            "label": {
+              "en": "Running",
+              "ru": "Идёт"
+            },
+            "derive": "manual",
+            "colour": "accent"
+          },
+          {
+            "key": "finished",
+            "label": {
+              "en": "Finished",
+              "ru": "Завершён"
+            },
+            "derive": "manual",
+            "colour": "good"
+          },
+          {
+            "key": "shelved",
+            "label": {
+              "en": "Shelved",
+              "ru": "На полке"
+            },
+            "derive": "manual",
+            "colour": "plain"
+          }
+        ],
+        "open_on": "trials",
+        "lab": {
+          "harvest": "style",
+          "anchors": "anchors"
+        }
       }
     ],
     "note_kinds": [
@@ -2798,7 +2870,13 @@
           "ru": "Длительность"
         },
         "type": "number",
-        "own": true
+        "own": true,
+        "kinds": [
+          "song",
+          "video",
+          "audio",
+          "short"
+        ]
       },
       {
         "key": "language",
@@ -2806,7 +2884,13 @@
           "en": "Language",
           "ru": "Язык"
         },
-        "type": "text"
+        "type": "text",
+        "kinds": [
+          "song",
+          "video",
+          "audio",
+          "short"
+        ]
       },
       {
         "key": "tagline",
@@ -2814,7 +2898,13 @@
           "en": "Tagline",
           "ru": "Слоган"
         },
-        "type": "text"
+        "type": "text",
+        "kinds": [
+          "song",
+          "video",
+          "audio",
+          "short"
+        ]
       },
       {
         "key": "direction",
@@ -2854,7 +2944,13 @@
           "en": "Perspective",
           "ru": "Перспектива"
         },
-        "type": "text"
+        "type": "text",
+        "kinds": [
+          "song",
+          "video",
+          "audio",
+          "short"
+        ]
       },
       {
         "key": "instruments",
@@ -2870,7 +2966,13 @@
           "en": "Premise",
           "ru": "Завязка"
         },
-        "type": "multiline"
+        "type": "multiline",
+        "kinds": [
+          "song",
+          "video",
+          "audio",
+          "short"
+        ]
       },
       {
         "key": "variant",
@@ -2920,6 +3022,28 @@
           }
         ],
         "default": "original"
+      },
+      {
+        "key": "anchors",
+        "label": {
+          "en": "Anchors",
+          "ru": "Якоря"
+        },
+        "type": "multiline",
+        "kinds": [
+          "experiment"
+        ]
+      },
+      {
+        "key": "listen_to",
+        "label": {
+          "en": "Listen to",
+          "ru": "Кого слушать"
+        },
+        "type": "multiline",
+        "kinds": [
+          "experiment"
+        ]
       }
     ],
     "marks": [
@@ -3418,6 +3542,25 @@
         ],
         "scope": "cover",
         "produces": "cover-ideas"
+      },
+      {
+        "key": "propose-trials",
+        "label": {
+          "en": "Propose trials",
+          "ru": "Предложить пробы"
+        },
+        "description": {
+          "en": "Trials for the board: a sweep of the field, variations around a core, or the fix for what went wrong - each held to the anchors.",
+          "ru": "Пробы на доску: разведка поля, вариации вокруг ядра или починка того, что пошло не так, - каждая держится якорей."
+        },
+        "icon": "flask",
+        "template": "Trials for the experiment “{title}”.\n\n{trials}\n\nIts fields:\n\n{fields}\n\nWhat a trial is written from:\n\n{choices}",
+        "method": "# Trials\n\n## Role\n\nYou run experiments with sound beside the author. An experiment has a direction, a few anchors that must survive every trial, and a board of trials - style prompts for a music generator - which the author runs outside, listens to, and keeps or drops. You propose the next trials for the board.\n\n## What you are asked for\n\nThe task says which of three it is.\n\n- **A sweep of the field**: trials spread as far apart as the direction allows - other families, other grooves, other ways of setting one thing on another - so that one run maps the field. Never two neighbours; say in `angle` where on the field each one stands.\n- **Variations around a core**: the trial named is the core. Each variation moves ONE parameter of it - the density, the groove, the harmony, the space, the voice - and says which in `angle`; everything else stays word for word. Two things moved at once, and nobody can hear which one did it.\n- **What went wrong**: the trial named was heard, and what came out is said. Propose the fix as its variation: the core kept, one line changed or added - the one that answers the symptom. It slid into plain rock or plain EDM: harden the anchor and move it left. The voice drowned: say where it sits. Everything sounded the same: change the groove, not the genre. Too clean: one phrase of dirt, not three.\n\n## The body of a trial\n\n- A line of phrases separated by commas, the most important first: the generator weighs the line from the left.\n- Every anchor of the experiment stands in every trial, word for word. A trial without one is a trial of something else.\n- Take a phrase from the dictionary where one says what you mean, and name its id in `bricks`; a phrase of your own is fine where none does - it stands in the body like any other.\n- No artist or band names in the body: the generator ignores them or refuses the prompt. Who to listen to goes in `reference`.\n- Stay under the generator's limit when one is given.\n\n## What the board says\n\nKept trials are what works: build on them. Dropped ones are what does not: stay away from their direction. Trials not judged yet are already on the board: do not repeat them. The experiment's brief says what it is after; its findings, when there are any, are what the author has learnt - take them as given.\n\n## Output\n\nOne sentence on the direction you took, then the block the task asks for, with every trial it asks for.\n",
+        "kinds": [
+          "experiment"
+        ],
+        "scope": "lab",
+        "produces": "trials"
       }
     ],
     "relation_kinds": [

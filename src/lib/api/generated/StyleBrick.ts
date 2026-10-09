@@ -62,4 +62,9 @@ set_key: string | null,
 /**
  * Where it came from and whether it was changed since - see [`Origin`].
  */
-origin: StyleOrigin, };
+origin: StyleOrigin, 
+/**
+ * The trial of an experiment it was cut from, while the trial is there
+ * (ADR 0061).
+ */
+trial_id: string | null, };

@@ -9,6 +9,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 function asset(fields: Partial<Asset>): Asset {
   return {
+    trial_id: null,
     id: 'a1',
     profile_id: 'p',
     work_id: null,

@@ -297,6 +297,10 @@ const UPGRADE: &[Step] = &[
         name: "the folder a kind keeps its files in on disk",
         carry: kind_folders,
     },
+    Step {
+        name: "a kind's board of trials and the role its kept trials go into",
+        carry: lab_boards,
+    },
 ];
 
 /// Prompt templates whose key is missing. A user who reworded an action keeps
@@ -571,6 +575,38 @@ fn kind_folders(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
         };
         kind.folder = Some(folder);
         changed = true;
+    }
+    changed
+}
+
+/// A kind's board of trials (v0.95, ADR 0061), where the stored kind has
+/// none: an experiment kind the owner made before the lab existed becomes a
+/// lab by the shipped kind of the same key. The role its kept trials go into
+/// arrives where the stored lab names none. A lab the owner took off a kind
+/// cannot be told from one never given, and comes back - the price
+/// `carry_forward` states. So does the field its anchors are read from.
+fn lab_boards(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        let Some(shipped_lab) = &shipped_kind.lab else {
+            continue;
+        };
+        match &mut kind.lab {
+            None => {
+                kind.lab = Some(shipped_lab.clone());
+                changed = true;
+            }
+            Some(lab) => {
+                if lab.harvest.is_none() && shipped_lab.harvest.is_some() {
+                    lab.harvest = shipped_lab.harvest.clone();
+                    changed = true;
+                }
+                if lab.anchors.is_none() && shipped_lab.anchors.is_some() {
+                    lab.anchors = shipped_lab.anchors.clone();
+                    changed = true;
+                }
+            }
+        }
     }
     changed
 }
@@ -1876,7 +1912,7 @@ mod tests {
             .iter()
             .map(|kind| kind.key.as_str())
             .collect();
-        assert_eq!(order, vec!["song", "video", "audio", "short"]);
+        assert_eq!(order, vec!["song", "video", "audio", "short", "experiment"]);
         assert!(config.vocabulary("audio").frame);
         assert_eq!(
             config.vocabulary("video").release_kinds[0]
@@ -2069,7 +2105,21 @@ mod tests {
                 // the automation would sit there doing nothing with no error to
                 // show for it. Every derivable meaning needs a word, and no two
                 // words may claim the same one — the automation would pick between
-                // them by list order, which is not a decision anybody made.
+                // them by list order, which is not a decision anybody made. An
+                // experiment is the exception that proves it: it is never
+                // judged on axes, booked or released (ADR 0061), so of the four
+                // only a draft can happen to it, and a word for the others
+                // would be a word nothing ever says.
+                let meanings: &[Derive] = if vocab.lab.is_some() {
+                    &[Derive::Draft]
+                } else {
+                    &[
+                        Derive::Draft,
+                        Derive::Scored,
+                        Derive::Scheduled,
+                        Derive::Released,
+                    ]
+                };
                 for meaning in [
                     Derive::Draft,
                     Derive::Scored,
@@ -2082,10 +2132,12 @@ mod tests {
                         .filter(|status| status.derive == meaning)
                         .map(|status| status.key.as_str())
                         .collect();
+                    let wanted = usize::from(meanings.contains(&meaning));
                     assert_eq!(
                         named.len(),
-                        1,
-                        "{key} names {} status(es) for {meaning:?}: {named:?}",
+                        wanted,
+                        "{key}/{} names {} status(es) for {meaning:?}: {named:?}",
+                        vocab.key,
                         named.len()
                     );
                 }

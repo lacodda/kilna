@@ -110,7 +110,10 @@ export function PublicationsWidget({ work }: { work: Work }) {
  */
 function MakeMenu({ make }: { make: MakePublication }) {
   const { t } = useTranslation()
-  if (make.kinds.length === 0) return null
+  // The publications' widget makes publications: an experiment that reworks
+  // the song is made from the card's own menu and the Links tab (v0.95).
+  const kinds = make.kinds.filter((kind) => !kind.lab)
+  if (kinds.length === 0) return null
 
   return (
     <Menu>
@@ -119,7 +122,7 @@ function MakeMenu({ make }: { make: MakePublication }) {
         <ChevronDown aria-hidden className="size-3 opacity-70" />
       </MenuTrigger>
       <MenuPopup align="end" size="lg">
-        {make.kinds.map((kind) =>
+        {kinds.map((kind) =>
           // Where it goes out is chosen here when there is a choice (v0.90):
           // the kind as a heading, a line per place under it.
           kind.places.length > 1 ? (

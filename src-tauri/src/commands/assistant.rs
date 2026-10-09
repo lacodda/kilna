@@ -443,6 +443,40 @@ pub fn start_cover_task(
     launch(&app, state, prepared)
 }
 
+/// What asking an experiment's board for trials would send, without sending
+/// it.
+#[tauri::command]
+pub fn preview_lab_task(
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+    request: crate::lab::answer::TrialRequest,
+) -> Result<assistant::task::Composed> {
+    assistant::task::compose_for_lab(&state.conn(), &id, &action, &request)
+        .map(|(composed, _)| composed)
+}
+
+/// Ask for trials for an experiment's board, in the background (v0.95). They
+/// land on the board as soon as the answer comes (ADR 0061).
+#[tauri::command]
+pub fn start_lab_task(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+    request: crate::lab::answer::TrialRequest,
+) -> Result<StartedTask> {
+    let state = state.inner();
+    if state
+        .runs()
+        .task_running(&assistant::task::lab_key(&action, &id, &request))
+    {
+        return Err(Error::AlreadyRunning);
+    }
+    let prepared = assistant::task::prepare_for_lab(&state.conn(), &id, &action, &request)?;
+    launch(&app, state, prepared)
+}
+
 /// Stop a task by what it is rather than by which run carries it: the board
 /// that asked for ideas did not necessarily start the run - "Make…" may have.
 /// Says whether there was one to stop.

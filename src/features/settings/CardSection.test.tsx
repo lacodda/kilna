@@ -126,8 +126,13 @@ describe('where a card opens', () => {
     const config = backend.argsOf('update_profile_config')[0]!.config as ProfileConfig
     const kinds = Object.fromEntries(config.work_kinds.map((kind) => [kind.key, kind.open_on]))
     expect(kinds.song).toBe('versions')
-    // Every other kind keeps opening where it did.
-    for (const [key, tab] of Object.entries(kinds)) if (key !== 'song') expect(tab).toBeUndefined()
+    // Every other kind keeps opening where it did - an experiment on its
+    // board, as the profile ships it (v0.95), the rest on the overview.
+    const before = Object.fromEntries(
+      studio().profile.config.work_kinds.map((kind) => [kind.key, kind.open_on]),
+    )
+    for (const [key, tab] of Object.entries(kinds))
+      if (key !== 'song') expect(tab).toBe(before[key])
     await vi.waitFor(() =>
       expect(screen.getByRole('combobox', { name: openOn('Song') })).toHaveTextContent(
         en.card.tab.versions,

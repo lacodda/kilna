@@ -240,6 +240,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0037_brick_explanation.sql"),
         rebuilds: false,
     },
+    Migration {
+        version: 38,
+        name: "trial",
+        sql: include_str!("../../migrations/0038_trial.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The newest schema this build understands.

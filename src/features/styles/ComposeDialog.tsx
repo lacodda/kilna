@@ -20,8 +20,11 @@ interface Props {
   composition: Composition
   /** The work whose fields close the text. */
   workId: string
-  /** Keep the text: it becomes a new version, written by hand from here on. */
-  onUse?: (text: string) => void
+  /** Keep the text: it becomes a new version, written by hand from here on -
+   *  or a trial, which remembers the bricks it was picked from. */
+  onUse?: (text: string, bricks: string[]) => void
+  /** What the button that keeps the text says, when not "Use". */
+  useLabel?: string
   /** Hand the picks to the assistant, which writes them up as prose. */
   prose?: { label: string; onStart: (bricks: string[]) => void }
 }
@@ -38,7 +41,15 @@ interface Props {
  * one writer for the window and an agent (`compose_text`), so the same picks
  * are the same text everywhere, the work's fields closing it.
  */
-export function ComposeDialog({ open, onOpenChange, composition, workId, onUse, prose }: Props) {
+export function ComposeDialog({
+  open,
+  onOpenChange,
+  composition,
+  workId,
+  onUse,
+  useLabel,
+  prose,
+}: Props) {
   const { t } = useTranslation()
   const { config } = useProfile()
   const types = styleTypesOf(config)
@@ -98,10 +109,10 @@ export function ComposeDialog({ open, onOpenChange, composition, workId, onUse, 
               variant="primary"
               disabled={result === undefined || result.text === ''}
               onClick={() => {
-                if (result !== undefined) onUse(result.text)
+                if (result !== undefined) onUse(result.text, picked)
               }}
             >
-              {t('compose.use')}
+              {useLabel ?? t('compose.use')}
             </Button>
           )}
         </>

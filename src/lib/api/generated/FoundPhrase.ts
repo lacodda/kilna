@@ -10,7 +10,8 @@ export type FoundPhrase = {
  */
 phrase: string, 
 /**
- * How many versions say it.
+ * How many texts say it: versions, and the trials of experiments read
+ * by the same composition (v0.95).
  */
 versions: number, 
 /**

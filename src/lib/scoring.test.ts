@@ -276,6 +276,7 @@ describe('judged versions', () => {
     created_at: string,
     is_current = false,
   ): VersionSummary => ({
+    trial_id: null,
     id,
     work_id: 'w',
     role,

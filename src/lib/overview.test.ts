@@ -228,6 +228,7 @@ describe('the roles the text widgets read', () => {
 
 function summary(over: Partial<VersionSummary> & Pick<VersionSummary, 'id'>): VersionSummary {
   return {
+    trial_id: null,
     work_id: 'w1',
     role: 'lyrics',
     revision: 1,

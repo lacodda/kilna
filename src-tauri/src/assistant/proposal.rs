@@ -95,6 +95,10 @@ pub enum Proposal {
         /// thought.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         releases: Vec<PackagedRelease>,
+        /// Trials for an experiment's board, by series, each naming the one
+        /// it varies (v0.95, ADR 0061). Only for a kind that is a lab.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        trials: Vec<crate::lab::answer::Packaged>,
     },
     /// A storyboard for the chat's work: scenes added after the last, the
     /// whole board replaced, or numbered scenes revised in place. Made by
@@ -187,6 +191,18 @@ pub enum Proposal {
         /// of its idea and said rather than dropped silently.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         dropped: Vec<crate::cover::idea::Dropped>,
+    },
+    /// Trials for an experiment's board, each already read against the
+    /// workspace (v0.95, ADR 0061). Written by the board's own action - and
+    /// then put on the board as soon as it comes - or by an agent outside the
+    /// window (`propose_trials`), which waits for the person.
+    Trials {
+        work_id: String,
+        trials: Vec<crate::lab::answer::Packaged>,
+        /// What the answer named that the workspace does not have, left out
+        /// of its trial and said rather than dropped silently.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        dropped: Vec<crate::lab::answer::Dropped>,
     },
 }
 
@@ -1406,6 +1422,7 @@ mod tests {
             notes: Vec::new(),
             scenes: Vec::new(),
             releases: Vec::new(),
+            trials: Vec::new(),
         };
         let stored = serde_json::to_value(&proposal).unwrap();
         assert_eq!(stored["kind"], "work");

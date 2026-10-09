@@ -19,6 +19,7 @@ pub mod fixtures;
 pub mod focus;
 pub mod folder;
 pub mod journal;
+pub mod lab;
 pub mod layout;
 pub mod link;
 pub mod log;
@@ -198,6 +199,8 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::assistant::start_card_task,
             commands::assistant::preview_cover_task,
             commands::assistant::start_cover_task,
+            commands::assistant::preview_lab_task,
+            commands::assistant::start_lab_task,
             commands::assistant::stop_task,
             commands::notes::list_notes,
             commands::notes::create_note,
@@ -243,6 +246,17 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::ideas::take_idea,
             commands::ideas::take_sibling_cover,
             commands::ideas::delete_idea,
+            commands::trials::trial_board,
+            commands::trials::create_trial,
+            commands::trials::update_trial,
+            commands::trials::judge_trial,
+            commands::trials::vary_trial,
+            commands::trials::trial_from_version,
+            commands::trials::delete_trial,
+            commands::trials::harvest_trial,
+            commands::trials::harvest_trial_phrase,
+            commands::trials::harvest_trial_work,
+            commands::trials::make_experiment,
             commands::styles::list_style_bricks,
             commands::styles::style_brick_counts,
             commands::styles::style_brick_references,

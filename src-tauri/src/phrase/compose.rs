@@ -80,7 +80,12 @@ pub fn write(
     let meta = match &request.work_id {
         Some(id) => {
             let work = crate::work::get(conn, id)?.ok_or_else(|| Error::not_found("work", id))?;
-            if !composition.kinds.contains(&work.kind) {
+            // An experiment writes its trials by the composition of the text
+            // they become (v0.95), and closes them with its own fields.
+            let lab = config
+                .trial_composition(&work.kind)
+                .is_some_and(|written| written.key == composition.key);
+            if !composition.kinds.contains(&work.kind) && !lab {
                 return Err(Error::refused("compose.wrongKind")
                     .param("kind", work.kind.clone())
                     .param("title", work.title.clone()));

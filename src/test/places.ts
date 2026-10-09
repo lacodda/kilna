@@ -60,6 +60,8 @@ export const CARD_TABS: [workId: string, tab: Tab, shows: string][] = [
   [IDS.video, 'assistant', 'Paper Lanterns (clip)'],
   [IDS.video, 'history', 'Paper Lanterns (clip)'],
   [IDS.short, 'cuts', 'Paper Lanterns (clip)'],
+  // An experiment's board, empty (v0.95): where to start.
+  [IDS.lab, 'trials', en.trials.emptyBoard],
   // The song's audio release, a work of its own since v0.86: its releases
   // and files are its own, not the song's.
   [IDS.audio, 'overview', 'Paper Lanterns — audio'],

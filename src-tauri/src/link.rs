@@ -20,6 +20,13 @@ use crate::minted::Minted;
 /// The first role a link can have: the work this one was made from.
 pub const DONOR: &str = "donor";
 
+/// A link of the lab (ADR 0061): an experiment made to rework a work, or a
+/// work found in an experiment. Shown on both cards like any link, and never
+/// walked by what a work is made of - a song found in an experiment goes out
+/// as its own clips, under its own name, from its own folder; a song an
+/// experiment reworks has not gone out because a song found there did.
+pub const LAB: &str = "lab";
+
 /// A link as a card reads it: the source beside the link, and whether the
 /// source has moved on since the link was made.
 #[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
@@ -241,17 +248,18 @@ pub fn derived(conn: &Connection, source_id: &str) -> Result<Vec<Derived>> {
 
 /// Every work made from this one, directly or from something made from it -
 /// a song's clip, and the shorts cut from the clip - each once, with how far
-/// down it stands. The walk follows links of every role; a loop in the links
-/// cannot make it run forever, because a work already reached is not reached
-/// again.
+/// down it stands. The walk follows links of every role but the lab's
+/// ([`LAB`]): what is found in an experiment is not made of the work the
+/// experiment reworks. A loop in the links cannot make it run forever,
+/// because a work already reached is not reached again.
 pub fn descendants(conn: &Connection, work_id: &str) -> Result<Vec<(String, i64)>> {
     let mut statement = conn.prepare(
         "WITH RECURSIVE down(id, depth) AS (
-             SELECT work_id, 1 FROM work_link WHERE source_id = ?1
+             SELECT work_id, 1 FROM work_link WHERE source_id = ?1 AND role <> 'lab'
              UNION
              SELECT l.work_id, down.depth + 1
                FROM work_link l JOIN down ON l.source_id = down.id
-              WHERE down.depth < 16
+              WHERE down.depth < 16 AND l.role <> 'lab'
          )
          SELECT down.id, min(down.depth) FROM down JOIN work w ON w.id = down.id
           WHERE down.id <> ?1
@@ -264,15 +272,16 @@ pub fn descendants(conn: &Connection, work_id: &str) -> Result<Vec<(String, i64)
 }
 
 /// Every work this one was made from, directly or through what it was made
-/// from, nearest first. The other direction of [`descendants`].
+/// from, nearest first. The other direction of [`descendants`], and no more
+/// across a link of the lab than it is.
 pub fn ancestors(conn: &Connection, work_id: &str) -> Result<Vec<String>> {
     let mut statement = conn.prepare(
         "WITH RECURSIVE up(id, depth) AS (
-             SELECT source_id, 1 FROM work_link WHERE work_id = ?1
+             SELECT source_id, 1 FROM work_link WHERE work_id = ?1 AND role <> 'lab'
              UNION
              SELECT l.source_id, up.depth + 1
                FROM work_link l JOIN up ON l.work_id = up.id
-              WHERE up.depth < 16
+              WHERE up.depth < 16 AND l.role <> 'lab'
          )
          SELECT up.id FROM up JOIN work w ON w.id = up.id
           WHERE up.id <> ?1
@@ -293,11 +302,12 @@ pub fn ancestors_by_work(
 ) -> Result<std::collections::BTreeMap<String, Vec<String>>> {
     let mut statement = conn.prepare(
         "WITH RECURSIVE up(work_id, source_id, depth) AS (
-             SELECT work_id, source_id, 1 FROM work_link WHERE profile_id = ?1
+             SELECT work_id, source_id, 1 FROM work_link
+              WHERE profile_id = ?1 AND role <> 'lab'
              UNION
              SELECT up.work_id, l.source_id, up.depth + 1
                FROM work_link l JOIN up ON l.work_id = up.source_id
-              WHERE up.depth < 16
+              WHERE up.depth < 16 AND l.role <> 'lab'
          )
          SELECT work_id, source_id, min(depth) FROM up
           WHERE work_id <> source_id
@@ -380,6 +390,7 @@ mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap()

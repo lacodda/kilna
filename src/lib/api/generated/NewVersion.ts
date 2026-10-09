@@ -11,4 +11,9 @@ make_current?: boolean,
  * The version this one was derived from. Must belong to the same work
  * and the same role: a draft is not written from a style prompt.
  */
-parent_version_id?: string, };
+parent_version_id?: string, 
+/**
+ * The trial of an experiment the text was taken from (ADR 0061): kept
+ * so the trial can show where it went. Must be a kept trial.
+ */
+trial_id?: string, };

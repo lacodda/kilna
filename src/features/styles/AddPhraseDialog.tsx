@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createStyleBrick } from '@/lib/api/styles'
+import { harvestTrialPhrase } from '@/lib/api/trials'
 import type { Composition } from '@/lib/api/types'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -21,6 +22,9 @@ interface Props {
   composition: Composition
   /** The phrase as the text writes it. */
   phrase: string
+  /** The kept trial of an experiment the phrase is cut from (v0.95): the
+   *  brick remembers it, and the trial shows where it went. */
+  trialId?: string
 }
 
 /**
@@ -29,7 +33,7 @@ interface Props {
  * window's language and when to take it. A brick of the owner's own, ready
  * at once: a phrase is its description.
  */
-export function AddPhraseDialog({ open, onOpenChange, composition, phrase }: Props) {
+export function AddPhraseDialog({ open, onOpenChange, composition, phrase, trialId }: Props) {
   const { t } = useTranslation()
   const types = styleTypesOf(useProfile().config).filter((type) =>
     composition.parts.some((part) => part.type === type.key),
@@ -43,17 +47,20 @@ export function AddPhraseDialog({ open, onOpenChange, composition, phrase }: Pro
   const families = type?.families ?? []
 
   const add = useAppMutation({
-    mutationFn: () =>
-      createStyleBrick({
+    mutationFn: () => {
+      const brick = {
         type_key: typeKey,
         name: words.trim(),
         description: words.trim(),
         family: family === '' ? undefined : family,
         when_to_use: when.trim() === '' ? undefined : when.trim(),
         explanation: withExplanation(null, meaning) ?? undefined,
-      }),
+      }
+      return trialId === undefined ? createStyleBrick(brick) : harvestTrialPhrase(trialId, brick)
+    },
     failure: 'phrases.addFailed',
-    refresh: refresh.style,
+    // A phrase cut from a trial is that trial's harvest, shown on its board.
+    refresh: [...refresh.style, ['works', 'trials']],
     onSuccess: (brick) => {
       say.ok(t('phrases.added', { phrase: brick.name }))
       onOpenChange(false)

@@ -3,6 +3,7 @@ import {
   Clapperboard,
   Eye,
   Film,
+  FlaskConical,
   Gauge,
   Image,
   Lightbulb,
@@ -58,6 +59,7 @@ const ACTION_ICONS: Record<string, LucideIcon> = {
   book: BookOpen,
   quote: TextQuote,
   orbit: Orbit,
+  flask: FlaskConical,
 }
 
 /** The names, for the reference and for a picker. */

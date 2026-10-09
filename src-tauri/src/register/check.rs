@@ -154,6 +154,10 @@ pub fn text(
 /// composition writes is a line of phrases, read against the dictionary -
 /// not a lyric, so neither its repeated words nor the register's terms are
 /// looked for in it. Any other role is checked as [`text`] checks it.
+///
+/// A trial of an experiment is read as the text it would become (v0.95): the
+/// role its lab keeps trials in names the composition, though the experiment
+/// itself does not have the role.
 pub fn version_text(
     conn: &rusqlite::Connection,
     profile_id: &str,
@@ -163,7 +167,12 @@ pub fn version_text(
     role: &str,
 ) -> Result<TextCheck> {
     let config = crate::profile::config_for(conn, profile_id)?;
-    let Some(composition) = config.composition_for(&work.kind, role) else {
+    let trial = config
+        .lab(&work.kind)
+        .and_then(|lab| lab.harvest.as_deref())
+        .filter(|harvest| *harvest == role)
+        .and_then(|_| config.trial_composition(&work.kind));
+    let Some(composition) = config.composition_for(&work.kind, role).or(trial) else {
         return self::text(conn, profile_id, text, sung);
     };
     let dictionary = crate::phrase::Dictionary::of(conn, profile_id, composition)?;

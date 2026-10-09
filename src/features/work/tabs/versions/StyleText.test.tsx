@@ -16,6 +16,7 @@ import en from '@/i18n/locales/en.json'
 const STYLE = 'warm synth pop, slow build, airy female vocal'
 
 const brick = (id: string, type: string, phrase: string, meaning: string): StyleBrick => ({
+  trial_id: null,
   id,
   profile_id: IDS.profile,
   type_key: type,

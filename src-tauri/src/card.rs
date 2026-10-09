@@ -47,6 +47,8 @@ pub struct Counts {
     /// Moments on the work's axis, as its History tab lists them, its
     /// beginning aside (`work::timeline::count`).
     pub history: i64,
+    /// The trials on an experiment's board (ADR 0061).
+    pub trials: i64,
 }
 
 /// Count everything a work's card has tabs for.
@@ -87,7 +89,8 @@ pub fn counts(conn: &Connection, work_id: &str) -> Result<Counts> {
                 (SELECT count(*) FROM note WHERE work_id = ?1),
                 (SELECT count(*) FROM scene WHERE work_id = ?1),
                 (SELECT count(*) FROM cut WHERE work_id = ?1),
-                (SELECT count(*) FROM cut WHERE source_id = ?1)",
+                (SELECT count(*) FROM cut WHERE source_id = ?1),
+                (SELECT count(*) FROM trial WHERE work_id = ?1)",
         params![work_id],
         |row| {
             Ok(Counts {
@@ -104,6 +107,7 @@ pub fn counts(conn: &Connection, work_id: &str) -> Result<Counts> {
                 cuts: row.get(8)?,
                 cut_from: row.get(9)?,
                 history,
+                trials: row.get(10)?,
             })
         },
     )?)
@@ -137,6 +141,7 @@ mod tests {
                 meta: None,
                 make_current: true,
                 parent_version_id: None,
+                trial_id: None,
             },
         )
         .unwrap();

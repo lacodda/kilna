@@ -23,6 +23,7 @@ let workspace: Studio
 
 function asset(id: string, brick: string, name: string): Asset {
   return {
+    trial_id: null,
     id,
     profile_id: IDS.profile,
     work_id: null,
@@ -46,6 +47,7 @@ beforeEach(() => {
     ...answersFor(workspace),
     create_style_brick: ({ brick }) => {
       const made: StyleBrick = {
+        trial_id: null,
         ...(brick as NewStyleBrick),
         id: MADE,
         profile_id: IDS.profile,
@@ -175,6 +177,7 @@ describe('the style dictionary', () => {
 /** A brick of the starter set, as the seeding leaves it. */
 function fromTheSet(change: Partial<StyleBrick> = {}): StyleBrick {
   return {
+    trial_id: null,
     id: 'b-set',
     profile_id: IDS.profile,
     type_key: 'image-style',
