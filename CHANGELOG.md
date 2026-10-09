@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.93.1] - 2026-10-09
+
+### Features
+- Number works by a code their profile gives
+
 ## [0.93.0] - 2026-10-08
 
 ### Features
