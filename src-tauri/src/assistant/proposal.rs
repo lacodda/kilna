@@ -18,6 +18,24 @@ use serde_json::{Map, Value};
 
 use crate::profile::config::{Label, ProfileConfig, WorkKind};
 
+/// A proposal as a message stored it, read as it was meant - the one place
+/// that knows the shapes older versions wrote.
+///
+/// Whatever was added to a shape since takes its default through serde; what
+/// was renamed is put back here. A storyboard stored by v0.62 carried
+/// `replace: true` where v0.64 writes `change: "replace"`, and is read as a
+/// replacement, not as `add`.
+pub fn read_stored(mut value: Value) -> serde_json::Result<Proposal> {
+    if value.get("kind").and_then(Value::as_str) == Some("scenes")
+        && value.get("replace").and_then(Value::as_bool) == Some(true)
+        && value.get("change").is_none()
+        && let Some(object) = value.as_object_mut()
+    {
+        object.insert("change".into(), Value::from("replace"));
+    }
+    serde_json::from_value(value)
+}
+
 /// What an answer proposed, if anything.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 #[serde(tag = "kind", rename_all = "camelCase")]

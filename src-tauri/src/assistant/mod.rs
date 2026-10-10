@@ -239,7 +239,7 @@ pub fn transcript(conn: &Connection, chat_id: &str) -> Result<Option<Transcript>
         .into_iter()
         .map(|(id, chat_id, role, body, meta, created_at)| {
             Ok(Message {
-                meta: serde_json::from_str(&meta)?,
+                meta: meta_of(&meta)?,
                 id,
                 chat_id,
                 role,
@@ -272,7 +272,7 @@ pub fn message(conn: &Connection, id: &str) -> Result<Option<Message>> {
         .optional()?;
     raw.map(|(id, chat_id, role, body, meta, created_at)| {
         Ok(Message {
-            meta: serde_json::from_str(&meta)?,
+            meta: meta_of(&meta)?,
             id,
             chat_id,
             role,
@@ -281,6 +281,27 @@ pub fn message(conn: &Connection, id: &str) -> Result<Option<Message>> {
         })
     })
     .transpose()
+}
+
+/// A message's meta as it is read back.
+///
+/// A proposal is stored as it was proposed, and the shapes grow: a canon
+/// package gained `pictures` and `descriptions` in v0.89.2, while packages
+/// proposed before that still waited in the owner's chat. Read raw, such a
+/// package lacked both lists, and the whole chat it stood in stopped
+/// rendering - the experiments proposed after it with it (v0.95.2). So a
+/// proposal is read as it was meant - [`proposal::read_stored`], the reader
+/// applying uses too - and goes out in today's shape, what was added since
+/// taking its default and what was renamed put back; one that cannot be
+/// read is passed on as it is, for the window's own checks to turn down.
+fn meta_of(raw: &str) -> Result<Map<String, Value>> {
+    let mut meta: Map<String, Value> = serde_json::from_str(raw)?;
+    if let Some(stored) = meta.get_mut("proposal")
+        && let Ok(proposal) = proposal::read_stored(stored.clone())
+    {
+        *stored = serde_json::to_value(proposal)?;
+    }
+    Ok(meta)
 }
 
 /// Replace a message's meta — how a proposal is marked applied. The body
@@ -428,6 +449,56 @@ mod tests {
             transcript(&conn, &chat.id).unwrap().unwrap().messages.len(),
             0
         );
+    }
+
+    #[test]
+    fn a_proposal_stored_in_an_older_shape_reads_back_in_todays() {
+        let (conn, profile_id) = fixtures::workspace();
+        let chat = create(&conn, &profile_id, NewChat::default()).unwrap();
+        // A canon package as proposed before v0.89.2: no pictures, no
+        // descriptions.
+        let older = json!({
+            "proposal": {
+                "kind": "canon",
+                "package": { "cards": [], "facts": [], "links": [], "dropped": [] }
+            },
+            "source": "mcp"
+        });
+        let unknown = json!({ "proposal": { "kind": "somethingLater", "items": 3 } });
+        // A storyboard as v0.62 stored it: the window is told it replaces.
+        let renamed = json!({
+            "proposal": { "kind": "scenes", "replace": true, "scenes": [] }
+        });
+        for meta in [&older, &unknown, &renamed] {
+            append(
+                &conn,
+                &chat.id,
+                ASSISTANT,
+                "proposed",
+                meta.as_object().unwrap().clone(),
+            )
+            .unwrap();
+        }
+
+        let messages = transcript(&conn, &chat.id).unwrap().unwrap().messages;
+        let package = &messages[0].meta["proposal"]["package"];
+        assert_eq!(package["pictures"], json!([]));
+        assert_eq!(package["descriptions"], json!([]));
+        assert_eq!(
+            messages[0].meta["source"], "mcp",
+            "the rest of the meta stays"
+        );
+        assert_eq!(
+            message(&conn, &messages[0].id).unwrap().unwrap().meta["proposal"]["package"]["pictures"],
+            json!([]),
+            "one message read alone reads the same"
+        );
+        assert_eq!(
+            messages[1].meta,
+            *unknown.as_object().unwrap(),
+            "a proposal today's type cannot read is passed on as it is"
+        );
+        assert_eq!(messages[2].meta["proposal"]["change"], "replace");
     }
 
     #[test]

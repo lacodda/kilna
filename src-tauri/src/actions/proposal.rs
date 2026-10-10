@@ -21,7 +21,7 @@
 
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 
 use super::active_profile_id;
 use crate::assistant::proposal::{
@@ -253,19 +253,10 @@ pub const FILLED: &str = "filled";
 
 /// The proposal as stored, read as it was meant.
 pub fn stored_proposal(meta: &Map<String, Value>) -> Result<Proposal> {
-    let Some(mut value) = meta.get("proposal").cloned() else {
+    let Some(value) = meta.get("proposal").cloned() else {
         return Err(Error::refused("proposal.nothing"));
     };
-    // A storyboard stored by v0.62 carried `replace: true` where v0.64
-    // writes `change: "replace"`; read as it was meant, not as `add`.
-    if value.get("kind").and_then(Value::as_str) == Some("scenes")
-        && value.get("replace").and_then(Value::as_bool) == Some(true)
-        && value.get("change").is_none()
-        && let Some(object) = value.as_object_mut()
-    {
-        object.insert("change".into(), json!("replace"));
-    }
-    Ok(serde_json::from_value(value)?)
+    Ok(crate::assistant::proposal::read_stored(value)?)
 }
 
 /// Everything that can be known wrong about a proposal before a row is
@@ -1048,6 +1039,7 @@ mod tests {
     use crate::fixtures;
     use crate::minted::Minted;
     use crate::{note, operation, profile, score, trash};
+    use serde_json::json;
 
     fn workspace() -> (Connection, String, String) {
         let (conn, profile_id) = fixtures::workspace();
