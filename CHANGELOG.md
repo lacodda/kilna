@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.95.2] - 2026-10-10
+
+### Bug Fixes
+- Read a stored proposal through today's type
+- Say how many trials a proposed work brings
+
 ## [0.95.1] - 2026-10-09
 
 ### Bug Fixes
