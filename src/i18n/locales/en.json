@@ -730,6 +730,8 @@
     "packageUnknownFields": "Not fields of this profile, left out: {{fields}}",
     "packageScenes_one": "{{count}} scene",
     "packageScenes_other": "{{count}} scenes",
+    "packageTrials_one": "{{count}} trial",
+    "packageTrials_other": "{{count}} trials",
     "proposedScenes": "Scenes for the board, proposed",
     "proposedScenesReplace": "A storyboard to replace the board, proposed",
     "scenesReplaceHint": "A scene with the same number is rewritten in place; the rest of the board goes to the trash.",

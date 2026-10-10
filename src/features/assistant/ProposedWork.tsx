@@ -86,6 +86,9 @@ export function ProposedWork({ workId, messageId, proposal, applied, dismissed }
   if (notes.length > 0) parts.push(t('assistant.packageNotes', { count: notes.length }))
   const scenes = proposal.scenes ?? []
   if (scenes.length > 0) parts.push(t('assistant.packageScenes', { count: scenes.length }))
+  // An experiment comes with its board: how many trials it lands with.
+  const trials = proposal.trials ?? []
+  if (trials.length > 0) parts.push(t('assistant.packageTrials', { count: trials.length }))
 
   const unknownFields = proposal.unknown_fields ?? []
   const unknownAxes = proposal.score?.unknown ?? []
