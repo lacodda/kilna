@@ -99,7 +99,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            tables, 36,
+            tables, 37,
             "nine core tables, three for the assistant, the trash, two for the focus board, \
              three for the day two workspaces meet (device, tombstone, field_clock), the operations log, \
              the link between works, the scene, what a scene is about, the frames drawn for it, \
@@ -107,7 +107,7 @@ mod tests {
              the canon's facts and relations, the register's terms and the works named for them, \
              the ideas on a cover's board, the blocks of words and the words in them, \
              the repeats the owner chose to keep, where this machine keeps the media, \
-             and the trials of an experiment"
+             the trials of an experiment, and the days the calendar is closed"
         );
     }
 
