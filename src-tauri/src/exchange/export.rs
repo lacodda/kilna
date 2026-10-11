@@ -353,6 +353,25 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
         files += 1;
     }
 
+    // The days the calendar is closed, one page: a plan read without them
+    // reads as a month with holes in it (v0.96).
+    let closed = crate::time_off::list(conn, &profile.id)?;
+    if !closed.is_empty() {
+        let mut page = String::from("# Time off\n\n");
+        for span in &closed {
+            if span.starts_on == span.ends_on {
+                page.push_str(&format!("- {}: {}\n", span.starts_on, span.label));
+            } else {
+                page.push_str(&format!(
+                    "- {} – {}: {}\n",
+                    span.starts_on, span.ends_on, span.label
+                ));
+            }
+        }
+        std::fs::write(directory.join("time-off.md"), page)?;
+        files += 1;
+    }
+
     // The register of repeats, one page: what is spent, and how many works
     // carry each term at the moment of the export (ADR 0044).
     if let Some(page) = register_page(conn, &profile.id)? {
@@ -1153,6 +1172,36 @@ mod tests {
         assert!(page.contains("Reply: thank you!"));
         let loose = std::fs::read_to_string(dir.path().join("comments.md")).unwrap();
         assert!(loose.contains("love the channel"));
+    }
+
+    #[test]
+    fn the_closed_days_go_out_as_a_page_of_their_own() {
+        let (conn, profile_id) = fixtures::workspace();
+        for (from, to, label) in [
+            ("2026-12-31", "2026-12-31", "New Year's Eve"),
+            ("2026-10-20", "2026-10-27", "Away"),
+        ] {
+            crate::time_off::create_minted(
+                &conn,
+                &profile_id,
+                crate::time_off::NewTimeOff {
+                    starts_on: from.into(),
+                    ends_on: to.into(),
+                    label: label.into(),
+                },
+                crate::minted::Minted::fresh(),
+            )
+            .unwrap();
+        }
+        let dir = tempfile::tempdir().unwrap();
+
+        to_markdown(&conn, dir.path()).unwrap();
+
+        let page = std::fs::read_to_string(dir.path().join("time-off.md")).unwrap();
+        assert_eq!(
+            page,
+            "# Time off\n\n- 2026-10-20 – 2026-10-27: Away\n- 2026-12-31: New Year's Eve\n"
+        );
     }
 
     #[test]

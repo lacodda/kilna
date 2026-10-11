@@ -766,6 +766,43 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             crate::layout::apply_at(conn, &placements, &at)?;
         }
 
+        "layout.shift" => {
+            let moves: Vec<crate::layout::Move> = from_params(params, "moves")?;
+            let at = required(params, "at")?;
+            crate::layout::apply_shift_at(conn, &moves, &at)?;
+        }
+
+        // What the range changed is carried, not the range: the same span
+        // read on a rebuilt workspace could name releases the first run did
+        // not touch.
+        "release.pinRange" => {
+            let changes: Vec<release::PinChange> = from_params(params, "changes")?;
+            let pinned = params
+                .get("pinned")
+                .and_then(Value::as_bool)
+                .ok_or_else(|| Error::Internal("the operation carries no `pinned`".into()))?;
+            let at = required(params, "at")?;
+            release::set_pins_at(conn, &changes, pinned, &at)?;
+        }
+
+        "timeOff.create" => {
+            let profile_id = workspace_profile(conn, params)?;
+            let new = from_params(params, "timeOff")?;
+            crate::time_off::create_minted(conn, &profile_id, new, minted(params)?)?;
+        }
+
+        "timeOff.update" => {
+            let id = required(params, "id")?;
+            let patch = from_params(params, "patch")?;
+            let at = required(params, "at")?;
+            crate::time_off::update_at(conn, &id, patch, &at)?;
+        }
+
+        "timeOff.delete" => {
+            let id = required(params, "id")?;
+            crate::time_off::delete(conn, &id)?;
+        }
+
         _ => return Ok(false),
     }
 

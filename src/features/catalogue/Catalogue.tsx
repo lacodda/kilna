@@ -57,7 +57,8 @@ import { NewWorkDialog } from '@/components/NewWorkDialog'
 import { NewCollectionDialog } from '@/features/collections/NewCollectionDialog'
 import { useCollectionGestures } from '@/features/collections/useCollectionGestures'
 import { BulkBar } from './BulkBar'
-import { CarriedRows, CollectionShelf, NEW_COLLECTION } from './CollectionShelf'
+import { CarriedLabel } from '@/components/CarriedLabel'
+import { CollectionShelf, NEW_COLLECTION } from './CollectionShelf'
 import { CatalogueTable } from './CatalogueTable'
 import { CatalogueToolbar } from './CatalogueToolbar'
 import { useShownRows } from './useShownRows'
@@ -480,7 +481,7 @@ export function Catalogue({ onSelect }: Props) {
       </Loaded>
 
       {carry.dragging !== null && (
-        <CarriedRows
+        <CarriedLabel
           pointer={carry.dragging.pointer}
           label={
             carrying.size === 1

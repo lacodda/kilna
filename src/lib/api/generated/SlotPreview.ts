@@ -15,4 +15,10 @@ holder_title: string | null,
  * of a song out or booked near that day (ADR 0054): what the calendar
  * warns about before the release lands.
  */
-repeats: Array<RepeatFinding>, };
+repeats: Array<RepeatFinding>, 
+/**
+ * The name of the time off that closes the day, when one does (v0.96):
+ * said before the release lands, never in its way - a closed day is
+ * closed to the auto-layout, not to a person.
+ */
+closed: string | null, };

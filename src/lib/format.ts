@@ -120,6 +120,22 @@ export function formatDay(value: string, language = current(), now = new Date())
   }).format(day)
 }
 
+/**
+ * A day with its weekday: "Mon, Oct 5", "пн, 5 окт." - how a list of days
+ * names each one, where the weekday is half of what is being read.
+ */
+export function formatWeekday(value: string, language = current(), now = new Date()): string {
+  const day = dayOf(value)
+  if (Number.isNaN(day.getTime())) return value
+  const thisYear = day.getFullYear() === now.getFullYear()
+  return dates(language, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    ...(thisYear ? {} : { year: 'numeric' }),
+  }).format(day)
+}
+
 /** A month and its year, as a calendar names the month it shows. */
 export function formatMonth(year: number, month: number, language = current()): string {
   return dates(language, { month: 'long', year: 'numeric' }).format(new Date(year, month - 1, 1))

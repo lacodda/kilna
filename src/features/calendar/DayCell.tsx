@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { Plus } from 'lucide-react'
-import type { ScheduledRelease, SlotPreview, SlotVerdict } from '@/lib/api/types'
+import { CalendarOff, Plus } from 'lucide-react'
+import type { ScheduledRelease, SlotPreview, SlotVerdict, TimeOff } from '@/lib/api/types'
 import type { Ghost } from '@/lib/layout'
 import type { Day } from '@/lib/month'
 import { foldDay } from '@/lib/calendarDay'
@@ -22,6 +22,8 @@ interface Props {
   now: string
   /** How many chip lines the day has room for (`lib/calendarDay`). */
   lines: number
+  /** The week's two-line chips rather than the month's one-line ones. */
+  roomy: boolean
   /** Showing everything it holds, rolled inside the day, rather than folded. */
   expanded: boolean
   onExpand: (expanded: boolean) => void
@@ -30,6 +32,12 @@ interface Props {
   onPick: () => void
   /** Add a work that goes out on this day. */
   onAdd: () => void
+  /** The time off that closes the day, if any (v0.96). */
+  closed: TimeOff | null
+  /** Close this day, or open the span that closes it to edit. */
+  onTimeOff: () => void
+  /** Shift everything planned from this day on. */
+  onShiftFrom: () => void
   onOpenRelease: (releaseId: string) => void
   /** The release in the air, if any. */
   carrying: string | null
@@ -60,11 +68,15 @@ export function DayCell({
   ghosts,
   now,
   lines,
+  roomy,
   expanded,
   onExpand,
   claiming,
   onPick,
   onAdd,
+  closed,
+  onTimeOff,
+  onShiftFrom,
   onOpenRelease,
   carrying,
   onGrab,
@@ -90,9 +102,10 @@ export function DayCell({
         dragging={carrying === slot.id}
         onGrab={(event) => onGrab(event, slot.id)}
         onOpen={() => onOpenRelease(slot.id)}
+        roomy={roomy}
       />
     )),
-    ...ghosts.map((ghost) => <GhostChip key={ghost.releaseId} ghost={ghost} />),
+    ...ghosts.map((ghost) => <GhostChip key={ghost.releaseId} ghost={ghost} roomy={roomy} />),
   ]
 
   const folded = foldDay(chips.length, lines)
@@ -103,7 +116,18 @@ export function DayCell({
 
   return (
     <RowContextMenu
-      actions={[{ key: 'add', label: t('calendar.addOnDay'), onSelect: onAdd }]}
+      actions={[
+        { key: 'add', label: t('calendar.addOnDay'), onSelect: onAdd },
+        {
+          key: 'timeOff',
+          label:
+            closed === null
+              ? t('timeOff.closeDay')
+              : t('timeOff.editNamed', { title: closed.label }),
+          onSelect: onTimeOff,
+        },
+        { key: 'shift', label: t('shift.fromDay'), onSelect: onShiftFrom },
+      ]}
       render={
         <div
           // The date this cell stands for, read back from the element the
@@ -116,6 +140,9 @@ export function DayCell({
             !lastColumn && 'border-r',
             !lastRow && 'border-b',
             !day.inMonth && 'bg-softer',
+            // A closed day is hatched: still a day - something can be put on
+            // it by hand - but plainly not one the plan meant to fill.
+            closed !== null && CLOSED_GROUND,
             claiming && day.inMonth && 'cursor-pointer hover:bg-soft',
             // Somewhere to land. No red: nothing is refused any more, and a
             // day that already holds something says so in words below.
@@ -135,13 +162,26 @@ export function DayCell({
         {/* Today is where the eye starts, so it is filled rather than
             coloured: on a grid of forty-two cells a coloured digit is not
             where the eye starts. */}
-        <span
-          className={cn(
-            'rounded-xs px-1 font-mono text-2xs tabular-nums',
-            isToday ? 'bg-accent font-semibold text-on-accent' : 'text-faint',
+        <span className="flex min-w-0 items-center gap-1">
+          <span
+            className={cn(
+              'shrink-0 rounded-xs px-1 font-mono text-2xs tabular-nums',
+              isToday ? 'bg-accent font-semibold text-on-accent' : 'text-faint',
+            )}
+          >
+            {Number(day.date.slice(8))}
+          </span>
+          {/* Why the day is closed, in the line the date already takes: a
+              closed day keeps every chip line it had. */}
+          {closed !== null && (
+            <span
+              title={t('timeOff.closedBy', { title: closed.label })}
+              className="flex min-w-0 items-center gap-0.5 text-2xs text-faint"
+            >
+              <CalendarOff aria-hidden className="size-3 shrink-0" />
+              <span className="truncate">{closed.label}</span>
+            </span>
           )}
-        >
-          {Number(day.date.slice(8))}
         </span>
 
         {/* Under the pointer only: a plus on every one of forty-two cells is
@@ -175,7 +215,7 @@ export function DayCell({
         </Scroll>
       ) : (
         <div
-          // What `MonthGrid` measures: the part of a day its chips have,
+          // What `DayGrid` measures: the part of a day its chips have,
           // the same in every day of the month.
           data-day-lines
           className={cn(
@@ -201,6 +241,11 @@ export function DayCell({
           red: it is the one that may change where the release goes. */}
       {verdict !== null && (
         <div className="pointer-events-none absolute inset-x-1 bottom-1 flex flex-col gap-0.5">
+          {verdict.closed !== null && (
+            <p className="rounded-sm bg-raise px-1 py-0.5 text-2xs leading-tight text-warn shadow-lift">
+              {t('timeOff.landsOnClosed', { title: verdict.closed })}
+            </p>
+          )}
           {verdict.verdict !== 'empty' && (
             <p
               className={cn(
@@ -256,3 +301,11 @@ const VERDICT_TONE: Record<SlotVerdict, string> = {
   taken: 'bg-raise text-dim',
   pinned: 'bg-raise text-warn',
 }
+
+/**
+ * The ground of a closed day: a fine hatch in the hairline's colour, over
+ * whatever ground the day already has - so a closed day of a neighbouring
+ * month is still quieter than one of this month.
+ */
+const CLOSED_GROUND =
+  '[background-image:repeating-linear-gradient(135deg,var(--line-2)_0_1px,transparent_1px_7px)]'

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CHIP_GAP, CHIP_HEIGHT, foldDay, linesThatFit } from './calendarDay'
+import { CHIP_GAP, CHIP_HEIGHT, foldDay, linesThatFit, ROOMY_CHIP_HEIGHT } from './calendarDay'
 
 describe('how many chips a day has room for', () => {
   it('counts whole chips with the gaps between them', () => {
@@ -8,6 +8,14 @@ describe('how many chips a day has room for', () => {
     expect(linesThatFit(CHIP_HEIGHT * 2 + CHIP_GAP)).toBe(2)
     expect(linesThatFit(CHIP_HEIGHT * 2 + CHIP_GAP - 1)).toBe(1)
     expect(linesThatFit(CHIP_HEIGHT * 4 + CHIP_GAP * 3)).toBe(4)
+  })
+
+  it("counts the week's taller chips by their own height", () => {
+    const tall = ROOMY_CHIP_HEIGHT * 3 + CHIP_GAP * 2
+    expect(linesThatFit(tall, ROOMY_CHIP_HEIGHT)).toBe(3)
+    expect(linesThatFit(tall - 1, ROOMY_CHIP_HEIGHT)).toBe(2)
+    // The same room holds far more of the month's one-line chips.
+    expect(linesThatFit(tall)).toBeGreaterThan(5)
   })
 
   it('has room for nothing in a day too short for one chip', () => {

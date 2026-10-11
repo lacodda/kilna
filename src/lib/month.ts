@@ -38,10 +38,6 @@ export function shiftMonth({ year, month }: Month, by: number): Month {
   return { year: Math.floor(total / 12), month: (total % 12) + 1 }
 }
 
-export function sameMonth(a: Month, b: Month): boolean {
-  return a.year === b.year && a.month === b.month
-}
-
 /** How many days a month has, leap years included. */
 export function daysInMonth({ year, month }: Month): number {
   // Day 0 of the next month is the last day of this one.

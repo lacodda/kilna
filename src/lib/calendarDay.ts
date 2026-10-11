@@ -25,10 +25,17 @@ export const CHIP_GAP = 2
  */
 export const UNMEASURED_LINES = 3
 
-/** How many chip lines fit in a day's chip area of `height` pixels. */
-export function linesThatFit(height: number): number {
+/**
+ * A chip's height in the week (v0.96): two lines, the title whole on the
+ * first and the marks under it - the room a week's day has and a month's
+ * does not. `h-11` in `SlotChip` and `GhostChip`.
+ */
+export const ROOMY_CHIP_HEIGHT = 44
+
+/** How many chips of `chip` pixels fit in a day's chip area of `height`. */
+export function linesThatFit(height: number, chip: number = CHIP_HEIGHT): number {
   if (!Number.isFinite(height) || height <= 0) return 0
-  return Math.floor((height + CHIP_GAP) / (CHIP_HEIGHT + CHIP_GAP))
+  return Math.floor((height + CHIP_GAP) / (chip + CHIP_GAP))
 }
 
 /** What a day draws: its first `shown` chips, then `more` folded into a count. */

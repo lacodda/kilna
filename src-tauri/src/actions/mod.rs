@@ -36,6 +36,7 @@ pub mod release;
 pub mod scene;
 pub mod score;
 pub mod style;
+pub mod time_off;
 pub mod trash;
 pub mod trial;
 pub mod version;

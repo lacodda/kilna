@@ -307,10 +307,12 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "calendar",
-            "Every release with a date, in calendar order: what, of which work, which kind, \
-             scheduled for when, released when, the link. Past releases included; filter with \
-             `from` to start at a day.",
-            json!({ "from": text_arg("Only releases on or after this day, YYYY-MM-DD") }),
+            "The calendar. `releases`: every release with a date, in calendar order - what, of \
+             which work, which kind, scheduled for when, released when, the link, whether its \
+             date is kept (`slot_pinned_at`); past releases included. `closed`: the time off - \
+             spans of days nothing should go out on, `starts_on`..`ends_on` both inside, and \
+             why (`label`). Filter with `from` to start at a day.",
+            json!({ "from": text_arg("Only what is on or after this day, YYYY-MM-DD") }),
             &[],
         ),
         tool(
@@ -1245,7 +1247,7 @@ pub fn run_tool(
 
         "calendar" => {
             let from = arg(args, "from").map(str::to_owned);
-            let rows: Vec<release::ScheduledRelease> = release::calendar(conn, &profile.id)?
+            let releases: Vec<release::ScheduledRelease> = release::calendar(conn, &profile.id)?
                 .into_iter()
                 .filter(|r| {
                     from.as_deref().is_none_or(|day| {
@@ -1256,7 +1258,15 @@ pub fn run_tool(
                     })
                 })
                 .collect();
-            pretty(&rows)
+            // A span still running on `from` is part of what lies ahead.
+            let closed: Vec<crate::time_off::TimeOff> = crate::time_off::list(conn, &profile.id)?
+                .into_iter()
+                .filter(|span| {
+                    from.as_deref()
+                        .is_none_or(|day| span.ends_on.as_str() >= day)
+                })
+                .collect();
+            pretty(&json!({ "releases": releases, "closed": closed }))
         }
 
         "notes" => {
@@ -3881,5 +3891,45 @@ mod tests {
             )
             .unwrap();
         assert_eq!(lines, 1);
+    }
+
+    /// The calendar an agent reads says which days are closed, beside what is
+    /// booked: a plan proposed without them would land on a holiday.
+    #[test]
+    fn the_calendar_names_the_closed_days_ahead() {
+        let (conn, _) = workspace();
+        let profile_id = profile::active(&conn).unwrap().unwrap().id;
+        let clip = video(&conn);
+        fixtures::release(&conn, &clip, "youtube", Some("2026-10-02"));
+        for (from, to, label) in [
+            ("2026-09-01", "2026-09-03", "Gone by"),
+            ("2026-09-30", "2026-10-04", "Away"),
+        ] {
+            crate::time_off::create_minted(
+                &conn,
+                &profile_id,
+                crate::time_off::NewTimeOff {
+                    starts_on: from.into(),
+                    ends_on: to.into(),
+                    label: label.into(),
+                },
+                crate::minted::Minted::fresh(),
+            )
+            .unwrap();
+        }
+
+        let read = run_tool(
+            &conn,
+            &claude(),
+            "calendar",
+            &args(json!({ "from": "2026-10-01" })),
+        )
+        .unwrap();
+        let read: Value = serde_json::from_str(&read).unwrap();
+
+        assert_eq!(read["releases"].as_array().unwrap().len(), 1);
+        let closed = read["closed"].as_array().unwrap();
+        assert_eq!(closed.len(), 1, "a span over by then is not ahead");
+        assert_eq!(closed[0]["label"], "Away", "one still running on `from` is");
     }
 }

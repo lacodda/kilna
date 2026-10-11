@@ -1,4 +1,4 @@
-import type { Placement, ScheduledRelease } from '@/lib/api/types'
+import type { Move, Placement, ScheduledRelease } from '@/lib/api/types'
 
 /** A planned-but-unbooked chip: where a queued release would land. */
 export interface Ghost {
@@ -39,4 +39,23 @@ export function ghostsOf(
   }
 
   return ghosts
+}
+
+/**
+ * A shift waiting for an answer, grouped by the day each release would land
+ * on: the booked releases it moves, drawn as ghosts where they would go.
+ *
+ * Read off the calendar rather than the queue - a shift moves what already
+ * has a date. A move whose release is no longer booked is dropped, as a stale
+ * placement is: the backend refuses the shift whole, and a nameless ghost
+ * answers nothing in the meantime.
+ */
+export function shiftGhostsOf(
+  moves: readonly Move[],
+  slots: readonly ScheduledRelease[],
+): Map<string, Ghost[]> {
+  return ghostsOf(
+    moves.map((move) => ({ release_id: move.release_id, date: move.to })),
+    slots,
+  )
 }

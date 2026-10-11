@@ -2,15 +2,19 @@ import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   applyLayout,
+  applyShift,
   createRelease,
   generateReleaseFieldsBatch,
   markReleased,
+  pinRange,
   planLayout,
+  planShift,
   scheduleRelease,
   unscheduleRelease,
   warnUnreadyReleases,
 } from '@/lib/api/releases'
-import type { NewRelease, Placement, RepeatFinding } from '@/lib/api/types'
+import type { Move, NewRelease, Placement, RepeatFinding, ShiftPlan } from '@/lib/api/types'
+import { announceEdited } from '@/lib/edited'
 import { today } from '@/lib/month'
 import { keys } from '@/lib/query/keys'
 import { queries } from '@/lib/query/queries'
@@ -32,6 +36,8 @@ interface Options {
   onChanged: () => void
   /** The auto-layout came back with a plan to approve. */
   onPlanned: (placements: Placement[]) => void
+  /** A shift came back with the moves to approve. */
+  onShiftPlanned: (plan: ShiftPlan, from: string, days: number) => void
   /** A queued release was given a date. */
   onClaimed: () => void
   /** A work chosen for a day went onto it. */
@@ -47,7 +53,13 @@ interface Options {
  * one lands. Editing a booking is not among them: the release's dialog saves
  * its own form (`ReleaseEditor`), the one the Releases tab saves too.
  */
-export function useCalendarActions({ onChanged, onPlanned, onClaimed, onDayFilled }: Options) {
+export function useCalendarActions({
+  onChanged,
+  onPlanned,
+  onShiftPlanned,
+  onClaimed,
+  onDayFilled,
+}: Options) {
   const { t } = useTranslation()
   const client = useQueryClient()
 
@@ -199,12 +211,14 @@ export function useCalendarActions({ onChanged, onPlanned, onClaimed, onDayFille
     },
   })
 
+  // A booked plan is one step back since v0.96, so the line that says it
+  // landed offers the step.
   const book = useAppMutation({
     mutationFn: (placements: Placement[]) => applyLayout(placements),
     refresh: REFRESHED,
     onSuccess: () => {
       settle()
-      say.ok(t('toast.layoutApplied'))
+      announceEdited({ client, message: t('toast.layoutApplied'), refresh: REFRESHED })
     },
     // A stale plan is refused whole; the refetch shows what the calendar
     // actually holds now, and the person previews again from that. `refresh`
@@ -216,7 +230,70 @@ export function useCalendarActions({ onChanged, onPlanned, onClaimed, onDayFille
     },
   })
 
-  return { settle, claim, fillDay, release, move, unschedule, preview, fillFields, book }
+  // A shift moves nothing either: the moves come back to be drawn and
+  // approved, as a layout's placements do.
+  const previewShift = useAppMutation({
+    mutationFn: ({ from, days }: { from: string; days: number }) =>
+      planShift(from, days, today()).then((plan) => ({ plan, from, days })),
+    failure: 'shift.failed',
+    onSuccess: ({ plan, from, days }) => onShiftPlanned(plan, from, days),
+  })
+
+  const shift = useAppMutation({
+    mutationFn: (moves: Move[]) => applyShift(moves),
+    refresh: REFRESHED,
+    onSuccess: (moved) => {
+      settle()
+      announceEdited({
+        client,
+        message: t('shift.done', { count: moved }),
+        refresh: REFRESHED,
+      })
+    },
+    // Refused whole when the calendar moved since the preview, as a stale
+    // layout is: the refetch shows what it holds now.
+    onError: (cause) => {
+      for (const key of REFRESHED) void client.invalidateQueries({ queryKey: key })
+      settle()
+      say.failedTo(t('shift.failed'), cause)
+    },
+  })
+
+  // A week or a month of dates kept, or freed, in one gesture. Nothing to
+  // change is said as such rather than as a change of nothing.
+  const pinPeriod = useAppMutation({
+    mutationFn: ({ from, to, pinned }: { from: string; to: string; pinned: boolean }) =>
+      pinRange(from, to, pinned).then((count) => ({ count, pinned })),
+    failure: 'toast.releaseSaveFailed',
+    refresh: REFRESHED,
+    onSuccess: ({ count, pinned }) => {
+      onChanged()
+      if (count === 0) {
+        say.info(t(pinned ? 'calendar.pinnedNone' : 'calendar.unpinnedNone'))
+        return
+      }
+      announceEdited({
+        client,
+        message: t(pinned ? 'calendar.pinnedPeriod' : 'calendar.unpinnedPeriod', { count }),
+        refresh: REFRESHED,
+      })
+    },
+  })
+
+  return {
+    settle,
+    claim,
+    fillDay,
+    release,
+    move,
+    unschedule,
+    preview,
+    fillFields,
+    book,
+    previewShift,
+    shift,
+    pinPeriod,
+  }
 }
 
 export type CalendarActions = ReturnType<typeof useCalendarActions>

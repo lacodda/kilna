@@ -163,6 +163,10 @@ pub struct SlotPreview {
     /// of a song out or booked near that day (ADR 0054): what the calendar
     /// warns about before the release lands.
     pub repeats: Vec<crate::register::guard::RepeatFinding>,
+    /// The name of the time off that closes the day, when one does (v0.96):
+    /// said before the release lands, never in its way - a closed day is
+    /// closed to the auto-layout, not to a person.
+    pub closed: Option<String>,
 }
 
 /// What a look at a day found: who is on it, and in what state.
@@ -304,16 +308,19 @@ pub fn preview(conn: &Connection, id: &str, slot: &str) -> Result<SlotPreview> {
         .as_ref()
         .map(|occupant| crate::journal::work_title(conn, &occupant.work_id).unwrap_or_default());
 
-    let work_id: String = conn.query_row(
-        "SELECT work_id FROM release WHERE id = ?1",
+    let (work_id, profile_id): (String, String) = conn.query_row(
+        "SELECT r.work_id, w.profile_id FROM release r JOIN work w ON w.id = r.work_id
+          WHERE r.id = ?1",
         params![id],
-        |row| row.get(0),
+        |row| Ok((row.get(0)?, row.get(1)?)),
     )?;
     let repeats = crate::register::guard::at_slot(conn, &work_id, slot)?;
+    let closed = crate::time_off::covering(conn, &profile_id, slot)?.map(|span| span.label);
     Ok(SlotPreview {
         verdict: judged.verdict,
         holder_title,
         repeats,
+        closed,
     })
 }
 
@@ -411,6 +418,76 @@ pub fn set_slot_pin_at(conn: &Connection, id: &str, pinned: bool, at: &str) -> R
     )?;
 
     get(conn, id)?.ok_or_else(|| unknown_release(id))
+}
+
+/// A pin one gesture changed, and what it was before.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct PinChange {
+    pub release_id: String,
+    /// The moment the date was settled before the change, or none.
+    pub before: Option<String>,
+}
+
+/// Pin, or unpin, every planned release with a date in `from..=to` (v0.96):
+/// a week or a month settled in one gesture rather than a click per chip.
+///
+/// Only what would change is touched and returned - a release already in
+/// the state asked for keeps the moment it was pinned - so the undo puts back
+/// exactly what this took away. Released dates are history, not plans, and
+/// are left out.
+pub fn pin_range_at(
+    conn: &Connection,
+    profile_id: &str,
+    from: &str,
+    to: &str,
+    pinned: bool,
+    at: &str,
+) -> Result<Vec<PinChange>> {
+    for day in [from, to] {
+        if !crate::time::is_date(day) {
+            return Err(Error::refused("release.badDay").param("value", day));
+        }
+    }
+    let mut statement = conn.prepare(
+        "SELECT r.id, r.slot_pinned_at FROM release r JOIN work w ON w.id = r.work_id
+          WHERE w.profile_id = ?1 AND r.status = ?2
+            AND r.scheduled_at >= ?3 AND r.scheduled_at <= ?4
+            AND (r.slot_pinned_at IS NULL) = ?5
+          ORDER BY r.scheduled_at, r.id",
+    )?;
+    let changes = statement
+        .query_map(params![profile_id, PLANNED, from, to, pinned], |row| {
+            Ok(PinChange {
+                release_id: row.get(0)?,
+                before: row.get(1)?,
+            })
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    set_pins_at(conn, &changes, pinned, at)?;
+    Ok(changes)
+}
+
+/// Pin or unpin exactly these releases: what a range gesture changed, as the
+/// replay brings it back.
+pub fn set_pins_at(conn: &Connection, changes: &[PinChange], pinned: bool, at: &str) -> Result<()> {
+    for change in changes {
+        conn.execute(
+            "UPDATE release SET slot_pinned_at = ?2, updated_at = ?3 WHERE id = ?1",
+            params![change.release_id, pinned.then(|| at.to_owned()), at],
+        )?;
+    }
+    Ok(())
+}
+
+/// Put back the pins a range gesture changed - the undo of [`pin_range_at`].
+pub fn restore_pins_at(conn: &Connection, changes: &[PinChange], at: &str) -> Result<()> {
+    for change in changes {
+        conn.execute(
+            "UPDATE release SET slot_pinned_at = ?2, updated_at = ?3 WHERE id = ?1",
+            params![change.release_id, change.before, at],
+        )?;
+    }
+    Ok(())
 }
 
 /// Take a release out of the calendar without deleting it.
@@ -1897,5 +1974,110 @@ mod tests {
         let untouched = get(&conn, &release.id).unwrap().unwrap();
         assert_eq!(untouched.scheduled_time, None);
         assert_eq!(untouched.time_zone, None);
+    }
+
+    /// A week pinned in one gesture: only what changes is touched, a pin
+    /// already set keeps its moment, a release out already is history, and
+    /// the undo puts back exactly what was there.
+    #[test]
+    fn a_range_is_pinned_in_one_gesture_and_put_back_exactly() {
+        let (conn, profile_id) = fixtures::workspace();
+        let inside = planned(&conn, &profile_id, "Inside", Some(6.0));
+        let already = planned(&conn, &profile_id, "Already", Some(6.0));
+        let out = planned(&conn, &profile_id, "Out", Some(6.0));
+        let after = planned(&conn, &profile_id, "After", Some(6.0));
+        schedule(&conn, &inside.id, "2026-09-07").unwrap();
+        schedule(&conn, &already.id, "2026-09-09").unwrap();
+        let settled = set_slot_pin_at(&conn, &already.id, true, "2026-08-01T00:00:00.000Z")
+            .unwrap()
+            .slot_pinned_at;
+        schedule(&conn, &out.id, "2026-09-10").unwrap();
+        mark_released(&conn, &out.id, None, None).unwrap();
+        schedule(&conn, &after.id, "2026-09-14").unwrap();
+
+        let changed = pin_range_at(
+            &conn,
+            &profile_id,
+            "2026-09-07",
+            "2026-09-13",
+            true,
+            "2026-09-02T00:00:00.000Z",
+        )
+        .unwrap();
+
+        assert_eq!(
+            changed,
+            vec![PinChange {
+                release_id: inside.id.clone(),
+                before: None,
+            }]
+        );
+        let pinned_at = |id: &str| get(&conn, id).unwrap().unwrap().slot_pinned_at;
+        assert!(pinned_at(&inside.id).is_some());
+        assert_eq!(
+            pinned_at(&already.id),
+            settled,
+            "an older pin keeps its moment"
+        );
+        assert!(pinned_at(&out.id).is_none(), "history is not a plan");
+        assert!(pinned_at(&after.id).is_none(), "outside the range");
+
+        let unpinned = pin_range_at(
+            &conn,
+            &profile_id,
+            "2026-09-07",
+            "2026-09-13",
+            false,
+            "2026-09-03T00:00:00.000Z",
+        )
+        .unwrap();
+        assert_eq!(unpinned.len(), 2);
+        restore_pins_at(&conn, &unpinned, "2026-09-04T00:00:00.000Z").unwrap();
+        assert_eq!(
+            pinned_at(&already.id),
+            settled,
+            "the undo puts the moment back"
+        );
+        assert!(pinned_at(&inside.id).is_some());
+    }
+
+    /// The day under a release says when it is closed, by the time off's
+    /// name - and still lets the release land.
+    #[test]
+    fn the_preview_names_the_time_off_that_closes_a_day() {
+        let (conn, profile_id) = fixtures::workspace();
+        let release = planned(&conn, &profile_id, "Subject", Some(6.0));
+        crate::time_off::create_minted(
+            &conn,
+            &profile_id,
+            crate::time_off::NewTimeOff {
+                starts_on: "2026-12-24".into(),
+                ends_on: "2026-12-26".into(),
+                label: "Holidays".into(),
+            },
+            Minted::fresh(),
+        )
+        .unwrap();
+
+        let closed = preview(&conn, &release.id, "2026-12-25").unwrap();
+        assert_eq!(closed.closed.as_deref(), Some("Holidays"));
+        assert_eq!(closed.verdict, Verdict::Empty);
+        assert!(
+            preview(&conn, &release.id, "2026-12-27")
+                .unwrap()
+                .closed
+                .is_none()
+        );
+
+        schedule(&conn, &release.id, "2026-12-25").unwrap();
+        assert_eq!(
+            get(&conn, &release.id)
+                .unwrap()
+                .unwrap()
+                .scheduled_at
+                .as_deref(),
+            Some("2026-12-25"),
+            "closed to the layout, not to a person"
+        );
     }
 }

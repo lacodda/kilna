@@ -351,7 +351,6 @@
     "pinSlotHint": "The auto-layout will not put anything here.",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
-    "thisMonth": "This month",
     "allKinds": "All",
     "addOnDay": "Add a work",
     "moreOnDay_one": "+{{count}} more",
@@ -417,7 +416,32 @@
     "queueStage": "Stage reached",
     "queueAnyStage": "Any stage",
     "queueNoMatch": "Nothing in the queue matches.",
-    "slotTime": "Time"
+    "slotTime": "Time",
+    "today": "Today",
+    "previousWeek": "Previous week",
+    "nextWeek": "Next week",
+    "view": {
+      "label": "How the plan is shown",
+      "month": "Month",
+      "week": "Week",
+      "agenda": "Agenda"
+    },
+    "more": "Calendar actions",
+    "pinWeek": "Keep every date this week",
+    "pinMonth": "Keep every date this month",
+    "unpinWeek": "Free every date this week",
+    "unpinMonth": "Free every date this month",
+    "pinnedNone": "Every planned date here is already kept.",
+    "unpinnedNone": "No planned date here is kept.",
+    "pinnedPeriod_one": "{{count}} date kept.",
+    "pinnedPeriod_other": "{{count}} dates kept.",
+    "unpinnedPeriod_one": "{{count}} date free to move again.",
+    "unpinnedPeriod_other": "{{count}} dates free to move again.",
+    "paneSource": "What the pane lists",
+    "unplanned": "Works",
+    "unplannedHint": "Works that could go out and have nothing planned. Drag one onto a day, or pick it and give it a date.",
+    "unplannedEmpty": "Every work that can go out has its release.",
+    "unplannedSearch": "Find a work…"
   },
   "releases": {
     "kind": "Place",
@@ -1568,7 +1592,18 @@
     "collection.removed_one": "{{count}} work taken out of “{{title}}”.",
     "collection.removed_other": "{{count}} works taken out of “{{title}}”.",
     "proposal.trials": "{{client}} proposed trials for the board of “{{title}}”.",
-    "trial.deleted": "Trial “{{label}}” taken off the board."
+    "trial.deleted": "Trial “{{label}}” taken off the board.",
+    "timeOff.created": "Closed {{from}} – {{to}}: “{{title}}”.",
+    "timeOff.changed": "“{{title}}” now closes {{from}} – {{to}}.",
+    "timeOff.deleted": "“{{title}}” ({{from}} – {{to}}) is open again.",
+    "release.pinnedRange_one": "{{count}} date between {{from}} and {{to}} kept.",
+    "release.pinnedRange_other": "{{count}} dates between {{from}} and {{to}} kept.",
+    "release.unpinnedRange_one": "{{count}} date between {{from}} and {{to}} free to move again.",
+    "release.unpinnedRange_other": "{{count}} dates between {{from}} and {{to}} free to move again.",
+    "layout.shiftedLater_one": "The plan from {{from}} on moved {{count}} day later — {{moved}} in all.",
+    "layout.shiftedLater_other": "The plan from {{from}} on moved {{count}} days later — {{moved}} in all.",
+    "layout.shiftedEarlier_one": "The plan from {{from}} on moved {{count}} day earlier — {{moved}} in all.",
+    "layout.shiftedEarlier_other": "The plan from {{from}} on moved {{count}} days earlier — {{moved}} in all."
   },
   "card": {
     "tab": {
@@ -1712,7 +1747,13 @@
     "collection.setContents": "a change to a collection's works",
     "collection.add": "adding works to a collection",
     "trial.create": "putting a trial on the board",
-    "trial.update": "an edit to a trial"
+    "trial.update": "an edit to a trial",
+    "timeOff.create": "closing the days",
+    "timeOff.update": "an edit to closed days",
+    "timeOff.delete": "opening the days",
+    "release.pinRange": "keeping the dates",
+    "layout.apply": "the layout",
+    "layout.shift": "the shift"
   },
   "stage": {
     "label": "Stage",
@@ -2371,7 +2412,10 @@
     "layout": {
       "noRhythm": "The profile has no release rhythm — set one in the profile editor.",
       "rhythmTooShort": "The rhythm must be at least one day.",
-      "badDate": "“{{value}}” is not an ISO date."
+      "badDate": "“{{value}}” is not an ISO date.",
+      "shiftByNothing": "A shift moves the plan by at least one day.",
+      "shiftTooFar": "A shift moves the plan by {{days}} days at most.",
+      "shiftIntoThePast": "This would put “{{title}}” on {{date}}, before today. Shift from a later day, or by fewer days."
     },
     "link": {
       "otherWorkspace": "A link joins two works of the same workspace.",
@@ -2600,6 +2644,11 @@
       "nothingAsked": "Ask for at least one trial.",
       "fixOfNothing": "Say which trial went wrong.",
       "noTrials": "The answer holds no trial with a text."
+    },
+    "timeOff": {
+      "badDay": "“{{value}}” is not a calendar day.",
+      "endsBeforeItStarts": "The days off end on {{to}}, before they start on {{from}}.",
+      "unnamed": "Closed days need a name — “Away”, “New Year” — so the month can say why they are closed."
     }
   },
   "skip": {
@@ -3484,5 +3533,73 @@
     },
     "putMark": "On the board",
     "openBoard": "Open the board"
+  },
+  "timeOff": {
+    "menu": "Time off…",
+    "title": "Time off",
+    "hint": "Days nothing should go out on. The layout steps over them; you can still put a release there yourself.",
+    "closeDay": "Close this day…",
+    "editNamed": "Edit “{{title}}”…",
+    "closedBy": "Closed: {{title}}",
+    "landsOnClosed": "Closed: {{title}}",
+    "defaultLabel": "Time off",
+    "daysLabel": "Days",
+    "pickDays": "Pick the days",
+    "nameLabel": "Name",
+    "closeDays": "Close these days",
+    "save": "Save",
+    "cancelEdit": "Cancel the edit",
+    "edit": "Edit “{{title}}”",
+    "open": "Open “{{title}}” again",
+    "none": "No days are closed.",
+    "past": "Past",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "bookedInside_one": "{{count}} release is planned inside “{{title}}”.",
+    "bookedInside_other": "{{count}} releases are planned inside “{{title}}”.",
+    "moveOut": "Move them out",
+    "moveOutCount_one": "Move {{count}} out",
+    "moveOutCount_other": "Move {{count}} out",
+    "closed": "“{{title}}” closed.",
+    "saved": "“{{title}}” saved.",
+    "opened": "“{{title}}” is open again.",
+    "saveFailed": "Could not save the closed days.",
+    "deleteFailed": "Could not open the days again."
+  },
+  "shift": {
+    "menu": "Shift the plan…",
+    "fromDay": "Shift the plan from here…",
+    "title": "Shift the plan",
+    "hint": "Everything planned from a day on moves by the same number of days. Kept dates and what already went out stay where they are.",
+    "fromLabel": "From",
+    "fromHelp": "Releases planned on this day and after it move.",
+    "byLabel": "By",
+    "daysUnit_one": "day",
+    "daysUnit_other": "days",
+    "daysCount_one": "{{count}} day",
+    "daysCount_other": "{{count}} days",
+    "direction": "Which way",
+    "later": "Later",
+    "earlier": "Earlier",
+    "preview": "Show me",
+    "previewLater_one": "{{count}} release from {{from}} would move {{days}} later.",
+    "previewLater_other": "{{count}} releases from {{from}} would move {{days}} later.",
+    "previewEarlier_one": "{{count}} release from {{from}} would move {{days}} earlier.",
+    "previewEarlier_other": "{{count}} releases from {{from}} would move {{days}} earlier.",
+    "previewKept_one": "{{count}} kept date stays.",
+    "previewKept_other": "{{count}} kept dates stay.",
+    "previewClosed_one": "{{count}} would land on a closed day.",
+    "previewClosed_other": "{{count}} would land on closed days.",
+    "apply": "Shift",
+    "nothing": "Nothing is planned from {{from}} on that could move.",
+    "done_one": "{{count}} release shifted.",
+    "done_other": "{{count}} releases shifted.",
+    "failed": "Could not shift the plan."
+  },
+  "agenda": {
+    "label": "The month as a list",
+    "gap_one": "Nothing planned · {{when}}",
+    "gap_other": "{{count}} days with nothing planned · {{when}}",
+    "closed": "{{title}} · {{when}}"
   }
 }

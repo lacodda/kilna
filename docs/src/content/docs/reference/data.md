@@ -125,7 +125,9 @@ format 1.
 
 Notes not attached to any work are written to a separate `notes.md`, an
 idea or a phrase with its state under it, and comments about no work to
-`comments.md`, rather than lost. The [register of repeats](/kilna/guides/the-register/)
+`comments.md`, rather than lost. The calendar's [time off](/kilna/guides/planning-a-release/#time-off)
+goes to `time-off.md`, one line per span, earliest first: its days and its
+name. The [register of repeats](/kilna/guides/the-register/)
 goes to `register.md`: every term by strictness, with its forms, kind, topic
 and note, how many works carry it at the moment of the export, and for an
 image or a scene the works named for it; then the words that are not spent -

@@ -40,6 +40,8 @@ struct Queued {
 ///
 /// * **Nothing already on the calendar moves.** Booked days — pinned or not —
 ///   are ground the layout builds around, never material it rearranges.
+/// * **Closed days stay empty** ([`crate::time_off`]): a holiday, a fortnight
+///   away. The layout steps over them; only a person puts something there.
 /// * **Spacing**: a placement keeps at least `every_days` from every release
 ///   that has a date — existing or placed here, planned or already out. The
 ///   rhythm is the pace of the whole output, not of one work.
@@ -77,6 +79,7 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
     }
     let spacing = Duration::days(i64::from(rhythm.every_days) - 1);
     let today = parse_date(today)?;
+    let closed = crate::time_off::spans(conn, profile_id)?;
 
     // What each work is made from - the videos it is cut from, and every
     // work up its chain - read once for the whole workspace. Asking per
@@ -151,8 +154,11 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
     // The donor rule does not widen this. It blocks the same two-day window
     // around a placement that the work rule blocks, on a different key, so
     // the worst case a placement can push the scan is what it already was.
+    // A closed day pushes it by one day at most, so every closed day counts
+    // once more.
     let mut scans_left = (remaining.len() as i64 + 2) * (i64::from(rhythm.every_days) + 2)
         + taken.len() as i64 * 2 * i64::from(rhythm.every_days)
+        + closed.iter().map(crate::time_off::Span::days).sum::<i64>()
         + 366;
 
     while !remaining.is_empty() {
@@ -167,7 +173,7 @@ pub fn plan(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Plac
             .range(date - spacing..=date + spacing)
             .next()
             .is_none();
-        if spaced {
+        if spaced && !crate::time_off::closes(&closed, date) {
             // The strongest release whose work — and whose donors — keep clear
             // of the neighbouring days. When everything remaining is too
             // close, the day stays empty and the scan moves on: scatter is a
@@ -241,8 +247,12 @@ fn apply_in(tx: &Connection, placements: &[Placement], at: &str) -> Result<usize
         if found.status != release::PLANNED || found.scheduled_at.is_some() {
             return Err(stale("a release from the plan is no longer in the queue"));
         }
-        if release::preview(tx, &placement.release_id, &placement.date)?.verdict != Verdict::Empty {
+        let day = release::preview(tx, &placement.release_id, &placement.date)?;
+        if day.verdict != Verdict::Empty {
             return Err(stale("a day from the plan is no longer free"));
+        }
+        if day.closed.is_some() {
+            return Err(stale("a day from the plan has been closed"));
         }
 
         tx.execute(
@@ -252,6 +262,176 @@ fn apply_in(tx: &Connection, placements: &[Placement], at: &str) -> Result<usize
     }
 
     Ok(placements.len())
+}
+
+/// Take back a booked plan: every release it placed goes back to the queue.
+///
+/// The undo of [`apply`]. Only the last operation is ever undone, so each
+/// release is where the plan put it; one that has gone out since is left
+/// alone - its date is a record of what happened, not a booking.
+pub fn take_back_at(conn: &Connection, placements: &[Placement], at: &str) -> Result<()> {
+    for placement in placements {
+        conn.execute(
+            "UPDATE release SET scheduled_at = NULL, slot_pinned_at = NULL, updated_at = ?2
+              WHERE id = ?1 AND status = ?3",
+            params![placement.release_id, at, release::PLANNED],
+        )?;
+    }
+    Ok(())
+}
+
+/// One release going from one day to another.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+pub struct Move {
+    pub release_id: String,
+    pub from: String,
+    pub to: String,
+}
+
+/// What shifting the calendar would do, before anything moves.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ts_rs::TS)]
+pub struct ShiftPlan {
+    /// Every release that would move, in calendar order.
+    pub moves: Vec<Move>,
+    /// Releases in the span that keep their date, because a person settled
+    /// it: a pin is the one word that says "this day, whatever else moves".
+    pub kept: Vec<String>,
+    /// Releases of `moves` that would land on a closed day. Said, not
+    /// refused: the person shifting is the one deciding.
+    pub closed: Vec<String>,
+}
+
+/// The longest shift, either way. A year is already a different plan.
+const MAX_SHIFT_DAYS: i64 = 366;
+
+/// Where the calendar would be after moving everything planned from `from`
+/// onward by `days` - later when positive, earlier when negative.
+///
+/// The second of the layout's two halves for a calendar already booked: a
+/// week lost to illness, a fortnight away added after the plan was made. It
+/// moves nothing; [`apply_shift`] books exactly what it returns.
+///
+/// * **What moves**: every planned release with a date on or after `from`.
+///   What already went out is history and stays; what a person pinned stays,
+///   and the plan names it, so "why did that one not move" has an answer
+///   before it is asked.
+/// * **By plain days.** The gaps between releases are the rhythm, and moving
+///   them all by the same number of days keeps it. A release landing on a
+///   closed day is named, not stepped over: stepping over would bunch the
+///   days after the closure.
+/// * **Never into the past.** A shift that would put a release before `today`
+///   is refused whole, naming the first one: today's local date, supplied by
+///   the window, as for [`plan`].
+pub fn plan_shift(
+    conn: &Connection,
+    profile_id: &str,
+    from: &str,
+    days: i64,
+    today: &str,
+) -> Result<ShiftPlan> {
+    if days == 0 {
+        return Err(Error::refused("layout.shiftByNothing"));
+    }
+    if days.abs() > MAX_SHIFT_DAYS {
+        return Err(Error::refused("layout.shiftTooFar").param("days", MAX_SHIFT_DAYS));
+    }
+    let start = parse_date(from)?;
+    let today = parse_date(today)?;
+    let closed = crate::time_off::spans(conn, profile_id)?;
+    let by = Duration::days(days);
+
+    let mut plan = ShiftPlan {
+        moves: Vec::new(),
+        kept: Vec::new(),
+        closed: Vec::new(),
+    };
+    for entry in release::calendar(conn, profile_id)? {
+        let Some(on) = entry.release.scheduled_at.as_deref() else {
+            continue;
+        };
+        if entry.release.status != release::PLANNED {
+            continue;
+        }
+        let on_day = parse_date(on)?;
+        if on_day < start {
+            continue;
+        }
+        if entry.release.slot_pinned_at.is_some() {
+            plan.kept.push(entry.release.id);
+            continue;
+        }
+        let to = on_day
+            .checked_add(by)
+            .ok_or_else(|| Error::Internal("the shift ran off the end of the calendar".into()))?;
+        if to < today {
+            return Err(Error::refused("layout.shiftIntoThePast")
+                .param("title", entry.work_title)
+                .param("date", iso(to)?));
+        }
+        if crate::time_off::closes(&closed, to) {
+            plan.closed.push(entry.release.id.clone());
+        }
+        plan.moves.push(Move {
+            release_id: entry.release.id,
+            from: on.to_owned(),
+            to: iso(to)?,
+        });
+    }
+    Ok(plan)
+}
+
+/// Book exactly the shift a person approved — all of it or none of it.
+///
+/// Each release must still be planned, on the day the preview saw, and not
+/// pinned since; anything else means the calendar moved after the preview,
+/// and the whole shift is refused, as a stale layout is.
+pub fn apply_shift(conn: &Connection, moves: &[Move]) -> Result<usize> {
+    apply_shift_at(conn, moves, &now())
+}
+
+/// Apply a shift with the moment already decided: the seam a replay comes
+/// back through (ADR 0014).
+pub fn apply_shift_at(conn: &Connection, moves: &[Move], at: &str) -> Result<usize> {
+    atomically(conn, |tx| apply_shift_in(tx, moves, at))
+}
+
+fn apply_shift_in(tx: &Connection, moves: &[Move], at: &str) -> Result<usize> {
+    for step in moves {
+        parse_date(&step.to)?;
+        let found = release::get(tx, &step.release_id)?
+            .ok_or_else(|| stale("a release from the shift is gone"))?;
+        if found.status != release::PLANNED
+            || found.scheduled_at.as_deref() != Some(step.from.as_str())
+            || found.slot_pinned_at.is_some()
+        {
+            return Err(stale("a release from the shift has moved since"));
+        }
+        tx.execute(
+            "UPDATE release SET scheduled_at = ?2, updated_at = ?3 WHERE id = ?1",
+            params![step.release_id, step.to, at],
+        )?;
+    }
+    Ok(moves.len())
+}
+
+/// Take a shift back: every release it moved returns to the day it left.
+///
+/// The undo of [`apply_shift`]. Only the last operation is ever undone, so
+/// each release is where the shift put it; one that has gone out since keeps
+/// the day it went out on.
+pub fn shift_back_at(conn: &Connection, moves: &[Move], at: &str) -> Result<()> {
+    for step in moves {
+        conn.execute(
+            "UPDATE release SET scheduled_at = ?2, updated_at = ?3 WHERE id = ?1 AND status = ?4",
+            params![step.release_id, step.from, at, release::PLANNED],
+        )?;
+    }
+    Ok(())
+}
+
+/// How many days lie from `from` to `to`: negative when `to` is earlier.
+pub fn days_between(from: &str, to: &str) -> Result<i64> {
+    Ok((parse_date(to)? - parse_date(from)?).whole_days())
 }
 
 fn stale(reason: &str) -> Error {
@@ -721,5 +901,192 @@ mod tests {
         // Its hand-picked date survives the refusal.
         let kept = release::get(&conn, &ids[0]).unwrap().unwrap();
         assert_eq!(kept.scheduled_at.as_deref(), Some("2026-12-24"));
+    }
+
+    fn close(conn: &Connection, profile_id: &str, from: &str, to: &str) {
+        crate::time_off::create_minted(
+            conn,
+            profile_id,
+            crate::time_off::NewTimeOff {
+                starts_on: from.into(),
+                ends_on: to.into(),
+                label: "Away".into(),
+            },
+            crate::minted::Minted::fresh(),
+        )
+        .unwrap();
+    }
+
+    /// A fortnight away is stepped over: the plan picks up the rhythm on the
+    /// first open day after it. Mutating the `closes` check in `plan` puts
+    /// the second release inside the span and breaks this.
+    #[test]
+    fn the_layout_steps_over_closed_days() {
+        let (conn, profile_id) = workspace(3);
+        queued(&conn, &profile_id, "Best", 9.0, 1);
+        queued(&conn, &profile_id, "Next", 5.0, 1);
+        close(&conn, &profile_id, "2026-09-03", "2026-09-10");
+
+        let plan = plan(&conn, &profile_id, "2026-09-01").unwrap();
+
+        // The 2nd is open; the 5th would be next, but the 3rd-10th are
+        // closed, so the 11th is the first day that is both open and spaced.
+        assert_eq!(dates(&plan), ["2026-09-02", "2026-09-11"]);
+    }
+
+    /// Tomorrow closed is tomorrow skipped, not tomorrow ignored.
+    #[test]
+    fn a_closed_tomorrow_moves_the_first_placement() {
+        let (conn, profile_id) = workspace(1);
+        queued(&conn, &profile_id, "Only", 7.0, 1);
+        close(&conn, &profile_id, "2026-09-02", "2026-09-02");
+
+        let plan = plan(&conn, &profile_id, "2026-09-01").unwrap();
+        assert_eq!(dates(&plan), ["2026-09-03"]);
+    }
+
+    /// The preview was drawn before the day was closed: the plan is a
+    /// picture of the past, and booking it is refused whole.
+    #[test]
+    fn a_day_closed_since_the_preview_makes_the_plan_stale() {
+        let (conn, profile_id) = workspace(3);
+        queued(&conn, &profile_id, "One", 6.0, 1);
+        queued(&conn, &profile_id, "Two", 4.0, 1);
+        let plan = plan(&conn, &profile_id, "2026-09-01").unwrap();
+
+        close(&conn, &profile_id, &plan[1].date, &plan[1].date);
+
+        let refused = apply(&conn, &plan).unwrap_err();
+        assert_eq!(refused.kind(), "layoutStale", "got {refused}");
+        assert_eq!(release::queue(&conn, &profile_id).unwrap().len(), 2);
+    }
+
+    /// A booked plan taken back: every release it placed is queued again.
+    #[test]
+    fn a_booked_plan_is_taken_back_whole() {
+        let (conn, profile_id) = workspace(3);
+        queued(&conn, &profile_id, "One", 6.0, 1);
+        queued(&conn, &profile_id, "Two", 4.0, 1);
+        let plan = plan(&conn, &profile_id, "2026-09-01").unwrap();
+        apply(&conn, &plan).unwrap();
+
+        take_back_at(&conn, &plan, "2026-09-01T12:00:00.000Z").unwrap();
+
+        assert_eq!(release::queue(&conn, &profile_id).unwrap().len(), 2);
+        assert!(release::calendar(&conn, &profile_id).unwrap().is_empty());
+    }
+
+    /// Three releases booked on the 5th, the 8th and the 12th, the 8th pinned.
+    fn booked(conn: &Connection, profile_id: &str) -> [String; 3] {
+        let first = queued(conn, profile_id, "First", 6.0, 1).remove(0);
+        let kept = queued(conn, profile_id, "Kept", 6.0, 1).remove(0);
+        let last = queued(conn, profile_id, "Last", 6.0, 1).remove(0);
+        release::schedule(conn, &first, "2026-09-05").unwrap();
+        release::schedule(conn, &kept, "2026-09-08").unwrap();
+        release::set_slot_pin(conn, &kept, true).unwrap();
+        release::schedule(conn, &last, "2026-09-12").unwrap();
+        [first, kept, last]
+    }
+
+    fn scheduled(conn: &Connection, id: &str) -> String {
+        release::get(conn, id)
+            .unwrap()
+            .unwrap()
+            .scheduled_at
+            .unwrap()
+    }
+
+    /// Everything planned from the day on moves by the days asked; a pinned
+    /// date is named and stays; what came before the day stays too.
+    #[test]
+    fn a_shift_moves_what_is_planned_from_the_day_and_keeps_the_pins() {
+        let (conn, profile_id) = workspace(3);
+        let [first, kept, last] = booked(&conn, &profile_id);
+
+        let plan = plan_shift(&conn, &profile_id, "2026-09-06", 7, "2026-09-01").unwrap();
+
+        assert_eq!(
+            plan.moves,
+            vec![Move {
+                release_id: last.clone(),
+                from: "2026-09-12".into(),
+                to: "2026-09-19".into(),
+            }]
+        );
+        assert_eq!(plan.kept, vec![kept.clone()]);
+
+        apply_shift(&conn, &plan.moves).unwrap();
+        assert_eq!(scheduled(&conn, &first), "2026-09-05", "before the day");
+        assert_eq!(scheduled(&conn, &kept), "2026-09-08", "pinned");
+        assert_eq!(scheduled(&conn, &last), "2026-09-19");
+
+        shift_back_at(&conn, &plan.moves, "2026-09-02T00:00:00.000Z").unwrap();
+        assert_eq!(
+            scheduled(&conn, &last),
+            "2026-09-12",
+            "the undo puts it back"
+        );
+    }
+
+    /// A shift earlier is the same gesture the other way, and it never puts
+    /// anything before today.
+    #[test]
+    fn a_shift_earlier_stops_at_today() {
+        let (conn, profile_id) = workspace(3);
+        let [first, _, last] = booked(&conn, &profile_id);
+
+        let plan = plan_shift(&conn, &profile_id, "2026-09-01", -3, "2026-09-01").unwrap();
+        assert_eq!(plan.moves.len(), 2);
+        apply_shift(&conn, &plan.moves).unwrap();
+        assert_eq!(scheduled(&conn, &first), "2026-09-02");
+        assert_eq!(scheduled(&conn, &last), "2026-09-09");
+
+        let refused = plan_shift(&conn, &profile_id, "2026-09-01", -2, "2026-09-01").unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|refusal| refusal.code),
+            Some("layout.shiftIntoThePast")
+        );
+        let refused = plan_shift(&conn, &profile_id, "2026-09-01", 0, "2026-09-01").unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|refusal| refusal.code),
+            Some("layout.shiftByNothing")
+        );
+    }
+
+    /// Landing on a closed day is said, not stepped over: the rhythm between
+    /// the releases is what a shift keeps.
+    #[test]
+    fn a_shift_names_what_it_would_put_on_a_closed_day() {
+        let (conn, profile_id) = workspace(3);
+        let [first, _, last] = booked(&conn, &profile_id);
+        close(&conn, &profile_id, "2026-09-12", "2026-09-12");
+
+        let plan = plan_shift(&conn, &profile_id, "2026-09-01", 7, "2026-09-01").unwrap();
+
+        assert_eq!(
+            plan.closed,
+            vec![first.clone()],
+            "the 5th lands on the 12th"
+        );
+        assert!(
+            plan.moves
+                .iter()
+                .any(|step| step.release_id == last && step.to == "2026-09-19")
+        );
+    }
+
+    /// A release moved by hand between the preview and the approval: the
+    /// shift is refused whole.
+    #[test]
+    fn a_shift_drawn_on_a_calendar_that_moved_is_refused_whole() {
+        let (conn, profile_id) = workspace(3);
+        let [first, _, last] = booked(&conn, &profile_id);
+        let plan = plan_shift(&conn, &profile_id, "2026-09-01", 7, "2026-09-01").unwrap();
+
+        release::schedule(&conn, &last, "2026-09-30").unwrap();
+
+        let refused = apply_shift(&conn, &plan.moves).unwrap_err();
+        assert_eq!(refused.kind(), "layoutStale", "got {refused}");
+        assert_eq!(scheduled(&conn, &first), "2026-09-05", "nothing half-moved");
     }
 }

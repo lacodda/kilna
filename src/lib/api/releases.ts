@@ -4,6 +4,7 @@ import type {
   ComposedTask,
   GeneratedBatch,
   GeneratedFields,
+  Move,
   NewRelease,
   Placement,
   Release,
@@ -12,6 +13,7 @@ import type {
   ReleaseProposal,
   ScheduledRelease,
   Scheduling,
+  ShiftPlan,
   SlotPreview,
   StartedTask,
 } from '@/lib/api/types'
@@ -54,6 +56,14 @@ export const markReleased = (id: string, url?: string | null, at?: string | null
 // Undoing the mark. The link is kept - see the Rust side for why.
 export const unmarkReleased = (id: string) => invoke<Release>('unmark_released', { id })
 export const planLayout = (today: string) => invoke<Placement[]>('plan_layout', { today })
+// Everything planned from `from` on, moved by `days` (negative is earlier):
+// a picture to approve, written by nothing.
+export const planShift = (from: string, days: number, today: string) =>
+  invoke<ShiftPlan>('plan_shift', { from, days, today })
+export const applyShift = (moves: Move[]) => invoke<number>('apply_shift', { moves })
+// Every planned date in `from..=to` kept, or freed, in one gesture.
+export const pinRange = (from: string, to: string, pinned: boolean) =>
+  invoke<number>('pin_range', { from, to, pinned })
 export const applyLayout = (placements: Placement[]) =>
   invoke<number>('apply_layout', { placements })
 export const releaseFields = (id: string) => invoke<ReleaseFieldValue[]>('release_fields', { id })

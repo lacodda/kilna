@@ -1,19 +1,26 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
-import type { ScheduledRelease } from '@/lib/api/types'
+import type { ScheduledRelease, TimeOff } from '@/lib/api/types'
 import type { Ghost } from '@/lib/layout'
-import { byDate, monthGrid, today, type Month } from '@/lib/month'
-import { linesThatFit, UNMEASURED_LINES } from '@/lib/calendarDay'
-import { queries } from '@/lib/query/queries'
+import { byDate, today, type Day } from '@/lib/month'
+import { CHIP_HEIGHT, linesThatFit, ROOMY_CHIP_HEIGHT, UNMEASURED_LINES } from '@/lib/calendarDay'
 import type { Dragging } from '@/lib/useChipDrag'
 import { CarriedChip } from '@/features/calendar/CarriedChip'
 import { DayCell } from '@/features/calendar/DayCell'
 import type { DropTarget } from '@/features/calendar/useCalendarDrag'
+import { useLandingVerdict } from '@/features/calendar/useLandingVerdict'
 
 interface Props {
-  month: Month
+  /** The days to draw, a week to a row: a month's whole weeks, or one week. */
+  days: readonly Day[]
+  /** Two-line chips, for a week: its days have the height (v0.96). */
+  roomy?: boolean
   slots: readonly ScheduledRelease[]
+  /** Everything booked, whatever the kind filter shows: who is on a day is
+   *  not a question the filter answers. */
+  booked: readonly ScheduledRelease[]
+  /** The closed days among them, with the span that closes each. */
+  closed: ReadonlyMap<string, TimeOff>
   /** An auto-layout preview by day: where the queue would land, booked by
       nothing yet. Drawn as dashed chips among the real ones. */
   ghosts?: Map<string, Ghost[]>
@@ -22,8 +29,12 @@ interface Props {
   onPickDay: (date: string) => void
   onOpenRelease: (releaseId: string) => void
   /** Add a work that goes out on this day: the `+` a day shows under the
-   * pointer, and the one entry in its right-click menu. */
+   * pointer, and the first entry in its right-click menu. */
   onAddOn: (date: string) => void
+  /** Close the day, or edit the span that closes it. */
+  onTimeOff: (date: string, closedBy: TimeOff | null) => void
+  /** Shift everything planned from the day on. */
+  onShiftFrom: (date: string) => void
   /** The month's edges, for the carried chip to turn it (`useCalendarDrag`). */
   gridRef: RefObject<HTMLDivElement | null>
   dragging: Dragging | null
@@ -36,25 +47,33 @@ interface Props {
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
 
 /**
- * A month at a time, with what is booked on each day.
+ * Days a week to a row, with what is booked on each: the month, and since
+ * v0.96 the week - the same seven columns, one row tall.
  *
  * The flat list this replaced answered "what is scheduled" but never "is that
  * week empty" - which is the question a release plan is actually read for.
  *
- * The month holds the window's height: its weeks share it (`auto-rows-fr`)
+ * The grid holds the window's height: its weeks share it (`auto-rows-fr`)
  * and a day never grows past its share, so the grid does not scroll and the
  * screen under it cannot. What a day has no room for folds into a count
- * (`DayCell`). Its title and arrows are the screen's head since v0.79, one row
- * with the filters and the actions, as the mockup draws it.
+ * (`DayCell`). A week is one row, so each of its days has a month's five
+ * rows of room: everything a busy Friday holds, and chips wide enough for
+ * their covers. Its title and arrows are the screen's head since v0.79, one
+ * row with the filters and the actions, as the mockup draws it.
  */
-export function MonthGrid({
-  month,
+export function DayGrid({
+  days,
+  roomy = false,
   slots,
+  booked,
+  closed,
   ghosts,
   claimingId,
   onPickDay,
   onOpenRelease,
   onAddOn,
+  onTimeOff,
+  onShiftFrom,
   gridRef,
   dragging,
   onGrab,
@@ -74,12 +93,16 @@ export function MonthGrid({
     if (cells === null) return
     const measure = () => {
       const area = cells.querySelector<HTMLElement>('[data-day-lines]')
-      if (area !== null) setLines(linesThatFit(area.clientHeight))
+      if (area !== null) {
+        setLines(linesThatFit(area.clientHeight, roomy ? ROOMY_CHIP_HEIGHT : CHIP_HEIGHT))
+      }
     }
+    // Observing reports the size at once, so a view changing to the week
+    // measures again with the week's chip, without a resize to wait for.
     const observer = new ResizeObserver(measure)
     observer.observe(cells)
     return () => observer.disconnect()
-  }, [])
+  }, [roomy])
 
   // The one day showing everything it holds, if any. One at a time: several
   // open days at once and the grid stops being a month at a glance, which is
@@ -89,30 +112,24 @@ export function MonthGrid({
   // The row under the pointer, for drawing the carried chip.
   const carried = slots.find((slot) => slot.id === dragging?.id)
 
-  const days = monthGrid(month)
-  const booked = byDate(slots, (slot) => slot.scheduled_at)
+  const onDays = byDate(slots, (slot) => slot.scheduled_at)
   const now = today()
   const claiming = claimingId !== null
 
   // What the day under the pointer already holds. It was the dry run of a
   // contest until v0.44 and predicted a refusal; nothing is refused now, so it
   // says what is there and the drop happens either way. Since v0.90 it also
-  // says what the release would repeat there (ADR 0054) - a rare word its
-  // song shares with a song out or booked near that day - with the same
-  // footing: a warning before it lands, never a refusal.
+  // says what the release would repeat there (ADR 0054), and since v0.96
+  // whether the day is closed - each a warning before it lands, never a
+  // refusal (`useLandingVerdict`).
   const moving = dragging?.id ?? claimingId
   const onDay = over !== null && days.some((day) => day.date === over)
-  const preview = useQuery({
-    ...queries.slotPreview(moving as string, over as string),
-    enabled: moving !== null && onDay,
-    staleTime: 5_000,
+  const verdictFor = useLandingVerdict({
+    moving,
+    over: onDay ? over : null,
+    slots: booked,
+    closed,
   })
-  const verdictFor = (date: string) =>
-    over === date &&
-    preview.data !== undefined &&
-    (preview.data.verdict !== 'empty' || preview.data.repeats.length > 0)
-      ? preview.data
-      : null
 
   return (
     <div
@@ -132,15 +149,19 @@ export function MonthGrid({
           <DayCell
             key={day.date}
             day={day}
-            releases={booked.get(day.date) ?? []}
+            releases={onDays.get(day.date) ?? []}
             ghosts={ghosts?.get(day.date) ?? []}
             now={now}
             lines={lines}
+            roomy={roomy}
             expanded={expanded === day.date}
             onExpand={(open) => setExpanded(open ? day.date : null)}
             claiming={claiming}
             onPick={() => onPickDay(day.date)}
             onAdd={() => onAddOn(day.date)}
+            closed={closed.get(day.date) ?? null}
+            onTimeOff={() => onTimeOff(day.date, closed.get(day.date) ?? null)}
+            onShiftFrom={() => onShiftFrom(day.date)}
             onOpenRelease={onOpenRelease}
             carrying={dragging?.id ?? null}
             onGrab={onGrab}
@@ -154,7 +175,7 @@ export function MonthGrid({
       </div>
 
       {dragging !== null && carried !== undefined && (
-        <CarriedChip dragging={dragging} slot={carried} now={now} />
+        <CarriedChip dragging={dragging} slot={carried} now={now} roomy={roomy} />
       )}
     </div>
   )

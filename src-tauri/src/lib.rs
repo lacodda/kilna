@@ -46,6 +46,7 @@ pub mod state;
 pub mod style_brick;
 pub mod style_set;
 pub mod time;
+pub mod time_off;
 pub mod tombstone;
 pub mod trash;
 pub mod undo;
@@ -301,6 +302,13 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::releases::calendar,
             commands::releases::plan_layout,
             commands::releases::apply_layout,
+            commands::releases::plan_shift,
+            commands::releases::apply_shift,
+            commands::releases::pin_range,
+            commands::time_off::list_time_off,
+            commands::time_off::create_time_off,
+            commands::time_off::update_time_off,
+            commands::time_off::delete_time_off,
             commands::releases::release_queue,
             commands::releases::releases_for_work,
             commands::collections::list_collections,

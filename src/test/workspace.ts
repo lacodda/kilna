@@ -1061,6 +1061,8 @@ export function answersFor(studio: Studio): Record<string, Handler> {
       studio.releases.filter((r) => r.scheduled_at !== null).map((r) => scheduled(studio, r)),
     release_queue: () =>
       studio.releases.filter((r) => r.scheduled_at === null).map((r) => scheduled(studio, r)),
+    // No day is closed: a test about time off answers with the spans it needs.
+    list_time_off: () => [],
     releases_for_work: ({ workId }) =>
       studio.releases.filter((r) => r.work_id === workId).map((r) => scheduled(studio, r)),
     release_fields: () => [],

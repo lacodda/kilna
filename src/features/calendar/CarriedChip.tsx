@@ -7,6 +7,8 @@ interface Props {
   dragging: Dragging
   slot: ScheduledRelease
   now: string
+  /** The week's two-line chip, as it was picked up. */
+  roomy?: boolean
 }
 
 /**
@@ -18,7 +20,7 @@ interface Props {
  * the days clip their chips now, and the queue it may be carried to is beside
  * the month rather than inside it.
  */
-export function CarriedChip({ dragging, slot, now }: Props) {
+export function CarriedChip({ dragging, slot, now, roomy = false }: Props) {
   return createPortal(
     <div
       // Above the overlays it may pass under; the scale is dowel's, not a
@@ -39,6 +41,7 @@ export function CarriedChip({ dragging, slot, now }: Props) {
         onGrab={() => {}}
         onOpen={() => {}}
         asGhost
+        roomy={roomy}
       />
     </div>,
     document.body,

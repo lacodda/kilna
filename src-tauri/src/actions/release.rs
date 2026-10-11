@@ -363,6 +363,41 @@ pub fn set_slot_pin(conn: &Connection, id: &str, pinned: bool) -> Result<Release
     })
 }
 
+/// Settle every date in a span at once - a week, a month - or hand them all
+/// back (v0.96).
+///
+/// One gesture, one line in the history and one undo step, however many
+/// releases it touched. Nothing to change is no gesture at all.
+pub fn pin_range(conn: &Connection, from: &str, to: &str, pinned: bool) -> Result<usize> {
+    gesture(conn, "release.pinRange", |act| {
+        act.param("from", from);
+        act.param("to", to);
+        act.param("pinned", pinned);
+        act.stamped();
+        let changes = release::pin_range_at(act, act.profile_id(), from, to, pinned, act.at())?;
+        if changes.is_empty() {
+            act.unchanged();
+            return Ok(0);
+        }
+        act.json("changes", &changes)?;
+        // Both keys written out literally, as `set_slot_pin` does: the gate
+        // that checks every recorded action has a sentence reads the source
+        // for them.
+        let entry = if pinned {
+            Record::new("release.pinnedRange")
+        } else {
+            Record::new("release.unpinnedRange")
+        };
+        act.journal(
+            entry
+                .param("count", count(changes.len()))
+                .param("from", from)
+                .param("to", to),
+        );
+        Ok(changes.len())
+    })
+}
+
 /// Take a release off the calendar, back into the queue.
 pub fn unschedule(conn: &Connection, id: &str) -> Result<Release> {
     gesture(conn, "release.unschedule", |act| {
@@ -509,6 +544,38 @@ pub fn apply_layout(conn: &Connection, placements: &[layout::Placement]) -> Resu
             }
         }
         Ok(applied)
+    })
+}
+
+/// Move everything planned from a day onward by the days a person approved
+/// (v0.96) — all of it or none of it, as a layout is booked.
+///
+/// One journal line for the shift, not one per release, and one undo step
+/// that puts every release back on the day it left.
+pub fn shift(conn: &Connection, moves: &[layout::Move]) -> Result<usize> {
+    gesture(conn, "layout.shift", |act| {
+        act.json("moves", &moves)?;
+        act.stamped();
+        let moved = layout::apply_shift_at(act, moves, act.at())?;
+        let Some(first) = moves.first() else {
+            act.unchanged();
+            return Ok(0);
+        };
+        let days = layout::days_between(&first.from, &first.to)?;
+        let entry = if days > 0 {
+            Record::new("layout.shiftedLater")
+        } else {
+            Record::new("layout.shiftedEarlier")
+        };
+        // Counted in days, so the sentence can say "1 day" and "7 days":
+        // how many releases moved is a number beside it, not the plural.
+        act.journal(
+            entry
+                .param("count", days.abs())
+                .param("moved", count(moved))
+                .param("from", first.from.clone()),
+        );
+        Ok(moved)
     })
 }
 

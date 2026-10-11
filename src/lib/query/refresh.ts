@@ -56,6 +56,9 @@ export const refresh = {
     // The guard of repeats reads the days songs go out (ADR 0054).
     keys.register,
   ] as readonly QueryKey[],
+  /** Closed days: the month that draws them, and what a day says under a
+   *  carried release. The calendar's prefix holds both. */
+  timeOff: [keys.timeOff, keys.slotPreviews] as readonly QueryKey[],
   /** A collection, or what it holds: the collections, and every list that
    *  says which collection a work is in - the catalogue's rows, a card's
    *  header. */

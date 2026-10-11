@@ -50,9 +50,11 @@ back where you started.
 | `Esc` | Close what is open — a dialog, the search box; a text on the whole screen steps back one level |
 
 Undo takes back one thing: the last change to the workspace. Not every change
-can be taken back — a plan applied to the whole calendar, a status recomputed
-across the catalogue, and other things that touch many rows at once are left
-alone rather than half-reversed. When there is nothing to take back, kilna says
+can be taken back — a status recomputed across the catalogue, a status set on
+many works at once, and other things that touch many rows without recording
+what each held are left alone rather than half-reversed. The calendar's own
+batches record it, and are one step back each: a plan booked, a shift, a
+week's dates kept. When there is nothing to take back, kilna says
 so instead of doing something else. Deleting is safe regardless of any of this:
 it goes to the [trash](/kilna/guides/the-trash/), which is a drawer, not a
 shredder.

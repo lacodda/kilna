@@ -88,11 +88,14 @@ slot claimed by hand, a release scheduled from its card — the whole plan is
 refused rather than partially applied, and you preview again from what the
 calendar holds now.
 
-The layout follows four rules, in this order:
+The layout follows five rules, in this order:
 
 - **Nothing already on the calendar moves.** Booked days, pinned or not, are
   ground the layout builds around — it fills empty days only, and never puts
   anything beside what is already there.
+- **Closed days stay empty.** A holiday, a fortnight away — the days you
+  closed as [time off](#time-off) are stepped over, and the rhythm picks up on
+  the first open day after them.
 - **Spacing.** A planned date keeps at least the rhythm's distance from every
   release that has a date — planned or already released. Something that went
   out yesterday sets the pace exactly as a booked slot would.
@@ -106,15 +109,31 @@ The same inputs always produce the same plan, and placement starts tomorrow —
 today is already underway. Applying writes one line to
 [History](/kilna/guides/the-history/) for the whole batch, and the works'
 [statuses](/kilna/guides/statuses/) catch up silently, the way the mass
-resync does it.
+resync does it. A booked plan is one step back: **Undo** (or `Ctrl+Z`)
+returns everything it placed to the queue.
 
-## The month
+## Month, week and agenda
 
-The calendar draws one month at a time, weeks starting on Monday, with the
-neighbouring days dimmed at either end so the grid stays rectangular. The
-arrows walk it in both directions — work is planned ahead and reviewed
-behind — and **This month** comes back to today, whose cell is outlined in the
-accent colour.
+The plan is read three ways, chosen in the head: **Month**, **Week** and
+**Agenda**. All three stand on the same day, so switching keeps your place —
+the week opened from a month is a week of that month — and the choice is
+remembered between visits. The arrows walk a month, or a week in the week
+view; **Today** comes back to today, whose date is filled in the accent
+colour.
+
+- **Month** asks "is that week empty". Weeks start on Monday, with the
+  neighbouring days on a quieter ground at either end so the grid stays
+  rectangular.
+- **Week** is the same seven columns, one row tall: every day has room for
+  everything it holds, and each chip takes two lines — the title whole, over
+  both if it needs them, beside its cover, and the marks under it.
+- **Agenda** is the month as a list. Each day with something on it gets a
+  heading — today always does — with every release under it, and the days
+  between fold into one line that says how many: *4 days with nothing
+  planned · Sep 16 – Sep 19*. A run of [closed days](#time-off) folds into a
+  line of its own, by its name, so a gap the plan should fill does not read
+  like days nobody meant to fill. Releases are dropped on a day's heading;
+  the folded lines are for reading.
 
 Each booked release shows as a chip in its day, in the colour the work carries
 everywhere else in kilna. The chip's top line holds the grip, the
@@ -150,6 +169,15 @@ every placement, filter or no filter.
 **Picking a release in the queue turns the grid into a way to answer "when".**
 Days become clickable; clicking one gives the release that date. Clicking a
 chip instead opens the release itself.
+
+**The pane beside the calendar lists two things.** **Queue** is what is
+waiting for a date. **Works** is the catalogue as the calendar needs it: every
+work that could go out and has nothing planned yet — no release out, booked or
+waiting — strongest first. Picking a work and clicking a day, or carrying the
+work onto a day, books it there: a release through its kind's first door,
+already holding that date, as the day's **+** books one. A song never goes
+out itself, so it is not listed; the works made from it are. The search and
+the two filters at the top narrow whichever list is up.
 
 ## Ready marks
 
@@ -191,17 +219,22 @@ stays as the sign that a chip can be moved at all.
 
 **Carry it to either edge and the month turns.** Rest the pointer in the strip
 down the left or right side of the grid and the calendar walks back or forward
-a month at a time, so a date in April is reachable from January without putting
-anything down. **Escape** puts the chip back where it was.
+a month at a time — a week at a time in the week view — so a date in April is
+reachable from January without putting anything down. **Escape** puts the chip back where it was.
 
 Dropping on another day writes that date. Nothing is refused and nothing is
-evicted: a day holds as many releases as you put on it. Dropping on the
-**bin** — which appears at the top only while something is in the air —
-returns it to the queue, exactly as unscheduling does.
+evicted: a day holds as many releases as you put on it. Dropping it on the
+queue — anywhere on the pane, or on the strip in the head when the calendar
+has the full width — returns it to the queue, exactly as unscheduling does.
+
+**A row of the pane is carried the same way.** A queued release let go over a
+day takes that day; a work from **Works** is booked there. The row stays in the
+pane and its title travels beside the pointer.
 
 **A day already holding something says so** while a release hovers over it, and
 the drop goes through anyway. It is a note about what is there, not a warning
-about what will fail.
+about what will fail. A [closed day](#time-off) says so too — *Closed: Away* —
+and takes the release all the same.
 
 :::note[This changed in v0.44]
 Until then a day held exactly one release, and dropping onto a taken one
@@ -234,6 +267,68 @@ promise has nothing to refuse.
 The pin belongs to the date, so losing the date loses the pin: unscheduling or
 clearing the date drops it, and pinning a release that holds no date is
 refused.
+
+**A week or a month at once.** The calendar's menu (**⋯** in the head) has
+**Keep every date this week** — or *this month*, in the month and the agenda —
+and **Free every date** beside it. It pins every planned release of the period
+on screen in one step: the month's own days, never the neighbouring days that
+fill its weeks. A date already kept keeps the moment it was kept, what already
+went out is history and is left alone, and **Undo** takes back exactly the pins
+it set.
+
+## Time off
+
+Some days nothing should go out on: a holiday, a fortnight away, the week of
+a move. Close them as **time off** — from the calendar's menu (**Time off…**),
+or by right-clicking a day (**Close this day…**). A span has two ends, both
+inside it, and a name the calendar shows on every day it closes; one day is a
+span whose ends meet. Spans may overlap — *New Year* inside *Away* — and both
+stay true.
+
+A closed day is drawn hatched, its name beside the date, and in the agenda a
+run of closed days is one line by its name.
+
+**It closes the days to the auto-layout, not to you.** The layout never plans
+anything onto a closed day, and a plan previewed before a day was closed is
+refused when you book it. Putting a release there by hand still works: the
+day says *Closed: Away* while the release hovers over it, and takes it.
+
+**Closing a day moves nothing.** When a span you save closes days something is
+already planned on, kilna says how many and offers **Move them out** — a
+[shift](#shifting-the-plan) from the span's first day by its length, previewed
+on the calendar like any other. The list of spans offers the same for each one
+still to come.
+
+The time off is part of what [MCP](/kilna/reference/mcp/) clients read with the
+calendar, and of the [markdown export](/kilna/reference/data/#export-to-markdown)
+(`time-off.md`). See
+[ADR 0062](https://github.com/lacodda/kilna/blob/main/docs/adr/0062-a-closed-day-closes-the-layout-not-the-hand.md).
+
+## Shifting the plan
+
+A week lost to illness, a fortnight away added after the plan was made: the
+whole plan from a day on has to move. **Shift the plan…** in the calendar's
+menu, or **Shift the plan from here…** on a day's right-click, asks three
+things — from which day, by how many days, later or earlier — and shows the
+answer on the calendar before anything moves: every release that would move is
+a ghost on its new day, and a bar above says how many, by how much, and what
+stays.
+
+- **What moves** is every planned release dated on or after that day.
+- **What stays**: anything already out, and every [kept date](#keeping-a-date).
+  The bar names how many kept dates stay; to move them too, free the period's
+  dates first.
+- **By plain days.** Every release moves by the same number of days, so the
+  gaps between them — your rhythm — stay as they were. A release that would
+  land on a closed day is counted in the bar rather than pushed past it:
+  stepping over would bunch the days after the closure.
+- **Never into the past.** A shift that would put something before today is
+  refused, naming the release.
+
+**Shift** books exactly what the bar showed; if the calendar changed in
+between, the whole shift is refused and you preview again. One line goes to
+[History](/kilna/guides/the-history/), and **Undo** puts every release back on
+the day it left.
 
 ## Claiming a slot
 

@@ -55,6 +55,7 @@ import {
   releaseQueue,
   releasesForWork,
 } from '@/lib/api/releases'
+import { listTimeOff } from '@/lib/api/timeOff'
 import { listSceneFrames, listSceneNotes, listScenes, sceneFrameView } from '@/lib/api/scenes'
 import { kindVerdicts, latestScore, scoreHistory } from '@/lib/api/scores'
 import { search, worksMatching } from '@/lib/api/search'
@@ -198,6 +199,7 @@ export const queries = {
 
   calendar: () => queryOptions({ queryKey: keys.calendar, queryFn: calendar }),
   releaseQueue: () => queryOptions({ queryKey: keys.releaseQueue, queryFn: releaseQueue }),
+  timeOff: () => queryOptions({ queryKey: keys.timeOff, queryFn: listTimeOff }),
   releasesForWork: (workId: string) =>
     queryOptions({
       queryKey: keys.releasesForWork(workId),

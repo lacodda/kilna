@@ -159,6 +159,11 @@ fn export_all(dir: &Path) -> Result<(), ts_rs::ExportError> {
         kilna_lib::release::Scheduling,
         kilna_lib::release::ScheduledRelease,
         kilna_lib::layout::Placement,
+        kilna_lib::layout::Move,
+        kilna_lib::layout::ShiftPlan,
+        kilna_lib::time_off::TimeOff,
+        kilna_lib::time_off::NewTimeOff,
+        kilna_lib::time_off::TimeOffPatch,
         // collections.rs
         kilna_lib::collection::Collection,
         kilna_lib::collection::NewCollection,

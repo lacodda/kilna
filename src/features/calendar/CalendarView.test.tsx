@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, screen, within } from '@testing-library/react'
-import type { Release, RepeatFinding, RepeatMark } from '@/lib/api/types'
+import type { Release, RepeatFinding, RepeatMark, ShiftPlan, TimeOff } from '@/lib/api/types'
 import { mockBackend, type Backend } from '@/test/backend'
 import { noScrollerInAnother } from '@/test/regions'
 import { renderApp, settled } from '@/test/render'
@@ -35,7 +35,7 @@ beforeEach(() => {
       const release = workspace.releases.find((r) => r.id === id)!
       return { ...release, scheduled_at: null, status: 'planned' } satisfies Release
     },
-    preview_schedule: () => ({ verdict: 'empty', holder_title: null, repeats: [] }),
+    preview_schedule: () => ({ verdict: 'empty', holder_title: null, repeats: [], closed: null }),
     update_release: () => {
       throw new Error('a date was written without the contest')
     },
@@ -152,6 +152,7 @@ describe('the calendar', () => {
       verdict: 'empty',
       holder_title: null,
       repeats: slot === '2026-09-24' ? [repeat] : [],
+      closed: null,
     }))
     const warning = 'Too close: пульсар — in “Tide”, out Sep 20'
 
@@ -237,5 +238,162 @@ describe('the calendar', () => {
 
     expect(backend.argsOf('unschedule_release')).toEqual([{ id: IDS.audioRelease }])
     expect(backend.argsOf('schedule_release')).toEqual([])
+  })
+})
+
+/** A span of closed days, as the backend lists it. */
+function span(id: string, from: string, to: string, label: string): TimeOff {
+  return {
+    id,
+    profile_id: 'p',
+    starts_on: from,
+    ends_on: to,
+    label,
+    created_at: NOW,
+    updated_at: NOW,
+  }
+}
+
+describe('days and shifts (v0.96)', () => {
+  it('shows a closed day by its name, and lands a release there with the closure said', async () => {
+    backend.answer('list_time_off', () => [span('t1', '2026-09-24', '2026-09-25', 'Away')])
+    backend.answer('preview_schedule', ({ slot }) => ({
+      verdict: 'empty',
+      holder_title: null,
+      repeats: [],
+      closed: slot === '2026-09-24' ? 'Away' : null,
+    }))
+    const { client, container } = renderApp('/calendar')
+    await settled(client)
+    const day = container.querySelector<HTMLElement>('[data-day="2026-09-24"]')!
+    expect(within(day).getByText('Away')).toBeInTheDocument()
+    expect(container.querySelector('[data-day="2026-09-23"]')).not.toHaveTextContent('Away')
+
+    const main = await screen.findByRole('main')
+    const chip = await within(main).findByText('Paper Lanterns — audio', { exact: true })
+    Object.defineProperty(document, 'elementFromPoint', { value: () => day, configurable: true })
+    const wide = { left: 0, top: 0, right: 1_000, bottom: 800, width: 1_000, height: 800 }
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      ...wide,
+      x: 0,
+      y: 0,
+      toJSON: () => wide,
+    })
+    fireEvent.pointerDown(chip, { button: 0, clientX: 300, clientY: 300 })
+    await act(async () => {
+      fireEvent.pointerMove(window, { clientX: 400, clientY: 400 })
+    })
+    fireEvent.pointerEnter(day)
+    expect(
+      await within(day).findByText(en.timeOff.landsOnClosed.replace('{{title}}', 'Away')),
+    ).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.pointerUp(window, { clientX: 400, clientY: 400 })
+    })
+    await settled(client)
+    // Closed to the layout, not to a person.
+    expect(backend.argsOf('schedule_release')).toEqual([
+      { id: IDS.audioRelease, slot: '2026-09-24' },
+    ])
+  })
+
+  it('draws one week of seven days, and the agenda folds the empty days', async () => {
+    const { client, container } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+
+    fireEvent.click(within(main).getByRole('radio', { name: en.calendar.view.week }))
+    await settled(client)
+    const week = [...container.querySelectorAll<HTMLElement>('[data-day]')].map(
+      (day) => day.dataset.day,
+    )
+    expect(week).toEqual([
+      '2026-09-14',
+      '2026-09-15',
+      '2026-09-16',
+      '2026-09-17',
+      '2026-09-18',
+      '2026-09-19',
+      '2026-09-20',
+    ])
+
+    fireEvent.click(within(main).getByRole('radio', { name: en.calendar.view.agenda }))
+    await settled(client)
+    // Today and the 22nd, which holds the audio, are days of their own; the
+    // rest of September folds into the lines between them.
+    const days = [...container.querySelectorAll<HTMLElement>('[data-day]')].map(
+      (day) => day.dataset.day,
+    )
+    expect(days).toEqual(['2026-09-15', '2026-09-22'])
+    expect(within(main).getByText(/14 days with nothing planned/)).toBeInTheDocument()
+  })
+
+  it('books a work from the pane on the day it is carried to', async () => {
+    const { client, container } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+    fireEvent.click(within(main).getByRole('radio', { name: /^Works/ }))
+    const row = await within(main).findByText('Paper Lanterns (short)')
+
+    const day = container.querySelector('[data-day="2026-09-25"]')
+    Object.defineProperty(document, 'elementFromPoint', { value: () => day, configurable: true })
+    fireEvent.pointerDown(row, { button: 0, clientX: 10, clientY: 10 })
+    await act(async () => {
+      fireEvent.pointerMove(window, { clientX: 60, clientY: 60 })
+      fireEvent.pointerUp(window, { clientX: 60, clientY: 60 })
+    })
+    await settled(client)
+
+    // A release of its first door, already holding the day.
+    expect(backend.argsOf('create_release')).toEqual([
+      { release: { work_id: IDS.short, kind: 'short', scheduled_at: '2026-09-25' } },
+    ])
+  })
+
+  it('shows a shift on the month before it books exactly what it showed', async () => {
+    const plan = {
+      moves: [{ release_id: IDS.audioRelease, from: '2026-09-22', to: '2026-09-29' }],
+      kept: [],
+      closed: [],
+    } satisfies ShiftPlan
+    backend.answer('plan_shift', () => plan)
+    backend.answer('apply_shift', () => 1)
+    const { client } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+
+    fireEvent.click(within(main).getByRole('button', { name: en.calendar.more }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: en.shift.menu }))
+    const dialog = await screen.findByRole('dialog', { name: en.shift.title })
+    fireEvent.click(within(dialog).getByRole('button', { name: en.shift.preview }))
+    await settled(client)
+
+    expect(backend.argsOf('plan_shift')).toEqual([
+      { from: '2026-09-15', days: 7, today: '2026-09-15' },
+    ])
+    // Nothing moved yet: the bar asks, and the release is a ghost on the 29th.
+    expect(backend.argsOf('apply_shift')).toEqual([])
+    expect(await within(main).findByText(/1 release from .* would move 7 days later/)).toBeVisible()
+
+    fireEvent.click(within(main).getByRole('button', { name: en.shift.apply }))
+    await settled(client)
+    expect(backend.argsOf('apply_shift')).toEqual([{ moves: plan.moves }])
+  })
+
+  it('keeps every date of the month on screen in one gesture', async () => {
+    backend.answer('pin_range', () => 1)
+    const { client } = renderApp('/calendar')
+    await settled(client)
+    const main = await screen.findByRole('main')
+
+    fireEvent.click(within(main).getByRole('button', { name: en.calendar.more }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: en.calendar.pinMonth }))
+    await settled(client)
+
+    // The month's own days, never the neighbours that fill its weeks.
+    expect(backend.argsOf('pin_range')).toEqual([
+      { from: '2026-09-01', to: '2026-09-30', pinned: true },
+    ])
   })
 })

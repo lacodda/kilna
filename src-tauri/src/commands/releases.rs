@@ -153,6 +153,36 @@ pub fn apply_layout(
     actions::release::apply_layout(&state.conn(), &placements)
 }
 
+/// Where everything planned from `from` onward would be after moving it by
+/// `days`. Nothing is written: the person approves the shift, or nothing
+/// happens.
+#[tauri::command]
+pub fn plan_shift(
+    state: State<'_, AppState>,
+    from: String,
+    days: i64,
+    today: String,
+) -> Result<layout::ShiftPlan> {
+    let conn = state.conn();
+    layout::plan_shift(&conn, &active(&conn)?, &from, days, &today)
+}
+
+#[tauri::command]
+pub fn apply_shift(state: State<'_, AppState>, moves: Vec<layout::Move>) -> Result<usize> {
+    actions::release::shift(&state.conn(), &moves)
+}
+
+/// Pin, or unpin, every planned release dated `from..=to`.
+#[tauri::command]
+pub fn pin_range(
+    state: State<'_, AppState>,
+    from: String,
+    to: String,
+    pinned: bool,
+) -> Result<usize> {
+    actions::release::pin_range(&state.conn(), &from, &to, pinned)
+}
+
 #[tauri::command]
 pub fn release_queue(state: State<'_, AppState>) -> Result<Vec<ScheduledRelease>> {
     let conn = state.conn();

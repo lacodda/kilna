@@ -149,6 +149,12 @@ pub fn reversible(kind: &str) -> bool {
             | "idea.update"
             | "trial.create"
             | "trial.update"
+            | "timeOff.create"
+            | "timeOff.update"
+            | "timeOff.delete"
+            | "release.pinRange"
+            | "layout.apply"
+            | "layout.shift"
     )
 }
 
@@ -708,6 +714,64 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             let id = required(params, "id")?;
             apply(conn, |tx| {
                 crate::release::unmark_released_at(tx, &id, &at).map(|_| ())
+            })?;
+        }
+        // A span of closed days has no drawer in the trash, like a relation
+        // between cards: undoing its closing removes it, undoing its opening
+        // puts the same row back from the copy the log kept.
+        "timeOff.create" => {
+            let id = crate::minted::Minted::from_params(params)?.id().to_owned();
+            apply(conn, |tx| crate::time_off::delete(tx, &id))?;
+        }
+        "timeOff.update" => {
+            let id = required(params, "id")?;
+            let patch: crate::time_off::TimeOffPatch = from_params(params, "before")?;
+            apply(conn, |tx| {
+                crate::time_off::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        "timeOff.delete" => {
+            let before: crate::time_off::TimeOff = from_params(params, "before")?;
+            let new = crate::time_off::NewTimeOff {
+                starts_on: before.starts_on,
+                ends_on: before.ends_on,
+                label: before.label,
+            };
+            apply(conn, |tx| {
+                crate::time_off::create_minted(
+                    tx,
+                    &before.profile_id,
+                    new,
+                    crate::minted::Minted::of(before.id.clone(), before.created_at.clone()),
+                )
+                .map(|_| ())
+            })?;
+        }
+        // The batch gestures of the calendar carry what each release held
+        // before (v0.96), so one undo walks all of them back: the pins a
+        // range changed, the days a shift moved, the slots a layout booked.
+        "release.pinRange" => {
+            let changes: Vec<crate::release::PinChange> = from_params(params, "changes")?;
+            apply(conn, |tx| {
+                crate::release::restore_pins_at(tx, &changes, &at)
+            })?;
+        }
+        "layout.shift" => {
+            let moves: Vec<crate::layout::Move> = from_params(params, "moves")?;
+            apply(conn, |tx| crate::layout::shift_back_at(tx, &moves, &at))?;
+        }
+        "layout.apply" => {
+            let placements: Vec<crate::layout::Placement> = from_params(params, "placements")?;
+            apply(conn, |tx| {
+                crate::layout::take_back_at(tx, &placements, &at)?;
+                // The works the plan booked said "scheduled"; back in the
+                // queue they say what they said before, derived from the
+                // facts as the layout's own resync derived it.
+                if let Some(profile_id) = entry.profile_id.as_deref() {
+                    let config = crate::profile::config_for(tx, profile_id)?;
+                    crate::work::status::resync(tx, &config, profile_id)?;
+                }
+                Ok(())
             })?;
         }
 

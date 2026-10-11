@@ -529,7 +529,7 @@ fn an_irreversible_operation_is_not_offered() {
 fn every_operation_is_undoable_or_says_why_not() {
     // The reason is not read by the code — it is read by whoever runs into this
     // test after adding a kind, which is exactly when it needs to exist.
-    const NOT_UNDOABLE: [(&str, &str); 24] = [
+    const NOT_UNDOABLE: [(&str, &str); 23] = [
         (
             "style.attachReference",
             "it carries a file into the workspace, as `asset.attach` does, and \
@@ -572,10 +572,6 @@ fn every_operation_is_undoable_or_says_why_not() {
         (
             "release.setSlotPin",
             "the pin is one click to set again, and the calendar shows it",
-        ),
-        (
-            "layout.apply",
-            "places many releases at once; a batch inverse, as above",
         ),
         (
             "score.create",
@@ -1686,5 +1682,153 @@ fn a_change_to_a_cover_is_taken_back() {
     assert_eq!(
         work::get(&conn, &clip.id).unwrap().unwrap().cover,
         kilna_lib::cover::Cover::default()
+    );
+}
+
+/// Closed days come and go with the undo: a span closed is opened again, a
+/// span renamed has its old name back, a span opened comes back as the same
+/// row.
+#[test]
+fn closed_days_are_taken_back_like_any_edit() {
+    use kilna_lib::time_off::{self, NewTimeOff, TimeOffPatch};
+
+    let (mut conn, _, _) = workspace();
+    let span = actions::time_off::create(
+        &conn,
+        NewTimeOff {
+            starts_on: "2026-10-20".into(),
+            ends_on: "2026-10-27".into(),
+            label: "Away".into(),
+        },
+    )
+    .unwrap();
+
+    actions::time_off::update(
+        &conn,
+        &span.id,
+        TimeOffPatch {
+            label: Some("Moving house".into()),
+            ..TimeOffPatch::default()
+        },
+    )
+    .unwrap();
+    let offer = undo::last(&conn).unwrap().unwrap();
+    assert_eq!(offer.action, "undo.timeOff.update");
+    take_back(&mut conn, &offer);
+    assert_eq!(
+        time_off::get(&conn, &span.id).unwrap().unwrap().label,
+        "Away"
+    );
+
+    actions::time_off::delete(&conn, &span.id).unwrap();
+    let offer = undo::last(&conn).unwrap().unwrap();
+    assert_eq!(offer.action, "undo.timeOff.delete");
+    take_back(&mut conn, &offer);
+    let back = time_off::get(&conn, &span.id)
+        .unwrap()
+        .expect("the same row came back");
+    assert_eq!(
+        (back.starts_on.as_str(), back.ends_on.as_str()),
+        ("2026-10-20", "2026-10-27")
+    );
+
+    let other = actions::time_off::create(
+        &conn,
+        NewTimeOff {
+            starts_on: "2027-01-01".into(),
+            ends_on: "2027-01-01".into(),
+            label: "New Year".into(),
+        },
+    )
+    .unwrap();
+    let offer = undo::last(&conn).unwrap().unwrap();
+    assert_eq!(offer.action, "undo.timeOff.create");
+    take_back(&mut conn, &offer);
+    assert!(time_off::get(&conn, &other.id).unwrap().is_none());
+}
+
+/// Three releases of three works, each with a date: the 5th, the 8th, the
+/// 12th of September.
+fn three_booked(conn: &Connection, profile_id: &str) -> Vec<String> {
+    ["First", "Second", "Third"]
+        .iter()
+        .zip(["2026-09-05", "2026-09-08", "2026-09-12"])
+        .map(|(title, day)| {
+            let video = fixtures::video(conn, profile_id, title);
+            fixtures::release(conn, &video.id, "youtube", Some(day)).id
+        })
+        .collect()
+}
+
+fn day_of(conn: &Connection, id: &str) -> Option<String> {
+    kilna_lib::release::get(conn, id)
+        .unwrap()
+        .unwrap()
+        .scheduled_at
+}
+
+/// The calendar's batch gestures are one step back each (v0.96): a shift
+/// puts every release on the day it left, a pinned range loses exactly the
+/// pins it set.
+#[test]
+fn a_shift_and_a_pinned_range_are_one_step_back_each() {
+    let (mut conn, profile_id, _) = workspace();
+    let ids = three_booked(&conn, &profile_id);
+
+    let plan =
+        kilna_lib::layout::plan_shift(&conn, &profile_id, "2026-09-06", 7, "2026-09-01").unwrap();
+    assert_eq!(actions::release::shift(&conn, &plan.moves).unwrap(), 2);
+    assert_eq!(day_of(&conn, &ids[2]).as_deref(), Some("2026-09-19"));
+    let offer = undo::last(&conn).unwrap().unwrap();
+    assert_eq!(offer.action, "undo.layout.shift");
+    take_back(&mut conn, &offer);
+    assert_eq!(day_of(&conn, &ids[1]).as_deref(), Some("2026-09-08"));
+    assert_eq!(day_of(&conn, &ids[2]).as_deref(), Some("2026-09-12"));
+
+    assert_eq!(
+        actions::release::pin_range(&conn, "2026-09-01", "2026-09-30", true).unwrap(),
+        3
+    );
+    let offer = undo::last(&conn).unwrap().unwrap();
+    assert_eq!(offer.action, "undo.release.pinRange");
+    take_back(&mut conn, &offer);
+    for id in &ids {
+        let release = kilna_lib::release::get(&conn, id).unwrap().unwrap();
+        assert!(
+            release.slot_pinned_at.is_none(),
+            "every pin the range set is gone"
+        );
+    }
+}
+
+/// A booked layout is one step back: everything it placed is queued again.
+#[test]
+fn a_booked_layout_is_one_step_back() {
+    let (mut conn, profile_id, _) = workspace();
+    let mut config = profile::config_for(&conn, &profile_id).unwrap();
+    config.rhythm = Some(kilna_lib::profile::config::Rhythm {
+        every_days: 2,
+        default_time: None,
+    });
+    profile::update_config(&conn, &profile_id, &config).unwrap();
+    for title in ["First", "Second"] {
+        let video = fixtures::video(&conn, &profile_id, title);
+        fixtures::release(&conn, &video.id, "youtube", None);
+    }
+
+    let plan = kilna_lib::layout::plan(&conn, &profile_id, "2026-09-01").unwrap();
+    assert_eq!(actions::release::apply_layout(&conn, &plan).unwrap(), 2);
+    let offer = undo::last(&conn).unwrap().unwrap();
+    assert_eq!(offer.action, "undo.layout.apply");
+    take_back(&mut conn, &offer);
+
+    assert_eq!(
+        kilna_lib::release::queue(&conn, &profile_id).unwrap().len(),
+        2
+    );
+    assert!(
+        kilna_lib::release::calendar(&conn, &profile_id)
+            .unwrap()
+            .is_empty()
     );
 }

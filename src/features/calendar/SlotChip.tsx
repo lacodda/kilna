@@ -29,6 +29,9 @@ interface Props {
   onOpen: () => void
   /** Drawn as the thing under the pointer rather than as a chip on a day. */
   asGhost?: boolean
+  /** Two lines rather than one: the week's chip (v0.96), where a day has the
+   *  height for the title whole and the marks under it. `ROOMY_CHIP_HEIGHT`. */
+  roomy?: boolean
 }
 
 /**
@@ -58,7 +61,16 @@ function chipColours(workId: string) {
  * The chip is a container, so its cover and the work's stage come back only
  * where it is wide enough for them to cost the title nothing.
  */
-export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = false }: Props) {
+export function SlotChip({
+  slot,
+  date,
+  now,
+  dragging,
+  onGrab,
+  onOpen,
+  asGhost = false,
+  roomy = false,
+}: Props) {
   const covers = useCovers()
   const { t } = useTranslation()
   const profile = useProfile()
@@ -88,6 +100,30 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
   // shortcut for people who can see it hover; this is the fact itself.
   const label = `${slot.work_title} · ${what}`
 
+  // The marks, a glyph each and none of them a word, packed tighter
+  // than the title sits from them: whether it could go out, whether its
+  // date is kept, how far along the work is (where there is room), and
+  // the kind, last - the glyph its profile names.
+  const marks = (
+    <span className="flex shrink-0 items-center gap-0.5">
+      {/* First among the marks: whether it could go out at all is about
+          this release; whether it repeats a song is about where it is. No
+          tooltip of its own - the chip's card below says it in words. */}
+      <RepeatMark mark={repeat} tooltip={false} />
+      <ReadyMark readiness={slot.readiness} released={released} daysLeft={daysBetween(now, date)} />
+      {slot.slot_pinned_at !== null && <Lock aria-hidden className="size-2.5 shrink-0" />}
+      {slot.work_stage !== null && (
+        <StageDial
+          percent={slot.work_stage}
+          stage={stage}
+          size={10}
+          className="hidden @min-[7rem]:block"
+        />
+      )}
+      <KindGlyph icon={kind?.icon} className="size-3 shrink-0" />
+    </span>
+  )
+
   const body = (
     // eslint-disable-next-line dowel/no-raw-button -- drawn on the work's own colour, where every Button variant's ink and hover (tokens made for the theme's surfaces) would not read
     <button
@@ -104,7 +140,10 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
       }}
       title={label}
       className={cn(
-        '@container flex h-5 w-full min-w-0 shrink-0 items-center gap-1 rounded-sm px-1 text-left text-xs font-semibold',
+        '@container flex w-full min-w-0 shrink-0 rounded-sm text-left text-xs font-semibold',
+        roomy
+          ? 'h-11 flex-col items-stretch justify-between gap-0.5 px-1.5 py-1'
+          : 'h-5 items-center gap-1 px-1',
         'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
         !asGhost && 'transition-opacity hover:inset-ring hover:inset-ring-line-2',
         // A released chip still opens; only a planned one moves.
@@ -119,40 +158,33 @@ export function SlotChip({ slot, date, now, dragging, onGrab, onOpen, asGhost = 
       )}
       style={chipColours(slot.work_id)}
     >
-      {/* The cover, where there is room for it: what the work looks like,
-          beside the colour it has always had. */}
-      <span
-        aria-hidden
-        className="hidden size-3.5 shrink-0 rounded-xs @min-[7rem]:block"
-        style={{ background: coverImageFor(slot.work_id, covers.get(slot.work_id)) }}
-      />
-      <span className="min-w-0 flex-1 truncate">{slot.work_title}</span>
-
-      {/* The marks, a glyph each and none of them a word, packed tighter
-          than the title sits from them: whether it could go out, whether its
-          date is kept, how far along the work is (where there is room), and
-          the kind, last - the glyph its profile names. */}
-      <span className="flex shrink-0 items-center gap-0.5">
-        {/* First among the marks: whether it could go out at all is about
-            this release; whether it repeats a song is about where it is. No
-            tooltip of its own - the chip's card below says it in words. */}
-        <RepeatMark mark={repeat} tooltip={false} />
-        <ReadyMark
-          readiness={slot.readiness}
-          released={released}
-          daysLeft={daysBetween(now, date)}
-        />
-        {slot.slot_pinned_at !== null && <Lock aria-hidden className="size-2.5 shrink-0" />}
-        {slot.work_stage !== null && (
-          <StageDial
-            percent={slot.work_stage}
-            stage={stage}
-            size={10}
-            className="hidden @min-[7rem]:block"
+      {roomy ? (
+        <>
+          {/* The title whole, over two lines if it needs them, beside its
+              cover; the marks under it, at the far end. */}
+          <span className="flex min-w-0 items-start gap-1">
+            <span
+              aria-hidden
+              className="mt-px size-3.5 shrink-0 rounded-xs"
+              style={{ background: coverImageFor(slot.work_id, covers.get(slot.work_id)) }}
+            />
+            <span className="line-clamp-2 min-w-0 flex-1 leading-tight">{slot.work_title}</span>
+          </span>
+          <span className="flex justify-end">{marks}</span>
+        </>
+      ) : (
+        <>
+          {/* The cover, where there is room for it: what the work looks like,
+              beside the colour it has always had. */}
+          <span
+            aria-hidden
+            className="hidden size-3.5 shrink-0 rounded-xs @min-[7rem]:block"
+            style={{ background: coverImageFor(slot.work_id, covers.get(slot.work_id)) }}
           />
-        )}
-        <KindGlyph icon={kind?.icon} className="size-3 shrink-0" />
-      </span>
+          <span className="min-w-0 flex-1 truncate">{slot.work_title}</span>
+          {marks}
+        </>
+      )}
     </button>
   )
 

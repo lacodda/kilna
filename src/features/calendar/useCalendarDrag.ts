@@ -1,9 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import { useChipDrag } from '@/lib/useChipDrag'
-import { shiftMonth, type Month } from '@/lib/month'
 
 /** What `over` holds while the pointer is over the queue rather than a day. */
 export const QUEUE = 'queue'
+
+/**
+ * What a work row of the pane carries (v0.96): a work, not a release - it has
+ * none yet, and gets one on the day it is let go over. Prefixed so one hook
+ * carries both, and so a release id can never be read as a work's.
+ */
+const WORK = 'work:'
+
+export function carryWork(workId: string): string {
+  return `${WORK}${workId}`
+}
+
+/** The work a carried id names, or `null` for a release. */
+export function carriedWork(id: string): string | null {
+  return id.startsWith(WORK) ? id.slice(WORK.length) : null
+}
 
 /** The pointer handlers a place to land wears, so it can light up under a chip. */
 export interface DropTarget {
@@ -12,12 +27,14 @@ export interface DropTarget {
 }
 
 interface Options {
-  month: Month
-  onMonthChange: (month: Month) => void
-  /** A release let go over a day. */
-  onMove: (releaseId: string, date: string) => void
-  /** A release let go over the queue. */
-  onUnschedule: (releaseId: string) => void
+  /** Turn the period on screen a step - a month, or a week - when the
+   *  pointer rests at an edge of the grid. */
+  onStep: (step: -1 | 1) => void
+  /** Something let go over a day: a booked release, a queued one, or a work
+   *  (`carriedWork`). */
+  onMove: (id: string, date: string) => void
+  /** Something let go over the queue. */
+  onUnschedule: (id: string) => void
 }
 
 /**
@@ -33,7 +50,7 @@ interface Options {
  * who registered: a day carries `data-day`, a place that returns a release to
  * the queue carries `data-queue-drop`.
  */
-export function useCalendarDrag({ month, onMonthChange, onMove, onUnschedule }: Options) {
+export function useCalendarDrag({ onStep, onMove, onUnschedule }: Options) {
   // The month, so the pointer reaching its edge can turn it.
   const gridRef = useRef<HTMLDivElement>(null)
 
@@ -54,7 +71,7 @@ export function useCalendarDrag({ month, onMonthChange, onMove, onUnschedule }: 
     // queue standing to the right of the month, is the whole queue: a chip
     // held over it to be put back turned the month every half second.
     onEdge: (step) => {
-      if (overRef.current !== QUEUE) onMonthChange(shiftMonth(month, step))
+      if (overRef.current !== QUEUE) onStep(step)
     },
     onDrop: (id, target) => {
       setOver(null)

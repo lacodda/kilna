@@ -67,8 +67,13 @@ export const keys = {
   releaseProposalsFor: (releaseId: string) => ['releases', 'proposals', releaseId] as const,
   calendar: ['calendar'] as const,
   releaseQueue: ['releaseQueue'] as const,
+  /** The days the calendar is closed. Under the calendar's prefix: closing
+   *  a day changes what the month draws and what the layout would plan. */
+  timeOff: ['calendar', 'timeOff'] as const,
   /** What a day holds for a release being carried over it. */
   slotPreview: (releaseId: string, day: string) => ['slotPreview', releaseId, day] as const,
+  /** Every day's dry run at once: what closing a day changes. */
+  slotPreviews: ['slotPreview'] as const,
 
   collections: ['collections'] as const,
   // One coarse prefix over what a picture's prompt is written from: a

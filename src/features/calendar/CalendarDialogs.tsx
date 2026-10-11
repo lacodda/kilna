@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ScheduledRelease } from '@/lib/api/types'
+import type { ScheduledRelease, TimeOff } from '@/lib/api/types'
 import { today } from '@/lib/month'
 import { say } from '@/lib/toast'
 import { useProfile, vocabularyOf } from '@/lib/useProfile'
@@ -8,6 +8,8 @@ import { ConfirmAction } from '@/components/ConfirmAction'
 import { MarkReleasedDialog } from '@/components/MarkReleasedDialog'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
 import { ReleaseEditor } from '@/features/calendar/ReleaseEditor'
+import { ShiftDialog, type ShiftStart } from '@/features/calendar/ShiftDialog'
+import { TimeOffDialog, type TimeOffStart } from '@/features/calendar/TimeOffDialog'
 import type { CalendarActions } from '@/features/calendar/useCalendarActions'
 
 /**
@@ -20,6 +22,8 @@ export type CalendarDialog =
   | { kind: 'release'; releaseId: string }
   | { kind: 'fill'; date: string }
   | { kind: 'fields' }
+  | { kind: 'timeOff'; start: TimeOffStart }
+  | { kind: 'shift'; start: ShiftStart }
   | null
 
 interface Props {
@@ -28,8 +32,10 @@ interface Props {
   onDialog: Dispatch<SetStateAction<CalendarDialog>>
   /** Everything with a date, for the release a dialog is about. */
   slots: readonly ScheduledRelease[]
-  /** The month's planned releases the fields batch writes. */
+  /** The period's planned releases the fields batch writes. */
   planned: string[]
+  /** The days the calendar is closed. */
+  spans: readonly TimeOff[]
   actions: CalendarActions
   onOpenWork: (workId: string) => void
 }
@@ -42,7 +48,15 @@ interface Props {
  * whatever was open would take the dialog it had just handed over to. So a
  * close asks the state as it stands when it runs, not as it stood at render.
  */
-export function CalendarDialogs({ dialog, onDialog, slots, planned, actions, onOpenWork }: Props) {
+export function CalendarDialogs({
+  dialog,
+  onDialog,
+  slots,
+  planned,
+  spans,
+  actions,
+  onOpenWork,
+}: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
 
@@ -103,6 +117,25 @@ export function CalendarDialogs({ dialog, onDialog, slots, planned, actions, onO
         onConfirm={(id, url, at) => actions.release.mutate({ id, url, at })}
       />
 
+      {/* The closed days. A span that closes days something is booked on
+          offers to move them out: the shift dialog, opened on the span. */}
+      <TimeOffDialog
+        open={dialog?.kind === 'timeOff'}
+        onOpenChange={close('timeOff')}
+        start={dialog?.kind === 'timeOff' ? dialog.start : NO_TIME_OFF}
+        spans={spans}
+        slots={slots}
+        onShiftOut={(from, days) => onDialog({ kind: 'shift', start: { from, days } })}
+      />
+
+      <ShiftDialog
+        open={dialog?.kind === 'shift'}
+        onOpenChange={close('shift')}
+        start={dialog?.kind === 'shift' ? dialog.start : NO_SHIFT}
+        onPreview={(from, days) => actions.previewShift.mutate({ from, days })}
+        previewing={actions.previewShift.isPending}
+      />
+
       {/* Always asked, unlike the single release's button: this replaces the
           wording of a whole month at once, and that is a great deal to walk
           back one release at a time. */}
@@ -120,3 +153,8 @@ export function CalendarDialogs({ dialog, onDialog, slots, planned, actions, onO
     </>
   )
 }
+
+// What the two dialogs are handed while closed: one object each, so a closed
+// dialog re-rendering does not read as being opened on something new.
+const NO_TIME_OFF: TimeOffStart = {}
+const NO_SHIFT: ShiftStart = { from: '', days: 7 }

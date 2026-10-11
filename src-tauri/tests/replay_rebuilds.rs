@@ -24,7 +24,7 @@ use kilna_lib::{actions, fixtures, operation, profile, release, replay, work};
 
 /// Tables a rebuilt workspace has to match on. Everything the person's work
 /// lives in; nothing about this machine or this conversation.
-const COMPARED: [&str; 15] = [
+const COMPARED: [&str; 16] = [
     "canon_fact",
     "canon_link",
     "work",
@@ -39,6 +39,7 @@ const COMPARED: [&str; 15] = [
     "comment",
     "cover_idea",
     "trial",
+    "time_off",
     "tombstone",
 ];
 
@@ -687,4 +688,95 @@ fn a_board_of_trials_rebuilds_with_its_harvest() {
     got.remove("tombstone");
     assert_eq!(got, want, "the rebuilt board is not the same board");
     assert_eq!(got["trial"].as_array().unwrap().len(), 2);
+}
+
+/// The calendar's days and shifts rebuild as they were (v0.96): spans closed,
+/// renamed and opened, a range pinned, a shift booked.
+///
+/// Compared on the two tables these gestures write. The works' statuses are
+/// restated by the scheduling action at the live clock (see
+/// `a_derived_status_survives_the_rebuild`), and a tombstone is stamped by its
+/// trigger at the moment of the delete, so neither is the log's to reproduce.
+#[test]
+fn closed_days_pins_and_shifts_rebuild() {
+    use kilna_lib::time_off::{NewTimeOff, TimeOffPatch};
+
+    let source = workspace();
+    let profile_id = profile::active(&source).unwrap().unwrap().id;
+
+    for (title, day) in [
+        ("First", "2026-09-05"),
+        ("Second", "2026-09-08"),
+        ("Third", "2026-09-12"),
+    ] {
+        let video = actions::work::create(
+            &source,
+            work::NewWork {
+                kind: "video".into(),
+                title: title.into(),
+                ..work::NewWork::default()
+            },
+        )
+        .unwrap();
+        let planned = actions::release::create(
+            &source,
+            release::NewRelease {
+                work_id: video.id,
+                kind: "youtube".into(),
+                scheduled_at: None,
+                meta: None,
+                scheduled_time: None,
+                time_zone: None,
+            },
+        )
+        .unwrap();
+        actions::release::schedule(&source, &planned.id, day).unwrap();
+    }
+
+    let away = actions::time_off::create(
+        &source,
+        NewTimeOff {
+            starts_on: "2026-09-14".into(),
+            ends_on: "2026-09-20".into(),
+            label: "Away".into(),
+        },
+    )
+    .unwrap();
+    actions::time_off::update(
+        &source,
+        &away.id,
+        TimeOffPatch {
+            label: Some("Moving house".into()),
+            ..TimeOffPatch::default()
+        },
+    )
+    .unwrap();
+    let gone = actions::time_off::create(
+        &source,
+        NewTimeOff {
+            starts_on: "2026-12-31".into(),
+            ends_on: "2026-12-31".into(),
+            label: "New Year".into(),
+        },
+    )
+    .unwrap();
+    actions::time_off::delete(&source, &gone.id).unwrap();
+
+    actions::release::pin_range(&source, "2026-09-07", "2026-09-09", true).unwrap();
+    let plan =
+        kilna_lib::layout::plan_shift(&source, &profile_id, "2026-09-01", 2, "2026-09-01").unwrap();
+    assert_eq!(plan.moves.len(), 2, "the pinned one stays");
+    actions::release::shift(&source, &plan.moves).unwrap();
+
+    let mut rebuilt = workspace();
+    let report = replay::rebuild(&source, &mut rebuilt).unwrap();
+    assert!(report.unknown.is_empty(), "unknown: {:?}", report.unknown);
+    let (built, kept) = (contents(&rebuilt), contents(&source));
+    for table in ["release", "time_off"] {
+        assert_eq!(
+            built[table], kept[table],
+            "{table} differs after the rebuild"
+        );
+    }
+    assert_eq!(built["time_off"].as_array().unwrap().len(), 1);
 }
