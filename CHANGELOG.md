@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.96.0] - 2026-10-11
+
+### Features
+- Close days off, shift the plan, read it by week or agenda
+
 ## [0.95.2] - 2026-10-10
 
 ### Bug Fixes
