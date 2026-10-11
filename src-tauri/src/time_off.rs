@@ -113,7 +113,7 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<TimeOff>> {
 /// Every span of a profile, earliest first.
 pub fn list(conn: &Connection, profile_id: &str) -> Result<Vec<TimeOff>> {
     let mut statement = conn.prepare(&format!(
-        "{SELECT} WHERE profile_id = ?1 ORDER BY starts_on, ends_on, id"
+        "{SELECT} WHERE profile_id = ?1 ORDER BY starts_on, ends_on, created_at, rowid"
     ))?;
     let rows = statement
         .query_map(params![profile_id], read)?
@@ -128,7 +128,7 @@ pub fn covering(conn: &Connection, profile_id: &str, day: &str) -> Result<Option
         .query_row(
             &format!(
                 "{SELECT} WHERE profile_id = ?1 AND starts_on <= ?2 AND ends_on >= ?2
-                 ORDER BY starts_on, ends_on, id LIMIT 1"
+                 ORDER BY starts_on, ends_on, created_at, rowid LIMIT 1"
             ),
             params![profile_id, day],
             read,

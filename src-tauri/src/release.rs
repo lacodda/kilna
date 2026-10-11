@@ -453,7 +453,7 @@ pub fn pin_range_at(
           WHERE w.profile_id = ?1 AND r.status = ?2
             AND r.scheduled_at >= ?3 AND r.scheduled_at <= ?4
             AND (r.slot_pinned_at IS NULL) = ?5
-          ORDER BY r.scheduled_at, r.id",
+          ORDER BY r.scheduled_at, r.rowid",
     )?;
     let changes = statement
         .query_map(params![profile_id, PLANNED, from, to, pinned], |row| {
