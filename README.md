@@ -84,13 +84,14 @@ later. See [Getting started](https://lacodda.github.io/kilna/getting-started/).
 
 ## Status
 
-v0.96.0, in daily use. The loop is closed end to end - a work gains versions, a
+v0.97.0, in daily use. The loop is closed end to end - a work gains versions, a
 version earns a score, a score wins a calendar slot, and the slot ends in a
 release you mark by hand - with four craft profiles, a canon of the shared
 world, a lab of trials, the assistant panel, an MCP server and a plugin
 protocol. The calendar reads as a month, a week or an agenda, steps around
-your time off, and shifts a whole plan in one step. The interface speaks
-English and Russian.
+your time off, and shifts a whole plan in one step; each place a release goes
+out through keeps a checklist of what it cannot go without, and a pasted link
+says where and when it went. The interface speaks English and Russian.
 What landed in each version:
 [CHANGELOG](https://github.com/lacodda/kilna/blob/main/CHANGELOG.md).
 

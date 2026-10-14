@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.97.0] - 2026-10-14
+
+### Features
+- Check what a place needs, read links, zone the hour
+
+### Testing
+- Run the window's tests on four workers
+
 ## [0.96.0] - 2026-10-11
 
 ### Features
