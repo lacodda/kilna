@@ -710,10 +710,20 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
 
         // A release that went out is taken back out of the world. The link it
         // gained is kept, deliberately — see `release::unmark_released`.
+        // A mark that also moved the release to the door its link named
+        // (v0.97) puts the door back too, with the fields its tails touched.
         "release.markReleased" => {
             let id = required(params, "id")?;
+            let door_before: Option<crate::release::ReleasePatch> = params
+                .get("before")
+                .map(|_| from_params(params, "before"))
+                .transpose()?;
             apply(conn, |tx| {
-                crate::release::unmark_released_at(tx, &id, &at).map(|_| ())
+                crate::release::unmark_released_at(tx, &id, &at)?;
+                if let Some(patch) = door_before {
+                    crate::release::update_at(tx, &id, patch, &at)?;
+                }
+                Ok(())
             })?;
         }
         // A span of closed days has no drawer in the trash, like a relation

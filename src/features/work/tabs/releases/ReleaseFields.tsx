@@ -201,6 +201,7 @@ export function ReleaseFields({ release }: Props) {
       {data.map((field) => (
         <ReleaseFieldBox
           key={field.key}
+          id={releaseFieldId(release.id, field.key)}
           field={field}
           proposed={proposal?.find((change) => change.key === field.key)?.after ?? null}
           onSave={(value) => {
@@ -213,7 +214,15 @@ export function ReleaseFields({ release }: Props) {
   )
 }
 
+/** The id of a release's field box: what the release's checklist focuses
+ *  when a field it asks for is empty (v0.97). */
+export function releaseFieldId(releaseId: string, key: string): string {
+  return `release-${releaseId}-field-${key}`
+}
+
 interface BoxProps {
+  /** The box's own id, so the release's checklist can take a person to it. */
+  id: string
   field: ReleaseFieldValue
   /** What the work would write here, while that is being looked at. */
   proposed: string | null
@@ -228,7 +237,7 @@ interface BoxProps {
  * changes underneath - a generation landed - the box takes the new text,
  * because that is what the person just asked for.
  */
-function ReleaseFieldBox({ field, proposed, onSave }: BoxProps) {
+function ReleaseFieldBox({ id, field, proposed, onSave }: BoxProps) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState(field.value)
   const [syncedTo, setSyncedTo] = useState(field.value)
@@ -253,6 +262,7 @@ function ReleaseFieldBox({ field, proposed, onSave }: BoxProps) {
     onBlur: () => onSave(draft),
     placeholder: t('releases.meta.empty'),
     'aria-label': label,
+    id,
   }
 
   return (

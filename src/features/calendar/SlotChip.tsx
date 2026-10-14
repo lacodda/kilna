@@ -4,7 +4,7 @@ import type { ScheduledRelease } from '@/lib/api/types'
 import { accentFor, coverImageFor } from '@/lib/cover'
 import { useCovers } from '@/lib/useCovers'
 import { KindGlyph } from '@/lib/releaseIcon'
-import { daysBetween, missing } from '@/lib/readiness'
+import { daysBetween, missing, sayNeed } from '@/lib/readiness'
 import { openExternal, shortLink } from '@/lib/link'
 import { allOf, labelOf, say as sayLabel, useProfile } from '@/lib/useProfile'
 import { StageDial } from '@/components/StageDial'
@@ -16,6 +16,7 @@ import { ReadyMark } from '@/features/calendar/ReadyMark'
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/format'
 import { markLabel, useRepeatMark } from '@/lib/repeats'
+import { zoneLabel } from '@/lib/zonedTime'
 
 interface Props {
   slot: ScheduledRelease
@@ -110,7 +111,7 @@ export function SlotChip({
           this release; whether it repeats a song is about where it is. No
           tooltip of its own - the chip's card below says it in words. */}
       <RepeatMark mark={repeat} tooltip={false} />
-      <ReadyMark readiness={slot.readiness} released={released} daysLeft={daysBetween(now, date)} />
+      <ReadyMark release={slot} daysLeft={daysBetween(now, date)} />
       {slot.slot_pinned_at !== null && <Lock aria-hidden className="size-2.5 shrink-0" />}
       {slot.work_stage !== null && (
         <StageDial
@@ -170,7 +171,13 @@ export function SlotChip({
             />
             <span className="line-clamp-2 min-w-0 flex-1 leading-tight">{slot.work_title}</span>
           </span>
-          <span className="flex justify-end">{marks}</span>
+          <span className="flex items-center justify-between gap-1">
+            {/* The hour it goes out, where a week gives it room (v0.97). */}
+            <span className="font-mono text-2xs font-normal tabular-nums opacity-80">
+              {slot.scheduled_time ?? ''}
+            </span>
+            {marks}
+          </span>
         </>
       ) : (
         <>
@@ -181,6 +188,13 @@ export function SlotChip({
             className="hidden size-3.5 shrink-0 rounded-xs @min-[7rem]:block"
             style={{ background: coverImageFor(slot.work_id, covers.get(slot.work_id)) }}
           />
+          {/* The hour, where the chip is wide enough to say it before the
+              title - the agenda's rows, not the month's cells (v0.97). */}
+          {slot.scheduled_time !== null && (
+            <span className="hidden shrink-0 font-mono text-2xs font-normal tabular-nums opacity-80 @min-[14rem]:inline">
+              {slot.scheduled_time}
+            </span>
+          )}
           <span className="min-w-0 flex-1 truncate">{slot.work_title}</span>
           {marks}
         </>
@@ -220,6 +234,19 @@ export function SlotChip({
               <dd>{labelOf(allOf(profile.config, 'tiers'), slot.tier)}</dd>
             </div>
           )}
+          {/* The hour and whose clock it is on: the chip's face has the hour
+              only where it is wide. */}
+          {slot.scheduled_time !== null && (
+            <div className="flex justify-between gap-3">
+              <dt className="text-faint">{t('calendar.slotTime')}</dt>
+              <dd className="text-right">
+                <span className="font-mono tabular-nums">{slot.scheduled_time}</span>
+                {slot.time_zone !== null && (
+                  <span className="text-dim"> · {zoneLabel(slot.time_zone)}</span>
+                )}
+              </dd>
+            </div>
+          )}
           {/* The stage, which a narrow chip leaves off its face. */}
           <div className="flex justify-between gap-3">
             <dt className="text-faint">{t('stage.label')}</dt>
@@ -244,13 +271,7 @@ export function SlotChip({
                 : gaps.length === 0
                   ? t('calendar.ready')
                   : t('calendar.notReadyHint', {
-                      list: gaps
-                        .map((gap) =>
-                          gap === 'score'
-                            ? t('calendar.missingScore')
-                            : labelOf(allOf(profile.config, 'version_roles'), gap),
-                        )
-                        .join(', '),
+                      list: gaps.map((gap) => sayNeed(gap, profile.config, slot, t)).join(', '),
                     })}
             </dd>
           </div>

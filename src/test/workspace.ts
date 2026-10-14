@@ -604,7 +604,7 @@ const byWork =
     rows().filter((row) => row.work_id === workId)
 
 /** Whether a song has what its release needs: the tests do not judge it. */
-const READY: Readiness = { roles: [], scored: true, ready: true }
+const READY: Readiness = { checks: [], ready: true }
 
 function scheduled(studio: Studio, release: Release): ScheduledRelease {
   const owner = studio.works.find((w) => w.id === release.work_id)

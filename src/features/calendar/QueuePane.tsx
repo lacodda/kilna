@@ -323,11 +323,7 @@ export function QueuePane({
                                 where a repeat is worth knowing. */}
                             <WorkRepeatMark workId={entry.work_id} />
                             {/* No date yet, so no deadline: the gaps show, calmly. */}
-                            <ReadyMarks
-                              readiness={entry.readiness}
-                              released={false}
-                              daysLeft={null}
-                            />
+                            <ReadyMarks release={entry} daysLeft={null} />
                             {score(entry.total)}
                           </>
                         }

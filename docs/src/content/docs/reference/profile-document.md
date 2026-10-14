@@ -162,10 +162,19 @@ instrumental of earlier versions is now a `variant` of an audio release); its
 `collection_kinds` are `album`, `single` and `cycle` — a **collection** groups
 works one level deep, without nesting.
 
-A **release kind** carries two extra fields:
+A **release kind** - a door a work goes out through - carries more than a
+key and a label:
 
 ```jsonc
-{ "key": "audio", "label": "Audio release", "requires": ["lyrics", "style"], "icon": "disc" }
+{
+  "key": "streaming",
+  "label": "Streaming",
+  "requires": [],
+  "icon": "disc",
+  "cover_format": "1:1",
+  "requires_cover": true,
+  "links": ["open.spotify.com", "music.apple.com", "music.youtube.com"]
+}
 ```
 
 | Field | Type | Meaning |
@@ -174,6 +183,8 @@ A **release kind** carries two extra fields:
 | `icon` | string | Glyph the [calendar](/kilna/guides/planning-a-release/) draws this kind with, from the list below. |
 | `axis_weights` | object, optional | Axis weights that apply when a work is judged *for this kind* of release, keyed by axis key: `{ "hook": 4.0, "visual": 3.0 }`. An axis not named keeps the weight the axis itself declares. Absent means the axes' own weights — one tier for every kind. |
 | `cover_format` | string, optional | The shape of the picture a release of this kind goes out with, width to height: `"16:9"` for a video platform's preview, `"9:16"` for a vertical short, `"1:1"` for a streaming cover. The place decides the shape, so a work that goes out in two places needs two covers; the **Cover** tab lists the shapes of a work's releases. Refused at save when it is not two whole numbers with a colon. |
+| `requires_cover` | boolean, optional | A release of this kind cannot go out until a cover is chosen for its work - one of the [checklist](#what-a-place-needs-before-it-goes-out)'s items. Not read off `cover_format`: a shape says what a picture would be, not that the place refuses to go without one. `false` is kept as written, so a requirement you took off a shipped door stays off. |
+| `links` | string[], optional | What an address of this place looks like, so a link pasted when a release is [marked released](/kilna/guides/planning-a-release/#marking-released) names the door it went out through: a host, and the start of a path where the host alone is shared - `youtube.com/shorts/`, `youtu.be`, `open.spotify.com`. A host matches itself and its subdomains (`youtube.com` holds `m.youtube.com`, never `notyoutube.com`). Refused at save with a scheme, a query or a host without a dot. |
 
 A premiere lives or dies on its dynamics — the room is watching it live;
 the same video as an ordinary upload is carried by its fit to the track.
@@ -189,11 +200,37 @@ A profile where no kind reweighs anything shows nothing there: every row would
 carry the number the total already gives.
 
 Every key in `requires` must name a role in `version_roles`. An empty or
-absent list states no requirements: readiness is then judged on the score
-alone, and every role mark reads as *not applicable* rather than *missing* —
-which is how a profile written before this field existed loads. A workspace
-whose stored copy states nothing gains the shipped requirements at the next
-start; a list you narrowed yourself is left alone.
+absent list asks for no version - which is how a profile written before this
+field existed loads. A workspace whose stored copy states nothing gains the
+shipped requirements at the next start; a list you narrowed yourself is left
+alone.
+
+### What a place needs before it goes out
+
+Every release kind has a checklist (v0.97): what a release through it cannot
+go out without. Each item is kept on what it asks for, so taking a field out
+of the profile takes its requirement with it:
+
+| Item | Where it is said | Met when |
+| --- | --- | --- |
+| A version of a role | the door's `requires` | the work has a version of that role |
+| A score | the kind names `axes` | a score speaks for the work - a kind nobody judges asks for none |
+| A cover | the door's `requires_cover` | a cover is chosen for the work (a candidate is not one) |
+| A field written | the field's `required` | the field holds words: blanks, a list of commas or the field's own `suffix` alone are not words |
+
+The calendar's chips, the queue, the catalogue, the dashboard and the
+release's own block read one list in that order, so the first gap one screen
+shows is the first every screen shows - see
+[ready marks](/kilna/guides/planning-a-release/#ready-marks). The checklist
+is ticked in **Settings → Profile**, under each kind's release kinds; the
+score is not a box there, since it follows the kind's axes.
+
+Studio asks a clip and an audio upload for a cover, a title and a
+description, a streaming release for a cover and a title, and a short for a
+title - YouTube takes a frame of a short when nobody gives it a picture. A
+workspace made before v0.97 gains these at the next start, for the doors and
+fields it still shares by key; a requirement you took off is written `false`
+and stays off.
 
 ### Kind glyphs
 
@@ -239,6 +276,7 @@ goes out under, the text beneath it, the words it is found by:
 | `template` | What the field is filled with when generated, in the placeholder language [below](#template-placeholders). Absent means the field is only ever typed by hand. |
 | `hint` | A line under the box saying what goes in it. |
 | `limit` | How many characters the destination accepts. Counted beside the box, never enforced — kilna is not the authority on what a platform takes this month. |
+| `required` | `true`: a release cannot go out with this field empty - one of the door's [checklist](#what-a-place-needs-before-it-goes-out) items. `false` is kept as written, so a field you made optional stays optional when a shipped requirement is carried forward. Absent is optional. |
 | `suffix` | A tail the value always ends with, whoever writes the rest: Studio's audio YouTube title keeps `" (audio)"`. The release keeps it at every write - typed, generated, proposed, replayed - and takes it off when the release moves to a place that keeps none. An empty value stays empty; within `limit`, the tail is what stays. |
 
 A kind with no `fields` says nothing about itself, and its releases show no

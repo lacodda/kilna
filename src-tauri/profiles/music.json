@@ -277,7 +277,8 @@
                   "en": "What the video is listed under.",
                   "ru": "Под каким названием видео стоит в списке."
                 },
-                "limit": 205
+                "limit": 205,
+                "required": true
               },
               {
                 "key": "description",
@@ -291,7 +292,8 @@
                   "en": "The text under the video.",
                   "ru": "Текст под видео."
                 },
-                "limit": 5000
+                "limit": 5000,
+                "required": true
               },
               {
                 "key": "tags",
@@ -318,7 +320,13 @@
                 }
               }
             ],
-            "cover_format": "16:9"
+            "cover_format": "16:9",
+            "requires_cover": true,
+            "links": [
+              "youtube.com/watch",
+              "youtu.be",
+              "youtube.com/live/"
+            ]
           },
           {
             "key": "premiere",
@@ -339,7 +347,8 @@
                 },
                 "type": "line",
                 "template": "{origin}",
-                "limit": 205
+                "limit": 205,
+                "required": true
               },
               {
                 "key": "description",
@@ -349,10 +358,17 @@
                 },
                 "type": "text",
                 "template": "{role:plot}",
-                "limit": 5000
+                "limit": 5000,
+                "required": true
               }
             ],
-            "cover_format": "16:9"
+            "cover_format": "16:9",
+            "requires_cover": true,
+            "links": [
+              "youtube.com/watch",
+              "youtu.be",
+              "youtube.com/live/"
+            ]
           }
         ],
         "statuses": [
@@ -532,7 +548,8 @@
                   "ru": "Под каким названием трек стоит в списке."
                 },
                 "limit": 205,
-                "suffix": " (audio)"
+                "suffix": " (audio)",
+                "required": true
               },
               {
                 "key": "description",
@@ -546,7 +563,8 @@
                   "en": "The text under the track.",
                   "ru": "Текст под треком."
                 },
-                "limit": 5000
+                "limit": 5000,
+                "required": true
               },
               {
                 "key": "tags",
@@ -573,7 +591,13 @@
                 }
               }
             ],
-            "cover_format": "16:9"
+            "cover_format": "16:9",
+            "requires_cover": true,
+            "links": [
+              "youtube.com/watch",
+              "youtu.be",
+              "youtube.com/live/"
+            ]
           },
           {
             "key": "streaming",
@@ -595,10 +619,24 @@
                 "hint": {
                   "en": "What the track is called on the services.",
                   "ru": "Как трек называется на площадках."
-                }
+                },
+                "required": true
               }
             ],
-            "cover_format": "1:1"
+            "cover_format": "1:1",
+            "requires_cover": true,
+            "links": [
+              "music.youtube.com",
+              "open.spotify.com",
+              "music.apple.com",
+              "music.yandex.ru",
+              "music.yandex.com",
+              "deezer.com",
+              "tidal.com",
+              "music.amazon.com",
+              "bandcamp.com",
+              "soundcloud.com"
+            ]
           }
         ],
         "statuses": [
@@ -916,7 +954,8 @@
                   "en": "Short enough to read on a phone.",
                   "ru": "Достаточно короткий, чтобы прочесть с телефона."
                 },
-                "limit": 100
+                "limit": 100,
+                "required": true
               },
               {
                 "key": "description",
@@ -952,7 +991,10 @@
                 }
               }
             ],
-            "cover_format": "9:16"
+            "cover_format": "9:16",
+            "links": [
+              "youtube.com/shorts/"
+            ]
           }
         ],
         "statuses": [

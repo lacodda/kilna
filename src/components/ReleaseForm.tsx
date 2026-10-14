@@ -1,15 +1,20 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import type { ScheduledRelease } from '@/lib/api/types'
 import { isWebLink } from '@/lib/link'
 import { draftOf, localZone, rebase, sameDraft, type ReleaseDraft } from '@/lib/releaseForm'
 import { say, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { inZone } from '@/lib/zonedTime'
+import { formatDay } from '@/lib/format'
+import { today } from '@/lib/month'
 import { cn } from '@/lib/utils'
 import { Select } from '@/components/AppSelect'
 import { DatePicker } from '@/components/DatePicker'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldGroup } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { ZonePicker } from '@/components/ZonePicker'
 
 interface Props {
   release: ScheduledRelease
@@ -77,6 +82,9 @@ export function ReleaseForm({
   const linkLooksWrong = value.url.trim() !== '' && !isWebLink(value.url)
   const row = layout === 'row'
   const usualTime = profile.config.rhythm?.default_time
+  // The zone the hour is on: the one the release holds or was given here,
+  // this machine's while it has none - what saving would write.
+  const zone = value.zone === '' ? localZone() : value.zone
 
   return (
     <div
@@ -101,14 +109,7 @@ export function ReleaseForm({
 
       <FieldGroup
         label={t('calendar.slotDate')}
-        // The profile's usual shipping time, as a reminder beside the date.
-        // Slots stay whole days - the contest is per day, and a time would
-        // split it - so the time lives in the profile, not on the release.
-        help={
-          !row && typeof usualTime === 'string'
-            ? t('calendar.usualTime', { time: usualTime })
-            : undefined
-        }
+        // The slot is a whole day; the hour sits beside it, in its own box.
         className={cn(row && 'w-40')}
       >
         <DatePicker
@@ -134,11 +135,24 @@ export function ReleaseForm({
         )}
       </FieldGroup>
 
-      {/* The hour the platform is told, for the places that ask: in the
-          release's zone, the machine's own for a first time typed. */}
+      {/* The hour the platform is told, for the places that ask, and whose
+          clock it is on (v0.97): the zone picked for it, this machine's for
+          a first time typed. While the box is empty the profile's usual hour
+          is one click away. */}
       <Field
         label={t('calendar.slotTime')}
-        help={value.time === '' ? undefined : (release.time_zone ?? localZone()).replace(/_/g, ' ')}
+        help={
+          value.time === '' && typeof usualTime === 'string' ? (
+            // eslint-disable-next-line dowel/no-raw-button -- a word inside a line of help text, where a Button's height would break the line
+            <button
+              type="button"
+              className="underline decoration-dotted underline-offset-2 hover:text-text"
+              onClick={() => settle({ time: usualTime })}
+            >
+              {t('calendar.useUsualTime', { time: usualTime })}
+            </button>
+          ) : undefined
+        }
         className={cn(row && 'w-28')}
       >
         <Input
@@ -149,6 +163,16 @@ export function ReleaseForm({
           aria-label={t('calendar.slotTime')}
         />
       </Field>
+
+      {value.time !== '' && (
+        <Field
+          label={t('calendar.zone')}
+          help={hereSaid(value, zone, t)}
+          className={cn(row && 'w-60')}
+        >
+          <ZonePicker value={zone} onChange={(picked) => settle({ zone: picked })} />
+        </Field>
+      )}
 
       <Field
         label={t('calendar.urlPrompt')}
@@ -172,6 +196,22 @@ export function ReleaseForm({
       </Field>
     </div>
   )
+}
+
+/**
+ * The hour on this machine's clock, when the release's is another's: "17:00
+ * here", and the day too when the hour crosses midnight. Nothing when the
+ * zones agree or the time is not a time yet. A release in the queue has no
+ * day of its own, so today's offset stands in for it.
+ */
+function hereSaid(draft: ReleaseDraft, zone: string, t: TFunction): string | undefined {
+  const here = localZone()
+  if (zone === here || !/^\d{2}:\d{2}$/.test(draft.time)) return undefined
+  const day = draft.date === '' ? today() : draft.date
+  const there = inZone({ date: day, time: draft.time }, zone, here)
+  return there.date === day || draft.date === ''
+    ? t('calendar.zoneHere', { time: there.time })
+    : t('calendar.zoneHereOn', { time: there.time, date: formatDay(there.date) })
 }
 
 /**

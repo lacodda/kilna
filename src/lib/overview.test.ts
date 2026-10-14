@@ -327,7 +327,7 @@ describe('releaseTone', () => {
       status: 'planned',
       scheduled_at: null,
       released_at: null,
-      readiness: { roles: [], scored: true, ready: true },
+      readiness: { checks: [], ready: true },
       ...over,
     }) as ScheduledRelease
 
@@ -339,7 +339,7 @@ describe('releaseTone', () => {
       releaseTone(
         release({
           scheduled_at: '2026-09-20',
-          readiness: { roles: [], scored: false, ready: false },
+          readiness: { checks: [{ need: { kind: 'score' }, done: false }], ready: false },
         }),
       ),
     ).toBe('warn')

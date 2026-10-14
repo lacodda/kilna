@@ -5,7 +5,8 @@ import { coverImageFor } from '@/lib/cover'
 import { formatNumber } from '@/lib/format'
 import { stageAt } from '@/lib/stages'
 import { useCovers } from '@/lib/useCovers'
-import { allOf, labelOf, useProfile } from '@/lib/useProfile'
+import { sayNeed } from '@/lib/readiness'
+import { useProfile } from '@/lib/useProfile'
 import { StageDial } from '@/components/StageDial'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,9 +39,7 @@ export function DecisionCard({ decision, onSelect, onDismiss, dismissing = false
   const reason = (() => {
     if (decision.kind === 'release') {
       const gaps = decision.gaps.map((gap) =>
-        gap === 'score'
-          ? t('calendar.missingScore')
-          : labelOf(allOf(profile.config, 'version_roles'), gap),
+        sayNeed(gap, profile.config, decision.slot.release, t),
       )
       return t('dashboard.reason.missing', { gaps: gaps.join(', ') })
     }

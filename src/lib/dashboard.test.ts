@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api/types'
+import type { ProfileConfig, Readiness, ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import {
   NEAREST_LIMIT,
   SCHEDULE_LIMIT,
@@ -11,6 +11,7 @@ import {
   tally,
 } from '@/lib/dashboard'
 import { findings, type Finding } from '@/lib/findings'
+import { studio } from '@/test/workspace'
 
 const TODAY = '2026-08-27'
 
@@ -60,12 +61,12 @@ function release(over: Partial<ScheduledRelease> = {}): ScheduledRelease {
     work_title: 'Harbour lights',
     total: 30,
     tier: 'clip',
-    readiness: { roles: [], scored: true, ready: true },
+    readiness: { checks: [], ready: true },
     ...over,
   }
 }
 
-const UNREADY = { roles: [], scored: false, ready: false }
+const UNREADY: Readiness = { checks: [{ need: { kind: 'score' }, done: false }], ready: false }
 
 describe('summarise', () => {
   it('puts an unready release with a near date among the decisions', () => {
@@ -211,7 +212,7 @@ const CONFIG: Pick<ProfileConfig, 'work_kinds' | 'prompts'> = {
 function decisionsOf(works: ScoredWork[], calendar: ScheduledRelease[] = []) {
   const summary = summarise(works, calendar, TODAY)
   const standing = findings(works, calendar, CONFIG, TODAY)
-  return { decisions: decide(summary, standing, works), standing }
+  return { decisions: decide(summary, standing, works, studio().profile.config), standing }
 }
 
 const SCORED = { total: 40, scored_at: '2026-08-20T10:00:00Z' }
@@ -227,7 +228,10 @@ describe('decide', () => {
           work_id: 'b',
           work_title: 'B',
           scheduled_at: '2026-08-28',
-          readiness: { roles: [{ role: 'lyrics', present: false }], scored: true, ready: false },
+          readiness: {
+            checks: [{ need: { kind: 'role', key: 'lyrics' }, done: false }],
+            ready: false,
+          },
         }),
       ],
     )
@@ -236,7 +240,9 @@ describe('decide', () => {
       ['release:no-lyrics', 'open', 'versions'],
       ['release:unscored', 'score', 'score'],
     ])
-    expect(decisions[0]?.kind === 'release' && decisions[0].gaps).toEqual(['lyrics'])
+    expect(decisions[0]?.kind === 'release' && decisions[0].gaps).toEqual([
+      { kind: 'role', key: 'lyrics' },
+    ])
   })
 
   it('puts a stale score forward to be re-scored', () => {
@@ -284,7 +290,7 @@ describe('decide', () => {
   it('draws nothing for a complaint the person has dismissed', () => {
     const works = [work({ ...SCORED })]
 
-    expect(decide(summarise(works, [], TODAY), [], works)).toEqual([])
+    expect(decide(summarise(works, [], TODAY), [], works, studio().profile.config)).toEqual([])
   })
 })
 

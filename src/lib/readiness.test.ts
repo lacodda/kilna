@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { Readiness } from '@/lib/api/types'
-import { daysBetween, missing, urgency } from './readiness'
+import type { TFunction } from 'i18next'
+import type { Need, Readiness } from '@/lib/api/types'
+import { studio } from '@/test/workspace'
+import { answeredOn, daysBetween, missing, needKey, sayNeed, urgency } from './readiness'
 
-const judged = (overrides: Partial<Readiness>): Readiness => ({
-  roles: [],
-  scored: true,
-  ready: false,
-  ...overrides,
+const judged = (checks: [Need, boolean][]): Readiness => ({
+  checks: checks.map(([need, done]) => ({ need, done })),
+  ready: checks.every(([, done]) => done),
 })
 
 describe('urgency', () => {
@@ -44,27 +44,60 @@ describe('daysBetween', () => {
 })
 
 describe('missing', () => {
-  it('lists the missing roles and skips the inapplicable ones', () => {
+  it('lists what is not done, in the order the kind asks for it', () => {
     const gaps = missing(
-      judged({
-        roles: [
-          { role: 'lyrics', present: true },
-          { role: 'style', present: false },
-          { role: 'notes', present: null },
-        ],
-      }),
+      judged([
+        [{ kind: 'role', key: 'plot' }, true],
+        [{ kind: 'score' }, false],
+        [{ kind: 'cover' }, false],
+        [{ kind: 'field', key: 'title' }, true],
+        [{ kind: 'field', key: 'description' }, false],
+      ]),
     )
-    expect(gaps).toEqual(['style'])
-  })
-
-  it('adds the score last when nothing speaks for the work', () => {
-    expect(missing(judged({ scored: false }))).toEqual(['score'])
-    expect(missing(judged({ roles: [{ role: 'lyrics', present: false }], scored: false }))).toEqual(
-      ['lyrics', 'score'],
-    )
+    expect(gaps.map(needKey)).toEqual(['score', 'cover', 'field:description'])
   })
 
   it('is empty exactly when there is nothing to chase', () => {
-    expect(missing(judged({ roles: [{ role: 'lyrics', present: true }] }))).toEqual([])
+    expect(missing(judged([[{ kind: 'role', key: 'plot' }, true]]))).toEqual([])
+    expect(missing(judged([]))).toEqual([])
+  })
+})
+
+describe('sayNeed', () => {
+  const config = studio().profile.config
+  const t = ((key: string) => `<${key}>`) as unknown as TFunction
+  const youtube = { work_kind: 'video', kind: 'youtube' }
+
+  it("says a role and a field in the profile's own words", () => {
+    expect(sayNeed({ kind: 'role', key: 'plot' }, config, youtube, t)).toBe('Plot')
+    expect(sayNeed({ kind: 'field', key: 'description' }, config, youtube, t)).toBe('Description')
+  })
+
+  it('says a key the profile no longer names as the key, rather than nothing', () => {
+    expect(sayNeed({ kind: 'role', key: 'gone' }, config, youtube, t)).toBe('gone')
+    expect(sayNeed({ kind: 'field', key: 'gone' }, config, youtube, t)).toBe('gone')
+  })
+
+  it('has a name for a checklist and a word for the missing list', () => {
+    expect(sayNeed({ kind: 'cover' }, config, youtube, t, 'name')).toBe('<readiness.cover>')
+    expect(sayNeed({ kind: 'cover' }, config, youtube, t)).toBe('<calendar.missingCover>')
+    expect(sayNeed({ kind: 'score' }, config, youtube, t, 'name')).toBe('<readiness.score>')
+    expect(sayNeed({ kind: 'score' }, config, youtube, t)).toBe('<calendar.missingScore>')
+  })
+})
+
+describe('answeredOn', () => {
+  const config = studio().profile.config
+
+  it('sends each gap to the tab that closes it', () => {
+    expect(answeredOn({ kind: 'role', key: 'plot' }, config, 'video')).toBe('versions')
+    expect(answeredOn({ kind: 'score' }, config, 'video')).toBe('score')
+    // The release is written on the overview, its one home since v0.90.
+    expect(answeredOn({ kind: 'field', key: 'title' }, config, 'video')).toBe('overview')
+  })
+
+  it('sends a cover to the Cover tab of a kind that builds one, and to the files of any other', () => {
+    expect(answeredOn({ kind: 'cover' }, config, 'video')).toBe('cover')
+    expect(answeredOn({ kind: 'cover' }, config, 'song')).toBe('files')
   })
 })

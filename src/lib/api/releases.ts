@@ -51,8 +51,13 @@ export const unscheduleWorks = (workIds: string[]) =>
   invoke<BulkOutcome>('unschedule_works', { workIds })
 // `at` is the day it went out, when that is not today: a release marked late,
 // or one whose real date is known from elsewhere. Left out, the moment is now.
-export const markReleased = (id: string, url?: string | null, at?: string | null) =>
-  invoke<Release>('mark_released', { id, url, at })
+// `kind`: the door it went out through, when not the one planned (v0.97).
+export const markReleased = (
+  id: string,
+  url?: string | null,
+  at?: string | null,
+  kind?: string | null,
+) => invoke<Release>('mark_released', { id, url, at, kind })
 // Undoing the mark. The link is kept - see the Rust side for why.
 export const unmarkReleased = (id: string) => invoke<Release>('unmark_released', { id })
 export const planLayout = (today: string) => invoke<Placement[]>('plan_layout', { today })

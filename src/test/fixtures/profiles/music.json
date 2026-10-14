@@ -2628,6 +2628,7 @@
                   "ru": "Заголовок"
                 },
                 "limit": 205,
+                "required": true,
                 "template": "{origin}",
                 "type": "line"
               },
@@ -2642,6 +2643,7 @@
                   "ru": "Описание"
                 },
                 "limit": 5000,
+                "required": true,
                 "template": "{role:plot}",
                 "type": "text"
               },
@@ -2676,9 +2678,15 @@
               "en": "YouTube",
               "ru": "YouTube"
             },
+            "links": [
+              "youtube.com/watch",
+              "youtu.be",
+              "youtube.com/live/"
+            ],
             "requires": [
               "plot"
-            ]
+            ],
+            "requires_cover": true
           },
           {
             "cover_format": "16:9",
@@ -2690,6 +2698,7 @@
                   "ru": "Заголовок"
                 },
                 "limit": 205,
+                "required": true,
                 "template": "{origin}",
                 "type": "line"
               },
@@ -2700,6 +2709,7 @@
                   "ru": "Описание"
                 },
                 "limit": 5000,
+                "required": true,
                 "template": "{role:plot}",
                 "type": "text"
               }
@@ -2710,9 +2720,15 @@
               "en": "Premiere",
               "ru": "Премьера"
             },
+            "links": [
+              "youtube.com/watch",
+              "youtu.be",
+              "youtube.com/live/"
+            ],
             "requires": [
               "plot"
-            ]
+            ],
+            "requires_cover": true
           }
         ],
         "scene_blocks": [
@@ -2919,6 +2935,7 @@
                   "ru": "Заголовок"
                 },
                 "limit": 205,
+                "required": true,
                 "suffix": " (audio)",
                 "template": "{origin}",
                 "type": "line"
@@ -2934,6 +2951,7 @@
                   "ru": "Описание"
                 },
                 "limit": 5000,
+                "required": true,
                 "template": "{donor:lyrics}",
                 "type": "text"
               },
@@ -2968,7 +2986,13 @@
               "en": "YouTube",
               "ru": "YouTube"
             },
-            "requires": []
+            "links": [
+              "youtube.com/watch",
+              "youtu.be",
+              "youtube.com/live/"
+            ],
+            "requires": [],
+            "requires_cover": true
           },
           {
             "cover_format": "1:1",
@@ -2983,6 +3007,7 @@
                   "en": "Title",
                   "ru": "Заголовок"
                 },
+                "required": true,
                 "template": "{origin}",
                 "type": "line"
               }
@@ -2993,7 +3018,20 @@
               "en": "Streaming",
               "ru": "Стриминг"
             },
-            "requires": []
+            "links": [
+              "music.youtube.com",
+              "open.spotify.com",
+              "music.apple.com",
+              "music.yandex.ru",
+              "music.yandex.com",
+              "deezer.com",
+              "tidal.com",
+              "music.amazon.com",
+              "bandcamp.com",
+              "soundcloud.com"
+            ],
+            "requires": [],
+            "requires_cover": true
           }
         ],
         "statuses": [
@@ -3272,6 +3310,7 @@
                   "ru": "Заголовок"
                 },
                 "limit": 100,
+                "required": true,
                 "template": "{origin}",
                 "type": "line"
               },
@@ -3315,6 +3354,9 @@
               "en": "Short",
               "ru": "Шортс"
             },
+            "links": [
+              "youtube.com/shorts/"
+            ],
             "requires": [
               "plot"
             ]

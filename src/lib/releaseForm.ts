@@ -18,6 +18,9 @@ export interface ReleaseDraft {
   date: string
   /** `HH:MM` the platform is told, or empty when the day is enough (v0.90). */
   time: string
+  /** Whose clock the time is on, an IANA name (v0.97); empty until a release
+   *  has one, and a first time typed is then said in this machine's zone. */
+  zone: string
   url: string
   /** Whether the date is kept: the auto-layout puts nothing over it. */
   pinned: boolean
@@ -29,6 +32,7 @@ export function draftOf(release: Release): ReleaseDraft {
     kind: release.kind,
     date: release.scheduled_at ?? '',
     time: release.scheduled_time ?? '',
+    zone: release.time_zone ?? '',
     url: release.url ?? '',
     pinned: release.slot_pinned_at !== null,
   }
@@ -63,13 +67,13 @@ export function changesOf(release: Release, draft: ReleaseDraft): ReleaseChanges
   const date = draft.date === '' ? null : draft.date
   if (date !== release.scheduled_at) patch.scheduled_at = date
 
-  // A time is a moment in somebody's day: the first one typed is said in the
-  // zone this machine is in, and a zone already there stays.
+  // A time is a moment in somebody's day: said in the zone picked for it,
+  // and a first one typed with none picked in the zone this machine is in.
   const time = draft.time.trim() === '' ? null : draft.time.trim()
-  if (time !== release.scheduled_time) {
-    patch.scheduled_time = time
-    if (time !== null && release.time_zone === null) patch.time_zone = localZone()
-  }
+  if (time !== release.scheduled_time) patch.scheduled_time = time
+  const picked = draft.zone.trim() === '' ? null : draft.zone.trim()
+  const zone = picked ?? (time !== null && release.time_zone === null ? localZone() : null)
+  if (zone !== null && zone !== release.time_zone) patch.time_zone = zone
 
   const url = draft.url.trim() === '' ? null : draft.url.trim()
   if (url !== release.url) patch.url = url
@@ -88,6 +92,7 @@ export function sameDraft(a: ReleaseDraft, b: ReleaseDraft): boolean {
     a.kind === b.kind &&
     a.date === b.date &&
     a.time === b.time &&
+    a.zone === b.zone &&
     a.url === b.url &&
     a.pinned === b.pinned
   )
@@ -108,6 +113,7 @@ export function rebase(draft: ReleaseDraft, from: ReleaseDraft, to: ReleaseDraft
     kind: to.kind !== from.kind ? to.kind : draft.kind,
     date: to.date !== from.date ? to.date : draft.date,
     time: to.time !== from.time ? to.time : draft.time,
+    zone: to.zone !== from.zone ? to.zone : draft.zone,
     url: to.url !== from.url ? to.url : draft.url,
     pinned: to.pinned !== from.pinned ? to.pinned : draft.pinned,
   }

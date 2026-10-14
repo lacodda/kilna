@@ -242,6 +242,10 @@ const UPGRADE: &[Step] = &[
         carry: release_kind_details,
     },
     Step {
+        name: "what a place will not go out without - a cover, a field written - and the links it is known by",
+        carry: going_out_needs,
+    },
+    Step {
         name: "version roles, and how a role's body reads",
         carry: version_roles,
     },
@@ -434,6 +438,46 @@ fn release_kind_details(config: &mut ProfileConfig, shipped: &ProfileConfig) -> 
             if release_kind.fields.is_empty() && !shipped.fields.is_empty() {
                 release_kind.fields = shipped.fields.clone();
                 changed = true;
+            }
+        }
+    }
+    changed
+}
+
+/// What a door will not let a release out without, and what its addresses
+/// look like (v0.97), where the stored door says nothing: a cover the shipped
+/// door requires, a field of the same key the shipped door requires, the
+/// patterns of its links. A requirement the owner took off is written as
+/// `false` and stays off - unlike a role's `sung`, an absent flag here is
+/// told apart from a cleared one, because the checklist is toggled in the
+/// settings and a box that ticks itself back at every start is a broken box.
+fn going_out_needs(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let mut changed = false;
+    for (kind, shipped_kind) in shared_kinds(config, shipped) {
+        for door in &mut kind.release_kinds {
+            let Some(shipped) = shipped_kind
+                .release_kinds
+                .iter()
+                .find(|s| s.key == door.key)
+            else {
+                continue;
+            };
+            if door.requires_cover.is_none() && shipped.requires_cover.is_some() {
+                door.requires_cover = shipped.requires_cover;
+                changed = true;
+            }
+            if door.links.is_empty() && !shipped.links.is_empty() {
+                door.links = shipped.links.clone();
+                changed = true;
+            }
+            for field in &mut door.fields {
+                let Some(shipped_field) = shipped.fields.iter().find(|s| s.key == field.key) else {
+                    continue;
+                };
+                if field.required.is_none() && shipped_field.required.is_some() {
+                    field.required = shipped_field.required;
+                    changed = true;
+                }
             }
         }
     }
@@ -1486,9 +1530,71 @@ mod tests {
                 release_kind.requires.clear();
                 release_kind.icon = None;
                 release_kind.fields.clear();
+                release_kind.requires_cover = None;
+                release_kind.links.clear();
             }
         }
         old
+    }
+
+    /// A Studio copy from before v0.97: its doors ask for nothing beyond the
+    /// roles and know no links. The upgrade brings the shipped checklist in;
+    /// a requirement the owner took off - written `false` - stays off, and a
+    /// field the owner keeps optional is not made required behind their back.
+    #[test]
+    fn a_door_learns_what_it_needs_and_keeps_what_the_owner_took_off() {
+        let shipped = builtin()
+            .unwrap()
+            .into_iter()
+            .find(|profile| profile.key == "music")
+            .unwrap();
+        let mut config = shipped.config.clone();
+        for kind in &mut config.work_kinds {
+            for door in &mut kind.release_kinds {
+                door.requires_cover = None;
+                door.links.clear();
+                for field in &mut door.fields {
+                    field.required = None;
+                }
+            }
+        }
+        // The owner's own word on two things the shipped door requires.
+        {
+            let youtube = config
+                .work_kinds
+                .iter_mut()
+                .find(|kind| kind.key == "video")
+                .and_then(|kind| kind.release_kinds.iter_mut().find(|d| d.key == "youtube"))
+                .unwrap();
+            youtube.requires_cover = Some(false);
+            youtube.fields[1].required = Some(false);
+        }
+
+        assert!(going_out_needs(&mut config, &shipped.config));
+
+        let video = config.vocabulary("video");
+        let youtube = video
+            .release_kinds
+            .iter()
+            .find(|d| d.key == "youtube")
+            .unwrap();
+        assert_eq!(youtube.requires_cover, Some(false), "taken off, stays off");
+        assert!(youtube.fields[0].is_required(), "the title is required");
+        assert_eq!(
+            youtube.fields[1].required,
+            Some(false),
+            "the description the owner made optional stays optional"
+        );
+        assert!(youtube.links.iter().any(|link| link == "youtu.be"));
+        let premiere = video
+            .release_kinds
+            .iter()
+            .find(|d| d.key == "premiere")
+            .unwrap();
+        assert!(
+            premiere.needs_cover(),
+            "a door the owner said nothing about learns it"
+        );
     }
 
     /// Every upgrade step is idempotent: run on its own result, it changes

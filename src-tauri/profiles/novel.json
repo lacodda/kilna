@@ -15,7 +15,7 @@
         "requires": ["text"],
         "icon": "users",
         "fields": [
-          { "key": "title", "label": "Title", "type": "line", "template": "{title}"} ,
+          { "key": "title", "label": "Title", "type": "line", "required": true, "template": "{title}"} ,
           { "key": "brief", "label": "What to read for", "type": "text", "hint": "What you want the reader watching for this time."} 
         ]
       },
@@ -24,9 +24,10 @@
         "label": "Serial instalment",
         "requires": ["text"],
         "icon": "book-open",
+        "links": ["royalroad.com", "wattpad.com", "archiveofourown.org", "scribblehub.com"],
         "fields": [
-          { "key": "title", "label": "Title", "type": "line", "template": "{title}"} ,
-          { "key": "teaser", "label": "Teaser", "type": "text", "hint": "The lines that go above the fold."} ,
+          { "key": "title", "label": "Title", "type": "line", "required": true, "template": "{title}"} ,
+          { "key": "teaser", "label": "Teaser", "type": "text", "required": true, "hint": "The lines that go above the fold."} ,
           { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated."} 
         ]
       },
@@ -36,9 +37,9 @@
         "requires": ["text"],
         "icon": "send",
         "fields": [
-          { "key": "title", "label": "Title", "type": "line", "template": "{title}"} ,
-          { "key": "cover_letter", "label": "Cover letter", "type": "text", "hint": "Who you are, what this is, why them."} ,
-          { "key": "synopsis", "label": "Synopsis", "type": "text", "template": "{role:outline}", "hint": "The whole story, ending included."} 
+          { "key": "title", "label": "Title", "type": "line", "required": true, "template": "{title}"} ,
+          { "key": "cover_letter", "label": "Cover letter", "type": "text", "required": true, "hint": "Who you are, what this is, why them."} ,
+          { "key": "synopsis", "label": "Synopsis", "type": "text", "required": true, "template": "{role:outline}", "hint": "The whole story, ending included."} 
         ]
       },
       {
@@ -46,9 +47,10 @@
         "label": "Publication",
         "requires": ["text"],
         "icon": "book",
+        "links": ["books.apple.com", "kobo.com", "play.google.com/store/books/"],
         "fields": [
-          { "key": "title", "label": "Title", "type": "line", "template": "{title}"} ,
-          { "key": "blurb", "label": "Blurb", "type": "text", "hint": "The back cover."} ,
+          { "key": "title", "label": "Title", "type": "line", "required": true, "template": "{title}"} ,
+          { "key": "blurb", "label": "Blurb", "type": "text", "required": true, "hint": "The back cover."} ,
           { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated."} 
         ]
       }

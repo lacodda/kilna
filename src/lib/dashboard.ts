@@ -1,6 +1,6 @@
-import type { ScheduledRelease, ScoredWork } from '@/lib/api/types'
+import type { Need, ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import { identify, type Finding, type FindingKind } from '@/lib/findings'
-import { daysBetween, missing } from '@/lib/readiness'
+import { answeredOn, daysBetween, missing, type AnsweredOn } from '@/lib/readiness'
 
 /**
  * What the first screen shows, worked out from the catalogue and the calendar.
@@ -136,7 +136,7 @@ interface DecisionBase {
   title: string
   move: Move
   /** The tab of the work the move is made on. */
-  tab: 'score' | 'versions' | 'overview'
+  tab: AnsweredOn
 }
 
 /**
@@ -152,8 +152,8 @@ export type Decision =
   | (DecisionBase & {
       kind: 'release'
       slot: Slot
-      /** What the release still lacks: role keys, then `'score'`. */
-      gaps: string[]
+      /** What the release still lacks, in the order its kind asks for it. */
+      gaps: Need[]
     })
   | (DecisionBase & {
       kind: 'finding'
@@ -178,22 +178,26 @@ export function decide(
   dashboard: Dashboard,
   standing: readonly Finding[],
   works: readonly ScoredWork[],
+  config: ProfileConfig,
 ): Decision[] {
   const decided: Decision[] = dashboard.decisions.map((slot) => {
     const { release } = slot
-    // Straight to the tab that closes the gap: an unscored work to its score,
-    // a missing role to the versions. The row this replaced opened the
-    // overview for a missing role while its comment promised the versions.
-    const scored = release.readiness.scored
+    // Straight to the tab that closes the first gap: an unscored work to its
+    // score, a missing role to the versions, a cover to where it is made, a
+    // field to the overview where the release is written (v0.97). The row
+    // this replaced opened the overview for a missing role while its comment
+    // promised the versions.
+    const gaps = missing(release.readiness)
+    const first = gaps[0]
     return {
       kind: 'release',
       key: `release:${release.id}`,
       workId: release.work_id,
       title: release.work_title,
-      move: scored ? 'open' : 'score',
-      tab: scored ? 'versions' : 'score',
+      move: first?.kind === 'score' ? 'score' : 'open',
+      tab: first === undefined ? 'overview' : answeredOn(first, config, release.work_kind),
       slot,
-      gaps: missing(release.readiness),
+      gaps,
     }
   })
 

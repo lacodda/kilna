@@ -1,89 +1,145 @@
 //! Whether a release could go out today, judged from facts.
 //!
-//! A release is ready when the work has a version for every role its kind
-//! requires and a score speaking for it. Nothing here is written anywhere: like
-//! the derived status, readiness is computed from what is true right now, so it
-//! can never drift from the versions and scores it describes.
+//! A release is ready when everything its kind asks for is there: a version
+//! of every role it requires, a score speaking for the work when the work is
+//! judged, a cover when the place wants one, and every field it cannot go out
+//! without written (v0.97). The list is the profile's - the craft says what a
+//! place needs - and ADR 0063 says why each requirement sits where it does.
+//! Nothing here is written anywhere: like the derived status, readiness is
+//! computed from what is true right now, so it can never drift from the
+//! versions, scores, covers and words it describes.
 
 use std::collections::{BTreeSet, HashMap};
 
 use rusqlite::{Connection, params};
 use serde::Serialize;
+use serde_json::{Map, Value};
 use time::{Date, Duration, macros::format_description};
 
 use crate::error::{Error, Result};
 use crate::profile::config::ProfileConfig;
 use crate::release::{PLANNED, ScheduledRelease};
 
-/// One release's distance from shippable.
+/// One release's distance from shippable: everything its kind asks for, in
+/// order, each with whether it is there.
+///
+/// One list rather than a field per sort of requirement (v0.97): every screen
+/// that says what is missing - the chip, the queue, the catalogue, the
+/// dashboard, the release's own row - reads the same list in the same order,
+/// so the first gap one shows is the first gap another shows.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Readiness {
-    /// One mark per version role of the profile, in the profile's order.
-    pub roles: Vec<RoleMark>,
-    /// Whether the score the kind asks for is there: a score speaks for the
-    /// work, or the kind is not judged at all - it names no axes, the way an
-    /// audio release goes out for a song that was judged (v0.86) - and so
-    /// asks for none.
-    pub scored: bool,
-    /// Everything the kind requires is there, and the work is scored.
+    /// What the release's kind asks for: the roles it names, a score when the
+    /// kind is judged, a cover when the place wants one, the fields it cannot
+    /// go out without - in that order. What the kind does not ask for is not
+    /// listed: a short that needs no outline is not a short missing one.
+    pub checks: Vec<Check>,
+    /// Every check is done.
     pub ready: bool,
 }
 
-/// Three states, not two: a short that needs no outline is different from a
-/// short that lacks one.
-#[derive(Debug, Clone, Serialize, ts_rs::TS)]
-pub struct RoleMark {
-    pub role: String,
-    /// `Some(true)` the role is there, `Some(false)` it is missing, `None` the
-    /// kind does not require it.
-    pub present: Option<bool>,
+/// One thing a release cannot go out without, and whether it is there.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ts_rs::TS)]
+pub struct Check {
+    pub need: Need,
+    pub done: bool,
+}
+
+/// What a check asks for. Each names the place it is answered: a role on
+/// the versions, the score on the score, the cover on its tab, a field on
+/// the release.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ts_rs::TS)]
+#[serde(tag = "kind", rename_all = "lowercase")]
+pub enum Need {
+    /// A version of this role. The key may name a role the profile has since
+    /// lost: such a requirement can never be met, and is said by its key
+    /// rather than left to block in silence.
+    Role { key: String },
+    /// A score speaking for the work. Asked only of a kind that names axes:
+    /// an audio release goes out for a song already judged (v0.86).
+    Score,
+    /// A cover chosen for the work.
+    Cover,
+    /// Something written under this field of the release.
+    Field { key: String },
+}
+
+/// What is true of one release and its work, gathered by the caller - the
+/// calendar asks about every chip at once and gathers each fact in one query.
+pub struct Facts<'a> {
+    /// The roles the work has at least one version of.
+    pub roles: &'a BTreeSet<String>,
+    /// A score speaks for the work.
+    pub scored: bool,
+    /// A cover is chosen for the work.
+    pub cover: bool,
+    /// What is written about the release, by field key.
+    pub meta: &'a Map<String, Value>,
 }
 
 /// Judge one release from the facts already in hand.
 ///
-/// `present` holds the roles the work has at least one version for. A kind the
-/// profile does not know requires nothing, like a kind with an empty list.
-pub fn assess(
-    config: &ProfileConfig,
-    work_kind: &str,
-    kind: &str,
-    present: &BTreeSet<String>,
-    scored: bool,
-) -> Readiness {
-    // The release kind and the roles it requires are the work's kind's: a
-    // video's clip and a song's clip may require different bodies.
+/// A kind of release the work's kind does not know - one created under an
+/// older vocabulary - asks for nothing of its own, and only for the score its
+/// work is judged by.
+pub fn assess(config: &ProfileConfig, work_kind: &str, kind: &str, facts: &Facts<'_>) -> Readiness {
+    // The release kind and what it requires are the work's kind's: a video's
+    // clip and a song's clip may require different bodies.
     let vocabulary = config.vocabulary(work_kind);
-    let required = vocabulary
+    let door = vocabulary
         .release_kinds
         .iter()
-        .find(|entry| entry.key == kind)
-        .map(|entry| entry.requires.as_slice())
-        .unwrap_or_default();
+        .find(|entry| entry.key == kind);
 
-    let roles = vocabulary
-        .version_roles
-        .iter()
-        .map(|role| RoleMark {
-            role: role.key.clone(),
-            present: required
-                .contains(&role.key)
-                .then(|| present.contains(&role.key)),
-        })
-        .collect();
-
+    let mut checks = Vec::new();
+    let mut named = BTreeSet::new();
+    for role in door
+        .map(|door| door.requires.as_slice())
+        .unwrap_or_default()
+    {
+        if named.insert(role.as_str()) {
+            checks.push(Check {
+                need: Need::Role { key: role.clone() },
+                done: facts.roles.contains(role),
+            });
+        }
+    }
     // A kind nobody judges cannot wait for a score: it would never be ready,
     // and every release of it would warn for ever.
-    let scored = scored || vocabulary.axes.is_empty();
+    if !vocabulary.axes.is_empty() {
+        checks.push(Check {
+            need: Need::Score,
+            done: facts.scored,
+        });
+    }
+    if let Some(door) = door {
+        if door.needs_cover() {
+            checks.push(Check {
+                need: Need::Cover,
+                done: facts.cover,
+            });
+        }
+        for field in door.fields.iter().filter(|field| field.is_required()) {
+            checks.push(Check {
+                need: Need::Field {
+                    key: field.key.clone(),
+                },
+                done: field.is_filled(facts.meta.get(&field.key)),
+            });
+        }
+    }
 
-    // Judged against the requirements themselves rather than the marks: a
-    // requirement naming a role the profile no longer defines has no mark, but
-    // it still cannot be satisfied and the release is still not ready.
-    let ready = scored && required.iter().all(|role| present.contains(role));
+    let ready = checks.iter().all(|check| check.done);
+    Readiness { checks, ready }
+}
 
-    Readiness {
-        roles,
-        scored,
-        ready,
+impl Readiness {
+    /// What is still missing, in the order it is asked for.
+    pub fn missing(&self) -> impl Iterator<Item = &Need> {
+        self.checks
+            .iter()
+            .filter(|check| !check.done)
+            .map(|check| &check.need)
     }
 }
 
@@ -160,7 +216,18 @@ mod tests {
             "work_kinds": [{ "key": "song", "label": "Song" }],
             "release_kinds": [
                 { "key": "clip", "label": "Clip", "requires": ["lyrics", "style"] },
-                { "key": "teaser", "label": "Teaser" }
+                { "key": "teaser", "label": "Teaser" },
+                {
+                    "key": "video",
+                    "label": "Video",
+                    "requires": ["lyrics"],
+                    "requires_cover": true,
+                    "fields": [
+                        { "key": "title", "label": "Title", "required": true, "suffix": " (audio)" },
+                        { "key": "tags", "label": "Tags", "type": "tags", "required": true },
+                        { "key": "pinned", "label": "Pinned", "type": "text" }
+                    ]
+                }
             ],
             "collection_kinds": [],
             "version_roles": [
@@ -180,60 +247,85 @@ mod tests {
         present.iter().map(|role| (*role).to_owned()).collect()
     }
 
-    fn mark_of(readiness: &Readiness, role: &str) -> Option<bool> {
+    /// The facts of a work with these roles, judged or not, with no cover
+    /// and nothing written about its release.
+    fn judge(config: &ProfileConfig, kind: &str, present: &[&str], scored: bool) -> Readiness {
+        let roles = roles(present);
+        let meta = Map::new();
+        assess(
+            config,
+            "song",
+            kind,
+            &Facts {
+                roles: &roles,
+                scored,
+                cover: false,
+                meta: &meta,
+            },
+        )
+    }
+
+    fn role(key: &str) -> Need {
+        Need::Role { key: key.into() }
+    }
+
+    fn field(key: &str) -> Need {
+        Need::Field { key: key.into() }
+    }
+
+    /// The needs of a judgement, each with whether it is met, in order.
+    fn listed(readiness: &Readiness) -> Vec<(Need, bool)> {
         readiness
-            .roles
+            .checks
             .iter()
-            .find(|mark| mark.role == role)
-            .unwrap()
-            .present
+            .map(|check| (check.need.clone(), check.done))
+            .collect()
     }
 
     #[test]
-    fn a_missing_required_role_is_marked_and_blocks_readiness() {
-        let judged = assess(&config(), "song", "clip", &roles(&["lyrics"]), true);
+    fn a_missing_required_role_is_listed_and_blocks_readiness() {
+        let judged = judge(&config(), "clip", &["lyrics"], true);
 
-        assert_eq!(mark_of(&judged, "lyrics"), Some(true));
-        assert_eq!(mark_of(&judged, "style"), Some(false));
+        assert_eq!(
+            listed(&judged),
+            [
+                (role("lyrics"), true),
+                (role("style"), false),
+                (Need::Score, true)
+            ]
+        );
+        assert_eq!(judged.missing().collect::<Vec<_>>(), [&role("style")]);
         assert!(!judged.ready);
     }
 
-    /// The third state: a role the kind does not ask for is neither there nor
-    /// missing, and must not block anything.
+    /// A role the kind does not ask for is neither there nor missing: it is
+    /// not on the list at all, and must not block anything.
     #[test]
-    fn an_unrequired_role_is_not_applicable_rather_than_missing() {
-        let judged = assess(
-            &config(),
-            "song",
-            "clip",
-            &roles(&["lyrics", "style"]),
-            true,
-        );
+    fn an_unrequired_role_is_not_listed() {
+        let judged = judge(&config(), "clip", &["lyrics", "style"], true);
 
-        assert_eq!(mark_of(&judged, "notes"), None);
+        assert!(
+            !listed(&judged)
+                .iter()
+                .any(|(need, _)| *need == role("notes"))
+        );
         assert!(judged.ready);
     }
 
     #[test]
     fn a_kind_stating_no_requirements_is_ready_once_scored() {
-        let judged = assess(&config(), "song", "teaser", &roles(&[]), true);
+        let judged = judge(&config(), "teaser", &[], true);
 
-        assert!(judged.roles.iter().all(|mark| mark.present.is_none()));
+        assert_eq!(listed(&judged), [(Need::Score, true)]);
         assert!(judged.ready);
-        assert!(!assess(&config(), "song", "teaser", &roles(&[]), false).ready);
+        assert!(!judge(&config(), "teaser", &[], false).ready);
     }
 
     #[test]
     fn an_unscored_release_is_never_ready() {
-        let judged = assess(
-            &config(),
-            "song",
-            "clip",
-            &roles(&["lyrics", "style"]),
-            false,
-        );
+        let judged = judge(&config(), "clip", &["lyrics", "style"], false);
 
-        assert!(!judged.scored);
+        assert_eq!(judged.missing().collect::<Vec<_>>(), [&Need::Score]);
         assert!(!judged.ready);
     }
 
@@ -245,29 +337,32 @@ mod tests {
         let mut config = config();
         config.work_kinds[0].axes.clear();
 
-        let judged = assess(&config, "song", "clip", &roles(&["lyrics", "style"]), false);
+        let judged = judge(&config, "clip", &["lyrics", "style"], false);
 
-        assert!(judged.scored, "no score is asked for");
+        assert!(
+            !listed(&judged).iter().any(|(need, _)| *need == Need::Score),
+            "no score is asked for"
+        );
         assert!(judged.ready);
         assert!(
-            !assess(&config, "song", "clip", &roles(&["lyrics"]), false).ready,
+            !judge(&config, "clip", &["lyrics"], false).ready,
             "the roles it requires still count"
         );
     }
 
-    /// A kind the profile does not know — a release created under an older
-    /// vocabulary — requires nothing rather than erroring.
+    /// A kind the profile does not know - a release created under an older
+    /// vocabulary - asks for nothing of its own rather than erroring.
     #[test]
-    fn an_unknown_kind_requires_nothing() {
-        let judged = assess(&config(), "song", "gone", &roles(&[]), true);
+    fn an_unknown_kind_asks_only_for_the_score() {
+        let judged = judge(&config(), "gone", &[], true);
 
-        assert!(judged.roles.iter().all(|mark| mark.present.is_none()));
+        assert_eq!(listed(&judged), [(Need::Score, true)]);
         assert!(judged.ready);
     }
 
     /// A requirement can outlive the role it names: the profile editor removes
-    /// the role, the kind still requires it. There is no mark to draw, but the
-    /// release must not quietly count as ready.
+    /// the role, the kind still requires it. It is listed by its key, so a
+    /// screen can say what blocks the release instead of blocking in silence.
     #[test]
     fn a_requirement_for_a_role_the_profile_lost_still_blocks() {
         let mut config = config();
@@ -275,10 +370,97 @@ mod tests {
             .version_roles
             .retain(|role| role.key != "style");
 
-        let judged = assess(&config, "song", "clip", &roles(&["lyrics"]), true);
+        let judged = judge(&config, "clip", &["lyrics"], true);
 
-        assert!(judged.roles.iter().all(|mark| mark.role != "style"));
+        assert_eq!(judged.missing().collect::<Vec<_>>(), [&role("style")]);
         assert!(!judged.ready);
+    }
+
+    /// The place's own needs come after the work's: the cover it asks for,
+    /// then every field it cannot go out without, in the door's order. A
+    /// field the door does not require is not listed.
+    #[test]
+    fn a_place_asks_for_its_cover_and_its_required_fields() {
+        let config = config();
+        let present = roles(&["lyrics"]);
+        let meta = Map::new();
+        let bare = assess(
+            &config,
+            "song",
+            "video",
+            &Facts {
+                roles: &present,
+                scored: true,
+                cover: false,
+                meta: &meta,
+            },
+        );
+
+        assert_eq!(
+            listed(&bare),
+            [
+                (role("lyrics"), true),
+                (Need::Score, true),
+                (Need::Cover, false),
+                (field("title"), false),
+                (field("tags"), false)
+            ]
+        );
+        assert!(!bare.ready);
+
+        let written = serde_json::json!({ "title": "Tide", "tags": "rain, sea" });
+        let full = assess(
+            &config,
+            "song",
+            "video",
+            &Facts {
+                roles: &present,
+                scored: true,
+                cover: true,
+                meta: written.as_object().unwrap(),
+            },
+        );
+        assert!(full.ready, "{:?}", listed(&full));
+    }
+
+    /// Filled means said something: blank is empty, a list of commas is
+    /// empty, and so is the tail a field keeps on its own - " (audio)" is not
+    /// a title anybody wrote.
+    #[test]
+    fn a_field_holding_only_blanks_or_its_tail_is_not_written() {
+        let config = config();
+        let present = roles(&["lyrics"]);
+        let missing = |meta: serde_json::Value| -> Vec<Need> {
+            assess(
+                &config,
+                "song",
+                "video",
+                &Facts {
+                    roles: &present,
+                    scored: true,
+                    cover: true,
+                    meta: meta.as_object().unwrap(),
+                },
+            )
+            .missing()
+            .cloned()
+            .collect()
+        };
+
+        assert_eq!(
+            missing(serde_json::json!({ "title": "   ", "tags": " , ,", "pinned": "" })),
+            [field("title"), field("tags")]
+        );
+        assert_eq!(
+            missing(serde_json::json!({ "title": " (audio)", "tags": "rain" })),
+            [field("title")]
+        );
+        assert_eq!(
+            missing(serde_json::json!({ "title": 7, "tags": "rain" })),
+            [field("title")],
+            "a value that is not text is nothing a platform can be told"
+        );
+        assert!(missing(serde_json::json!({ "title": "Tide (audio)", "tags": "rain" })).is_empty());
     }
 
     /// The window is [today, today + horizon], both ends included, and only

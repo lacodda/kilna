@@ -44,6 +44,14 @@ interface Options {
   onDayFilled: () => void
 }
 
+/** A mark: the day, the link and, when it went out elsewhere, the door. */
+interface Marked {
+  id: string
+  url: string | null
+  at: string | null
+  kind: string | null
+}
+
 /**
  * Every write the calendar makes.
  *
@@ -135,8 +143,7 @@ export function useCalendarActions({
   })
 
   const release = useAppMutation({
-    mutationFn: ({ id, url, at }: { id: string; url: string | null; at: string | null }) =>
-      markReleased(id, url, at),
+    mutationFn: ({ id, url, at, kind }: Marked) => markReleased(id, url, at, kind),
     failure: 'toast.releaseSaveFailed',
     refresh: REFRESHED,
     onSuccess: () => {

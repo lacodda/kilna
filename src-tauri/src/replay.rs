@@ -397,6 +397,18 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
                 .and_then(Value::as_str)
                 .map(str::to_owned);
             let at = required(params, "at")?;
+            // The door its link named, when the mark moved it (v0.97).
+            if let Some(door) = params.get("kind").and_then(Value::as_str) {
+                release::update_at(
+                    conn,
+                    &id,
+                    release::ReleasePatch {
+                        kind: Some(door.to_owned()),
+                        ..release::ReleasePatch::default()
+                    },
+                    &at,
+                )?;
+            }
             release::mark_released_at(conn, &id, url, on_day, &at)?;
         }
 

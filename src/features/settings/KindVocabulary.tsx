@@ -5,6 +5,7 @@ import { say as sayLabel } from '@/lib/useProfile'
 import { AxesEditor } from '@/features/settings/AxesEditor'
 import { CheckedInput } from '@/features/settings/CheckedInput'
 import { PublicationEditor } from '@/features/settings/PublicationEditor'
+import { ReadinessEditor } from '@/features/settings/ReadinessEditor'
 import { ReleaseFieldsEditor } from '@/features/settings/ReleaseFieldsEditor'
 import { TiersEditor } from '@/features/settings/TiersEditor'
 import { Vocabulary } from '@/features/settings/Vocabulary'
@@ -51,6 +52,9 @@ export function KindVocabulary({
           onChange={(release_kinds) => onChange({ release_kinds })}
         />
       )}
+      {/* What each door will not let a release out without (v0.97): the
+          checklist the calendar's marks and the release's own row read. */}
+      {(kind.release_kinds ?? []).length > 0 && <ReadinessEditor kind={kind} onChange={onChange} />}
       {/* After the doors, since a cover's shape is a door's: the place
           decides the shape of the picture a release goes out with. */}
       <PublicationEditor kind={kind} onChange={onChange} />

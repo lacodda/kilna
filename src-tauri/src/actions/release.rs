@@ -472,17 +472,58 @@ pub fn unschedule_works(conn: &Connection, work_ids: &[String]) -> Result<BulkOu
 /// late, or one whose real date is known from elsewhere. It is the person's
 /// own data, separate from the gesture's moment, which is when the mark was
 /// recorded. See [`release::mark_released_at`].
+///
+/// `door` is the place it went out through, when that is not the one planned:
+/// the link pasted with the mark named another door of the same work's kind
+/// (v0.97). Changed inside the mark rather than as an edit before it, so one
+/// undo takes back both - a mark that went somewhere else is one thing that
+/// happened.
 pub fn mark_released(
     conn: &Connection,
     id: &str,
     url: Option<String>,
     on_day: Option<String>,
+    door: Option<String>,
 ) -> Result<Release> {
     gesture(conn, "release.markReleased", |act| {
         act.param("id", id);
         act.param("url", url.clone());
         act.param("on_day", on_day.clone());
+        let before = release::get(act, id)?.ok_or_else(|| Error::not_found("release", id))?;
+        let moving = door.filter(|door| *door != before.kind);
+        if let Some(door) = &moving {
+            let work = crate::work::get(act, &before.work_id)?
+                .ok_or_else(|| Error::not_found("work", &before.work_id))?;
+            crate::profile::config_for(act, act.profile_id())?
+                .require_release_kind(&work.kind, door)?;
+            if before.status == release::RELEASED {
+                return Err(Error::refused("release.placeAfterOut")
+                    .param("title", act.title_of(&before.work_id)));
+            }
+            act.param("kind", door.clone());
+            // What the door change touches - the kind, and the fields whose
+            // tails follow their door - as it stood, for the undo.
+            act.before(
+                Some(&before),
+                &ReleasePatch {
+                    kind: Some(door.clone()),
+                    meta: Some(serde_json::Map::new()),
+                    ..ReleasePatch::default()
+                },
+            )?;
+        }
         act.stamped();
+        if let Some(door) = moving {
+            release::update_at(
+                act,
+                id,
+                ReleasePatch {
+                    kind: Some(door),
+                    ..ReleasePatch::default()
+                },
+                act.at(),
+            )?;
+        }
         let released = release::mark_released_at(act, id, url, on_day, act.at())?;
         act.journal(
             Record::new("release.released")
@@ -959,10 +1000,65 @@ mod tests {
             to("premiere").unwrap_err().refusal().map(|r| r.code),
             Some("release.unknownKind")
         );
-        mark_released(&conn, &planned.id, None, None).unwrap();
+        mark_released(&conn, &planned.id, None, None, None).unwrap();
         assert_eq!(
             to("youtube").unwrap_err().refusal().map(|r| r.code),
             Some("release.placeAfterOut")
         );
+    }
+
+    /// The link pasted with the mark said it went out through another door
+    /// of the same work (v0.97): the mark moves it there, the title takes the
+    /// new door's tail, and one undo puts back the door, the title and the
+    /// plan together. A door the work's kind has not got is refused, and
+    /// nothing is marked.
+    #[test]
+    fn a_mark_can_name_the_door_it_went_out_through_and_one_undo_takes_both_back() {
+        let (conn, profile_id) = fixtures::workspace();
+        let audio = fixtures::work(&conn, &profile_id, "audio", "Tide (audio)");
+        let planned = fixtures::release(&conn, &audio.id, "youtube", Some("2026-10-01"));
+        let titled = set_fields(
+            &conn,
+            &planned.id,
+            &BTreeMap::from([("title".to_owned(), "Tide".to_owned())]),
+        )
+        .unwrap();
+        assert_eq!(
+            titled.meta["title"], "Tide (audio)",
+            "the youtube door's tail"
+        );
+
+        let refused =
+            mark_released(&conn, &planned.id, None, None, Some("premiere".into())).unwrap_err();
+        assert_eq!(
+            refused.refusal().map(|r| r.code),
+            Some("release.unknownKind")
+        );
+        assert_eq!(
+            release::get(&conn, &planned.id).unwrap().unwrap().status,
+            release::PLANNED
+        );
+
+        let out = mark_released(
+            &conn,
+            &planned.id,
+            Some("https://open.spotify.com/track/1".into()),
+            None,
+            Some("streaming".into()),
+        )
+        .unwrap();
+        assert_eq!(out.kind, "streaming");
+        assert_eq!(out.status, release::RELEASED);
+        assert_eq!(
+            out.meta["title"], "Tide",
+            "the streaming door keeps no tail"
+        );
+
+        let offer = crate::undo::last(&conn).unwrap().unwrap();
+        crate::undo::undo(&conn, &offer.operation_id).unwrap();
+        let back = release::get(&conn, &planned.id).unwrap().unwrap();
+        assert_eq!(back.status, release::PLANNED);
+        assert_eq!(back.kind, "youtube");
+        assert_eq!(back.meta["title"], "Tide (audio)");
     }
 }

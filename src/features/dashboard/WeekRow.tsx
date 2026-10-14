@@ -52,7 +52,7 @@ export function WeekRow({
               stage={stageAt(profile.config, release.work_stage)}
             />
           )}
-          <ReadyMarks readiness={release.readiness} released={false} daysLeft={daysLeft} />
+          <ReadyMarks release={release} daysLeft={daysLeft} />
           {/* Whether its song repeats one out or booked nearby (ADR 0054):
               a week about to go out is the last place to notice. */}
           <WorkRepeatMark workId={release.work_id} />

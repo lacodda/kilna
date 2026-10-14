@@ -185,19 +185,33 @@ Every chip and every queue row carries a small readiness row, answering the
 one question a calendar is read for: **can this actually go out?**
 
 - **Two ticks** — it already went out.
-- **One tick** — everything is there: the work has a version for every role
-  this kind of release requires, and a score speaks for it.
-- **Otherwise, one glyph per gap** — a page for a missing version role, a
-  gauge for a missing score. Hover for the list in words; opening the release
-  spells the same list out.
+- **One tick** — everything the place asks for is there.
+- **Otherwise, one glyph per gap** — a page for a missing version, a gauge
+  for a missing score, a picture for a missing cover, a pen for a field
+  nobody wrote. A one-line chip shows the first gap and keeps the rest for
+  its tooltip. Hover for the list in words.
 
-Which roles a release needs comes from the profile: each release kind lists
-the version roles it *requires* — a video's YouTube release needs a plot, a
-beta read needs the text; an audio release requires none of its own.
-A role the kind does not require is neither shown nor counted: *not
-applicable* and *missing* are different answers, and only the second one
-blocks readiness. A kind that lists no requirements is judged on the score
-alone.
+What a place asks for is its **checklist**, written in the profile for each
+kind of release (v0.97): the versions it needs - a clip needs a plot, a beta
+read the text - a score when the work is judged, a cover when the place will
+not go out without a picture, and the fields it cannot go out with empty, a
+title or a description. Studio asks a clip for a cover, a title and a
+description, a streaming release for a cover and a title, and a short for a
+title alone: YouTube takes a frame of a short when nobody gives it a
+picture. What the place does not ask for is not counted: *not asked* and
+*missing* are different answers, and only the second one blocks a release.
+See [what a place needs](/kilna/reference/profile-document/#what-a-place-needs-before-it-goes-out);
+the boxes are ticked in **Settings → Profile**, under each kind's release
+kinds.
+
+**The checklist itself** stands under the head of the **Release** block on
+a publication's overview, and in the release dialog the calendar opens,
+while anything is missing: every item in the place's order, a tick on what is
+there and the glyph on what is not. A gap is a button to where it is closed -
+a field to its box right below, a version to the Versions tab, the score to
+the Score tab, the cover to the Cover tab (to Files for a kind that builds no
+cover of its own). The dashboard's cards for releases that are close and not
+ready open on the same tab.
 
 **The colour belongs to the deadline, not to the gap.** The same missing
 style prompt is a quiet grey note in the queue or a month out, amber inside a
@@ -366,11 +380,29 @@ action it performs — nothing is published, uploaded, or posted from here.
 Marking a release without a link a second time keeps whatever link was
 already recorded rather than clearing it.
 
-**The day is yours to name.** Marking — from the calendar or from the
-**Release** block of the work's overview, the same dialog either way — asks
-for the day it went out, which starts from the day it was planned for and can be changed. Marks are often made after the fact — days later, or while entering
-something that shipped long ago — and a mark that could only ever say "now"
-made every late one quietly wrong.
+**The link says where and when** (v0.97). The dialog - the same from the
+calendar and from the **Release** block - asks for the link first, and reads
+what you paste into it:
+
+- **Where.** Each place of a kind knows what its addresses look like (the
+  door's [`links`](/kilna/reference/profile-document/) in the profile), so a
+  Spotify link on an audio release planned for YouTube picks *Streaming*,
+  and a `youtube.com/shorts/` link picks the short. The most specific
+  pattern wins; when two places match equally well - a premiere and an
+  upload are both a watch page - nothing is picked rather than guessed.
+- **When.** A link whose path carries its day - `/2026/10/14/the-post`,
+  `/posts/2026-10-14-the-post` - fills the day it went out.
+
+Either is said under its box, *Read from the link*, and fills only a box you
+have not picked by hand. A release whose link was written before the mark
+opens with what that link says. The place is changed **as part of the
+mark**: one undo puts back the mark, the place and the title's tail
+together.
+
+**The day is yours to name.** It starts from the day the release was planned
+for and can be changed. Marks are often made after the fact - days later, or
+while entering something that shipped long ago - and a mark that could only
+ever say "now" made every late one quietly wrong.
 
 **A mark can be taken back.** *It did not go out* returns the release to
 planned and clears the day it shipped, leaving the work's
@@ -378,6 +410,15 @@ planned and clears the day it shipped, leaving the work's
 an undone mark is usually a mis-click or a release pulled after the fact, and
 the address it was published under is the one part worth not retyping. Clearing
 it is a separate edit.
+
+**After the day, kilna asks** (v0.97). A release whose day has passed and
+that is still planned is a [finding](/kilna/guides/the-dashboard/) - *its day
+has passed and it is not marked out* - from the day after: it went out and
+the mark is missing, or it did not and needs another day. A release out for
+two days with no link kept for it is another - *it went out, and no link is
+kept for it*. Both open the publication's overview, where the release is
+marked and its link written; a dismissed one comes back only when the
+complaint changes, as a passed day moved to another day that passes.
 
 ## What a release goes out as
 
@@ -493,9 +534,22 @@ copying the link, and deleting it. What the calendar can do to a release and
 what its work can do to it are the same list, minus the drag that only a grid
 can offer.
 
-**The hour** is for the places that ask for one. The first time you set it,
-it is said in the zone this computer is in, and the zone is kept with it, so
-the release still means one moment when it is read elsewhere. Changing
+**The hour** is for the places that ask for one. While the box is empty, the
+profile's usual hour (the [rhythm](#the-rhythm-and-the-auto-layout)'s
+*default time*) is one click away under it. The hour is said in a **zone**:
+the first time you set one it is the zone this computer is in, and the
+**Zone** box beside it - type a city, *asun*, *mosc* - says whose clock it
+is on: the platform's, the audience's. When the release's zone is not this
+computer's, the box says the same moment on your clock - *06:00 on your
+clock*, with the day too when the hour crosses midnight. The zone is kept
+with the release, so it still means one moment when it is read elsewhere.
+
+A day's releases are listed in the order they go out - by the hour, the ones
+with no hour after - in the agenda, in the week and in the release dialog's
+day. The week's two-line chips show the hour under the title, the agenda's
+rows before it, and the hover card says it with its zone.
+
+Changing
 the date here **moves** the booking rather than bidding for a new one — a date
 typed into a form is a correction, and the app pushing back mid-edit would be
 answering a question nobody asked. Clearing the date returns it to the queue,

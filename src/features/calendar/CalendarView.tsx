@@ -35,7 +35,7 @@ import { say } from '@/lib/toast'
 import { useProfile, vocabularyOf } from '@/lib/useProfile'
 
 interface Props {
-  onSelect: (workId: string) => void
+  onSelect: (workId: string, tab?: string) => void
 }
 
 /**

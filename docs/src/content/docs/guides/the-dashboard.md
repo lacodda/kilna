@@ -19,11 +19,13 @@ scrolls only on a window too low to show a few lines of each.
 
 ## Needs a decision
 
-Releases whose date is close and whose work is not ready for it: a missing
-draft, a missing score, a role the release kind requires. Each row says what is
-lacking in words, carries the same readiness marks the
-[calendar](/kilna/guides/planning-a-release/) uses, and clicking it opens the
-work — on the Score tab when the score is what is missing.
+Releases whose date is close and whose work is not ready for it: whatever the
+place's [checklist](/kilna/guides/planning-a-release/#ready-marks) still
+misses - a version, a score, a cover, a field nobody wrote. Each row says what
+is lacking in words, carries the same readiness marks the
+[calendar](/kilna/guides/planning-a-release/) uses, and its button opens the
+work on the tab that closes the first gap: the score, the versions, the cover,
+or the overview where the release's fields are written.
 
 Overdue slots sort to the top and are drawn in red. A date that has passed with
 the work still unfinished is the loudest thing kilna has to say.
@@ -64,7 +66,10 @@ behave differently, and the difference is worth knowing.
 
 Things that are true today and were true last week. A score that describes a
 draft you have since rewritten. The weakest work holding a slot while something
-stronger waits. A draft nobody has opened in a month.
+stronger waits. A draft nobody has opened in a month. And, since v0.97, the
+day after a release: one whose day has passed and that is still not marked
+out, and one out for two days with no link kept for it - see
+[after the day](/kilna/guides/planning-a-release/#marking-released).
 
 **Nothing here changes anything.** A finding names a work and what is off about
 it; clicking the text opens the work at the tab that answers it. Where a profile
@@ -75,8 +80,9 @@ your workspace.
 
 Findings the sections above already show are left out rather than said twice.
 
-A finding says nothing about work that has gone out, a date that has passed, or
-a slot you settled by hand — the same rule the catalogue's gap filters follow:
+A finding says nothing about a slot you settled by hand, or about work that has
+gone out or a date that has passed - except to ask for the mark or the link
+the record still lacks - the same rule the catalogue's gap filters follow:
 **the automation shows what can still be done**. And the weak-slot complaint
 stays quiet unless there is genuinely something stronger to put there; telling
 you a work is weak with no alternative is a remark, not a finding.

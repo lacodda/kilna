@@ -6,7 +6,7 @@ import { coverImageFor } from '@/lib/cover'
 import { formatDay, formatDelta, formatNumber } from '@/lib/format'
 import { badgeVariantOf } from '@/lib/markIcon'
 import { today } from '@/lib/month'
-import { daysBetween, missing, urgency } from '@/lib/readiness'
+import { daysBetween, missing, sayNeed, urgency } from '@/lib/readiness'
 import { nextTier } from '@/lib/scoring'
 import { useCovers } from '@/lib/useCovers'
 import { allOf, labelOf, say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
@@ -300,11 +300,7 @@ function ReadyCell({ release }: { release: ScheduledRelease | null }) {
     )
   }
 
-  const names = missing(release.readiness).map((gap) =>
-    gap === 'score'
-      ? t('calendar.missingScore')
-      : labelOf(allOf(profile.config, 'version_roles'), gap),
-  )
+  const names = missing(release.readiness).map((gap) => sayNeed(gap, profile.config, release, t))
   const tone = GAP_TONE[urgency(daysBetween(today(), release.scheduled_at))]
   return (
     <TableCell className="whitespace-nowrap">

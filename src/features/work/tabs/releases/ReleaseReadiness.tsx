@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { Check, CheckCheck } from 'lucide-react'
 import type { ScheduledRelease } from '@/lib/api/types'
-import { daysBetween, missing, urgency, type Urgency } from '@/lib/readiness'
-import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { daysBetween, missing, sayNeed, urgency, type Urgency } from '@/lib/readiness'
+import { useProfile } from '@/lib/useProfile'
 import { Badge } from '@/components/ui/badge'
 
 interface Props {
@@ -26,7 +26,7 @@ const TONE: Record<Urgency, 'soft' | 'warn' | 'bad'> = {
  * In words where the calendar's chip has glyphs: a chip at eleven pixels has
  * room for a page and a gauge, a row of the work's own list has room to say
  * what is missing - and it is read by someone who can go and fill the gap
- * from the tab beside it. Two ticks it went out, one tick it is ready.
+ * from the checklist under it. Two ticks it went out, one tick it is ready.
  */
 export function ReleaseReadiness({ release, today }: Props) {
   const { t } = useTranslation()
@@ -51,10 +51,7 @@ export function ReleaseReadiness({ release, today }: Props) {
     )
   }
 
-  const roles = vocabularyOf(profile.config, release.work_kind).version_roles
-  const list = gaps
-    .map((gap) => (gap === 'score' ? t('calendar.missingScore') : labelOf(roles, gap)))
-    .join(', ')
+  const list = gaps.map((gap) => sayNeed(gap, profile.config, release, t)).join(', ')
   const daysLeft = release.scheduled_at === null ? null : daysBetween(today, release.scheduled_at)
 
   return (

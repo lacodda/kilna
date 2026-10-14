@@ -27,6 +27,7 @@ describe('draftOf', () => {
       kind: 'youtube',
       date: '',
       time: '',
+      zone: '',
       url: '',
       pinned: false,
     })
@@ -92,6 +93,35 @@ describe('changesOf', () => {
     expect(changesOf(r, { ...draftOf(r), date: '2026-10-05', pinned: true })).toEqual({
       patch: { scheduled_at: '2026-10-05' },
       pin: true,
+    })
+  })
+})
+
+describe('changesOf, the hour and its zone', () => {
+  it('says a first time typed in the zone of this machine', () => {
+    const r = release()
+    const patch = changesOf(r, { ...draftOf(r), time: '11:00' })?.patch
+    expect(patch?.scheduled_time).toBe('11:00')
+    expect(typeof patch?.time_zone).toBe('string')
+    expect(patch?.time_zone).not.toBe('')
+  })
+
+  it('says a time in the zone picked for it, and moves the zone alone', () => {
+    const r = release()
+    expect(changesOf(r, { ...draftOf(r), time: '11:00', zone: 'America/Asuncion' })?.patch).toEqual(
+      { scheduled_time: '11:00', time_zone: 'America/Asuncion' },
+    )
+
+    const timed = release({ scheduled_time: '11:00', time_zone: 'America/Asuncion' })
+    expect(changesOf(timed, { ...draftOf(timed), zone: 'Europe/Moscow' })?.patch).toEqual({
+      time_zone: 'Europe/Moscow',
+    })
+  })
+
+  it('keeps the zone a release has when only the time moves', () => {
+    const timed = release({ scheduled_time: '11:00', time_zone: 'Europe/Moscow' })
+    expect(changesOf(timed, { ...draftOf(timed), time: '12:00' })?.patch).toEqual({
+      scheduled_time: '12:00',
     })
   })
 })

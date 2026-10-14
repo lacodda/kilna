@@ -895,7 +895,7 @@ function release(
     work_kind: 'song',
     total: null,
     tier: null,
-    readiness: { roles: [], scored: true, ready: true },
+    readiness: { checks: [], ready: true },
     work_stage: null,
     ...over,
   }

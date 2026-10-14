@@ -53,4 +53,23 @@ fields?: Array<ReleaseField>,
  * places needs two covers (v0.86). Absent means the door shows no
  * picture of its own.
  */
-cover_format?: string | null, };
+cover_format?: string | null, 
+/**
+ * Whether a release of this kind cannot go out without a cover chosen
+ * for its work (v0.97). Not read off `cover_format`: a shape says what
+ * a picture would be, not that the place refuses to go without one - a
+ * short takes a frame of itself when nobody gives it a picture. Absent
+ * is no such requirement. `false` is kept as written rather than dropped:
+ * it is how a requirement the owner took off a shipped door stays off
+ * when the upgrade carries the shipped one forward.
+ */
+requires_cover?: boolean | null, 
+/**
+ * What an address of this place looks like, so a link pasted when a
+ * release is marked out can say where it went (v0.97): a host, and the
+ * start of a path when the host alone is shared - `youtube.com/shorts/`,
+ * `youtu.be`, `open.spotify.com`. A host matches itself and its
+ * subdomains; the most specific pattern of the kind's doors wins, and a
+ * tie says nothing rather than guess. Absent is a place no link names.
+ */
+links?: Array<string>, };

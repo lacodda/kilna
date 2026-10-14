@@ -37,7 +37,7 @@ interface Props {
   /** The days the calendar is closed. */
   spans: readonly TimeOff[]
   actions: CalendarActions
-  onOpenWork: (workId: string) => void
+  onOpenWork: (workId: string, tab?: string) => void
 }
 
 /**
@@ -114,7 +114,7 @@ export function CalendarDialogs({
         release={dialog?.kind === 'release' ? find(dialog.releaseId) : null}
         today={today()}
         onOpenChange={close('release')}
-        onConfirm={(id, url, at) => actions.release.mutate({ id, url, at })}
+        onConfirm={(id, url, at, kind) => actions.release.mutate({ id, url, at, kind })}
       />
 
       {/* The closed days. A span that closes days something is booked on

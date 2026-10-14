@@ -1,14 +1,13 @@
 import { useTranslation } from 'react-i18next'
-import { Check, CheckCheck, FileText, Gauge } from 'lucide-react'
-import type { Readiness } from '@/lib/api/types'
-import { missing, urgency } from '@/lib/readiness'
-import { allOf, labelOf, useProfile } from '@/lib/useProfile'
+import { Check, CheckCheck } from 'lucide-react'
+import type { ScheduledRelease } from '@/lib/api/types'
+import { missing, sayNeed, urgency } from '@/lib/readiness'
+import { useProfile } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
+import { NeedGlyph } from '@/components/NeedGlyph'
 
 interface Props {
-  readiness: Readiness
-  /** The release already went out; readiness is history. */
-  released: boolean
+  release: Pick<ScheduledRelease, 'readiness' | 'status' | 'work_kind' | 'kind'>
   /** Days until the slot. */
   daysLeft: number
 }
@@ -26,15 +25,15 @@ const TONE: Record<ReturnType<typeof urgency>, string> = {
  *
  * `ReadyMarks` draws a glyph per gap, which is right for the queue's roomy
  * rows and was three glyphs on a chip a hundred pixels wide. Here the first
- * gap stands for all of them - a page for a missing role, a gauge for a
- * missing score - coloured by how close the day is; the whole list is in the
- * tooltip, in the hover card and in the release dialog.
+ * gap stands for all of them - a page, a gauge, a picture or a pen, the same
+ * glyphs `ReadyMarks` draws - coloured by how close the day is; the whole
+ * list is in the tooltip, in the hover card and in the release dialog.
  */
-export function ReadyMark({ readiness, released, daysLeft }: Props) {
+export function ReadyMark({ release, daysLeft }: Props) {
   const { t } = useTranslation()
   const profile = useProfile()
 
-  if (released) {
+  if (release.status === 'released') {
     return (
       <span className="inline-flex shrink-0" title={t('calendar.released')}>
         <CheckCheck aria-hidden className="size-3" />
@@ -42,7 +41,9 @@ export function ReadyMark({ readiness, released, daysLeft }: Props) {
     )
   }
 
-  if (readiness.ready) {
+  const gaps = missing(release.readiness)
+  const first = gaps[0]
+  if (release.readiness.ready || first === undefined) {
     return (
       <span className="inline-flex shrink-0 text-good" title={t('calendar.ready')}>
         <Check aria-hidden className="size-3" />
@@ -50,21 +51,13 @@ export function ReadyMark({ readiness, released, daysLeft }: Props) {
     )
   }
 
-  const gaps = missing(readiness)
   const said = t('calendar.notReadyHint', {
-    list: gaps
-      .map((gap) =>
-        gap === 'score'
-          ? t('calendar.missingScore')
-          : labelOf(allOf(profile.config, 'version_roles'), gap),
-      )
-      .join(', '),
+    list: gaps.map((gap) => sayNeed(gap, profile.config, release, t)).join(', '),
   })
-  const Glyph = gaps[0] === 'score' ? Gauge : FileText
 
   return (
     <span className={cn('inline-flex shrink-0', TONE[urgency(daysLeft)])} title={said}>
-      <Glyph aria-hidden className="size-3" />
+      <NeedGlyph need={first} className="size-3" />
       <span className="sr-only">{said}</span>
     </span>
   )

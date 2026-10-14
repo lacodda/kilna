@@ -40,6 +40,11 @@ export type FindingKind =
   | 'weak-scheduled'
   /** A draft nobody has touched in a long time. */
   | 'stale-draft'
+  /** Out for a few days, and the record still holds no address for it (v0.97). */
+  | 'no-link'
+  /** Its day has passed and it is still planned: it went out unmarked, or it
+   *  did not go out and needs another day (v0.97). */
+  | 'unmarked'
 
 export interface Finding {
   kind: FindingKind
@@ -61,6 +66,13 @@ export interface Finding {
 
 /** How long a draft may sit untouched before it counts as stalled. */
 export const STALE_DRAFT_DAYS = 30
+
+/**
+ * How many days a release may be out before a missing link is worth saying:
+ * the link usually lands the day it goes out, or the next, and a complaint
+ * the same evening would only be about the person not being done yet.
+ */
+export const NO_LINK_AFTER_DAYS = 2
 
 /** What a work must have gone through to be worth chasing. */
 function isOpen(work: ScoredWork): boolean {
@@ -145,6 +157,7 @@ export function findings(
   }
 
   found.push(...weakScheduled(works, calendar, config, today))
+  found.push(...afterTheDay(calendar, today))
 
   // Stable across renders and across runs: the same workspace produces the
   // same order, which is what lets v0.34 tell a new finding from a moved one.
@@ -198,6 +211,41 @@ function weakScheduled(
         complaint: `weak-scheduled:${entry.scheduled_at ?? ''}`,
       }))
   )
+}
+
+/**
+ * Releases whose record lags behind what happened (v0.97): out for days
+ * with no address kept for them, or planned for a day that has passed and
+ * never marked.
+ *
+ * Both are about the day after - the one thing a calendar does not chase on
+ * its own - and both can still be done: the link written, the mark made, the
+ * day moved. The complaint names the release and, for a passed day, the day:
+ * moving it to another day that passes is news again.
+ */
+function afterTheDay(calendar: readonly ScheduledRelease[], today: string): Finding[] {
+  const found: Finding[] = []
+  for (const entry of calendar) {
+    if (entry.status === 'released') {
+      if (entry.url !== null && entry.url.trim() !== '') continue
+      const out = (entry.released_at ?? entry.scheduled_at ?? '').slice(0, 10)
+      if (out === '' || daysBetween(out, today) < NO_LINK_AFTER_DAYS) continue
+      found.push({
+        kind: 'no-link',
+        workId: entry.work_id,
+        title: entry.work_title,
+        complaint: `no-link:${entry.id}`,
+      })
+    } else if (entry.scheduled_at !== null && daysBetween(entry.scheduled_at, today) >= 1) {
+      found.push({
+        kind: 'unmarked',
+        workId: entry.work_id,
+        title: entry.work_title,
+        complaint: `unmarked:${entry.id}:${entry.scheduled_at}`,
+      })
+    }
+  }
+  return found
 }
 
 /**
@@ -258,8 +306,12 @@ export function answeredOn(kind: FindingKind): 'score' | 'overview' | undefined 
     case 'unscored':
     case 'stale-score':
       return 'score'
+    // The release is written, marked and moved on the overview, its one
+    // home since v0.90: a missing link and a passed day are answered there.
     case 'ready-unscheduled':
     case 'weak-scheduled':
+    case 'no-link':
+    case 'unmarked':
       return 'overview'
     case 'stale-draft':
       return undefined

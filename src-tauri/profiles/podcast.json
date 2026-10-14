@@ -14,9 +14,10 @@
         "label": "Feed release",
         "requires": ["script"],
         "icon": "rss",
+        "links": ["podcasts.apple.com", "open.spotify.com/episode/", "overcast.fm", "pca.st"],
         "fields": [
-          { "key": "title", "label": "Title", "type": "line", "template": "{title}", "limit": 255} ,
-          { "key": "description", "label": "Show notes", "type": "text", "template": "{role:notes}", "hint": "What the episode covers, and the links it mentions."} ,
+          { "key": "title", "label": "Title", "type": "line", "required": true, "template": "{title}", "limit": 255} ,
+          { "key": "description", "label": "Show notes", "type": "text", "required": true, "template": "{role:notes}", "hint": "What the episode covers, and the links it mentions."} ,
           { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated."} 
         ]
       },
@@ -25,8 +26,9 @@
         "label": "Audio clip",
         "requires": ["script"],
         "icon": "audio-lines",
+        "links": ["youtube.com/shorts/", "tiktok.com", "instagram.com/reel/"],
         "fields": [
-          { "key": "title", "label": "Title", "type": "line", "template": "{title}", "limit": 100} ,
+          { "key": "title", "label": "Title", "type": "line", "required": true, "template": "{title}", "limit": 100} ,
           { "key": "description", "label": "Description", "type": "text", "limit": 5000} ,
           { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated."} 
         ]
@@ -36,9 +38,10 @@
         "label": "Video upload",
         "requires": ["script"],
         "icon": "video",
+        "links": ["youtube.com/watch", "youtu.be", "youtube.com/live/"],
         "fields": [
-          { "key": "title", "label": "Title", "type": "line", "template": "{title}", "limit": 205} ,
-          { "key": "description", "label": "Description", "type": "text", "template": "{role:notes}", "limit": 5000} ,
+          { "key": "title", "label": "Title", "type": "line", "required": true, "template": "{title}", "limit": 205} ,
+          { "key": "description", "label": "Description", "type": "text", "required": true, "template": "{role:notes}", "limit": 5000} ,
           { "key": "tags", "label": "Tags", "type": "tags", "hint": "Comma separated."} ,
           { "key": "pinned", "label": "Pinned comment", "type": "text"} 
         ]

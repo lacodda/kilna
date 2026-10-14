@@ -1,4 +1,6 @@
-import type { Readiness } from '@/lib/api/types'
+import type { TFunction } from 'i18next'
+import type { Need, ProfileConfig, Readiness } from '@/lib/api/types'
+import { labelOf, vocabularyOf } from '@/lib/useProfile'
 
 // The same gap means something different a month out and two days out. The
 // bands match the journal's warning horizon: inside a week a gap is worth
@@ -31,10 +33,75 @@ function utcMidnight(date: string): number {
 }
 
 /**
- * What the release still needs: the role keys marked missing, then `'score'`
- * when nothing speaks for the work. Empty exactly when the release is ready.
+ * What the release still needs, in the order its kind asks for it: the
+ * roles, the score, the cover, the fields (v0.97). Empty exactly when the
+ * release is ready. The order is the backend's, so the first gap a chip
+ * shows is the first gap every other screen shows.
  */
-export function missing(readiness: Readiness): string[] {
-  const roles = readiness.roles.filter((mark) => mark.present === false).map((mark) => mark.role)
-  return readiness.scored ? roles : [...roles, 'score']
+export function missing(readiness: Readiness): Need[] {
+  return readiness.checks.filter((check) => !check.done).map((check) => check.need)
+}
+
+/** One need as one stable string: a React key, and part of a complaint a
+ *  dismissal remembers. */
+export function needKey(need: Need): string {
+  return need.kind === 'role' || need.kind === 'field' ? `${need.kind}:${need.key}` : need.kind
+}
+
+/** The release a need is read against: which kind of work it is, and which
+ *  door it goes out through - the door's fields are what a field need names. */
+export interface NeedOwner {
+  work_kind: string
+  kind: string
+}
+
+/**
+ * A need in words, in one of two forms: `name` for a line of a checklist
+ * ("Cover"), `missing` for the list after "Missing:" ("a cover"). A role
+ * and a field are the profile's own words in both: the craft named them, and
+ * a key the profile no longer names is said as the key rather than not said.
+ */
+export function sayNeed(
+  need: Need,
+  config: ProfileConfig,
+  owner: NeedOwner,
+  t: TFunction,
+  form: 'name' | 'missing' = 'missing',
+): string {
+  const vocabulary = vocabularyOf(config, owner.work_kind)
+  switch (need.kind) {
+    case 'role':
+      return labelOf(vocabulary.version_roles, need.key)
+    case 'field': {
+      const door = vocabulary.release_kinds.find((entry) => entry.key === owner.kind)
+      return labelOf(door?.fields ?? [], need.key)
+    }
+    case 'score':
+      return form === 'name' ? t('readiness.score') : t('calendar.missingScore')
+    case 'cover':
+      return form === 'name' ? t('readiness.cover') : t('calendar.missingCover')
+  }
+}
+
+/** Where on a work a need is answered: a tab of its card. */
+export type AnsweredOn = 'versions' | 'score' | 'cover' | 'files' | 'overview'
+
+/**
+ * The tab of a work that closes a gap: a role on its versions, the score on
+ * the score, a field where the release is written - the overview, the
+ * release's one home since v0.90 - and the cover where it is made: the
+ * Cover tab of a kind that builds one, the Files of any other, where a
+ * picture is attached and set as the cover.
+ */
+export function answeredOn(need: Need, config: ProfileConfig, workKind: string): AnsweredOn {
+  switch (need.kind) {
+    case 'role':
+      return 'versions'
+    case 'score':
+      return 'score'
+    case 'field':
+      return 'overview'
+    case 'cover':
+      return vocabularyOf(config, workKind).cover ? 'cover' : 'files'
+  }
 }

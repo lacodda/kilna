@@ -672,6 +672,15 @@ impl WorkKind {
                     kind.key
                 ));
             }
+            for pattern in &kind.links {
+                if !is_link_pattern(pattern) {
+                    problems.push(format!(
+                        "{place}: release kind {} (`{}`) knows its links by `{pattern}`; a link pattern is a host and the start of a path, `youtube.com/shorts/`",
+                        index + 1,
+                        kind.key
+                    ));
+                }
+            }
         }
 
         let roles: BTreeSet<&str> = self.version_roles.iter().map(|r| r.key.as_str()).collect();
@@ -1665,6 +1674,40 @@ pub struct ReleaseKind {
     /// picture of its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cover_format: Option<String>,
+    /// Whether a release of this kind cannot go out without a cover chosen
+    /// for its work (v0.97). Not read off `cover_format`: a shape says what
+    /// a picture would be, not that the place refuses to go without one - a
+    /// short takes a frame of itself when nobody gives it a picture. Absent
+    /// is no such requirement. `false` is kept as written rather than dropped:
+    /// it is how a requirement the owner took off a shipped door stays off
+    /// when the upgrade carries the shipped one forward.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requires_cover: Option<bool>,
+    /// What an address of this place looks like, so a link pasted when a
+    /// release is marked out can say where it went (v0.97): a host, and the
+    /// start of a path when the host alone is shared - `youtube.com/shorts/`,
+    /// `youtu.be`, `open.spotify.com`. A host matches itself and its
+    /// subdomains; the most specific pattern of the kind's doors wins, and a
+    /// tie says nothing rather than guess. Absent is a place no link names.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub links: Vec<String>,
+}
+
+/// Whether `pattern` is a link pattern a door can name: a host with a dot
+/// in it, optionally followed by the start of a path - no scheme, no query,
+/// no spaces, nothing a link could not hold.
+pub fn is_link_pattern(pattern: &str) -> bool {
+    let (host, path) = pattern.split_once('/').unwrap_or((pattern, ""));
+    let host_fits = host.contains('.')
+        && !host.starts_with('.')
+        && !host.ends_with('.')
+        && host
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-'));
+    let path_fits = path
+        .chars()
+        .all(|c| c.is_ascii_graphic() && !matches!(c, '?' | '#'));
+    host_fits && path_fits
 }
 
 /// Whether `format` is a shape a cover can take: two whole numbers above
@@ -1720,6 +1763,14 @@ pub struct ReleaseField {
     /// by hand cannot lose it. Absent is no tail.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,
+    /// Whether a release cannot go out with this field empty (v0.97): a
+    /// video without a title, a newsletter without a subject. Kept on the
+    /// field rather than in a list on the kind, so a field taken out of the
+    /// profile takes its requirement with it. Absent is optional; `false` is
+    /// kept as written, so a field the owner made optional stays optional when
+    /// the upgrade carries a shipped requirement forward.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required: Option<bool>,
 }
 
 /// The shape of a release field's box.
@@ -1746,6 +1797,31 @@ impl ReleaseField {
             hint: None,
             limit: None,
             suffix: None,
+            required: None,
+        }
+    }
+
+    /// Whether a release cannot go out with this field empty.
+    pub fn is_required(&self) -> bool {
+        self.required == Some(true)
+    }
+
+    /// Whether `value`, as stored under this field, says anything: blank is
+    /// nothing, and so is the field's own tail standing alone - " (audio)"
+    /// is not a title anyone wrote.
+    pub fn is_filled(&self, value: Option<&serde_json::Value>) -> bool {
+        let Some(text) = value.and_then(serde_json::Value::as_str) else {
+            return false;
+        };
+        let text = text.trim();
+        let body = match self.suffix() {
+            Some(tail) => text.strip_suffix(tail.trim()).unwrap_or(text),
+            None => text,
+        };
+        // A list of words is filled when one of them is a word.
+        match self.field_type {
+            ReleaseFieldType::Tags => body.split(',').any(|word| !word.trim().is_empty()),
+            _ => !body.trim().is_empty(),
         }
     }
 
@@ -1812,7 +1888,14 @@ impl ReleaseKind {
             axis_weights: BTreeMap::new(),
             fields: Vec::new(),
             cover_format: None,
+            requires_cover: None,
+            links: Vec::new(),
         }
+    }
+
+    /// Whether a release of this kind cannot go out without a cover.
+    pub fn needs_cover(&self) -> bool {
+        self.requires_cover == Some(true)
     }
 
     /// The same kind, drawn with a named glyph.
@@ -4247,6 +4330,62 @@ mod tests {
         assert!(!is_cover_format("16:0") && !is_cover_format("16x9") && !is_cover_format(":9"));
     }
 
+    /// A link pattern is a host with a dot, and the start of a path after it
+    /// when the host is shared: what a pasted address can be held against.
+    /// A scheme, a query or a host of one word is refused at save, by name.
+    #[test]
+    fn a_door_knows_its_links_by_a_host_and_a_path() {
+        for pattern in [
+            "youtu.be",
+            "youtube.com/shorts/",
+            "open.spotify.com/episode/",
+        ] {
+            assert!(is_link_pattern(pattern), "{pattern}");
+        }
+        for pattern in [
+            "https://youtu.be",
+            "youtube",
+            ".youtube.com",
+            "youtube.com/watch?v=",
+            "you tube.com",
+            "",
+        ] {
+            assert!(!is_link_pattern(pattern), "{pattern}");
+        }
+
+        let mut config = studio();
+        for kind in &mut config.work_kinds {
+            if kind.key == "video" {
+                kind.release_kinds[0].links = vec!["https://youtu.be".into()];
+            }
+        }
+        let problems = config.validate().join("\n");
+        assert!(
+            problems.contains("knows its links by `https://youtu.be`"),
+            "{problems}"
+        );
+    }
+
+    /// Every shipped door that says what a release of it carries says what
+    /// it cannot go without (v0.97): a door of fields none of which is needed
+    /// would be ready with every box empty.
+    #[test]
+    fn every_shipped_door_with_fields_needs_one_of_them() {
+        for profile in crate::profile::builtin().unwrap() {
+            for kind in &profile.config.work_kinds {
+                for door in &kind.release_kinds {
+                    assert!(
+                        door.fields.iter().any(ReleaseField::is_required) || door.fields.is_empty(),
+                        "{}: door `{}` of `{}` says nothing it needs written",
+                        profile.key,
+                        door.key,
+                        kind.key
+                    );
+                }
+            }
+        }
+    }
+
     /// Where a work of a kind opens is a word the document keeps as written:
     /// absent from a document that never chose, and back as it went out.
     #[test]
@@ -4389,6 +4528,7 @@ mod tests {
             hint: None,
             limit: Some(0),
             suffix: None,
+            required: None,
         }]);
 
         let problems = config.validate();

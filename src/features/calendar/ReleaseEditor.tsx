@@ -3,14 +3,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { saveRelease } from '@/lib/api/releases'
 import type { ScheduledRelease } from '@/lib/api/types'
 import { announceEdited } from '@/lib/edited'
-import { missing } from '@/lib/readiness'
 import { openExternal } from '@/lib/link'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { changesOf, type ReleaseChanges } from '@/lib/releaseForm'
-import { labelOf, useProfile, vocabularyOf } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/AppDialog'
+import { ReadyChecklist } from '@/components/ReadyChecklist'
 import { ReleaseForm, useReleaseDraft } from '@/components/ReleaseForm'
 import { RepeatWarning } from '@/features/calendar/RepeatWarning'
 
@@ -18,8 +17,8 @@ interface Props {
   release: ScheduledRelease | null
   onOpenChange: (open: boolean) => void
   onSaved: () => void
-  /** Opens the work behind this release. */
-  onOpenWork: (workId: string) => void
+  /** Opens the work behind this release, on a tab when one is named. */
+  onOpenWork: (workId: string, tab?: string) => void
   onMarkReleased: (releaseId: string) => void
   onUnschedule: (releaseId: string) => void
 }
@@ -53,9 +52,7 @@ export function ReleaseEditor({
   onUnschedule,
 }: Props) {
   const { t } = useTranslation()
-  const profile = useProfile()
   const client = useQueryClient()
-  const versionRoles = vocabularyOf(profile.config, release?.work_kind).version_roles
 
   const [draft, setDraft] = useReleaseDraft(release)
   const changes = release === null || draft === null ? null : changesOf(release, draft)
@@ -127,18 +124,14 @@ export function ReleaseEditor({
             <RepeatWarning releaseId={release.id} day={draft.date} className="text-sm" />
           )}
 
-          {/* The chip's glyphs, in words: what this release still needs. Only
-              gaps are worth a line — a ready release says nothing here. */}
-          {release.status !== 'released' && missing(release.readiness).length > 0 && (
-            <p className="text-sm text-warn">
-              {t('calendar.notReadyHint', {
-                list: missing(release.readiness)
-                  .map((gap) =>
-                    gap === 'score' ? t('calendar.missingScore') : labelOf(versionRoles, gap),
-                  )
-                  .join(', '),
-              })}
-            </p>
+          {/* The chip's glyphs, in words: everything the place asks for, a
+              gap a button to where it is closed (v0.97). Only while
+              something is missing - a ready release says nothing here. */}
+          {release.status !== 'released' && !release.readiness.ready && (
+            <ReadyChecklist
+              release={release}
+              onOpen={(_, tab) => thenDo((entry) => onOpenWork(entry.work_id, tab))}
+            />
           )}
 
           {/* What can be done to the release itself, rather than written into

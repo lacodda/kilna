@@ -784,11 +784,16 @@ fn select_scheduled(config: &crate::profile::config::ProfileConfig) -> String {
     SELECT_SCHEDULED_TEMPLATE.replace("{speaking}", &crate::score::speaking_score_for(&judged_by))
 }
 
-/// Everything with a slot, in calendar order.
+/// Everything with a slot, in calendar order: by day, and within a day by
+/// the hour it goes out (v0.97), the releases with no hour after the ones
+/// that have one. Hours compare as written: one day's releases share a zone
+/// in all but the rarest plan, and a day read in its going-out order is what
+/// the agenda and the week show.
 pub fn calendar(conn: &Connection, profile_id: &str) -> Result<Vec<ScheduledRelease>> {
     let config = crate::profile::config_for(conn, profile_id)?;
     let mut statement = conn.prepare(&format!(
-        "{} AND r.scheduled_at IS NOT NULL ORDER BY r.scheduled_at, w.title",
+        "{} AND r.scheduled_at IS NOT NULL \
+         ORDER BY r.scheduled_at, r.scheduled_time IS NULL, r.scheduled_time, w.title, r.rowid",
         select_scheduled(&config)
     ))?;
     read_scheduled(conn, &mut statement, profile_id)
@@ -907,20 +912,31 @@ fn read_scheduled_where(
         .prepare("SELECT id, stage FROM work WHERE profile_id = ?1 AND stage IS NOT NULL")?
         .query_map(params![profile_id], |row| Ok((row.get(0)?, row.get(1)?)))?
         .collect::<rusqlite::Result<_>>()?;
+    // Which works have a cover chosen, for the places that will not go out
+    // without one (v0.97) - in one query, as the roles are.
+    let covered: std::collections::HashSet<String> = crate::asset::covers_of(conn, profile_id)?
+        .into_iter()
+        .map(|(work_id, _)| work_id)
+        .collect();
 
     rows.into_iter()
         .map(|(raw, work_title, total, tier)| {
+            let release = raw.into_release()?;
             let readiness = crate::readiness::assess(
                 &config,
-                kinds.get(&raw.work_id).map_or("", String::as_str),
-                &raw.kind,
-                roles.get(&raw.work_id).unwrap_or(&none),
-                total.is_some(),
+                kinds.get(&release.work_id).map_or("", String::as_str),
+                &release.kind,
+                &crate::readiness::Facts {
+                    roles: roles.get(&release.work_id).unwrap_or(&none),
+                    scored: total.is_some(),
+                    cover: covered.contains(&release.work_id),
+                    meta: &release.meta,
+                },
             );
             Ok(ScheduledRelease {
-                work_kind: kinds.get(&raw.work_id).cloned().unwrap_or_default(),
-                work_stage: stages.get(&raw.work_id).copied(),
-                release: raw.into_release()?,
+                work_kind: kinds.get(&release.work_id).cloned().unwrap_or_default(),
+                work_stage: stages.get(&release.work_id).copied(),
+                release,
                 work_title,
                 total,
                 tier,
@@ -1666,20 +1682,42 @@ mod tests {
         )
         .unwrap();
         schedule(&conn, &full.id, "2026-09-02").unwrap();
+        // And everything the place asks of it (v0.97): a cover, a title and
+        // a description written.
+        fixtures::cover(&conn, &profile_id, &full.work_id);
+        let written = json!({ "title": "Full", "description": "What it is." });
+        update(
+            &conn,
+            &full.id,
+            ReleasePatch {
+                meta: written.as_object().cloned(),
+                ..ReleasePatch::default()
+            },
+        )
+        .unwrap();
 
         let shown = calendar(&conn, &profile_id).unwrap();
         let of = |id: &str| shown.iter().find(|row| row.release.id == id).unwrap();
+        let missing = |id: &str| -> Vec<crate::readiness::Need> {
+            of(id).readiness.missing().cloned().collect()
+        };
 
         assert!(!of(&bare.id).readiness.ready);
-        assert!(
-            of(&bare.id)
-                .readiness
-                .roles
-                .iter()
-                .any(|mark| mark.present == Some(false)),
-            "a missing required role must be marked missing"
+        assert_eq!(
+            missing(&bare.id),
+            [
+                crate::readiness::Need::Role { key: "plot".into() },
+                crate::readiness::Need::Cover,
+                crate::readiness::Need::Field {
+                    key: "title".into()
+                },
+                crate::readiness::Need::Field {
+                    key: "description".into()
+                },
+            ],
+            "a missing role, cover and fields are each said, in order"
         );
-        assert!(of(&full.id).readiness.ready);
+        assert!(of(&full.id).readiness.ready, "{:?}", of(&full.id).readiness);
 
         // The queue is judged the same way.
         let queued = planned_video(&conn, &profile_id, "Queued unscored", None);
@@ -1688,8 +1726,46 @@ mod tests {
             .iter()
             .find(|row| row.release.id == queued.id)
             .unwrap();
-        assert!(!entry.readiness.scored);
+        assert!(
+            entry
+                .readiness
+                .missing()
+                .any(|need| *need == crate::readiness::Need::Score)
+        );
         assert!(!entry.readiness.ready);
+    }
+
+    /// A day reads in the order it goes out (v0.97): the hour first, the
+    /// releases with no hour after it, a title only between equals - which
+    /// is the order alphabetical titles would never give here.
+    #[test]
+    fn a_day_is_read_in_the_order_its_releases_go_out() {
+        let (conn, profile_id) = fixtures::workspace();
+        let at = |title: &str, time: Option<&str>| {
+            let work = fixtures::video(&conn, &profile_id, title);
+            create(
+                &conn,
+                NewRelease {
+                    work_id: work.id,
+                    kind: "youtube".into(),
+                    scheduled_at: Some("2026-10-20".into()),
+                    meta: None,
+                    scheduled_time: time.map(str::to_owned),
+                    time_zone: time.map(|_| "UTC".to_owned()),
+                },
+            )
+            .unwrap()
+        };
+        at("Anytime", None);
+        at("Evening", Some("18:00"));
+        at("Morning", Some("09:30"));
+
+        let order: Vec<String> = calendar(&conn, &profile_id)
+            .unwrap()
+            .into_iter()
+            .map(|entry| entry.work_title)
+            .collect();
+        assert_eq!(order, ["Morning", "Evening", "Anytime"]);
     }
 
     /// A release of a work nobody judges goes out for what it was made from,
@@ -1727,8 +1803,13 @@ mod tests {
             .total;
         assert_eq!(audio.total, Some(song_total));
         assert!(
-            audio.readiness.ready,
-            "nothing is asked of it that is not there"
+            !audio
+                .readiness
+                .checks
+                .iter()
+                .any(|check| check.need == crate::readiness::Need::Score),
+            "no score of its own is asked of it: {:?}",
+            audio.readiness
         );
         let video = queued
             .iter()

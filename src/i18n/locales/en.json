@@ -319,7 +319,9 @@
       "stale-score": "“{{title}}” was edited after it was scored",
       "ready-unscheduled": "“{{title}}” is judged but nothing is booked",
       "weak-scheduled": "“{{title}}” holds a slot while stronger work waits",
-      "stale-draft": "“{{title}}” has not moved in a while"
+      "stale-draft": "“{{title}}” has not moved in a while",
+      "no-link": "“{{title}}” went out, and no link is kept for it",
+      "unmarked": "“{{title}}”: its day has passed and it is not marked out"
     },
     "dismiss": "Heard it",
     "dismissHint": "Puts this complaint away. It comes back if it changes.",
@@ -328,7 +330,9 @@
       "stale-score": "score is out of date",
       "ready-unscheduled": "nothing booked",
       "weak-scheduled": "weak in a slot",
-      "stale-draft": "draft has stalled"
+      "stale-draft": "draft has stalled",
+      "no-link": "out without a link",
+      "unmarked": "day passed, not marked"
     }
   },
   "focus": {
@@ -363,7 +367,6 @@
     "previewTier": "Tier",
     "previewState": "State",
     "previewUnscored": "not scored",
-    "usualTime": "Usually goes out at {{time}}.",
     "layout": "Lay out the queue",
     "layoutNeedsRhythm": "Set a release rhythm in the profile first.",
     "layoutPreview_one": "{{count}} release would land between {{from}} and {{to}}. Nothing is booked yet.",
@@ -441,7 +444,14 @@
     "unplanned": "Works",
     "unplannedHint": "Works that could go out and have nothing planned. Drag one onto a day, or pick it and give it a date.",
     "unplannedEmpty": "Every work that can go out has its release.",
-    "unplannedSearch": "Find a work…"
+    "unplannedSearch": "Find a work…",
+    "missingCover": "a cover",
+    "zone": "Zone",
+    "zonePlaceholder": "Find a city…",
+    "zoneNone": "No zone by that name.",
+    "zoneHere": "{{time}} on your clock",
+    "zoneHereOn": "{{time}} on your clock, {{date}}",
+    "useUsualTime": "Usually {{time}} — set it"
   },
   "releases": {
     "kind": "Place",
@@ -517,7 +527,9 @@
       "open": "Open the release",
       "close": "Close"
     },
-    "caption": "Release"
+    "caption": "Release",
+    "wentThrough": "Went out through",
+    "recognisedFromLink": "Read from the link."
   },
   "score": {
     "history": "Scores · {{count}}",
@@ -1345,7 +1357,14 @@
     "guardDefaults": "Defaults: {{window}} days, rare from rank {{rank}}, in at most {{works}} works.",
     "guardReset": "Use the defaults",
     "labLine": "Works of this kind are experiments: a board of trials, each heard and kept or dropped.",
-    "labHarvestLine": "Works of this kind are experiments: a board of trials, each heard and kept or dropped. A kept trial goes into the “{{role}}” of a work."
+    "labHarvestLine": "Works of this kind are experiments: a board of trials, each heard and kept or dropped. A kept trial goes into the “{{role}}” of a work.",
+    "readiness": "Before it goes out",
+    "readinessHint": "What a release through each place cannot go out without. Untick what a place does not need.",
+    "readinessScored": "What a release through each place cannot go out without. A score is asked for as well, since this kind is judged.",
+    "readinessRoles": "Versions",
+    "readinessPicture": "Picture",
+    "readinessFields": "Written",
+    "readinessOf": "Before it goes out through {{door}}"
   },
   "fields": {
     "choiceNone": "Not set",
@@ -2164,7 +2183,9 @@
       "stale-score": "The text changed after it was scored: the score may be out of date.",
       "ready-unscheduled": "It is judged, and nothing is booked.",
       "weak-scheduled": "It holds a slot while stronger work waits.",
-      "stale-draft": "It has not moved in a while."
+      "stale-draft": "It has not moved in a while.",
+      "no-link": "It went out a few days ago, and no link is kept for it.",
+      "unmarked": "Its day has passed and it is not marked out: mark it, or give it another day."
     }
   },
   "pick": {
@@ -3601,5 +3622,12 @@
     "gap_one": "Nothing planned · {{when}}",
     "gap_other": "{{count}} days with nothing planned · {{when}}",
     "closed": "{{title}} · {{when}}"
+  },
+  "readiness": {
+    "checklist": "What it needs before it goes out",
+    "score": "Score",
+    "cover": "Cover",
+    "done": "there",
+    "missing": "missing"
   }
 }

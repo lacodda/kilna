@@ -113,7 +113,7 @@ function Summary({
   const day = today()
   const summary = summarise(works, slots, day)
   const standing = visible(findings(works, slots, profile.config, day), dismissed)
-  const decisions = decide(summary, standing, works)
+  const decisions = decide(summary, standing, works, profile.config)
   const beside = aside(standing, decisions)
 
   // A finding can outlive every section of the lead column — a scored, booked

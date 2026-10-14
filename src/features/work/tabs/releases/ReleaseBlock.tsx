@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router'
 import { ExternalLink, LoaderCircle } from 'lucide-react'
 import {
   createRelease,
@@ -23,11 +24,13 @@ import { labelOf, say as sayLabel, useVocabulary } from '@/lib/useProfile'
 import { cn } from '@/lib/utils'
 import { Select } from '@/components/AppSelect'
 import { MarkReleasedDialog } from '@/components/MarkReleasedDialog'
+import { ReadyChecklist } from '@/components/ReadyChecklist'
 import { RowMenu, type RowAction } from '@/components/RowMenu'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ReleaseDetails } from '@/features/work/tabs/releases/ReleaseDetails'
+import { releaseFieldId } from '@/features/work/tabs/releases/ReleaseFields'
 import { ReleaseReadiness } from '@/features/work/tabs/releases/ReleaseReadiness'
 import { useReleaseMeta } from '@/features/work/tabs/releases/releaseMeta'
 
@@ -101,9 +104,18 @@ function PlanRelease({ work }: { work: Work }) {
   )
 }
 
+/** A mark: the day, the link and, when it went out elsewhere, the door. */
+interface Marked {
+  id: string
+  url: string | null
+  at: string | null
+  kind: string | null
+}
+
 function PlannedRelease({ release }: { release: ScheduledRelease }) {
   const { t } = useTranslation()
   const client = useQueryClient()
+  const navigate = useNavigate()
   const doors = useVocabulary(release.work_id).release_kinds
   const door = doors.find((entry) => entry.key === release.kind)
   const refreshed = refreshedFor(release.work_id)
@@ -132,8 +144,7 @@ function PlannedRelease({ release }: { release: ScheduledRelease }) {
       }),
   })
   const markOut = useAppMutation({
-    mutationFn: ({ id, url: link, at }: { id: string; url: string | null; at: string | null }) =>
-      markReleased(id, link, at),
+    mutationFn: ({ id, url: link, at, kind }: Marked) => markReleased(id, link, at, kind),
     failure: 'toast.releaseSaveFailed',
     refresh: refreshed,
     onSuccess: () => say.ok(t('toast.releaseReleased')),
@@ -240,6 +251,22 @@ function PlannedRelease({ release }: { release: ScheduledRelease }) {
           <RowMenu actions={actions} label={t('releases.actions')} />
         </span>
       </div>
+      {/* What the place asks for before it goes out, while something is
+          missing (v0.97): a gap is a button - a field to its box below, the
+          rest to the tab of the work where it is made. */}
+      {!released && !release.readiness.ready && (
+        <ReadyChecklist
+          release={release}
+          className="px-3 pb-2"
+          onOpen={(need, tab) => {
+            if (need.kind === 'field') {
+              document.getElementById(releaseFieldId(release.id, need.key))?.focus()
+            } else {
+              void navigate(`/works/${release.work_id}/${tab}`)
+            }
+          }}
+        />
+      )}
       <ReleaseDetails release={release} refreshed={refreshed} />
 
       <MarkReleasedDialog
@@ -248,7 +275,7 @@ function PlannedRelease({ release }: { release: ScheduledRelease }) {
         onOpenChange={(open) => {
           if (!open) setMarking(null)
         }}
-        onConfirm={(id, link, at) => markOut.mutate({ id, url: link, at })}
+        onConfirm={(id, link, at, kind) => markOut.mutate({ id, url: link, at, kind })}
       />
     </div>
   )

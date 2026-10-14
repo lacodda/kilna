@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Dismissal, ProfileConfig, ScheduledRelease, ScoredWork } from '@/lib/api/types'
 import {
+  NO_LINK_AFTER_DAYS,
   STALE_DRAFT_DAYS,
   answeredOn,
   dismissalKey,
@@ -78,7 +79,7 @@ function release(over: Partial<ScheduledRelease> = {}): ScheduledRelease {
     work_title: 'Harbour lights',
     total: 20,
     tier: 'hold',
-    readiness: { roles: [], scored: true, ready: true },
+    readiness: { checks: [], ready: true },
     ...over,
   }
 }
@@ -406,5 +407,54 @@ describe('answeredOn', () => {
     ).map(answeredOn)
 
     expect(tabs).toEqual(['score', 'score', 'overview', 'overview', undefined])
+  })
+})
+
+describe('findings after the day (v0.97)', () => {
+  // A released work, so only the release's own complaints are in play.
+  const out = work({ released: 1, scheduled: 0 })
+  const after = (entry: ScheduledRelease) =>
+    findings([out], [entry], CONFIG, TODAY).filter(
+      (finding) => finding.kind === 'no-link' || finding.kind === 'unmarked',
+    )
+
+  it('says a release out for days with no link, and not the day it went', () => {
+    const wentOut = (days: number, url: string | null) =>
+      release({
+        status: 'released',
+        scheduled_at: daysAgo(days).slice(0, 10),
+        released_at: daysAgo(days),
+        url,
+      })
+
+    expect(after(wentOut(NO_LINK_AFTER_DAYS, null)).map((f) => f.kind)).toEqual(['no-link'])
+    expect(after(wentOut(NO_LINK_AFTER_DAYS - 1, null))).toEqual([])
+    expect(after(wentOut(30, 'https://youtu.be/abc'))).toEqual([])
+    expect(after(wentOut(30, '   ')).map((f) => f.kind)).toEqual(['no-link'])
+  })
+
+  it('says a planned release whose day has passed, from the day after it', () => {
+    expect(after(release({ scheduled_at: TODAY }))).toEqual([])
+    const late = after(release({ scheduled_at: daysAgo(1).slice(0, 10) }))
+    expect(late.map((f) => f.kind)).toEqual(['unmarked'])
+    // The day is part of the complaint: moved to another day that passes,
+    // it is news again after a dismissal.
+    expect(late[0]?.complaint).toBe(`unmarked:r1:${daysAgo(1).slice(0, 10)}`)
+    // One with a link written and no mark is the same complaint: the link is
+    // what the mark will read.
+    expect(
+      after(release({ scheduled_at: daysAgo(3).slice(0, 10), url: 'https://youtu.be/x' })).map(
+        (f) => f.kind,
+      ),
+    ).toEqual(['unmarked'])
+  })
+
+  it('says nothing of a release in the queue', () => {
+    expect(after(release({ scheduled_at: null }))).toEqual([])
+  })
+
+  it('sends both to the overview, where the release is written and marked', () => {
+    expect(answeredOn('no-link')).toBe('overview')
+    expect(answeredOn('unmarked')).toBe('overview')
   })
 })

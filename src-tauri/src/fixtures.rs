@@ -123,6 +123,24 @@ pub fn release(conn: &Connection, work_id: &str, kind: &str, date: Option<&str>)
     .expect("the release is created")
 }
 
+/// A cover chosen for a work: the row alone, pointing at a file that is not
+/// there - what readiness reads is that a cover is chosen, not its pixels.
+pub fn cover(conn: &Connection, profile_id: &str, work_id: &str) {
+    conn.execute(
+        "INSERT INTO asset (id, profile_id, work_id, kind, path, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        rusqlite::params![
+            uuid::Uuid::new_v4().to_string(),
+            profile_id,
+            work_id,
+            crate::asset::COVER,
+            "media/cover.png",
+            crate::time::now(),
+        ],
+    )
+    .expect("the cover is recorded");
+}
+
 /// A file with a few bytes in it, to attach.
 pub fn file(dir: &Path, name: &str) -> PathBuf {
     let path = dir.join(name);

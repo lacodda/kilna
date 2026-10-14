@@ -122,8 +122,9 @@ pub fn mark_released(
     id: String,
     url: Option<String>,
     at: Option<String>,
+    kind: Option<String>,
 ) -> Result<Release> {
-    actions::release::mark_released(&state.conn(), &id, url, at)
+    actions::release::mark_released(&state.conn(), &id, url, at, kind)
 }
 
 #[tauri::command]

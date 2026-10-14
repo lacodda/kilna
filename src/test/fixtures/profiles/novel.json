@@ -530,6 +530,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -552,6 +553,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -559,6 +561,7 @@
                 "hint": "The lines that go above the fold.",
                 "key": "teaser",
                 "label": "Teaser",
+                "required": true,
                 "type": "text"
               },
               {
@@ -571,6 +574,12 @@
             "icon": "book-open",
             "key": "serial",
             "label": "Serial instalment",
+            "links": [
+              "royalroad.com",
+              "wattpad.com",
+              "archiveofourown.org",
+              "scribblehub.com"
+            ],
             "requires": [
               "text"
             ]
@@ -580,6 +589,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -587,12 +597,14 @@
                 "hint": "Who you are, what this is, why them.",
                 "key": "cover_letter",
                 "label": "Cover letter",
+                "required": true,
                 "type": "text"
               },
               {
                 "hint": "The whole story, ending included.",
                 "key": "synopsis",
                 "label": "Synopsis",
+                "required": true,
                 "template": "{role:outline}",
                 "type": "text"
               }
@@ -609,6 +621,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -616,6 +629,7 @@
                 "hint": "The back cover.",
                 "key": "blurb",
                 "label": "Blurb",
+                "required": true,
                 "type": "text"
               },
               {
@@ -628,6 +642,11 @@
             "icon": "book",
             "key": "published",
             "label": "Publication",
+            "links": [
+              "books.apple.com",
+              "kobo.com",
+              "play.google.com/store/books/"
+            ],
             "requires": [
               "text"
             ]
@@ -764,6 +783,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -786,6 +806,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -793,6 +814,7 @@
                 "hint": "The lines that go above the fold.",
                 "key": "teaser",
                 "label": "Teaser",
+                "required": true,
                 "type": "text"
               },
               {
@@ -805,6 +827,12 @@
             "icon": "book-open",
             "key": "serial",
             "label": "Serial instalment",
+            "links": [
+              "royalroad.com",
+              "wattpad.com",
+              "archiveofourown.org",
+              "scribblehub.com"
+            ],
             "requires": [
               "text"
             ]
@@ -814,6 +842,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -821,12 +850,14 @@
                 "hint": "Who you are, what this is, why them.",
                 "key": "cover_letter",
                 "label": "Cover letter",
+                "required": true,
                 "type": "text"
               },
               {
                 "hint": "The whole story, ending included.",
                 "key": "synopsis",
                 "label": "Synopsis",
+                "required": true,
                 "template": "{role:outline}",
                 "type": "text"
               }
@@ -843,6 +874,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -850,6 +882,7 @@
                 "hint": "The back cover.",
                 "key": "blurb",
                 "label": "Blurb",
+                "required": true,
                 "type": "text"
               },
               {
@@ -862,6 +895,11 @@
             "icon": "book",
             "key": "published",
             "label": "Publication",
+            "links": [
+              "books.apple.com",
+              "kobo.com",
+              "play.google.com/store/books/"
+            ],
             "requires": [
               "text"
             ]
@@ -998,6 +1036,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -1020,6 +1059,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -1027,6 +1067,7 @@
                 "hint": "The lines that go above the fold.",
                 "key": "teaser",
                 "label": "Teaser",
+                "required": true,
                 "type": "text"
               },
               {
@@ -1039,6 +1080,12 @@
             "icon": "book-open",
             "key": "serial",
             "label": "Serial instalment",
+            "links": [
+              "royalroad.com",
+              "wattpad.com",
+              "archiveofourown.org",
+              "scribblehub.com"
+            ],
             "requires": [
               "text"
             ]
@@ -1048,6 +1095,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -1055,12 +1103,14 @@
                 "hint": "Who you are, what this is, why them.",
                 "key": "cover_letter",
                 "label": "Cover letter",
+                "required": true,
                 "type": "text"
               },
               {
                 "hint": "The whole story, ending included.",
                 "key": "synopsis",
                 "label": "Synopsis",
+                "required": true,
                 "template": "{role:outline}",
                 "type": "text"
               }
@@ -1077,6 +1127,7 @@
               {
                 "key": "title",
                 "label": "Title",
+                "required": true,
                 "template": "{title}",
                 "type": "line"
               },
@@ -1084,6 +1135,7 @@
                 "hint": "The back cover.",
                 "key": "blurb",
                 "label": "Blurb",
+                "required": true,
                 "type": "text"
               },
               {
@@ -1096,6 +1148,11 @@
             "icon": "book",
             "key": "published",
             "label": "Publication",
+            "links": [
+              "books.apple.com",
+              "kobo.com",
+              "play.google.com/store/books/"
+            ],
             "requires": [
               "text"
             ]

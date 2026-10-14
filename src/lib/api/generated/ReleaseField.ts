@@ -44,4 +44,13 @@ limit?: number | null,
  * the release itself (`release_meta::keep_suffixes`), so a title written
  * by hand cannot lose it. Absent is no tail.
  */
-suffix?: string | null, };
+suffix?: string | null, 
+/**
+ * Whether a release cannot go out with this field empty (v0.97): a
+ * video without a title, a newsletter without a subject. Kept on the
+ * field rather than in a list on the kind, so a field taken out of the
+ * profile takes its requirement with it. Absent is optional; `false` is
+ * kept as written, so a field the owner made optional stays optional when
+ * the upgrade carries a shipped requirement forward.
+ */
+required?: boolean | null, };
