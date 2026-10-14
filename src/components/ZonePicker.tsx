@@ -23,6 +23,11 @@ interface Props {
  * narrowed as a city is typed - "asun" finds Asuncion, "mosc" Moscow. The
  * list is the runtime's, so a zone added to the world next year is offered
  * by the next WebView rather than by the next kilna.
+ *
+ * Placed in a `FieldGroup`, never a `Field`: a field hands its own handlers
+ * to the one element it wraps, and its change handler took the picked zone
+ * for an event and threw - which also left the list open over the form
+ * (the v0.97 live run).
  */
 export function ZonePicker({ value, onChange, className, 'aria-label': label }: Props) {
   const { t } = useTranslation()

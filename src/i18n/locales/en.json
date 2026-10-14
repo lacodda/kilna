@@ -451,7 +451,7 @@
     "zoneNone": "No zone by that name.",
     "zoneHere": "{{time}} on your clock",
     "zoneHereOn": "{{time}} on your clock, {{date}}",
-    "useUsualTime": "Usually {{time}} — set it"
+    "useUsualTime": "Set {{time}}"
   },
   "releases": {
     "kind": "Place",

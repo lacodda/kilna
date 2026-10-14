@@ -203,6 +203,44 @@ describe('the release block', () => {
     expect(sent?.patch.time_zone).not.toBe('')
   })
 
+  it('says a picked zone, on this clock, and closes the list it was picked from', async () => {
+    const workspace = studio()
+    const release = workspace.releases.find((r) => r.id === IDS.youtube)!
+    release.scheduled_time = '11:00'
+    release.time_zone = 'America/Asuncion'
+    backend = mockBackend({
+      ...answersFor(workspace),
+      release_fields: () => FIELDS,
+      update_release: ({ id, patch }) => {
+        const found = workspace.releases.find((r) => r.id === id)!
+        Object.assign(found, patch as ReleasePatch)
+        return found satisfies Release
+      },
+    })
+    const { client } = renderApp(`/works/${IDS.video}`)
+    await settled(client)
+    const main = await screen.findByRole('main')
+    const zone = await within(main).findByRole('combobox', { name: en.calendar.zone })
+    expect(zone).toHaveValue('America/Asuncion')
+
+    // Opened from the keyboard and narrowed by typing: jsdom opens Base UI's
+    // list on neither a click nor a change event.
+    zone.focus()
+    fireEvent.keyDown(zone, { key: 'ArrowDown' })
+    fireEvent.input(zone, { target: { value: 'Mosc' } })
+    const moscow = await screen.findByRole('option', { name: 'Europe/Moscow' })
+    await act(async () => {
+      fireEvent.click(moscow)
+    })
+    await settled(client)
+
+    expect(backend.argsOf('update_release')).toEqual([
+      { id: IDS.youtube, patch: { time_zone: 'Europe/Moscow' } },
+    ])
+    expect(screen.queryByRole('option')).toBeNull()
+    expect(zone).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it('keeps the place of a release that went out', async () => {
     const workspace = studio()
     const release = workspace.releases.find((r) => r.id === IDS.youtube)!

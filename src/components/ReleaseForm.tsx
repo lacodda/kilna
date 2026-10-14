@@ -164,14 +164,17 @@ export function ReleaseForm({
         />
       </Field>
 
+      {/* A group, not a field: the picker is a box and its list, and a field
+          hands its own handlers to the one element it wraps - the field's
+          change handler took the picked zone for an event and threw. */}
       {value.time !== '' && (
-        <Field
+        <FieldGroup
           label={t('calendar.zone')}
           help={hereSaid(value, zone, t)}
           className={cn(row && 'w-60')}
         >
           <ZonePicker value={zone} onChange={(picked) => settle({ zone: picked })} />
-        </Field>
+        </FieldGroup>
       )}
 
       <Field

@@ -494,7 +494,7 @@
     "zoneNone": "Такого пояса нет.",
     "zoneHere": "{{time}} по вашим часам",
     "zoneHereOn": "{{time}} по вашим часам, {{date}}",
-    "useUsualTime": "Обычно в {{time}} — поставить"
+    "useUsualTime": "Поставить {{time}}"
   },
   "releases": {
     "kind": "Площадка",
