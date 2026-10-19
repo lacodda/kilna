@@ -125,7 +125,7 @@ const KIND_OF_PREFIX: Readonly<Record<string, Kind>> = {
   collection: 'collection',
   fact: 'canon',
   term: 'register',
-  block: 'register',
+  shelf: 'note',
   repeat: 'register',
   idea: 'cover',
   trial: 'lab',
@@ -207,7 +207,7 @@ const LOOKS: Readonly<Record<string, readonly [JournalTone, LucideIcon]>> = {
   'collection.deleted': ['dim', Trash2],
   'fact.deleted': ['dim', Trash2],
   'term.deleted': ['dim', Trash2],
-  'block.deleted': ['dim', Trash2],
+  'shelf.deleted': ['dim', Trash2],
   'idea.deleted': ['dim', Trash2],
   'trial.deleted': ['dim', Trash2],
 
