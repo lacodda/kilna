@@ -71,7 +71,7 @@ written: open it in the [register](/kilna/guides/the-register/) and add
 *Марсель* → *МарсЭль* under **How it is sung**. From then on a text that
 writes *Марсель* is told you sing it otherwise, and a text that writes
 *МарсЭль* is left alone. **Find in my texts** in the
-[bank of words](/kilna/guides/the-bank-of-words/#found-in-your-texts)
+[register](/kilna/guides/the-register/#found-in-your-texts)
 proposes the ones you already use.
 
 ## The public text

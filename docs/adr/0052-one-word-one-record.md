@@ -1,7 +1,9 @@
 # 0052 — One word, one record
 
 Date: 2026-10-02
-Status: Accepted
+Status: Accepted. The bank facet and its blocks are gone since v0.98: a word kept
+for songs to come is a phrase, on shelves of phrases, and a term keeps its
+strictness and its singing - see [ADR 0064](0064-two-shelves.md).
 
 ## Context
 

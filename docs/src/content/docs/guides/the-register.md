@@ -31,14 +31,14 @@ Each entry is a **term**:
 
 ## One word, one record
 
-A term is also how the record keeps a word that is **not** spent: a word of
-the [bank of words](/kilna/guides/the-bank-of-words/), or a word kept only for
-[how it is sung](/kilna/guides/singing-a-text/#ways-of-singing). Its
-strictness is then **Not spent**, and it is never marked in a text. The chips
-along the top read the same list by facet: **All**, each strictness, **In the
-bank**, **Sung their way**. Open a word to set where it stands in the bank
-and how its forms are sung. See
-[ADR 0052](https://github.com/lacodda/kilna/blob/main/docs/adr/0052-one-word-one-record.md).
+A term is also how the record keeps a word that is **not** spent: a word kept
+only for [how it is sung](/kilna/guides/singing-a-text/#ways-of-singing).
+Its strictness is then **Not spent**, and it is never marked in a text. The
+chips along the top read the same list by facet: **All**, **Banned**,
+**Limited**, **Rare**, **Sung their way**. A term keeps only what is the
+record's own: how strictly it is spent and how it is sung. A word you keep
+for a song to come is a [phrase](/kilna/guides/notes/#phrases), not a term.
+See [ADR 0052](https://github.com/lacodda/kilna/blob/main/docs/adr/0052-one-word-one-record.md).
 
 ## How many works
 
@@ -80,6 +80,18 @@ as well, and both marks can sit on one word.
 
 A word is kept once, whatever its case: a second *Окно* is refused and the
 first one named.
+
+## Found in your texts
+
+**Find in my texts**, a button in the head of the Register, reads the texts
+you have written for a singer and proposes what they already say about
+singing: the stresses you marked with a capital vowel where the dictionary
+reads the word otherwise or does not know it, and the respellings you use -
+*МарсЭль* for *Марсель*. Each one says which songs it was found in. Untick
+what is not right and **Keep** the rest: every text after them is checked
+against your way of singing, and every public text gets the written form
+back. A homograph's mark is never proposed - which reading a song means is
+that song's choice, not the word's.
 
 ## Meaning, and the assistant
 

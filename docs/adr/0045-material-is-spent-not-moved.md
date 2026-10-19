@@ -1,7 +1,9 @@
 # 0045 — Material is spent, not moved
 
 Date: 2026-09-30
-Status: Accepted
+Status: Accepted. Since v0.98 the material kind is the phrase alone - ideas are
+notes tagged `idea` - and making a work of a note copies nothing: see
+[ADR 0064](0064-two-shelves.md).
 
 ## Context
 

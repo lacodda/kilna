@@ -17,13 +17,15 @@ holds a day in the calendar, and what they share is a **repeat**:
   days - or will say, when it is booked within them: a listener who heard
   *пульсар* last month hears it again.
 
-A word is **rare** when you keep it in the
-[bank of words](/kilna/guides/the-bank-of-words/), or when it is a Russian
+A word is **rare** when you keep it as a
+[phrase](/kilna/guides/notes/#phrases) of its own (a phrase that is one word,
+not dropped, with the forms the record counts for it; a phrase of several
+words makes none of its words rare), or when it is a Russian
 word both far down the language's frequency list (past the 20 000th stem) and
 in no more than two of your own works - a word you say in twenty songs is
 yours, and spent only if the register says so. No model is asked; the
 frequency list ships with kilna. A word in another script is rare only when
-the bank keeps it.
+you keep it as a phrase.
 
 Nothing is stored. The repeats are read off the texts and the calendar each
 time you look: rewrite the line and the repeat goes; move the other song's

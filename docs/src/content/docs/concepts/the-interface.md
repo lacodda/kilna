@@ -32,7 +32,7 @@ The sidebar lists the screens: **Dashboard** (what needs deciding today),
 search, filter, and open one), **Calendar** (the queue and the taken slots),
 and under *Library* the things kept beside the works —
 **[Collections](/kilna/guides/collections/)** (albums, books, seasons: works in
-an order, against a goal), **[Notes](/kilna/guides/notes/)** (ideas, phrases,
+an order, against a goal), **[Notes](/kilna/guides/notes/)** (phrases, notes,
 references),
 **[Canon](/kilna/guides/the-canon/)** (the world the works share),
 **[Register](/kilna/guides/the-register/)** (what the works have spent),

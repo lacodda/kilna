@@ -107,8 +107,10 @@ Each work's page includes:
 - The work's release - a publication goes out once: its place, date
   (scheduled or released), time of day and zone when set, and the link if one
   was recorded.
-- Notes attached to the work, with their tags — and for an idea or a
-  phrase, its kind and where it stands: *phrase used*.
+- Notes attached to the work, with their tags - and for a phrase, its kind
+  and where it stands: *phrase used*. A note's whose-words line is written
+  after it (*- Old Joy*), and a phrase lists the shelves it stands on
+  (*· on Space, Kitchen*).
 - Comments on the work, archived ones included: who wrote them, where and
   when, where each stands, the words quoted, and the reply under them.
 
@@ -123,17 +125,16 @@ in `notes.md`, `![](../media/<name>)` on a page one folder down. v0.50 to
 v0.92 wrote `format: 2`; earlier exports carried no line, which reads as
 format 1.
 
-Notes not attached to any work are written to a separate `notes.md`, an
-idea or a phrase with its state under it, and comments about no work to
+Notes not attached to any work are written to a separate `notes.md`, a
+phrase with its state under it and a line *on: ...* naming its shelves, and comments about no work to
 `comments.md`, rather than lost. The calendar's [time off](/kilna/guides/planning-a-release/#time-off)
 goes to `time-off.md`, one line per span, earliest first: its days and its
 name. The [register of repeats](/kilna/guides/the-register/)
 goes to `register.md`: every term by strictness, with its forms, kind, topic
 and note, how many works carry it at the moment of the export, and for an
-image or a scene the works named for it; then the words that are not spent -
-the [bank's](/kilna/guides/the-bank-of-words/), each with its state and how
-many works already sing it - and every way of singing you keep, written →
-sung. File names are derived from each work's title with unsafe
+image or a scene the works named for it; then every way of singing you keep,
+written → sung. A term that is not spent stays in the record for how it is
+sung and is listed under *sung*; the page has no *words* section. File names are derived from each work's title with unsafe
 characters replaced and a short id suffix appended, so two works sharing a
 title never overwrite one another — and non-ASCII titles are kept as-is,
 since a title in Cyrillic or any other script should stay readable in the
@@ -151,9 +152,9 @@ strictness, topic and note; a term written with alternatives — *свеча / �
 *мыть(ся)* — arrives as a word and its forms, and one with a placeholder —
 *всего лишь X* — as a pattern. The works an image or a scene was listed in are
 named for it where a work of that title is here; for wording they are not
-brought, because the register reads them off the texts. The bank arrives as
-notes: phrases as phrases, every other idea as an idea, in the state it was
-left in. A term already in the register, or a note with the same words, is
+brought, because the register reads them off the texts. The predecessor's bank of
+ideas arrives as phrases, in the state they were left in, and notes; every
+other idea arrives as a note tagged `idea`. A term already in the register, or a note with the same words, is
 skipped.
 
 A title you deleted here is skipped too, even after you emptied the trash:

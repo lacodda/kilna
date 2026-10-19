@@ -540,11 +540,13 @@ Two flags, both optional, say what is different about a kind (v0.85,
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `material` | boolean, optional | Notes of the kind are what works are made from, and are spent by them — an idea, a phrase. Such a note says where it stands: fresh, used, parked or dropped. *To a work* ties it to the work and marks it used in one gesture, and *Make it a work* leaves it in the bank, used, instead of moving it. |
-| `line` | boolean, optional | A note of the kind is one line. The Notes screen keeps the kind in a bank of its own, a row each, and leaves it out of *All*. |
+| `material` | boolean, optional | Notes of the kind are what works are made from, and are spent by them - a phrase. Such a note says where it stands: fresh, used, parked or dropped. *Attach to a work* keeps it for the work without spending it, and *Make it a work* leaves the note attached to the new work, marking a phrase used. |
+| `line` | boolean, optional | A note of the kind is one line. The Notes screen keeps the kind as rows with shelves, a row each, on its own chip (there is no *All* chip). |
 
-Every shipped profile names `idea` (material) and `phrase` (material, one
-line). A kind with sections — a card of the canon — can be neither; saving
+Every shipped profile names `phrase` (material, one line) and `note`; the
+blog profile also names `source`. `idea` is no longer shipped, and an upgrade
+takes it out of an older stored copy - its notes were already turned into
+notes tagged `idea`. A kind with sections — a card of the canon — can be neither; saving
 says so.
 
 ### Cards of the canon
@@ -797,7 +799,7 @@ words:
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `window_days` | 90 | How close another song's day is too close: a rare word it shares is red inside, orange outside. |
-| `rare_rank` | 20000 | From which rank of the language's stems a Russian word is rare, by the language pack's frequency list. A stem the list does not hold is rarer than all of them. A word in another script is rare only when the bank keeps it. |
+| `rare_rank` | 20000 | From which rank of the language's stems a Russian word is rare, by the language pack's frequency list. A stem the list does not hold is rarer than all of them. A word in another script is rare only when you keep it as a phrase. |
 | `rare_in_works` | 2 | In how many of your works a word may stand and still be rare; past it the word is your own, and spent only if the register says so. |
 
 Absent means all three defaults. Set in **Settings → Profile**. Added in
@@ -1130,7 +1132,7 @@ specifically.
 | `icon` | string, optional | The glyph on the button, from the list below. A name kilna does not know draws the generic spark. |
 | `template` | string | The message sent to Claude, with placeholders filled per work. Keep it short: the method carries the how. |
 | `method` | string, optional | How the action is done — the role the assistant takes, what it checks and in what order, the shape of the answer, what it must never say. Markdown; appended to the model's system prompt on every turn of the chat the action opened. See [ADR 0021](https://github.com/lacodda/kilna/blob/main/docs/adr/0021-an-action-carries-its-method.md). |
-| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`; `"cover-ideas"` — ideas for a publication's cover, each a concept, only in an action with `"scope": "cover"`; `"words"` — words for the record; `"bricks"` — bricks for the dictionary, each a phrase with its type and what it means, only in an action with `"scope": "phrases"`; `"trials"` — trials for an experiment's board, only in an action with `"scope": "lab"`. Anything else loads as prose and is refused when the profile is saved. |
+| `produces` | string, optional | What the action asks for beyond prose: `"score"`; `"version:<role>"` — the whole answer offered as a version in that role; `"scenes"` — a storyboard to replace the board, or `"scenes:add"` and `"scenes:revise"`; `"comment"` — a comment read off a screenshot; `"reply"` — the whole answer offered as the reply to a comment; `"canon"` — cards, facts and relations for the [canon](/kilna/guides/the-canon/); `"card-prompt"` — the whole answer offered as a card's description for a picture generator, only in an action with `"scope": "canon"`; `"release"` — what a release goes out under, field by field, only in an action with `"scope": "release"`; `"cover-ideas"` — ideas for a publication's cover, each a concept, only in an action with `"scope": "cover"`; `"words"` — phrases to keep and words for the record; `"bricks"` — bricks for the dictionary, each a phrase with its type and what it means, only in an action with `"scope": "phrases"`; `"trials"` — trials for an experiment's board, only in an action with `"scope": "lab"`. Anything else loads as prose and is refused when the profile is saved. |
 | `kinds` | list of strings, optional | The work kinds the action is offered on. Absent or empty is every kind. An action that reads `{role:lyrics}` is for the kinds that have lyrics — Studio's song actions say `["song"]` — because a button for it on a video would send a prompt with a hole in it. |
 | `scope` | string, optional | `"scene"` for an action started from a row of the storyboard: it reads the row as `{scene}`, is offered on each scene rather than above the board, and must produce `scenes:revise`. `"style"` for one about a brick of the [style dictionary](/kilna/guides/styles/): it is offered on the dictionary and on neither bar of a card, and aimed at a work it is refused by name. `"comment"` for one about a [comment](/kilna/guides/comments/): it must produce `comment` (read a pasted screenshot) or `reply` (draft the answer), and is offered on the comments only. `"canon"` for one about a card of the [canon](/kilna/guides/the-canon/): it is given the card whole ahead of its template — the facts as the work reads them and the card's free note, or for `card-prompt` the settled public facts it is described from and its reference pictures — reads no placeholders, is offered on the card and nowhere else, and must produce `canon` or `card-prompt`. `"selection"` for one about lines selected in a work's text: it reads them as `{selection}`, is offered on a selection and nowhere else, and started without one it is refused. `"release"` for one about one release: it reads `{release}` and `{releases}`, is offered on the release (and started by **Make…** on the one it plans), must produce `release`, and may only name kinds that go out somewhere. `"cover"` for one about a publication's [board of ideas](/kilna/guides/the-cover/#the-board-of-ideas): it reads `{ideas}` and `{choices}`, is offered on the board (and started by **Make…**), must produce `cover-ideas`, and may only name kinds with a cover. `"phrases"` for one about phrases a text says that the dictionary does not know (v0.94): it reads them as `{phrases}` - each with how often it is written - and the composition's types with their hints and families as `{types}`, is offered where the phrases are found (a style's strip, **From your texts**), and must produce `bricks`. `"lab"` for one about an [experiment's board](/kilna/guides/the-lab/) (v0.95): it reads `{trials}` - what is asked and what stands on the board - and may read `{choices}`, is offered on the board, must produce `trials`, and may only name kinds that are a lab. Absent is the work. |
 
@@ -1213,7 +1215,7 @@ public facts of the kind's `describe_from` sections — the answer is kept as
 the card's description). See [The canon](/kilna/guides/the-canon/).
 
 An action with `"produces": "words"` answers with a package of words for
-the record: meanings and the works they are in, words for the bank, ways of
+the record: meanings and the works they are in, phrases to keep, ways of
 singing, terms for the register - the same shape an agent's
 `propose_words` gives, kept whole or word by word. kilna appends the shape
 of the json block. Studio ships `meanings` (on a song): the images and
@@ -1359,9 +1361,11 @@ proposes.
 - `{released}` — the songs that went out, newest first, each with its day and
   its words, the song the action is about left out: what the `meanings`
   action reads a song against.
-- `{words}` — the fresh words of your [bank of words](/kilna/guides/the-bank-of-words/),
-  by block, each with how it is sung; `{words:space}` — one block's, by its
-  name.
+- `{lines}` — the fresh [phrases](/kilna/guides/notes/#phrases) kept for the
+  work (attached to it), each with whose words it is and how it is sung;
+  `{lines:space}` — the fresh phrases of one shelf, by its name. A shelf nobody
+  has is said so in the prompt, and a work with none kept for it reads
+  *(no lines are kept for this work)*.
 - `{donor}` — the first work this one was [made from](/kilna/guides/made-from/),
   as *“Harbour lights” (song)*; `{donor:lyrics}`, `{donor:style}`, … — the
   latest revision of that role on the donor. A work made from nothing refuses
