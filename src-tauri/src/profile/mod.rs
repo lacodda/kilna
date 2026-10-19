@@ -683,13 +683,39 @@ fn keyed_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool
 const RETIRED_NOTE_KINDS: [&str; 1] = ["idea"];
 
 /// A retired note kind leaves the stored copy, unless the shipped profile
-/// names it again.
+/// names it again. The plain kinds left then stand in the shipped order, in
+/// the places they held among the cards: the first is the chip the Notes
+/// screen opens on, and a copy grown kind by kind had the note
+/// before the phrase - the screen of a workspace made before v0.98 would open
+/// on the notes and a new one on the phrases. It happens once, with the
+/// retirement, so an order the owner set afterwards is theirs.
 fn retired_note_kinds(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
     let before = config.note_kinds.len();
     config.note_kinds.retain(|kind| {
         !RETIRED_NOTE_KINDS.contains(&kind.key.as_str()) || shipped.note_kind(&kind.key).is_some()
     });
-    config.note_kinds.len() != before
+    if config.note_kinds.len() == before {
+        return false;
+    }
+    let places: Vec<usize> = (0..config.note_kinds.len())
+        .filter(|&at| !config.note_kinds[at].is_card())
+        .collect();
+    let mut plain: Vec<_> = places
+        .iter()
+        .map(|&at| config.note_kinds[at].clone())
+        .collect();
+    // A kind the line does not ship keeps its place after the shipped ones.
+    plain.sort_by_key(|kind| {
+        shipped
+            .note_kinds
+            .iter()
+            .position(|one| one.key == kind.key)
+            .unwrap_or(usize::MAX)
+    });
+    for (at, kind) in places.into_iter().zip(plain) {
+        config.note_kinds[at] = kind;
+    }
+    true
 }
 
 /// The stops of the stage dial (0.72): a workspace that predates them gains
@@ -2563,7 +2589,10 @@ mod tests {
 
     /// A workspace made before v0.98 holds the idea kind; the two shelves
     /// retired it (ADR 0064), so the upgrade takes it out of the stored copy
-    /// and leaves the rest - phrase, then note - where they stood.
+    /// and puts the rest in the shipped order - phrase, then note. Caught on
+    /// the owner's workspace in the live run of v0.98: a copy grown kind by
+    /// kind held note, idea, phrase, and its Notes screen opened on the
+    /// notes while a new one opened on the phrases.
     #[test]
     fn seed_takes_a_retired_note_kind_out_of_an_existing_profile() {
         let conn = db::open_in_memory().unwrap();
@@ -2579,12 +2608,15 @@ mod tests {
         let mut idea = config.note_kind("note").unwrap().clone();
         idea.key = "idea".into();
         idea.material = true;
-        let at = config
+        // The order a copy grown kind by kind holds: the note first, a card
+        // between, the phrase last.
+        let phrase = config.note_kind("phrase").unwrap().clone();
+        let note = config.note_kind("note").unwrap().clone();
+        config.note_kinds.retain(|kind| kind.is_card());
+        let card = config.note_kinds.remove(0);
+        config
             .note_kinds
-            .iter()
-            .position(|kind| kind.key == "phrase")
-            .unwrap();
-        config.note_kinds.insert(at, idea);
+            .splice(0..0, [note, card.clone(), idea, phrase]);
         conn.execute(
             "UPDATE profile SET config = ?2 WHERE id = ?1",
             params![id, serde_json::to_string(&config).unwrap()],
@@ -2597,10 +2629,14 @@ mod tests {
             .unwrap()
             .note_kinds
             .into_iter()
-            .filter(|kind| !kind.is_card())
             .map(|kind| kind.key)
             .collect();
-        assert_eq!(kinds, ["phrase", "note"]);
+        assert_eq!(
+            kinds[..3],
+            ["phrase".to_string(), card.key, "note".to_string()],
+            "the plain kinds take the shipped order in the places they held"
+        );
+        assert!(!kinds.contains(&"idea".to_string()));
     }
 
     // Caught on the owner's own workspace during the live run of v0.72: every
