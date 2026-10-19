@@ -260,7 +260,7 @@
     "working": "Working…",
     "logAt": "Application log",
     "logHint": "What went wrong while nobody was looking — a file that could not be removed, a task that would not start. Attach it to a report.",
-    "importedMaterial": "The register brought {{terms}} terms and named {{named}} works for its images; the bank brought {{notes}} ideas and phrases."
+    "importedMaterial": "The register brought {{terms}} terms and named {{named}} works for its images; the bank of ideas brought {{notes}} phrases and notes."
   },
   "dashboard": {
     "decisions": "Needs a decision",
@@ -840,7 +840,8 @@
     "proposedCanon": "Proposed for the canon",
     "proposedCardPrompt": "Proposed description",
     "proposedWords": "Words, proposed",
-    "proposedBricks": "Bricks for the dictionary"
+    "proposedBricks": "Bricks for the dictionary",
+    "noteOnShelf": "on the shelf “{{shelf}}”"
   },
   "links": {
     "sources": "Made from",
@@ -1092,7 +1093,6 @@
     "placeholder": "A thought about this work",
     "tagsPlaceholder": "Tags, comma separated",
     "kind": "Kind of note",
-    "allKinds": "All",
     "search": "Search the notes",
     "tag": "Tag",
     "anyTag": "Any tag",
@@ -1102,9 +1102,9 @@
     "untitled": "Empty note",
     "pick": "Pick a note on the left",
     "empty": "No notes yet",
-    "emptyBody": "Ideas, lore, references — anything worth keeping that is not a work yet.",
+    "emptyBody": "Thoughts, lore, references — anything worth keeping that is not a work yet.",
     "gone": "This note is not here",
-    "goneBody": "It was deleted or became a work. The trash still has it.",
+    "goneBody": "It was deleted. The trash still has it.",
     "titlePlaceholder": "Untitled",
     "titleLabel": "Title",
     "bodyPlaceholder": "Write here. Markdown works: lists, links, - [ ] checkboxes.",
@@ -1118,10 +1118,9 @@
     "removeTag": "Remove the tag {{tag}}",
     "filterByTag": "Show every note tagged {{tag}}",
     "promote": "Make it a work",
-    "promoteHint": "The note becomes a work: its text is the first version",
+    "promoteHint": "A work is made, and the note stays attached to it",
     "promoteTitle": "Make this note a work",
-    "promoteBody": "The text becomes the work's first {{role}}, and the note goes to the trash so the words live in one place. Undo takes it all back.",
-    "promoteNoRole": "This kind of work has no role a text can be kept in.",
+    "promoteBody": "A work is made under this name, and the note stays attached to it as what it grows from. Nothing is copied, so the words live in one place. Undo takes it all back.",
     "promoteKind": "Kind of work",
     "promoteTitlePlaceholder": "What the work is called",
     "promoted": "“{{title}}” is a work now",
@@ -1144,19 +1143,37 @@
     },
     "stateLabel": "State",
     "anyState": "Any state",
-    "toWork": "To a work",
-    "toWorkTitle": "Which work does this go into?",
-    "usedIn": "Used in “{{title}}”",
-    "spent": "Used in “{{title}}”.",
+    "toWork": "Attach to a work",
+    "toWorkTitle": "Which work is this phrase for?",
     "park": "Set aside",
     "drop": "Drop",
     "refresh": "Back to fresh",
-    "linePlaceholder": "A new line — Enter keeps it",
+    "linePlaceholder": "A phrase — Enter keeps it; a pasted list keeps one per line",
     "lineActions": "What to do with it",
     "lineEdit": "Edit the line",
     "linesShown": "{{shown}} of {{total}}",
     "showMore": "Show more",
-    "promoteBodyMaterial": "The text becomes the work’s first {{role}}. The note stays in the bank, marked used, so it is not taken twice. Undo takes it all back."
+    "promoteBodyMaterial": "A work is made under this name, and the phrase stays attached to it, marked used, so it is not taken twice. Undo takes it all back.",
+    "linePlaceholderOn": "A phrase for “{{shelf}}” — Enter keeps it; a pasted list keeps one per line",
+    "attached": "Attached to “{{title}}”.",
+    "keptFor": "Kept for “{{title}}”",
+    "use": "Mark used",
+    "lines": "Phrases",
+    "linesEmpty": "No phrases yet",
+    "linesEmptyBody": "Type a word, a line or a quote above and press Enter, or paste a list.",
+    "shelfEmpty": "No phrases on this shelf",
+    "shelfEmptyBody": "Type them above, or drag phrases onto the shelf on the left.",
+    "looseEmpty": "Every phrase is on a shelf.",
+    "known_one": "{{count}} phrase was kept already: it stays as it stood.",
+    "known_other": "{{count}} phrases were kept already: they stay as they stood.",
+    "keepFailed": "Could not keep the phrases.",
+    "sungIn_one": "sung in {{count}} work",
+    "sungIn_other": "sung in {{count}} works",
+    "sungInHint": "The works whose current text says it",
+    "sungForms": "How it is sung",
+    "whose": "Whose words",
+    "whosePlaceholder": "An author, a film, a song",
+    "whoseEdit": "Whose words…"
   },
   "styles": {
     "new": "New style",
@@ -1491,8 +1508,8 @@
       "fact": "Fact",
       "term": "Term",
       "idea": "Idea",
-      "block": "Block of words",
-      "trial": "Trial"
+      "trial": "Trial",
+      "shelf": "Shelf of phrases"
     }
   },
   "journal": {
@@ -1622,7 +1639,13 @@
     "layout.shiftedLater_one": "The plan from {{from}} on moved {{count}} day later — {{moved}} in all.",
     "layout.shiftedLater_other": "The plan from {{from}} on moved {{count}} days later — {{moved}} in all.",
     "layout.shiftedEarlier_one": "The plan from {{from}} on moved {{count}} day earlier — {{moved}} in all.",
-    "layout.shiftedEarlier_other": "The plan from {{from}} on moved {{count}} days earlier — {{moved}} in all."
+    "layout.shiftedEarlier_other": "The plan from {{from}} on moved {{count}} days earlier — {{moved}} in all.",
+    "shelf": {
+      "deleted": "Shelf “{{label}}” put in the trash."
+    },
+    "proposal": {
+      "words": "{{client}} proposes words for the phrases and the register."
+    }
   },
   "card": {
     "tab": {
@@ -1772,7 +1795,14 @@
     "timeOff.delete": "opening the days",
     "release.pinRange": "keeping the dates",
     "layout.apply": "the layout",
-    "layout.shift": "the shift"
+    "layout.shift": "the shift",
+    "shelf": {
+      "create": "making a shelf",
+      "rename": "renaming a shelf",
+      "move": "the order of shelves",
+      "add": "putting a phrase on a shelf",
+      "remove": "taking a phrase off a shelf"
+    }
   },
   "stage": {
     "label": "Stage",
@@ -2356,7 +2386,8 @@
       "unknownBlock": "Scene {{index}}: no prompt block “{{block}}” for “{{kind}}”; its blocks are {{known}}.",
       "badSpan": "Scene {{index}}: it ends at {{to}} before it starts at {{from}}.",
       "negativeSeconds": "Scene {{index}}: seconds are counted from 0.",
-      "nothingTaken": "Nothing was chosen to take."
+      "nothingTaken": "Nothing was chosen to take.",
+      "unknownNoteKind": "“{{kind}}” is no kind of note here: a phrase or a note, as the workspace names them."
     },
     "file": {
       "isDirectory": "{{path}} is a folder, not a file.",
@@ -2486,8 +2517,7 @@
       "trialsNotArray": "`trials` has to be a list with at least one trial in it."
     },
     "note": {
-      "promoteNeedsTitle": "A work needs a title.",
-      "promoteNoRole": "A “{{kind}}” has no role a body can be kept in."
+      "promoteNeedsTitle": "A work needs a title."
     },
     "readiness": {
       "badToday": "“{{value}}” is not an ISO date."
@@ -2619,17 +2649,13 @@
       "nothingAsked": "Ask for at least one idea, or write your own to be worked out.",
       "noIdeas": "The answer holds no idea with words or a scene."
     },
-    "block": {
-      "needsName": "A block needs a name.",
-      "exists": "There is a block called “{{name}}” already."
-    },
     "words": {
       "noWords": "There are no words in this: give a list of words, or {\"words\": [...]}.",
-      "unknownBlock": "The bank has no block called “{{block}}”.",
       "unread": "An item that reads as no word: {{why}}.",
       "noLetters": "“{{word}}” has no letters.",
       "noSuchWork": "“{{work}}”, named for “{{word}}”, is no work here.",
-      "workGone": "“{{word}}” names “{{title}}”, which is no longer there."
+      "workGone": "“{{word}}” names “{{title}}”, which is no longer there.",
+      "noLineKind": "This craft keeps no kind of note as one line, so a word cannot be kept as a phrase."
     },
     "repeat": {
       "needsWord": "Say which word is kept."
@@ -2670,6 +2696,11 @@
       "badDay": "“{{value}}” is not a calendar day.",
       "endsBeforeItStarts": "The days off end on {{to}}, before they start on {{from}}.",
       "unnamed": "Closed days need a name — “Away”, “New Year” — so the month can say why they are closed."
+    },
+    "shelf": {
+      "needsName": "A shelf needs a name.",
+      "exists": "There is a shelf called “{{name}}” already.",
+      "unknown": "There is no shelf called “{{shelf}}”."
     }
   },
   "skip": {
@@ -3027,11 +3058,10 @@
       "ban": "Banned",
       "limit": "Limited",
       "rare": "Rare",
-      "bank": "In the bank",
       "sung": "Sung their way"
     },
     "notSpent": "Not spent",
-    "notSpentHint": "A word kept for the bank or for how it is sung, not marked in the texts as spent"
+    "notSpentHint": "A word kept for how it is sung, not marked in the texts as spent"
   },
   "publications": {
     "caption": "Publications",
@@ -3155,57 +3185,12 @@
     "preview": "What will be sent"
   },
   "words": {
-    "bank": "Bank of words",
-    "notBanked": "Not in the bank",
-    "states": {
-      "fresh": "Fresh",
-      "parked": "Set aside",
-      "dropped": "Dropped"
-    },
     "sung": "How it is sung",
     "sungHelp": "Where a form is sung otherwise than it is written: the stress as a capital vowel (пульсАр), a respelling as a changed letter (Марсель → МарсЭль). Public text gets the written form back.",
     "written": "Written",
     "sungAs": "Sung",
     "addSung": "How a form is sung",
     "removeSung": "Remove this way of singing",
-    "view": "Words",
-    "allWords": "All words",
-    "noBlock": "In no block",
-    "blocks": "Blocks",
-    "noBlocks": "No blocks yet",
-    "noBlocksBody": "Name one below, then drag words onto it.",
-    "newBlock": "New block — Enter makes it",
-    "blockName": "Block name",
-    "blockMenu": "What to do with the block",
-    "rename": "Rename",
-    "moveUp": "Move up",
-    "moveDown": "Move down",
-    "moveBlock": "Drag to put it elsewhere in the order",
-    "deleteBlock": "Delete the block",
-    "blockDeleted": "Block “{{name}}” deleted. Its words stay in the bank.",
-    "blockFailed": "Could not change the block.",
-    "add": "Add words: one, or a list by commas — Enter keeps them",
-    "addTo": "Add words to “{{block}}”: one, or a list by commas — Enter keeps them",
-    "bankFailed": "Could not put the words in the bank.",
-    "saveFailed": "Could not save the word.",
-    "known_one": "{{count}} word was in the register already: it is fresh in the bank now.",
-    "known_other": "{{count}} words were in the register already: they are fresh in the bank now.",
-    "empty": "The bank is empty",
-    "emptyBody": "Type a word above and press Enter, or paste a list.",
-    "blockEmpty": "No words in this block",
-    "blockEmptyBody": "Type them above, or drag words onto the block on the left.",
-    "looseEmpty": "Every word is in a block.",
-    "sungIn_one": "sung in {{count}} work",
-    "sungIn_other": "sung in {{count}} works",
-    "sungInHint": "The works whose current text says it",
-    "sungForms": "How it is sung",
-    "stateMenu": "Where it stands in the bank",
-    "takeOut": "Take out of the bank",
-    "carry": "Drag onto a block on the left",
-    "putIn": "Put in a block",
-    "putNowhere": "It is in every block already",
-    "put": "“{{word}}” is in “{{block}}” now.",
-    "removeFromBlock": "Remove from this block",
     "open": "Open in the register",
     "fromTexts": "Find in my texts",
     "fromTextsTitle": "Found in your texts",
@@ -3217,9 +3202,6 @@
     "kept_one": "{{count}} word kept.",
     "kept_other": "{{count}} words kept.",
     "keepFailed": "Could not keep the words.",
-    "toBank": "to the bank",
-    "toBlock": "to the bank, block “{{block}}”",
-    "toNewBlock": "to the bank, a new block “{{block}}”",
     "toRegister": "to the register: {{strictness}}",
     "forms": "forms: {{forms}}",
     "works": "works: {{works}}",
@@ -3228,11 +3210,12 @@
     "keptFromChat": "Words kept.",
     "keptMark_one": "{{count}} word kept.",
     "keptMark_other": "{{count}} words kept.",
-    "openBank": "Open the bank",
-    "inBlocks_one": "Block: {{blocks}}",
-    "inBlocks_other": "Blocks: {{blocks}}",
     "seenIn_one": "Sung this way in {{titles}}",
-    "seenIn_other": "Sung this way in {{titles}} - {{count}} songs in all"
+    "seenIn_other": "Sung this way in {{titles}} - {{count}} songs in all",
+    "toPhrase": "a phrase to keep",
+    "toShelf": "a phrase, on the shelf “{{shelf}}”",
+    "toNewShelf": "a phrase, on a new shelf “{{shelf}}”",
+    "openPhrases": "Open the phrases"
   },
   "repeats": {
     "caption": "Repeats",
@@ -3629,5 +3612,29 @@
     "cover": "Cover",
     "done": "there",
     "missing": "missing"
+  },
+  "shelves": {
+    "title": "Shelves",
+    "all": "All phrases",
+    "none": "On no shelf",
+    "empty": "No shelves yet",
+    "emptyBody": "Name one below, then drag phrases onto it.",
+    "new": "New shelf — Enter makes it",
+    "name": "Shelf name",
+    "menu": "What to do with the shelf",
+    "rename": "Rename",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "move": "Drag to put it elsewhere in the order",
+    "delete": "Delete the shelf",
+    "deleted": "Shelf “{{name}}” deleted. Its phrases stay.",
+    "failed": "Could not change the shelf.",
+    "carry": "Drag onto a shelf on the left",
+    "putOn": "Put on a shelf",
+    "putNowhere": "It is on every shelf already",
+    "put": "“{{line}}” is on “{{shelf}}” now.",
+    "takeOff": "Take off this shelf",
+    "on_one": "Shelf: {{shelves}}",
+    "on_other": "Shelves: {{shelves}}"
   }
 }

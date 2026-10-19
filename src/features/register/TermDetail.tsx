@@ -20,7 +20,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Pane } from '@/components/frame'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
 import {
-  BankPicker,
   KindPicker,
   StrictnessPicker,
   SungEditor,
@@ -35,8 +34,8 @@ interface Props {
 
 /**
  * One word of the record, open (ADR 0052): what it is along the top - how
- * strictly it is spent, or not at all - then where it stands in the bank,
- * how it is sung, its forms, topic and note, and the works it is in.
+ * strictly it is spent, or not at all - then how it is sung, its forms,
+ * topic and note, and the works it is in.
  *
  * The works are the point. For wording they are read off the works' current
  * texts - how many times each says it - with the works a person named beside
@@ -139,15 +138,6 @@ export function TermDetail({ entry, onGone }: Props) {
         </>
       }
     >
-      <div className="flex flex-col gap-1.5">
-        <span className="caption">{t('words.bank')}</span>
-        <BankPicker
-          value={entry.bank}
-          onChange={(bank) => {
-            if (bank !== entry.bank) patch.mutate({ bank })
-          }}
-        />
-      </div>
       {wording && (
         <div className="flex flex-col gap-1.5">
           <span className="caption">{t('words.sung')}</span>

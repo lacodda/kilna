@@ -1,31 +1,32 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowUpRight, Ellipsis, Send } from 'lucide-react'
-import { createNote, deleteNote, updateNote } from '@/lib/api/notes'
-import type { Note, NoteFilter, NotePatch, NoteState } from '@/lib/api/types'
+import { addToShelf, deleteNote, keepLines, removeFromShelf, updateNote } from '@/lib/api/notes'
+import type { LineRow, NoteFilter, NotePatch } from '@/lib/api/types'
+import { ALL_LINES, linesIn, NO_SHELF, shelfOf, splitLines, type LineScope } from '@/lib/lines'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
 import { say } from '@/lib/toast'
-import { cn } from '@/lib/utils'
+import { useChipDrag, type Dragging } from '@/lib/useChipDrag'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Input } from '@/components/ui/input'
-import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuTrigger } from '@/components/ui/menu'
 import { SkeletonList } from '@/components/ui/skeleton'
-import { Pane } from '@/components/frame'
+import { Textarea } from '@/components/ui/textarea'
+import { ListDetail, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
 import { PickWorkDialog } from '@/components/PickWorkDialog'
+import { LineItem } from '@/features/notes/LineItem'
 import { PromoteNoteDialog } from '@/features/notes/PromoteNoteDialog'
+import { Shelves } from '@/features/notes/Shelves'
 
 /** How many rows are drawn at first, and how many more each "show more". */
 const PAGE = 200
 
 interface Props {
-  /** The kind of line the bank keeps: a phrase. */
+  /** The kind of line the screen keeps: a phrase. */
   kind: string
   /** The narrowing the screen's head already chose: state, tag, words. */
   filter: NoteFilter
@@ -33,41 +34,95 @@ interface Props {
   tag: string
   /** Whether anything narrows the list, for the empty state's words. */
   filtered: boolean
+  /** How many phrases there are at all: none is an empty screen, not a
+   *  filter that left nothing. */
+  total: number
 }
 
 /**
- * A bank of lines, one per row (ADR 0045).
+ * The phrases (ADR 0064): whatever turns up in a head as one line - a word, a
+ * line, a quote - kept a row each, sorted onto shelves the owner names and
+ * orders.
  *
- * The predecessor kept 1,131 phrases as cards, a wall nobody read past the
- * third day. Here each is a line under the last, with the work it went into
- * and what can be done to it at the end of the row: into a work in one
- * gesture - it stays, marked used - or set aside, dropped, made a work of.
- * A new line is typed into the box at the top and kept with Enter.
+ * Two screens became this one. The predecessor's 1,131 phrases lived as
+ * cards nobody read past the third day, so a phrase is a row (ADR 0045); and
+ * the bank of words kept single words apart, in blocks (ADR 0052), when a
+ * word is only the shortest phrase. A row says what the record knows about
+ * it: whose words it is, how it is sung, the shelves it stands on, how many
+ * works already say it, the work it is kept for.
+ *
+ * Lines come in through the field at the top: one and Enter, or a list
+ * pasted by lines - onto the shelf on show, or onto none. A phrase goes onto
+ * a shelf by being carried there; that is a pointer drag (`useChipDrag`),
+ * since a desktop shell that takes file drops never lets an HTML5 drag reach
+ * the page.
  */
-export function LineBank({ kind, filter, tag, filtered }: Props) {
+export function LineBank({ kind, filter, tag, filtered: narrowed, total }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
-  const lines = useQuery(queries.notesMatching(filter))
+  const lines = useQuery(queries.lines(filter))
+  const shelves = useQuery(queries.shelves())
   const catalogue = useQuery(queries.catalogue())
+  const [scope, setScope] = useState<LineScope>(ALL_LINES)
   const [draft, setDraft] = useState('')
   const [shown, setShown] = useState(PAGE)
-  const [sending, setSending] = useState<Note | null>(null)
-  const [promoting, setPromoting] = useState<Note | null>(null)
+  const [attaching, setAttaching] = useState<LineRow | null>(null)
+  const [promoting, setPromoting] = useState<LineRow | null>(null)
+  // The shelf a carried phrase is over, lit while it is.
+  const [over, setOver] = useState<string | null>(null)
 
+  const rows = useMemo(() => lines.data ?? [], [lines.data])
+  const list = useMemo(() => shelves.data ?? [], [shelves.data])
+  // A shelf that went - deleted here, or elsewhere - leaves every phrase on
+  // show rather than a list of nothing under a name that is not there.
+  const current =
+    scope === ALL_LINES || scope === NO_SHELF || shelfOf(scope, list) !== null ? scope : ALL_LINES
+  const shelf = shelfOf(current, list)
+  const visible = useMemo(() => linesIn(current, rows, list), [current, rows, list])
+  const counts = useMemo(
+    () => ({ all: rows.length, loose: linesIn(NO_SHELF, rows, list).length }),
+    [rows, list],
+  )
   const titles = useMemo(
     () => new Map((catalogue.data ?? []).map((row) => [row.work_id, row.title])),
     [catalogue.data],
   )
+  const bodyOf = (id: string) => rows.find((row) => row.id === id)?.body ?? ''
+  // A filter that left nothing is only that when there is something to filter.
+  const filtered = narrowed && total > 0
 
-  const add = useAppMutation({
-    mutationFn: (body: string) => createNote({ body, kind, tags: tag === '' ? [] : [tag] }),
-    failure: 'toast.noteSaveFailed',
+  const keep = useAppMutation({
+    mutationFn: (typed: string[]) =>
+      keepLines(typed, kind, shelf?.id ?? null, tag === '' ? [] : [tag]),
+    failure: 'notes.keepFailed',
     refresh: refresh.note,
-    onSuccess: () => setDraft(''),
+    onSuccess: (kept) => {
+      setDraft('')
+      // A line kept already is not kept twice, and nothing on the screen
+      // would say so: it stays as it stood, and joins the shelf on show.
+      const known = kept.notes.length - kept.created
+      if (known > 0) say.info(t('notes.known', { count: known }))
+    },
   })
   const patch = useAppMutation({
     mutationFn: ({ id, change }: { id: string; change: NotePatch }) => updateNote(id, change),
     failure: 'toast.noteSaveFailed',
+    refresh: refresh.note,
+  })
+  const put = useAppMutation({
+    mutationFn: ({ shelfId, noteId }: { shelfId: string; noteId: string }) =>
+      addToShelf(shelfId, noteId),
+    failure: 'shelves.failed',
+    refresh: refresh.note,
+    // Said, because the phrase stays where it was on the right: the list on
+    // show is still the one it was carried from.
+    onSuccess: (_, { shelfId, noteId }) =>
+      say.ok(t('shelves.put', { line: bodyOf(noteId), shelf: shelfOf(shelfId, list)?.name ?? '' })),
+  })
+  const takeOff = useAppMutation({
+    mutationFn: ({ shelfId, noteId }: { shelfId: string; noteId: string }) =>
+      removeFromShelf(shelfId, noteId),
+    failure: 'shelves.failed',
     refresh: refresh.note,
   })
   const remove = useAppMutation({
@@ -82,81 +137,162 @@ export function LineBank({ kind, filter, tag, filtered }: Props) {
       }),
   })
 
-  const rows = lines.data ?? []
+  // The phrases have no month to turn: the hook is handed no grid, so the
+  // pointer is never near an edge and its timer never starts.
+  const noGrid = useRef<HTMLElement>(null)
+  const carry = useChipDrag({
+    gridRef: noGrid,
+    onEdge: () => {},
+    onDrop: (noteId, target) => {
+      setOver(null)
+      const shelfId = target?.closest<HTMLElement>('[data-shelf-drop]')?.dataset.shelfDrop
+      if (shelfId === undefined) return
+      // Let go over a shelf that has it already: put back, nothing written.
+      if (shelfOf(shelfId, list)?.note_ids.includes(noteId) === true) return
+      put.mutate({ shelfId, noteId })
+    },
+  })
+
+  const add = () => {
+    const typed = splitLines(draft)
+    if (typed.length > 0 && !keep.isPending) keep.mutate(typed)
+  }
+  const placeholder =
+    shelf === null
+      ? t('notes.linePlaceholder')
+      : t('notes.linePlaceholderOn', { shelf: shelf.name })
 
   return (
-    <Pane
-      label={t('nav.notes')}
-      bodyClassName="p-1.5"
-      head={
-        <Input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            const body = draft.trim()
-            if (event.key === 'Enter' && body !== '' && !add.isPending) add.mutate(body)
-          }}
-          placeholder={t('notes.linePlaceholder')}
-          aria-label={t('notes.linePlaceholder')}
-          className="flex-1"
-        />
-      }
-      foot={
-        rows.length > shown ? (
-          <>
-            <span className="text-xs text-faint">
-              {t('notes.linesShown', { shown, total: rows.length })}
-            </span>
-            <Button size="xs" variant="ghost" onClick={() => setShown(shown + PAGE)}>
-              {t('notes.showMore')}
-            </Button>
-          </>
-        ) : undefined
-      }
-    >
-      <Loaded
-        query={lines}
-        skeleton={<SkeletonList rows={8} />}
-        isEmpty={(data) => data.length === 0}
-        emptyState={
-          <EmptyState
-            plain
-            variant={filtered ? 'filtered' : 'empty'}
-            title={filtered ? t('notes.noMatches') : t('notes.none')}
-            className="p-2"
+    <>
+      <ListDetail
+        list={
+          <Shelves
+            shelves={shelves}
+            scope={current}
+            onScope={(next) => {
+              setScope(next)
+              setShown(PAGE)
+            }}
+            counts={counts}
+            carrying={carry.dragging !== null}
+            over={over}
+            onOver={setOver}
           />
         }
-        plain
-      >
-        {() => (
-          <ul className="flex flex-col">
-            {rows.slice(0, shown).map((line) => (
-              <Line
-                key={line.id}
-                line={line}
-                work={line.work_id === null ? null : (titles.get(line.work_id) ?? '…')}
-                onPatch={(change) => patch.mutate({ id: line.id, change })}
-                onSend={() => setSending(line)}
-                onPromote={() => setPromoting(line)}
-                onDelete={() => remove.mutate(line.id)}
+        detail={
+          <Pane
+            label={shelf?.name ?? t('notes.lines')}
+            bodyClassName="p-1.5"
+            head={
+              // One line and Enter, or a list pasted by lines: Shift+Enter
+              // starts a line of the list by hand.
+              <Textarea
+                autoResize
+                maxRows={6}
+                rows={1}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault()
+                    add()
+                  }
+                }}
+                placeholder={placeholder}
+                aria-label={placeholder}
+                className="min-w-48 flex-1"
               />
-            ))}
-          </ul>
-        )}
-      </Loaded>
-
+            }
+            foot={
+              visible.length > shown ? (
+                <>
+                  <span className="text-xs text-faint">
+                    {t('notes.linesShown', { shown, total: visible.length })}
+                  </span>
+                  <Button size="xs" variant="ghost" onClick={() => setShown(shown + PAGE)}>
+                    {t('notes.showMore')}
+                  </Button>
+                </>
+              ) : undefined
+            }
+          >
+            <Loaded
+              query={lines}
+              skeleton={<SkeletonList rows={8} />}
+              isEmpty={() => visible.length === 0}
+              emptyState={
+                <EmptyState
+                  plain
+                  variant={filtered ? 'filtered' : 'empty'}
+                  title={
+                    filtered
+                      ? t('notes.noMatches')
+                      : shelf !== null
+                        ? t('notes.shelfEmpty')
+                        : current === NO_SHELF && rows.length > 0
+                          ? t('notes.looseEmpty')
+                          : t('notes.linesEmpty')
+                  }
+                  body={
+                    filtered || (current === NO_SHELF && rows.length > 0)
+                      ? undefined
+                      : shelf !== null
+                        ? t('notes.shelfEmptyBody')
+                        : t('notes.linesEmptyBody')
+                  }
+                  className="p-2"
+                />
+              }
+              plain
+            >
+              {() => (
+                <ul className="flex flex-col">
+                  {visible.slice(0, shown).map((line) => (
+                    <LineItem
+                      key={line.id}
+                      line={line}
+                      shelf={shelf}
+                      shelves={list}
+                      work={line.work_id === null ? null : (titles.get(line.work_id) ?? '…')}
+                      carrying={carry.dragging?.id === line.id}
+                      onGrab={(event) => {
+                        // A carry let go with Escape left no drop to clear the
+                        // shelf it was over; this one starts over nothing.
+                        setOver(null)
+                        carry.begin(event, line.id)
+                      }}
+                      onPatch={(change) => patch.mutate({ id: line.id, change })}
+                      onAttach={() => setAttaching(line)}
+                      onPromote={() => setPromoting(line)}
+                      onPut={(shelfId) => put.mutate({ shelfId, noteId: line.id })}
+                      onTakeOff={() => {
+                        if (shelf !== null) takeOff.mutate({ shelfId: shelf.id, noteId: line.id })
+                      }}
+                      onDelete={() => remove.mutate(line.id)}
+                    />
+                  ))}
+                </ul>
+              )}
+            </Loaded>
+          </Pane>
+        }
+      />
+      {carry.dragging !== null && (
+        <CarriedLine dragging={carry.dragging} line={bodyOf(carry.dragging.id)} />
+      )}
       <PickWorkDialog
-        open={sending !== null}
+        open={attaching !== null}
         onOpenChange={(open) => {
-          if (!open) setSending(null)
+          if (!open) setAttaching(null)
         }}
         title={t('notes.toWorkTitle')}
         onPick={(picked) => {
-          if (sending === null) return
-          // One gesture: tied to the work and marked used, together.
+          if (attaching === null) return
+          // Kept for the work, not yet spent by it: where it stands is its
+          // own word, said from the menu.
           patch.mutate(
-            { id: sending.id, change: { work_id: picked.work_id, state: 'used' } },
-            { onSuccess: () => say.ok(t('notes.spent', { title: picked.title })) },
+            { id: attaching.id, change: { work_id: picked.work_id } },
+            { onSuccess: () => say.ok(t('notes.attached', { title: picked.title })) },
           )
         }}
       />
@@ -170,131 +306,25 @@ export function LineBank({ kind, filter, tag, filtered }: Props) {
           onPromoted={() => setPromoting(null)}
         />
       )}
-    </Pane>
+    </>
   )
 }
 
-interface LineProps {
-  line: Note
-  /** The title of the work it went into, when it went into one. */
-  work: string | null
-  onPatch: (change: NotePatch) => void
-  onSend: () => void
-  onPromote: () => void
-  onDelete: () => void
-}
-
-/** One line of the bank: its words, its tags, where it went, what to do. */
-function Line({ line, work, onPatch, onSend, onPromote, onDelete }: LineProps) {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  const [editing, setEditing] = useState(false)
-  const [text, setText] = useState(line.body)
-
-  const save = () => {
-    setEditing(false)
-    const next = text.trim()
-    if (next !== '' && next !== line.body) onPatch({ body: next })
-    else setText(line.body)
-  }
-  // The ways out of the state it is in: never the one it is already in.
-  const moves: { state: NoteState; label: string }[] = [
-    { state: 'parked' as const, label: t('notes.park') },
-    { state: 'dropped' as const, label: t('notes.drop') },
-    { state: 'fresh' as const, label: t('notes.refresh') },
-  ].filter((move) => move.state !== line.state)
-
-  return (
-    <li
-      className={cn(
-        'group flex min-w-0 items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-soft',
-        line.state !== 'fresh' && 'text-dim',
-      )}
+/**
+ * The phrase that follows the pointer to a shelf: the words themselves on the
+ * panel's ground, fixed to the viewport so no pane's overflow clips it on the
+ * way from the right to the left, and deaf to the pointer, so what it is let
+ * go over is the shelf under it rather than itself.
+ */
+function CarriedLine({ dragging, line }: { dragging: Dragging; line: string }) {
+  return createPortal(
+    <div
+      aria-hidden
+      className="pointer-events-none fixed max-w-80 truncate rounded-md border border-line bg-raise px-2 py-1 text-sm font-medium shadow-float [z-index:var(--z-overlay)]"
+      style={{ left: dragging.ghost.left, top: dragging.ghost.top }}
     >
-      {editing ? (
-        <Input
-          autoFocus
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onBlur={save}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') event.currentTarget.blur()
-            if (event.key === 'Escape') {
-              setText(line.body)
-              setEditing(false)
-            }
-          }}
-          aria-label={t('notes.lineEdit')}
-          className="min-w-0 flex-1"
-        />
-      ) : (
-        // The words are to be read and copied: a double-click - or the
-        // menu - makes them a field.
-        <span
-          className="selectable min-w-0 flex-1 truncate"
-          title={line.body}
-          onDoubleClick={() => setEditing(true)}
-        >
-          {line.body}
-        </span>
-      )}
-      {line.tags.length > 0 && (
-        <span className="max-w-48 shrink-0 truncate text-xs text-faint">
-          {line.tags.join(', ')}
-        </span>
-      )}
-      {line.state !== 'fresh' && (
-        <span className="shrink-0 text-xs text-faint">{t(`notes.state.${line.state}`)}</span>
-      )}
-      {work !== null && line.work_id !== null && (
-        <Button
-          variant="link"
-          className="max-w-48 min-w-0 shrink-0 text-xs"
-          title={t('notes.usedIn', { title: work })}
-          onClick={() => void navigate(`/works/${line.work_id ?? ''}`)}
-        >
-          <span className="truncate">{work}</span>
-          <ArrowUpRight aria-hidden />
-        </Button>
-      )}
-      <Button
-        size="icon-xs"
-        variant="icon"
-        title={t('notes.toWork')}
-        aria-label={t('notes.toWork')}
-        onClick={onSend}
-      >
-        <Send aria-hidden />
-      </Button>
-      <Menu>
-        <MenuTrigger
-          render={
-            <Button
-              size="icon-xs"
-              variant="icon"
-              title={t('notes.lineActions')}
-              aria-label={t('notes.lineActions')}
-            />
-          }
-        >
-          <Ellipsis aria-hidden />
-        </MenuTrigger>
-        <MenuPopup align="end">
-          <MenuItem onClick={() => setEditing(true)}>{t('notes.lineEdit')}</MenuItem>
-          <MenuItem onClick={onSend}>{t('notes.toWork')}</MenuItem>
-          <MenuItem onClick={onPromote}>{t('notes.promote')}</MenuItem>
-          <MenuSeparator />
-          {moves.map((move) => (
-            <MenuItem key={move.state} onClick={() => onPatch({ state: move.state })}>
-              {move.label}
-            </MenuItem>
-          ))}
-          <MenuSeparator />
-          <MenuItem tone="danger" onClick={onDelete}>
-            {t('notes.delete')}
-          </MenuItem>
-        </MenuPopup>
-      </Menu>
-    </li>
+      {line}
+    </div>,
+    document.body,
   )
 }

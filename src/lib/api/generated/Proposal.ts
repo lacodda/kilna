@@ -37,7 +37,11 @@ unknown?: Array<string>, missing?: Array<string>, } | { "kind": "version", role:
  * (ADR 0055): kept as the new version's parent if it is still a
  * version of the work in the role the text lands in.
  */
-from?: string | null, } | { "kind": "note", title?: string | null, } | { "kind": "work", title?: string | null, 
+from?: string | null, } | { "kind": "note", title?: string | null, 
+/**
+ * Named apart from the proposal's own `kind`, its tag.
+ */
+note_kind?: string | null, attribution?: string | null, shelf?: string | null, } | { "kind": "work", title?: string | null, 
 /**
  * The kind of the new work. Not `kind`: that name is the tag that
  * says which variant this is.

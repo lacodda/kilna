@@ -2,7 +2,7 @@
 import type { Layer } from "./Layer";
 import type { NoteState } from "./NoteState";
 
-export type NotePatch = { title?: string | null | null, body?: string | null, kind?: string | null, tags?: Array<string> | null, work_id?: string | null | null, layer?: Layer | null, aliases?: Array<string> | null, prompt?: string | null | null, 
+export type NotePatch = { title?: string | null | null, body?: string | null, attribution?: string | null | null, kind?: string | null, tags?: Array<string> | null, work_id?: string | null | null, layer?: Layer | null, aliases?: Array<string> | null, prompt?: string | null | null, 
 /**
  * Set together with `prompt`, by the action that knows which facts the
  * description was written from - never by the window.

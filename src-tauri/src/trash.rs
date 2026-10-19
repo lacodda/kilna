@@ -42,8 +42,8 @@ pub enum Entity {
     Term,
     /// An idea on a cover's board (ADR 0050).
     Idea,
-    /// A block of the bank of words, with the words put in it (ADR 0052).
-    Block,
+    /// A shelf of phrases, with what stood on it (ADR 0064).
+    Shelf,
     /// A trial on an experiment's board, with its takes (ADR 0061).
     Trial,
 }
@@ -65,7 +65,7 @@ impl Entity {
         Entity::Fact,
         Entity::Term,
         Entity::Idea,
-        Entity::Block,
+        Entity::Shelf,
         Entity::Trial,
     ];
 
@@ -84,7 +84,7 @@ impl Entity {
             Self::Fact => "fact",
             Self::Term => "term",
             Self::Idea => "idea",
-            Self::Block => "block",
+            Self::Shelf => "shelf",
             Self::Trial => "trial",
         }
     }
@@ -106,7 +106,7 @@ impl Entity {
             "fact" => Ok(Self::Fact),
             "term" => Ok(Self::Term),
             "idea" => Ok(Self::Idea),
-            "block" => Ok(Self::Block),
+            "shelf" => Ok(Self::Shelf),
             "trial" => Ok(Self::Trial),
             other => Err(Error::Internal(format!("unknown trash entity `{other}`"))),
         }
@@ -128,7 +128,7 @@ impl Entity {
             Self::Fact => "canon_fact",
             Self::Term => "term",
             Self::Idea => "cover_idea",
-            Self::Block => "term_block",
+            Self::Shelf => "shelf",
             Self::Trial => "trial",
         }
     }
@@ -327,6 +327,12 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "asset",
                 key: "note_id",
             },
+            // The shelves a phrase stood on: restored, it is back where the
+            // owner put it (ADR 0064).
+            Capture {
+                table: "shelf_note",
+                key: "note_id",
+            },
         ],
         // A fact and the pictures of it: an outfit is recognised by them.
         Entity::Fact => &[
@@ -350,8 +356,7 @@ fn cascade(entity: Entity) -> &'static [Capture] {
             },
         ],
         // A term and the works named as carrying it: a meaning is known by
-        // them, so they come back with it - and the blocks of the bank it
-        // stood in (ADR 0052).
+        // them, so they come back with it.
         Entity::Term => &[
             Capture {
                 table: "term",
@@ -361,21 +366,17 @@ fn cascade(entity: Entity) -> &'static [Capture] {
                 table: "term_work",
                 key: "term_id",
             },
-            Capture {
-                table: "term_block_word",
-                key: "term_id",
-            },
         ],
-        // A block and the words put in it; the words themselves stay in the
-        // bank.
-        Entity::Block => &[
+        // A shelf and what stood on it; the phrases themselves stay among the
+        // phrases (ADR 0064).
+        Entity::Shelf => &[
             Capture {
-                table: "term_block",
+                table: "shelf",
                 key: "id",
             },
             Capture {
-                table: "term_block_word",
-                key: "block_id",
+                table: "shelf_note",
+                key: "shelf_id",
             },
         ],
         // A stretch of a splice is one row and hangs nothing off itself.
@@ -1160,7 +1161,7 @@ fn missing_parent(
     let parents: &[(&str, &str)] = match entity {
         // These stand on their own; the profile they need is checked by the
         // insert itself.
-        Entity::Work | Entity::Collection | Entity::Style | Entity::Term | Entity::Block => {
+        Entity::Work | Entity::Collection | Entity::Style | Entity::Term | Entity::Shelf => {
             return Ok(None);
         }
         Entity::Version
@@ -1313,10 +1314,10 @@ fn describe(
                 describe_row,
             )
             .optional()?,
-        // Named by its name, as the bank shows it.
-        Entity::Block => conn
+        // Named by its name, as the phrases show it.
+        Entity::Shelf => conn
             .query_row(
-                "SELECT name, NULL, profile_id FROM term_block WHERE id = ?1",
+                "SELECT name, NULL, profile_id FROM shelf WHERE id = ?1",
                 params![id],
                 describe_row,
             )
@@ -1389,7 +1390,7 @@ fn entity_label(entity: Entity) -> &'static str {
         Entity::Fact => "fact",
         Entity::Term => "term",
         Entity::Idea => "idea",
-        Entity::Block => "block",
+        Entity::Shelf => "shelf",
         Entity::Trial => "trial",
     }
 }

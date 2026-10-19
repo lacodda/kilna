@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient, type UseQueryResult } from '@tanstack/react-query'
-import { createBlock, deleteBlock, moveBlock, renameBlock } from '@/lib/api/register'
-import type { BlockView } from '@/lib/api/types'
+import { createShelf, deleteShelf, moveShelf, renameShelf } from '@/lib/api/notes'
+import type { ShelfView } from '@/lib/api/types'
+import { ALL_LINES, NO_SHELF, type LineScope } from '@/lib/lines'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
 import { announceDeleted } from '@/lib/trash'
 import { cn } from '@/lib/utils'
-import { ALL_WORDS, NO_BLOCK, type BankScope } from '@/lib/words'
 import { Divider } from '@/components/ui/divider'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Input } from '@/components/ui/input'
@@ -24,77 +24,77 @@ import { Loaded } from '@/components/Loaded'
 import { RowMenu, type RowAction } from '@/components/RowMenu'
 
 interface Props {
-  blocks: UseQueryResult<BlockView[]>
-  scope: BankScope
-  onScope: (scope: BankScope) => void
-  /** How many words the whole bank holds, and how many are in no block. */
+  shelves: UseQueryResult<ShelfView[]>
+  scope: LineScope
+  onScope: (scope: LineScope) => void
+  /** How many phrases the filters leave, and how many of them are on no shelf. */
   counts: { all: number; loose: number }
-  /** A word is being carried: the blocks are where it may land. */
+  /** A phrase is being carried: the shelves are where it may land. */
   carrying: boolean
-  /** The block the carried word is over. */
+  /** The shelf the carried phrase is over. */
   over: string | null
-  onOver: (blockId: string | null) => void
+  onOver: (shelfId: string | null) => void
 }
 
 /**
- * The blocks of the bank, in the owner's order (ADR 0052), under the two
- * parts that are not blocks: every word, and the words in no block yet.
+ * The shelves of phrases, in the owner's order (ADR 0064), under the two
+ * parts that are not shelves: every phrase, and the phrases on no shelf yet.
  *
- * A block is named in the field at the foot and made with Enter, renamed in
+ * A shelf is named in the field at the foot and made with Enter, renamed in
  * place, put elsewhere in the order by its grip - or from its menu, which is
  * the way a keyboard has besides Alt with an arrow - and deleted from the
- * menu into the trash, its words staying in the bank. Each block is also
- * where a word carried from the right lands: it says so under the pointer.
+ * menu into the trash, its phrases staying. Each shelf is also where a phrase
+ * carried from the right lands: it says so under the pointer.
  */
-export function BankBlocks({ blocks, scope, onScope, counts, carrying, over, onOver }: Props) {
+export function Shelves({ shelves, scope, onScope, counts, carrying, over, onOver }: Props) {
   const { t } = useTranslation()
   const client = useQueryClient()
   const [name, setName] = useState('')
-  const list = blocks.data ?? []
+  const list = shelves.data ?? []
 
   const create = useAppMutation({
-    mutationFn: (named: string) => createBlock(named),
-    failure: 'words.blockFailed',
-    refresh: refresh.term,
-    // The block just made is opened: words typed next go into it.
+    mutationFn: (named: string) => createShelf(named),
+    failure: 'shelves.failed',
+    refresh: refresh.note,
+    // The shelf just made is opened: phrases typed next go onto it.
     onSuccess: (made) => {
       setName('')
       onScope(made.id)
     },
   })
   const rename = useAppMutation({
-    mutationFn: ({ id, named }: { id: string; named: string }) => renameBlock(id, named),
-    failure: 'words.blockFailed',
-    refresh: refresh.term,
+    mutationFn: ({ id, named }: { id: string; named: string }) => renameShelf(id, named),
+    failure: 'shelves.failed',
+    refresh: refresh.note,
   })
   const move = useAppMutation({
-    mutationFn: ({ id, index }: { id: string; index: number }) => moveBlock(id, index),
-    failure: 'words.blockFailed',
-    refresh: refresh.term,
+    mutationFn: ({ id, index }: { id: string; index: number }) => moveShelf(id, index),
+    failure: 'shelves.failed',
+    refresh: refresh.note,
   })
   const remove = useAppMutation({
-    mutationFn: (block: BlockView) => deleteBlock(block.id),
-    failure: 'words.blockFailed',
-    onSuccess: (deletionId, block) =>
+    mutationFn: (shelf: ShelfView) => deleteShelf(shelf.id),
+    failure: 'shelves.failed',
+    onSuccess: (deletionId, shelf) =>
       announceDeleted({
         client,
         deletionId,
-        message: t('words.blockDeleted', { name: block.name }),
-        refresh: refresh.term,
+        message: t('shelves.deleted', { name: shelf.name }),
+        refresh: refresh.note,
       }),
   })
 
   // Nothing moves until the grip is let go: one write per drop, not per row
   // crossed on the way.
   const reorder = useReorder({
-    order: list.map((block) => block.id),
+    order: list.map((shelf) => shelf.id),
     onMove: (id, index) => move.mutate({ id, index }),
     disabled: move.isPending,
   })
 
   return (
     <Pane
-      label={t('words.blocks')}
+      label={t('shelves.title')}
       bodyClassName="flex flex-col gap-0.5 p-1.5"
       foot={
         <Input
@@ -104,62 +104,62 @@ export function BankBlocks({ blocks, scope, onScope, counts, carrying, over, onO
             const named = name.trim()
             if (event.key === 'Enter' && named !== '' && !create.isPending) create.mutate(named)
           }}
-          placeholder={t('words.newBlock')}
-          aria-label={t('words.newBlock')}
+          placeholder={t('shelves.new')}
+          aria-label={t('shelves.new')}
           className="flex-1"
         />
       }
     >
-      <RowButton selected={scope === ALL_WORDS} onClick={() => onScope(ALL_WORDS)} end={counts.all}>
-        {t('words.allWords')}
+      <RowButton selected={scope === ALL_LINES} onClick={() => onScope(ALL_LINES)} end={counts.all}>
+        {t('shelves.all')}
       </RowButton>
-      <RowButton selected={scope === NO_BLOCK} onClick={() => onScope(NO_BLOCK)} end={counts.loose}>
-        {t('words.noBlock')}
+      <RowButton selected={scope === NO_SHELF} onClick={() => onScope(NO_SHELF)} end={counts.loose}>
+        {t('shelves.none')}
       </RowButton>
-      <Divider spacing="sm" label={t('words.blocks')} decorative />
+      <Divider spacing="sm" label={t('shelves.title')} decorative />
       <Loaded
-        query={blocks}
+        query={shelves}
         skeleton={<SkeletonList rows={3} />}
         isEmpty={(data) => data.length === 0}
         emptyState={
           <EmptyState
             plain
-            title={t('words.noBlocks')}
-            body={t('words.noBlocksBody')}
+            title={t('shelves.empty')}
+            body={t('shelves.emptyBody')}
             className="p-2"
           />
         }
         plain
       >
         {() => (
-          // The line where a dragged block would land is drawn against this
+          // The line where a dragged shelf would land is drawn against this
           // box, so it holds the list rather than standing inside it.
           <div {...reorder.listProps} className="relative">
             <ul className="flex flex-col gap-0.5">
-              {list.map((block, index) => (
-                <BlockRow
-                  key={block.id}
-                  block={block}
-                  selected={scope === block.id}
-                  over={carrying && over === block.id}
-                  dragging={reorder.dragging === block.id}
-                  rowProps={reorder.rowProps(block.id)}
-                  grip={list.length > 1 ? reorder.gripProps(block.id) : null}
-                  onOpen={() => onScope(block.id)}
+              {list.map((shelf, index) => (
+                <ShelfRow
+                  key={shelf.id}
+                  shelf={shelf}
+                  selected={scope === shelf.id}
+                  over={carrying && over === shelf.id}
+                  dragging={reorder.dragging === shelf.id}
+                  rowProps={reorder.rowProps(shelf.id)}
+                  grip={list.length > 1 ? reorder.gripProps(shelf.id) : null}
+                  onOpen={() => onScope(shelf.id)}
                   onPointerEnter={() => {
-                    if (carrying) onOver(block.id)
+                    if (carrying) onOver(shelf.id)
                   }}
                   onPointerLeave={() => {
-                    if (over === block.id) onOver(null)
+                    if (over === shelf.id) onOver(null)
                   }}
-                  onRename={(named) => rename.mutate({ id: block.id, named })}
+                  onRename={(named) => rename.mutate({ id: shelf.id, named })}
                   actions={[
                     ...(index > 0
                       ? [
                           {
                             key: 'up',
-                            label: t('words.moveUp'),
-                            onSelect: () => move.mutate({ id: block.id, index: index - 1 }),
+                            label: t('shelves.moveUp'),
+                            onSelect: () => move.mutate({ id: shelf.id, index: index - 1 }),
                           },
                         ]
                       : []),
@@ -167,15 +167,15 @@ export function BankBlocks({ blocks, scope, onScope, counts, carrying, over, onO
                       ? [
                           {
                             key: 'down',
-                            label: t('words.moveDown'),
-                            onSelect: () => move.mutate({ id: block.id, index: index + 1 }),
+                            label: t('shelves.moveDown'),
+                            onSelect: () => move.mutate({ id: shelf.id, index: index + 1 }),
                           },
                         ]
                       : []),
                     {
                       key: 'delete',
-                      label: t('words.deleteBlock'),
-                      onSelect: () => remove.mutate(block),
+                      label: t('shelves.delete'),
+                      onSelect: () => remove.mutate(shelf),
                       danger: true,
                     },
                   ]}
@@ -191,11 +191,11 @@ export function BankBlocks({ blocks, scope, onScope, counts, carrying, over, onO
 }
 
 interface RowProps {
-  block: BlockView
+  shelf: ShelfView
   selected: boolean
-  /** A carried word is over it, and would land here. */
+  /** A carried phrase is over it, and would land here. */
   over: boolean
-  /** It is the block being put elsewhere in the order. */
+  /** It is the shelf being put elsewhere in the order. */
   dragging: boolean
   rowProps: ReturnType<Reorder<string>['rowProps']>
   /** The grip's handlers, or none when there is nowhere to move to. */
@@ -208,9 +208,9 @@ interface RowProps {
   actions: RowAction[]
 }
 
-/** One block: its grip, its name and how many words it holds, its menu. */
-function BlockRow({
-  block,
+/** One shelf: its grip, its name and how many phrases it holds, its menu. */
+function ShelfRow({
+  shelf,
   selected,
   over,
   dragging,
@@ -224,21 +224,21 @@ function BlockRow({
 }: RowProps) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
-  const [text, setText] = useState(block.name)
+  const [text, setText] = useState(shelf.name)
 
   const save = () => {
     setEditing(false)
     const next = text.trim()
-    if (next !== '' && next !== block.name) onRename(next)
-    else setText(block.name)
+    if (next !== '' && next !== shelf.name) onRename(next)
+    else setText(shelf.name)
   }
 
   return (
     <li
       {...rowProps}
-      // Where a carried word is let go is read off the element under the
-      // pointer, by this attribute (`WordBank`).
-      data-block-drop={block.id}
+      // Where a carried phrase is let go is read off the element under the
+      // pointer, by this attribute (`LineBank`).
+      data-shelf-drop={shelf.id}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
       className={cn(
@@ -250,7 +250,7 @@ function BlockRow({
       {grip === null ? (
         <span aria-hidden className="w-3.5 shrink-0" />
       ) : (
-        <ReorderGrip {...grip} title={t('words.moveBlock')} />
+        <ReorderGrip {...grip} title={t('shelves.move')} />
       )}
       {editing ? (
         <Input
@@ -261,11 +261,11 @@ function BlockRow({
           onKeyDown={(event) => {
             if (event.key === 'Enter') event.currentTarget.blur()
             if (event.key === 'Escape') {
-              setText(block.name)
+              setText(shelf.name)
               setEditing(false)
             }
           }}
-          aria-label={t('words.blockName')}
+          aria-label={t('shelves.name')}
           className="min-w-0 flex-1"
         />
       ) : (
@@ -274,16 +274,16 @@ function BlockRow({
           onClick={onOpen}
           // The name is renamed where it stands: a double-click, or the menu.
           onDoubleClick={() => setEditing(true)}
-          end={block.term_ids.length}
+          end={shelf.note_ids.length}
           className="min-w-0 flex-1"
         >
-          {block.name}
+          {shelf.name}
         </RowButton>
       )}
       <RowMenu
-        label={t('words.blockMenu')}
+        label={t('shelves.menu')}
         actions={[
-          { key: 'rename', label: t('words.rename'), onSelect: () => setEditing(true) },
+          { key: 'rename', label: t('shelves.rename'), onSelect: () => setEditing(true) },
           ...actions,
         ]}
       />

@@ -21,6 +21,6 @@ terms: number,
  */
 named: number, 
 /**
- * Ideas and phrases from the bank (ADR 0045).
+ * Phrases and notes from the bank of ideas (ADR 0045, ADR 0064).
  */
 notes: number, };

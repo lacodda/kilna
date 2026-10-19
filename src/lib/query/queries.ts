@@ -34,10 +34,9 @@ import { canExportPackage, logPath, workspacePath } from '@/lib/api/data'
 import { dismissedFindings, listFocusNotes } from '@/lib/api/focus'
 import { listJournal, unreadJournal } from '@/lib/api/journal'
 import { listLinks, listPublications, resolveLinks } from '@/lib/api/links'
-import { listNotes, listTags } from '@/lib/api/notes'
+import { listLines, listNotes, listShelves, listTags } from '@/lib/api/notes'
 import {
   checkText,
-  listBlocks,
   listTerms,
   listTermTopics,
   previewTerm,
@@ -257,7 +256,9 @@ export const queries = {
       // A text is typed past in a moment and never asked about again.
       gcTime: 30_000,
     }),
-  blocks: () => queryOptions({ queryKey: keys.blocks, queryFn: listBlocks }),
+  shelves: () => queryOptions({ queryKey: keys.shelves, queryFn: listShelves }),
+  lines: (filter: NoteFilter) =>
+    queryOptions({ queryKey: keys.lines(filter), queryFn: () => listLines(filter) }),
   wordsFromTexts: () =>
     queryOptions({ queryKey: keys.wordsFromTexts, queryFn: wordsFromTexts, staleTime: 0 }),
   repeatMarks: (today: string) =>

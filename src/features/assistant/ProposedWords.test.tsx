@@ -21,8 +21,8 @@ const PACKAGE: WordsPackage = {
   words: [
     {
       word: 'пульсар',
-      bank: true,
-      block: 'space',
+      phrase: true,
+      shelf: 'space',
       sung: [{ written: 'пульсар', sung: 'пульсАр' }],
     },
     {
@@ -32,7 +32,7 @@ const PACKAGE: WordsPackage = {
       works: [{ id: IDS.song, title: 'Paper Lanterns' }],
       note: 'the lamp unlit / the keeper gone',
     },
-    { word: 'маяк', bank: true },
+    { word: 'маяк', phrase: true },
   ],
   dropped: [{ key: 'refusal.words.noLetters', params: { word: '—' } }],
 }
@@ -100,8 +100,8 @@ describe('words proposed in a chat', () => {
     await settled(client)
     const card = take.closest('section')!
     expect(within(card).getByText(en.assistant.proposedWords)).toBeInTheDocument()
-    // The block named is not in the bank yet: keeping it makes one.
-    expect(within(card).getByText(/a new block “space”/)).toBeInTheDocument()
+    // The shelf named is not there yet: keeping it makes one.
+    expect(within(card).getByText(/a new shelf “space”/)).toBeInTheDocument()
     expect(within(card).getByText('пульсАр')).toBeInTheDocument()
     expect(
       within(card).getByText('to the register: Limited · works: “Paper Lanterns”'),
@@ -138,7 +138,7 @@ describe('words proposed in a chat', () => {
     await settled(client)
 
     expect(await screen.findByText('2 words kept.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: en.words.openBank })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: en.words.openPhrases })).toBeInTheDocument()
     expect(screen.queryByRole('checkbox')).toBeNull()
   })
 })

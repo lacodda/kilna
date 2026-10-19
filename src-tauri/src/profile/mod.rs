@@ -266,6 +266,10 @@ const UPGRADE: &[Step] = &[
         carry: keyed_vocabulary,
     },
     Step {
+        name: "note kinds the line no longer ships",
+        carry: retired_note_kinds,
+    },
+    Step {
         name: "the stops of the stage dial",
         carry: stages,
     },
@@ -670,6 +674,22 @@ fn keyed_vocabulary(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool
         &kind.key
     });
     changed
+}
+
+/// Note kinds the line once shipped and no longer does. Their notes became
+/// others in the migration of the same version - an idea is a note tagged
+/// `idea` since v0.98 (ADR 0064) - so a kind left in a stored copy would be a
+/// chip over nothing, and a way to make more of what the line retired.
+const RETIRED_NOTE_KINDS: [&str; 1] = ["idea"];
+
+/// A retired note kind leaves the stored copy, unless the shipped profile
+/// names it again.
+fn retired_note_kinds(config: &mut ProfileConfig, shipped: &ProfileConfig) -> bool {
+    let before = config.note_kinds.len();
+    config.note_kinds.retain(|kind| {
+        !RETIRED_NOTE_KINDS.contains(&kind.key.as_str()) || shipped.note_kind(&kind.key).is_some()
+    });
+    config.note_kinds.len() != before
 }
 
 /// The stops of the stage dial (0.72): a workspace that predates them gains
@@ -2539,6 +2559,48 @@ mod tests {
             Some(config::MetaFieldType::Multiline),
             "and arrives with its own type, not as plain text"
         );
+    }
+
+    /// A workspace made before v0.98 holds the idea kind; the two shelves
+    /// retired it (ADR 0064), so the upgrade takes it out of the stored copy
+    /// and leaves the rest - phrase, then note - where they stood.
+    #[test]
+    fn seed_takes_a_retired_note_kind_out_of_an_existing_profile() {
+        let conn = db::open_in_memory().unwrap();
+        seed(&conn).unwrap();
+        let (id, _): (String, String) = conn
+            .query_row(
+                "SELECT id, config FROM profile WHERE key = 'music'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut config = config_for(&conn, &id).unwrap();
+        let mut idea = config.note_kind("note").unwrap().clone();
+        idea.key = "idea".into();
+        idea.material = true;
+        let at = config
+            .note_kinds
+            .iter()
+            .position(|kind| kind.key == "phrase")
+            .unwrap();
+        config.note_kinds.insert(at, idea);
+        conn.execute(
+            "UPDATE profile SET config = ?2 WHERE id = ?1",
+            params![id, serde_json::to_string(&config).unwrap()],
+        )
+        .unwrap();
+
+        seed(&conn).unwrap();
+
+        let kinds: Vec<String> = config_for(&conn, &id)
+            .unwrap()
+            .note_kinds
+            .into_iter()
+            .filter(|kind| !kind.is_card())
+            .map(|kind| kind.key)
+            .collect();
+        assert_eq!(kinds, ["phrase", "note"]);
     }
 
     // Caught on the owner's own workspace during the live run of v0.72: every

@@ -970,15 +970,6 @@
         ]
       },
       {
-        "icon": "lightbulb",
-        "key": "idea",
-        "label": {
-          "en": "Idea",
-          "ru": "Идея"
-        },
-        "material": true
-      },
-      {
         "icon": "quote",
         "key": "phrase",
         "label": {

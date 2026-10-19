@@ -307,9 +307,9 @@ pub fn is_known_placeholder(name: &str) -> bool {
             | "trials"
     ) || name.strip_prefix("role:").is_some_and(|r| !r.is_empty())
         || name.strip_prefix("donor:").is_some_and(|r| !r.is_empty())
-        || name == "words"
+        || name == "lines"
         || name
-            .strip_prefix("words:")
+            .strip_prefix("lines:")
             .is_some_and(|b| !b.trim().is_empty())
         || canon_lens(name).is_some()
 }
@@ -479,14 +479,14 @@ pub fn for_work(
             crate::register::guard::released_sheet(conn, &work.profile_id, &work.id)?,
         ));
     }
-    // The owner's words for songs to come (ADR 0052): the bank, or one block
-    // of it by name, each word with how it is sung.
+    // The lines the owner keeps (ADR 0064): the work's own, or one shelf's by
+    // name, each with whose words it is and how it is sung.
     for name in &wanted {
-        if name == "words" || name.starts_with("words:") {
-            let block = name.strip_prefix("words:").map(str::trim);
+        if name == "lines" || name.starts_with("lines:") {
+            let shelf = name.strip_prefix("lines:").map(str::trim);
             values.push((
                 name.as_str(),
-                crate::register::sheet::words(conn, &work.profile_id, block)?,
+                crate::lines::sheet(conn, &work.profile_id, &work.id, shelf)?,
             ));
         }
     }

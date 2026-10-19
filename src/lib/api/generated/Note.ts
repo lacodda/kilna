@@ -3,18 +3,24 @@ import type { Layer } from "./Layer";
 import type { NoteState } from "./NoteState";
 
 /**
- * Ideas, phrases, lore, reference — one type distinguished by `kind` and tags
+ * Phrases, notes, lore, reference — one type distinguished by `kind` and tags
  * rather than by separate subsystems. The predecessor built those subsystems
  * and they went unused; see the vision notes.
  *
- * A note of a kind the profile marks `material` - an idea, a phrase - is
- * spent by works, and says so in its `state` (ADR 0045).
+ * A note of a kind the profile marks `material` - a phrase - is spent by
+ * works, and says so in its `state` (ADR 0045). Since v0.98 the material for
+ * works to come is two shelves: phrases and notes (ADR 0064).
  *
  * A note of a kind the profile names with sections is a card of the canon
  * (ADR 0043): the last four fields are its own, and on a plain note they
  * stand at their defaults.
  */
-export type Note = { id: string, profile_id: string, work_id: string | null, kind: string, title: string | null, body: string, tags: Array<string>, created_at: string, updated_at: string, 
+export type Note = { id: string, profile_id: string, work_id: string | null, kind: string, title: string | null, body: string, 
+/**
+ * Whose words a phrase is: the author of a quote, the film it is from.
+ * None for words of the owner's own (ADR 0064).
+ */
+attribution: string | null, tags: Array<string>, created_at: string, updated_at: string, 
 /**
  * Who may know the card exists: a task that reads the public layer
  * does not see a card of the internal one at all.

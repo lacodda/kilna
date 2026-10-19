@@ -25,47 +25,33 @@ import { Frame, ListDetail, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
 import { LineBank } from '@/features/notes/LineBank'
 import { NoteDetail } from '@/features/notes/NoteDetail'
-import { WordBank } from '@/features/words/WordBank'
 
-/*
- * What a kind chip is called in its group. "All" is a chip of its own, and the
- * kinds carry a prefix, so a craft that names a kind "all" cannot be taken for
- * it.
- */
-const ALL_KINDS = 'all'
-/** The chip of the bank of words: a view of its own, not a kind of note. */
-const WORDS = 'words'
-const chipOf = (kind: string | undefined) => (kind === undefined ? ALL_KINDS : `kind:${kind}`)
-const kindOf = (chip: string | undefined) =>
-  chip === undefined || chip === ALL_KINDS || chip === WORDS
-    ? undefined
-    : chip.slice('kind:'.length)
+/** Where the kind on show is kept in the address: `/notes?kind=phrase`. */
+const KIND = 'kind'
 
 /** The state filter's "every state", beside the four states. */
 const ANY_STATE = 'any'
 
 /**
- * Every note of the profile in one place: the list on the left with its own
- * row of filters, the open note on the right, its tags along the bottom.
+ * The material for works to come, on two shelves (ADR 0064): the phrases - a
+ * word, a line, a quote, whatever turns up in a head as one line - and the
+ * notes, a thought from a seed to a written page. A chip each, one kind on
+ * show at a time.
  *
  * Until v0.76 a note could be written only from a work's card and read only
- * there, which is why the notes that were not about a work — an idea, a
- * piece of lore, a reference — had nowhere to live, and why editing one was
- * impossible anywhere: `update_note` had no caller. This is their home; the
- * card's tab stays as the view from one work.
+ * there, which is why the notes that were not about a work had nowhere to
+ * live, and why editing one was impossible anywhere: `update_note` had no
+ * caller. This is their home; the card's tab stays as the view from one work.
  *
- * The open note is part of the address, so the back button walks between
- * notes and a search hit can land on one directly.
+ * Until v0.98 there were four chips - notes, ideas, phrases and a bank of
+ * words - and an idea differed from a note by one flag, a word from a phrase
+ * by being a row of another table. A person could not tell them apart, so
+ * they are two.
  *
- * A kind of one line - a phrase - is not a page among the others: its chip
- * opens the bank of lines instead, a row each, and "All" leaves it out, so a
- * thousand phrases never bury the notes (ADR 0045). A kind that is material -
- * an idea, a phrase - is read by its state, fresh first.
- *
- * The bank of words has a chip of its own beside the kinds, though a word is
- * no note: it is a word of the record (ADR 0052), kept here because this is
- * where the material for songs to come is. It is in the address (`?words`),
- * the way the canon's timeline is, so a proposal of words can open on it.
+ * The kind on show and the open note are part of the address, so the back
+ * button walks between them and a proposal or a search hit can land on one
+ * directly. A kind of one line - a phrase - is a row each, with its shelves
+ * (ADR 0045); a kind that is material is read by its state, fresh first.
  */
 export function NotesView() {
   const { t } = useTranslation()
@@ -73,12 +59,20 @@ export function NotesView() {
   const { config } = useProfile()
   const { noteId } = useParams()
   const [params] = useSearchParams()
-  const words = params.has(WORDS)
   // A card of the canon is a note too, but it lives on the Canon screen
   // (ADR 0043): this list is the plain notes, and so are its kinds.
   const kinds = plainNoteKindsOf(config)
+  // Every note of the profile: the chips' counts, and the kind of a note the
+  // address opens without naming one.
+  const everything = useQuery(queries.notesMatching({ canon: false }))
+  const asked =
+    params.get(KIND) ?? (everything.data ?? []).find((note) => note.id === noteId)?.kind ?? null
+  // The kind on show: the one the address names, or the craft's first.
+  const kind = kinds.find((one) => one.key === asked)?.key ?? kinds[0]?.key
+  const setKind = (next: string) => {
+    void navigate(`/notes?${new URLSearchParams({ [KIND]: next }).toString()}`)
+  }
 
-  const [kind, setKind] = useState<string | undefined>(undefined)
   const [state, setState] = useState<NoteState | typeof ANY_STATE>('fresh')
   const [tag, setTag] = useState('')
   const [text, setText] = useState('')
@@ -94,28 +88,21 @@ export function NotesView() {
     tag: tag === '' ? undefined : tag,
     search: query === '' ? undefined : query,
     canon: false,
-    // "All" is the pages: the lines have a bank of their own.
-    line: kind === undefined ? false : undefined,
     state: material && state !== ANY_STATE ? state : undefined,
   }
-  const notes = useQuery({ ...queries.notesMatching(filter), enabled: !line && !words })
+  const notes = useQuery({ ...queries.notesMatching(filter), enabled: !line })
   // Every tag in use, most used first: the filter's choices, and what the
   // tag field of the open note completes from.
   const tags = useQuery(queries.tags())
-  // Counts per kind come from the unfiltered list, so a chip says how many
-  // there are of that kind, not how many survived the other filters.
-  const everything = useQuery(queries.notesMatching({ canon: false }))
   const counts = useMemo(() => {
     const map = new Map<string, number>()
     for (const note of everything.data ?? []) map.set(note.kind, (map.get(note.kind) ?? 0) + 1)
     return map
   }, [everything.data])
-  // The bank's chip counts the words in it, as a kind's counts its notes.
-  const terms = useQuery(queries.terms())
-  const banked = (terms.data ?? []).filter((term) => term.bank !== null).length
 
   const open = (id: string | null) => {
-    void navigate(id === null ? '/notes' : `/notes/${id}`)
+    const search = kind === undefined ? '' : `?${KIND}=${encodeURIComponent(kind)}`
+    void navigate(id === null ? `/notes${search}` : `/notes/${id}${search}`)
   }
 
   const add = useAppMutation({
@@ -124,7 +111,7 @@ export function NotesView() {
         body: '',
         // Made in the kind being looked at, so it does not vanish from the
         // list it was made in.
-        kind: kind ?? kinds[0]?.key,
+        kind,
         tags: tag === '' ? [] : [tag],
       }),
     failure: 'toast.noteSaveFailed',
@@ -139,47 +126,31 @@ export function NotesView() {
   const selected: Note | undefined =
     rows.find((note) => note.id === noteId) ??
     (everything.data ?? []).find((note) => note.id === noteId)
-  // "All" counts what "All" shows: the pages, not the lines.
-  const total = (everything.data ?? []).filter((note) => !isLine(config, note.kind)).length
-  const filtered =
-    kind !== undefined || tag !== '' || query !== '' || (material && state !== ANY_STATE)
+  const total = kind === undefined ? 0 : (counts.get(kind) ?? 0)
+  const filtered = tag !== '' || query !== '' || (material && state !== ANY_STATE)
 
   return (
     <Frame
       head={
         <>
-          {/* The kinds as chips, the way the style dictionary narrows to a type:
-              "every character" is one click, and the chip that is on turns off -
-              letting go of one leaves the group empty, which is every kind.
-              A craft that names no kinds still has "All" and the bank of
-              words to choose between. */}
+          {/* The kinds as chips, one always on: the two shelves are two
+              screens of one place, not a filter that can be let go of. */}
           <ChipGroup
             aria-label={t('notes.kind')}
-            value={[words ? WORDS : chipOf(kind)]}
+            value={kind === undefined ? [] : [kind]}
             onValueChange={(next) => {
-              if (next[0] === WORDS) {
-                void navigate(`/notes?${WORDS}`)
-                return
-              }
-              if (words) void navigate('/notes')
-              setKind(kindOf(next[0]))
+              if (next[0] !== undefined) setKind(next[0])
             }}
           >
-            <Chip value={chipOf(undefined)} count={total}>
-              {t('notes.allKinds')}
-            </Chip>
             {kinds.map((one) => (
-              <Chip key={one.key} value={chipOf(one.key)} count={counts.get(one.key) ?? 0}>
+              <Chip key={one.key} value={one.key} count={counts.get(one.key) ?? 0}>
                 {labelOf(kinds, one.key)}
               </Chip>
             ))}
-            <Chip value={WORDS} count={banked}>
-              {t('words.view')}
-            </Chip>
           </ChipGroup>
           {/* Where the material stands: fresh first, because what is still
               there to use is what a bank is opened for. */}
-          {material && !words && (
+          {material && (
             <Select
               value={state}
               onChange={(next) =>
@@ -193,16 +164,14 @@ export function NotesView() {
               className="w-44"
             />
           )}
-          {!words && (
-            <Input
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              placeholder={t('notes.search')}
-              aria-label={t('notes.search')}
-              className="w-56"
-            />
-          )}
-          {!words && (tags.data ?? []).length > 0 && (
+          <Input
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder={t('notes.search')}
+            aria-label={t('notes.search')}
+            className="w-56"
+          />
+          {(tags.data ?? []).length > 0 && (
             <Select
               value={tag}
               onChange={setTag}
@@ -215,7 +184,7 @@ export function NotesView() {
               className="w-44"
             />
           )}
-          {!line && !words && (
+          {!line && kind !== undefined && (
             <Button
               variant="primary"
               className="ml-auto"
@@ -229,10 +198,8 @@ export function NotesView() {
         </>
       }
     >
-      {words ? (
-        <WordBank />
-      ) : line && kind !== undefined ? (
-        <LineBank kind={kind} filter={filter} tag={tag} filtered={filtered} />
+      {line && kind !== undefined ? (
+        <LineBank kind={kind} filter={filter} tag={tag} filtered={filtered} total={total} />
       ) : (
         <ListDetail
           list={

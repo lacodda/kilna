@@ -49,7 +49,7 @@ const ENTITY_KEYS: Record<DeletedEntity, string> = {
   fact: 'trash.entity.fact',
   term: 'trash.entity.term',
   idea: 'trash.entity.idea',
-  block: 'trash.entity.block',
+  shelf: 'trash.entity.shelf',
   trial: 'trash.entity.trial',
 }
 

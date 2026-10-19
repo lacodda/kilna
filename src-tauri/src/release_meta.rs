@@ -581,7 +581,7 @@ mod tests {
                     written: "Марсель".into(),
                     sung: "МарсЭль".into(),
                 }],
-                ..crate::register::NewTerm::banked("Марсель")
+                ..crate::register::NewTerm::unspent("Марсель")
             },
         )
         .unwrap();

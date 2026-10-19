@@ -13,12 +13,12 @@
 //! [`check`]; what the assistant is handed is [`sheet`]; the works whose words
 //! stand closest to a text are [`neighbours`].
 //!
-//! A term is also a word the owner keeps (v0.90, ADR 0052): one record holds
-//! a word of the bank, a term of the register and how the word is sung, each
-//! a facet that may be absent - [`Term::strictness`], [`Term::bank`],
-//! [`Term::sung`]. The bank sorts its words into [`block`]s.
+//! A term is also how a word is sung (v0.90, ADR 0052): one record holds a
+//! term of the register and the way the word is sung, each a facet that may
+//! be absent - [`Term::strictness`], [`Term::sung`]. The words the owner keeps
+//! for songs to come were a third facet until v0.98; they are phrases now,
+//! notes of their own (ADR 0064).
 
-pub mod block;
 pub mod check;
 pub mod guard;
 pub mod matching;
@@ -152,39 +152,6 @@ impl TermKind {
     }
 }
 
-/// Where a word stands in the bank of words the owner keeps for songs to
-/// come. Where it was sung is not here: it is found in the texts, as the
-/// register's counts are (ADR 0044).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ts_rs::TS)]
-#[serde(rename_all = "camelCase")]
-pub enum Bank {
-    /// Kept, and waiting for a song.
-    Fresh,
-    /// Set aside: not now, not thrown away.
-    Parked,
-    /// Given up on, and kept so it is not collected again.
-    Dropped,
-}
-
-impl Bank {
-    pub const ALL: [Bank; 3] = [Bank::Fresh, Bank::Parked, Bank::Dropped];
-
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Bank::Fresh => "fresh",
-            Bank::Parked => "parked",
-            Bank::Dropped => "dropped",
-        }
-    }
-
-    fn parse(raw: &str) -> Result<Self> {
-        Self::ALL
-            .into_iter()
-            .find(|one| one.as_str() == raw)
-            .ok_or_else(|| Error::Internal(format!("a stored bank state reads `{raw}`")))
-    }
-}
-
 /// How one written form of a word is sung, where that is not how it is
 /// written: "Марсель" sung "МарсЭль", "пульсар" sung "пульсАр". The capital
 /// vowel is the stress, the way the owner writes it for the singer; a
@@ -218,14 +185,14 @@ pub fn clean_sung(sung: Vec<Sung>) -> Vec<Sung> {
 
 /// The strictness a term is created with when the caller says nothing: a
 /// limit, as the register always made it. Said apart from "not spent" - an
-/// explicit `null` - so the operations logged before the bank existed read
-/// back as what they meant.
+/// explicit `null` - so the operations logged before a word could be kept
+/// unspent read back as what they meant.
 fn a_limit() -> Option<Strictness> {
     Some(Strictness::Limit)
 }
 
-/// One word the owner keeps: a term of the register, a word of the bank, a
-/// way of singing - or several of those at once.
+/// One word of the record: a term of the register, a way of singing - or
+/// both at once.
 #[derive(Debug, Clone, PartialEq, Serialize, ts_rs::TS)]
 pub struct Term {
     pub id: String,
@@ -239,8 +206,6 @@ pub struct Term {
     pub kind: TermKind,
     /// In the register, and how strictly; none for a word that is not spent.
     pub strictness: Option<Strictness>,
-    /// In the bank, and where it stands there; none for a word not collected.
-    pub bank: Option<Bank>,
     /// How its forms are sung where that is not how they are written.
     pub sung: Vec<Sung>,
     /// The register's own grouping: "the kitchen", "physics and space".
@@ -261,13 +226,10 @@ pub struct NewTerm {
     /// Guessed from the words when absent: see [`TermKind::guess`].
     #[serde(default)]
     pub kind: Option<TermKind>,
-    /// A limit when absent; `null` for a word that is not spent - a word of
-    /// the bank, a way of singing.
+    /// A limit when absent; `null` for a word that is not spent - only a way
+    /// of singing.
     #[serde(default = "a_limit")]
     pub strictness: Option<Strictness>,
-    /// In the bank, and where; absent is not collected.
-    #[serde(default)]
-    pub bank: Option<Bank>,
     #[serde(default)]
     #[ts(optional = nullable)]
     pub sung: Vec<Sung>,
@@ -284,7 +246,6 @@ impl Default for NewTerm {
             forms: Vec::new(),
             kind: None,
             strictness: a_limit(),
-            bank: None,
             sung: Vec::new(),
             topic: None,
             note: None,
@@ -293,12 +254,11 @@ impl Default for NewTerm {
 }
 
 impl NewTerm {
-    /// A word for the bank: fresh, not spent.
-    pub fn banked(word: &str) -> Self {
+    /// A word that is not spent: one the record keeps for how it is sung.
+    pub fn unspent(word: &str) -> Self {
         Self {
             word: word.to_owned(),
             strictness: None,
-            bank: Some(Bank::Fresh),
             ..Self::default()
         }
     }
@@ -318,12 +278,6 @@ pub struct TermPatch {
         skip_serializing_if = "Option::is_none"
     )]
     pub strictness: Option<Option<Strictness>>,
-    #[serde(
-        default,
-        deserialize_with = "crate::reversal::nullable",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub bank: Option<Option<Bank>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sung: Option<Vec<Sung>>,
     #[serde(
@@ -363,7 +317,7 @@ pub struct TermUse {
     pub named: bool,
 }
 
-const SELECT_TERM: &str = "SELECT id, profile_id, word, forms, kind, strictness, bank, sung, \
+const SELECT_TERM: &str = "SELECT id, profile_id, word, forms, kind, strictness, sung, \
      topic, note, created_at, updated_at FROM term";
 
 /// The words a term's forms are kept as: trimmed, the empty ones and the term's
@@ -412,9 +366,9 @@ pub fn create_minted(
     let sung = clean_sung(new.sung);
 
     conn.execute(
-        "INSERT INTO term (id, profile_id, word, forms, kind, strictness, bank, sung, topic, note,
+        "INSERT INTO term (id, profile_id, word, forms, kind, strictness, sung, topic, note,
                            created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)",
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)",
         params![
             minted.id(),
             profile_id,
@@ -422,7 +376,6 @@ pub fn create_minted(
             serde_json::to_string(&forms)?,
             kind.as_str(),
             new.strictness.map(Strictness::as_str),
-            new.bank.map(Bank::as_str),
             serde_json::to_string(&sung)?,
             blank_is_none(new.topic),
             blank_is_none(new.note),
@@ -540,9 +493,6 @@ pub fn update_at(conn: &Connection, id: &str, patch: TermPatch, at: &str) -> Res
     }
     if let Some(strictness) = patch.strictness {
         set("strictness", Box::new(strictness.map(Strictness::as_str)));
-    }
-    if let Some(bank) = patch.bank {
-        set("bank", Box::new(bank.map(Bank::as_str)));
     }
     if let Some(sung) = patch.sung {
         set("sung", Box::new(serde_json::to_string(&clean_sung(sung))?));
@@ -699,7 +649,6 @@ pub fn preview(conn: &Connection, profile_id: &str, word: &str, forms: &[String]
         forms: forms.to_vec(),
         kind: TermKind::guess(word),
         strictness: Some(Strictness::default()),
-        bank: None,
         sung: Vec::new(),
         topic: None,
         note: None,
@@ -724,7 +673,6 @@ struct RawTerm {
     forms: String,
     kind: String,
     strictness: Option<String>,
-    bank: Option<String>,
     sung: String,
     topic: Option<String>,
     note: Option<String>,
@@ -740,12 +688,11 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawTerm> {
         forms: row.get(3)?,
         kind: row.get(4)?,
         strictness: row.get(5)?,
-        bank: row.get(6)?,
-        sung: row.get(7)?,
-        topic: row.get(8)?,
-        note: row.get(9)?,
-        created_at: row.get(10)?,
-        updated_at: row.get(11)?,
+        sung: row.get(6)?,
+        topic: row.get(7)?,
+        note: row.get(8)?,
+        created_at: row.get(9)?,
+        updated_at: row.get(10)?,
     })
 }
 
@@ -759,7 +706,6 @@ impl RawTerm {
                 .as_deref()
                 .map(Strictness::parse)
                 .transpose()?,
-            bank: self.bank.as_deref().map(Bank::parse).transpose()?,
             sung: serde_json::from_str(&self.sung)?,
             id: self.id,
             profile_id: self.profile_id,
@@ -834,10 +780,10 @@ pub(crate) mod tests {
         assert_eq!(one.strictness, Some(Strictness::Limit));
     }
 
-    /// One word, one record (ADR 0052): a word of the bank is not spent,
-    /// and its ways of singing are kept once per written form.
+    /// One word, one record (ADR 0052): a word kept for how it is sung is not
+    /// spent, and its ways of singing are kept once per written form.
     #[test]
-    fn a_word_of_the_bank_is_not_spent_and_keeps_how_it_is_sung() {
+    fn a_word_kept_for_its_singing_is_not_spent_and_keeps_how_it_is_sung() {
         let (conn, profile_id) = fixtures::workspace();
         let made = create(
             &conn,
@@ -857,13 +803,12 @@ pub(crate) mod tests {
                         sung: "Марселя".into(),
                     },
                 ],
-                ..NewTerm::banked("Марсель")
+                ..NewTerm::unspent("Марсель")
             },
         )
         .unwrap();
 
         assert_eq!(made.strictness, None);
-        assert_eq!(made.bank, Some(Bank::Fresh));
         assert_eq!(
             made.sung,
             vec![Sung {
@@ -879,28 +824,24 @@ pub(crate) mod tests {
             &made.id,
             TermPatch {
                 strictness: Some(Some(Strictness::Rare)),
-                bank: Some(None),
                 ..TermPatch::default()
             },
         )
         .unwrap();
-        assert_eq!(
-            (spent_now.strictness, spent_now.bank),
-            (Some(Strictness::Rare), None)
-        );
+        assert_eq!(spent_now.strictness, Some(Strictness::Rare));
         assert_eq!(spent(&conn, &profile_id).unwrap().len(), 1);
     }
 
-    /// An operation logged before the bank existed said nothing about
+    /// An operation logged before a word could be unspent said nothing about
     /// strictness and meant a limit; it still reads that way.
     #[test]
     fn a_new_term_without_a_word_on_strictness_is_a_limit() {
         let old: NewTerm = serde_json::from_value(serde_json::json!({ "word": "окно" })).unwrap();
         assert_eq!(old.strictness, Some(Strictness::Limit));
-        let banked: NewTerm =
+        let unspent: NewTerm =
             serde_json::from_value(serde_json::json!({ "word": "окно", "strictness": null }))
                 .unwrap();
-        assert_eq!(banked.strictness, None);
+        assert_eq!(unspent.strictness, None);
     }
 
     #[test]

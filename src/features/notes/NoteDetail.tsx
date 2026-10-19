@@ -176,13 +176,13 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
       </header>
 
       {/* What the note is about, when it is about a work: one click to the
-          card, one to let go. Attaching is how an idea written on its own
-          joins the song it turned out to be for. */}
+          card, one to let go. Attaching is how a seed written on its own
+          joins the song it turned out to be for (ADR 0064). */}
       <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-3 py-1.5 text-xs text-dim">
         <Link2 aria-hidden className="size-3.5 text-faint" />
         {note.work_id === null ? (
           <Button variant="link" onClick={() => setAttaching(true)}>
-            {material ? t('notes.toWork') : t('notes.attach')}
+            {t('notes.attach')}
           </Button>
         ) : (
           <>
@@ -199,15 +199,9 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
               variant="icon"
               title={t('notes.detach')}
               aria-label={t('notes.detach')}
-              // Let go of the work it was spent in, and it is there to use
-              // again; a note set aside stays aside.
-              onClick={() =>
-                patch.mutate(
-                  material && note.state === 'used'
-                    ? { work_id: null, state: 'fresh' }
-                    : { work_id: null },
-                )
-              }
+              // Let go of the work, and nothing else: where a note stands is
+              // its own word, said apart.
+              onClick={() => patch.mutate({ work_id: null })}
             >
               <X aria-hidden />
             </Button>
@@ -308,13 +302,9 @@ export function NoteDetail({ note, tags, startEditing, onTag, onGone }: Props) {
       <PickWorkDialog
         open={attaching}
         onOpenChange={setAttaching}
-        title={material ? t('notes.toWorkTitle') : t('notes.attachTitle')}
-        // One gesture for material: tied to the work and marked used.
-        onPick={(picked) =>
-          patch.mutate(
-            material ? { work_id: picked.work_id, state: 'used' } : { work_id: picked.work_id },
-          )
-        }
+        title={t('notes.attachTitle')}
+        // Attached for the work, not yet spent by it.
+        onPick={(picked) => patch.mutate({ work_id: picked.work_id })}
       />
     </section>
   )

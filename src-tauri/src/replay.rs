@@ -266,12 +266,8 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             let id = required(params, "id")?;
             let promotion = from_params(params, "promotion")?;
             let at = required(params, "at")?;
-            let ids = note::PromotionIds {
-                work: Minted::of(required(params, "workId")?, at.clone()),
-                version: Minted::of(required(params, "versionId")?, at.clone()),
-                deletion: Minted::of(required(params, "entryId")?, at),
-            };
-            note::promote(conn, &profile_id, &id, promotion, &ids)?;
+            let work = Minted::of(required(params, "workId")?, at);
+            note::promote(conn, &profile_id, &id, promotion, work)?;
         }
 
         "style.create" => {
@@ -619,46 +615,41 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             crate::register::unlink(conn, &term_id, &work_id)?;
         }
 
-        // The bank's blocks (ADR 0052): made, renamed, moved, and the words
-        // put in them and taken out.
-        "block.create" => {
+        // The shelves of phrases (ADR 0064): made, renamed, moved, and the
+        // phrases put on them and taken off.
+        "shelf.create" => {
             let profile_id = workspace_profile(conn, params)?;
             let name = required(params, "name")?;
-            crate::register::block::create_minted(conn, &profile_id, &name, minted(params)?)?;
+            crate::shelf::create_minted(conn, &profile_id, &name, minted(params)?)?;
         }
 
-        "block.rename" => {
+        "shelf.rename" => {
             let id = required(params, "id")?;
             let name = required(params, "name")?;
             let at = required(params, "at")?;
-            crate::register::block::rename_at(conn, &id, &name, &at)?;
+            crate::shelf::rename_at(conn, &id, &name, &at)?;
         }
 
-        "block.move" => {
+        "shelf.move" => {
             let id = required(params, "id")?;
             let index = params
                 .get("index")
                 .and_then(Value::as_u64)
                 .ok_or_else(|| Error::Internal("the operation carries no `index`".into()))?;
             let at = required(params, "at")?;
-            crate::register::block::move_to_at(
-                conn,
-                &id,
-                usize::try_from(index).unwrap_or(usize::MAX),
-                &at,
-            )?;
+            crate::shelf::move_to_at(conn, &id, usize::try_from(index).unwrap_or(usize::MAX), &at)?;
         }
 
-        "block.add" => {
-            let block_id = required(params, "blockId")?;
-            let term_id = required(params, "termId")?;
-            crate::register::block::add_minted(conn, &block_id, &term_id, minted(params)?)?;
+        "shelf.add" => {
+            let shelf_id = required(params, "shelfId")?;
+            let note_id = required(params, "noteId")?;
+            crate::shelf::add_minted(conn, &shelf_id, &note_id, minted(params)?)?;
         }
 
-        "block.remove" => {
-            let block_id = required(params, "blockId")?;
-            let term_id = required(params, "termId")?;
-            crate::register::block::remove(conn, &block_id, &term_id)?;
+        "shelf.remove" => {
+            let shelf_id = required(params, "shelfId")?;
+            let note_id = required(params, "noteId")?;
+            crate::shelf::remove(conn, &shelf_id, &note_id)?;
         }
 
         // What the person said about a finding of the guard (ADR 0054).

@@ -6,6 +6,7 @@ import { ArrowUpRight, X } from 'lucide-react'
 import { createNote, deleteNote, updateNote } from '@/lib/api/notes'
 import { cardKindOf } from '@/lib/canon'
 import { toggleTask } from '@/lib/checklist'
+import { isLine } from '@/lib/notes'
 import { queries } from '@/lib/query/queries'
 import { refresh } from '@/lib/query/refresh'
 import { useAppMutation } from '@/lib/query/useAppMutation'
@@ -28,7 +29,8 @@ interface Props {
 }
 
 /**
- * The notes about one work, on its card.
+ * The notes about one work, on its card: the notes and the phrases kept for
+ * it (ADR 0064), and the heroes of the canon who live at it.
  *
  * The mockup's anatomy: a caption over the tab, each note a panel of its own
  * with its tags as chips under the text, and the form for a new one in a
@@ -153,6 +155,20 @@ export function NotePanel({ workId }: Props) {
                         <b className="font-semibold">{note.title}</b>
                       </p>
                     )}
+                    {/* A phrase kept for the work says it is one: a line,
+                        not a thought about the work. */}
+                    {isLine(config, note.kind) && (
+                      <p className="flex items-center gap-1.5 text-xs">
+                        <Chip>
+                          {sayLabel(
+                            (config.note_kinds ?? []).find((kind) => kind.key === note.kind)?.label,
+                          )}
+                        </Chip>
+                        {note.state !== 'fresh' && (
+                          <span className="text-faint">{t(`notes.state.${note.state}`)}</span>
+                        )}
+                      </p>
+                    )}
                     {/* Rendered, not shown raw: a note is where a table of images
                         or a list of phrases lands, and pipes and asterisks are not
                         what its author wrote it to be read as. Line breaks inside a
@@ -164,6 +180,9 @@ export function NotePanel({ workId }: Props) {
                         tick.mutate({ id: note.id, next: toggleTask(note.body, index) })
                       }
                     />
+                    {note.attribution !== null && (
+                      <p className="text-xs text-dim italic">— {note.attribution}</p>
+                    )}
                     {note.tags.length > 0 && (
                       <p className="flex flex-wrap gap-1">
                         {note.tags.map((tag) => (
@@ -191,7 +210,9 @@ export function NotePanel({ workId }: Props) {
                       void navigate(
                         cardKindOf(config, note.kind) !== undefined
                           ? `/canon/${note.id}`
-                          : `/notes/${note.id}`,
+                          : isLine(config, note.kind)
+                            ? `/notes?kind=${encodeURIComponent(note.kind)}`
+                            : `/notes/${note.id}?kind=${encodeURIComponent(note.kind)}`,
                       )
                     }
                   >

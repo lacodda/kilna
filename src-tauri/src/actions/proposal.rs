@@ -298,7 +298,11 @@ pub fn check(
             Err(cause) => note(Err(cause)),
         },
         Proposal::Score { .. } => note(chat_work().map(|_| ())),
-        Proposal::Note { .. } => {}
+        Proposal::Note { note_kind, .. } => {
+            if let Some(kind) = note_kind {
+                note(plain_note_kind(config, kind));
+            }
+        }
         Proposal::Work {
             title,
             work_kind,
@@ -553,15 +557,31 @@ fn keep(
             )?);
         }
 
-        Proposal::Note { title } => {
-            outcome.notes.push(note(
+        Proposal::Note {
+            title,
+            note_kind,
+            attribution,
+            shelf,
+        } => {
+            let made = note(
                 conn,
                 chat.work_id.as_deref(),
                 PackagedNote {
                     title,
                     body: body.to_owned(),
+                    kind: note_kind,
+                    attribution,
                 },
-            )?);
+            )?;
+            if let Some(name) = shelf.as_deref().filter(|name| !name.trim().is_empty()) {
+                let profile_id = super::active_profile_id(conn)?;
+                let found = match crate::shelf::find(conn, &profile_id, name)? {
+                    Some(found) => found,
+                    None => super::shelf::create(conn, name)?,
+                };
+                super::shelf::add(conn, &found.id, &made)?;
+            }
+            outcome.notes.push(made);
         }
 
         Proposal::Work {
@@ -723,8 +743,10 @@ fn keep(
         }
 
         Proposal::Words { package } => {
-            outcome.terms =
+            let (terms, phrases) =
                 crate::register::proposal::keep(conn, package, overrides.items.as_deref())?;
+            outcome.terms = terms;
+            outcome.notes.extend(phrases);
         }
 
         Proposal::Bricks { package } => {
@@ -907,12 +929,22 @@ fn score(
     Ok(created.id)
 }
 
+/// A kind a proposed note may be: one of the profile's, and not a card of the
+/// canon - a card is proposed through the canon, with its facts.
+fn plain_note_kind(config: &crate::profile::config::ProfileConfig, kind: &str) -> Result<()> {
+    match config.note_kind(kind) {
+        Some(found) if !found.is_card() => Ok(()),
+        _ => Err(crate::error::Error::refused("proposal.unknownNoteKind").param("kind", kind)),
+    }
+}
+
 fn note(conn: &Connection, work_id: Option<&str>, packaged: PackagedNote) -> Result<String> {
     let created = super::note::create(
         conn,
         NewNote {
             body: packaged.body,
-            kind: None,
+            kind: packaged.kind,
+            attribution: packaged.attribution,
             title: packaged.title.filter(|title| !title.trim().is_empty()),
             work_id: work_id.map(str::to_owned),
             tags: Vec::new(),
@@ -1134,6 +1166,8 @@ mod tests {
             notes: vec![PackagedNote {
                 title: Some("Concept".into()),
                 body: "the road as the only witness".into(),
+                kind: None,
+                attribution: None,
             }],
             scenes: Vec::new(),
             releases: Vec::new(),
@@ -1969,6 +2003,8 @@ mod tests {
                 notes: vec![PackagedNote {
                     title: None,
                     body: "a note that would have landed".into(),
+                    kind: None,
+                    attribution: None,
                 }],
                 scenes: vec![packaged("fine"), backwards],
                 releases: Vec::new(),
@@ -2098,7 +2134,17 @@ mod tests {
                 from: None,
             },
         );
-        let newer = propose(&conn, &second, "a note", Proposal::Note { title: None });
+        let newer = propose(
+            &conn,
+            &second,
+            "a note",
+            Proposal::Note {
+                title: None,
+                note_kind: None,
+                attribution: None,
+                shelf: None,
+            },
+        );
 
         let listed = pending(&conn, &profile_id).unwrap();
         let ids: Vec<&str> = listed.iter().map(|p| p.message_id.as_str()).collect();
@@ -2237,7 +2283,17 @@ mod tests {
                 from: None,
             },
         );
-        propose(&conn, &chat, "a thought", Proposal::Note { title: None });
+        propose(
+            &conn,
+            &chat,
+            "a thought",
+            Proposal::Note {
+                title: None,
+                note_kind: None,
+                attribution: None,
+                shelf: None,
+            },
+        );
         // A plain answer with no proposal is not something to apply.
         assistant::append(&conn, &chat, ASSISTANT, "just prose", Map::new()).unwrap();
 

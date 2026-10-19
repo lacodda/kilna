@@ -30,7 +30,7 @@ pub struct ImportReport {
     pub terms: usize,
     /// Works named as carrying an image or a scene of the register.
     pub named: usize,
-    /// Ideas and phrases from the bank (ADR 0045).
+    /// Phrases and notes from the bank of ideas (ADR 0045, ADR 0064).
     pub notes: usize,
 }
 
@@ -568,7 +568,7 @@ mod tests {
     }
 
     #[test]
-    fn the_bank_arrives_as_ideas_and_phrases_in_their_states() {
+    fn the_bank_arrives_as_phrases_in_their_states_and_ideas_as_tagged_notes() {
         let dir = tempfile::tempdir().unwrap();
         let source = dir.path().join("legacy.db");
         legacy(&source);
@@ -583,10 +583,18 @@ mod tests {
         assert_eq!(phrase.body, "The tide keeps its own time");
         assert_eq!(phrase.title, None);
         assert_eq!(phrase.tags, ["sea"]);
-        let idea = notes.iter().find(|n| n.kind == "idea").unwrap();
-        assert_eq!(idea.title.as_deref(), Some("Lighthouse keeper"));
-        assert_eq!(idea.state, crate::note::NoteState::Used);
-        assert!(notes.iter().any(|n| n.kind == "note"));
+        let idea = notes
+            .iter()
+            .find(|n| n.title.as_deref() == Some("Lighthouse keeper"))
+            .unwrap();
+        assert_eq!(idea.kind, "note", "an idea is a note now (ADR 0064)");
+        assert!(idea.tags.iter().any(|tag| tag == "idea"), "{:?}", idea.tags);
+        assert_eq!(
+            idea.state,
+            crate::note::NoteState::Fresh,
+            "a note is not spent by works"
+        );
+        assert!(notes.iter().all(|n| n.kind != "idea"));
     }
 
     #[test]

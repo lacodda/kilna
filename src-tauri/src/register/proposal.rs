@@ -1,11 +1,11 @@
 //! Words proposed for the record, applied with one click (ADR 0052).
 //!
 //! One package for everything an agent, an action or kilna itself proposes
-//! about words: words for the bank and the block they go in, how a word is
-//! sung, a term for the register, and the works a meaning is in. The words of
-//! the bank and the register's terms are one record, so they are one
-//! proposal: "пульсар" proposed for the bank, sung "пульсАр", is one item,
-//! and taking it writes one row.
+//! about words: a word kept as a phrase and the shelf it goes on, how a word
+//! is sung, a term for the register, and the works a meaning is in. One word
+//! is one item: "пульсар" proposed as a phrase to keep, sung "пульсАр", is
+//! taken in one click - the phrase among the phrases (ADR 0064), the singing
+//! in the record (ADR 0052).
 //!
 //! The package is read and checked against the workspace as it stands, and
 //! kept whole or item by item (`word:N`), the way a package for the canon is
@@ -15,7 +15,7 @@ use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::{Bank, Strictness, Sung, TermKind, TermPatch};
+use super::{Strictness, Sung, TermKind, TermPatch};
 use crate::error::{Error, Reason, Result};
 
 /// One word as it is proposed.
@@ -29,13 +29,13 @@ pub struct ProposedWord {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub kind: Option<TermKind>,
-    /// Kept in the bank, as fresh.
+    /// Kept as a phrase, fresh, for works to come.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub bank: bool,
-    /// The block of the bank it goes in, by name; made when there is none.
+    pub phrase: bool,
+    /// The shelf the phrase goes on, by name; made when there is none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
-    pub block: Option<String>,
+    pub shelf: Option<String>,
     /// How its forms are sung where that is not how they are written.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sung: Vec<Sung>,
@@ -109,7 +109,7 @@ pub fn read(conn: &Connection, profile_id: &str, value: &Value) -> Result<WordsP
     let mut package = WordsPackage::default();
     for raw in list {
         let raw = match raw {
-            Value::String(word) => serde_json::json!({ "word": word, "bank": true }),
+            Value::String(word) => serde_json::json!({ "word": word, "phrase": true }),
             other => other,
         };
         let mut works: Vec<String> = Vec::new();
@@ -209,27 +209,58 @@ pub fn check(
     Ok(problems)
 }
 
-/// Keep the items taken, as a hand would: the word found or made, its
-/// facets added - never taken away - its block found or made, the works it
-/// names named. Each a gesture of its own; the caller holds the unit. The
-/// ids of the words written.
+/// Keep the items taken, as a hand would: the phrase kept and put on its
+/// shelf - found or made - and, where the item says something the record
+/// keeps, the word found or made with its facets added - never taken away -
+/// and the works it names named. Each a gesture of its own; the caller holds
+/// the unit. The ids of the rows written: the terms, and the phrases.
 pub fn keep(
     conn: &Connection,
     package: WordsPackage,
     items: Option<&[String]>,
-) -> Result<Vec<String>> {
+) -> Result<(Vec<String>, Vec<String>)> {
     let profile_id = crate::actions::active_profile_id(conn)?;
     let mut written = Vec::new();
+    let mut phrases = Vec::new();
     for (index, word) in package.words.into_iter().enumerate() {
         if !taken(items, index) {
+            continue;
+        }
+        if word.phrase {
+            let config = crate::profile::config_for(conn, &profile_id)?;
+            let kind = config
+                .line_kinds()
+                .into_iter()
+                .next()
+                .map(str::to_owned)
+                .ok_or_else(|| crate::error::Error::refused("words.noLineKind"))?;
+            let shelf = match word.shelf.as_deref().filter(|name| !name.trim().is_empty()) {
+                Some(name) => Some(match crate::shelf::find(conn, &profile_id, name)? {
+                    Some(found) => found,
+                    None => crate::actions::shelf::create(conn, name)?,
+                }),
+                None => None,
+            };
+            let kept = crate::actions::note::keep_lines(
+                conn,
+                std::slice::from_ref(&word.word),
+                &kind,
+                shelf.as_ref().map(|shelf| shelf.id.as_str()),
+                &[],
+            )?;
+            phrases.extend(kept.notes.into_iter().map(|note| note.id));
+        }
+        // A word kept only as a phrase says nothing the record holds: no term.
+        let says = word.strictness.is_some()
+            || !word.sung.is_empty()
+            || !word.forms.is_empty()
+            || !word.works.is_empty();
+        if !says {
             continue;
         }
         let term = match super::find_word(conn, &profile_id, &word.word, None)? {
             Some(found) => {
                 let mut patch = TermPatch::default();
-                if word.bank && found.bank.is_none() {
-                    patch.bank = Some(Some(Bank::Fresh));
-                }
                 if let Some(strictness) = word.strictness
                     && found.strictness.is_none()
                 {
@@ -249,11 +280,7 @@ pub fn keep(
                 if forms != found.forms {
                     patch.forms = Some(forms);
                 }
-                if patch.bank.is_none()
-                    && patch.strictness.is_none()
-                    && patch.sung.is_none()
-                    && patch.forms.is_none()
-                {
+                if patch.strictness.is_none() && patch.sung.is_none() && patch.forms.is_none() {
                     found
                 } else {
                     crate::actions::register::update(conn, &found.id, patch)?
@@ -266,26 +293,18 @@ pub fn keep(
                     forms: word.forms.clone(),
                     kind: word.kind,
                     strictness: word.strictness,
-                    bank: word.bank.then_some(Bank::Fresh),
                     sung: word.sung.clone(),
                     topic: None,
                     note: word.note.clone(),
                 },
             )?,
         };
-        if let Some(name) = word.block.as_deref().filter(|name| !name.trim().is_empty()) {
-            let block = match super::block::find(conn, &profile_id, name)? {
-                Some(found) => found,
-                None => crate::actions::register::create_block(conn, name)?,
-            };
-            crate::actions::register::add_to_block(conn, &block.id, &term.id)?;
-        }
         for named in &word.works {
             crate::actions::register::link(conn, &term.id, &named.id)?;
         }
         written.push(term.id);
     }
-    Ok(written)
+    Ok((written, phrases))
 }
 
 /// The package as a person reads it before keeping it: a line per word with
@@ -295,10 +314,10 @@ pub fn render(package: &WordsPackage) -> String {
     for word in &package.words {
         let mut line = format!("- **{}**", word.word);
         let mut said: Vec<String> = Vec::new();
-        if word.bank {
-            said.push(match &word.block {
-                Some(block) => format!("bank · {block}"),
-                None => "bank".to_owned(),
+        if word.phrase {
+            said.push(match &word.shelf {
+                Some(shelf) => format!("phrase · {shelf}"),
+                None => "phrase".to_owned(),
             });
         }
         if let Some(strictness) = word.strictness {
@@ -540,7 +559,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(package.words.len(), 3);
-        assert!(package.words[0].bank, "a bare word is a word for the bank");
+        assert!(package.words[0].phrase, "a bare word is a phrase to keep");
         assert_eq!(package.words[2].works.len(), 1);
         assert_eq!(package.dropped.len(), 2, "{:?}", package.dropped);
     }
@@ -562,27 +581,39 @@ mod tests {
             &conn,
             &profile_id,
             &json!([
-                { "word": "Кофе", "bank": true, "block": "Kitchen" },
-                { "word": "пульсар", "bank": true, "block": "kitchen",
+                { "word": "Кофе", "phrase": true, "shelf": "Kitchen" },
+                { "word": "пульсар", "phrase": true, "shelf": "kitchen",
                   "sung": [{ "written": "пульсар", "sung": "пульсАр" }] },
                 { "word": "a lighthouse nobody keeps", "kind": "image", "strictness": "limit", "works": [song.id] }
             ]),
         )
         .unwrap();
 
-        let written = keep(&conn, package, Some(&[item(0), item(1)])).unwrap();
+        let (terms, phrases) = keep(&conn, package, Some(&[item(0), item(1)])).unwrap();
 
-        assert_eq!(written.len(), 2, "the third item was not taken");
+        assert_eq!(
+            (terms.len(), phrases.len()),
+            (1, 2),
+            "two phrases and one term - the third item was not taken"
+        );
         let coffee = register::get(&conn, &coffee.id).unwrap().unwrap();
         assert_eq!(
-            (coffee.strictness, coffee.bank),
-            (Some(register::Strictness::Limit), Some(Bank::Fresh)),
-            "one word, one record: the register's term joins the bank"
+            coffee.strictness,
+            Some(register::Strictness::Limit),
+            "a word kept as a phrase leaves the register's term as it was"
         );
-        let blocks = register::block::views(&conn, &profile_id).unwrap();
-        assert_eq!(blocks.len(), 1, "the block is made once and found by name");
-        assert_eq!(blocks[0].term_ids.len(), 2);
-        let pulsar = register::get(&conn, &written[1]).unwrap().unwrap();
+        let shelves = crate::shelf::views(&conn, &profile_id).unwrap();
+        assert_eq!(shelves.len(), 1, "the shelf is made once and found by name");
+        assert_eq!(shelves[0].note_ids.len(), 2);
+        let kept: Vec<String> = crate::shelf::notes(&conn, &shelves[0].shelf.id)
+            .unwrap()
+            .into_iter()
+            .map(|note| note.body)
+            .collect();
+        assert_eq!(kept, ["Кофе", "пульсар"]);
+        let pulsar = register::find_word(&conn, &profile_id, "пульсар", None)
+            .unwrap()
+            .expect("the way it is sung is the record's");
         assert_eq!(pulsar.sung[0].sung, "пульсАр");
         assert_eq!(pulsar.strictness, None);
         assert_eq!(register::list(&conn, &profile_id).unwrap().len(), 2);

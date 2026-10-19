@@ -1,4 +1,4 @@
-import type { Bank, Strictness, Term, TermKind } from '@/lib/api/types'
+import type { Strictness, Term, TermKind } from '@/lib/api/types'
 import type { Status } from '@/components/ui/status-dot'
 
 /*
@@ -57,26 +57,22 @@ export function splitForms(text: string): string[] {
     .filter((form) => form !== '')
 }
 
-/** Where a word stands in the bank, in the order the bank reads them. */
-export const BANK: readonly Bank[] = ['fresh', 'parked', 'dropped']
-
 /**
  * The facets a word of the record can be read under on the register's screen
- * (ADR 0052): one record per word, and a word can be spent, kept in the bank
- * and sung its own way at once.
+ * (ADR 0052): one record per word, and a word can be spent and sung its own
+ * way at once. A word kept for songs to come is a phrase since v0.98 (ADR
+ * 0064), on the Notes screen.
  */
-export type Facet = 'all' | Strictness | 'bank' | 'sung'
+export type Facet = 'all' | Strictness | 'sung'
 
 /** The facets the screen filters by, in the order its chips stand. */
-export const FACETS: readonly Facet[] = ['all', 'ban', 'limit', 'rare', 'bank', 'sung']
+export const FACETS: readonly Facet[] = ['all', 'ban', 'limit', 'rare', 'sung']
 
 /** Whether a word is read under a facet. */
-export function inFacet(word: Pick<Term, 'strictness' | 'bank' | 'sung'>, facet: Facet): boolean {
+export function inFacet(word: Pick<Term, 'strictness' | 'sung'>, facet: Facet): boolean {
   switch (facet) {
     case 'all':
       return true
-    case 'bank':
-      return word.bank !== null
     case 'sung':
       return word.sung.length > 0
     default:

@@ -1,4 +1,5 @@
-//! Notes: ideas, lore, references - and the links a body carries.
+//! Notes: phrases and their shelves, notes, lore, references - and the links
+//! a body carries.
 
 use tauri::State;
 
@@ -6,6 +7,7 @@ use super::active;
 use crate::actions;
 use crate::error::Result;
 use crate::note::{self, NewNote, Note, NoteFilter, NotePatch};
+use crate::shelf::{self, Shelf, ShelfView};
 use crate::state::AppState;
 use crate::trash::Entity;
 use crate::work::{self, version};
@@ -14,6 +16,80 @@ use crate::work::{self, version};
 pub fn list_notes(state: State<'_, AppState>, filter: Option<NoteFilter>) -> Result<Vec<Note>> {
     let conn = state.conn();
     note::list(&conn, &active(&conn)?, &filter.unwrap_or_default())
+}
+
+/// The phrases a filter leaves, each with its shelves, how many works say it
+/// and how it is sung (ADR 0064).
+#[tauri::command]
+pub fn list_lines(
+    state: State<'_, AppState>,
+    filter: Option<NoteFilter>,
+) -> Result<Vec<crate::lines::LineRow>> {
+    let conn = state.conn();
+    crate::lines::rows(&conn, &active(&conn)?, &filter.unwrap_or_default())
+}
+
+/// Keep lines typed or pasted as a list, as phrases of `kind` - and on a
+/// shelf, when one is named.
+#[tauri::command]
+pub fn keep_lines(
+    state: State<'_, AppState>,
+    lines: Vec<String>,
+    kind: String,
+    shelf_id: Option<String>,
+    tags: Option<Vec<String>>,
+) -> Result<actions::note::Kept> {
+    actions::note::keep_lines(
+        &state.conn(),
+        &lines,
+        &kind,
+        shelf_id.as_deref(),
+        &tags.unwrap_or_default(),
+    )
+}
+
+/// The shelves of phrases, in the owner's order, each with its phrases.
+#[tauri::command]
+pub fn list_shelves(state: State<'_, AppState>) -> Result<Vec<ShelfView>> {
+    let conn = state.conn();
+    shelf::views(&conn, &active(&conn)?)
+}
+
+#[tauri::command]
+pub fn create_shelf(state: State<'_, AppState>, name: String) -> Result<Shelf> {
+    actions::shelf::create(&state.conn(), &name)
+}
+
+#[tauri::command]
+pub fn rename_shelf(state: State<'_, AppState>, id: String, name: String) -> Result<Shelf> {
+    actions::shelf::rename(&state.conn(), &id, &name)
+}
+
+/// Put a shelf at `index` in the order; the shelves as they now stand.
+#[tauri::command]
+pub fn move_shelf(state: State<'_, AppState>, id: String, index: usize) -> Result<Vec<Shelf>> {
+    actions::shelf::move_to(&state.conn(), &id, index)
+}
+
+/// Throw a shelf away - into the trash, with what stood on it; the phrases
+/// stay among the phrases.
+#[tauri::command]
+pub fn delete_shelf(state: State<'_, AppState>, id: String) -> Result<String> {
+    actions::trash::discard(&state.conn(), Entity::Shelf, &id)
+}
+
+#[tauri::command]
+pub fn add_to_shelf(state: State<'_, AppState>, shelf_id: String, note_id: String) -> Result<()> {
+    actions::shelf::add(&state.conn(), &shelf_id, &note_id)
+}
+
+#[tauri::command]
+pub fn remove_from_shelf(
+    state: State<'_, AppState>,
+    shelf_id: String,
+    note_id: String,
+) -> Result<()> {
+    actions::shelf::remove(&state.conn(), &shelf_id, &note_id)
 }
 
 #[tauri::command]

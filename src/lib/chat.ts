@@ -114,8 +114,9 @@ const proposalOf = (message: Message): Proposal | null => {
       return Array.isArray((proposal as Partial<{ trials: unknown }>).trials)
         ? (proposal as Proposal)
         : null
-    // Words for the record (v0.90, ADR 0052): the bank and its blocks, how a
-    // word is sung, a term of the register, the works a meaning is in.
+    // Words for the record (v0.90, ADR 0052): a phrase to keep and its shelf
+    // (ADR 0064), how a word is sung, a term of the register, the works a
+    // meaning is in.
     case 'words':
       return Array.isArray((proposal as Partial<{ package: { words?: unknown } }>).package?.words)
         ? (proposal as Proposal)

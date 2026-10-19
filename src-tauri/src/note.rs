@@ -6,12 +6,13 @@ use crate::error::{Error, Result};
 use crate::minted::Minted;
 use crate::time::now;
 
-/// Ideas, phrases, lore, reference — one type distinguished by `kind` and tags
+/// Phrases, notes, lore, reference — one type distinguished by `kind` and tags
 /// rather than by separate subsystems. The predecessor built those subsystems
 /// and they went unused; see the vision notes.
 ///
-/// A note of a kind the profile marks `material` - an idea, a phrase - is
-/// spent by works, and says so in its `state` (ADR 0045).
+/// A note of a kind the profile marks `material` - a phrase - is spent by
+/// works, and says so in its `state` (ADR 0045). Since v0.98 the material for
+/// works to come is two shelves: phrases and notes (ADR 0064).
 ///
 /// A note of a kind the profile names with sections is a card of the canon
 /// (ADR 0043): the last four fields are its own, and on a plain note they
@@ -24,6 +25,9 @@ pub struct Note {
     pub kind: String,
     pub title: Option<String>,
     pub body: String,
+    /// Whose words a phrase is: the author of a quote, the film it is from.
+    /// None for words of the owner's own (ADR 0064).
+    pub attribution: Option<String>,
     pub tags: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
@@ -98,6 +102,9 @@ pub struct NewNote {
     pub kind: Option<String>,
     #[serde(default)]
     pub title: Option<String>,
+    /// Whose words they are, for a quote.
+    #[serde(default)]
+    pub attribution: Option<String>,
     #[serde(default)]
     pub work_id: Option<String>,
     // Not an `Option`, so `optional_fields` cannot reach it - said by hand.
@@ -125,6 +132,12 @@ pub struct NotePatch {
     pub title: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body: Option<String>,
+    #[serde(
+        default,
+        deserialize_with = "crate::reversal::nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub attribution: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -180,7 +193,7 @@ pub struct NoteFilter {
 }
 
 const SELECT_NOTE: &str = "SELECT id, profile_id, work_id, kind, title, body, tags, created_at, \
-     updated_at, layer, aliases, prompt, prompt_basis, state FROM note";
+     updated_at, layer, aliases, prompt, prompt_basis, state, attribution FROM note";
 
 pub fn create(conn: &Connection, profile_id: &str, new: NewNote) -> Result<Note> {
     create_minted(conn, profile_id, new, Minted::fresh())
@@ -203,8 +216,8 @@ pub fn create_minted(
     one_root(conn, profile_id, &kind, None)?;
 
     conn.execute(
-        "INSERT INTO note (id, profile_id, work_id, kind, title, body, tags, created_at, updated_at, layer, aliases, state)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11)",
+        "INSERT INTO note (id, profile_id, work_id, kind, title, body, tags, created_at, updated_at, layer, aliases, state, attribution)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10, ?11, ?12)",
         params![
             id,
             profile_id,
@@ -217,10 +230,18 @@ pub fn create_minted(
             new.layer.unwrap_or_default().as_str(),
             serde_json::to_string(&clean_aliases(new.aliases))?,
             new.state.unwrap_or_default().as_str(),
+            blank_is_none(new.attribution),
         ],
     )?;
 
     get(conn, &id)?.ok_or_else(|| Error::Internal("the note vanished after insert".into()))
+}
+
+/// A text kept trimmed, and none rather than empty: an author nobody typed is
+/// no author.
+fn blank_is_none(text: Option<String>) -> Option<String> {
+    text.map(|text| text.trim().to_owned())
+        .filter(|text| !text.is_empty())
 }
 
 /// The names a card goes by, as they are kept: trimmed, the empty ones
@@ -373,6 +394,14 @@ pub fn update_at(conn: &Connection, id: &str, patch: NotePatch, at: &str) -> Res
     if let Some(body) = patch.body {
         set(&mut assignments, &mut values, "body", Box::new(body));
     }
+    if let Some(attribution) = patch.attribution {
+        set(
+            &mut assignments,
+            &mut values,
+            "attribution",
+            Box::new(blank_is_none(attribution)),
+        );
+    }
     if let Some(kind) = patch.kind {
         let found = get(conn, id)?.ok_or_else(|| unknown_note(id))?;
         one_root(conn, &found.profile_id, &kind, Some(id))?;
@@ -483,63 +512,38 @@ pub struct Promotion {
     pub title: String,
 }
 
-/// What a promotion made: the work, its first version, and the trash entry
-/// the note went to - none for a material note, which stays, used by the new
-/// work (ADR 0045).
+/// What a promotion made: the work the note is tied to now.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
 pub struct Promoted {
     pub work_id: String,
-    pub version_id: String,
-    pub deletion_id: Option<String>,
 }
 
-/// The ids one promotion mints, sharing the moment of the gesture.
-#[derive(Debug, Clone)]
-pub struct PromotionIds {
-    pub work: Minted,
-    pub version: Minted,
-    pub deletion: Minted,
-}
-
-impl PromotionIds {
-    pub fn fresh() -> Self {
-        let at = now();
-        let mint = || Minted::of(uuid::Uuid::new_v4().to_string(), at.clone());
-        Self {
-            work: mint(),
-            version: mint(),
-            deletion: mint(),
-        }
-    }
-}
-
-/// Turn a note into a work whose first version is the note's body.
+/// Turn a note into a work it is tied to.
 ///
-/// An idea that grew up is not an idea beside the work any more: keeping the
-/// note would leave the same text in two places, one of them edited and the
-/// other not (ADR 0001). So the body moves - into the first version of the
-/// kind's first role that is the work itself - and the note goes to the
-/// trash, where it can be restored like any other deletion.
+/// A note that grows into a work stays with it: the seed of a song is what
+/// the song is written from, and the work's preparation reads it there
+/// (ADR 0064). So the note is not copied anywhere - a second copy of its text
+/// in a first version would be one edited and the other not (ADR 0001) - and
+/// not thrown away: the new work starts empty, the note tied to it.
 ///
-/// Except material (ADR 0045): an idea or a phrase of a kind the profile marks
-/// material is spent, not moved. It stays in the bank, used and tied to the
-/// new work, so the bank knows it went - the one thing a bank is for.
+/// A material note - a phrase - is spent by the work as well as tied to it
+/// (ADR 0045): the bank knows it went, the one thing a bank is for.
 ///
 /// Its tags stay behind with it. A note's vocabulary and a work's are
 /// different vocabularies (see `work_tags`), and carrying "reference" onto a
 /// song would be the app guessing at a connection nobody made.
 ///
-/// One unit for all three rows: a work made while the note failed to move
-/// would be the duplicate this exists to prevent.
+/// One unit for both rows: a work made while the note failed to follow would
+/// be a work nothing explains.
 pub fn promote(
     conn: &Connection,
     profile_id: &str,
     note_id: &str,
     promotion: Promotion,
-    ids: &PromotionIds,
+    work: Minted,
 ) -> Result<Promoted> {
     crate::db::unit::atomically(conn, |tx| {
-        promote_in(tx, profile_id, note_id, promotion, ids)
+        promote_in(tx, profile_id, note_id, promotion, work)
     })
 }
 
@@ -548,7 +552,7 @@ fn promote_in(
     profile_id: &str,
     note_id: &str,
     promotion: Promotion,
-    ids: &PromotionIds,
+    minted: Minted,
 ) -> Result<Promoted> {
     let found = get(tx, note_id)?.ok_or_else(|| unknown_note(note_id))?;
     if found.profile_id != profile_id {
@@ -560,19 +564,8 @@ fn promote_in(
     }
 
     let config = crate::profile::config_for(tx, profile_id)?;
-    let kind = config.require_kind(&promotion.kind)?;
-    let role = kind
-        .version_roles
-        .iter()
-        .find(|role| role.counts_as_a_version())
-        .map(|role| role.key.clone())
-        .ok_or_else(|| {
-            Error::refused("note.promoteNoRole").param(
-                "kind",
-                serde_json::to_value(&kind.label).unwrap_or_default(),
-            )
-        })?;
-
+    config.require_kind(&promotion.kind)?;
+    let at = minted.at().to_owned();
     let work = crate::work::create_minted(
         tx,
         profile_id,
@@ -581,52 +574,23 @@ fn promote_in(
             title: title.to_owned(),
             ..crate::work::NewWork::default()
         },
-        ids.work.clone(),
+        minted,
     )?;
-    let version_id = crate::work::version::create_minted(
-        tx,
-        &work.id,
-        crate::work::version::NewVersion {
-            role,
-            body: found.body,
-            label: None,
-            meta: None,
-            make_current: true,
-            parent_version_id: None,
-            trial_id: None,
-        },
-        ids.version.clone(),
-    )?
-    .id;
     let material = config
         .note_kind(&found.kind)
         .is_some_and(|kind| kind.material);
-    let deletion_id = if material {
-        update_at(
-            tx,
-            note_id,
-            NotePatch {
-                state: Some(NoteState::Used),
-                work_id: Some(Some(work.id.clone())),
-                ..NotePatch::default()
-            },
-            ids.work.at(),
-        )?;
-        None
-    } else {
-        Some(crate::trash::discard_minted(
-            tx,
-            crate::trash::Entity::Note,
-            note_id,
-            ids.deletion.clone(),
-        )?)
-    };
+    update_at(
+        tx,
+        note_id,
+        NotePatch {
+            work_id: Some(Some(work.id.clone())),
+            state: material.then_some(NoteState::Used),
+            ..NotePatch::default()
+        },
+        &at,
+    )?;
 
-    Ok(Promoted {
-        work_id: work.id,
-        version_id,
-        deletion_id,
-    })
+    Ok(Promoted { work_id: work.id })
 }
 
 fn unknown_note(id: &str) -> Error {
@@ -648,6 +612,7 @@ struct RawNote {
     prompt: Option<String>,
     prompt_basis: Option<String>,
     state: String,
+    attribution: Option<String>,
 }
 
 fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawNote> {
@@ -666,6 +631,7 @@ fn read_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawNote> {
         prompt: row.get(11)?,
         prompt_basis: row.get(12)?,
         state: row.get(13)?,
+        attribution: row.get(14)?,
     })
 }
 
@@ -682,6 +648,7 @@ impl RawNote {
             kind: self.kind,
             title: self.title,
             body: self.body,
+            attribution: self.attribution,
             created_at: self.created_at,
             updated_at: self.updated_at,
             prompt: self.prompt,
@@ -867,14 +834,16 @@ mod tests {
                 kind: kind.into(),
                 title: title.into(),
             },
-            &PromotionIds::fresh(),
+            Minted::fresh(),
         )?;
         tx.commit().unwrap();
         Ok(promoted)
     }
 
+    /// The seed stays with what grew from it (ADR 0064): the work starts
+    /// empty, the note tied to it, its text in one place.
     #[test]
-    fn a_promoted_note_becomes_the_first_version_of_a_work() {
+    fn a_promoted_note_stays_tied_to_the_work_it_grew_into() {
         let (mut conn, profile_id) = fixtures::workspace();
         let idea = create(
             &conn,
@@ -889,39 +858,21 @@ mod tests {
         assert_eq!(made.title, "Graphite", "the title is trimmed");
         assert_eq!(made.kind, "song");
         assert_eq!(
-            made.current_version_id.as_deref(),
-            Some(promoted.version_id.as_str())
+            made.current_version_id, None,
+            "nothing is copied: a version holding the note's text would be its second copy"
         );
-        let body = crate::work::version::get(&conn, &promoted.version_id)
-            .unwrap()
-            .unwrap();
-        assert_eq!(body.body, "a comma in the rock");
         assert!(
             made.tags.is_empty(),
             "a note's tags are a different vocabulary from a work's"
         );
+        let kept = get(&conn, &idea.id).unwrap().expect("the note stays");
+        assert_eq!(kept.work_id.as_deref(), Some(promoted.work_id.as_str()));
+        assert_eq!(kept.body, "a comma in the rock");
+        assert_eq!(kept.state, NoteState::Fresh, "a note is not spent");
     }
 
     #[test]
-    fn a_promoted_note_leaves_for_the_trash_and_can_come_back() {
-        let (mut conn, profile_id) = fixtures::workspace();
-        let idea = create(&conn, &profile_id, note("one text, one place", &[])).unwrap();
-
-        let promoted = promote(&mut conn, &profile_id, &idea.id, "song", "Place").unwrap();
-
-        assert!(
-            get(&conn, &idea.id).unwrap().is_none(),
-            "the body lives in the version now, not twice"
-        );
-        crate::trash::restore(&conn, promoted.deletion_id.as_deref().unwrap()).unwrap();
-        assert_eq!(
-            get(&conn, &idea.id).unwrap().unwrap().body,
-            "one text, one place"
-        );
-    }
-
-    #[test]
-    fn a_material_note_is_spent_not_moved() {
+    fn a_material_note_is_spent_as_well_as_tied() {
         let (mut conn, profile_id) = fixtures::workspace();
         let phrase = create(
             &conn,
@@ -936,19 +887,46 @@ mod tests {
 
         let promoted = promote(&mut conn, &profile_id, &phrase.id, "song", "Lighthouse").unwrap();
 
-        assert!(
-            promoted.deletion_id.is_none(),
-            "a phrase does not go to the trash"
-        );
         let kept = get(&conn, &phrase.id)
             .unwrap()
-            .expect("the phrase stays in the bank");
+            .expect("the phrase stays among the phrases");
         assert_eq!(kept.state, NoteState::Used);
         assert_eq!(kept.work_id.as_deref(), Some(promoted.work_id.as_str()));
-        let version = crate::work::version::get(&conn, &promoted.version_id)
-            .unwrap()
-            .unwrap();
-        assert_eq!(version.body, "a lighthouse keeps the hours");
+    }
+
+    #[test]
+    fn whose_words_a_phrase_is_is_kept_trimmed_and_cleared_by_null() {
+        let (conn, profile_id) = fixtures::workspace();
+        let quote = create(
+            &conn,
+            &profile_id,
+            NewNote {
+                body: "sorrow is just worn-out joy".into(),
+                kind: Some("phrase".into()),
+                attribution: Some("  Old Joy  ".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(quote.attribution.as_deref(), Some("Old Joy"));
+
+        let blank = update(
+            &conn,
+            &quote.id,
+            NotePatch {
+                attribution: Some(Some("   ".into())),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            blank.attribution, None,
+            "an author nobody typed is no author"
+        );
+
+        let patch: NotePatch =
+            serde_json::from_value(serde_json::json!({ "attribution": null })).unwrap();
+        assert_eq!(patch.attribution, Some(None), "null clears it");
     }
 
     #[test]

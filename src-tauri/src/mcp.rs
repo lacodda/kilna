@@ -162,11 +162,13 @@ fn initialize() -> Value {
     out and the verdict - and `propose_trials` proposes trials onto it; a kept trial becomes a \
     version of a song's style in the window. `canon` \
     reads the world the works share - cards of people, places and the channel, with facts in \
-    layers - and `propose_canon` proposes cards, facts and relations for it. `words` reads the \
-    owner's bank of words by block, with how each is sung (the stress as a capital vowel), and \
-    `propose_words` proposes words for the bank, ways of singing, terms for the register and the \
-    works a meaning is in - one record per word. Name works by id when you have one; an exact \
-    title works too.",
+    layers - and `propose_canon` proposes cards, facts and relations for it. The material for \
+    works to come is two shelves of notes: phrases - a word, a line, a quote, each one line, \
+    sorted onto the owner's shelves - and notes, a thought from a seed to a page; `notes` reads \
+    them, a phrase with its shelves, how many works say it and how it is sung (the stress as a \
+    capital vowel), and `propose_note` proposes one. `propose_words` proposes words for the \
+    record - a phrase to keep, ways of singing, terms for the register and the works a meaning \
+    is in. Name works by id when you have one; an exact title works too.",
     })
 }
 
@@ -235,7 +237,9 @@ fn tools() -> Vec<Value> {
              under a cover built in the constructor; whether they play under one frame (a \
              still and a loop). A kind with \
              no kind of release never goes out itself - its works go out as what is made from \
-             them. Plus the overview fields, each with the kinds it belongs to, and how many \
+             them. Plus the overview fields, each with the kinds it belongs to, the kinds of \
+             note (`note_kinds`: a phrase - `line`, one line - and a note; `material` is spent \
+             by works) and how many \
              works there are. Read this first: a work is judged and versioned in its own kind's \
              keys, and the other tools speak in those keys. Also the style types of the \
              dictionary (`style_types`: key, label, form, families) and the compositions \
@@ -317,15 +321,23 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "notes",
-            "Notes in the profile, newest first — all of them, or those of one work. Ideas and \
-             phrases are notes of their kinds (see `workspace`: `note_kinds`); a kind marked \
-             `material` is spent by works, and each of its notes says where it stands in \
-             `state`: fresh, used (by the work it names), parked or dropped.",
+            "Notes in the profile, newest first — all of them, or those of one work, or the \
+             phrases of one shelf. A phrase and a note are notes of their kinds (see \
+             `workspace`: `note_kinds`): a kind marked `line` is a phrase - a word, a line, a \
+             quote with `attribution`, whose words it is - and comes with `shelves`, the \
+             owner's shelves it stands on, `sung_in`, how many works already say it, and \
+             `sung`, how its forms are sung where the record says so (the stress as a capital \
+             vowel: write a lyric with these spellings, the plain ones in public text). A kind \
+             marked `material` is spent by works, and each of its notes says where it stands \
+             in `state`: fresh, used (by the work it names), parked or dropped. Without \
+             arguments, also `shelves`: every shelf in the owner's order with how many \
+             phrases it holds.",
             json!({
                 "work": work_arg(),
-                "query": text_arg("A substring of the title or body"),
+                "query": text_arg("A substring of the title, the body or whose words they are"),
                 "kind": text_arg("Only notes of this kind, as `workspace` lists them"),
                 "state": text_arg("Only notes in this state: fresh, used, parked or dropped"),
+                "shelf": text_arg("Only the phrases on this shelf, by id or by name"),
             }),
             &[],
         ),
@@ -335,9 +347,8 @@ fn tools() -> Vec<Value> {
              arguments: every word of the record — its word and forms, its kind (noun, adjective, \
              verb and phrase are wording, found in a text by stem; image, scene and pattern are \
              meanings, tied to the works that carry them by name), its strictness (ban, limit, \
-             rare; null for a word that is not spent - kept in the bank, or only sung its own \
-             way), its bank state, how it is sung, topic and note, and `uses`: how many works \
-             carry it now. With `text` or \
+             rare; null for a word that is not spent - only sung its own way), how it is \
+             sung, topic and note, and `uses`: how many works carry it now. With `text` or \
              `work`: that text checked against it — the terms it takes word for word and how \
              often, and the words it leans on within itself; with `work`, also `guard`: the songs \
              out or booked that the work's song shares a spent term (orange) or a rare word \
@@ -347,19 +358,6 @@ fn tools() -> Vec<Value> {
                 "text": text_arg("A text to check against the register"),
                 "work": text_arg("A work whose current text to check: its id, or its exact title"),
             }),
-            &[],
-        ),
-        tool(
-            "words",
-            "The owner's bank of words, kept for songs to come, sorted into blocks: each block in \
-             the owner's order with its words, then the words in no block. A word carries its \
-             state in the bank (fresh, parked - set aside, dropped - given up on), `sung_in` - how \
-             many works already say it - and `sung`: how its forms are sung where that is not how \
-             they are written, the stress as a capital vowel (\"пульсАр\") and a respelling as a \
-             changed letter (\"Марсель\" sung \"МарсЭль\"). Write a lyric with these spellings \
-             where the word is sung, and the plain ones in public text. With `block`: that block \
-             only.",
-            json!({ "block": text_arg("A block, by id or by name") }),
             &[],
         ),
         tool(
@@ -382,19 +380,20 @@ fn tools() -> Vec<Value> {
         ),
         tool(
             "propose_words",
-            "Propose words for the owner's record, applied in one click: for the bank (`bank`: \
-             true; a `block` by name - made when there is none), how a word is sung (`sung`: \
-             [{written, sung}] - the stress as a capital vowel, a respelling as a changed letter; \
-             for a homograph, the reading the song means), a term for the register \
-             (`strictness`: ban, limit or rare), and the works a meaning is in (`works`: ids or \
-             exact titles, for an image or a scene the texts say in other words). A plain string \
-             is a word for the bank. A word the record already keeps gains what is proposed and \
-             loses nothing. It waits in the chat on `work` when one is named, or in the chat \
-             named after you.",
+            "Propose words for the owner's record, applied in one click: a phrase to keep \
+             (`phrase`: true; a `shelf` by name - made when there is none), how a word is sung \
+             (`sung`: [{written, sung}] - the stress as a capital vowel, a respelling as a \
+             changed letter; for a homograph, the reading the song means), a term for the \
+             register (`strictness`: ban, limit or rare), and the works a meaning is in \
+             (`works`: ids or exact titles, for an image or a scene the texts say in other \
+             words). A plain string is a phrase to keep. A word the record already keeps gains \
+             what is proposed and loses nothing; a phrase already kept in the same words is not \
+             kept twice. It waits in the chat on `work` when one is named, or in the chat named \
+             after you.",
             json!({
                 "words": {
                     "type": "array",
-                    "description": "The words: a string for the bank, or {word, forms?, kind?, bank?, block?, sung?, strictness?, works?, note?}",
+                    "description": "The words: a string for a phrase to keep, or {word, forms?, kind?, phrase?, shelf?, sung?, strictness?, works?, note?}",
                     "items": {}
                 },
                 "work": text_arg("The work the words come from, by id or exact title; optional"),
@@ -460,8 +459,10 @@ fn tools() -> Vec<Value> {
                     "type": "array",
                     "description": "Notes on the work",
                     "items": { "type": "object", "properties": {
+                        "kind": text_arg("The kind of note, as `workspace` lists it; optional"),
                         "title": text_arg("A title for the note, optional"),
                         "body": text_arg("The note itself"),
+                        "attribution": text_arg("Whose words a phrase is; optional"),
                     }, "required": ["body"] },
                 },
                 "scenes": scenes_arg(
@@ -664,11 +665,17 @@ fn tools() -> Vec<Value> {
         tool(
             "propose_note",
             "Propose a note — on a work, or on nothing in particular. Lands in the chat with an \
-             *add as note* button; the person decides.",
+             *add as note* button; the person decides. `kind` is the profile's kind of note (see \
+             `workspace`: `note_kinds`): a phrase - one line, a quote with `attribution` - or a \
+             note, the plain note when left out. A phrase may name the `shelf` it goes on, \
+             made when there is none.",
             json!({
                 "work": work_arg(),
-                "title": text_arg("A title for the note, optional"),
+                "kind": text_arg("The kind of note, as `workspace` lists it; optional"),
+                "title": text_arg("A title for the note, optional; a phrase has none"),
                 "body": text_arg("The note itself"),
+                "attribution": text_arg("Whose words a phrase is - the author, the film; optional"),
+                "shelf": text_arg("The shelf a phrase goes on, by name; optional"),
             }),
             &["body"],
         ),
@@ -1052,11 +1059,26 @@ pub fn run_tool(
                     })
                 })
                 .collect();
+            // The kinds of note a work's material is kept as - a phrase, a
+            // note (ADR 0064) - and the cards of the canon apart: those are
+            // read through `canon`.
+            let note_kinds: Vec<Value> = config
+                .note_kinds
+                .iter()
+                .filter(|kind| !kind.is_card())
+                .map(|kind| {
+                    json!({
+                        "key": kind.key, "label": kind.label,
+                        "line": kind.line, "material": kind.material,
+                    })
+                })
+                .collect();
             pretty(&json!({
                 "profile": { "key": profile.key, "name": profile.name, "description": profile.description },
                 "works": works,
                 "fields": fields,
                 "work_kinds": kinds,
+                "note_kinds": note_kinds,
                 "style_types": style_types,
                 "compose": config.compose,
             }))
@@ -1288,7 +1310,14 @@ pub fn run_tool(
                 state,
                 ..NoteFilter::default()
             };
-            pretty(&note::list(conn, &profile.id, &filter)?)
+            read_notes(
+                conn,
+                &profile.id,
+                &config,
+                &filter,
+                arg(args, "shelf"),
+                args.is_empty(),
+            )
         }
 
         // The register of repeats (ADR 0044): the whole of it, or a text
@@ -1334,8 +1363,6 @@ pub fn run_tool(
             let found = find_work(conn, &profile.id, required(args, "work")?)?;
             pretty(&scene::for_work(conn, &found.id)?)
         }
-
-        "words" => read_words(conn, &profile.id, arg(args, "block")),
 
         "styles" => read_styles(conn, &profile.id, &config, args),
 
@@ -1700,6 +1727,8 @@ pub fn run_tool(
                 notes.push(PackagedNote {
                     title: arg(&item, "title").map(str::to_owned),
                     body: required(&item, "body")?.to_owned(),
+                    kind: arg(&item, "kind").map(str::to_owned),
+                    attribution: arg(&item, "attribution").map(str::to_owned),
                 });
             }
 
@@ -2114,8 +2143,17 @@ pub fn run_tool(
                 None => None,
             };
             let body = required(args, "body")?;
+            let kind = arg(args, "kind").map(str::to_owned);
+            if let Some(kind) = kind.as_deref()
+                && !config.note_kind(kind).is_some_and(|found| !found.is_card())
+            {
+                return Err(Error::refused("proposal.unknownNoteKind").param("kind", kind));
+            }
             let proposal = Proposal::Note {
                 title: arg(args, "title").map(str::to_owned),
+                note_kind: kind,
+                attribution: arg(args, "attribution").map(str::to_owned),
+                shelf: arg(args, "shelf").map(str::to_owned),
             };
             deliver(
                 conn,
@@ -2139,61 +2177,69 @@ pub fn run_tool(
     }
 }
 
-/// The `words` tool: the bank by block, in the owner's order, and the words in
-/// no block - each with where it stands, how it is sung and how many works
-/// already say it.
-fn read_words(conn: &Connection, profile_id: &str, block: Option<&str>) -> Result<String> {
-    use crate::register::{self, block as blocks};
-    let entries = register::entries(conn, profile_id)?;
-    let shown = |term_id: &str| -> Option<Value> {
-        let entry = entries.iter().find(|entry| entry.term.id == term_id)?;
-        Some(json!({
-            "word": entry.term.word,
-            "forms": entry.term.forms,
-            "bank": entry.term.bank,
-            "strictness": entry.term.strictness,
-            "sung": entry.term.sung,
-            "sung_in": entry.uses,
-        }))
+/// The `notes` tool: the notes a filter leaves - a phrase with the shelves it
+/// stands on, how many works say it and how it is sung (ADR 0064) - or the
+/// phrases of one shelf; asked for nothing in particular, the shelves too.
+fn read_notes(
+    conn: &Connection,
+    profile_id: &str,
+    config: &profile::config::ProfileConfig,
+    filter: &NoteFilter,
+    shelf: Option<&str>,
+    everything: bool,
+) -> Result<String> {
+    let shelves = crate::shelf::views(conn, profile_id)?;
+    let only = match shelf {
+        Some(named) => Some(
+            crate::shelf::find(conn, profile_id, named)?
+                .ok_or_else(|| Error::refused("shelf.unknown").param("shelf", named))?,
+        ),
+        None => None,
     };
-    let views = blocks::views(conn, profile_id)?;
-    if let Some(named) = block {
-        let found = blocks::find(conn, profile_id, named)?
-            .ok_or_else(|| Error::refused("words.unknownBlock").param("block", named))?;
-        let view = views
-            .iter()
-            .find(|view| view.block.id == found.id)
-            .ok_or_else(|| Error::refused("words.unknownBlock").param("block", named))?;
+    let names = |ids: &[String]| -> Vec<String> {
+        ids.iter()
+            .filter_map(|id| shelves.iter().find(|view| view.shelf.id == *id))
+            .map(|view| view.shelf.name.clone())
+            .collect()
+    };
+    let lines = crate::lines::rows(conn, profile_id, filter)?;
+    let mut out: Vec<Value> = Vec::new();
+    for found in note::list(conn, profile_id, filter)? {
+        let line = config.note_kind(&found.kind).is_some_and(|kind| kind.line);
+        if !line {
+            if only.is_none() {
+                out.push(serde_json::to_value(&found)?);
+            }
+            continue;
+        }
+        let Some(row) = lines.iter().find(|row| row.note.id == found.id) else {
+            continue;
+        };
+        if only
+            .as_ref()
+            .is_some_and(|shelf| !row.shelf_ids.contains(&shelf.id))
+        {
+            continue;
+        }
+        let mut shown = serde_json::to_value(&found)?;
+        if let Some(object) = shown.as_object_mut() {
+            object.insert("shelves".into(), json!(names(&row.shelf_ids)));
+            object.insert("sung_in".into(), json!(row.uses));
+            if !row.sung.is_empty() {
+                object.insert("sung".into(), json!(row.sung));
+            }
+        }
+        out.push(shown);
+    }
+    if everything {
         return pretty(&json!({
-            "block": view.block.name,
-            "words": view.term_ids.iter().filter_map(|id| shown(id)).collect::<Vec<_>>(),
+            "shelves": shelves.iter().map(|view| json!({
+                "id": view.shelf.id, "name": view.shelf.name, "phrases": view.note_ids.len(),
+            })).collect::<Vec<_>>(),
+            "notes": out,
         }));
     }
-    let in_blocks: std::collections::BTreeSet<&str> = views
-        .iter()
-        .flat_map(|view| view.term_ids.iter().map(String::as_str))
-        .collect();
-    let unsorted: Vec<Value> = entries
-        .iter()
-        .filter(|entry| entry.term.bank.is_some() && !in_blocks.contains(entry.term.id.as_str()))
-        .filter_map(|entry| shown(&entry.term.id))
-        .collect();
-    let sung: Vec<Value> = entries
-        .iter()
-        .filter(|entry| entry.term.bank.is_none() && !entry.term.sung.is_empty())
-        .map(|entry| json!({ "word": entry.term.word, "sung": entry.term.sung }))
-        .collect();
-    pretty(&json!({
-        "blocks": views
-            .iter()
-            .map(|view| json!({
-                "block": view.block.name,
-                "words": view.term_ids.iter().filter_map(|id| shown(id)).collect::<Vec<_>>(),
-            }))
-            .collect::<Vec<_>>(),
-        "unsorted": unsorted,
-        "sung_elsewhere": sung,
-    }))
+    pretty(&out)
 }
 
 /// The `canon` tool: the list of cards, one card through a lens, a search of

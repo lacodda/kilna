@@ -17,13 +17,13 @@ word: string,
  */
 forms?: Array<string>, kind?: TermKind, 
 /**
- * Kept in the bank, as fresh.
+ * Kept as a phrase, fresh, for works to come.
  */
-bank?: boolean, 
+phrase?: boolean, 
 /**
- * The block of the bank it goes in, by name; made when there is none.
+ * The shelf the phrase goes on, by name; made when there is none.
  */
-block?: string, 
+shelf?: string, 
 /**
  * How its forms are sung where that is not how they are written.
  */

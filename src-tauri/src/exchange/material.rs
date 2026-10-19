@@ -176,10 +176,10 @@ pub fn register(conn: &Connection, legacy: &Connection, profile_id: &str) -> Res
     Ok(brought)
 }
 
-/// The bank of ideas: phrases as phrases, the predecessor's plain notes as
-/// notes, every other idea - a song, a clip, a picture - as an idea, each in
-/// the state it was left in. A kind the profile does not have falls back to
-/// an idea, then to a note.
+/// The bank of ideas: phrases as phrases, in the state they were left in;
+/// the predecessor's plain notes as notes; every other idea - a song, a clip,
+/// a picture - as a note tagged `idea`, the way the two shelves keep a seed
+/// (ADR 0064). A kind the profile does not have falls back to a note.
 pub fn bank(conn: &Connection, legacy: &Connection, profile_id: &str) -> Result<Brought> {
     let mut brought = Brought::default();
     if !has_table(legacy, "ideas")? {
@@ -187,7 +187,7 @@ pub fn bank(conn: &Connection, legacy: &Connection, profile_id: &str) -> Result<
     }
     let config = crate::profile::config_for(conn, profile_id)?;
     let landing = |wanted: &str| -> String {
-        [wanted, "idea", "note"]
+        [wanted, "note"]
             .into_iter()
             .find(|key| config.note_kind(key).is_some())
             .unwrap_or("note")
@@ -224,6 +224,7 @@ pub fn bank(conn: &Connection, legacy: &Connection, profile_id: &str) -> Result<
     for (kind, title, body, tags, status) in rows {
         let body = body.map(|b| b.trim().to_owned()).filter(|b| !b.is_empty());
         let title = title.trim().to_owned();
+        let seed = !matches!(kind.as_str(), "phrase" | "note");
         let (kind, title, body) = match kind.as_str() {
             // A phrase is its line: the words are the note, not its title.
             "phrase" => {
@@ -233,19 +234,26 @@ pub fn bank(conn: &Connection, legacy: &Connection, profile_id: &str) -> Result<
                 };
                 (landing("phrase"), None, line)
             }
-            "note" => (landing("note"), Some(title), body.unwrap_or_default()),
-            _ => (landing("idea"), Some(title), body.unwrap_or_default()),
+            _ => (landing("note"), Some(title), body.unwrap_or_default()),
         };
         let title = title.filter(|t| !t.is_empty());
         if !present.insert((kind.clone(), title.clone(), body.clone())) {
             continue;
         }
+        // Only what is spent by works says where it stands (ADR 0045).
+        let material = config.note_kind(&kind).is_some_and(|k| k.material);
         let state = match status.as_deref() {
-            Some("used") => NoteState::Used,
-            Some("parked") => NoteState::Parked,
-            Some("dropped") => NoteState::Dropped,
+            Some("used") if material => NoteState::Used,
+            Some("parked") if material => NoteState::Parked,
+            Some("dropped") if material => NoteState::Dropped,
             _ => NoteState::Fresh,
         };
+        let mut tags = tags
+            .and_then(|raw| serde_json::from_str::<Vec<String>>(&raw).ok())
+            .unwrap_or_default();
+        if seed && !tags.iter().any(|tag| tag == "idea") {
+            tags.push("idea".to_owned());
+        }
         note::create(
             conn,
             profile_id,
@@ -253,9 +261,7 @@ pub fn bank(conn: &Connection, legacy: &Connection, profile_id: &str) -> Result<
                 body,
                 kind: Some(kind),
                 title,
-                tags: tags
-                    .and_then(|raw| serde_json::from_str::<Vec<String>>(&raw).ok())
-                    .unwrap_or_default(),
+                tags,
                 state: Some(state),
                 ..NewNote::default()
             },

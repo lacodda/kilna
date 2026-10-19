@@ -33,6 +33,8 @@ export const refresh = {
     keys.works,
     keys.calendar,
     keys.register,
+    // A phrase says how many works say it now.
+    keys.linesAll,
   ],
   /** A score: every screen that ranks or tiers works, and the calendar, whose
    *  readiness asks for a score. */
@@ -63,10 +65,12 @@ export const refresh = {
    *  says which collection a work is in - the catalogue's rows, a card's
    *  header. */
   collection: [keys.collections, keys.catalogue, keys.works] as readonly QueryKey[],
+  /** A note, a phrase or a shelf: every list of them - the phrases and the
+   *  shelves are under the notes - and the tags they carry. */
   note: [keys.notes, keys.tags] as readonly QueryKey[],
-  /** A term of the register: the list, its works, and every text checked
-   *  against it. */
-  term: [keys.register] as readonly QueryKey[],
+  /** A term of the register: the list, its works, every text checked against
+   *  it, and the phrases, which say how their words are sung. */
+  term: [keys.register, keys.linesAll] as readonly QueryKey[],
   comment: [keys.comments, keys.publications] as readonly QueryKey[],
   /** A comment or a reply kept from an answer: the inbox and the proposal it was. */
   keptComment: [keys.comments, keys.pendingProposals, keys.transcripts] as readonly QueryKey[],

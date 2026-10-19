@@ -16,9 +16,9 @@ interface Props {
 
 /**
  * Words proposed for the record, one item each (ADR 0052): the word, then
- * what keeping it would write - into the bank and which block, how it is
- * sung, how strictly the register takes it, the works a meaning is in - and
- * why it was proposed. A box beside each keeps it or leaves it out, the way a
+ * what keeping it would write - a phrase and the shelf it goes on (ADR 0064),
+ * how it is sung, how strictly the register takes it, the works a meaning is
+ * in - and why it was proposed. A box beside each keeps it or leaves it out, the way a
  * package for the canon is read: one wrong word must not cost the right ones.
  *
  * The same list under an answer in a chat and in the dialog that reads the
@@ -71,17 +71,19 @@ export function WordsPackageView({ pack, chosen, onChosen, answered = false }: P
 /** One word: what it is, what keeping it writes, and why it was proposed. */
 function Word({ word }: { word: ProposedWord }) {
   const { t } = useTranslation()
-  // A block the bank has not got yet is made on keeping (ADR 0052), and the
-  // person should know a name is about to become a block.
-  const blocks = useQuery(queries.blocks())
+  // A shelf nobody has made yet is made on keeping (ADR 0064), and the
+  // person should know a name is about to become a shelf.
+  const shelves = useQuery(queries.shelves())
   const known = (name: string) =>
-    (blocks.data ?? []).some((block) => block.name.toLowerCase() === name.toLowerCase())
+    (shelves.data ?? []).some(
+      (shelf) => shelf.name.toLocaleLowerCase() === name.trim().toLocaleLowerCase(),
+    )
 
   const writes = [
-    word.block !== undefined
-      ? t(known(word.block) ? 'words.toBlock' : 'words.toNewBlock', { block: word.block })
-      : word.bank === true
-        ? t('words.toBank')
+    word.phrase === true && word.shelf !== undefined
+      ? t(known(word.shelf) ? 'words.toShelf' : 'words.toNewShelf', { shelf: word.shelf })
+      : word.phrase === true
+        ? t('words.toPhrase')
         : null,
     word.strictness !== undefined
       ? t('words.toRegister', { strictness: t(`register.strictnesses.${word.strictness}`) })

@@ -8,7 +8,7 @@ import { announceEdited } from '@/lib/edited'
 import { isMaterial, titleOf } from '@/lib/notes'
 import { keys } from '@/lib/query/keys'
 import { useAppMutation } from '@/lib/query/useAppMutation'
-import { say as sayLabel, useProfile, vocabularyOf } from '@/lib/useProfile'
+import { say as sayLabel, useProfile } from '@/lib/useProfile'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/AppDialog'
 import { Input } from '@/components/ui/input'
@@ -24,15 +24,15 @@ interface Props {
 }
 
 /**
- * An idea grown up into a work.
+ * A note grown up into a work.
  *
  * Asks the two things a work cannot be made without — what kind it is and what
- * it is called — and says where the text will go, because the note itself will
- * not stay: its body becomes the work's first version and the note goes to the
- * trash, so the same words do not live in two places. Undo takes it all back.
+ * it is called — and says what becomes of the note: it stays, attached to the
+ * new work, as what the work grows from (ADR 0064). Nothing is copied, so the
+ * words live in one place. Undo takes it all back.
  *
- * Except material: an idea or a phrase stays in the bank, marked used and tied
- * to the new work, so it is not taken twice (ADR 0045) - and the dialog says so.
+ * A phrase is spent as well: marked used, so it is not taken twice (ADR 0045)
+ * - and the dialog says so.
  */
 export function PromoteNoteDialog({ open, onOpenChange, note, onPromoted }: Props) {
   const { t } = useTranslation()
@@ -53,10 +53,6 @@ export function PromoteNoteDialog({ open, onOpenChange, note, onPromoted }: Prop
     setOpenedFor(null)
   }
 
-  const role = vocabularyOf(config, kind).version_roles.find(
-    (one) => one.counts_as_version ?? one.comments_on == null,
-  )
-
   const promote = useAppMutation({
     mutationFn: () => promoteNote(note.id, { kind, title: title.trim() }),
     failure: 'notes.promoteFailed',
@@ -64,22 +60,14 @@ export function PromoteNoteDialog({ open, onOpenChange, note, onPromoted }: Prop
       announceEdited({
         client,
         message: t('notes.promoted', { title: title.trim() }),
-        refresh: [
-          keys.notes,
-          keys.tags,
-          keys.works,
-          keys.workspace,
-          keys.catalogue,
-          keys.deletions,
-          keys.journal,
-        ],
+        refresh: [keys.notes, keys.tags, keys.works, keys.workspace, keys.catalogue, keys.journal],
       })
       onOpenChange(false)
       onPromoted(promoted.work_id)
     },
   })
 
-  const ready = kind !== '' && title.trim() !== '' && role !== undefined
+  const ready = kind !== '' && title.trim() !== ''
 
   return (
     <Dialog
@@ -87,11 +75,7 @@ export function PromoteNoteDialog({ open, onOpenChange, note, onPromoted }: Prop
       onOpenChange={onOpenChange}
       title={t('notes.promoteTitle')}
       description={
-        role === undefined
-          ? t('notes.promoteNoRole')
-          : isMaterial(config, note.kind)
-            ? t('notes.promoteBodyMaterial', { role: sayLabel(role.label) })
-            : t('notes.promoteBody', { role: sayLabel(role.label) })
+        isMaterial(config, note.kind) ? t('notes.promoteBodyMaterial') : t('notes.promoteBody')
       }
       footer={
         <Button

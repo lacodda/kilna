@@ -69,10 +69,20 @@ pub enum Proposal {
         from: Option<String>,
     },
     /// A note, on the chat's work or on nothing in particular; the body is
-    /// the message body. Made by an agent outside the window.
+    /// the message body. Made by an agent outside the window. Its kind is the
+    /// profile's - a phrase or a note (ADR 0064) - the plain note when it
+    /// says none; a phrase may say whose words it is and the shelf it goes
+    /// on, made when there is none.
     Note {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         title: Option<String>,
+        /// Named apart from the proposal's own `kind`, its tag.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        note_kind: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        attribution: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        shelf: Option<String>,
     },
     /// A whole work, or a package of changes to one: the fields of the
     /// overview, versions by role, a score, notes — applied together with one
@@ -321,12 +331,20 @@ pub struct PackagedRelease {
     pub unknown_fields: Vec<String>,
 }
 
-/// A note inside a package.
+/// A note inside a package: a note or a phrase of the work (ADR 0064).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
 pub struct PackagedNote {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     pub body: String,
+    /// The profile's kind of note; the plain note when absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub kind: Option<String>,
+    /// Whose words a phrase is.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub attribution: Option<String>,
 }
 
 /// Marks along the axes, checked against the kind — the inside of a score

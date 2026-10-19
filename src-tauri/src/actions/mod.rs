@@ -35,6 +35,7 @@ pub mod register;
 pub mod release;
 pub mod scene;
 pub mod score;
+pub mod shelf;
 pub mod style;
 pub mod time_off;
 pub mod trash;

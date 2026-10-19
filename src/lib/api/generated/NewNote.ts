@@ -2,7 +2,11 @@
 import type { Layer } from "./Layer";
 import type { NoteState } from "./NoteState";
 
-export type NewNote = { body: string, kind?: string, title?: string, work_id?: string, tags?: Array<string>, 
+export type NewNote = { body: string, kind?: string, title?: string, 
+/**
+ * Whose words they are, for a quote.
+ */
+attribution?: string, work_id?: string, tags?: Array<string>, 
 /**
  * The public layer when absent.
  */

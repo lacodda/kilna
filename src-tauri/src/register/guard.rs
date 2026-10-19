@@ -17,8 +17,8 @@
 //! the language's frequency list (the language pack) and in no more than a
 //! couple of the owner's own works - a word the owner says in twenty songs is
 //! theirs, and spent only if the register says so; or a word the owner keeps
-//! in the bank. A word in another script has no frequency to read and is
-//! rare only when the bank says so. Measured on the owner's workspace on
+//! as a phrase of its own (ADR 0064). A word in another script has no
+//! frequency to read and is rare only when the owner keeps it so. Measured on the owner's workspace on
 //! 2026-10-01: the register's "rare" terms, read as rare words, lit 69 songs
 //! red for words already in twenty songs each; English lines lit a dozen
 //! more.
@@ -35,7 +35,6 @@ use rusqlite::{Connection, params};
 use serde::Serialize;
 use time::{Date, macros::format_description};
 
-use super::Bank;
 use super::matching::{Matcher, Stems};
 use crate::error::Result;
 use crate::words::{self, pack};
@@ -288,7 +287,8 @@ pub fn all(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Repea
         }
     }
 
-    // The register, found in each text; and the bank's words by stem.
+    // The register, found in each text; and the words kept as phrases, by
+    // stem.
     let terms = super::list(conn, profile_id)?;
     let spent: Vec<super::Term> = terms
         .iter()
@@ -329,16 +329,11 @@ pub fn all(conn: &Connection, profile_id: &str, today: &str) -> Result<Vec<Repea
             out
         })
         .collect();
-    let banked: BTreeSet<String> = terms
-        .iter()
-        .filter(|term| term.bank.is_some() && term.bank != Some(Bank::Dropped))
-        .flat_map(|term| std::iter::once(&term.word).chain(term.forms.iter()))
-        .map(|word| stems.of(word))
-        .collect();
-    // A word is rare when the bank keeps it, or when it is a Russian word
+    let kept = kept_words(conn, profile_id, &terms, &mut stems)?;
+    // A word is rare when the owner keeps it, or when it is a Russian word
     // past the rank and in no more than a couple of the owner's works.
     let is_rare = |stem: &str, word: &str| -> bool {
-        if banked.contains(stem) {
+        if kept.contains(stem) {
             return true;
         }
         if !pack::is_cyrillic(word) {
@@ -631,6 +626,39 @@ pub fn sweep(conn: &Connection) -> Result<usize> {
     )?)
 }
 
+/// The stems of the words the owner keeps: a phrase that is one word and is
+/// not given up on, with the forms the record counts as that word. A phrase of
+/// several words is a line, not a word, and makes none of its words rare.
+fn kept_words(
+    conn: &Connection,
+    profile_id: &str,
+    terms: &[super::Term],
+    stems: &mut Stems,
+) -> Result<BTreeSet<String>> {
+    let lines = crate::note::list(
+        conn,
+        profile_id,
+        &crate::note::NoteFilter {
+            line: Some(true),
+            ..crate::note::NoteFilter::default()
+        },
+    )?;
+    let mut out = BTreeSet::new();
+    for line in lines {
+        if line.state == crate::note::NoteState::Dropped || words::words(&line.body).len() != 1 {
+            continue;
+        }
+        let plain = words::plain(&line.body);
+        out.insert(stems.of(&plain));
+        if let Some(term) = terms.iter().find(|term| words::plain(&term.word) == plain) {
+            for form in &term.forms {
+                out.insert(stems.of(form));
+            }
+        }
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -641,6 +669,20 @@ mod tests {
 
     /// A song with its lyric, and - when `out` names a day - an audio made
     /// from it that went out that day.
+    /// A phrase kept as the owner keeps one.
+    fn keep(conn: &Connection, profile_id: &str, body: &str) {
+        crate::note::create(
+            conn,
+            profile_id,
+            crate::note::NewNote {
+                body: body.into(),
+                kind: Some("phrase".into()),
+                ..crate::note::NewNote::default()
+            },
+        )
+        .unwrap();
+    }
+
     fn song(
         conn: &Connection,
         profile_id: &str,
@@ -742,10 +784,10 @@ mod tests {
                 forms: vec!["кофе".into()],
                 ..NewTerm::default()
             },
-            NewTerm::banked("пульсар"),
         ] {
             register::create(&conn, &profile_id, term).unwrap();
         }
+        keep(&conn, &profile_id, "пульсар");
         song(
             &conn,
             &profile_id,
@@ -821,9 +863,11 @@ mod tests {
     }
 
     #[test]
-    fn a_word_of_the_bank_is_rare_however_common_and_a_song_that_went_out_is_not_held() {
+    fn a_word_kept_as_a_phrase_is_rare_however_common_and_a_song_that_went_out_is_not_held() {
         let (conn, profile_id) = fixtures::workspace();
-        register::create(&conn, &profile_id, NewTerm::banked("окно")).unwrap();
+        keep(&conn, &profile_id, "окно");
+        // A line of several words makes none of its words rare.
+        keep(&conn, &profile_id, "открытое небо");
         let out = song(
             &conn,
             &profile_id,
@@ -831,7 +875,7 @@ mod tests {
             "открытое окно",
             Some("2026-09-01"),
         );
-        let draft = song(&conn, &profile_id, "Draft", "моё окно", None);
+        let draft = song(&conn, &profile_id, "Draft", "моё окно, открытое", None);
 
         assert_eq!(
             findings(&conn, &profile_id, &draft),
@@ -845,7 +889,7 @@ mod tests {
 
     /// The register's own word is spent, whatever it calls it and however
     /// recently it went out: orange. A word in another script has no
-    /// frequency to read, and is not rare unless the bank keeps it.
+    /// frequency to read, and is not rare unless the owner keeps it.
     #[test]
     fn a_term_of_the_register_is_orange_and_a_foreign_word_is_not_rare() {
         let (conn, profile_id) = fixtures::workspace();

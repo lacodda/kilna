@@ -177,7 +177,6 @@ mod tests {
             forms: forms.iter().map(|f| (*f).to_owned()).collect(),
             kind,
             strictness: Some(Strictness::Limit),
-            bank: None,
             sung: Vec::new(),
             topic: None,
             note: None,

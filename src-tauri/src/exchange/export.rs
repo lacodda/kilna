@@ -280,13 +280,18 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
                     "- {}",
                     one_folder_down(&note.body).replace('\n', "\n  ")
                 ));
+                if let Some(whose) = &note.attribution {
+                    page.push_str(&format!(" — {whose}"));
+                }
                 if !note.tags.is_empty() {
                     page.push_str(&format!(" _({})_", note.tags.join(", ")));
                 }
-                // An idea or a phrase says it was spent here (ADR 0045).
+                // A phrase says it was spent here (ADR 0045), and where it
+                // stands (ADR 0064).
                 if is_material(&profile.config, &note.kind) {
                     page.push_str(&format!(" · {} {}", note.kind, note.state.as_str()));
                 }
+                push_shelves(conn, &mut page, &note.id, " · on ")?;
                 page.push('\n');
             }
         }
@@ -330,12 +335,16 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
             }
             pictures.extend(asset::linked_from(&note.body));
             page.push_str(&format!("{}\n", note.body));
+            if let Some(whose) = &note.attribution {
+                page.push_str(&format!("\n— {whose}\n"));
+            }
             if !note.tags.is_empty() {
                 page.push_str(&format!("\n_{}_\n", note.tags.join(", ")));
             }
             if is_material(&profile.config, &note.kind) {
                 page.push_str(&format!("\n{}: {}\n", note.kind, note.state.as_str()));
             }
+            push_shelves(conn, &mut page, &note.id, "\non: ")?;
             page.push('\n');
         }
         std::fs::write(directory.join("notes.md"), page)?;
@@ -400,6 +409,19 @@ pub fn to_markdown(conn: &Connection, directory: &Path) -> Result<ExportReport> 
     })
 }
 
+/// The shelves a phrase stands on, after `lead`, when it stands on any: an
+/// export is the whole record, and the owner's sorting is part of it.
+fn push_shelves(conn: &Connection, page: &mut String, note_id: &str, lead: &str) -> Result<()> {
+    let shelves = crate::shelf::of_note(conn, note_id)?;
+    if !shelves.is_empty() {
+        page.push_str(&format!("{lead}{}", shelves.join(", ")));
+        if lead.starts_with('\n') {
+            page.push('\n');
+        }
+    }
+    Ok(())
+}
+
 /// Whether notes of `kind` are material: spent by works, with a state.
 fn is_material(config: &crate::profile::config::ProfileConfig, kind: &str) -> bool {
     config.note_kind(kind).is_some_and(|kind| kind.material)
@@ -451,26 +473,8 @@ fn register_page(conn: &Connection, profile_id: &str) -> Result<Option<String>> 
             page.push('\n');
         }
     }
-    // The words that are not spent: kept in the bank, or there only for how
-    // they are sung (ADR 0052) - the record of them is this page too.
-    let kept: Vec<_> = entries
-        .iter()
-        .filter(|entry| entry.term.strictness.is_none())
-        .collect();
-    if !kept.is_empty() {
-        page.push_str("\n## words\n\n");
-        for entry in kept {
-            let term = &entry.term;
-            page.push_str(&format!("- **{}**", term.word));
-            if let Some(bank) = term.bank {
-                page.push_str(&format!(" — {}", bank.as_str()));
-            }
-            if entry.uses > 0 {
-                page.push_str(&format!(" · sung in {} works", entry.uses));
-            }
-            page.push('\n');
-        }
-    }
+    // A word that is not spent is in the record for how it is sung (ADR
+    // 0052): the list below is the record of it.
     let sung: Vec<String> = entries
         .iter()
         .flat_map(|entry| entry.term.sung.iter())

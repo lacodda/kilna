@@ -26,9 +26,9 @@ interface Props {
  * word, each with what keeping it writes and a box to leave it out, like a
  * package for the canon: one wrong meaning must not cost the right ones.
  *
- * Kept, the mark says how many words the record took (`Outcome.terms`), and
- * the way on leads where they went: the bank when any went into it, the
- * register otherwise.
+ * Kept, the mark says how many words the record took (`Outcome.terms`) and
+ * how many phrases were kept (`Outcome.notes`), and the way on leads where
+ * they went: the phrases when any were kept, the register otherwise.
  */
 export function ProposedWords({ messageId, proposal, applied, dismissed }: Props) {
   const { t } = useTranslation()
@@ -40,10 +40,10 @@ export function ProposedWords({ messageId, proposal, applied, dismissed }: Props
   const keep = useApplyProposal({
     messageId,
     message: t('words.keptFromChat'),
-    refresh: [...refresh.term, keys.pendingProposals],
+    refresh: [...refresh.term, ...refresh.note, keys.pendingProposals],
   })
 
-  const banked = pack.words.some((word) => word.bank === true || word.block !== undefined)
+  const kept = pack.words.some((word) => word.phrase === true)
   const first = applied?.terms?.[0]
   const answered = applied !== null || dismissed
 
@@ -63,11 +63,13 @@ export function ProposedWords({ messageId, proposal, applied, dismissed }: Props
       // Whole when every box is ticked: the backend keeps the package as it
       // read it, rather than a list that happens to name all of it.
       onApply={() => keep.mutate(chosen.length === all.length ? undefined : { items: chosen })}
-      appliedLabel={t('words.keptMark', { count: applied?.terms?.length ?? 0 })}
+      appliedLabel={t('words.keptMark', {
+        count: (applied?.terms?.length ?? 0) + (applied?.notes?.length ?? 0),
+      })}
       afterApplied={
-        banked ? (
-          <Button size="xs" variant="ghost" onClick={() => void navigate('/notes?words')}>
-            {t('words.openBank')}
+        kept ? (
+          <Button size="xs" variant="ghost" onClick={() => void navigate('/notes?kind=phrase')}>
+            {t('words.openPhrases')}
           </Button>
         ) : first !== undefined ? (
           <Button size="xs" variant="ghost" onClick={() => void navigate(`/register/${first}`)}>

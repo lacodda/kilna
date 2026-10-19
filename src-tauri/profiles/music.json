@@ -2000,15 +2000,6 @@
         ]
       },
       {
-        "key": "idea",
-        "label": {
-          "en": "Idea",
-          "ru": "Идея"
-        },
-        "icon": "lightbulb",
-        "material": true
-      },
-      {
         "key": "phrase",
         "label": {
           "en": "Phrase",

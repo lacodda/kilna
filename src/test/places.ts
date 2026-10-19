@@ -16,7 +16,9 @@ export const SCREENS: [path: string, shows: string][] = [
   ['/calendar', 'Paper Lanterns (clip)'],
   ['/collections', 'Riverside'],
   [`/collections/${IDS.collection}`, en.collections.works],
-  ['/notes', 'A song about tides'],
+  // The first shelf is the phrases (ADR 0064); the studio keeps none.
+  ['/notes', en.notes.linesEmpty],
+  ['/notes?kind=note', 'A song about tides'],
   [`/notes/${IDS.note}`, 'Something about the tide going out and taking the day with it.'],
   ['/comments', 'The shot on the bridge is beautiful.'],
   [`/comments/${IDS.comment}`, 'Paper Lanterns (clip)'],

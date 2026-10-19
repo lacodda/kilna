@@ -24,7 +24,6 @@ function entry(id: string, word: string, extra: Partial<RegisterEntry>): Registe
     forms: [],
     kind: 'noun',
     strictness: 'limit',
-    bank: null,
     sung: [],
     topic: null,
     note: null,

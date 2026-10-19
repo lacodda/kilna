@@ -158,6 +158,10 @@ export type { NoteFilter } from './generated/NoteFilter'
 export type { Promotion } from './generated/Promotion'
 export type { Promoted } from './generated/Promoted'
 export type { ResolvedLink } from './generated/ResolvedLink'
+export type { LineRow } from './generated/LineRow'
+export type { Kept } from './generated/Kept'
+export type { Shelf } from './generated/Shelf'
+export type { ShelfView } from './generated/ShelfView'
 export type { NoteState } from './generated/NoteState'
 
 // The register of repeats, and a text checked against it (ADR 0044).
@@ -174,11 +178,7 @@ export type { TermHit } from './generated/TermHit'
 export type { RepeatGroup } from './generated/RepeatGroup'
 // The word's other facets, the bank's blocks, and words proposed for the
 // record (ADR 0052).
-export type { Bank } from './generated/Bank'
 export type { Sung } from './generated/Sung'
-export type { TermBlock } from './generated/TermBlock'
-export type { BlockView } from './generated/BlockView'
-export type { Banked } from './generated/Banked'
 export type { WordsPackage } from './generated/WordsPackage'
 export type { PhraseHit } from './generated/PhraseHit'
 export type { UnknownPhrase } from './generated/UnknownPhrase'

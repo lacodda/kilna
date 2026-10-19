@@ -22,12 +22,6 @@
         "label": "Source"
       },
       {
-        "icon": "lightbulb",
-        "key": "idea",
-        "label": "Idea",
-        "material": true
-      },
-      {
         "icon": "quote",
         "key": "phrase",
         "label": "Phrase",

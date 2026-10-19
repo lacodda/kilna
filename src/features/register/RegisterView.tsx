@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Plus, TextSearch } from 'lucide-react'
 import type { RegisterEntry, TermKind } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
 import { FACETS, inFacet, strictnessStatus, TERM_KINDS, type Facet } from '@/lib/register'
@@ -18,12 +18,14 @@ import { Frame, ListDetail, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
 import { NewTermDialog } from '@/features/register/NewTermDialog'
 import { TermDetail } from '@/features/register/TermDetail'
+import { FromTextsDialog } from '@/features/words/FromTextsDialog'
 
 /**
  * The register of repeats (ADR 0044): what the works have spent, strictest
  * first, each term with how many works carry it now - and, since one word is
- * one record (ADR 0052), the same list read by its other facets: the words
- * kept in the bank, the words sung their own way.
+ * one record (ADR 0052), the same list read by its other facet: the words
+ * sung their own way - and what the owner's sung texts already say about
+ * singing, one button away.
  *
  * The count is the register's reason to be read by eye, so it stands at the
  * end of every row and the list can be ordered by it. It is read off the
@@ -43,6 +45,7 @@ export function RegisterView() {
   const [kind, setKind] = useState<TermKind | ''>('')
   const [text, setText] = useState('')
   const [adding, setAdding] = useState(false)
+  const [finding, setFinding] = useState(false)
 
   const all = useMemo(() => terms.data ?? [], [terms.data])
   const counts = useMemo(() => {
@@ -99,7 +102,11 @@ export function RegisterView() {
             aria-label={t('register.search')}
             className="w-56"
           />
-          <Button variant="primary" className="ml-auto" onClick={() => setAdding(true)}>
+          <Button className="ml-auto" onClick={() => setFinding(true)}>
+            <TextSearch aria-hidden />
+            {t('words.fromTexts')}
+          </Button>
+          <Button variant="primary" onClick={() => setAdding(true)}>
             <Plus aria-hidden />
             {t('register.new')}
           </Button>
@@ -186,6 +193,7 @@ export function RegisterView() {
         }
       />
       <NewTermDialog open={adding} onOpenChange={setAdding} />
+      {finding && <FromTextsDialog open onOpenChange={setFinding} />}
     </Frame>
   )
 }

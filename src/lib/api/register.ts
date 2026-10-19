@@ -1,13 +1,10 @@
 import { invoke } from '@tauri-apps/api/core'
 import type {
-  Banked,
-  BlockView,
   NewTerm,
   RegisterEntry,
   RepeatMark,
   Repeats,
   Term,
-  TermBlock,
   TermPatch,
   TermUse,
   TextCheck,
@@ -43,28 +40,12 @@ export const checkText = (text: string, sung = false, workId?: string, role?: st
  *  back (ADR 0053). */
 export const cleanText = (text: string) => invoke<string>('clean_text', { text })
 
-// The bank of words: blocks, and the words put in them (ADR 0052).
+// Words for the record: ways of singing, terms (ADR 0052).
 
-/** The blocks in the owner's order, each with its words. */
-export const listBlocks = () => invoke<BlockView[]>('list_blocks')
-export const createBlock = (name: string) => invoke<TermBlock>('create_block', { name })
-export const renameBlock = (id: string, name: string) =>
-  invoke<TermBlock>('rename_block', { id, name })
-/** Put a block at `index` in the order; the blocks as they now stand. */
-export const moveBlock = (id: string, index: number) =>
-  invoke<TermBlock[]>('move_block', { id, index })
-/** Into the trash, with the words put in it; the words stay in the bank. */
-export const deleteBlock = (id: string) => invoke<string>('delete_block', { id })
-export const addToBlock = (blockId: string, termId: string) =>
-  invoke<null>('add_to_block', { blockId, termId })
-export const removeFromBlock = (blockId: string, termId: string) =>
-  invoke<null>('remove_from_block', { blockId, termId })
-/** Words into the bank - and into a block, when one is named. */
-export const bankWords = (words: string[], blockId: string | null) =>
-  invoke<Banked>('bank_words', { words, blockId })
 /** What the owner's sung texts already say about singing, proposed. */
 export const wordsFromTexts = () => invoke<WordsPackage>('words_from_texts')
-/** Keep a package of words whole, or the items named (`word:N`). */
+/** Keep a package of words whole, or the items named (`word:N`): the ids of
+ *  the words written, then of the phrases kept. */
 export const keepWords = (pkg: WordsPackage, items: string[] | null) =>
   invoke<string[]>('keep_words', { package: pkg, items })
 

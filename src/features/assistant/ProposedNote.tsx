@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import type { Applied, NoteProposal } from '@/lib/api/types'
 import { keys } from '@/lib/query/keys'
 import { useApplyProposal } from '@/lib/useApplyProposal'
+import { labelOf, useProfile } from '@/lib/useProfile'
 import { ProposalCard } from '@/features/assistant/ProposalCard'
 
 interface Props {
@@ -21,9 +22,19 @@ interface Props {
  * table, no mark saying a machine suggested it — on the chat's work, or on
  * nothing when the chat is about nothing. The toast offers to take it back,
  * since adding a note is one of the things undo covers.
+ *
+ * A phrase says it is one, whose words it is and the shelf it goes on (ADR
+ * 0064): what keeping it writes is read before it is written.
  */
 export function ProposedNote({ messageId, proposal, applied, dismissed }: Props) {
   const { t } = useTranslation()
+  const { config } = useProfile()
+  const kinds = config.note_kinds ?? []
+  const said = [
+    proposal.note_kind != null ? labelOf(kinds, proposal.note_kind) : null,
+    proposal.attribution != null ? `— ${proposal.attribution}` : null,
+    proposal.shelf != null ? t('assistant.noteOnShelf', { shelf: proposal.shelf }) : null,
+  ].filter((part) => part !== null)
 
   const keep = useApplyProposal({
     messageId,
@@ -47,6 +58,7 @@ export function ProposedNote({ messageId, proposal, applied, dismissed }: Props)
       {proposal.title != null && proposal.title !== '' && (
         <b className="font-semibold text-text">{proposal.title}</b>
       )}
+      {said.length > 0 && <p className="text-xs text-dim">{said.join(' · ')}</p>}
     </ProposalCard>
   )
 }

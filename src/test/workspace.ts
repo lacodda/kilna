@@ -329,6 +329,7 @@ export function studio(): Studio {
       prompt: null,
       prompt_basis: null,
       state: 'fresh',
+      attribution: null,
     },
     {
       id: IDS.character,
@@ -345,6 +346,7 @@ export function studio(): Studio {
       prompt: 'an old man in a grey coat with a pole of paper lanterns',
       prompt_basis: 'f00d',
       state: 'fresh',
+      attribution: null,
     },
   ]
 
@@ -1138,9 +1140,27 @@ export function answersFor(studio: Studio): Record<string, Handler> {
       unknown: [],
     }),
     clean_text: ({ text }) => text,
-    // The bank of words and the guard of repeats (v0.90): empty until a
-    // test says otherwise.
-    list_blocks: () => [],
+    // The phrases with what the record knows about them, and their shelves
+    // (ADR 0064): no shelves, no works saying them, until a test says
+    // otherwise.
+    list_lines: ({ filter }) => {
+      const wanted = (filter ?? {}) as {
+        work_id?: string | null
+        tag?: string | null
+        state?: string | null
+      }
+      return studio.notes
+        .filter(
+          (note) =>
+            isLineKind(studio, note.kind) &&
+            (wanted.work_id == null || note.work_id === wanted.work_id) &&
+            (wanted.tag == null || note.tags.includes(wanted.tag)) &&
+            (wanted.state == null || note.state === wanted.state),
+        )
+        .map((note) => ({ ...note, shelf_ids: [], uses: 0, sung: [], term_id: null }))
+    },
+    list_shelves: () => [],
+    // The guard of repeats (v0.90): empty until a test says otherwise.
     words_from_texts: () => ({ words: [] }),
     repeat_marks: () => [],
     work_repeats: () => null,

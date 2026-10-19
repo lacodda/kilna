@@ -181,8 +181,14 @@ export const keys = {
    *  by whether it is sung (ADR 0053). */
   textCheck: (text: string, sung: boolean, workId: string | null, role: string | null) =>
     ['register', 'check', sung, workId, role, text] as const,
-  /** The bank's blocks, each with its words (ADR 0052). */
-  blocks: ['register', 'blocks'] as const,
+  /** The shelves of phrases, each with its phrases (ADR 0064). Under the
+   *  notes, so a note written refreshes them. */
+  shelves: ['notes', 'shelves'] as const,
+  /** Every list of phrases, whatever its filter: what a text, a way of
+   *  singing or a shelf changes. */
+  linesAll: ['notes', 'lines'] as const,
+  /** The phrases under the filter they are read through. */
+  lines: (filter: object) => ['notes', 'lines', filter] as const,
   /** What the owner's sung texts already say about singing, proposed. */
   wordsFromTexts: ['register', 'fromTexts'] as const,
   /** The guard of repeats (ADR 0054), by the day it is read on: every

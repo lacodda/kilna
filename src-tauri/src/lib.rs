@@ -21,6 +21,7 @@ pub mod folder;
 pub mod journal;
 pub mod lab;
 pub mod layout;
+pub mod lines;
 pub mod link;
 pub mod log;
 pub mod mcp;
@@ -42,6 +43,7 @@ pub mod scene_frame;
 pub mod scene_note;
 pub mod score;
 pub mod search;
+pub mod shelf;
 pub mod state;
 pub mod style_brick;
 pub mod style_set;
@@ -204,6 +206,15 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::assistant::start_lab_task,
             commands::assistant::stop_task,
             commands::notes::list_notes,
+            commands::notes::list_lines,
+            commands::notes::keep_lines,
+            commands::notes::list_shelves,
+            commands::notes::create_shelf,
+            commands::notes::rename_shelf,
+            commands::notes::move_shelf,
+            commands::notes::delete_shelf,
+            commands::notes::add_to_shelf,
+            commands::notes::remove_from_shelf,
             commands::notes::create_note,
             commands::notes::update_note,
             commands::notes::delete_note,
@@ -221,14 +232,6 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::register::unlink_term,
             commands::register::check_text,
             commands::register::clean_text,
-            commands::register::list_blocks,
-            commands::register::create_block,
-            commands::register::rename_block,
-            commands::register::move_block,
-            commands::register::delete_block,
-            commands::register::add_to_block,
-            commands::register::remove_from_block,
-            commands::register::bank_words,
             commands::register::words_from_texts,
             commands::register::keep_words,
             commands::register::repeat_marks,

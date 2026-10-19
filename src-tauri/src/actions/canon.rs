@@ -414,6 +414,7 @@ pub fn keep_package(
                 body: card.note.unwrap_or_default(),
                 kind: Some(card.kind),
                 title: Some(card.title),
+                attribution: None,
                 work_id: card.work_id,
                 tags: Vec::new(),
                 layer: card.layer,

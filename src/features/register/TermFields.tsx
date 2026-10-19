@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Plus, X } from 'lucide-react'
-import type { Bank, Strictness, Sung, TermKind } from '@/lib/api/types'
+import type { Strictness, Sung, TermKind } from '@/lib/api/types'
 import { queries } from '@/lib/query/queries'
-import { BANK, STRICTNESS, TERM_KINDS } from '@/lib/register'
+import { STRICTNESS, TERM_KINDS } from '@/lib/register'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -49,7 +49,7 @@ const NONE = 'none'
 
 /**
  * How strictly it is off limits - which decides how it is marked - or, for a
- * word kept for the bank or for how it is sung, not spent at all (ADR 0052).
+ * word kept for how it is sung, not spent at all (ADR 0052).
  * `optional` offers that last choice; the dialog that adds a term to the
  * register leaves it out.
  */
@@ -79,31 +79,6 @@ export function StrictnessPicker({
           <span title={t(`register.strictnessHints.${one}`)}>
             {t(`register.strictnesses.${one}`)}
           </span>
-        </Segment>
-      ))}
-    </SegmentedControl>
-  )
-}
-
-/** Where a word stands in the bank of words, or that it is not kept there. */
-export function BankPicker({
-  value,
-  onChange,
-}: {
-  value: Bank | null
-  onChange: (bank: Bank | null) => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <SegmentedControl
-      aria-label={t('words.bank')}
-      value={value ?? NONE}
-      onValueChange={(next) => onChange(next === NONE ? null : (next as Bank))}
-    >
-      <Segment value={NONE}>{t('words.notBanked')}</Segment>
-      {BANK.map((one) => (
-        <Segment key={one} value={one}>
-          {t(`words.states.${one}`)}
         </Segment>
       ))}
     </SegmentedControl>
