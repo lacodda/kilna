@@ -76,6 +76,8 @@ beforeEach(() => {
     update_note: ({ id }) => workspace.notes.find((note) => note.id === id),
     keep_lines: () => ({ notes: [workspace.notes[0]], created: 1 }),
     add_to_shelf: () => null,
+    list_tags: () => [['sea', 4]],
+    retag_notes: () => 4,
   })
 })
 
@@ -161,5 +163,21 @@ describe('the phrases', () => {
         name: en.notes.linePlaceholderOn.replace('{{shelf}}', 'The sea'),
       }),
     ).toBeInTheDocument()
+  })
+
+  it('takes a tag off every note at once, from the tag on show', async () => {
+    const { client, main } = await phrases()
+
+    fireEvent.click(await within(main).findByRole('combobox', { name: en.notes.tag }))
+    // Base UI picks on the press, as a pointer makes it.
+    const sea = await screen.findByRole('option', { name: /^sea/ })
+    fireEvent.pointerDown(sea, { pointerType: 'mouse' })
+    fireEvent.click(sea)
+    await settled(client)
+    fireEvent.click(within(main).getByRole('button', { name: en.notes.tagMenu }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: en.notes.untag }))
+    await settled(client)
+
+    expect(backend.argsOf('retag_notes')).toEqual([{ from: 'sea', to: null }])
   })
 })

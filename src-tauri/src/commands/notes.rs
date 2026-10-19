@@ -122,6 +122,13 @@ pub fn promote_note(
     actions::note::promote(&state.conn(), &id, promotion)
 }
 
+/// Rename a tag on every note that carries it, or take it off them when no
+/// new name is given. How many notes changed.
+#[tauri::command]
+pub fn retag_notes(state: State<'_, AppState>, from: String, to: Option<String>) -> Result<usize> {
+    actions::note::retag(&state.conn(), &from, to.as_deref())
+}
+
 /// Tags in use on notes, most used first.
 #[tauri::command]
 pub fn list_tags(state: State<'_, AppState>) -> Result<Vec<(String, i64)>> {

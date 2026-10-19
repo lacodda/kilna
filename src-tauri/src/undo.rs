@@ -95,6 +95,7 @@ pub fn reversible(kind: &str) -> bool {
             | "note.create"
             | "note.update"
             | "note.promote"
+            | "note.retag"
             | "comment.create"
             | "comment.update"
             | "style.update"
@@ -243,6 +244,31 @@ fn reverse(conn: &Connection, entry: &Operation, at: &str) -> Result<()> {
             let patch: crate::note::NotePatch = from_params(params, "before")?;
             apply(conn, |tx| {
                 crate::note::update_at(tx, &id, patch, &at).map(|_| ())
+            })?;
+        }
+        // A tag renamed on many notes goes back on each of them, as each held
+        // its tags before.
+        "note.retag" => {
+            let before = params
+                .get("before")
+                .and_then(Value::as_array)
+                .ok_or_else(|| Error::Internal("the retag carries no `before`".into()))?
+                .clone();
+            apply(conn, |tx| {
+                for one in &before {
+                    let id = one["id"].as_str().unwrap_or_default();
+                    let tags: Vec<String> = serde_json::from_value(one["tags"].clone())?;
+                    crate::note::update_at(
+                        tx,
+                        id,
+                        crate::note::NotePatch {
+                            tags: Some(tags),
+                            ..crate::note::NotePatch::default()
+                        },
+                        &at,
+                    )?;
+                }
+                Ok(())
             })?;
         }
         "comment.update" => {

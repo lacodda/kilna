@@ -504,6 +504,65 @@ pub fn tags(conn: &Connection, profile_id: &str) -> Result<Vec<(String, i64)>> {
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
+/// Rename a tag on every note of a profile that carries it - or, with no new
+/// name, take it off them - with the moment already decided. The tags each
+/// changed note held before, by its id: what an undo puts back.
+///
+/// A tag is a word many notes share, so renaming it note by note would be a
+/// thousand gestures for one decision (ADR 0064). A note that already carries
+/// the new name keeps it once, where it stood.
+pub fn retag_at(
+    conn: &Connection,
+    profile_id: &str,
+    from: &str,
+    to: Option<&str>,
+    at: &str,
+) -> Result<Vec<(String, Vec<String>)>> {
+    let to = to.map(str::trim).filter(|name| !name.is_empty());
+    if from.trim().is_empty() {
+        return Err(Error::refused("note.retagNeedsTag"));
+    }
+    let carrying = list(
+        conn,
+        profile_id,
+        &NoteFilter {
+            tag: Some(from.to_owned()),
+            ..NoteFilter::default()
+        },
+    )?;
+    let mut before = Vec::with_capacity(carrying.len());
+    for note in carrying {
+        let mut tags: Vec<String> = Vec::with_capacity(note.tags.len());
+        for tag in &note.tags {
+            let tag = if tag == from {
+                match to {
+                    Some(name) => name.to_owned(),
+                    None => continue,
+                }
+            } else {
+                tag.clone()
+            };
+            if !tags.contains(&tag) {
+                tags.push(tag);
+            }
+        }
+        if tags == note.tags {
+            continue;
+        }
+        update_at(
+            conn,
+            &note.id,
+            NotePatch {
+                tags: Some(tags),
+                ..NotePatch::default()
+            },
+            at,
+        )?;
+        before.push((note.id, note.tags));
+    }
+    Ok(before)
+}
+
 /// What promoting a note asks for: the kind of work it becomes, and the title
 /// it goes by.
 #[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
@@ -804,6 +863,27 @@ mod tests {
         .unwrap();
 
         assert!(updated.title.is_none());
+    }
+
+    #[test]
+    fn a_tag_is_renamed_or_taken_off_every_note_at_once() {
+        let (conn, profile_id) = fixtures::workspace();
+        let one = create(&conn, &profile_id, note("one", &["Phrases", "sea"])).unwrap();
+        let two = create(&conn, &profile_id, note("two", &["sea", "idea", "Phrases"])).unwrap();
+        create(&conn, &profile_id, note("three", &["sea"])).unwrap();
+
+        let before = retag_at(&conn, &profile_id, "Phrases", None, "t1").unwrap();
+        assert_eq!(before.len(), 2, "only the notes that carried it changed");
+        assert_eq!(get(&conn, &one.id).unwrap().unwrap().tags, ["sea"]);
+        assert_eq!(get(&conn, &two.id).unwrap().unwrap().tags, ["sea", "idea"]);
+
+        retag_at(&conn, &profile_id, "idea", Some(" seed "), "t2").unwrap();
+        assert_eq!(get(&conn, &two.id).unwrap().unwrap().tags, ["sea", "seed"]);
+
+        // Renamed onto a tag the note has already: kept once, where it stood.
+        retag_at(&conn, &profile_id, "seed", Some("sea"), "t3").unwrap();
+        assert_eq!(get(&conn, &two.id).unwrap().unwrap().tags, ["sea"]);
+        assert!(retag_at(&conn, &profile_id, "  ", None, "t4").is_err());
     }
 
     #[test]

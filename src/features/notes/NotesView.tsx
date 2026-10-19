@@ -25,6 +25,7 @@ import { Frame, ListDetail, Pane } from '@/components/frame'
 import { Loaded } from '@/components/Loaded'
 import { LineBank } from '@/features/notes/LineBank'
 import { NoteDetail } from '@/features/notes/NoteDetail'
+import { TagMenu } from '@/features/notes/TagMenu'
 
 /** Where the kind on show is kept in the address: `/notes?kind=phrase`. */
 const KIND = 'kind'
@@ -184,6 +185,8 @@ export function NotesView() {
               className="w-44"
             />
           )}
+          {/* The tag on show can be renamed, or taken off every note. */}
+          {tag !== '' && <TagMenu tag={tag} onTag={setTag} />}
           {!line && kind !== undefined && (
             <Button
               variant="primary"

@@ -222,6 +222,14 @@ fn apply(conn: &Connection, entry: &Operation) -> Result<bool> {
             note::update_at(conn, &id, patch, &at)?;
         }
 
+        "note.retag" => {
+            let profile_id = workspace_profile(conn, params)?;
+            let from = required(params, "from")?;
+            let to = params.get("to").and_then(Value::as_str);
+            let at = required(params, "at")?;
+            note::retag_at(conn, &profile_id, &from, to, &at)?;
+        }
+
         "comment.create" => {
             let profile_id = workspace_profile(conn, params)?;
             let new = from_params(params, "comment")?;

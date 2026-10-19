@@ -1272,7 +1272,21 @@
     "sungForms": "Как поётся",
     "whose": "Чьи слова",
     "whosePlaceholder": "Автор, фильм, песня",
-    "whoseEdit": "Чьи слова…"
+    "whoseEdit": "Чьи слова…",
+    "tagMenu": "Что сделать с меткой",
+    "retag": "Переименовать метку",
+    "retagTitle": "Переименовать метку «{{tag}}» во всех заметках",
+    "retagPlaceholder": "Новое название",
+    "untag": "Снять со всех заметок",
+    "untagged_one": "«{{tag}}» снята с {{count}} заметки.",
+    "untagged_few": "«{{tag}}» снята с {{count}} заметок.",
+    "untagged_many": "«{{tag}}» снята с {{count}} заметок.",
+    "untagged_other": "«{{tag}}» снята с {{count}} заметок.",
+    "retagged_one": "«{{tag}}» теперь «{{to}}» в {{count}} заметке.",
+    "retagged_few": "«{{tag}}» теперь «{{to}}» в {{count}} заметках.",
+    "retagged_many": "«{{tag}}» теперь «{{to}}» в {{count}} заметках.",
+    "retagged_other": "«{{tag}}» теперь «{{to}}» в {{count}} заметках.",
+    "retagFailed": "Не удалось изменить метку."
   },
   "styles": {
     "new": "Новый стиль",
@@ -1746,8 +1760,7 @@
     "upgrade.publicationsRenamed_many": "Публикации названы по-новому: переименовано {{count}} — «Песня (video)», «Песня (audio)», «Песня (short 2)»; хвост получили заголовков: {{tails}}.",
     "upgrade.publicationsRenamed_other": "Публикации названы по-новому: переименовано {{count}} — «Песня (video)», «Песня (audio)», «Песня (short 2)»; хвост получили заголовков: {{tails}}.",
     "upgrade.renameOnPlatform": "Смените заголовок «{{title}}» там, где он вышел: «{{was}}» → «{{now}}».",
-    "block.deleted": "Блок «{{label}}» убран из банка слов.",
-    "proposal.words": "{{client}} предлагает слова для банка и реестра.",
+    "proposal.words": "{{client}} предлагает слова для фраз и реестра.",
     "collection.created": "Коллекция «{{title}}» создана.",
     "collection.added_one": "{{count}} произведение добавлено в «{{title}}».",
     "collection.added_few": "{{count}} произведения добавлены в «{{title}}».",
@@ -1778,12 +1791,7 @@
     "layout.shiftedEarlier_few": "План с {{from}} сдвинут на {{count}} дня раньше — всего {{moved}}.",
     "layout.shiftedEarlier_many": "План с {{from}} сдвинут на {{count}} дней раньше — всего {{moved}}.",
     "layout.shiftedEarlier_other": "План с {{from}} сдвинут на {{count}} дня раньше — всего {{moved}}.",
-    "shelf": {
-      "deleted": "Полка «{{label}}» отправлена в корзину."
-    },
-    "proposal": {
-      "words": "{{client}} предлагает слова для фраз и реестра."
-    }
+    "shelf.deleted": "Полка «{{label}}» отправлена в корзину."
   },
   "card": {
     "tab": {
@@ -1917,11 +1925,6 @@
     "term.unlink": "отвязку произведения от термина",
     "idea.create": "идею на доске",
     "idea.update": "отметку идеи",
-    "block.create": "создание блока",
-    "block.rename": "переименование блока",
-    "block.move": "порядок блоков",
-    "block.add": "слово в блоке",
-    "block.remove": "слово, вынутое из блока",
     "repeat.keep": "оставленный повтор",
     "repeat.unkeep": "повтор, снова учтённый",
     "collection.setContents": "изменение состава коллекции",
@@ -1934,13 +1937,12 @@
     "release.pinRange": "закрепление дат",
     "layout.apply": "раскладку",
     "layout.shift": "сдвиг",
-    "shelf": {
-      "create": "создание полки",
-      "rename": "переименование полки",
-      "move": "порядок полок",
-      "add": "фразу на полке",
-      "remove": "снятие фразы с полки"
-    }
+    "shelf.create": "создание полки",
+    "shelf.rename": "переименование полки",
+    "shelf.move": "порядок полок",
+    "shelf.add": "фразу на полке",
+    "shelf.remove": "снятие фразы с полки",
+    "note.retag": "переименование метки во всех заметках"
   },
   "stage": {
     "label": "Стадия",
@@ -2672,7 +2674,8 @@
       "trialsNotArray": "`trials` - это список, и в нём хотя бы одна проба."
     },
     "note": {
-      "promoteNeedsTitle": "У произведения должно быть название."
+      "promoteNeedsTitle": "У произведения должно быть название.",
+      "retagNeedsTag": "Назовите метку, которую менять."
     },
     "readiness": {
       "badToday": "«{{value}}» — не дата в формате ISO."

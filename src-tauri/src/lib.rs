@@ -215,6 +215,7 @@ pub fn run_in(workspace: Option<std::path::PathBuf>) {
             commands::notes::delete_shelf,
             commands::notes::add_to_shelf,
             commands::notes::remove_from_shelf,
+            commands::notes::retag_notes,
             commands::notes::create_note,
             commands::notes::update_note,
             commands::notes::delete_note,

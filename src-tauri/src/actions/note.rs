@@ -118,3 +118,27 @@ pub fn keep_lines(
         Ok(Kept { notes, created })
     })
 }
+
+/// Rename a tag on every note that carries it - or, with no new name, take
+/// it off them - as one gesture, so one undo takes it back (ADR 0064). How
+/// many notes changed.
+pub fn retag(conn: &Connection, from: &str, to: Option<&str>) -> Result<usize> {
+    gesture(conn, "note.retag", |act| {
+        act.param("from", from);
+        act.param("to", to.map(str::to_owned));
+        act.stamped();
+        let before = note::retag_at(act, act.profile_id(), from, to, act.at())?;
+        if before.is_empty() {
+            act.unchanged();
+            return Ok(0);
+        }
+        act.json(
+            "before",
+            &before
+                .iter()
+                .map(|(id, tags)| serde_json::json!({ "id": id, "tags": tags }))
+                .collect::<Vec<_>>(),
+        )?;
+        Ok(before.len())
+    })
+}

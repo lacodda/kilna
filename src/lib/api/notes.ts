@@ -21,6 +21,10 @@ export const updateNote = (id: string, patch: NotePatch) =>
   invoke<Note>('update_note', { id, patch })
 export const deleteNote = (id: string) => invoke<string>('delete_note', { id })
 export const listTags = () => invoke<[string, number][]>('list_tags')
+/** Rename a tag on every note that carries it, or take it off them with no
+ *  new name: how many notes changed. */
+export const retagNotes = (from: string, to: string | null) =>
+  invoke<number>('retag_notes', { from, to })
 /** Turn a note into a work it stays tied to. Nothing is copied; a phrase is
  *  spent as well. Undo takes the whole gesture back. */
 export const promoteNote = (id: string, promotion: Promotion) =>

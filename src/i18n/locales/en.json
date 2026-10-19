@@ -1173,7 +1173,17 @@
     "sungForms": "How it is sung",
     "whose": "Whose words",
     "whosePlaceholder": "An author, a film, a song",
-    "whoseEdit": "Whose words…"
+    "whoseEdit": "Whose words…",
+    "tagMenu": "What to do with the tag",
+    "retag": "Rename the tag",
+    "retagTitle": "Rename the tag “{{tag}}” on every note",
+    "retagPlaceholder": "The new name",
+    "untag": "Take it off every note",
+    "untagged_one": "“{{tag}}” taken off {{count}} note.",
+    "untagged_other": "“{{tag}}” taken off {{count}} notes.",
+    "retagged_one": "“{{tag}}” is “{{to}}” on {{count}} note now.",
+    "retagged_other": "“{{tag}}” is “{{to}}” on {{count}} notes now.",
+    "retagFailed": "Could not change the tag."
   },
   "styles": {
     "new": "New style",
@@ -1620,8 +1630,7 @@
     "upgrade.publicationsRenamed_one": "Publications are named the new way: {{count}} renamed, “Song (video)”, “Song (audio)”, “Song (short 2)”; {{tails}} titles gained their tail.",
     "upgrade.publicationsRenamed_other": "Publications are named the new way: {{count}} renamed, “Song (video)”, “Song (audio)”, “Song (short 2)”; {{tails}} titles gained their tail.",
     "upgrade.renameOnPlatform": "Change the title of “{{title}}” where it went out: “{{was}}” → “{{now}}”.",
-    "block.deleted": "Block “{{label}}” taken out of the bank of words.",
-    "proposal.words": "{{client}} proposes words for the bank and the register.",
+    "proposal.words": "{{client}} proposes words for the phrases and the register.",
     "collection.created": "Collection “{{title}}” made.",
     "collection.added_one": "{{count}} work added to “{{title}}”.",
     "collection.added_other": "{{count}} works added to “{{title}}”.",
@@ -1640,12 +1649,7 @@
     "layout.shiftedLater_other": "The plan from {{from}} on moved {{count}} days later — {{moved}} in all.",
     "layout.shiftedEarlier_one": "The plan from {{from}} on moved {{count}} day earlier — {{moved}} in all.",
     "layout.shiftedEarlier_other": "The plan from {{from}} on moved {{count}} days earlier — {{moved}} in all.",
-    "shelf": {
-      "deleted": "Shelf “{{label}}” put in the trash."
-    },
-    "proposal": {
-      "words": "{{client}} proposes words for the phrases and the register."
-    }
+    "shelf.deleted": "Shelf “{{label}}” put in the trash."
   },
   "card": {
     "tab": {
@@ -1779,11 +1783,6 @@
     "term.unlink": "letting a work go from a term",
     "idea.create": "putting an idea on the board",
     "idea.update": "a verdict on an idea",
-    "block.create": "making a block",
-    "block.rename": "renaming a block",
-    "block.move": "the order of blocks",
-    "block.add": "putting a word in a block",
-    "block.remove": "taking a word out of a block",
     "repeat.keep": "keeping a repeat",
     "repeat.unkeep": "counting a repeat again",
     "collection.setContents": "a change to a collection's works",
@@ -1796,13 +1795,12 @@
     "release.pinRange": "keeping the dates",
     "layout.apply": "the layout",
     "layout.shift": "the shift",
-    "shelf": {
-      "create": "making a shelf",
-      "rename": "renaming a shelf",
-      "move": "the order of shelves",
-      "add": "putting a phrase on a shelf",
-      "remove": "taking a phrase off a shelf"
-    }
+    "shelf.create": "making a shelf",
+    "shelf.rename": "renaming a shelf",
+    "shelf.move": "the order of shelves",
+    "shelf.add": "putting a phrase on a shelf",
+    "shelf.remove": "taking a phrase off a shelf",
+    "note.retag": "a tag renamed on every note"
   },
   "stage": {
     "label": "Stage",
@@ -2517,7 +2515,8 @@
       "trialsNotArray": "`trials` has to be a list with at least one trial in it."
     },
     "note": {
-      "promoteNeedsTitle": "A work needs a title."
+      "promoteNeedsTitle": "A work needs a title.",
+      "retagNeedsTag": "Name the tag to change."
     },
     "readiness": {
       "badToday": "“{{value}}” is not an ISO date."
