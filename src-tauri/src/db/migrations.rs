@@ -622,7 +622,7 @@ mod tests {
         let mut statement = conn
             .prepare(
                 "SELECT k.id, k.entity, k.entity_id, s.body FROM search_key k
-                   JOIN search_index s ON s.rowid = k.id ORDER BY k.id",
+                   JOIN search_index s ON s.rowid = k.id ORDER BY k.rowid",
             )
             .unwrap();
         let rows: Vec<(i64, String, String, String)> = statement
