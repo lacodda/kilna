@@ -416,8 +416,8 @@ fn codes_rebuild_as_they_were_given() {
     );
 }
 
-/// A note promoted to a work rebuilds as the work, its version and the note
-/// gone — three rows from one operation, under the ids the first run minted.
+/// A note promoted to a work rebuilds as the work and the note tied to it -
+/// from one operation, under the id the first run minted (ADR 0064).
 #[test]
 fn a_promoted_note_rebuilds_as_its_work() {
     use kilna_lib::note::{NewNote, Promotion};
@@ -461,13 +461,16 @@ fn a_promoted_note_rebuilds_as_its_work() {
     want.remove("tombstone");
     got.remove("tombstone");
     assert_eq!(got, want, "the rebuilt workspace is not the same workspace");
-    let versions = got["work_version"].as_array().unwrap();
+    // Nothing is copied (ADR 0064): the work starts empty, the note stays
+    // tied to it - on rebuild as on the first run.
+    assert!(got["work_version"].as_array().unwrap().is_empty());
+    let notes = got["note"].as_array().unwrap();
+    assert_eq!(notes.len(), 1, "the note stays");
     assert_eq!(
-        versions.len(),
-        1,
-        "the promotion made no version on rebuild"
+        notes[0]["work_id"],
+        got["work"].as_array().unwrap()[0]["id"],
+        "tied to the work it grew into"
     );
-    assert!(got["note"].as_array().unwrap().is_empty());
 }
 
 /// A comment kept and then answered rebuilds as the same row: the creation and

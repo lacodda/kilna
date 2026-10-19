@@ -1245,8 +1245,9 @@ fn undoing_a_description_puts_back_the_draft_it_was() {
     );
 }
 
-/// Promoting a note is taken back as the gesture it was: the work goes, the
-/// note returns. Restoring only the note would leave its text in two places.
+/// Promoting a note is taken back as the gesture it was: the work goes, and
+/// the note it stayed tied to (ADR 0064) is let go of it first - a note tied
+/// to a work in the trash would go with it.
 #[test]
 fn a_promotion_is_taken_back_whole() {
     use kilna_lib::note::{self, NewNote, Promotion};
@@ -1283,15 +1284,15 @@ fn a_promotion_is_taken_back_whole() {
         work::get(&conn, &promoted.work_id).unwrap().is_none(),
         "the work the promotion made is still there"
     );
-    assert_eq!(
-        note::get(&conn, &idea.id).unwrap().unwrap().body,
-        "a comma in the rock",
-        "the note did not come back"
-    );
+    let back = note::get(&conn, &idea.id)
+        .unwrap()
+        .expect("the note went with the work");
+    assert_eq!(back.body, "a comma in the rock");
+    assert_eq!(back.work_id, None, "the note is let go of the work");
 }
 
 #[test]
-fn a_spent_idea_goes_back_to_fresh_when_its_promotion_is_taken_back() {
+fn a_spent_phrase_goes_back_to_fresh_when_its_promotion_is_taken_back() {
     use kilna_lib::note::{self, NewNote, NoteState, Promotion};
 
     let (mut conn, profile_id, _) = workspace();
@@ -1300,7 +1301,7 @@ fn a_spent_idea_goes_back_to_fresh_when_its_promotion_is_taken_back() {
         &profile_id,
         NewNote {
             body: "a lighthouse keeps the hours".into(),
-            kind: Some("idea".into()),
+            kind: Some("phrase".into()),
             ..Default::default()
         },
     )
@@ -1316,7 +1317,7 @@ fn a_spent_idea_goes_back_to_fresh_when_its_promotion_is_taken_back() {
     )
     .unwrap();
     let spent = note::get(&conn, &idea.id).unwrap().unwrap();
-    assert_eq!(spent.state, NoteState::Used, "an idea is spent, not moved");
+    assert_eq!(spent.state, NoteState::Used, "a phrase is spent, not moved");
     assert_eq!(spent.work_id.as_deref(), Some(promoted.work_id.as_str()));
 
     let offer = undo::last(&conn)
@@ -1329,7 +1330,7 @@ fn a_spent_idea_goes_back_to_fresh_when_its_promotion_is_taken_back() {
     assert_eq!(
         back.state,
         NoteState::Fresh,
-        "the idea is there to use again"
+        "the phrase is there to use again"
     );
     assert_eq!(back.work_id, None);
 }
