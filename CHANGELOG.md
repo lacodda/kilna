@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.98.0] - 2026-10-19
+
+### Bug Fixes
+- Give a deleted shelf its look in the history
+- Open the Notes screen on the phrases in an older workspace too
+- Call a tag a tag in Russian, not a mark
+
+### Documentation
+- Two shelves - phrases on shelves, notes, ADR 0064
+
+### Features
+- Keep material on two shelves - phrases and notes
+- Rename a tag on every note, or take it off them all
+
+### Performance
+- Find a row of the index by its key, not by reading it all
+
+### Testing
+- Hold the promotion that copies nothing in replay and undo
+- Order the keyed index by rowid, which the ordering rule reads as an order
+
 ## [0.97.0] - 2026-10-14
 
 ### Features
