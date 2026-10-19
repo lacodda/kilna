@@ -1273,20 +1273,20 @@
     "whose": "Чьи слова",
     "whosePlaceholder": "Автор, фильм, песня",
     "whoseEdit": "Чьи слова…",
-    "tagMenu": "Что сделать с меткой",
-    "retag": "Переименовать метку",
-    "retagTitle": "Переименовать метку «{{tag}}» во всех заметках",
+    "tagMenu": "Что сделать с тегом",
+    "retag": "Переименовать тег",
+    "retagTitle": "Переименовать тег «{{tag}}» во всех заметках",
     "retagPlaceholder": "Новое название",
     "untag": "Снять со всех заметок",
-    "untagged_one": "«{{tag}}» снята с {{count}} заметки.",
-    "untagged_few": "«{{tag}}» снята с {{count}} заметок.",
-    "untagged_many": "«{{tag}}» снята с {{count}} заметок.",
-    "untagged_other": "«{{tag}}» снята с {{count}} заметок.",
-    "retagged_one": "«{{tag}}» теперь «{{to}}» в {{count}} заметке.",
-    "retagged_few": "«{{tag}}» теперь «{{to}}» в {{count}} заметках.",
-    "retagged_many": "«{{tag}}» теперь «{{to}}» в {{count}} заметках.",
-    "retagged_other": "«{{tag}}» теперь «{{to}}» в {{count}} заметках.",
-    "retagFailed": "Не удалось изменить метку."
+    "untagged_one": "Тег «{{tag}}» снят с {{count}} заметки.",
+    "untagged_few": "Тег «{{tag}}» снят с {{count}} заметок.",
+    "untagged_many": "Тег «{{tag}}» снят с {{count}} заметок.",
+    "untagged_other": "Тег «{{tag}}» снят с {{count}} заметок.",
+    "retagged_one": "Тег «{{tag}}» теперь «{{to}}» в {{count}} заметке.",
+    "retagged_few": "Тег «{{tag}}» теперь «{{to}}» в {{count}} заметках.",
+    "retagged_many": "Тег «{{tag}}» теперь «{{to}}» в {{count}} заметках.",
+    "retagged_other": "Тег «{{tag}}» теперь «{{to}}» в {{count}} заметках.",
+    "retagFailed": "Не удалось изменить тег."
   },
   "styles": {
     "new": "Новый стиль",
@@ -1942,7 +1942,7 @@
     "shelf.move": "порядок полок",
     "shelf.add": "фразу на полке",
     "shelf.remove": "снятие фразы с полки",
-    "note.retag": "переименование метки во всех заметках"
+    "note.retag": "переименование тега во всех заметках"
   },
   "stage": {
     "label": "Стадия",
@@ -2675,7 +2675,7 @@
     },
     "note": {
       "promoteNeedsTitle": "У произведения должно быть название.",
-      "retagNeedsTag": "Назовите метку, которую менять."
+      "retagNeedsTag": "Назовите тег, который менять."
     },
     "readiness": {
       "badToday": "«{{value}}» — не дата в формате ISO."
