@@ -29,11 +29,14 @@ quote - to use somewhere later, or a thought, from a seed to a written page.
 migration 0040 turns every idea into a note tagged `idea` - a tag rather than
 a kind, because finding the seeds again is a filter, not a different thing -
 and the profile upgrade takes the kind out of an older stored copy
-(`RETIRED_NOTE_KINDS`). A note is not spent by works, so a converted idea
-stands fresh; one that went into a work stays tied to it. The tag is the
-key `idea`, not a word of the owner's language: a migration does not know
-the language of the window. Renaming a tag on every note at once is one
-gesture (`note.retag`), and that is how it becomes the owner's word.
+(`RETIRED_NOTE_KINDS`) and puts the plain kinds left in the shipped order,
+phrase first - a copy grown kind by kind held the note first, and its Notes
+screen would have opened on the notes while a new one opened on the phrases.
+A note is not spent by works, so a converted idea stands fresh; one that
+went into a work stays tied to it. The tag is the key `idea`, not a word
+of the owner's language: a migration does not know the language of the
+window. Renaming a tag on every note at once is one gesture
+(`note.retag`), and that is how it becomes the owner's word.
 
 **A word of the bank is a phrase; a block is a shelf.** A word is only the
 shortest phrase. Migration 0040 writes every banked word as a phrase in its
@@ -86,6 +89,11 @@ one shelf's, in place of `{words}`.
 - What the trash held is rewritten by the migration: a term without its
   bank, a block as a shelf without its words (they are phrases now, on the
   shelf by themselves), an idea as the note it would be.
+- Renaming a tag rewrites every note that carries it, and each write
+  used to read the whole search index to find the note's old row (its
+  owner columns are UNINDEXED in FTS5): about 13 seconds for 803 notes. Since
+  migration 0041 a row is found by key (`search_key`, rowid = key id),
+  and the same gesture takes well under a second.
 - Operations logged before v0.98 under `block.*` are no longer replayed or
   undone: the rows they named are gone. `note.promote` keeps reading both
   shapes.

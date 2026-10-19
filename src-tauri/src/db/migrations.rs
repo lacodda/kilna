@@ -258,6 +258,12 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0040_two_shelves.sql"),
         rebuilds: true,
     },
+    Migration {
+        version: 41,
+        name: "search_by_key",
+        sql: include_str!("../../migrations/0041_search_by_key.sql"),
+        rebuilds: false,
+    },
 ];
 
 /// The newest schema this build understands.
@@ -590,6 +596,53 @@ mod tests {
             ],
             "an idea in the trash comes back as a note, its tags still text"
         );
+    }
+
+    /// The index of a workspace made before 0041 is keyed by the rows it
+    /// holds: each keeps its rowid as its key, and a thing indexed twice keeps
+    /// its later text only - the triggers find one row per key from then on.
+    #[test]
+    fn the_index_takes_its_rows_as_keys_and_keeps_the_later_of_two() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.pragma_update(None, "foreign_keys", true).unwrap();
+        for migration in MIGRATIONS.iter().filter(|m| m.version <= 40) {
+            conn.execute_batch(migration.sql).unwrap();
+        }
+        conn.pragma_update(None, "user_version", 40).unwrap();
+        conn.execute_batch(
+            "INSERT INTO search_index (rowid, entity, entity_id, profile_id, work_id, body)
+                 VALUES (3, 'note', 'n1', 'p', NULL, 'older words'),
+                        (7, 'note', 'n1', 'p', NULL, 'later words'),
+                        (9, 'work', 'w1', 'p', 'w1', 'Harbour lights');",
+        )
+        .unwrap();
+
+        apply(&mut conn).unwrap();
+
+        let mut statement = conn
+            .prepare(
+                "SELECT k.id, k.entity, k.entity_id, s.body FROM search_key k
+                   JOIN search_index s ON s.rowid = k.id ORDER BY k.id",
+            )
+            .unwrap();
+        let rows: Vec<(i64, String, String, String)> = statement
+            .query_map([], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+            })
+            .unwrap()
+            .map(|row| row.unwrap())
+            .collect();
+        assert_eq!(
+            rows,
+            [
+                (7, "note".into(), "n1".into(), "later words".into()),
+                (9, "work".into(), "w1".into(), "Harbour lights".into()),
+            ]
+        );
+        let left: i64 = conn
+            .query_row("SELECT count(*) FROM search_index", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(left, 2, "the older text of the same note is gone");
     }
 
     #[test]

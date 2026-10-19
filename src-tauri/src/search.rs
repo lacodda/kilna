@@ -18,6 +18,12 @@
 //! text per keystroke. The index is `search_index`, filled and maintained by
 //! the triggers of migration 0023.
 //!
+//! Since 0041 a row of the index is found by key: `search_key` gives every
+//! indexed thing an id, and its row is written under that rowid. The columns
+//! that say whose a row is are UNINDEXED in FTS5, so a trigger that looked a
+//! row up by them read the whole index - 16 ms a write on a real workspace,
+//! and seconds for a gesture that rewrites hundreds of notes at once.
+//!
 //! ## The one thing FTS5 does not do for Russian
 //!
 //! There is no stemmer. A bare `холодильник` matches only that exact word, so
@@ -633,6 +639,91 @@ mod tests {
                 .iter()
                 .any(|hit| hit.kind == Kind::Version),
             "the new text should be in it"
+        );
+    }
+
+    /// Every indexed thing has one row in the index, under the id its key
+    /// gives it (0041): a write finds the old text by rowid rather than by
+    /// reading the whole index, and a delete takes the key with the row.
+    #[test]
+    fn every_indexed_thing_has_one_row_under_its_key() {
+        let (conn, profile_id) = fixtures::workspace();
+        let work = song(&conn, &profile_id, "Harbour lights");
+        let kept = note::create(
+            &conn,
+            &profile_id,
+            NewNote {
+                body: "the cranes go still".into(),
+                tags: vec!["idea".into()],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let gone = note::create(
+            &conn,
+            &profile_id,
+            NewNote {
+                body: "a line that goes".into(),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        conn.execute(
+            "UPDATE note SET tags = '[\"seed\"]', body = 'the gulls go quiet' WHERE id = ?1",
+            params![kept.id],
+        )
+        .unwrap();
+        conn.execute(
+            "UPDATE work SET title = 'Harbour nights' WHERE id = ?1",
+            params![work],
+        )
+        .unwrap();
+        conn.execute("DELETE FROM note WHERE id = ?1", params![gone.id])
+            .unwrap();
+
+        let rows: i64 = conn
+            .query_row("SELECT count(*) FROM search_index", [], |row| row.get(0))
+            .unwrap();
+        let keyed: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM search_index s
+                   JOIN search_key k ON k.id = s.rowid
+                  WHERE k.entity = s.entity AND k.entity_id = s.entity_id",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let keys: i64 = conn
+            .query_row("SELECT count(*) FROM search_key", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(
+            (rows, keyed, keys),
+            (rows, rows, rows),
+            "one row per key, under it"
+        );
+        assert!(rows >= 2, "the work and the kept note are indexed");
+        assert_eq!(
+            conn.query_row(
+                "SELECT count(*) FROM search_key WHERE entity_id = ?1",
+                params![gone.id],
+                |row| row.get::<_, i64>(0)
+            )
+            .unwrap(),
+            0,
+            "a deleted note takes its key with it"
+        );
+        assert!(find(&conn, &profile_id, "cranes").unwrap().is_empty());
+        assert!(
+            find(&conn, &profile_id, "gulls")
+                .unwrap()
+                .iter()
+                .any(|hit| hit.entity_id == kept.id)
+        );
+        assert!(
+            find(&conn, &profile_id, "nights")
+                .unwrap()
+                .iter()
+                .any(|hit| hit.kind == Kind::Work)
         );
     }
 
